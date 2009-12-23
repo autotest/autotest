@@ -78,9 +78,9 @@ def _construct_machine_label_header_sql(machine_labels):
     """
     Example result for machine_labels=['Index', 'Diskful']:
     CONCAT_WS(",",
-              IF(FIND_IN_SET("Diskful", test_attributes_host_labels.value),
+              IF(FIND_IN_SET("Diskful", tko_test_attributes_host_labels.value),
                  "Diskful", NULL),
-              IF(FIND_IN_SET("Index", test_attributes_host_labels.value),
+              IF(FIND_IN_SET("Index", tko_test_attributes_host_labels.value),
                  "Index", NULL))
 
     This would result in field values "Diskful,Index", "Diskful", "Index", NULL.
@@ -89,7 +89,7 @@ def _construct_machine_label_header_sql(machine_labels):
     if_clauses = []
     for label in machine_labels:
         if_clauses.append(
-            'IF(FIND_IN_SET("%s", test_attributes_host_labels.value), '
+            'IF(FIND_IN_SET("%s", tko_test_attributes_host_labels.value), '
                '"%s", NULL)' % (label, label))
     return 'CONCAT_WS(",", %s)' % ', '.join(if_clauses)
 

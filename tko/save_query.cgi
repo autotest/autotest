@@ -31,7 +31,7 @@ def log_query():
     data_to_insert = {'uid':uid, 'time_created':tm,
               'user_comment':comment, 'url':HTTP_REFERER }
     try:
-        db_obj.insert('query_history', data_to_insert)
+        db_obj.insert('tko_query_history', data_to_insert)
     except:
         raise QueryHistoryError("Could not save query")
 
@@ -41,7 +41,7 @@ def delete_query(time_stamp):
     db_obj = db.db()
     data_to_delete = {'time_created':time_stamp}
     try:
-        db_obj.delete('query_history', data_to_delete)
+        db_obj.delete('tko_query_history', data_to_delete)
     except Exception:
         raise QueryHistoryError("Could not delete query")
     
@@ -78,6 +78,3 @@ def main():
 
 
 main()
-
-
-

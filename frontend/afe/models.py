@@ -64,7 +64,7 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
 
 
     class Meta:
-        db_table = 'atomic_groups'
+        db_table = 'afe_atomic_groups'
 
 
     def __unicode__(self):
@@ -111,7 +111,7 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
 
 
     class Meta:
-        db_table = 'labels'
+        db_table = 'afe_labels'
 
     def __unicode__(self):
         return unicode(self.name)
@@ -162,7 +162,7 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
 
 
     class Meta:
-        db_table = 'users'
+        db_table = 'afe_users'
 
     def __unicode__(self):
         return unicode(self.login)
@@ -191,7 +191,8 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
                        string_values=True)
 
     hostname = dbmodels.CharField(max_length=255, unique=True)
-    labels = dbmodels.ManyToManyField(Label, blank=True)
+    labels = dbmodels.ManyToManyField(Label, blank=True,
+                                      db_table='afe_hosts_labels')
     locked = dbmodels.BooleanField(default=False)
     synch_id = dbmodels.IntegerField(blank=True, null=True,
                                      editable=settings.FULL_ADMIN)
@@ -342,7 +343,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
 
 
     class Meta:
-        db_table = 'hosts'
+        db_table = 'afe_hosts'
 
     def __unicode__(self):
         return unicode(self.hostname)
@@ -357,7 +358,7 @@ class HostAttribute(dbmodels.Model):
     objects = model_logic.ExtendedManager()
 
     class Meta:
-        db_table = 'host_attributes'
+        db_table = 'afe_host_attributes'
 
 
 class Test(dbmodels.Model, model_logic.ModelExtensions):
@@ -400,14 +401,16 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     test_type = dbmodels.SmallIntegerField(choices=Types.choices())
     sync_count = dbmodels.IntegerField(default=1)
     path = dbmodels.CharField(max_length=255, unique=True)
-    dependency_labels = dbmodels.ManyToManyField(Label, blank=True)
 
+    dependency_labels = (
+        dbmodels.ManyToManyField(Label, blank=True,
+                                 db_table='afe_autotests_dependency_labels'))
     name_field = 'name'
     objects = model_logic.ExtendedManager()
 
 
     class Meta:
-        db_table = 'autotests'
+        db_table = 'afe_autotests'
 
     def __unicode__(self):
         return unicode(self.name)
@@ -430,7 +433,7 @@ class Profiler(dbmodels.Model, model_logic.ModelExtensions):
 
 
     class Meta:
-        db_table = 'profilers'
+        db_table = 'afe_profilers'
 
     def __unicode__(self):
         return unicode(self.name)
@@ -446,8 +449,10 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     """
     name = dbmodels.CharField(max_length=255, unique=True)
     description = dbmodels.CharField(max_length=255, blank=True)
-    users = dbmodels.ManyToManyField(User, blank=False)
-    hosts = dbmodels.ManyToManyField(Host, blank=True)
+    users = dbmodels.ManyToManyField(User, blank=False,
+                                     db_table='afe_acl_groups_users')
+    hosts = dbmodels.ManyToManyField(Host, blank=True,
+                                     db_table='afe_acl_groups_hosts')
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
@@ -566,7 +571,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 
 
     class Meta:
-        db_table = 'acl_groups'
+        db_table = 'afe_acl_groups'
 
     def __unicode__(self):
         return unicode(self.name)
@@ -585,7 +590,7 @@ class JobManager(model_logic.ExtendedManager):
         cursor = connection.cursor()
         cursor.execute("""
             SELECT job_id, status, aborted, complete, COUNT(*)
-            FROM host_queue_entries
+            FROM afe_host_queue_entries
             WHERE job_id IN %s
             GROUP BY job_id, status, aborted, complete
             """ % id_list)
@@ -646,7 +651,9 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     timeout = dbmodels.IntegerField(default=DEFAULT_TIMEOUT)
     run_verify = dbmodels.BooleanField(default=True)
     email_list = dbmodels.CharField(max_length=250, blank=True)
-    dependency_labels = dbmodels.ManyToManyField(Label, blank=True)
+    dependency_labels = (
+            dbmodels.ManyToManyField(Label, blank=True,
+                                     db_table='afe_jobs_dependency_labels'))
     reboot_before = dbmodels.SmallIntegerField(choices=RebootBefore.choices(),
                                                blank=True,
                                                default=DEFAULT_REBOOT_BEFORE)
@@ -737,7 +744,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
 
     class Meta:
-        db_table = 'jobs'
+        db_table = 'afe_jobs'
 
     def __unicode__(self):
         return u'%s (%s-%s)' % (self.name, self.id, self.owner)
@@ -750,13 +757,13 @@ class IneligibleHostQueue(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
 
     class Meta:
-        db_table = 'ineligible_host_queues'
+        db_table = 'afe_ineligible_host_queues'
 
 
 class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     Status = host_queue_entry_states.Status
     ACTIVE_STATUSES = host_queue_entry_states.ACTIVE_STATUSES
-    COMPLETE_STATUSES = host_queue_entry_states.COMPLETE_STATUSES 
+    COMPLETE_STATUSES = host_queue_entry_states.COMPLETE_STATUSES
 
     job = dbmodels.ForeignKey(Job)
     host = dbmodels.ForeignKey(Host, blank=True, null=True)
@@ -871,7 +878,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
 
     class Meta:
-        db_table = 'host_queue_entries'
+        db_table = 'afe_host_queue_entries'
 
 
 
@@ -895,7 +902,7 @@ class AbortedHostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         super(AbortedHostQueueEntry, self).save(*args, **kwargs)
 
     class Meta:
-        db_table = 'aborted_host_queue_entries'
+        db_table = 'afe_aborted_host_queue_entries'
 
 
 class RecurringRun(dbmodels.Model, model_logic.ModelExtensions):
@@ -917,7 +924,7 @@ class RecurringRun(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
 
     class Meta:
-        db_table = 'recurring_run'
+        db_table = 'afe_recurring_run'
 
     def __unicode__(self):
         return u'RecurringRun(job %s, start %s, period %s, count %s)' % (
@@ -1027,7 +1034,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
 
 
     class Meta:
-        db_table = 'special_tasks'
+        db_table = 'afe_special_tasks'
 
 
     def __unicode__(self):

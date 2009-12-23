@@ -15,7 +15,7 @@ from autotest_lib.client.common_lib import kernel_versions
 parser = optparse.OptionParser()
 parser.add_option('-C', '--columns', action='store', dest='columns',
             default='*', help="""\
-By default or when using the -c flag: 
+By default or when using the -c flag:
 kernel hostname test label machine_group reason tag user status
 
 OR
@@ -50,11 +50,11 @@ if options.old_condition and options.new_condition:
 elif options.old_condition:
     where = query_lib.parse_scrub_and_gen_condition(
                 options.old_condition, frontend.test_view_field_dict)
-    view = 'test_view'
+    view = 'tko_test_view'
     tag = 'tag'
 elif options.new_condition:
     where = options.new_condition.replace('%', '%%')
-    view = 'test_view_2'
+    view = 'tko_test_view_2'
     tag = 'job_tag'
 else:
     parser.error('You must specify at least one condition.')
@@ -74,9 +74,9 @@ if options.old_condition:
 if options.host_label:
     database = database_connection.DatabaseConnection("AUTOTEST_WEB")
     database.connect()
-    sql = ("SELECT hostname FROM labels JOIN hosts_labels "
-           "ON labels.id=hosts_labels.label_id JOIN hosts "
-           "ON hosts_labels.host_id=hosts.id WHERE name=%s")
+    sql = ("SELECT hostname FROM afe_labels JOIN afe_hosts_labels "
+           "ON afe_labels.id=afe_hosts_labels.label_id JOIN afe_hosts "
+           "ON afe_hosts_labels.host_id=afe_hosts.id WHERE name=%s")
     results = database.execute(sql, options.host_label)
     hosts = [row[0] for row in results]
     where += " AND hostname IN ('" + "','".join(hosts) + "')"

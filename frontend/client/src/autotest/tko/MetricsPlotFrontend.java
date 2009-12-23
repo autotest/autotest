@@ -231,7 +231,7 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
             addSeriesSelects(series, sql);
         }
         
-        sql.append(" FROM perf_view_2");
+        sql.append(" FROM tko_perf_view_2");
             
         String xFilterString = globalFilter.getFilterString();
         if (xFilterString.equals("")) {
@@ -261,7 +261,7 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
         
         sql.append("SELECT test_idx, ");
         sql.append(valueSelector.getSelectedValue());
-        sql.append(" FROM perf_view_2 WHERE ");
+        sql.append(" FROM tko_perf_view_2 WHERE ");
         
         String seriesFilter = series.getFilterString();
         if (!xFilterString.equals("") || !seriesFilter.equals("")) {
@@ -296,13 +296,13 @@ public class MetricsPlotFrontend extends DynamicGraphingFrontend implements Clic
         
         sql.append(", ");
         sql.append(series.getAggregation());
-        sql.append(ifClause);
+        sql.append(ifClause.toString());
         sql.append(") '");
         sql.append(series.getName());
         sql.append("'");
         if (series.wantErrorBars()) {
             sql.append(", STDDEV(");
-            sql.append(ifClause);
+            sql.append(ifClause.toString());
             sql.append(") 'errors-");
             sql.append(series.getName());
             sql.append("'");

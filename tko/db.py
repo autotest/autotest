@@ -21,7 +21,7 @@ class db_sql(object):
         # if not present, insert statuses
         self.status_idx = {}
         self.status_word = {}
-        status_rows = self.select('status_idx, word', 'status', None)
+        status_rows = self.select('status_idx, word', 'tko_status', None)
         for s in status_rows:
             self.status_idx[s[1]] = s[0]
             self.status_word[s[0]] = s[1]
@@ -302,13 +302,13 @@ class db_sql(object):
         job_idx = self.find_job(tag)
         for test_idx in self.find_tests(job_idx):
             where = {'test_idx' : test_idx}
-            self.delete('iteration_result', where)
-            self.delete('iteration_attributes', where)
-            self.delete('test_attributes', where)
-            self.delete('test_labels_tests', {'test_id': test_idx})
+            self.delete('tko_iteration_result', where)
+            self.delete('tko_iteration_attributes', where)
+            self.delete('tko_test_attributes', where)
+            self.delete('tko_test_labels_tests', {'test_id': test_idx})
         where = {'job_idx' : job_idx}
-        self.delete('tests', where)
-        self.delete('jobs', where)
+        self.delete('tko_tests', where)
+        self.delete('tko_jobs', where)
 
 
     def insert_job(self, tag, job, commit = None):
@@ -334,9 +334,9 @@ class db_sql(object):
                 'afe_job_id': afe_job_id}
         is_update = hasattr(job, 'index')
         if is_update:
-            self.update('jobs', data, {'job_idx': job.index}, commit=commit)
+            self.update('tko_jobs', data, {'job_idx': job.index}, commit=commit)
         else:
-            self.insert('jobs', data, commit=commit)
+            self.insert('tko_jobs', data, commit=commit)
             job.index = self.get_last_autonumber_value()
         for test in job.tests:
             self.insert_test(job, test, commit=commit)
@@ -353,14 +353,15 @@ class db_sql(object):
         is_update = hasattr(test, "test_idx")
         if is_update:
             test_idx = test.test_idx
-            self.update('tests', data, {'test_idx': test_idx}, commit=commit)
+            self.update('tko_tests', data,
+                        {'test_idx': test_idx}, commit=commit)
             where = {'test_idx': test_idx}
-            self.delete('iteration_result', where)
-            self.delete('iteration_attributes', where)
+            self.delete('tko_iteration_result', where)
+            self.delete('tko_iteration_attributes', where)
             where['user_created'] = 0
-            self.delete('test_attributes', where)
+            self.delete('tko_test_attributes', where)
         else:
-            self.insert('tests', data, commit=commit)
+            self.insert('tko_tests', data, commit=commit)
             test_idx = test.test_idx = self.get_last_autonumber_value()
         data = {'test_idx': test_idx}
 
@@ -369,23 +370,23 @@ class db_sql(object):
             for key, value in i.attr_keyval.iteritems():
                 data['attribute'] = key
                 data['value'] = value
-                self.insert('iteration_attributes', data,
+                self.insert('tko_iteration_attributes', data,
                             commit=commit)
             for key, value in i.perf_keyval.iteritems():
                 data['attribute'] = key
                 data['value'] = value
-                self.insert('iteration_result', data,
+                self.insert('tko_iteration_result', data,
                             commit=commit)
 
         for key, value in test.attributes.iteritems():
             data = {'test_idx': test_idx, 'attribute': key,
                     'value': value}
-            self.insert('test_attributes', data, commit=commit)
+            self.insert('tko_test_attributes', data, commit=commit)
 
         if not is_update:
             for label_index in test.labels:
                 data = {'test_id': test_idx, 'testlabel_id': label_index}
-                self.insert('test_labels_tests', data, commit=commit)
+                self.insert('tko_test_labels_tests', data, commit=commit)
 
 
     def read_machine_map(self):
@@ -412,20 +413,20 @@ class db_sql(object):
 
     def insert_machine(self, job, commit = None):
         machine_info = self.machine_info_dict(job)
-        self.insert('machines', machine_info, commit=commit)
+        self.insert('tko_machines', machine_info, commit=commit)
         return self.get_last_autonumber_value()
 
 
     def update_machine_information(self, job, commit = None):
         machine_info = self.machine_info_dict(job)
-        self.update('machines', machine_info,
+        self.update('tko_machines', machine_info,
                     where={'hostname': machine_info['hostname']},
                     commit=commit)
 
 
     def lookup_machine(self, hostname):
         where = { 'hostname' : hostname }
-        rows = self.select('machine_idx', 'machines', where)
+        rows = self.select('machine_idx', 'tko_machines', where)
         if rows:
             return rows[0][0]
         else:
@@ -433,7 +434,7 @@ class db_sql(object):
 
 
     def lookup_kernel(self, kernel):
-        rows = self.select('kernel_idx', 'kernels',
+        rows = self.select('kernel_idx', 'tko_kernels',
                                 {'kernel_hash':kernel.kernel_hash})
         if rows:
             return rows[0][0]
@@ -456,7 +457,7 @@ class db_sql(object):
             if not match:
                 patch_count += 1
 
-        self.insert('kernels',
+        self.insert('tko_kernels',
                     {'base':kernel.base,
                      'kernel_hash':kernel.kernel_hash,
                      'printable':printable},
@@ -465,7 +466,7 @@ class db_sql(object):
 
         if patch_count > 0:
             printable += ' p%d' % (kver)
-            self.update('kernels',
+            self.update('tko_kernels',
                     {'printable':printable},
                     {'kernel_idx':kver})
 
@@ -477,7 +478,7 @@ class db_sql(object):
     def insert_patch(self, kver, patch, commit = None):
         print patch.reference
         name = os.path.basename(patch.reference)[:80]
-        self.insert('patches',
+        self.insert('tko_patches',
                     {'kernel_idx': kver,
                      'name':name,
                      'url':patch.reference,
@@ -487,7 +488,7 @@ class db_sql(object):
 
     def find_test(self, job_idx, testname, subdir):
         where = {'job_idx': job_idx , 'test': testname, 'subdir': subdir}
-        rows = self.select('test_idx', 'tests', where)
+        rows = self.select('test_idx', 'tko_tests', where)
         if rows:
             return rows[0][0]
         else:
@@ -496,7 +497,7 @@ class db_sql(object):
 
     def find_tests(self, job_idx):
         where = { 'job_idx':job_idx }
-        rows = self.select('test_idx', 'tests', where)
+        rows = self.select('test_idx', 'tko_tests', where)
         if rows:
             return [row[0] for row in rows]
         else:
@@ -504,7 +505,7 @@ class db_sql(object):
 
 
     def find_job(self, tag):
-        rows = self.select('job_idx', 'jobs', {'tag': tag})
+        rows = self.select('job_idx', 'tko_jobs', {'tag': tag})
         if rows:
             return rows[0][0]
         else:

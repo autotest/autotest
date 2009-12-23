@@ -85,7 +85,7 @@ def get_matrix_data(db_obj, x_axis, y_axis, where = None,
     fields = ','.join(query_fields_list)
 
     group_by = '%s, %s, status' % (x_field, y_field)
-    rows = db_obj.select(fields, 'test_view',
+    rows = db_obj.select(fields, 'tko_test_view',
                     where=where, group_by=group_by, max_rows = MAX_RECORDS)
     return status_data(rows, x_field, y_field, query_reasons)
 
@@ -138,7 +138,7 @@ class group:
     @classmethod
     def select(klass, db):
         """Return all possible machine groups"""
-        rows = db.select('distinct machine_group', 'machines',
+        rows = db.select('distinct machine_group', 'tko_machines',
                                         'machine_group is not null')
         groupnames = sorted([row[0] for row in rows])
         return [klass(db, groupname) for groupname in groupnames]
@@ -155,7 +155,7 @@ class group:
 
     def tests(self, where = {}):
         values = [self.name]
-        sql = 't inner join machines m on m.machine_idx=t.machine_idx'
+        sql = 't inner join tko_machines m on m.machine_idx=t.machine_idx'
         sql += ' where m.machine_group=%s'
         for key in where.keys():
             sql += ' and %s=%%s' % key
@@ -168,7 +168,7 @@ class machine:
     def select(klass, db, where = {}):
         fields = ['machine_idx', 'hostname', 'machine_group', 'owner']
         machines = []
-        for row in db.select(','.join(fields), 'machines', where):
+        for row in db.select(','.join(fields), 'tko_machines', where):
             machines.append(klass(db, *row))
         return machines
 
@@ -185,7 +185,7 @@ class kernel:
     @classmethod
     def select(klass, db, where = {}):
         fields = ['kernel_idx', 'kernel_hash', 'base', 'printable']
-        rows = db.select(','.join(fields), 'kernels', where)
+        rows = db.select(','.join(fields), 'tko_kernels', where)
         return [klass(db, *row) for row in rows]
 
 
@@ -204,7 +204,7 @@ class test:
         fields = ['test_idx', 'job_idx', 'test', 'subdir',
                   'kernel_idx', 'status', 'reason', 'machine_idx']
         tests = []
-        for row in db.select(','.join(fields), 'tests', where,
+        for row in db.select(','.join(fields), 'tko_tests', where,
                              wherein,distinct):
             tests.append(klass(db, *row))
         return tests
@@ -215,7 +215,7 @@ class test:
         fields = ['test_idx', 'job_idx', 'test', 'subdir',
                   'kernel_idx', 'status', 'reason', 'machine_idx']
         fields = ['t.'+field for field in fields]
-        rows = db.select_sql(','.join(fields), 'tests', sql, values)
+        rows = db.select_sql(','.join(fields), 'tko_tests', sql, values)
         return [klass(db, *row) for row in rows]
 
 
@@ -279,7 +279,7 @@ class test:
 class job:
     def __init__(self, db, job_idx):
         where = {'job_idx' : job_idx}
-        rows = db.select('tag, machine_idx', 'jobs', where)
+        rows = db.select('tag, machine_idx', 'tko_jobs', where)
         if rows:
             self.tag, self.machine_idx = rows[0]
             self.job_idx = job_idx
@@ -290,7 +290,7 @@ class iteration:
     def select(klass, db, where):
         fields = ['iteration', 'attribute', 'value']
         iterations = []
-        rows = db.select(','.join(fields), 'iteration_result', where)
+        rows = db.select(','.join(fields), 'tko_iteration_result', where)
         for row in rows:
             iterations.append(klass(*row))
         return iterations

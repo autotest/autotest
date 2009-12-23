@@ -3,7 +3,7 @@
 # Copyright 2008 Google Inc. All Rights Reserved.
 """
 This utility allows for easy updating, removing and importing
-of tests into the autotest_web autotests table.
+of tests into the autotest_web afe_autotests table.
 
 Example of updating client side tests:
 ./test_importer.py -t /usr/local/autotest/client/tests
@@ -178,7 +178,7 @@ def db_clean_broken(autotest_dir, verbose):
     connection=db_connect()
     cursor = connection.cursor()
     # Get tests
-    sql = "SELECT id, path FROM autotests";
+    sql = "SELECT id, path FROM afe_autotests";
     cursor.execute(sql)
     results = cursor.fetchall()
     for test_id, path in results:
@@ -186,13 +186,15 @@ def db_clean_broken(autotest_dir, verbose):
         if not os.path.isfile(full_path):
             if verbose:
                 print "Removing " + path
-            db_execute(cursor, "DELETE FROM autotests WHERE id=%s" % test_id)
-            db_execute(cursor, "DELETE FROM autotests_dependency_labels WHERE "
+            db_execute(cursor,
+                       "DELETE FROM afe_autotests WHERE id=%s" % test_id)
+            db_execute(cursor,
+                       "DELETE FROM afe_autotests_dependency_labels WHERE "
                                "test_id=%s" % test_id)
 
     # Find profilers that are no longer present
     profilers = []
-    sql = "SELECT name FROM profilers"
+    sql = "SELECT name FROM afe_profilers"
     cursor.execute(sql)
     results = cursor.fetchall()
     for path in results:
@@ -200,7 +202,7 @@ def db_clean_broken(autotest_dir, verbose):
         if not os.path.exists(full_path):
             if verbose:
                 print "Removing " + path[0]
-            sql = "DELETE FROM profilers WHERE name='%s'" % path[0]
+            sql = "DELETE FROM afe_profilers WHERE name='%s'" % path[0]
             db_execute(cursor, sql)
 
 
@@ -223,17 +225,18 @@ def update_profilers_in_db(profilers, verbose=False, description='NA',
         else:
             doc = profilers[profiler]
         # check if test exists
-        sql = "SELECT name FROM profilers WHERE name='%s'" % name
+        sql = "SELECT name FROM afe_profilers WHERE name='%s'" % name
         cursor.execute(sql)
         results = cursor.fetchall()
         if results:
-            sql = "UPDATE profilers SET name='%s', description='%s' "\
+            sql = "UPDATE afe_profilers SET name='%s', description='%s' "\
                   "WHERE name='%s'"
             sql %= (MySQLdb.escape_string(name), MySQLdb.escape_string(doc),
                     MySQLdb.escape_string(name))
         else:
             # Insert newly into DB
-            sql = "INSERT into profilers (name, description) VALUES('%s', '%s')"
+            sql = ("INSERT into afe_profilers (name, description) "
+                   "VALUES('%s', '%s')")
             sql %= (MySQLdb.escape_string(name), MySQLdb.escape_string(doc))
 
         db_execute(cursor, sql)
@@ -277,13 +280,13 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
         # clean tests for insertion into db
         new_test = dict_db_clean(new_test)
         new_test_dicts.append(new_test)
-        sql = "SELECT name,path FROM autotests WHERE path='%s' LIMIT 1"
+        sql = "SELECT name,path FROM afe_autotests WHERE path='%s' LIMIT 1"
         sql %= new_test['path']
         cursor.execute(sql)
         # check for entries already in existence
         results = cursor.fetchall()
         if results:
-            sql = ("UPDATE autotests SET name='%s', test_class='%s',"
+            sql = ("UPDATE afe_autotests SET name='%s', test_class='%s',"
                   "description='%s', test_type=%d, path='%s',"
                   "author='%s', dependencies='%s',"
                   "experimental=%d, run_verify=%d, test_time=%d,"
@@ -299,7 +302,7 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
         else:
             # Create a relative path
             path = test.replace(autotest_dir, '')
-            sql = ("INSERT INTO autotests"
+            sql = ("INSERT INTO afe_autotests"
                   "(name, test_class, description, test_type, path, "
                   "author, dependencies, experimental, "
                   "run_verify, test_time, test_category, sync_count) "
@@ -372,15 +375,15 @@ def add_label_dependencies(tests, cursor):
     if not tests:
         return
 
-    label_name_to_id = get_id_map(cursor, 'labels', 'name')
-    test_path_to_id = get_id_map(cursor, 'autotests', 'path')
+    label_name_to_id = get_id_map(cursor, 'afe_labels', 'name')
+    test_path_to_id = get_id_map(cursor, 'afe_autotests', 'path')
 
     # clear out old relationships
     test_ids = ','.join(str(test_path_to_id[test['path']])
                         for test in tests)
     db_execute(cursor,
-               'DELETE FROM autotests_dependency_labels WHERE test_id IN (%s)' %
-               test_ids)
+               'DELETE FROM afe_autotests_dependency_labels '
+                       'WHERE test_id IN (%s)' % test_ids)
 
     value_pairs = []
     for test in tests:
@@ -398,7 +401,7 @@ def add_label_dependencies(tests, cursor):
     if not value_pairs:
         return
 
-    query = ('INSERT INTO autotests_dependency_labels (test_id, label_id) '
+    query = ('INSERT INTO afe_autotests_dependency_labels (test_id, label_id) '
              'VALUES ' + ','.join(value_pairs))
     db_execute(cursor, query)
 

@@ -11,43 +11,43 @@ from autotest_lib.new_tko.tko import models, rpc_interface
 # this will need to be updated when the view changes for the test to be
 # consistent with reality
 _CREATE_TEST_VIEW = """
-CREATE VIEW test_view_2 AS
-SELECT  tests.test_idx AS test_idx,
-        tests.job_idx AS job_idx,
-        tests.test AS test_name,
-        tests.subdir AS subdir,
-        tests.kernel_idx AS kernel_idx,
-        tests.status AS status_idx,
-        tests.reason AS reason,
-        tests.machine_idx AS machine_idx,
-        tests.started_time AS test_started_time,
-        tests.finished_time AS test_finished_time,
-        jobs.tag AS job_tag,
-        jobs.label AS job_name,
-        jobs.username AS job_owner,
-        jobs.queued_time AS job_queued_time,
-        jobs.started_time AS job_started_time,
-        jobs.finished_time AS job_finished_time,
-        jobs.afe_job_id AS afe_job_id,
-        machines.hostname AS hostname,
-        machines.machine_group AS platform,
-        machines.owner AS machine_owner,
-        kernels.kernel_hash AS kernel_hash,
-        kernels.base AS kernel_base,
-        kernels.printable AS kernel,
-        status.word AS status
-FROM tests
-INNER JOIN jobs ON jobs.job_idx = tests.job_idx
-INNER JOIN machines ON machines.machine_idx = jobs.machine_idx
-INNER JOIN kernels ON kernels.kernel_idx = tests.kernel_idx
-INNER JOIN status ON status.status_idx = tests.status;
+CREATE VIEW tko_test_view_2 AS
+SELECT  tko_tests.test_idx AS test_idx,
+        tko_tests.job_idx AS job_idx,
+        tko_tests.test AS test_name,
+        tko_tests.subdir AS subdir,
+        tko_tests.kernel_idx AS kernel_idx,
+        tko_tests.status AS status_idx,
+        tko_tests.reason AS reason,
+        tko_tests.machine_idx AS machine_idx,
+        tko_tests.started_time AS test_started_time,
+        tko_tests.finished_time AS test_finished_time,
+        tko_jobs.tag AS job_tag,
+        tko_jobs.label AS job_name,
+        tko_jobs.username AS job_owner,
+        tko_jobs.queued_time AS job_queued_time,
+        tko_jobs.started_time AS job_started_time,
+        tko_jobs.finished_time AS job_finished_time,
+        tko_jobs.afe_job_id AS afe_job_id,
+        tko_machines.hostname AS hostname,
+        tko_machines.machine_group AS platform,
+        tko_machines.owner AS machine_owner,
+        tko_kernels.kernel_hash AS kernel_hash,
+        tko_kernels.base AS kernel_base,
+        tko_kernels.printable AS kernel,
+        tko_status.word AS status
+FROM tko_tests
+INNER JOIN tko_jobs ON tko_jobs.job_idx = tko_tests.job_idx
+INNER JOIN tko_machines ON tko_machines.machine_idx = tko_jobs.machine_idx
+INNER JOIN tko_kernels ON tko_kernels.kernel_idx = tko_tests.kernel_idx
+INNER JOIN tko_status ON tko_status.status_idx = tko_tests.status;
 """
 
 # this will need to be updated if the table schemas change (or removed if we
 # add proper primary keys)
 _CREATE_ITERATION_ATTRIBUTES = """
-CREATE TABLE "iteration_attributes" (
-    "test_idx" integer NOT NULL REFERENCES "tests" ("test_idx"),
+CREATE TABLE "tko_iteration_attributes" (
+    "test_idx" integer NOT NULL REFERENCES "tko_tests" ("test_idx"),
     "iteration" integer NOT NULL,
     "attribute" varchar(90) NOT NULL,
     "value" varchar(300) NOT NULL
@@ -55,8 +55,8 @@ CREATE TABLE "iteration_attributes" (
 """
 
 _CREATE_ITERATION_RESULTS = """
-CREATE TABLE "iteration_result" (
-    "test_idx" integer NOT NULL REFERENCES "tests" ("test_idx"),
+CREATE TABLE "tko_iteration_result" (
+    "test_idx" integer NOT NULL REFERENCES "tko_tests" ("test_idx"),
     "iteration" integer NOT NULL,
     "attribute" varchar(90) NOT NULL,
     "value" numeric(12, 31) NULL
@@ -71,7 +71,7 @@ def setup_test_view():
     So manually remove that table and replace it with a view.
     """
     cursor = connection.cursor()
-    cursor.execute('DROP TABLE test_view_2')
+    cursor.execute('DROP TABLE tko_test_view_2')
     cursor.execute(_CREATE_TEST_VIEW)
 
 
@@ -81,9 +81,9 @@ def fix_iteration_tables():
     Django models.  So fix up the generated schema to match the real schema.
     """
     cursor = connection.cursor()
-    cursor.execute('DROP TABLE iteration_attributes')
+    cursor.execute('DROP TABLE tko_iteration_attributes')
     cursor.execute(_CREATE_ITERATION_ATTRIBUTES)
-    cursor.execute('DROP TABLE iteration_result')
+    cursor.execute('DROP TABLE tko_iteration_result')
     cursor.execute(_CREATE_ITERATION_RESULTS)
 
 
@@ -152,19 +152,19 @@ class RpcInterfaceTest(unittest.TestCase):
         models.TestAttribute.objects.create(test=job1_test1,
                                             attribute='myattr2', value='myval2')
 
-        self._add_iteration_keyval('iteration_attributes', test=job1_test1,
+        self._add_iteration_keyval('tko_iteration_attributes', test=job1_test1,
                                    iteration=1, attribute='iattr',
                                    value='ival')
-        self._add_iteration_keyval('iteration_attributes', test=job1_test1,
+        self._add_iteration_keyval('tko_iteration_attributes', test=job1_test1,
                                    iteration=1, attribute='iattr2',
                                    value='ival2')
-        self._add_iteration_keyval('iteration_result', test=job1_test1,
+        self._add_iteration_keyval('tko_iteration_result', test=job1_test1,
                                    iteration=1, attribute='iresult', value=1)
-        self._add_iteration_keyval('iteration_result', test=job1_test1,
+        self._add_iteration_keyval('tko_iteration_result', test=job1_test1,
                                    iteration=1, attribute='iresult2', value=2)
-        self._add_iteration_keyval('iteration_result', test=job1_test1,
+        self._add_iteration_keyval('tko_iteration_result', test=job1_test1,
                                    iteration=2, attribute='iresult', value=3)
-        self._add_iteration_keyval('iteration_result', test=job1_test1,
+        self._add_iteration_keyval('tko_iteration_result', test=job1_test1,
                                    iteration=2, attribute='iresult2', value=4)
 
         label1 = models.TestLabel.objects.create(name='testlabel1')
@@ -412,7 +412,7 @@ class RpcInterfaceTest(unittest.TestCase):
 
     def test_get_test_attributes(self):
         tests = rpc_interface.get_test_views(
-                test_attributes=['myattr', 'myattr2'])
+                tko_test_attributes=['myattr', 'myattr2'])
         self.assertEquals(len(tests), 3)
 
         self.assertEquals(tests[0]['attribute_myattr'], 'myval')
@@ -425,11 +425,11 @@ class RpcInterfaceTest(unittest.TestCase):
 
     def test_grouping_with_test_attributes(self):
         num_groups = rpc_interface.get_num_groups(['attribute_myattr'],
-                                                test_attributes=['myattr'])
+                                                tko_test_attributes=['myattr'])
         self.assertEquals(num_groups, 2)
 
         counts = rpc_interface.get_group_counts(['attribute_myattr'],
-                                                test_attributes=['myattr'])
+                                                tko_test_attributes=['myattr'])
         groups = counts['groups']
         self.assertEquals(len(groups), num_groups)
         self.assertEquals(groups[0]['attribute_myattr'], None)

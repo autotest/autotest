@@ -60,7 +60,7 @@ public class MachineQualHistogramFrontend extends DynamicGraphingFrontend {
             sql.append(" AND ");
         }
         
-        sql.append("status = 'GOOD', test_idx, NULL)) 'good' FROM test_view_outer_joins");
+        sql.append("status = 'GOOD', test_idx, NULL)) 'good' FROM tko_test_view_outer_joins");
         if (hasGFilter) {
             sql.append(" WHERE ");
             sql.append(gFilterString);

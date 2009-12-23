@@ -8,7 +8,7 @@ from autotest_lib.client.common_lib import kernel_versions
 
 
 def add_kernel_jobs(label_pattern):
-    cmd = "select job_idx from jobs where label like '%s'" % label_pattern
+    cmd = "select job_idx from tko_jobs where label like '%s'" % label_pattern
     nrows = perf.db_cur.execute(cmd)
     return [row[0] for row in perf.db_cur.fetchall()]
 
@@ -23,7 +23,7 @@ def is_filtered_platform(platform, platforms_filter):
 
 
 def get_test_attributes(testrunx):
-    cmd = ( "select attribute, value from test_attributes"
+    cmd = ( "select attribute, value from tko_test_attributes"
             " where test_idx = %d" % testrunx )
     nrows = perf.db_cur.execute(cmd)
     return dict(perf.db_cur.fetchall())
@@ -49,7 +49,7 @@ def collect_testruns(jobs, test, test_attributes,
     # TODO: add filtering on test series?
     runs = {}   # platform --> list of test runs
     for jobx in jobs:
-        cmd = ( "select test_idx, machine_idx from  tests"
+        cmd = ( "select test_idx, machine_idx from tko_tests"
                 " where job_idx = %s and test = %s" )
         args = [jobx, test]
         nrows = perf.db_cur.execute(cmd, args)
@@ -178,11 +178,11 @@ def find_regressions(kernels, test_runs, metric):
 
 
 def get_testrun_context(testrun):
-    cmd = ( 'select jobs.label, jobs.tag, tests.subdir,'
-            ' tests.started_time'
-            ' from jobs, tests'
-            ' where jobs.job_idx = tests.job_idx'
-            ' and tests.test_idx = %d' % testrun )
+    cmd = ( 'select tko_jobs.label, tko_jobs.tag, tko_tests.subdir,'
+            ' tko_tests.started_time'
+            ' from tko_jobs, tko_tests'
+            ' where tko_jobs.job_idx = tko_tests.job_idx'
+            ' and tko_tests.test_idx = %d' % testrun )
     nrows = perf.db_cur.execute(cmd)
     assert nrows == 1
     row = perf.db_cur.fetchone()

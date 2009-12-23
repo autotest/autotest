@@ -113,7 +113,7 @@ class BaseSchedulerTest(unittest.TestCase,
 
 
     def _update_hqe(self, set, where=''):
-        query = 'UPDATE host_queue_entries SET ' + set
+        query = 'UPDATE afe_host_queue_entries SET ' + set
         if where:
             query += ' WHERE ' + where
         self._do_query(query)
@@ -150,7 +150,8 @@ class DBObjectTest(BaseSchedulerTest):
     def test_always_query(self):
         host_a = monitor_db.Host(id=2)
         self.assertEqual(host_a.hostname, 'host2')
-        self._do_query('UPDATE hosts SET hostname="host2-updated" WHERE id=2')
+        self._do_query('UPDATE afe_hosts SET hostname="host2-updated" '
+                       'WHERE id=2')
         host_b = monitor_db.Host(id=2, always_query=True)
         self.assert_(host_a is host_b, 'Cached instance not returned.')
         self.assertEqual(host_a.hostname, 'host2-updated',
@@ -268,13 +269,13 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
     def _convert_jobs_to_metahosts(self, *job_ids):
         sql_tuple = '(' + ','.join(str(i) for i in job_ids) + ')'
-        self._do_query('UPDATE host_queue_entries SET '
+        self._do_query('UPDATE afe_host_queue_entries SET '
                        'meta_host=host_id, host_id=NULL '
                        'WHERE job_id IN ' + sql_tuple)
 
 
     def _lock_host(self, host_id):
-        self._do_query('UPDATE hosts SET locked=1 WHERE id=' +
+        self._do_query('UPDATE afe_hosts SET locked=1 WHERE id=' +
                        str(host_id))
 
 
@@ -311,16 +312,16 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         scheduled.
         """
         self._create_job_simple([1], use_metahosts)
-        self._do_query('UPDATE hosts SET status="Running" WHERE id=1')
+        self._do_query('UPDATE afe_hosts SET status="Running" WHERE id=1')
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
 
-        self._do_query('UPDATE hosts SET status="Ready", locked=1 '
+        self._do_query('UPDATE afe_hosts SET status="Ready", locked=1 '
                        'WHERE id=1')
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
 
-        self._do_query('UPDATE hosts SET locked=0, invalid=1 '
+        self._do_query('UPDATE afe_hosts SET locked=0, invalid=1 '
                        'WHERE id=1')
         self._dispatcher._schedule_new_jobs()
         if not use_metahosts:
@@ -337,7 +338,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
 
     def _test_obey_ACLs_helper(self, use_metahosts):
-        self._do_query('DELETE FROM acl_groups_hosts WHERE host_id=1')
+        self._do_query('DELETE FROM afe_acl_groups_hosts WHERE host_id=1')
         self._create_job_simple([1], use_metahosts)
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
@@ -364,8 +365,8 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
 
     def test_one_time_hosts_ignore_ACLs(self):
-        self._do_query('DELETE FROM acl_groups_hosts WHERE host_id=1')
-        self._do_query('UPDATE hosts SET invalid=1 WHERE id=1')
+        self._do_query('DELETE FROM afe_acl_groups_hosts WHERE host_id=1')
+        self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id=1')
         self._create_job_simple([1])
         self._dispatcher._schedule_new_jobs()
         self._assert_job_scheduled_on(1, 1)
@@ -377,7 +378,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         Non-metahost entries can get scheduled on invalid hosts (this is how
         one-time hosts work).
         """
-        self._do_query('UPDATE hosts SET invalid=1')
+        self._do_query('UPDATE afe_hosts SET invalid=1')
         self._test_basic_scheduling_helper(False)
 
 
@@ -429,7 +430,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         job = self._setup_test_only_if_needed_labels()
         job.dependency_labels.add(self.label3)
         # should also work if the metahost is the only_if_needed label
-        self._do_query('DELETE FROM jobs_dependency_labels')
+        self._do_query('DELETE FROM afe_jobs_dependency_labels')
         self._create_job(metahosts=[3])
         self._dispatcher._schedule_new_jobs()
         self._assert_job_scheduled_on(2, 1)
@@ -580,7 +581,8 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
     def test_atomic_group_scheduling_obeys_acls(self):
         # Request scheduling on a specific atomic label but be denied by ACLs.
-        self._do_query('DELETE FROM acl_groups_hosts WHERE host_id in (8,9)')
+        self._do_query('DELETE FROM afe_acl_groups_hosts '
+                       'WHERE host_id in (8,9)')
         job = self._create_job(metahosts=[self.label5.id], atomic_group=1)
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
@@ -615,7 +617,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
     def test_atomic_group_scheduling_no_metahost(self):
         # Force it to schedule on the other group for a reliable test.
-        self._do_query('UPDATE hosts SET invalid=1 WHERE id=9')
+        self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id=9')
         # An atomic job without a metahost.
         job = self._create_job(synchronous=True, atomic_group=1)
         self._dispatcher._schedule_new_jobs()
@@ -626,7 +628,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
     def test_atomic_group_scheduling_partial_group(self):
         # Make one host in labels[3] unavailable so that there are only two
         # hosts left in the group.
-        self._do_query('UPDATE hosts SET status="Repair Failed" WHERE id=5')
+        self._do_query('UPDATE afe_hosts SET status="Repair Failed" WHERE id=5')
         job = self._create_job(synchronous=True, metahosts=[self.label4.id],
                          atomic_group=1)
         self._dispatcher._schedule_new_jobs()
@@ -639,10 +641,10 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
     def test_atomic_group_scheduling_not_enough_available(self):
         # Mark some hosts in each atomic group label as not usable.
         # One host running, another invalid in the first group label.
-        self._do_query('UPDATE hosts SET status="Running" WHERE id=5')
-        self._do_query('UPDATE hosts SET invalid=1 WHERE id=6')
+        self._do_query('UPDATE afe_hosts SET status="Running" WHERE id=5')
+        self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id=6')
         # One host invalid in the second group label.
-        self._do_query('UPDATE hosts SET invalid=1 WHERE id=9')
+        self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id=9')
         # Nothing to schedule when no group label has enough (2) good hosts..
         self._create_job(atomic_group=1, synchronous=True)
         self._dispatcher._schedule_new_jobs()
@@ -658,7 +660,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
 
     def test_atomic_group_scheduling_no_valid_hosts(self):
-        self._do_query('UPDATE hosts SET invalid=1 WHERE id in (8,9)')
+        self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id in (8,9)')
         self._create_job(synchronous=True, metahosts=[self.label5.id],
                          atomic_group=1)
         self._dispatcher._schedule_new_jobs()
@@ -765,7 +767,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
     def test_no_ready_hosts(self):
         self._create_job(hosts=[1])
-        self._do_query('UPDATE hosts SET status="Repair Failed"')
+        self._do_query('UPDATE afe_hosts SET status="Repair Failed"')
         self._dispatcher._schedule_new_jobs()
         self._check_for_extra_schedulings()
 

@@ -84,7 +84,7 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
             tko_utils.dprint("! Job is already parsed, done")
             return
 
-        raw_old_tests = db.select("test_idx,subdir,test", "tests",
+        raw_old_tests = db.select("test_idx,subdir,test", "tko_tests",
                                   {"job_idx": old_job_idx})
         if raw_old_tests:
             old_tests = dict(((test, subdir), test_idx)

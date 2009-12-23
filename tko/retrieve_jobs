@@ -7,5 +7,5 @@ except:
     arg = ''
 
 db = db.db()
-for record in db.select('* from jobs ' + arg):
+for record in db.select('* from tko_jobs ' + arg):
     print record
