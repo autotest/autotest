@@ -43,11 +43,6 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
 
     public interface GeneratorHandler {
         /**
-         * The given generator Item was just selected; create and return a new generated Item.
-         */
-        public Item generateItem(Item generatorItem);
-        
-        /**
          * The given generated Item was just deselected; handle any necessary cleanup.
          */
         public void onRemoveGeneratedItem(Item generatedItem);
@@ -56,8 +51,6 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
     public static class Item implements Comparable<Item> {
         public String name;
         public String value;
-        // a generator, when selected, generates a new item and selects that item instead
-        public boolean isGenerator;
         // a generated item is destroyed when deselected.
         public boolean isGeneratedItem;
 
@@ -70,12 +63,6 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
 
         public static Item createItem(String name, String value) {
             return new Item(name, value);
-        }
-
-        public static Item createGenerator(String name, String value) {
-            Item item = new Item(name, value);
-            item.isGenerator = true;
-            return item;
         }
 
         public static Item createGeneratedItem(String name, String value) {
@@ -107,22 +94,22 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
             return "Item<" + name + ", " + value + ">";
         }
         
-        public boolean isSelected() {
-            if (isGenerator) {
-                return false;
-            }
+        private boolean isSelected() {
             if (isGeneratedItem) {
                 return true;
             }
             return selected;
         }
         
-        public void setSelected(boolean selected) {
-            assert !isGenerator && !isGeneratedItem;
+        private void setSelected(boolean selected) {
+            assert !isGeneratedItem;
             this.selected = selected;
         }
     }
 
+    /**
+     * Null object to support displays that don't do toggling.
+     */
     private static class NullToggleDisplay implements ToggleDisplay {
         @Override
         public SimplifiedList getSingleSelector() {
@@ -184,15 +171,6 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
             return;
         }
     }
-    
-    // convenience method
-    public static Set<String> getItemNameSet(List<Item> items) {
-        Set<String> nameSet = new HashSet<String>();
-        for (Item item : items) {
-            nameSet.add(item.name);
-        }
-        return nameSet;
-    }
 
     private List<Item> items = new ArrayList<Item>();
     // need a second list to track ordering
@@ -235,9 +213,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
     }
 
     public void addItem(Item item) {
-        if (item.isGenerator) {
-            assert generatorHandler != null : "generator items require a GeneratorHandler";
-        } else if (item.isGeneratedItem && isItemPresent(item)) {
+        if (item.isGeneratedItem && isItemPresent(item)) {
             return;
         }
         items.add(item);
@@ -258,31 +234,25 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         if (item.isSelected()) {
             selectedItems.remove(item);
         }
-        if (item.isGeneratedItem) {
-            generatorHandler.onRemoveGeneratedItem(item);
-        }
         assert verifyConsistency();
         refresh();
     }
 
-    public void removeItemByName(String name) {
-        removeItem(getItemByName(name));
+    public void clearItems() {
+        for (Item item : new ArrayList<Item>(items)) {
+            removeItem(item);
+        }
     }
 
     private void refreshSingleSelector() {
         SimplifiedList selector = toggleDisplay.getSingleSelector();
 
-        boolean isGeneratedItemSelected = false;
         if (!selectedItems.isEmpty()) {
             assert selectedItems.size() == 1;
-            isGeneratedItemSelected = selectedItems.get(0).isGeneratedItem;
         }
 
         selector.clear();
         for (Item item : items) {
-            if (item.isGenerator && isGeneratedItemSelected) {
-                continue;
-            }
             selector.addItem(item.name, item.value);
             if (item.isSelected()) {
                 selector.selectByName(item.name);
@@ -312,34 +282,16 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
             refreshMultipleSelector();
         } else {
             // single selector always needs something selected
-            if (selectedItems.size() == 0) {
-                Item firstItem = getFirstNonGenerator(); // can't default to a generator
-                if (firstItem != null) {
-                    selectItem(items.get(0));
-                }
+            if (selectedItems.size() == 0 && !items.isEmpty()) {
+                selectItem(items.get(0));
             }
             refreshSingleSelector();
         }
     }
 
-    private Item getFirstNonGenerator() {
-        for (Item item : items) {
-            if (!item.isGenerator) {
-                return item;
-            }
-        }
-        return null;
-    }
-
     private void selectItem(Item item) {
-        if (item.isGenerator) {
-            Item generatedItem = generatorHandler.generateItem(item);
-            addItem(generatedItem);
-        } else {
-            item.setSelected(true);
-            selectedItems.add(item);
-        }
-
+        item.setSelected(true);
+        selectedItems.add(item);
         assert verifyConsistency();
     }
     
@@ -347,7 +299,11 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         selectItem(getItemByName(name));
         refresh();
     }
-    
+
+    /**
+     * Set the set of selected items by specifying item names.  All names must exist in the set of
+     * header fields.
+     */
     public void setSelectedItemsByName(List<String> names) {
         for (String itemName : names) {
             Item item = getItemByName(itemName);
@@ -369,9 +325,24 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         refresh();
     }
 
+    /**
+     * Set the set of selected items, silently dropping any that don't exist in the header field 
+     * list.
+     */
+    public void restoreSelectedItems(List<Item> items) {
+        List<String> currentItems = new ArrayList<String>();
+        for (Item item : items) {
+            if (hasItemName(item.name)) {
+                currentItems.add(item.name);
+            }
+        }
+        setSelectedItemsByName(currentItems);
+    }
+
     private void deselectItem(Item item) {
         if (item.isGeneratedItem) {
             removeItem(item);
+            generatorHandler.onRemoveGeneratedItem(item);
         } else {
             item.setSelected(false);
             selectedItems.remove(item);
@@ -380,7 +351,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
     }
 
     public List<Item> getSelectedItems() {
-        return Collections.unmodifiableList(selectedItems);
+        return new ArrayList<Item>(selectedItems);
     }
 
     private boolean isMultipleSelectActive() {
@@ -403,13 +374,24 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
     }
 
     private Item getItemByName(String name) {
+        Item item = findItem(name);
+        if (item != null) {
+            return item;
+        }
+        throw new IllegalArgumentException("Item '" + name + "' does not exist in " + items);
+    }
+
+    private Item findItem(String name) {
         for (Item item : items) {
             if (item.name.equals(name)) {
                 return item;
             }
         }
-        
-        throw new IllegalArgumentException("Item '" + name + "' does not exist in " + items);
+        return null;
+    }
+    
+    public boolean hasItemName(String name) {
+        return findItem(name) != null;
     }
 
     @Override
@@ -494,7 +476,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
 
     private void addAll() {
         for (Item item : items) {
-            if (!item.isSelected() && !item.isGenerator) {
+            if (!item.isSelected()) {
                 selectItem(item);
             }
         }
