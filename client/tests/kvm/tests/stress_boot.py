@@ -1,6 +1,6 @@
 import logging, time
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils
+import kvm_subprocess, kvm_test_utils, kvm_utils, kvm_preprocessing
 
 
 def run_stress_boot(tests, params, env):
@@ -39,11 +39,9 @@ def run_stress_boot(tests, params, env):
             vm_params["address_index"] = str(address_index)
             curr_vm = vm.clone(vm_name, vm_params)
             kvm_utils.env_register_vm(env, vm_name, curr_vm)
-            params['vms'] += " " + vm_name
-
             logging.info("Booting guest #%d" % num)
-            if not curr_vm.create():
-                raise error.TestFail("Cannot create VM #%d" % num)
+            kvm_preprocessing.preprocess_vm(tests, vm_params, env, vm_name)
+            params['vms'] += " " + vm_name
 
             curr_vm_session = kvm_utils.wait_for(curr_vm.remote_login, 240, 0, 2)
             if not curr_vm_session:
