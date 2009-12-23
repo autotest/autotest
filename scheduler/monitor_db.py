@@ -263,12 +263,13 @@ class HostScheduler(object):
     def _get_ready_hosts(self):
         # avoid any host with a currently active queue entry against it
         hosts = Host.fetch(
-            joins='LEFT JOIN host_queue_entries AS active_hqe '
-                  'ON (hosts.id = active_hqe.host_id AND '
+            joins='LEFT JOIN afe_host_queue_entries AS active_hqe '
+                  'ON (afe_hosts.id = active_hqe.host_id AND '
                       'active_hqe.active)',
             where="active_hqe.host_id IS NULL "
-                  "AND NOT hosts.locked "
-                  "AND (hosts.status IS NULL OR hosts.status = 'Ready')")
+                  "AND NOT afe_hosts.locked "
+                  "AND (afe_hosts.status IS NULL "
+                          "OR afe_hosts.status = 'Ready')")
         return dict((host.id, host) for host in hosts)
 
 
@@ -300,11 +301,12 @@ class HostScheduler(object):
     @classmethod
     def _get_job_acl_groups(cls, job_ids):
         query = """
-        SELECT jobs.id, acl_groups_users.aclgroup_id
-        FROM jobs
-        INNER JOIN users ON users.login = jobs.owner
-        INNER JOIN acl_groups_users ON acl_groups_users.user_id = users.id
-        WHERE jobs.id IN (%s)
+        SELECT afe_jobs.id, afe_acl_groups_users.aclgroup_id
+        FROM afe_jobs
+        INNER JOIN afe_users ON afe_users.login = afe_jobs.owner
+        INNER JOIN afe_acl_groups_users ON
+                afe_acl_groups_users.user_id = afe_users.id
+        WHERE afe_jobs.id IN (%s)
         """
         return cls._get_many2many_dict(query, job_ids)
 
@@ -313,7 +315,7 @@ class HostScheduler(object):
     def _get_job_ineligible_hosts(cls, job_ids):
         query = """
         SELECT job_id, host_id
-        FROM ineligible_host_queues
+        FROM afe_ineligible_host_queues
         WHERE job_id IN (%s)
         """
         return cls._get_many2many_dict(query, job_ids)
@@ -323,7 +325,7 @@ class HostScheduler(object):
     def _get_job_dependencies(cls, job_ids):
         query = """
         SELECT job_id, label_id
-        FROM jobs_dependency_labels
+        FROM afe_jobs_dependency_labels
         WHERE job_id IN (%s)
         """
         return cls._get_many2many_dict(query, job_ids)
@@ -333,7 +335,7 @@ class HostScheduler(object):
     def _get_host_acls(cls, host_ids):
         query = """
         SELECT host_id, aclgroup_id
-        FROM acl_groups_hosts
+        FROM afe_acl_groups_hosts
         WHERE host_id IN (%s)
         """
         return cls._get_many2many_dict(query, host_ids)
@@ -345,7 +347,7 @@ class HostScheduler(object):
             return {}, {}
         query = """
         SELECT label_id, host_id
-        FROM hosts_labels
+        FROM afe_hosts_labels
         WHERE host_id IN (%s)
         """ % cls._get_sql_id_list(host_ids)
         rows = _db.execute(query)
@@ -929,12 +931,13 @@ class Dispatcher(object):
         # exclude hosts with active queue entries unless the SpecialTask is for
         # that queue entry
         queued_tasks = models.Host.objects.add_join(
-                queued_tasks, 'host_queue_entries', 'host_id',
-                join_condition='host_queue_entries.active',
+                queued_tasks, 'afe_host_queue_entries', 'host_id',
+                join_condition='afe_host_queue_entries.active',
                 force_left_join=True)
         queued_tasks = queued_tasks.extra(
-                where=['(host_queue_entries.id IS NULL OR '
-                       'host_queue_entries.id = special_tasks.queue_entry_id)'])
+                where=['(afe_host_queue_entries.id IS NULL OR '
+                       'afe_host_queue_entries.id = '
+                               'afe_special_tasks.queue_entry_id)'])
 
         # reorder tasks by priority
         task_priority_order = [models.SpecialTask.Task.REPAIR,
@@ -993,9 +996,9 @@ class Dispatcher(object):
     def _get_pending_queue_entries(self):
         # prioritize by job priority, then non-metahost over metahost, then FIFO
         return list(HostQueueEntry.fetch(
-            joins='INNER JOIN jobs ON (job_id=jobs.id)',
+            joins='INNER JOIN afe_jobs ON (job_id=afe_jobs.id)',
             where='NOT complete AND NOT active AND status="Queued"',
-            order_by='jobs.priority DESC, meta_host, job_id'))
+            order_by='afe_jobs.priority DESC, meta_host, job_id'))
 
 
     def _refresh_pending_queue_entries(self):
@@ -2669,18 +2672,18 @@ class DBObject(object):
 
 
 class IneligibleHostQueue(DBObject):
-    _table_name = 'ineligible_host_queues'
+    _table_name = 'afe_ineligible_host_queues'
     _fields = ('id', 'job_id', 'host_id')
 
 
 class AtomicGroup(DBObject):
-    _table_name = 'atomic_groups'
+    _table_name = 'afe_atomic_groups'
     _fields = ('id', 'name', 'description', 'max_number_of_machines',
                'invalid')
 
 
 class Label(DBObject):
-    _table_name = 'labels'
+    _table_name = 'afe_labels'
     _fields = ('id', 'name', 'kernel_config', 'platform', 'invalid',
                'only_if_needed', 'atomic_group_id')
 
@@ -2691,7 +2694,7 @@ class Label(DBObject):
 
 
 class Host(DBObject):
-    _table_name = 'hosts'
+    _table_name = 'afe_hosts'
     _fields = ('id', 'hostname', 'locked', 'synch_id', 'status',
                'invalid', 'protection', 'locked_by_id', 'lock_time', 'dirty')
 
@@ -2706,11 +2709,12 @@ class Host(DBObject):
         Returns a tuple (platform_name, list_of_all_label_names).
         """
         rows = _db.execute("""
-                SELECT labels.name, labels.platform
-                FROM labels
-                INNER JOIN hosts_labels ON labels.id = hosts_labels.label_id
-                WHERE hosts_labels.host_id = %s
-                ORDER BY labels.name
+                SELECT afe_labels.name, afe_labels.platform
+                FROM afe_labels
+                INNER JOIN afe_hosts_labels ON
+                        afe_labels.id = afe_hosts_labels.label_id
+                WHERE afe_hosts_labels.host_id = %s
+                ORDER BY afe_labels.name
                 """, (self.id,))
         platform = None
         all_labels = []
@@ -2762,7 +2766,7 @@ class Host(DBObject):
 
 
 class HostQueueEntry(DBObject):
-    _table_name = 'host_queue_entries'
+    _table_name = 'afe_host_queue_entries'
     _fields = ('id', 'job_id', 'host_id', 'status', 'meta_host',
                'active', 'complete', 'deleted', 'execution_subdir',
                'atomic_group_id', 'aborted', 'started_on')
@@ -2818,8 +2822,8 @@ class HostQueueEntry(DBObject):
         if self.meta_host:
             yield Label(id=self.meta_host, always_query=False)
         labels = Label.fetch(
-                joins="JOIN jobs_dependency_labels AS deps "
-                      "ON (labels.id = deps.label_id)",
+                joins="JOIN afe_jobs_dependency_labels AS deps "
+                      "ON (afe_labels.id = deps.label_id)",
                 where="deps.job_id = %d" % self.job.id)
         for label in labels:
             yield label
@@ -3021,11 +3025,12 @@ class HostQueueEntry(DBObject):
         if hasattr(self, "_aborted_by"):
             return
         rows = _db.execute("""
-                SELECT users.login, aborted_host_queue_entries.aborted_on
-                FROM aborted_host_queue_entries
-                INNER JOIN users
-                ON users.id = aborted_host_queue_entries.aborted_by_id
-                WHERE aborted_host_queue_entries.queue_entry_id = %s
+                SELECT afe_users.login,
+                        afe_aborted_host_queue_entries.aborted_on
+                FROM afe_aborted_host_queue_entries
+                INNER JOIN afe_users
+                ON afe_users.id = afe_aborted_host_queue_entries.aborted_by_id
+                WHERE afe_aborted_host_queue_entries.queue_entry_id = %s
                 """, (self.id,))
         if rows:
             self._aborted_by, self._aborted_on = rows[0]
@@ -3111,7 +3116,7 @@ class HostQueueEntry(DBObject):
 
 
 class Job(DBObject):
-    _table_name = 'jobs'
+    _table_name = 'afe_jobs'
     _fields = ('id', 'owner', 'name', 'priority', 'control_file',
                'control_type', 'created_on', 'synch_count', 'timeout',
                'run_verify', 'email_list', 'reboot_before', 'reboot_after',
@@ -3156,7 +3161,7 @@ class Job(DBObject):
 
     def get_host_queue_entries(self):
         rows = _db.execute("""
-                SELECT * FROM host_queue_entries
+                SELECT * FROM afe_host_queue_entries
                 WHERE job_id= %s
         """, (self.id,))
         entries = [HostQueueEntry(row=i) for i in rows]
@@ -3247,7 +3252,7 @@ class Job(DBObject):
         sql = "job_id=%s" % self.id
         if clause:
             sql += " AND (%s)" % clause
-        return self.count(sql, table='host_queue_entries')
+        return self.count(sql, table='afe_host_queue_entries')
 
 
     def num_queued(self):

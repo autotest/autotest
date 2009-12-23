@@ -107,7 +107,7 @@ class Machine(dbmodels.Model):
     owner = dbmodels.CharField(blank=True, max_length=240)
 
     class Meta:
-        db_table = 'machines'
+        db_table = 'tko_machines'
 
 
 class Kernel(dbmodels.Model):
@@ -117,7 +117,7 @@ class Kernel(dbmodels.Model):
     printable = dbmodels.CharField(max_length=300)
 
     class Meta:
-        db_table = 'kernels'
+        db_table = 'tko_kernels'
 
 
 class Patch(dbmodels.Model):
@@ -127,7 +127,7 @@ class Patch(dbmodels.Model):
     the_hash = dbmodels.CharField(blank=True, max_length=105, db_column='hash')
 
     class Meta:
-        db_table = 'patches'
+        db_table = 'tko_patches'
 
 
 class Status(dbmodels.Model):
@@ -135,7 +135,7 @@ class Status(dbmodels.Model):
     word = dbmodels.CharField(max_length=30)
 
     class Meta:
-        db_table = 'status'
+        db_table = 'tko_status'
 
 
 class Job(dbmodels.Model):
@@ -150,7 +150,7 @@ class Job(dbmodels.Model):
     afe_job_id = dbmodels.IntegerField(null=True, default=None)
 
     class Meta:
-        db_table = 'jobs'
+        db_table = 'tko_jobs'
 
 
 class Test(dbmodels.Model, model_logic.ModelExtensions,
@@ -185,7 +185,7 @@ class Test(dbmodels.Model, model_logic.ModelExtensions,
 
 
     class Meta:
-        db_table = 'tests'
+        db_table = 'tko_tests'
 
 
 class TestAttribute(dbmodels.Model, model_logic.ModelExtensions):
@@ -197,7 +197,7 @@ class TestAttribute(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
 
     class Meta:
-        db_table = 'test_attributes'
+        db_table = 'tko_test_attributes'
 
 
 class IterationAttribute(dbmodels.Model, model_logic.ModelExtensions):
@@ -211,7 +211,7 @@ class IterationAttribute(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
 
     class Meta:
-        db_table = 'iteration_attributes'
+        db_table = 'tko_iteration_attributes'
 
 
 class IterationResult(dbmodels.Model, model_logic.ModelExtensions):
@@ -225,19 +225,20 @@ class IterationResult(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
 
     class Meta:
-        db_table = 'iteration_result'
+        db_table = 'tko_iteration_result'
 
 
 class TestLabel(dbmodels.Model, model_logic.ModelExtensions):
     name = dbmodels.CharField(max_length=80, unique=True)
     description = dbmodels.TextField(blank=True)
-    tests = dbmodels.ManyToManyField(Test, blank=True)
+    tests = dbmodels.ManyToManyField(Test, blank=True,
+                                     db_table='tko_test_labels_tests')
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
 
     class Meta:
-        db_table = 'test_labels'
+        db_table = 'tko_test_labels'
 
 
 class SavedQuery(dbmodels.Model, model_logic.ModelExtensions):
@@ -247,7 +248,7 @@ class SavedQuery(dbmodels.Model, model_logic.ModelExtensions):
     url_token = dbmodels.TextField()
 
     class Meta:
-        db_table = 'saved_queries'
+        db_table = 'tko_saved_queries'
 
 
 class EmbeddedGraphingQuery(dbmodels.Model, model_logic.ModelExtensions):
@@ -264,7 +265,7 @@ class EmbeddedGraphingQuery(dbmodels.Model, model_logic.ModelExtensions):
     cached_png = dbmodels.TextField(editable=False)
 
     class Meta:
-        db_table = 'embedded_graphing_queries'
+        db_table = 'tko_embedded_graphing_queries'
 
 
 # views
@@ -289,14 +290,16 @@ class TestViewManager(TempManager):
                             suffix=None, exclude=False):
         if suffix is None:
             suffix = self._get_include_exclude_suffix(exclude)
-        return self.add_join(query_set, 'test_attributes', join_key='test_idx',
+        return self.add_join(query_set, 'tko_test_attributes',
+                             join_key='test_idx',
                              join_condition=join_condition,
                              suffix=suffix, exclude=exclude)
 
 
     def _add_label_pivot_table_join(self, query_set, suffix, join_condition='',
                                     exclude=False, force_left_join=False):
-        return self.add_join(query_set, 'test_labels_tests', join_key='test_id',
+        return self.add_join(query_set, 'tko_test_labels_tests',
+                             join_key='test_id',
                              join_condition=join_condition,
                              suffix=suffix, exclude=exclude,
                              force_left_join=force_left_join)
@@ -308,12 +311,12 @@ class TestViewManager(TempManager):
 
         # since we're not joining from the original table, we can't use
         # self.add_join() again
-        second_join_alias = 'test_labels' + suffix
+        second_join_alias = 'tko_test_labels' + suffix
         second_join_condition = ('%s.id = %s.testlabel_id' %
                                  (second_join_alias,
-                                  'test_labels_tests' + suffix))
+                                  'tko_test_labels_tests' + suffix))
         filter_object = self._CustomSqlQ()
-        filter_object.add_join('test_labels',
+        filter_object.add_join('tko_test_labels',
                                second_join_condition,
                                query_set.query.LOUTER,
                                alias=second_join_alias)
@@ -333,7 +336,7 @@ class TestViewManager(TempManager):
     def _include_or_exclude_labels(self, query_set, label_names, exclude=False):
         label_ids = self._get_label_ids_from_names(label_names)
         suffix = self._get_include_exclude_suffix(exclude)
-        condition = ('test_labels_tests%s.testlabel_id IN (%s)' %
+        condition = ('tko_test_labels_tests%s.testlabel_id IN (%s)' %
                      (suffix, ','.join(label_ids)))
         return self._add_label_pivot_table_join(query_set,
                                                 join_condition=condition,
@@ -350,7 +353,7 @@ class TestViewManager(TempManager):
         # TODO: make this feature obsolete in favor of include_labels and
         # exclude_labels
         extra_where = filter_data.get('extra_where', '')
-        if 'test_labels' in extra_where:
+        if 'tko_test_labels' in extra_where:
             query_set = self._add_label_joins(query_set)
             joined = True
 
@@ -380,7 +383,7 @@ class TestViewManager(TempManager):
                 exclude=True)
             joined = True
 
-        test_attributes = filter_data.pop('test_attributes', [])
+        test_attributes = filter_data.pop('tko_test_attributes', [])
         for attribute in test_attributes:
             query_set = self.join_attribute(query_set, attribute)
             joined = True
@@ -389,10 +392,11 @@ class TestViewManager(TempManager):
             filter_data['no_distinct'] = True
 
         # TODO: make test_attributes_host_labels obsolete too
-        if include_host_labels or 'test_attributes_host_labels' in extra_where:
+        if (include_host_labels or
+                'tko_test_attributes_host_labels' in extra_where):
             query_set = self._add_attribute_join(
                 query_set, suffix='_host_labels',
-                join_condition='test_attributes_host_labels.attribute = '
+                join_condition='tko_test_attributes_host_labels.attribute = '
                                '"host-labels"')
 
         return query_set
@@ -408,7 +412,7 @@ class TestViewManager(TempManager):
     def query_test_label_ids(self, filter_data):
         query_set = self.model.query_objects(filter_data)
         query_set = self._add_label_joins(query_set, suffix='_list')
-        rows = self._custom_select_query(query_set, ['test_labels_list.id'])
+        rows = self._custom_select_query(query_set, ['tko_test_labels_list.id'])
         return [row[0] for row in rows if row[0] is not None]
 
 
@@ -558,4 +562,4 @@ class TestView(dbmodels.Model, model_logic.ModelExtensions):
 
 
     class Meta:
-        db_table = 'test_view_2'
+        db_table = 'tko_test_view_2'

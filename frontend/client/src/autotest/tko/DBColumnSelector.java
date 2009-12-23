@@ -5,8 +5,8 @@ import autotest.tko.TkoUtils.FieldInfo;
 
 
 public class DBColumnSelector extends ExtendedListBox {
-    public static final String PERF_VIEW = "perf_view";
-    public static final String TEST_VIEW = "test_view";
+    public static final String PERF_VIEW = "tko_perf_view";
+    public static final String TEST_VIEW = "tko_test_view";
 
     public DBColumnSelector(String view) {
         this(view, false);

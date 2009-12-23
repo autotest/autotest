@@ -344,7 +344,7 @@ def test_label_remove_tests(label_id, **test_filter_data):
     extra_where = test_filter_data.get('extra_where', '')
     if extra_where:
         extra_where = '(' + extra_where + ') AND '
-    extra_where += 'test_labels.id = %s' % label.id
+    extra_where += 'tko_test_labels.id = %s' % label.id
     test_filter_data['extra_where'] = extra_where
     test_ids = models.TestView.objects.query_test_ids(test_filter_data)
 
@@ -426,7 +426,7 @@ def get_static_data():
         'iozone' : '32768-4096-fwrite'
     }
 
-    perf_view = [
+    tko_perf_view = [
         ['Test Index', 'test_idx'],
         ['Job Index', 'job_idx'],
         ['Test Name', 'test_name'],
@@ -460,8 +460,8 @@ def get_static_data():
     result['test_labels'] = get_test_labels(sort_by=['name'])
     result['current_user'] = {'login' : thread_local.get_user()}
     result['benchmark_key'] = benchmark_key
-    result['perf_view'] = perf_view
-    result['test_view'] = model_fields
+    result['tko_perf_view'] = tko_perf_view
+    result['tko_test_view'] = model_fields
     result['preconfigs'] = preconfigs.manager.all_preconfigs()
     result['motd'] = rpc_utils.get_motd()
 

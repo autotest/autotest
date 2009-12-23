@@ -83,7 +83,7 @@ class MigrationManager(object):
         assert os.path.exists(migrations_dir), migrations_dir + " doesn't exist"
 
 
-    def _get_db_name(self):
+    def get_db_name(self):
         return self._database.get_database_info()['db_name']
 
 
@@ -197,7 +197,7 @@ class MigrationManager(object):
 
 
     def initialize_test_db(self):
-        db_name = self._get_db_name()
+        db_name = self.get_db_name()
         test_db_name = 'test_' + db_name
         # first, connect to no DB so we can create a test DB
         self._database.connect(db_name='')
@@ -210,7 +210,7 @@ class MigrationManager(object):
 
     def remove_test_db(self):
         print 'Removing test DB'
-        self.execute('DROP DATABASE ' + self._get_db_name())
+        self.execute('DROP DATABASE ' + self.get_db_name())
         # reset connection back to real DB
         self._database.disconnect()
         self._database.connect()
@@ -229,7 +229,7 @@ class MigrationManager(object):
 
 
     def do_sync_db(self, version=None):
-        print 'Migration starting for database', self._get_db_name()
+        print 'Migration starting for database', self.get_db_name()
         self.migrate_to_version_or_latest(version)
         print 'Migration complete'
 
@@ -240,7 +240,7 @@ class MigrationManager(object):
         """
         self.initialize_test_db()
         try:
-            print 'Starting migration test on DB', self._get_db_name()
+            print 'Starting migration test on DB', self.get_db_name()
             self.migrate_to_version_or_latest(version)
             # show schema to the user
             os.system('mysqldump %s --no-data=true '
@@ -273,7 +273,7 @@ class MigrationManager(object):
         os.close(dump_fd)
         os.remove(dump_file)
         try:
-            print 'Starting migration test on DB', self._get_db_name()
+            print 'Starting migration test on DB', self.get_db_name()
             self.migrate_to_version_or_latest(version)
         finally:
             self.remove_test_db()

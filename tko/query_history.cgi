@@ -14,7 +14,7 @@ def body():
     where = (condition,[])
     try:
         rows = db_obj.select("time_created,user_comment,url",
-                     "query_history", where)
+                     "tko_query_history", where)
     except MySQLdb.ProgrammingError, err:
         print err
         rows = ()
