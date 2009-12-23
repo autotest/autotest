@@ -316,6 +316,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
 
     def tearDown(self):
+        self._database.disconnect()
         self._frontend_common_teardown()
 
 
@@ -332,7 +333,6 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
         self._database = (
             database_connection.TranslatingDatabase.get_test_database(
-                file_path=self._test_db_file,
                 translators=_DB_TRANSLATORS))
         self._database.connect(db_type='django')
         self.god.stub_with(monitor_db, '_db', self._database)

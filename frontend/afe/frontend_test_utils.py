@@ -6,32 +6,6 @@ from autotest_lib.frontend.afe import models
 from autotest_lib.client.common_lib.test_utils import mock
 
 class FrontendTestMixin(object):
-    _test_db_initialized = False
-
-    def _initialize_test_db(self):
-        if self._test_db_initialized:
-            return
-
-        temp_fd, test_db_file = tempfile.mkstemp(suffix='.frontend_test')
-        FrontendTestMixin._test_db_file = test_db_file
-        os.close(temp_fd)
-
-        def cleanup_test_db():
-            os.remove(test_db_file)
-        atexit.register(cleanup_test_db)
-
-        setup_test_environment.set_test_database(test_db_file)
-        setup_test_environment.set_up()
-        FrontendTestMixin._test_db_backup = (
-            setup_test_environment.backup_test_database())
-        FrontendTestMixin._test_db_initialized = True
-
-
-    def _open_test_db(self):
-        self._initialize_test_db()
-        setup_test_environment.restore_test_database(self._test_db_backup)
-
-
     def _fill_in_test_data(self):
         """Populate the test database with some hosts and labels."""
         acl_group = models.AclGroup.objects.create(name='my_acl')
@@ -91,7 +65,7 @@ class FrontendTestMixin(object):
 
     def _frontend_common_setup(self, fill_data=True):
         self.god = mock.mock_god()
-        self._open_test_db()
+        setup_test_environment.set_up()
         self._setup_dummy_user()
         if fill_data:
             self._fill_in_test_data()
