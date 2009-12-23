@@ -73,10 +73,10 @@ class UserCleanup(PeriodicCleanup):
         logging.info('Aborting all jobs that have passed maximum runtime')
         rows = self._db.execute("""
             SELECT hqe.id
-            FROM host_queue_entries AS hqe
-            INNER JOIN jobs ON (hqe.job_id = jobs.id)
+            FROM afe_host_queue_entries AS hqe
+            INNER JOIN afe_jobs ON (hqe.job_id = afe_jobs.id)
             WHERE NOT hqe.complete AND NOT hqe.aborted AND
-            hqe.started_on + INTERVAL jobs.max_runtime_hrs HOUR < NOW()""")
+            hqe.started_on + INTERVAL afe_jobs.max_runtime_hrs HOUR < NOW()""")
         query = models.HostQueueEntry.objects.filter(
             id__in=[row[0] for row in rows])
         for queue_entry in query.distinct():
@@ -146,8 +146,8 @@ class UserCleanup(PeriodicCleanup):
         # treats all IN subqueries as dependent, so this optimizes much
         # better
         self._db.execute("""
-            DELETE ihq FROM ineligible_host_queues ihq
-            LEFT JOIN (SELECT DISTINCT job_id FROM host_queue_entries
+            DELETE ihq FROM afe_ineligible_host_queues ihq
+            LEFT JOIN (SELECT DISTINCT job_id FROM afe_host_queue_entries
                        WHERE NOT complete) hqe
             USING (job_id) WHERE hqe.job_id IS NULL""")
 
@@ -198,13 +198,14 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
 
     def _check_for_multiple_platform_hosts(self):
         rows = self._db.execute("""
-            SELECT hosts.id, hostname, COUNT(1) AS platform_count,
-                   GROUP_CONCAT(labels.name)
-            FROM hosts
-            INNER JOIN hosts_labels ON hosts.id = hosts_labels.host_id
-            INNER JOIN labels ON hosts_labels.label_id = labels.id
-            WHERE labels.platform
-            GROUP BY hosts.id
+            SELECT afe_hosts.id, hostname, COUNT(1) AS platform_count,
+                   GROUP_CONCAT(afe_labels.name)
+            FROM afe_hosts
+            INNER JOIN afe_hosts_labels ON
+                    afe_hosts.id = afe_hosts_labels.host_id
+            INNER JOIN afe_labels ON afe_hosts_labels.label_id = afe_labels.id
+            WHERE afe_labels.platform
+            GROUP BY afe_hosts.id
             HAVING platform_count > 1
             ORDER BY hostname""")
         if rows:
@@ -217,12 +218,12 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
     def _check_for_no_platform_hosts(self):
         rows = self._db.execute("""
             SELECT hostname
-            FROM hosts
-            LEFT JOIN hosts_labels
-              ON hosts.id = hosts_labels.host_id
-              AND hosts_labels.label_id IN (SELECT id FROM labels
-                                            WHERE platform)
-            WHERE NOT hosts.invalid AND hosts_labels.host_id IS NULL""")
+            FROM afe_hosts
+            LEFT JOIN afe_hosts_labels
+              ON afe_hosts.id = afe_hosts_labels.host_id
+              AND afe_hosts_labels.label_id IN (SELECT id FROM afe_labels
+                                                WHERE platform)
+            WHERE NOT afe_hosts.invalid AND afe_hosts_labels.host_id IS NULL""")
         if rows:
             subject = '%s hosts with no platform' % self._db.rowcount
             self._send_inconsistency_message(
@@ -231,16 +232,18 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
 
     def _check_for_multiple_atomic_group_hosts(self):
         rows = self._db.execute("""
-            SELECT hosts.id, hostname, COUNT(DISTINCT atomic_groups.name) AS
-                   atomic_group_count, GROUP_CONCAT(labels.name),
-                   GROUP_CONCAT(atomic_groups.name)
-            FROM hosts
-            INNER JOIN hosts_labels ON hosts.id = hosts_labels.host_id
-            INNER JOIN labels ON hosts_labels.label_id = labels.id
-            INNER JOIN atomic_groups ON
-                       labels.atomic_group_id = atomic_groups.id
-            WHERE NOT hosts.invalid AND NOT labels.invalid
-            GROUP BY hosts.id
+            SELECT afe_hosts.id, hostname,
+                   COUNT(DISTINCT afe_atomic_groups.name) AS atomic_group_count,
+                   GROUP_CONCAT(afe_labels.name),
+                   GROUP_CONCAT(afe_atomic_groups.name)
+            FROM afe_hosts
+            INNER JOIN afe_hosts_labels ON
+                    afe_hosts.id = afe_hosts_labels.host_id
+            INNER JOIN afe_labels ON afe_hosts_labels.label_id = afe_labels.id
+            INNER JOIN afe_atomic_groups ON
+                       afe_labels.atomic_group_id = afe_atomic_groups.id
+            WHERE NOT afe_hosts.invalid AND NOT afe_labels.invalid
+            GROUP BY afe_hosts.id
             HAVING atomic_group_count > 1
             ORDER BY hostname""")
         if rows:

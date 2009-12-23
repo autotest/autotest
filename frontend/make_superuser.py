@@ -24,20 +24,20 @@ cur = con.cursor()
 for username in sys.argv[1:]:
     cur.execute("""
         SELECT access_level
-        FROM users
+        FROM afe_users
         WHERE login = %s""", username)
     row = cur.fetchone()
 
     if row is None:
         print "User %s does not exist. Creating..." % username
         cur.execute("""
-            INSERT INTO users (login, access_level)
+            INSERT INTO afe_users (login, access_level)
             VALUES (%s, 100)""", username)
         print "    Done"
     else:
         print "Updating user %s..." % username
         cur.execute("""
-            UPDATE users
+            UPDATE afe_users
             SET access_level = 100
             WHERE login = %s""", username)
         if (cur.rowcount == 1):

@@ -21,7 +21,7 @@ def main():
     display.set_brief_mode()
 
     ## getting available tests
-    rows = db.select('test', 'tests', {}, distinct=True)
+    rows = db.select('test', 'tko_tests', {}, distinct=True)
     all_benchmarks = []
     for row in rows:
         benchmark = row[0]
@@ -34,10 +34,10 @@ def main():
         fields_tests = 'test_idx, count(status_word)'
         where_tests = { 'subdir': benchmark, 'status_word' : 'GOOD' }
         fields_params = 'attribute'
-        for (id, count) in db.select(fields_tests, 'test_view',
+        for (id, count) in db.select(fields_tests, 'tko_test_view',
                                      where_tests, group_by='machine_hostname'):
             where_params = {'test_idx': id}
-            for (attribute) in db.select(fields_params, 'iteration_result',
+            for (attribute) in db.select(fields_params, 'tko_iteration_result',
                                          where_params):
                 available_params.add("%s - %s" % (benchmark,
                                                      attribute[0]))
@@ -87,7 +87,7 @@ def main():
         fields = 'machine_idx,machine_hostname,count(status_word)'
         where = { 'subdir': benchmark, 'status_word' : 'GOOD' }
         data = {}
-        for (idx, machine, count) in db.select(fields, 'test_view',
+        for (idx, machine, count) in db.select(fields, 'tko_test_view',
                                             where, group_by='machine_hostname'):
             data[machine] = count
             machine_idx[machine] = idx
