@@ -655,8 +655,8 @@ class test_base_job(unittest.TestCase):
         mount_list = ["/mnt/hda1", "/mnt/hdb1"]
 
         # record
-        job.partition_lib.get_partition_list.expect_call(self.job).and_return(
-                part_list)
+        job.partition_lib.get_partition_list.expect_call(
+                self.job, exclude_swap=False).and_return(part_list)
         for i in xrange(len(part_list)):
             part_list[i].get_mountpoint.expect_call().and_return(mount_list[i])
         self.job.get_state.expect_call("__mount_info").and_return(mount_info)
