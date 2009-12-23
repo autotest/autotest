@@ -1,109 +1,130 @@
 package autotest.tko;
 
-import java.util.Map;
+import autotest.common.Utils;
 
-import autotest.common.ui.MultiListSelectPresenter.Item;
+import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public abstract class ParameterizedField extends HeaderField {
+    private static class FieldIdentifier {
+        String type;
+        String value;
+        
+        public FieldIdentifier(ParameterizedField field) {
+            this.type = field.getTypeName();
+            this.value = field.getValue();
+        }
+    
+        @Override
+        public int hashCode() {
+            return type.hashCode() + 31 * value.hashCode();
+        }
+    
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null || !(obj instanceof FieldIdentifier)) {
+                return false;
+            }
+    
+            FieldIdentifier other = (FieldIdentifier) obj;
+            return type.equals(other.type) && value.equals(other.value);
+        }
+    }
+
     private static final ParameterizedField[] prototypes = new ParameterizedField[] {
         // add all ParameterizedField subclasses here.  these instances should never escape. 
         new MachineLabelField(),
         new IterationResultField(),
         new TestAttributeField(),
+        new TestLabelField(),
     };
+    
+    private static final List<String> prototypeNames = new ArrayList<String>();
+    static {
+        for (ParameterizedField prototype : prototypes) {
+            prototypeNames.add(prototype.getTypeName());
+        }
+    }
 
-    private int fieldNumber;
+    private String value;
 
     protected ParameterizedField() {
         super("", "");
     }
 
-    public static ParameterizedField fromName(String name) {
-        ParameterizedField prototype = getPrototypeByName(name);
+    public static ParameterizedField newInstance(String typeName, String value) {
+        ParameterizedField prototype = getPrototype(typeName);
         ParameterizedField newField = prototype.freshInstance();
-        newField.initializeFrom(name, prototype.getBaseName());
+        newField.setValue(value);
         return newField;
     }
 
-    public static ParameterizedField fromSqlName(String name) {
-        ParameterizedField prototype = getPrototypeBySqlName(name);
-        ParameterizedField newField = prototype.freshInstance();
-        newField.initializeFrom(name, prototype.getBaseSqlName());
-        return newField;
+    public static Collection<String> getFieldTypeNames() {
+        return Collections.unmodifiableCollection(prototypeNames);
     }
 
-    private static ParameterizedField getPrototype(String name, boolean isSqlName) {
+    private static ParameterizedField getPrototype(String name) {
         for (ParameterizedField prototype : prototypes) {
-            String base;
-            if (isSqlName) {
-                base = prototype.getBaseSqlName();
-            } else {
-                base = prototype.getBaseName();
-            }
-            if (name.startsWith(base)) {
+            if (name.startsWith(prototype.getTypeName())) {
                 return prototype;
             }
         }
-        
+
         throw new IllegalArgumentException("No prototype found for " + name);
     }
-
-    private static ParameterizedField getPrototypeByName(String name) {
-        return getPrototype(name, false);
+    
+    @Override
+    public String getSqlName() {
+        return getBaseSqlName() + getValue();
     }
 
-    private static ParameterizedField getPrototypeBySqlName(String sqlName) {
-        return getPrototype(sqlName, true);
-    }
-
-    private void initializeFrom(String name, String base) {
-        assert name.startsWith(base);
-
-        String numberString = name.substring(base.length()).trim();
-        try {
-            fieldNumber = Integer.valueOf(numberString);
-        } catch (NumberFormatException exc) {
-            throw new IllegalArgumentException("Failed to parse number for header " + name 
-                                               + " (" + numberString + ")");
-        }
-
-        this.name = getBaseName() + " " + numberString;
-        this.sqlName = getBaseSqlName() + numberString;
-    }
-
-    public int getFieldNumber() {
-        return fieldNumber;
+    @Override
+    public void addQueryParameters(JSONObject parameters) {
+        JSONArray fieldValueList = 
+            Utils.setDefaultValue(parameters, getFieldParameterName(), new JSONArray()).isArray();
+        fieldValueList.set(fieldValueList.size(), new JSONString(getValue()));
     }
 
     /**
-     * Parameterized fields create generated items rather than regular items.
+     * @return the prefix of the SQL name generated for each field
      */
-    @Override
-    public Item getItem() {
-        return Item.createGeneratedItem(getName(), getSqlName());
-    }
+    protected abstract String getBaseSqlName();
 
-    public static Item getGenerator(String baseName) {
-        ParameterizedField prototype = getPrototypeByName(baseName);
-        return Item.createGenerator(prototype.getBaseName() + "...", prototype.getBaseSqlName());
-    }
+    /**
+     * @return name of the parameter to pass with a list of field names for this field type
+     */
+    protected abstract String getFieldParameterName();
 
-    @Override
-    public void addHistoryArguments(Map<String, String> arguments) {
-        arguments.put(getName(), getValue());
-    }
+    /**
+     * @return a string identifying this type of field
+     */
+    public abstract String getTypeName();
 
-    @Override
-    public void handleHistoryArguments(Map<String, String> arguments) {
-        assert arguments.containsKey(getName()) : getName();
-        setValue(arguments.get(getName()));
-    }
-
-    public abstract String getBaseSqlName();
-    protected abstract String getBaseName();
-
-    public abstract String getValue();
-    public abstract void setValue(String value);
-
+    /**
+     * @return a new instance of the subclass type.
+     */
     protected abstract ParameterizedField freshInstance();
+
+    @Override
+    public String getName() {
+        return getTypeName() + ": " + getValue();
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+    
+    public Object getIdentifier() {
+        return new FieldIdentifier(this);
+    }
 }

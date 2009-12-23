@@ -197,7 +197,12 @@ public class Utils {
             return string.stringValue();
         }
         if ((number = value.isNumber()) != null) {
-            return Integer.toString((int) number.doubleValue());
+            double doubleValue = number.doubleValue();
+            if (doubleValue == (int) doubleValue) {
+                return Integer.toString((int) doubleValue);
+            }
+            return Double.toString(doubleValue);
+            
         }
         if (value.isNull() != null) {
             return JSON_NULL;

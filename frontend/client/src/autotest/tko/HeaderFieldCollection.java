@@ -17,7 +17,7 @@ public class HeaderFieldCollection extends AbstractCollection<HeaderField> {
     private Map<String, HeaderField> fieldsByName = new HashMap<String, HeaderField>();
     private Map<String, HeaderField> fieldsBySqlName = new HashMap<String, HeaderField>();
     private List<HeaderField> orderedFields = new ArrayList<HeaderField>();
-
+    
     public void populateFromList(String fieldListName) {
         for (FieldInfo fieldInfo : TkoUtils.getFieldList(fieldListName)) {
             HeaderField field = new SimpleHeaderField(fieldInfo.name, fieldInfo.field);
@@ -143,17 +143,5 @@ public class HeaderFieldCollection extends AbstractCollection<HeaderField> {
         fieldsByName.remove(field.getName());
         fieldsBySqlName.remove(field.getSqlName());
         return true;
-    }
-
-    void addHistoryArguments(Map<String, String> arguments) {
-        for (HeaderField field : this) {
-            field.addHistoryArguments(arguments);
-        }
-    }
-
-    public void handleHistoryArguments(Map<String, String> arguments) {
-        for (HeaderField field : this) {
-            field.handleHistoryArguments(arguments);
-        }
     }
 }

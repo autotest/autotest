@@ -8,6 +8,6 @@ class SimpleHeaderField extends HeaderField {
 
     @Override
     public String getSqlCondition(String value) {
-        return getSimpleSqlCondition(getSqlName(), value);
+        return getSimpleSqlCondition(getQuotedSqlName(), value);
     }
 }

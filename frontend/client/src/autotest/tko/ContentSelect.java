@@ -34,10 +34,13 @@ public class ContentSelect extends Composite implements HasValueChangeHandlers<B
     public static final String ADD_ADDITIONAL_CONTENT = "Add additional content...";
     public static final String CANCEL_ADDITIONAL_CONTENT = "Don't use additional content";
   
+    private HeaderFieldCollection headerFields;
     private SimpleHyperlink addLink = new SimpleHyperlink(ADD_ADDITIONAL_CONTENT);
     private ListBox contentSelect = new ListBox(true);
         
-    public ContentSelect() {
+    public ContentSelect(HeaderFieldCollection headerFields) {
+        this.headerFields = headerFields;
+
         Panel panel = new VerticalPanel();
         contentSelect.setVisible(false);
         
@@ -75,8 +78,11 @@ public class ContentSelect extends Composite implements HasValueChangeHandlers<B
         notifyHandlers();
     }
     
-    public void addItem(HeaderField field) {
-        contentSelect.addItem(field.getName(), field.getSqlName());
+    public void refreshFields() {
+        contentSelect.clear();
+        for (HeaderField field : headerFields) {
+            contentSelect.addItem(field.getName(), field.getSqlName());
+        }
     }
     
     public HandlerRegistration addValueChangeHandler(ValueChangeHandler<Boolean> handler) {
