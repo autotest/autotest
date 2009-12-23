@@ -1,5 +1,6 @@
 import os, logging
 from autotest_lib.client.common_lib import error
+from autotest_lib.client.bin import utils
 import kvm_subprocess, kvm_utils, kvm_test_utils, scan_results
 
 
@@ -21,14 +22,26 @@ def run_autotest(test, params, env):
         @param remote_path: Remote path
         """
         copy = False
+        basename = os.path.basename(local_path)
         output = session.get_command_output("ls -l %s" % remote_path)
-        if ("such file" in output or
-            int(output.split()[4]) != os.path.getsize(local_path)):
-            basename = os.path.basename(local_path)
-            logging.info("Copying %s to guest (file is missing or has a "
-                         "different size)..." % basename)
+        local_size = os.path.getsize(local_path)
+        if "such file" in output:
+            logging.info("Copying %s to guest (remote file is missing)" %
+                         basename)
+            copy = True
+        else:
+            remote_size = int(output.split()[4])
+            if remote_size != local_size:
+                logging.info("Copying %s to guest due to size mismatch"
+                             "(remote size %s, local size %s)" % (basename,
+                                                                  remote_size,
+                                                                  local_size))
+                copy = True
+
+        if copy:
             if not vm.copy_files_to(local_path, remote_path):
-                raise error.TestFail("Could not copy %s to guest" % basename)
+                raise error.TestFail("Could not copy %s to guest" % local_path)
+
 
     def extract(vm, remote_path, dest_dir="."):
         """
@@ -40,10 +53,11 @@ def run_autotest(test, params, env):
         """
         basename = os.path.basename(remote_path)
         logging.info("Extracting %s..." % basename)
-        status = session.get_command_status("tar xfj %s -C %s" %
-                                            (remote_path, dest_dir))
+        (status, output) = session.get_command_status_output(
+                                  "tar xjvf %s -C %s" % (remote_path, dest_dir))
         if status != 0:
-            raise error.TestFail("Could not extract %s" % basename)
+            raise error.TestFail("Could not extract %s, command output: %s" %
+                                 (basename, output))
 
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     session = kvm_test_utils.wait_for_login(vm)
@@ -52,54 +66,60 @@ def run_autotest(test, params, env):
     test_name = params.get("test_name")
     test_timeout = int(params.get("test_timeout", 300))
     test_control_file = params.get("test_control_file", "control")
+
     tarred_autotest_path = "/tmp/autotest.tar.bz2"
     tarred_test_path = "/tmp/%s.tar.bz2" % test_name
 
+    # To avoid problems, let's make the test use the current AUTODIR
+    # (autotest client path) location
+    autotest_path = os.environ['AUTODIR']
+    tests_path = os.path.join(autotest_path, 'tests')
+    test_path = os.path.join(tests_path, test_name)
+
     # tar the contents of bindir/autotest
-    cmd = "cd %s; tar cvjf %s autotest/*"
-    cmd += " --exclude=autotest/tests"
-    cmd += " --exclude=autotest/results"
-    cmd += " --exclude=autotest/tmp"
-    cmd += " --exclude=autotest/control"
+    cmd = "tar cvjf %s %s/*" % (tarred_autotest_path, autotest_path)
+    cmd += " --exclude=%s/tests" % autotest_path
+    cmd += " --exclude=%s/results" % autotest_path
+    cmd += " --exclude=%s/tmp" % autotest_path
+    cmd += " --exclude=%s/control" % autotest_path
     cmd += " --exclude=*.pyc"
     cmd += " --exclude=*.svn"
     cmd += " --exclude=*.git"
-    kvm_subprocess.run_fg(cmd % (test.bindir, tarred_autotest_path), timeout=30)
+    utils.run(cmd)
 
     # tar the contents of bindir/autotest/tests/<test_name>
-    cmd = "cd %s; tar cvjf %s %s/*"
+    cmd = "tar cvjf %s %s/*" % (tarred_test_path, test_path)
     cmd += " --exclude=*.pyc"
     cmd += " --exclude=*.svn"
     cmd += " --exclude=*.git"
-    kvm_subprocess.run_fg(cmd %
-                          (os.path.join(test.bindir, "autotest", "tests"),
-                           tarred_test_path, test_name), timeout=30)
+    utils.run(cmd)
 
     # Copy autotest.tar.bz2
-    copy_if_size_differs(vm, tarred_autotest_path, "autotest.tar.bz2")
+    copy_if_size_differs(vm, tarred_autotest_path, tarred_autotest_path)
 
     # Copy <test_name>.tar.bz2
-    copy_if_size_differs(vm, tarred_test_path, test_name + ".tar.bz2")
+    copy_if_size_differs(vm, tarred_test_path, tarred_test_path)
 
     # Extract autotest.tar.bz2
-    extract(vm, "autotest.tar.bz2")
+    extract(vm, tarred_autotest_path, "/")
 
     # mkdir autotest/tests
-    session.get_command_output("mkdir autotest/tests")
+    session.get_command_output("mkdir -p %s" % tests_path)
 
     # Extract <test_name>.tar.bz2 into autotest/tests
-    extract(vm, test_name + ".tar.bz2", "autotest/tests")
+    extract(vm, tarred_test_path, "/")
 
     # Copy the selected control file (located inside
     # test.bindir/autotest_control) to the autotest dir
     control_file_path = os.path.join(test.bindir, "autotest_control",
                                      test_control_file)
-    if not vm.copy_files_to(control_file_path, "autotest/control"):
+    if not vm.copy_files_to(control_file_path,
+                            os.path.join(autotest_path, 'control')):
         raise error.TestFail("Could not copy the test control file to guest")
 
     # Run the test
     logging.info("Running test '%s'..." % test_name)
-    session.get_command_output("cd autotest")
+    session.get_command_output("cd %s" % autotest_path)
     session.get_command_output("rm -f control.state")
     session.get_command_output("rm -rf results/*")
     logging.info("---------------- Test output ----------------")
@@ -121,7 +141,8 @@ def run_autotest(test, params, env):
     guest_results_dir = os.path.join(test.outputdir, "guest_results")
     if not os.path.exists(guest_results_dir):
         os.mkdir(guest_results_dir)
-    if not vm.copy_files_from("autotest/results/default/*", guest_results_dir):
+    if not vm.copy_files_from("%s/results/default/*" % autotest_path,
+                              guest_results_dir):
         logging.error("Could not copy results back from guest")
 
     # Report test results
