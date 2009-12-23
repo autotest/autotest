@@ -14,27 +14,6 @@ settings.DATABASE_NAME = ':memory:'
 from django.db import connection
 from autotest_lib.frontend.afe import readonly_connection
 
-def set_test_database(database):
-    settings.DATABASE_NAME = database
-    destroy_test_database()
-
-
-def backup_test_database():
-    temp_fd, backup_path = tempfile.mkstemp(suffix='.test_db_backup')
-    os.close(temp_fd)
-    shutil.copyfile(settings.DATABASE_NAME, backup_path)
-    return backup_path
-
-
-def restore_test_database(backup_path):
-    connection.close()
-    shutil.copyfile(backup_path, settings.DATABASE_NAME)
-
-
-def cleanup_database_backup(backup_path):
-    os.remove(backup_path)
-
-
 def run_syncdb(verbosity=0):
     management.call_command('syncdb', verbosity=verbosity, interactive=False)
 
