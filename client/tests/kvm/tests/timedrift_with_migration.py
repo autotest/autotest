@@ -76,7 +76,8 @@ def run_timedrift_with_migration(test, params, env):
                                              time_filter_re, time_format)
 
     finally:
-        session.close()
+        if session is not None:
+            session.close()
 
     # Report results
     host_delta = ht1 - ht0
