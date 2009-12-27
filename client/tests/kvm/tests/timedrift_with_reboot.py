@@ -69,7 +69,8 @@ def run_timedrift_with_reboot(test, params, env):
                                              time_filter_re, time_format)
 
     finally:
-        session.close()
+        if session:
+            session.close()
 
     # Report results
     host_delta = ht1 - ht0
