@@ -854,7 +854,11 @@ class VM:
                 mem_size = 0
                 for m in mem:
                     mem_size += int(m)
-                if not "MB" in mem_str:
+                if "GB" in mem_str:
+                    mem_size *= 1024
+                elif "MB" in mem_str:
+                    pass
+                else:
                     mem_size /= 1024
                 return int(mem_size)
             return None
