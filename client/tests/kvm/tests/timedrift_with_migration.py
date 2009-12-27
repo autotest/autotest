@@ -76,7 +76,7 @@ def run_timedrift_with_migration(test, params, env):
                                              time_filter_re, time_format)
 
     finally:
-        if session is not None:
+        if session:
             session.close()
 
     # Report results
