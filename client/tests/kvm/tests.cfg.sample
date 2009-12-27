@@ -11,14 +11,14 @@ include cdkeys.cfg
 # On the example below:
 # * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
 #   /usr/bin/qemu-img respectively.
-# * All image files are expected under tests/kvm/images/
-# * All iso files are expected under tests/kvm/isos/
-# * All step files are expected under tests/kvm/steps_data/
+# * All image files are expected under /tmp/kvm_autotest_root/images/
+# * All iso files are expected under /tmp/kvm_autotest_root/isos/
+# * All step files are expected under /tmp/kvm_autotest_root/steps/
 #qemu_binary = /usr/bin/qemu-kvm
 #qemu_img_binary = /usr/bin/qemu-img
-#image_name.* ?<= /tmp/kvm_autotest_root/images/
-#cdrom.* ?<= /tmp/kvm_autotest_root/isos/
-#steps ?<= /tmp/kvm_autotest_root/steps_data/
+#image_name.* ?<= /tmp/kvm_autotest_root/
+#cdrom.* ?<= /tmp/kvm_autotest_root/
+#steps ?<= /tmp/kvm_autotest_root/
 
 variants:
     - @full:
