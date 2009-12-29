@@ -211,9 +211,6 @@ class AbstractSSHHost(SiteHost):
                                          delete_dest, preserve_symlinks)
             utils.run(rsync)
         except error.CmdError, e:
-            logging.warn("warning: rsync failed with: %s", e)
-            logging.info("attempting to copy with scp instead")
-
             # scp has no equivalent to --delete, just drop the entire dest dir
             if delete_dest and os.path.isdir(dest):
                 shutil.rmtree(dest)
@@ -278,9 +275,6 @@ class AbstractSSHHost(SiteHost):
                                          delete_dest, preserve_symlinks)
             utils.run(rsync)
         except error.CmdError, e:
-            logging.warn("Command rsync failed with: %s", e)
-            logging.info("Attempting to copy with scp instead")
-
             # scp has no equivalent to --delete, just drop the entire dest dir
             if delete_dest:
                 is_dir = self.run("ls -d %s/" % dest,
