@@ -75,7 +75,7 @@ class logfile(loggable):
 
     def run(self, logdir):
         if os.path.exists(self.path):
-            shutil.copy(self.path, os.path.join(logdir, self.logf))
+            shutil.copyfile(self.path, os.path.join(logdir, self.logf))
 
 
 class command(loggable):
