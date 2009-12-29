@@ -20,10 +20,12 @@ SiteHost = utils.import_site_class(
 
 
 class AbstractSSHHost(SiteHost):
-    """ This class represents a generic implementation of most of the
+    """
+    This class represents a generic implementation of most of the
     framework necessary for controlling a host via ssh. It implements
     almost all of the abstract Host methods, except for the core
-    Host.run method. """
+    Host.run method.
+    """
 
     def _initialize(self, hostname, user="root", port=22, password="",
                     *args, **dargs):
@@ -36,17 +38,21 @@ class AbstractSSHHost(SiteHost):
 
 
     def _encode_remote_paths(self, paths, escape=True):
-        """ Given a list of file paths, encodes it as a single remote path, in
-        the style used by rsync and scp. """
+        """
+        Given a list of file paths, encodes it as a single remote path, in
+        the style used by rsync and scp.
+        """
         if escape:
             paths = [utils.scp_remote_escape(path) for path in paths]
         return '%s@%s:"%s"' % (self.user, self.hostname, " ".join(paths))
 
 
     def _make_rsync_cmd(self, sources, dest, delete_dest, preserve_symlinks):
-        """ Given a list of source paths and a destination path, produces the
+        """
+        Given a list of source paths and a destination path, produces the
         appropriate rsync command for copying them. Remote paths must be
-        pre-encoded. """
+        pre-encoded.
+        """
         ssh_cmd = make_ssh_command(self.user, self.port)
         if delete_dest:
             delete_flag = "--delete"
@@ -62,21 +68,25 @@ class AbstractSSHHost(SiteHost):
 
 
     def _make_scp_cmd(self, sources, dest):
-        """ Given a list of source paths and a destination path, produces the
+        """
+        Given a list of source paths and a destination path, produces the
         appropriate scp command for encoding it. Remote paths must be
-        pre-encoded. """
+        pre-encoded.
+        """
         command = "scp -rq -P %d %s '%s'"
         return command % (self.port, " ".join(sources), dest)
 
 
     def _make_rsync_compatible_globs(self, path, is_local):
-        """ Given an rsync-style path, returns a list of globbed paths
+        """
+        Given an rsync-style path, returns a list of globbed paths
         that will hopefully provide equivalent behaviour for scp. Does not
         support the full range of rsync pattern matching behaviour, only that
         exposed in the get/send_file interface (trailing slashes).
 
         The is_local param is flag indicating if the paths should be
-        interpreted as local or remote paths. """
+        interpreted as local or remote paths.
+        """
 
         # non-trailing slash paths should just work
         if len(path) == 0 or path[-1] != "/":
@@ -107,16 +117,20 @@ class AbstractSSHHost(SiteHost):
 
 
     def _make_rsync_compatible_source(self, source, is_local):
-        """ Applies the same logic as _make_rsync_compatible_globs, but
+        """
+        Applies the same logic as _make_rsync_compatible_globs, but
         applies it to an entire list of sources, producing a new list of
-        sources, properly quoted. """
+        sources, properly quoted.
+        """
         return sum((self._make_rsync_compatible_globs(path, is_local)
                     for path in source), [])
 
 
     def _set_umask_perms(self, dest):
-        """Given a destination file/dir (recursively) set the permissions on
-        all the files and directories to the max allowed by running umask."""
+        """
+        Given a destination file/dir (recursively) set the permissions on
+        all the files and directories to the max allowed by running umask.
+        """
 
         # now this looks strange but I haven't found a way in Python to _just_
         # get the umask, apparently the only option is to try to set it
