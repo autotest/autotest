@@ -1,6 +1,6 @@
 import os, time, pickle, logging, shutil
 
-from autotest_lib.server import utils, profiler
+from autotest_lib.server import utils
 
 
 # import any site hooks for the crashdump and crashinfo collection

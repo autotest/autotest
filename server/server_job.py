@@ -146,6 +146,10 @@ class base_server_job(base_job.base_job):
         self.num_tests_run = 0
         self.num_tests_failed = 0
 
+        # should tell us if this job results are inside a machine named
+        # directory
+        self.in_machine_dir = False
+
         self._register_subcommand_hooks()
         self._test_tag_prefix = None
 
@@ -311,6 +315,7 @@ class base_server_job(base_job.base_job):
                 self.machines = [machine]
                 self.push_execution_context(machine)
                 os.chdir(self.resultdir)
+                self.in_machine_dir = True
                 utils.write_keyval(self.resultdir, {"hostname": machine})
                 self.init_parser(self.resultdir)
                 result = function(machine)
@@ -320,6 +325,7 @@ class base_server_job(base_job.base_job):
             def wrapper(machine):
                 self.push_execution_context(machine)
                 os.chdir(self.resultdir)
+                self.in_machine_dir = True
                 machine_data = {'hostname' : machine,
                                 'status_version' : str(self._STATUS_VERSION)}
                 utils.write_keyval(self.resultdir, machine_data)

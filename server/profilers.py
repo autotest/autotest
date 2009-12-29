@@ -1,18 +1,47 @@
-import os, sys
-import common
+import os, shutil, tempfile, logging
 
-from autotest_lib.client.common_lib import utils, packages, profiler_manager
-from autotest_lib.server import profiler
+import common
+from autotest_lib.client.common_lib import utils, error, profiler_manager
+from autotest_lib.server import profiler, autotest, standalone_profiler, hosts
+
+
+PROFILER_TMPDIR = '/tmp/profilers'
+
+
+def get_profiler_results_dir(autodir):
+    """
+    Given the directory of the autotest client used to run a profiler,
+    return the remote path where profiler results will be stored.
+    """
+    return os.path.join(autodir, 'results', 'default', 'barriertest',
+                        'profiling')
+
+
+def get_profiler_log_path(autodir):
+    """
+    Given the directory of a profiler client, find the client log path.
+    """
+    return os.path.join(autodir, 'results', 'default', 'debug', 'client.DEBUG')
 
 
 class profilers(profiler_manager.profiler_manager):
     def __init__(self, job):
         super(profilers, self).__init__(job)
         self.add_log = {}
+        self.start_delay = 0
+        # maps hostname to (host object, autotest.Autotest object, Autotest
+        # install dir), where the host object is the one created specifically
+        # for profiling
+        self.installed_hosts = {}
+        self.current_test = None
+
+
+    def set_start_delay(self, start_delay):
+        self.start_delay = start_delay
 
 
     def load_profiler(self, profiler_name, args, dargs):
-        newprofiler = profiler.profiler_proxy(self.job, profiler_name)
+        newprofiler = profiler.profiler_proxy(profiler_name)
         newprofiler.initialize(*args, **dargs)
         newprofiler.setup(*args, **dargs) # lazy setup is done client-side
         return newprofiler
@@ -29,6 +58,205 @@ class profilers(profiler_manager.profiler_manager):
             del self.add_log[profiler]
 
 
+    def _install_clients(self):
+        """
+        Install autotest on any current job hosts.
+        """
+        in_use_hosts = set()
+        # find hosts in use but not used by us
+        for host in self.job.hosts:
+            autodir = host.get_autodir()
+            if not (autodir and autodir.startswith(PROFILER_TMPDIR)):
+                in_use_hosts.add(host.hostname)
+        logging.debug('Hosts currently in use: %s', in_use_hosts)
+
+        # determine what valid host objects we already have installed
+        profiler_hosts = set()
+        for host, at, profiler_dir in self.installed_hosts.values():
+            if host.path_exists(profiler_dir):
+                profiler_hosts.add(host.hostname)
+            else:
+                # the profiler was wiped out somehow, drop this install
+                logging.warning('The profiler client on %s at %s was deleted',
+                                host.hostname, profiler_dir)
+                host.close()
+                del self.installed_hosts[host.hostname]
+        logging.debug('Hosts with profiler clients already installed: %s',
+                      profiler_hosts)
+
+        # install autotest on any new hosts in use
+        for hostname in in_use_hosts - profiler_hosts:
+            host = hosts.create_host(hostname, auto_monitor=False)
+            tmp_dir = host.get_tmp_dir(parent=PROFILER_TMPDIR)
+            at = autotest.Autotest(host)
+            at.install_no_autoserv(autodir=tmp_dir)
+            self.installed_hosts[host.hostname] = (host, at, tmp_dir)
+
+        # drop any installs from hosts no longer in job.hosts
+        hostnames_to_drop = profiler_hosts - in_use_hosts
+        hosts_to_drop = [self.installed_hosts[hostname][0]
+                         for hostname in hostnames_to_drop]
+        for host in hosts_to_drop:
+            host.close()
+            del self.installed_hosts[host.hostname]
+
+
+    def _get_hosts(self, host=None):
+        """
+        Returns a list of (Host, Autotest, install directory) tuples for hosts
+        currently supported by this profiler. The returned Host object is always
+        the one created by this profiler, regardless of what's passed in. If
+        'host' is not None, all entries not matching that host object are
+        filtered out of the list.
+        """
+        if host is None:
+            return self.installed_hosts.values()
+        if host.hostname in self.installed_hosts:
+            return [self.installed_hosts[host.hostname]]
+        return []
+
+
+    def _get_local_profilers_dir(self, test, hostname):
+        if not test.job.in_machine_dir and len(self.installed_hosts) > 1:
+            local_dir = os.path.join(test.profdir, hostname)
+            if not os.path.exists(local_dir):
+                os.makedirs(local_dir)
+        else:
+            local_dir = test.profdir
+
+        return local_dir
+
+
+    def _get_failure_logs(self, autodir, test, host):
+        """
+        Collect the client logs from a profiler run and put them in a
+        file named failure-*.log.
+        """
+        try:
+            fd, path = tempfile.mkstemp(suffix='.log', prefix='failure-',
+                    dir=self._get_local_profilers_dir(test, host.hostname))
+            os.close(fd)
+            host.get_file(get_profiler_log_path(autodir), path)
+        except (error.AutotestError, error.AutoservError):
+            logging.exception('Profiler failure log collection failed')
+            # swallow the exception so that we don't override an existing
+            # exception being thrown
+
+
+    def _get_all_failure_logs(self, test, hosts):
+        for host, at, autodir in hosts:
+            self._get_failure_logs(autodir, test, host)
+
+
+    def _run_clients(self, test, hosts):
+        """
+        We initialize the profilers just before start because only then we
+        know all the hosts involved.
+        """
+
+        hostnames = [host_info[0].hostname for host_info in hosts]
+        profilers_args = [(p.name, p.args, p.dargs)
+                          for p in self.list]
+
+        for host, at, autodir in hosts:
+            control_script = standalone_profiler.generate_test(hostnames,
+                                                               host.hostname,
+                                                               profilers_args,
+                                                               180, None)
+            try:
+                at.run(control_script, background=True)
+            except Exception:
+                self._get_failure_logs(autodir, test, host)
+                raise
+
+            remote_results_dir = get_profiler_results_dir(autodir)
+            local_results_dir = self._get_local_profilers_dir(test,
+                                                              host.hostname)
+            self.job.add_client_log(host.hostname, remote_results_dir,
+                                    local_results_dir)
+
+        try:
+            # wait for the profilers to be added
+            standalone_profiler.wait_for_profilers(hostnames)
+        except Exception:
+            self._get_all_failure_logs(test, hosts)
+            raise
+
+
+    def before_start(self, test, host=None):
+        # create host objects and install the needed clients
+        # so later in start() we don't spend too much time
+        self._install_clients()
+        self._run_clients(test, self._get_hosts(host))
+
+
+    def start(self, test, host=None):
+        hosts = self._get_hosts(host)
+
+        # wait for the profilers to start
+        hostnames = [host_info[0].hostname for host_info in hosts]
+        try:
+            standalone_profiler.start_profilers(hostnames)
+        except Exception:
+            self._get_all_failure_logs(test, hosts)
+            raise
+
+        self.current_test = test
+
+
+    def stop(self, test):
+        assert self.current_test == test
+
+        hosts = self._get_hosts()
+        # wait for the profilers to stop
+        hostnames = [host_info[0].hostname for host_info in hosts]
+        try:
+            standalone_profiler.stop_profilers(hostnames)
+        except Exception:
+            self._get_all_failure_logs(test, hosts)
+            raise
+
+
+    def report(self, test, host=None):
+        assert self.current_test == test
+
+        hosts = self._get_hosts(host)
+        # when running on specific hosts we cannot wait for the other
+        # hosts to sync with us
+        if not host:
+            hostnames = [host_info[0].hostname for host_info in hosts]
+            try:
+                standalone_profiler.finish_profilers(hostnames)
+            except Exception:
+                self._get_all_failure_logs(test, hosts)
+                raise
+
+        # pull back all the results
+        for host, at, autodir in hosts:
+            results_dir = get_profiler_results_dir(autodir)
+            local_dir = self._get_local_profilers_dir(test, host.hostname)
+
+            self.job.remove_client_log(host.hostname, results_dir, local_dir)
+
+            tempdir = tempfile.mkdtemp(dir=self.job.tmpdir)
+            try:
+                host.get_file(results_dir + '/', tempdir)
+            except error.AutoservRunError:
+                pass # no files to pull back, nothing we can do
+            utils.merge_trees(tempdir, local_dir)
+            shutil.rmtree(tempdir, ignore_errors=True)
+
+
     def handle_reboot(self, host):
-        for p in self.list:
-            p.handle_reboot(host)
+        if self.current_test:
+            test = self.current_test
+            for profiler in self.list:
+                if not profiler.supports_reboot:
+                    msg = 'profiler %s does not support rebooting during tests'
+                    msg %= profiler.name
+                    self.job.record('WARN', os.path.basename(test.outputdir),
+                                    None, msg)
+
+            self.report(test, host)
+            self.before_start(test, host)
+            self.start(test, host)
