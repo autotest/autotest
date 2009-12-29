@@ -36,9 +36,11 @@ class harness_standalone(harness.harness):
         if os.path.exists('/etc/event.d'):
             # NB: assuming current runlevel is default
             initdefault = utils.system_output('/sbin/runlevel').split()[1]
-        else:
+        elif os.path.exists('/etc/inittab'):
             initdefault = utils.system_output('grep :initdefault: /etc/inittab')
             initdefault = initdefault.split(':')[1]
+        else:
+            initdefault = '2'
 
         try:
             utils.system('ln -sf %s /etc/init.d/autotest' % rc)
