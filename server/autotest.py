@@ -920,8 +920,12 @@ class client_logger(object):
         elif test_complete_match:
             self._process_logs()
             fifo_path, = test_complete_match.groups()
-            self.log_collector.collect_client_job_results()
-            self.host.run("echo A > %s" % fifo_path)
+            try:
+                self.log_collector.collect_client_job_results()
+                self.host.run("echo A > %s" % fifo_path)
+            except Exception:
+                msg = "Post-test log collection failed, continuing anyway"
+                logging.exception(msg)
         elif fetch_package_match:
             pkg_name, dest_path, fifo_path = fetch_package_match.groups()
             serve_packages = global_config.global_config.get_config_value(
@@ -932,7 +936,11 @@ class client_logger(object):
                 except Exception:
                     msg = "Package tarball creation failed, continuing anyway"
                     logging.exception(msg)
-            self.host.run("echo B > %s" % fifo_path)
+            try:
+                self.host.run("echo B > %s" % fifo_path)
+            except Exception:
+                msg = "Package tarball installation failed, continuing anyway"
+                logging.exception(msg)
         else:
             logging.info(line)
 
@@ -1007,25 +1015,29 @@ class client_logger(object):
 
     def write(self, data):
         # first check for any new console warnings
-        warnings = self.job._read_warnings() + self.server_warnings
+        self.server_warnings = self.job._read_warnings() + self.server_warnings
+        warnings = self.server_warnings
         warnings.sort()  # sort into timestamp order
-        # now process the newest data written out
+        # now start processing the existng buffer and the new data
         data = self.leftover + data
-        lines = data.split("\n")
-        # process every line but the last one
-        for line in lines[:-1]:
-            self._update_timestamp(line)
-            # output any warnings between now and the next status line
-            old_warnings = [(timestamp, msg) for timestamp, msg in warnings
-                            if timestamp < self.newest_timestamp]
-            self._process_warnings(self.last_line, self.logs, warnings)
-            del warnings[:len(old_warnings)]
-            self._process_line(line)
-        # save off any warnings not yet logged for later processing
-        self.server_warnings = warnings
-        # save the last line for later processing
-        # since we may not have the whole line yet
-        self.leftover = lines[-1]
+        lines = data.split('\n')
+        processed_lines = 0
+        try:
+            # process all the buffered data except the last line
+            # ignore the last line since we may not have all of it yet
+            for line in lines[:-1]:
+                self._update_timestamp(line)
+                # output any warnings between now and the next status line
+                old_warnings = [(timestamp, msg) for timestamp, msg in warnings
+                                if timestamp < self.newest_timestamp]
+                self._process_warnings(self.last_line, self.logs, warnings)
+                del warnings[:len(old_warnings)]
+                # now process the line itself
+                self._process_line(line)
+                processed_lines += 1
+        finally:
+            # save any unprocessed lines for future processing
+            self.leftover = '\n'.join(lines[processed_lines:])
 
 
     def flush(self):
