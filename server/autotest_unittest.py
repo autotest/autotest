@@ -2,7 +2,7 @@
 
 __author__ = "raphtee@google.com (Travis Miller)"
 
-import unittest, os, tempfile
+import unittest, os, tempfile, logging
 import common
 from autotest_lib.server import autotest, utils, hosts, server_job, profilers
 from autotest_lib.client.bin import sysinfo
@@ -51,6 +51,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(autotest, "open")
         self.god.stub_function(autotest.global_config.global_config,
                                "get_config_value")
+        self.god.stub_function(logging, "exception")
         self.god.stub_class(autotest, "_Run")
         self.god.stub_class(autotest, "log_collector")
 
@@ -287,6 +288,76 @@ class TestBaseAutotest(unittest.TestCase):
 
         install_dir = autotest.Autotest.get_install_dir(self.host)
         self.assertEquals(install_dir, '/another/path')
+
+
+    def test_client_logger_process_line_log_copy_collection_failure(self):
+        collector = autotest.log_collector.expect_new(self.host, '', '')
+        logger = autotest.client_logger(self.host, '', '')
+        collector.collect_client_job_results.expect_call().and_raises(
+                Exception('log copy failure'))
+        logging.exception.expect_call(mock.is_string_comparator())
+        logger._process_line('AUTOTEST_TEST_COMPLETE:/autotest/fifo1')
+
+
+    def test_client_logger_process_line_log_copy_fifo_failure(self):
+        collector = autotest.log_collector.expect_new(self.host, '', '')
+        logger = autotest.client_logger(self.host, '', '')
+        collector.collect_client_job_results.expect_call()
+        self.host.run.expect_call('echo A > /autotest/fifo2').and_raises(
+                Exception('fifo failure'))
+        logging.exception.expect_call(mock.is_string_comparator())
+        logger._process_line('AUTOTEST_TEST_COMPLETE:/autotest/fifo2')
+
+
+    def test_client_logger_process_line_package_install_fifo_failure(self):
+        collector = autotest.log_collector.expect_new(self.host, '', '')
+        logger = autotest.client_logger(self.host, '', '')
+        self.god.stub_function(logger, '_send_tarball')
+
+        c = autotest.global_config.global_config
+        c.get_config_value.expect_call('PACKAGES',
+                                       'serve_packages_from_autoserv',
+                                       type=bool).and_return(True)
+        logger._send_tarball.expect_call('pkgname.tar.bz2', '/autotest/dest/')
+        
+        self.host.run.expect_call('echo B > /autotest/fifo3').and_raises(
+                Exception('fifo failure'))
+        logging.exception.expect_call(mock.is_string_comparator())
+        logger._process_line('AUTOTEST_FETCH_PACKAGE:pkgname.tar.bz2:'
+                             '/autotest/dest/:/autotest/fifo3')
+
+
+    def test_client_logger_write_handles_process_line_failures(self):
+        collector = autotest.log_collector.expect_new(self.host, '', '')
+        logger = autotest.client_logger(self.host, '', '')
+        logger.server_warnings = [(x, 'warn%d' % x) for x in xrange(5)]
+        self.god.stub_function(logger, '_process_warnings')
+        self.god.stub_function(logger, '_process_line')
+        def _update_timestamp(line):
+            logger.newest_timestamp += 2
+        class ProcessingException(Exception):
+            pass
+        def _read_warnings():
+            return [(5, 'warn5')]
+        logger._update_timestamp = _update_timestamp
+        logger.newest_timestamp = 0
+        self.host.job._read_warnings = _read_warnings
+        # process line1, newest_timestamp -> 2
+        logger._process_warnings.expect_call(
+                '', {}, [(0, 'warn0'), (1, 'warn1')])
+        logger._process_line.expect_call('line1')
+        # process line2, newest_timestamp -> 4, failure occurs during process
+        logger._process_warnings.expect_call(
+                '', {}, [(2, 'warn2'), (3, 'warn3')])
+        logger._process_line.expect_call('line2').and_raises(
+                ProcessingException('line processing failure'))
+        # when we call write with data we should get an exception
+        self.assertRaises(ProcessingException, logger.write,
+                          'line1\nline2\nline3\nline4')
+        # but, after the exception, the server_warnings and leftover buffers
+        # should contain the unprocessed data, and ONLY the unprocessed data
+        self.assertEqual(logger.server_warnings, [(4, 'warn4'), (5, 'warn5')])
+        self.assertEqual(logger.leftover, 'line2\nline3\nline4')
 
 
 if __name__ == "__main__":
