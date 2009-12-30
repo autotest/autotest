@@ -9,8 +9,6 @@ from django.db.models.sql import query
 from django.utils import datastructures
 from autotest_lib.frontend.afe import readonly_connection
 
-_quote_name = connection.ops.quote_name
-
 class ValidationError(Exception):
     """\
     Data validation error in adding or updating an object. The associated
