@@ -6,7 +6,7 @@
 Run an control file through the server side engine
 """
 
-import sys, os, re, traceback, signal, time, logging
+import sys, os, re, traceback, signal, time, logging, getpass
 
 import common
 
@@ -52,6 +52,10 @@ def run_autoserv(pid_file_manager, results, parser):
 
     # Set signal handler
     signal.signal(signal.SIGTERM, handle_sigterm)
+
+    # Server side tests that call shell scripts often depend on $USER being set
+    # but depending on how you launch your autotest scheduler it may not be set.
+    os.environ['USER'] = getpass.getuser()
 
     if parser.options.machines:
         machines = parser.options.machines.replace(',', ' ').strip().split()
