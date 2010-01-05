@@ -1,0 +1,39 @@
+diff -c -r src/Makefile newsrc/Makefile
+*** src/Makefile	Wed Jul 28 15:05:02 1999
+--- newsrc/Makefile	Mon Jan  4 19:04:45 2010
+***************
+*** 35,50 ****
+  CC=gcc
+  
+  ## For Linux 486/Pentium, GCC 2.7.x and 2.8.x
+! #OPTON = -O2 -fomit-frame-pointer -fforce-addr -fforce-mem -ffast-math \
+  #	-m486 -malign-loops=2 -malign-jumps=2 -malign-functions=2
+  ## For Linux, GCC previous to 2.7.0
+! #OPTON = -O2 -fomit-frame-pointer -fforce-addr -fforce-mem -ffast-math -m486
+  
+! #OPTON = -O2 -fomit-frame-pointer -fforce-addr -fforce-mem -ffast-math \
+  #	-m386 -malign-loops=1 -malign-jumps=1 -malign-functions=1
+  
+  ## For Solaris 2, or general-purpose GCC 2.7.x
+! OPTON = -O2 -fomit-frame-pointer -fforce-addr -fforce-mem -ffast-math -Wall
+  
+  ## Very generic
+  #OPTON = -O
+--- 35,51 ----
+  CC=gcc
+  
+  ## For Linux 486/Pentium, GCC 2.7.x and 2.8.x
+! # -O2 already turned -fforce-mem
+! OPTON = -O2 -fomit-frame-pointer -fforce-addr -ffast-math \
+  #	-m486 -malign-loops=2 -malign-jumps=2 -malign-functions=2
+  ## For Linux, GCC previous to 2.7.0
+! #OPTON = -O2 -fomit-frame-pointer -fforce-addr -ffast-math -m486
+  
+! #OPTON = -O2 -fomit-frame-pointer -fforce-addr -ffast-math \
+  #	-m386 -malign-loops=1 -malign-jumps=1 -malign-functions=1
+  
+  ## For Solaris 2, or general-purpose GCC 2.7.x
+! #OPTON = -O2 -fomit-frame-pointer -fforce-addr -fforce-mem -ffast-math -Wall
+  
+  ## Very generic
+  #OPTON = -O
