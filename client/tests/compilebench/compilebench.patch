@@ -1,0 +1,8 @@
+--- src/compilebench-orig	2009-12-17 19:22:21.000000000 +0800
++++ src/compilebench	2009-12-17 19:26:04.000000000 +0800
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python2.4
++#!/usr/bin/env python
+ #
+ # sample usage: compilebench -D some_working_dir see compilebench -h for more
+ #
