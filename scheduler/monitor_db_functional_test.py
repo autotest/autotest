@@ -492,6 +492,8 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.mock_drone_manager.finish_process(_PidfileType.CLEANUP,
                                                exit_status=256)
         self._run_dispatcher() # repair, HQE unaffected
+        self.mock_drone_manager.finish_process(_PidfileType.ARCHIVE)
+        self._run_dispatcher()
         return queue_entry
 
 
@@ -537,7 +539,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.mock_drone_manager.finish_process(_PidfileType.PARSE)
         self._run_dispatcher()
 
-        self._check_statuses(queue_entry, HqeStatus.ARCHIVING, HostStatus.READY)
+        self._check_entry_status(queue_entry, HqeStatus.ARCHIVING)
         self.mock_drone_manager.finish_process(_PidfileType.ARCHIVE)
         self._run_dispatcher()
 
