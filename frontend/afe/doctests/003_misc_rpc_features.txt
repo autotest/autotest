@@ -99,7 +99,8 @@ def step_init():
         job.show_kernel_in_test_tag(True)  # Include kernel in output dir name.
 def boot_kernel(kernel_info):
     # remove kernels (and associated data) not referenced by the bootloader
-    job.host.cleanup_kernels()
+    for host in job.hosts:
+        host.cleanup_kernels()
     testkernel = job.kernel(kernel_info['version'])
     if kernel_info['config_file']:
         testkernel.config(kernel_info['config_file'])
@@ -213,7 +214,8 @@ def step_init():
         job.show_kernel_in_test_tag(True)  # Include kernel in output dir name.
 def boot_kernel(kernel_info):
     # remove kernels (and associated data) not referenced by the bootloader
-    job.host.cleanup_kernels()
+    for host in job.hosts:
+        host.cleanup_kernels()
     testkernel = job.kernel(kernel_info['version'])
     if kernel_info['config_file']:
         testkernel.config(kernel_info['config_file'])
