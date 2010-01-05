@@ -836,7 +836,8 @@ def get_static_data():
                                    "Parsing": "Awaiting parse of final results",
                                    "Gathering": "Gathering log files",
                                    "Template": "Template job for recurring run",
-                                   "Waiting": "Waiting for scheduler action"}
+                                   "Waiting": "Waiting for scheduler action",
+                                   "Archiving": "Archiving results"}
     return result
 
 

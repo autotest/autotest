@@ -136,11 +136,7 @@ class base_server_job(base_job.base_job):
             utils.write_keyval(self.resultdir, job_data)
 
         self._parse_job = parse_job
-        if self._parse_job and len(machines) == 1:
-            self._using_parser = True
-            self.init_parser(self.resultdir)
-        else:
-            self._using_parser = False
+        self._using_parser = (self._parse_job and len(machines) == 1)
         self.pkgmgr = packages.PackageManager(
             self.autodir, run_function_dargs={'timeout':600})
         self.num_tests_run = 0
@@ -207,20 +203,22 @@ class base_server_job(base_job.base_job):
         subcommand.subcommand.register_join_hook(on_join)
 
 
-    def init_parser(self, resultdir):
+    def init_parser(self):
         """
-        Start the continuous parsing of resultdir. This sets up
+        Start the continuous parsing of self.resultdir. This sets up
         the database connection and inserts the basic job object into
         the database if necessary.
         """
+        if not self._using_parser:
+            return
         # redirect parser debugging to .parse.log
-        parse_log = os.path.join(resultdir, '.parse.log')
+        parse_log = os.path.join(self.resultdir, '.parse.log')
         parse_log = open(parse_log, 'w', 0)
         tko_utils.redirect_parser_debugging(parse_log)
         # create a job model object and set up the db
         self.results_db = tko_db.db(autocommit=True)
         self.parser = status_lib.parser(self._STATUS_VERSION)
-        self.job_model = self.parser.make_job(resultdir)
+        self.job_model = self.parser.make_job(self.resultdir)
         self.parser.start(self.job_model)
         # check if a job already exists in the db and insert it if
         # it does not
@@ -317,7 +315,7 @@ class base_server_job(base_job.base_job):
                 os.chdir(self.resultdir)
                 self.in_machine_dir = True
                 utils.write_keyval(self.resultdir, {"hostname": machine})
-                self.init_parser(self.resultdir)
+                self.init_parser()
                 result = function(machine)
                 self.cleanup_parser()
                 return result
