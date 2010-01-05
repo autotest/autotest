@@ -18,6 +18,7 @@ class unixbench(test.test):
         os.chdir(self.srcdir)
 
         utils.system('patch -p1 < ../unixbench.patch')
+        utils.system('patch -p1 < ../Makefile.patch')
         utils.system('make')
 
 
