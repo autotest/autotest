@@ -87,7 +87,16 @@ class base_autoserv_parser(object):
                                'output')
         self.parser.add_option("-p", "--write-pidfile", action="store_true",
                                dest="write_pidfile", default=False,
-                               help="write pidfile (.autoserv_execute)")
+                               help="write pidfile (pidfile name is determined "
+                                    "by --pidfile-label")
+        self.parser.add_option("--pidfile-label", action="store",
+                               default="autoserv",
+                               help="Determines filename to use as pidfile (if "
+                                    "-p is specified).  Pidfile will be "
+                                    ".<label>_execute.  Default to autoserv.")
+        self.parser.add_option("--use-existing-results", action="store_true",
+                               help="Indicates that autoserv is working with "
+                                    "an existing results directory")
         self.parser.add_option("-a", "--args", dest='args',
                                help="additional args to pass to control file")
         protection_levels = [host_protections.Protection.get_attr_name(s)

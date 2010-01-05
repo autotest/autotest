@@ -322,7 +322,7 @@ class DroneUtility(object):
                                (hostname, source_path, destination_path))
 
 
-    def _sync_send_file_to(self, hostname, source_path, destination_path,
+    def sync_send_file_to(self, hostname, source_path, destination_path,
                            can_fail):
         host = create_host(hostname)
         try:
@@ -350,7 +350,7 @@ class DroneUtility(object):
 
     def send_file_to(self, hostname, source_path, destination_path,
                      can_fail=False):
-        self.run_async_command(self._sync_send_file_to,
+        self.run_async_command(self.sync_send_file_to,
                                (hostname, source_path, destination_path,
                                 can_fail))
 

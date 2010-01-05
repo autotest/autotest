@@ -127,6 +127,7 @@ def run_autoserv(pid_file_manager, results, parser):
                                 ssh_user, ssh_port, ssh_pass,
                                 group_name=group_name, tag=execution_tag)
     job.logging.start_logging()
+    job.init_parser()
 
     # perform checks
     job.precheck()
@@ -175,7 +176,7 @@ def main():
             results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')
         results  = os.path.abspath(results)
         resultdir_exists = os.path.exists(os.path.join(results, 'control.srv'))
-        if not parser.options.collect_crashinfo and resultdir_exists:
+        if not parser.options.use_existing_results and resultdir_exists:
             error = "Error: results directory already exists: %s\n" % results
             sys.stderr.write(error)
             sys.exit(1)
@@ -194,12 +195,15 @@ def main():
     if results:
         logging.info("Results placed in %s" % results)
 
+        # wait until now to perform this check, so it get properly logged
+        if parser.options.use_existing_results and not resultdir_exists:
+            logging.error("No existing results directory found: %s", results)
+            sys.exit(1)
+
+
     if parser.options.write_pidfile:
-        if parser.options.collect_crashinfo:
-            pidfile_label = 'collect_crashinfo'
-        else:
-            pidfile_label = 'autoserv'
-        pid_file_manager = pidfile.PidFileManager(pidfile_label, results)
+        pid_file_manager = pidfile.PidFileManager(parser.options.pidfile_label,
+                                                  results)
         pid_file_manager.open_file()
     else:
         pid_file_manager = None
