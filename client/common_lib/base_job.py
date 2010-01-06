@@ -1,4 +1,4 @@
-import os, copy, logging, errno, tempfile, cPickle as pickle
+import os, copy, logging, errno, tempfile, cPickle as pickle, platform
 
 from autotest_lib.client.common_lib import autotemp, error
 
@@ -7,13 +7,17 @@ class job_directory(object):
     """Represents a job.*dir directory."""
 
 
-    class MissingDirectoryException(error.AutotestError):
+    class JobDirectoryException(error.AutotestError):
+        """Generic job_directory exception superclass."""
+
+
+    class MissingDirectoryException(JobDirectoryException):
         """Raised when a directory required by the job does not exist."""
         def __init__(self, path):
             Exception.__init__(self, 'Directory %s does not exist' % path)
 
 
-    class UncreatableDirectoryException(error.AutotestError):
+    class UncreatableDirectoryException(JobDirectoryException):
         """Raised when a directory required by the job is missing and cannot
         be created."""
         def __init__(self, path, error):
@@ -22,7 +26,7 @@ class job_directory(object):
             Exception.__init__(self, msg)
 
 
-    class UnwritableDirectoryException(error.AutotestError):
+    class UnwritableDirectoryException(JobDirectoryException):
         """Raised when a writable directory required by the job exists
         but is not writable."""
         def __init__(self, path):
@@ -282,8 +286,20 @@ class job_state(object):
                 namespace, name)
 
 
+    def discard_namespace(self, namespace):
+        """Delete all defined namespace.* names.
+
+        @param namespace The namespace to be cleared.
+        """
+        if namespace in self._state:
+            del self._state[namespace]
+        self._write_to_backing_file()
+        logging.debug('Persistent state %s.* deleted', namespace)
+
+
     @staticmethod
-    def property_factory(state_attribute, property_attribute, default):
+    def property_factory(state_attribute, property_attribute, default,
+                         namespace='global_properties'):
         """
         Create a property object for an attribute using self.get and self.set.
 
@@ -293,16 +309,17 @@ class job_state(object):
             this property is exposed as.
         @param default A default value that should be used for this property
             if it is not set.
+        @param namespace The namespace to store the attribute value in.
 
         @returns A read-write property object that performs self.get calls
             to read the value and self.set calls to set it.
         """
         def getter(job):
             state = getattr(job, state_attribute)
-            return state.get('stateful_property', property_attribute, default)
+            return state.get(namespace, property_attribute, default)
         def setter(job, value):
             state = getattr(job, state_attribute)
-            state.set('stateful_property', property_attribute, value)
+            state.set(namespace, property_attribute, value)
         return property(getter, setter)
 
 
@@ -345,6 +362,8 @@ class base_job(object):
             A path to the control file to be executed. [OPTIONAL]
         hosts
             A set of all live Host objects currently in use by the job.
+            Code running in the context of a local client can safely assume
+            that this set contains only a single entry.
         machines
             A list of the machine names associated with the job.
         user
@@ -355,6 +374,10 @@ class base_job(object):
 
         last_boot_tag
             The label of the kernel from the last reboot. [OPTIONAL,PERSISTENT]
+        automatic_test_tag
+            A string which, if set, will be automatically added to the test
+            name when running tests.
+
         default_profile_only
             A boolean indicating the default value of profile_only used
             by test.execute. [PERSISTENT]
@@ -405,33 +428,49 @@ class base_job(object):
             no resultdir is to be used.
     """
 
-    # all the job directory attributes
-    autodir = job_directory.property_factory('autodir')
-    clientdir = job_directory.property_factory('clientdir')
-    serverdir = job_directory.property_factory('serverdir')
-    resultdir = job_directory.property_factory('resultdir')
-    pkgdir = job_directory.property_factory('pkgdir')
-    tmpdir = job_directory.property_factory('tmpdir')
-    testdir = job_directory.property_factory('testdir')
-    site_testdir = job_directory.property_factory('site_testdir')
-    bindir = job_directory.property_factory('bindir')
-    configdir = job_directory.property_factory('configdir')
-    profdir = job_directory.property_factory('profdir')
-    toolsdir = job_directory.property_factory('toolsdir')
-    conmuxdir = job_directory.property_factory('conmuxdir')
-
-
-    # all the persistent properties
-    default_profile_only = job_state.property_factory(
-        '_state', 'default_profile_only', False)
-    run_test_cleanup = job_state.property_factory(
-        '_state', 'run_test_cleanup', True)
-    last_boot_tag = job_state.property_factory('_state', 'last_boot_tag', None)
-
-
-    # capture the dependency on several helper classes with factories
+   # capture the dependency on several helper classes with factories
     _job_directory = job_directory
     _job_state = job_state
+
+
+    # all the job directory attributes
+    autodir = _job_directory.property_factory('autodir')
+    clientdir = _job_directory.property_factory('clientdir')
+    serverdir = _job_directory.property_factory('serverdir')
+    resultdir = _job_directory.property_factory('resultdir')
+    pkgdir = _job_directory.property_factory('pkgdir')
+    tmpdir = _job_directory.property_factory('tmpdir')
+    testdir = _job_directory.property_factory('testdir')
+    site_testdir = _job_directory.property_factory('site_testdir')
+    bindir = _job_directory.property_factory('bindir')
+    configdir = _job_directory.property_factory('configdir')
+    profdir = _job_directory.property_factory('profdir')
+    toolsdir = _job_directory.property_factory('toolsdir')
+    conmuxdir = _job_directory.property_factory('conmuxdir')
+
+
+    # all the generic persistent properties
+    default_profile_only = _job_state.property_factory(
+        '_state', 'default_profile_only', False)
+    run_test_cleanup = _job_state.property_factory(
+        '_state', 'run_test_cleanup', True)
+    last_boot_tag = _job_state.property_factory(
+        '_state', 'last_boot_tag', None)
+    automatic_test_tag = _job_state.property_factory(
+        '_state', 'automatic_test_tag', None)
+
+    # the use_sequence_number property
+    _sequence_number = _job_state.property_factory(
+        '_state', '_sequence_number', None)
+    def _get_use_sequence_number(self):
+        return bool(self._sequence_number)
+    def _set_use_sequence_number(self, value):
+        if value:
+            self._sequence_number = 1
+        else:
+            self._sequence_number = None
+    use_sequence_number = property(_get_use_sequence_number,
+                                   _set_use_sequence_number)
 
 
     def __init__(self, *args, **dargs):
@@ -554,44 +593,61 @@ class base_job(object):
         self._state.set('public', name, value)
 
 
-    def has_state(self, name):
-        """Returns a boolean indicating if the given name is defined.
+    def _build_tagged_test_name(self, testname, dargs):
+        """Builds the fully tagged testname and subdirectory for job.run_test.
 
-        @param name The name to check for a definition.
+        @param testname The base name of the test
+        @param dargs The ** arguments passed to run_test. And arguments
+            consumed by this method will be removed from the dictionary.
 
-        @returns True if state is associated with name, False otherwise.
+        @returns A 3-tuple of the full name of the test, the subdirectory it
+            should be stored in, and the full tag of the subdir.
         """
-        return self._state.has('public', name)
+        tag_parts = []
+
+        # build up the parts of the tag used for the test name
+        base_tag = dargs.pop('tag', None)
+        if base_tag:
+            tag_parts.append(str(base_tag))
+        if self.use_sequence_number:
+            tag_parts.append('_%02d_' % self._sequence_number)
+            self._sequence_number += 1
+        if self.automatic_test_tag:
+            tag_parts.append(self.automatic_test_tag)
+        full_testname = '.'.join([testname] + tag_parts)
+
+        # build up the subdir and tag as well
+        subdir_tag = dargs.pop('subdir_tag', None)
+        if subdir_tag:
+            tag_parts.append(subdir_tag)
+        subdir = '.'.join([testname] + tag_parts)
+        tag = '.'.join(tag_parts)
+
+        return full_testname, subdir, tag
 
 
-    def discard_state(self, name):
-        """Discards the state with the provided name.
+    def _make_test_outputdir(self, subdir):
+        """Creates an output directory for a test to run it.
 
-        @param name The name of the value that should be discarded.
+        @param subdir The subdirectory of the test. Generally computed by
+            _build_tagged_test_name.
+
+        @returns A job_directory instance corresponding to the outputdir of
+            the test.
+        @raises A TestError if the output directory is invalid.
         """
-        self._state.discard('public', name)
+        # explicitly check that this subdirectory is new
+        path = os.path.join(self.resultdir, subdir)
+        if os.path.exists(path):
+            msg = ('%s already exists; multiple tests cannot run with the '
+                   'same subdirectory' % subdir)
+            raise error.TestError(msg)
 
-
-    def save_state(self, file_path=None):
-        """Saves the entire job state into a file.
-
-        @param file_path A writable file path that the job state can be written
-            into. If None a temporary file is created instead.
-
-        @returns The path of the file the state was written into. If file_path
-            is not None then this will always be file_path.
-        """
-        if file_path is None:
-            fd, file_path = tempfile.mkstemp(dir=self.tmpdir)
-            os.close(fd)
-        self._state.write_to_file(file_path)
-        return file_path
-
-
-    def load_state(self, file_path):
-        """Loads job state from a file, overriding any in-memory state.
-
-        @param file_path The path of a file that contains job state. Should
-            always be a file produced by a save_state call.
-        """
-        self._state.read_from_file(file_path)
+        # create the outputdir and raise a TestError if it isn't valid
+        try:
+            outputdir = self._job_directory(path, True)
+            return outputdir
+        except self._job_directory.JobDirectoryException, e:
+            logging.exception('%s directory creation failed with %s',
+                              subdir, e)
+            raise error.TestError('%s directory creation failed' % subdir)

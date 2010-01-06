@@ -393,8 +393,7 @@ class BaseAutotest(installable_object.InstallableObject):
         os.remove(client_config_file)
 
         # Create and copy state file to remote_control_file + '.state'
-        host.job.set_state("__sysinfo", host.job.sysinfo.serialize())
-        state_file = host.job.save_state()
+        state_file = host.job.preprocess_client_state()
         host.send_file(state_file, atrun.remote_control_file + '.init.state')
         os.remove(state_file)
 
@@ -695,25 +694,6 @@ class _Run(object):
         self.host.reboot_followup()
 
 
-    def _process_client_state_file(self):
-        state_file = os.path.basename(self.remote_control_file) + ".state"
-        state_path = os.path.join(self.results_dir, state_file)
-        self.host.job.load_state(state_file)
-
-        # clear out the state file
-        # TODO: stash the file away somewhere useful instead
-        try:
-            os.remove(state_path)
-        except Exception:
-            pass
-
-        if self.host.job.has_state("__sysinfo"):
-            self.host.job.sysinfo.deserialize(
-                self.host.job.get_state("__sysinfo"))
-
-        self.host.job.discard_state("__steps")
-
-
     def execute_control(self, timeout=None, client_disconnect_timeout=None):
         if not self.background:
             collector = log_collector(self.host, self.tag, self.results_dir)
@@ -762,7 +742,10 @@ class _Run(object):
             logger.close()
             if not self.background:
                 collector.collect_client_job_results()
-                self._process_client_state_file()
+                state_file = os.path.basename(self.remote_control_file
+                                              + '.state')
+                state_path = os.path.join(self.results_dir, state_file)
+                self.host.job.postprocess_client_state(state_path)
                 self.host.job.remove_client_log(hostname, remote_results,
                                                 local_results)
 

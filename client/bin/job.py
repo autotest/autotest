@@ -143,8 +143,6 @@ class base_client_job(base_job.base_job):
         self._is_continuation = options.cont
         self._current_step_ancestry = []
         self._next_step_index = 0
-        self._testtag = ''
-        self._test_tag_prefix = ''
         self._load_state()
 
         self._init_group_level()
@@ -481,48 +479,20 @@ class base_client_job(base_job.base_job):
 
     @_run_test_complete_on_exit
     def run_test(self, url, *args, **dargs):
-        """Summon a test object and run it.
-
-        tag
-                tag to add to testname
-        url
-                url of the test to run
         """
+        Summon a test object and run it.
 
-        if not url:
-            raise TypeError("Test name is invalid. "
-                            "Switched arguments?")
-        (group, testname) = self.pkgmgr.get_package_name(url, 'test')
-        namelen = len(testname)
-        dargs = dargs.copy()
-        tntag = dargs.pop('tag', None)
-        if tntag:         # per-test tag  is included in reported test name
-            testname += '.' + str(tntag)
-        run_number = self.get_run_number()
-        if run_number:
-            testname += '._%02d_' % run_number
-            self.set_run_number(run_number + 1)
-        if self._is_kernel_in_test_tag():
-            testname += '.' + platform.release()
-        if self._test_tag_prefix:
-            testname += '.' + self._test_tag_prefix
-        if self._testtag:  # job-level tag is included in reported test name
-            testname += '.' + self._testtag
-        subdir = testname
-        sdtag = dargs.pop('subdir_tag', None)
-        if sdtag:  # subdir-only tag is not included in reports
-            subdir = subdir + '.' + str(sdtag)
-        tag = subdir[namelen+1:]    # '' if none
+        @param url A url that identifies the test to run.
+        @param tag An optional keyword argument that will be added to the
+            test and subdir name.
+        @param subdir_tag An optional keyword argument that will be added
+            to the subdir name.
 
-        outputdir = os.path.join(self.resultdir, subdir)
-        if os.path.exists(outputdir):
-            msg = ("%s already exists, test <%s> may have"
-                    " already run with tag <%s>"
-                    % (outputdir, testname, tag) )
-            raise error.TestError(msg)
-        # NOTE: client/common_lib/test.py runtest() depends directory names
-        # being constructed the same way as in this code.
-        os.mkdir(outputdir)
+        @returns True if the test passes, False otherwise.
+        """
+        group, testname = self.pkgmgr.get_package_name(url, 'test')
+        testname, subdir, tag = self._build_tagged_test_name(testname, dargs)
+        outputdir = self._make_test_outputdir(subdir)
 
         def log_warning(reason):
             self.record("WARN", subdir, testname, reason)
@@ -616,43 +586,6 @@ class base_client_job(base_job.base_job):
         # It will be caught by step_engine or _run_step_fn.
         except Exception, e:
             raise error.UnhandledTestError(e)
-
-
-    _RUN_NUMBER_STATE = '__run_number'
-    def get_run_number(self):
-        """Get the run number or 0 if no run number has been set."""
-        return self.get_state(self._RUN_NUMBER_STATE, default=0)
-
-
-    def set_run_number(self, number):
-        """If the run number is non-zero it will be in the output dir name."""
-        self.set_state(self._RUN_NUMBER_STATE, number)
-
-
-    _KERNEL_IN_TAG_STATE = '__kernel_version_in_test_tag'
-    def _is_kernel_in_test_tag(self):
-        """Boolean: should the kernel version be included in the test tag."""
-        return self.get_state(self._KERNEL_IN_TAG_STATE, default=False)
-
-
-    def show_kernel_in_test_tag(self, value=True):
-        """If True, the kernel version at test time will prefix test tags."""
-        self.set_state(self._KERNEL_IN_TAG_STATE, value)
-
-
-    def set_test_tag(self, tag=''):
-        """Set tag to be added to test name of all following run_test steps."""
-        self._testtag = tag
-
-
-    def set_test_tag_prefix(self, prefix):
-        """Set a prefix string to prepend to all future run_test steps.
-
-        Args:
-          prefix: A string to prepend to any run_test() step tags separated by
-              a '.'; use the empty string '' to clear it.
-        """
-        self._test_tag_prefix = prefix
 
 
     def cpu_count(self):
@@ -897,18 +830,14 @@ class base_client_job(base_job.base_job):
         self._state.set_backing_file(self._state_file)
 
         # initialize the state engine, if necessary
-        try:
-            self.get_state('__steps')
-        except KeyError:
-            initialize = True
-        else:
-            initialize = False
-        if not (self._is_continuation or initialize):
-            raise RuntimeError('Loaded state must contain __steps or be a '
-                               'continuation.')
-        if initialize:
+        has_steps = self._state.has('client', 'steps')
+        if not self._is_continuation and has_steps:
+            raise RuntimeError('Loaded state can only contain client.steps if '
+                               'this is a continuation')
+
+        if not has_steps:
             logging.info('Initializing the state engine')
-            self.set_state('__steps', [])
+            self._state.set('client', 'steps', [])
 
 
     def __create_step_tuple(self, fn, args, dargs):
@@ -933,28 +862,29 @@ class base_client_job(base_job.base_job):
 
     def next_step_append(self, fn, *args, **dargs):
         """Define the next step and place it at the end"""
-        steps = self.get_state('__steps')
+        steps = self._state.get('client', 'steps')
         steps.append(self.__create_step_tuple(fn, args, dargs))
-        self.set_state('__steps', steps)
+        self._state.set('client', 'steps', steps)
 
 
     def next_step(self, fn, *args, **dargs):
         """Create a new step and place it after any steps added
         while running the current step but before any steps added in
         previous steps"""
-        steps = self.get_state('__steps')
+        steps = self._state.get('client', 'steps')
         steps.insert(self._next_step_index,
                      self.__create_step_tuple(fn, args, dargs))
         self._next_step_index += 1
-        self.set_state('__steps', steps)
+        self._state.set('client', 'steps', steps)
 
 
     def next_step_prepend(self, fn, *args, **dargs):
         """Insert a new step, executing first"""
-        steps = self.get_state('__steps')
+        steps = self._state.get('client', 'steps')
         steps.insert(0, self.__create_step_tuple(fn, args, dargs))
         self._next_step_index += 1
-        self.set_state('__steps', steps)
+        self._state.set('client', 'steps', steps)
+
 
 
     def _run_step_fn(self, local_vars, fn, args, dargs):
@@ -1056,10 +986,10 @@ class base_client_job(base_job.base_job):
 
         # Iterate through the steps.  If we reboot, we'll simply
         # continue iterating on the next step.
-        while len(self.get_state('__steps')) > 0:
-            steps = self.get_state('__steps')
+        while len(self._state.get('client', 'steps')) > 0:
+            steps = self._state.get('client', 'steps')
             (ancestry, fn_name, args, dargs) = steps.pop(0)
-            self.set_state('__steps', steps)
+            self._state.set('client', 'steps', steps)
 
             self._next_step_index = 0
             ret = self._create_frame(global_control_vars, ancestry, fn_name)
@@ -1086,14 +1016,14 @@ class base_client_job(base_job.base_job):
 
 
     def _load_sysinfo_state(self):
-        state = self.get_state("__sysinfo", None)
+        state = self._state.get('client', 'sysinfo', None)
         if state:
             self.sysinfo.deserialize(state)
 
 
     def _save_sysinfo_state(self):
         state = self.sysinfo.serialize()
-        self.set_state("__sysinfo", state)
+        self._state.set('client', 'sysinfo', state)
 
 
     def _init_group_level(self):
