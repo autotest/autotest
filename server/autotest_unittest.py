@@ -234,11 +234,8 @@ class TestBaseAutotest(unittest.TestCase):
                                         "my_config")
         os.remove.expect_call("/job/tmp/file1")
 
-        self.host.job.sysinfo.serialize.expect_call().and_return(
-            {"key1": 1, "key2": 2})
-        self.host.job.set_state.expect_call('__sysinfo',
-                                            {'key1': 1, 'key2': 2})
-        self.host.job.save_state.expect_call().and_return('/job/tmp/file1')
+        self.host.job.preprocess_client_state.expect_call().and_return(
+            '/job/tmp/file1')
         self.host.send_file.expect_call(
             "/job/tmp/file1", "autodir/control.None.autoserv.init.state")
         os.remove.expect_call("/job/tmp/file1")

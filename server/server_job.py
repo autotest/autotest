@@ -7,7 +7,7 @@ Copyright Martin J. Bligh, Andy Whitcroft 2007
 """
 
 import getpass, os, sys, re, stat, tempfile, time, select, subprocess
-import traceback, shutil, warnings, fcntl, pickle, logging, itertools
+import traceback, shutil, warnings, fcntl, pickle, logging, itertools, errno
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import base_job
 from autotest_lib.client.common_lib import error, log, utils, packages
@@ -141,12 +141,7 @@ class base_server_job(base_job.base_job):
         self.num_tests_run = 0
         self.num_tests_failed = 0
 
-        # should tell us if this job results are inside a machine named
-        # directory
-        self.in_machine_dir = False
-
         self._register_subcommand_hooks()
-        self._test_tag_prefix = None
 
         # these components aren't usable on the server
         self.bootloader = None
@@ -312,7 +307,6 @@ class base_server_job(base_job.base_job):
                 self.machines = [machine]
                 self.push_execution_context(machine)
                 os.chdir(self.resultdir)
-                self.in_machine_dir = True
                 utils.write_keyval(self.resultdir, {"hostname": machine})
                 self.init_parser()
                 result = function(machine)
@@ -322,7 +316,6 @@ class base_server_job(base_job.base_job):
             def wrapper(machine):
                 self.push_execution_context(machine)
                 os.chdir(self.resultdir)
-                self.in_machine_dir = True
                 machine_data = {'hostname' : machine,
                                 'status_version' : str(self._STATUS_VERSION)}
                 utils.write_keyval(self.resultdir, machine_data)
@@ -488,14 +481,6 @@ class base_server_job(base_job.base_job):
                 self._execute_code(INSTALL_CONTROL_FILE, namespace)
 
 
-    def set_test_tag_prefix(self, tag=''):
-        """
-        Set tag to be prepended (separated by a '.') to test name of all
-        following run_test steps.
-        """
-        self._test_tag_prefix = tag
-
-
     def run_test(self, url, *args, **dargs):
         """
         Summon a test object and run it.
@@ -505,25 +490,9 @@ class base_server_job(base_job.base_job):
         url
                 url of the test to run
         """
-
-        (group, testname) = self.pkgmgr.get_package_name(url, 'test')
-
-        tag = dargs.pop('tag', None)
-        if tag is None:
-            tag = self._test_tag_prefix
-        elif self._test_tag_prefix:
-            tag = '%s.%s' % (self._test_tag_prefix, tag)
-
-        if tag:
-            testname += '.' + str(tag)
-        subdir = testname
-
-        outputdir = os.path.join(self.resultdir, subdir)
-        if os.path.exists(outputdir):
-            msg = ("%s already exists, test <%s> may have"
-                   " already run with tag <%s>" % (outputdir, testname, tag))
-            raise error.TestError(msg)
-        os.mkdir(outputdir)
+        group, testname = self.pkgmgr.get_package_name(url, 'test')
+        testname, subdir, tag = self._build_tagged_test_name(testname, dargs)
+        outputdir = self._make_test_outputdir(subdir)
 
         def group_func():
             try:
@@ -1056,6 +1025,53 @@ class base_server_job(base_job.base_job):
                    "inserting test results into the database. "
                    "Ignoring error.\n" + traceback.format_exc())
             print >> sys.stderr, msg
+
+
+    def preprocess_client_state(self):
+        """
+        Produce a state file for initializing the state of a client job.
+
+        Creates a new client state file with all the current server state, as
+        well as some pre-set client state.
+
+        @returns The path of the file the state was written into.
+        """
+        # initialize the sysinfo state
+        self._state.set('client', 'sysinfo', self.sysinfo.serialize())
+
+        # dump the state out to a tempfile
+        fd, file_path = tempfile.mkstemp(dir=self.tmpdir)
+        os.close(fd)
+        self._state.write_to_file(file_path)
+        return file_path
+
+
+    def postprocess_client_state(self, state_path):
+        """
+        Update the state of this job with the state from a client job.
+
+        Updates the state of the server side of a job with the final state
+        of a client job that was run. Updates the non-client-specific state,
+        pulls in some specific bits from the client-specific state, and then
+        discards the rest. Removes the state file afterwards
+
+        @param state_file A path to the state file from the client.
+        """
+        # update the on-disk state
+        self._state.read_from_file(state_path)
+        try:
+            os.remove(state_path)
+        except IOError, e:
+            # ignore file-not-found errors
+            if e.errno != errno.ENOENT:
+                raise
+
+        # update the sysinfo state
+        if self._state.has('client', 'sysinfo'):
+            self.sysinfo.deserialize(self._state.get('client', 'sysinfo'))
+
+        # drop all the client-specific state
+        self._state.discard_namespace('client')
 
 
 site_server_job = utils.import_site_class(

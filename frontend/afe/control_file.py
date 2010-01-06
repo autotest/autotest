@@ -23,8 +23,7 @@ def step_init():
         job.next_step(boot_kernel, kernel_info)
         job.next_step(step_test, kernel_info['version'])
     if len(kernel_list) > 1:
-        job.set_run_number(1)  # Include run numbers in output directory names.
-        job.show_kernel_in_test_tag(True)  # Include kernel in output dir name.
+        job.use_sequence_number = True  # include run numbers in directory names
 
 
 def boot_kernel(kernel_info):
@@ -45,6 +44,10 @@ def boot_kernel(kernel_info):
 def step_test(kernel_version):
     global kernel
     kernel = kernel_version  # Set the global in case anyone is using it.
+    if len(kernel_list) > 1:
+        # this is local to a machine, safe to assume there's only one host
+        host, = job.hosts
+        job.automatic_test_tag = host.get_kernel_ver()
 """
 
 SERVER_KERNEL_TEMPLATE = """\
@@ -98,7 +101,7 @@ def step_init():
         # a suffix to the test name otherwise we cannot run the same test on
         # different kernel versions
         if len(kernel_list) > 1:
-            job.set_test_tag_prefix(kernel_host.get_kernel_ver())
+            job.automatic_test_tag = kernel_host.get_kernel_ver()
         step_test()
 
 
