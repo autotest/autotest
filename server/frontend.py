@@ -290,22 +290,24 @@ class AFE(RpcClient):
         return self.get_jobs(id=id)[0]
 
 
-    def run_test_suites(self, pairings, kernel, kernel_label, priority='Medium',
-                        wait=True, poll_interval=10, email_from=None,
-                        email_to=None, timeout=168):
+    def run_test_suites(self, pairings, kernel, kernel_label=None,
+                        priority='Medium', wait=True, poll_interval=10,
+                        email_from=None, email_to=None, timeout=168):
         """
         Run a list of test suites on a particular kernel.
 
         Poll for them to complete, and return whether they worked or not.
 
-            pairings: list of MachineTestPairing objects to invoke
-            kernel: name of the kernel to run
-            kernel_label: label of the kernel to run
-                                        (<kernel-version> : <config> : <date>)
-            wait: boolean - wait for the results to come back?
-            poll_interval: interval between polling for job results (in minutes)
-            email_from: send notification email upon completion from here
-            email_from: send notification email upon completion to here
+        @param pairings: List of MachineTestPairing objects to invoke.
+        @param kernel: Name of the kernel to run.
+        @param kernel_label: Label (string) of the kernel to run such as
+                    '<kernel-version> : <config> : <date>'
+                    If any pairing object has its job_label attribute set it
+                    will override this value for that particular job.
+        @param wait: boolean - Wait for the results to come back?
+        @param poll_interval: Interval between polling for job results (in mins)
+        @param email_from: Send notification email upon completion from here.
+        @param email_from: Send notification email upon completion to here.
         """
         jobs = []
         for pairing in pairings:
@@ -443,8 +445,16 @@ class AFE(RpcClient):
         Given a pairing of a control file to a machine label, find all machines
         with that label, and submit that control file to them.
 
-        Returns a list of job objects
+        @param kernel_label: Label (string) of the kernel to run such as
+                '<kernel-version> : <config> : <date>'
+                If any pairing object has its job_label attribute set it
+                will override this value for that particular job.
+
+        @returns A list of job objects.
         """
+        # The pairing can override the job label.
+        if pairing.job_label:
+            kernel_label = pairing.job_label
         job_name = '%s : %s' % (pairing.machine_label, kernel_label)
         hosts = self.get_hosts(multiple_labels=[pairing.machine_label])
         platforms = pairing.platforms
@@ -856,10 +866,12 @@ class MachineTestPairing(object):
     machine_label: use machines from this label
     control_file: use this control file (by name in the frontend)
     platforms: list of rexeps to filter platforms by. [] => no filtering
+    job_label: The label (name) to give to the autotest job launched
+            to run this pairing.  '<kernel-version> : <config> : <date>'
     """
     def __init__(self, machine_label, control_file, platforms=[],
                  container=False, atomic_group_sched=False, synch_count=0,
-                 testname=None):
+                 testname=None, job_label=None):
         self.machine_label = machine_label
         self.control_file = control_file
         self.platforms = platforms
@@ -867,6 +879,7 @@ class MachineTestPairing(object):
         self.atomic_group_sched = atomic_group_sched
         self.synch_count = synch_count
         self.testname = testname
+        self.job_label = job_label
 
 
     def __repr__(self):
