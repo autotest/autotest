@@ -36,6 +36,24 @@ class AbstractSSHHost(SiteHost):
         self.port = port
         self.password = password
 
+        # Check if rsync is available on the remote host. If it's not,
+        # don't try to use it for any future file transfers.
+        self.use_rsync = self._check_rsync()
+        if not self.use_rsync:
+            logging.warn("rsync not available on remote host %s -- disabled",
+                         self.hostname)
+
+
+    def _check_rsync(self):
+        """
+        Check if rsync is available on the remote host.
+        """
+        try:
+            self.run("rsync --version", stdout_tee=None, stderr_tee=None)
+        except error.AutoservRunError:
+            return False
+        return True
+
 
     def _encode_remote_paths(self, paths, escape=True):
         """
@@ -204,13 +222,20 @@ class AbstractSSHHost(SiteHost):
             source = [source]
         dest = os.path.abspath(dest)
 
-        try:
-            remote_source = self._encode_remote_paths(source)
-            local_dest = utils.sh_escape(dest)
-            rsync = self._make_rsync_cmd([remote_source], local_dest,
-                                         delete_dest, preserve_symlinks)
-            utils.run(rsync)
-        except error.CmdError, e:
+        # If rsync is disabled or fails, try scp.
+        try_scp = not self.use_rsync
+        if self.use_rsync:
+            try:
+                remote_source = self._encode_remote_paths(source)
+                local_dest = utils.sh_escape(dest)
+                rsync = self._make_rsync_cmd([remote_source], local_dest,
+                                             delete_dest, preserve_symlinks)
+                utils.run(rsync)
+            except error.CmdError, e:
+                logging.warn("trying scp, rsync failed: %s" % e)
+                try_scp = True
+
+        if try_scp:
             # scp has no equivalent to --delete, just drop the entire dest dir
             if delete_dest and os.path.isdir(dest):
                 shutil.rmtree(dest)
@@ -269,12 +294,19 @@ class AbstractSSHHost(SiteHost):
             source = [source]
         remote_dest = self._encode_remote_paths([dest])
 
-        try:
-            local_sources = [utils.sh_escape(path) for path in source]
-            rsync = self._make_rsync_cmd(local_sources, remote_dest,
-                                         delete_dest, preserve_symlinks)
-            utils.run(rsync)
-        except error.CmdError, e:
+        # If rsync is disabled or fails, try scp.
+        try_scp = not self.use_rsync
+        if self.use_rsync:
+            try:
+                local_sources = [utils.sh_escape(path) for path in source]
+                rsync = self._make_rsync_cmd(local_sources, remote_dest,
+                                             delete_dest, preserve_symlinks)
+                utils.run(rsync)
+            except error.CmdError, e:
+                logging.warn("trying scp, rsync failed: %s" % e)
+                try_scp = True
+
+        if try_scp:
             # scp has no equivalent to --delete, just drop the entire dest dir
             if delete_dest:
                 is_dir = self.run("ls -d %s/" % dest,
