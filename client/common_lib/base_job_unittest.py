@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-import os, tempfile, shutil
+import os, stat, tempfile, shutil, logging
 
 import common
-from autotest_lib.client.common_lib import base_job
+from autotest_lib.client.common_lib import base_job, error
 from autotest_lib.client.common_lib.test_utils import unittest
 
 
@@ -45,19 +45,20 @@ class test_init(unittest.TestCase):
             'configdir', 'profdir', 'toolsdir', 'conmuxdir',
 
             # other special attributes
-            'bootloader', 'control', 'default_profile_only', 'drop_caches',
+            'automatic_test_tag', 'bootloader', 'control',
+            'default_profile_only', 'drop_caches',
             'drop_caches_between_iterations', 'harness', 'hosts',
             'last_boot_tag', 'logging', 'machines', 'num_tests_failed',
             'num_tests_run', 'pkgmgr', 'profilers', 'resultdir',
-            'run_test_cleanup', 'sysinfo', 'tag', 'user', 'warning_loggers',
-            'warning_manager',
+            'run_test_cleanup', 'sysinfo', 'tag', 'user', 'use_sequence_number',
+            'warning_loggers', 'warning_manager',
             ])
 
         OPTIONAL_ATTRIBUTES = set([
             'serverdir', 'conmuxdir',
 
-            'bootloader', 'control', 'harness', 'last_boot_tag',
-            'num_tests_run', 'num_tests_failed', 'tag',
+            'automatic_test_tag', 'bootloader', 'control', 'harness',
+            'last_boot_tag', 'num_tests_run', 'num_tests_failed', 'tag',
             'warning_manager', 'warning_loggers',
             ])
 
@@ -420,16 +421,61 @@ class test_job_state(unittest.TestCase):
         self.assert_(not self.state.has('ns18_2', 'name26'))
 
 
+    def test_discard_namespace_drops_all_values(self):
+        self.state.set('ns19', 'var1', 10)
+        self.state.set('ns19', 'var3', 100)
+        self.state.discard_namespace('ns19')
+        self.assertRaises(KeyError, self.state.get, 'ns19', 'var1')
+        self.assertRaises(KeyError, self.state.get, 'ns19', 'var3')
+
+
+    def test_discard_namespace_works_on_missing_namespace(self):
+        self.state.discard_namespace('missing_ns')
+
+
+    def test_discard_namespace_doesnt_touch_other_values(self):
+        self.state.set('ns20', 'var1', 20)
+        self.state.set('ns20', 'var2', 200)
+        self.state.set('ns21', 'var2', 21)
+        self.state.discard_namespace('ns20')
+        self.assertEqual(21, self.state.get('ns21', 'var2'))
+
+
 # run the same tests as test_job_state, but with a backing file turned on
+# also adds some tests to check that each method is persistent
 class test_job_state_with_backing_file(test_job_state):
     def setUp(self):
         self.backing_file = tempfile.mktemp()
         self.state = base_job.job_state()
         self.state.set_backing_file(self.backing_file)
 
+
     def tearDown(self):
         if os.path.exists(self.backing_file):
             os.remove(self.backing_file)
+
+
+    def test_set_is_persistent(self):
+        self.state.set('persist', 'var', 'value')
+        written_state = base_job.job_state()
+        written_state.read_from_file(self.backing_file)
+        self.assertEqual('value', written_state.get('persist', 'var'))
+
+
+    def test_discard_is_persistent(self):
+        self.state.set('persist', 'var', 'value')
+        self.state.discard('persist', 'var')
+        written_state = base_job.job_state()
+        written_state.read_from_file(self.backing_file)
+        self.assertRaises(KeyError, written_state.get, 'persist', 'var')
+
+
+    def test_discard_namespace_is_persistent(self):
+        self.state.set('persist', 'var', 'value')
+        self.state.discard_namespace('persist')
+        written_state = base_job.job_state()
+        written_state.read_from_file(self.backing_file)
+        self.assertRaises(KeyError, written_state.get, 'persist', 'var')
 
 
 class test_job_state_read_write_file(unittest.TestCase):
@@ -645,6 +691,159 @@ class test_job_state_property_factory(unittest.TestCase):
         job2.testprop6 = 'job2val'
         self.assertEqual('notdefaultval', job1.testprop6)
         self.assertEqual('job2val', job2.testprop6)
+
+    def test_properties_in_different_namespaces_do_not_collide(self):
+        self.job_class.ns1 = base_job.job_state.property_factory(
+            'stateobj', 'attribute', 'default1', namespace='ns1')
+        self.job_class.ns2 = base_job.job_state.property_factory(
+            'stateobj', 'attribute', 'default2', namespace='ns2')
+        self.assertEqual('default1', self.job.ns1)
+        self.assertEqual('default2', self.job.ns2)
+        self.job.ns1 = 'notdefault'
+        self.job.ns2 = 'alsonotdefault'
+        self.assertEqual('notdefault', self.job.ns1)
+        self.assertEqual('alsonotdefault', self.job.ns2)
+
+
+class test_job_tags(unittest.TestCase):
+    def setUp(self):
+        class stub_job(base_job.base_job):
+            _job_directory = stub_job_directory
+            @classmethod
+            def _find_base_directories(cls):
+                return '/autodir', '/autodir/client', '/autodir/server'
+            def _find_resultdir(self):
+                return '/autodir/results'
+        self.job = stub_job()
+
+
+    def test_default_with_no_args_means_no_tags(self):
+        self.assertEqual(('testname', 'testname', ''),
+                         self.job._build_tagged_test_name('testname', {}))
+        self.assertEqual(('othername', 'othername', ''),
+                         self.job._build_tagged_test_name('othername', {}))
+
+
+    def test_tag_argument_appended(self):
+        self.assertEqual(
+            ('test1.mytag', 'test1.mytag', 'mytag'),
+            self.job._build_tagged_test_name('test1', {'tag': 'mytag'}))
+
+
+    def test_turning_on_use_sequence_adds_sequence_tags(self):
+        self.job.use_sequence_number = True
+        self.assertEqual(
+            ('test2._01_', 'test2._01_', '_01_'),
+            self.job._build_tagged_test_name('test2', {}))
+        self.assertEqual(
+            ('test2._02_', 'test2._02_', '_02_'),
+            self.job._build_tagged_test_name('test2', {}))
+        self.assertEqual(
+            ('test3._03_', 'test3._03_', '_03_'),
+            self.job._build_tagged_test_name('test3', {}))
+
+
+    def test_adding_automatic_test_tag_automatically_tags(self):
+        self.job.automatic_test_tag = 'autotag'
+        self.assertEqual(
+            ('test4.autotag', 'test4.autotag', 'autotag'),
+            self.job._build_tagged_test_name('test4', {}))
+
+
+    def test_none_automatic_test_tag_turns_off_tagging(self):
+        self.job.automatic_test_tag = 'autotag'
+        self.assertEqual(
+            ('test5.autotag', 'test5.autotag', 'autotag'),
+            self.job._build_tagged_test_name('test5', {}))
+        self.job.automatic_test_tag = None
+        self.assertEqual(
+            ('test5', 'test5', ''),
+            self.job._build_tagged_test_name('test5', {}))
+
+
+    def test_empty_automatic_test_tag_turns_off_tagging(self):
+        self.job.automatic_test_tag = 'autotag'
+        self.assertEqual(
+            ('test6.autotag', 'test6.autotag', 'autotag'),
+            self.job._build_tagged_test_name('test6', {}))
+        self.job.automatic_test_tag = ''
+        self.assertEqual(
+            ('test6', 'test6', ''),
+            self.job._build_tagged_test_name('test6', {}))
+
+
+    def test_subdir_tag_modifies_subdir_and_tag_only(self):
+        self.assertEqual(
+            ('test7', 'test7.subdirtag', 'subdirtag'),
+            self.job._build_tagged_test_name('test7',
+                                             {'subdir_tag': 'subdirtag'}))
+
+
+    def test_all_tag_components_together(self):
+        self.job.use_sequence_number = True
+        self.job.automatic_test_tag = 'auto'
+        expected = ('test8.tag._01_.auto',
+                    'test8.tag._01_.auto.subdir',
+                    'tag._01_.auto.subdir')
+        actual = self.job._build_tagged_test_name(
+            'test8', {'tag': 'tag', 'subdir_tag': 'subdir'})
+        self.assertEqual(expected, actual)
+
+
+class test_make_outputdir(unittest.TestCase):
+    def setUp(self):
+        self.resultdir = tempfile.mkdtemp(suffix='unittest')
+        class stub_job(base_job.base_job):
+            @classmethod
+            def _find_base_directories(cls):
+                return '/autodir', '/autodir/client', '/autodir/server'
+            def _find_resultdir(inner_self):
+                return self.resultdir
+
+        # stub out _job_directory for creation only
+        stub_job._job_directory = stub_job_directory
+        self.job = stub_job()
+        del stub_job._job_directory
+
+        # stub out logging.exception
+        self.original_exception = logging.exception
+        logging.exception = lambda *args, **dargs: None
+
+        self.original_wd = os.getcwd()
+        os.chdir(self.resultdir)
+
+
+    def tearDown(self):
+        logging.exception = self.original_exception
+        os.chdir(self.original_wd)
+        shutil.rmtree(self.resultdir, ignore_errors=True)
+
+
+    def test_raises_test_error_if_outputdir_exists(self):
+        os.mkdir('subdir1')
+        self.assert_(os.path.exists('subdir1'))
+        self.assertRaises(error.TestError, self.job._make_test_outputdir,
+                          'subdir1')
+
+
+    def test_raises_test_error_if_outputdir_uncreatable(self):
+        os.chmod(self.resultdir, stat.S_IRUSR | stat.S_IXUSR)
+        self.assert_(not os.path.exists('subdir2'))
+        self.assertRaises(OSError, os.mkdir, 'subdir2')
+        self.assertRaises(error.TestError, self.job._make_test_outputdir,
+                          'subdir2')
+        self.assert_(not os.path.exists('subdir2'))
+
+
+    def test_creates_writable_directory(self):
+        self.assert_(not os.path.exists('subdir3'))
+        self.job._make_test_outputdir('subdir3')
+        self.assert_(os.path.isdir('subdir3'))
+
+        # we can write to the directory afterwards
+        self.assert_(not os.path.exists('subdir3/testfile'))
+        open('subdir3/testfile', 'w').close()
+        self.assert_(os.path.isfile('subdir3/testfile'))
 
 
 if __name__ == "__main__":

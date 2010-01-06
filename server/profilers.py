@@ -117,7 +117,9 @@ class profilers(profiler_manager.profiler_manager):
 
 
     def _get_local_profilers_dir(self, test, hostname):
-        if not test.job.in_machine_dir and len(self.installed_hosts) > 1:
+        in_machine_dir = (
+                os.path.basename(test.job.resultdir) in test.job.machines)
+        if len(test.job.machines) > 1 and not in_machine_dir:
             local_dir = os.path.join(test.profdir, hostname)
             if not os.path.exists(local_dir):
                 os.makedirs(local_dir)
