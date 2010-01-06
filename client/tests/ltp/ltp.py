@@ -3,7 +3,7 @@ from autotest_lib.client.bin import utils, test
 from autotest_lib.client.common_lib import error
 
 class ltp(test.test):
-    version = 5
+    version = 6
 
     def _import_site_config(self):
         site_config_path = os.path.join(os.path.dirname(__file__),
@@ -23,11 +23,13 @@ class ltp(test.test):
         self.job.require_gcc()
 
 
-    # http://prdownloads.sourceforge.net/ltp/ltp-full-20080229.tgz
-    def setup(self, tarball = 'ltp-full-20080229.tar.bz2'):
+    # http://prdownloads.sourceforge.net/ltp/ltp-full-20091231.tgz
+    def setup(self, tarball = 'ltp-full-20091231.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
+        ltpbin_dir = os.path.join(self.srcdir, 'bin')
+        os.mkdir(ltpbin_dir)
 
         utils.system('patch -p1 < ../ltp.patch')
 
@@ -38,8 +40,10 @@ class ltp(test.test):
             utils.system('patch -p1 < ../ltp_capability.patch')
 
         utils.system('cp ../scan.c pan/')   # saves having lex installed
-        utils.system('make -j %d' % utils.count_cpus())
-        utils.system('yes n | make install')
+        utils.system('make autotools')
+        utils.system('./configure --prefix=%s' % ltpbin_dir)
+        utils.system('make -j %d all' % utils.count_cpus())
+        utils.system('yes n | make SKIP_IDCHECK=1 install')
 
 
     # Note: to run a specific test, try '-f cmdfile -s test' in the
@@ -56,7 +60,8 @@ class ltp(test.test):
             args2 = '-q -l %s -C %s -d %s' % (logfile, failcmdfile, self.tmpdir)
             args = args + ' ' + args2
 
-        cmd = os.path.join(self.srcdir, script) + ' ' + args
+        ltpbin_dir = os.path.join(self.srcdir, 'bin')
+        cmd = os.path.join(ltpbin_dir, script) + ' ' + args
         result = utils.run(cmd, ignore_status=True)
 
         # look for the first line in result.stdout containing FAIL and,
