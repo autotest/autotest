@@ -22,8 +22,8 @@ def purge_src(top_dir):
         print 'Cleaning %s test dir' % dir
         os.system(cmd)
 
-
-os.system('cd tmp && ls -A | xargs rm -rf')
+if os.path.isdir('tmp'):
+    os.system('cd tmp && ls -A | xargs rm -rf')
 
 for dir in ['site_tests', 'site_profilers', 'tests', 'profilers', 'deps']:
     purge_src(dir)
