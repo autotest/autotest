@@ -82,7 +82,7 @@ def run_timedrift(test, params, env):
         # Set the VM's CPU affinity
         prev_affinity = set_cpu_affinity(vm.get_pid(), cpu_mask)
 
-        # Get time before load 
+        # Get time before load
         # (ht stands for host time, gt stands for guest time)
         (ht0, gt0) = kvm_test_utils.get_time(session,
                                              time_command,
@@ -166,8 +166,8 @@ def run_timedrift(test, params, env):
     logging.info("Total drift after rest: %.2f%%" % drift_total)
 
     # Fail the test if necessary
-    if drift > drift_threshold:
+    if abs(drift) > drift_threshold:
         raise error.TestFail("Time drift too large: %.2f%%" % drift)
-    if drift_total > drift_threshold_after_rest:
+    if abs(drift_total) > drift_threshold_after_rest:
         raise error.TestFail("Time drift too large after rest period: %.2f%%"
                              % drift_total)
