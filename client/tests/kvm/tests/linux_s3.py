@@ -36,7 +36,8 @@ def run_linux_s3(test, params, env):
     logging.info("Putting VM into S3")
     command = "chvt %s && echo mem > /sys/power/state && chvt %s" % (dst_tty,
                                                                      src_tty)
-    status = session.get_command_status(command, timeout=120)
+    suspend_timeout = 120 + int(params.get("smp")) * 60
+    status = session.get_command_status(command, timeout=suspend_timeout)
     if status != 0:
         raise error.TestFail("Suspend to mem failed")
 
