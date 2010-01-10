@@ -45,7 +45,8 @@ def run_guest_s4(test, params, env):
     session2.sendline(params.get("set_s4_cmd"))
 
     # Make sure the VM goes down
-    if not kvm_utils.wait_for(vm.is_dead, 240, 2, 2):
+    suspend_timeout = 240 + int(params.get("smp")) * 60
+    if not kvm_utils.wait_for(vm.is_dead, suspend_timeout, 2, 2):
         raise error.TestFail("VM refuses to go down. Suspend failed.")
     logging.info("VM suspended successfully. Sleeping for a while before "
                  "resuming it.")
