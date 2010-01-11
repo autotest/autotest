@@ -64,6 +64,13 @@ class base_client_job(base_job.base_job):
     _DEFAULT_LOG_FILENAME = "status"
     _WARNING_DISABLE_DELAY = 5
 
+    # _record_prefix is a persistent property, but only on the client
+    _job_state = base_job.base_job._job_state
+    _record_prefix = _job_state.property_factory(
+        '_state', '_record_prefix', '', namespace='client')
+    _max_disk_usage_rate = _job_state.property_factory(
+        '_state', '_max_disk_usage_rate', 0.0, namespace='client')
+
 
     def __init__(self, control, options, drop_caches=True,
                  extra_copy_cmdline=None):
@@ -145,8 +152,6 @@ class base_client_job(base_job.base_job):
         self._next_step_index = 0
         self._load_state()
 
-        self._init_group_level()
-
         self.harness = harness.select(options.harness, self)
 
 
@@ -161,8 +166,6 @@ class base_client_job(base_job.base_job):
 
         self.sysinfo = sysinfo.sysinfo(self.resultdir)
         self._load_sysinfo_state()
-
-        self.tag = self.get_state("__job_tag", default=None)
 
         if not options.cont:
             download = os.path.join(self.testdir, 'download')
@@ -204,10 +207,6 @@ class base_client_job(base_job.base_job):
 
         if options.log:
             self.enable_external_logging()
-
-        # load the max disk usage rate - default to no monitoring
-        self._max_disk_usage_rate = self.get_state('__monitor_disk',
-                                                   default=0.0)
 
         self._init_cmdline(extra_copy_cmdline)
 
@@ -304,7 +303,6 @@ class base_client_job(base_job.base_job):
                         during a test, in MB/hour, or 0 to indicate
                         no limit.
         """
-        self.set_state('__monitor_disk', max_rate)
         self._max_disk_usage_rate = max_rate
 
 
@@ -616,7 +614,7 @@ class base_client_job(base_job.base_job):
         partition_list = partition_lib.get_partition_list(self,
                                                           exclude_swap=False)
         mount_info = set((p.device, p.get_mountpoint()) for p in partition_list)
-        old_mount_info = self.get_state("__mount_info")
+        old_mount_info = self._state.get('client', 'mount_info')
         if mount_info != old_mount_info:
             new_entries = mount_info - old_mount_info
             old_entries = old_mount_info - mount_info
@@ -720,20 +718,13 @@ class base_client_job(base_job.base_job):
         pass
 
 
-    def default_tag(self, tag):
-        """Allows the scheduler's job tag to be passed in from autoserv."""
-        if not self._is_continuation:
-            self.set_state("__job_tag", tag)
-            self.tag = tag
-
-
     def reboot_setup(self):
         # save the partition list and their mount point and compare it
         # after reboot
         partition_list = partition_lib.get_partition_list(self,
                                                           exclude_swap=False)
         mount_info = set((p.device, p.get_mountpoint()) for p in partition_list)
-        self.set_state("__mount_info", mount_info)
+        self._state.set('client', 'mount_info', mount_info)
 
 
     def reboot(self, tag=LAST_BOOT_TAG):
@@ -1026,18 +1017,12 @@ class base_client_job(base_job.base_job):
         self._state.set('client', 'sysinfo', state)
 
 
-    def _init_group_level(self):
-        self._group_level = self.get_state("__group_level", default=0)
-
-
     def _increment_group_level(self):
-        self._group_level += 1
-        self.set_state("__group_level", self._group_level)
+        self._record_prefix += '\t'
 
 
     def _decrement_group_level(self):
-        self._group_level -= 1
-        self.set_state("__group_level", self._group_level)
+        self._record_prefix = self._record_prefix[:-1]
 
 
     def record(self, status_code, subdir, operation, status = '',
@@ -1095,7 +1080,7 @@ class base_client_job(base_job.base_job):
         status = re.sub(r"\t", "  ", status)
         # Ensure any continuation lines are marked so we can
         # detect them in the status file to ensure it is parsable.
-        status = re.sub(r"\n", "\n" + "\t" * self._group_level + "  ", status)
+        status = re.sub(r"\n", "\n" + self._record_prefix + "  ", status)
 
         # Generate timestamps for inclusion in the logs
         epoch_time = int(time.time())  # seconds since epoch, in UTC
@@ -1109,7 +1094,7 @@ class base_client_job(base_job.base_job):
         fields.append(status)
 
         msg = '\t'.join(str(x) for x in fields)
-        msg = '\t' * self._group_level + msg
+        msg = self._record_prefix + msg
 
         msg_tag = ""
         if "." in self._log_filename:
@@ -1237,8 +1222,7 @@ def runjob(control, drop_caches, options):
                 myjob.record('ABORT', None, command, instance.args[0])
             myjob._decrement_group_level()
             myjob.record('END ABORT', None, None, instance.args[0])
-            assert (myjob._group_level == 0), ('myjob._group_level must be 0,'
-                                               ' not %d' % myjob._group_level)
+            assert myjob._record_prefix == ''
             myjob.complete(1)
         else:
             sys.exit(1)
@@ -1251,7 +1235,7 @@ def runjob(control, drop_caches, options):
         if myjob:
             myjob._decrement_group_level()
             myjob.record('END ABORT', None, None, msg)
-            assert(myjob._group_level == 0)
+            assert myjob._record_prefix == ''
             myjob.complete(1)
         else:
             sys.exit(1)
@@ -1259,7 +1243,7 @@ def runjob(control, drop_caches, options):
     # If we get here, then we assume the job is complete and good.
     myjob._decrement_group_level()
     myjob.record('END GOOD', None, None)
-    assert(myjob._group_level == 0)
+    assert myjob._record_prefix == ''
 
     myjob.complete(0)
 

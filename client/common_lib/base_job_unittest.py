@@ -24,6 +24,27 @@ class stub_job_directory(object):
             self.path = path
 
 
+class stub_job_state(base_job.job_state):
+    """
+    Stub job state class, for replacing the job._job_state factory.
+    Doesn't actually provide an persistence, just the state handling.
+    """
+    def __init__(self):
+        self._state = {}
+
+    def read_from_file(self, file_path):
+        pass
+
+    def write_to_file(self, file_path):
+        pass
+
+    def set_backing_file(self, file_path):
+        pass
+
+    def _write_to_backing_file(self):
+        pass
+
+
 class test_init(unittest.TestCase):
     class generic_tests(object):
         """
