@@ -285,7 +285,7 @@ class Host(object):
                 "while path != '/' and not os.path.ismount(path):\n"
                 '    path, _ = os.path.split(path)\n'
                 'print path\n') % path
-        return self.run('python2.4 -c "%s"' % code,
+        return self.run('python -c "%s"' % code,
                         stdout_tee=open(os.devnull, 'w')).stdout.rstrip()
 
 

@@ -3,7 +3,7 @@
 import gd, os, cStringIO, urllib2, sys
 
 fontlist = [
-    '/usr/lib/python2.4/site-packages/reportlab/fonts/PenguinAttack.ttf'
+    '/usr/lib/python/site-packages/reportlab/fonts/PenguinAttack.ttf'
     '/usr/share/fonts/truetype/freefont/FreeSans.ttf',
     '/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf',
     ]
