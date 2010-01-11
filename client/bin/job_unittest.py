@@ -60,8 +60,6 @@ class test_init_minimal_options(abstract_test_init, job_test_case):
         self.god.stub_function_to_return(job.os.path, 'exists', True)
         self.god.stub_function_to_return(self.job, '_load_state', None)
         self.god.stub_function_to_return(self.job, 'record', None)
-        self.god.stub_with(self.job, 'get_state', lambda s,default: default)
-        self.god.stub_function_to_return(self.job, 'set_state', None)
         self.god.stub_function_to_return(job.shutil, 'copyfile', None)
         self.god.stub_function_to_return(job.logging_manager,
                                          'configure_logging', None)
@@ -89,6 +87,7 @@ class test_init_minimal_options(abstract_test_init, job_test_case):
             log = False
         self.god.stub_function_to_return(job.utils, 'drop_caches', None)
 
+        self.job._job_state = base_job_unittest.stub_job_state
         self.job.__init__('/control', options)
 
 
@@ -165,7 +164,6 @@ class test_base_job(unittest.TestCase):
 
 
     def _setup_pre_record_init(self, cont):
-        self.god.stub_function(self.job, '_init_group_level')
         self.god.stub_function(self.job, '_load_state')
 
         resultdir = os.path.join(self.autodir, 'results', self.jobtag)
@@ -174,7 +172,6 @@ class test_base_job(unittest.TestCase):
             job.base_client_job._cleanup_results_dir.expect_call()
 
         self.job._load_state.expect_call()
-        self.job._init_group_level.expect_call()
 
         my_harness = self.god.create_mock_class(harness.harness,
                                                 'my_harness')
@@ -189,10 +186,6 @@ class test_base_job(unittest.TestCase):
         self.god.stub_function(self.job, 'config_get')
         self.god.stub_function(self.job, 'config_set')
         self.god.stub_function(self.job, 'record')
-        self.god.stub_function(self.job, '_increment_group_level')
-        self.god.stub_function(self.job, '_decrement_group_level')
-        self.god.stub_function(self.job, 'get_state')
-        self.god.stub_function(self.job, 'set_state')
 
         # other setup
         results = os.path.join(self.autodir, 'results')
@@ -201,8 +194,6 @@ class test_base_job(unittest.TestCase):
 
         utils.drop_caches.expect_call()
         job_sysinfo = sysinfo.sysinfo.expect_new(resultdir)
-        self.job.get_state.expect_call("__job_tag",
-                                       default=None).and_return('1337-gps')
         if not cont:
             os.path.exists.expect_call(download).and_return(False)
             os.mkdir.expect_call(download)
@@ -219,11 +210,8 @@ class test_base_job(unittest.TestCase):
         job_sysinfo.log_per_reboot_data.expect_call()
         if not cont:
             self.job.record.expect_call('START', None, None)
-            self.job._increment_group_level.expect_call()
 
         my_harness.run_start.expect_call()
-        self.job.get_state.expect_call('__monitor_disk',
-                                       default=0.0).and_return(0.0)
 
         self.god.stub_function(utils, 'read_one_line')
         utils.read_one_line.expect_call('/proc/cmdline').and_return(
@@ -304,18 +292,6 @@ class test_base_job(unittest.TestCase):
                 drop_caches=True, extra_copy_cmdline=['more-blah'])
 
         # check
-        self.god.check_playback()
-
-
-    def test_monitor_disk_usage(self):
-        self.construct_job(True)
-
-        # record
-        max_rate = 10.0
-        self.job.set_state.expect_call('__monitor_disk', max_rate)
-
-        # test
-        self.job.monitor_disk_usage(max_rate)
         self.god.check_playback()
 
 
@@ -515,12 +491,10 @@ class test_base_job(unittest.TestCase):
             testname, 'test').and_return(("", testname))
         os.path.exists.expect_call(outputdir).and_return(False)
         self.job.record.expect_call("START", testname, testname)
-        self.job._increment_group_level.expect_call()
         self.job._runtest.expect_call(testname, "", (), {}).and_raises(
             unhandled_error)
         self.job.record.expect_call("ERROR", testname, testname,
                                     first_line_comparator(str(real_error)))
-        self.job._decrement_group_level.expect_call()
         self.job.record.expect_call("END ERROR", testname, testname)
         self.job.harness.run_test_complete.expect_call()
         utils.drop_caches.expect_call()
@@ -551,11 +525,9 @@ class test_base_job(unittest.TestCase):
             testname, 'test').and_return(("", testname))
         os.path.exists.expect_call(outputdir).and_return(False)
         self.job.record.expect_call("START", testname, testname)
-        self.job._increment_group_level.expect_call()
         self.job._runtest.expect_call(testname, "", (), {}).and_raises(
             unhandled_error)
         self.job.record.expect_call("ERROR", testname, testname, reason)
-        self.job._decrement_group_level.expect_call()
         self.job.record.expect_call("END ERROR", testname, testname)
         self.job.harness.run_test_complete.expect_call()
         utils.drop_caches.expect_call()
@@ -569,7 +541,7 @@ class test_base_job(unittest.TestCase):
         self.construct_job(True)
 
         # steup
-        self.job._group_level = 1
+        self.job._record_prefix = '\t'
         status = ''
         status_code = "PASS"
         subdir = "subdir"
@@ -588,7 +560,7 @@ class test_base_job(unittest.TestCase):
         fields += ["%s=%s" % x for x in optional_fields.iteritems()]
         fields.append(status)
         msg = '\t'.join(str(x) for x in fields)
-        msg = '\t' * self.job._group_level + msg
+        msg = self.job._record_prefix + msg
 
         self.god.stub_function(log, "is_valid_status")
         self.god.stub_function(time, "time")
@@ -624,7 +596,6 @@ class test_base_job(unittest.TestCase):
         # record
         self.job.record.expect_call("ABORT", "sub", "reboot.verify",
                                     "boot failure")
-        self.job._decrement_group_level.expect_call()
         self.job.record.expect_call("END ABORT", "sub", "reboot",
                                     optional_fields={"kernel": "2.6.15-smp"})
 
@@ -647,7 +618,7 @@ class test_base_job(unittest.TestCase):
                 self.job, exclude_swap=False).and_return(part_list)
         for i in xrange(len(part_list)):
             part_list[i].get_mountpoint.expect_call().and_return(mount_list[i])
-        self.job.get_state.expect_call("__mount_info").and_return(mount_info)
+        self.job._state.set('client', 'mount_info', mount_info)
 
 
     def test_check_post_reboot_success(self):
@@ -684,10 +655,9 @@ class test_base_job(unittest.TestCase):
         self.god.stub_function(self.job, "_check_post_reboot")
 
         # set up the job class
-        self.job._group_level = 2
+        self.job._record_prefix = '\t\t'
 
         self.job._check_post_reboot.expect_call("sub", running_id=None)
-        self.job._decrement_group_level.expect_call()
         self.job.record.expect_call("END GOOD", "sub", "reboot",
                                     optional_fields={"kernel": "2.6.15-smp",
                                                      "patch0": "patchname"})
@@ -702,7 +672,7 @@ class test_base_job(unittest.TestCase):
         self.god.stub_function(self.job, "_check_post_reboot")
 
         # set up the job class
-        self.job._group_level = 2
+        self.job._record_prefix = '\t\t'
 
         self.god.stub_function(utils, "running_os_ident")
         utils.running_os_ident.expect_call().and_return("2.6.15-smp")
@@ -717,7 +687,6 @@ class test_base_job(unittest.TestCase):
         self.job.record.expect_call("GOOD", "sub", "reboot.verify",
                                     running_id)
         self.job._check_post_reboot.expect_call("sub", running_id=running_id)
-        self.job._decrement_group_level.expect_call()
         self.job.record.expect_call("END GOOD", "sub", "reboot",
                                     optional_fields={"kernel": running_id})
 
@@ -731,7 +700,7 @@ class test_base_job(unittest.TestCase):
         self.god.stub_function(self.job, "_record_reboot_failure")
 
         # set up the job class
-        self.job._group_level = 2
+        self.job._record_prefix = '\t\t'
 
         self.god.stub_function(utils, "running_os_ident")
         utils.running_os_ident.expect_call().and_return("2.6.15-smp")
@@ -745,22 +714,6 @@ class test_base_job(unittest.TestCase):
         # run test
         self.assertRaises(error.JobError, self.job.end_reboot_and_verify,
                           91234567, "2.6.16-smp", "sub")
-        self.god.check_playback()
-
-
-    def test_default_tag(self):
-        self.construct_job(cont=False)
-
-        self.job.set_state.expect_call("__job_tag", None)
-        self.job.default_tag(None)
-        self.assertEqual(None, self.job.tag)
-
-        self.job.set_state.expect_call("__job_tag", '1337-gps')
-        self.job.default_tag('1337-gps')
-        self.assertEqual('1337-gps', self.job.tag)
-
-        self.construct_job(cont=True)
-        self.job.default_tag(None)
         self.god.check_playback()
 
 
