@@ -8,7 +8,7 @@ from autotest_lib.client.bin import utils
 def initialize(client_job):
     cwd = os.getcwd()
     os.chdir(client_job.autodir)
-    os.system('tools/make_clean') 
+    os.system('tools/make_clean')
     os.chdir(cwd)
 
     sys.path.insert(0, client_job.bindir)
@@ -66,4 +66,3 @@ def setup_test(testname, client_job):
     finally:
         os.chdir(pwd)
         shutil.rmtree(auto_test.tmpdir, ignore_errors=True)
-
