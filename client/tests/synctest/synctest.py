@@ -20,5 +20,5 @@ class synctest(test.test):
         args = len + ' ' + loop
         output = os.path.join(self.srcdir, 'synctest ')
         if testdir:
-           os.chdir(testdir)
+            os.chdir(testdir)
         utils.system(output + args)

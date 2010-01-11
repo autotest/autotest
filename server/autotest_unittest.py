@@ -316,7 +316,7 @@ class TestBaseAutotest(unittest.TestCase):
                                        'serve_packages_from_autoserv',
                                        type=bool).and_return(True)
         logger._send_tarball.expect_call('pkgname.tar.bz2', '/autotest/dest/')
-        
+
         self.host.run.expect_call('echo B > /autotest/fifo3').and_raises(
                 Exception('fifo failure'))
         logging.exception.expect_call(mock.is_string_comparator())
