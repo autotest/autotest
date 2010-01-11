@@ -65,9 +65,9 @@ def main():
     finished_jobs = afe.get_jobs(finished=True)
 
     if options.jobname_pattern:
-      jobname_pattern = re.compile(options.jobname_pattern)
+        jobname_pattern = re.compile(options.jobname_pattern)
     else:
-      jobname_pattern = None
+        jobname_pattern = None
 
     # for each unpublished possible jobdir find it in the database and see
     # if it is completed
