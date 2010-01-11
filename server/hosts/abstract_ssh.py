@@ -1,16 +1,22 @@
 import os, time, types, socket, shutil, glob, logging, traceback
-from autotest_lib.client.common_lib import error, logging_manager
+from autotest_lib.client.common_lib import autotemp, error, logging_manager
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import remote
+from autotest_lib.client.common_lib.global_config import global_config
 
 
-def make_ssh_command(user="root", port=22, opts='', connect_timeout=30):
+enable_master_ssh = global_config.get_config_value(
+    'AUTOSERV', 'enable_master_ssh', type=bool, default=False)
+
+
+def make_ssh_command(user="root", port=22, opts='', connect_timeout=30,
+                     alive_interval=300):
     base_command = ("/usr/bin/ssh -a -x %s -o BatchMode=yes "
-                    "-o ConnectTimeout=%d -o ServerAliveInterval=300 "
+                    "-o ConnectTimeout=%d -o ServerAliveInterval=%d "
                     "-l %s -p %d")
     assert isinstance(connect_timeout, (int, long))
     assert connect_timeout > 0 # can't disable the timeout
-    return base_command % (opts, connect_timeout, user, port)
+    return base_command % (opts, connect_timeout, alive_interval, user, port)
 
 
 # import site specific Host class
@@ -35,6 +41,15 @@ class AbstractSSHHost(SiteHost):
         self.user = user
         self.port = port
         self.password = password
+
+        """
+        Master SSH connection background job, socket temp directory and socket
+        control path option. If master-SSH is enabled, these fields will be
+        initialized by start_master_ssh when a new SSH connection is initiated.
+        """
+        self.master_ssh_job = None
+        self.master_ssh_tempdir = None
+        self.master_ssh_option = ''
 
         # Check if rsync is available on the remote host. If it's not,
         # don't try to use it for any future file transfers.
@@ -71,7 +86,8 @@ class AbstractSSHHost(SiteHost):
         appropriate rsync command for copying them. Remote paths must be
         pre-encoded.
         """
-        ssh_cmd = make_ssh_command(self.user, self.port)
+        ssh_cmd = make_ssh_command(self.user, self.port,
+                                   self.master_ssh_option)
         if delete_dest:
             delete_flag = "--delete"
         else:
@@ -91,8 +107,9 @@ class AbstractSSHHost(SiteHost):
         appropriate scp command for encoding it. Remote paths must be
         pre-encoded.
         """
-        command = "scp -rq -P %d %s '%s'"
-        return command % (self.port, " ".join(sources), dest)
+        command = "scp -rq %s -P %d %s '%s'"
+        return command % (self.master_ssh_option,
+                          self.port, " ".join(sources), dest)
 
 
     def _make_rsync_compatible_globs(self, path, is_local):
@@ -218,6 +235,10 @@ class AbstractSSHHost(SiteHost):
         Raises:
                 AutoservRunError: the scp command failed
         """
+
+        # Start a master SSH connection if necessary.
+        self.start_master_ssh()
+
         if isinstance(source, basestring):
             source = [source]
         dest = os.path.abspath(dest)
@@ -290,6 +311,10 @@ class AbstractSSHHost(SiteHost):
         Raises:
                 AutoservRunError: the scp command failed
         """
+
+        # Start a master SSH connection if necessary.
+        self.start_master_ssh()
+
         if isinstance(source, basestring):
             source = [source]
         remote_dest = self._encode_remote_paths([dest])
@@ -453,3 +478,58 @@ class AbstractSSHHost(SiteHost):
             # autotest dir may not exist, etc. ignore
             logging.debug('autodir space check exception, this is probably '
                           'safe to ignore\n' + traceback.format_exc())
+
+
+    def close(self):
+        super(AbstractSSHHost, self).close()
+        self._cleanup_master_ssh()
+
+
+    def _cleanup_master_ssh(self):
+        """
+        Release all resources (process, temporary directory) used by an active
+        master SSH connection.
+        """
+        # If a master SSH connection is running, kill it.
+        if self.master_ssh_job is not None:
+            utils.nuke_subprocess(self.master_ssh_job.sp)
+            self.master_ssh_job = None
+
+        # Remove the temporary directory for the master SSH socket.
+        if self.master_ssh_tempdir is not None:
+            self.master_ssh_tempdir.clean()
+            self.master_ssh_tempdir = None
+            self.master_ssh_option = ''
+
+
+    def start_master_ssh(self):
+        """
+        Called whenever a slave SSH connection needs to be initiated (e.g., by
+        run, rsync, scp). If master SSH support is enabled and a master SSH
+        connection is not active already, start a new one in the background.
+        Also, cleanup any zombie master SSH connections (e.g., dead due to
+        reboot).
+        """
+        if not enable_master_ssh:
+            return
+
+        # If a previously started master SSH connection is not running
+        # anymore, it needs to be cleaned up and then restarted.
+        if self.master_ssh_job is not None:
+            if self.master_ssh_job.sp.poll() is not None:
+                logging.info("Master ssh connection to %s is down.",
+                             self.hostname)
+                self._cleanup_master_ssh()
+
+        # Start a new master SSH connection.
+        if self.master_ssh_job is None:
+            # Create a shared socket in a temp location.
+            self.master_ssh_tempdir = autotemp.tempdir(unique_id='ssh-master')
+            self.master_ssh_option = ("-o ControlPath=%s/socket" %
+                                      self.master_ssh_tempdir.name)
+
+            # Start the master SSH connection in the background.
+            master_cmd = self.ssh_command(options="-N -o ControlMaster=yes",
+                                          alive_interval=5)
+            logging.info("Starting master ssh connection '%s'" % master_cmd)
+            self.master_ssh_job = utils.BgJob(master_cmd)
