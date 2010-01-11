@@ -20,7 +20,7 @@
 """
 
 import urllib2
-from autotest_lib.frontend.afe.simplejson import decoder, encoder
+from simplejson import decoder, encoder
 json_encoder = encoder.JSONEncoder()
 json_decoder = decoder.JSONDecoder()
 
