@@ -49,10 +49,15 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         self.setup_ssh()
 
 
-    def ssh_command(self, connect_timeout=30, options=''):
-        """Construct an ssh command with proper args for this host."""
+    def ssh_command(self, connect_timeout=30, options='', alive_interval=300):
+        """
+        Construct an ssh command with proper args for this host.
+        """
+        options = "%s %s" % (options, self.master_ssh_option)
         base_cmd = abstract_ssh.make_ssh_command(self.user, self.port,
-                                                 options, connect_timeout)
+                                                 options,
+                                                 connect_timeout,
+                                                 alive_interval)
         return "%s %s" % (base_cmd, self.hostname)
 
 
@@ -106,6 +111,10 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         """
         if verbose:
             logging.debug("Running (ssh) '%s'" % command)
+
+        # Start a master SSH connection if necessary.
+        self.start_master_ssh()
+
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
         try:
             return self._run(command, timeout, ignore_status, stdout_tee,
