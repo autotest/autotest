@@ -370,7 +370,7 @@ class base_job(object):
             The user executing the job.
         tag
             A tag identifying the job. Often used by the scheduler to give
-            a name of the form NUMBER-USERNAME/HOSTNAME. [OPTIONAL]
+            a name of the form NUMBER-USERNAME/HOSTNAME.
 
         last_boot_tag
             The label of the kernel from the last reboot. [OPTIONAL,PERSISTENT]
@@ -450,6 +450,7 @@ class base_job(object):
 
 
     # all the generic persistent properties
+    tag = _job_state.property_factory('_state', 'tag', '')
     default_profile_only = _job_state.property_factory(
         '_state', 'default_profile_only', False)
     run_test_cleanup = _job_state.property_factory(

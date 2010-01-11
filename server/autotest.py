@@ -287,7 +287,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
     def run(self, control_file, results_dir='.', host=None, timeout=None,
             tag=None, parallel_flag=False, background=False,
-            client_disconnect_timeout=1800, job_tag=''):
+            client_disconnect_timeout=1800):
         """
         Run an autotest job on the remote machine.
 
@@ -305,8 +305,6 @@ class BaseAutotest(installable_object.InstallableObject):
                 for monitoring the client and collecting the results.
         @param client_disconnect_timeout: Seconds to wait for the remote host
                 to come back after a reboot.  [default: 30 minutes]
-        @param job_tag: The scheduler's execution tag for this particular job
-                to pass on to the clients.  'job#-owner/hostgroupname'
 
         @raises AutotestRunError: If there is a problem executing
                 the control file.
@@ -319,7 +317,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
         atrun = _Run(host, results_dir, tag, parallel_flag, background)
         self._do_run(control_file, results_dir, host, atrun, timeout,
-                     client_disconnect_timeout, job_tag)
+                     client_disconnect_timeout)
 
 
     def _get_host_and_setup(self, host):
@@ -333,7 +331,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
     def _do_run(self, control_file, results_dir, host, atrun, timeout,
-                client_disconnect_timeout, job_tag):
+                client_disconnect_timeout):
         try:
             atrun.verify_machine()
         except:
@@ -358,8 +356,6 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # build up the initialization prologue for the control file
         prologue_lines = []
-        if job_tag:
-            prologue_lines.append("job.default_tag(%r)\n" % job_tag)
 
         # If the packaging system is being used, add the repository list.
         try:
