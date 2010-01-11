@@ -1,6 +1,98 @@
+diff -urw lmbench3.old/Makefile lmbench3/Makefile
+--- lmbench3.old/Makefile	2005-08-22 17:19:55.000000000 -0700
++++ lmbench3/Makefile	2009-12-02 15:55:29.000000000 -0800
+@@ -5,6 +5,7 @@
+ #
+ # build		(default) go to the source directory and build the benchmark
+ # results	go to the source directory and build and run the benchmark
++# config	configures run parameters
+ # rerun		run the benchmark again
+ # see		see the results that came with this release
+ #		Go to the results directory and read the Makefile.
+@@ -22,6 +23,9 @@
+ results: FRC
+ 	cd src && $(MAKE) results
+ 
++config:
++	cd src && $(MAKE) config
++
+ rerun: 
+ 	cd src && $(MAKE) rerun
+ 
+diff -urw lmbench3.old/scripts/config-run lmbench3/scripts/config-run
+--- lmbench3.old/scripts/config-run	2005-08-22 17:19:55.000000000 -0700
++++ lmbench3/scripts/config-run	2009-12-03 15:03:46.000000000 -0800
+@@ -115,9 +115,12 @@
+ three benchmark processes reading data and doing the measurements.
+ 
+ EOF
+-	echo $ECHON "Job placement selection: $ECHOC"
++	echo $ECHON "Job placement selection [DEFAULT: 1]: $ECHOC"
+ 	read LMBENCH_SCHED
+ 	AGAIN=N
++	if [ "$LMBENCH_SCHED" == "" ]; then
++		LMBENCH_SCHED=1
++	fi
+ 	case "$LMBENCH_SCHED" in
+ 	    1) LMBENCH_SCHED=DEFAULT;;
+ 	    2) LMBENCH_SCHED=BALANCED;;
+@@ -657,13 +660,13 @@
+ 
+ EOF
+ 
+-echo $ECHON "Mail results [default yes] $ECHOC"
++echo $ECHON "Mail results [default no] $ECHOC"
+ read MAIL
+ case $MAIL in 
+-    [Nn]*)	MAIL=no
+-		echo OK, no results mailed.
++    [Yy]*)	MAIL=yes
++		echo OK, results will be mailed.
+ 		;;
+-    *)		MAIL=yes
++    *)		MAIL=no
+ 		;;
+ esac
+ 
+diff -urw lmbench3.old/scripts/getlist lmbench3/scripts/getlist
+--- lmbench3.old/scripts/getlist	2005-08-22 17:19:55.000000000 -0700
++++ lmbench3/scripts/getlist	2009-12-01 17:52:29.000000000 -0800
+@@ -22,9 +22,9 @@
+ foreach $file (@files) {
+ 	next if $file =~ /\.INFO$/;
+ 	open(FD, $file) || next;
+-	next unless defined($_ = <FD>);
++	next unless read(FD, $_, 1000);
+ 	close(FD);
+-	next unless /^\[lmbench3.[01]/;
++	next unless /^\[lmbench3.[01]/m;
+ 	print "$file ";
+ }
+ print "\n";
+diff -urw lmbench3.old/src/Makefile lmbench3/src/Makefile
 --- lmbench3.old/src/Makefile	2005-08-22 17:19:54.000000000 -0700
-+++ lmbench3.new/src/Makefile	2006-04-22 13:10:59.000000000 -0700
-@@ -165,41 +165,6 @@ debug:
++++ lmbench3/src/Makefile	2009-12-02 15:55:22.000000000 -0800
+@@ -4,6 +4,7 @@
+ #
+ # lmbench	[default] builds the benchmark suite for the current os/arch
+ # results	builds, configures run parameters, and runs the benchmark
++# config	configures run parameters
+ # rerun		reruns the benchmark using the same parameters as last time
+ # scaling	reruns the benchmark using same parameters as last time,
+ #		except it asks what scaling value to use
+@@ -118,8 +119,10 @@
+ 	@env OS="${OS}" ../scripts/config-run
+ 	@env OS="${OS}" ../scripts/results
+ 
+-rerun: lmbench
++config: lmbench
+ 	@if [ ! -f $(CONFIG) ]; then env OS="${OS}" ../scripts/config-run; fi
++
++rerun: lmbench config
+ 	@env OS="${OS}" ../scripts/results
+ 
+ scaling: lmbench
+@@ -165,41 +168,6 @@
  assembler:
  	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" CC="${CC}" OS="${OS}" ../scripts/build asm
  
@@ -42,49 +134,15 @@
  get $(SRCS):
  	-get -s $(SRCS)
  
-@@ -228,9 +193,9 @@ testmake: $(SRCS) $(UTILS) # used by scr
+@@ -228,9 +196,9 @@
  	install install-target dist get edit get-e clean clobber \
  	share depend testmake
  
 -$O/lmbench : ../scripts/lmbench bk.ver
-+$O/lmbench : ../scripts/lmbench 
++$O/lmbench : ../scripts/lmbench
  	rm -f $O/lmbench
 -	sed -e "s/<version>/`cat bk.ver`/g" < ../scripts/lmbench > $O/lmbench
 +	sed -e "s/<version>/666/g" < ../scripts/lmbench > $O/lmbench
  	chmod +x $O/lmbench
  
  $O/lmbench.a: $(LIBOBJS)
---- src/scripts/config-run.old	2006-06-07 12:46:15.000000000 -0700
-+++ src/scripts/config-run	2006-06-07 12:52:07.000000000 -0700
-@@ -115,9 +115,12 @@
- three benchmark processes reading data and doing the measurements.
- 
- EOF
--	echo $ECHON "Job placement selection: $ECHOC"
-+	echo $ECHON "Job placement selection [DEFAULT: 1]: $ECHOC"
- 	read LMBENCH_SCHED
- 	AGAIN=N
-+	if [ "$LMBENCH_SCHED" == "" ]; then
-+		LMBENCH_SCHED=1
-+	fi
- 	case "$LMBENCH_SCHED" in
- 	    1) LMBENCH_SCHED=DEFAULT;;
- 	    2) LMBENCH_SCHED=BALANCED;;
-@@ -657,13 +660,13 @@
- 
- EOF
- 
--echo $ECHON "Mail results [default yes] $ECHOC"
-+echo $ECHON "Mail results [default no] $ECHOC"
- read MAIL
- case $MAIL in 
--    [Nn]*)	MAIL=no
--		echo OK, no results mailed.
-+    [Yy]*)	MAIL=yes
-+		echo OK, results will be mailed.
- 		;;
--    *)		MAIL=yes
-+    *)		MAIL=no
- 		;;
- esac
- 
