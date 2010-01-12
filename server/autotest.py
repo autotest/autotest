@@ -664,10 +664,10 @@ class _Run(object):
             return stderr_redirector.last_line
 
 
-    def _wait_for_reboot(self):
+    def _wait_for_reboot(self, old_boot_id):
         logging.info("Client is rebooting")
         logging.info("Waiting for client to halt")
-        if not self.host.wait_down(HALT_TIME):
+        if not self.host.wait_down(HALT_TIME, old_boot_id=old_boot_id):
             err = "%s failed to shutdown after %d"
             err %= (self.host.hostname, HALT_TIME)
             raise error.AutotestRunError(err)
@@ -709,6 +709,7 @@ class _Run(object):
                     section_timeout = start_time + timeout - time.time()
                 else:
                     section_timeout = None
+                boot_id = self.host.get_boot_id()
                 last = self.execute_section(section, section_timeout,
                                             logger, client_disconnect_timeout)
                 if self.background:
@@ -719,7 +720,7 @@ class _Run(object):
                     return
                 elif self.is_client_job_rebooting(last):
                     try:
-                        self._wait_for_reboot()
+                        self._wait_for_reboot(boot_id)
                     except error.AutotestRunError, e:
                         self.host.job.record("ABORT", None, "reboot", str(e))
                         self.host.job.record("END ABORT", None, None, str(e))
