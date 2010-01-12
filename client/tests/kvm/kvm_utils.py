@@ -902,9 +902,26 @@ def run_tests(test_list, job):
                     break
         if dependencies_satisfied:
             test_iterations = int(dict.get("iterations", 1))
-            current_status = job.run_test("kvm", params=dict,
-                                          tag=dict.get("shortname"),
-                                          iterations=test_iterations)
+            test_tag = dict.get("shortname")
+            # Setting up kvm_stat profiling during test execution.
+            # We don't need kvm_stat profiling on the build tests.
+            if "build" in test_tag:
+                # None because it's the default value on the base_test class
+                # and the value None is specifically checked there.
+                profile = None
+            else:
+                profile = True
+
+            if profile:
+                job.profilers.add('kvm_stat')
+            # We need only one execution, profiled, hence we're passing
+            # the profile_only parameter to job.run_test().
+            current_status = job.run_test("kvm", params=dict, tag=test_tag,
+                                          iterations=test_iterations,
+                                          profile_only=profile)
+            if profile:
+                job.profilers.delete('kvm_stat')
+
             if not current_status:
                 failed = True
         else:
