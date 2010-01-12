@@ -146,7 +146,11 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
             
             String columnKey = columns[i][0];
             JSONValue columnValue = row.get(columnKey);
-            rowText[i] = Utils.jsonToString(columnValue);
+            if (columnValue == null || columnValue.isNull() != null) {
+                rowText[i] = "";
+            } else {
+                rowText[i] = Utils.jsonToString(columnValue);
+            }
         }
         return rowText;
     }
