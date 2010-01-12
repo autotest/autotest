@@ -3,33 +3,42 @@
 Selects all rows and columns that satisfy the condition specified
 and prints the matrix.
 """
-import sys, os, re, optparse
+import optparse
 import common
 from autotest_lib.cli import rpc
 from autotest_lib.database import database_connection
-from autotest_lib.tko import display, frontend, db, query_lib
-from autotest_lib.client.common_lib import kernel_versions
 
 
 # First do all the options parsing
 parser = optparse.OptionParser()
-parser.add_option('-C', '--columns', action='store', dest='columns',
-            default='*', help="""\
-By default or when using the -c flag:
-kernel hostname test label machine_group reason tag user status
-
-OR
-
-When using the -w flag:
-test_idx test_name reason test_started_time test_finished_time job_tag job_name job_owner job_queued_time job_started_time job_finished_time hostname platform kernel status""")
-
-parser.add_option('-c', '--condition', action='store', dest='old_condition',
-            help=("The WHERE condition for the query written in the 'old style' "
-                  "condition syntax for the original tko"))
-parser.add_option('-w', '--where', action='store', dest='new_condition',
+parser.add_option(
+        '-C', '--columns', action='store', dest='columns',
+        default='test_name,reason,test_started_time,test_finished_time,job_tag,'
+                'job_name,hostname,platform,kernel,status',
+        help='Comma-separated list of column names to display')
+parser.add_option('-w', '--where', action='store', dest='condition',
             help=("The WHERE condition for the query witten in the 'new style' "
                   "condition syntax for new tko (see "
-                  "http://autotest.kernel.org/wiki/TkoHowTo  for more info)"))
+                  "http://autotest.kernel.org/wiki/TkoHowTo for more info)"))
+parser.add_option(
+        '--attribute-field', action='append', default=[],
+        help='Specifies a test attribute to include as a field.  The attribute '
+             'value will be available as a field named attribute_<attribute '
+             'name>.  This option may be specified multiple times.  Filtering '
+             'must be done slightly differently -- see '
+             'http://autotest.kernel.org/wiki/TkoHowTo#attribute_filtering '
+             'for more details.')
+parser.add_option('--label-field', action='append', default=[],
+                  help='Specifies a test label to include as a field.  See '
+                       '--attribute-field for more details')
+parser.add_option('--iteration-field', action='append', default=[],
+                  help='Specifies an iteration result to include as a field.  '
+                       'See --attribute-field for more details.  Note that '
+                       'this causes the rows returned to represent iterations '
+                       'rather than plain test results.')
+parser.add_option('--machine-label-field', action='append', default=[],
+                  help='Specifies a machine label to include as a field.  See '
+                       '--attribute-field for more details')
 parser.add_option('-s', '--separator', action='store', default = ' | ',
             dest='separator', help = 'output separator')
 parser.add_option('-n', '--nocount', action='store_true', default=False,
@@ -44,20 +53,11 @@ parser.add_option('--host-label', action='store', dest='host_label',
 
 (options, args) = parser.parse_args()
 
-if options.old_condition and options.new_condition:
-    msg = 'You cannot specify WHERE clauses in both the old and new style.'
-    parser.error(msg)
-elif options.old_condition:
-    where = query_lib.parse_scrub_and_gen_condition(
-                options.old_condition, frontend.test_view_field_dict)
-    view = 'tko_test_view'
-    tag = 'tag'
-elif options.new_condition:
-    where = options.new_condition.replace('%', '%%')
-    view = 'tko_test_view_2'
-    tag = 'job_tag'
-else:
-    parser.error('You must specify at least one condition.')
+if not options.condition:
+    parser.error('You must specify a condition.')
+
+where = options.condition.replace('%', '%%')
+tag = 'job_tag'
 
 columns = options.columns.split(',')
 
@@ -66,10 +66,6 @@ if options.logpath:
     if tag not in columns:
         columns.append(tag)
     tag_index=columns.index(tag)
-
-if options.old_condition:
-    columns = [frontend.test_view_field_dict.get(field, field)
-               for field in columns]
 
 if options.host_label:
     database = database_connection.DatabaseConnection("AUTOTEST_WEB")
@@ -82,10 +78,15 @@ if options.host_label:
     where += " AND hostname IN ('" + "','".join(hosts) + "')"
 
 # Grab the data
-db = db.db()
+tko = rpc.tko_comm()
 count = 0
-for row in db.select(','.join(columns), view, where):
-    values = [str(x) for x in row]
+test_views = tko.run('get_test_views', extra_where=where,
+                     test_attribute_fields=options.attribute_field,
+                     test_label_fields=options.label_field,
+                     iteration_fields=options.iteration_field,
+                     machine_label_fields=options.machine_label_field)
+for test_view in test_views:
+    values = [str(test_view[column]) for column in columns]
     if options.logpath:
         values[tag_index] = url_prefix + values[tag_index]
     if not options.nocount:
