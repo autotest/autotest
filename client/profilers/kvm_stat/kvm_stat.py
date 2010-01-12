@@ -8,6 +8,7 @@ will try to mount it so it's possible to proceed.
 """
 import time, os, subprocess, commands
 from autotest_lib.client.bin import utils, profiler, os_dep
+from autotest_lib.client.common_lib import error
 
 
 class kvm_stat(profiler.profiler):
@@ -21,13 +22,14 @@ class kvm_stat(profiler.profiler):
         Gets path of kvm_stat and verifies if debugfs needs to be mounted.
         """
         self.stat_path = os_dep.command('kvm_stat')
-        (ret, output) = commands.getstatusoutput("%s --batch" % self.stat_path)
-        if ret != 0:
-            if 'debugfs' in output:
+        try:
+            utils.system_output("%s --batch" % self.stat_path)
+        except error.CmdError, e:
+            if 'debugfs' in e:
                 utils.system('mount -t debugfs debugfs /sys/kernel/debug')
             else:
                 raise error.AutotestError('kvm_stat failed due to an '
-                                          'unknown reason: %s' % output)
+                                          'unknown reason: %s' % e)
 
 
     def start(self, test):
