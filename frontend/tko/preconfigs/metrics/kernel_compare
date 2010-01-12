@@ -1,0 +1,69 @@
+plot: Bar
+xAxis: test_name
+globalFilter[0][db]: test_name
+globalFilter[0][condition]: IN ('dbench', 'tbench')
+globalFilter[1][db]: iteration_key
+globalFilter[1][condition]: = 'throughput'
+globalFilter[2][db]: hostname
+globalFilter[2][condition]: = 'my_host'
+globalFilter_all: true
+name[0]: my kernel 1
+values[0]: iteration_value
+aggregation[0]: AVG
+errorBars[0]: true
+seriesFilters[0][0][db]: kernel
+seriesFilters[0][0][condition]: LIKE 'my_kernel_1.%'
+seriesFilters[0]_all: true
+name[1]: my kernel 2
+values[1]: iteration_value
+aggregation[1]: AVG
+errorBars[1]: true
+seriesFilters[1][0][db]: kernel
+seriesFilters[1][0][condition]: LIKE 'my_kernel_2.%'
+seriesFilters[1]_all: true
+plot: Bar
+xAxis: test_name
+globalFilter[0][db]: test_name
+globalFilter[0][condition]: IN ('dbench', 'tbench')
+globalFilter[1][db]: iteration_key
+globalFilter[1][condition]: = 'throughput'
+globalFilter[2][db]: hostname
+globalFilter[2][condition]: = 'my_host'
+globalFilter_all: true
+name[0]: my kernel 1
+values[0]: iteration_value
+aggregation[0]: AVG
+errorBars[0]: true
+seriesFilters[0][0][db]: kernel
+seriesFilters[0][0][condition]: LIKE 'my_kernel_1.%'
+seriesFilters[0]_all: true
+name[1]: my kernel 2
+values[1]: iteration_value
+aggregation[1]: AVG
+errorBars[1]: true
+seriesFilters[1][0][db]: kernel
+seriesFilters[1][0][condition]: LIKE 'my_kernel_2.%'
+seriesFilters[1]_all: true
+plot: Bar
+xAxis: test_name
+globalFilter[0][db]: test_name
+globalFilter[0][condition]: IN ('dbench', 'tbench')
+globalFilter[1][db]: iteration_key
+globalFilter[1][condition]: = 'throughput'
+globalFilter[2][db]: hostname
+globalFilter[2][condition]: = 'my_host'
+globalFilter_all: true
+name[0]: my kernel 1
+values[0]: iteration_value
+aggregation[0]: AVG
+errorBars[0]: true
+seriesFilters[0][0][db]: kernel
+seriesFilters[0][0][condition]: LIKE 'my_kernel_1.%'
+seriesFilters[0]_all: true
+name[1]: my kernel 2
+values[1]: iteration_value
+aggregation[1]: AVG
+errorBars[1]: true
+seriesFilters[1][0][db]: kernel
+seriesFilters[1][0][condition]: LIKE 'my_kernel_2.%'
+seriesFilters[1]_all: true

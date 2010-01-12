@@ -22,9 +22,9 @@ import matplotlib.figure, matplotlib.backends.backend_agg
 import StringIO, colorsys, PIL.Image, PIL.ImageChops
 from autotest_lib.frontend.afe import readonly_connection
 from autotest_lib.frontend.afe.model_logic import ValidationError
-from simplejson import encoder
+from autotest_lib.frontend.afe.simplejson import encoder
 from autotest_lib.client.common_lib import global_config
-from autotest_lib.new_tko.tko import models, tko_rpc_utils
+from autotest_lib.frontend.tko import models, tko_rpc_utils
 
 _FIGURE_DPI = 100
 _FIGURE_WIDTH_IN = 10
@@ -810,7 +810,7 @@ def create_embedded_plot(model, update_time):
 
 
 _cache_timeout = global_config.global_config.get_config_value(
-    'TKO', 'graph_cache_creation_timeout_minutes')
+    'AUTOTEST_WEB', 'graph_cache_creation_timeout_minutes')
 
 
 def handle_plot_request(id, max_age):

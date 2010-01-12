@@ -43,6 +43,7 @@ else:
 # prefix applied to all URLs - useful if requests are coming through apache,
 # and you need this app to coexist with others
 URL_PREFIX = 'afe/server/'
+TKO_URL_PREFIX = 'new_tko/server/'
 PLANNER_URL_PREFIX = 'planner/server/'
 
 # Local time zone for this installation. Choices can be found here:
@@ -106,6 +107,7 @@ TEMPLATE_DIRS = (
 
 INSTALLED_APPS = (
     'frontend.afe',
+    'frontend.tko',
     'frontend.planner',
     'django.contrib.admin',
     'django.contrib.auth',
