@@ -17,6 +17,7 @@ parser.add_option("--debug", action="store_true", dest="debug", default=False,
 LONG_TESTS = set((
     'monitor_db_unittest.py',
     'monitor_db_functional_test.py',
+    'monitor_db_cleanup_test.py',
     'barrier_unittest.py',
     'migrate_unittest.py',
     'frontend_unittest.py',
