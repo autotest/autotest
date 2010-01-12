@@ -4,10 +4,10 @@ Autotest AFE Cleanup used by the scheduler
 
 
 import datetime, time, logging
-import common
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import email_manager, scheduler_config
+from autotest_lib.client.common_lib import host_protections
 
 
 class PeriodicCleanup(object):
@@ -46,6 +46,7 @@ class UserCleanup(PeriodicCleanup):
 
     def __init__(self, db, clean_interval_minutes):
         super(UserCleanup, self).__init__(db, clean_interval_minutes)
+        self._last_reverify_time = time.time()
 
 
     def _cleanup(self):
@@ -54,6 +55,7 @@ class UserCleanup(PeriodicCleanup):
         self._abort_jobs_past_max_runtime()
         self._clear_inactive_blocks()
         self._check_for_db_inconsistencies()
+        self._reverify_dead_hosts()
 
 
     def _abort_timed_out_jobs(self):
@@ -150,6 +152,36 @@ class UserCleanup(PeriodicCleanup):
             LEFT JOIN (SELECT DISTINCT job_id FROM afe_host_queue_entries
                        WHERE NOT complete) hqe
             USING (job_id) WHERE hqe.job_id IS NULL""")
+
+
+    def _should_reverify_hosts_now(self):
+        reverify_period_sec = (scheduler_config.config.reverify_period_minutes
+                               * 60)
+        if reverify_period_sec == 0:
+            return False
+        return (self._last_reverify_time + reverify_period_sec) <= time.time()
+
+
+    def _reverify_dead_hosts(self):
+        if not self._should_reverify_hosts_now():
+            return
+
+        self._last_reverify_time = time.time()
+        logging.info('Checking for dead hosts to reverify')
+        hosts = models.Host.objects.filter(
+                status=models.Host.Status.REPAIR_FAILED,
+                locked=False,
+                invalid=False)
+        hosts = hosts.exclude(
+                protection=host_protections.Protection.DO_NOT_VERIFY)
+        if not hosts:
+            return
+
+        logging.info('Reverifying dead hosts %s'
+                     % ', '.join(host.hostname for host in hosts))
+        for host in hosts:
+            models.SpecialTask.objects.create(
+                    host=host, task=models.SpecialTask.Task.VERIFY)
 
 
 class TwentyFourHourUpkeep(PeriodicCleanup):
