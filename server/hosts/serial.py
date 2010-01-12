@@ -128,6 +128,15 @@ class SerialHost(SiteHost):
                 wait_for_restart()
         """
         conmux_command = "'~$%s'" % conmux_command
+
+        # if the machine is up, grab the old boot id, otherwise use a dummy
+        # string and NOT None to ensure that wait_down always returns True,
+        # even if the machine comes back up before it's called
+        try:
+            old_boot_id = self.get_boot_id()
+        except error.AutoservSSHTimeout:
+            old_boot_id = 'unknown boot_id prior to SerialHost.hardreset'
+
         def reboot():
             if not self.run_conmux(conmux_command):
                 self.record("ABORT", None, "reboot.start",
@@ -141,9 +150,12 @@ class SerialHost(SiteHost):
                 for attempt in xrange(num_attempts-1):
                     try:
                         self.wait_for_restart(timeout, log_failure=False,
+                                              old_boot_id=old_boot_id,
                                               **wait_for_restart_kwargs)
                     except error.AutoservShutdownError:
                         logging.warning(warning_msg, attempt+1, num_attempts)
+                        # re-send the hard reset command
+                        self.run_conmux(conmux_command)
                     else:
                         break
                 else:

@@ -370,8 +370,7 @@ class AbstractSSHHost(SiteHost):
         """
         Check if the remote host is up.
 
-        Returns:
-                True if the remote host is up, False otherwise
+        @returns True if the remote host is up, False otherwise
         """
         try:
             self.ssh_ping()
@@ -388,12 +387,10 @@ class AbstractSSHHost(SiteHost):
         In fact, it will wait until an ssh connection to the remote
         host can be established, and getty is running.
 
-        Args:
-                timeout: time limit in seconds before returning even
-                        if the host is not up.
+        @param timeout time limit in seconds before returning even
+            if the host is not up.
 
-        Returns:
-                True if the host was found to be up, False otherwise
+        @returns True if the host was found to be up, False otherwise
         """
         if timeout:
             end_time = time.time() + timeout
@@ -410,21 +407,28 @@ class AbstractSSHHost(SiteHost):
         return False
 
 
-    def wait_down(self, timeout=None, warning_timer=None):
+    def wait_down(self, timeout=None, warning_timer=None, old_boot_id=None):
         """
         Wait until the remote host is down or the timeout expires.
 
-        In fact, it will wait until an ssh connection to the remote
-        host fails.
+        If old_boot_id is provided, this will wait until either the machine
+        is unpingable or self.get_boot_id() returns a value different from
+        old_boot_id. If the boot_id value has changed then the function
+        returns true under the assumption that the machine has shut down
+        and has now already come back up.
 
-        Args:
-            timeout: time limit in seconds before returning even
-                     if the host is still up.
-            warning_timer: time limit in seconds that will generate
-                     a warning if the host is not down yet.
+        If old_boot_id is None then until the machine becomes unreachable the
+        method assumes the machine has not yet shut down.
 
-        Returns:
-                True if the host was found to be down, False otherwise
+        @param timeout Time limit in seconds before returning even
+            if the host is still up.
+        @param warning_timer Time limit in seconds that will generate
+            a warning if the host is not down yet.
+        @param old_boot_id A string containing the result of self.get_boot_id()
+            prior to the host being told to shut down. Can be None if this is
+            not available.
+
+        @returns True if the host was found to be down, False otherwise
         """
         current_time = time.time()
         if timeout:
@@ -433,9 +437,25 @@ class AbstractSSHHost(SiteHost):
         if warning_timer:
             warn_time = current_time + warning_timer
 
+        if old_boot_id is not None:
+            logging.debug('Host %s pre-shutdown boot_id is %s',
+                          self.hostname, old_boot_id)
+
         while not timeout or current_time < end_time:
-            if not self.is_up():
+            try:
+                new_boot_id = self.get_boot_id()
+            except error.AutoservSSHTimeout:
+                logging.debug('Host %s is now unreachable over ssh, is down',
+                              self.hostname)
                 return True
+            else:
+                # if the machine is up but the boot_id value has changed from
+                # old boot id, then we can assume the machine has gone down
+                # and then already come back up
+                if old_boot_id is not None and old_boot_id != new_boot_id:
+                    logging.debug('Host %s now has boot_id %s and so must '
+                                  'have rebooted', self.hostname, new_boot_id)
+                    return True
 
             if warning_timer and current_time > warn_time:
                 self.record("WARN", None, "shutdown",
