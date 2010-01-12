@@ -129,6 +129,8 @@ class RemoteHost(base_classes.Host):
         def reboot():
             self.record("GOOD", None, "reboot.start")
             try:
+                current_boot_id = self.get_boot_id()
+
                 # sync before starting the reboot, so that a long sync during
                 # shutdown isn't timed out by wait_down's short timeout
                 if not fastsync:
@@ -150,7 +152,8 @@ class RemoteHost(base_classes.Host):
                               "reboot command failed")
                 raise
             if wait:
-                self.wait_for_restart(timeout, **dargs)
+                self.wait_for_restart(timeout, old_boot_id=current_boot_id,
+                                      **dargs)
 
         # if this is a full reboot-and-wait, run the reboot inside a group
         if wait:

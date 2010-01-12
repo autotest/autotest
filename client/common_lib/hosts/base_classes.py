@@ -151,20 +151,36 @@ class Host(object):
         return processes
 
 
+    def get_boot_id(self, timeout=60):
+        """ Get a unique ID associated with the current boot.
+
+        Should return a string with the semantics such that two separate
+        calls to Host.get_boot_id() return the same string if the host did
+        not reboot between the two calls, and two different strings if it
+        has rebooted at least once between the two calls.
+
+        @param timeout The number of seconds to wait before timing out.
+
+        @return A string unique to this boot."""
+        return self.run('cat /proc/sys/kernel/random/boot_id',
+                        timeout=timeout).stdout.strip()
+
+
     def wait_up(self, timeout=None):
         raise NotImplementedError('Wait up not implemented!')
 
 
-    def wait_down(self, timeout=None, warning_timer=None):
+    def wait_down(self, timeout=None, warning_timer=None, old_boot_id=None):
         raise NotImplementedError('Wait down not implemented!')
 
 
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT,
-                         log_failure=True, **dargs):
+                         log_failure=True, old_boot_id=None, **dargs):
         """ Wait for the host to come back from a reboot. This is a generic
         implementation based entirely on wait_up and wait_down. """
         if not self.wait_down(timeout=self.WAIT_DOWN_REBOOT_TIMEOUT,
-                              warning_timer=self.WAIT_DOWN_REBOOT_WARNING):
+                              warning_timer=self.WAIT_DOWN_REBOOT_WARNING,
+                              old_boot_id=old_boot_id):
             if log_failure:
                 self.record("ABORT", None, "reboot.verify", "shut down failed")
             raise error.AutoservShutdownError("Host did not shut down")
