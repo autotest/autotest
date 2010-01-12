@@ -2,7 +2,7 @@ from django.db import models as dbmodels
 import common
 from autotest_lib.frontend.afe import models as afe_models
 from autotest_lib.frontend.afe import model_logic, rpc_utils
-from autotest_lib.new_tko.tko import models as tko_models
+from autotest_lib.frontend.tko import models as tko_models
 from autotest_lib.client.common_lib import enum
 
 

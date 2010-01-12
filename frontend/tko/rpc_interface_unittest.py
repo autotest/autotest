@@ -2,11 +2,11 @@
 
 import re, unittest
 import common
-from autotest_lib.new_tko import setup_django_environment
+from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend import setup_test_environment
 from autotest_lib.client.common_lib.test_utils import mock
 from django.db import connection
-from autotest_lib.new_tko.tko import models, rpc_interface
+from autotest_lib.frontend.tko import models, rpc_interface
 
 # this will need to be updated when the view changes for the test to be
 # consistent with reality

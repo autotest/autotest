@@ -43,28 +43,28 @@ class db_sql(object):
         if host:
             self.host = host
         else:
-            self.host = get_value("TKO", "host")
+            self.host = get_value("AUTOTEST_WEB", "host")
         if database:
             self.database = database
         else:
-            self.database = get_value("TKO", "database")
+            self.database = get_value("AUTOTEST_WEB", "database")
 
         # grab the user and password
         if user:
             self.user = user
         else:
-            self.user = get_value("TKO", "user")
+            self.user = get_value("AUTOTEST_WEB", "user")
         if password is not None:
             self.password = password
         else:
-            self.password = get_value("TKO", "password")
+            self.password = get_value("AUTOTEST_WEB", "password")
 
         # grab the timeout configuration
-        self.query_timeout = get_value("TKO", "query_timeout",
+        self.query_timeout = get_value("AUTOTEST_WEB", "query_timeout",
                                        type=int, default=3600)
-        self.min_delay = get_value("TKO", "min_retry_delay", type=int,
+        self.min_delay = get_value("AUTOTEST_WEB", "min_retry_delay", type=int,
                                    default=20)
-        self.max_delay = get_value("TKO", "max_retry_delay", type=int,
+        self.max_delay = get_value("AUTOTEST_WEB", "max_retry_delay", type=int,
                                    default=60)
 
 
@@ -515,7 +515,7 @@ class db_sql(object):
 def _get_db_type():
     """Get the database type name to use from the global config."""
     get_value = global_config.global_config.get_config_value
-    return "db_" + get_value("TKO", "db_type", default="mysql")
+    return "db_" + get_value("AUTOTEST_WEB", "db_type", default="mysql")
 
 
 def _get_error_class(class_name):

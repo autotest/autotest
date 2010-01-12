@@ -3,8 +3,8 @@ from django.db import models as dbmodels
 from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import rpc_utils, model_logic
 from autotest_lib.frontend.afe import readonly_connection
-from autotest_lib.new_tko.tko import models, tko_rpc_utils, graphing_utils
-from autotest_lib.new_tko.tko import preconfigs
+from autotest_lib.frontend.tko import models, tko_rpc_utils, graphing_utils
+from autotest_lib.frontend.tko import preconfigs
 
 # table/spreadsheet view support
 
@@ -415,7 +415,8 @@ def get_static_data():
     result['group_fields'] = sorted(group_fields)
     result['all_fields'] = sorted(model_fields + extra_fields)
     result['test_labels'] = get_test_labels(sort_by=['name'])
-    result['current_user'] = {'login' : thread_local.get_user()}
+    result['current_user'] = rpc_utils.prepare_for_serialization(
+            thread_local.get_user().get_object_dict())
     result['benchmark_key'] = benchmark_key
     result['tko_perf_view'] = tko_perf_view
     result['tko_test_view'] = model_fields

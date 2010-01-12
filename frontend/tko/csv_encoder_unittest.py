@@ -1,10 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/python2.4
 
 import unittest
 import common
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend import setup_test_environment
-from autotest_lib.new_tko.tko import csv_encoder
+from autotest_lib.frontend.tko import csv_encoder
 
 class CsvEncodingTest(unittest.TestCase):
     def _make_request(self, method, columns=None):
