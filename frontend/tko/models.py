@@ -330,8 +330,8 @@ class TestViewManager(TempManager):
                 TestLabel.objects.filter(name__in=label_names)
                 .values_list('name', 'id'))
         if len(label_ids) < len(set(label_names)):
-            raise ValueError('Not all labels found: %s' %
-                             ', '.join(label_names))
+                raise ValueError('Not all labels found: %s' %
+                                 ', '.join(label_names))
         return dict(name_and_id for name_and_id in label_ids)
 
 

@@ -1,0 +1,27 @@
+globalFilter[0][db]: hostname
+globalFilter[0][condition]: LIKE 'my_host%'
+globalFilter[1][db]: hostname
+globalFilter[1][condition]: LIKE 'my_other_host%'
+globalFilter_all: false
+testFilter[0][db]: test_name
+testFilter[0][condition]: = 'my_test_name'
+testFilter_all: true
+interval: 10
+globalFilter[0][db]: hostname
+globalFilter[0][condition]: LIKE 'my_host%'
+globalFilter[1][db]: hostname
+globalFilter[1][condition]: LIKE 'my_other_host%'
+globalFilter_all: false
+testFilter[0][db]: test_name
+testFilter[0][condition]: = 'my_test_name'
+testFilter_all: true
+interval: 10
+globalFilter[0][db]: hostname
+globalFilter[0][condition]: LIKE 'my_host%'
+globalFilter[1][db]: hostname
+globalFilter[1][condition]: LIKE 'my_other_host%'
+globalFilter_all: false
+testFilter[0][db]: test_name
+testFilter[0][condition]: = 'my_test_name'
+testFilter_all: true
+interval: 10

@@ -6,6 +6,7 @@ from django.contrib import admin
 admin.autodiscover()
 
 RE_PREFIX = '^' + settings.URL_PREFIX
+TKO_RE_PREFIX = '^' + settings.TKO_URL_PREFIX
 PLANNER_RE_PREFIX = '^' + settings.PLANNER_URL_PREFIX
 
 handler500 = 'frontend.afe.views.handler500'
@@ -14,6 +15,7 @@ urlpatterns = defaults.patterns(
         '',
         (RE_PREFIX + r'admin/(.*)', admin.site.root),
         (RE_PREFIX, defaults.include('frontend.afe.urls')),
+        (TKO_RE_PREFIX, defaults.include('frontend.tko.urls')),
         (PLANNER_RE_PREFIX, defaults.include('frontend.planner.urls')),
     )
 

@@ -1,5 +1,6 @@
 import django.http
-from autotest_lib.new_tko.tko import rpc_interface, graphing_utils, csv_encoder
+from autotest_lib.frontend.tko import rpc_interface, graphing_utils
+from autotest_lib.frontend.tko import csv_encoder
 from autotest_lib.frontend.afe import rpc_handler, rpc_utils
 
 rpc_handler_obj = rpc_handler.RpcHandler((rpc_interface,),

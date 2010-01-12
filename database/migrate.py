@@ -300,11 +300,8 @@ def main():
     parser.add_option('--debug', help='print all DB queries',
                       action='store_true')
     (options, args) = parser.parse_args()
-    database = database_connection.DatabaseConnection(options.database)
-    database.debug = options.debug
-    database.reconnect_enabled = False
-    database.connect()
-    manager = MigrationManager(database, force=options.force)
+    manager = get_migration_manager(db_name=options.database,
+                                    debug=options.debug, force=options.force)
 
     if len(args) > 0:
         if len(args) > 1:
@@ -327,6 +324,14 @@ def main():
         return
 
     print USAGE
+
+
+def get_migration_manager(db_name, debug, force):
+    database = database_connection.DatabaseConnection(db_name)
+    database.debug = debug
+    database.reconnect_enabled = False
+    database.connect()
+    return MigrationManager(database, force=force)
 
 
 if __name__ == '__main__':
