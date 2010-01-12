@@ -175,7 +175,10 @@ def main():
         if not results:
             results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')
         results  = os.path.abspath(results)
-        resultdir_exists = os.path.exists(os.path.join(results, 'control.srv'))
+        resultdir_exists = False
+        for filename in ('control.srv', 'status.log', '.autoserv_execute'):
+            if os.path.exists(os.path.join(results, filename)):
+                resultdir_exists = True
         if not parser.options.use_existing_results and resultdir_exists:
             error = "Error: results directory already exists: %s\n" % results
             sys.stderr.write(error)
