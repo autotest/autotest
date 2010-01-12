@@ -190,7 +190,7 @@ public class SpreadsheetView extends ConditionTabView
         drilldownMap.put("hostname", new String[] {"job_tag", "status"});
         
         drilldownMap.put("kernel", new String[] {"test_name", "status"});
-        drilldownMap.put("test_name", new String[] {"job_name", "job_tag"});
+        drilldownMap.put("test_name", new String[] {"subdir", "job_name", "job_tag"});
         
         drilldownMap.put("status", new String[] {"reason", "job_tag"});
         
@@ -199,6 +199,8 @@ public class SpreadsheetView extends ConditionTabView
         drilldownMap.put("test_finished_time", new String[] {"status", "job_tag"});
         drilldownMap.put("DATE(test_finished_time)", 
                          new String[] {"test_finished_time", "job_tag"});
+        
+        drilldownMap.put("job_tag", new String[] {"subdir"});
     }
     
     protected void setSelectedHeader(HeaderSelect list, List<HeaderField> fields) {
