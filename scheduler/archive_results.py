@@ -8,7 +8,7 @@ class BaseResultsArchiver(object):
     def archive_results(self, path):
         results_host = global_config.global_config.get_config_value(
                 'SCHEDULER', 'results_host', default=None)
-        if not results_host:
+        if not results_host or results_host == 'localhost':
             return
 
         logging.info('Archiving %s to %s', path, results_host)
