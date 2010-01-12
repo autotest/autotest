@@ -21,7 +21,7 @@
 # get directory of this test file; we'll need it later
 >>> import common
 >>> from autotest_lib.frontend.afe import test
->>> import os
+>>> import os, datetime
 >>> test_path = os.path.join(os.path.dirname(test.__file__),
 ...                                          'doctests')
 >>> test_path = os.path.abspath(test_path)
@@ -505,8 +505,10 @@ True
 >>> data['control_type']
 'Client'
 
->>> data['created_on'] #doctest: +ELLIPSIS
-'200...'
+>>> today = datetime.date.today()
+>>> data['created_on'].startswith(
+...         '%d-%02d-%02d' % (today.year, today.month, today.day))
+True
 
 # get_num_jobs - useful when dealing with large numbers of jobs
 >>> rpc_interface.get_num_jobs(name='my_job')
