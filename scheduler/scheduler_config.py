@@ -7,14 +7,15 @@ class SchedulerConfig(object):
     """
     Contains configuration that can be changed during scheduler execution.
     """
-    FIELDS = {'max_processes_per_drone' : 'max_processes_per_drone',
-              'max_processes_started_per_cycle' : 'max_jobs_started_per_cycle',
-              'clean_interval' : 'clean_interval_minutes',
-              'max_parse_processes' : 'max_parse_processes',
-              'tick_pause_sec' : 'tick_pause_sec',
-              'max_transfer_processes' : 'max_transfer_processes',
-              'secs_to_wait_for_atomic_group_hosts' :
+    FIELDS = {'max_processes_per_drone': 'max_processes_per_drone',
+              'max_processes_started_per_cycle': 'max_jobs_started_per_cycle',
+              'clean_interval': 'clean_interval_minutes',
+              'max_parse_processes': 'max_parse_processes',
+              'tick_pause_sec': 'tick_pause_sec',
+              'max_transfer_processes': 'max_transfer_processes',
+              'secs_to_wait_for_atomic_group_hosts':
                   'secs_to_wait_for_atomic_group_hosts',
+              'reverify_period_minutes': 'reverify_period_minutes',
              }
 
 
