@@ -81,7 +81,8 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
         
         table.setCellSpacing(0);
         table.setCellPadding(0);
-        table.setStyleName("data-table");
+        table.setStylePrimaryName("data-table");
+        table.addStyleDependentName("outlined");
 
         for (int i = 0; i < columns.length; i++) {
             table.setText(0, i, columns[i][1]);

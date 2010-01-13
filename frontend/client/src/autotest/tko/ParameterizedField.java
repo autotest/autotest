@@ -127,4 +127,12 @@ public abstract class ParameterizedField extends HeaderField {
     public Object getIdentifier() {
         return new FieldIdentifier(this);
     }
+    
+    /**
+     * Get the exact field to use in a SQL WHERE clause to filter on this field.
+     * 
+     * This is a necessary artifact of the way we directly expose SQL WHERE clauses to the user.  It
+     * will hopefully be possible to get rid of this in the future if that changes.
+     */
+    public abstract String getFilteringName();
 }

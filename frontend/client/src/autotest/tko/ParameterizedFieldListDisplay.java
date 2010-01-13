@@ -7,23 +7,25 @@ import autotest.tko.ParameterizedFieldListPresenter.Display;
 
 import com.google.gwt.event.dom.client.HasClickHandlers;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HasText;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
-import com.google.gwt.user.client.ui.Widget;
 
 public class ParameterizedFieldListDisplay extends Composite implements Display {
-    private static class FieldWidget extends Composite implements Display.FieldWidget {
+    private static class FieldWidget implements Display.FieldWidget {
+        private String label;
         private SimpleHyperlink deleteLink = new SimpleHyperlink("[X]");
 
         public FieldWidget(String label) {
-            Panel panel = new HorizontalPanel();
-            panel.add(new Label(label));
-            panel.add(deleteLink);
-            initWidget(panel);
+            this.label = label;
+        }
+
+        public String getLabel() {
+            return label;
         }
 
         @Override
@@ -31,23 +33,35 @@ public class ParameterizedFieldListDisplay extends Composite implements Display 
             return deleteLink;
         }
     }
-    
+
     private ExtendedListBox typeSelect = new ExtendedListBox();
     private TextBox valueInput = new TextBox();
     private SimpleHyperlink addLink = new SimpleHyperlink("Add");
-    private Panel fieldListPanel = new VerticalPanel();
-    
+    private FlexTable fieldTable = new FlexTable();
+
     public ParameterizedFieldListDisplay() {
         Panel addFieldPanel = new HorizontalPanel();
         addFieldPanel.add(new Label("Add custom field:"));
         addFieldPanel.add(typeSelect);
         addFieldPanel.add(valueInput);
         addFieldPanel.add(addLink);
-        
+
+        fieldTable.setText(0, 0, "Field name");
+        fieldTable.setText(0, 1, "Filtering name");
+        fieldTable.setCellSpacing(0);
+        fieldTable.setStylePrimaryName("data-table");
+        fieldTable.getRowFormatter().setStyleName(0, "data-row-header");
+        setFieldTableVisible();
+
         Panel container = new VerticalPanel();
-        container.add(fieldListPanel);
+        container.add(fieldTable);
         container.add(addFieldPanel);
         initWidget(container);
+    }
+    
+    private void setFieldTableVisible() {
+        boolean visible = (fieldTable.getRowCount() > 1);
+        fieldTable.setVisible(visible);
     }
 
     @Override
@@ -66,14 +80,27 @@ public class ParameterizedFieldListDisplay extends Composite implements Display 
     }
     
     @Override
-    public Display.FieldWidget addFieldWidget(String name) {
+    public Display.FieldWidget addFieldWidget(String name, String filteringName) {
+        int row = fieldTable.getRowCount();
         FieldWidget widget = new FieldWidget(name);
-        fieldListPanel.add(widget);
+        fieldTable.setText(row, 0, name);
+        fieldTable.setText(row, 1, filteringName);
+        fieldTable.setWidget(row, 2, widget.deleteLink);
+        setFieldTableVisible();
         return widget;
     }
 
     @Override
     public void removeFieldWidget(Display.FieldWidget widget) {
-        fieldListPanel.remove((Widget) widget);
+        FieldWidget fieldWidget = (FieldWidget) widget; 
+        for (int row = 1; row < fieldTable.getRowCount(); row++) {
+            if (fieldTable.getText(row, 0).equals(fieldWidget.getLabel())) {
+                fieldTable.removeRow(row);
+                setFieldTableVisible();
+                return;
+            }
+        }
+        
+        throw new IllegalArgumentException("Unable to find field widget " + widget);
     }
 }
