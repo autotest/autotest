@@ -8,8 +8,11 @@ body {
 }
 
 .data-table {
-  border: 2px solid #A0A0A0;
   empty-cells: show;
+}
+
+.data-table-outlined {
+  border: 2px solid #A0A0A0;
 }
 
 .data-table td {
