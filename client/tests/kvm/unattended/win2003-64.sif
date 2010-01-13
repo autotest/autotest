@@ -1,0 +1,61 @@
+[Data]
+AutoPartition = 1
+MsDosInitiated = 0
+UnattendedInstall = Yes
+
+[Unattended]
+UnattendMode = FullUnattended
+OemSkipEula = Yes
+OemPreinstall = No
+UnattendSwitch = Yes
+CrashDumpSetting = 1
+DriverSigningPolicy = ignore
+WaitForReboot = no
+Repartition = yes
+
+[GuiUnattended]
+AdminPassword = "redhat"
+AutoLogon = Yes
+AutoLogonCount = 5
+OEMSkipRegional = 1
+TimeZone = 85
+OemSkipWelcome = 1
+
+[UserData]
+FullName = "rhqe"
+OrgName = "REDHAT"
+ComputerName = *
+ProductKey = [replace-with-your-prodkey]
+
+[LicenseFilePrintData]
+AutoMode=PerServer
+AutoUsers=15
+
+[Identification]
+	DoOldStyleDomainJoin = YES
+	DomainAdmin="Administrator"
+	DomainAdminPassword="redhat"
+    JoinWorkgroup=WORKGROUP
+	JoinDomain="qe.redhat.com"
+
+[Networking]
+    InstallDefaultComponents=Yes
+
+[Components]
+
+[TerminalServices]
+AllowConnections = 1
+
+[WindowsFirewall]
+Profiles = WindowsFirewall.TurnOffFirewall
+[WindowsFirewall.TurnOffFirewall]
+Mode = 0
+
+[SetupParams]
+local="Local Area Connection"
+
+[GuiRunOnce]
+Command0="cmd /c sc config TlntSvr start= auto"
+Command1="cmd /c netsh firewall set opmode disable"
+Command2="cmd /c net start telnet"
+Command3="cmd /c netsh interface ip set address local static 10.0.2.15 255.255.255.0 10.0.2.2 1 && ping 10.0.2.2 -n 20 && A:\finish.exe 10.0.2.2"
