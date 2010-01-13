@@ -7,8 +7,7 @@ __author__ = 'showard@google.com (Steve Howard)'
 
 import traceback, pydoc, re, urllib, logging, logging.handlers
 from autotest_lib.frontend.afe.json_rpc import serviceHandler
-from autotest_lib.frontend.afe import rpc_utils
-from autotest_lib.frontend import thread_local
+from autotest_lib.frontend.afe import models, rpc_utils
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.frontend.afe import rpcserver_logging
 
@@ -84,7 +83,7 @@ class RpcHandler(object):
 
 
     def handle_rpc_request(self, request):
-        user = thread_local.get_user()
+        user = models.User.current_user()
         json_request = self.raw_request_data(request)
         decoded_request = self.decode_request(json_request)
         decoded_result = self.dispatch_request(decoded_request)

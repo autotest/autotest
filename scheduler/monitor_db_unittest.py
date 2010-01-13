@@ -10,7 +10,6 @@ from autotest_lib.client.common_lib import global_config, host_protections
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.common_lib.test_utils import unittest
 from autotest_lib.database import database_connection, migrate
-from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import monitor_db, drone_manager, email_manager
 from autotest_lib.scheduler import scheduler_config, gc_stats
