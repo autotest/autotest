@@ -65,7 +65,7 @@ class UserCleanup(PeriodicCleanup):
             where=['created_on + INTERVAL timeout HOUR < NOW()'])
         for job in query.distinct():
             logging.warning('Aborting job %d due to job timeout', job.id)
-            job.abort(None)
+            job.abort()
 
 
     def _abort_jobs_past_max_runtime(self):
@@ -83,7 +83,7 @@ class UserCleanup(PeriodicCleanup):
             id__in=[row[0] for row in rows])
         for queue_entry in query.distinct():
             logging.warning('Aborting entry %s due to max runtime', queue_entry)
-            queue_entry.abort(None)
+            queue_entry.abort()
 
 
     def _check_for_db_inconsistencies(self):

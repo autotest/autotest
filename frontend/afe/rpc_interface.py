@@ -31,7 +31,6 @@ __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime
 import common
-from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import models, model_logic
 from autotest_lib.frontend.afe import control_file, rpc_utils
 from autotest_lib.client.common_lib import global_config
@@ -289,7 +288,7 @@ def get_users(**filter_data):
 
 def add_acl_group(name, description=None):
     group = models.AclGroup.add_object(name=name, description=description)
-    group.users.add(thread_local.get_user())
+    group.users.add(models.User.current_user())
     return group.id
 
 
@@ -435,7 +434,7 @@ def create_job(name, priority, control_file, control_type,
 
     @returns The created Job id number.
     """
-    user = thread_local.get_user()
+    user = models.User.current_user()
     owner = user.login
     # input validation
     if not (hosts or meta_hosts or one_time_hosts or atomic_group_name
@@ -550,9 +549,8 @@ def abort_host_queue_entries(**filter_data):
     host_queue_entries = list(query.select_related())
     rpc_utils.check_abort_synchronous_jobs(host_queue_entries)
 
-    user = thread_local.get_user()
     for queue_entry in host_queue_entries:
-        queue_entry.abort(user)
+        queue_entry.abort()
 
 
 def reverify_hosts(**filter_data):
@@ -750,7 +748,7 @@ def delete_recurring_runs(**filter_data):
 
 
 def create_recurring_run(job_id, start_date, loop_period, loop_count):
-    owner = thread_local.get_user().login
+    owner = models.User.current_user().login
     job = models.Job.objects.get(id=job_id)
     return job.create_recurring_job(start_date=start_date,
                                     loop_period=loop_period,
@@ -813,7 +811,7 @@ def get_static_data():
     result['tests'] = get_tests(sort_by=['name'])
     result['profilers'] = get_profilers(sort_by=['name'])
     result['current_user'] = rpc_utils.prepare_for_serialization(
-        thread_local.get_user().get_object_dict())
+        models.User.current_user().get_object_dict())
     result['host_statuses'] = sorted(models.Host.Status.names)
     result['job_statuses'] = sorted(models.HostQueueEntry.Status.names)
     result['job_timeout_default'] = models.Job.DEFAULT_TIMEOUT
