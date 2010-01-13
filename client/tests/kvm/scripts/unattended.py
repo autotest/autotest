@@ -91,6 +91,8 @@ class UnattendedInstall(object):
             shutil.copyfile(setup_file_path, setup_file_dest)
         elif self.unattended_file.endswith('.ks'):
             dest_fname = 'ks.cfg'
+        elif self.unattended_file.endswith('.xml'):
+            dest_fname = "autounattend.xml"
 
         dest = os.path.join(self.floppy_mount, dest_fname)
         shutil.copyfile(self.unattended_file, dest)
