@@ -129,6 +129,8 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     ACCESS_ADMIN = 1
     ACCESS_USER = 0
 
+    AUTOTEST_SYSTEM = 'autotest_system'
+
     login = dbmodels.CharField(max_length=255, unique=True)
     access_level = dbmodels.IntegerField(default=ACCESS_USER, blank=True)
 
@@ -159,6 +161,16 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
 
     def is_superuser(self):
         return self.access_level >= self.ACCESS_ROOT
+
+
+    @classmethod
+    def current_user(cls):
+        user = thread_local.get_user()
+        if user is None:
+            user = cls.objects.get_or_create(login=cls.AUTOTEST_SYSTEM)
+            user.access_level = cls.ACCESS_ROOT
+            user.save()
+        return user
 
 
     class Meta:
@@ -259,7 +271,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         if not first_time:
             AclGroup.check_for_acl_violation_hosts([self])
         if self.locked and not self.locked_by:
-            self.locked_by = thread_local.get_user()
+            self.locked_by = User.current_user()
             self.lock_time = datetime.now()
             self.dirty = True
         elif not self.locked and self.locked_by:
@@ -276,7 +288,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         AclGroup.check_for_acl_violation_hosts([self])
         for queue_entry in self.hostqueueentry_set.all():
             queue_entry.deleted = True
-            queue_entry.abort(thread_local.get_user())
+            queue_entry.abort()
         super(Host, self).delete()
 
 
@@ -459,7 +471,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 
     @staticmethod
     def check_for_acl_violation_hosts(hosts):
-        user = thread_local.get_user()
+        user = User.current_user()
         if user.is_superuser():
             return
         accessible_host_ids = set(
@@ -483,7 +495,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
            * the machine isn't ACL-accessible, or
            * the machine is in the "Everyone" ACL
         """
-        user = thread_local.get_user()
+        user = User.current_user()
         if user.is_superuser():
             return
         not_owned = queue_entries.exclude(job__owner=user.login)
@@ -509,7 +521,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 
 
     def check_for_acl_violation_acl_group(self):
-        user = thread_local.get_user()
+        user = User.current_user()
         if user.is_superuser():
             return
         if self.name == 'Everyone':
@@ -551,12 +563,12 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 
     def add_current_user_if_empty(self):
         if not self.users.count():
-            self.users.add(thread_local.get_user())
+            self.users.add(User.current_user())
 
 
     def perform_after_save(self, change):
         if not change:
-            self.users.add(thread_local.get_user())
+            self.users.add(User.current_user())
         self.add_current_user_if_empty()
         self.on_host_membership_change()
 
@@ -734,9 +746,9 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             return None
 
 
-    def abort(self, aborted_by):
+    def abort(self):
         for queue_entry in self.hostqueueentry_set.all():
-            queue_entry.abort(aborted_by)
+            queue_entry.abort()
 
 
     def tag(self):
@@ -845,18 +857,15 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
 
     def log_abort(self, user):
-        if user is None:
-            # automatic system abort (i.e. job timeout)
-            return
         abort_log = AbortedHostQueueEntry(queue_entry=self, aborted_by=user)
         abort_log.save()
 
 
-    def abort(self, user):
+    def abort(self):
         # this isn't completely immune to race conditions since it's not atomic,
         # but it should be safe given the scheduler's behavior.
         if not self.complete and not self.aborted:
-            self.log_abort(user)
+            self.log_abort(User.current_user())
             self.aborted = True
             self.save()
 

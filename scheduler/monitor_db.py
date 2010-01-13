@@ -2143,6 +2143,9 @@ class AbstractQueueTask(AgentTask, TaskWithJobKeyvals):
                 aborted_on.add(t)
 
         # extract some actual, unique aborted by value and write it out
+        # TODO(showard): this conditional is now obsolete, we just need to leave
+        # it in temporarily for backwards compatibility over upgrades.  delete
+        # soon.
         assert len(aborted_by) <= 1
         if len(aborted_by) == 1:
             aborted_by_value = aborted_by.pop()
@@ -3565,9 +3568,8 @@ class Job(DBObject):
 
     def request_abort(self):
         """Request that this Job be aborted on the next scheduler cycle."""
-        queue_entries = HostQueueEntry.fetch(where="job_id=%s" % self.id)
-        for hqe in queue_entries:
-            hqe.update_field('aborted', True)
+        self_model = models.Job.objects.get(id=self.id)
+        self_model.abort()
 
 
     def schedule_delayed_callback_task(self, queue_entry):

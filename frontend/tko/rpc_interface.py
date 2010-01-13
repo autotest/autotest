@@ -1,8 +1,7 @@
 import os, pickle, datetime, itertools, operator
 from django.db import models as dbmodels
-from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import rpc_utils, model_logic
-from autotest_lib.frontend.afe import readonly_connection
+from autotest_lib.frontend.afe import models as afe_models, readonly_connection
 from autotest_lib.frontend.tko import models, tko_rpc_utils, graphing_utils
 from autotest_lib.frontend.tko import preconfigs
 
@@ -334,7 +333,7 @@ def get_saved_queries(**filter_data):
 
 def add_saved_query(name, url_token):
     name = name.strip()
-    owner = thread_local.get_user()
+    owner = afe_models.User.current_user().login
     existing_list = list(models.SavedQuery.objects.filter(owner=owner,
                                                           name=name))
     if existing_list:
@@ -348,7 +347,7 @@ def add_saved_query(name, url_token):
 
 
 def delete_saved_queries(id_list):
-    user = thread_local.get_user()
+    user = afe_models.User.current_user().login
     query = models.SavedQuery.objects.filter(id__in=id_list, owner=user)
     if query.count() == 0:
         raise model_logic.ValidationError('No such queries found for this user')
@@ -416,7 +415,7 @@ def get_static_data():
     result['all_fields'] = sorted(model_fields + extra_fields)
     result['test_labels'] = get_test_labels(sort_by=['name'])
     result['current_user'] = rpc_utils.prepare_for_serialization(
-            thread_local.get_user().get_object_dict())
+            afe_models.User.current_user().get_object_dict())
     result['benchmark_key'] = benchmark_key
     result['tko_perf_view'] = tko_perf_view
     result['tko_test_view'] = model_fields
