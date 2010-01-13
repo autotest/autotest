@@ -25,7 +25,7 @@ public class ParameterizedFieldListPresenter implements ClickHandler {
         public SimplifiedList getTypeSelect();
         public HasText getValueInput();
         public HasClickHandlers getAddLink();
-        public FieldWidget addFieldWidget(String name); 
+        public FieldWidget addFieldWidget(String name, String filteringName); 
         public void removeFieldWidget(FieldWidget widget);
     }
     
@@ -89,7 +89,8 @@ public class ParameterizedFieldListPresenter implements ClickHandler {
     private void addField(final ParameterizedField field) {
         headerFields.add(field);
 
-        Display.FieldWidget fieldWidget = display.addFieldWidget(field.getName());
+        Display.FieldWidget fieldWidget = display.addFieldWidget(field.getName(), 
+                                                                 field.getFilteringName());
         fieldInputMap.put(field, fieldWidget);
         fieldWidget.getDeleteLink().addClickHandler(new ClickHandler() {
             @Override
