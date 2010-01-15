@@ -223,7 +223,8 @@ class DroneManager(object):
             allowed_users = config.get_config_value(
                     section, '%s_users' % hostname, default=None)
             if allowed_users is not None:
-                drone.allowed_users = set(allowed_users)
+                allowed_users = set(allowed_users.split())
+            drone.allowed_users = allowed_users
 
         self._reorder_drone_queue() # max_processes may have changed
 
@@ -408,12 +409,13 @@ class DroneManager(object):
         execution) given the current load on drones.
         @param username: login of user to run a process.  may be None.
         """
-        if not self._drone_queue:
-            # all drones disabled
+        usable_drone_wrappers = [wrapper for wrapper in self._drone_queue
+                                 if wrapper.drone.usable_by(username)]
+        if not usable_drone_wrappers:
+            # all drones disabled or inaccessible
             return 0
         return max(wrapper.drone.max_processes - wrapper.drone.active_processes
-                   for wrapper in self._drone_queue
-                   if wrapper.drone.usable_by(username))
+                   for wrapper in usable_drone_wrappers)
 
 
     def _least_loaded_drone(self, drones):
