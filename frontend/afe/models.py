@@ -1008,17 +1008,20 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
 
 
     @classmethod
-    def schedule_special_task(cls, hosts, task):
+    def schedule_special_task(cls, host, task):
         """
-        Schedules hosts for a special task, if the task is not already scheduled
+        Schedules a special task on a host if the task is not already scheduled.
         """
-        for host in hosts:
-            if not SpecialTask.objects.filter(host__id=host.id, task=task,
-                                              is_active=False,
-                                              is_complete=False):
-                special_task = SpecialTask(host=host, task=task,
-                                           requested_by=thread_local.get_user())
-                special_task.save()
+        existing_tasks = SpecialTask.objects.filter(host__id=host.id, task=task,
+                                                    is_active=False,
+                                                    is_complete=False)
+        if existing_tasks:
+            return existing_tasks[0]
+
+        special_task = SpecialTask(host=host, task=task,
+                                   requested_by=User.current_user())
+        special_task.save()
+        return special_task
 
 
     def activate(self):
