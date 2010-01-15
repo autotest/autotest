@@ -50,8 +50,13 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
     def _write_drone(self, drone):
-        line = '%s %s/%s processes' % (drone.hostname, drone.active_processes,
-                                       drone.max_processes)
+        if drone.allowed_users:
+            allowed_users = ', '.join(drone.allowed_users)
+        else:
+            allowed_users = 'all'
+        line = ('%s: %s/%s processes, users: %s'
+                % (drone.hostname, drone.active_processes, drone.max_processes,
+                   allowed_users))
         if not drone.enabled:
             line += ' (disabled)'
         self._write_line(line)
