@@ -890,6 +890,10 @@ class VM(virt_vm.BaseVM):
                                       cdrom_params.get("drive_index"),
                                       cd_format, bus)
 
+        soundhw = params.get("soundcards")
+        if soundhw:
+            qemu_cmd += " -soundhw %s" % soundhw
+
         # We may want to add {floppy_otps} parameter for -fda
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
         floppy = params.get("floppy")
