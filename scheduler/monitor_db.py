@@ -2533,7 +2533,7 @@ class ArchiveResultsTask(SelfThrottledPostJobTask):
 
     def epilog(self):
         super(ArchiveResultsTask, self).epilog()
-        if not self.success:
+        if not self.success and self._paired_with_monitor().has_process():
             failed_file = os.path.join(self._working_directory(),
                                        self._ARCHIVING_FAILED_FILE)
             paired_process = self._paired_with_monitor().get_process()
