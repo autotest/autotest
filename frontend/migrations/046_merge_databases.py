@@ -12,9 +12,9 @@ TABLE_NAMES = tko_migration.RENAMES_UP.values()
 def migrate_up(manager):
     tko_manager = migrate.get_migration_manager(db_name='TKO', debug=False,
                                                 force=False)
-    if (tko_manager.get_db_version() < 31):
-        raise Exception('You must update the TKO database to the latest '
-                        'version before merging')
+    if tko_manager.get_db_version() < 31:
+        raise Exception('You must update the TKO database to at least version '
+                        '31 before applying AUTOTEST_WEB migration 46')
 
     if not manager.force:
         response = raw_input(
