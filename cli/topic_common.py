@@ -458,7 +458,10 @@ class atest(object):
                         self.invalid_syntax('Invalid server name %s: %s' %
                                             (self.afe.web_server, err))
                 if hasattr(err, 'code'):
-                    self.failure(str(err), item=item,
+                    error_parts = [str(err)]
+                    if self.debug:
+                        error_parts.append(err.read()) # read the response body
+                    self.failure('\n\n'.join(error_parts), item=item,
                                  what_failed=("Error received from web server"))
                     raise CliError("Error from web server")
                 if self.debug:
