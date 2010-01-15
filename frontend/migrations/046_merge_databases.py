@@ -16,6 +16,9 @@ def migrate_up(manager):
         raise Exception('You must update the TKO database to at least version '
                         '31 before applying AUTOTEST_WEB migration 46')
 
+    if manager.simulate:
+        tko_manager.initialize_and_fill_test_db()
+
     if not manager.force:
         response = raw_input(
                 'This migration will merge the autotest_web and tko databases. '
