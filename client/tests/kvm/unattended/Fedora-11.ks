@@ -14,14 +14,10 @@ bootloader --location=mbr
 zerombr
 
 clearpart --all --initlabel
-part /boot  --fstype=ext3 --size=100
-part /      --fstype=ext3 --size=9000
-part swap   --fstype=swap --size=512
+autopart
 
 %packages
-@admin-tools
 @base
-@core
 @development-libs
 @development-tools
 %end
