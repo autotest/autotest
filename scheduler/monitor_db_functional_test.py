@@ -1019,7 +1019,15 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
 
     def test_pre_job_keyvals(self):
-        self.test_simple_job()
+        job = self._create_job(hosts=[1])
+        job.run_verify = False
+        job.reboot_before = models.RebootBefore.NEVER
+        job.save()
+        models.JobKeyval.objects.create(job=job, key='mykey', value='myvalue')
+
+        self._run_dispatcher()
+        self._finish_job(job.hostqueueentry_set.all()[0])
+
         attached_files = self.mock_drone_manager.attached_files(
                 '1-my_user/host1')
         job_keyval_path = '1-my_user/host1/keyval'
@@ -1028,6 +1036,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         keyval_dict = dict(line.strip().split('=', 1)
                            for line in keyval_contents.splitlines())
         self.assert_('job_queued' in keyval_dict, keyval_dict)
+        self.assertEquals(keyval_dict['mykey'], 'myvalue')
 
 
 if __name__ == '__main__':
