@@ -167,7 +167,7 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     def current_user(cls):
         user = thread_local.get_user()
         if user is None:
-            user = cls.objects.get_or_create(login=cls.AUTOTEST_SYSTEM)
+            user, _ = cls.objects.get_or_create(login=cls.AUTOTEST_SYSTEM)
             user.access_level = cls.ACCESS_ROOT
             user.save()
         return user
