@@ -70,6 +70,10 @@ class MigrationManager(object):
     def __init__(self, database_connection, migrations_dir=None, force=False):
         self._database = database_connection
         self.force = force
+        # A boolean, this will only be set to True if this migration should be
+        # simulated rather than actually taken. For use with migrations that
+        # may make destructive queries
+        self.simulate = False
         self._set_migrations_dir(migrations_dir)
 
 
@@ -262,6 +266,16 @@ class MigrationManager(object):
             print 'Skipping simulation, already at latest version'
             return
         # get existing data
+        self.initialize_and_fill_test_db()
+        try:
+            print 'Starting migration test on DB', self.get_db_name()
+            self.migrate_to_version_or_latest(version)
+        finally:
+            self.remove_test_db()
+        print 'Test finished successfully'
+
+
+    def initialize_and_fill_test_db(self):
         print 'Dumping existing data'
         dump_fd, dump_file = tempfile.mkstemp('.migrate_dump')
         os.system('mysqldump %s >%s' %
@@ -272,12 +286,6 @@ class MigrationManager(object):
         os.system('mysql %s <%s' % (self.get_mysql_args(), dump_file))
         os.close(dump_fd)
         os.remove(dump_file)
-        try:
-            print 'Starting migration test on DB', self.get_db_name()
-            self.migrate_to_version_or_latest(version)
-        finally:
-            self.remove_test_db()
-        print 'Test finished successfully'
 
 
 USAGE = """\
@@ -311,13 +319,17 @@ def main():
         if args[0] == 'sync':
             manager.do_sync_db(version)
         elif args[0] == 'test':
+            manager.simulate=True
             manager.test_sync_db(version)
         elif args[0] == 'simulate':
+            manager.simulate=True
             manager.simulate_sync_db(version)
         elif args[0] == 'safesync':
             print 'Simluating migration'
+            manager.simulate=True
             manager.simulate_sync_db(version)
             print 'Performing real migration'
+            manager.simulate=False
             manager.do_sync_db(version)
         else:
             print USAGE
