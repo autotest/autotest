@@ -2496,6 +2496,8 @@ class FinalReparseTask(SelfThrottledPostJobTask):
 
 
 class ArchiveResultsTask(SelfThrottledPostJobTask):
+    _ARCHIVING_FAILED_FILE = '.archiver_failed'
+
     def __init__(self, queue_entries):
         super(ArchiveResultsTask, self).__init__(queue_entries,
                                                  log_file_name='.archiving.log')
@@ -2530,6 +2532,14 @@ class ArchiveResultsTask(SelfThrottledPostJobTask):
 
     def epilog(self):
         super(ArchiveResultsTask, self).epilog()
+        if not self.success:
+            failed_file = os.path.join(self._working_directory(),
+                                       self._ARCHIVING_FAILED_FILE)
+            paired_process = self._paired_with_monitor().get_process()
+            _drone_manager.write_lines_to_file(
+                    failed_file, ['Archiving failed with exit code %s'
+                                  % self.monitor.exit_code()],
+                    paired_with_process=paired_process)
         self._set_all_statuses(self._final_status())
 
 
