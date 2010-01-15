@@ -87,6 +87,10 @@ display = vnc
 # Guest VGA type (cirrus,  std, vmware, qxl, xenfb, none)
 vga = std
 
+# Specify multiple sound cards seperated by comma,like 'sb16,adlib' or 'all'.
+# By default, it's 'ac97'.
+soundcards = ac97
+
 ###
 # Capture contents of display during each test
 take_regular_screendumps = yes
