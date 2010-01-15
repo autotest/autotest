@@ -453,7 +453,7 @@ class AbstractSSHHost(SiteHost):
         while not timeout or current_time < end_time:
             try:
                 new_boot_id = self.get_boot_id()
-            except error.AutoservSSHTimeout:
+            except error.AutoservError:
                 logging.debug('Host %s is now unreachable over ssh, is down',
                               self.hostname)
                 return True
