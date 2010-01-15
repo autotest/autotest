@@ -139,8 +139,42 @@ class db_sql(object):
         return self.cur.fetchall()[0][0]
 
 
-    def select(self, fields, table, where, wherein={},
-               distinct = False, group_by = None, max_rows = None):
+    def _quote(self, field):
+        return '`%s`' % field
+
+
+    def _where_clause(self, where):
+        if not where:
+            return '', []
+
+        if isinstance(where, dict):
+            # key/value pairs (which should be equal, or None for null)
+            keys, values = [], []
+            for field, value in where.iteritems():
+                quoted_field = self._quote(field)
+                if value is None:
+                    keys.append(quoted_field + ' is null')
+                else:
+                    keys.append(quoted_field + '=%s')
+                    values.append(value)
+            where_clause = ' and '.join(keys)
+        elif isinstance(where, basestring):
+            # the exact string
+            where_clause = where
+            values = []
+        elif isinstance(where, tuple):
+            # preformatted where clause + values
+            where_clause, values = where
+            assert where_clause
+        else:
+            raise ValueError('Invalid "where" value: %r' % where)
+
+        return ' WHERE ' + where_clause, values
+
+
+
+    def select(self, fields, table, where, distinct=False, group_by=None,
+               max_rows=None):
         """\
                 This selects all the fields requested from a
                 specific table with a particular where clause.
@@ -162,31 +196,8 @@ class db_sql(object):
             cmd.append('distinct')
         cmd += [fields, 'from', table]
 
-        values = []
-        if where and isinstance(where, types.DictionaryType):
-            # key/value pairs (which should be equal, or None for null)
-            keys, values = [], []
-            for field, value in where.iteritems():
-                if value is None:
-                    keys.append(field + ' is null')
-                else:
-                    keys.append(field + '=%s')
-                    values.append(value)
-            cmd.append(' where ' + ' and '.join(keys))
-        elif where and isinstance(where, types.StringTypes):
-            # the exact string
-            cmd.append(' where ' + where)
-        elif where and isinstance(where, types.TupleType):
-            # preformatted where clause + values
-            (sql, vals) = where
-            values = vals
-            cmd.append(' where (%s) ' % sql)
-
-        # TODO: this assumes there's a where clause...bad
-        if wherein and isinstance(wherein, types.DictionaryType):
-            keys_in = ["%s in (%s) " % (field, ','.join(where))
-                       for field, where in wherein.iteritems()]
-            cmd.append(' and '+' and '.join(keys_in))
+        where_clause, values = self._where_clause(where)
+        cmd.append(where_clause)
 
         if group_by:
             cmd.append(' GROUP BY ' + group_by)
@@ -252,8 +263,9 @@ class db_sql(object):
         fields = data.keys()
         refs = ['%s' for field in fields]
         values = [data[field] for field in fields]
-        cmd = 'insert into %s (%s) values (%s)' % \
-                        (table, ','.join(fields), ','.join(refs))
+        cmd = ('insert into %s (%s) values (%s)' %
+               (table, ','.join(self._quote(field) for field in fields),
+                ','.join(refs)))
         self.dprint('%s %s' % (cmd, values))
 
         self._exec_sql_with_commit(cmd, values, commit)
@@ -263,10 +275,8 @@ class db_sql(object):
         cmd = ['delete from', table]
         if commit is None:
             commit = self.autocommit
-        if where and isinstance(where, types.DictionaryType):
-            keys = [field + '=%s' for field in where.keys()]
-            values = [where[field] for field in where.keys()]
-            cmd += ['where', ' and '.join(keys)]
+        where_clause, values = self._where_clause(where)
+        cmd.append(where_clause)
         sql = ' '.join(cmd)
         self.dprint('%s %s' % (sql, values))
 
@@ -284,13 +294,12 @@ class db_sql(object):
             commit = self.autocommit
         cmd = 'update %s ' % table
         fields = data.keys()
-        data_refs = [field + '=%s' for field in fields]
+        data_refs = [self._quote(field) + '=%s' for field in fields]
         data_values = [data[field] for field in fields]
         cmd += ' set ' + ', '.join(data_refs)
 
-        where_keys = [field + '=%s' for field in where.keys()]
-        where_values = [where[field] for field in where.keys()]
-        cmd += ' where ' + ' and '.join(where_keys)
+        where_clause, where_values = self._where_clause(where)
+        cmd += where_clause
 
         values = data_values + where_values
         self.dprint('%s %s' % (cmd, values))
@@ -338,8 +347,21 @@ class db_sql(object):
         else:
             self.insert('tko_jobs', data, commit=commit)
             job.index = self.get_last_autonumber_value()
+        self.update_job_keyvals(job, commit=commit)
         for test in job.tests:
             self.insert_test(job, test, commit=commit)
+
+
+    def update_job_keyvals(self, job, commit=None):
+        for key, value in job.keyval_dict.iteritems():
+            where = {'job_id': job.index, 'key': key}
+            data = dict(where, value=value)
+            exists = self.select('id', 'tko_job_keyvals', where=where)
+
+            if exists:
+                self.update('tko_job_keyvals', data, where=where, commit=commit)
+            else:
+                self.insert('tko_job_keyvals', data, commit=commit)
 
 
     def insert_test(self, job, test, commit = None):

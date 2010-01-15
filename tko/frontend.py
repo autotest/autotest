@@ -200,12 +200,12 @@ class kernel:
 
 class test:
     @classmethod
-    def select(klass, db, where = {}, wherein = {}, distinct = False):
+    def select(klass, db, where={}, distinct=False):
         fields = ['test_idx', 'job_idx', 'test', 'subdir',
                   'kernel_idx', 'status', 'reason', 'machine_idx']
         tests = []
         for row in db.select(','.join(fields), 'tko_tests', where,
-                             wherein,distinct):
+                             distinct):
             tests.append(klass(db, *row))
         return tests
 

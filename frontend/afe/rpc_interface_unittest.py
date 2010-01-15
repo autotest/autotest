@@ -93,6 +93,18 @@ class RpcInterfaceTest(unittest.TestCase,
         self._check_hostnames(hosts, ['host2'])
 
 
+    def test_job_keyvals(self):
+        keyval_dict = {'mykey': 'myvalue'}
+        job_id = rpc_interface.create_job(name='test', priority='Medium',
+                                          control_file='foo',
+                                          control_type='Client',
+                                          hosts=['host1'],
+                                          keyvals=keyval_dict)
+        jobs = rpc_interface.get_jobs(id=job_id)
+        self.assertEquals(len(jobs), 1)
+        self.assertEquals(jobs[0]['keyvals'], keyval_dict)
+
+
     def test_get_jobs_summary(self):
         job = self._create_job(hosts=xrange(1, 4))
         entries = list(job.hostqueueentry_set.all())

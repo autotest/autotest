@@ -402,7 +402,8 @@ def create_job(name, priority, control_file, control_type,
                atomic_group_name=None, synch_count=None, is_template=False,
                timeout=None, max_runtime_hrs=None, run_verify=True,
                email_list='', dependencies=(), reboot_before=None,
-               reboot_after=None, parse_failed_repair=None, hostless=False):
+               reboot_after=None, parse_failed_repair=None, hostless=False,
+               keyvals=None):
     """\
     Create and enqueue a job.
 
@@ -424,6 +425,7 @@ def create_job(name, priority, control_file, control_type,
     @param parse_failed_repair if true, results of failed repairs launched by
     this job will be parsed as part of the job.
     @param hostless if true, create a hostless job
+    @param keyvals dict of keyvals to associate with the job
 
     @param hosts List of hosts to run job on.
     @param meta_hosts List where each entry is a label name, and for each entry
@@ -531,7 +533,8 @@ def create_job(name, priority, control_file, control_type,
                    dependencies=dependencies,
                    reboot_before=reboot_before,
                    reboot_after=reboot_after,
-                   parse_failed_repair=parse_failed_repair)
+                   parse_failed_repair=parse_failed_repair,
+                   keyvals=keyvals)
     return rpc_utils.create_new_job(owner=owner,
                                     options=options,
                                     host_objects=host_objects,
@@ -584,10 +587,13 @@ def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
     jobs = list(models.Job.query_objects(filter_data))
     models.Job.objects.populate_relationships(jobs, models.Label,
                                               'dependencies')
+    models.Job.objects.populate_relationships(jobs, models.JobKeyval, 'keyvals')
     for job in jobs:
         job_dict = job.get_object_dict()
         job_dict['dependencies'] = ','.join(label.name
                                             for label in job.dependencies)
+        job_dict['keyvals'] = dict((keyval.key, keyval.value)
+                                   for keyval in job.keyvals)
         job_dicts.append(job_dict)
     return rpc_utils.prepare_for_serialization(job_dicts)
 

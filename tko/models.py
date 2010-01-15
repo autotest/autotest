@@ -7,7 +7,7 @@ from autotest_lib.tko import utils as tko_utils
 class job(object):
     def __init__(self, dir, user, label, machine, queued_time, started_time,
                  finished_time, machine_owner, machine_group, aborted_by,
-                 aborted_on):
+                 aborted_on, keyval_dict):
         self.dir = dir
         self.tests = []
         self.user = user
@@ -20,6 +20,7 @@ class job(object):
         self.machine_group = machine_group
         self.aborted_by = aborted_by
         self.aborted_on = aborted_on
+        self.keyval_dict = keyval_dict
 
 
     @staticmethod

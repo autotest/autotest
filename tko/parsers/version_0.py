@@ -36,7 +36,7 @@ class job(models.job):
                 "queued_time": queued_time, "started_time": started_time,
                 "finished_time": finished_time, "machine_owner": machine_owner,
                 "machine_group": machine_group, "aborted_by": aborted_by,
-                "aborted_on": aborted_at}
+                "aborted_on": aborted_at, "keyval_dict": keyval}
 
 
     @classmethod
