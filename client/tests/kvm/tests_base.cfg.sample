@@ -371,6 +371,28 @@ variants:
                             kernel_args = "ks=floppy nicdelay=60"
                             unattended_file = unattended/Fedora-11.ks
 
+                    - 12.32:
+                        image_name = fc12-32
+                        unattended_install:
+                            cdrom = linux/Fedora-12-i386-DVD.iso
+                            md5sum = 2c4c1c0d09f2fbcfd8ee6a0c5542eeb2
+                            md5sum_1m = eee935d7f0cf2ef03f6ddce3a2a50050
+                            tftp = "images/tftpboot"
+                            extra_params += " -bootp /pxelinux.0 -boot n"
+                            kernel_args = "ks=floppy nicdelay=60"
+                            unattended_file = unattended/Fedora-12.ks
+
+                    - 12.64:
+                        image_name = fc11-64
+                        unattended_install:
+                            cdrom = linux/Fedora-12-x86_64-DVD.iso
+                            md5sum = 6dd31e292cc2eb1140544e9b1ba61c56
+                            md5sum_1m = 514efbd7698b55ff6768c8605438bfc5
+                            tftp = "images/tftpboot"
+                            extra_params += " -bootp /pxelinux.0 -boot n"
+                            kernel_args = "ks=floppy nicdelay=60"
+                            unattended_file = unattended/Fedora-12.ks
+
             - DSL-4.2.5:
                 no setup dbench bonnie linux_s3
                 image_name = dsl-4.2.5
