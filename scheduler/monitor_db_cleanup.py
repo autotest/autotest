@@ -180,7 +180,7 @@ class UserCleanup(PeriodicCleanup):
         logging.info('Reverifying dead hosts %s'
                      % ', '.join(host.hostname for host in hosts))
         for host in hosts:
-            models.SpecialTask.objects.create(
+            models.SpecialTask.schedule_special_task(
                     host=host, task=models.SpecialTask.Task.VERIFY)
 
 
