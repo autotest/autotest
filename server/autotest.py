@@ -358,6 +358,7 @@ class BaseAutotest(installable_object.InstallableObject):
         prologue_lines = []
 
         # If the packaging system is being used, add the repository list.
+        repos = None
         try:
             c = global_config.global_config
             repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
@@ -366,7 +367,9 @@ class BaseAutotest(installable_object.InstallableObject):
                                              repo_urls=repos)
             prologue_lines.append('job.add_repository(%s)\n' % repos)
         except global_config.ConfigError, e:
-            pass
+            # If repos is defined packaging is enabled so log the error
+            if repos:
+                logging.error(e)
 
         # on full-size installs, turn on any profilers the server is using
         if not atrun.background:
