@@ -1,3 +1,6 @@
+import common
+from autotest_lib.database import migrate
+
 UP_SQL = """\
 BEGIN;
 
@@ -76,7 +79,7 @@ CREATE TABLE `planner_test_runs` (
 ;
 ALTER TABLE `planner_test_runs` ADD CONSTRAINT test_runs_plan_id_fk FOREIGN KEY (`plan_id`) REFERENCES `planner_plans` (`id`);
 ALTER TABLE `planner_test_runs` ADD CONSTRAINT test_runs_test_job_id_fk FOREIGN KEY (`test_job_id`) REFERENCES `planner_test_jobs` (`id`);
-ALTER TABLE `planner_test_runs` ADD CONSTRAINT test_runs_tko_test_id_fk FOREIGN KEY (`tko_test_id`) REFERENCES `tko.tko_tests` (`test_idx`);
+ALTER TABLE `planner_test_runs` ADD CONSTRAINT test_runs_tko_test_id_fk FOREIGN KEY (`tko_test_id`) REFERENCES `tko`.`tko_tests` (`test_idx`);
 
 
 CREATE TABLE `planner_data_types` (
@@ -175,7 +178,7 @@ CREATE TABLE `planner_autoprocess_labels` (
 )
 ;
 ALTER TABLE `planner_autoprocess_labels` ADD CONSTRAINT autoprocess_labels_autoprocess_id_fk FOREIGN KEY (`autoprocess_id`) REFERENCES `planner_autoprocess` (`id`);
-ALTER TABLE `planner_autoprocess_labels` ADD CONSTRAINT autoprocess_labels_testlabel_id_fk FOREIGN KEY (`testlabel_id`) REFERENCES `tko.tko_test_labels` (`id`);
+ALTER TABLE `planner_autoprocess_labels` ADD CONSTRAINT autoprocess_labels_testlabel_id_fk FOREIGN KEY (`testlabel_id`) REFERENCES `tko`.`tko_test_labels` (`id`);
 
 
 CREATE TABLE `planner_autoprocess_keyvals` (
@@ -240,3 +243,13 @@ DROP TABLE IF EXISTS planner_test_control_files;
 DROP TABLE IF EXISTS planner_bugs;
 DROP TABLE IF EXISTS planner_plans;
 """
+
+
+def migrate_up(manager):
+    tko_manager = migrate.get_migration_manager(db_name='TKO', debug=False,
+                                                force=False)
+    if tko_manager.get_db_version() < 31:
+        raise Exception('You must update the TKO database to at least version '
+                        '31 before applying AUTOTEST_WEB migration 45')
+
+    manager.execute_script(UP_SQL)
