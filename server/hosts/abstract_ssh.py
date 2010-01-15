@@ -5,13 +5,15 @@ from autotest_lib.server.hosts import remote
 from autotest_lib.client.common_lib.global_config import global_config
 
 
-enable_master_ssh = global_config.get_config_value(
-    'AUTOSERV', 'enable_master_ssh', type=bool, default=False)
+enable_master_ssh = global_config.get_config_value('AUTOSERV',
+                                                   'enable_master_ssh',
+                                                    type=bool, default=False)
 
 
 def make_ssh_command(user="root", port=22, opts='', connect_timeout=30,
                      alive_interval=300):
-    base_command = ("/usr/bin/ssh -a -x %s -o BatchMode=yes "
+    base_command = ("/usr/bin/ssh -a -x %s -o StrictHostKeyChecking=no "
+                    "-o UserKnownHostsFile=/dev/null -o BatchMode=yes "
                     "-o ConnectTimeout=%d -o ServerAliveInterval=%d "
                     "-l %s -p %d")
     assert isinstance(connect_timeout, (int, long))
@@ -107,7 +109,8 @@ class AbstractSSHHost(SiteHost):
         appropriate scp command for encoding it. Remote paths must be
         pre-encoded.
         """
-        command = "scp -rq %s -P %d %s '%s'"
+        command = ("scp -rq %s -o StrictHostKeyChecking=no "
+                   "-o UserKnownHostsFile=/dev/null -P %d %s '%s'")
         return command % (self.master_ssh_option,
                           self.port, " ".join(sources), dest)
 
