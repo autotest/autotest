@@ -599,6 +599,9 @@ variants:
         cpu_chk_cmd = echo %NUMBER_OF_PROCESSORS%
         mem_chk_cmd = wmic memphysical
 
+        unattended_install:
+            timeout = 7200
+            finish_program = deps/finish.exe
         migrate:
             migration_test_command = ver && vol
             migration_bg_command = start ping -t localhost
@@ -670,7 +673,6 @@ variants:
                     md5sum = 743450644b1d9fe97b3cf379e22dceb0
                     md5sum_1m = b473bf75af2d1269fec8958cf0202bfd
                     unattended_file = unattended/winxp32.sif
-                    finish_program = deps/finish.exe
                 setup:
                     steps = WinXP-32-rss.steps
 
@@ -700,6 +702,11 @@ variants:
                             md5sum = 03e921e9b4214773c21a39f5c3f42ef7
                             md5sum_1m = 37c2fdec15ac4ec16aa10fdfdb338aa3
                             user = user
+                        unattended_install:
+                            cdrom = windows/Windows2003_r2_VLK.iso
+                            md5sum = 03e921e9b4214773c21a39f5c3f42ef7
+                            md5sum_1m = 37c2fdec15ac4ec16aa10fdfdb338aa3
+                            unattended_file = unattended/win2003-32.sif
                         setup:
                             steps = Win2003-32-rss.steps
 
@@ -711,8 +718,14 @@ variants:
                             md5sum = 5703f87c9fd77d28c05ffadd3354dbbd
                             md5sum_1m = 439393c384116aa09e08a0ad047dcea8
                             user = user
+                        unattended_install:
+                            cdrom = windows/Windows2003-x64.iso
+                            md5sum = 5703f87c9fd77d28c05ffadd3354dbbd
+                            md5sum_1m = 439393c384116aa09e08a0ad047dcea8
+                            unattended_file = unattended/win2003-64.sif
                         setup:
                             steps = Win2003-64-rss.steps
+
 
             - WinVista:
                 image_name = winvista
@@ -726,6 +739,11 @@ variants:
                             cdrom = windows/WindowsVista-32.iso
                             md5sum = 1008f323d5170c8e614e52ccb85c0491
                             md5sum_1m = c724e9695da483bc0fd59e426eaefc72
+                        unattended_install:
+                            cdrom = windows/WindowsVista-32.iso
+                            md5sum = 1008f323d5170c8e614e52ccb85c0491
+                            md5sum_1m = c724e9695da483bc0fd59e426eaefc72
+                            unattended_file = unattended/winvista-32-autounattend.xml
                         setup:
                             steps = WinVista-32-rss.steps
 
@@ -736,6 +754,11 @@ variants:
                             cdrom = windows/WindowsVista-64.iso
                             md5sum = 11e2010d857fffc47813295e6be6d58d
                             md5sum_1m = 0947bcd5390546139e25f25217d6f165
+                        unattended_install:
+                            cdrom = windows/WindowsVista-64.iso
+                            md5sum = 11e2010d857fffc47813295e6be6d58d
+                            md5sum_1m = 0947bcd5390546139e25f25217d6f165
+                            unattended_file = unattended/winvista-64-autounattend.xml
                         setup:
                             steps = WinVista-64-rss.steps
 
@@ -755,6 +778,11 @@ variants:
                             #sha1sum = 6CA018FF96F1E9B2B310A36546B6FDED99A421E6
                             md5sum=0bfca49f0164de0a8eba236ced47007d
                             md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
+                        unattended_install:
+                            cdrom = windows/Windows2008-x86.iso
+                            md5sum=0bfca49f0164de0a8eba236ced47007d
+                            md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
+                            unattended_file = unattended/win2008-32-autounattend.xml
                         setup:
                             steps = Win2008-32-rss.steps
 
@@ -768,6 +796,11 @@ variants:
                             md5sum=27c58cdb3d620f28c36333a5552f271c
                             md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
                             passwd = 1q2w3eP
+                        unattended_install:
+                            cdrom = windows/Windows2008-x64.iso
+                            md5sum=27c58cdb3d620f28c36333a5552f271c
+                            md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
+                            unattended_file = unattended/win2008-64-autounattend.xml
                         setup:
                             steps = Win2008-64-rss.steps
 
@@ -787,6 +820,11 @@ variants:
                             type = steps
                             steps = Win7-64.steps
                             passwd = 1q2w3eP
+                        unattended_install:
+                            cdrom = windows/en_windows_7_ultimate_x64_dvd_x15-65922.iso
+                            md5sum=f43d22e4fb07bf617d573acd8785c028
+                            md5sum_1m=b44d8cf99dbed2a5cb02765db8dfd48f
+                            unattended_file = unattended/win7-64-autounattend.xml
                         setup:
                             type = steps
                             steps = Win7-64-rss.steps
