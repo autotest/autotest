@@ -709,6 +709,11 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             created_on=datetime.now())
 
         job.dependency_labels = options['dependencies']
+
+        if options['keyvals'] is not None:
+            for key, value in options['keyvals'].iteritems():
+                JobKeyval.objects.create(job=job, key=key, value=value)
+
         return job
 
 
@@ -755,11 +760,28 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         return '%s-%s' % (self.id, self.owner)
 
 
+    def keyval_dict(self):
+        return dict((keyval.key, keyval.value)
+                    for keyval in self.jobkeyval_set.all())
+
+
     class Meta:
         db_table = 'afe_jobs'
 
     def __unicode__(self):
         return u'%s (%s-%s)' % (self.name, self.id, self.owner)
+
+
+class JobKeyval(dbmodels.Model, model_logic.ModelExtensions):
+    """Keyvals associated with jobs"""
+    job = dbmodels.ForeignKey(Job)
+    key = dbmodels.CharField(max_length=90)
+    value = dbmodels.CharField(max_length=300)
+
+    objects = model_logic.ExtendedManager()
+
+    class Meta:
+        db_table = 'afe_job_keyvals'
 
 
 class IneligibleHostQueue(dbmodels.Model, model_logic.ModelExtensions):

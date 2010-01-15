@@ -155,6 +155,16 @@ class Job(dbmodels.Model):
         db_table = 'tko_jobs'
 
 
+class JobKeyval(dbmodels.Model):
+    job = dbmodels.ForeignKey(Job)
+    key = dbmodels.CharField(max_length=90)
+    value = dbmodels.CharField(blank=True, max_length=300)
+
+
+    class Meta:
+        db_table = 'tko_job_keyvals'
+
+
 class Test(dbmodels.Model, model_logic.ModelExtensions,
            model_logic.ModelWithAttributes):
     test_idx = dbmodels.AutoField(primary_key=True)

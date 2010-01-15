@@ -2097,7 +2097,8 @@ class AbstractQueueTask(AgentTask, TaskWithJobKeyvals):
 
     def prolog(self):
         queued_key, queued_time = self._job_queued_keyval(self.job)
-        keyval_dict = {queued_key: queued_time}
+        keyval_dict = self.job.keyval_dict()
+        keyval_dict[queued_key] = queued_time
         group_name = self.queue_entries[0].get_group_name()
         if group_name:
             keyval_dict['host_group_name'] = group_name
@@ -3214,6 +3215,10 @@ class Job(DBObject):
         self._owner_model = None # caches model instance of owner
 
 
+    def model(self):
+        return models.Job.objects.get(id=self.id)
+
+
     def owner_model(self):
         # work around the fact that the Job owner field is a string, not a
         # foreign key
@@ -3248,6 +3253,10 @@ class Job(DBObject):
         if update_queues:
             for queue_entry in self.get_host_queue_entries():
                 queue_entry.set_status(status)
+
+
+    def keyval_dict(self):
+        return self.model().keyval_dict()
 
 
     def _atomic_and_has_started(self):
@@ -3579,8 +3588,7 @@ class Job(DBObject):
 
     def request_abort(self):
         """Request that this Job be aborted on the next scheduler cycle."""
-        self_model = models.Job.objects.get(id=self.id)
-        self_model.abort()
+        self.model().abort()
 
 
     def schedule_delayed_callback_task(self, queue_entry):
