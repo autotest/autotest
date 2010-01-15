@@ -2511,7 +2511,8 @@ class ArchiveResultsTask(SelfThrottledPostJobTask):
         return [_autoserv_path , '-p',
                 '--pidfile-label=%s' % self._pidfile_label(), '-r', results_dir,
                 '--use-existing-results',
-                os.path.join('..', 'scheduler', 'archive_results.control.srv')]
+                os.path.join(drones.AUTOTEST_INSTALL_DIR, 'scheduler',
+                             'archive_results.control.srv')]
 
 
     @classmethod
