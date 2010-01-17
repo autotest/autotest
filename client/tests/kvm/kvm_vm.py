@@ -827,13 +827,14 @@ class VM:
         """
         Get the cpu count of the VM.
         """
+        session = self.remote_login()
+        if not session:
+            return None
         try:
-            session = self.remote_login()
-            if session:
-                cmd = self.params.get("cpu_chk_cmd")
-                s, count = session.get_command_status_output(cmd)
-                if s == 0:
-                    return int(count)
+            cmd = self.params.get("cpu_chk_cmd")
+            s, count = session.get_command_status_output(cmd)
+            if s == 0:
+                return int(count)
             return None
         finally:
             session.close()
@@ -843,24 +844,24 @@ class VM:
         """
         Get memory size of the VM.
         """
-        try:
-            session = self.remote_login()
-            if session:
-                cmd = self.params.get("mem_chk_cmd")
-                s, mem_str = session.get_command_status_output(cmd)
-                if s != 0:
-                    return None
-                mem = re.findall("([0-9][0-9][0-9]+)", mem_str)
-                mem_size = 0
-                for m in mem:
-                    mem_size += int(m)
-                if "GB" in mem_str:
-                    mem_size *= 1024
-                elif "MB" in mem_str:
-                    pass
-                else:
-                    mem_size /= 1024
-                return int(mem_size)
+        session = self.remote_login()
+        if not session:
             return None
+        try:
+            cmd = self.params.get("mem_chk_cmd")
+            s, mem_str = session.get_command_status_output(cmd)
+            if s != 0:
+                return None
+            mem = re.findall("([0-9][0-9][0-9]+)", mem_str)
+            mem_size = 0
+            for m in mem:
+                mem_size += int(m)
+            if "GB" in mem_str:
+                mem_size *= 1024
+            elif "MB" in mem_str:
+                pass
+            else:
+                mem_size /= 1024
+            return int(mem_size)
         finally:
             session.close()
