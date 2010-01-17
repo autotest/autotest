@@ -15,11 +15,11 @@ def run_guest_s4(test, params, env):
     session = kvm_test_utils.wait_for_login(vm)
 
     logging.info("Checking whether guest OS supports suspend to disk (S4)...")
-    status = session.get_command_status(params.get("check_s4_support_cmd"))
-    if status is None:
-        logging.error("Failed to check if guest OS supports S4")
-    elif status != 0:
-        raise error.TestFail("Guest OS does not support S4")
+    s, o = session.get_command_status_output(params.get("check_s4_support_cmd"))
+    if "not enough space" in o:
+        raise error.TestError("Check S4 support failed: %s" % o)
+    elif s != 0:
+        raise error.TestNAError("Guest OS does not support S4")
 
     logging.info("Waiting until all guest OS services are fully started...")
     time.sleep(float(params.get("services_up_timeout", 30)))
