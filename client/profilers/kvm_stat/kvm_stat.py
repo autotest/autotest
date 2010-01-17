@@ -25,11 +25,11 @@ class kvm_stat(profiler.profiler):
         try:
             utils.system_output("%s --batch" % self.stat_path)
         except error.CmdError, e:
-            if 'debugfs' in e:
+            if 'debugfs' in str(e):
                 utils.system('mount -t debugfs debugfs /sys/kernel/debug')
             else:
                 raise error.AutotestError('kvm_stat failed due to an '
-                                          'unknown reason: %s' % e)
+                                          'unknown reason: %s' % str(e))
 
 
     def start(self, test):
