@@ -15,15 +15,18 @@ def run_unattended_install(test, params, env):
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
 
-    logging.info("Starting unattended install watch process")
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('', 12323))
     server.listen(1)
 
-    end_time = time.time() + float(params.get("timeout", 3000))
+    install_timeout = float(params.get("timeout", 3000))
+    logging.info("Starting unattended install watch process. "
+                 "Timeout set to %ds (%d min)", install_timeout,
+                 install_timeout/60)
+    start_time = time.time()
 
     while True:
-        server.settimeout(end_time - time.time())
+        server.settimeout(install_timeout)
         try:
             (client, addr) = server.accept()
         except socket.timeout:
@@ -33,7 +36,10 @@ def run_unattended_install(test, params, env):
         msg = client.recv(1024)
         logging.debug("Received '%s' from %s", msg, addr)
         if msg == 'done':
-            logging.info('Guest reported successful installation')
+            end_time = time.time()
+            time_elapsed = int(end_time - start_time)
+            logging.info('Guest reported successful installation after %ds '
+                         '(%d min)', time_elapsed, time_elapsed/60)
             server.close()
             break
         else:
