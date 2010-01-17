@@ -890,6 +890,12 @@ linux_s3:
 
 
 variants:
+    - @qemu-kvm:
+    - qemu:
+        extra_params += " -enable-kvm"
+
+
+variants:
     - @up:
         no autotest.npb
     - smp2:
