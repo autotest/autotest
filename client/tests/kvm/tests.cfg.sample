@@ -20,11 +20,17 @@ include cdkeys.cfg
 #cdrom.* ?<= /tmp/kvm_autotest_root/
 #steps ?<= /tmp/kvm_autotest_root/
 
+# You will notice that in all test definition blocks we have 'only qemu-kvm'
+# set. This means that qemu-kvm command line syntax will be used. If you
+# intend to test qemu upstream, you'll have to change that to 'only qemu'.
 variants:
     - @full:
+        only qemu-kvm
     - @sample1:
+        only qemu-kvm
         only Fedora Windows
     - @sample2:
+        only qemu-kvm
         only qcow2
         only ide
         only default
@@ -32,9 +38,11 @@ variants:
         only Fedora.9.* RHEL.5.* Windows
         only rtl8139
     - @sample3:
+        only qemu-kvm
         only qcow2.*ide.*default.*up.*Ubuntu-8.10-server.*(autotest.sleeptest)
         only rtl8139
     - @fc8_step:
+        only qemu-kvm
         only qcow2
         only ide
         only default
@@ -44,6 +52,7 @@ variants:
         only rtl8139
         only hugepages
     - @winXP_32_unattended:
+        only qemu-kvm
         only qcow2
         only ide
         only default
@@ -54,6 +63,7 @@ variants:
         only unattended_install setup boot shutdown
         only rtl8139
     - @fc11_kickstart:
+        only qemu-kvm
         only qcow2
         only ide
         only default
