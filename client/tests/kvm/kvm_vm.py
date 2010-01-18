@@ -119,6 +119,7 @@ class VM:
         self.params = params
         self.root_dir = root_dir
         self.address_cache = address_cache
+        self.pci_assignable = None
 
         # Find available monitor filename
         while True:
@@ -312,6 +313,12 @@ class VM:
         elif params.get("uuid"):
             qemu_cmd += " -uuid %s" % params.get("uuid")
 
+        # If the PCI assignment step went OK, add each one of the PCI assigned
+        # devices to the qemu command line.
+        if self.pci_assignable:
+            for pci_id in self.pa_pci_ids:
+                qemu_cmd += " -pcidevice host=%s" % pci_id
+
         return qemu_cmd
 
 
@@ -399,6 +406,50 @@ class VM:
                 f = open("/proc/sys/kernel/random/uuid")
                 self.uuid = f.read().strip()
                 f.close()
+
+            if not params.get("pci_assignable") == "no":
+                pa_type = params.get("pci_assignable")
+                pa_devices_requested = params.get("devices_requested")
+
+                # Virtual Functions (VF) assignable devices
+                if pa_type == "vf":
+                    pa_driver = params.get("driver")
+                    pa_driver_option = params.get("driver_option")
+                    self.pci_assignable = kvm_utils.PciAssignable(type=pa_type,
+                                        driver=pa_driver,
+                                        driver_option=pa_driver_option,
+                                        devices_requested=pa_devices_requested)
+                # Physical NIC (PF) assignable devices
+                elif pa_type == "pf":
+                    pa_device_names = params.get("device_names")
+                    self.pci_assignable = kvm_utils.PciAssignable(type=pa_type,
+                                         names=pa_device_names,
+                                         devices_requested=pa_devices_requested)
+                # Working with both VF and PF
+                elif pa_type == "mixed":
+                    pa_device_names = params.get("device_names")
+                    pa_driver = params.get("driver")
+                    pa_driver_option = params.get("driver_option")
+                    self.pci_assignable = kvm_utils.PciAssignable(type=pa_type,
+                                        driver=pa_driver,
+                                        driver_option=pa_driver_option,
+                                        names=pa_device_names,
+                                        devices_requested=pa_devices_requested)
+
+                self.pa_pci_ids = self.pci_assignable.request_devs()
+
+                if self.pa_pci_ids:
+                    logging.debug("Successfuly assigned devices: %s" %
+                                  self.pa_pci_ids)
+                else:
+                    logging.error("No PCI assignable devices were assigned "
+                                  "and 'pci_assignable' is defined to %s "
+                                  "on your config file. Aborting VM creation." %
+                                  pa_type)
+                    return False
+
+            else:
+                self.pci_assignable = None
 
             # Make qemu command
             qemu_command = self.make_qemu_command()
@@ -545,6 +596,8 @@ class VM:
             # Is it already dead?
             if self.is_dead():
                 logging.debug("VM is already down")
+                if self.pci_assignable:
+                    self.pci_assignable.release_devs()
                 return
 
             logging.debug("Destroying VM with PID %d..." %
@@ -565,6 +618,9 @@ class VM:
                             return
                     finally:
                         session.close()
+                        if self.pci_assignable:
+                            self.pci_assignable.release_devs()
+
 
             # Try to destroy with a monitor command
             logging.debug("Trying to kill VM with monitor command...")
@@ -574,6 +630,8 @@ class VM:
                 # Wait for the VM to be really dead
                 if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
                     logging.debug("VM is down")
+                    if self.pci_assignable:
+                        self.pci_assignable.release_devs()
                     return
 
             # If the VM isn't dead yet...
@@ -583,6 +641,8 @@ class VM:
             # Wait for the VM to be really dead
             if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
                 logging.debug("VM is down")
+                if self.pci_assignable:
+                    self.pci_assignable.release_devs()
                 return
 
             logging.error("Process %s is a zombie!" % self.process.get_pid())
