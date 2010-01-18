@@ -602,6 +602,7 @@ variants:
         unattended_install:
             timeout = 7200
             finish_program = deps/finish.exe
+            cdrom_extra = windows/winutils.iso
         migrate:
             migration_test_command = ver && vol
             migration_bg_command = start ping -t localhost
