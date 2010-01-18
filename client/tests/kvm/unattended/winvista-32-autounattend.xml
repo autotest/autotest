@@ -88,20 +88,20 @@
             <UserAccounts>
                 <AdministratorPassword>
                     <!-- <Value>UABAAHMAcwB3ADAAcgBkAEEAZABtAGkAbgBpAHMAdAByAGEAdABvAHIAUABhAHMAcwB3AG8AcgBkAA==</Value> -->
-                    <Value>123456</Value>
+                    <Value>1q2w3eP</Value>
                     <PlainText>true</PlainText>
                 </AdministratorPassword>
             </UserAccounts>
             <OOBE>
                 <HideEULAPage>true</HideEULAPage>
-		<NetworkLocation>Work</NetworkLocation>
-		<ProtectYourPC>1</ProtectYourPC>
-		<SkipUserOOBE>true</SkipUserOOBE>
+                <NetworkLocation>Work</NetworkLocation>
+                <ProtectYourPC>1</ProtectYourPC>
+                <SkipUserOOBE>true</SkipUserOOBE>
                 <SkipMachineOOBE>true</SkipMachineOOBE>
             </OOBE>    
             <AutoLogon>
                 <Password>
-                    <Value>123456</Value>
+                    <Value>1q2w3eP</Value>
                     <PlainText>true</PlainText>
                 </Password>
                 <Enabled>true</Enabled>
@@ -126,8 +126,12 @@
                     <Order>4</Order>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
-                    <CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" static 10.0.2.15 255.255.255.0 10.0.2.2 1 &#38;&#38; ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe 10.0.2.2</CommandLine>
+                    <CommandLine>%WINDIR%\System32\cmd /c E:\setuprss.bat</CommandLine>
                     <Order>5</Order>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" static 10.0.2.15 255.255.255.0 10.0.2.2 1 &#38;&#38; ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe 10.0.2.2</CommandLine>
+                    <Order>6</Order>
                 </SynchronousCommand>
             </FirstLogonCommands>
         </component>

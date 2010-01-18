@@ -120,14 +120,18 @@
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
+                    <CommandLine>%WINDIR%\System32\cmd /c E:\setuprss.bat</CommandLine>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>6</Order>
                     <CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" static 10.0.2.15 255.255.255.0 10.0.2.2 1 &#38;&#38; ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe 10.0.2.2</CommandLine>
                 </SynchronousCommand>
             </FirstLogonCommands>
             <OOBE>
                 <HideEULAPage>true</HideEULAPage>
-		<NetworkLocation>Work</NetworkLocation>
-		<ProtectYourPC>1</ProtectYourPC>
-		<SkipUserOOBE>true</SkipUserOOBE>
+                <NetworkLocation>Work</NetworkLocation>
+                <ProtectYourPC>1</ProtectYourPC>
+                <SkipUserOOBE>true</SkipUserOOBE>
                 <SkipMachineOOBE>true</SkipMachineOOBE>
             </OOBE>
         </component>

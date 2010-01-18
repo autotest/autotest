@@ -82,7 +82,7 @@
             <UserAccounts>
                 <AdministratorPassword>
                     <!-- <Value>UABAAHMAcwB3ADAAcgBkAEEAZABtAGkAbgBpAHMAdAByAGEAdABvAHIAUABhAHMAcwB3AG8AcgBkAA==</Value> -->
-                    <Value>123456</Value>
+                    <Value>1q2w3eP</Value>
                     <PlainText>true</PlainText>
                 </AdministratorPassword>
             </UserAccounts>
@@ -92,7 +92,7 @@
                 <Username>Administrator</Username>
                 <Password>
                     <!-- <Value>UABAAHMAcwB3ADAAcgBkAFAAYQBzAHMAdwBvAHIAZAA=</Value> -->
-                    <Value>123456</Value>
+                    <Value>1q2w3eP</Value>
                     <PlainText>true</PlainText>
                 </Password>
             </AutoLogon>
