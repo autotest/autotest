@@ -60,6 +60,7 @@ variants:
         pre_command = scripts/unattended.py
         floppy = "images/floppy.img"
         extra_params += " -boot d"
+        nic_mode = user
 
     - setup:        install unattended_install
         type = steps
