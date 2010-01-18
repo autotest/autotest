@@ -268,7 +268,15 @@ class VM:
         iso = params.get("cdrom")
         if iso:
             iso = kvm_utils.get_path(root_dir, iso)
-            qemu_cmd += " -cdrom %s" % iso
+            qemu_cmd += " -drive file=%s,index=2,media=cdrom" % iso
+
+        # Even though this is not a really scalable approach,
+        # it doesn't seem like we are going to need more than
+        # 2 CDs active on the same VM.
+        iso_extra = params.get("cdrom_extra")
+        if iso_extra:
+            iso_extra = kvm_utils.get_path(root_dir, iso_extra)
+            qemu_cmd += " -drive file=%s,index=3,media=cdrom" % iso_extra
 
         # We may want to add {floppy_otps} parameter for -fda
         # {fat:floppy:}/path/. However vvfat is not usually recommended
