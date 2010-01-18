@@ -444,7 +444,7 @@ class GitInstaller:
         elif load_modules == 'no':
             self.load_modules = False
 
-        self.extra_modules = params.get("extra_modules", None)
+        self.extra_modules = eval(params.get("extra_modules", "None"))
 
         kernel_repo = params.get("git_repo")
         user_repo = params.get("user_git_repo")
