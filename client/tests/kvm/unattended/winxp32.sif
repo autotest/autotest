@@ -16,7 +16,7 @@
     WaitForReboot=no
 
 [GuiUnattended]
-    AdminPassword="123456"
+    AdminPassword="1q2w3eP"
     EncryptedAdminPassword=NO
     TimeZone=85
     OemSkipWelcome=1
@@ -64,7 +64,8 @@
     BrandIEUsingUnattended=Yes
 
 [GuiRunOnce]
-    Command0="cmd /c A:\finish.exe 10.0.2.2"
+    Command0="cmd /c E:\setuprss.bat"
+    Command1="cmd /c A:\finish.exe 10.0.2.2"
 
 [Display]
     Xresolution=1024

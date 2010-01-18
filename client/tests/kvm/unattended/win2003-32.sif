@@ -14,7 +14,7 @@ WaitForReboot = no
 Repartition = yes
 
 [GuiUnattended]
-AdminPassword = "123456"
+AdminPassword = "1q2w3eP"
 AutoLogon = Yes
 AutoLogonCount = 5
 OEMSkipRegional = 1
@@ -34,7 +34,7 @@ AutoUsers=15
 [Identification]
 	DoOldStyleDomainJoin = YES
 	DomainAdmin="Administrator"
-	DomainAdminPassword="123456"
+	DomainAdminPassword="1q2w3eP"
     JoinWorkgroup=WORKGROUP
 	JoinDomain="qe.redhat.com"
 
@@ -56,7 +56,8 @@ Mode = 0
 local="Local Area Connection"
 
 [GuiRunOnce]
-Command0="sc config TlntSvr start= auto"
-Command1="netsh firewall set opmode disable"
-Command2="net start telnet"
-Command3="cmd /c netsh interface ip set address local static 10.0.2.15 255.255.255.0 10.0.2.2 1 && ping 10.0.2.2 -n 20 && A:\finish.exe 10.0.2.2"
+Command0="cmd /c sc config TlntSvr start= auto"
+Command1="cmd /c netsh firewall set opmode disable"
+Command2="cmd /c net start telnet"
+Command3="cmd /c E:\setuprss.bat"
+Command4="cmd /c netsh interface ip set address local static 10.0.2.15 255.255.255.0 10.0.2.2 1 && ping 10.0.2.2 -n 20 && A:\finish.exe 10.0.2.2"
