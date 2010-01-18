@@ -28,6 +28,7 @@ variants:
         only qemu-kvm
     - @sample1:
         only qemu-kvm
+        only no_pci_assignable
         only Fedora Windows
     - @sample2:
         only qemu-kvm
@@ -35,10 +36,12 @@ variants:
         only ide
         only default
         only up
+        only no_pci_assignable
         only Fedora.9.* RHEL.5.* Windows
         only rtl8139
     - @sample3:
         only qemu-kvm
+        only no_pci_assignable
         only qcow2.*ide.*default.*up.*Ubuntu-8.10-server.*(autotest.sleeptest)
         only rtl8139
     - @fc8_step:
@@ -47,6 +50,7 @@ variants:
         only ide
         only default
         only up
+        only no_pci_assignable
         only Fedora.8.32
         only install setup boot shutdown
         only rtl8139
@@ -57,6 +61,7 @@ variants:
         only ide
         only default
         only up
+        only no_pci_assignable
         only WinXP.32
         no install setup
         no hugepages
@@ -68,6 +73,7 @@ variants:
         only ide
         only default
         only up
+        only no_pci_assignable
         only Fedora.11.64
         no install setup
         no hugepages
