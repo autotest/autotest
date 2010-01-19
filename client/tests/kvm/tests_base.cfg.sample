@@ -92,7 +92,7 @@ variants:
 
     - autotest:     install setup unattended_install
         type = autotest
-        test_timeout = 720
+        test_timeout = 1800
         variants:
             - sleeptest:
                 test_name = sleeptest
