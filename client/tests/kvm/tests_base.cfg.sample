@@ -53,21 +53,23 @@ variants:
         kill_vm_timeout = 60
         kill_vm_timeout_on_error = 0
 
+    - setup:        install
+        type = steps
+        fail_if_stuck_for = 300
+        stuck_detection_history = 2
+        kill_vm_on_error = yes
+        keep_screendump_history = yes
+
     - unattended_install:
         type = unattended_install
+        # Unattended install also perform guest setup, so setup is not needed
+        no setup
         kill_vm_on_error = yes
         force_create_image = yes
         pre_command = scripts/unattended.py
         floppy = "images/floppy.img"
         extra_params += " -boot d"
         nic_mode = user
-
-    - setup:        install unattended_install
-        type = steps
-        fail_if_stuck_for = 300
-        stuck_detection_history = 2
-        kill_vm_on_error = yes
-        keep_screendump_history = yes
 
     - boot:         install setup unattended_install
         type = boot
