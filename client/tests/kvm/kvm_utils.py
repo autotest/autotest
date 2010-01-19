@@ -971,12 +971,12 @@ class PciAssignable(object):
     Request PCI assignable devices on host. It will check whether to request
     PF (physical Functions) or VF (Virtual Functions).
     """
-    def __init__(self, type="nic_vf", driver=None, driver_option=None,
+    def __init__(self, type="vf", driver=None, driver_option=None,
                  names=None, devices_requested=None):
         """
         Initialize parameter 'type' which could be:
-        nic_vf: Virtual Functions
-        nic_pf: Physical Function (actual hardware)
+        vf: Virtual Functions
+        pf: Physical Function (actual hardware)
         mixed:  Both includes VFs and PFs
 
         If pass through Physical NIC cards, we need to specify which devices
@@ -1087,9 +1087,9 @@ class PciAssignable(object):
         @param count: count number of PCI devices needed for pass through
         @return: a list of all devices' PCI IDs
         """
-        if self.type == "nic_vf":
+        if self.type == "vf":
             vf_ids = self.get_vf_devs()
-        elif self.type == "nic_pf":
+        elif self.type == "pf":
             vf_ids = self.get_pf_devs()
         elif self.type == "mixed":
             vf_ids = self.get_vf_devs()
