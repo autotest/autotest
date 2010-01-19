@@ -65,7 +65,7 @@ variants:
         only WinXP.32
         no install setup
         no hugepages
-        only unattended_install setup boot shutdown
+        only unattended_install boot shutdown
         only rtl8139
     - @fc11_kickstart:
         only qemu-kvm
