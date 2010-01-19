@@ -221,6 +221,8 @@ class VM:
                 qemu_cmd += ",if=%s" % image_params.get("drive_format")
             if image_params.get("drive_cache"):
                 qemu_cmd += ",cache=%s" % image_params.get("drive_cache")
+            if image_params.get("drive_werror"):
+                qemu_cmd += ",werror=%s" % image_params.get("drive_werror")
             if image_params.get("drive_serial"):
                 qemu_cmd += ",serial=%s" % image_params.get("drive_serial")
             if image_params.get("image_snapshot") == "yes":
