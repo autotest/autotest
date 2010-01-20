@@ -465,7 +465,7 @@ class RpcInterfaceTest(unittest.TestCase):
         self.assertEquals(len(tests), 3)
 
         self.assertEquals(tests[0]['label_testlabel1'], 'testlabel1')
-        self.assert_(tests[0]['label_testlabel2'], 'testlabel2')
+        self.assertEquals(tests[0]['label_testlabel2'], 'testlabel2')
 
         for index in (1, 2):
             self.assertEquals(tests[index]['label_testlabel1'], None)
