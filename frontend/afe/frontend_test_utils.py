@@ -9,7 +9,7 @@ class FrontendTestMixin(object):
     def _fill_in_test_data(self):
         """Populate the test database with some hosts and labels."""
         acl_group = models.AclGroup.objects.create(name='my_acl')
-        acl_group.users.add(self.user)
+        acl_group.users.add(models.User.current_user())
 
         self.hosts = [models.Host.objects.create(hostname=hostname)
                       for hostname in
@@ -58,15 +58,9 @@ class FrontendTestMixin(object):
             self.hosts[hostnum].labels.add(self.label7)
 
 
-    def _setup_dummy_user(self):
-        self.user = models.User.objects.create(login='my_user', access_level=0)
-        thread_local.set_user(self.user)
-
-
     def _frontend_common_setup(self, fill_data=True):
         self.god = mock.mock_god()
         setup_test_environment.set_up()
-        self._setup_dummy_user()
         if fill_data:
             self._fill_in_test_data()
 
@@ -106,7 +100,7 @@ class FrontendTestMixin(object):
         if active:
             status = models.HostQueueEntry.Status.RUNNING
         job = models.Job.objects.create(
-            name='test', owner='my_user', priority=priority,
+            name='test', owner='autotest_system', priority=priority,
             synch_count=synch_count, created_on=created_on,
             reboot_before=models.RebootBefore.NEVER)
         for host_id in hosts:
