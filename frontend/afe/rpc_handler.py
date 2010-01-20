@@ -5,7 +5,7 @@ defined in rpc_interface.py.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import traceback, pydoc, re, urllib, logging, logging.handlers
+import traceback, pydoc, re, urllib, logging, logging.handlers, inspect
 from autotest_lib.frontend.afe.json_rpc import serviceHandler
 from autotest_lib.frontend.afe import models, rpc_utils
 from autotest_lib.client.common_lib import global_config
@@ -127,7 +127,7 @@ class RpcHandler(object):
             if name.startswith('_'):
                 continue
             attribute = getattr(module, name)
-            if not callable(attribute):
+            if not inspect.isfunction(attribute):
                 continue
             decorated_function = RpcHandler._allow_keyword_args(attribute)
             setattr(self._rpc_methods, name, decorated_function)
