@@ -201,6 +201,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
     Status = enum.Enum('Verifying', 'Running', 'Ready', 'Repairing',
                        'Repair Failed', 'Dead', 'Cleaning', 'Pending',
                        string_values=True)
+    Protection = host_protections.Protection
 
     hostname = dbmodels.CharField(max_length=255, unique=True)
     labels = dbmodels.ManyToManyField(Label, blank=True,
@@ -692,6 +693,13 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         and filling in the rest of the necessary information.
         """
         AclGroup.check_for_acl_violation_hosts(hosts)
+
+        user = User.current_user()
+        if options.get('reboot_before') is None:
+            options['reboot_before'] = user.get_reboot_before_display()
+        if options.get('reboot_after') is None:
+            options['reboot_after'] = user.get_reboot_after_display()
+
         job = cls.add_object(
             owner=owner,
             name=options['name'],
