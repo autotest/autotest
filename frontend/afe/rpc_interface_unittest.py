@@ -60,6 +60,12 @@ class RpcInterfaceTest(unittest.TestCase,
 
         hosts = rpc_interface.get_hosts(hostname='host1')
         self._check_hostnames(hosts, ['host1'])
+        host = hosts[0]
+        self.assertEquals(sorted(host['labels']), ['label1', 'myplatform'])
+        self.assertEquals(host['platform'], 'myplatform')
+        self.assertEquals(host['atomic_group'], None)
+        self.assertEquals(host['acls'], ['my_acl'])
+        self.assertEquals(host['attributes'], {})
 
 
     def test_get_hosts_multiple_labels(self):

@@ -327,12 +327,11 @@ class TestViewManager(TempManager):
         second_join_condition = ('%s.id = %s.testlabel_id' %
                                  (second_join_alias,
                                   'tko_test_labels_tests' + suffix))
-        filter_object = self._CustomSqlQ()
-        filter_object.add_join('tko_test_labels',
-                               second_join_condition,
-                               query_set.query.LOUTER,
-                               alias=second_join_alias)
-        return self._add_customSqlQ(query_set, filter_object)
+        query_set.query.add_custom_join('tko_test_labels',
+                                        second_join_condition,
+                                        query_set.query.LOUTER,
+                                        alias=second_join_alias)
+        return query_set
 
 
     def _get_label_ids_from_names(self, label_names):
@@ -373,12 +372,10 @@ class TestViewManager(TempManager):
 
 
     def _join_label_column(self, query_set, label_name, label_id):
-        table_name = TestLabel.tests.field.m2m_db_table()
         alias = 'label_' + label_name
-        condition = "%s.testlabel_id = %s" % (_quote_name(alias), label_id)
-        query_set = self.add_join(query_set, table_name,
-                                  join_key='test_id', join_condition=condition,
-                                  alias=alias, force_left_join=True)
+        label_query = TestLabel.objects.filter(name=label_name)
+        query_set = Test.objects.join_custom_field(query_set, label_query,
+                                                   alias)
 
         query_set = self._add_select_ifnull(query_set, alias, label_name)
         return query_set
@@ -392,23 +389,21 @@ class TestViewManager(TempManager):
         return query_set
 
 
-    def _join_attribute(self, test_view_query_set, attribute,
-                        alias=None, extra_join_condition=None):
+    def _join_attribute(self, query_set, attribute, alias=None,
+                        extra_join_condition=None):
         """
         Join the given TestView QuerySet to TestAttribute.  The resulting query
         has an additional column for the given attribute named
         "attribute_<attribute name>".
         """
-        table_name = TestAttribute._meta.db_table
         if not alias:
             alias = 'attribute_' + attribute
-        condition = "%s.attribute = '%s'" % (_quote_name(alias),
-                                             self.escape_user_sql(attribute))
+        attribute_query = TestAttribute.objects.filter(attribute=attribute)
         if extra_join_condition:
-            condition += ' AND (%s)' % extra_join_condition
-        query_set = self.add_join(test_view_query_set, table_name,
-                                  join_key='test_idx', join_condition=condition,
-                                  alias=alias, force_left_join=True)
+            attribute_query = attribute_query.extra(
+                    where=[extra_join_condition])
+        query_set = Test.objects.join_custom_field(query_set, attribute_query,
+                                                   alias)
 
         query_set = self._add_select_value(query_set, alias)
         return query_set
@@ -427,23 +422,18 @@ class TestViewManager(TempManager):
 
 
     def _join_one_iteration_key(self, query_set, result_key, first_alias=None):
-        table_name = IterationResult._meta.db_table
         alias = 'iteration_' + result_key
-        condition_parts = ["%s.attribute = '%s'" %
-                           (_quote_name(alias),
-                            self.escape_user_sql(result_key))]
+        iteration_query = IterationResult.objects.filter(attribute=result_key)
         if first_alias:
             # after the first join, we need to match up iteration indices,
             # otherwise each join will expand the query by the number of
             # iterations and we'll have extraneous rows
-            condition_parts.append('%s.iteration = %s.iteration' %
-                                   (_quote_name(alias),
-                                    _quote_name(first_alias)))
+            iteration_query = iteration_query.extra(
+                    where=['%s.iteration = %s.iteration'
+                           % (_quote_name(alias), _quote_name(first_alias))])
 
-        condition = ' and '.join(condition_parts)
-        # add a join to IterationResult
-        query_set = self.add_join(query_set, table_name, join_key='test_idx',
-                                  join_condition=condition, alias=alias)
+        query_set = Test.objects.join_custom_field(query_set, iteration_query,
+                                                   alias, left_join=False)
         # select the iteration value and index for this join
         query_set = self._add_select_value(query_set, alias)
         if not first_alias:
