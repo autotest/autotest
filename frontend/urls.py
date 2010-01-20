@@ -1,3 +1,4 @@
+import os.path
 from django.conf.urls import defaults
 from django.conf import settings
 
@@ -18,6 +19,11 @@ urlpatterns = defaults.patterns(
         (TKO_RE_PREFIX, defaults.include('frontend.tko.urls')),
         (PLANNER_RE_PREFIX, defaults.include('frontend.planner.urls')),
     )
+
+if os.path.exists(os.path.join(os.path.dirname(__file__),
+                               'tko', 'site_urls.py')):
+    urlpatterns += defaults.patterns(
+            '', (TKO_RE_PREFIX, defaults.include('frontend.tko.site_urls')))
 
 debug_patterns = defaults.patterns(
         '',
