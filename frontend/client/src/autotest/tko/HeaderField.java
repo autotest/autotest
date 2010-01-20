@@ -70,7 +70,12 @@ abstract class HeaderField implements Comparable<HeaderField> {
      * Get a quoted version of getSqlName() safe for use directly in SQL.
      */
     public String getQuotedSqlName() {
-        return "`" + getSqlName() + "`";
+        String sqlName = getSqlName();
+        if (sqlName.matches(".+\\(.+\\)")) {
+            // don't quote fields involving SQL functions
+            return sqlName;
+        }
+        return "`" + sqlName + "`";
     }
 
     @Override
