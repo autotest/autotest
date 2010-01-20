@@ -19,8 +19,6 @@ def generate_patterns(django_name, gwt_name):
         )
 
     debug_pattern_list = defaults.patterns('',
-            (r'^model_doc/', '%s.views.model_documentation' % django_name),
-
             # for GWT hosted mode
             (r'^(?P<forward_addr>autotest.*)',
              'autotest_lib.frontend.afe.views.gwt_forward'),
