@@ -13,6 +13,7 @@ urlpatterns, debug_patterns = (
 # Job feeds
 debug_patterns += defaults.patterns(
         '',
+        (r'^model_doc/', 'frontend.afe.views.model_documentation'),
         (r'^feeds/(?P<url>.*)/$', 'frontend.afe.feeds.feed.feed_view',
          {'feed_dict': feeds})
     )
