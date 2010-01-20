@@ -147,7 +147,7 @@ def build_alert_hooks_from_path(patterns_path, warnfile):
     site_overrides_file = None
     patterns_file = open(patterns_path)
     try:
-        if site_overrides_path:
+        if os.path.exists(site_overrides_path):
             site_overrides_file = open(site_overrides_path)
         try:
             return build_alert_hooks(patterns_file, warnfile,
