@@ -515,11 +515,6 @@ def create_job(name, priority, control_file, control_type,
         this_host = models.Host.create_one_time_host(host)
         host_objects.append(this_host)
 
-    if reboot_before is None:
-        reboot_before = user.get_reboot_before_display()
-    if reboot_after is None:
-        reboot_after = user.get_reboot_after_display()
-
     options = dict(name=name,
                    priority=priority,
                    control_file=control_file,
