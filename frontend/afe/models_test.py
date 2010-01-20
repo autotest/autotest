@@ -120,7 +120,7 @@ class SpecialTaskUnittest(unittest.TestCase,
         task = models.SpecialTask.objects.create(
                 host=self.hosts[0], task=models.SpecialTask.Task.VERIFY,
                 queue_entry=job.hostqueueentry_set.all()[0])
-        self.assertEquals(task.requested_by.login, 'my_user')
+        self.assertEquals(task.requested_by.login, 'autotest_system')
 
 
 class HostQueueEntryUnittest(unittest.TestCase,
@@ -138,7 +138,7 @@ class HostQueueEntryUnittest(unittest.TestCase,
         entry.execution_subdir = 'subdir'
         entry.save()
 
-        self.assertEquals(entry.execution_path(), '1-my_user/subdir')
+        self.assertEquals(entry.execution_path(), '1-autotest_system/subdir')
 
 
 if __name__ == '__main__':
