@@ -258,9 +258,9 @@ class RpcInterfaceTest(unittest.TestCase,
 
         paths = [entry['execution_path'] for entry in entries_and_tasks]
         self.assertEquals(paths, ['hosts/host1/3-verify',
-                                  '2-my_user/host1',
+                                  '2-autotest_system/host1',
                                   'hosts/host1/2-verify',
-                                  '1-my_user/host1',
+                                  '1-autotest_system/host1',
                                   'hosts/host1/1-verify'])
 
         verify2 = entries_and_tasks[2]
@@ -309,7 +309,7 @@ class RpcInterfaceTest(unittest.TestCase,
 
         task = tasks[0]
         self.assertEquals(task['task'], models.SpecialTask.Task.VERIFY)
-        self.assertEquals(task['requested_by'], 'my_user')
+        self.assertEquals(task['requested_by'], 'autotest_system')
 
 
 
