@@ -85,14 +85,17 @@ def get_latest_tests(group_by, header_groups=[], fixed_headers={},
     """
     Similar to get_status_counts, but return only the latest test result per
     group.  It still returns the same information (i.e. with pass count etc.)
-    for compatibility.
+    for compatibility.  It includes an additional field "test_idx" with each
+    group.
     @param extra_info a list containing the field names that should be returned
                       with each cell. The fields are returned in the extra_info
                       field of the return dictionary.
     """
     # find latest test per group
-    query = models.TestView.objects.get_query_set_with_joins(filter_data)
-    query = models.TestView.query_objects(filter_data, initial_query=query,
+    initial_query = models.TestView.objects.get_query_set_with_joins(
+            filter_data)
+    query = models.TestView.query_objects(filter_data,
+                                          initial_query=initial_query,
                                           apply_presentation=False)
     query = query.exclude(status__in=tko_rpc_utils._INVALID_STATUSES)
     query = query.extra(
@@ -108,7 +111,7 @@ def get_latest_tests(group_by, header_groups=[], fixed_headers={},
 
     # fetch full info for these tests so we can access their statuses
     all_test_ids = [group['latest_test_idx'] for group in info['groups']]
-    test_views = models.TestView.objects.in_bulk(all_test_ids)
+    test_views = initial_query.in_bulk(all_test_ids)
 
     for group_dict in info['groups']:
         test_idx = group_dict.pop('latest_test_idx')

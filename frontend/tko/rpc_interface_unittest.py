@@ -317,8 +317,7 @@ class RpcInterfaceTest(unittest.TestCase):
         counts = rpc_interface.get_group_counts(['job_name'])
         groups = counts['groups']
         self.assertEquals(len(groups), 2)
-        group1 = groups[0]
-        group2 = groups[1]
+        group1, group2 = groups
 
         self.assertEquals(group1['group_count'], 2)
         self.assertEquals(group1['job_name'], 'myjob1')
@@ -331,8 +330,7 @@ class RpcInterfaceTest(unittest.TestCase):
                                                 extra_select_fields=extra)
         groups = counts['groups']
         self.assertEquals(len(groups), 2)
-        group1 = groups[0]
-        group2 = groups[1]
+        group1, group2 = groups
 
         self.assertEquals(group1['group_count'], 2)
         self.assertEquals(group1['header_indices'], [0])
@@ -343,17 +341,31 @@ class RpcInterfaceTest(unittest.TestCase):
 
 
     def test_get_status_counts(self):
-        """\
-        This method cannot be tested with a sqlite3 test framework. The method
-        relies on the IF function, which is not present in sqlite3.
-        """
+        counts = rpc_interface.get_status_counts(group_by=['job_name'])
+        group1, group2 = counts['groups']
+        self.assertEquals(group1['pass_count'], 1)
+        self.assertEquals(group1['complete_count'], 2)
+        self.assertEquals(group1['incomplete_count'], 0)
+        self.assertEquals(group2['pass_count'], 1)
+        self.assertEquals(group2['complete_count'], 1)
+        self.assertEquals(group2['incomplete_count'], 0)
 
 
     def test_get_latest_tests(self):
-        """\
-        This method cannot be tested with a sqlite3 test framework. The method
-        relies on the IF function, which is not present in sqlite3.
-        """
+        counts = rpc_interface.get_latest_tests(group_by=['job_name'])
+        group1, group2 = counts['groups']
+        self.assertEquals(group1['pass_count'], 0)
+        self.assertEquals(group1['complete_count'], 1)
+        self.assertEquals(group1['test_idx'], 2)
+        self.assertEquals(group2['test_idx'], 3)
+
+
+    def test_get_latest_tests_extra_info(self):
+        counts = rpc_interface.get_latest_tests(group_by=['job_name'],
+                                                extra_info=['job_tag'])
+        group1, group2 = counts['groups']
+        self.assertEquals(group1['extra_info'], ['1-myjobtag1'])
+        self.assertEquals(group2['extra_info'], ['2-myjobtag2'])
 
 
     def test_get_job_ids(self):
@@ -437,6 +449,14 @@ class RpcInterfaceTest(unittest.TestCase):
         self.assertEquals(groups[0]['group_count'], 2)
         self.assertEquals(groups[1]['attribute_myattr'], 'myval')
         self.assertEquals(groups[1]['group_count'], 1)
+
+
+    def test_extra_info_test_attributes(self):
+        counts = rpc_interface.get_latest_tests(
+                group_by=['test_idx'], extra_info=['attribute_myattr'],
+                test_attribute_fields=['myattr'])
+        group1 = counts['groups'][0]
+        self.assertEquals(group1['extra_info'], ['myval'])
 
 
     def test_get_test_label_fields(self):
