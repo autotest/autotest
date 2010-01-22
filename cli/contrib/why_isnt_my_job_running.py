@@ -83,13 +83,11 @@ if queue_entries and queue_entries[0]['atomic_group']:
     else:
         job_dependency_label_names = []
 
-    meta_host_id = queue_entries[0]['meta_host']
-    if meta_host_id:
-        meta_host = proxy.run('get_labels', id=meta_host)[0]
-        meta_host_name = meta_host['name']
+    meta_host_name = queue_entries[0]['meta_host']
+    if meta_host_name:
+        meta_host = proxy.run('get_labels', atomic_group__name=meta_host_name)[0]
     else:
         meta_host = None
-        meta_host_name = None
 
     # A mapping from label name -> a list of hostnames usable for this job.
     runnable_atomic_label_names = {}
