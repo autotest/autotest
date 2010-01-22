@@ -315,9 +315,9 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     }
     
     private String getTriageUrl(int jobId) {
-        return "/new_tko/#tab_id=table_view&columns=Test+name%252CStatus%252CCount+in+group%252C" +
-               "Reason&sort=test_name%252Cstatus%252Creason&condition=job_tag+LIKE+%2527" + jobId +
-               "-%2525%2527+AND+status+%253C%253E+%2527GOOD%2527&show_invalid=false";
+        return "/new_tko/#tab_id=table_view&columns=test_name%252Cstatus%252Cgroup_count%252C" +
+               "reason&sort=test_name%252Cstatus%252Creason&condition=afe_job_id+%253D+" + jobId +
+               "+AND+status+%253C%253E+%2527GOOD%2527&show_invalid=false";
     }
     
     /**
