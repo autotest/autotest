@@ -215,6 +215,9 @@ if not hosts:
     sys.exit(1)
 host = hosts[0]
 
+# Boolean to track our findings.  We want to list all reasons it won't run,
+# not just the first.
+job_will_run = True
 
 entries_for_this_host = [entry for entry in queue_entries
                          if entry['host']
@@ -241,57 +244,6 @@ else:
                "entry exists")
         sys.exit(0)
     is_metahost = True
-
-# host ready?
-if host['status'] != 'Ready':
-    if host['status'] == 'Pending':
-        active = proxy.run('get_host_queue_entries',
-                           host=host['id'], active=True)
-        if not active:
-            print ('Host %s seems to be in "Pending" state incorrectly; please '
-                   'report this to the Autotest team' % hostname)
-            sys.exit(1)
-    print 'Host not in "Ready" status (status="%s")' % host['status']
-    sys.exit(0)
-
-# host locked?
-if host['locked']:
-    print 'Host is locked by', host['locked_by'], 'no jobs will schedule on it.'
-    sys.exit(0)
-
-# acl accessible?
-accessible = proxy.run('get_hosts', hostname=hostname,
-                       aclgroup__users__login=owner)
-if not accessible:
-    host_acls = ', '.join(group['name'] for group in
-                          proxy.run('get_acl_groups', hosts__hostname=hostname))
-    owner_acls = ', '.join(group['name'] for group in
-                           proxy.run('get_acl_groups', users__login=owner))
-    print 'Host not ACL-accessible to job owner', owner
-    print 'Host ACLs:', host_acls
-    print 'Owner Acls:', owner_acls
-    sys.exit(0)
-
-# meets dependencies?
-job_deps_list = job['dependencies'].split(',')
-job_deps = set()
-if job_deps_list != ['']:
-    job_deps = set(job_deps_list)
-unmet = job_deps - host_label_names
-if unmet:
-    print ("Host labels (%s) don't satisfy job dependencies: %s" %
-           (', '.join(host_label_names), ', '.join(unmet)))
-    sys.exit(0)
-
-# at this point, if the job is for an unassigned atomic group, things are too
-# complicated to proceed
-unassigned_atomic_group_entries = [entry for entry in queue_entries
-                                   if entry['atomic_group']
-                                   and not entry['host']]
-if unassigned_atomic_group_entries:
-    print ("Job is for an unassigned atomic group.  That's too complicated, I "
-           "can't give you any definite answers.  Sorry.")
-    sys.exit(1)
 
 # meets atomic group requirements?
 host_labels = proxy.run('get_labels', name__in=list(host_label_names))
@@ -321,7 +273,46 @@ if host_atomic_group_name != job_atomic_group_name:
            '(label %s)' %
            (job_atomic_group_name, host_atomic_group_name,
             host_atomic_group_label['name']))
-    sys.exit(0)
+    job_will_run = False
+
+# host locked?
+if host['locked']:
+    print 'Host is locked by', host['locked_by'], 'no jobs will schedule on it.'
+    job_will_run = False
+
+# acl accessible?
+accessible = proxy.run('get_hosts', hostname=hostname,
+                       aclgroup__users__login=owner)
+if not accessible:
+    host_acls = ', '.join(group['name'] for group in
+                          proxy.run('get_acl_groups', hosts__hostname=hostname))
+    owner_acls = ', '.join(group['name'] for group in
+                           proxy.run('get_acl_groups', users__login=owner))
+    print 'Host not ACL-accessible to job owner', owner
+    print ' Host ACLs:', host_acls
+    print ' Owner Acls:', owner_acls
+    job_will_run = False
+
+# meets dependencies?
+job_deps_list = job['dependencies'].split(',')
+job_deps = set()
+if job_deps_list != ['']:
+    job_deps = set(job_deps_list)
+unmet = job_deps - host_label_names
+if unmet:
+    print ("Host labels (%s) don't satisfy job dependencies: %s" %
+           (', '.join(host_label_names), ', '.join(unmet)))
+    job_will_run = False
+
+# at this point, if the job is for an unassigned atomic group, things are too
+# complicated to proceed
+unassigned_atomic_group_entries = [entry for entry in queue_entries
+                                   if entry['atomic_group']
+                                   and not entry['host']]
+if unassigned_atomic_group_entries:
+    print ("Job is for an unassigned atomic group.  That's too complicated, I "
+           "can't give you any definite answers.  Sorry.")
+    sys.exit(1)
 
 # meets only_if_needed labels?
 if is_metahost:
@@ -334,9 +325,25 @@ if is_metahost:
         if unmet_exclusive_label:
             print ('Host contains "only if needed" label %s, unused by job '
                    'dependencies and metahosts' % label['name'])
-            sys.exit(0)
+            job_will_run = False
 
-print ("Job %s should run on host %s; if you've already waited about ten "
-       "minutes or longer, it's probably a server issue or a bug." %
-       (job_id, hostname))
-sys.exit(1)
+# host ready?
+if host['status'] != 'Ready':
+    if host['status'] == 'Pending':
+        active = proxy.run('get_host_queue_entries',
+                           host=host['id'], active=True)
+        if not active:
+            print ('Host %s seems to be in "Pending" state incorrectly; please '
+                   'report this to the Autotest team' % hostname)
+            sys.exit(1)
+    print 'Host not in "Ready" status (status="%s")' % host['status']
+    job_will_run = False
+
+if job_will_run:
+    print ("Job %s should run on host %s; if you've already waited about ten "
+           "minutes or longer, it's probably a server issue or a bug." %
+           (job_id, hostname))
+    sys.exit(1)
+else:
+    print "All of the reasons this job is not running are listed above."
+    sys.exit(0)
