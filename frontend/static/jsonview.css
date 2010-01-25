@@ -1,0 +1,106 @@
+/**
+This is from the JSONView project src/content/default.css, http://code.google.com/p/jsonview.  Here's the original JSONView license:
+
+---
+MIT License
+
+Copyright (c) 2009 Benjamin Hollis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+---
+*/
+
+body {
+  font-family: sans-serif;
+}
+
+.prop {
+  font-weight: bold;
+}
+
+.null {
+  color: red;
+}
+
+.bool {
+  color: blue;
+}
+
+.num {
+  color: blue;
+}
+
+.string {
+  color: green;
+}
+
+.collapser {
+  position: absolute;
+  left: -1em;
+  cursor: pointer;
+}
+
+li {
+  position: relative;
+}
+
+li:after {
+  content: ',';
+}
+
+li:last-child:after {
+  content: '';
+}
+
+#error {
+  -moz-border-radius: 8px;
+  border: 1px solid #970000;
+  background-color: #F7E8E8;
+  margin: .5em;
+  padding: .5em;
+}
+
+.errormessage {
+  font-family: monospace;  
+}
+
+#json {
+  font-family: monospace;
+  font-size: 1.1em;
+}
+
+ul {
+  list-style: none;
+  margin: 0 0 0 2em;
+  padding: 0;
+}
+
+h1 {
+  font-size: 1.2em;
+}
+
+/* Indent JSON when there's a callback. */
+.callback + #json {
+  padding-left: 1em;
+}
+
+.callback {
+  font-family: monospace;
+  color: #A52A2A;
+}

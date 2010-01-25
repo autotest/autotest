@@ -24,6 +24,7 @@ LONG_TESTS = set((
     'client_compilation_unittest.py',
     'csv_encoder_unittest.py',
     'rpc_interface_unittest.py',
+    'resources_test.py',
     'logging_manager_test.py',
     'models_test.py',
     ))
