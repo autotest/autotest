@@ -543,7 +543,6 @@ class DroneManager(object):
         use_second_read is True, use results that were read after the processes
         were checked, instead of before.
         """
-        self.register_pidfile(pidfile_id)
         if use_second_read:
             pidfile_map = self._pidfiles_second_read
         else:
