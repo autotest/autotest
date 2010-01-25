@@ -1,4 +1,4 @@
-import os.path
+import os
 from django.conf.urls import defaults
 from django.conf import settings
 
@@ -10,6 +10,7 @@ RE_PREFIX = '^' + settings.URL_PREFIX
 TKO_RE_PREFIX = '^' + settings.TKO_URL_PREFIX
 PLANNER_RE_PREFIX = '^' + settings.PLANNER_URL_PREFIX
 
+handler404 = 'django.views.defaults.page_not_found'
 handler500 = 'frontend.afe.views.handler500'
 
 urlpatterns = defaults.patterns(
@@ -18,6 +19,8 @@ urlpatterns = defaults.patterns(
         (RE_PREFIX, defaults.include('frontend.afe.urls')),
         (TKO_RE_PREFIX, defaults.include('frontend.tko.urls')),
         (PLANNER_RE_PREFIX, defaults.include('frontend.planner.urls')),
+        (RE_PREFIX + r'static/(?P<path>.*)', 'django.views.static.serve',
+         {'document_root': os.path.join(os.path.dirname(__file__), 'static')}),
     )
 
 if os.path.exists(os.path.join(os.path.dirname(__file__),
