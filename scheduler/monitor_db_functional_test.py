@@ -1014,6 +1014,12 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
         self.mock_drone_manager.finish_process(_PidfileType.JOB)
         self._run_dispatcher()
+        self._check_entry_status(entry, HqeStatus.PARSING)
+        self.mock_drone_manager.finish_process(_PidfileType.PARSE)
+        self._run_dispatcher()
+        self._check_entry_status(entry, HqeStatus.ARCHIVING)
+        self.mock_drone_manager.finish_process(_PidfileType.ARCHIVE)
+        self._run_dispatcher()
         self._check_entry_status(entry, HqeStatus.COMPLETED)
 
 
