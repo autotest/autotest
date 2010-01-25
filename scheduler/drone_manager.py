@@ -524,7 +524,12 @@ class DroneManager(object):
         if pidfile_id not in self._registered_pidfile_info:
             logging.info('monitoring pidfile %s', pidfile_id)
             self._registered_pidfile_info[pidfile_id] = _PidfileInfo()
-        self._registered_pidfile_info[pidfile_id].age = 0
+        self._reset_pidfile_age(pidfile_id)
+
+
+    def _reset_pidfile_age(self, pidfile_id):
+        if pidfile_id in self._registered_pidfile_info:
+            self._registered_pidfile_info[pidfile_id].age = 0
 
 
     def unregister_pidfile(self, pidfile_id):
@@ -543,6 +548,7 @@ class DroneManager(object):
         use_second_read is True, use results that were read after the processes
         were checked, instead of before.
         """
+        self._reset_pidfile_age(pidfile_id)
         if use_second_read:
             pidfile_map = self._pidfiles_second_read
         else:
