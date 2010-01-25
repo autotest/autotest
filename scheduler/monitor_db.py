@@ -2219,17 +2219,9 @@ class HostlessQueueTask(AbstractQueueTask):
         super(HostlessQueueTask, self).prolog()
 
 
-    def _final_status(self):
-        if self.queue_entries[0].aborted:
-            return models.HostQueueEntry.Status.ABORTED
-        if self.monitor.exit_code() == 0:
-            return models.HostQueueEntry.Status.COMPLETED
-        return models.HostQueueEntry.Status.FAILED
-
-
     def _finish_task(self):
         super(HostlessQueueTask, self)._finish_task()
-        self.queue_entries[0].set_status(self._final_status())
+        self.queue_entries[0].set_status(models.HostQueueEntry.Status.PARSING)
 
 
 class PostJobTask(AgentTask):
