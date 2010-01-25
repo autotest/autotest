@@ -94,20 +94,20 @@ class ExtendedManager(dbmodels.Manager):
     Extended manager supporting subquery filtering.
     """
 
-    class _CustomQuery(query.Query):
+    class CustomQuery(query.Query):
         def __init__(self, *args, **kwargs):
-            super(ExtendedManager._CustomQuery, self).__init__(*args, **kwargs)
+            super(ExtendedManager.CustomQuery, self).__init__(*args, **kwargs)
             self._custom_joins = []
 
 
         def clone(self, klass=None, **kwargs):
-            obj = super(ExtendedManager._CustomQuery, self).clone(klass)
+            obj = super(ExtendedManager.CustomQuery, self).clone(klass)
             obj._custom_joins = list(self._custom_joins)
             return obj
 
 
         def combine(self, rhs, connector):
-            super(ExtendedManager._CustomQuery, self).combine(rhs, connector)
+            super(ExtendedManager.CustomQuery, self).combine(rhs, connector)
             if hasattr(rhs, '_custom_joins'):
                 self._custom_joins.extend(rhs._custom_joins)
 
@@ -125,7 +125,7 @@ class ExtendedManager(dbmodels.Manager):
 
 
         def get_from_clause(self):
-            from_, params = (super(ExtendedManager._CustomQuery, self)
+            from_, params = (super(ExtendedManager.CustomQuery, self)
                              .get_from_clause())
 
             for join_dict in self._custom_joins:
@@ -142,12 +142,12 @@ class ExtendedManager(dbmodels.Manager):
         @classmethod
         def convert_query(self, query_set):
             """
-            Convert the query set's "query" attribute to a _CustomQuery.
+            Convert the query set's "query" attribute to a CustomQuery.
             """
             # Make a copy of the query set
             query_set = query_set.all()
             query_set.query = query_set.query.clone(
-                    klass=ExtendedManager._CustomQuery,
+                    klass=ExtendedManager.CustomQuery,
                     _custom_joins=[])
             return query_set
 
@@ -210,7 +210,7 @@ class ExtendedManager(dbmodels.Manager):
         else:
             join_type = query_set.query.INNER
 
-        query_set = self._CustomQuery.convert_query(query_set)
+        query_set = self.CustomQuery.convert_query(query_set)
         query_set.query.add_custom_join(join_table,
                                         full_join_condition,
                                         join_type,
@@ -326,6 +326,19 @@ class ExtendedManager(dbmodels.Manager):
                              join_condition_values=info['values'],
                              alias=alias,
                              force_left_join=left_join)
+
+
+    def key_on_joined_table(self, join_to_query):
+        """Get a non-null column on the table joined for the given query.
+
+        This analyzes the join that would be produced if join_to_query were
+        passed to join_custom_field.
+        """
+        relationship_type, field = self.determine_relationship(
+                join_to_query.model)
+        if relationship_type == self.MANY_TO_ONE:
+            return join_to_query.model._meta.pk.column
+        return field.m2m_column_name() # any column on the M2M table will do
 
 
     def add_where(self, query_set, where, values=()):
