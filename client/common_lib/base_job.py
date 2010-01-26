@@ -410,8 +410,7 @@ class base_job(object):
         serverdir
             The autotest server directory. [OPTIONAL]
         resultdir
-            The directory where results should be written out. If not specified
-            then results should not be written anywhere. [WRITABLE]
+            The directory where results should be written out. [WRITABLE]
 
         pkgdir
             The job packages directory. [WRITABLE]
