@@ -358,7 +358,11 @@ def get_git_branch(repository, branch, srcdir, commit=None, lbranch=None):
         utils.system("git checkout %s" % commit)
 
     h = utils.system_output('git log --pretty=format:"%H" -1')
-    desc = utils.system_output("git describe")
+    try:
+        desc = "tag %s" % utils.system_output("git describe")
+    except error.CmdError:
+        desc = "no tag found"
+
     logging.info("Commit hash for %s is %s (%s)" % (repository, h.strip(),
                                                     desc))
     return srcdir
