@@ -139,6 +139,8 @@ class profilers(profiler_manager.profiler_manager):
                     dir=self._get_local_profilers_dir(test, host.hostname))
             os.close(fd)
             host.get_file(get_profiler_log_path(autodir), path)
+            # try to collect any partial profiler logs
+            self._get_profiler_logs(autodir, test, host)
         except (error.AutotestError, error.AutoservError):
             logging.exception('Profiler failure log collection failed')
             # swallow the exception so that we don't override an existing
@@ -148,6 +150,21 @@ class profilers(profiler_manager.profiler_manager):
     def _get_all_failure_logs(self, test, hosts):
         for host, at, autodir in hosts:
             self._get_failure_logs(autodir, test, host)
+
+
+    def _get_profiler_logs(self, autodir, test, host):
+        results_dir = get_profiler_results_dir(autodir)
+        local_dir = self._get_local_profilers_dir(test, host.hostname)
+
+        self.job.remove_client_log(host.hostname, results_dir, local_dir)
+
+        tempdir = tempfile.mkdtemp(dir=self.job.tmpdir)
+        try:
+            host.get_file(results_dir + '/', tempdir)
+        except error.AutoservRunError:
+            pass # no files to pull back, nothing we can do
+        utils.merge_trees(tempdir, local_dir)
+        shutil.rmtree(tempdir, ignore_errors=True)
 
 
     def _run_clients(self, test, hosts):
@@ -235,18 +252,7 @@ class profilers(profiler_manager.profiler_manager):
 
         # pull back all the results
         for host, at, autodir in hosts:
-            results_dir = get_profiler_results_dir(autodir)
-            local_dir = self._get_local_profilers_dir(test, host.hostname)
-
-            self.job.remove_client_log(host.hostname, results_dir, local_dir)
-
-            tempdir = tempfile.mkdtemp(dir=self.job.tmpdir)
-            try:
-                host.get_file(results_dir + '/', tempdir)
-            except error.AutoservRunError:
-                pass # no files to pull back, nothing we can do
-            utils.merge_trees(tempdir, local_dir)
-            shutil.rmtree(tempdir, ignore_errors=True)
+            self._get_profiler_logs(autodir, test, host)
 
 
     def handle_reboot(self, host):
