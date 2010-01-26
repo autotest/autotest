@@ -223,7 +223,7 @@ def map_kernel_init():
     fields = ['base', 'k.kernel_idx', 'name', 'url']
     map = {}
     for (base, idx, name, url) in db_obj.select(','.join(fields),
-            'kernels k,patches p', 'k.kernel_idx=p.kernel_idx'):
+            'tko_kernels k, tko_patches p', 'k.kernel_idx=p.kernel_idx'):
         match = re.match(r'.*(-mm[0-9]+|-git[0-9]+)\.(bz2|gz)$', url)
         if match:
             continue
