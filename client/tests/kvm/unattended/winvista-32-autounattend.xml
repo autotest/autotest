@@ -130,7 +130,7 @@
                     <Order>5</Order>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
-                    <CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" static 10.0.2.15 255.255.255.0 10.0.2.2 1 &#38;&#38; ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe 10.0.2.2</CommandLine>
+                    <CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" dhcp &#38;&#38; ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe 10.0.2.2</CommandLine>
                     <Order>6</Order>
                 </SynchronousCommand>
             </FirstLogonCommands>

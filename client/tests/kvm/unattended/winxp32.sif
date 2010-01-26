@@ -65,7 +65,7 @@
 
 [GuiRunOnce]
     Command0="cmd /c E:\setuprss.bat"
-    Command1="cmd /c A:\finish.exe 10.0.2.2"
+    Command1="cmd /c netsh interface ip set address local dhcp && ping 10.0.2.2 -n 20 && A:\finish.exe 10.0.2.2"
 
 [Display]
     Xresolution=1024
