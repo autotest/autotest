@@ -27,10 +27,11 @@ class stub_job_directory(object):
 class stub_job_state(base_job.job_state):
     """
     Stub job state class, for replacing the job._job_state factory.
-    Doesn't actually provide an persistence, just the state handling.
+    Doesn't actually provide any persistence, just the state handling.
     """
     def __init__(self):
         self._state = {}
+        self._backing_file_lock = None
 
     def read_from_file(self, file_path):
         pass
@@ -41,7 +42,16 @@ class stub_job_state(base_job.job_state):
     def set_backing_file(self, file_path):
         pass
 
+    def _read_from_backing_file(self):
+        pass
+
     def _write_to_backing_file(self):
+        pass
+
+    def _lock_backing_file(self):
+        pass
+
+    def _unlock_backing_file(self):
         pass
 
 
@@ -511,17 +521,6 @@ class test_job_state_read_write_file(unittest.TestCase):
         shutil.rmtree(self.testdir, ignore_errors=True)
 
 
-    def test_read_missing_file_is_nop(self):
-        self.assert_(not os.path.exists('doesnotexist'))
-        state = base_job.job_state()
-        state.set('namespace', 'var', 'val1')
-        state.set('namespace2', 'var', 'val2')
-        state.write_to_file('initial')
-        state.read_from_file('doesnotexist')
-        state.write_to_file('final')
-        self.assertEqual(open('initial').read(), open('final').read())
-
-
     def test_write_read_transfers_all_state(self):
         state1 = base_job.job_state()
         state1.set('ns1', 'var0', 50)
@@ -558,6 +557,19 @@ class test_job_state_read_write_file(unittest.TestCase):
         state3.read_from_file('backing_file')
         self.assertEqual('value1', state3.get('ns', 'var1'))
         self.assertEqual('value2', state3.get('ns', 'var2'))
+
+
+    def test_read_without_merge(self):
+        state = base_job.job_state()
+        state.set('ns', 'myvar1', 'hello')
+        state.write_to_file('backup')
+        state.discard('ns', 'myvar1')
+        state.set('ns', 'myvar2', 'goodbye')
+        self.assertFalse(state.has('ns', 'myvar1'))
+        self.assertEqual('goodbye', state.get('ns', 'myvar2'))
+        state.read_from_file('backup', merge=False)
+        self.assertEqual('hello', state.get('ns', 'myvar1'))
+        self.assertFalse(state.has('ns', 'myvar2'))
 
 
 class test_job_state_set_backing_file(unittest.TestCase):
@@ -653,6 +665,142 @@ class test_job_state_set_backing_file(unittest.TestCase):
         state2.set_backing_file('outfile5')
         self.assertEqual(123, state2.get('n5', 'var1'))
         self.assertEqual(456, state2.get('n5', 'var2'))
+
+
+    def test_shared_backing_file_propagates_state_to_get(self):
+        state1 = base_job.job_state()
+        state1.set_backing_file('outfile6')
+        state2 = base_job.job_state()
+        state2.set_backing_file('outfile6')
+        self.assertRaises(KeyError, state1.get, 'n6', 'shared1')
+        self.assertRaises(KeyError, state2.get, 'n6', 'shared1')
+        state1.set('n6', 'shared1', 345)
+        self.assertEqual(345, state1.get('n6', 'shared1'))
+        self.assertEqual(345, state2.get('n6', 'shared1'))
+
+
+    def test_shared_backing_file_propagates_state_to_has(self):
+        state1 = base_job.job_state()
+        state1.set_backing_file('outfile7')
+        state2 = base_job.job_state()
+        state2.set_backing_file('outfile7')
+        self.assertFalse(state1.has('n6', 'shared2'))
+        self.assertFalse(state2.has('n6', 'shared2'))
+        state1.set('n6', 'shared2', 'hello')
+        self.assertTrue(state1.has('n6', 'shared2'))
+        self.assertTrue(state2.has('n6', 'shared2'))
+
+
+    def test_shared_backing_file_propagates_state_from_discard(self):
+        state1 = base_job.job_state()
+        state1.set_backing_file('outfile8')
+        state1.set('n6', 'shared3', 10000)
+        state2 = base_job.job_state()
+        state2.set_backing_file('outfile8')
+        self.assertEqual(10000, state1.get('n6', 'shared3'))
+        self.assertEqual(10000, state2.get('n6', 'shared3'))
+        state1.discard('n6', 'shared3')
+        self.assertRaises(KeyError, state1.get, 'n6', 'shared3')
+        self.assertRaises(KeyError, state2.get, 'n6', 'shared3')
+
+
+    def test_shared_backing_file_propagates_state_from_discard_namespace(self):
+        state1 = base_job.job_state()
+        state1.set_backing_file('outfile9')
+        state1.set('n7', 'shared4', -1)
+        state1.set('n7', 'shared5', -2)
+        state2 = base_job.job_state()
+        state2.set_backing_file('outfile9')
+        self.assertEqual(-1, state1.get('n7', 'shared4'))
+        self.assertEqual(-1, state2.get('n7', 'shared4'))
+        self.assertEqual(-2, state1.get('n7', 'shared5'))
+        self.assertEqual(-2, state2.get('n7', 'shared5'))
+        state1.discard_namespace('n7')
+        self.assertRaises(KeyError, state1.get, 'n7', 'shared4')
+        self.assertRaises(KeyError, state2.get, 'n7', 'shared4')
+        self.assertRaises(KeyError, state1.get, 'n7', 'shared5')
+        self.assertRaises(KeyError, state2.get, 'n7', 'shared5')
+
+
+class test_job_state_backing_file_locking(unittest.TestCase):
+    def setUp(self):
+        self.testdir = tempfile.mkdtemp(suffix='unittest')
+        self.original_wd = os.getcwd()
+        os.chdir(self.testdir)
+
+        # create a job_state object with stub read_* and write_* methods
+        # to check that a lock is always held during a call to them
+        ut_self = self
+        class mocked_job_state(base_job.job_state):
+            def read_from_file(self, file_path, merge=True):
+                if self._backing_file:
+                    ut_self.assertNotEqual(None, self._backing_file_lock)
+                return super(mocked_job_state, self).read_from_file(
+                    file_path, merge=True)
+            def write_to_file(self, file_path):
+                if self._backing_file:
+                    ut_self.assertNotEqual(None, self._backing_file_lock)
+                return super(mocked_job_state, self).write_to_file(file_path)
+        self.state = mocked_job_state()
+        self.state.set_backing_file('backing_file')
+
+
+    def tearDown(self):
+        os.chdir(self.original_wd)
+        shutil.rmtree(self.testdir, ignore_errors=True)
+
+
+    def test_set(self):
+        self.state.set('ns1', 'var1', 100)
+
+
+    def test_get_missing(self):
+        self.assertRaises(KeyError, self.state.get, 'ns2', 'var2')
+
+
+    def test_get_present(self):
+        self.state.set('ns3', 'var3', 333)
+        self.assertEqual(333, self.state.get('ns3', 'var3'))
+
+
+    def test_set_backing_file(self):
+        self.state.set_backing_file('some_other_file')
+
+
+    def test_has_missing(self):
+        self.assertFalse(self.state.has('ns4', 'var4'))
+
+
+    def test_has_present(self):
+        self.state.set('ns5', 'var5', 55555)
+        self.assertTrue(self.state.has('ns5', 'var5'))
+
+
+    def test_discard_missing(self):
+        self.state.discard('ns6', 'var6')
+
+
+    def test_discard_present(self):
+        self.state.set('ns7', 'var7', -777)
+        self.state.discard('ns7', 'var7')
+
+
+    def test_discard_missing_namespace(self):
+        self.state.discard_namespace('ns8')
+
+
+    def test_discard_present_namespace(self):
+        self.state.set('ns8', 'var8', 80)
+        self.state.set('ns8', 'var8.1', 81)
+        self.state.discard_namespace('ns8')
+
+
+    def test_disable_backing_file(self):
+        self.state.set_backing_file(None)
+
+
+    def test_change_backing_file(self):
+        self.state.set_backing_file('another_backing_file')
 
 
 class test_job_state_property_factory(unittest.TestCase):
