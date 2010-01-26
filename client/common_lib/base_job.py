@@ -1,4 +1,4 @@
-import os, copy, logging, errno, tempfile, cPickle as pickle, platform
+import os, copy, logging, errno, cPickle as pickle, fcntl
 
 from autotest_lib.client.common_lib import autotemp, error
 
@@ -136,8 +136,165 @@ class job_state(object):
         """Initialize the job state."""
         self._state = {}
         self._backing_file = None
+        self._backing_file_initialized = False
+        self._backing_file_lock = None
 
 
+    def _with_backing_file(method):
+        """A decorator to perform a lock-read-*-write-unlock cycle.
+
+        When applied to a method, this decorator will automatically wrap
+        calls to the method in a lock-and-read before the call followed by a
+        write-and-unlock. Any operation that is reading or writing state
+        should be decorated with this method to ensure that backing file
+        state is consistently maintained.
+        """
+        def wrapped_method(self, *args, **dargs):
+            already_have_lock = self._backing_file_lock is not None
+            if not already_have_lock:
+                self._lock_backing_file()
+            try:
+                self._read_from_backing_file()
+                try:
+                    return method(self, *args, **dargs)
+                finally:
+                    self._write_to_backing_file()
+            finally:
+                if not already_have_lock:
+                    self._unlock_backing_file()
+        wrapped_method.__name__ = method.__name__
+        wrapped_method.__doc__ = method.__doc__
+        return wrapped_method
+
+
+    def _lock_backing_file(self):
+        """Acquire a lock on the backing file."""
+        if self._backing_file:
+            self._backing_file_lock = open(self._backing_file, 'a')
+            fcntl.lockf(self._backing_file_lock, fcntl.LOCK_EX)
+
+
+    def _unlock_backing_file(self):
+        """Release a lock on the backing file."""
+        if self._backing_file_lock:
+            fcntl.lockf(self._backing_file_lock, fcntl.LOCK_UN)
+            self._backing_file_lock.close()
+            self._backing_file_lock = None
+
+
+    def read_from_file(self, file_path, merge=True):
+        """Read in any state from the file at file_path.
+
+        When merge=True, any state specified only in-memory will be preserved.
+        Any state specified on-disk will be set in-memory, even if an in-memory
+        setting already exists.
+
+        @param file_path The path where the state should be read from. It must
+            exist but it can be empty.
+        @param merge If true, merge the on-disk state with the in-memory
+            state. If false, replace the in-memory state with the on-disk
+            state.
+
+        @warning This method is intentionally concurrency-unsafe. It makes no
+            attempt to control concurrent access to the file at file_path.
+        """
+
+        # we can assume that the file exists
+        if os.path.getsize(file_path) == 0:
+            on_disk_state = {}
+        else:
+            on_disk_state = pickle.load(open(file_path))
+
+        if merge:
+            # merge the on-disk state with the in-memory state
+            for namespace, namespace_dict in on_disk_state.iteritems():
+                in_memory_namespace = self._state.setdefault(namespace, {})
+                for name, value in namespace_dict.iteritems():
+                    if name in in_memory_namespace:
+                        if in_memory_namespace[name] != value:
+                            logging.info('Persistent value of %s.%s from %s '
+                                         'overridding existing in-memory '
+                                         'value', namespace, name, file_path)
+                            in_memory_namespace[name] = value
+                        else:
+                            logging.debug('Value of %s.%s is unchanged, '
+                                          'skipping import', namespace, name)
+                    else:
+                        logging.debug('Importing %s.%s from state file %s',
+                                      namespace, name, file_path)
+                        in_memory_namespace[name] = value
+        else:
+            # just replace the in-memory state with the on-disk state
+            self._state = on_disk_state
+            logging.debug('Replacing in-memory state with on-disk state '
+                          'from %s', file_path)
+
+        self._write_to_backing_file()
+
+
+    def write_to_file(self, file_path):
+        """Write out the current state to the given path.
+
+        @param file_path The path where the state should be written out to.
+            Must be writable.
+
+        @warning This method is intentionally concurrency-unsafe. It makes no
+            attempt to control concurrent access to the file at file_path, or
+            to the backing file if one exists.
+        """
+        outfile = open(file_path, 'w')
+        try:
+            pickle.dump(self._state, outfile, self.PICKLE_PROTOCOL)
+        finally:
+            outfile.close()
+        logging.debug('Persistent state flushed to %s', file_path)
+
+
+    def _read_from_backing_file(self):
+        """Refresh the current state from the backing file.
+
+        If the backing file has never been read before (indicated by checking
+        self._backing_file_initialized) it will merge the file with the
+        in-memory state, rather than overwriting it.
+        """
+        if self._backing_file:
+            merge_backing_file = not self._backing_file_initialized
+            self.read_from_file(self._backing_file, merge=merge_backing_file)
+            self._backing_file_initialized = True
+
+
+    def _write_to_backing_file(self):
+        """Flush the current state to the backing file."""
+        if self._backing_file:
+            self.write_to_file(self._backing_file)
+
+
+    @_with_backing_file
+    def _synchronize_backing_file(self):
+        """Synchronizes the contents of the in-memory and on-disk state."""
+        # state is implicitly synchronized in _with_backing_file methods
+        pass
+
+
+    def set_backing_file(self, file_path):
+        """Change the path used as the backing file for the persistent state.
+
+        When a new backing file is specified if a file already exists then
+        its contents will be added into the current state, with conflicts
+        between the file and memory being resolved in favor of the file
+        contents. The file will then be kept in sync with the (combined)
+        in-memory state. The syncing can be disabled by setting this to None.
+
+        @param file_path A path on the filesystem that can be read from and
+            written to, or None to turn off the backing store.
+        """
+        self._synchronize_backing_file()
+        self._backing_file = file_path
+        self._backing_file_initialized = False
+        self._synchronize_backing_file()
+
+
+    @_with_backing_file
     def get(self, namespace, name, default=NO_DEFAULT):
         """Returns the value associated with a particular name.
 
@@ -160,88 +317,7 @@ class job_state(object):
             return default
 
 
-    def read_from_file(self, file_path):
-        """Read in any state from the file at file_path.
-
-        Any state specified only in-memory will be preserved. Any state
-        specified on-disk will be set in-memory, even if an in-memory
-        setting already exists. In the special case that the file does
-        not exist it is treated as empty and not a failure.
-        """
-        # if the file exists, pull out its contents
-        if file_path:
-            try:
-                on_disk_state = pickle.load(open(file_path))
-            except IOError, e:
-                if e.errno == errno.ENOENT:
-                    logging.info('Persistent state file %s does not exist',
-                                 file_path)
-                    return
-                else:
-                    raise
-        else:
-            return
-
-        # merge the on-disk state with the in-memory state
-        for namespace, namespace_dict in on_disk_state.iteritems():
-            in_memory_namespace = self._state.setdefault(namespace, {})
-            for name, value in namespace_dict.iteritems():
-                if name in in_memory_namespace:
-                    if in_memory_namespace[name] != value:
-                        logging.info('Persistent value of %s.%s from %s '
-                                     'overridding existing in-memory value',
-                                     namespace, name, file_path)
-                        in_memory_namespace[name] = value
-                    else:
-                        logging.debug('Value of %s.%s is unchanged, skipping'
-                                      'import', namespace, name)
-                else:
-                    logging.debug('Importing %s.%s from state file %s',
-                                  namespace, name, file_path)
-                    in_memory_namespace[name] = value
-
-        # flush the merged state out to disk
-        self._write_to_backing_file()
-
-
-    def write_to_file(self, file_path):
-        """Write out the current state to the given path.
-
-        @param file_path The path where the state should be written out to.
-            Must be writable.
-        """
-        outfile = open(file_path, 'w')
-        try:
-            pickle.dump(self._state, outfile, self.PICKLE_PROTOCOL)
-        finally:
-            outfile.close()
-        logging.debug('Persistent state flushed to %s', file_path)
-
-
-    def _write_to_backing_file(self):
-        """Flush the current state to the backing file."""
-        if self._backing_file:
-            self.write_to_file(self._backing_file)
-
-
-    def set_backing_file(self, file_path):
-        """Change the path used as the backing file for the persistent state.
-
-        When a new backing file is specified if a file already exists then
-        its contents will be added into the current state, with conflicts
-        between the file and memory being resolved in favor of the file
-        contents. The file will then be kept in sync with the (combined)
-        in-memory state. The syncing can be disabled by setting this to None.
-
-        @param file_path A path on the filesystem that can be read from and
-            written to, or None to turn off the backing store.
-        """
-        self._backing_file = None
-        self.read_from_file(file_path)
-        self._backing_file = file_path
-        self._write_to_backing_file()
-
-
+    @_with_backing_file
     def set(self, namespace, name, value):
         """Saves the value given with the provided name.
 
@@ -251,11 +327,11 @@ class job_state(object):
         """
         namespace_dict = self._state.setdefault(namespace, {})
         namespace_dict[name] = copy.deepcopy(value)
-        self._write_to_backing_file()
         logging.debug('Persistent state %s.%s now set to %r', namespace,
                       name, value)
 
 
+    @_with_backing_file
     def has(self, namespace, name):
         """Return a boolean indicating if namespace.name is defined.
 
@@ -268,6 +344,7 @@ class job_state(object):
         return namespace in self._state and name in self._state[namespace]
 
 
+    @_with_backing_file
     def discard(self, namespace, name):
         """If namespace.name is a defined value, deletes it.
 
@@ -278,7 +355,6 @@ class job_state(object):
             del self._state[namespace][name]
             if len(self._state[namespace]) == 0:
                 del self._state[namespace]
-            self._write_to_backing_file()
             logging.debug('Persistent state %s.%s deleted', namespace, name)
         else:
             logging.debug(
@@ -286,6 +362,7 @@ class job_state(object):
                 namespace, name)
 
 
+    @_with_backing_file
     def discard_namespace(self, namespace):
         """Delete all defined namespace.* names.
 
@@ -293,7 +370,6 @@ class job_state(object):
         """
         if namespace in self._state:
             del self._state[namespace]
-        self._write_to_backing_file()
         logging.debug('Persistent state %s.* deleted', namespace)
 
 
