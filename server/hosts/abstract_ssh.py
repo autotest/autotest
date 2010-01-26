@@ -12,7 +12,7 @@ enable_master_ssh = global_config.get_config_value('AUTOSERV',
 
 def make_ssh_command(user="root", port=22, opts='', connect_timeout=30,
                      alive_interval=300):
-    base_command = ("/usr/bin/ssh -a -x %s -o StrictHostKeyChecking=no "
+    base_command = ("/usr/bin/ssh -a -q -x %s -o StrictHostKeyChecking=no "
                     "-o UserKnownHostsFile=/dev/null -o BatchMode=yes "
                     "-o ConnectTimeout=%d -o ServerAliveInterval=%d "
                     "-l %s -p %d")
