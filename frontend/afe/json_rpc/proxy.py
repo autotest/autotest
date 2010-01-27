@@ -20,9 +20,6 @@
 """
 
 import urllib2
-from simplejson import decoder, encoder
-json_encoder = encoder.JSONEncoder()
-json_decoder = decoder.JSONDecoder()
 
 class JSONRPCException(Exception):
     pass
@@ -39,14 +36,18 @@ class ServiceProxy(object):
         return ServiceProxy(self.__serviceURL, name, self.__headers)
 
     def __call__(self, *args, **kwargs):
-        postdata = json_encoder.encode({"method": self.__serviceName,
-                                        'params': args + (kwargs,),
-                                        'id':'jsonrpc'})
+        # pull in simplejson imports lazily so that the library isn't required
+        # unless you actually need to do encoding and decoding
+        from simplejson import decoder, encoder
+
+        postdata = encoder.encode({"method": self.__serviceName,
+                                   'params': args + (kwargs,),
+                                   'id':'jsonrpc'})
         request = urllib2.Request(self.__serviceURL, data=postdata,
                                   headers=self.__headers)
         respdata = urllib2.urlopen(request).read()
         try:
-            resp = json_decoder.decode(respdata)
+            resp = decoder.decode(respdata)
         except ValueError:
             raise JSONRPCException('Error decoding JSON reponse:\n' + respdata)
         if resp['error'] is not None:
