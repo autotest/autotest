@@ -117,6 +117,51 @@ class job_directory(object):
         return dir_property
 
 
+# decorator for use with job_state methods
+def with_backing_lock(method):
+    """A decorator to perform a lock-*-unlock cycle.
+
+    When applied to a method, this decorator will automatically wrap
+    calls to the method in a backing file lock and before the call
+    followed by a backing file unlock.
+    """
+    def wrapped_method(self, *args, **dargs):
+        already_have_lock = self._backing_file_lock is not None
+        if not already_have_lock:
+            self._lock_backing_file()
+        try:
+            return method(self, *args, **dargs)
+        finally:
+            if not already_have_lock:
+                self._unlock_backing_file()
+    wrapped_method.__name__ = method.__name__
+    wrapped_method.__doc__ = method.__doc__
+    return wrapped_method
+
+
+# decorator for use with job_state methods
+def with_backing_file(method):
+    """A decorator to perform a lock-read-*-write-unlock cycle.
+
+    When applied to a method, this decorator will automatically wrap
+    calls to the method in a lock-and-read before the call followed by a
+    write-and-unlock. Any operation that is reading or writing state
+    should be decorated with this method to ensure that backing file
+    state is consistently maintained.
+    """
+    @with_backing_lock
+    def wrapped_method(self, *args, **dargs):
+        self._read_from_backing_file()
+        try:
+            return method(self, *args, **dargs)
+        finally:
+            self._write_to_backing_file()
+    wrapped_method.__name__ = method.__name__
+    wrapped_method.__doc__ = method.__doc__
+    return wrapped_method
+
+
+
 class job_state(object):
     """A class for managing explicit job and user state, optionally persistent.
 
@@ -138,33 +183,6 @@ class job_state(object):
         self._backing_file = None
         self._backing_file_initialized = False
         self._backing_file_lock = None
-
-
-    def _with_backing_file(method):
-        """A decorator to perform a lock-read-*-write-unlock cycle.
-
-        When applied to a method, this decorator will automatically wrap
-        calls to the method in a lock-and-read before the call followed by a
-        write-and-unlock. Any operation that is reading or writing state
-        should be decorated with this method to ensure that backing file
-        state is consistently maintained.
-        """
-        def wrapped_method(self, *args, **dargs):
-            already_have_lock = self._backing_file_lock is not None
-            if not already_have_lock:
-                self._lock_backing_file()
-            try:
-                self._read_from_backing_file()
-                try:
-                    return method(self, *args, **dargs)
-                finally:
-                    self._write_to_backing_file()
-            finally:
-                if not already_have_lock:
-                    self._unlock_backing_file()
-        wrapped_method.__name__ = method.__name__
-        wrapped_method.__doc__ = method.__doc__
-        return wrapped_method
 
 
     def _lock_backing_file(self):
@@ -229,7 +247,8 @@ class job_state(object):
             logging.debug('Replacing in-memory state with on-disk state '
                           'from %s', file_path)
 
-        self._write_to_backing_file()
+        # lock the backing file before we refresh it
+        with_backing_lock(self.__class__._write_to_backing_file)(self)
 
 
     def write_to_file(self, file_path):
@@ -239,8 +258,7 @@ class job_state(object):
             Must be writable.
 
         @warning This method is intentionally concurrency-unsafe. It makes no
-            attempt to control concurrent access to the file at file_path, or
-            to the backing file if one exists.
+            attempt to control concurrent access to the file at file_path.
         """
         outfile = open(file_path, 'w')
         try:
@@ -269,7 +287,7 @@ class job_state(object):
             self.write_to_file(self._backing_file)
 
 
-    @_with_backing_file
+    @with_backing_file
     def _synchronize_backing_file(self):
         """Synchronizes the contents of the in-memory and on-disk state."""
         # state is implicitly synchronized in _with_backing_file methods
@@ -294,7 +312,7 @@ class job_state(object):
         self._synchronize_backing_file()
 
 
-    @_with_backing_file
+    @with_backing_file
     def get(self, namespace, name, default=NO_DEFAULT):
         """Returns the value associated with a particular name.
 
@@ -317,7 +335,7 @@ class job_state(object):
             return default
 
 
-    @_with_backing_file
+    @with_backing_file
     def set(self, namespace, name, value):
         """Saves the value given with the provided name.
 
@@ -331,7 +349,7 @@ class job_state(object):
                       name, value)
 
 
-    @_with_backing_file
+    @with_backing_file
     def has(self, namespace, name):
         """Return a boolean indicating if namespace.name is defined.
 
@@ -344,7 +362,7 @@ class job_state(object):
         return namespace in self._state and name in self._state[namespace]
 
 
-    @_with_backing_file
+    @with_backing_file
     def discard(self, namespace, name):
         """If namespace.name is a defined value, deletes it.
 
@@ -362,7 +380,7 @@ class job_state(object):
                 namespace, name)
 
 
-    @_with_backing_file
+    @with_backing_file
     def discard_namespace(self, namespace):
         """Delete all defined namespace.* names.
 

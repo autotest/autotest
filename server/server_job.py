@@ -1100,6 +1100,8 @@ class base_server_job(base_job.base_job):
         # dump the state out to a tempfile
         fd, file_path = tempfile.mkstemp(dir=self.tmpdir)
         os.close(fd)
+
+        # write_to_file doesn't need locking, we exclusively own file_path
         self._state.write_to_file(file_path)
         return file_path
 
@@ -1119,7 +1121,7 @@ class base_server_job(base_job.base_job):
         self._state.read_from_file(state_path)
         try:
             os.remove(state_path)
-        except IOError, e:
+        except OSError, e:
             # ignore file-not-found errors
             if e.errno != errno.ENOENT:
                 raise
