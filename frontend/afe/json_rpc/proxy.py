@@ -40,14 +40,14 @@ class ServiceProxy(object):
         # unless you actually need to do encoding and decoding
         from simplejson import decoder, encoder
 
-        postdata = encoder.encode({"method": self.__serviceName,
-                                   'params': args + (kwargs,),
-                                   'id':'jsonrpc'})
+        postdata = encoder.JSONEncoder().encode({"method": self.__serviceName,
+                                                'params': args + (kwargs,),
+                                                'id':'jsonrpc'})
         request = urllib2.Request(self.__serviceURL, data=postdata,
                                   headers=self.__headers)
         respdata = urllib2.urlopen(request).read()
         try:
-            resp = decoder.decode(respdata)
+            resp = decoder.JSONDecoder().decode(respdata)
         except ValueError:
             raise JSONRPCException('Error decoding JSON reponse:\n' + respdata)
         if resp['error'] is not None:
