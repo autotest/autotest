@@ -733,12 +733,12 @@ class test_job_state_backing_file_locking(unittest.TestCase):
         ut_self = self
         class mocked_job_state(base_job.job_state):
             def read_from_file(self, file_path, merge=True):
-                if self._backing_file:
+                if self._backing_file and file_path == self._backing_file:
                     ut_self.assertNotEqual(None, self._backing_file_lock)
                 return super(mocked_job_state, self).read_from_file(
                     file_path, merge=True)
             def write_to_file(self, file_path):
-                if self._backing_file:
+                if self._backing_file and file_path == self._backing_file:
                     ut_self.assertNotEqual(None, self._backing_file_lock)
                 return super(mocked_job_state, self).write_to_file(file_path)
         self.state = mocked_job_state()
@@ -801,6 +801,17 @@ class test_job_state_backing_file_locking(unittest.TestCase):
 
     def test_change_backing_file(self):
         self.state.set_backing_file('another_backing_file')
+
+
+    def test_read_from_a_non_backing_file(self):
+        state = base_job.job_state()
+        state.set('ns9', 'var9', 9999)
+        state.write_to_file('non_backing_file')
+        self.state.read_from_file('non_backing_file')
+
+
+    def test_write_to_a_non_backing_file(self):
+        self.state.write_to_file('non_backing_file')
 
 
 class test_job_state_property_factory(unittest.TestCase):
