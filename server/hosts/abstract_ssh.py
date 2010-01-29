@@ -558,7 +558,6 @@ class AbstractSSHHost(SiteHost):
                                       self.master_ssh_tempdir.name)
 
             # Start the master SSH connection in the background.
-            master_cmd = self.ssh_command(options="-N -o ControlMaster=yes",
-                                          alive_interval=5)
+            master_cmd = self.ssh_command(options="-N -o ControlMaster=yes")
             logging.info("Starting master ssh connection '%s'" % master_cmd)
             self.master_ssh_job = utils.BgJob(master_cmd)
