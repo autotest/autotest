@@ -5,14 +5,12 @@ from autotest_lib.client.common_lib import error
 
 class disktest(test.test):
     version = 1
+    preserve_srcdir = True
 
     def setup(self):
-        os.mkdir(self.srcdir)
-        os.chdir(self.bindir)
-        utils.system('cp disktest.c src/')
         os.chdir(self.srcdir)
-        cflags = '-D_FILE_OFFSET_BITS=64 -D _GNU_SOURCE -static -Wall'
-        utils.system('cc disktest.c ' + cflags + ' -o disktest')
+        utils.system('make clean')
+        utils.system('make')
 
 
     def initialize(self):
