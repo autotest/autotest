@@ -189,13 +189,13 @@ class job_state(object):
         """Acquire a lock on the backing file."""
         if self._backing_file:
             self._backing_file_lock = open(self._backing_file, 'a')
-            fcntl.lockf(self._backing_file_lock, fcntl.LOCK_EX)
+            fcntl.flock(self._backing_file_lock, fcntl.LOCK_EX)
 
 
     def _unlock_backing_file(self):
         """Release a lock on the backing file."""
         if self._backing_file_lock:
-            fcntl.lockf(self._backing_file_lock, fcntl.LOCK_UN)
+            fcntl.flock(self._backing_file_lock, fcntl.LOCK_UN)
             self._backing_file_lock.close()
             self._backing_file_lock = None
 
