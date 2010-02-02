@@ -181,7 +181,7 @@ class KojiInstaller:
             logging.info("Both tag and build parameters provided, ignoring tag "
                          "parameter...")
         if self.tag and not self.build:
-            self.build = self.__get_build()
+            self.build = self._get_build()
         if not self.tag and not self.build:
             raise error.TestError("Koji install selected but neither koji_tag "
                                   "nor koji_build parameters provided. Please "
@@ -201,7 +201,7 @@ class KojiInstaller:
         self.test_bindir = test.bindir
 
 
-    def __get_build(self):
+    def _get_build(self):
         """
         Get the source package build name, according to the appropriate tag.
         """
@@ -212,10 +212,14 @@ class KojiInstaller:
         for line in latest_raw:
             if line.startswith(self.src_pkg):
                 build_name = line.split()[0]
+
+        if not build_name:
+            raise error.TestError("There are no packages built for tag: %s" %
+                                  self.tag)
         return build_name
 
 
-    def __clean_previous_installs(self):
+    def _clean_previous_installs(self):
         """
         Remove all rpms previously installed.
         """
@@ -227,7 +231,7 @@ class KojiInstaller:
         utils.system("yum remove -y %s" % removable_packages)
 
 
-    def __get_packages(self):
+    def _get_packages(self):
         """
         Downloads the entire build for the specific build name. It's
         inefficient, but it saves the need of having an NFS share set.
@@ -241,7 +245,7 @@ class KojiInstaller:
         utils.system(download_cmd)
 
 
-    def __install_packages(self):
+    def _install_packages(self):
         """
         Install all relevant packages from the build that was just downloaded.
         """
@@ -261,7 +265,7 @@ class KojiInstaller:
         utils.system("yum install --nogpgcheck -y %s" % installable_packages)
 
 
-    def __check_installed_binaries(self):
+    def _check_installed_binaries(self):
         """
         Make sure the relevant binaries installed actually come from the build
         that was installed.
@@ -278,10 +282,10 @@ class KojiInstaller:
 
 
     def install(self):
-        self.__clean_previous_installs()
-        self.__get_packages()
-        self.__install_packages()
-        self.__check_installed_binaries()
+        self._clean_previous_installs()
+        self._get_packages()
+        self._install_packages()
+        self._check_installed_binaries()
         create_symlinks(test_bindir=self.test_bindir,
                         bin_list=self.qemu_bin_paths)
         if self.load_modules:
@@ -375,7 +379,7 @@ class SourceDirInstaller:
         self.configure_options = check_configure_options(configure_script)
 
 
-    def __build(self):
+    def _build(self):
         make_jobs = utils.count_cpus()
         os.chdir(self.srcdir)
         # For testing purposes, it's better to build qemu binaries with
@@ -389,7 +393,7 @@ class SourceDirInstaller:
             utils.system(step)
 
 
-    def __install(self):
+    def _install(self):
         os.chdir(self.srcdir)
         logging.info("Installing KVM userspace")
         if self.repo_type == 1:
@@ -399,16 +403,16 @@ class SourceDirInstaller:
         create_symlinks(self.test_bindir, self.prefix)
 
 
-    def __load_modules(self):
+    def _load_modules(self):
         load_kvm_modules(module_dir=self.srcdir,
                          extra_modules=self.extra_modules)
 
 
     def install(self):
-        self.__build()
-        self.__install()
+        self._build()
+        self._install()
         if self.load_modules:
-            self.__load_modules()
+            self._load_modules()
 
 
 class GitInstaller:
@@ -462,24 +466,23 @@ class GitInstaller:
         user_tag = params.get("user_tag", "HEAD")
         kmod_tag = params.get("kmod_tag", "HEAD")
 
-        if not kernel_repo:
-            message = "KVM git repository path not specified"
-            logging.error(message)
-            raise error.TestError(message)
         if not user_repo:
             message = "KVM user git repository path not specified"
             logging.error(message)
             raise error.TestError(message)
 
-        kernel_srcdir = os.path.join(srcdir, "kvm")
-        kvm_utils.get_git_branch(kernel_repo, kernel_branch, kernel_srcdir,
-                                 kernel_tag, kernel_lbranch)
-        self.kernel_srcdir = kernel_srcdir
-
         userspace_srcdir = os.path.join(srcdir, "kvm_userspace")
         kvm_utils.get_git_branch(user_repo, user_branch, userspace_srcdir,
                                  user_tag, user_lbranch)
         self.userspace_srcdir = userspace_srcdir
+
+        if kernel_repo:
+            kernel_srcdir = os.path.join(srcdir, "kvm")
+            kvm_utils.get_git_branch(kernel_repo, kernel_branch, kernel_srcdir,
+                                     kernel_tag, kernel_lbranch)
+            self.kernel_srcdir = kernel_srcdir
+        else:
+            self.kernel_srcdir = None
 
         if kmod_repo:
             kmod_srcdir = os.path.join (srcdir, "kvm_kmod")
@@ -493,69 +496,71 @@ class GitInstaller:
         self.configure_options = check_configure_options(configure_script)
 
 
-    def __build(self):
-        # Number of concurrent build tasks
+    def _build(self):
         make_jobs = utils.count_cpus()
+        cfg = './configure'
+        self.modules_build_succeed = False
         if self.kmod_srcdir:
             logging.info('Building KVM modules')
             os.chdir(self.kmod_srcdir)
-            utils.system('./configure')
-            utils.system('make clean')
-            utils.system('make sync LINUX=%s' % self.kernel_srcdir)
-            utils.system('make -j %s' % make_jobs)
-
-            logging.info('Building KVM userspace code')
-            os.chdir(self.userspace_srcdir)
-            cfg = './configure --prefix=%s' % self.prefix
-            if "--disable-strip" in self.configure_options:
-                cfg += ' --disable-strip'
-            if self.extra_configure_options:
-                cfg = ' %s' % self.extra_configure_options
-            utils.system(cfg)
-            utils.system('make clean')
-            utils.system('make -j %s' % make_jobs)
-        else:
+            module_build_steps = [cfg,
+                                  'make clean',
+                                  'make sync LINUX=%s' % self.kernel_srcdir,
+                                  'make']
+        elif self.kernel_srcdir:
             logging.info('Building KVM modules')
             os.chdir(self.userspace_srcdir)
-            cfg = './configure --kerneldir=%s' % self.host_kernel_srcdir
-            utils.system(cfg)
-            utils.system('make clean')
-            utils.system('make -j %s -C kernel LINUX=%s sync' %
-                         (make_jobs, self.kernel_srcdir))
+            cfg += ' --kerneldir=%s' % self.host_kernel_srcdir
+            module_build_steps = [cfg,
+                            'make clean',
+                            'make -C kernel LINUX=%s sync' % self.kernel_srcdir]
+        else:
+            module_build_steps = []
 
-            logging.info('Building KVM userspace code')
-            # This build method (no kvm-kmod) requires that we execute
-            # configure again, but now let's use the full command line.
-            cfg += ' --prefix=%s' % self.prefix
-            if "--disable-strip" in self.configure_options:
-                cfg += ' --disable-strip'
-            if self.extra_configure_options:
-                cfg += ' %s' % self.extra_configure_options
-            steps = [cfg, 'make -j %s' % make_jobs]
-            for step in steps:
-                utils.system(step)
+        try:
+            if module_build_steps:
+                for step in module_build_steps:
+                    utils.run(step)
+                self.modules_build_succeed = True
+        except error.CmdError, e:
+            logging.error("KVM modules build failed to build: %s" % e)
+
+        logging.info('Building KVM userspace code')
+        os.chdir(self.userspace_srcdir)
+        cfg += ' --prefix=%s' % self.prefix
+        if "--disable-strip" in self.configure_options:
+            cfg += ' --disable-strip'
+        if self.extra_configure_options:
+            cfg += ' %s' % self.extra_configure_options
+        utils.system(cfg)
+        utils.system('make clean')
+        utils.system('make -j %s' % make_jobs)
 
 
-    def __install(self):
+    def _install(self):
         os.chdir(self.userspace_srcdir)
         utils.system('make install')
         create_symlinks(self.test_bindir, self.prefix)
 
 
-    def __load_modules(self):
-        if self.kmod_srcdir:
+    def _load_modules(self):
+        if self.kmod_srcdir and self.modules_build_succeed:
             load_kvm_modules(module_dir=self.kmod_srcdir,
                              extra_modules=self.extra_modules)
-        else:
+        elif self.kernel_srcdir and self.modules_build_succeed:
             load_kvm_modules(module_dir=self.userspace_srcdir,
+                             extra_modules=self.extra_modules)
+        else:
+            logging.info("Loading stock KVM modules")
+            load_kvm_modules(load_stock=True,
                              extra_modules=self.extra_modules)
 
 
     def install(self):
-        self.__build()
-        self.__install()
+        self._build()
+        self._install()
         if self.load_modules:
-            self.__load_modules()
+            self._load_modules()
 
 
 def run_build(test, params, env):
