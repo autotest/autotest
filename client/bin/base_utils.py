@@ -665,3 +665,59 @@ def process_is_alive(name_pattern):
     """
     return utils.system("pgrep -f '^([^ /]*/)*(%s)([ ]|$)'" % name_pattern,
                         ignore_status=True) == 0
+
+
+def get_hwclock_seconds(utc=True):
+    """
+    Return the hardware clock in seconds as a floating point value.
+    Use Coordinated Universal Time if utc is True, local time otherwise.
+    Raise a ValueError if unable to read the hardware clock.
+    """
+    cmd = '/sbin/hwclock --debug'
+    if utc:
+        cmd += ' --utc'
+    hwclock_output = utils.system_output(cmd, ignore_status=True)
+    match = re.search(r'= ([0-9]+) seconds since .+ (-?[0-9.]+) seconds$',
+                      hwclock_output, re.DOTALL)
+    if match:
+        seconds = int(match.group(1)) + float(match.group(2))
+        logging.debug('hwclock seconds = %f' % seconds)
+        return seconds
+
+    raise ValueError('Unable to read the hardware clock -- ' +
+                     hwclock_output)
+
+
+def set_wake_alarm(alarm_time):
+    """
+    Set the hardware RTC-based wake alarm to 'alarm_time'.
+    """
+    utils.write_one_line('/sys/class/rtc/rtc0/wakealarm', str(alarm_time))
+
+
+def set_power_state(state):
+    """
+    Set the system power state to 'state'.
+    """
+    utils.write_one_line('/sys/power/state', state)
+
+
+def standby():
+    """
+    Power-on suspend (S1)
+    """
+    set_power_state('standby')
+
+
+def suspend_to_ram():
+    """
+    Suspend the system to RAM (S3)
+    """
+    set_power_state('mem')
+
+
+def suspend_to_disk():
+    """
+    Suspend the system to disk (S4)
+    """
+    set_power_state('disk')
