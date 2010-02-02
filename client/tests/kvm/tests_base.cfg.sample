@@ -276,12 +276,11 @@ variants:
 # NICs
 variants:
     - @rtl8139:
-    - virtio:       rtl8139.install rtl8139.setup
-        no install setup
-        nic_model = virtio
-    - e1000:        rtl8139.install rtl8139.setup
-        no install setup
+        nic_model = rtl8139
+    - e1000:
         nic_model = e1000
+    - virtio:
+        nic_model = virtio
 
 
 # Guests
