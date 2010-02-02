@@ -613,7 +613,17 @@ def nuke_pid(pid, signal_queue=(signal.SIGTERM, signal.SIGKILL)):
 
 
 def system(command, timeout=None, ignore_status=False):
-    """This function returns the exit status of command."""
+    """
+    Run a command
+
+    @param timeout: timeout in seconds
+    @param ignore_status: if ignore_status=False, throw an exception if the
+            command's exit code is non-zero
+            if ignore_stauts=True, return the exit code.
+    
+    @return exit status of command
+            (note, this will always be zero unless ignore_status=True)
+    """
     return run(command, timeout=timeout, ignore_status=ignore_status,
                stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS).exit_status
 
