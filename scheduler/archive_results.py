@@ -11,6 +11,9 @@ class BaseResultsArchiver(object):
         if not results_host or results_host == 'localhost':
             return
 
+        if not path.endswith('/'):
+            path += '/'
+
         logging.info('Archiving %s to %s', path, results_host)
         utility = drone_utility.DroneUtility()
         utility.sync_send_file_to(results_host, path, path, can_fail=True)
