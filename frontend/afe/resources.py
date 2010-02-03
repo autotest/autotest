@@ -5,22 +5,22 @@ from autotest_lib.frontend import thread_local
 from autotest_lib.client.common_lib import host_protections
 
 class EntryWithInvalid(resource_lib.Entry):
-    def put(self, request):
+    def put(self):
         if self.instance.invalid:
-            raise http.Http404
-        return super(EntryWithInvalid, self).put(request)
+            raise http.Http404('%s has been deleted' % self.instance)
+        return super(EntryWithInvalid, self).put()
 
 
-    def delete(self, request):
+    def delete(self):
         if self.instance.invalid:
-            raise http.Http404
-        return super(EntryWithInvalid, self).delete(request)
+            raise http.Http404('%s has already been deleted' % self.instance)
+        return super(EntryWithInvalid, self).delete()
 
 
 class AtomicGroupClass(EntryWithInvalid):
     @classmethod
-    def from_uri_args(cls, name):
-        return cls(models.AtomicGroup.objects.get(name=name))
+    def from_uri_args(cls, request, name):
+        return cls(request, models.AtomicGroup.objects.get(name=name))
 
 
     def _uri_args(self):
@@ -81,8 +81,8 @@ class Label(EntryWithInvalid):
 
 
     @classmethod
-    def from_uri_args(cls, name):
-        return cls(models.Label.objects.get(name=name))
+    def from_uri_args(cls, request, name):
+        return cls(request, models.Label.objects.get(name=name))
 
 
     def _uri_args(self):
@@ -98,9 +98,10 @@ class Label(EntryWithInvalid):
 
     def full_representation(self):
         rep = super(Label, self).full_representation()
-        atomic_group_class_rep = AtomicGroupClass.from_optional_instance(
-                self.instance.atomic_group).short_representation()
-        rep.update({'atomic_group_class': atomic_group_class_rep,
+        atomic_group_class = AtomicGroupClass.from_optional_instance(
+                self._request, self.instance.atomic_group)
+        rep.update({'atomic_group_class':
+                        atomic_group_class.short_representation(),
                     'hosts': LabelHosts(self).link()})
         return rep
 
@@ -139,10 +140,10 @@ class User(resource_lib.Entry):
 
 
     @classmethod
-    def from_uri_args(cls, username):
+    def from_uri_args(cls, request, username):
         if username == '@me':
-            return cls(models.User.current_user())
-        return cls(models.User.objects.get(login=username))
+            username = models.User.current_user().login
+        return cls(request, models.User.objects.get(login=username))
 
 
     def _uri_args(self):
@@ -199,8 +200,8 @@ class Acl(resource_lib.Entry):
     _permitted_methods = ('GET',)
 
     @classmethod
-    def from_uri_args(cls, name):
-        return cls(models.AclGroup.objects.get(name=name))
+    def from_uri_args(cls, request, name):
+        return cls(request, models.AclGroup.objects.get(name=name))
 
 
     def _uri_args(self):
@@ -284,8 +285,8 @@ class Host(EntryWithInvalid):
 
 
     @classmethod
-    def from_uri_args(cls, hostname):
-        return cls(models.Host.objects.get(hostname=hostname))
+    def from_uri_args(cls, request, hostname):
+        return cls(request, models.Host.objects.get(hostname=hostname))
 
 
     def _uri_args(self):
@@ -295,7 +296,8 @@ class Host(EntryWithInvalid):
     def short_representation(self):
         rep = super(Host, self).short_representation()
         # TODO calling platform() over and over is inefficient
-        platform_rep = (Label.from_optional_instance(self.instance.platform())
+        platform_rep = (Label.from_optional_instance(self._request,
+                                                     self.instance.platform())
                         .short_representation())
         rep.update({'hostname': self.instance.hostname,
                     'locked': bool(self.instance.locked),
@@ -308,7 +310,8 @@ class Host(EntryWithInvalid):
         rep = super(Host, self).full_representation()
         protection = host_protections.Protection.get_string(
                 self.instance.protection)
-        locked_by = (User.from_optional_instance(self.instance.locked_by)
+        locked_by = (User.from_optional_instance(self._request,
+                                                 self.instance.locked_by)
                      .short_representation())
         rep.update({'locked_by': locked_by,
                     'locked_on': self._format_datetime(self.instance.lock_time),
@@ -331,7 +334,7 @@ class Host(EntryWithInvalid):
                                           locked=True)
 
         if 'acls' in input_dict:
-            entry = Host(instance)
+            entry = Host(containing_collection._request, instance)
             HostAcls(entry).update(input_dict['acls'])
 
         instance.locked = False # restore default
@@ -350,8 +353,7 @@ class Host(EntryWithInvalid):
         self.instance.update_object(**data)
 
         if 'platform' in input_dict:
-            label = (resource_lib.Resource.resolve_link(input_dict['platform'])
-                     .instance)
+            label = self.resolve_link(input_dict['platform']) .instance
             if not label.platform:
                 raise BadRequest('Label %s is not a platform' % label.name)
             for label in self.instance.labels.filter(platform=True):
@@ -415,8 +417,8 @@ class HostHealthTasks(resource_lib.Relationship):
 
 class Test(resource_lib.Entry):
     @classmethod
-    def from_uri_args(cls, name):
-        return cls(models.Test.objects.get(name=name))
+    def from_uri_args(cls, request, name):
+        return cls(request, models.Test.objects.get(name=name))
 
 
     def _uri_args(self):
@@ -569,9 +571,10 @@ class ExecutionInfo(resource_lib.Resource):
                     machines_per_execution=cf_info['synch_count'])
 
 
-    def handle_request(self, request):
+    def handle_request(self):
         result = self.link()
-        result['execution_info'] = self._get_execution_info(request.REQUEST)
+        result['execution_info'] = self._get_execution_info(
+                self._request.REQUEST)
         return self._basic_response(result)
 
 
@@ -597,8 +600,8 @@ class QueueEntriesRequest(resource_lib.Resource):
         return []
 
 
-    def handle_request(self, request):
-        request_dict = request.REQUEST
+    def handle_request(self):
+        request_dict = self._request.REQUEST
         hosts = self._read_list(request_dict.get('hosts'))
         one_time_hosts = self._read_list(request_dict.get('one_time_hosts'))
         meta_hosts = self._read_list(request_dict.get('meta_hosts'))
@@ -610,10 +613,10 @@ class QueueEntriesRequest(resource_lib.Resource):
         for hostname in one_time_hosts:
             models.Host.create_one_time_host(hostname)
         for hostname in hosts:
-            entry = Host.from_uri_args(hostname)
+            entry = Host.from_uri_args(self._request, hostname)
             entries.append({'host': entry.link()})
         for label_name in meta_hosts:
-            entry = Label.from_uri_args(label_name)
+            entry = Label.from_uri_args(self._request, label_name)
             entries.append({'meta_host': entry.link()})
 
         result = self.link()
@@ -659,8 +662,8 @@ class Job(resource_lib.Entry):
 
 
     @classmethod
-    def from_uri_args(cls, job_id):
-        return cls(models.Job.objects.get(id=job_id))
+    def from_uri_args(cls, request, job_id):
+        return cls(request, models.Job.objects.get(id=job_id))
 
 
     def _uri_args(self):
@@ -726,14 +729,14 @@ class Job(resource_lib.Entry):
             if 'host' in queue_entry:
                 host = queue_entry['host']
                 if host: # can be None, indicated a hostless job
-                    host_entry = resource_lib.Resource.resolve_link(host)
+                    host_entry = containing_collection.resolve_link(host)
                     host_objects.append(host_entry.instance)
             elif 'meta_host' in queue_entry:
-                label_entry = resource_lib.Resource.resolve_link(
+                label_entry = containing_collection.resolve_link(
                         queue_entry['meta_host'])
                 metahost_label_objects.append(label_entry.instance)
             if 'atomic_group' in queue_entry:
-                atomic_group_entry = resource_lib.Resource.resolve_link(
+                atomic_group_entry = containing_collection.resolve_link(
                         queue_entry['atomic_group'])
                 if atomic_group:
                     assert atomic_group_entry.instance.id == atomic_group.id
@@ -773,12 +776,12 @@ class QueueEntry(resource_lib.Entry):
     _permitted_methods = ('GET', 'PUT')
 
     @classmethod
-    def from_uri_args(cls, job_id, queue_entry_id):
+    def from_uri_args(cls, request, job_id, queue_entry_id):
         instance = models.HostQueueEntry.objects.get(id=queue_entry_id)
         if instance.job.id != int(job_id):
             raise http.Http404('Incorrect job ID %r (expected %r)'
                                % (job_id, instance.job.id))
-        return cls(instance)
+        return cls(request, instance)
 
 
     def _uri_args(self):
@@ -788,18 +791,22 @@ class QueueEntry(resource_lib.Entry):
     def short_representation(self):
         rep = super(QueueEntry, self).short_representation()
         if self.instance.host:
-            host = Host(self.instance.host).short_representation()
+            host = (Host(self._request, self.instance.host)
+                    .short_representation())
         else:
             host = None
+        job = Job(self._request, self.instance.job)
+        host = Host.from_optional_instance(self._request, self.instance.host)
+        label = Label.from_optional_instance(self._request,
+                                             self.instance.meta_host)
+        atomic_group_class = AtomicGroupClass.from_optional_instance(
+                self._request, self.instance.atomic_group)
         rep.update(
-                {'job': Job(self.instance.job).short_representation(),
-                 'host': (Host.from_optional_instance(self.instance.host)
-                          .short_representation()),
-                 'label': (Label.from_optional_instance(self.instance.meta_host)
-                           .short_representation()),
+                {'job': job.short_representation(),
+                 'host': host.short_representation(),
+                 'label': label.short_representation(),
                  'atomic_group_class':
-                 AtomicGroupClass.from_optional_instance(
-                     self.instance.atomic_group).short_representation(),
+                     atomic_group_class.short_representation(),
                  'status': self.instance.status,
                  'execution_path': self.instance.execution_subdir,
                  'started_on': self._format_datetime(self.instance.started_on),
@@ -821,12 +828,12 @@ class HealthTask(resource_lib.Entry):
     _permitted_methods = ('GET',)
 
     @classmethod
-    def from_uri_args(cls, hostname, task_id):
+    def from_uri_args(cls, request, hostname, task_id):
         instance = models.SpecialTask.objects.get(id=task_id)
         if instance.host.hostname != hostname:
             raise http.Http404('Incorrect hostname %r (expected %r)'
                                % (hostname, instance.host.hostname))
-        return cls(instance)
+        return cls(request, instance)
 
 
     def _uri_args(self):
@@ -835,14 +842,16 @@ class HealthTask(resource_lib.Entry):
 
     def short_representation(self):
         rep = super(HealthTask, self).short_representation()
+        host = Host(self._request, self.instance.host)
+        queue_entry = QueueEntry.from_optional_instance(
+                self._request, self.instance.queue_entry)
         rep.update(
-                {'host': Host(self.instance.host).short_representation(),
+                {'host': host.short_representation(),
                  'task_type': self.instance.task,
                  'started_on':
                      self._format_datetime(self.instance.time_started),
                  'status': self.instance.status,
-                 'queue_entry': QueueEntry.from_optional_instance(
-                        self.instance.queue_entry).short_representation()
+                 'queue_entry': queue_entry.short_representation()
                  })
         return rep
 
@@ -864,17 +873,19 @@ class HealthTask(resource_lib.Entry):
 class ResourceDirectory(resource_lib.Resource):
     _permitted_methods = ('GET',)
 
-    def handle_request(self, request):
+    def handle_request(self):
         result = self.link()
         result.update({
-                'atomic_group_classes': AtomicGroupClassCollection().link(),
-                'labels': LabelCollection().link(),
-                'users': UserCollection().link(),
-                'acl_groups': AclCollection().link(),
-                'hosts': HostCollection().link(),
-                'tests': TestCollection().link(),
-                'execution_info': ExecutionInfo().link(),
-                'queue_entries_request': QueueEntriesRequest().link(),
-                'jobs': JobCollection().link(),
+                'atomic_group_classes':
+                AtomicGroupClassCollection(self._request).link(),
+                'labels': LabelCollection(self._request).link(),
+                'users': UserCollection(self._request).link(),
+                'acl_groups': AclCollection(self._request).link(),
+                'hosts': HostCollection(self._request).link(),
+                'tests': TestCollection(self._request).link(),
+                'execution_info': ExecutionInfo(self._request).link(),
+                'queue_entries_request':
+                QueueEntriesRequest(self._request).link(),
+                'jobs': JobCollection(self._request).link(),
                 })
         return self._basic_response(result)

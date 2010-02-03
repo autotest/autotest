@@ -10,7 +10,7 @@ from autotest_lib.frontend.afe import control_file, frontend_test_utils, models
 
 class ResourceTestCase(unittest.TestCase,
                        frontend_test_utils.FrontendTestMixin):
-    URI_PREFIX = '/afe/server/resources'
+    URI_PREFIX = 'http://testserver/afe/server/resources'
 
     CONTROL_FILE_CONTENTS = 'my control file contents'
 

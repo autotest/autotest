@@ -1,6 +1,7 @@
-import cgi, datetime, time, urllib
+import cgi, datetime, re, time, urllib
 from django import http
-from django.core import exceptions, urlresolvers
+import django.core.exceptions
+from django.core import urlresolvers
 from django.utils import simplejson
 from autotest_lib.frontend.shared import exceptions, query_lib
 from autotest_lib.frontend.afe import model_logic
@@ -32,27 +33,28 @@ class Resource(object):
     _permitted_methods = None # subclasses must override this
 
 
-    def __init__(self):
+    def __init__(self, request):
         assert self._permitted_methods
+        self._request = request
 
 
     @classmethod
     def dispatch_request(cls, request, *args, **kwargs):
         # handle a request directly
         try:
-            instance = cls.from_uri_args(*args, **kwargs)
-        except exceptions.ObjectDoesNotExist, exc:
+            instance = cls.from_uri_args(request, *args, **kwargs)
+        except django.core.exceptions.ObjectDoesNotExist, exc:
             raise http.Http404(exc)
-        return instance.handle_request(request)
+        return instance.handle_request()
 
 
-    def handle_request(self, request):
-        if request.method.upper() not in self._permitted_methods:
+    def handle_request(self):
+        if self._request.method.upper() not in self._permitted_methods:
             return http.HttpResponseNotAllowed(self._permitted_methods)
 
-        handler = getattr(self, request.method.lower())
+        handler = getattr(self, self._request.method.lower())
         try:
-            return handler(request)
+            return handler()
         except exceptions.RequestError, exc:
             return exc.response
 
@@ -60,7 +62,7 @@ class Resource(object):
     # the handler methods below only need to be overridden if the resource
     # supports the method
 
-    def get(self, request):
+    def get(self):
         """Handle a GET request.
 
         @returns an HttpResponse
@@ -68,7 +70,7 @@ class Resource(object):
         raise NotImplementedError
 
 
-    def post(self, request):
+    def post(self):
         """Handle a POST request.
 
         @returns an HttpResponse
@@ -76,7 +78,7 @@ class Resource(object):
         raise NotImplementedError
 
 
-    def put(self, request):
+    def put(self):
         """Handle a PUT request.
 
         @returns an HttpResponse
@@ -84,7 +86,7 @@ class Resource(object):
         raise NotImplementedError
 
 
-    def delete(self, request):
+    def delete(self):
         """Handle a DELETE request.
 
         @returns an HttpResponse
@@ -93,12 +95,12 @@ class Resource(object):
 
 
     @classmethod
-    def from_uri_args(cls):
+    def from_uri_args(cls, request):
         """Construct an instance from URI args.
 
         Default implementation for resources with no URI args.
         """
-        return cls()
+        return cls(request)
 
 
     def _uri_args(self):
@@ -121,26 +123,37 @@ class Resource(object):
     def href(self):
         """Return URI to this resource."""
         args, kwargs = self._uri_args()
-        return urlresolvers.reverse(self.dispatch_request, args=args,
+        path = urlresolvers.reverse(self.dispatch_request, args=args,
                                     kwargs=kwargs)
+        return self._request.build_absolute_uri(path)
 
 
-    @classmethod
-    def resolve_uri(cls, uri):
+    def resolve_uri(self, uri):
+        # check for absolute URIs
+        match = re.match(r'(?P<root>https?://[^/]+)(?P<path>/.*)', uri)
+        if match:
+            # is this URI for a different host?
+            my_root = self._request.build_absolute_uri('/')
+            request_root = match.group('root') + '/'
+            if my_root != request_root:
+                # might support this in the future, but not now
+                raise exceptions.BadRequest('Unable to resolve remote URI %s'
+                                            % uri)
+            uri = match.group('path')
+
         view_method, args, kwargs = urlresolvers.resolve(uri)
         resource_class = view_method.im_self # class owning this classmethod
-        return resource_class.from_uri_args(*args, **kwargs)
+        return resource_class.from_uri_args(self._request, *args, **kwargs)
 
 
-    @classmethod
-    def resolve_link(cls, link):
+    def resolve_link(self, link):
         if isinstance(link, dict):
             uri = link['href']
         elif isinstance(link, basestring):
             uri = link
         else:
             raise exceptions.BadRequest('Unable to understand link %s' % link)
-        return cls.resolve_uri(uri)
+        return self.resolve_uri(uri)
 
 
     def link(self):
@@ -163,10 +176,10 @@ class Resource(object):
                                  content_type=_JSON_CONTENT_TYPE)
 
 
-    @classmethod
-    def _decoded_input(cls, request):
-        content_type = request.META.get('CONTENT_TYPE', _JSON_CONTENT_TYPE)
-        raw_data = request.raw_post_data
+    def _decoded_input(self):
+        content_type = self._request.META.get('CONTENT_TYPE',
+                                              _JSON_CONTENT_TYPE)
+        raw_data = self._request.raw_post_data
         if content_type == _JSON_CONTENT_TYPE:
             try:
                 raw_dict = simplejson.loads(raw_data)
@@ -232,16 +245,16 @@ class Entry(Resource):
     QueryProcessor = query_lib.BaseQueryProcessor
 
 
-    def __init__(self, instance):
-        super(Entry, self).__init__()
+    def __init__(self, request, instance):
+        super(Entry, self).__init__(request)
         self.instance = instance
 
 
     @classmethod
-    def from_optional_instance(cls, instance):
+    def from_optional_instance(cls, request, instance):
         if instance is None:
             return cls._null_entry
-        return cls(instance)
+        return cls(request, instance)
 
 
     def short_representation(self):
@@ -252,19 +265,19 @@ class Entry(Resource):
         return self.short_representation()
 
 
-    def get(self, request):
+    def get(self):
         return self._basic_response(self.full_representation())
 
 
-    def put(self, request):
+    def put(self):
         try:
-            self.update(self._decoded_input(request))
+            self.update(self._decoded_input())
         except model_logic.ValidationError, exc:
             raise exceptions.BadRequest('Invalid input: %s' % exc)
         return self._basic_response(self.full_representation())
 
 
-    def delete(self, request):
+    def delete(self):
         self.instance.delete()
         return http.HttpResponse(status=204) # No content
 
@@ -287,8 +300,8 @@ class Collection(Resource):
     entry_class = None
 
 
-    def __init__(self):
-        super(Collection, self).__init__()
+    def __init__(self, request):
+        super(Collection, self).__init__(request)
         assert self.entry_class is not None
         if isinstance(self.entry_class, basestring):
             type(self).entry_class = _resolve_class_path(self.entry_class)
@@ -305,7 +318,7 @@ class Collection(Resource):
     def _representation(self, entry_instances):
         members = []
         for instance in entry_instances:
-            entry = self.entry_class(instance)
+            entry = self.entry_class(self._request, instance)
             members.append(entry.short_representation())
 
         rep = self.link()
@@ -313,7 +326,8 @@ class Collection(Resource):
         return rep
 
 
-    def _read_int_parameter(self, query_dict, name, default):
+    def _read_int_parameter(self, name, default):
+        query_dict = self._request.GET
         if name not in query_dict:
             return default
         input_value = query_dict[name]
@@ -324,9 +338,9 @@ class Collection(Resource):
                                         % (name, input_value))
 
 
-    def _apply_form_query(self, request, queryset):
+    def _apply_form_query(self, queryset):
         """Apply any query selectors passed as form variables."""
-        for parameter, values in request.GET.lists():
+        for parameter, values in self._request.GET.lists():
             if not self._query_processor.has_selector(parameter):
                 continue
             for value in values: # forms keys can have multiple values
@@ -336,16 +350,16 @@ class Collection(Resource):
         return queryset
 
 
-    def _filtered_queryset(self, request):
-        return self._apply_form_query(request, self._fresh_queryset())
+    def _filtered_queryset(self):
+        return self._apply_form_query(self._fresh_queryset())
 
 
-    def get(self, request):
-        queryset = self._filtered_queryset(request)
+    def get(self):
+        queryset = self._filtered_queryset()
 
-        items_per_page = self._read_int_parameter(request.GET, 'items_per_page',
+        items_per_page = self._read_int_parameter('items_per_page',
                                                   self._DEFAULT_ITEMS_PER_PAGE)
-        start_index = self._read_int_parameter(request.GET, 'start_index', 0)
+        start_index = self._read_int_parameter('start_index', 0)
         page = queryset[start_index:(start_index + items_per_page)]
 
         rep = self._representation(page)
@@ -364,11 +378,11 @@ class Collection(Resource):
         return self._representation(self._fresh_queryset())
 
 
-    def post(self, request):
-        input_dict = self._decoded_input(request)
+    def post(self):
+        input_dict = self._decoded_input()
         try:
             instance = self.entry_class.create_instance(input_dict, self)
-            entry = self.entry_class(instance)
+            entry = self.entry_class(self._request, instance)
             entry.update(input_dict)
         except model_logic.ValidationError, exc:
             raise exceptions.BadRequest('Invalid input: %s' % exc)
@@ -393,7 +407,7 @@ class Relationship(Collection):
                     self.base_entry_class)
         assert isinstance(base_entry, self.base_entry_class)
         self.base_entry = base_entry
-        super(Relationship, self).__init__()
+        super(Relationship, self).__init__(base_entry._request)
 
 
     def _fresh_queryset(self):
@@ -402,8 +416,9 @@ class Relationship(Collection):
 
 
     @classmethod
-    def from_uri_args(cls, *args, **kwargs):
-        base_entry = cls.base_entry_class.from_uri_args(*args, **kwargs)
+    def from_uri_args(cls, request, *args, **kwargs):
+        base_entry = cls.base_entry_class.from_uri_args(request, *args,
+                                                        **kwargs)
         return cls(base_entry)
 
 
@@ -412,16 +427,12 @@ class Relationship(Collection):
 
 
     @classmethod
-    def _read_hrefs(cls, links):
-        return [link['href'] for link in links]
-
-
-    @classmethod
-    def _input_collection_hrefs(cls, input_data):
+    def _input_collection_links(cls, input_data):
         """Get the members of a user-provided collection.
 
         Tries to be flexible about formats accepted from the user.
-        @returns a list of hrefs
+        @returns a list of links, possibly only href strings (use
+                resolve_link())
         """
         if isinstance(input_data, dict) and 'members' in input_data:
             # this mirrors the output representation for collections
@@ -435,30 +446,22 @@ class Relationship(Collection):
                 raise exceptions.BadRequest('You must retreive the full '
                                             'collection to perform updates')
 
-            return cls._read_hrefs(input_data['members'])
+            return input_data['members']
         if isinstance(input_data, list):
-            if not input_data:
-                return input_data
-            if isinstance(input_data[0], dict):
-                # assume it's a list of links
-                return cls._read_hrefs(input_data)
-            if isinstance(input_data[0], basestring):
-                # assume it's a list of hrefs
-                return input_data
+            return input_data
         raise exceptions.BadRequest('Cannot understand collection in input: %r'
                                     % input_data)
 
 
-    def put(self, request):
-        input_data = self._decoded_input(request)
+    def put(self):
+        input_data = self._decoded_input()
         self.update(input_data)
-        return self.get(request)
+        return self.get()
 
 
     def update(self, input_data):
-        hrefs = self._input_collection_hrefs(input_data)
-        instances = [self.entry_class.resolve_uri(href).instance
-                     for href in hrefs]
+        links = self._input_collection_links(input_data)
+        instances = [self.resolve_link(link).instance for link in links]
         self._update_relationship(instances)
 
 
