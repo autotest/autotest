@@ -15,8 +15,6 @@ from autotest_lib.client.common_lib.test_utils import mock
 class job_unittest(cli_mock.cli_unittest):
     def setUp(self):
         super(job_unittest, self).setUp()
-        self.god.stub_function(getpass, 'getuser')
-        getpass.getuser.expect_call().and_return('user0')
         self.values = copy.deepcopy(self.values_template)
 
     results = [{u'status_counts': {u'Aborted': 1},
@@ -103,6 +101,7 @@ class job_unittest(cli_mock.cli_unittest):
 
 class job_list_unittest(job_unittest):
     def test_job_list_jobs(self):
+        self.god.stub_function(getpass, 'getuser')
         getpass.getuser.expect_call().and_return('user0')
         self.run_cmd(argv=['atest', 'job', 'list', '--ignore_site_file'],
                      rpcs=[('get_jobs_summary', {'owner': 'user0',

@@ -5,12 +5,12 @@
 import os, getpass
 from autotest_lib.frontend.afe import rpc_client_lib
 from autotest_lib.frontend.afe.json_rpc import proxy
-from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib import global_config, utils
 
 GLOBAL_CONFIG = global_config.global_config
 DEFAULT_SERVER = 'autotest'
-AFE_RPC_PATH = '/afe/server/noauth/rpc/'
-TKO_RPC_PATH = '/new_tko/server/noauth/rpc/'
+AFE_RPC_PATH = '/afe/server/rpc/'
+TKO_RPC_PATH = '/new_tko/server/rpc/'
 
 
 def get_autotest_server(web_server=None):
@@ -29,6 +29,20 @@ def get_autotest_server(web_server=None):
     return web_server
 
 
+def base_authorization_headers(username, server):
+    if not username:
+        if 'AUTOTEST_USER' in os.environ:
+            username = os.environ['AUTOTEST_USER']
+        else:
+            username = getpass.getuser()
+    return {'AUTHORIZATION' : username}
+
+
+authorization_headers = utils.import_site_function(
+        __file__, 'autotest_lib.cli.site_rpc', 'authorization_headers',
+        base_authorization_headers)
+
+
 class rpc_comm(object):
     """Shared AFE/TKO RPC class stuff"""
     def __init__(self, web_server, rpc_path, username):
@@ -40,13 +54,7 @@ class rpc_comm(object):
     def _connect(self, rpc_path):
         # This does not fail even if the address is wrong.
         # We need to wait for an actual RPC to fail
-        if self.username:
-            username = self.username
-        elif 'AUTOTEST_USER' in os.environ:
-            username = os.environ['AUTOTEST_USER']
-        else:
-            username = getpass.getuser()
-        headers = {'AUTHORIZATION' : username}
+        headers = authorization_headers(self.username, self.web_server)
         rpc_server = self.web_server + rpc_path
         return rpc_client_lib.get_proxy(rpc_server, headers=headers)
 
