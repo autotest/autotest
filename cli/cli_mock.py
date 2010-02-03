@@ -32,6 +32,11 @@ class cli_unittest(unittest.TestCase):
         self.god.stub_class_method(rpc.afe_comm, 'run')
         self.god.stub_function(sys, 'exit')
 
+        def stub_authorization_headers(*args, **kwargs):
+            return {}
+        self.god.stub_with(rpc, 'authorization_headers',
+                           stub_authorization_headers)
+
 
     def tearDown(self):
         super(cli_unittest, self).tearDown()
