@@ -20,66 +20,60 @@ include cdkeys.cfg
 #cdrom.* ?<= /tmp/kvm_autotest_root/
 #steps ?<= /tmp/kvm_autotest_root/
 
-# You will notice that in all test definition blocks we have 'only qemu-kvm'
-# set. This means that qemu-kvm command line syntax will be used. If you
-# intend to test qemu upstream, you'll have to change that to 'only qemu'.
+# Here are the test sets variants. The variant 'qemu_kvm_windows_quick' is
+# fully commented, the following ones have comments only on noteworthy points
 variants:
+    # Runs all variants defined. HUGE test set.
     - @full:
-        only qemu-kvm
-    - @sample1:
-        only qemu-kvm
-        only no_pci_assignable
-        only Fedora Windows
-    - @sample2:
-        only qemu-kvm
+
+    # Runs qemu-kvm, Windows Vista 64 bit guest OS, install, boot, shutdown
+    - @qemu_kvm_windows_quick:
+        # Only qcow2 file format
         only qcow2
-        only ide
-        only default
-        only up
-        only no_pci_assignable
-        only Fedora.9.* RHEL.5.* Windows
+        # Only rtl8139 for nw card (default on qemu-kvm)
         only rtl8139
-    - @sample3:
-        only qemu-kvm
-        only no_pci_assignable
-        only qcow2.*ide.*default.*up.*Ubuntu-8.10-server.*(autotest.sleeptest)
-        only rtl8139
-    - @fc8_step:
-        only qemu-kvm
-        only qcow2
+        # Only ide hard drives
         only ide
-        only default
-        only up
+        # acpi means that acpi and kvm irq chip are enabled
+        only acpi
+        # qemu-kvm will start only with -smp 2 (2 processors)
+        only smp2
+        # No PCI assignable devices
         only no_pci_assignable
-        only Fedora.8.32
-        only install setup boot shutdown
-        only rtl8139
-        only hugepages
-    - @winXP_32_unattended:
-        only qemu-kvm
-        only qcow2
-        only ide
-        only default
-        only up
-        only no_pci_assignable
-        only WinXP.32
-        no install setup
-        no hugepages
+        # No large memory pages
+        only smallpages
+        # Operating system choice
+        only WinVista.64
+        # Subtest choice. You can modify that line to add more subtests
         only unattended_install boot shutdown
-        only rtl8139
-    - @fc11_kickstart:
-        only qemu-kvm
+
+    # Runs qemu, f12 64 bit guest OS, install, boot, shutdown
+    - @qemu_f12_quick:
         only qcow2
+        # The default nw card for qemu is e1000
+        only e1000
         only ide
-        only default
+        only acpi
+        # qemu using kvm doesn't support smp yet
         only up
         only no_pci_assignable
-        only Fedora.11.64
-        no install setup
-        no hugepages
+        only smallpages
+        only Fedora.12.64
         only unattended_install boot shutdown
+        # qemu needs -enable-kvm on the cmdline
+        extra_params = ' -enable-kvm'
+
+    # Runs qemu-kvm, f12 64 bit guest OS, install, boot, shutdown
+    - @qemu_kvm_f12_quick:
+        only qcow2
         only rtl8139
+        only ide
+        only acpi
+        only smp2
+        only no_pci_assignable
+        only smallpages
+        only Fedora.12.64
+        only unattended_install boot shutdown
 
 # Choose your test list from the testsets defined
-only fc11_kickstart
-
+only qemu_kvm_f12_quick
