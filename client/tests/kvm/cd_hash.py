@@ -10,11 +10,6 @@ import common, kvm_utils
 from autotest_lib.client.common_lib import logging_config, logging_manager
 
 
-class KvmLoggingConfig(logging_config.LoggingConfig):
-    def configure_logging(self, results_dir=None, verbose=False):
-        super(KvmLoggingConfig, self).configure_logging(use_console=True,
-                                                        verbose=verbose)
-
 if __name__ == "__main__":
     parser = optparse.OptionParser()
     parser.add_option('-i', '--iso', type="string", dest="filename",
@@ -25,7 +20,7 @@ if __name__ == "__main__":
     options, args = parser.parse_args()
     filename = options.filename
 
-    logging_manager.configure_logging(KvmLoggingConfig())
+    logging_manager.configure_logging(kvm_utils.KvmLoggingConfig())
 
     if not filename:
         parser.print_help()
