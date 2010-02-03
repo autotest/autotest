@@ -598,8 +598,6 @@ class VM:
             # Is it already dead?
             if self.is_dead():
                 logging.debug("VM is already down")
-                if self.pci_assignable:
-                    self.pci_assignable.release_devs()
                 return
 
             logging.debug("Destroying VM with PID %d..." %
@@ -620,9 +618,6 @@ class VM:
                             return
                     finally:
                         session.close()
-                        if self.pci_assignable:
-                            self.pci_assignable.release_devs()
-
 
             # Try to destroy with a monitor command
             logging.debug("Trying to kill VM with monitor command...")
@@ -632,8 +627,6 @@ class VM:
                 # Wait for the VM to be really dead
                 if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
                     logging.debug("VM is down")
-                    if self.pci_assignable:
-                        self.pci_assignable.release_devs()
                     return
 
             # If the VM isn't dead yet...
@@ -643,13 +636,13 @@ class VM:
             # Wait for the VM to be really dead
             if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
                 logging.debug("VM is down")
-                if self.pci_assignable:
-                    self.pci_assignable.release_devs()
                 return
 
             logging.error("Process %s is a zombie!" % self.process.get_pid())
 
         finally:
+            if self.pci_assignable:
+                self.pci_assignable.release_devs()
             if self.process:
                 self.process.close()
             try:
