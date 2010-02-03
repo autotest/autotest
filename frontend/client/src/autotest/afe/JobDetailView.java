@@ -315,6 +315,16 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     }
     
     private String getTriageUrl(int jobId) {
+        /*
+         * Having a hard-coded path like this is very unfortunate, but there's no simple way
+         * in the current design to generate this link by code.
+         * 
+         * TODO: Redesign the system so that we can generate these links by code.
+         * 
+         * Idea: Be able to instantiate a TableView object, ask it to set up to triage this job ID,
+         *       and then ask it for the history URL.
+         */
+        
         return "/new_tko/#tab_id=table_view&columns=test_name%252Cstatus%252Cgroup_count%252C" +
                "reason&sort=test_name%252Cstatus%252Creason&condition=afe_job_id+%253D+" + jobId +
                "+AND+status+%253C%253E+%2527GOOD%2527&show_invalid=false";
