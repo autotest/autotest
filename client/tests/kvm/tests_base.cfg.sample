@@ -73,6 +73,7 @@ variants:
 
     - boot:         install setup unattended_install
         type = boot
+        restart_vm = yes
         kill_vm_on_error = yes
 
     - reboot:       install setup unattended_install
