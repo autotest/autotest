@@ -237,25 +237,6 @@ variants:
             - fmt_raw:
                 image_format_stg = raw
 
-    - system_reset: install setup unattended_install
-        type = boot
-        reboot_method = system_reset
-        sleep_before_reset = 20
-        kill_vm_on_error = yes
-
-    - system_powerdown: install setup unattended_install
-        type = shutdown
-        shutdown_method = system_powerdown
-        sleep_before_powerdown = 20
-        kill_vm = yes
-        kill_vm_gracefully = no
-
-    - shutdown:     install setup unattended_install
-        type = shutdown
-        shutdown_method = shell
-        kill_vm = yes
-        kill_vm_gracefully = no
-
     - vlan_tag:  install setup unattended_install
         type = vlan_tag
         # subnet should not be used by host
@@ -271,6 +252,29 @@ variants:
     - physical_resources_check: install setup unattended_install
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
+
+    # system_powerdown, system_reset and shutdown *must* be the last ones
+    # defined (in this order), since the effect of such tests can leave
+    # the VM on a bad state.
+    - system_powerdown: install setup unattended_install
+        type = shutdown
+        shutdown_method = system_powerdown
+        sleep_before_powerdown = 20
+        kill_vm = yes
+        kill_vm_gracefully = no
+
+    - system_reset: install setup unattended_install
+        type = boot
+        reboot_method = system_reset
+        sleep_before_reset = 20
+        kill_vm_on_error = yes
+
+    - shutdown:     install setup unattended_install
+        type = shutdown
+        shutdown_method = shell
+        kill_vm = yes
+        kill_vm_gracefully = no
+    # Do not define test variants below shutdown
 
 # NICs
 variants:
