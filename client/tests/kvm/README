@@ -1,3 +1,20 @@
-In order to get started, please refer to the online documentation:
+For the impatient:
+
+Execute the get_started.py script located on this directory,
+that will guide you through setting up the default kvm test
+scenario:
+
+ * Guest install with Fedora 12
+ * Boot, reboot and shutdown test
+
+The script will help you to create all the directories, and
+even get the OS iso in case you don't have it yet.
+
+For the not so impatient:
+
+You are *strongly* advised to read the online docs:
 
 http://www.linux-kvm.org/page/KVM-Autotest/Client_Install
+
+So you can have a better idea of how the test is organized
+and how it works.
