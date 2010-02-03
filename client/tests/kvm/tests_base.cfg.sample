@@ -62,8 +62,6 @@ variants:
 
     - unattended_install:
         type = unattended_install
-        # Unattended install also perform guest setup, so setup is not needed
-        no setup
         kill_vm_on_error = yes
         force_create_image = yes
         pre_command = scripts/unattended.py
@@ -386,7 +384,7 @@ variants:
                             unattended_file = unattended/Fedora-12.ks
 
                     - 12.64:
-                        image_name = fc11-64
+                        image_name = fc12-64
                         unattended_install:
                             cdrom = linux/Fedora-12-x86_64-DVD.iso
                             md5sum = 6dd31e292cc2eb1140544e9b1ba61c56
@@ -894,12 +892,6 @@ linux_s3:
 
 
 variants:
-    - @qemu-kvm:
-    - qemu:
-        extra_params += " -enable-kvm"
-
-
-variants:
     - @up:
         no autotest.npb
     - smp2:
@@ -910,7 +902,7 @@ variants:
 
 
 variants:
-    - @default:
+    - @acpi:
     - noacpi:
         only Fedora Ubuntu Windows
         no WinVista Win2008
@@ -932,7 +924,7 @@ variants:
 
 
 virtio|virtio_blk|e1000:
-    only Fedora.9 openSUSE-11 Ubuntu-8.10-server
+    only Fedora.9 Fedora.10 Fedora.11 Fedora.12 Win2008 WinVista Win7 openSUSE-11 Ubuntu-8.10-server
 
 
 variants:
@@ -942,13 +934,13 @@ variants:
         only Fedora Ubuntu Windows
         only smp2
         only rtl8139
-        only default
+        only acpi
         image_format = vmdk
     - raw:
         only Fedora Ubuntu Windows
         only smp2
         only rtl8139
-        only default
+        only acpi
         image_format = raw
 
 
