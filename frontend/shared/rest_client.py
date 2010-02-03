@@ -3,9 +3,6 @@ import httplib2
 from django.utils import simplejson
 
 
-_RESOURCE_DIRECTORY_PATH = '/afe/server/resources/'
-
-
 _http = httplib2.Http()
 
 
@@ -37,9 +34,7 @@ class Response(object):
 
 
 class Resource(object):
-    def __init__(self, base_uri, representation_dict):
-        self._base_uri = base_uri
-
+    def __init__(self, representation_dict):
         assert 'href' in representation_dict
         for key, value in representation_dict.iteritems():
             setattr(self, str(key), value)
@@ -55,8 +50,8 @@ class Resource(object):
 
 
     @classmethod
-    def directory(cls, base_uri):
-        directory = cls(base_uri, {'href': _RESOURCE_DIRECTORY_PATH})
+    def load(cls, uri):
+        directory = cls({'href': uri})
         return directory.get()
 
 
@@ -68,7 +63,7 @@ class Resource(object):
             converted_dict = dict((key, self._read_representation(sub_value))
                                   for key, sub_value in value.iteritems())
             if 'href' in converted_dict:
-                return type(self)(self._base_uri, converted_dict)
+                return type(self)(converted_dict)
             return converted_dict
         return value
 
@@ -92,30 +87,37 @@ class Resource(object):
                     and not callable(value))
 
 
-    def _request(self, method, query_parameters=None, encoded_body=None):
-        uri_parts = []
-        if not re.match(r'^https?://', self.href):
-            uri_parts.append(self._base_uri)
-        uri_parts.append(self.href)
+    @classmethod
+    def _do_request(self, method, uri, query_parameters, encoded_body):
         if query_parameters:
-            query_string = urllib.urlencode(query_parameters)
-            uri_parts.extend(['?', query_string])
+            query_string = '?' + urllib.urlencode(query_parameters)
+        else:
+            query_string = ''
+        full_uri = uri + query_string
 
         if encoded_body:
             entity_body = simplejson.dumps(encoded_body)
         else:
             entity_body = None
 
-        full_uri = ''.join(uri_parts)
         logging.debug('%s %s', method, full_uri)
         if entity_body:
             logging.debug(entity_body)
         headers, response_body = _http.request(
-                ''.join(uri_parts), method, body=entity_body,
+                full_uri, method, body=entity_body,
                 headers={'Content-Type': 'application/json'})
         logging.debug('Response: %s', headers['status'])
 
-        response = Response(headers, response_body)
+        return Response(headers, response_body)
+
+
+    def _request(self, method, query_parameters=None, encoded_body=None):
+        if query_parameters is None:
+            query_parameters = {}
+
+        response = self._do_request(method, self.href, query_parameters,
+                                    encoded_body)
+
         if 300 <= response.status < 400: # redirection
             raise NotImplementedError(str(response)) # TODO
         if 400 <= response.status < 500:
