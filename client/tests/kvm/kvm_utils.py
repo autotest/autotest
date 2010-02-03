@@ -7,7 +7,7 @@ KVM test utility functions.
 import md5, sha, thread, subprocess, time, string, random, socket, os, signal
 import select, re, logging, commands, cPickle, pty
 from autotest_lib.client.bin import utils
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, logging_config
 import kvm_subprocess
 
 
@@ -968,6 +968,16 @@ def get_vendor_from_pci_id(pci_id):
     """
     cmd = "lspci -n | awk '/%s/ {print $3}'" % pci_id
     return re.sub(":", " ", commands.getoutput(cmd))
+
+
+class KvmLoggingConfig(logging_config.LoggingConfig):
+    """
+    Used with the sole purpose of providing convenient logging setup
+    for the KVM test auxiliary programs.
+    """
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(KvmLoggingConfig, self).configure_logging(use_console=True,
+                                                        verbose=verbose)
 
 
 class PciAssignable(object):

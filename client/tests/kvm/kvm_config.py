@@ -7,14 +7,9 @@ KVM configuration file utility functions.
 
 import logging, re, os, sys, StringIO, optparse
 import common
+import kvm_utils
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import logging_config, logging_manager
-
-
-class KvmLoggingConfig(logging_config.LoggingConfig):
-    def configure_logging(self, results_dir=None, verbose=False):
-        super(KvmLoggingConfig, self).configure_logging(use_console=True,
-                                                        verbose=verbose)
 
 
 class config:
@@ -517,7 +512,7 @@ if __name__ == "__main__":
 
     # Here we configure the stand alone program to use the autotest
     # logging system.
-    logging_manager.configure_logging(KvmLoggingConfig(), verbose=debug)
+    logging_manager.configure_logging(kvm_utils.KvmLoggingConfig(), verbose=debug)
     list = config(filename, debug=debug).get_list()
     i = 0
     for dict in list:
