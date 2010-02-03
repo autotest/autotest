@@ -148,9 +148,11 @@ def process_command(test, params, env, command, command_timeout,
                                              logging.debug, "(command) ",
                                              timeout=command_timeout)
     if status != 0:
-        logging.warn("Custom processing command failed: '%s'" % command)
+        logging.warn("Custom processing command failed: '%s'; Output is: %s" %
+                                                            (command, output))
         if not command_noncritical:
-            raise error.TestError("Custom processing command failed")
+            raise error.TestError("Custom processing command failed: %s" %
+                                                                   output)
 
 
 def process(test, params, env, image_func, vm_func):
