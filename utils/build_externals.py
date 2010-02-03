@@ -749,6 +749,17 @@ class SimplejsonPackage(ExternalPackage):
                         ExternalPackage._build_and_install_current_dir_setup_py)
 
 
+class Httplib2Package(ExternalPackage):
+    version = '0.6.0'
+    local_filename = 'httplib2-%s.tar.gz' % version
+    urls = ('http://httplib2.googlecode.com/files/' + local_filename,)
+    hex_sum = '995344b2704826cc0d61a266e995b328d92445a5'
+
+    _build_and_install = ExternalPackage._build_and_install_from_package
+    _build_and_install_current_dir = (
+                        ExternalPackage._build_and_install_current_dir_noegg)
+
+
 class GwtPackage(ExternalPackage):
     """Fetch and extract a local copy of GWT used to build the frontend."""
 
