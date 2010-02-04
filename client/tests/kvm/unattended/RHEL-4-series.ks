@@ -28,6 +28,7 @@ reboot
 
 %post --interpreter /usr/bin/python
 import socket, os
+os.system('dhclient')
 os.system('chkconfig sshd on')
 os.system('iptables -F')
 os.system('echo 0 > /selinux/enforce')

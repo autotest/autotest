@@ -28,6 +28,7 @@ skipx
 
 %post --interpreter /usr/bin/python
 import socket, os
+os.system('dhclient')
 os.system('chkconfig sshd on')
 os.system('iptables -F')
 port = 12323
