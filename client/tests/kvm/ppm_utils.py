@@ -4,8 +4,8 @@ Utility functions to deal with ppm (qemu screendump format) files.
 @copyright: Red Hat 2008-2009
 """
 
-import md5, os, struct, time, re
-
+import os, struct, time, re
+from autotest_lib.client.bin import utils
 
 # Some directory/filename utils, for consistency
 
@@ -120,9 +120,9 @@ def image_md5sum(width, height, data):
     @data: PPM file data
     """
     header = "P6\n%d %d\n255\n" % (width, height)
-    md5obj = md5.new(header)
-    md5obj.update(data)
-    return md5obj.hexdigest()
+    hash = utils.hash('md5', header)
+    hash.update(data)
+    return hash.hexdigest()
 
 
 def get_region_md5sum(width, height, data, x1, y1, dx, dy,
