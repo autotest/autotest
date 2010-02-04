@@ -70,18 +70,19 @@ if __name__ == "__main__":
         if iso_download == 'y':
             utils.unmap_url_cache(iso_dir, url, md5sum)
         else:
-            logging.warning("Missing file %s. Please download it" % iso_path)
+            logging.warning("Missing file %s. Please download it", iso_path)
     else:
-        logging.debug("%s present, with proper checksum")
+        logging.debug("%s present, with proper checksum", iso_path)
 
     logging.info("4 - Checking if qemu is installed (certify qemu and qemu-kvm "
                  "are in the place the default config expects)")
     qemu_default_paths = ['/usr/bin/qemu-kvm', '/usr/bin/qemu-img']
     for qemu_path in qemu_default_paths:
         if not os.path.isfile(qemu_path):
-            logging.warning("No %s found. You might need to install qemu-kvm.")
+            logging.warning("No %s found. You might need to install qemu-kvm.",
+                            qemu_path)
         else:
-            logging.debug("%s present" % qemu_path)
+            logging.debug("%s present", qemu_path)
 
     logging.info("5 - Checking for the KVM module (make sure kvm is loaded "
                  "to accelerate qemu-kvm)")
