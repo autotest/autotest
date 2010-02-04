@@ -7,6 +7,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 
 import time, socket, os, logging, fcntl, re, commands
 import kvm_utils, kvm_subprocess
+from autotest_lib.client.bin import utils
 
 
 def get_image_filename(params, root_dir):
@@ -362,19 +363,19 @@ class VM:
             if params.get("md5sum_1m"):
                 logging.debug("Comparing expected MD5 sum with MD5 sum of "
                               "first MB of ISO file...")
-                actual_hash = kvm_utils.hash_file(iso, 1048576, method="md5")
+                actual_hash = utils.hash_file(iso, 1048576, method="md5")
                 expected_hash = params.get("md5sum_1m")
                 compare = True
             elif params.get("md5sum"):
                 logging.debug("Comparing expected MD5 sum with MD5 sum of ISO "
                               "file...")
-                actual_hash = kvm_utils.hash_file(iso, method="md5")
+                actual_hash = utils.hash_file(iso, method="md5")
                 expected_hash = params.get("md5sum")
                 compare = True
             elif params.get("sha1sum"):
                 logging.debug("Comparing expected SHA1 sum with SHA1 sum of "
                               "ISO file...")
-                actual_hash = kvm_utils.hash_file(iso, method="sha1")
+                actual_hash = utils.hash_file(iso, method="sha1")
                 expected_hash = params.get("sha1sum")
                 compare = True
             if compare:

@@ -767,42 +767,6 @@ def wait_for(func, timeout, first=0.0, step=1.0, text=None):
     return None
 
 
-def hash_file(filename, size=None, method="md5"):
-    """
-    Calculate the hash of filename.
-    If size is not None, limit to first size bytes.
-    Throw exception if something is wrong with filename.
-    Can be also implemented with bash one-liner (assuming size%1024==0):
-    dd if=filename bs=1024 count=size/1024 | sha1sum -
-
-    @param filename: Path of the file that will have its hash calculated.
-    @param method: Method used to calculate the hash. Supported methods:
-            * md5
-            * sha1
-    @returns: Hash of the file, if something goes wrong, return None.
-    """
-    chunksize = 4096
-    fsize = os.path.getsize(filename)
-
-    if not size or size > fsize:
-        size = fsize
-    f = open(filename, 'rb')
-
-    hash = utils.hash(method)
-
-    while size > 0:
-        if chunksize > size:
-            chunksize = size
-        data = f.read(chunksize)
-        if len(data) == 0:
-            logging.debug("Nothing left to read but size=%d" % size)
-            break
-        hash.update(data)
-        size -= len(data)
-    f.close()
-    return hash.hexdigest()
-
-
 def get_hash_from_file(hash_path, dvd_basename):
     """
     Get the a hash from a given DVD image from a hash file
@@ -816,58 +780,6 @@ def get_hash_from_file(hash_path, dvd_basename):
     for line in hash_file.readlines():
         if dvd_basename in line:
             return line.split()[0]
-
-
-def unmap_url_cache(cachedir, url, expected_hash, method="md5"):
-    """
-    Downloads a file from a URL to a cache directory. If the file is already
-    at the expected position and has the expected hash, let's not download it
-    again.
-
-    @param cachedir: Directory that might hold a copy of the file we want to
-            download.
-    @param url: URL for the file we want to download.
-    @param expected_hash: Hash string that we expect the file downloaded to
-            have.
-    @param method: Method used to calculate the hash string (md5, sha1).
-    """
-    # Let's convert cachedir to a canonical path, if it's not already
-    cachedir = os.path.realpath(cachedir)
-    if not os.path.isdir(cachedir):
-        try:
-            os.makedirs(cachedir)
-        except:
-            raise ValueError('Could not create cache directory %s' % cachedir)
-    file_from_url = os.path.basename(url)
-    file_local_path = os.path.join(cachedir, file_from_url)
-
-    file_hash = None
-    failure_counter = 0
-    while not file_hash == expected_hash:
-        if os.path.isfile(file_local_path):
-            file_hash = hash_file(file_local_path, method)
-            if file_hash == expected_hash:
-                # File is already at the expected position and ready to go
-                src = file_from_url
-            else:
-                # Let's download the package again, it's corrupted...
-                logging.error("Seems that file %s is corrupted, trying to "
-                              "download it again" % file_from_url)
-                src = url
-                failure_counter += 1
-        else:
-            # File is not there, let's download it
-            src = url
-        if failure_counter > 1:
-            raise EnvironmentError("Consistently failed to download the "
-                                   "package %s. Aborting further download "
-                                   "attempts. This might mean either the "
-                                   "network connection has problems or the "
-                                   "expected hash string that was determined "
-                                   "for this file is wrong" % file_from_url)
-        file_path = utils.unmap_url(cachedir, src, cachedir)
-
-    return file_path
 
 
 def run_tests(test_list, job):

@@ -94,41 +94,95 @@ def extract_tarball(tarball):
         raise NameError('extracting tarball produced no dir')
 
 
-def get_md5sum(file_path):
-    """Gets the md5sum of a file. You must provide a valid path to the file"""
-    if not os.path.isfile(file_path):
-        raise ValueError, 'invalid file %s to verify' % file_path
-    md5sum = utils.system_output("md5sum " + file_path)
-    return md5sum.split()[0]
+def hash_file(filename, size=None, method="md5"):
+    """
+    Calculate the hash of filename.
+    If size is not None, limit to first size bytes.
+    Throw exception if something is wrong with filename.
+    Can be also implemented with bash one-liner (assuming size%1024==0):
+    dd if=filename bs=1024 count=size/1024 | sha1sum -
+
+    @param filename: Path of the file that will have its hash calculated.
+    @param method: Method used to calculate the hash. Supported methods:
+            * md5
+            * sha1
+    @returns: Hash of the file, if something goes wrong, return None.
+    """
+    chunksize = 4096
+    fsize = os.path.getsize(filename)
+
+    if not size or size > fsize:
+        size = fsize
+    f = open(filename, 'rb')
+
+    try:
+        hash = utils.hash(method)
+    except ValueError:
+        logging.error("Unknown hash type %s, returning None" % method)
+
+    while size > 0:
+        if chunksize > size:
+            chunksize = size
+        data = f.read(chunksize)
+        if len(data) == 0:
+            logging.debug("Nothing left to read but size=%d" % size)
+            break
+        hash.update(data)
+        size -= len(data)
+    f.close()
+    return hash.hexdigest()
 
 
-def unmap_url_cache(cachedir, url, expected_md5):
+def unmap_url_cache(cachedir, url, expected_hash, method="md5"):
     """
     Downloads a file from a URL to a cache directory. If the file is already
-    at the expected position and has the expected md5 number, let's not
-    download it again.
+    at the expected position and has the expected hash, let's not download it
+    again.
+
+    @param cachedir: Directory that might hold a copy of the file we want to
+            download.
+    @param url: URL for the file we want to download.
+    @param expected_hash: Hash string that we expect the file downloaded to
+            have.
+    @param method: Method used to calculate the hash string (md5, sha1).
     """
     # Let's convert cachedir to a canonical path, if it's not already
     cachedir = os.path.realpath(cachedir)
     if not os.path.isdir(cachedir):
         try:
-            utils.system('mkdir -p ' + cachedir)
+            os.makedirs(cachedir)
         except:
             raise ValueError('Could not create cache directory %s' % cachedir)
     file_from_url = os.path.basename(url)
     file_local_path = os.path.join(cachedir, file_from_url)
-    if os.path.isfile(file_local_path):
-        file_md5 = get_md5sum(file_local_path)
-        if file_md5 == expected_md5:
-            # File is already at the expected position and ready to go
-            src = file_from_url
+
+    file_hash = None
+    failure_counter = 0
+    while not file_hash == expected_hash:
+        if os.path.isfile(file_local_path):
+            file_hash = hash_file(file_local_path, method)
+            if file_hash == expected_hash:
+                # File is already at the expected position and ready to go
+                src = file_from_url
+            else:
+                # Let's download the package again, it's corrupted...
+                logging.error("Seems that file %s is corrupted, trying to "
+                              "download it again" % file_from_url)
+                src = url
+                failure_counter += 1
         else:
-            # Let's download the package again, it's corrupted...
+            # File is not there, let's download it
             src = url
-    else:
-        # File is not there, let's download it
-        src = url
-    return utils.unmap_url(cachedir, src, cachedir)
+        if failure_counter > 1:
+            raise EnvironmentError("Consistently failed to download the "
+                                   "package %s. Aborting further download "
+                                   "attempts. This might mean either the "
+                                   "network connection has problems or the "
+                                   "expected hash string that was determined "
+                                   "for this file is wrong" % file_from_url)
+        file_path = utils.unmap_url(cachedir, src, cachedir)
+
+    return file_path
 
 
 def force_copy(src, dest):

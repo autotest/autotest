@@ -6,8 +6,9 @@ Program that calculates several hashes for a given CD image.
 """
 
 import os, sys, optparse, logging
-import common, kvm_utils
+import common
 from autotest_lib.client.common_lib import logging_config, logging_manager
+from autotest_lib.client.bin import utils
 
 
 if __name__ == "__main__":
@@ -39,11 +40,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     logging.info("Hash values for file %s", os.path.basename(filename))
-    logging.info("md5    (1m): %s", kvm_utils.hash_file(filename, 1024*1024,
-                                                        method="md5"))
-    logging.info("sha1   (1m): %s", kvm_utils.hash_file(filename, 1024*1024,
-                                                        method="sha1"))
-    logging.info("md5  (full): %s", kvm_utils.hash_file(filename,
-                                                        method="md5"))
-    logging.info("sha1 (full): %s", kvm_utils.hash_file(filename,
-                                                        method="sha1"))
+    logging.info("md5    (1m): %s", utils.hash_file(filename, 1024*1024,
+                                                    method="md5"))
+    logging.info("sha1   (1m): %s", utils.hash_file(filename, 1024*1024,
+                                                    method="sha1"))
+    logging.info("md5  (full): %s", utils.hash_file(filename, method="md5"))
+    logging.info("sha1 (full): %s", utils.hash_file(filename, method="sha1"))
