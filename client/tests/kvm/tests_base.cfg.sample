@@ -62,6 +62,8 @@ variants:
 
     - unattended_install:
         type = unattended_install
+        kill_vm = yes
+        kill_vm_gracefully = yes
         kill_vm_on_error = yes
         force_create_image = yes
         pre_command = scripts/unattended.py
