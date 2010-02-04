@@ -99,7 +99,7 @@ if __name__ == "__main__":
     autotest_bin = os.path.join(client_dir, 'bin', 'autotest')
     control_file = os.path.join(kvm_test_dir, 'control')
     logging.info("When you are done fixing eventual warnings found, "
-                 "you can run the kvm test using the command line:")
+                 "you can run the kvm test using the command line AS ROOT:")
     logging.info("%s --verbose %s", autotest_bin, control_file)
     logging.info("You can also edit the test config files (see output of "
                  "step 2 for a list)")
