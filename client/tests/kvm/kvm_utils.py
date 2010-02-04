@@ -368,27 +368,6 @@ def get_git_branch(repository, branch, srcdir, commit=None, lbranch=None):
     return srcdir
 
 
-def unload_module(module_name):
-    """
-    Removes a module. Handles dependencies. If even then it's not possible
-    to remove one of the modules, it will trhow an error.CmdError exception.
-
-    @param module_name: Name of the module we want to remove.
-    """
-    l_raw = utils.system_output("/sbin/lsmod").splitlines()
-    lsmod = [x for x in l_raw if x.split()[0] == module_name]
-    if len(lsmod) > 0:
-        line_parts = lsmod[0].split()
-        if len(line_parts) == 4:
-            submodules = line_parts[3].split(",")
-            for submodule in submodules:
-                unload_module(submodule)
-        utils.system("/sbin/modprobe -r %s" % module_name)
-        logging.info("Module %s unloaded" % module_name)
-    else:
-        logging.info("Module %s is already unloaded" % module_name)
-
-
 def check_kvm_source_dir(source_dir):
     """
     Inspects the kvm source directory and verifies its disposition. In some
