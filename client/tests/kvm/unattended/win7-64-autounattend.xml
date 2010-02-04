@@ -45,7 +45,7 @@
             <UserData>
                 <ProductKey>
                     <WillShowUI>OnError</WillShowUI>
-                    <Key>replace-with-your-prodkey</Key>
+                    <Key>KVM_TEST_CDKEY</Key>
                 </ProductKey>
                 <AcceptEula>true</AcceptEula>
             </UserData>

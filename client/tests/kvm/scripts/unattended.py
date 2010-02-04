@@ -97,7 +97,22 @@ class UnattendedInstall(object):
             dest_fname = "autounattend.xml"
 
         dest = os.path.join(self.floppy_mount, dest_fname)
-        shutil.copyfile(self.unattended_file, dest)
+
+        # Replace KVM_TEST_CDKEY (in the unattended file) with the cdkey
+        # provided for this test
+        unattended_contents = open(self.unattended_file).read()
+        dummy_cdkey_re = r'\bKVM_TEST_CDKEY\b'
+        real_cdkey = os.environ.get('KVM_TEST_cdkey')
+        if re.search(dummy_cdkey_re, unattended_contents):
+            if real_cdkey:
+                unattended_contents = re.sub(dummy_cdkey_re, real_cdkey,
+                                             unattended_contents)
+            else:
+                print ("WARNING: 'cdkey' required but not specified for this "
+                       "unattended installation")
+
+        # Write the unattended file contents to 'dest'
+        open(dest, 'w').write(unattended_contents)
 
         if self.finish_program:
             dest_fname = os.path.basename(self.finish_program)
