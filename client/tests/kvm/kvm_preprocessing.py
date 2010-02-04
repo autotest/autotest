@@ -1,5 +1,5 @@
 import sys, os, time, commands, re, logging, signal, glob
-from autotest_lib.client.bin import test
+from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 import kvm_vm, kvm_utils, kvm_subprocess, ppm_utils
 try:
@@ -142,17 +142,14 @@ def process_command(test, params, env, command, command_timeout,
     for k in params.keys():
         os.putenv("KVM_TEST_%s" % k, str(params[k]))
     # Execute command
-    logging.info("Executing command '%s'..." % command)
-    (status, output) = kvm_subprocess.run_fg("cd %s; %s" % (test.bindir,
-                                                            command),
-                                             logging.debug, "(command) ",
-                                             timeout=command_timeout)
-    if status != 0:
-        logging.warn("Custom processing command failed: '%s'; Output is: %s" %
-                                                            (command, output))
+    try:
+        utils.system("cd %s; %s" % (test.bindir, command))
+    except error.CmdError, e:
+        logging.warn("Custom processing command '%s' failed, output is: %s",
+                     command, str(e))
         if not command_noncritical:
             raise error.TestError("Custom processing command failed: %s" %
-                                                                   output)
+                                  str(e))
 
 
 def process(test, params, env, image_func, vm_func):
