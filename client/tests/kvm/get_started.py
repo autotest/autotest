@@ -63,12 +63,12 @@ if __name__ == "__main__":
         os.makedirs(iso_dir)
     iso_path = os.path.join(iso_dir, base_iso_name)
     if not os.path.isfile(iso_path) or (
-                      kvm_utils.hash_file(iso_path, method="md5") != md5sum):
+                             utils.hash_file(iso_path, method="md5") != md5sum):
         logging.warning("%s not found or corrupted", iso_path)
         logging.warning("Would you like to download it? (y/n)")
         iso_download = raw_input()
         if iso_download == 'y':
-            kvm_utils.unmap_url_cache(iso_dir, url, md5sum)
+            utils.unmap_url_cache(iso_dir, url, md5sum)
         else:
             logging.warning("Missing file %s. Please download it" % iso_path)
     else:
