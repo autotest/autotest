@@ -1,42 +1,38 @@
 [Data]
-AutoPartition = 1
-MsDosInitiated = 0
-UnattendedInstall = Yes
+    AutoPartition = 1
+    MsDosInitiated = 0
+    UnattendedInstall = Yes
 
 [Unattended]
-UnattendMode = FullUnattended
-OemSkipEula = Yes
-OemPreinstall = No
-UnattendSwitch = Yes
-CrashDumpSetting = 1
-DriverSigningPolicy = ignore
-WaitForReboot = no
-Repartition = yes
+    UnattendMode = FullUnattended
+    OemSkipEula = Yes
+    OemPreinstall = No
+    UnattendSwitch = Yes
+    CrashDumpSetting = 1
+    DriverSigningPolicy = ignore
+    WaitForReboot = no
+    Repartition = yes
 
 [GuiUnattended]
-AdminPassword = "1q2w3eP"
-AutoLogon = Yes
-AutoLogonCount = 5
-OEMSkipRegional = 1
-TimeZone = 85
-OemSkipWelcome = 1
+    AdminPassword = "1q2w3eP"
+    AutoLogon = Yes
+    AutoLogonCount = 1000
+    OEMSkipRegional = 1
+    TimeZone = 85
+    OemSkipWelcome = 1
 
 [UserData]
-FullName = "rhqe"
-OrgName = "REDHAT"
-ComputerName = *
-ProductKey = KVM_TEST_CDKEY
+    ProductKey=KVM_TEST_CDKEY
+    FullName="Autotest Mindless Drone"
+    OrgName="Autotest"
+    ComputerName=*
 
 [LicenseFilePrintData]
-AutoMode=PerServer
-AutoUsers=15
+    AutoMode=PerServer
+    AutoUsers=15
 
 [Identification]
-	DoOldStyleDomainJoin = YES
-	DomainAdmin="Administrator"
-	DomainAdminPassword="1q2w3eP"
     JoinWorkgroup=WORKGROUP
-	JoinDomain="qe.redhat.com"
 
 [Networking]
     InstallDefaultComponents=Yes
@@ -44,20 +40,25 @@ AutoUsers=15
 [Components]
 
 [TerminalServices]
-AllowConnections = 1
-
+    AllowConnections = 1
 
 [WindowsFirewall]
-Profiles = WindowsFirewall.TurnOffFirewall
+    Profiles = WindowsFirewall.TurnOffFirewall
+
 [WindowsFirewall.TurnOffFirewall]
-Mode = 0
+    Mode = 0
 
 [SetupParams]
-local="Local Area Connection"
+    local="Local Area Connection"
+
+[Display]
+    Xresolution=1024
+    YResolution=768
 
 [GuiRunOnce]
-Command0="cmd /c sc config TlntSvr start= auto"
-Command1="cmd /c netsh firewall set opmode disable"
-Command2="cmd /c net start telnet"
-Command3="cmd /c E:\setuprss.bat"
-Command4="cmd /c netsh interface ip set address local dhcp && ping 10.0.2.2 -n 20 && A:\finish.exe 10.0.2.2"
+    Command0="cmd /c sc config TlntSvr start= auto"
+    Command1="cmd /c netsh firewall set opmode disable"
+    Command2="cmd /c net start telnet"
+    Command3="cmd /c E:\setuprss.bat"
+    Command4="cmd /c netsh interface ip set address local dhcp"
+    Command5="cmd /c ping 10.0.2.2 -n 20 && A:\finish.exe 10.0.2.2"

@@ -57,8 +57,8 @@
                     <WillShowUI>OnError</WillShowUI>
                 </ProductKey>
                 <AcceptEula>true</AcceptEula>
-                <FullName>redhatqe</FullName>
-                <Organization>redhat</Organization>
+                <FullName>Autotest Mindless Drone</FullName>
+                <Organization>Autotest</Organization>
             </UserData>
             <EnableFirewall>false</EnableFirewall>
             <EnableNetwork>true</EnableNetwork>
@@ -117,15 +117,16 @@
                  </SynchronousCommand>
                  <SynchronousCommand wcm:action="add">
                     <Order>6</Order>
-                    <CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" dhcp &#38;&#38; ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe 10.0.2.2</CommandLine>
+                    <CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" dhcp</CommandLine>
+                 </SynchronousCommand>
+                 <SynchronousCommand wcm:action="add">
+                    <Order>7</Order>
+                    <CommandLine>%WINDIR%\System32\cmd /c ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe 10.0.2.2</CommandLine>
                  </SynchronousCommand>
             </FirstLogonCommands>
             <OOBE>
-                <HideEULAPage>true</HideEULAPage>
                 <ProtectYourPC>1</ProtectYourPC>
                 <NetworkLocation>Work</NetworkLocation>
-                <SkipUserOOBE>true</SkipUserOOBE>
-                <SkipMachineOOBE>true</SkipMachineOOBE>
             </OOBE>
         </component>
     </settings>
@@ -137,7 +138,7 @@
                     <PlainText>true</PlainText>
                 </Password>
                 <Username>Administrator</Username>
-                <LogonCount>5</LogonCount>
+                <LogonCount>1000</LogonCount>
                 <Enabled>true</Enabled>
             </AutoLogon>
         </component>

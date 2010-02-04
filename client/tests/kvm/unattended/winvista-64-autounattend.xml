@@ -81,49 +81,55 @@
         <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
             <UserAccounts>
                 <AdministratorPassword>
-                    <!-- <Value>UABAAHMAcwB3ADAAcgBkAEEAZABtAGkAbgBpAHMAdAByAGEAdABvAHIAUABhAHMAcwB3AG8AcgBkAA==</Value> -->
                     <Value>1q2w3eP</Value>
                     <PlainText>true</PlainText>
                 </AdministratorPassword>
             </UserAccounts>
             <AutoLogon>
                 <Enabled>true</Enabled>
-                <LogonCount>5</LogonCount>
+                <LogonCount>1000</LogonCount>
                 <Username>Administrator</Username>
                 <Password>
-                    <!-- <Value>UABAAHMAcwB3ADAAcgBkAFAAYQBzAHMAdwBvAHIAZAA=</Value> -->
                     <Value>1q2w3eP</Value>
                     <PlainText>true</PlainText>
                 </Password>
             </AutoLogon>
             <OOBE>
                 <HideEULAPage>true</HideEULAPage>
-		<NetworkLocation>Work</NetworkLocation>
-		<ProtectYourPC>1</ProtectYourPC>
-		<SkipUserOOBE>true</SkipUserOOBE>
+                <NetworkLocation>Work</NetworkLocation>
+                <ProtectYourPC>1</ProtectYourPC>
+                <SkipUserOOBE>true</SkipUserOOBE>
                 <SkipMachineOOBE>true</SkipMachineOOBE>
             </OOBE>
             <FirstLogonCommands>
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>%WINDIR%\System32\cmd /c start /w pkgmgr /iu:"TelnetServer"</CommandLine>
+                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                </SynchronousCommand>
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>%WINDIR%\System32\cmd /c sc config TlntSvr start= auto</CommandLine>
+                    <CommandLine>%WINDIR%\System32\cmd /c start /w pkgmgr /iu:"TelnetServer"</CommandLine>
+                 </SynchronousCommand>
+                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                </SynchronousCommand>
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>%WINDIR%\System32\cmd /c netsh firewall set opmode disable</CommandLine>
+                    <CommandLine>%WINDIR%\System32\cmd /c sc config TlntSvr start= auto</CommandLine>
+                 </SynchronousCommand>
+                 <SynchronousCommand wcm:action="add">
                     <Order>3</Order>
-                </SynchronousCommand>
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>%WINDIR%\System32\cmd /c net start telnet</CommandLine>
+                    <CommandLine>%WINDIR%\System32\cmd /c netsh firewall set opmode disable</CommandLine>
+                 </SynchronousCommand>
+                 <SynchronousCommand wcm:action="add">
                     <Order>4</Order>
-                </SynchronousCommand>
-                <SynchronousCommand wcm:action="add">
-                    <CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" dhcp &#38;&#38; ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe 10.0.2.2</CommandLine>
+                    <CommandLine>%WINDIR%\System32\cmd /c net start telnet</CommandLine>
+                 </SynchronousCommand>
+                 <SynchronousCommand wcm:action="add">
                     <Order>5</Order>
-                </SynchronousCommand>
+                    <CommandLine>%WINDIR%\System32\cmd /c E:\setuprss.bat</CommandLine>
+                 </SynchronousCommand>
+                 <SynchronousCommand wcm:action="add">
+                    <Order>6</Order>
+                    <CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" dhcp</CommandLine>
+                 </SynchronousCommand>
+                 <SynchronousCommand wcm:action="add">
+                    <Order>7</Order>
+                    <CommandLine>%WINDIR%\System32\cmd /c ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe 10.0.2.2</CommandLine>
+                 </SynchronousCommand>
             </FirstLogonCommands>
         </component>
         <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
