@@ -58,7 +58,7 @@ if __name__ == "__main__":
     url = os.path.join("http://download.fedoraproject.org/", fedora_dir,
                        base_iso_name)
     md5sum = "6dd31e292cc2eb1140544e9b1ba61c56"
-    iso_dir = os.path.join(base_dir, 'images', 'linux')
+    iso_dir = os.path.join(base_dir, 'isos', 'linux')
     if not iso_dir:
         os.makedirs(iso_dir)
     iso_path = os.path.join(iso_dir, base_iso_name)
