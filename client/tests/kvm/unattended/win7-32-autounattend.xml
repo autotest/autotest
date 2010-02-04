@@ -53,7 +53,7 @@
             </ImageInstall>
             <UserData>
                 <ProductKey>
-                    <Key>replace-with-your-prodkey</Key>
+                    <Key>KVM_TEST_CDKEY</Key>
                     <WillShowUI>OnError</WillShowUI>
                 </ProductKey>
                 <AcceptEula>true</AcceptEula>
