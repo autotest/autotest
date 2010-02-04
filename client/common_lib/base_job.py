@@ -244,8 +244,6 @@ class job_state(object):
         else:
             # just replace the in-memory state with the on-disk state
             self._state = on_disk_state
-            logging.debug('Replacing in-memory state with on-disk state '
-                          'from %s', file_path)
 
         # lock the backing file before we refresh it
         with_backing_lock(self.__class__._write_to_backing_file)(self)
@@ -265,7 +263,6 @@ class job_state(object):
             pickle.dump(self._state, outfile, self.PICKLE_PROTOCOL)
         finally:
             outfile.close()
-        logging.debug('Persistent state flushed to %s', file_path)
 
 
     def _read_from_backing_file(self):
