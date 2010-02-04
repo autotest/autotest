@@ -12,10 +12,11 @@ Usage?  Just run it.
     utils/build_externals.py
 """
 
-import compileall, logging, os, sha, shutil, sys, tempfile, time, urllib2
+import compileall, logging, os, shutil, sys, tempfile, time, urllib2
 import subprocess, re
 import common
 from autotest_lib.client.common_lib import logging_config, logging_manager
+from autotest_lib.client.common_lib import utils
 
 # Where package source be fetched to relative to the top of the autotest tree.
 PACKAGE_DIR = 'ExternalSource'
@@ -152,7 +153,7 @@ def _checksum_file(full_path):
     """@returns The hex checksum of a file given its pathname."""
     inputfile = open(full_path, 'rb')
     try:
-        hex_sum = sha.sha(inputfile.read()).hexdigest()
+        hex_sum = utils.hash('sha1', inputfile.read()).hexdigest()
     finally:
         inputfile.close()
     return hex_sum
@@ -532,7 +533,7 @@ class ExternalPackage(object):
                 raise FetchError('%s from %s fails Content-Length %d '
                                  'sanity check.' % (self.name, url,
                                                     data_length))
-            checksum = sha.sha()
+            checksum = utils.hash('sha1')
             total_read = 0
             output = open(local_path, 'wb')
             try:

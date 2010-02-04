@@ -4,7 +4,7 @@ KVM test utility functions.
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import md5, sha, thread, subprocess, time, string, random, socket, os, signal
+import thread, subprocess, time, string, random, socket, os, signal
 import select, re, logging, commands, cPickle, pty
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error, logging_config
@@ -788,13 +788,7 @@ def hash_file(filename, size=None, method="md5"):
         size = fsize
     f = open(filename, 'rb')
 
-    if method == "md5":
-        hash = md5.new()
-    elif method == "sha1":
-        hash = sha.new()
-    else:
-        logging.error("Unknown hash type %s, returning None" % method)
-        return None
+    hash = utils.hash(method)
 
     while size > 0:
         if chunksize > size:
@@ -851,11 +845,7 @@ def unmap_url_cache(cachedir, url, expected_hash, method="md5"):
     failure_counter = 0
     while not file_hash == expected_hash:
         if os.path.isfile(file_local_path):
-            if method == "md5":
-                file_hash = hash_file(file_local_path, method="md5")
-            elif method == "sha1":
-                file_hash = hash_file(file_local_path, method="sha1")
-
+            file_hash = hash_file(file_local_path, method)
             if file_hash == expected_hash:
                 # File is already at the expected position and ready to go
                 src = file_from_url

@@ -3,7 +3,7 @@ import common
 from autotest_lib.frontend.afe import models as afe_models
 from autotest_lib.frontend.afe import model_logic, rpc_utils
 from autotest_lib.frontend.tko import models as tko_models
-from autotest_lib.client.common_lib import enum
+from autotest_lib.client.common_lib import enum, utils
 
 
 class Plan(dbmodels.Model):
@@ -102,7 +102,7 @@ class ControlFile(model_logic.ModelWithHash):
 
     @classmethod
     def _compute_hash(cls, **kwargs):
-        return rpc_utils.get_sha1_hash(kwargs['contents'])
+        return utils.hash('sha1', kwargs['contents']).hexdigest()
 
 
     def __unicode__(self):
@@ -322,8 +322,8 @@ class KeyVal(model_logic.ModelWithHash):
 
     @classmethod
     def _compute_hash(cls, **kwargs):
-        round1 = rpc_utils.get_sha1_hash(kwargs['key'])
-        return rpc_utils.get_sha1_hash(round1 + kwargs['value'])
+        round1 = utils.hash('sha1', kwargs['key']).hexdigest()
+        return utils.hash('sha1', round1 + kwargs['value']).hexdigest()
 
 
     def __unicode__(self):
