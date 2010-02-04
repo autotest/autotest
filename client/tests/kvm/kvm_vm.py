@@ -7,6 +7,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 
 import time, socket, os, logging, fcntl, re, commands
 import kvm_utils, kvm_subprocess
+from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 
 
@@ -54,20 +55,13 @@ def create_image(params, root_dir):
     size = params.get("image_size", "10G")
     qemu_img_cmd += " %s" % size
 
-    logging.debug("Running qemu-img command:\n%s" % qemu_img_cmd)
-    (status, output) = kvm_subprocess.run_fg(qemu_img_cmd, logging.debug,
-                                             "(qemu-img) ", timeout=120)
+    try:
+        utils.system(qemu_img_cmd)
+    except error.CmdError, e:
+        logging.error("Could not create image; qemu-img command failed:\n%s",
+                      str(e))
+        return None
 
-    if status is None:
-        logging.error("Timeout elapsed while waiting for qemu-img command "
-                      "to complete:\n%s" % qemu_img_cmd)
-        return None
-    elif status != 0:
-        logging.error("Could not create image; "
-                      "qemu-img command failed:\n%s" % qemu_img_cmd)
-        logging.error("Status: %s" % status)
-        logging.error("Output:" + kvm_utils.format_str_for_message(output))
-        return None
     if not os.path.exists(image_filename):
         logging.error("Image could not be created for some reason; "
                       "qemu-img command:\n%s" % qemu_img_cmd)
