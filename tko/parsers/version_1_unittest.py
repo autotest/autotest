@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
-import unittest, datetime, time, md5
+import unittest, datetime, time
 
 import common
+from autotest_lib.client.common_lib import utils
 from autotest_lib.tko.parsers import version_1
 
 
@@ -163,7 +164,7 @@ class test_status_line(unittest.TestCase):
                                       "patch0": "first_patch 0 0",
                                       "patch1": "another_patch 0 0"})
         kern = line.get_kernel()
-        kernel_hash = md5.new("2.6.24-rc40,0,0").hexdigest()
+        kernel_hash = utils.hash("md5", "2.6.24-rc40,0,0").hexdigest()
         self.assertEquals(kern.base, "2.6.24-rc40")
         self.assertEquals(kern.patches[0].spec, "first_patch")
         self.assertEquals(kern.patches[1].spec, "another_patch")
@@ -178,7 +179,7 @@ class test_status_line(unittest.TestCase):
                                       "patch0": "first_patch 0 0",
                                       "patch2": "another_patch 0 0"})
         kern = line.get_kernel()
-        kernel_hash = md5.new("2.6.24-rc40,0").hexdigest()
+        kernel_hash = utils.hash("md5", "2.6.24-rc40,0").hexdigest()
         self.assertEquals(kern.base, "2.6.24-rc40")
         self.assertEquals(kern.patches[0].spec, "first_patch")
         self.assertEquals(len(kern.patches), 1)

@@ -4,7 +4,7 @@ Utilities to perform automatic guest installation using step files.
 @copyright: Red Hat 2008-2009
 """
 
-import os, time, md5, re, shutil, logging
+import os, time, re, shutil, logging
 from autotest_lib.client.common_lib import utils, error
 import kvm_utils, ppm_utils, kvm_subprocess
 try:

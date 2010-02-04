@@ -1,4 +1,4 @@
-import os, md5
+import os
 
 from autotest_lib.client.common_lib import utils
 from autotest_lib.tko import utils as tko_utils
@@ -63,7 +63,7 @@ class kernel(object):
     @staticmethod
     def compute_hash(base, hashes):
         key_string = ','.join([base] + hashes)
-        return md5.new(key_string).hexdigest()
+        return utils.hash('md5', key_string).hexdigest()
 
 
 class test(object):

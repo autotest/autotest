@@ -623,19 +623,3 @@ def interleave_entries(queue_entries, special_tasks):
             special_task_index += 1
 
     return interleaved_entries
-
-
-def get_sha1_hash(source):
-    """Gets the SHA-1 hash of the source string
-
-    @param source The string to hash
-    """
-    if sys.version_info < (2,5):
-        import sha
-        digest = sha.new()
-    else:
-        import hashlib
-        digest = hashlib.sha1()
-
-    digest.update(source)
-    return digest.hexdigest()
