@@ -10,15 +10,16 @@ enable_master_ssh = global_config.get_config_value('AUTOSERV',
                                                     type=bool, default=False)
 
 
-def make_ssh_command(user="root", port=22, opts='', connect_timeout=30,
-                     alive_interval=300):
-    base_command = ("/usr/bin/ssh -a -q -x %s -o StrictHostKeyChecking=no "
-                    "-o UserKnownHostsFile=/dev/null -o BatchMode=yes "
+def make_ssh_command(user="root", port=22, opts='', hosts_file='/dev/null',
+                     connect_timeout=30, alive_interval=300):
+    base_command = ("/usr/bin/ssh -a -x %s -o StrictHostKeyChecking=no "
+                    "-o UserKnownHostsFile=%s -o BatchMode=yes "
                     "-o ConnectTimeout=%d -o ServerAliveInterval=%d "
                     "-l %s -p %d")
     assert isinstance(connect_timeout, (int, long))
     assert connect_timeout > 0 # can't disable the timeout
-    return base_command % (opts, connect_timeout, alive_interval, user, port)
+    return base_command % (opts, hosts_file, connect_timeout,
+                           alive_interval, user, port)
 
 
 # import site specific Host class
@@ -44,6 +45,9 @@ class AbstractSSHHost(SiteHost):
         self.port = port
         self.password = password
         self._use_rsync = None
+        self.known_hosts_file = os.tmpfile()
+        known_hosts_fd = self.known_hosts_file.fileno()
+        self.known_hosts_fd = '/dev/fd/%s' % known_hosts_fd
 
         """
         Master SSH connection background job, socket temp directory and socket
@@ -94,8 +98,9 @@ class AbstractSSHHost(SiteHost):
         appropriate rsync command for copying them. Remote paths must be
         pre-encoded.
         """
-        ssh_cmd = make_ssh_command(self.user, self.port,
-                                   self.master_ssh_option)
+        ssh_cmd = make_ssh_command(user=self.user, port=self.port,
+                                   opts=self.master_ssh_option,
+                                   hosts_file=self.known_hosts_fd)
         if delete_dest:
             delete_flag = "--delete"
         else:
@@ -116,8 +121,8 @@ class AbstractSSHHost(SiteHost):
         pre-encoded.
         """
         command = ("scp -rq %s -o StrictHostKeyChecking=no "
-                   "-o UserKnownHostsFile=/dev/null -P %d %s '%s'")
-        return command % (self.master_ssh_option,
+                   "-o UserKnownHostsFile=%s -P %d %s '%s'")
+        return command % (self.master_ssh_option, self.known_hosts_fd,
                           self.port, " ".join(sources), dest)
 
 
@@ -512,6 +517,7 @@ class AbstractSSHHost(SiteHost):
     def close(self):
         super(AbstractSSHHost, self).close()
         self._cleanup_master_ssh()
+        self.known_hosts_file.close()
 
 
     def _cleanup_master_ssh(self):
