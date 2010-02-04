@@ -4,6 +4,10 @@
 import os, pickle, random, re, resource, select, shutil, signal, StringIO
 import socket, struct, subprocess, sys, time, textwrap, urlparse
 import warnings, smtplib, logging, urllib2
+try:
+    import hashlib
+except ImportError:
+    import md5, sha
 from autotest_lib.client.common_lib import error, barrier, logging_manager
 
 def deprecated(func):
@@ -276,6 +280,36 @@ def urlretrieve(url, filename, data=None, timeout=300):
             dest_file.close()
     finally:
         src_file.close()
+
+
+def hash(type, input=None):
+    """
+    Returns an hash object of type md5 or sha1. This function is implemented in
+    order to encapsulate hash objects in a way that is compatible with python
+    2.4 and python 2.6 without warnings.
+
+    Note that even though python 2.6 hashlib supports hash types other than
+    md5 and sha1, we are artificially limiting the input values in order to
+    make the function to behave exactly the same among both python
+    implementations.
+
+    @param input: Optional input string that will be used to update the hash.
+    """
+    if type not in ['md5', 'sha1']:
+        raise ValueError("Unsupported hash type: %s" % type)
+
+    try:
+        hash = hashlib.new(type)
+    except NameError:
+        if type == 'md5':
+            hash = md5.new()
+        elif type == 'sha1':
+            hash = sha.new()
+
+    if input:
+        hash.update(input)
+
+    return hash
 
 
 def get_file(src, dest, permissions=None):
@@ -620,7 +654,7 @@ def system(command, timeout=None, ignore_status=False):
     @param ignore_status: if ignore_status=False, throw an exception if the
             command's exit code is non-zero
             if ignore_stauts=True, return the exit code.
-    
+
     @return exit status of command
             (note, this will always be zero unless ignore_status=True)
     """
