@@ -21,11 +21,11 @@
     TimeZone=85
     OemSkipWelcome=1
     AutoLogon=Yes
-    AutoLogonCount=1
+    AutoLogonCount=1000
     OEMSkipRegional=1
 
 [UserData]
-    ProductKey=[replace-with-your-prodkey]
+    ProductKey=KVM_TEST_CDKEY
     FullName="Autotest Mindless Drone"
     OrgName="Autotest"
     ComputerName=*
@@ -64,8 +64,9 @@
     BrandIEUsingUnattended=Yes
 
 [GuiRunOnce]
-    Command0="cmd /c E:\setuprss.bat"
-    Command1="cmd /c netsh interface ip set address local dhcp && ping 10.0.2.2 -n 20 && A:\finish.exe 10.0.2.2"
+   Command0="cmd /c E:\setuprss.bat"
+   Command1="cmd /c netsh interface ip set address local dhcp"
+   Command2="cmd /c ping 10.0.2.2 && A:\finish.exe 10.0.2.2"
 
 [Display]
     Xresolution=1024

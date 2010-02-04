@@ -25,7 +25,7 @@ OemSkipWelcome = 1
 FullName = "rhqe"
 OrgName = "REDHAT"
 ComputerName = *
-ProductKey = [replace-with-your-prodkey]
+ProductKey = KVM_TEST_CDKEY
 
 [LicenseFilePrintData]
 AutoMode=PerServer
