@@ -221,7 +221,7 @@ def preprocess(test, params, env):
 
     # Execute any pre_commands
     if params.get("pre_command"):
-        pre_commands = params.get("pre_command").spit()
+        pre_commands = params.get("pre_command").split()
         process_command(test, params, env, pre_commands,
                         int(params.get("pre_command_timeout", "600")),
                         params.get("pre_command_noncritical") == "yes")
