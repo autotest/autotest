@@ -126,7 +126,7 @@ def postprocess_vm(test, params, env, name):
         vm.destroy(gracefully = params.get("kill_vm_gracefully") == "yes")
 
 
-def process_command(test, params, env, command, command_timeout,
+def process_command(test, params, env, commands, command_timeout,
                     command_noncritical):
     """
     Pre- or post- custom commands to be executed before/after a test is run
@@ -134,22 +134,23 @@ def process_command(test, params, env, command, command_timeout,
     @param test: An Autotest test object.
     @param params: A dict containing all VM and image parameters.
     @param env: The environment (a dict-like object).
-    @param command: Command to be run.
+    @param commands: List of commands to be run.
     @param command_timeout: Timeout for command execution.
     @param command_noncritical: If True test will not fail if command fails.
     """
     # Export environment vars
     for k in params.keys():
         os.putenv("KVM_TEST_%s" % k, str(params[k]))
-    # Execute command
-    try:
-        utils.system("cd %s; %s" % (test.bindir, command))
-    except error.CmdError, e:
-        logging.warn("Custom processing command '%s' failed, output is: %s",
-                     command, str(e))
-        if not command_noncritical:
-            raise error.TestError("Custom processing command failed: %s" %
-                                  str(e))
+    # Execute commands
+    for command in commands:
+        try:
+            utils.system("cd %s; %s" % (test.bindir, command))
+        except error.CmdError, e:
+            logging.warn("Custom processing command '%s' failed, output is: %s",
+                         command, str(e))
+            if not command_noncritical:
+                raise error.TestError("Custom processing command failed: %s" %
+                                      str(e))
 
 
 def process(test, params, env, image_func, vm_func):
@@ -220,7 +221,8 @@ def preprocess(test, params, env):
 
     # Execute any pre_commands
     if params.get("pre_command"):
-        process_command(test, params, env, params.get("pre_command"),
+        pre_commands = params.get("pre_command").spit()
+        process_command(test, params, env, pre_commands,
                         int(params.get("pre_command_timeout", "600")),
                         params.get("pre_command_noncritical") == "yes")
 
@@ -296,7 +298,8 @@ def postprocess(test, params, env):
 
     # Execute any post_commands
     if params.get("post_command"):
-        process_command(test, params, env, params.get("post_command"),
+        post_commands = params.get("post_command").split()
+        process_command(test, params, env, post_commands,
                         int(params.get("post_command_timeout", "600")),
                         params.get("post_command_noncritical") == "yes")
 
