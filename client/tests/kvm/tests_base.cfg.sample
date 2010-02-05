@@ -66,7 +66,7 @@ variants:
         kill_vm_gracefully = yes
         kill_vm_on_error = yes
         force_create_image = yes
-        pre_command = scripts/unattended.py
+        pre_command += " scripts/unattended.py"
         floppy = "images/floppy.img"
         extra_params += " -boot d"
         nic_mode = user
@@ -953,7 +953,7 @@ variants:
 variants:
     - @smallpages:
     - hugepages:
-        pre_command = "/usr/bin/python scripts/hugepage.py /mnt/kvm_hugepage"
+        pre_command += " scripts/hugepage.py"
         extra_params += " -mem-path /mnt/kvm_hugepage"
 
 
