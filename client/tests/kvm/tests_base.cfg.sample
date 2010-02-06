@@ -434,47 +434,46 @@ variants:
                     extra_params += " -bootp /pxelinux.0 -boot n"
                     kernel_args = "ks=floppy nicdelay=60"
 
-
                 variants:
                     - 5.4.i386:
                         no setup
                         image_name = rhel5-32
                         unattended_install:
-                            cdrom=linux/RHEL-5.4-i386-DVD.iso
-                            md5sum=7a12ec6599527e4f3d1790b51eadbfed
-                            md5sum_1m=0dbeb8f58d213752d8c029e8601abfbb
+                            cdrom = linux/RHEL-5.4-i386-DVD.iso
+                            md5sum = 7a12ec6599527e4f3d1790b51eadbfed
+                            md5sum_1m = 0dbeb8f58d213752d8c029e8601abfbb
                             unattended_file = unattended/RHEL-5-series.ks
                     - 5.4.x86_64:
                         no setup
                         image_name = rhel5-64
                         unattended_install:
-                            cdrom=linux/RHEL-5.4-x86_64-DVD.iso
-                            md5sum=04fe3c10202402d7b389528d2bad0210
-                            md5sum_1m=3e74112003e88a966754849dbb8f5c3f
+                            cdrom = linux/RHEL-5.4-x86_64-DVD.iso
+                            md5sum = 04fe3c10202402d7b389528d2bad0210
+                            md5sum_1m = 3e74112003e88a966754849dbb8f5c3f
                             unattended_file = unattended/RHEL-5-series.ks
                     - 4.8.i386:
                         no setup autotest
                         image_name = rhel4-32
                         unattended_install:
-                            cdrom=linux/RHEL-4.8-i386-DVD.iso
-                            md5sum=b024f0af5079539d3ef51f71fed0b194
-                            md5sum_1m=969c197402b9058f28a278c1f807d15b
+                            cdrom = linux/RHEL-4.8-i386-DVD.iso
+                            md5sum = b024f0af5079539d3ef51f71fed0b194
+                            md5sum_1m = 969c197402b9058f28a278c1f807d15b
                             unattended_file = unattended/RHEL-4-series.ks
                     - 4.8.x86_64:
                         no setup autotest
                         image_name = rhel4-64
                         unattended_install:
-                            cdrom=linux/RHEL-4.8-x86_64-DVD.iso
-                            md5sum=696bc877b0200cc942626673fcc3fc09
-                            md5sum_1m=b11ac0ef7fd345ad712966972db63886
+                            cdrom = linux/RHEL-4.8-x86_64-DVD.iso
+                            md5sum = 696bc877b0200cc942626673fcc3fc09
+                            md5sum_1m = b11ac0ef7fd345ad712966972db63886
                             unattended_file = unattended/RHEL-4-series.ks
                     - 3.9.i386:
                         no setup autotest linux_s3
                         image_name = rhel3-32
                         unattended_install:
-                            cdrom=linux/RHEL-3.9-i386-DVD.iso
-                            md5sum=ddd11a1cb104119039b0fa05df6d52b8
-                            md5sum_1m=5f10c9417c7b8372b3456c1b5f3f9ed0
+                            cdrom = linux/RHEL-3.9-i386-DVD.iso
+                            md5sum = ddd11a1cb104119039b0fa05df6d52b8
+                            md5sum_1m = 5f10c9417c7b8372b3456c1b5f3f9ed0
                             unattended_file = unattended/RHEL-3-series.ks
                         physical_resources_check:
                             mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
@@ -482,9 +481,9 @@ variants:
                         no setup autotest linux_s3
                         image_name = rhel3-64
                         unattended_install:
-                            cdrom=linux/RHEL-3.9-x86_64-DVD.iso
-                            md5sum=bf4635e4a4bd3b43838e72bc8c329d55
-                            md5sum_1m=18ecd37b639109f1b2af05cfb57dfeaf
+                            cdrom = linux/RHEL-3.9-x86_64-DVD.iso
+                            md5sum = bf4635e4a4bd3b43838e72bc8c329d55
+                            md5sum_1m = 18ecd37b639109f1b2af05cfb57dfeaf
                             unattended_file = unattended/RHEL-3-series.ks
                         physical_resources_check:
                             mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
@@ -623,21 +622,21 @@ variants:
                     - 32:
                         image_name += -32
                         unattended_install:
-                            cdrom = windows/en_windows_vista_ultimate_sp2_checked_build_x86_dvd_342432.iso
-                            md5sum = dde0c48c1a69d5cb4494c53723907687
-                            md5sum_1m = 4459fa3cdb795cb04d9b0cd94feeb302
-                            sha1sum = 3617756d54dffc47b803b30a530ff389a15dc3d3
-                            sha1sum_1m = d5ca337db48e0f95697faa0432dea8b469736db6
+                            cdrom = windows/en_windows_vista_with_sp2_x86_dvd_342266.iso
+                            md5sum = 19ca90a425667812977bab6f4ce24175
+                            md5sum_1m = 89c15020e0e6125be19acf7a2e5dc614
+                            sha1sum = 25ad9a776503e6a583bec07879dbcc5dfd20cd6e
+                            sha1sum_1m = a2afa4cffdc1c362dbf9e62942337f4f875a22cf
                             unattended_file = unattended/winvista-32-autounattend.xml
 
                     - 64:
                         image_name += -64
                         unattended_install:
-                            cdrom = windows/en_windows_vista_ultimate_sp2_checked_build_x64_dvd_342433.iso
-                            md5sum = 51e7c1104f7afc125ed2a5309a7b8eef
-                            md5sum_1m = 4d6e5849b80a6d1f8b67cd0dbc4f8a95
-                            sha1sum = 4b0be4a155dceea5ce8069f9806fd505f63fdbbc
-                            sha1sum_1m = 59af2a25a80ce48f2ad5f57086c573f92b4f4b68
+                            cdrom = windows/en_windows_vista_sp2_x64_dvd_342267.iso
+                            md5sum = a1c024d7abaf34bac3368e88efbc2574
+                            md5sum_1m = 3d84911a80f3df71d1026f7adedc2181
+                            sha1sum = aaee3c04533899f9f8c4ae0c4250ef5fafbe29a3
+                            sha1sum_1m = 1fd21bd3ce2a4de8856c7b8fe6fdf80260f6d1c7
                             unattended_file = unattended/winvista-64-autounattend.xml
 
             - Win2008:
@@ -651,20 +650,30 @@ variants:
                         image_name += -32
                         unattended_install:
                             cdrom = windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x86_dvd_342333.iso
-                            md5sum=b9201aeb6eef04a3c573d036a8780bdf
-                            md5sum_1m=b7a9d42e55ea1e85105a3a6ad4da8e04
-                            sha1sum=49d0d6917c1256fe81048d414fa473bbc76a8724
-                            sha1sum_1m=9662ff7ed715faa00407e4befc484ea52a92a9fb
+                            md5sum = b9201aeb6eef04a3c573d036a8780bdf
+                            md5sum_1m = b7a9d42e55ea1e85105a3a6ad4da8e04
+                            sha1sum = 49d0d6917c1256fe81048d414fa473bbc76a8724
+                            sha1sum_1m = 9662ff7ed715faa00407e4befc484ea52a92a9fb
                             unattended_file = unattended/win2008-32-autounattend.xml
 
                     - 64:
                         image_name += -64
                         unattended_install:
                             cdrom = windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x64_dvd_342336.iso
-                            md5sum=e94943ef484035b3288d8db69599a6b5
-                            md5sum_1m=ee55506823d0efffb5532ddd88a8e47b
-                            sha1sum=34c7d726c57b0f8b19ba3b40d1b4044c15fc2029
-                            sha1sum_1m=8fe08b03e3531906855a60a78020ac9577dff5ba
+                            md5sum = e94943ef484035b3288d8db69599a6b5
+                            md5sum_1m = ee55506823d0efffb5532ddd88a8e47b
+                            sha1sum = 34c7d726c57b0f8b19ba3b40d1b4044c15fc2029
+                            sha1sum_1m = 8fe08b03e3531906855a60a78020ac9577dff5ba
+                            unattended_file = unattended/win2008-64-autounattend.xml
+
+                    - r2:
+                        image_name += -r2
+                        unattended_install:
+                            cdrom = windows/en_windows_server_2008_r2_standard_enterprise_datacenter_and_web_x64_dvd_x15-59754.iso
+                            md5sum = 0207ef392c60efdda92071b0559ca0f9
+                            md5sum_1m = a5a22ce25008bd7109f6d830d627e3ed
+                            sha1sum = ad855ea913aaec3f1d0e1833c1aef7a0de326b0a
+                            sha1sum_1m = 9194a3aabae25b36e5f73cad001314b2c8d07d14
                             unattended_file = unattended/win2008-64-autounattend.xml
 
             - Win7:
@@ -678,20 +687,20 @@ variants:
                         image_name += -32
                         unattended_install:
                             cdrom = windows/en_windows_7_ultimate_x86_dvd_x15-65921.iso
-                            md5sum=d0b8b407e8a3d4b75ee9c10147266b89
-                            md5sum_1m=2b0c2c22b1ae95065db08686bf83af93
-                            sha1sum=5395dc4b38f7bdb1e005ff414deedfdb16dbf610
-                            sha1sum_1m=9f9c3780aebeb28a9bf22188eed6bc15475dc9c5
+                            md5sum = d0b8b407e8a3d4b75ee9c10147266b89
+                            md5sum_1m = 2b0c2c22b1ae95065db08686bf83af93
+                            sha1sum = 5395dc4b38f7bdb1e005ff414deedfdb16dbf610
+                            sha1sum_1m = 9f9c3780aebeb28a9bf22188eed6bc15475dc9c5
                             unattended_file = unattended/win7-64-autounattend.xml
 
                     - 64:
                         image_name += -64
                         unattended_install:
                             cdrom = windows/en_windows_7_ultimate_x64_dvd_x15-65922.iso
-                            md5sum=f43d22e4fb07bf617d573acd8785c028
-                            md5sum_1m=b44d8cf99dbed2a5cb02765db8dfd48f
-                            sha1sum=326327cc2ff9f05379f5058c41be6bc5e004baa7
-                            sha1sum_1m=4a3903bd5157de54f0702e5263e0a683c5775515
+                            md5sum = f43d22e4fb07bf617d573acd8785c028
+                            md5sum_1m = b44d8cf99dbed2a5cb02765db8dfd48f
+                            sha1sum = 326327cc2ff9f05379f5058c41be6bc5e004baa7
+                            sha1sum_1m = 4a3903bd5157de54f0702e5263e0a683c5775515
                             unattended_file = unattended/win7-64-autounattend.xml
 
 
