@@ -18,11 +18,7 @@ mouse generic3ps/2
 skipx
 
 %packages --resolvedeps
-@ admin-tools
-@ core
 @ base
-@ base-x
-@ gnome-desktop
 @ development-libs
 @ development-tools
 

@@ -18,11 +18,7 @@ autopart
 reboot
 
 %packages
-@ admin-tools
-@ core
 @ base
-@ base-x
-@ gnome-desktop
 @ development-libs
 @ development-tools
 
