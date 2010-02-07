@@ -691,7 +691,7 @@ variants:
                             md5sum_1m = 2b0c2c22b1ae95065db08686bf83af93
                             sha1sum = 5395dc4b38f7bdb1e005ff414deedfdb16dbf610
                             sha1sum_1m = 9f9c3780aebeb28a9bf22188eed6bc15475dc9c5
-                            unattended_file = unattended/win7-64-autounattend.xml
+                            unattended_file = unattended/win7-32-autounattend.xml
 
                     - 64:
                         image_name += -64
