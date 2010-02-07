@@ -117,7 +117,7 @@
 					<PlainText>true</PlainText>
 				</Password>
 				<Enabled>true</Enabled>
-				<LogonCount>5</LogonCount>
+				<LogonCount>1000</LogonCount>
 				<Username>Administrator</Username>
 			</AutoLogon>
 			<FirstLogonCommands>
