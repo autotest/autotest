@@ -674,7 +674,7 @@ variants:
                             md5sum_1m = a5a22ce25008bd7109f6d830d627e3ed
                             sha1sum = ad855ea913aaec3f1d0e1833c1aef7a0de326b0a
                             sha1sum_1m = 9194a3aabae25b36e5f73cad001314b2c8d07d14
-                            unattended_file = unattended/win2008-64-autounattend.xml
+                            unattended_file = unattended/win2008-r2-autounattend.xml
 
             - Win7:
                 image_name = win7
