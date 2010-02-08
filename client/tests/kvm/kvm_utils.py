@@ -1061,7 +1061,7 @@ class PciAssignable(object):
         stub_path = os.path.join(base_dir, "drivers/pci-stub")
 
         self.pci_ids = self.get_devs(self.devices_requested)
-        logging.debug("The following pci_ids were found: %s" % self.pci_ids)
+        logging.debug("The following pci_ids were found: %s", self.pci_ids)
         requested_pci_ids = []
         self.dev_drivers = {}
 
@@ -1077,7 +1077,7 @@ class PciAssignable(object):
 
             # Judge whether the device driver has been binded to stub
             if not self.is_binded_to_stub(full_id):
-                logging.debug("Binding device %s to stub" % full_id)
+                logging.debug("Binding device %s to stub", full_id)
                 vendor_id = get_vendor_from_pci_id(pci_id)
                 stub_new_id = os.path.join(stub_path, 'new_id')
                 unbind_dev = os.path.join(drv_path, 'unbind')
@@ -1089,18 +1089,17 @@ class PciAssignable(object):
 
                 for content, file in info_write_to_files:
                     try:
-                        utils.open_write_close(content, file)
+                        utils.open_write_close(file, content)
                     except IOError:
-                        logging.debug("Failed to write %s to file %s" %
-                                      (content, file))
+                        logging.debug("Failed to write %s to file %s", content,
+                                      file)
                         continue
 
                 if not self.is_binded_to_stub(full_id):
-                    logging.error("Binding device %s to stub failed" %
-                                  pci_id)
+                    logging.error("Binding device %s to stub failed", pci_id)
                     continue
             else:
-                logging.debug("Device %s already binded to stub" % pci_id)
+                logging.debug("Device %s already binded to stub", pci_id)
             requested_pci_ids.append(pci_id)
         self.pci_ids = requested_pci_ids
         return self.pci_ids
@@ -1114,9 +1113,8 @@ class PciAssignable(object):
         try:
             for pci_id in self.dev_drivers:
                 if not self._release_dev(pci_id):
-                    logging.error("Failed to release device %s to host" %
-                                  pci_id)
+                    logging.error("Failed to release device %s to host", pci_id)
                 else:
-                    logging.info("Released device %s successfully" % pci_id)
+                    logging.info("Released device %s successfully", pci_id)
         except:
             return
