@@ -470,23 +470,21 @@ variants:
                     - 3.9.i386:
                         no setup autotest linux_s3
                         image_name = rhel3-32
+                        mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         unattended_install:
                             cdrom = linux/RHEL-3.9-i386-DVD.iso
                             md5sum = ddd11a1cb104119039b0fa05df6d52b8
                             md5sum_1m = 5f10c9417c7b8372b3456c1b5f3f9ed0
                             unattended_file = unattended/RHEL-3-series.ks
-                        physical_resources_check:
-                            mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                     - 3.9.x86_64:
                         no setup autotest linux_s3
                         image_name = rhel3-64
+                        mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         unattended_install:
                             cdrom = linux/RHEL-3.9-x86_64-DVD.iso
                             md5sum = bf4635e4a4bd3b43838e72bc8c329d55
                             md5sum_1m = 18ecd37b639109f1b2af05cfb57dfeaf
                             unattended_file = unattended/RHEL-3-series.ks
-                        physical_resources_check:
-                            mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
 
     # Windows section
     - @Windows:
