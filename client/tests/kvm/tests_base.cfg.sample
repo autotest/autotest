@@ -315,36 +315,96 @@ variants:
                     kernel_args = "ks=floppy nicdelay=60"
 
                 variants:
+                    - 8.32:
+                        no setup
+                        image_name = fc8-32
+                        cdrom = linux/Fedora-8-i386-DVD.iso
+                        md5sum = dd6c79fddfff36d409d02242e7b10189
+                        md5sum_1m = dabae451bb69fbbad0e505b25144b1f9
+                        install:
+                            steps = Fedora-8-i386.steps
+                        unattended_install:
+                            unattended_file = unattended/Fedora-8.ks
+
+                    - 8.64:
+                        no setup
+                        image_name = fc8-64
+                        cdrom = linux/Fedora-8-x86_64-DVD.iso
+                        md5sum = 2cb231a86709dec413425fd2f8bf5295
+                        md5sum_1m = 145f6414e19492649a56c89f0a45e719
+                        install:
+                            steps = Fedora-8-64.steps
+                        unattended_install:
+                            unattended_file = unattended/Fedora-8.ks
+
+                    - 9.32:
+                        image_name = fc9-32
+                        cdrom = linux/Fedora-9-i386-DVD.iso
+                        md5sum = 72601f685ea8c808c303353d8bf4d307
+                        md5sum_1m = f24fa25689e5863f1b99984c6feb787f
+                        install:
+                            steps = Fedora-9-i386.steps
+                        unattended_install:
+                            unattended_file = unattended/Fedora-9.ks
+
+                    - 9.64:
+                        image_name = fc9-64
+                        cdrom = linux/Fedora-9-x86_64-DVD.iso
+                        md5sum = 05b2ebeed273ec54d6f9ed3d61ea4c96
+                        md5sum_1m = 9822ab5097e37e8fe306ef2192727db4
+                        install:
+                            steps = Fedora-9-64.steps
+                        unattended_install:
+                            unattended_file = unattended/Fedora-9.ks
+
+                    - 10.32:
+                        image_name = fc10-32
+                        cdrom = linux/Fedora-10-i386-DVD.iso
+                        md5sum = 27e581edb392728c4a07d00d3fc5ced0
+                        md5sum_1m = bd67c68bdf595e4ba7131ec702159181
+                        unattended_install:
+                            unattended_file = unattended/Fedora-10.ks
+
+                    - 10.64:
+                        image_name = fc10-64
+                        cdrom = linux/Fedora-10-x86_64-DVD.iso
+                        sha1sum = f1e5ae7db6a1ba227de7294c4112385922388648
+                        md5sum_1m = 732857cbf40c80c34683e874601d982c
+                        unattended_install:
+                            unattended_file = unattended/Fedora-10.ks
+
                     - 11.32:
                         image_name = fc11-32
+                        cdrom = linux/Fedora-11-i386-DVD.iso
+                        md5sum = e3b1e2d1ba42aa4705fa5f41771b3927
+                        md5sum_1m = dc8ddf90648c247339c721395aa49714
+                        install:
+                            steps = Fedora-11-32.steps
                         unattended_install:
-                            cdrom = linux/Fedora-11-i386-DVD.iso
-                            md5sum = e3b1e2d1ba42aa4705fa5f41771b3927
-                            md5sum_1m = dc8ddf90648c247339c721395aa49714
                             unattended_file = unattended/Fedora-11.ks
 
                     - 11.64:
                         image_name = fc11-64
+                        cdrom = linux/Fedora-11-x86_64-DVD.iso
+                        md5sum = 9d419844adeb93120215fe7505c9bce8
+                        md5sum_1m = 405ee05e2387a2e4328b008d5bcbdd1e
                         unattended_install:
-                            cdrom = linux/Fedora-11-x86_64-DVD.iso
-                            md5sum = 9d419844adeb93120215fe7505c9bce8
-                            md5sum_1m = 405ee05e2387a2e4328b008d5bcbdd1e
                             unattended_file = unattended/Fedora-11.ks
 
                     - 12.32:
                         image_name = fc12-32
+                        cdrom = linux/Fedora-12-i386-DVD.iso
+                        md5sum = 2c4c1c0d09f2fbcfd8ee6a0c5542eeb2
+                        md5sum_1m = eee935d7f0cf2ef03f6ddce3a2a50050
                         unattended_install:
-                            cdrom = linux/Fedora-12-i386-DVD.iso
-                            md5sum = 2c4c1c0d09f2fbcfd8ee6a0c5542eeb2
-                            md5sum_1m = eee935d7f0cf2ef03f6ddce3a2a50050
                             unattended_file = unattended/Fedora-12.ks
 
                     - 12.64:
                         image_name = fc12-64
+                        cdrom = linux/Fedora-12-x86_64-DVD.iso
+                        md5sum = 6dd31e292cc2eb1140544e9b1ba61c56
+                        md5sum_1m = 514efbd7698b55ff6768c8605438bfc5
                         unattended_install:
-                            cdrom = linux/Fedora-12-x86_64-DVD.iso
-                            md5sum = 6dd31e292cc2eb1140544e9b1ba61c56
-                            md5sum_1m = 514efbd7698b55ff6768c8605438bfc5
                             unattended_file = unattended/Fedora-12.ks
 
             - DSL-4.2.5:
@@ -435,56 +495,109 @@ variants:
                     kernel_args = "ks=floppy nicdelay=60"
 
                 variants:
-                    - 5.4.i386:
-                        no setup
-                        image_name = rhel5-32
-                        unattended_install:
-                            cdrom = linux/RHEL-5.4-i386-DVD.iso
-                            md5sum = 7a12ec6599527e4f3d1790b51eadbfed
-                            md5sum_1m = 0dbeb8f58d213752d8c029e8601abfbb
-                            unattended_file = unattended/RHEL-5-series.ks
-                    - 5.4.x86_64:
-                        no setup
-                        image_name = rhel5-64
-                        unattended_install:
-                            cdrom = linux/RHEL-5.4-x86_64-DVD.iso
-                            md5sum = 04fe3c10202402d7b389528d2bad0210
-                            md5sum_1m = 3e74112003e88a966754849dbb8f5c3f
-                            unattended_file = unattended/RHEL-5-series.ks
-                    - 4.8.i386:
-                        no setup autotest
-                        image_name = rhel4-32
-                        unattended_install:
-                            cdrom = linux/RHEL-4.8-i386-DVD.iso
-                            md5sum = b024f0af5079539d3ef51f71fed0b194
-                            md5sum_1m = 969c197402b9058f28a278c1f807d15b
-                            unattended_file = unattended/RHEL-4-series.ks
-                    - 4.8.x86_64:
-                        no setup autotest
-                        image_name = rhel4-64
-                        unattended_install:
-                            cdrom = linux/RHEL-4.8-x86_64-DVD.iso
-                            md5sum = 696bc877b0200cc942626673fcc3fc09
-                            md5sum_1m = b11ac0ef7fd345ad712966972db63886
-                            unattended_file = unattended/RHEL-4-series.ks
                     - 3.9.i386:
                         no setup autotest linux_s3
                         image_name = rhel3-32
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
+                        cdrom = linux/RHEL-3.9-i386-DVD.iso
+                        md5sum = ddd11a1cb104119039b0fa05df6d52b8
+                        md5sum_1m = 5f10c9417c7b8372b3456c1b5f3f9ed0
+                        install:
+                            steps=RHEL-3.9-i386.steps
                         unattended_install:
-                            cdrom = linux/RHEL-3.9-i386-DVD.iso
-                            md5sum = ddd11a1cb104119039b0fa05df6d52b8
-                            md5sum_1m = 5f10c9417c7b8372b3456c1b5f3f9ed0
                             unattended_file = unattended/RHEL-3-series.ks
+
                     - 3.9.x86_64:
                         no setup autotest linux_s3
                         image_name = rhel3-64
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
+                        cdrom = linux/RHEL-3.9-x86_64-DVD.iso
+                        md5sum = bf4635e4a4bd3b43838e72bc8c329d55
+                        md5sum_1m = 18ecd37b639109f1b2af05cfb57dfeaf
+                        install:
+                            steps=RHEL-3.9-x86_64.steps
                         unattended_install:
-                            cdrom = linux/RHEL-3.9-x86_64-DVD.iso
-                            md5sum = bf4635e4a4bd3b43838e72bc8c329d55
-                            md5sum_1m = 18ecd37b639109f1b2af05cfb57dfeaf
                             unattended_file = unattended/RHEL-3-series.ks
+
+                    - 4.7.i386:
+                        no setup autotest
+                        image_name = rhel4-32
+                        cdrom=linux/RHEL-4.7-i386-DVD.iso
+                        md5sum=ee5092653732a88ddbaf8eef2484c500
+                        md5sum_1m=127081cbed825d7232331a2083975528
+                        install:
+                            steps=RHEL-4.7-i386.steps
+                        unattended_install:
+                            unattended_file = unattended/RHEL-4-series.ks
+
+                    - 4.7.x86_64:
+                        no setup autotest
+                        image_name = rhel4-64
+                        cdrom=linux/RHEL-4.7-x86_64-DVD.iso
+                        md5sum=ea9dae16dd86f7d94092d0e672333292
+                        md5sum_1m=58fa63eaee68e269f4cb1d2edf479792
+                        install:
+                            steps=RHEL-4.7-x86_64.steps
+                        unattended_install:
+                            unattended_file = unattended/RHEL-4-series.ks
+
+                    - 4.8.i386:
+                        no setup autotest
+                        image_name = rhel4-32
+                        cdrom = linux/RHEL-4.8-i386-DVD.iso
+                        md5sum = b024f0af5079539d3ef51f71fed0b194
+                        md5sum_1m = 969c197402b9058f28a278c1f807d15b
+                        unattended_install:
+                            unattended_file = unattended/RHEL-4-series.ks
+
+                    - 4.8.x86_64:
+                        no setup autotest
+                        image_name = rhel4-64
+                        cdrom = linux/RHEL-4.8-x86_64-DVD.iso
+                        md5sum = 696bc877b0200cc942626673fcc3fc09
+                        md5sum_1m = b11ac0ef7fd345ad712966972db63886
+                        unattended_install:
+                            unattended_file = unattended/RHEL-4-series.ks
+
+                    - 5.3.i386:
+                        no setup
+                        image_name = rhel5-32
+                        cdrom=linux/RHEL-5.3-i386-DVD.iso
+                        md5sum=371c62851611fd32ead440df6f24a296
+                        md5sum_1m=242318dd44152210f6ff6cdda1bfbf51
+                        install:
+                            steps=RHEL-5.3-i386.steps
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+
+                    - 5.3.x86_64:
+                        no setup
+                        image_name = rhel5-64
+                        cdrom=linux/RHEL-5.3-x86_64-DVD.iso
+                        md5sum=c5ed6b284410f4d8212cafc78fd7a8c5
+                        md5sum_1m=b999f437583098ea5bbd56fb1de1d011
+                        install:
+                            steps=RHEL-5.3-x86_64.steps
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+
+                    - 5.4.i386:
+                        no setup
+                        image_name = rhel5-32
+                        cdrom = linux/RHEL-5.4-i386-DVD.iso
+                        md5sum = 7a12ec6599527e4f3d1790b51eadbfed
+                        md5sum_1m = 0dbeb8f58d213752d8c029e8601abfbb
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+
+                    - 5.4.x86_64:
+                        no setup
+                        image_name = rhel5-64
+                        cdrom = linux/RHEL-5.4-x86_64-DVD.iso
+                        md5sum = 04fe3c10202402d7b389528d2bad0210
+                        md5sum_1m = 3e74112003e88a966754849dbb8f5c3f
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
 
     # Windows section
     - @Windows:
@@ -575,6 +688,14 @@ variants:
                 variants:
                     - 32:
                         image_name += -32
+                        install:
+                            cdrom = windows/WindowsXP-sp2-vlk.iso
+                            md5sum = 743450644b1d9fe97b3cf379e22dceb0
+                            md5sum_1m = b473bf75af2d1269fec8958cf0202bfd
+                            user = user
+                            steps = WinXP-32.steps
+                        setup:
+                            steps = WinXP-32-rss.steps
                         unattended_install:
                             cdrom = windows/WindowsXP-sp2-vlk.iso
                             md5sum = 743450644b1d9fe97b3cf379e22dceb0
@@ -583,6 +704,14 @@ variants:
 
                     - 64:
                         image_name += -64
+                        install:
+                            cdrom = windows/WindowsXP-64.iso
+                            md5sum = 8d3f007ec9c2060cec8a50ee7d7dc512
+                            md5sum_1m = e812363ff427effc512b7801ee70e513
+                            user = user
+                            steps = WinXP-64.steps
+                        setup:
+                            steps = WinXP-64-rss.steps
                         unattended_install:
                             cdrom = windows/WindowsXP-64.iso
                             md5sum = 8d3f007ec9c2060cec8a50ee7d7dc512
@@ -598,6 +727,14 @@ variants:
                 variants:
                     - 32:
                         image_name += -32
+                        install:
+                            cdrom = windows/Windows2003_r2_VLK.iso
+                            md5sum = 03e921e9b4214773c21a39f5c3f42ef7
+                            md5sum_1m = 37c2fdec15ac4ec16aa10fdfdb338aa3
+                            user = user
+                            steps = Win2003-32.steps
+                        setup:
+                            steps = Win2003-32-rss.steps
                         unattended_install:
                             cdrom = windows/Windows2003_r2_VLK.iso
                             md5sum = 03e921e9b4214773c21a39f5c3f42ef7
@@ -606,6 +743,14 @@ variants:
 
                     - 64:
                         image_name += -64
+                        install:
+                            cdrom = windows/Windows2003-x64.iso
+                            md5sum = 5703f87c9fd77d28c05ffadd3354dbbd
+                            md5sum_1m = 439393c384116aa09e08a0ad047dcea8
+                            user = user
+                            steps = Win2003-64.steps
+                        setup:
+                            steps = Win2003-64-rss.steps
                         unattended_install:
                             cdrom = windows/Windows2003-x64.iso
                             md5sum = 5703f87c9fd77d28c05ffadd3354dbbd
@@ -617,8 +762,38 @@ variants:
                 image_size = 20G
 
                 variants:
-                    - 32:
-                        image_name += -32
+                    - 32sp1:
+                        image_name += sp1-32
+                        install:
+                            cdrom = windows/WindowsVista-32.iso
+                            md5sum = 1008f323d5170c8e614e52ccb85c0491
+                            md5sum_1m = c724e9695da483bc0fd59e426eaefc72
+                            steps = Win-Vista-32.steps
+                        setup:
+                            steps = WinVista-32-rss.steps
+                        unattended_install:
+                            cdrom = windows/WindowsVista-32.iso
+                            md5sum = 1008f323d5170c8e614e52ccb85c0491
+                            md5sum_1m = c724e9695da483bc0fd59e426eaefc72
+                            unattended_file = unattended/winvista-32-autounattend.xml
+
+                    - 64sp1:
+                        image_name += sp1-64
+                        install:
+                            cdrom = windows/WindowsVista-64.iso
+                            md5sum = 11e2010d857fffc47813295e6be6d58d
+                            md5sum_1m = 0947bcd5390546139e25f25217d6f165
+                            steps = Win-Vista-64.steps
+                        setup:
+                            steps = WinVista-64-rss.steps
+                        unattended_install:
+                            cdrom = windows/WindowsVista-64.iso
+                            md5sum = 11e2010d857fffc47813295e6be6d58d
+                            md5sum_1m = 0947bcd5390546139e25f25217d6f165
+                            unattended_file = unattended/winvista-64-autounattend.xml
+
+                    - 32sp2:
+                        image_name += sp2-32
                         unattended_install:
                             cdrom = windows/en_windows_vista_with_sp2_x86_dvd_342266.iso
                             md5sum = 19ca90a425667812977bab6f4ce24175
@@ -627,8 +802,8 @@ variants:
                             sha1sum_1m = a2afa4cffdc1c362dbf9e62942337f4f875a22cf
                             unattended_file = unattended/winvista-32-autounattend.xml
 
-                    - 64:
-                        image_name += -64
+                    - 64sp2:
+                        image_name += sp2-64
                         unattended_install:
                             cdrom = windows/en_windows_vista_sp2_x64_dvd_342267.iso
                             md5sum = a1c024d7abaf34bac3368e88efbc2574
@@ -644,8 +819,43 @@ variants:
                 reboot_command = shutdown /r /f /t 0
 
                 variants:
-                    - 32:
-                        image_name += -32
+                    - 32sp1:
+                        image_name += sp1-32
+                        install:
+                            cdrom = windows/Windows2008-x86.iso
+                            #en_windows_server_2008_datacenter_enterprise_standard_x86_dvd_X14-26710.iso
+                            md5sum=0bfca49f0164de0a8eba236ced47007d
+                            md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
+                            sha1sum = 6ca018ff96f1e9b2b310a36546b6fded99a421e6
+                            steps = Win2008-32.steps
+                        setup:
+                            steps = Win2008-32-rss.steps
+                        unattended_install:
+                            cdrom = windows/Windows2008-x86.iso
+                            md5sum=0bfca49f0164de0a8eba236ced47007d
+                            md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
+                            unattended_file = unattended/win2008-32-autounattend.xml
+
+                    - 64sp1:
+                        image_name += sp1-64
+                        install:
+                            steps = Win2008-64.steps
+                            cdrom = windows/Windows2008-x64.iso
+                            #en_windows_server_2008_datacenter_enterprise_standard_x64_dvd_X14-26714.iso
+                            md5sum=27c58cdb3d620f28c36333a5552f271c
+                            md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
+                            sha1sum = bd000374709f67e9358814db6ec8f0ddaaa16f70
+                            passwd = 1q2w3eP
+                        setup:
+                            steps = Win2008-64-rss.steps
+                        unattended_install:
+                            cdrom = windows/Windows2008-x64.iso
+                            md5sum=27c58cdb3d620f28c36333a5552f271c
+                            md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
+                            unattended_file = unattended/win2008-64-autounattend.xml
+
+                    - 32sp2:
+                        image_name += sp2-32
                         unattended_install:
                             cdrom = windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x86_dvd_342333.iso
                             md5sum = b9201aeb6eef04a3c573d036a8780bdf
@@ -654,8 +864,8 @@ variants:
                             sha1sum_1m = 9662ff7ed715faa00407e4befc484ea52a92a9fb
                             unattended_file = unattended/win2008-32-autounattend.xml
 
-                    - 64:
-                        image_name += -64
+                    - 64sp2:
+                        image_name += sp2-64
                         unattended_install:
                             cdrom = windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x64_dvd_342336.iso
                             md5sum = e94943ef484035b3288d8db69599a6b5
@@ -693,6 +903,14 @@ variants:
 
                     - 64:
                         image_name += -64
+                        install:
+                            cdrom = windows/en_windows_7_ultimate_x64_dvd_x15-65922.iso
+                            md5sum=f43d22e4fb07bf617d573acd8785c028
+                            md5sum_1m=b44d8cf99dbed2a5cb02765db8dfd48f
+                            passwd = 1q2w3eP
+                            steps = Win7-64.steps
+                        setup:
+                            steps = Win7-64-rss.steps
                         unattended_install:
                             cdrom = windows/en_windows_7_ultimate_x64_dvd_x15-65922.iso
                             md5sum = f43d22e4fb07bf617d573acd8785c028
