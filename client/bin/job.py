@@ -765,7 +765,14 @@ class base_client_job(base_job.base_job):
         for i, task in enumerate(tasklist):
             assert isinstance(task, (tuple, list))
             self._log_filename = old_log_filename + (".%d" % i)
-            task_func = lambda: task[0](*task[1:])
+            def task_func():
+                # stub out _record_prefix with a process-local one
+                base_record_prefix = self._record_prefix
+                proc_local = self._job_state.property_factory(
+                    '_state', '_record_prefix.%d' % os.getpid(),
+                    base_record_prefix, namespace='client')
+                self.__class__._record_prefix = proc_local
+                task[0](*task[1:])
             pids.append(parallel.fork_start(self.resultdir, task_func))
 
         old_log_path = os.path.join(self.resultdir, old_log_filename)
