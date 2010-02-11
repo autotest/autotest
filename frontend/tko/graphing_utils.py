@@ -22,7 +22,7 @@ import matplotlib.figure, matplotlib.backends.backend_agg
 import StringIO, colorsys, PIL.Image, PIL.ImageChops
 from autotest_lib.frontend.afe import readonly_connection
 from autotest_lib.frontend.afe.model_logic import ValidationError
-from autotest_lib.frontend.afe.simplejson import encoder
+from simplejson import encoder
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.frontend.tko import models, tko_rpc_utils
 
