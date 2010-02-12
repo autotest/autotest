@@ -910,7 +910,7 @@ class VM:
             s, mem_str = session.get_command_status_output(cmd)
             if s != 0:
                 return None
-            mem = re.findall("([0-9][0-9][0-9]+)", mem_str)
+            mem = re.findall("([0-9]+)", mem_str)
             mem_size = 0
             for m in mem:
                 mem_size += int(m)
