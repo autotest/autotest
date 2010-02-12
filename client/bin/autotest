@@ -2,8 +2,7 @@
 #
 # autotest <control file> - run the autotest control file specified.
 #
-import os, sys, shutil
-import common
+import os, sys
 from optparse import OptionParser
 from autotest_lib.client.bin import job
 from autotest_lib.client.common_lib import global_config
@@ -41,28 +40,44 @@ parser.add_option("-U", "--user", dest="user", type="string",
 parser.add_option("-l", "--external_logging", dest="log", action="store_true",
                         default=False, help="enable external logging")
 
-parser.add_option('--verbose', action='store_true',
+parser.add_option('--verbose', dest='verbose', action='store_true',
                   help='Include DEBUG messages in console output')
+
+parser.add_option('--quiet', dest='verbose', action='store_false',
+                  help='Not include DEBUG messages in console output')
 
 parser.add_option('--hostname', dest='hostname', type='string',
                   default=None, action='store',
                   help='Take this as the hostname of this machine '
                        '(given by autoserv)')
 
+parser.add_option('--client_test_setup', dest='client_test_setup',
+                  type='string', default=None, action='store',
+                  help='a comma seperated list of client tests to prebuild on '
+                       'the server. Use all to prebuild all of them.')
 def usage():
     parser.print_help()
     sys.exit(1)
 
 options, args = parser.parse_args()
 
-# Check for a control file.
-if len(args) != 1:
+# Check for a control file if not in prebuild mode.
+if len(args) != 1 and options.client_test_setup is None:
     usage()
 
 drop_caches = global_config.global_config.get_config_value('CLIENT',
                                                            'drop_caches',
                                                            type=bool,
                                                            default=True)
+
+if options.setup:
+    from autotest_lib.client.bin import setup_job
+    exit_code = 0
+    try:
+        setup_job.setup_tests(options)
+    except:
+        exit_code = 1
+    sys.exit(exit_code)
 
 # JOB: run the specified job control file.
 job.runjob(os.path.realpath(args[0]), drop_caches, options)
