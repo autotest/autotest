@@ -16,7 +16,7 @@
 #       src             eg. tests/<test>/src
 #       tmpdir          eg. tmp/<tempname>_<testname.tag>
 
-import fcntl, os, re, sys, shutil, tarfile, tempfile, time, traceback
+import fcntl, getpass, os, re, sys, shutil, tarfile, tempfile, time, traceback
 import warnings, logging, glob, resource
 
 from autotest_lib.client.common_lib import error
@@ -39,7 +39,8 @@ class base_test:
         os.mkdir(self.profdir)
         self.debugdir = os.path.join(self.outputdir, 'debug')
         os.mkdir(self.debugdir)
-        self.configure_crash_handler()
+        if getpass.getuser() == 'root':
+            self.configure_crash_handler()
         self.bindir = bindir
         self.srcdir = os.path.join(self.bindir, 'src')
         self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname,
