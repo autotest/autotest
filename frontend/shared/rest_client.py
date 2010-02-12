@@ -1,9 +1,23 @@
-import logging, pprint, re, urllib
+import logging, pprint, re, urllib, getpass, urlparse
 import httplib2
 from django.utils import simplejson
+from autotest_lib.frontend.afe import rpc_client_lib
 
 
 _http = httplib2.Http()
+_request_headers = {}
+
+
+def _get_request_headers(uri):
+    server = urlparse.urlparse(uri)[0:2]
+    if server in _request_headers:
+        return _request_headers[server]
+
+    headers = rpc_client_lib.authorization_headers(getpass.getuser(), uri)
+    headers['Content-Type'] = 'application/json'
+
+    _request_headers[server] = headers
+    return headers
 
 
 class RestClientError(Exception):
@@ -87,7 +101,6 @@ class Resource(object):
                     and not callable(value))
 
 
-    @classmethod
     def _do_request(self, method, uri, query_parameters, encoded_body):
         if query_parameters:
             query_string = '?' + urllib.urlencode(query_parameters)
@@ -105,7 +118,7 @@ class Resource(object):
             logging.debug(entity_body)
         headers, response_body = _http.request(
                 full_uri, method, body=entity_body,
-                headers={'Content-Type': 'application/json'})
+                headers=_get_request_headers(uri))
         logging.debug('Response: %s', headers['status'])
 
         return Response(headers, response_body)
