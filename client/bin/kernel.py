@@ -21,6 +21,49 @@ def tee_output_logdir_mark(fn):
     return tee_logdir_mark_wrapper
 
 
+def _add_kernel_to_bootloader(bootloader, base_args, tag, args, image, initrd):
+    """
+    Add a kernel with the specified tag to the boot config using the given
+    bootloader object. Also process the base_args and args kernel arguments
+    by removing all root= options and give the last root= option value to
+    the bootloader as a root device.
+
+    @param bootloader: bootloader object
+    @param base_args: base cmdline kernel arguments
+    @param tag: kernel tag
+    @param args: kernel cmdline arguments that are merged with base_args; a
+            root= option in "args" will override any from base_args
+    @param image: kernel image file
+    @param initrd: initrd file
+    """
+    # remove existing entry if present
+    bootloader.remove_kernel(tag)
+
+    if base_args:
+        args = ' '.join((base_args, args))
+
+    root_prefix = 'root='
+    # stores the last root= value
+    root = None
+    # a list with all arguments that don't start with root= so we give them
+    # later to bootloader.add_kernel()
+    arglist = []
+
+    for arg in args.split():
+        if arg.startswith(root_prefix):
+            # set the current root value with the one from the argument
+            # thus after processing all the arguments we keep the last
+            # root value (so root= options from args overrides any from
+            # base_args)
+            root = arg[len(root_prefix):]
+        else:
+            arglist.append(arg)
+
+    # add the kernel entry
+    bootloader.add_kernel(image, tag, initrd=initrd, args=' '.join(arglist),
+                          root=root)
+
+
 class kernel(object):
     """ Class for compiling kernels.
 
@@ -412,30 +455,9 @@ class kernel(object):
             optional parameter of space separated parameters
             e.g.:  kernel.add_to_bootloader('mykernel', 'ro acpi=off')
         """
-
-        # remove existing entry if present
-        self.job.bootloader.remove_kernel(tag)
-
-        # pull the base argument set from the job config,
-        baseargs = self.job.config_get('boot.default_args')
-        if baseargs:
-            args = baseargs + " " + args
-
-        # otherwise populate from /proc/cmdline
-        # if not baseargs:
-        #       baseargs = open('/proc/cmdline', 'r').readline().strip()
-        # NOTE: This is unnecessary, because boottool does it.
-
-        root = None
-        roots = [x for x in args.split() if x.startswith('root=')]
-        if roots:
-            root = re.sub('^root=', '', roots[0])
-        arglist = [x for x in args.split() if not x.startswith('root=')]
-        args = ' '.join(arglist)
-
-        # add the kernel entry
-        self.job.bootloader.add_kernel(self.image, tag, initrd=self.initrd,
-                                       args=args, root=root)
+        _add_kernel_to_bootloader(self.job.bootloader,
+                                  self.job.config_get('boot.default_args'),
+                                  tag, args, self.image, self.initrd)
 
 
     def get_kernel_build_arch(self, arch=None):
@@ -706,30 +728,9 @@ class rpm_kernel(object):
     def add_to_bootloader(self, tag='autotest', args=''):
         """ Add this kernel to bootloader
         """
-
-        # remove existing entry if present
-        self.job.bootloader.remove_kernel(tag)
-
-        # pull the base argument set from the job config
-        baseargs = self.job.config_get('boot.default_args')
-        if baseargs:
-            args = baseargs + ' ' + args
-
-        # otherwise populate from /proc/cmdline
-        # if not baseargs:
-        #       baseargs = open('/proc/cmdline', 'r').readline().strip()
-        # NOTE: This is unnecessary, because boottool does it.
-
-        root = None
-        roots = [x for x in args.split() if x.startswith('root=')]
-        if roots:
-            root = re.sub('^root=', '', roots[0])
-        arglist = [x for x in args.split() if not x.startswith('root=')]
-        args = ' '.join(arglist)
-
-        # add the kernel entry
-        self.job.bootloader.add_kernel(self.image, tag, initrd=self.initrd,
-                                       args=args, root=root)
+        _add_kernel_to_bootloader(self.job.bootloader,
+                                  self.job.config_get('boot.default_args'),
+                                  tag, args, self.image, self.initrd)
 
 
     def boot(self, args='', ident=True):
