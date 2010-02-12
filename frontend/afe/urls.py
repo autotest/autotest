@@ -67,5 +67,5 @@ debug_patterns += defaults.patterns(
          {'feed_dict': feeds})
     )
 
-if True or settings.DEBUG:
+if settings.DEBUG:
     urlpatterns += debug_patterns
