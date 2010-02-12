@@ -286,11 +286,16 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._jobs_scheduled = []
 
 
+    def _run_scheduler(self):
+        for _ in xrange(2): # metahost scheduling can take two cycles
+            self._dispatcher._schedule_new_jobs()
+
+
     def _test_basic_scheduling_helper(self, use_metahosts):
         'Basic nonmetahost scheduling'
         self._create_job_simple([1], use_metahosts)
         self._create_job_simple([2], use_metahosts)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on(1, 1)
         self._assert_job_scheduled_on(2, 2)
         self._check_for_extra_schedulings()
@@ -302,7 +307,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._create_job_simple([2], use_metahosts)
         self._create_job_simple([1,2], use_metahosts)
         self._create_job_simple([1], use_metahosts, priority=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on(4, 1) # higher priority
         self._assert_job_scheduled_on(2, 2) # earlier job over later
         self._check_for_extra_schedulings()
@@ -315,17 +320,17 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         """
         self._create_job_simple([1], use_metahosts)
         self._do_query('UPDATE afe_hosts SET status="Running" WHERE id=1')
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
         self._do_query('UPDATE afe_hosts SET status="Ready", locked=1 '
                        'WHERE id=1')
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
         self._do_query('UPDATE afe_hosts SET locked=0, invalid=1 '
                        'WHERE id=1')
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         if not use_metahosts:
             self._assert_job_scheduled_on(1, 1)
         self._check_for_extra_schedulings()
@@ -335,14 +340,14 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         'Only idle hosts get scheduled'
         self._create_job(hosts=[1], active=True)
         self._create_job_simple([1], use_metahosts)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
     def _test_obey_ACLs_helper(self, use_metahosts):
         self._do_query('DELETE FROM afe_acl_groups_hosts WHERE host_id=1')
         self._create_job_simple([1], use_metahosts)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
@@ -370,7 +375,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._do_query('DELETE FROM afe_acl_groups_hosts WHERE host_id=1')
         self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id=1')
         self._create_job_simple([1])
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on(1, 1)
         self._check_for_extra_schedulings()
 
@@ -416,14 +421,14 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
     def test_only_if_needed_labels_avoids_host(self):
         job = self._setup_test_only_if_needed_labels()
         # if the job doesn't depend on label3, there should be no scheduling
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
     def test_only_if_needed_labels_schedules(self):
         job = self._setup_test_only_if_needed_labels()
         job.dependency_labels.add(self.label3)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on(1, 1)
         self._check_for_extra_schedulings()
 
@@ -434,7 +439,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # should also work if the metahost is the only_if_needed label
         self._do_query('DELETE FROM afe_jobs_dependency_labels')
         self._create_job(metahosts=[3])
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on(2, 1)
         self._check_for_extra_schedulings()
 
@@ -446,7 +451,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         """
         self._create_job(metahosts=[1])
         self._create_job(hosts=[1])
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on(2, 1)
         self._check_for_extra_schedulings()
 
@@ -460,7 +465,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # make the nonmetahost entry complete, so the metahost can try
         # to get scheduled
         self._update_hqe(set='complete = 1', where='host_id=1')
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
@@ -533,7 +538,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
     def test_atomic_group_hosts_blocked_from_non_atomic_jobs(self):
         # Create a job scheduled to run on label6.
         self._create_job(metahosts=[self.label6.id])
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         # label6 only has hosts that are in atomic groups associated with it,
         # there should be no scheduling.
         self._check_for_extra_schedulings()
@@ -543,7 +548,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # Create a job scheduled to run on label5.  This is an atomic group
         # label but this job does not request atomic group scheduling.
         self._create_job(metahosts=[self.label5.id])
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         # label6 only has hosts that are in atomic groups associated with it,
         # there should be no scheduling.
         self._check_for_extra_schedulings()
@@ -555,7 +560,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
                          atomic_group=1)
         job_b = self._create_job(synchronous=True, metahosts=[self.label5.id],
                          atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         # atomic_group.max_number_of_machines was 2 so we should run on 2.
         self._assert_job_scheduled_on_number_of(job_a.id, (5, 6, 7), 2)
         self._assert_job_scheduled_on(job_b.id, 8)  # label5
@@ -570,14 +575,14 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # atomic group as a set of machines to run smaller jobs within (a set
         # of hosts configured for use in network tests with eachother perhaps?)
         onehost_job = self._create_job(atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on_number_of(onehost_job.id, (5, 6, 7), 1)
         self._check_for_extra_schedulings()
 
         # No more atomic groups have hosts available, no more jobs should
         # be scheduled.
         self._create_job(atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
@@ -586,7 +591,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._do_query('DELETE FROM afe_acl_groups_hosts '
                        'WHERE host_id in (8,9)')
         job = self._create_job(metahosts=[self.label5.id], atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
@@ -594,7 +599,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # A dependency label that matches no hosts in the atomic group.
         job_a = self._create_job(atomic_group=1)
         job_a.dependency_labels.add(self.label3)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
@@ -603,7 +608,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         job_b = self._create_job(synchronous=True, metahosts=[self.label4.id],
                                  atomic_group=1)
         job_b.dependency_labels.add(self.label7)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
@@ -612,7 +617,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # one of the two atomic group labels.
         job_c = self._create_job(synchronous=True, atomic_group=1)
         job_c.dependency_labels.add(self.label7)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on_number_of(job_c.id, (8, 9), 2)
         self._check_for_extra_schedulings()
 
@@ -622,7 +627,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id=9')
         # An atomic job without a metahost.
         job = self._create_job(synchronous=True, atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on_number_of(job.id, (5, 6, 7), 2)
         self._check_for_extra_schedulings()
 
@@ -633,7 +638,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._do_query('UPDATE afe_hosts SET status="Repair Failed" WHERE id=5')
         job = self._create_job(synchronous=True, metahosts=[self.label4.id],
                          atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         # Verify that it was scheduled on the 2 ready hosts in that group.
         self._assert_job_scheduled_on(job.id, 6)
         self._assert_job_scheduled_on(job.id, 7)
@@ -649,7 +654,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id=9')
         # Nothing to schedule when no group label has enough (2) good hosts..
         self._create_job(atomic_group=1, synchronous=True)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         # There are not enough hosts in either atomic group,
         # No more scheduling should occur.
         self._check_for_extra_schedulings()
@@ -657,7 +662,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # Now create an atomic job that has a synch count of 1.  It should
         # schedule on exactly one of the hosts.
         onehost_job = self._create_job(atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on_number_of(onehost_job.id, (7, 8), 1)
 
 
@@ -665,7 +670,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id in (8,9)')
         self._create_job(synchronous=True, metahosts=[self.label5.id],
                          atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         # no hosts in the selected group and label are valid.  no schedulings.
         self._check_for_extra_schedulings()
 
@@ -673,12 +678,12 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
     def test_atomic_group_scheduling_metahost_works(self):
         # Test that atomic group scheduling also obeys metahosts.
         self._create_job(metahosts=[0], atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         # There are no atomic group hosts that also have that metahost.
         self._check_for_extra_schedulings()
 
         job_b = self._create_job(metahosts=[self.label5.id], atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on(job_b.id, 8)
         self._assert_job_scheduled_on(job_b.id, 9)
         self._check_for_extra_schedulings()
@@ -691,7 +696,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         models.IneligibleHostQueue.objects.create(job=job, host_id=5)
         models.IneligibleHostQueue.objects.create(job=job, host_id=6)
         models.IneligibleHostQueue.objects.create(job=job, host_id=7)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         # No scheduling should occur as all desired hosts were ineligible.
         self._check_for_extra_schedulings()
 
@@ -703,7 +708,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         model_job.synch_count = 4
         model_job.save()
         job = monitor_db.Job(id=model_job.id)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
         queue_entries = job.get_host_queue_entries()
         self.assertEqual(1, len(queue_entries))
@@ -723,7 +728,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self.label5.atomic_group = None
         self.label5.save()
 
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
@@ -732,7 +737,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # fail to avoid users inadvertently holding up the use of an
         # entire atomic group by using the machines individually.
         job = self._create_job(hosts=[5])
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
@@ -741,14 +746,14 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # work when the atomic group is listed on the HQE in addition
         # to the host (assuming the sync count is 1).
         job = self._create_job(hosts=[5], atomic_group=1)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on(job.id, 5)
         self._check_for_extra_schedulings()
 
 
     def test_schedule_directly_on_atomic_group_hosts_sync2(self):
         job = self._create_job(hosts=[5,8], atomic_group=1, synchronous=True)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._assert_job_scheduled_on(job.id, 5)
         self._assert_job_scheduled_on(job.id, 8)
         self._check_for_extra_schedulings()
@@ -756,21 +761,21 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
     def test_schedule_directly_on_atomic_group_hosts_wrong_group(self):
         job = self._create_job(hosts=[5,8], atomic_group=2, synchronous=True)
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
     def test_only_schedule_queued_entries(self):
         self._create_job(metahosts=[1])
         self._update_hqe(set='active=1, host_id=2')
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 
     def test_no_ready_hosts(self):
         self._create_job(hosts=[1])
         self._do_query('UPDATE afe_hosts SET status="Repair Failed"')
-        self._dispatcher._schedule_new_jobs()
+        self._run_scheduler()
         self._check_for_extra_schedulings()
 
 

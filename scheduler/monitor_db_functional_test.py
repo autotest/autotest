@@ -968,7 +968,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self._run_dispatcher() # delay task started waiting
 
         self.mock_drone_manager.finish_specific_process(
-                'hosts/host5/1-verify', monitor_db._AUTOSERV_PID_FILE)
+                'hosts/host6/1-verify', monitor_db._AUTOSERV_PID_FILE)
         self._run_dispatcher() # job starts now
         for entry in queue_entries:
             self._check_statuses(entry, HqeStatus.RUNNING, HostStatus.RUNNING)
