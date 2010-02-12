@@ -91,7 +91,7 @@ public class HostSelector implements ClickHandler {
         availableTable.setClickable(true);
         availableDecorator.lockedFilter.setSelectedChoice("No");
         availableDecorator.aclFilter.setActive(true);
-        availableDecorator.excludeOnlyIfNeededFilter.setActive(true);
+        availableDecorator.excludeAtomicGroupsFilter.setActive(true);
         availableSelection = availableDecorator.addSelectionManager(false);
         availableDecorator.addSelectionPanel(true);
         
