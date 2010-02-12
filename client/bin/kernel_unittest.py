@@ -473,26 +473,44 @@ class TestKernel(unittest.TestCase):
         self.god.check_playback()
 
 
-    def test_add_to_bootloader(self):
+    def _setup_add_to_bootloader(self, tag='autotest', args='', image='image',
+                                 initrd='initrd', base_args='baseargs',
+                                 bootloader_args='baseargs',
+                                 bootloader_root=None):
         self.construct_kernel()
 
         # setup
-        tag = 'autotest'
-        args = ''
-        self.kernel.image = "image"
-        self.kernel.initrd = "initrd"
+        self.kernel.image = image
+        self.kernel.initrd = initrd
 
         # record
-        self.job.bootloader.remove_kernel.expect_call(tag)
         self.job.config_get.expect_call(
-            'boot.default_args').and_return('baseargs')
-        args = 'baseargs' + " " + args
+                'boot.default_args').and_return(base_args)
+        self.job.bootloader.remove_kernel.expect_call(tag)
         self.job.bootloader.add_kernel.expect_call(
-                'image', 'autotest', initrd='initrd', args='baseargs',
-                root=None)
+                image, tag, initrd=initrd, args=bootloader_args,
+                root=bootloader_root)
+
+
+    def test_add_to_bootloader(self):
+        # setup
+        self._setup_add_to_bootloader()
 
         # run and check
         self.kernel.add_to_bootloader()
+        self.god.check_playback()
+
+
+    def test_add_to_bootloader_root_args(self):
+        # setup
+        args = 'root=/dev/newroot arg3'
+        self._setup_add_to_bootloader(args=args,
+                                      base_args='arg1 root=/dev/oldroot arg2',
+                                      bootloader_args='arg1 arg2 arg3',
+                                      bootloader_root='/dev/newroot')
+
+        # run and check
+        self.kernel.add_to_bootloader(args=args)
         self.god.check_playback()
 
 
