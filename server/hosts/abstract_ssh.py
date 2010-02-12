@@ -5,9 +5,9 @@ from autotest_lib.server.hosts import remote
 from autotest_lib.client.common_lib.global_config import global_config
 
 
-enable_master_ssh = global_config.get_config_value('AUTOSERV',
-                                                   'enable_master_ssh',
-                                                    type=bool, default=False)
+get_value = global_config.get_config_value
+enable_master_ssh = get_value('AUTOSERV', 'enable_master_ssh', type=bool,
+                              default=False)
 
 
 def make_ssh_command(user="root", port=22, opts='', hosts_file='/dev/null',
@@ -487,7 +487,10 @@ class AbstractSSHHost(SiteHost):
 
 
     # tunable constants for the verify & repair code
-    AUTOTEST_GB_DISKSPACE_REQUIRED = 20
+    AUTOTEST_GB_DISKSPACE_REQUIRED = get_value("SERVER",
+                                               "gb_diskspace_required",
+                                               type=int,
+                                               default=20)
 
 
     def verify_connectivity(self):
