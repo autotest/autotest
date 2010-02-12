@@ -1,11 +1,13 @@
 #!/usr/bin/python
-import sys, os, shutil, errno, optparse
 import common
+import sys, os, shutil, errno, optparse, logging
 from autotest_lib.client.common_lib import error, utils
 """
 Compile All Autotest GWT Clients Living in autotest/frontend/client/src
 """
 
+
+logging.basicConfig(level=logging.DEBUG)
 _AUTOTEST_DIR = common.autotest_dir
 _DEFAULT_GWT_DIR = '/usr/local/lib/gwt'
 _DEFAULT_APP_DIR = os.path.join(_AUTOTEST_DIR, 'frontend/client')
