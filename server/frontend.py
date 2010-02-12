@@ -9,8 +9,8 @@ can recursively add and manage other jobs.
 We turn the JSON dictionaries into real objects that are more idiomatic
 
 For docs, see:
-    http://autotest/afe/server/noauth/rpc/
-    http://autotest/new_tko/server/noauth/rpc/
+    http://autotest/afe/server/rpc_doc/
+    http://autotest/new_tko/server/rpc_doc/
     http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
@@ -71,8 +71,9 @@ class RpcClient(object):
         self.print_log = print_log
         self.debug = debug
         self.reply_debug = reply_debug
-        headers = {'AUTHORIZATION' : self.user}
-        rpc_server = 'http://' + server + path
+        http_server = 'http://' + server
+        headers = rpc_client_lib.authorization_headers(user, http_server)
+        rpc_server = http_server + path
         if debug:
             print 'SERVER: %s' % rpc_server
             print 'HEADERS: %s' % headers
@@ -104,7 +105,7 @@ class RpcClient(object):
 class TKO(RpcClient):
     def __init__(self, user=None, server=None, print_log=True, debug=False,
                  reply_debug=False):
-        super(TKO, self).__init__(path='/new_tko/server/noauth/rpc/',
+        super(TKO, self).__init__(path='/new_tko/server/rpc/',
                                   user=user,
                                   server=server,
                                   print_log=print_log,
@@ -123,7 +124,7 @@ class AFE(RpcClient):
     def __init__(self, user=None, server=None, print_log=True, debug=False,
                  reply_debug=False, job=None):
         self.job = job
-        super(AFE, self).__init__(path='/afe/server/noauth/rpc/',
+        super(AFE, self).__init__(path='/afe/server/rpc/',
                                   user=user,
                                   server=server,
                                   print_log=print_log,
