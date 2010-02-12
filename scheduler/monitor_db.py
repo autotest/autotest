@@ -24,7 +24,7 @@ from autotest_lib.frontend.afe import models, rpc_utils, readonly_connection
 from autotest_lib.scheduler import drone_manager, drones, email_manager
 from autotest_lib.scheduler import monitor_db_cleanup
 from autotest_lib.scheduler import status_server, scheduler_config
-from autotest_lib.scheduler import gc_stats
+from autotest_lib.scheduler import gc_stats, metahost_scheduler
 
 BABYSITTER_PID_FILE_PREFIX = 'monitor_db_babysitter'
 PID_FILE_PREFIX = 'monitor_db'
@@ -76,6 +76,11 @@ def _get_pidfile_timeout_secs():
 
 def _site_init_monitor_db_dummy():
     return {}
+
+
+get_metahost_schedulers = utils.import_site_function(
+        __file__, 'autotest_lib.scheduler.site_metahost_scheduler',
+        'get_metahost_schedulers', metahost_scheduler.get_metahost_schedulers)
 
 
 def main():
@@ -260,7 +265,22 @@ class SchedulerError(Exception):
     """Raised by HostScheduler when an inconsistent state occurs."""
 
 
-class HostScheduler(object):
+class HostScheduler(metahost_scheduler.HostSchedulingUtility):
+    """Handles the logic for choosing when to run jobs and on which hosts.
+
+    This class makes several queries to the database on each tick, building up
+    some auxiliary data structures and using them to determine which hosts are
+    eligible to run which jobs, taking into account all the various factors that
+    affect that.
+
+    In the past this was done with one or two very large, complex database
+    queries.  It has proven much simpler and faster to build these auxiliary
+    data structures and perform the logic in Python.
+    """
+    def __init__(self):
+        self._metahost_schedulers = get_metahost_schedulers()
+
+
     def _get_ready_hosts(self):
         # avoid any host with a currently active queue entry against it
         hosts = Host.fetch(
@@ -378,6 +398,32 @@ class HostScheduler(object):
         self._labels = self._get_labels()
 
 
+    def hosts_in_label(self, label_id):
+        """Return potentially usable hosts with the given label."""
+        return set(self._label_hosts.get(label_id, ()))
+
+
+    def remove_host_from_label(self, host_id, label_id):
+        """Remove this host from the internal list of usable hosts in the label.
+
+        This is provided as an optimization -- when code gets a host from a
+        label and concludes it's unusable, it can call this to avoid getting
+        that host again in the future (within this tick).
+        """
+        self._label_hosts[label_id].remove(host_id)
+
+
+    def pop_host(self, host_id):
+        """Remove and return a host from the internal list of available hosts.
+        """
+        return self._hosts_available.pop(host_id)
+
+
+    def ineligible_hosts_for_entry(self, queue_entry):
+        """Get the list of hosts ineligible to run the given queue entry."""
+        return set(self._ineligible_hosts.get(queue_entry.job_id, ()))
+
+
     def _is_acl_accessible(self, host_id, queue_entry):
         job_acls = self._job_acls.get(queue_entry.job_id, set())
         host_acls = self._host_acls.get(host_id, set())
@@ -470,11 +516,11 @@ class HostScheduler(object):
                 supplied queue_entry.
         """
         return set(host_id for host_id in group_hosts
-                   if self._is_host_usable(host_id)
-                   and self._is_host_eligible_for_job(host_id, queue_entry))
+                   if self.is_host_usable(host_id)
+                   and self.is_host_eligible_for_job(host_id, queue_entry))
 
 
-    def _is_host_eligible_for_job(self, host_id, queue_entry):
+    def is_host_eligible_for_job(self, host_id, queue_entry):
         if self._is_host_invalid(host_id):
             # if an invalid host is scheduled for a job, it's a one-time host
             # and it therefore bypasses eligibility checks. note this can only
@@ -498,12 +544,12 @@ class HostScheduler(object):
 
 
     def _schedule_non_metahost(self, queue_entry):
-        if not self._is_host_eligible_for_job(queue_entry.host_id, queue_entry):
+        if not self.is_host_eligible_for_job(queue_entry.host_id, queue_entry):
             return None
         return self._hosts_available.pop(queue_entry.host_id, None)
 
 
-    def _is_host_usable(self, host_id):
+    def is_host_usable(self, host_id):
         if host_id not in self._hosts_available:
             # host was already used during this scheduling cycle
             return False
@@ -514,35 +560,16 @@ class HostScheduler(object):
         return True
 
 
-    def _schedule_metahost(self, queue_entry):
-        label_id = queue_entry.meta_host
-        hosts_in_label = self._label_hosts.get(label_id, set())
-        ineligible_host_ids = self._ineligible_hosts.get(queue_entry.job_id,
-                                                         set())
-
-        # must iterate over a copy so we can mutate the original while iterating
-        for host_id in list(hosts_in_label):
-            if not self._is_host_usable(host_id):
-                hosts_in_label.remove(host_id)
-                continue
-            if host_id in ineligible_host_ids:
-                continue
-            if not self._is_host_eligible_for_job(host_id, queue_entry):
-                continue
-
-            # Remove the host from our cached internal state before returning
-            # the host object.
-            hosts_in_label.remove(host_id)
-            return self._hosts_available.pop(host_id)
-        return None
-
-
-    def find_eligible_host(self, queue_entry):
-        if not queue_entry.meta_host:
-            assert queue_entry.host_id is not None
+    def schedule_entry(self, queue_entry):
+        if queue_entry.host_id is not None:
             return self._schedule_non_metahost(queue_entry)
-        assert queue_entry.atomic_group_id is None
-        return self._schedule_metahost(queue_entry)
+
+        for scheduler in self._metahost_schedulers:
+            if scheduler.can_schedule_metahost(queue_entry):
+                scheduler.schedule_metahost(queue_entry, self)
+                return None
+
+        raise SchedulerError('No metahost scheduler to handle %s' % queue_entry)
 
 
     def find_eligible_atomic_group(self, queue_entry):
@@ -580,14 +607,13 @@ class HostScheduler(object):
                 job.id, job.synch_count, atomic_group.id,
                  atomic_group.max_number_of_machines, queue_entry.id)
             return []
-        hosts_in_label = self._label_hosts.get(queue_entry.meta_host, set())
-        ineligible_host_ids = self._ineligible_hosts.get(queue_entry.job_id,
-                                                         set())
+        hosts_in_label = self.hosts_in_label(queue_entry.meta_host)
+        ineligible_host_ids = self.ineligible_hosts_for_entry(queue_entry)
 
         # Look in each label associated with atomic_group until we find one with
         # enough hosts to satisfy the job.
         for atomic_label_id in self._get_atomic_group_labels(atomic_group.id):
-            group_hosts = set(self._label_hosts.get(atomic_label_id, set()))
+            group_hosts = set(self.hosts_in_label(atomic_label_id))
             if queue_entry.meta_host is not None:
                 # If we have a metahost label, only allow its hosts.
                 group_hosts.intersection_update(hosts_in_label)
@@ -1041,17 +1067,17 @@ class Dispatcher(object):
         logging.info('Expanding atomic group entry %s with hosts %s',
                      queue_entry,
                      ', '.join(host.hostname for host in group_hosts))
-        # The first assigned host uses the original HostQueueEntry
-        group_queue_entries = [queue_entry]
+
         for assigned_host in group_hosts[1:]:
             # Create a new HQE for every additional assigned_host.
             new_hqe = HostQueueEntry.clone(queue_entry)
             new_hqe.save()
-            group_queue_entries.append(new_hqe)
-        assert len(group_queue_entries) == len(group_hosts)
-        for queue_entry, host in itertools.izip(group_queue_entries,
-                                                group_hosts):
-            self._run_queue_entry(queue_entry, host)
+            new_hqe.set_host(assigned_host)
+            self._run_queue_entry(new_hqe)
+
+        # The first assigned host uses the original HostQueueEntry
+        queue_entry.set_host(group_hosts[0])
+        self._run_queue_entry(queue_entry)
 
 
     def _schedule_hostless_job(self, queue_entry):
@@ -1067,15 +1093,16 @@ class Dispatcher(object):
             is_unassigned_atomic_group = (
                     queue_entry.atomic_group_id is not None
                     and queue_entry.host_id is None)
-            if is_unassigned_atomic_group:
-                self._schedule_atomic_group(queue_entry)
-            elif queue_entry.is_hostless():
+
+            if queue_entry.is_hostless():
                 self._schedule_hostless_job(queue_entry)
+            elif is_unassigned_atomic_group:
+                self._schedule_atomic_group(queue_entry)
             else:
-                assigned_host = self._host_scheduler.find_eligible_host(
-                        queue_entry)
+                assigned_host = self._host_scheduler.schedule_entry(queue_entry)
                 if assigned_host and not self.host_has_agent(assigned_host):
-                    self._run_queue_entry(queue_entry, assigned_host)
+                    assert assigned_host.id == queue_entry.host_id
+                    self._run_queue_entry(queue_entry)
 
 
     def _schedule_running_host_queue_entries(self):
@@ -1091,8 +1118,8 @@ class Dispatcher(object):
                 self.add_agent_task(task)
 
 
-    def _run_queue_entry(self, queue_entry, host):
-        queue_entry.schedule_pre_job_tasks(assigned_host=host)
+    def _run_queue_entry(self, queue_entry):
+        queue_entry.schedule_pre_job_tasks()
 
 
     def _find_aborting(self):
@@ -2907,11 +2934,12 @@ class HostQueueEntry(DBObject):
 
     def set_host(self, host):
         if host:
+            logging.info('Assigning host %s to entry %s', host.hostname, self)
             self.queue_log_record('Assigning host ' + host.hostname)
             self.update_field('host_id', host.id)
-            self.update_field('active', True)
             self.block_host(host.id)
         else:
+            logging.info('Releasing host from %s', self)
             self.queue_log_record('Releasing host')
             self.unblock_host(self.host.id)
             self.update_field('host_id', None)
@@ -3039,15 +3067,7 @@ class HostQueueEntry(DBObject):
         email_manager.manager.send_email(self.job.email_list, subject, body)
 
 
-    def schedule_pre_job_tasks(self, assigned_host=None):
-        if self.meta_host is not None or self.atomic_group:
-            assert assigned_host
-            # ensure results dir exists for the queue log
-            if self.host_id is None:
-                self.set_host(assigned_host)
-            else:
-                assert assigned_host.id == self.host_id
-
+    def schedule_pre_job_tasks(self):
         logging.info("%s/%s/%s (job %s, entry %s) scheduled on %s, status=%s",
                      self.job.name, self.meta_host, self.atomic_group_id,
                      self.job.id, self.id, self.host.hostname, self.status)
