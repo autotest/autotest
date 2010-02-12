@@ -37,6 +37,9 @@ class RpcClientTest(BaseRpcClientTest):
     def test_init(self):
         os.environ['LOGNAME'] = 'unittest-user'
         GLOBAL_CONFIG.override_config_value('SERVER', 'hostname', 'test-host')
+        rpc_client_lib.authorization_headers.expect_call(
+                'unittest-user', 'http://test-host').and_return(
+                        {'AUTHORIZATION': 'unittest-user'})
         rpc_client_lib.get_proxy.expect_call(
                 'http://test-host/path',
                 headers={'AUTHORIZATION': 'unittest-user'})
@@ -52,8 +55,11 @@ class AFETest(BaseRpcClientTest):
             id = 'idFoo'
             results_platform_map = {'NORAD' : {'Seeking_Joshua': ['WOPR']}}
         GLOBAL_CONFIG.override_config_value('SERVER', 'hostname', 'chess')
+        rpc_client_lib.authorization_headers.expect_call(
+                'david', 'http://chess').and_return(
+                        {'AUTHORIZATION': 'david'})
         rpc_client_lib.get_proxy.expect_call(
-                'http://chess/afe/server/noauth/rpc/',
+                'http://chess/afe/server/rpc/',
                 headers={'AUTHORIZATION': 'david'})
         self.god.stub_function(utils, 'send_email')
         utils.send_email.expect_any_call()
