@@ -19,7 +19,7 @@ class HostTableDecorator extends TableDecorator {
     ListFilter statusFilter;
     BooleanFilter lockedFilter;
     AclAccessibleFilter aclFilter;
-    OnlyIfNeededFilter excludeOnlyIfNeededFilter;
+    AtomicGroupFilter excludeAtomicGroupsFilter;
     
     static class AclAccessibleFilter extends CheckboxFilter {
         private JSONValue username;
@@ -35,9 +35,9 @@ class HostTableDecorator extends TableDecorator {
         }
     }
     
-    static class OnlyIfNeededFilter extends CheckboxFilter {
-        public OnlyIfNeededFilter() {
-            super("exclude_only_if_needed_labels");
+    static class AtomicGroupFilter extends CheckboxFilter {
+        public AtomicGroupFilter() {
+            super("exclude_atomic_group_hosts");
         }
 
         @Override
@@ -62,7 +62,7 @@ class HostTableDecorator extends TableDecorator {
         statusFilter.setChoices(statusStrings);
         lockedFilter = new BooleanFilter("locked");
         aclFilter = new AclAccessibleFilter();
-        excludeOnlyIfNeededFilter = new OnlyIfNeededFilter();
+        excludeAtomicGroupsFilter = new AtomicGroupFilter();
         
         addFilter("Hostname", hostnameFilter);
         addControl("Platform", labelFilter.getPlatformWidget());
@@ -70,6 +70,6 @@ class HostTableDecorator extends TableDecorator {
         addFilter("Status", statusFilter);
         addFilter("Locked", lockedFilter);
         addFilter("ACL accessible only", aclFilter);
-        addFilter("Exclude \"only if needed\" labels", excludeOnlyIfNeededFilter);
+        addFilter("Exclude atomic groups", excludeAtomicGroupsFilter);
     }
 }
