@@ -50,7 +50,12 @@ if queue_entries and queue_entries[0]['atomic_group']:
         if queue_entry['status'] in ('Completed', 'Stopped'):
             print 'This job has already finished.'
             sys.exit(0)
-    if len(queue_entries) > 1 and not repair_hostnames:
+    queue_entries_with_hosts = [queue_entry for queue_entry in queue_entries
+                                if queue_entry['host']]
+    all_queue_entries_have_hosts = (len(queue_entries) ==
+                                    len(queue_entries_with_hosts))
+    if (not all_queue_entries_have_hosts and len(queue_entries) > 1 and
+        not repair_hostnames):
         # We test repair_hostnames so that this message is not printed when
         # the script is run on an atomic group job which has hosts assigned
         # but is not running because too many of them are in Repairing or will
