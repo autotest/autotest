@@ -4,65 +4,45 @@ class ConstraintError(Exception):
     """Raised when an error occurs applying a Constraint."""
 
 
-class BaseQueryProcessor(object):
-    # maps selector name to (selector, constraint)
-    _selectors = None
-    _alias_counter = 0
+class QueryProcessor(object):
+    def __init__(self):
+        # maps selector name to (selector, constraint)
+        self._selectors = {}
+        self._alias_counter = 0
 
 
-    @classmethod
-    def _initialize_selectors(cls):
-        if not cls._selectors:
-            cls._selectors = {}
-            cls._add_all_selectors()
-
-
-    @classmethod
-    def _add_all_selectors(cls):
-        """
-        Subclasses should override this to define which selectors they accept.
-        """
-        pass
-
-
-    @classmethod
-    def _add_field_selector(cls, name, field=None, value_transform=None,
-                            doc=None):
+    def add_field_selector(self, name, field=None, value_transform=None,
+                           doc=None):
         if not field:
             field = name
-        cls._add_selector(Selector(name, doc),
+        self.add_selector(Selector(name, doc),
                           _FieldConstraint(field, value_transform))
 
 
-    @classmethod
-    def _add_related_existence_selector(cls, name, model, field, doc=None):
-        cls._add_selector(Selector(name, doc),
-                          _RelatedExistenceConstraint(model, field,
-                                                      cls.make_alias))
+    def add_related_existence_selector(self, name, model, field, doc=None):
+        self.add_selector(
+                Selector(name, doc),
+                _RelatedExistenceConstraint(model, field, self.make_alias))
 
 
-    @classmethod
-    def _add_selector(cls, selector, constraint):
-        cls._selectors[selector.name] = (selector, constraint)
+    def add_selector(self, selector, constraint):
+        if self._selectors is None:
+            self._selectors = {}
+        self._selectors[selector.name] = (selector, constraint)
 
 
-    @classmethod
-    def make_alias(cls):
-        cls._alias_counter += 1
-        return 'alias%s' % cls._alias_counter
+    def make_alias(self):
+        self._alias_counter += 1
+        return 'alias%s' % self._alias_counter
 
 
-    @classmethod
-    def selectors(cls):
-        cls._initialize_selectors()
+    def selectors(self):
         return tuple(selector for selector, constraint
-                     in cls._selectors.itervalues())
+                     in self._selectors.itervalues())
 
 
-    @classmethod
-    def has_selector(cls, selector_name):
-        cls._initialize_selectors()
-        return selector_name in cls._selectors
+    def has_selector(self, selector_name):
+        return selector_name in self._selectors
 
 
     def apply_selector(self, queryset, selector_name, value,
@@ -78,8 +58,7 @@ class BaseQueryProcessor(object):
 
     # common value conversions
 
-    @classmethod
-    def read_boolean(cls, boolean_input):
+    def read_boolean(self, boolean_input):
         if boolean_input.lower() == 'true':
             return True
         if boolean_input.lower() == 'false':

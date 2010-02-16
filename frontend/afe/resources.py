@@ -4,7 +4,7 @@ from autotest_lib.frontend.afe import control_file, models, rpc_utils
 from autotest_lib.frontend import thread_local
 from autotest_lib.client.common_lib import host_protections
 
-class EntryWithInvalid(resource_lib.Entry):
+class EntryWithInvalid(resource_lib.InstanceEntry):
     def put(self):
         if self.instance.invalid:
             raise http.Http404('%s has been deleted' % self.instance)
@@ -18,13 +18,16 @@ class EntryWithInvalid(resource_lib.Entry):
 
 
 class AtomicGroupClass(EntryWithInvalid):
+    model = models.AtomicGroup
+
+
     @classmethod
-    def from_uri_args(cls, request, name):
-        return cls(request, models.AtomicGroup.objects.get(name=name))
+    def from_uri_args(cls, request, ag_name, **kwargs):
+        return cls(request, models.AtomicGroup.objects.get(name=ag_name))
 
 
     def _uri_args(self):
-        return (self.instance.name,), {}
+        return {'ag_name': self.instance.name}
 
 
     def short_representation(self):
@@ -37,7 +40,8 @@ class AtomicGroupClass(EntryWithInvalid):
         rep = super(AtomicGroupClass, self).full_representation()
         rep.update({'max_number_of_machines':
                     self.instance.max_number_of_machines,
-                    'labels': AtomicGroupLabels(self).link()})
+                    'labels':
+                    AtomicLabelTaggingCollection(fixed_entry=self).link()})
         return rep
 
 
@@ -59,34 +63,24 @@ class AtomicGroupClassCollection(resource_lib.Collection):
     entry_class = AtomicGroupClass
 
 
-class AtomicGroupLabels(resource_lib.Relationship):
-    base_entry_class = AtomicGroupClass
-    entry_class = 'autotest_lib.frontend.afe.resources.Label'
-
-    def _fresh_queryset(self):
-        return self.base_entry.instance.label_set.all()
-
-
-    def _update_relationship(self, related_instances):
-        self.base_entry.instance.label_set = related_instances
-
-
 class Label(EntryWithInvalid):
-    class QueryProcessor(query_lib.BaseQueryProcessor):
-        @classmethod
-        def _add_all_selectors(cls):
-            cls._add_field_selector('name')
-            cls._add_field_selector('is_platform', field='platform',
-                                    value_transform=cls.read_boolean)
+    model = models.Label
+
+    @classmethod
+    def add_query_selectors(cls, query_processor):
+        query_processor.add_field_selector('name')
+        query_processor.add_field_selector(
+                'is_platform', field='platform',
+                value_transform=query_processor.read_boolean)
 
 
     @classmethod
-    def from_uri_args(cls, request, name):
-        return cls(request, models.Label.objects.get(name=name))
+    def from_uri_args(cls, request, label_name, **kwargs):
+        return cls(request, models.Label.objects.get(name=label_name))
 
 
     def _uri_args(self):
-        return (self.instance.name,), {}
+        return {'label_name': self.instance.name}
 
 
     def short_representation(self):
@@ -102,7 +96,7 @@ class Label(EntryWithInvalid):
                 self._request, self.instance.atomic_group)
         rep.update({'atomic_group_class':
                         atomic_group_class.short_representation(),
-                    'hosts': LabelHosts(self).link()})
+                    'hosts': HostLabelingCollection(fixed_entry=self).link()})
         return rep
 
 
@@ -122,32 +116,28 @@ class LabelCollection(resource_lib.Collection):
     entry_class = Label
 
 
-class LabelHosts(resource_lib.Relationship):
-    base_entry_class = Label
-    entry_class = 'autotest_lib.frontend.afe.resources.Host'
+class AtomicLabelTagging(resource_lib.Relationship):
+    related_classes = {'label': Label, 'atomic_group_class': AtomicGroupClass}
 
 
-    def _fresh_queryset(self):
-        return self.base_entry.instance.host_set.all()
+class AtomicLabelTaggingCollection(resource_lib.RelationshipCollection):
+    entry_class = AtomicLabelTagging
 
 
-    def _update_relationship(self, related_instances):
-        self.base_entry.instance.host_set = related_instances
-
-
-class User(resource_lib.Entry):
+class User(resource_lib.InstanceEntry):
+    model = models.User
     _permitted_methods = ('GET,')
 
 
     @classmethod
-    def from_uri_args(cls, request, username):
+    def from_uri_args(cls, request, username, **kwargs):
         if username == '@me':
             username = models.User.current_user().login
         return cls(request, models.User.objects.get(login=username))
 
 
     def _uri_args(self):
-        return (self.instance.login,), {}
+        return {'username': self.instance.login}
 
 
     def short_representation(self):
@@ -158,10 +148,13 @@ class User(resource_lib.Entry):
 
     def full_representation(self):
         rep = super(User, self).full_representation()
+        accessible_hosts = HostCollection(self._request)
+        accessible_hosts.set_query_parameters(accessible_by=self.instance.login)
         rep.update({'jobs': 'TODO',
                     'recurring_runs': 'TODO',
-                    'accessible_hosts': UserAccessibleHosts(self).link(),
-                    'acls': UserAcls(self).link()})
+                    'acls':
+                    UserAclMembershipCollection(fixed_entry=self).link(),
+                    'accessible_hosts': accessible_hosts.link()})
         return rep
 
 
@@ -171,41 +164,17 @@ class UserCollection(resource_lib.Collection):
     entry_class = User
 
 
-class UserAcls(resource_lib.Relationship):
-    base_entry_class = User
-    entry_class = 'autotest_lib.frontend.afe.resources.Acl'
-
-
-    def _fresh_queryset(self):
-        return self.base_entry.instance.aclgroup_set.all()
-
-
-    def _update_relationship(self, related_instances):
-        # TODO check for and add/remove "everyone"
-        self.base_entry.instance.aclgroup_set = related_instances
-
-
-class UserAccessibleHosts(resource_lib.Relationship):
+class Acl(resource_lib.InstanceEntry):
     _permitted_methods = ('GET',)
-    base_entry_class = User
-    entry_class = 'autotest_lib.frontend.afe.resources.Host'
-
-
-    def _fresh_queryset(self):
-        return models.Host.objects.filter(
-                aclgroup__users=self.base_entry.instance)
-
-
-class Acl(resource_lib.Entry):
-    _permitted_methods = ('GET',)
+    model = models.AclGroup
 
     @classmethod
-    def from_uri_args(cls, request, name):
-        return cls(request, models.AclGroup.objects.get(name=name))
+    def from_uri_args(cls, request, acl_name, **kwargs):
+        return cls(request, models.AclGroup.objects.get(name=acl_name))
 
 
     def _uri_args(self):
-        return (self.instance.name,), {}
+        return {'acl_name': self.instance.name}
 
 
     def short_representation(self):
@@ -216,8 +185,10 @@ class Acl(resource_lib.Entry):
 
     def full_representation(self):
         rep = super(Acl, self).full_representation()
-        rep.update({'users': AclUsers(self).link(),
-                    'hosts': AclHosts(self).link()})
+        rep.update({'users':
+                    UserAclMembershipCollection(fixed_entry=self).link(),
+                    'hosts':
+                    HostAclMembershipCollection(fixed_entry=self).link()})
         return rep
 
 
@@ -236,47 +207,38 @@ class AclCollection(resource_lib.Collection):
     entry_class = Acl
 
 
-class AclUsers(resource_lib.Relationship):
-    base_entry_class = Acl
-    entry_class = User
+class UserAclMembership(resource_lib.Relationship):
+    related_classes = {'user': User, 'acl': Acl}
+
+    # TODO: check permissions
+    # TODO: check for and add/remove "Everyone"
 
 
-    def _fresh_queryset(self):
-        return self.base_entry.instance.users.all()
-
-
-    def _update_relationship(self, related_instances):
-        self.base_entry.instance.users = related_instances
-
-
-class AclHosts(resource_lib.Relationship):
-    base_entry_class = Acl
-    entry_class = 'autotest_lib.frontend.afe.resources.Host'
-
-
-    def _fresh_queryset(self):
-        return self.base_entry.instance.hosts.all()
-
-
-    def _update_relationship(self, related_instances):
-        self.base_entry.instance.hosts = related_instances
+class UserAclMembershipCollection(resource_lib.RelationshipCollection):
+    entry_class = UserAclMembership
 
 
 class Host(EntryWithInvalid):
-    class QueryProcessor(query_lib.BaseQueryProcessor):
-        @classmethod
-        def _add_all_selectors(cls):
-            cls._add_field_selector('hostname')
-            cls._add_field_selector('locked', value_transform=cls.read_boolean)
-            cls._add_field_selector(
+    model = models.Host
+
+    @classmethod
+    def add_query_selectors(cls, query_processor):
+        query_processor.add_field_selector('hostname')
+        query_processor.add_field_selector(
+                'locked', value_transform=query_processor.read_boolean)
+        query_processor.add_field_selector(
                 'locked_by', field='locked_by__login',
                 doc='Username of user who locked this host, if locked')
-            cls._add_field_selector('status')
-            cls._add_field_selector('protection_level', field='protection',
-                                    doc='Verify/repair protection level',
-                                    value_transform=Host._read_protection)
-            cls._add_related_existence_selector('has_label', models.Label,
-                                                'name')
+        query_processor.add_field_selector('status')
+        query_processor.add_field_selector(
+                'protection_level', field='protection',
+                doc='Verify/repair protection level',
+                value_transform=cls._read_protection)
+        query_processor.add_field_selector(
+                'accessible_by', field='aclgroup__users__login',
+                doc='Username of user with access to this host')
+        query_processor.add_related_existence_selector(
+                'has_label', models.Label, 'name')
 
 
     @classmethod
@@ -285,12 +247,12 @@ class Host(EntryWithInvalid):
 
 
     @classmethod
-    def from_uri_args(cls, request, hostname):
+    def from_uri_args(cls, request, hostname, **kwargs):
         return cls(request, models.Host.objects.get(hostname=hostname))
 
 
     def _uri_args(self):
-        return (self.instance.hostname,), {}
+        return {'hostname': self.instance.hostname}
 
 
     def short_representation(self):
@@ -313,34 +275,33 @@ class Host(EntryWithInvalid):
         locked_by = (User.from_optional_instance(self._request,
                                                  self.instance.locked_by)
                      .short_representation())
+        labels = HostLabelingCollection(fixed_entry=self)
+        acls = HostAclMembershipCollection(fixed_entry=self)
+        queue_entries = QueueEntryCollection(self._request)
+        queue_entries.set_query_parameters(host=self.instance.hostname)
+        health_tasks = HealthTaskCollection(self._request)
+        health_tasks.set_query_parameters(host=self.instance.hostname)
+
         rep.update({'locked_by': locked_by,
                     'locked_on': self._format_datetime(self.instance.lock_time),
                     'invalid': self.instance.invalid,
                     'protection_level': protection,
                     # TODO make these efficient
-                    'labels': HostLabels(self).full_representation(),
-                    'acls': HostAcls(self).full_representation(),
-                    'queue_entries': HostQueueEntries(self).link(),
-                    'health_tasks': HostHealthTasks(self).link()})
+                    'labels': labels.full_representation(),
+                    'acls': acls.full_representation(),
+                    'queue_entries': queue_entries.link(),
+                    'health_tasks': health_tasks.link()})
         return rep
 
 
     @classmethod
     def create_instance(cls, input_dict, containing_collection):
         cls._check_for_required_fields(input_dict, ('hostname',))
-
-        # always create locked, so we can set up ACLs safely
-        instance = models.Host.add_object(hostname=input_dict['hostname'],
-                                          locked=True)
-
-        if 'acls' in input_dict:
-            entry = Host(containing_collection._request, instance)
-            HostAcls(entry).update(input_dict['acls'])
-
-        instance.locked = False # restore default
-        instance.save()
-        return instance
-
+        # include locked here, rather than waiting for update(), to avoid race
+        # conditions
+        host = models.Host.add_object(hostname=input_dict['hostname'],
+                                      locked=input_dict.get('locked', False))
+        return host
 
     def update(self, input_dict):
         data = {'locked': input_dict.get('locked'),
@@ -366,63 +327,36 @@ class HostCollection(resource_lib.Collection):
     entry_class = Host
 
 
-class HostLabels(resource_lib.Relationship):
-    base_entry_class = Host
-    entry_class = Label
+class HostLabeling(resource_lib.Relationship):
+    related_classes = {'host': Host, 'label': Label}
 
 
-    def _fresh_queryset(self):
-        return self.base_entry.instance.labels.all()
+class HostLabelingCollection(resource_lib.RelationshipCollection):
+    entry_class = HostLabeling
 
 
-    def _update_relationship(self, related_instances):
-        self.base_entry.instance.labels = related_instances
+class HostAclMembership(resource_lib.Relationship):
+    related_classes = {'host': Host, 'acl': Acl}
+
+    # TODO: acl.check_for_acl_violation_acl_group()
+    # TODO: models.AclGroup.on_host_membership_change()
 
 
-class HostAcls(resource_lib.Relationship):
-    base_entry_class = Host
-    entry_class = Acl
+class HostAclMembershipCollection(resource_lib.RelationshipCollection):
+    entry_class = HostAclMembership
 
 
-    def _fresh_queryset(self):
-        return self.base_entry.instance.aclgroup_set.all()
+class Test(resource_lib.InstanceEntry):
+    model = models.Test
 
 
-    def _update_relationship(self, related_instances):
-        for acl in related_instances:
-            acl.check_for_acl_violation_acl_group()
-        self.base_entry.instance.aclgroup_set = related_instances
-        models.AclGroup.on_host_membership_change()
-
-
-class HostQueueEntries(resource_lib.Relationship):
-    _permitted_methods = ('GET',)
-    base_entry_class = Host
-    entry_class = 'autotest_lib.frontend.afe.resources.QueueEntry'
-
-
-    def _fresh_queryset(self):
-        return self.base_entry.instance.hostqueueentry_set.order_by('-id')
-
-
-class HostHealthTasks(resource_lib.Relationship):
-    _permitted_methods = ('GET', 'POST')
-    base_entry_class = Host
-    entry_class = 'autotest_lib.frontend.afe.resources.HealthTask'
-
-
-    def _fresh_queryset(self):
-        return self.base_entry.instance.specialtask_set.order_by('-id')
-
-
-class Test(resource_lib.Entry):
     @classmethod
-    def from_uri_args(cls, request, name):
-        return cls(request, models.Test.objects.get(name=name))
+    def from_uri_args(cls, request, test_name, **kwargs):
+        return cls(request, models.Test.objects.get(name=test_name))
 
 
     def _uri_args(self):
-        return (self.instance.name,), {}
+        return {'test_name': self.instance.name}
 
 
     def short_representation(self):
@@ -438,7 +372,8 @@ class Test(resource_lib.Entry):
                     'control_file_type':
                     models.Test.Types.get_string(self.instance.test_type),
                     'control_file_path': self.instance.path,
-                    'dependencies': TestDependencies(self).link(),
+                    'dependencies':
+                    TestDependencyCollection(fixed_entry=self).link(),
                     })
         return rep
 
@@ -468,16 +403,12 @@ class TestCollection(resource_lib.Collection):
     entry_class = Test
 
 
-class TestDependencies(resource_lib.Relationship):
-    base_entry_class = Test
-    entry_class = Label
-
-    def _fresh_queryset(self):
-        return self.base_entry.instance.dependency_labels.all()
+class TestDependency(resource_lib.Relationship):
+    related_classes = {'test': Test, 'label': Label}
 
 
-    def _update_relationship(self, related_instances):
-        self.base_entry.instance.dependency_labels = related_instances
+class TestDependencyCollection(resource_lib.RelationshipCollection):
+    entry_class = TestDependency
 
 
 # TODO profilers
@@ -501,7 +432,7 @@ class ExecutionInfo(resource_lib.Resource):
             }
 
 
-    def _query_parameters(self):
+    def _query_parameters_accepted(self):
         return (('tests', 'Comma-separated list of test names to run'),
                 ('kernels', 'TODO'),
                 ('client_control_file',
@@ -582,7 +513,7 @@ class QueueEntriesRequest(resource_lib.Resource):
     _permitted_methods = ('GET',)
 
 
-    def _query_parameters(self):
+    def _query_parameters_accepted(self):
         return (('hosts', 'Comma-separated list of hostnames'),
                 ('one_time_hosts',
                  'Comma-separated list of hostnames not already in the '
@@ -624,12 +555,14 @@ class QueueEntriesRequest(resource_lib.Resource):
         return self._basic_response(result)
 
 
-class Job(resource_lib.Entry):
+class Job(resource_lib.InstanceEntry):
     _permitted_methods = ('GET',)
+    model = models.Job
+
 
     class _StatusConstraint(query_lib.Constraint):
-        @classmethod
-        def apply_constraint(cls, queryset, value, comparison_type, is_inverse):
+        def apply_constraint(self, queryset, value, comparison_type,
+                             is_inverse):
             if comparison_type != 'equals' or is_inverse:
                 raise query_lib.ConstraintError('Can only use this selector '
                                                 'with equals')
@@ -651,23 +584,22 @@ class Job(resource_lib.Entry):
                                                 'active or complete')
 
 
-    class QueryProcessor(query_lib.BaseQueryProcessor):
-        @classmethod
-        def _add_all_selectors(cls):
-            cls._add_field_selector('id')
-            cls._add_selector(
-                    query_lib.Selector('status',
-                                       doc='One of queued, active or complete'),
-                    Job._StatusConstraint())
+    @classmethod
+    def add_query_selectors(cls, query_processor):
+        query_processor.add_field_selector('id')
+        query_processor.add_selector(
+                query_lib.Selector('status',
+                                   doc='One of queued, active or complete'),
+                Job._StatusConstraint())
 
 
     @classmethod
-    def from_uri_args(cls, request, job_id):
+    def from_uri_args(cls, request, job_id, **kwargs):
         return cls(request, models.Job.objects.get(id=job_id))
 
 
     def _uri_args(self):
-        return (self.instance.id,), {}
+        return {'job_id': self.instance.id}
 
 
     def short_representation(self):
@@ -685,12 +617,14 @@ class Job(resource_lib.Entry):
 
     def full_representation(self):
         rep = super(Job, self).full_representation()
+        queue_entries = QueueEntryCollection(self._request)
+        queue_entries.set_query_parameters(job=self.instance.id)
         rep.update({'email_list': self.instance.email_list,
                     'parse_failed_repair':
                         bool(self.instance.parse_failed_repair),
                     'execution_info':
                         ExecutionInfo.execution_info_from_job(self.instance),
-                    'queue_entries': JobQueueEntries(self).link(),
+                    'queue_entries': queue_entries.link(),
                     })
         return rep
 
@@ -762,30 +696,25 @@ class JobCollection(resource_lib.Collection):
     entry_class = Job
 
 
-class JobQueueEntries(resource_lib.Relationship):
-    _permitted_methods = ('GET',)
-
-    base_entry_class = Job
-    entry_class = 'autotest_lib.frontend.afe.resources.QueueEntry'
-
-    def _fresh_queryset(self):
-        return self.base_entry.instance.hostqueueentry_set.all()
-
-
-class QueueEntry(resource_lib.Entry):
+class QueueEntry(resource_lib.InstanceEntry):
     _permitted_methods = ('GET', 'PUT')
+    model = models.HostQueueEntry
+
 
     @classmethod
-    def from_uri_args(cls, request, job_id, queue_entry_id):
+    def add_query_selectors(cls, query_processor):
+        query_processor.add_field_selector('host', field='host__hostname')
+        query_processor.add_field_selector('job', field='job__id')
+
+
+    @classmethod
+    def from_uri_args(cls, request, queue_entry_id):
         instance = models.HostQueueEntry.objects.get(id=queue_entry_id)
-        if instance.job.id != int(job_id):
-            raise http.Http404('Incorrect job ID %r (expected %r)'
-                               % (job_id, instance.job.id))
         return cls(request, instance)
 
 
     def _uri_args(self):
-        return (self.instance.job_id, self.instance.id), {}
+        return {'queue_entry_id': self.instance.id}
 
 
     def short_representation(self):
@@ -824,20 +753,29 @@ class QueueEntry(resource_lib.Entry):
             self.instance.abort(thread_local.get_user())
 
 
-class HealthTask(resource_lib.Entry):
+class QueueEntryCollection(resource_lib.Collection):
+    queryset = models.HostQueueEntry.objects.order_by('-id')
+    entry_class = QueueEntry
+
+
+class HealthTask(resource_lib.InstanceEntry):
     _permitted_methods = ('GET',)
+    model = models.SpecialTask
+
 
     @classmethod
-    def from_uri_args(cls, request, hostname, task_id):
+    def add_query_selectors(cls, query_processor):
+        query_processor.add_field_selector('host', field='host__hostname')
+
+
+    @classmethod
+    def from_uri_args(cls, request, task_id):
         instance = models.SpecialTask.objects.get(id=task_id)
-        if instance.host.hostname != hostname:
-            raise http.Http404('Incorrect hostname %r (expected %r)'
-                               % (hostname, instance.host.hostname))
         return cls(request, instance)
 
 
     def _uri_args(self):
-        return (self.instance.host.hostname, self.instance.id), {}
+        return {'task_id': self.instance.id}
 
 
     def short_representation(self):
@@ -868,6 +806,14 @@ class HealthTask(resource_lib.Entry):
     def update(self, input_dict):
         # Required for POST, doesn't actually support PUT
         pass
+
+
+class HealthTaskCollection(resource_lib.Collection):
+    entry_class = HealthTask
+
+
+    def _fresh_queryset(self):
+        return models.SpecialTask.objects.order_by('-id')
 
 
 class ResourceDirectory(resource_lib.Resource):
