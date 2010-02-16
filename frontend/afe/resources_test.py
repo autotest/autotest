@@ -63,11 +63,16 @@ class ResourceTestCase(unittest.TestCase,
                 kwargs['data'] = simplejson.dumps(kwargs['data'])
 
         client_method = getattr(self.client, method)
-        response = client_method(self.URI_PREFIX + '/' + uri, **kwargs)
+        if uri.startswith('http://'):
+            full_uri = uri
+        else:
+            full_uri = self.URI_PREFIX + '/' + uri
+        response = client_method(full_uri, **kwargs)
         self.assertEquals(
                 response.status_code, expected_status,
-                'Expected %s, got %s: %s'
-                % (expected_status, response.status_code, response.content))
+                'Requesting %s\nExpected %s, got %s: %s'
+                % (full_uri, expected_status, response.status_code,
+                   response.content))
 
         if response['content-type'] != 'application/json':
             return response.content
@@ -105,7 +110,7 @@ class ResourceTestCase(unittest.TestCase,
                 is given
         """
         actual_list = sorted(self._read_attribute(item, attribute_or_list)
-                             for item in collection)
+                             for item in collection['members'])
         if length is None and check_number is None:
             length = len(expected_list)
         if length is not None:
@@ -116,6 +121,25 @@ class ResourceTestCase(unittest.TestCase,
         if check_number:
             actual_list = actual_list[:check_number]
         self.assertEquals(actual_list, expected_list)
+
+
+    def check_relationship(self, resource_uri, relationship_name,
+                           other_entry_name, field, expected_values,
+                           length=None, check_number=None):
+        """Check the members of a relationship collection.
+
+        @param resource_uri: URI of base resource
+        @param relationship_name: name of relationship attribute on base
+                resource
+        @param other_entry_name: name of other entry in relationship
+        @param field: name of field to grab on other entry
+        @param expected values: list of expected values for the given field
+        """
+        response = self.request('get', resource_uri)
+        relationship_uri = response[relationship_name]['href']
+        relationships = self.request('get', relationship_uri)
+        self.check_collection(relationships, [other_entry_name, field],
+                              expected_values, length, check_number)
 
 
 class FilteringPagingTest(ResourceTestCase):
@@ -131,24 +155,28 @@ class FilteringPagingTest(ResourceTestCase):
 
     def test_simple_filtering(self):
         response = self.request('get', 'hosts?locked=true&has_label=label1')
-        self.check_collection(response['members'], 'hostname',
-                              ['host1', 'host2'])
+        self.check_collection(response, 'hostname', ['host1', 'host2'])
 
 
     def test_paging(self):
         response = self.request('get', 'hosts?start_index=1&items_per_page=2')
-        self.check_collection(response['members'], 'hostname',
-                              ['host2', 'host3'])
+        self.check_collection(response, 'hostname', ['host2', 'host3'])
         self.assertEquals(response['total_results'], 9)
         self.assertEquals(response['items_per_page'], 2)
         self.assertEquals(response['start_index'], 1)
 
 
+class MiscellaneousTest(ResourceTestCase):
+    def test_trailing_slash(self):
+        response = self.request('get', 'hosts/host1/')
+        self.assertEquals(response['hostname'], 'host1')
+
+
 class AtomicGroupClassTest(ResourceTestCase):
     def test_collection(self):
         response = self.request('get', 'atomic_group_classes')
-        self.check_collection(response['members'], 'name',
-                              ['atomic1', 'atomic2'], length=2)
+        self.check_collection(response, 'name', ['atomic1', 'atomic2'],
+                              length=2)
 
 
     def test_entry(self):
@@ -158,15 +186,15 @@ class AtomicGroupClassTest(ResourceTestCase):
 
 
     def test_labels(self):
-        response = self.request('get', 'atomic_group_classes/atomic1/labels')
-        self.check_collection(response['members'], 'name', ['label4', 'label5'])
+        self.check_relationship('atomic_group_classes/atomic1', 'labels',
+                                'label', 'name', ['label4', 'label5'])
 
 
 class LabelTest(ResourceTestCase):
     def test_collection(self):
         response = self.request('get', 'labels')
-        self.check_collection(response['members'], 'name', ['label1', 'label2'],
-                              length=9, check_number=2)
+        self.check_collection(response, 'name', ['label1', 'label2'], length=9,
+                              check_number=2)
         label1 = self.sorted_by(response['members'], 'name')[0]
         self.assertEquals(label1['is_platform'], False)
 
@@ -179,15 +207,14 @@ class LabelTest(ResourceTestCase):
 
 
     def test_hosts(self):
-        response = self.request('get', 'labels/label1/hosts')
-        self.assertEquals(len(response['members']), 1)
-        self.check_collection(response['members'], 'hostname', ['host1'])
+        self.check_relationship('labels/label1', 'hosts', 'host', 'hostname',
+                                ['host1'])
 
 
 class UserTest(ResourceTestCase):
     def test_collection(self):
         response = self.request('get', 'users')
-        self.check_collection(response['members'], 'username',
+        self.check_collection(response, 'username',
                               ['autotest_system', 'debug_user'])
 
 
@@ -200,9 +227,8 @@ class UserTest(ResourceTestCase):
 
 
     def test_acls(self):
-        response = self.request('get', 'users/debug_user/acls')
-        self.check_collection(response['members'], 'name',
-                              ['Everyone', 'my_acl'])
+        self.check_relationship('users/debug_user', 'acls', 'acl', 'name',
+                                ['Everyone', 'my_acl'])
 
 
     def test_accessible_hosts(self):
@@ -210,15 +236,15 @@ class UserTest(ResourceTestCase):
         models.User.objects.get(login='debug_user').aclgroup_set = [group]
         self.hosts[0].aclgroup_set = [group]
 
-        response = self.request('get', 'users/debug_user/accessible_hosts')
-        self.check_collection(response['members'], 'hostname', ['host1'])
+        user = self.request('get', 'users/debug_user')
+        response = self.request('get', user['accessible_hosts']['href'])
+        self.check_collection(response, 'hostname', ['host1'])
 
 
 class AclTest(ResourceTestCase):
     def test_collection(self):
         response = self.request('get', 'acls')
-        self.check_collection(response['members'], 'name',
-                              ['Everyone', 'my_acl'])
+        self.check_collection(response, 'name', ['Everyone', 'my_acl'])
 
 
     def test_entry(self):
@@ -227,22 +253,20 @@ class AclTest(ResourceTestCase):
 
 
     def test_users(self):
-        response = self.request('get', 'acls/my_acl/users')
-        self.check_collection(response['members'], 'username',
-                              ['autotest_system', 'debug_user'])
+        self.check_relationship('acls/my_acl', 'users', 'user', 'username',
+                                ['autotest_system', 'debug_user'])
 
 
     def test_hosts(self):
-        response = self.request('get', 'acls/my_acl/hosts')
-        self.check_collection(response['members'], 'hostname',
-                              ['host1', 'host2'], length=9, check_number=2)
+        self.check_relationship('acls/my_acl', 'hosts', 'host', 'hostname',
+                                ['host1', 'host2'], length=9, check_number=2)
 
 
 class HostTest(ResourceTestCase):
     def test_collection(self):
         response = self.request('get', 'hosts')
-        self.check_collection(response['members'], 'hostname',
-                              ['host1', 'host2'], length=9, check_number=2)
+        self.check_collection(response, 'hostname', ['host1', 'host2'],
+                              length=9, check_number=2)
         host1 = self.sorted_by(response['members'], 'hostname')[0]
         self.assertEquals(host1['platform']['name'], 'myplatform')
         self.assertEquals(host1['locked'], False)
@@ -255,29 +279,28 @@ class HostTest(ResourceTestCase):
 
 
     def test_labels(self):
-        response = self.request('get', 'hosts/host1/labels')
-        self.check_collection(response['members'], 'name',
-                              ['label1', 'myplatform'])
+        self.check_relationship('hosts/host1', 'labels', 'label', 'name',
+                                ['label1', 'myplatform'])
 
 
     def test_acls(self):
-        response = self.request('get', 'hosts/host1/acls')
-        self.check_collection(response['members'], 'name', ['my_acl'])
+        self.check_relationship('hosts/host1', 'acls', 'acl', 'name',
+                                ['my_acl'])
 
 
     def test_queue_entries(self):
         self._create_job(hosts=[1])
-        response = self.request('get', 'hosts/host1/queue_entries')
-        self.assertEquals(len(response['members']), 1)
-        entry = response['members'][0]
-        self.assertEquals(entry['job']['id'], 1)
+        host = self.request('get', 'hosts/host1')
+        entries = self.request('get', host['queue_entries']['href'])
+        self.check_collection(entries, ['job', 'id'], [1])
 
 
     def test_health_tasks(self):
         models.SpecialTask.schedule_special_task(
                 host=self.hosts[0], task=models.SpecialTask.Task.VERIFY)
-        response = self.request('get', 'hosts/host1/health_tasks')
-        self.check_collection(response['members'], 'task_type', ['Verify'])
+        host = self.request('get', 'hosts/host1')
+        tasks = self.request('get', host['health_tasks']['href'])
+        self.check_collection(tasks, 'task_type', ['Verify'])
 
 
     def test_put(self):
@@ -290,7 +313,6 @@ class HostTest(ResourceTestCase):
 
     def test_post(self):
         data = {'hostname': 'newhost',
-                'acls': [self.URI_PREFIX + '/acls/my_acl'],
                 'platform': {'href': self.URI_PREFIX + '/labels/myplatform'},
                 'protection_level': 'Do not verify'}
         response = self.request('post', 'hosts', data=data)
@@ -299,19 +321,27 @@ class HostTest(ResourceTestCase):
         host = models.Host.objects.get(hostname='newhost')
         self.assertEquals(host.platform().name, 'myplatform')
         self.assertEquals(host.protection, models.Host.Protection.DO_NOT_VERIFY)
-        acls = host.aclgroup_set.all()
-        self.assertEquals(len(acls), 1)
-        self.assertEquals(acls[0].name, 'my_acl')
+
+
+    def _check_labels(self, host, expected_labels):
+        label_names = sorted(label.name for label in host.labels.all())
+        self.assertEquals(label_names, sorted(expected_labels))
 
 
     def test_add_label(self):
-        labels_response = self.request('get', 'hosts/host1/labels')
-        labels_response['members'].append(
-                {'href': self.URI_PREFIX + '/labels/label2'})
-        response = self.request('put', 'hosts/host1/labels',
-                                data=labels_response)
-        self.check_collection(response['members'], 'name',
-                              ['label1', 'label2', 'myplatform'])
+        labels_href = self.request('get', 'hosts/host1')['labels']['href']
+        data = {'label': self.URI_PREFIX + '/labels/label2'}
+        response = self.request('post', labels_href, data=data)
+        self._check_labels(self.hosts[0], ['label1', 'label2', 'myplatform'])
+
+
+    def test_remove_label(self):
+        labels_href = self.request('get', 'hosts/host1')['labels']['href']
+        labels_href += '&label=label1'
+        labelings = self.request('get', labels_href)['members']
+        self.assertEquals(len(labelings), 1)
+        self.request('delete', labelings[0]['href'])
+        self._check_labels(self.hosts[0], ['myplatform'])
 
 
     def test_delete(self):
@@ -323,7 +353,7 @@ class HostTest(ResourceTestCase):
 class TestTest(ResourceTestCase): # yes, we're testing the "tests" resource
     def test_collection(self):
         response = self.request('get', 'tests')
-        self.check_collection(response['members'], 'name', ['mytest'])
+        self.check_collection(response, 'name', ['mytest'])
 
 
     def test_entry(self):
@@ -335,8 +365,8 @@ class TestTest(ResourceTestCase): # yes, we're testing the "tests" resource
 
     def test_dependencies(self):
         models.Test.objects.get(name='mytest').dependency_labels = [self.label3]
-        response = self.request('get', 'tests/mytest/dependencies')
-        self.check_collection(response['members'], 'name', ['label3'])
+        self.check_relationship('tests/mytest', 'dependencies', 'label', 'name',
+                                ['label3'])
 
 
 class ExecutionInfoTest(ResourceTestCase):
@@ -389,7 +419,7 @@ class JobTest(ResourceTestCase):
 
     def test_collection(self):
         response = self.request('get', 'jobs')
-        self.check_collection(response['members'], 'id', [1, 2])
+        self.check_collection(response, 'id', [1, 2])
 
 
     def test_entry(self):
@@ -406,9 +436,9 @@ class JobTest(ResourceTestCase):
 
 
     def test_queue_entries(self):
-        response = self.request('get', 'jobs/1/queue_entries')
-        self.check_collection(response['members'], ['host', 'hostname'],
-                              ['host1', 'host2'])
+        job = self.request('get', 'jobs/1')
+        entries = self.request('get', job['queue_entries']['href'])
+        self.check_collection(entries, ['host', 'hostname'], ['host1', 'host2'])
 
 
     def test_post(self):
