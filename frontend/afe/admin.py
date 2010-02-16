@@ -101,7 +101,7 @@ class TestAdmin(SiteAdmin):
               'test_time', 'sync_count', 'test_type', 'path',
               'dependencies', 'experimental', 'run_verify',
               'description')
-    list_display = ('name', 'test_type', 'description', 'sync_count')
+    list_display = ('name', 'test_type', 'admin_description', 'sync_count')
     search_fields = ('name',)
     filter_horizontal = ('dependency_labels',)
 
