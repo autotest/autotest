@@ -1,6 +1,7 @@
 import logging, os
 from datetime import datetime
 from django.db import models as dbmodels, connection
+from xml.sax import saxutils
 import common
 from autotest_lib.frontend.afe import model_logic
 from autotest_lib.frontend import settings, thread_local
@@ -420,6 +421,12 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
                                  db_table='afe_autotests_dependency_labels'))
     name_field = 'name'
     objects = model_logic.ExtendedManager()
+
+
+    def admin_description(self):
+        escaped_description = saxutils.escape(self.description)
+        return '<span style="white-space:pre">%s</span>' % escaped_description
+    admin_description.allow_tags = True
 
 
     class Meta:
