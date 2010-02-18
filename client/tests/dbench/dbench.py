@@ -12,7 +12,14 @@ class dbench(test.test):
         os.chdir(self.srcdir)
 
         utils.system('patch -p1 < ../dbench_startup.patch')
-        utils.system('./configure')
+        # CBUILD and CHOST is env vars used inside Chromium OS build environment
+        # for cross compiling.
+        if 'CBUILD' in os.environ and 'CHOST' in os.environ:
+            config_params = '--build=%s --host=%s' % (os.environ['CBUILD'],
+                                                      os.environ['CHOST'])
+        else:
+            config_params = ''
+        utils.system('./configure %s' % config_params)
         utils.system('make')
 
 
