@@ -427,6 +427,7 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
         escaped_description = saxutils.escape(self.description)
         return '<span style="white-space:pre">%s</span>' % escaped_description
     admin_description.allow_tags = True
+    admin_description.short_description = 'Description'
 
 
     class Meta:
