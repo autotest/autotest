@@ -199,6 +199,20 @@ class RemoteHost(base_classes.Host):
         return dir_name
 
 
+    def get_platform_label(self):
+        """
+        Return the platform label, or None if platform label is not set.
+        """
+
+        if self.job:
+            keyval_path = os.path.join(self.job.resultdir, 'host_keyvals',
+                                       self.hostname)
+            keyvals = utils.read_keyval(keyval_path)
+            return keyvals.get('platform', None)
+        else:
+            return None
+
+
     def delete_tmp_dir(self, tmpdir):
         """
         Delete the given temporary directory on the remote machine.
