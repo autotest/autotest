@@ -102,6 +102,17 @@ class RpcClient(object):
             print message
 
 
+class Planner(RpcClient):
+    def __init__(self, user=None, server=None, print_log=True, debug=False,
+                 reply_debug=False):
+        super(Planner, self).__init__(path='/planner/server/rpc/',
+                                      user=user,
+                                      server=server,
+                                      print_log=print_log,
+                                      debug=debug,
+                                      reply_debug=reply_debug)
+
+
 class TKO(RpcClient):
     def __init__(self, user=None, server=None, print_log=True, debug=False,
                  reply_debug=False):

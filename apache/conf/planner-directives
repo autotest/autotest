@@ -1,0 +1,4 @@
+Alias /planner "/usr/local/autotest/frontend/client/www/autotest.TestPlannerClient"
+<Location "/planner">
+    DirectoryIndex TestPlannerClient.html
+</Location>
