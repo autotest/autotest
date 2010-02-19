@@ -257,9 +257,8 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
                                                 WHERE platform)
             WHERE NOT afe_hosts.invalid AND afe_hosts_labels.host_id IS NULL""")
         if rows:
-            subject = '%s hosts with no platform' % self._db.rowcount
-            self._send_inconsistency_message(
-                subject, [', '.join(row[0] for row in rows)])
+            logging.warn('%s hosts with no platform\n%s', self._db.rowcount,
+                         ', '.join(row[0] for row in rows))
 
 
     def _check_for_multiple_atomic_group_hosts(self):
