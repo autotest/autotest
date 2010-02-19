@@ -95,7 +95,7 @@ class Host(ModelWithPlan, model_logic.ModelExtensions):
 
 
     def _get_details_unicode(self):
-        return 'Host: %s' % host.hostname
+        return 'Host: %s' % self.host.hostname
 
 
     @classmethod
@@ -152,7 +152,7 @@ class Test(ModelWithPlan):
 
 
     def _get_details_unicode(self):
-        return 'Planned test - Control file id %s' % test_control_file.id
+        return 'Planned test - Control file id %s' % self.control_file.id
 
 
 class Job(ModelWithPlan):
@@ -170,7 +170,7 @@ class Job(ModelWithPlan):
 
 
     def _get_details_unicode(self):
-        return 'AFE job %s' % afe_job.id
+        return 'AFE job %s' % self.afe_job.id
 
 
 class Bug(dbmodels.Model):
