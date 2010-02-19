@@ -28,6 +28,7 @@ LONG_TESTS = set((
     'logging_manager_test.py',
     'models_test.py',
     'serviceHandler_unittest.py',
+    'scheduler_models_unittest.py',
     ))
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
