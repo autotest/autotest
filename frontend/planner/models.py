@@ -6,7 +6,7 @@ from autotest_lib.frontend.tko import models as tko_models
 from autotest_lib.client.common_lib import enum, utils
 
 
-class Plan(dbmodels.Model):
+class Plan(dbmodels.Model, model_logic.ModelExtensions):
     """A test plan
 
     Required:
@@ -30,6 +30,10 @@ class Plan(dbmodels.Model):
     owners = dbmodels.ManyToManyField(afe_models.User,
                                       db_table='planner_plan_owners')
     hosts = dbmodels.ManyToManyField(afe_models.Host, through='Host')
+    host_labels = dbmodels.ManyToManyField(afe_models.Label,
+                                           db_table='planner_plan_host_labels')
+
+    name_field = 'name'
 
     class Meta:
         db_table = 'planner_plans'
@@ -64,7 +68,7 @@ class ModelWithPlan(dbmodels.Model):
                 'Subclasses must override _get_details_unicode()')
 
 
-class Host(ModelWithPlan):
+class Host(ModelWithPlan, model_logic.ModelExtensions):
     """A plan host
 
     Required:
@@ -76,12 +80,27 @@ class Host(ModelWithPlan):
     complete = dbmodels.BooleanField(default=False)
     blocked = dbmodels.BooleanField(default=False)
 
+    Status = enum.Enum('Finished', 'Running', 'Blocked', string_values=True)
+
     class Meta:
         db_table = 'planner_hosts'
 
 
+    def status(self):
+        if self.complete:
+            return Host.Status.FINISHED
+        if self.blocked:
+            return Host.Status.BLOCKED
+        return Host.Status.RUNNING
+
+
     def _get_details_unicode(self):
         return 'Host: %s' % host.hostname
+
+
+    @classmethod
+    def smart_get(cls, id):
+        raise NotImplementedError('Planner hosts do not support smart_get()')
 
 
 class ControlFile(model_logic.ModelWithHash):
@@ -113,16 +132,23 @@ class Test(ModelWithPlan):
     """A planned test
 
     Required:
+        alias: The name to give this test within the plan. Unique with plan id
         test_control_file: The control file to run
         execution_order: An integer describing when this test should be run in
                          the test plan
+        estimated_runtime: Time in hours that the test is expected to run. Will
+                           be automatically generated (on the frontend) for
+                           tests in Autotest.
     """
+    alias = dbmodels.CharField(max_length=255)
     control_file = dbmodels.ForeignKey(ControlFile)
     execution_order = dbmodels.IntegerField(blank=True)
+    estimated_runtime = dbmodels.IntegerField()
 
     class Meta:
         db_table = 'planner_tests'
         ordering = ('execution_order',)
+        unique_together = (('plan', 'alias'),)
 
 
     def _get_details_unicode(self):
@@ -187,6 +213,7 @@ class TestRun(ModelWithPlan):
 
     test_job = dbmodels.ForeignKey(Job)
     tko_test = dbmodels.ForeignKey(tko_models.Test)
+    host = dbmodels.ForeignKey(Host)
     status = dbmodels.CharField(max_length=16, choices=Status.choices())
     finalized = dbmodels.BooleanField(default=False)
     seen = dbmodels.BooleanField(default=False)

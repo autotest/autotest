@@ -587,6 +587,7 @@ class Job(resource_lib.InstanceEntry):
     @classmethod
     def add_query_selectors(cls, query_processor):
         query_processor.add_field_selector('id')
+        query_processor.add_field_selector('name')
         query_processor.add_selector(
                 query_lib.Selector('status',
                                    doc='One of queued, active or complete'),
