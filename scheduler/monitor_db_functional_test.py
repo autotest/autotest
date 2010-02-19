@@ -7,6 +7,7 @@ from autotest_lib.database import database_connection
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import frontend_test_utils, models
 from autotest_lib.scheduler import drone_manager, email_manager, monitor_db
+from autotest_lib.scheduler import scheduler_models
 
 # translations necessary for scheduler queries to work with SQLite
 _re_translator = database_connection.TranslatingDatabase.make_regexp_translator
@@ -44,7 +45,7 @@ class MockGlobalConfig(object):
                          default=None, allow_blank=False):
         identifier = (section, key)
         if identifier not in self._config_info:
-            raise RuntimeError('Unset global config value: %s' % (identifier,))
+            return default
         return self._config_info[identifier]
 
 
@@ -55,10 +56,10 @@ _PidfileType = enum.Enum('verify', 'cleanup', 'repair', 'job', 'gather',
 
 
 _PIDFILE_TO_PIDFILE_TYPE = {
-        monitor_db._AUTOSERV_PID_FILE: _PidfileType.JOB,
-        monitor_db._CRASHINFO_PID_FILE: _PidfileType.GATHER,
-        monitor_db._PARSER_PID_FILE: _PidfileType.PARSE,
-        monitor_db._ARCHIVER_PID_FILE: _PidfileType.ARCHIVE,
+        drone_manager.AUTOSERV_PID_FILE: _PidfileType.JOB,
+        drone_manager.CRASHINFO_PID_FILE: _PidfileType.GATHER,
+        drone_manager.PARSER_PID_FILE: _PidfileType.PARSE,
+        drone_manager.ARCHIVER_PID_FILE: _PidfileType.ARCHIVE,
         }
 
 
@@ -326,8 +327,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.god.stub_with(global_config, 'global_config', self.mock_config)
 
         self.mock_drone_manager = MockDroneManager()
-        self.god.stub_with(monitor_db, '_drone_manager',
-                           self.mock_drone_manager)
+        drone_manager._set_instance(self.mock_drone_manager)
 
         self.mock_email_manager = MockEmailManager()
         self.god.stub_with(email_manager, 'manager', self.mock_email_manager)
@@ -337,6 +337,10 @@ class SchedulerFunctionalTest(unittest.TestCase,
                 translators=_DB_TRANSLATORS))
         self._database.connect(db_type='django')
         self.god.stub_with(monitor_db, '_db', self._database)
+        self.god.stub_with(scheduler_models, '_db', self._database)
+
+        monitor_db.initialize_globals()
+        scheduler_models.initialize_globals()
 
 
     def _set_global_config_values(self):
@@ -362,7 +366,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
     def _assert_process_executed(self, working_directory, pidfile_name):
         process_was_executed = self.mock_drone_manager.was_process_executed(
-                'hosts/host1/1-verify', monitor_db._AUTOSERV_PID_FILE)
+                'hosts/host1/1-verify', drone_manager.AUTOSERV_PID_FILE)
         self.assert_(process_was_executed,
                      '%s/%s not executed' % (working_directory, pidfile_name))
 
@@ -877,7 +881,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self._finish_job(queue_entry)
         # need to explicitly finish host1's post-job cleanup
         self.mock_drone_manager.finish_specific_process(
-                'hosts/host1/4-cleanup', monitor_db._AUTOSERV_PID_FILE)
+                'hosts/host1/4-cleanup', drone_manager.AUTOSERV_PID_FILE)
         self._run_dispatcher()
         # the reverify should now be running
         self._check_statuses(queue_entry, HqeStatus.COMPLETED,
@@ -904,7 +908,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.assertEquals(len(self.mock_drone_manager.running_pidfile_ids()), 2)
 
         self.mock_drone_manager.finish_specific_process(
-                'hosts/host1/1-verify', monitor_db._AUTOSERV_PID_FILE)
+                'hosts/host1/1-verify', drone_manager.AUTOSERV_PID_FILE)
         self.mock_drone_manager.finish_process(_PidfileType.VERIFY)
         self._run_dispatcher() # verify runs on 3
         _check_hqe_statuses(HqeStatus.PENDING, HqeStatus.PENDING,
@@ -968,7 +972,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self._run_dispatcher() # delay task started waiting
 
         self.mock_drone_manager.finish_specific_process(
-                'hosts/host6/1-verify', monitor_db._AUTOSERV_PID_FILE)
+                'hosts/host6/1-verify', drone_manager.AUTOSERV_PID_FILE)
         self._run_dispatcher() # job starts now
         for entry in queue_entries:
             self._check_statuses(entry, HqeStatus.RUNNING, HostStatus.RUNNING)

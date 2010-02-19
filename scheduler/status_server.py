@@ -1,6 +1,6 @@
 import os, BaseHTTPServer, cgi, threading, urllib, fcntl, logging
 import common
-from autotest_lib.scheduler import scheduler_config
+from autotest_lib.scheduler import drone_manager, scheduler_config
 
 _PORT = 13467
 
@@ -90,13 +90,13 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 class StatusServer(BaseHTTPServer.HTTPServer):
-    def __init__(self, drone_manager):
+    def __init__(self):
         address = ('', _PORT)
         # HTTPServer is an old-style class :(
         BaseHTTPServer.HTTPServer.__init__(self, address,
                                            StatusServerRequestHandler)
         self._shutting_down = False
-        self._drone_manager = drone_manager
+        self._drone_manager = drone_manager.instance()
 
         # ensure the listening socket is not inherited by child processes
         old_flags = fcntl.fcntl(self.fileno(), fcntl.F_GETFD)

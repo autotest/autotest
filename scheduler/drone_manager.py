@@ -12,6 +12,15 @@ _DRONE_RESULTS_DIR_SUFFIX = 'results'
 WORKING_DIRECTORY = object() # see execute_command()
 
 
+AUTOSERV_PID_FILE = '.autoserv_execute'
+CRASHINFO_PID_FILE = '.collect_crashinfo_execute'
+PARSER_PID_FILE = '.parser_execute'
+ARCHIVER_PID_FILE = '.archiver_execute'
+
+ALL_PIDFILE_NAMES = (AUTOSERV_PID_FILE, CRASHINFO_PID_FILE, PARSER_PID_FILE,
+                     ARCHIVER_PID_FILE)
+
+
 class DroneManagerError(Exception):
     pass
 
@@ -654,3 +663,16 @@ class DroneManager(object):
         full_path = self.absolute_path(
                 file_path, on_results_repository=on_results_repository)
         drone.queue_call('write_to_file', full_path, file_contents)
+
+
+_the_instance = None
+
+def instance():
+    if _the_instance is None:
+        _set_instance(DroneManager())
+    return _the_instance
+
+
+def _set_instance(instance): # usable for testing
+    global _the_instance
+    _the_instance = instance
