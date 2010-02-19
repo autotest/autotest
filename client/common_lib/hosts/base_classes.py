@@ -137,8 +137,12 @@ class Host(object):
 
     def is_shutting_down(self):
         """ Indicates is a machine is currently shutting down. """
-        runlevel = int(self.run("runlevel").stdout.strip().split()[1])
-        return runlevel in (0, 6)
+        # runlevel() may not be available, so wrap it in try block.
+        try:
+            runlevel = int(self.run("runlevel").stdout.strip().split()[1])
+            return runlevel in (0, 6)
+        except:
+            return False
 
 
     def get_wait_up_processes(self):
