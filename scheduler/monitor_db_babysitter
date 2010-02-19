@@ -65,7 +65,12 @@ def handle_sigterm(signum, frame):
 signal.signal(signal.SIGTERM, handle_sigterm)
 
 
-class MonitorProc:
+SiteMonitorProc = utils.import_site_class(
+    __file__, 'autotest_lib.scheduler.site_monitor_db_babysitter',
+    'SiteMonitorProc', object)
+
+
+class MonitorProc(SiteMonitorProc):
     def __init__(self, do_recovery=False):
         args = [monitor_db_path]
         if do_recovery:
@@ -84,8 +89,16 @@ class MonitorProc:
         self.last_log_change = time.time()
 
         logging.info("STARTING monitor_db with log file %s" % self.log_path)
+        self.args = args
+
+        # Allow site specific code to run, set environment variables and
+        # modify self.args if desired.
+        super(MonitorProc, self).__init__()
+
+
+    def start(self):
         devnull = open(os.devnull, 'w')
-        self.proc = subprocess.Popen(args, stdout=devnull)
+        self.proc = subprocess.Popen(self.args, stdout=devnull)
 
 
     def is_running(self):
@@ -142,6 +155,7 @@ utils.write_pid(monitor_db.BABYSITTER_PID_FILE_PREFIX)
 
 while True:
     proc = MonitorProc(do_recovery=recover)
+    proc.start()
     time.sleep(PAUSE_LENGTH)
     while proc.is_running():
         logging.info("Tick")
