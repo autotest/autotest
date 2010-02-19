@@ -182,6 +182,14 @@ def read_one_line(filename):
     return open(filename, 'r').readline().rstrip('\n')
 
 
+def read_file(filename):
+    f = open(filename)
+    try:
+        return f.read()
+    finally:
+        f.close()
+
+
 def write_one_line(filename, line):
     open_write_close(filename, line.rstrip('\n') + '\n')
 
