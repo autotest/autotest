@@ -32,6 +32,8 @@ LONG_TESTS = set((
     'models_test.py',
     'serviceHandler_unittest.py',
     'scheduler_models_unittest.py',
+    'metahost_scheduler_unittest.py',
+    'site_metahost_scheduler_unittest.py',
     ))
 
 
