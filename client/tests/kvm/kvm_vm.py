@@ -748,6 +748,23 @@ class VM:
         return self.process.get_pid()
 
 
+    def get_shared_meminfo(self):
+        """
+        Returns the VM's shared memory information.
+
+        @return: Shared memory used by VM (MB)
+        """
+        if self.is_dead():
+            logging.error("Could not get shared memory info from dead VM.")
+            return None
+
+        cmd = "cat /proc/%d/statm" % self.params.get('pid_' + self.name)
+        shm = int(os.popen(cmd).readline().split()[2])
+        # statm stores informations in pages, translate it to MB
+        shm = shm * 4 / 1024
+        return shm
+
+
     def remote_login(self, nic_index=0, timeout=10):
         """
         Log into the guest via SSH/Telnet/Netcat.

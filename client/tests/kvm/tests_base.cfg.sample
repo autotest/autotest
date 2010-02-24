@@ -255,6 +255,28 @@ variants:
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
 
+    - ksm_overcommit:
+        # Don't preprocess any vms as we need to change its params
+        vms = ''
+        image_snapshot = yes
+        kill_vm_gracefully = no
+        type = ksm_overcommit
+        # Make host use swap (a value of 'no' will turn off host swap)
+        ksm_swap = yes
+        no hugepages
+        # Overcommit of host memmory
+        ksm_overcommit_ratio = 3
+        # Max paralel runs machine
+        ksm_parallel_ratio = 4
+        # Host memory reserve
+        ksm_host_reserve = 512
+        ksm_guest_reserve = 1024
+        variants:
+            - ksm_serial
+                ksm_mode = "serial"
+            - ksm_parallel
+                ksm_mode = "parallel"
+
     # system_powerdown, system_reset and shutdown *must* be the last ones
     # defined (in this order), since the effect of such tests can leave
     # the VM on a bad state.
@@ -277,6 +299,7 @@ variants:
         kill_vm = yes
         kill_vm_gracefully = no
     # Do not define test variants below shutdown
+
 
 # NICs
 variants:
