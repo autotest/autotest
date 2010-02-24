@@ -696,6 +696,22 @@ def generate_random_string(length):
     return str
 
 
+def generate_tmp_file_name(file, ext=None, dir='/tmp/'):
+    """
+    Returns a temporary file name. The file is not created.
+    """
+    while True:
+        file_name = (file + '-' + time.strftime("%Y%m%d-%H%M%S-") +
+                     generate_random_string(4))
+        if ext:
+            file_name += '.' + ext
+        file_name = os.path.join(dir, file_name)
+        if not os.path.exists(file_name):
+            break
+
+    return file_name
+
+
 def format_str_for_message(str):
     """
     Format str so that it can be appended to a message.

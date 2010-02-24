@@ -22,7 +22,8 @@ More specifically:
 """
 
 import time, os, logging, re, commands
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.common_lib import error
+from autotest_lib.client.bin import utils
 import kvm_utils, kvm_vm, kvm_subprocess
 
 
@@ -203,3 +204,36 @@ def get_time(session, time_command, time_filter_re, time_format):
     s = re.findall(time_filter_re, s)[0]
     guest_time = time.mktime(time.strptime(s, time_format))
     return (host_time, guest_time)
+
+
+def get_memory_info(lvms):
+    """
+    Get memory information from host and guests in format:
+    Host: memfree = XXXM; Guests memsh = {XXX,XXX,...}
+
+    @params lvms: List of VM objects
+    @return: String with memory info report
+    """
+    if not isinstance(lvms, list):
+        raise error.TestError("Invalid list passed to get_stat: %s " % lvms)
+
+    try:
+        meminfo = "Host: memfree = "
+        meminfo += str(int(utils.freememtotal()) / 1024) + "M; "
+        meminfo += "swapfree = "
+        mf = int(utils.read_from_meminfo("SwapFree")) / 1024
+        meminfo += str(mf) + "M; "
+    except Exception, e:
+        raise error.TestFail("Could not fetch host free memory info, "
+                             "reason: %s" % e)
+
+    meminfo += "Guests memsh = {"
+    for vm in lvms:
+        shm = vm.get_shared_meminfo()
+        if shm is None:
+            raise error.TestError("Could not get shared meminfo from "
+                                  "VM %s" % vm)
+        meminfo += "%dM; " % shm
+    meminfo = meminfo[0:-2] + "}"
+
+    return meminfo
