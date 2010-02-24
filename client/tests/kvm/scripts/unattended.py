@@ -73,7 +73,8 @@ class UnattendedInstall(object):
         if os.path.exists(self.floppy_img):
             os.remove(self.floppy_img)
 
-        c_cmd = '%s create -f raw %s 1440k' % (self.qemu_img_bin, self.floppy_img)
+        c_cmd = '%s create -f raw %s 1440k' % (self.qemu_img_bin,
+                                               self.floppy_img)
         if os.system(c_cmd):
             raise SetupError('Could not create floppy image.')
 
@@ -81,48 +82,51 @@ class UnattendedInstall(object):
         if os.system(f_cmd):
             raise SetupError('Error formatting floppy image.')
 
-        m_cmd = 'mount -o loop %s %s' % (self.floppy_img, self.floppy_mount)
-        if os.system(m_cmd):
-            raise SetupError('Could not mount floppy image.')
+        try:
+            m_cmd = 'mount -o loop %s %s' % (self.floppy_img, self.floppy_mount)
+            if os.system(m_cmd):
+                raise SetupError('Could not mount floppy image.')
 
-        if self.unattended_file.endswith('.sif'):
-            dest_fname = 'winnt.sif'
-            setup_file = 'winnt.bat'
-            setup_file_path = os.path.join(self.unattended_dir, setup_file)
-            setup_file_dest = os.path.join(self.floppy_mount, setup_file)
-            shutil.copyfile(setup_file_path, setup_file_dest)
-        elif self.unattended_file.endswith('.ks'):
-            dest_fname = 'ks.cfg'
-        elif self.unattended_file.endswith('.xml'):
-            dest_fname = "autounattend.xml"
+            if self.unattended_file.endswith('.sif'):
+                dest_fname = 'winnt.sif'
+                setup_file = 'winnt.bat'
+                setup_file_path = os.path.join(self.unattended_dir, setup_file)
+                setup_file_dest = os.path.join(self.floppy_mount, setup_file)
+                shutil.copyfile(setup_file_path, setup_file_dest)
+            elif self.unattended_file.endswith('.ks'):
+                dest_fname = 'ks.cfg'
+            elif self.unattended_file.endswith('.xml'):
+                dest_fname = "autounattend.xml"
 
-        dest = os.path.join(self.floppy_mount, dest_fname)
-
-        # Replace KVM_TEST_CDKEY (in the unattended file) with the cdkey
-        # provided for this test
-        unattended_contents = open(self.unattended_file).read()
-        dummy_cdkey_re = r'\bKVM_TEST_CDKEY\b'
-        real_cdkey = os.environ.get('KVM_TEST_cdkey')
-        if re.search(dummy_cdkey_re, unattended_contents):
-            if real_cdkey:
-                unattended_contents = re.sub(dummy_cdkey_re, real_cdkey,
-                                             unattended_contents)
-            else:
-                print ("WARNING: 'cdkey' required but not specified for this "
-                       "unattended installation")
-
-        # Write the unattended file contents to 'dest'
-        open(dest, 'w').write(unattended_contents)
-
-        if self.finish_program:
-            dest_fname = os.path.basename(self.finish_program)
             dest = os.path.join(self.floppy_mount, dest_fname)
-            shutil.copyfile(self.finish_program, dest)
 
-        u_cmd = 'umount %s' % self.floppy_mount
-        if os.system(u_cmd):
-            raise SetupError('Could not unmount floppy at %s.' %
-                             self.floppy_mount)
+            # Replace KVM_TEST_CDKEY (in the unattended file) with the cdkey
+            # provided for this test
+            unattended_contents = open(self.unattended_file).read()
+            dummy_cdkey_re = r'\bKVM_TEST_CDKEY\b'
+            real_cdkey = os.environ.get('KVM_TEST_cdkey')
+            if re.search(dummy_cdkey_re, unattended_contents):
+                if real_cdkey:
+                    unattended_contents = re.sub(dummy_cdkey_re, real_cdkey,
+                                                 unattended_contents)
+                else:
+                    print ("WARNING: 'cdkey' required but not specified for "
+                           "this unattended installation")
+
+            # Write the unattended file contents to 'dest'
+            open(dest, 'w').write(unattended_contents)
+
+            if self.finish_program:
+                dest_fname = os.path.basename(self.finish_program)
+                dest = os.path.join(self.floppy_mount, dest_fname)
+                shutil.copyfile(self.finish_program, dest)
+
+        finally:
+            u_cmd = 'umount %s' % self.floppy_mount
+            if os.system(u_cmd):
+                raise SetupError('Could not unmount floppy at %s.' %
+                                 self.floppy_mount)
+            self.cleanup(self.floppy_mount)
 
         os.chmod(self.floppy_img, 0755)
 
@@ -155,34 +159,40 @@ class UnattendedInstall(object):
         pxe_dest = os.path.join(self.tftp_root, 'pxelinux.0')
         shutil.copyfile(pxe_file, pxe_dest)
 
-        m_cmd = 'mount -t iso9660 -v -o loop,ro %s %s' % (self.cdrom_iso,
-                                                          self.cdrom_mount)
-        if os.system(m_cmd):
-            raise SetupError('Could not mount CD image %s.' % self.cdrom_iso)
+        try:
+            m_cmd = 'mount -t iso9660 -v -o loop,ro %s %s' % (self.cdrom_iso,
+                                                              self.cdrom_mount)
+            if os.system(m_cmd):
+                raise SetupError('Could not mount CD image %s.' %
+                                 self.cdrom_iso)
 
-        p = os.path.join('images', 'pxeboot')
-        pxe_dir = os.path.join(self.cdrom_mount, p)
-        pxe_image = os.path.join(pxe_dir, 'vmlinuz')
-        pxe_initrd = os.path.join(pxe_dir, 'initrd.img')
+            p = os.path.join('images', 'pxeboot')
+            pxe_dir = os.path.join(self.cdrom_mount, p)
+            pxe_image = os.path.join(pxe_dir, 'vmlinuz')
+            pxe_initrd = os.path.join(pxe_dir, 'initrd.img')
 
-        if not os.path.isdir(pxe_dir):
-            raise SetupError('The ISO image does not have a %s dir. The script '
-                             'assumes that the cd has a %s dir where to search '
-                             'for the vmlinuz image.' % (p, p))
+            if not os.path.isdir(pxe_dir):
+                raise SetupError('The ISO image does not have a %s dir. The '
+                                 'script assumes that the cd has a %s dir '
+                                 'where to search for the vmlinuz image.' %
+                                 (p, p))
 
-        if not os.path.isfile(pxe_image) or not os.path.isfile(pxe_initrd):
-            raise SetupError('The location %s is lacking either a vmlinuz or a '
-                             'initrd.img file. Cannot find a PXE image to '
-                             'proceed.' % pxe_dir)
+            if not os.path.isfile(pxe_image) or not os.path.isfile(pxe_initrd):
+                raise SetupError('The location %s is lacking either a vmlinuz '
+                                 'or a initrd.img file. Cannot find a PXE '
+                                 'image to proceed.' % pxe_dir)
 
-        tftp_image = os.path.join(self.tftp_root, 'vmlinuz')
-        tftp_initrd = os.path.join(self.tftp_root, 'initrd.img')
-        shutil.copyfile(pxe_image, tftp_image)
-        shutil.copyfile(pxe_initrd, tftp_initrd)
+            tftp_image = os.path.join(self.tftp_root, 'vmlinuz')
+            tftp_initrd = os.path.join(self.tftp_root, 'initrd.img')
+            shutil.copyfile(pxe_image, tftp_image)
+            shutil.copyfile(pxe_initrd, tftp_initrd)
 
-        u_cmd = 'umount %s' % self.cdrom_mount
-        if os.system(u_cmd):
-            raise SetupError('Could not unmount CD at %s.' % self.cdrom_mount)
+        finally:
+            u_cmd = 'umount %s' % self.cdrom_mount
+            if os.system(u_cmd):
+                raise SetupError('Could not unmount CD at %s.' %
+                                 self.cdrom_mount)
+            self.cleanup(self.cdrom_mount)
 
         pxe_config_dir = os.path.join(self.tftp_root, 'pxelinux.cfg')
         if not os.path.isdir(pxe_config_dir):
@@ -202,18 +212,19 @@ class UnattendedInstall(object):
 
         print "PXE boot successfuly set"
 
-    def cleanup(self):
+
+    def cleanup(self, mount):
         """
-        Clean up previously used mount points.
+        Clean up a previously used mountpoint.
+
+        @param mount: Mountpoint to be cleaned up.
         """
-        print "Cleaning up unused mount points"
-        for mount in [self.floppy_mount, self.cdrom_mount]:
-            if os.path.isdir(mount):
-                if os.path.ismount(mount):
-                    print "Path %s is still mounted, please verify" % mount
-                else:
-                    print "Removing mount point %s" % mount
-                    os.rmdir(mount)
+        if os.path.isdir(mount):
+            if os.path.ismount(mount):
+                print "Path %s is still mounted, please verify" % mount
+            else:
+                print "Removing mount point %s" % mount
+                os.rmdir(mount)
 
 
     def setup(self):
@@ -232,7 +243,6 @@ class UnattendedInstall(object):
         self.create_boot_floppy()
         if self.tftp_root:
             self.setup_pxe_boot()
-        self.cleanup()
         print "Unattended install setup finished successfuly"
 
 
