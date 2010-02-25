@@ -17,24 +17,44 @@ parser.add_option("--skip-tests", dest="skip_tests",  default=[],
                   help="A space separated list of tests to skip")
 
 
-LONG_TESTS = set((
-    'monitor_db_unittest.py',
-    'monitor_db_functional_test.py',
-    'monitor_db_cleanup_test.py',
+REQUIRES_DJANGO = set((
+        'monitor_db_unittest.py',
+        'monitor_db_functional_test.py',
+        'monitor_db_cleanup_test.py',
+        'frontend_unittest.py',
+        'csv_encoder_unittest.py',
+        'rpc_interface_unittest.py',
+        'models_test.py',
+        'scheduler_models_unittest.py',
+        'metahost_scheduler_unittest.py',
+        'site_metahost_scheduler_unittest.py',
+        'rpc_utils_unittest.py',
+        ))
+
+REQUIRES_MYSQLDB = set((
+        'migrate_unittest.py',
+        'db_utils_unittest.py',
+        ))
+
+REQUIRES_GWT = set((
+        'client_compilation_unittest',
+        ))
+
+REQUIRES_SIMPLEJSON = set((
+        'resources_test.py',
+        'serviceHandler_unittest.py',
+        ))
+
+LONG_RUNTIME = set((
     'barrier_unittest.py',
-    'migrate_unittest.py',
-    'frontend_unittest.py',
-    'client_compilation_unittest.py',
-    'csv_encoder_unittest.py',
-    'rpc_interface_unittest.py',
-    'resources_test.py',
     'logging_manager_test.py',
-    'models_test.py',
-    'serviceHandler_unittest.py',
-    'scheduler_models_unittest.py',
-    'metahost_scheduler_unittest.py',
-    'site_metahost_scheduler_unittest.py',
     ))
+
+LONG_TESTS = (REQUIRES_DJANGO |
+              REQUIRES_MYSQLDB |
+              REQUIRES_GWT |
+              REQUIRES_SIMPLEJSON |
+              LONG_RUNTIME)
 
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
