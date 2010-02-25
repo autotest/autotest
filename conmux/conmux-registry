@@ -22,6 +22,8 @@ use URI::Escape;
 
 # Find our internal libraries.
 use lib $FindBin::Bin;
+use lib "$FindBin::Bin/../lib/";
+use lib "$FindBin::Bin/lib/";
 use Conmux;
 
 our $P = 'conmux-registry';
