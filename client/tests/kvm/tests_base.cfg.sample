@@ -126,7 +126,9 @@ variants:
             - hackbench:
                 test_name = hackbench
                 test_control_file = hackbench.control
-
+            - cpu_hotplug:
+                test_name = cpu_hotplug
+                test_control_file = cpu_hotplug.control
 
     - linux_s3:     install setup unattended_install
         type = linux_s3
