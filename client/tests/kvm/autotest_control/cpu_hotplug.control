@@ -1,0 +1,10 @@
+AUTHOR = 'Martin Bligh <mbligh@google.com>'
+DOC = 'lhcs_regression: Regression test for CPU hotplug'
+NAME = 'cpu_hotplug'
+TIME = 'MEDIUM' ## ?
+EXPERIMENTAL = 'True'
+TEST_CLASS = 'kernel'
+TEST_CATEGORY = 'Functional'
+TEST_TYPE = 'client'
+
+job.run_test('cpu_hotplug')
