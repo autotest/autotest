@@ -47,12 +47,16 @@ def load_all_client_tests(options):
 
     @param options: an object passed in from command line OptionParser.
                     See all options defined on client/bin/autotest.
+
+    @return a tuple containing the list of all instantiated tests and
+            a list of tests that failed to instantiate.
     """
 
     local_namespace = locals().copy()
     global_namespace = globals().copy()
 
     all_tests = []
+    broken_tests = []
     for test_base_dir in ['tests', 'site_tests']:
         testdir = os.path.join(os.environ['AUTODIR'], test_base_dir)
         for test_name in os.listdir(testdir):
@@ -82,9 +86,13 @@ def load_all_client_tests(options):
                 except ImportError:
                     # this test has only control file but no python.
                     pass
+            except Exception, e:
+                # Log other errors (e.g., syntax errors) and collect the test.
+                logging.error("%s: %s", test_name, e)
+                broken_tests.append(test_name)
             finally:
                 sys.path.pop(0) # pop up testbindir
-    return all_tests
+    return all_tests, broken_tests
 
 
 def setup_tests(options):
@@ -101,15 +109,20 @@ def setup_tests(options):
                                       'command line.'
 
     requested_tests = options.client_test_setup.split(',')
-    candidates = load_all_client_tests(options)
+    candidates, broken_tests = load_all_client_tests(options)
 
-    if options.client_test_setup.lower().find('all') >= 0:
+    failed_tests = []
+    if 'all' in requested_tests:
         need_to_setup = candidates
+        failed_tests += broken_tests
     else:
         need_to_setup = []
         for candidate in candidates:
             if candidate.__class__.__name__ in requested_tests:
                 need_to_setup.append(candidate)
+        for broken_test in broken_tests:
+            if broken_test in requested_tests:
+                failed_tests.append(broken_test)
 
     if need_to_setup:
         cwd = os.getcwd()
@@ -117,7 +130,6 @@ def setup_tests(options):
         os.system('tools/make_clean')
         os.chdir(cwd)
 
-    failed_tests = []
     for setup_test in need_to_setup:
         test_name = setup_test.__class__.__name__
         try:
