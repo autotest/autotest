@@ -272,9 +272,9 @@ variants:
         ksm_host_reserve = 512
         ksm_guest_reserve = 1024
         variants:
-            - ksm_serial
+            - ksm_serial:
                 ksm_mode = "serial"
-            - ksm_parallel
+            - ksm_parallel:
                 ksm_mode = "parallel"
 
     # system_powerdown, system_reset and shutdown *must* be the last ones
@@ -1042,6 +1042,9 @@ virtio|virtio_blk|e1000:
 variants:
     - @qcow2:
         image_format = qcow2
+        post_command = " python scripts/check_image.py;"
+        remove_image = no
+        post_command_timeout = 600
     - vmdk:
         only Fedora Ubuntu Windows
         only smp2
