@@ -293,6 +293,8 @@ def get_cpu_arch():
         return 'power7'
     elif list_grep(cpuinfo, '^cpu.*PPC970'):
         return 'power970'
+    elif list_grep(cpuinfo, 'ARM'):
+        return 'arm'
     elif list_grep(cpuinfo, '^flags.*:.* lm .*'):
         return 'x86_64'
     else:
@@ -317,7 +319,7 @@ def count_cpus():
     f = file('/proc/cpuinfo', 'r')
     cpus = 0
     for line in f.readlines():
-        if line.startswith('processor'):
+        if line.lower().startswith('processor'):
             cpus += 1
     return cpus
 
