@@ -521,7 +521,7 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
         read_list.append(bg_job.sp.stderr)
         reverse_dict[bg_job.sp.stdout] = (bg_job, True)
         reverse_dict[bg_job.sp.stderr] = (bg_job, False)
-        if bg_job.string_stdin:
+        if bg_job.string_stdin is not None:
             write_list.append(bg_job.sp.stdin)
             reverse_dict[bg_job.sp.stdin] = bg_job
 
