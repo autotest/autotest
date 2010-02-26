@@ -456,14 +456,6 @@ def create_new_job(owner, options, host_objects, metahost_objects,
     dependencies = options.get('dependencies', [])
     synch_count = options.get('synch_count')
 
-    # check that each metahost request has enough hosts under the label
-    for label, requested_count in metahost_counts.iteritems():
-        available_count = label.host_set.count()
-        if requested_count > available_count:
-            error = ("You have requested %d %s's, but there are only %d."
-                     % (requested_count, label.name, available_count))
-            raise model_logic.ValidationError({'meta_hosts' : error})
-
     if atomic_group:
         check_atomic_group_create_job(
                 synch_count, host_objects, metahost_objects,
