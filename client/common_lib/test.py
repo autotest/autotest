@@ -41,6 +41,8 @@ class base_test:
         os.mkdir(self.debugdir)
         if getpass.getuser() == 'root':
             self.configure_crash_handler()
+        else:
+            self.crash_handling_enabled = False
         self.bindir = bindir
         self.srcdir = os.path.join(self.bindir, 'src')
         self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname,
