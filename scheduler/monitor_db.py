@@ -391,6 +391,8 @@ class HostScheduler(metahost_scheduler.HostSchedulingUtility):
 
         self._labels = self._get_labels()
 
+
+    def tick(self):
         for metahost_scheduler in self._metahost_schedulers:
             metahost_scheduler.tick()
 
@@ -683,6 +685,7 @@ class Dispatcher(object):
         self._schedule_special_tasks()
         self._schedule_new_jobs()
         self._handle_agents()
+        self._host_scheduler.tick()
         _drone_manager.execute_actions()
         email_manager.manager.send_queued_emails()
         django.db.reset_queries()
