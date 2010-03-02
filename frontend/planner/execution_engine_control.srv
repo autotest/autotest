@@ -1,7 +1,6 @@
 import time
-from autotest_lib.frontend import setup_django_environment
 from autotest_lib.client.common_lib import utils
-from autotest_lib.frontend.afe import models as afe_models
+from autotest_lib.frontend.afe import model_attributes
 from autotest_lib.frontend.shared import rest_client
 from autotest_lib.frontend.planner import execution_engine
 from autotest_lib.server import frontend
@@ -23,8 +22,8 @@ def _launch_set_atomic_group_job(plan, name):
 
     info = afe_rest.execution_info.get().execution_info
     info['control_file'] = control
-    info['cleanup_before_job'] = afe_models.RebootBefore.NEVER
-    info['cleanup_after_job'] = afe_models.RebootAfter.NEVER
+    info['cleanup_before_job'] = model_attributes.RebootBefore.NEVER
+    info['cleanup_after_job'] = model_attributes.RebootAfter.NEVER
     info['run_verify'] = False
     info['machines_per_execution'] = len(hosts)
 
