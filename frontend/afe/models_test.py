@@ -141,5 +141,77 @@ class HostQueueEntryUnittest(unittest.TestCase,
         self.assertEquals(entry.execution_path(), '1-autotest_system/subdir')
 
 
+class ModelWithInvalidTest(unittest.TestCase,
+                           frontend_test_utils.FrontendTestMixin):
+    def setUp(self):
+        self._frontend_common_setup()
+
+
+    def tearDown(self):
+        self._frontend_common_teardown()
+
+
+    def test_model_with_invalid_delete(self):
+        self.assertFalse(self.hosts[0].invalid)
+        self.hosts[0].delete()
+        self.assertTrue(self.hosts[0].invalid)
+        self.assertTrue(models.Host.objects.get(id=self.hosts[0].id))
+
+
+    def test_model_with_invalid_delete_queryset(self):
+        for host in self.hosts:
+            self.assertFalse(host.invalid)
+
+        hosts = models.Host.objects.all()
+        hosts.delete()
+        self.assertEqual(hosts.count(), len(self.hosts))
+
+        for host in hosts:
+            self.assertTrue(host.invalid)
+
+
+    def test_cloned_queryset_delete(self):
+        """
+        Make sure that a cloned queryset maintains the custom delete()
+        """
+        to_delete = ('host1', 'host2')
+
+        for host in self.hosts:
+            self.assertFalse(host.invalid)
+
+        hosts = models.Host.objects.all().filter(hostname__in=to_delete)
+        hosts.delete()
+        all_hosts = models.Host.objects.all()
+        self.assertEqual(all_hosts.count(), len(self.hosts))
+
+        for host in all_hosts:
+            if host.hostname in to_delete:
+                self.assertTrue(
+                        host.invalid,
+                        '%s.invalid expected to be True' % host.hostname)
+            else:
+                self.assertFalse(
+                        host.invalid,
+                        '%s.invalid expected to be False' % host.hostname)
+
+
+    def test_normal_delete(self):
+        job = self._create_job(hosts=[1])
+        self.assertEqual(1, models.Job.objects.all().count())
+
+        job.delete()
+        self.assertEqual(0, models.Job.objects.all().count())
+
+
+    def test_normal_delete_queryset(self):
+        self._create_job(hosts=[1])
+        self._create_job(hosts=[2])
+
+        self.assertEqual(2, models.Job.objects.all().count())
+
+        models.Job.objects.all().delete()
+        self.assertEqual(0, models.Job.objects.all().count())
+
+
 if __name__ == '__main__':
     unittest.main()

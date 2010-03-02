@@ -49,7 +49,7 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
                                   editable=settings.FULL_ADMIN)
 
     name_field = 'name'
-    objects = model_logic.ExtendedManager()
+    objects = model_logic.ModelWithInvalidManager()
     valid_objects = model_logic.ValidObjectsManager()
 
 
@@ -93,7 +93,7 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
     only_if_needed = dbmodels.BooleanField(default=False)
 
     name_field = 'name'
-    objects = model_logic.ExtendedManager()
+    objects = model_logic.ModelWithInvalidManager()
     valid_objects = model_logic.ValidObjectsManager()
     atomic_group = dbmodels.ForeignKey(AtomicGroup, null=True, blank=True)
 
@@ -223,7 +223,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
     dirty = dbmodels.BooleanField(default=True, editable=settings.FULL_ADMIN)
 
     name_field = 'hostname'
-    objects = model_logic.ExtendedManager()
+    objects = model_logic.ModelWithInvalidManager()
     valid_objects = model_logic.ValidObjectsManager()
 
 
