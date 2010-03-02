@@ -7,7 +7,7 @@ from autotest_lib.frontend.afe import frontend_test_utils
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.common_lib.test_utils import unittest
 from autotest_lib.database import database_connection
-from autotest_lib.frontend.afe import models
+from autotest_lib.frontend.afe import models, model_attributes
 from autotest_lib.scheduler import monitor_db_functional_test
 from autotest_lib.scheduler import scheduler_models
 
@@ -363,7 +363,7 @@ class JobTest(BaseSchedulerModelsTest):
 
     def test_reboot_before_always(self):
         job = self._create_job(hosts=[1])
-        job.reboot_before = models.RebootBefore.ALWAYS
+        job.reboot_before = model_attributes.RebootBefore.ALWAYS
         job.save()
 
         task = self._test_pre_job_tasks_helper()
@@ -373,7 +373,7 @@ class JobTest(BaseSchedulerModelsTest):
 
     def _test_reboot_before_if_dirty_helper(self, expect_reboot):
         job = self._create_job(hosts=[1])
-        job.reboot_before = models.RebootBefore.IF_DIRTY
+        job.reboot_before = model_attributes.RebootBefore.IF_DIRTY
         job.save()
 
         task = self._test_pre_job_tasks_helper()
