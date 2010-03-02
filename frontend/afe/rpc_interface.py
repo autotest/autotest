@@ -31,7 +31,7 @@ __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime
 import common
-from autotest_lib.frontend.afe import models, model_logic
+from autotest_lib.frontend.afe import models, model_logic, model_attributes
 from autotest_lib.frontend.afe import control_file, rpc_utils
 from autotest_lib.client.common_lib import global_config
 
@@ -820,8 +820,8 @@ def get_static_data():
     result['job_max_runtime_hrs_default'] = models.Job.DEFAULT_MAX_RUNTIME_HRS
     result['parse_failed_repair_default'] = bool(
         models.Job.DEFAULT_PARSE_FAILED_REPAIR)
-    result['reboot_before_options'] = models.RebootBefore.names
-    result['reboot_after_options'] = models.RebootAfter.names
+    result['reboot_before_options'] = model_attributes.RebootBefore.names
+    result['reboot_after_options'] = model_attributes.RebootAfter.names
     result['motd'] = rpc_utils.get_motd()
 
     result['status_dictionary'] = {"Aborted": "Aborted",

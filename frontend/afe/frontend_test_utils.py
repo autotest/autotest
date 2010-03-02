@@ -2,7 +2,7 @@ import atexit, datetime, os, tempfile, unittest
 import common
 from autotest_lib.frontend import setup_test_environment
 from autotest_lib.frontend import thread_local
-from autotest_lib.frontend.afe import models
+from autotest_lib.frontend.afe import models, model_attributes
 from autotest_lib.client.common_lib.test_utils import mock
 
 class FrontendTestMixin(object):
@@ -102,7 +102,7 @@ class FrontendTestMixin(object):
         job = models.Job.objects.create(
             name='test', owner='autotest_system', priority=priority,
             synch_count=synch_count, created_on=created_on,
-            reboot_before=models.RebootBefore.NEVER)
+            reboot_before=model_attributes.RebootBefore.NEVER)
         for host_id in hosts:
             models.HostQueueEntry.objects.create(job=job, host_id=host_id,
                                                  status=status,

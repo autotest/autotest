@@ -7,6 +7,7 @@ from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend import setup_test_environment
 from django.test import client
 from autotest_lib.frontend.afe import control_file, frontend_test_utils, models
+from autotest_lib.frontend.afe import model_attributes
 
 class ResourceTestCase(unittest.TestCase,
                        frontend_test_utils.FrontendTestMixin):
@@ -35,7 +36,7 @@ class ResourceTestCase(unittest.TestCase,
 
     def _add_additional_data(self):
         models.Test.objects.create(name='mytest',
-                                   test_type=models.Test.Types.SERVER,
+                                   test_type=model_attributes.TestTypes.SERVER,
                                    path='/path/to/mytest')
 
 

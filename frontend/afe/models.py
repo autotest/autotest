@@ -3,16 +3,14 @@ from datetime import datetime
 from django.db import models as dbmodels, connection
 from xml.sax import saxutils
 import common
-from autotest_lib.frontend.afe import model_logic
+from autotest_lib.frontend.afe import model_logic, model_attributes
 from autotest_lib.frontend import settings, thread_local
 from autotest_lib.client.common_lib import enum, host_protections, global_config
 from autotest_lib.client.common_lib import host_queue_entry_states
 
 # job options and user preferences
-RebootBefore = enum.Enum('Never', 'If dirty', 'Always')
-DEFAULT_REBOOT_BEFORE = RebootBefore.IF_DIRTY
-RebootAfter = enum.Enum('Never', 'If all tests passed', 'Always')
-DEFAULT_REBOOT_AFTER = RebootBefore.ALWAYS
+DEFAULT_REBOOT_BEFORE = model_attributes.RebootBefore.IF_DIRTY
+DEFAULT_REBOOT_AFTER = model_attributes.RebootBefore.ALWAYS
 
 
 class AclAccessViolation(Exception):
@@ -136,12 +134,12 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     access_level = dbmodels.IntegerField(default=ACCESS_USER, blank=True)
 
     # user preferences
-    reboot_before = dbmodels.SmallIntegerField(choices=RebootBefore.choices(),
-                                               blank=True,
-                                               default=DEFAULT_REBOOT_BEFORE)
-    reboot_after = dbmodels.SmallIntegerField(choices=RebootAfter.choices(),
-                                              blank=True,
-                                              default=DEFAULT_REBOOT_AFTER)
+    reboot_before = dbmodels.SmallIntegerField(
+        choices=model_attributes.RebootBefore.choices(), blank=True,
+        default=DEFAULT_REBOOT_BEFORE)
+    reboot_after = dbmodels.SmallIntegerField(
+        choices=model_attributes.RebootAfter.choices(), blank=True,
+        default=DEFAULT_REBOOT_AFTER)
     show_experimental = dbmodels.BooleanField(default=False)
 
     name_field = 'login'
@@ -400,7 +398,6 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     TestTime = enum.Enum('SHORT', 'MEDIUM', 'LONG', start_value=1)
     # TODO(showard) - this should be merged with Job.ControlType (but right
     # now they use opposite values)
-    Types = enum.Enum('Client', 'Server', start_value=1)
 
     name = dbmodels.CharField(max_length=255, unique=True)
     author = dbmodels.CharField(max_length=255)
@@ -412,7 +409,8 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     run_verify = dbmodels.BooleanField(default=True)
     test_time = dbmodels.SmallIntegerField(choices=TestTime.choices(),
                                            default=TestTime.MEDIUM)
-    test_type = dbmodels.SmallIntegerField(choices=Types.choices())
+    test_type = dbmodels.SmallIntegerField(
+        choices=model_attributes.TestTypes.choices())
     sync_count = dbmodels.IntegerField(default=1)
     path = dbmodels.CharField(max_length=255, unique=True)
 
@@ -675,12 +673,12 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     dependency_labels = (
             dbmodels.ManyToManyField(Label, blank=True,
                                      db_table='afe_jobs_dependency_labels'))
-    reboot_before = dbmodels.SmallIntegerField(choices=RebootBefore.choices(),
-                                               blank=True,
-                                               default=DEFAULT_REBOOT_BEFORE)
-    reboot_after = dbmodels.SmallIntegerField(choices=RebootAfter.choices(),
-                                              blank=True,
-                                              default=DEFAULT_REBOOT_AFTER)
+    reboot_before = dbmodels.SmallIntegerField(
+        choices=model_attributes.RebootBefore.choices(), blank=True,
+        default=DEFAULT_REBOOT_BEFORE)
+    reboot_after = dbmodels.SmallIntegerField(
+        choices=model_attributes.RebootAfter.choices(), blank=True,
+        default=DEFAULT_REBOOT_AFTER)
     parse_failed_repair = dbmodels.BooleanField(
         default=DEFAULT_PARSE_FAILED_REPAIR)
     max_runtime_hrs = dbmodels.IntegerField(default=DEFAULT_MAX_RUNTIME_HRS)

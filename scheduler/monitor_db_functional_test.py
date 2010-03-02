@@ -6,6 +6,7 @@ from autotest_lib.client.common_lib import enum, global_config, host_protections
 from autotest_lib.database import database_connection
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import frontend_test_utils, models
+from autotest_lib.frontend.afe import model_attributes
 from autotest_lib.scheduler import drone_manager, email_manager, monitor_db
 from autotest_lib.scheduler import scheduler_models
 
@@ -415,7 +416,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
     def _setup_for_pre_job_cleanup(self):
         self._initialize_test()
         job, queue_entry = self._make_job_and_queue_entry()
-        job.reboot_before = models.RebootBefore.ALWAYS
+        job.reboot_before = model_attributes.RebootBefore.ALWAYS
         job.save()
         return queue_entry
 
@@ -480,7 +481,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
     def _setup_for_post_job_cleanup(self):
         self._initialize_test()
         job, queue_entry = self._make_job_and_queue_entry()
-        job.reboot_after = models.RebootAfter.ALWAYS
+        job.reboot_after = model_attributes.RebootAfter.ALWAYS
         job.save()
         return queue_entry
 
@@ -592,7 +593,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
     def test_do_not_verify_job_with_cleanup(self):
         queue_entry = self._setup_for_do_not_verify()
-        queue_entry.job.reboot_before = models.RebootBefore.ALWAYS
+        queue_entry.job.reboot_before = model_attributes.RebootBefore.ALWAYS
         queue_entry.job.save()
 
         self._run_dispatcher() # cleanup
@@ -603,7 +604,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
     def test_do_not_verify_pre_job_cleanup_failure(self):
         queue_entry = self._setup_for_do_not_verify()
-        queue_entry.job.reboot_before = models.RebootBefore.ALWAYS
+        queue_entry.job.reboot_before = model_attributes.RebootBefore.ALWAYS
         queue_entry.job.save()
 
         self._run_dispatcher() # cleanup
@@ -761,7 +762,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self._initialize_test()
         job, queue_entry = self._make_job_and_queue_entry()
         job.run_verify = False
-        job.reboot_after = models.RebootAfter.NEVER
+        job.reboot_after = model_attributes.RebootAfter.NEVER
         job.save()
 
         self._run_dispatcher() # launches job
@@ -948,7 +949,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         job = self._create_job(hosts=[1,2], synchronous=True)
         queue_entry = job.hostqueueentry_set.all()[0]
         job.run_verify = False
-        job.reboot_after = models.RebootAfter.NEVER
+        job.reboot_after = model_attributes.RebootAfter.NEVER
         job.save()
 
         self.mock_drone_manager.process_capacity = 0
@@ -1030,7 +1031,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
     def test_pre_job_keyvals(self):
         job = self._create_job(hosts=[1])
         job.run_verify = False
-        job.reboot_before = models.RebootBefore.NEVER
+        job.reboot_before = model_attributes.RebootBefore.NEVER
         job.save()
         models.JobKeyval.objects.create(job=job, key='mykey', value='myvalue')
 

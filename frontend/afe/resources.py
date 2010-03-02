@@ -1,6 +1,7 @@
 from django import http
 from autotest_lib.frontend.shared import query_lib, resource_lib
 from autotest_lib.frontend.afe import control_file, models, rpc_utils
+from autotest_lib.frontend.afe import model_attributes
 from autotest_lib.frontend import thread_local
 from autotest_lib.client.common_lib import host_protections
 
@@ -370,7 +371,8 @@ class Test(resource_lib.InstanceEntry):
         rep.update({'author': self.instance.author,
                     'class': self.instance.test_class,
                     'control_file_type':
-                    models.Test.Types.get_string(self.instance.test_type),
+                    model_attributes.TestTypes.get_string(
+                        self.instance.test_type),
                     'control_file_path': self.instance.path,
                     'dependencies':
                     TestDependencyCollection(fixed_entry=self).link(),
@@ -383,7 +385,8 @@ class Test(resource_lib.InstanceEntry):
         cls._check_for_required_fields(input_dict,
                                        ('name', 'control_file_type',
                                         'control_file_path'))
-        test_type = models.Test.Type.get_value(input['control_file_type'])
+        test_type = model_attributes.TestTypes.get_value(
+            input['control_file_type'])
         return models.Test.add_object(name=input_dict['name'],
                                       test_type=test_type,
                                       path=input_dict['control_file_path'])
@@ -426,9 +429,11 @@ class ExecutionInfo(resource_lib.Resource):
             'timeout_hrs': _job_fields['timeout'].default,
             'maximum_runtime_hrs': _job_fields['max_runtime_hrs'].default,
             'cleanup_before_job':
-                models.RebootBefore.get_string(models.DEFAULT_REBOOT_BEFORE),
+                model_attributes.RebootBefore.get_string(
+                    models.DEFAULT_REBOOT_BEFORE),
             'cleanup_after_job':
-                models.RebootAfter.get_string(models.DEFAULT_REBOOT_AFTER),
+                model_attributes.RebootAfter.get_string(
+                    models.DEFAULT_REBOOT_AFTER),
             }
 
 
@@ -464,9 +469,9 @@ class ExecutionInfo(resource_lib.Resource):
                 'timeout_hrs': job.timeout,
                 'maximum_runtime_hrs': job.max_runtime_hrs,
                 'cleanup_before_job':
-                    models.RebootBefore.get_string(job.reboot_before),
+                    model_attributes.RebootBefore.get_string(job.reboot_before),
                 'cleanup_after_job':
-                    models.RebootAfter.get_string(job.reboot_after),
+                    model_attributes.RebootAfter.get_string(job.reboot_after),
                 }
 
 

@@ -7,7 +7,7 @@ __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime, os, sys
 import django.http
-from autotest_lib.frontend.afe import models, model_logic
+from autotest_lib.frontend.afe import models, model_logic, model_attributes
 
 NULL_DATETIME = datetime.datetime.max
 NULL_DATE = datetime.date.max
@@ -201,7 +201,7 @@ def prepare_generate_control_file(tests, kernel, label, profilers):
              'tests together (tests %s and %s differ' % (
             test1.name, test2.name)})
 
-    is_server = (test_type == models.Test.Types.SERVER)
+    is_server = (test_type == model_attributes.TestTypes.SERVER)
     if test_objects:
         synch_count = max(test.sync_count for test in test_objects)
     else:
