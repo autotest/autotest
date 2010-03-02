@@ -37,7 +37,7 @@ REQUIRES_MYSQLDB = set((
         ))
 
 REQUIRES_GWT = set((
-        'client_compilation_unittest',
+        'client_compilation_unittest.py',
         ))
 
 REQUIRES_SIMPLEJSON = set((
