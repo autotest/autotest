@@ -3,7 +3,9 @@
 import common
 import unittest
 from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.scheduler import metahost_scheduler, monitor_db
+from autotest_lib.frontend import setup_django_environment
+from autotest_lib.frontend import setup_test_environment
+from autotest_lib.scheduler import metahost_scheduler, scheduler_models
 
 class LabelMetahostSchedulerTest(unittest.TestCase):
     def setUp(self):
@@ -13,8 +15,13 @@ class LabelMetahostSchedulerTest(unittest.TestCase):
         self.metahost_scheduler = metahost_scheduler.LabelMetahostScheduler()
 
 
+    def tearDown(self):
+        self.god.unstub_all()
+
+
     def entry(self):
-        return self.god.create_mock_class(monitor_db.HostQueueEntry, 'entry')
+        return self.god.create_mock_class(scheduler_models.HostQueueEntry,
+                                          'entry')
 
 
     def test_can_schedule_metahost(self):
