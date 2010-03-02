@@ -21,6 +21,7 @@ from autotest_lib.client.common_lib import global_config, logging_manager
 from autotest_lib.client.common_lib import host_protections, utils
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models, rpc_utils, readonly_connection
+from autotest_lib.frontend.afe import model_attributes
 from autotest_lib.scheduler import drone_manager, drones, email_manager
 from autotest_lib.scheduler import monitor_db_cleanup
 from autotest_lib.scheduler import status_server, scheduler_config
@@ -2354,8 +2355,8 @@ class GatherLogsTask(PostJobTask):
         do_reboot = (
                 # always reboot after aborted jobs
                 self._final_status() == models.HostQueueEntry.Status.ABORTED
-                or reboot_after == models.RebootAfter.ALWAYS
-                or (reboot_after == models.RebootAfter.IF_ALL_TESTS_PASSED
+                or reboot_after == model_attributes.RebootAfter.ALWAYS
+                or (reboot_after == model_attributes.RebootAfter.IF_ALL_TESTS_PASSED
                     and final_success and num_tests_failed == 0))
 
         for queue_entry in self.queue_entries:
