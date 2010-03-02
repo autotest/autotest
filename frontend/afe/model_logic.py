@@ -530,7 +530,24 @@ class ExtendedManager(dbmodels.Manager):
             getattr(base_object, related_list_name).append(related_object)
 
 
-class ValidObjectsManager(ExtendedManager):
+class ModelWithInvalidQuerySet(dbmodels.query.QuerySet):
+    """
+    QuerySet that handles delete() properly for models with an "invalid" bit
+    """
+    def delete(self):
+        for model in self:
+            model.delete()
+
+
+class ModelWithInvalidManager(ExtendedManager):
+    """
+    Manager for objects with an "invalid" bit
+    """
+    def get_query_set(self):
+        return ModelWithInvalidQuerySet(self.model)
+
+
+class ValidObjectsManager(ModelWithInvalidManager):
     """
     Manager returning only objects with invalid=False.
     """
