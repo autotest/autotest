@@ -160,19 +160,22 @@ if not params.get("mode") == "noinstall":
 # ----------------------------------------------------------
 import kvm_config
 
-filename = os.path.join(pwd, "kvm_tests.cfg")
-cfg = kvm_config.config(filename)
+str = """
+# This string will be parsed after tests.cfg.  Make any desired changes to the
+# test configuration here.  For example:
+#install|setup: timeout_multiplier = 3
+#only fc8_quick
+#display = sdl
+"""
+cfg = kvm_config.config()
+filename = os.path.join(pwd, "tests.cfg")
+cfg.fork_and_parse(filename, str)
 
-# If desirable, make changes to the test configuration here.  For example:
-# cfg.parse_string("install|setup: timeout_multiplier = 2")
-# cfg.parse_string("only fc8_quick")
-# cfg.parse_string("display = sdl")
-
-filename = os.path.join(pwd, "kvm_address_pools.cfg")
+filename = os.path.join(pwd, "address_pools.cfg")
 if os.path.exists(filename):
     cfg.parse_file(filename)
     hostname = os.uname()[1].split(".")[0]
-    if cfg.filter("^" + hostname):
+    if cfg.count("^" + hostname):
         cfg.parse_string("only ^%s" % hostname)
     else:
         cfg.parse_string("only ^default_host")
