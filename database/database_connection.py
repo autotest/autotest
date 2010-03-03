@@ -147,11 +147,11 @@ class DatabaseConnection(object):
     _DATABASE_ATTRIBUTES = ('db_type', 'host', 'username', 'password',
                             'db_name')
 
-    def __init__(self, global_config_section=None):
+    def __init__(self, global_config_section=None, debug=False):
         self.global_config_section = global_config_section
         self._backend = None
         self.rowcount = None
-        self.debug = False
+        self.debug = debug
 
         # reconnect defaults
         self.reconnect_enabled = True
