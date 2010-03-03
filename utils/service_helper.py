@@ -121,7 +121,7 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    set_group_user(gid=options.chgid, uid=options.chuid)
+    set_group_user(group=options.chgid, user=options.chuid)
     if options.start_service:
         start_service(args, options.pidfile, options.logfile, options.chdir)
     elif options.stop_service:
