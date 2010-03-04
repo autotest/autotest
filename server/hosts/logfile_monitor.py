@@ -37,7 +37,7 @@ def run_cmd_on_host(hostname, cmd, stdin, stdout, stderr):
 
 def list_remote_pythons(host):
     """List out installed pythons on host."""
-    result = host.run('ls /usr/bin/python*')
+    result = host.run('ls /usr/bin/python[0-9]*')
     return result.stdout.splitlines()
 
 
