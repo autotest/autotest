@@ -1,7 +1,7 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-import re, os, sys, traceback, subprocess, tempfile, time, pickle, glob, logging
-import getpass
+import re, os, sys, traceback, subprocess, time, pickle, glob, tempfile
+import logging, getpass
 from autotest_lib.server import installable_object, utils
 from autotest_lib.client.common_lib import log, error, autotemp
 from autotest_lib.client.common_lib import global_config, packages
@@ -385,12 +385,6 @@ class BaseAutotest(installable_object.InstallableObject):
         cfile += open(tmppath).read()
         open(tmppath, "w").write(cfile)
 
-        # Create and copy configuration file based on the state of the
-        # client configuration
-        client_config_file = self._create_client_config_file(host.job)
-        host.send_file(client_config_file, atrun.config_file)
-        os.remove(client_config_file)
-
         # Create and copy state file to remote_control_file + '.state'
         state_file = host.job.preprocess_client_state()
         host.send_file(state_file, atrun.remote_control_file + '.init.state')
@@ -404,39 +398,6 @@ class BaseAutotest(installable_object.InstallableObject):
         atrun.execute_control(
                 timeout=timeout,
                 client_disconnect_timeout=client_disconnect_timeout)
-
-
-    def _create_client_config_file(self, job):
-        """
-        Create a temporary file with the [CLIENT] section configuration values
-        taken from the server global_config.ini.
-
-        @param job: Autotest job.
-        @return: Path of the temporary file generated.
-        """
-        client_config = global_config.global_config.get_section_values("CLIENT")
-        return self._create_aux_file(job, client_config.write)
-
-
-    def _create_aux_file(self, job, func, *args):
-        """
-        Creates a temporary file and writes content to it according to a content
-        creation function. The file object is appended to *args, which is then
-        passed to the content creation function
-
-        @param job: Autotest job instance.
-        @param func: Function that will be used to write content to the
-                temporary file.
-        @param *args: List of parameters that func takes.
-        @return: Path to the temporary file that was created.
-        """
-        fd, path = tempfile.mkstemp(dir=job.tmpdir)
-        aux_file = os.fdopen(fd, "w")
-        list_args = list(args)
-        list_args.append(aux_file)
-        func(*list_args)
-        aux_file.close()
-        return path
 
 
     def run_timed_test(self, test_name, results_dir='.', host=None,
@@ -536,12 +497,68 @@ class _Run(object):
         return ' '.join(cmd)
 
 
-    def get_client_log(self, section):
-        """ Find what the "next" client.log.* file should be and open it. """
-        debug_dir = os.path.join(self.results_dir, "debug")
-        client_logs = glob.glob(os.path.join(debug_dir, "client.log.*"))
-        next_log = os.path.join(debug_dir, "client.log.%d" % len(client_logs))
-        return open(next_log, "w", 0)
+    def get_client_log(self):
+        """Find what the "next" client.* prefix should be
+
+        @returns A string of the form client.INTEGER that should be prefixed
+            to all client debug log files.
+        """
+        max_digit = -1
+        debug_dir = os.path.join(self.results_dir, 'debug')
+        client_logs = glob.glob(os.path.join(debug_dir, 'client.*.*'))
+        for log in client_logs:
+            _, number, _ = log.split('.', 2)
+            if number.isdigit():
+                max_digit = max(max_digit, int(number))
+        return 'client.%d' % (max_digit + 1)
+
+
+    def copy_client_config_file(self, client_log_prefix=None):
+        """
+        Create and copy the client config file based on the server config.
+
+        @param client_log_prefix: Optional prefix to prepend to log files.
+        """
+        client_config_file = self._create_client_config_file(client_log_prefix)
+        self.host.send_file(client_config_file, self.config_file)
+        os.remove(client_config_file)
+
+
+    def _create_client_config_file(self, client_log_prefix=None):
+        """
+        Create a temporary file with the [CLIENT] section configuration values
+        taken from the server global_config.ini.
+
+        @param client_log_prefix: Optional prefix to prepend to log files.
+
+        @return: Path of the temporary file generated.
+        """
+        config = global_config.global_config.get_section_values('CLIENT')
+        if client_log_prefix:
+            config.set('CLIENT', 'default_logging_name', client_log_prefix)
+        return self._create_aux_file(config.write)
+
+
+    def _create_aux_file(self, func, *args):
+        """
+        Creates a temporary file and writes content to it according to a
+        content creation function. The file object is appended to *args, which
+        is then passed to the content creation function
+
+        @param func: Function that will be used to write content to the
+                temporary file.
+        @param *args: List of parameters that func takes.
+        @return: Path to the temporary file that was created.
+        """
+        fd, path = tempfile.mkstemp(dir=self.host.job.tmpdir)
+        aux_file = os.fdopen(fd, "w")
+        try:
+            list_args = list(args)
+            list_args.append(aux_file)
+            func(*list_args)
+        finally:
+            aux_file.close()
+        return path
 
 
     @staticmethod
@@ -563,6 +580,8 @@ class _Run(object):
     def _execute_in_background(self, section, timeout):
         full_cmd = self.get_background_cmd(section)
         devnull = open(os.devnull, "w")
+
+        self.copy_client_config_file(self.get_client_log())
 
         self.host.job.push_execution_context(self.results_dir)
         try:
@@ -593,7 +612,13 @@ class _Run(object):
                         client_disconnect_timeout):
         monitor_dir = self.host.get_tmp_dir()
         daemon_cmd = self.get_daemon_cmd(section, monitor_dir)
-        client_log = self.get_client_log(section)
+
+        # grab the location for the server-side client log file
+        client_log_prefix = self.get_client_log()
+        client_log_path = os.path.join(self.results_dir, 'debug',
+                                       client_log_prefix + '.log')
+        client_log = open(client_log_path, 'w', 0)
+        self.copy_client_config_file(client_log_prefix)
 
         stdout_read = stderr_read = 0
         self.host.job.push_execution_context(self.results_dir)
@@ -631,6 +656,7 @@ class _Run(object):
                     raise error.AutoservSSHTimeout(
                         "client was disconnected, reconnect timed out")
         finally:
+            client_log.close()
             self.host.job.pop_execution_context()
 
 
@@ -742,6 +768,7 @@ class _Run(object):
             logger.close()
             if not self.background:
                 collector.collect_client_job_results()
+                collector.remove_redundant_client_logs()
                 state_file = os.path.basename(self.remote_control_file
                                               + '.state')
                 state_path = os.path.join(self.results_dir, state_file)
@@ -787,6 +814,18 @@ class log_collector(object):
             e_msg = "Unexpected error copying test result logs, continuing ..."
             logging.error(e_msg)
             traceback.print_exc(file=sys.stdout)
+
+
+    def remove_redundant_client_logs(self):
+        """Remove client.*.log files in favour of client.*.DEBUG files."""
+        debug_dir = os.path.join(self.server_results_dir, 'debug')
+        debug_files = [f for f in os.listdir(debug_dir)
+                       if re.search(r'^client\.\d+\.DEBUG$', f)]
+        for debug_file in debug_files:
+            log_file = debug_file.replace('DEBUG', 'log')
+            log_file = os.path.join(debug_dir, log_file)
+            if os.path.exists(log_file):
+                os.remove(log_file)
 
 
 # a file-like object for catching stderr from an autotest client and
