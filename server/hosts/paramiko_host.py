@@ -85,6 +85,12 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             key = ParamikoHost._load_key(path)
             if key:
                 user_keys[path] = key
+
+        # load up all the ssh agent keys
+        ssh_agent = paramiko.Agent()
+        for i, key in enumerate(ssh_agent.get_keys()):
+            user_keys['agent-key-%d' % i] = key
+
         return user_keys
 
 
