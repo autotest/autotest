@@ -220,20 +220,6 @@ class TestBaseAutotest(unittest.TestCase):
         autotest.open.expect_call("temp", 'w').and_return(cfile)
         cfile.write.expect_call(cfile_new)
 
-        def _expect_create_aux_file(directory):
-            tempfile.mkstemp.expect_call(dir=directory).and_return(
-                    (5, os.path.join(directory, "file1")))
-            mock_temp = self.god.create_mock_class(file, "file1")
-            mock_temp.write = lambda s: None
-            mock_temp.close = lambda: None
-            os.fdopen.expect_call(5, "w").and_return(mock_temp)
-
-        run_obj.config_file = 'my_config'
-        _expect_create_aux_file("/job/tmp")
-        self.host.send_file.expect_call("/job/tmp/file1",
-                                        "my_config")
-        os.remove.expect_call("/job/tmp/file1")
-
         self.host.job.preprocess_client_state.expect_call().and_return(
             '/job/tmp/file1')
         self.host.send_file.expect_call(
