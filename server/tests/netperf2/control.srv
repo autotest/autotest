@@ -1,19 +1,16 @@
-AUTHOR = "mbligh@google.com (Martin Bligh) and bboe@google.com (Bryce Boe)"
+AUTHOR = "kdlucas@google.com (K.D. Lucas)"
 TIME = "SHORT"
-NAME = "Netperf Multi-machine"
-TEST_CATEGORY = "Stress"
-TEST_CLASS = 'Hardware'
+NAME = "Netperf Basic"
+TEST_CATEGORY = "Benchmark"
+TEST_CLASS = 'Network'
 TEST_TYPE = "Server"
 SYNC_COUNT = 2
 DOC = """
-netperf_test is a 2 machine test (server/client) that measures the performance
+netperf2 is a 2 machine test (server/client) that measures the performance
 of various network attributes.
 
 Arguments to run_test:
 
-server_ip     - the ip of the server (automatically filled in)
-client_ip     - the ip of the client (automatically filled in)
-role          - specifies either client or server (automatically filled in)
 test          - the list of valid netperf tests that can be run
                 This currently is:
                   TCP_STREAM, TCP_SENDFILE, TCP_RR, TCP_CRR, UDP_STREAM, UDP_RR
@@ -22,33 +19,15 @@ stream_list   - A list containing the number of streams to run the test for. If
                 the list is [1,10,100] then the test will run 3 times. If
                 bidirectional is set then there will be the specified number of
                 bidirectional streams.
+cycles        - The number of times to run each test.
 """
 
 from autotest_lib.server import utils
 
 
 def run(pair):
-    print "running on %s and %s\n" % (pair[0], pair[1])
-    server = hosts.create_host(pair[0])
-    client = hosts.create_host(pair[1])
-
-    server_at = autotest.Autotest(server)
-    client_at = autotest.Autotest(client)
-
-    template = ''.join(["job.run_test('netperf2', server_ip='%s', client_ip=",
-                        "'%s', role='%s', test='TCP_STREAM', test_time=10,",
-                        "stream_list=[1,10])"])
-
-    server_control_file = template % (server.ip, client.ip, 'server')
-    client_control_file = template % (server.ip, client.ip, 'client')
-
-    server_command = subcommand(server_at.run,
-                                [server_control_file, server.hostname])
-    client_command = subcommand(client_at.run,
-                                [client_control_file, client.hostname])
-
-    parallel([server_command, client_command])
-
+    job.run_test('netperf2', pair=pair, test='TCP_STREAM', time=10,
+                 stream_list=[1], cycles=1)
 
 # grab the pairs (and failures)
 (pairs, failures) = utils.form_ntuples_from_machines(machines, 2)

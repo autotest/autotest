@@ -420,6 +420,20 @@ class Host(object):
                                       % protection_level)
 
 
+    def disable_ipfilters(self):
+        """Allow all network packets in and out of the host."""
+        self.run('iptables-save > /tmp/iptable-rules')
+        self.run('iptables -P INPUT ACCEPT')
+        self.run('iptables -P FORWARD ACCEPT')
+        self.run('iptables -P OUTPUT ACCEPT')
+
+
+    def enable_ipfilters(self):
+        """Re-enable the IP filters disabled from disable_ipfilters()"""
+        if os.path.isfile('/tmp/iptable-rules'):
+            self.run('iptables-restore < /tmp/iptable-rules')
+
+
     def cleanup(self):
         pass
 

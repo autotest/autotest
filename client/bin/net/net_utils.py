@@ -23,6 +23,10 @@ class network_utils(object):
         utils.system('service network stop', ignore_status=ignore_status)
 
 
+    def list(self):
+        utils.system('/sbin/ifconfig -a')
+
+
     def disable_ip_local_loopback(self, ignore_status=False):
         utils.system("echo '1' > /proc/sys/net/ipv4/route/no_local_loopback",
                      ignore_status=ignore_status)
