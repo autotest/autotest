@@ -75,11 +75,13 @@ variants:
         type = boot
         restart_vm = yes
         kill_vm_on_error = yes
+        boot_timeout = 240
 
     - reboot:       install setup unattended_install
         type = boot
         reboot_method = shell
         kill_vm_on_error = yes
+        reboot_timeout = 240
 
     - migrate:      install setup unattended_install
         type = migration
