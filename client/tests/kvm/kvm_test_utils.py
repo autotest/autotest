@@ -53,7 +53,7 @@ def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2):
     @param timeout: Time to wait before giving up.
     @return: A shell session object.
     """
-    logging.info("Trying to log into guest '%s'..." % vm.name)
+    logging.info("Trying to log into guest '%s', timeout %ds", vm.name, timeout)
     session = kvm_utils.wait_for(lambda: vm.remote_login(nic_index=nic_index),
                                  timeout, start, step)
     if not session:
@@ -80,16 +80,16 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
     if method == "shell":
         # Send a reboot command to the guest's shell
         session.sendline(vm.get_params().get("reboot_command"))
-        logging.info("Reboot command sent; waiting for guest to go down...")
+        logging.info("Reboot command sent. Waiting for guest to go down")
     elif method == "system_reset":
         # Sleep for a while before sending the command
         time.sleep(sleep_before_reset)
         # Send a system_reset monitor command
         vm.send_monitor_cmd("system_reset")
-        logging.info("system_reset monitor command sent; waiting for guest to "
-                     "go down...")
+        logging.info("Monitor command system_reset sent. Waiting for guest to "
+                     "go down")
     else:
-        logging.error("Unknown reboot method: %s" % method)
+        logging.error("Unknown reboot method: %s", method)
 
     # Wait for the session to become unresponsive and close it
     if not kvm_utils.wait_for(lambda: not session.is_responsive(timeout=30),
@@ -98,7 +98,8 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
     session.close()
 
     # Try logging into the guest until timeout expires
-    logging.info("Guest is down; waiting for it to go up again...")
+    logging.info("Guest is down. Waiting for it to go up again, timeout %ds",
+                 timeout)
     session = kvm_utils.wait_for(lambda: vm.remote_login(nic_index=nic_index),
                                  timeout, 0, 2)
     if not session:

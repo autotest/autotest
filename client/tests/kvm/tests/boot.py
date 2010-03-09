@@ -16,7 +16,9 @@ def run_boot(test, params, env):
     @param env: Dictionary with test environment.
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm)
+    session = kvm_test_utils.wait_for_login(vm, 0,
+                                         float(params.get("boot_timeout", 240)),
+                                         0, 2)
 
     try:
         if not params.get("reboot_method"):
@@ -24,9 +26,9 @@ def run_boot(test, params, env):
 
         # Reboot the VM
         session = kvm_test_utils.reboot(vm, session,
-                                        params.get("reboot_method"),
-                                        float(params.get("sleep_before_reset",
-                                                         10)))
+                                    params.get("reboot_method"),
+                                    float(params.get("sleep_before_reset", 10)),
+                                    0, float(params.get("reboot_timeout", 240)))
 
     finally:
         session.close()
