@@ -15,3 +15,10 @@ def handle_rpc(request):
 
 def rpc_documentation(request):
     return rpc_handler_obj.get_rpc_documentation()
+
+
+def model_documentation(request):
+    model_names = ('Plan', 'Host', 'ControlFile', 'TestConfig', 'Job', 'Bug',
+                   'TestRun', 'DataType', 'History', 'SavedObject', 'KeyVal',
+                   'AutoProcess')
+    return views_common.model_documentation(models, model_names)

@@ -554,6 +554,8 @@ class QueueEntriesRequest(resource_lib.Resource):
         for label_name in meta_hosts:
             entry = Label.from_uri_args(self._request, label_name)
             entries.append({'meta_host': entry.link()})
+        if atomic_group_class:
+            entries.append({'atomic_group_class': atomic_group_class})
 
         result = self.link()
         result['queue_entries'] = entries
@@ -675,9 +677,9 @@ class Job(resource_lib.InstanceEntry):
                 label_entry = containing_collection.resolve_link(
                         queue_entry['meta_host'])
                 metahost_label_objects.append(label_entry.instance)
-            if 'atomic_group' in queue_entry:
+            if 'atomic_group_class' in queue_entry:
                 atomic_group_entry = containing_collection.resolve_link(
-                        queue_entry['atomic_group'])
+                        queue_entry['atomic_group_class'])
                 if atomic_group:
                     assert atomic_group_entry.instance.id == atomic_group.id
                 else:
