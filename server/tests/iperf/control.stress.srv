@@ -1,13 +1,13 @@
 AUTHOR = "Kelly Lucas <kdlucas@google.com>"
-TIME = "SHORT"
-NAME = "Iperf Multi-machine"
+TIME = "MEDIUM"
+NAME = "Iperf Stress"
 TEST_CATEGORY = "Stress"
 TEST_CLASS = "Network"
 TEST_TYPE = "Server"
 SYNC_COUNT = 2
 DOC = """
 Iperf is a 2 machine test (server/client) that measures maximum TCP and UDP
-bandwidth performance.
+bandwidth performance. The stress test will run for 20 minutes.
 
 Arguments to run_test:
 
@@ -29,7 +29,7 @@ from autotest_lib.server import utils
 
 
 def run(pair):
-    job.run_test('iperf', pair=pair, udp=True, bidirectional=True, time=10,
+    job.run_test('iperf', pair=pair, udp=True, bidirectional=True, time=1200,
                  stream_list=range(1,11,2))
 
 # grab the pairs (and failures)
