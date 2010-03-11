@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # Copyright 2009 Google Inc. Released under the GPL v2
 
-import unittest, cStringIO, httplib
+import unittest, cStringIO, httplib, time, os
 
 import common
 from autotest_lib.mirror import source
@@ -65,10 +65,15 @@ class rsync_source_unittest(unittest.TestCase):
         self.db_mock = self.god.create_mock_class(
             source.database.database, 'database')
         self.god.stub_function(source.utils, 'system_output')
+        self.old_tz = getattr(os.environ, 'TZ', '')
+        os.environ['TZ'] = 'America/Los_Angeles'
+        time.tzset()
 
 
     def tearDown(self):
         self.god.unstub_all()
+        os.environ['TZ'] = self.old_tz
+        time.tzset()
 
 
     def test_simple(self):
@@ -224,10 +229,15 @@ class url_source_unittest(unittest.TestCase):
             source.urllib2.addinfourl, 'addinfourl')
         self.mime_mock = self.god.create_mock_class(
             httplib.HTTPMessage, 'HTTPMessage')
+        self.old_tz = getattr(os.environ, 'TZ', '')
+        os.environ['TZ'] = 'America/Los_Angeles'
+        time.tzset()
 
 
     def tearDown(self):
         self.god.unstub_all()
+        os.environ['TZ'] = self.old_tz
+        time.tzset()
 
 
     def test_get_new_files(self):
