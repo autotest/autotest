@@ -129,6 +129,9 @@ def setup_tests(options):
         os.chdir(need_to_setup[0].job.clientdir)
         os.system('tools/make_clean')
         os.chdir(cwd)
+    elif not failed_tests:
+        logging.error('### No test setup candidates ###')
+        raise error.AutoservError('No test setup candidates.')
 
     for setup_test in need_to_setup:
         test_name = setup_test.__class__.__name__
