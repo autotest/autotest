@@ -13,6 +13,10 @@ AFE_RPC_PATH = '/afe/server/rpc/'
 TKO_RPC_PATH = '/new_tko/server/rpc/'
 
 
+class AuthError(Exception):
+    pass
+
+
 def get_autotest_server(web_server=None):
     if not web_server:
         if 'AUTOTEST_WEB' in os.environ:
@@ -34,7 +38,10 @@ class rpc_comm(object):
     def __init__(self, web_server, rpc_path, username):
         self.username = username
         self.web_server = get_autotest_server(web_server)
-        self.proxy = self._connect(rpc_path)
+        try:
+            self.proxy = self._connect(rpc_path)
+        except rpc_client_lib.AuthError, s:
+            raise AuthError(s)
 
 
     def _connect(self, rpc_path):

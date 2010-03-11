@@ -10,6 +10,10 @@ from json_rpc import proxy
 from autotest_lib.client.common_lib import utils
 
 
+class AuthError(Exception):
+    pass
+
+
 def get_proxy(*args, **kwargs):
     """Use this to access the AFE or TKO RPC interfaces."""
     return proxy.ServiceProxy(*args, **kwargs)
