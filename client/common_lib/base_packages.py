@@ -77,7 +77,7 @@ def trim_custom_directories(repo, older_than_days=40):
     older_than_days = global_config.global_config.get_config_value('PACKAGES',
                                                       'custom_max_age',
                                                       type=int)
-    cmd = 'find . -type f -atime %s -exec rm -f {} \;' % older_than_days
+    cmd = 'find . -type f -atime +%s -exec rm -f {} \;' % older_than_days
     repo_run_command(repo, cmd, ignore_status=True)
 
 
