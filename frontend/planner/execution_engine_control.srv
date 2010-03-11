@@ -1,60 +1,9 @@
-import time
 from autotest_lib.client.common_lib import utils
-from autotest_lib.frontend.afe import model_attributes
-from autotest_lib.frontend.shared import rest_client
 from autotest_lib.frontend.planner import execution_engine
-from autotest_lib.server import frontend
-
-
-TICK_INTERVAL_SECS = 10
 
 keyvals = utils.read_keyval(job.resultdir)
 
-planner_rpc = frontend.Planner()
-afe_rest = rest_client.Resource.load(
-        'http://%s/afe/server/resources' % keyvals['server'])
-
-
-def _launch_set_atomic_group_job(plan, name):
-    """Launch the job to set the hosts' atomic group, and initate the plan"""
-    hosts = planner_rpc.run('get_hosts', plan_id=keyvals['plan_id'])
-    control = planner_rpc.run('get_atomic_group_control_file')
-
-    info = afe_rest.execution_info.get().execution_info
-    info['control_file'] = control
-    info['cleanup_before_job'] = model_attributes.RebootBefore.NEVER
-    info['cleanup_after_job'] = model_attributes.RebootAfter.NEVER
-    info['run_verify'] = False
-    info['machines_per_execution'] = len(hosts)
-
-    entries = afe_rest.queue_entries_request.get(hosts=hosts).queue_entries
-
-    job_req = {'name' : name,
-               'execution_info' : info,
-               'queue_entries' : entries,
-               'keyvals' : keyvals}
-
-    afe_rest.jobs.post(job_req)
-
-
-# Check if the plan is already being initialized, and launch the initialization
-# job if not
-plan = planner_rpc.run('get_plan', id=keyvals['plan_id'])
-name = plan['name'] + '_set_atomic_group'
-if not afe_rest.jobs.get(name=name).total_results:
-    _launch_set_atomic_group_job(plan, name)
-
-
-# Wait for the plan to be initialized
-while True:
-    if planner_rpc.run('get_plan', id=keyvals['plan_id'])['initialized']:
-        break
-    time.sleep(TICK_INTERVAL_SECS)
-
-
-# Execution engine main loop
-execution_engine.ExecutionEngine(plan_id=keyvals['plan_id']).start()
-
-
-# Cleanup
-afe_rest.labels.get(name=keyvals['label_name']).members[0].delete()
+engine = execution_engine.ExecutionEngine(plan_id=keyvals['plan_id'],
+                                          server=keyvals['server'],
+                                          label_name=keyvals['label_name'])
+engine.start()

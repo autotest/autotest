@@ -3,7 +3,8 @@ import common
 from autotest_lib.frontend.afe import models as afe_models
 from autotest_lib.frontend.afe import model_logic, rpc_utils
 from autotest_lib.frontend.tko import models as tko_models
-from autotest_lib.client.common_lib import enum, utils
+from autotest_lib.frontend.planner import model_attributes
+from autotest_lib.client.common_lib import utils
 
 
 class Plan(dbmodels.Model, model_logic.ModelExtensions):
@@ -75,12 +76,13 @@ class Host(ModelWithPlan, model_logic.ModelExtensions):
         host: The AFE host
         complete: True if and only if this host is finished in the test plan
         blocked: True if and only if the host is blocked (not executing tests)
+        added_by_label: True if and only if the host was added because of a host
+                        label (as opposed to being explicitly added)
     """
     host = dbmodels.ForeignKey(afe_models.Host)
     complete = dbmodels.BooleanField(default=False)
     blocked = dbmodels.BooleanField(default=False)
-
-    Status = enum.Enum('Finished', 'Running', 'Blocked', string_values=True)
+    added_by_label = dbmodels.BooleanField(default=False)
 
     class Meta:
         db_table = 'planner_hosts'
@@ -88,30 +90,26 @@ class Host(ModelWithPlan, model_logic.ModelExtensions):
 
     def status(self):
         if self.complete:
-            return Host.Status.FINISHED
+            return model_attributes.HostStatus.FINISHED
         if self.blocked:
-            return Host.Status.BLOCKED
-        return Host.Status.RUNNING
+            return model_attributes.HostStatus.BLOCKED
+        return model_attributes.HostStatus.RUNNING
 
 
     def _get_details_unicode(self):
         return 'Host: %s' % self.host.hostname
 
 
-    @classmethod
-    def smart_get(cls, id):
-        raise NotImplementedError('Planner hosts do not support smart_get()')
-
-
-class ControlFile(model_logic.ModelWithHash):
+class ControlFile(model_logic.ModelWithHash,
+                  model_logic.ModelExtensions):
     """A control file. Immutable once added to the table
 
     Required:
         contents: The text of the control file
 
     Others:
-        control_hash: The SHA1 hash of the control file, for duplicate detection
-                      and fast search
+        the_hash: The SHA1 hash of the control file, for duplicate detection
+                  and fast search
     """
     contents = dbmodels.TextField()
 
@@ -128,12 +126,13 @@ class ControlFile(model_logic.ModelWithHash):
         return u'Control file id %s (SHA1: %s)' % (self.id, self.control_hash)
 
 
-class Test(ModelWithPlan):
+class TestConfig(ModelWithPlan, model_logic.ModelExtensions):
     """A planned test
 
     Required:
         alias: The name to give this test within the plan. Unique with plan id
         test_control_file: The control file to run
+        is_server: True if this control file is a server-side test
         execution_order: An integer describing when this test should be run in
                          the test plan
         estimated_runtime: Time in hours that the test is expected to run. Will
@@ -142,27 +141,28 @@ class Test(ModelWithPlan):
     """
     alias = dbmodels.CharField(max_length=255)
     control_file = dbmodels.ForeignKey(ControlFile)
+    is_server = dbmodels.BooleanField(default=True)
     execution_order = dbmodels.IntegerField(blank=True)
     estimated_runtime = dbmodels.IntegerField()
 
     class Meta:
-        db_table = 'planner_tests'
+        db_table = 'planner_test_configs'
         ordering = ('execution_order',)
         unique_together = (('plan', 'alias'),)
 
 
     def _get_details_unicode(self):
-        return 'Planned test - Control file id %s' % self.control_file.id
+        return 'Planned test config - Control file id %s' % self.control_file.id
 
 
-class Job(ModelWithPlan):
+class Job(ModelWithPlan, model_logic.ModelExtensions):
     """Represents an Autotest job initiated for a test plan
 
     Required:
-        test: The Test associated with this Job
+        test: The TestConfig associated with this Job
         afe_job: The Autotest job
     """
-    test = dbmodels.ForeignKey(Test)
+    test_config = dbmodels.ForeignKey(TestConfig)
     afe_job = dbmodels.ForeignKey(afe_models.Job)
 
     class Meta:
@@ -189,7 +189,7 @@ class Bug(dbmodels.Model):
         return u'Bug external ID %s' % self.external_uid
 
 
-class TestRun(ModelWithPlan):
+class TestRun(ModelWithPlan, model_logic.ModelExtensions):
     """An individual test run from an Autotest job for the test plan.
 
     Each Job object may have multiple TestRun objects associated with it.
@@ -209,12 +209,13 @@ class TestRun(ModelWithPlan):
     Optional:
         bugs: Bugs filed that a relevant to this run
     """
-    Status = enum.Enum('Active', 'Passed', 'Failed', string_values=True)
-
     test_job = dbmodels.ForeignKey(Job)
     tko_test = dbmodels.ForeignKey(tko_models.Test)
     host = dbmodels.ForeignKey(Host)
-    status = dbmodels.CharField(max_length=16, choices=Status.choices())
+    status = dbmodels.CharField(
+            max_length=16,
+            choices=model_attributes.TestRunStatus.choices(),
+            default=model_attributes.TestRunStatus.ACTIVE)
     finalized = dbmodels.BooleanField(default=False)
     seen = dbmodels.BooleanField(default=False)
     triaged = dbmodels.BooleanField(default=False)
@@ -224,6 +225,7 @@ class TestRun(ModelWithPlan):
 
     class Meta:
         db_table = 'planner_test_runs'
+        unique_together = (('plan', 'test_job', 'tko_test', 'host'),)
 
 
     def _get_details_unicode(self):
@@ -294,12 +296,11 @@ class SavedObject(dbmodels.Model):
         name: The name given to the object
         encoded_object: The actual object
     """
-    Type = enum.Enum('support', 'triage', 'autoprocess', 'custom_query',
-                     string_values=True)
-
     user = dbmodels.ForeignKey(afe_models.User)
-    object_type = dbmodels.CharField(max_length=16,
-                                     choices=Type.choices(), db_column='type')
+    object_type = dbmodels.CharField(
+            max_length=16,
+            choices=model_attributes.SavedObjectType.choices(),
+            db_column='type')
     name = dbmodels.CharField(max_length=255)
     encoded_object = dbmodels.TextField()
 
@@ -337,8 +338,8 @@ class KeyVal(model_logic.ModelWithHash):
         value: The value
 
     Others:
-        keyval_hash: The result of SHA1(SHA1(key) ++ value), for duplicate
-                     detection and fast search.
+        the_hash: The result of SHA1(SHA1(key) ++ value), for duplicate
+                  detection and fast search.
     """
     key = dbmodels.CharField(max_length=1024)
     value = dbmodels.CharField(max_length=1024)

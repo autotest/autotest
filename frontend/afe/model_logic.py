@@ -947,7 +947,7 @@ class ModelExtensions(object):
 
         if isinstance(id_or_name, (int, long)):
             return manager.get(pk=id_or_name)
-        if isinstance(id_or_name, basestring):
+        if isinstance(id_or_name, basestring) and hasattr(cls, 'name_field'):
             return manager.get(**{cls.name_field : id_or_name})
         raise ValueError(
             'Invalid positional argument: %s (%s)' % (id_or_name,

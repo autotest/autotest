@@ -1,8 +1,7 @@
 import common
 import os
 from autotest_lib.frontend.afe import models as afe_models, model_logic
-from autotest_lib.frontend.planner import models
-from autotest_lib.frontend.shared import rest_client
+from autotest_lib.frontend.planner import models, model_attributes
 from autotest_lib.client.common_lib import global_config, utils
 
 
@@ -36,23 +35,22 @@ def start_plan(plan, label):
     """
     Takes the necessary steps to start a test plan in Autotest
     """
-    afe_rest = rest_client.Resource.load(
-            'http://%s/afe/server/resources' % SERVER)
-
     keyvals = {'server': SERVER,
                'plan_id': plan.id,
                'label_name': label.name}
-
-    info = afe_rest.execution_info.get().execution_info
-    info['control_file'] = _get_execution_engine_control()
-    info['machines_per_execution'] = None
-
-    job_req = {'name': plan.name + '_execution_engine',
-               'execution_info': info,
-               'queue_entries': (),
+    options = {'name': plan.name + '_execution_engine',
+               'priority': afe_models.Job.Priority.MEDIUM,
+               'control_file': _get_execution_engine_control(),
+               'control_type': afe_models.Job.ControlType.SERVER,
+               'synch_count': None,
+               'run_verify': False,
+               'reboot_before': False,
+               'reboot_after': False,
+               'dependencies': (),
                'keyvals': keyvals}
-
-    afe_rest.jobs.post(job_req)
+    job = afe_models.Job.create(owner=afe_models.User.current_user().login,
+                                options=options, hosts=())
+    job.queue(hosts=())
 
 
 def _get_execution_engine_control():
@@ -71,3 +69,93 @@ def lazy_load(path):
         LAZY_LOADED_FILES[path] = utils.read_file(path)
 
     return LAZY_LOADED_FILES[path]
+
+
+def update_hosts_table(plan):
+    """
+    Resolves the host labels into host objects
+
+    Adds or removes hosts from the planner Hosts model based on changes to the
+    host label
+    """
+    label_hosts = set()
+
+    for label in plan.host_labels.all():
+        for afe_host in label.host_set.all():
+            host, created = models.Host.objects.get_or_create(plan=plan,
+                                                              host=afe_host)
+            if created:
+                host.added_by_label = True
+                host.save()
+
+            label_hosts.add(host.host.id)
+
+    deleted_hosts = models.Host.objects.filter(
+            plan=plan, added_by_label=True).exclude(host__id__in=label_hosts)
+    deleted_hosts.delete()
+
+
+def compute_next_test_config(plan, host):
+    """
+    Gets the next test config that should be run for this plan and host
+
+    Returns None if the host is already running a job. Also sets the host's
+    complete bit if the host is finished running tests.
+    """
+    if host.blocked:
+        return None
+
+    test_configs = plan.testconfig_set.order_by('execution_order')
+    for test_config in test_configs:
+        afe_jobs = plan.job_set.filter(test_config=test_config)
+        afe_job_ids = afe_jobs.values_list('afe_job', flat=True)
+        hqes = afe_models.HostQueueEntry.objects.filter(job__id__in=afe_job_ids,
+                                                        host=host.host)
+        if not hqes:
+            return test_config.id
+        for hqe in hqes:
+            if not hqe.complete:
+                # HostQueueEntry still active for this host,
+                # should not run another test
+                return None
+
+    # All HQEs related to this host are complete
+    host.complete = True
+    host.save()
+    return None
+
+
+def check_for_completion(plan):
+    """
+    Checks if a plan is actually complete. Sets complete=True if so
+    """
+    if not models.Host.objects.filter(plan=plan, complete=False):
+        plan.complete = True
+        plan.save()
+
+
+def compute_test_run_status(status):
+    """
+    Converts a TKO test status to a Planner test run status
+    """
+    Status = model_attributes.TestRunStatus
+    if status == 'GOOD':
+        return Status.PASSED
+    if status == 'RUNNING':
+        return Status.ACTIVE
+    return Status.FAILED
+
+
+def add_test_run(plan, planner_job, tko_test, hostname, status):
+    """
+    Adds a TKO test to the Planner Test Run tables
+    """
+    host = afe_models.Host.objects.get(hostname=hostname)
+
+    planner_host = models.Host.objects.get(plan=plan, host=host)
+    test_run, _ = models.TestRun.objects.get_or_create(plan=plan,
+                                                       test_job=planner_job,
+                                                       tko_test=tko_test,
+                                                       host=planner_host)
+    test_run.status = status
+    test_run.save()
