@@ -269,7 +269,7 @@ class atest(object):
         return [item.strip() for item in parts[2].split(',') if item.strip()]
 
 
-    def failure(self, full_error, item=None, what_failed=''):
+    def failure(self, full_error, item=None, what_failed='', fatal=False):
         """If kill_on_failure, print this error and die,
         otherwise, queue the error and accumulate all the items
         that triggered the same error."""
@@ -279,7 +279,7 @@ class atest(object):
         else:
             errmsg = str(full_error).split('Traceback')[0].rstrip('\n')
 
-        if self.kill_on_failure:
+        if self.kill_on_failure or fatal:
             print >> sys.stderr, "%s\n    %s" % (what_failed, errmsg)
             sys.exit(1)
 
@@ -428,7 +428,10 @@ class atest(object):
 
         self.verbose = options.verbose
         self.web_server = options.web_server
-        self.afe = rpc.afe_comm(self.web_server)
+        try:
+            self.afe = rpc.afe_comm(self.web_server)
+        except rpc.AuthError, s:
+            self.failure(str(s), fatal=True)
 
         return (options, leftover)
 
