@@ -430,7 +430,7 @@ class Host(object):
 
     def enable_ipfilters(self):
         """Re-enable the IP filters disabled from disable_ipfilters()"""
-        if os.path.isfile('/tmp/iptable-rules'):
+        if self.path_exists('/tmp/iptable-rules'):
             self.run('iptables-restore < /tmp/iptable-rules')
 
 
