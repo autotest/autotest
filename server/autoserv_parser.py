@@ -128,6 +128,10 @@ class base_autoserv_parser(object):
         self.parser.add_option("--collect-crashinfo", action="store_true",
                                dest="collect_crashinfo", default=False,
                                help="just run crashinfo collection")
+        self.parser.add_option("--control-filename", action="store",
+                               type="string", default=None,
+                               help=("filename to use for the server control "
+                                     "file in the results directory"))
 
 
     def parse_args(self):
