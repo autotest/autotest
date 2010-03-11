@@ -1,0 +1,26 @@
+*** src/makefile	Thu May 10 09:29:09 2007
+--- srcnew/makefile	Fri Mar  5 16:26:31 2010
+***************
+*** 20,26 ****
+  #
+  ########################################################################
+  
+! CC         = cc
+  CFLAGS     = -O -g
+  SRC        = ./src
+  
+--- 20,26 ----
+  #
+  ########################################################################
+  
+! CC         ?= gcc
+  CFLAGS     = -O -g
+  SRC        = ./src
+  
+***************
+*** 253,256 ****
+  	$(CC) $(CFLAGS) -DATOLL $(SRC)/netpipe.c \
+          $(SRC)/atoll.c -o NPatoll \
+          -I$(PALMS_PATH)/include -L$(PALMS_PATH)/lib -latoll
+- 
+--- 253,255 ----
