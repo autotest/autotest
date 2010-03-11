@@ -172,8 +172,6 @@ class base_client_job(base_job.base_job):
             if not os.path.exists(download):
                 os.mkdir(download)
 
-            os.makedirs(os.path.join(self.resultdir, 'analysis'))
-
             shutil.copyfile(self.control,
                             os.path.join(self.resultdir, 'control'))
 

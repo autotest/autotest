@@ -197,7 +197,6 @@ class test_base_job(unittest.TestCase):
         if not cont:
             os.path.exists.expect_call(download).and_return(False)
             os.mkdir.expect_call(download)
-            os.makedirs.expect_call(os.path.join(resultdir, 'analysis'))
             shutil.copyfile.expect_call(mock.is_string_comparator(),
                                  os.path.join(resultdir, 'control'))
 
