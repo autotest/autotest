@@ -1,0 +1,49 @@
+AUTHOR = "kdlucas@google.com (Kelly Lucas)"
+TIME = "MEDIUM"
+NAME = "Netperf Stress"
+TEST_CATEGORY = "Stress"
+TEST_CLASS = 'Network'
+TEST_TYPE = "Server"
+SYNC_COUNT = 2
+DOC = """
+netperf_stress is a 2 machine test (server/client) that measures the performance
+of various network attributes. This test will cycle through the various types
+of supported tests and streams, and will take about 1 hour to run. 
+You can adjust the streams by changing the values of the streams list in the
+run function.
+
+Arguments to run_test:
+
+test          - the list of valid netperf tests that can be run
+                This currently is:
+                  TCP_STREAM, TCP_SENDFILE, TCP_RR, TCP_CRR, UDP_STREAM, UDP_RR
+test_time     - Specifies how long each iteration of the test should run for.
+stream_list   - A list containing the number of streams to run the test for. If
+                the list is [1,10,100] then the test will run 3 times. If
+                bidirectional is set then there will be the specified number of
+                bidirectional streams.
+"""
+
+from autotest_lib.server import utils
+
+
+def run(pair):
+    """
+    Run netperf with various parameter settings.
+    """
+    streams = [1, 10, 20, 40, 60, 80, 100, 200]
+    for t in ['TCP_STREAM', 'TCP_MAERTS', 'TCP_RR', 'TCP_CRR', 'UDP_RR']:
+        tag = 'netprerf2' + t
+        job.run_test('netperf2', tag=tag, pair=pair, test=t, time=60,
+                     stream_list=streams, cycles=1)
+
+
+# grab the pairs (and failures)
+(pairs, failures) = utils.form_ntuples_from_machines(machines, 2)
+
+# log the failures
+for failure in failures:
+    job.record("FAIL", failure[0], "netperf2", failure[1])
+
+# now run through each pair and run
+job.parallel_simple(run, pairs, log=False)

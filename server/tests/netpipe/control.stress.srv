@@ -1,0 +1,63 @@
+AUTHOR = "kdlucas@google.com (Kelly Lucas)"
+TIME = "MEDIUM"
+NAME = "Netpipe Stress"
+TEST_CATEGORY = "Stress"
+TEST_CLASS = 'Network'
+TEST_TYPE = "Server"
+SYNC_COUNT = 2
+DOC = """
+netpipe_stress is a test which produces bandwidth and latency values for
+incrementing buffer sizes. This stress test will run for approximately 1 hour.
+If you need to adjust the run time, change the value of cycles in the run
+function.
+
+Arguments to run_test:
+bidirectional - indicates whether the test should run simultaneously in both
+                directions
+buffer_size   - Sets the send and receive TCP buffer sizes (from man NPtcp)
+upper_bound   - Specify the upper boundary to the size of message being tested.
+                By default, NetPIPE will stop when the time to transmit a block
+                exceeds one second. (from man NPtcp)
+variance      - NetPIPE chooses the message sizes at regular intervals,
+                increasing them exponentially from the lower boundary to the
+                upper boundary. At each point, it also tests perturbations of 3
+                bytes above and 3 bytes below (default) each test point to find
+                idiosyncrasies in the system. This perturbation  value  can be
+                changed using using this option or turned off by setting
+                perturbation_size to 0. (from man NPtcp)
+cycles        - Number of times to repeat each test. Each cycle takes about 6
+                minutes to complete.
+"""
+
+from autotest_lib.server import utils
+
+# Buffer sizes should not be less than 131072, as this will cause netpipe
+# to hang. 
+buffer_sizes = {131072: 'small',
+                262144: 'medium',
+                524288: 'large',
+                1048576: 'huge',
+               }
+cycles = 10
+upper_bound = 1048576
+variance = 17
+
+def run(pair):
+    for x in xrange(cycles):
+        for b in buffer_sizes:
+            tag = 'netpipe' + buffer_sizes[b] + str(x)
+            job.run_test('netpipe', tag=tag, pair=pair, buffer=b,
+                         upper_bound=upper_bound, variance=variance)
+
+
+# grab the pairs (and failures)
+print "Machines = %s" % machines
+(pairs, failures) = utils.form_ntuples_from_machines(machines, 2)
+print "pairs = %s" % pairs
+
+# log the failures
+for failure in failures:
+    job.record("FAIL", failure[0], "netpipe", failure[1])
+
+# now run through each pair and run
+job.parallel_simple(run, pairs, log=False)
