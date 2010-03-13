@@ -1298,6 +1298,29 @@ class JobSchedulingTest(BaseSchedulerTest):
                           self._dispatcher._schedule_running_host_queue_entries)
 
 
+    def test_schedule_hostless_job(self):
+        job = self._create_job(hostless=True)
+        self.assertEqual(1, job.hostqueueentry_set.count())
+        hqe_query = scheduler_models.HostQueueEntry.fetch(
+                'id = %s' % job.hostqueueentry_set.all()[0].id)
+        self.assertEqual(1, len(hqe_query))
+        hqe = hqe_query[0]
+
+        self.assertEqual(models.HostQueueEntry.Status.QUEUED, hqe.status)
+        self.assertEqual(0, len(self._dispatcher._agents))
+
+        self._dispatcher._schedule_new_jobs()
+
+        self.assertEqual(models.HostQueueEntry.Status.STARTING, hqe.status)
+        self.assertEqual(1, len(self._dispatcher._agents))
+
+        self._dispatcher._schedule_new_jobs()
+
+        # No change to previously schedule hostless job, and no additional agent
+        self.assertEqual(models.HostQueueEntry.Status.STARTING, hqe.status)
+        self.assertEqual(1, len(self._dispatcher._agents))
+
+
 class TopLevelFunctionsTest(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()

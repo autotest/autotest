@@ -1077,6 +1077,7 @@ class Dispatcher(object):
 
     def _schedule_hostless_job(self, queue_entry):
         self.add_agent_task(HostlessQueueTask(queue_entry))
+        queue_entry.set_status(models.HostQueueEntry.Status.STARTING)
 
 
     def _schedule_new_jobs(self):
