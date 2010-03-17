@@ -1012,17 +1012,22 @@ class PciAssignable(object):
         """
         Get VFs count number according to lspci.
         """
+        # FIXME: Need to think out a method of identify which
+        # 'virtual function' belongs to which physical card considering
+        # that if the host has more than one 82576 card. PCI_ID?
         cmd = "lspci | grep 'Virtual Function' | wc -l"
-        # For each VF we'll see 2 prints of 'Virtual Function', so let's
-        # divide the result per 2
-        return int(commands.getoutput(cmd)) / 2
+        return int(commands.getoutput(cmd))
 
 
     def check_vfs_count(self):
         """
         Check VFs count number according to the parameter driver_options.
         """
-        return (self.get_vfs_count == self.devices_requested)
+        # Network card 82576 has two network interfaces and each can be
+        # virtualized up to 7 virtual functions, therefore we multiply
+        # two for the value of driver_option 'max_vfs'.
+        expected_count = int((re.findall("(\d)", self.driver_option)[0])) * 2
+        return (self.get_vfs_count == expected_count)
 
 
     def is_binded_to_stub(self, full_id):
@@ -1054,14 +1059,16 @@ class PciAssignable(object):
         elif not self.check_vfs_count():
             os.system("modprobe -r %s" % self.driver)
             re_probe = True
+        else:
+            return True
 
         # Re-probe driver with proper number of VFs
         if re_probe:
             cmd = "modprobe %s %s" % (self.driver, self.driver_option)
+            logging.info("Loading the driver '%s' with option '%s'" %
+                                   (self.driver, self.driver_option))
             s, o = commands.getstatusoutput(cmd)
             if s:
-                return False
-            if not self.check_vfs_count():
                 return False
             return True
 
