@@ -137,7 +137,8 @@ def migrate(vm, env=None):
 
     # Clone the source VM and ask the clone to wait for incoming migration
     dest_vm = vm.clone()
-    dest_vm.create(for_migration=True)
+    if not dest_vm.create(for_migration=True):
+        raise error.TestError("Could not create dest VM")
 
     try:
         # Define the migration command
