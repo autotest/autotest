@@ -4,16 +4,11 @@ TEST_CATEGORY='Stress'
 TEST_CLASS='Kernel'
 TEST_TYPE='client'
 TIME='MEDIUM'
-DOC='''\
+DOC='''
 Runs the scrashme suite located at: 
-http://www.codemonkey.org.uk/projects/git-snapshots/scrashme/
-o Now tests all syscalls, not just 256
-o Certain syscalls made things get out of hand too quickly.
-  Forkbombing a box with this app kills it very quickly.
-  (An alternative would be to only run this with strict rlimits, but
-  there are a few other syscalls we also take care of..)
-o Do the syscall in a child process so if something hangs, we can continue.
-o Printing of the syscall name/return code.
-o Several extra modes of attack.
+http://www.codemonkey.org.uk/projects/scrashme/
+
+Runs the scrashme syscalls test suite. This test mode will exercise
+kernel syscalls randomically, or in a sequential fashion.
 '''
 job.run_test('scrashme')
