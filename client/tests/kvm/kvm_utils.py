@@ -635,7 +635,7 @@ def is_port_free(port):
 
 def find_free_port(start_port, end_port):
     """
-    Return a free port in the range [start_port, end_port).
+    Return a host free port in the range [start_port, end_port].
 
     @param start_port: First port that will be checked.
     @param end_port: Port immediately after the last one that will be checked.
@@ -648,7 +648,7 @@ def find_free_port(start_port, end_port):
 
 def find_free_ports(start_port, end_port, count):
     """
-    Return count free ports in the range [start_port, end_port).
+    Return count of host free ports in the range [start_port, end_port].
 
     @count: Initial number of ports known to be free in the range.
     @param start_port: First port that will be checked.
