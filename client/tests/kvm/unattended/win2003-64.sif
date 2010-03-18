@@ -61,4 +61,4 @@
     Command2="cmd /c net start telnet"
     Command3="cmd /c E:\setuprss.bat"
     Command4="cmd /c netsh interface ip set address local dhcp"
-    Command5="cmd /c ping 10.0.2.2 -n 20 && A:\finish.exe 10.0.2.2"
+    Command5="cmd /c ping 10.0.2.2 -n 20 && A:\finish.exe"
