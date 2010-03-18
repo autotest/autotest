@@ -31,35 +31,34 @@ class UnattendedInstall(object):
         self.deps_dir = os.path.join(kvm_test_dir, 'deps')
         self.unattended_dir = os.path.join(kvm_test_dir, 'unattended')
 
-        try:
-            tftp_root = os.environ['KVM_TEST_tftp']
+        tftp_root = os.environ.get('KVM_TEST_tftp', '')
+        if tftp_root:
             self.tftp_root = os.path.join(kvm_test_dir, tftp_root)
             if not os.path.isdir(self.tftp_root):
                 os.makedirs(self.tftp_root)
-        except KeyError:
-            self.tftp_root = ''
+        else:
+            self.tftp_root = tftp_root
 
-        try:
-            self.kernel_args = os.environ['KVM_TEST_kernel_args']
-        except KeyError:
-            self.kernel_args = ''
+        self.kernel_args = os.environ.get('KVM_TEST_kernel_args', '')
+        self.finish_program= os.environ.get('KVM_TEST_finish_program', '')
+        cdrom_iso = os.environ.get('KVM_TEST_cdrom')
+        self.unattended_file = os.environ.get('KVM_TEST_unattended_file')
 
-        try:
-            self.finish_program= os.environ['KVM_TEST_finish_program']
-        except:
-            self.finish_program = None
-
-
-        cdrom_iso = os.environ['KVM_TEST_cdrom']
-        self.unattended_file = os.environ['KVM_TEST_unattended_file']
-
-        self.qemu_img_bin = os.environ['KVM_TEST_qemu_img_binary']
+        self.qemu_img_bin = os.environ.get('KVM_TEST_qemu_img_binary')
         if not os.path.isabs(self.qemu_img_bin):
             self.qemu_img_bin = os.path.join(kvm_test_dir, self.qemu_img_bin)
         self.cdrom_iso = os.path.join(kvm_test_dir, cdrom_iso)
         self.floppy_mount = tempfile.mkdtemp(prefix='floppy_', dir='/tmp')
         self.cdrom_mount = tempfile.mkdtemp(prefix='cdrom_', dir='/tmp')
-        self.floppy_img = os.path.join(images_dir, 'floppy.img')
+        flopy_name = os.environ['KVM_TEST_floppy']
+        self.floppy_img = os.path.join(kvm_test_dir, flopy_name)
+        floppy_dir = os.path.dirname(self.floppy_img)
+        if not os.path.isdir(floppy_dir):
+            os.makedirs(floppy_dir)
+
+        self.pxe_dir = os.environ.get('KVM_TEST_pxe_dir', '')
+        self.pxe_image = os.environ.get('KVM_TEST_pxe_image', '')
+        self.pxe_initrd = os.environ.get('KVM_TEST_pxe_initrd', '')
 
 
     def create_boot_floppy(self):
@@ -94,9 +93,15 @@ class UnattendedInstall(object):
                 setup_file_dest = os.path.join(self.floppy_mount, setup_file)
                 shutil.copyfile(setup_file_path, setup_file_dest)
             elif self.unattended_file.endswith('.ks'):
+                # Red Hat kickstart install
                 dest_fname = 'ks.cfg'
             elif self.unattended_file.endswith('.xml'):
-                dest_fname = "autounattend.xml"
+                if  self.tftp_root is '':
+                    # Windows unattended install
+                    dest_fname = "autounattend.xml"
+                else:
+                    # SUSE autoyast install
+                    dest_fname = "autoinst.xml"
 
             dest = os.path.join(self.floppy_mount, dest_fname)
 
@@ -166,21 +171,20 @@ class UnattendedInstall(object):
                 raise SetupError('Could not mount CD image %s.' %
                                  self.cdrom_iso)
 
-            p = os.path.join('images', 'pxeboot')
-            pxe_dir = os.path.join(self.cdrom_mount, p)
-            pxe_image = os.path.join(pxe_dir, 'vmlinuz')
-            pxe_initrd = os.path.join(pxe_dir, 'initrd.img')
+            pxe_dir = os.path.join(self.cdrom_mount, self.pxe_dir)
+            pxe_image = os.path.join(pxe_dir, self.pxe_image)
+            pxe_initrd = os.path.join(pxe_dir, self.pxe_initrd)
 
             if not os.path.isdir(pxe_dir):
                 raise SetupError('The ISO image does not have a %s dir. The '
                                  'script assumes that the cd has a %s dir '
                                  'where to search for the vmlinuz image.' %
-                                 (p, p))
+                                 (self.pxe_dir, self.pxe_dir))
 
             if not os.path.isfile(pxe_image) or not os.path.isfile(pxe_initrd):
                 raise SetupError('The location %s is lacking either a vmlinuz '
                                  'or a initrd.img file. Cannot find a PXE '
-                                 'image to proceed.' % pxe_dir)
+                                 'image to proceed.' % self.pxe_dir)
 
             tftp_image = os.path.join(self.tftp_root, 'vmlinuz')
             tftp_initrd = os.path.join(self.tftp_root, 'initrd.img')
@@ -239,6 +243,9 @@ class UnattendedInstall(object):
         print "    floppy_mount: " + str(self.floppy_mount)
         print "    floppy_img: " + str(self.floppy_img)
         print "    finish_program: " + str(self.finish_program)
+        print "    pxe_dir: " + str(self.pxe_dir)
+        print "    pxe_image: " + str(self.pxe_image)
+        print "    pxe_initrd: " + str(self.pxe_initrd)
 
         self.create_boot_floppy()
         if self.tftp_root:

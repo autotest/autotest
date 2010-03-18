@@ -13,34 +13,35 @@ def run_unattended_install(test, params, env):
     @param params: Dictionary with the test parameters.
     @param env: Dictionary with test environment.
     """
+    buf = 1024
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
 
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('', 12323))
-    server.listen(1)
+    port = vm.get_port(int(params.get("guest_port_unattended_install")))
+    addr = ('localhost', port)
 
     install_timeout = float(params.get("timeout", 3000))
     logging.info("Starting unattended install watch process. "
                  "Timeout set to %ds (%d min)", install_timeout,
                  install_timeout/60)
     start_time = time.time()
-
-    while True:
-        server.settimeout(install_timeout)
+    time_elapsed = 0
+    while time_elapsed < install_timeout:
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            (client, addr) = server.accept()
-        except socket.timeout:
-            server.close()
-            raise error.TestFail('Timeout elapsed while waiting for install to '
-                                 'finish.')
-        msg = client.recv(1024)
-        logging.debug("Received '%s' from %s", msg, addr)
-        if msg == 'done':
-            end_time = time.time()
-            time_elapsed = int(end_time - start_time)
-            logging.info('Guest reported successful installation after %ds '
-                         '(%d min)', time_elapsed, time_elapsed/60)
-            server.close()
-            break
-        else:
-            logging.error('Got invalid string from client: %s.' % msg)
+            client.connect(addr)
+            msg = client.recv(1024)
+            if msg == 'done':
+                break
+        except socket.error:
+            pass
+        time.sleep(1)
+        client.close()
+        end_time = time.time()
+        time_elapsed = int(end_time - start_time)
+
+    if time_elapsed < install_timeout:
+        logging.info('Guest reported successful installation after %ds '
+                     '(%d min)', time_elapsed, time_elapsed/60)
+    else:
+        raise error.TestFail('Timeout elapsed while waiting for install to '
+                             'finish.')

@@ -70,6 +70,8 @@ variants:
         floppy = "images/floppy.img"
         extra_params += " -boot d"
         nic_mode = user
+        redirs += " unattended_install"
+        guest_port_unattended_install = 12323
 
     - boot:         install setup unattended_install
         type = boot
@@ -337,6 +339,9 @@ variants:
                 no setup
                 shell_prompt = "^\[.*\][\#\$]\s*$"
                 unattended_install:
+                    pxe_dir = "images/pxeboot"
+                    pxe_image = "vmlinuz"
+                    pxe_initrd = "initrd.img"
                     tftp = "images/tftpboot"
                     extra_params += " -bootp /pxelinux.0 -boot n"
                     kernel_args = "ks=floppy nicdelay=60"
@@ -352,10 +357,12 @@ variants:
                             steps = Fedora-8-i386.steps
                         unattended_install:
                             unattended_file = unattended/Fedora-8.ks
+                            tftp = images/f8-32/tftpboot
+                            floppy = images/f8-32/floppy.img
 
                     - 8.64:
                         no setup
-                        image_name = fc8-64
+                        image_name = f8-64
                         cdrom = linux/Fedora-8-x86_64-DVD.iso
                         md5sum = 2cb231a86709dec413425fd2f8bf5295
                         md5sum_1m = 145f6414e19492649a56c89f0a45e719
@@ -363,9 +370,11 @@ variants:
                             steps = Fedora-8-64.steps
                         unattended_install:
                             unattended_file = unattended/Fedora-8.ks
+                            tftp = images/f8-64/tftpboot
+                            floppy = images/f8-64/floppy.img
 
                     - 9.32:
-                        image_name = fc9-32
+                        image_name = f9-32
                         cdrom = linux/Fedora-9-i386-DVD.iso
                         md5sum = 72601f685ea8c808c303353d8bf4d307
                         md5sum_1m = f24fa25689e5863f1b99984c6feb787f
@@ -373,9 +382,11 @@ variants:
                             steps = Fedora-9-i386.steps
                         unattended_install:
                             unattended_file = unattended/Fedora-9.ks
+                            tftp = images/f9-32/tftpboot
+                            floppy = images/f9-32/floppy.img
 
                     - 9.64:
-                        image_name = fc9-64
+                        image_name = f9-64
                         cdrom = linux/Fedora-9-x86_64-DVD.iso
                         md5sum = 05b2ebeed273ec54d6f9ed3d61ea4c96
                         md5sum_1m = 9822ab5097e37e8fe306ef2192727db4
@@ -383,25 +394,31 @@ variants:
                             steps = Fedora-9-64.steps
                         unattended_install:
                             unattended_file = unattended/Fedora-9.ks
+                            tftp = images/f9-64/tftpboot
+                            floppy = images/f9-64/floppy.img
 
                     - 10.32:
-                        image_name = fc10-32
+                        image_name = f10-32
                         cdrom = linux/Fedora-10-i386-DVD.iso
                         md5sum = 27e581edb392728c4a07d00d3fc5ced0
                         md5sum_1m = bd67c68bdf595e4ba7131ec702159181
                         unattended_install:
                             unattended_file = unattended/Fedora-10.ks
+                            tftp = images/f10-32/tftpboot
+                            floppy = images/f10-32/floppy.img
 
                     - 10.64:
-                        image_name = fc10-64
+                        image_name = f10-64
                         cdrom = linux/Fedora-10-x86_64-DVD.iso
                         sha1sum = f1e5ae7db6a1ba227de7294c4112385922388648
                         md5sum_1m = 732857cbf40c80c34683e874601d982c
                         unattended_install:
                             unattended_file = unattended/Fedora-10.ks
+                            tftp = images/f10-64/tftpboot
+                            floppy = images/f10-64/floppy.img
 
                     - 11.32:
-                        image_name = fc11-32
+                        image_name = f11-32
                         cdrom = linux/Fedora-11-i386-DVD.iso
                         md5sum = e3b1e2d1ba42aa4705fa5f41771b3927
                         md5sum_1m = dc8ddf90648c247339c721395aa49714
@@ -409,30 +426,38 @@ variants:
                             steps = Fedora-11-32.steps
                         unattended_install:
                             unattended_file = unattended/Fedora-11.ks
+                            tftp = images/f11-32/tftpboot
+                            floppy = images/f11-32/floppy.img
 
                     - 11.64:
-                        image_name = fc11-64
+                        image_name = f11-64
                         cdrom = linux/Fedora-11-x86_64-DVD.iso
                         md5sum = 9d419844adeb93120215fe7505c9bce8
                         md5sum_1m = 405ee05e2387a2e4328b008d5bcbdd1e
                         unattended_install:
                             unattended_file = unattended/Fedora-11.ks
+                            tftp = images/f11-64/tftpboot
+                            floppy = images/f11-64/floppy.img
 
                     - 12.32:
-                        image_name = fc12-32
+                        image_name = f12-32
                         cdrom = linux/Fedora-12-i386-DVD.iso
                         md5sum = 2c4c1c0d09f2fbcfd8ee6a0c5542eeb2
                         md5sum_1m = eee935d7f0cf2ef03f6ddce3a2a50050
                         unattended_install:
                             unattended_file = unattended/Fedora-12.ks
+                            tftp = images/f12-32/tftpboot
+                            floppy = images/f12-32/floppy.img
 
                     - 12.64:
-                        image_name = fc12-64
+                        image_name = f12-64
                         cdrom = linux/Fedora-12-x86_64-DVD.iso
                         md5sum = 6dd31e292cc2eb1140544e9b1ba61c56
                         md5sum_1m = 514efbd7698b55ff6768c8605438bfc5
                         unattended_install:
                             unattended_file = unattended/Fedora-12.ks
+                            tftp = images/f12-64/tftpboot
+                            floppy = images/f12-64/floppy.img
 
             - DSL-4.2.5:
                 no setup dbench bonnie linux_s3
@@ -517,6 +542,9 @@ variants:
                 block_hotplug:
                     modprobe_module = acpiphp
                 unattended_install:
+                    pxe_dir = "images/pxeboot"
+                    pxe_image = "vmlinuz"
+                    pxe_initrd = "initrd.img"
                     tftp = "images/tftpboot"
                     extra_params += " -bootp /pxelinux.0 -boot n"
                     kernel_args = "ks=floppy nicdelay=60"
@@ -533,6 +561,8 @@ variants:
                             steps=RHEL-3.9-i386.steps
                         unattended_install:
                             unattended_file = unattended/RHEL-3-series.ks
+                            tftp = images/rhel39-32/tftpboot
+                            floppy = images/rhel39-32/floppy.img
 
                     - 3.9.x86_64:
                         no setup autotest linux_s3
@@ -545,6 +575,8 @@ variants:
                             steps=RHEL-3.9-x86_64.steps
                         unattended_install:
                             unattended_file = unattended/RHEL-3-series.ks
+                            tftp = images/rhel39-64/tftpboot
+                            floppy = images/rhel39-64/floppy.img
 
                     - 4.7.i386:
                         no setup autotest
@@ -556,6 +588,8 @@ variants:
                             steps=RHEL-4.7-i386.steps
                         unattended_install:
                             unattended_file = unattended/RHEL-4-series.ks
+                            tftp = images/rhel47-32/tftpboot
+                            floppy = images/rhel47-32/floppy.img
 
                     - 4.7.x86_64:
                         no setup autotest
@@ -567,6 +601,8 @@ variants:
                             steps=RHEL-4.7-x86_64.steps
                         unattended_install:
                             unattended_file = unattended/RHEL-4-series.ks
+                            tftp = images/rhel47-64/tftpboot
+                            floppy = images/rhel47-64/floppy.img
 
                     - 4.8.i386:
                         no setup autotest
@@ -576,6 +612,8 @@ variants:
                         md5sum_1m = 969c197402b9058f28a278c1f807d15b
                         unattended_install:
                             unattended_file = unattended/RHEL-4-series.ks
+                            tftp = images/rhel48-32/tftpboot
+                            floppy = images/rhel48-32/floppy.img
 
                     - 4.8.x86_64:
                         no setup autotest
@@ -585,6 +623,8 @@ variants:
                         md5sum_1m = b11ac0ef7fd345ad712966972db63886
                         unattended_install:
                             unattended_file = unattended/RHEL-4-series.ks
+                            tftp = images/rhel48-64/tftpboot
+                            floppy = images/rhel48-64/floppy.img
 
                     - 5.3.i386:
                         no setup
@@ -596,6 +636,8 @@ variants:
                             steps=RHEL-5.3-i386.steps
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
+                            tftp = images/rhel53-32/tftpboot
+                            floppy = images/rhel53-32/floppy.img
 
                     - 5.3.x86_64:
                         no setup
@@ -607,6 +649,8 @@ variants:
                             steps=RHEL-5.3-x86_64.steps
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
+                            tftp = images/rhel53-64/tftpboot
+                            floppy = images/rhel53-64/floppy.img
 
                     - 5.4.i386:
                         no setup
@@ -616,6 +660,8 @@ variants:
                         md5sum_1m = 0dbeb8f58d213752d8c029e8601abfbb
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
+                            tftp = images/rhel54-32/tftpboot
+                            floppy = images/rhel54-32/floppy.img
 
                     - 5.4.x86_64:
                         no setup
@@ -625,6 +671,8 @@ variants:
                         md5sum_1m = 3e74112003e88a966754849dbb8f5c3f
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
+                            tftp = images/rhel54-64/tftpboot
+                            floppy = images/rhel54-64/floppy.img
 
     # Windows section
     - @Windows:
@@ -728,6 +776,7 @@ variants:
                             md5sum = 743450644b1d9fe97b3cf379e22dceb0
                             md5sum_1m = b473bf75af2d1269fec8958cf0202bfd
                             unattended_file = unattended/winxp32.sif
+                            floppy = images/winXP-32/floppy.img
 
                     - 64:
                         image_name += -64
@@ -744,6 +793,7 @@ variants:
                             md5sum = 8d3f007ec9c2060cec8a50ee7d7dc512
                             md5sum_1m = e812363ff427effc512b7801ee70e513
                             unattended_file = unattended/winxp64.sif
+                            floppy = images/winXP-64/floppy.img
 
             - Win2003:
                 image_name = win2003
@@ -767,6 +817,7 @@ variants:
                             md5sum = 03e921e9b4214773c21a39f5c3f42ef7
                             md5sum_1m = 37c2fdec15ac4ec16aa10fdfdb338aa3
                             unattended_file = unattended/win2003-32.sif
+                            floppy = images/win2003-32/floppy.img
 
                     - 64:
                         image_name += -64
@@ -783,6 +834,7 @@ variants:
                             md5sum = 5703f87c9fd77d28c05ffadd3354dbbd
                             md5sum_1m = 439393c384116aa09e08a0ad047dcea8
                             unattended_file = unattended/win2003-64.sif
+                            floppy = images/win2003-64/floppy.img
 
             - WinVista:
                 image_name = winvista
@@ -803,6 +855,7 @@ variants:
                             md5sum = 1008f323d5170c8e614e52ccb85c0491
                             md5sum_1m = c724e9695da483bc0fd59e426eaefc72
                             unattended_file = unattended/winvista-32-autounattend.xml
+                            floppy = images/winvista-sp1-32/floppy.img
 
                     - 64sp1:
                         image_name += sp1-64
@@ -818,6 +871,7 @@ variants:
                             md5sum = 11e2010d857fffc47813295e6be6d58d
                             md5sum_1m = 0947bcd5390546139e25f25217d6f165
                             unattended_file = unattended/winvista-64-autounattend.xml
+                            floppy = images/winvista-sp1-64/floppy.img
 
                     - 32sp2:
                         image_name += sp2-32
@@ -828,6 +882,7 @@ variants:
                             sha1sum = 25ad9a776503e6a583bec07879dbcc5dfd20cd6e
                             sha1sum_1m = a2afa4cffdc1c362dbf9e62942337f4f875a22cf
                             unattended_file = unattended/winvista-32-autounattend.xml
+                            floppy = images/winvista-sp2-32/floppy.img
 
                     - 64sp2:
                         image_name += sp2-64
@@ -838,6 +893,7 @@ variants:
                             sha1sum = aaee3c04533899f9f8c4ae0c4250ef5fafbe29a3
                             sha1sum_1m = 1fd21bd3ce2a4de8856c7b8fe6fdf80260f6d1c7
                             unattended_file = unattended/winvista-64-autounattend.xml
+                            floppy = images/winvista-sp2-64/floppy.img
 
             - Win2008:
                 image_name = win2008
@@ -862,6 +918,7 @@ variants:
                             md5sum=0bfca49f0164de0a8eba236ced47007d
                             md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
                             unattended_file = unattended/win2008-32-autounattend.xml
+                            floppy = images/win2008-sp1-32/floppy.img
 
                     - 64sp1:
                         image_name += sp1-64
@@ -880,6 +937,7 @@ variants:
                             md5sum=27c58cdb3d620f28c36333a5552f271c
                             md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
                             unattended_file = unattended/win2008-64-autounattend.xml
+                            floppy = images/win2008-sp1-64/floppy.img
 
                     - 32sp2:
                         image_name += sp2-32
@@ -890,6 +948,7 @@ variants:
                             sha1sum = 49d0d6917c1256fe81048d414fa473bbc76a8724
                             sha1sum_1m = 9662ff7ed715faa00407e4befc484ea52a92a9fb
                             unattended_file = unattended/win2008-32-autounattend.xml
+                            floppy = images/win2008-sp2-32/floppy.img
 
                     - 64sp2:
                         image_name += sp2-64
@@ -900,6 +959,7 @@ variants:
                             sha1sum = 34c7d726c57b0f8b19ba3b40d1b4044c15fc2029
                             sha1sum_1m = 8fe08b03e3531906855a60a78020ac9577dff5ba
                             unattended_file = unattended/win2008-64-autounattend.xml
+                            floppy = images/win2008-sp2-64/floppy.img
 
                     - r2:
                         image_name += -r2
@@ -910,6 +970,7 @@ variants:
                             sha1sum = ad855ea913aaec3f1d0e1833c1aef7a0de326b0a
                             sha1sum_1m = 9194a3aabae25b36e5f73cad001314b2c8d07d14
                             unattended_file = unattended/win2008-r2-autounattend.xml
+                            floppy = images/win2008-r2-64/floppy.img
 
             - Win7:
                 image_name = win7
@@ -927,6 +988,7 @@ variants:
                             sha1sum = 5395dc4b38f7bdb1e005ff414deedfdb16dbf610
                             sha1sum_1m = 9f9c3780aebeb28a9bf22188eed6bc15475dc9c5
                             unattended_file = unattended/win7-32-autounattend.xml
+                            floppy = images/win7-32/floppy.img
 
                     - 64:
                         image_name += -64
@@ -945,6 +1007,7 @@ variants:
                             sha1sum = 326327cc2ff9f05379f5058c41be6bc5e004baa7
                             sha1sum_1m = 4a3903bd5157de54f0702e5263e0a683c5775515
                             unattended_file = unattended/win7-64-autounattend.xml
+                            floppy = images/win7-64/floppy.img
 
 
     # Unix/BSD section
