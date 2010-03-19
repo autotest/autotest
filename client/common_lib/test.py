@@ -615,25 +615,32 @@ def runtest(job, url, tag, args, dargs,
     # if this is not a plain test name then download and install the
     # specified test
     if url.endswith('.tar.bz2'):
-        (group, testname) = _installtest(job, url)
-        bindir = os.path.join(job.testdir, 'download', group, testname)
+        (testgroup, testname) = _installtest(job, url)
+        bindir = os.path.join(job.testdir, 'download', testgroup, testname)
+        importdir = os.path.join(testdir, 'download', testgroup)
         site_bindir = None
+        modulename = '%s.%s' % (re.sub('/', '.', testgroup), testname)
+        classname = '%s.%s' % (modulename, testname)
+        path = testname
     else:
-        # if the test is local, it can be found in either testdir
-        # or site_testdir. tests in site_testdir override tests
-        # defined in testdir
-        (group, testname) = ('', url)
-        bindir = os.path.join(job.testdir, group, testname)
-        if hasattr(job, 'site_testdir'):
-            site_bindir = os.path.join(job.site_testdir,
-                                       group, testname)
-        else:
-            site_bindir = None
+        # If the test is local, it may be under either testdir or site_testdir.
+        # Tests in site_testdir override tests defined in testdir
+        testname = path = url
+        testgroup = ''
+        path = re.sub('\.', '/', testname)
+        modulename = os.path.basename(path)
+        classname = '%s.%s' % (modulename, modulename)
 
-        # The job object here can be that of a server side job or a client
-        # side job. 'install_pkg' method won't be present for server side
-        # jobs, so do the fetch only if that method is present in the job
-        # obj.
+        bindir = testdir = None
+        for dir in [job.testdir, getattr(job, 'site_testdir', None)]:
+            if dir is not None and os.path.exists(os.path.join(dir, path)):
+                testdir = dir
+                importdir = bindir = os.path.join(dir, path)
+        if not bindir:
+            raise error.TestError(testname + ': test does not exist')
+
+        # The job object may be either a server side job or a client side job.
+        # 'install_pkg' method will be present only if it's a client side job.
         if hasattr(job, 'install_pkg'):
             try:
                 job.install_pkg(testname, 'test', bindir)
@@ -646,30 +653,16 @@ def runtest(job, url, tag, args, dargs,
     if tag:
         outputdir += '.' + tag
 
-    # if we can find the test in site_bindir, use this version
-    if site_bindir and os.path.exists(site_bindir):
-        bindir = site_bindir
-        testdir = job.site_testdir
-    elif os.path.exists(bindir):
-        testdir = job.testdir
-    else:
-        raise error.TestError(testname + ': test does not exist')
-
     local_namespace['job'] = job
     local_namespace['bindir'] = bindir
     local_namespace['outputdir'] = outputdir
 
-    if group:
-        sys.path.insert(0, os.path.join(testdir, 'download'))
-        group += '.'
-    else:
-        sys.path.insert(0, os.path.join(testdir, testname))
-
+    sys.path.insert(0, importdir) 
     try:
-        exec ("import %s%s" % (group, testname),
-              local_namespace, global_namespace)
-        exec ("mytest = %s%s.%s(job, bindir, outputdir)" %
-              (group, testname, testname),
+        # print 'import %s' % modulename
+        exec ('import %s' % modulename, local_namespace, global_namespace)
+        # print "mytest = %s(job, bindir, outputdir)" % classname
+        exec ("mytest = %s(job, bindir, outputdir)" % classname,
               local_namespace, global_namespace)
     finally:
         sys.path.pop(0)
