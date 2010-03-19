@@ -56,17 +56,18 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         """
         raw_identity_files = ["~/.ssh/id_dsa", "~/.ssh/id_rsa"]
         for config_path in ("/etc/ssh/ssh_config", "~/.ssh/config"):
+            config_path = os.path.expanduser(config_path)
             if not os.path.exists(config_path):
                 continue
             host_pattern = "*"
-            config_lines = open(os.path.expanduser(config_path)).readlines()
+            config_lines = open(config_path).readlines()
             for line in config_lines:
                 key, value = ParamikoHost._parse_config_line(line)
                 if key == "Host":
                     host_pattern = value
                 elif (key == "IdentityFile"
                       and fnmatch.fnmatch(hostname, host_pattern)):
-                    raw_identity_files.append(host_pattern)
+                    raw_identity_files.append(value)
 
         # drop any files that use percent-escapes; we don't support them
         identity_files = []
