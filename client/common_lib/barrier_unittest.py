@@ -9,6 +9,23 @@ from autotest_lib.client.common_lib import error, barrier
 from autotest_lib.client.common_lib.test_utils import mock
 
 
+class listen_server_test(unittest.TestCase):
+
+    def test_init(self):
+        server = barrier.listen_server()
+        server.close()
+
+
+    def test_close(self):
+        server = barrier.listen_server()
+        # cannot bind on the same port again
+        self.assertRaises(socket.error, barrier.listen_server)
+        server.close()
+        # now we can
+        server = barrier.listen_server()
+        server.close()
+
+
 class barrier_test(unittest.TestCase):
 
     def setUp(self):
@@ -137,9 +154,13 @@ class barrier_test(unittest.TestCase):
     # Internal utility function (not a unit test)
     def rendezvous_test(self, timeout, port=11922,
                         rendezvous_servers=False, test_abort=False,
-                        abort=False):
+                        abort=False, listen_server=None):
+        if listen_server:
+            port = None
+
         def _rdv(addr):
-            b1 = barrier.barrier(addr, "test_meeting", timeout, port)
+            b1 = barrier.barrier(addr, "test_meeting", timeout, port,
+                                 listen_server=listen_server)
             if not rendezvous_servers:
                 if test_abort:
                     b1.rendezvous('127.0.0.1#0', '127.0.0.1#1', abort=abort)
@@ -158,14 +179,23 @@ class barrier_test(unittest.TestCase):
             try:
                 _rdv(addr)
             except error.BarrierError:
-                if timeout == 0:
-                    pass
+                pass
 
         client = threading.Thread(target=_thread_rdv,
                                   args=('127.0.0.1#0',))
         client.start()
         _rdv('127.0.0.1#1')
         client.join()
+
+
+    def test_reusing_listen_server(self):
+        """
+        Test that reusing the same listen server object works.
+        """
+        server = barrier.listen_server()
+        self.rendezvous_test(10, listen_server=server)
+        self.rendezvous_test(10, listen_server=server)
+        self.rendezvous_test(10, listen_server=server)
 
 
 if __name__ == "__main__":

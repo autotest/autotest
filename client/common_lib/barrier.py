@@ -2,6 +2,50 @@ import sys, socket, errno, logging
 from time import time, sleep
 from autotest_lib.client.common_lib import error
 
+# default barrier port
+_DEFAULT_PORT = 11922
+
+class listen_server(object):
+    """
+    Manages a listening socket for barrier.
+
+    Can be used to run multiple barrier instances with the same listening
+    socket (if they were going to listen on the same port).
+
+    Attributes:
+        @attribute address: address where to bind (string)
+        @attribute port: port where to bind
+        @attribute socket: listening socket object
+    """
+    def __init__(self, address='', port=_DEFAULT_PORT):
+        """Create a listen_server instance for the given address/port.
+
+        @param address: on what address to listen to
+        @param port: on what port to listen to
+        """
+        self.address = address
+        self.port = port
+        self.socket = self._setup()
+
+
+    def _setup(self):
+        """
+        Create, bind and listen on the listening socket.
+        """
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((self.address, self.port))
+        sock.listen(10)
+
+        return sock
+
+
+    def close(self):
+        """
+        Close the listening socket.
+        """
+        self.socket.close()
+
 
 class barrier(object):
     """ Multi-machine barrier support
@@ -95,12 +139,28 @@ class barrier(object):
                     Clients who have checked in and are waiting (master)
             masterid
                     Hostname/IP address + optional tag of selected master
+            server
+                    External listen server instance to use instead of creating
+                    our own. Prefer to create a listen_server instance and
+                    reuse it in multiple barrier instances so that the barrier
+                    code doesn't have to re-bind on the same port very fast
+                    (and if packets are in transit they may reset new
+                    connections).
     """
 
-    def __init__(self, hostid, tag, timeout=None, port=11922):
+    def __init__(self, hostid, tag, timeout=None, port=None,
+                 listen_server=None):
         self.hostid = hostid
         self.tag = tag
-        self.port = port
+        if listen_server:
+            if port:
+                raise error.BarrierError(
+                        'Received both "port" and "listen_server" arguments '
+                        '(provide only one of them)')
+            self.port = listen_server.port
+        else:
+            self.port = port or _DEFAULT_PORT
+        self.server = listen_server
         self.timeout = timeout
         self.start = None
         logging.info("tag=%s port=%d timeout=%r",
@@ -303,18 +363,14 @@ class barrier(object):
 
 
     def run_server(self, is_master):
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server.bind(('', self.port))
-        self.server.listen(10)
-
+        server = self.server or listen_server(port=self.port)
         failed = 0
         try:
             while 1:
                 try:
                     # Wait for callers welcoming each.
-                    self.server.settimeout(self.remaining())
-                    connection = self.server.accept()
+                    server.socket.settimeout(self.remaining())
+                    connection = server.socket.accept()
                     if is_master:
                         self.master_welcome(connection)
                     else:
@@ -336,13 +392,12 @@ class barrier(object):
                         logging.info("slave connected to master")
                         self.slave_wait()
                         break
-
+        finally:
             self.waiting_close()
-            self.server.close()
-        except:
-            self.waiting_close()
-            self.server.close()
-            raise
+            # if we created the listening_server in the beginning of this
+            # function then close the listening socket here
+            if not self.server:
+                server.close()
 
 
     def run_client(self, is_master):
