@@ -13,37 +13,36 @@ from autotest_lib.client.bin import utils
 
 
 if __name__ == "__main__":
-    parser = optparse.OptionParser()
-    parser.add_option('-i', '--iso', type="string", dest="filename",
-                      action='store',
-                      help='path to a ISO file whose hash string will be '
-                           'evaluated.')
-
+    parser = optparse.OptionParser("usage: %prog [options] [filenames]")
     options, args = parser.parse_args()
-    filename = options.filename
 
     logging_manager.configure_logging(kvm_utils.KvmLoggingConfig())
 
-    if not filename:
+    if args:
+        filenames = args
+    else:
         parser.print_help()
         sys.exit(1)
 
-    filename = os.path.abspath(filename)
+    for filename in filenames:
+        filename = os.path.abspath(filename)
 
-    file_exists = os.path.isfile(filename)
-    can_read_file = os.access(filename, os.R_OK)
-    if not file_exists:
-        logging.critical("File %s does not exist. Aborting...", filename)
-        sys.exit(1)
-    if not can_read_file:
-        logging.critical("File %s does not have read permissions. "
-                         "Aborting...", filename)
-        sys.exit(1)
+        file_exists = os.path.isfile(filename)
+        can_read_file = os.access(filename, os.R_OK)
+        if not file_exists:
+            logging.critical("File %s does not exist!", filename)
+            continue
+        if not can_read_file:
+            logging.critical("File %s does not have read permissions!",
+                             filename)
+            continue
 
-    logging.info("Hash values for file %s", os.path.basename(filename))
-    logging.info("md5    (1m): %s", utils.hash_file(filename, 1024*1024,
-                                                    method="md5"))
-    logging.info("sha1   (1m): %s", utils.hash_file(filename, 1024*1024,
-                                                    method="sha1"))
-    logging.info("md5  (full): %s", utils.hash_file(filename, method="md5"))
-    logging.info("sha1 (full): %s", utils.hash_file(filename, method="sha1"))
+        logging.info("Hash values for file %s", os.path.basename(filename))
+        logging.info("md5    (1m): %s", utils.hash_file(filename, 1024*1024,
+                                                        method="md5"))
+        logging.info("sha1   (1m): %s", utils.hash_file(filename, 1024*1024,
+                                                        method="sha1"))
+        logging.info("md5  (full): %s", utils.hash_file(filename, method="md5"))
+        logging.info("sha1 (full): %s", utils.hash_file(filename,
+                                                        method="sha1"))
+        logging.info("")
