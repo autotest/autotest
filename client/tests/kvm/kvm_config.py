@@ -675,19 +675,15 @@ def _array_get_all(a, object_cache):
 
 
 if __name__ == "__main__":
-    parser = optparse.OptionParser()
-    parser.add_option('-f', '--file', dest="filename", action='store',
-                      help='path to a config file that will be parsed. '
-                           'If not specified, will parse tests.cfg located '
-                           'inside the kvm test dir.')
+    parser = optparse.OptionParser("usage: %prog [options] [filename]")
     parser.add_option('--verbose', dest="debug", action='store_true',
                       help='include debug messages in console output')
 
     options, args = parser.parse_args()
-    filename = options.filename
     debug = options.debug
-
-    if not filename:
+    if args:
+        filename = args[0]
+    else:
         filename = os.path.join(os.path.dirname(sys.argv[0]), "tests.cfg")
 
     # Here we configure the stand alone program to use the autotest
@@ -695,11 +691,9 @@ if __name__ == "__main__":
     logging_manager.configure_logging(kvm_utils.KvmLoggingConfig(),
                                       verbose=debug)
     dicts = config(filename, debug=debug).get_generator()
-    i = 0
-    for dict in dicts:
+    for i, dict in enumerate(dicts):
         logging.info("Dictionary #%d:", i)
         keys = dict.keys()
         keys.sort()
         for key in keys:
             logging.info("    %s = %s", key, dict[key])
-        i += 1
