@@ -139,7 +139,7 @@ def process_command(test, params, env, command, command_timeout,
     @param command_noncritical: If True test will not fail if command fails.
     """
     # Export environment vars
-    for k in params.keys():
+    for k in params:
         os.putenv("KVM_TEST_%s" % k, str(params[k]))
     # Execute commands
     try:
@@ -208,7 +208,7 @@ def preprocess(test, params, env):
 
     # Destroy and remove VMs that are no longer needed in the environment
     requested_vms = kvm_utils.get_sub_dict_names(params, "vms")
-    for key in env:
+    for key in env.keys():
         vm = env[key]
         if not kvm_utils.is_vm(vm):
             continue
