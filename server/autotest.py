@@ -1052,7 +1052,7 @@ class client_logger(object):
                 # output any warnings between now and the next status line
                 old_warnings = [(timestamp, msg) for timestamp, msg in warnings
                                 if timestamp < self.newest_timestamp]
-                self._process_warnings(self.last_line, self.logs, warnings)
+                self._process_warnings(self.last_line, self.logs, old_warnings)
                 del warnings[:len(old_warnings)]
                 # now process the line itself
                 self._process_line(line)
