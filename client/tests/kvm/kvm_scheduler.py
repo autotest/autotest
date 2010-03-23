@@ -63,6 +63,7 @@ class scheduler:
                 test_index = int(cmd[1])
                 test = self.tests[test_index].copy()
                 test.update(self_dict)
+                test = kvm_utils.get_sub_pool(test, index, self.num_workers)
                 test_iterations = int(test.get("iterations", 1))
                 status = run_test_func("kvm", params=test,
                                        tag=test.get("shortname"),

@@ -180,6 +180,61 @@ def get_mac_ip_pair_from_dict(dict):
     return (None, None)
 
 
+def get_sub_pool(dict, piece, num_pieces):
+    """
+    Split a MAC-IP pool and return a single requested piece.
+
+    For example, get_sub_pool(dict, 0, 3) will split the pool in 3 pieces and
+    return a dict representing the first piece.
+
+    @param dict: A dict that contains pool parameters.
+    @param piece: The index of the requested piece.  Should range from 0 to
+        num_pieces - 1.
+    @param num_pieces: The total number of pieces.
+    @return: A copy of dict, modified to describe the requested sub-pool.
+    """
+    range_dicts = [get_sub_dict(dict, name) for name in
+                   get_sub_dict_names(dict, "address_ranges")]
+    if not range_dicts:
+        return dict
+    ranges = [[d.get("address_range_base_mac"),
+               d.get("address_range_base_ip"),
+               int(d.get("address_range_size", 1))] for d in range_dicts]
+    total_size = sum(r[2] for r in ranges)
+    base = total_size * piece / num_pieces
+    size = total_size * (piece + 1) / num_pieces - base
+
+    # Find base of current sub-pool
+    for i in range(len(ranges)):
+        r = ranges[i]
+        if base < r[2]:
+            r[0] = r[0] and offset_mac(r[0], base)
+            r[1] = r[1] and offset_ip(r[1], base)
+            r[2] -= base
+            break
+        base -= r[2]
+
+    # Collect ranges up to end of current sub-pool
+    new_ranges = []
+    for i in range(i, len(ranges)):
+        r = ranges[i]
+        new_ranges.append(r)
+        if size <= r[2]:
+            r[2] = size
+            break
+        size -= r[2]
+
+    # Write new dict
+    new_dict = dict.copy()
+    new_dict["address_ranges"] = " ".join("r%d" % i for i in
+                                          range(len(new_ranges)))
+    for i in range(len(new_ranges)):
+        new_dict["address_range_base_mac_r%d" % i] = new_ranges[i][0]
+        new_dict["address_range_base_ip_r%d" % i] = new_ranges[i][1]
+        new_dict["address_range_size_r%d" % i] = new_ranges[i][2]
+    return new_dict
+
+
 def verify_ip_address_ownership(ip, macs, timeout=10.0):
     """
     Use arping and the ARP cache to make sure a given IP address belongs to one
