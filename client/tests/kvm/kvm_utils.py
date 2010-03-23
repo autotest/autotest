@@ -22,7 +22,7 @@ def dump_env(obj, filename):
     file.close()
 
 
-def load_env(filename, default=None):
+def load_env(filename, default={}):
     """
     Load KVM test environment from an environment file.
 
@@ -30,11 +30,13 @@ def load_env(filename, default=None):
     """
     try:
         file = open(filename, "r")
+        obj = cPickle.load(file)
+        file.close()
+        return obj
+    # Almost any exception can be raised during unpickling, so let's catch
+    # them all
     except:
         return default
-    obj = cPickle.load(file)
-    file.close()
-    return obj
 
 
 def get_sub_dict(dict, name):
