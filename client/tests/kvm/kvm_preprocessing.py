@@ -58,8 +58,8 @@ def preprocess_vm(test, params, env, name):
     for_migration = False
 
     if params.get("start_vm_for_migration") == "yes":
-        logging.debug("'start_vm_for_migration' specified; (re)starting VM with"
-                      " -incoming option...")
+        logging.debug("'start_vm_for_migration' specified; (re)starting VM "
+                      "with -incoming option...")
         start_vm = True
         for_migration = True
     elif params.get("restart_vm") == "yes":
@@ -187,12 +187,12 @@ def preprocess(test, params, env):
     @param env: The environment (a dict-like object).
     """
     # Start tcpdump if it isn't already running
-    if not env.has_key("address_cache"):
+    if "address_cache" not in env:
         env["address_cache"] = {}
-    if env.has_key("tcpdump") and not env["tcpdump"].is_alive():
+    if "tcpdump" in env and not env["tcpdump"].is_alive():
         env["tcpdump"].close()
         del env["tcpdump"]
-    if not env.has_key("tcpdump"):
+    if "tcpdump" not in env:
         command = "/usr/sbin/tcpdump -npvi any 'dst port 68'"
         logging.debug("Starting tcpdump (%s)...", command)
         env["tcpdump"] = kvm_subprocess.kvm_tail(
@@ -208,35 +208,23 @@ def preprocess(test, params, env):
 
     # Destroy and remove VMs that are no longer needed in the environment
     requested_vms = kvm_utils.get_sub_dict_names(params, "vms")
-    for key in env.keys():
+    for key in env:
         vm = env[key]
         if not kvm_utils.is_vm(vm):
             continue
         if not vm.name in requested_vms:
-            logging.debug("VM '%s' found in environment but not required for"
-                          " test; removing it..." % vm.name)
+            logging.debug("VM '%s' found in environment but not required for "
+                          "test; removing it..." % vm.name)
             vm.destroy()
             del env[key]
-
-    # Execute any pre_commands
-    if params.get("pre_command"):
-        process_command(test, params, env, params.get("pre_command"),
-                        int(params.get("pre_command_timeout", "600")),
-                        params.get("pre_command_noncritical") == "yes")
-
-    # Preprocess all VMs and images
-    process(test, params, env, preprocess_image, preprocess_vm)
 
     # Get the KVM kernel module version and write it as a keyval
     logging.debug("Fetching KVM module version...")
     if os.path.exists("/dev/kvm"):
-        kvm_version = os.uname()[2]
         try:
-            file = open("/sys/module/kvm/version", "r")
-            kvm_version = file.read().strip()
-            file.close()
+            kvm_version = open("/sys/module/kvm/version").read().strip()
         except:
-            pass
+            kvm_version = os.uname()[2]
     else:
         kvm_version = "Unknown"
         logging.debug("KVM module not loaded")
@@ -248,15 +236,23 @@ def preprocess(test, params, env):
     qemu_path = kvm_utils.get_path(test.bindir, params.get("qemu_binary",
                                                            "qemu"))
     version_line = commands.getoutput("%s -help | head -n 1" % qemu_path)
-    exp = re.compile("[Vv]ersion .*?,")
-    match = exp.search(version_line)
-    if match:
-        kvm_userspace_version = " ".join(match.group().split()[1:]).strip(",")
+    matches = re.findall("[Vv]ersion .*?,", version_line)
+    if matches:
+        kvm_userspace_version = " ".join(matches[0].split()[1:]).strip(",")
     else:
         kvm_userspace_version = "Unknown"
         logging.debug("Could not fetch KVM userspace version")
     logging.debug("KVM userspace version: %s" % kvm_userspace_version)
     test.write_test_keyval({"kvm_userspace_version": kvm_userspace_version})
+
+    # Execute any pre_commands
+    if params.get("pre_command"):
+        process_command(test, params, env, params.get("pre_command"),
+                        int(params.get("pre_command_timeout", "600")),
+                        params.get("pre_command_noncritical") == "yes")
+
+    # Preprocess all VMs and images
+    process(test, params, env, preprocess_image, preprocess_vm)
 
 
 def postprocess(test, params, env):
@@ -276,8 +272,8 @@ def postprocess(test, params, env):
 
     # Should we convert PPM files to PNG format?
     if params.get("convert_ppm_files_to_png") == "yes":
-        logging.debug("'convert_ppm_files_to_png' specified; converting PPM"
-                      " files to PNG format...")
+        logging.debug("'convert_ppm_files_to_png' specified; converting PPM "
+                      "files to PNG format...")
         try:
             for f in glob.glob(os.path.join(test.debugdir, "*.ppm")):
                 if ppm_utils.image_verify_ppm_file(f):
@@ -289,8 +285,8 @@ def postprocess(test, params, env):
 
     # Should we keep the PPM files?
     if params.get("keep_ppm_files") != "yes":
-        logging.debug("'keep_ppm_files' not specified; removing all PPM files"
-                      " from debug dir...")
+        logging.debug("'keep_ppm_files' not specified; removing all PPM files "
+                      "from debug dir...")
         for f in glob.glob(os.path.join(test.debugdir, '*.ppm')):
             os.unlink(f)
 
@@ -318,7 +314,7 @@ def postprocess(test, params, env):
 
     # Terminate tcpdump if no VMs are alive
     living_vms = [vm for vm in kvm_utils.env_get_all_vms(env) if vm.is_alive()]
-    if not living_vms and env.has_key("tcpdump"):
+    if not living_vms and "tcpdump" in env:
         env["tcpdump"].close()
         del env["tcpdump"]
 
