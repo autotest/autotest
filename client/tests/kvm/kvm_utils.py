@@ -790,8 +790,8 @@ def run_tests(test_list, job):
     @return: True, if all tests ran passed, False if any of them failed.
     """
     status_dict = {}
-
     failed = False
+
     for dict in test_list:
         if dict.get("skip") == "yes":
             continue
@@ -808,12 +808,12 @@ def run_tests(test_list, job):
             test_tag = dict.get("shortname")
             # Setting up kvm_stat profiling during test execution.
             # We don't need kvm_stat profiling on the build tests.
-            if "build" in test_tag:
+            if dict.get("run_kvm_stat") == "yes":
+                profile = True
+            else:
                 # None because it's the default value on the base_test class
                 # and the value None is specifically checked there.
                 profile = None
-            else:
-                profile = True
 
             if profile:
                 job.profilers.add('kvm_stat')
