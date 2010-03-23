@@ -21,6 +21,7 @@ class kvm(test.test):
             (Online doc - Getting started with KVM testing)
     """
     version = 1
+
     def run_once(self, params):
         # Report the parameters we've received and write them as keyvals
         logging.debug("Test parameters:")
@@ -33,7 +34,7 @@ class kvm(test.test):
         # Open the environment file
         env_filename = os.path.join(self.bindir, params.get("env", "env"))
         env = kvm_utils.load_env(env_filename, {})
-        logging.debug("Contents of environment: %s" % str(env))
+        logging.debug("Contents of environment: %s", str(env))
 
         try:
             try:
@@ -50,22 +51,30 @@ class kvm(test.test):
                 f.close()
 
                 # Preprocess
-                kvm_preprocessing.preprocess(self, params, env)
-                kvm_utils.dump_env(env, env_filename)
+                try:
+                    kvm_preprocessing.preprocess(self, params, env)
+                finally:
+                    kvm_utils.dump_env(env, env_filename)
                 # Run the test function
                 run_func = getattr(test_module, "run_%s" % t_type)
-                run_func(self, params, env)
-                kvm_utils.dump_env(env, env_filename)
+                try:
+                    run_func(self, params, env)
+                finally:
+                    kvm_utils.dump_env(env, env_filename)
 
             except Exception, e:
                 logging.error("Test failed: %s", e)
                 logging.debug("Postprocessing on error...")
-                kvm_preprocessing.postprocess_on_error(self, params, env)
-                kvm_utils.dump_env(env, env_filename)
+                try:
+                    kvm_preprocessing.postprocess_on_error(self, params, env)
+                finally:
+                    kvm_utils.dump_env(env, env_filename)
                 raise
 
         finally:
             # Postprocess
-            kvm_preprocessing.postprocess(self, params, env)
-            logging.debug("Contents of environment: %s", str(env))
-            kvm_utils.dump_env(env, env_filename)
+            try:
+                kvm_preprocessing.postprocess(self, params, env)
+            finally:
+                kvm_utils.dump_env(env, env_filename)
+                logging.debug("Contents of environment: %s", str(env))
