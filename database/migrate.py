@@ -4,7 +4,7 @@ import os, sys, re, subprocess, tempfile
 from optparse import OptionParser
 import common
 import MySQLdb, MySQLdb.constants.ER
-from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib import global_config, utils
 from autotest_lib.database import database_connection
 
 MIGRATE_TABLE = 'migrate_info'
@@ -78,13 +78,17 @@ class MigrationManager(object):
 
 
     def _set_migrations_dir(self, migrations_dir=None):
-        config_section = self._database.global_config_section
+        config_section = self._config_section()
         if migrations_dir is None:
             migrations_dir = os.path.abspath(
                 _MIGRATIONS_DIRS.get(config_section, _DEFAULT_MIGRATIONS_DIR))
         self.migrations_dir = migrations_dir
         sys.path.append(migrations_dir)
         assert os.path.exists(migrations_dir), migrations_dir + " doesn't exist"
+
+
+    def _config_section(self):
+        return self._database.global_config_section
 
 
     def get_db_name(self):
@@ -173,6 +177,10 @@ class MigrationManager(object):
 
     def migrate_to_version(self, version):
         current_version = self.get_db_version()
+        if current_version == 0 and self._config_section() == 'AUTOTEST_WEB':
+            self._migrate_from_base()
+            current_version = self.get_db_version()
+
         if current_version < version:
             lower, upper = current_version, version
             migrate_up = True
@@ -188,6 +196,27 @@ class MigrationManager(object):
 
         assert self.get_db_version() == version
         print 'At version', version
+
+
+    def _migrate_from_base(self):
+        self.confirm_initialization()
+
+        migration_script = utils.read_file(
+                os.path.join(os.path.dirname(__file__), 'schema_051.sql'))
+        self.execute_script(migration_script)
+
+        self.create_migrate_table()
+        self.set_db_version(51)
+
+
+    def confirm_initialization(self):
+        if not self.force:
+            response = raw_input(
+                'Your %s database does not appear to be initialized.  Do you '
+                'want to recreate it (this will result in loss of any existing '
+                'data) (yes/No)? ' % self.get_db_name())
+            if response != 'yes':
+                raise Exception('User has chosen to abort migration')
 
 
     def get_latest_version(self):
@@ -300,7 +329,8 @@ def main():
     parser = OptionParser()
     parser.add_option("-d", "--database",
                       help="which database to act on",
-                      dest="database")
+                      dest="database",
+                      default="AUTOTEST_WEB")
     parser.add_option("-a", "--action", help="what action to perform",
                       dest="action")
     parser.add_option("-f", "--force", help="don't ask for confirmation",
