@@ -1,7 +1,6 @@
 CC=	cc
 
 CFLAGS=	-O -std=gnu99 -Wall
-LDFLAGS=-static
 LIBS=	-lpthread -lrt
 
 PROG=	time_test
