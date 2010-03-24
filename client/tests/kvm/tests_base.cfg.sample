@@ -136,6 +136,9 @@ variants:
             - cpu_hotplug:
                 test_name = cpu_hotplug
                 test_control_file = cpu_hotplug.control
+            - monotonic_time:
+                test_name = monotonic_time
+                test_control_file = monotonic_time.control
 
     - linux_s3:     install setup unattended_install
         type = linux_s3
