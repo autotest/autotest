@@ -1081,7 +1081,7 @@ linux_s3:
 
 variants:
     - @up:
-        no autotest.npb
+        no autotest.npb autotest.tsc
     - smp2:
         smp = 2
         used_cpus = 2
