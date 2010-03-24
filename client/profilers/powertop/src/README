@@ -1,0 +1,44 @@
+What's eating the battery life of my laptop? Why isn't it many more
+hours? Which software component causes the most power to be burned?
+These are important questions without a good answer... until now.
+
+The Linux 2.6.21 kernel introduces the so called tickless-idle
+feature. This feature allows the processor to be really idle for long
+periods of time, rather than having to wake up every millisecond for
+the timer tick. Current processors save a lot of power if they are
+idle for long periods, which translates into a longer battery life for
+your laptop, or a lower energy bill for your datacenter. However, a
+Linux system consists of more software than just the kernel, and there
+are many tunables involved. It's not easy to see what is going on, and
+as a result the behavior is sometimes far from optimal, and a lot of
+power is wasted.
+
+Intel is proud to announce the PowerTOP tool
+(http://www.linuxpowertop.org), a program that collects the various
+pieces of information from your system and presents an overview of how
+well your laptop is doing in terms of power savings. In addition,
+PowerTOP will provide an indication of which tunables and software
+components are the biggest offenders in slurping up your battery time.
+PowerTOP will update it's display frequently so that you can directly
+see the impact of any changes you are making.
+
+A typical Linux distribution has many components that wake the
+processor up frequently for no good reason. In our testing with
+PowerTOP, we have seen many cases where with some simple fixes, the
+battery life of typical laptops was increased by one hour or more!
+
+We are providing fixes for several of the issues we identified, and we
+encourage the Linux community to help us in this quest to get the
+maximum battery life out of your (hopefully Intel based) laptops. Try
+the PowerTOP tool, join the mailing list or the IRC channel and
+provide feedback, problem reports or fixes!
+
+Website:      http://www.linuxpowertop.org
+IRC:          irc.oftc.net    #powertop channel
+Mailing list: http://www.bughost.org/mailman/listinfo/power
+Tags: intel, linux
+
+
+
+If you have bugreports or patches, I prefer that you use the mailing list
+but you can email me directly at arjan@linux.intel.com.
