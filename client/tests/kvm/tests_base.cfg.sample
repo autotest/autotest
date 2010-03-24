@@ -139,6 +139,9 @@ variants:
             - monotonic_time:
                 test_name = monotonic_time
                 test_control_file = monotonic_time.control
+            - tsc:
+                test_name = tsc
+                test_control_file = tsc.control
 
     - linux_s3:     install setup unattended_install
         type = linux_s3
