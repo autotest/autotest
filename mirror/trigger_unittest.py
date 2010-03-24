@@ -106,6 +106,8 @@ class map_action_unittest(unittest.TestCase):
     def test_upload_kernel_config(self):
         tests_map = {
             'mach1': trigger.map_action.machine_info(
+                    ('test1',), {'2.6.20': 'config1'}),
+            'mach3': trigger.map_action.machine_info(
                     ('test1',), {'2.6.20': 'config1'})
             }
 
