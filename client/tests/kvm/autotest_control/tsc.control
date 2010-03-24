@@ -1,0 +1,13 @@
+NAME = 'Check TSC'
+AUTHOR = 'Michael Davidson <md@google.com>'
+TIME = 'MEDIUM'
+TEST_CLASS = 'Kernel'
+TEST_CATEGORY = 'Functional'
+TEST_TYPE = 'client'
+DOC = """
+checktsc is a user space program that checks TSC synchronization
+between pairs of CPUs on an SMP system using a technique borrowed
+from the Linux 2.6.18 kernel.
+"""
+
+job.run_test('tsc')
