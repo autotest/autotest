@@ -302,7 +302,7 @@ class acl_add_unittest(cli_mock.cli_unittest):
 
     def test_acl_add_bad_users_hosts(self):
         self.run_cmd(argv=['atest', 'acl', 'add', 'acl0',
-                           '-u', 'user0,user1', '-m', 'host0'],
+                           '-u', 'user0,user1', '-m', 'host0,host1'],
                      rpcs=[('acl_group_add_users',
                            {'id': 'acl0',
                             'users': ['user0', 'user1']},
@@ -316,7 +316,7 @@ class acl_add_unittest(cli_mock.cli_unittest):
                             None),
                            ('acl_group_add_hosts',
                             {'id': 'acl0',
-                             'hosts': ['host0', 'host1']},
+                             'hosts': ['host1', 'host0']},
                             False,
                             'DoesNotExist: The following Hosts do not exist: '
                             'host1'),

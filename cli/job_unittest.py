@@ -1057,6 +1057,7 @@ class job_create_unittest(cli_mock.cli_unittest):
 
     def test_execute_create_job_oth(self):
         data = self.data.copy()
+        data['hosts'] = []
         data['one_time_hosts'] = ['host0']
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
                            'test_job0', '--one-time-hosts', 'host0'],
@@ -1074,6 +1075,7 @@ class job_create_unittest(cli_mock.cli_unittest):
 
     def test_execute_create_job_multi_oth(self):
         data = self.data.copy()
+        data['hosts'] = []
         data['one_time_hosts'] = ['host1', 'host0']
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
                            'test_job0', '--one-time-hosts', 'host0,host1'],
@@ -1091,6 +1093,7 @@ class job_create_unittest(cli_mock.cli_unittest):
 
     def test_execute_create_job_oth_exists(self):
         data = self.data.copy()
+        data['hosts'] = []
         data['one_time_hosts'] = ['host0']
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
                            'test_job0', '--one-time-hosts', 'host0'],
