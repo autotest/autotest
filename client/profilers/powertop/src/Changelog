@@ -1,0 +1,128 @@
+
+1.11 --
+	* Fix compilation with PIC
+	* polling hint now refers to /dev/cdrom instead of /dev/scd0
+	* fix calculations for systems that vary in power draw proc info
+	* Display mwait usage
+	* fix EOF at input
+	* add --version|-v option
+	* spelling error in tips.
+
+1.10 --
+	* add the "P" key to show the PIDs of the processes when possible
+	* Add support for reading C-state info via sysfs
+	  (Kevin Hilman, Venki Pallipadi)
+	* Show USB suspend statistics of USB devices in "-d" dump mode
+	* Show USB suspend statistics as a low priority hint for busy
+	devices
+	* Add support for using the sysfs power supply class
+	  (Donnie Berkholz)
+	* Fix USB suspend suggestion to take semi blacklisted stuff into
+	  account
+	* Add support for Intel's 4965 wireless power saving mode
+	* On new enough cpus (and kernel 2.6.25), report which C-states the
+	  cpu and bios report/support.
+
+1.9 --
+	* add support for mac80211 based wireless power saving
+	* improve bluetooth inactivity detection (David Woodhouse)
+	* report USB activity (needs 2.6.24-rc kernel)
+	* support the newly reported interrupt events in 2.6.24-rc
+
+1.8 --
+	* add suggestion to increase VM writeback timeout
+	* add suggestion to enable INOTIFY in the kernel
+	* fix socket fd leak, found by Nikerabbit on #powertop
+	* Add support for deferrable timers (Scott Lamb)
+	* Add active hint to enable USB autosuspend on Fedora 7
+ 	* Show blue color if the cpu is 25% or more busy to indicate
+	  that idle wakeups no longer is the nr 1 power causer
+	  (Santiago Gala)
+  	* merge the -d option from Bill Nottingham (Fedora) to allow
+	  automated collection of data
+
+1.7 --  Jun 17th, 2007
+	* add suggestion to disable TV out
+	* add suggestion to disable Wake-On-Lan for unused ethernet
+	* Show P-states (frequencies)
+
+1.6 --	Jun 8th, 2007
+	* Add suggestion to rf_kill unused wireless interfaces
+	* Propose killing "sealert"; this is a new thing in F7 that wakes up
+	  10 times per second for no reason
+	* avoid showing the laptop mode hint when on AC - Val Henson
+	* suggest enabling noatime to save disk IO's
+	* suggest enabling SATA AHCI Link powermanagement
+	* suggest enabling the SMP Power Aware Scheduler
+
+1.5 -- May 27th, 2007
+	* fix resize-corrupts-screen-content bug
+	* add interrupts to the wakeups/second data in the emulated
+	  (non-mobile) case
+	* calculate a long term power usage from battery charge deltas;
+	  this should help people whos battery doesn't report discharge
+	  rates, and also will provide a less noisy datapoint
+	* Add option to use `kill` on some known power hogs if they are
+	  actually waking up a lot:
+	  - beagle (even latest wakes up 10 times/second when not indexing)
+	  - hal (suggest to stop cdrom polling)
+	  - gnome-power-manager 
+	  These only show if these actually wake up the cpu 'a lot'; so if
+	  these get fixed then the suggestion will not display.
+
+1.4 -- May 25th, 2007
+	* use gettext to allow translation
+          (with lots of thanks to the various translators, especially
+	   to Benjamin Pineau who showed me how to use gettext tools)
+	* fix bluethooth-checks-cause-autload-of-bluetooth bug
+	* use ncurses (Sebastian Kuzminsky)
+	* rotate through the suggestions randomly, so that all of them
+	  will show over time
+	* Fix the CONFIG_SND_AC97_POWER_SAVE check to only report on ac97 hw
+	* report "hidden but suprious" timer ticks (due to missing hpet or
+	  lack of NO_HZ)
+	* check for HPET being present; if not suggest user to toggle in
+   	  BIOS or apply the patch
+	* Some suggestions have become "active", you can press a key to
+	  tune it right away.
+	* Add active suggestion to enable AC97 powersave mode at runtime
+	* Add active suggestion to enable wireless powersave mode at runtime
+	* Add active suggestion to enable ondemand
+
+
+1.3 -- May 21st, 2007
+	* Add suggestion for CONFIG_SND_AC97_POWER_SAVE
+	* Fix inefficient code for readdir (Vince Pinter)
+	* Highlight the worst offenders in bold (Vince Pinter)
+	* Fix crash when running on 2.4 kernels (Harald Fernengel)
+	* Check fgets() return values (Timom Hoenig @ SuSE)
+	* add suggestion to enable laptop mode (when disabled)
+	* add suggestion to disable bluetooth when unused
+
+1.2 -- May 14th, 2007
+	* Manpage contributed by Carlo Segre from the Debian project
+	* Fix "shows power usage even on AC" bug, spotted by Steinar
+ 	  Gunderson
+ 	* Fix for batteries that report mA instead of mW from Friedrich
+	  Oslage
+
+1.1 -- May 13th, 2007
+	* Fix bug that shows "you don't have C-states" on mobile CPUs when 
+	  the cpu is 100% busy as reported by Friedrich
+	* Cosmetic code cleanups (Lindent) as suggested by David Brownell
+	* Get rid of popen() and the static sized events array 
+	  (Keith Packard)
+	* Add some more tips for kernel config options based on various
+	  reports/feedback
+	* Improve "you are not root so can't get timerstats" message to say 
+	  that you need to be root rather than that you need to change your
+	  kernel config
+	* Make a better effort at locating the kernel .config file
+	* Don't show "please turn CONFIG_FOO off" if the kernel you have
+	  doesn't even support CONFIG_FOO (yet)
+	* Show absolute per-second wakeup counts too (multiple requestors)
+	* Add capability to suggest disabling daemons and the like
+	
+
+1.0 -- May 11th, 2007
+	* Initial Release
