@@ -304,7 +304,6 @@ variants:
         shutdown_method = system_powerdown
         sleep_before_powerdown = 20
         kill_vm = yes
-        kill_vm_gracefully = no
 
     - system_reset: install setup unattended_install
         type = boot
