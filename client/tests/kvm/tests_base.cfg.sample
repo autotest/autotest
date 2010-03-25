@@ -142,6 +142,9 @@ variants:
             - tsc:
                 test_name = tsc
                 test_control_file = tsc.control
+            - scrashme:
+                test_name = scrashme
+                test_control_file = scrashme.control
 
     - linux_s3:     install setup unattended_install
         type = linux_s3
