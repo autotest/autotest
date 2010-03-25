@@ -46,8 +46,8 @@ class scrashme(test.test):
         utils.system('make')
 
 
-    def run_once(self, args_list = ''):
-        if len(args_list) != 0:
+    def run_once(self, args_list=''):
+        if args_list:
             args = args_list
         else:
             args = '--mode rotate'
