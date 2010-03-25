@@ -482,7 +482,8 @@ def remote_login(command, password, prompt, linesep="\n", timeout=10):
     while True:
         (match, text) = sub.read_until_last_line_matches(
                 [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"^\s*[Ll]ogin:\s*$",
-                 r"[Cc]onnection.*closed", r"[Cc]onnection.*refused", prompt],
+                 r"[Cc]onnection.*closed", r"[Cc]onnection.*refused",
+                 r"[Pp]lease wait", prompt],
                  timeout=timeout, internal_timeout=0.5)
         if match == 0:  # "Are you sure you want to continue connecting"
             logging.debug("Got 'Are you sure...'; sending 'yes'")
@@ -510,7 +511,11 @@ def remote_login(command, password, prompt, linesep="\n", timeout=10):
             logging.debug("Got 'Connection refused'")
             sub.close()
             return None
-        elif match == 5:  # prompt
+        elif match == 5:  # "Please wait"
+            logging.debug("Got 'Please wait'")
+            timeout = 30
+            continue
+        elif match == 6:  # prompt
             logging.debug("Got shell prompt -- logged in")
             return sub
         else:  # match == None
