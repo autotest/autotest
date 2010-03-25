@@ -104,7 +104,7 @@ variants:
         variants:
             - sleeptest:
                 test_name = sleeptest
-                test_timeout = 30
+                test_timeout = 120
                 test_control_file = sleeptest.control
             - dbench:
                 test_name = dbench
