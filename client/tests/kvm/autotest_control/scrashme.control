@@ -1,0 +1,14 @@
+NAME='scrashme'
+AUTHOR='Yi Yang <yang.y.yi@gmail.com>'
+TEST_CATEGORY='Stress'
+TEST_CLASS='Kernel'
+TEST_TYPE='client'
+TIME='MEDIUM'
+DOC='''
+Runs the scrashme suite located at: 
+http://www.codemonkey.org.uk/projects/scrashme/
+
+Runs the scrashme syscalls test suite. This test mode will exercise
+kernel syscalls randomically, or in a sequential fashion.
+'''
+job.run_test('scrashme', args_list="--mode random", tag="random")
