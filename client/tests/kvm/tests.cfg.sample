@@ -13,7 +13,6 @@ include cdkeys.cfg
 # * All image files are expected under /tmp/kvm_autotest_root/images/
 # * All iso files are expected under /tmp/kvm_autotest_root/isos/
 # * All step files are expected under /tmp/kvm_autotest_root/steps/
-qemu_binary = /usr/bin/qemu-kvm
 qemu_img_binary = /usr/bin/qemu-img
 image_name.* ?<= /tmp/kvm_autotest_root/
 cdrom.* ?<= /tmp/kvm_autotest_root/
@@ -27,6 +26,8 @@ variants:
 
     # Runs qemu-kvm, Windows Vista 64 bit guest OS, install, boot, shutdown
     - @qemu_kvm_windows_quick:
+        # We want qemu-kvm for this run
+        qemu_binary = /usr/bin/qemu-kvm
         # Only qcow2 file format
         only qcow2
         # Only rtl8139 for nw card (default on qemu-kvm)
@@ -48,6 +49,8 @@ variants:
 
     # Runs qemu, f12 64 bit guest OS, install, boot, shutdown
     - @qemu_f12_quick:
+        # We want qemu for this run
+        qemu_binary = /usr/bin/qemu
         only qcow2
         # The default nw card for qemu is e1000
         only e1000
@@ -64,6 +67,8 @@ variants:
 
     # Runs qemu-kvm, f12 64 bit guest OS, install, boot, shutdown
     - @qemu_kvm_f12_quick:
+        # We want qemu-kvm for this run
+        qemu_binary = /usr/bin/qemu-kvm
         only qcow2
         only rtl8139
         only ide
