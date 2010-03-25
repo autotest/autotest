@@ -150,7 +150,6 @@ variants:
         type = linux_s3
 
     - timedrift:    install setup unattended_install
-        extra_params += " -rtc-td-hack"
         variants:
             - with_load:
                 type = timedrift
@@ -333,7 +332,7 @@ variants:
 variants:
     # Linux section
     - @Linux:
-        no timedrift autoit
+        no autoit
         shutdown_command = shutdown -h now
         reboot_command = shutdown -r now
         status_test_command = echo $?
@@ -345,6 +344,16 @@ variants:
         file_transfer_port = 22
         mem_chk_cmd = dmidecode -t 17 | awk -F: '/Size/ {print $2}'
         cpu_chk_cmd = grep -c processor /proc/cpuinfo
+        timedrift:
+            extra_params += " -no-kvm-pit-reinjection"
+            time_command = date +'TIME: %a %m/%d/%Y %H:%M:%S.%N'
+            time_filter_re = "(?:TIME: \w\w\w )(.{19})(?:\.\d\d)"
+            time_format = "%m/%d/%Y %H:%M:%S"
+            guest_load_command = "dd if=/dev/urandom of=/dev/null"
+            guest_load_instances = 2
+            guest_load_stop_command = "killall -9 dd"
+            host_load_command = "bzip2 -c --best /dev/urandom > /dev/null"
+            host_load_instances = 8
 
         variants:
             - Fedora:
@@ -720,6 +729,7 @@ variants:
         stress_boot:
             alive_test_cmd = systeminfo
         timedrift:
+            extra_params += " -rtc-td-hack"
             time_command = "echo TIME: %date% %time%"
             time_filter_re = "(?<=TIME: \w\w\w ).{19}(?=\.\d\d)"
             time_format = "%m/%d/%Y %H:%M:%S"
