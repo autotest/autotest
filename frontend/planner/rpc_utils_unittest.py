@@ -7,7 +7,7 @@ from autotest_lib.frontend.planner import planner_test_utils
 from autotest_lib.frontend.afe import model_logic, models as afe_models
 from autotest_lib.frontend.afe import rpc_interface as afe_rpc_interface
 from autotest_lib.frontend.planner import models, rpc_utils
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import utils, host_queue_entry_states
 
 
 class RpcUtilsTest(unittest.TestCase,
@@ -63,6 +63,74 @@ class RpcUtilsTest(unittest.TestCase,
         utils.read_file.expect_call(DUMMY_PATH_2).and_return(DUMMY_FILE_2)
         self.assertEqual(DUMMY_FILE_2, rpc_utils.lazy_load(DUMMY_PATH_2))
         self.god.check_playback()
+
+
+    def test_update_hosts_table(self):
+        label = self.labels[3]
+        default_hosts = set(self._plan.hosts.all())
+
+        rpc_utils.update_hosts_table(self._plan)
+        self.assertEqual(default_hosts, set(self._plan.hosts.all()))
+        self.assertEqual(set(), self._get_added_by_label_hosts())
+
+        self._plan.host_labels.add(label)
+        rpc_utils.update_hosts_table(self._plan)
+        self.assertEqual(default_hosts.union(label.host_set.all()),
+                         set(self._plan.hosts.all()))
+        self.assertEqual(set(label.host_set.all()),
+                         self._get_added_by_label_hosts())
+
+        self._plan.host_labels.remove(label)
+        rpc_utils.update_hosts_table(self._plan)
+        self.assertEqual(default_hosts, set(self._plan.hosts.all()))
+        self.assertEqual(set(), self._get_added_by_label_hosts())
+
+
+    def _get_added_by_label_hosts(self):
+        return set(host.host for host in models.Host.objects.filter(
+                plan=self._plan, added_by_label=True))
+
+
+    def test_compute_next_test_config(self):
+        self._setup_active_plan()
+        test_config = models.TestConfig.objects.create(
+                plan=self._plan, alias='config2', control_file=self._control,
+                execution_order=2, estimated_runtime=1)
+
+        self.assertEqual(1, self._afe_job.hostqueueentry_set.count())
+        self.assertEqual(
+                None, rpc_utils.compute_next_test_config(self._plan,
+                                                         self._planner_host))
+        self.assertFalse(self._planner_host.complete)
+
+        hqe = self._afe_job.hostqueueentry_set.all()[0]
+        hqe.status = host_queue_entry_states.Status.COMPLETED
+        hqe.save()
+
+        self.assertEqual(
+                test_config.id,
+                rpc_utils.compute_next_test_config(self._plan,
+                                                   self._planner_host))
+        self.assertFalse(self._planner_host.complete)
+
+        afe_job = self._create_job(hosts=(1,))
+        planner_job = models.Job.objects.create(plan=self._plan,
+                                                  test_config=test_config,
+                                                  afe_job=afe_job)
+
+        self.assertEqual(
+                None, rpc_utils.compute_next_test_config(self._plan,
+                                                         self._planner_host))
+        self.assertFalse(self._planner_host.complete)
+
+        hqe = afe_job.hostqueueentry_set.all()[0]
+        hqe.status = host_queue_entry_states.Status.COMPLETED
+        hqe.save()
+
+        self.assertEqual(
+                None, rpc_utils.compute_next_test_config(self._plan,
+                                                         self._planner_host))
+        self.assertTrue(self._planner_host.complete)
 
 
 if __name__ == '__main__':
