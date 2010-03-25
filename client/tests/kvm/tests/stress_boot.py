@@ -21,7 +21,8 @@ def run_stress_boot(tests, params, env):
 
     logging.info("Waiting for first guest to be up...")
 
-    session = kvm_utils.wait_for(vm.remote_login, 240, 0, 2)
+    boot_timeout = float(params.get("boot_timeout", 240))
+    session = kvm_utils.wait_for(vm.remote_login, boot_timeout, 0, 2)
     if not session:
         raise error.TestFail("Could not log into first guest")
 
@@ -32,9 +33,8 @@ def run_stress_boot(tests, params, env):
     # boot the VMs
     while num <= int(params.get("max_vms")):
         try:
-            vm_name = "vm" + str(num)
-
             # clone vm according to the first one
+            vm_name = "vm" + str(num)
             vm_params = vm.get_params().copy()
             vm_params["address_index"] = str(address_index)
             curr_vm = vm.clone(vm_name, vm_params)
@@ -43,7 +43,8 @@ def run_stress_boot(tests, params, env):
             kvm_preprocessing.preprocess_vm(tests, vm_params, env, vm_name)
             params['vms'] += " " + vm_name
 
-            curr_vm_session = kvm_utils.wait_for(curr_vm.remote_login, 240, 0, 2)
+            curr_vm_session = kvm_utils.wait_for(curr_vm.remote_login,
+                                                 boot_timeout, 0, 2)
             if not curr_vm_session:
                 raise error.TestFail("Could not log into guest #%d" % num)
 
