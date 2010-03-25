@@ -82,15 +82,8 @@ def run_timedrift(test, params, env):
         # Set the VM's CPU affinity
         prev_affinity = set_cpu_affinity(vm.get_pid(), cpu_mask)
 
-        # Get time before load
-        # (ht stands for host time, gt stands for guest time)
-        (ht0, gt0) = kvm_test_utils.get_time(session,
-                                             time_command,
-                                             time_filter_re,
-                                             time_format)
-
         try:
-            # Run some load on the guest
+            # Open shell sessions with the guest
             logging.info("Starting load on guest...")
             for i in range(guest_load_instances):
                 load_session = vm.remote_login()
@@ -99,6 +92,15 @@ def run_timedrift(test, params, env):
                 load_session.set_output_prefix("(guest load %d) " % i)
                 load_session.set_output_func(logging.debug)
                 guest_load_sessions.append(load_session)
+
+            # Get time before load
+            # (ht stands for host time, gt stands for guest time)
+            (ht0, gt0) = kvm_test_utils.get_time(session,
+                                                 time_command,
+                                                 time_filter_re,
+                                                 time_format)
+
+            # Run some load on the guest
             for load_session in guest_load_sessions:
                 load_session.sendline(guest_load_command)
 
