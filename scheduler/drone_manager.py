@@ -423,8 +423,10 @@ class DroneManager(object):
         if not usable_drone_wrappers:
             # all drones disabled or inaccessible
             return 0
-        return max(wrapper.drone.max_processes - wrapper.drone.active_processes
-                   for wrapper in usable_drone_wrappers)
+        runnable_processes = [
+                wrapper.drone.max_processes - wrapper.drone.active_processes
+                for wrapper in usable_drone_wrappers]
+        return max([0] + runnable_processes)
 
 
     def _least_loaded_drone(self, drones):
@@ -439,12 +441,14 @@ class DroneManager(object):
         # cycle through drones is order of increasing used capacity until
         # we find one that can handle these processes
         checked_drones = []
+        usable_drones = []
         drone_to_use = None
         while self._drone_queue:
             drone = heapq.heappop(self._drone_queue).drone
             checked_drones.append(drone)
             if not drone.usable_by(username):
                 continue
+            usable_drones.append(drone)
             if drone.active_processes + num_processes <= drone.max_processes:
                 drone_to_use = drone
                 break
@@ -453,10 +457,10 @@ class DroneManager(object):
             drone_summary = ','.join('%s %s/%s' % (drone.hostname,
                                                    drone.active_processes,
                                                    drone.max_processes)
-                                     for drone in checked_drones)
-            logging.error('No drone has capacity to handle %d processes (%s)',
-                          num_processes, drone_summary)
-            drone_to_use = self._least_loaded_drone(checked_drones)
+                                     for drone in usable_drones)
+            logging.error('No drone has capacity to handle %d processes (%s) '
+                          'for user %s', num_processes, drone_summary, username)
+            drone_to_use = self._least_loaded_drone(usable_drones)
 
         # refill _drone_queue
         for drone in checked_drones:
