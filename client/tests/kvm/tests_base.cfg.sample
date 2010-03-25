@@ -181,6 +181,7 @@ variants:
         max_vms = 5    
         alive_test_cmd = uname -a
         clone_address_index_base = 10
+        boot_timeout = 240
         kill_vm = yes
         kill_vm_vm1 = no
         kill_vm_gracefully = no
