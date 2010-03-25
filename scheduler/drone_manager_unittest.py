@@ -121,6 +121,12 @@ class DroneManager(unittest.TestCase):
         self.assertEquals(drone.name, 1)
 
 
+    def test_choose_drone_for_execution_all_full_same_percentage_capacity(self):
+        drone = self._test_choose_drone_for_execution_helper([(5, 3), (10, 6)],
+                                                             1)
+        self.assertEquals(drone.name, 1)
+
+
     def test_user_restrictions(self):
         # this drone is restricted to a different user
         self.manager._enqueue_drone(MockDrone(1, max_processes=10,
@@ -130,6 +136,22 @@ class DroneManager(unittest.TestCase):
                                               allowed_users=[self._USERNAME]))
 
         self.assertEquals(2,
+                          self.manager.max_runnable_processes(self._USERNAME))
+        drone = self.manager._choose_drone_for_execution(
+                1, username=self._USERNAME)
+        self.assertEquals(drone.name, 2)
+
+
+    def test_user_restrictions_with_full_drone(self):
+        # this drone is restricted to a different user
+        self.manager._enqueue_drone(MockDrone(1, max_processes=10,
+                                              allowed_users=['fakeuser']))
+        # this drone is allowed but is full
+        self.manager._enqueue_drone(MockDrone(2, active_processes=3,
+                                              max_processes=2,
+                                              allowed_users=[self._USERNAME]))
+
+        self.assertEquals(0,
                           self.manager.max_runnable_processes(self._USERNAME))
         drone = self.manager._choose_drone_for_execution(
                 1, username=self._USERNAME)

@@ -27,9 +27,20 @@ class _AbstractDrone(object):
 
 
     def used_capacity(self):
+        """Gets the capacity used by this drone
+
+        Returns a tuple of (percentage_full, -max_capacity). This is to aid
+        direct comparisons, so that a 0/10 drone is considered less heavily
+        loaded than a 0/2 drone.
+
+        This value should never be used directly. It should only be used in
+        direct comparisons using the basic comparison operators, or using the
+        cmp() function.
+        """
         if self.max_processes == 0:
-            return 1.0
-        return float(self.active_processes) / self.max_processes
+            return (1.0, 0)
+        return (float(self.active_processes) / self.max_processes,
+                -self.max_processes)
 
 
     def usable_by(self, user):
