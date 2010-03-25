@@ -98,8 +98,9 @@ def run_timedrift(test, params, env):
                     raise error.TestFail("Could not log into guest")
                 load_session.set_output_prefix("(guest load %d) " % i)
                 load_session.set_output_func(logging.debug)
-                load_session.sendline(guest_load_command)
                 guest_load_sessions.append(load_session)
+            for load_session in guest_load_sessions:
+                load_session.sendline(guest_load_command)
 
             # Run some load on the host
             logging.info("Starting load on host...")
