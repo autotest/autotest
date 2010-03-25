@@ -689,8 +689,8 @@ variants:
     # Windows section
     - @Windows:
         no autotest linux_s3 vlan_tag
-        shutdown_command = shutdown /s /t 0
-        reboot_command = shutdown /r /t 0
+        shutdown_command = shutdown /s /f /t 0
+        reboot_command = shutdown /r /f /t 0
         status_test_command = echo %errorlevel%
         shell_prompt = "^\w:\\.*>\s*$"
         username = Administrator
@@ -810,8 +810,6 @@ variants:
             - Win2003:
                 image_name = win2003
                 image_size = 20G
-                shutdown_command = shutdown /s /f /t 0
-                reboot_command = shutdown /r /f /t 0
 
                 variants:
                     - 32:
@@ -910,8 +908,6 @@ variants:
             - Win2008:
                 image_name = win2008
                 image_size = 20G
-                shutdown_command = shutdown /s /f /t 0
-                reboot_command = shutdown /r /f /t 0
 
                 variants:
                     - 32sp1:
@@ -987,8 +983,6 @@ variants:
             - Win7:
                 image_name = win7
                 image_size = 20G
-                shutdown_command = shutdown /s /f /t 0
-                reboot_command = shutdown /r /f /t 0
 
                 variants:
                     - 32:
