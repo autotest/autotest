@@ -2,7 +2,7 @@
 #
 # Eric Li <ericli@google.com>
 
-import logging, os, pickle, sys
+import logging, os, pickle, re, sys
 import common
 
 from autotest_lib.client.bin import client_logging_config
@@ -83,9 +83,14 @@ def load_all_client_tests(options):
                          global_namespace)
                     client_test = global_namespace['auto_test']
                     all_tests.append(client_test)
-                except ImportError:
-                    # this test has only control file but no python.
-                    pass
+                except ImportError, e:
+                    # skips error if test is control file without python test 
+                    if re.search(test_name, str(e)):
+                        pass
+                    # give the user a warning if there is an import error.
+                    else:
+                        logging.warning("%s import error: %s.  Skipping %s" \
+                            % (test_name, e, test_name))
             except Exception, e:
                 # Log other errors (e.g., syntax errors) and collect the test.
                 logging.error("%s: %s", test_name, e)
