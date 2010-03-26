@@ -43,8 +43,7 @@ unsigned int stop_on_error = 0;
 
 void die(char *error)
 {
-	fprintf(stderr, error);
-	fprintf(stderr, "\n");
+	fprintf(stderr, "%s\n", error);
 	exit(1);
 }
 
