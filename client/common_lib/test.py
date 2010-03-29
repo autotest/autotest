@@ -627,7 +627,7 @@ def runtest(job, url, tag, args, dargs,
         # Tests in site_testdir override tests defined in testdir
         testname = path = url
         testgroup = ''
-        path = re.sub('\.', '/', testname)
+        path = re.sub(':', '/', testname)
         modulename = os.path.basename(path)
         classname = '%s.%s' % (modulename, modulename)
 
