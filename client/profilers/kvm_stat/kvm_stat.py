@@ -51,7 +51,10 @@ class kvm_stat(profiler.profiler):
 
         @param test: Autotest test on which this profiler will operate on.
         """
-        os.kill(self.pid, 15)
+        try:
+            os.kill(self.pid, 15)
+        except OSError:
+            pass
 
 
     def report(self, test):
