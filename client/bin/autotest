@@ -26,6 +26,9 @@ os.environ['PYTHONPATH'] = autodirbin
 
 parser = OptionParser()
 
+parser.add_option("-a", "--args", dest='args',
+                        help="additional args to pass to control file")
+
 parser.add_option("-c", "--continue", dest="cont", action="store_true",
                         default=False, help="continue previously started job")
 

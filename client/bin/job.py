@@ -190,6 +190,10 @@ class base_client_job(base_job.base_job):
         self.hosts = set([local_host.LocalHost(hostname=options.hostname,
                                                bootloader=self.bootloader)])
 
+        self.args = []
+        if options.args:
+            self.args = options.args.split()
+
         if options.user:
             self.user = options.user
         else:
@@ -961,7 +965,8 @@ class base_client_job(base_job.base_job):
         # Some control files will have code outside of functions,
         # which means we need to have our state engine initialized
         # before reading in the file.
-        global_control_vars = {'job': self}
+        global_control_vars = {'job': self,
+                               'args': self.args}
         exec(JOB_PREAMBLE, global_control_vars, global_control_vars)
         try:
             execfile(self.control, global_control_vars, global_control_vars)
