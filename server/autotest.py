@@ -357,6 +357,9 @@ class BaseAutotest(installable_object.InstallableObject):
         # build up the initialization prologue for the control file
         prologue_lines = []
 
+        # Add the additional user arguments
+        prologue_lines.append("args = %r\n" % self.job._args)
+
         # If the packaging system is being used, add the repository list.
         repos = None
         try:
