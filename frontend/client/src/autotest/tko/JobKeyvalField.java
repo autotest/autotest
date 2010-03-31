@@ -1,26 +1,26 @@
 package autotest.tko;
 
 
-public class TestAttributeField extends AttributeField {
-    public static final String TYPE_NAME = "Test attribute";
+public class JobKeyvalField extends AttributeField {
+    public static final String TYPE_NAME = "Job Keyval";
 
     @Override
     protected ParameterizedField freshInstance() {
-        return new TestAttributeField();
+        return new JobKeyvalField();
     }
 
     @Override
     public String getTypeName() {
         return TYPE_NAME;
     }
-
+    
     @Override
     protected String getFieldParameterName() {
-        return "test_attribute_fields";
+        return "job_keyval_fields";
     }
 
     @Override
     public String getBaseSqlName() {
-        return "test_attribute_";
+        return "job_keyval_";
     }
 }

@@ -16,11 +16,11 @@ public class IterationResultField extends AttributeField {
     
     @Override
     protected String getFieldParameterName() {
-        return "iteration_fields";
+        return "iteration_result_fields";
     }
 
     @Override
     public String getBaseSqlName() {
-        return "iteration_";
+        return "iteration_result_";
     }
 }
