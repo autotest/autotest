@@ -171,8 +171,8 @@ class Test(dbmodels.Model, model_logic.ModelExtensions,
            model_logic.ModelWithAttributes):
     test_idx = dbmodels.AutoField(primary_key=True)
     job = dbmodels.ForeignKey(Job, db_column='job_idx')
-    test = dbmodels.CharField(max_length=90)
-    subdir = dbmodels.CharField(blank=True, max_length=180)
+    test = dbmodels.CharField(max_length=300)
+    subdir = dbmodels.CharField(blank=True, max_length=300)
     kernel = dbmodels.ForeignKey(Kernel, db_column='kernel_idx')
     status = dbmodels.ForeignKey(Status, db_column='status')
     reason = dbmodels.CharField(blank=True, max_length=3072)
@@ -341,8 +341,8 @@ class TestViewManager(TempManager):
                 TestLabel.objects.filter(name__in=label_names)
                 .values_list('name', 'id'))
         if len(label_ids) < len(set(label_names)):
-                raise ValueError('Not all labels found: %s' %
-                                 ', '.join(label_names))
+            raise ValueError('Not all labels found: %s' %
+                             ', '.join(label_names))
         return dict(name_and_id for name_and_id in label_ids)
 
 
