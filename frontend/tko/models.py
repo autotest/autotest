@@ -140,7 +140,7 @@ class Status(dbmodels.Model):
         db_table = 'tko_status'
 
 
-class Job(dbmodels.Model):
+class Job(dbmodels.Model, model_logic.ModelExtensions):
     job_idx = dbmodels.AutoField(primary_key=True)
     tag = dbmodels.CharField(unique=True, max_length=100)
     label = dbmodels.CharField(max_length=300)
@@ -150,6 +150,8 @@ class Job(dbmodels.Model):
     started_time = dbmodels.DateTimeField(null=True, blank=True)
     finished_time = dbmodels.DateTimeField(null=True, blank=True)
     afe_job_id = dbmodels.IntegerField(null=True, default=None)
+
+    objects = model_logic.ExtendedManager()
 
     class Meta:
         db_table = 'tko_jobs'
@@ -371,8 +373,8 @@ class TestViewManager(TempManager):
         return self._add_custom_select(query_set, alias, select_sql)
 
 
-    def _join_label_column(self, query_set, label_name, label_id):
-        alias = 'label_' + label_name
+    def _join_test_label_column(self, query_set, label_name, label_id):
+        alias = 'test_label_' + label_name
         label_query = TestLabel.objects.filter(name=label_name)
         query_set = Test.objects.join_custom_field(query_set, label_query,
                                                    alias)
@@ -381,23 +383,23 @@ class TestViewManager(TempManager):
         return query_set
 
 
-    def _join_label_columns(self, query_set, label_names):
+    def _join_test_label_columns(self, query_set, label_names):
         label_id_map = self._get_label_ids_from_names(label_names)
         for label_name in label_names:
-            query_set = self._join_label_column(query_set, label_name,
-                                                label_id_map[label_name])
+            query_set = self._join_test_label_column(query_set, label_name,
+                                                     label_id_map[label_name])
         return query_set
 
 
-    def _join_attribute(self, query_set, attribute, alias=None,
-                        extra_join_condition=None):
+    def _join_test_attribute(self, query_set, attribute, alias=None,
+                             extra_join_condition=None):
         """
         Join the given TestView QuerySet to TestAttribute.  The resulting query
         has an additional column for the given attribute named
         "attribute_<attribute name>".
         """
         if not alias:
-            alias = 'attribute_' + attribute
+            alias = 'test_attribute_' + attribute
         attribute_query = TestAttribute.objects.filter(attribute=attribute)
         if extra_join_condition:
             attribute_query = attribute_query.extra(
@@ -414,15 +416,15 @@ class TestViewManager(TempManager):
             alias = 'machine_label_' + label_name
             condition = "FIND_IN_SET('%s', %s)" % (
                     label_name, _quote_name(alias) + '.value')
-            query_set = self._join_attribute(query_set, 'host-labels',
-                                             alias=alias,
-                                             extra_join_condition=condition)
+            query_set = self._join_test_attribute(
+                    query_set, 'host-labels',
+                    alias=alias, extra_join_condition=condition)
             query_set = self._add_select_ifnull(query_set, alias, label_name)
         return query_set
 
 
     def _join_one_iteration_key(self, query_set, result_key, first_alias=None):
-        alias = 'iteration_' + result_key
+        alias = 'iteration_result_' + result_key
         iteration_query = IterationResult.objects.filter(attribute=result_key)
         if first_alias:
             # after the first join, we need to match up iteration indices,
@@ -445,7 +447,7 @@ class TestViewManager(TempManager):
         return query_set, alias
 
 
-    def _join_iterations(self, test_view_query_set, result_keys):
+    def _join_iteration_results(self, test_view_query_set, result_keys):
         """Join the given TestView QuerySet to IterationResult for one result.
 
         The resulting query looks like a TestView query but has one row per
@@ -473,6 +475,27 @@ class TestViewManager(TempManager):
         return query_set
 
 
+    def _join_job_keyvals(self, query_set, job_keyvals):
+        for job_keyval in job_keyvals:
+            alias = 'job_keyval_' + job_keyval
+            keyval_query = JobKeyval.objects.filter(key=job_keyval)
+            query_set = Job.objects.join_custom_field(query_set, keyval_query,
+                                                       alias)
+            query_set = self._add_select_value(query_set, alias)
+        return query_set
+
+
+    def _join_iteration_attributes(self, query_set, iteration_attributes):
+        for attribute in iteration_attributes:
+            alias = 'iteration_attribute_' + attribute
+            attribute_query = IterationAttribute.objects.filter(
+                    attribute=attribute)
+            query_set = Test.objects.join_custom_field(query_set,
+                                                       attribute_query, alias)
+            query_set = self._add_select_value(query_set, alias)
+        return query_set
+
+
     def get_query_set_with_joins(self, filter_data):
         """
         Add joins for querying over test-related items.
@@ -482,7 +505,7 @@ class TestViewManager(TempManager):
                 be available as a column attribute_<name>.value.
         * test_label_fields: list of label names.  Each label will be available
                 as a column label_<name>.id, non-null iff the label is present.
-        * iteration_fields: list of iteration result names.  Each
+        * iteration_result_fields: list of iteration result names.  Each
                 result will be available as a column iteration_<name>.value.
                 Note that this changes the semantics to return iterations
                 instead of tests -- if a test has multiple iterations, a row
@@ -491,6 +514,13 @@ class TestViewManager(TempManager):
         * machine_label_fields: list of machine label names.  Each will be
                 available as a column machine_label_<name>.id, non-null iff the
                 label is present on the machine used in the test.
+        * job_keyval_fields: list of job keyval names. Each value will be
+                available as a column job_keyval_<name>.id, non-null iff the
+                keyval is present in the AFE job.
+        * iteration_attribute_fields: list of iteration attribute names. Each
+                attribute will be available as a column
+                iteration_attribute<name>.id, non-null iff the attribute is
+                present.
 
         These parameters are deprecated:
         * include_labels
@@ -507,16 +537,23 @@ class TestViewManager(TempManager):
 
         test_attributes = filter_data.pop('test_attribute_fields', [])
         for attribute in test_attributes:
-            query_set = self._join_attribute(query_set, attribute)
+            query_set = self._join_test_attribute(query_set, attribute)
 
         test_labels = filter_data.pop('test_label_fields', [])
-        query_set = self._join_label_columns(query_set, test_labels)
+        query_set = self._join_test_label_columns(query_set, test_labels)
 
         machine_labels = filter_data.pop('machine_label_fields', [])
         query_set = self._join_machine_label_columns(query_set, machine_labels)
 
-        iteration_keys = filter_data.pop('iteration_fields', [])
-        query_set = self._join_iterations(query_set, iteration_keys)
+        iteration_keys = filter_data.pop('iteration_result_fields', [])
+        query_set = self._join_iteration_results(query_set, iteration_keys)
+
+        job_keyvals = filter_data.pop('job_keyval_fields', [])
+        query_set = self._join_job_keyvals(query_set, job_keyvals)
+
+        iteration_attributes = filter_data.pop('iteration_attribute_fields', [])
+        query_set = self._join_iteration_attributes(query_set,
+                                                    iteration_attributes)
 
         # everything that follows is deprecated behavior
 

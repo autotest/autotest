@@ -158,7 +158,7 @@ class CommonPanel extends Composite implements ClickHandler, PositionCallback {
         if (!savedShowInvalid) {
             parameterizedFieldPresenter.addFieldIfNotPresent(TestLabelField.TYPE_NAME,
                                                              "invalidated");
-            condition = "(" + condition + ") AND label_invalidated.id IS NULL";
+            condition = "(" + condition + ") AND test_label_invalidated.id IS NULL";
         }
 
         JSONObject conditionArgs = new JSONObject();

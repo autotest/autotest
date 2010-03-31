@@ -10,7 +10,7 @@ public class TestLabelField extends LabelField {
 
     @Override
     protected String getBaseSqlName() {
-        return "label_";
+        return "test_label_";
     }
 
     @Override
