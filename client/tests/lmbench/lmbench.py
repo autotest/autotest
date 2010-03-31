@@ -5,24 +5,30 @@ from autotest_lib.client.common_lib import error
 
 
 class lmbench(test.test):
-    version = 3
+    version = 4
 
     def initialize(self):
         self.job.require_gcc()
 
 
     def setup(self, tarball = 'lmbench3.tar.bz2', fsdir=None, file=None):
+        """
+        Uncompresses the original lmbench tarball, applies a patch to fix
+        some build issues, configures lmbench and then modifies the config
+        files to use appropriate directory and file locations.
+
+        @param tarball: Lmbench tarball.
+        @param fsdir: Directory where file system tests will run
+                (defaults to standard test temp dir).
+        @param file: Path to the file lmbench will use for status output
+                (defaults to a random named file inside standard test temp dir).
+        @see: http://www.bitmover.com/lm/lmbench/lmbench3.tar.gz
+                (original tarball, shipped as is in autotest).
+        """
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
-        # http://www.bitmover.com/lm/lmbench/lmbench3.tar.gz
-        # + lmbench3.diff
-        #   - removes Makefile references to bitkeeper
-        #   - default mail to no, fix job placement defaults (masouds)
-        #   - adds "config" Makefile targets to perform configuration only
-        #   - changes scripts/getlist to consider result files that do
-        #     not start with "[lmbench 3.x..." (still requires such a line
-        #     somewhere in the first 1000 bytes of the file)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
+        utils.system('patch -p1 < ../lmbench3.diff')
 
         # build lmbench
         utils.system('make')
