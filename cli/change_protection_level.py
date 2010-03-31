@@ -17,7 +17,7 @@ protection_level = leftover_args[0]
 
 user = pwd.getpwuid(os.getuid())[0]
 autotest_host = rpc.get_autotest_server(options.web)
-afe_proxy = rpc.afe_comm(autotest_host, '/afe/server/noauth/rpc/')
+afe_proxy = rpc.afe_comm(autotest_host)
 
 hosts = afe_proxy.run('get_hosts', hostname__in=leftover_args[1:])
 for host in hosts:

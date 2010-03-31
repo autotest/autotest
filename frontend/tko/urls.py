@@ -7,9 +7,9 @@ urlpatterns, debug_patterns = (
 
 urlpatterns += defaults.patterns(
         '',
-        (r'^(?:|noauth/)jsonp_rpc/', 'frontend.tko.views.handle_jsonp_rpc'),
-        (r'^(?:|noauth/)csv/', 'frontend.tko.views.handle_csv'),
-        (r'^(?:|noauth/)plot/', 'frontend.tko.views.handle_plot'))
+        (r'^jsonp_rpc/', 'frontend.tko.views.handle_jsonp_rpc'),
+        (r'^csv/', 'frontend.tko.views.handle_csv'),
+        (r'^plot/', 'frontend.tko.views.handle_plot'))
 
 if settings.DEBUG:
     urlpatterns += debug_patterns
