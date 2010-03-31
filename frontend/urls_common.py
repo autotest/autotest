@@ -14,7 +14,7 @@ def generate_patterns(django_name, gwt_name):
 
     pattern_list = defaults.patterns(
             django_name,
-            (r'^(?:|noauth/)rpc/', 'views.handle_rpc'),
+            (r'^rpc/', 'views.handle_rpc'),
             (r'^rpc_doc', 'views.rpc_documentation'),
         )
 

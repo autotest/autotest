@@ -5,7 +5,7 @@
 # (to use RPC, we would say
 #   import rpc_client_lib
 #   rpc_interface = rpc_client_lib.get_proxy(
-#                             'http://hostname:8000/afe/server/noauth/rpc/')
+#                             'http://hostname:8000/afe/server/rpc/')
 # )
 >>> if 'rpc_interface' not in globals():
 ...   from autotest_lib.frontend.afe import rpc_interface, models
