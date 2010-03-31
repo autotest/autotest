@@ -43,6 +43,8 @@ public abstract class ParameterizedField extends HeaderField {
         new IterationResultField(),
         new TestAttributeField(),
         new TestLabelField(),
+        new JobKeyvalField(),
+        new IterationAttributeField(),
     };
     
     private static final List<String> prototypeNames = new ArrayList<String>();

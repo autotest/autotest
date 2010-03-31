@@ -421,39 +421,39 @@ class RpcInterfaceTest(unittest.TestCase):
                 test_attribute_fields=['myattr', 'myattr2'])
         self.assertEquals(len(tests), 3)
 
-        self.assertEquals(tests[0]['attribute_myattr'], 'myval')
-        self.assertEquals(tests[0]['attribute_myattr2'], 'myval2')
+        self.assertEquals(tests[0]['test_attribute_myattr'], 'myval')
+        self.assertEquals(tests[0]['test_attribute_myattr2'], 'myval2')
 
         for index in (1, 2):
-            self.assertEquals(tests[index]['attribute_myattr'], None)
-            self.assertEquals(tests[index]['attribute_myattr2'], None)
+            self.assertEquals(tests[index]['test_attribute_myattr'], None)
+            self.assertEquals(tests[index]['test_attribute_myattr2'], None)
 
 
     def test_filtering_on_test_attribute_fields(self):
         tests = rpc_interface.get_test_views(
-                extra_where='attribute_myattr.value = "myval"',
+                extra_where='test_attribute_myattr.value = "myval"',
                 test_attribute_fields=['myattr'])
         self.assertEquals(len(tests), 1)
 
 
     def test_grouping_with_test_attribute_fields(self):
         num_groups = rpc_interface.get_num_groups(
-                ['attribute_myattr'], test_attribute_fields=['myattr'])
+                ['test_attribute_myattr'], test_attribute_fields=['myattr'])
         self.assertEquals(num_groups, 2)
 
         counts = rpc_interface.get_group_counts(
-                ['attribute_myattr'], test_attribute_fields=['myattr'])
+                ['test_attribute_myattr'], test_attribute_fields=['myattr'])
         groups = counts['groups']
         self.assertEquals(len(groups), num_groups)
-        self.assertEquals(groups[0]['attribute_myattr'], None)
+        self.assertEquals(groups[0]['test_attribute_myattr'], None)
         self.assertEquals(groups[0]['group_count'], 2)
-        self.assertEquals(groups[1]['attribute_myattr'], 'myval')
+        self.assertEquals(groups[1]['test_attribute_myattr'], 'myval')
         self.assertEquals(groups[1]['group_count'], 1)
 
 
     def test_extra_info_test_attributes(self):
         counts = rpc_interface.get_latest_tests(
-                group_by=['test_idx'], extra_info=['attribute_myattr'],
+                group_by=['test_idx'], extra_info=['test_attribute_myattr'],
                 test_attribute_fields=['myattr'])
         group1 = counts['groups'][0]
         self.assertEquals(group1['extra_info'], ['myval'])
@@ -464,76 +464,78 @@ class RpcInterfaceTest(unittest.TestCase):
                 test_label_fields=['testlabel1', 'testlabel2'])
         self.assertEquals(len(tests), 3)
 
-        self.assertEquals(tests[0]['label_testlabel1'], 'testlabel1')
-        self.assertEquals(tests[0]['label_testlabel2'], 'testlabel2')
+        self.assertEquals(tests[0]['test_label_testlabel1'], 'testlabel1')
+        self.assertEquals(tests[0]['test_label_testlabel2'], 'testlabel2')
 
         for index in (1, 2):
-            self.assertEquals(tests[index]['label_testlabel1'], None)
-            self.assertEquals(tests[index]['label_testlabel2'], None)
+            self.assertEquals(tests[index]['test_label_testlabel1'], None)
+            self.assertEquals(tests[index]['test_label_testlabel2'], None)
 
 
     def test_filtering_on_test_label_fields(self):
         tests = rpc_interface.get_test_views(
-                extra_where='label_testlabel1 = "testlabel1"',
+                extra_where='test_label_testlabel1 = "testlabel1"',
                 test_label_fields=['testlabel1'])
         self.assertEquals(len(tests), 1)
 
 
     def test_grouping_on_test_label_fields(self):
         num_groups = rpc_interface.get_num_groups(
-                ['label_testlabel1'], test_label_fields=['testlabel1'])
+                ['test_label_testlabel1'], test_label_fields=['testlabel1'])
         self.assertEquals(num_groups, 2)
 
         counts = rpc_interface.get_group_counts(
-                ['label_testlabel1'], test_label_fields=['testlabel1'])
+                ['test_label_testlabel1'], test_label_fields=['testlabel1'])
         groups = counts['groups']
         self.assertEquals(len(groups), 2)
-        self.assertEquals(groups[0]['label_testlabel1'], None)
+        self.assertEquals(groups[0]['test_label_testlabel1'], None)
         self.assertEquals(groups[0]['group_count'], 2)
-        self.assertEquals(groups[1]['label_testlabel1'], 'testlabel1')
+        self.assertEquals(groups[1]['test_label_testlabel1'], 'testlabel1')
         self.assertEquals(groups[1]['group_count'], 1)
 
 
-    def test_get_iteration_fields(self):
+    def test_get_iteration_result_fields(self):
         num_iterations = rpc_interface.get_num_test_views(
-                iteration_fields=['iresult', 'iresult2'])
+                iteration_result_fields=['iresult', 'iresult2'])
         self.assertEquals(num_iterations, 2)
 
         iterations = rpc_interface.get_test_views(
-                iteration_fields=['iresult', 'iresult2'])
+                iteration_result_fields=['iresult', 'iresult2'])
         self.assertEquals(len(iterations), 2)
 
         for index in (0, 1):
             self.assertEquals(iterations[index]['test_idx'], 1)
 
         self.assertEquals(iterations[0]['iteration_index'], 1)
-        self.assertEquals(iterations[0]['iteration_iresult'], 1)
-        self.assertEquals(iterations[0]['iteration_iresult2'], 2)
+        self.assertEquals(iterations[0]['iteration_result_iresult'], 1)
+        self.assertEquals(iterations[0]['iteration_result_iresult2'], 2)
 
         self.assertEquals(iterations[1]['iteration_index'], 2)
-        self.assertEquals(iterations[1]['iteration_iresult'], 3)
-        self.assertEquals(iterations[1]['iteration_iresult2'], 4)
+        self.assertEquals(iterations[1]['iteration_result_iresult'], 3)
+        self.assertEquals(iterations[1]['iteration_result_iresult2'], 4)
 
 
-    def test_filtering_on_iteration_fields(self):
+    def test_filtering_on_iteration_result_fields(self):
         iterations = rpc_interface.get_test_views(
-                extra_where='iteration_iresult.value = 1',
-                iteration_fields=['iresult'])
+                extra_where='iteration_result_iresult.value = 1',
+                iteration_result_fields=['iresult'])
         self.assertEquals(len(iterations), 1)
 
 
-    def test_grouping_with_iteration_fields(self):
-        num_groups = rpc_interface.get_num_groups(['iteration_iresult'],
-                                                  iteration_fields=['iresult'])
+    def test_grouping_with_iteration_result_fields(self):
+        num_groups = rpc_interface.get_num_groups(
+                ['iteration_result_iresult'],
+                iteration_result_fields=['iresult'])
         self.assertEquals(num_groups, 2)
 
-        counts = rpc_interface.get_group_counts(['iteration_iresult'],
-                                                iteration_fields=['iresult'])
+        counts = rpc_interface.get_group_counts(
+                ['iteration_result_iresult'],
+                iteration_result_fields=['iresult'])
         groups = counts['groups']
         self.assertEquals(len(groups), 2)
-        self.assertEquals(groups[0]['iteration_iresult'], 1)
+        self.assertEquals(groups[0]['iteration_result_iresult'], 1)
         self.assertEquals(groups[0]['group_count'], 1)
-        self.assertEquals(groups[1]['iteration_iresult'], 3)
+        self.assertEquals(groups[1]['iteration_result_iresult'], 3)
         self.assertEquals(groups[1]['group_count'], 1)
 
 
@@ -584,12 +586,13 @@ class RpcInterfaceTest(unittest.TestCase):
         # ensure fields with special characters are properly quoted throughout
         rpc_interface.add_test_label('hyphen-label')
         rpc_interface.get_group_counts(
-                ['attribute_hyphen-attr', 'label_hyphen-label',
-                 'machine_label_hyphen-label', 'iteration_hyphen-result'],
+                ['test_attribute_hyphen-attr', 'test_label_hyphen-label',
+                 'machine_label_hyphen-label',
+                 'iteration_result_hyphen-result'],
                 test_attribute_fields=['hyphen-attr'],
                 test_label_fields=['hyphen-label'],
                 machine_label_fields=['hyphen-label'],
-                iteration_fields=['hyphen-result'])
+                iteration_result_fields=['hyphen-result'])
 
 
 if __name__ == '__main__':

@@ -21,17 +21,17 @@ parser.add_option('-w', '--where', action='store', dest='condition',
                   "condition syntax for new tko (see "
                   "http://autotest.kernel.org/wiki/TkoHowTo for more info)"))
 parser.add_option(
-        '--attribute-field', action='append', default=[],
+        '--test-attribute-field', action='append', default=[],
         help='Specifies a test attribute to include as a field.  The attribute '
              'value will be available as a field named attribute_<attribute '
              'name>.  This option may be specified multiple times.  Filtering '
              'must be done slightly differently -- see '
              'http://autotest.kernel.org/wiki/TkoHowTo#attribute_filtering '
              'for more details.')
-parser.add_option('--label-field', action='append', default=[],
+parser.add_option('--test-label-field', action='append', default=[],
                   help='Specifies a test label to include as a field.  See '
                        '--attribute-field for more details')
-parser.add_option('--iteration-field', action='append', default=[],
+parser.add_option('--iteration-result-field', action='append', default=[],
                   help='Specifies an iteration result to include as a field.  '
                        'See --attribute-field for more details.  Note that '
                        'this causes the rows returned to represent iterations '
@@ -39,6 +39,14 @@ parser.add_option('--iteration-field', action='append', default=[],
 parser.add_option('--machine-label-field', action='append', default=[],
                   help='Specifies a machine label to include as a field.  See '
                        '--attribute-field for more details')
+parser.add_option('--job-keyval-field', action='append', default=[],
+                  help='Specifies a job keyval to include as a field. See '
+                       '--attribute-field for more details')
+parser.add_option('--iteration-attribute-field', action='append', default=[],
+                  help='Specifies an iteration attribute to include as a '
+                       'field. See --attribute-field for more details.  Note '
+                       'that this causes the rows returned to represent '
+                       'iterations rather than plain test results.')
 parser.add_option('-s', '--separator', action='store', default = ' | ',
             dest='separator', help = 'output separator')
 parser.add_option('-n', '--nocount', action='store_true', default=False,
@@ -80,11 +88,14 @@ if options.host_label:
 # Grab the data
 tko = rpc.tko_comm()
 count = 0
-test_views = tko.run('get_test_views', extra_where=where,
-                     test_attribute_fields=options.attribute_field,
-                     test_label_fields=options.label_field,
-                     iteration_fields=options.iteration_field,
-                     machine_label_fields=options.machine_label_field)
+test_views = tko.run(
+        'get_test_views', extra_where=where,
+        test_attribute_fields=options.test_attribute_field,
+        test_label_fields=options.test_label_field,
+        iteration_result_fields=options.iteration_result_field,
+        machine_label_fields=options.machine_label_field,
+        job_keyval_fields=options.job_keyval_field,
+        iteration_attribute_fields=options.iteration_attribute_field)
 for test_view in test_views:
     values = [str(test_view[column]) for column in columns]
     if options.logpath:
