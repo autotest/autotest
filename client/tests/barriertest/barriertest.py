@@ -1,38 +1,46 @@
-import time
+# This is used directly by server/tests/barriertest/control.srv
+
+import logging, time
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import barrier
 
+
 class barriertest(test.test):
-    version = 1
+    version = 2
 
 
-    def execute(self, timeout_sync, timeout_start, timeout_stop,
-                    hostid, masterid, all_ids):
-        profilers = self.job.profilers
+    def run_once(self, our_addr, hostnames, master):
+        # A reusable local server as we're using multiple barriers in one test.
+        server = barrier.listen_server()
 
-        barrier_server = barrier.listen_server(port=11920)
-        b0 = self.job.barrier(hostid, "sync_profilers", timeout_start,
-                              listen_server=barrier_server)
-        b0.rendezvous_servers(masterid, hostid)
+        # Basic barrier rendezvous test.
+        self.job.barrier(our_addr, 'First', timeout=60, listen_server=server
+                         ).rendezvous(*hostnames)
+        logging.info('1. rendezvous "First" complete.')
+        time.sleep(2)
 
-        b1 = self.job.barrier(hostid, "start_profilers", timeout_start,
-                              listen_server=barrier_server)
-        b1.rendezvous_servers(masterid, hostid)
+        # A rendezvous_servers using a different master than the default.
+        self.job.barrier(our_addr, 'Second', timeout=60, listen_server=server
+                         ).rendezvous_servers(hostnames[-1], *hostnames[:-1])
+        logging.info('2. rendezvous_servers "Second" complete.')
+        time.sleep(2)
 
-        b2 = self.job.barrier(hostid, "local_sync_profilers", timeout_sync)
-        b2.rendezvous(*all_ids)
+        # A regular rendezvous, this time testing the abort functionality.
+        try:
+            self.job.barrier(our_addr, 'Third', timeout=60,
+                             listen_server=server
+                             ).rendezvous(abort=True, *hostnames)
+        except barrier.BarrierAbortError:
+            pass
+        else:
+            raise error.TestFail('Explicit barrier rendezvous abort failed.')
+        logging.info('3. rendezvous(abort=True) "Third" complete.')
+        time.sleep(2)
 
-        profilers.start(self)
+        # Now attempt a rendezvous_servers that also includes the server.
+        self.job.barrier(our_addr, 'Final', timeout=60, listen_server=server
+                         ).rendezvous_servers(master, *hostnames)
+        logging.info('N. rendezvous_servers "Final" complete.')
+        time.sleep(2)
 
-        b3 = self.job.barrier(hostid, "stop_profilers", timeout_stop,
-                              listen_server=barrier_server)
-        b3.rendezvous_servers(masterid, hostid)
-
-        profilers.stop(self)
-        profilers.report(self)
-
-        b4 = self.job.barrier(hostid, "finish_profilers", timeout_stop,
-                              listen_server=barrier_server)
-        b4.rendezvous_servers(masterid, hostid)
-
-        barrier_server.close()
+        server.close()

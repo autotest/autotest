@@ -39,57 +39,57 @@ class barrier_test(unittest.TestCase):
 
     def test_initialize(self):
         b = barrier.barrier('127.0.0.1#', 'testtag', 100, 11921)
-        self.assertEqual(b.hostid, '127.0.0.1#')
-        self.assertEqual(b.tag, 'testtag')
-        self.assertEqual(b.timeout, 100)
-        self.assertEqual(b.port, 11921)
+        self.assertEqual(b._hostid, '127.0.0.1#')
+        self.assertEqual(b._tag, 'testtag')
+        self.assertEqual(b._timeout_secs, 100)
+        self.assertEqual(b._port, 11921)
 
 
     def test_get_host_from_id(self):
         b = barrier.barrier('127.0.0.1#', 'testgethost', 100)
 
-        hostname = b.get_host_from_id('my_host')
+        hostname = b._get_host_from_id('my_host')
         self.assertEqual(hostname, 'my_host')
 
-        hostname = b.get_host_from_id('my_host#')
+        hostname = b._get_host_from_id('my_host#')
         self.assertEqual(hostname, 'my_host')
 
-        self.assertRaises(error.BarrierError, b.get_host_from_id, '#my_host')
+        self.assertRaises(error.BarrierError, b._get_host_from_id, '#my_host')
 
 
     def test_update_timeout(self):
         b = barrier.barrier('127.0.0.1#', 'update', 100)
-        b.update_timeout(120)
-        self.assertEqual(b.timeout, 120)
+        b._update_timeout(120)
+        self.assertEqual(b._timeout_secs, 120)
 
 
     def test_remaining(self):
         b = barrier.barrier('127.0.0.1#', 'remain', 100)
-        remain = b.remaining()
+        remain = b._remaining()
         self.assertEqual(remain, 100)
 
 
     def test_master_welcome_garbage(self):
         b = barrier.barrier('127.0.0.1#', 'garbage', 100)
-        waiting_before = dict(b.waiting)
-        seen_before = b.seen
+        waiting_before = dict(b._waiting)
+        seen_before = b._seen
 
         sender, receiver = socket.socketpair()
         try:
             sender.send('GET /foobar?p=-1 HTTP/1.0\r\n\r\n')
             # This should not raise an exception.
-            b.master_welcome((receiver, 'fakeaddr'))
+            b._master_welcome((receiver, 'fakeaddr'))
 
-            self.assertEqual(waiting_before, b.waiting)
-            self.assertEqual(seen_before, b.seen)
+            self.assertEqual(waiting_before, b._waiting)
+            self.assertEqual(seen_before, b._seen)
 
             sender, receiver = socket.socketpair()
             sender.send('abcdefg\x00\x01\x02\n'*5)
             # This should not raise an exception.
-            b.master_welcome((receiver, 'fakeaddr'))
+            b._master_welcome((receiver, 'fakeaddr'))
 
-            self.assertEqual(waiting_before, b.waiting)
-            self.assertEqual(seen_before, b.seen)
+            self.assertEqual(waiting_before, b._waiting)
+            self.assertEqual(seen_before, b._seen)
         finally:
             sender.close()
             receiver.close()
