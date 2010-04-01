@@ -41,7 +41,7 @@ nic_script = scripts/qemu-ifup
 address_index = 0
 
 # Misc
-run_kvm_stat = yes
+profilers = kvm_stat
 
 
 # Tests
