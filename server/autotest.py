@@ -2,7 +2,7 @@
 
 import re, os, sys, traceback, subprocess, time, pickle, glob, tempfile
 import logging, getpass
-from autotest_lib.server import installable_object, utils
+from autotest_lib.server import installable_object, prebuild, utils
 from autotest_lib.client.common_lib import log, error, autotemp
 from autotest_lib.client.common_lib import global_config, packages
 from autotest_lib.client.common_lib import utils as client_utils
@@ -16,6 +16,11 @@ BOOT_TIME = 1800
 CRASH_RECOVERY_TIME = 9000
 
 
+get_value = global_config.global_config.get_config_value
+autoserv_prebuild = get_value('AUTOSERV', 'enable_server_prebuild',
+                              type=bool, default=False)
+
+    
 class AutodirNotFoundError(Exception):
     """No Autotest installation could be found."""
 
@@ -974,10 +979,17 @@ class client_logger(object):
         name, pkg_type = self.job.pkgmgr.parse_tarball_name(pkg_name)
         src_dirs = []
         if pkg_type == 'test':
-            src_dirs += [os.path.join(self.job.clientdir, 'site_tests', name),
-                         os.path.join(self.job.clientdir, 'tests', name)]
+            for test_dir in ['site_tests', 'tests']:
+                src_dir = os.path.join(self.job.clientdir, test_dir, name)
+                if os.path.exists(src_dir):
+                    src_dirs += [src_dir]
+                    if autoserv_prebuild:
+                        prebuild.setup(self.job.clientdir, src_dir)
+                    break
         elif pkg_type == 'profiler':
             src_dirs += [os.path.join(self.job.clientdir, 'profilers', name)]
+            if autoserv_prebuild:
+                prebuild.setup(self.job.clientdir, src_dir)
         elif pkg_type == 'dep':
             src_dirs += [os.path.join(self.job.clientdir, 'deps', name)]
         elif pkg_type == 'client':
