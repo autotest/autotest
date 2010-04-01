@@ -30,13 +30,60 @@ class setup_job(client_job.job):
                         See all options defined on client/bin/autotest.
         """
         base_job.base_job.__init__(self, options=options)
-        logging_manager.configure_logging(
-            client_logging_config.ClientLoggingConfig(),
-            results_dir=self.resultdir,
-            verbose=options.verbose)
         self._cleanup_results_dir()
         self.pkgmgr = packages.PackageManager(
             self.autodir, run_function_dargs={'timeout':3600})
+
+
+def init_test(options, testdir):
+    """
+    Instantiate a client test object from a given test directory.
+
+    @param options Command line options passed in to instantiate a setup_job
+                   which associates with this test.
+    @param testdir The test directory.
+    @returns A test object or None if failed to instantiate.
+    """
+
+    locals_dict = locals().copy()
+    globals_dict = globals().copy()
+
+    locals_dict['testdir'] = testdir
+
+    job = setup_job(options=options)
+    locals_dict['job'] = job
+
+    test_name = os.path.split(testdir)[-1]
+    outputdir = os.path.join(job.resultdir, test_name)
+    try:
+        os.makedirs(outputdir)
+    except OSError:
+        pass
+    locals_dict['outputdir'] = outputdir
+
+    sys.path.insert(0, testdir)
+    client_test = None
+    try:
+        try:
+            import_stmt = 'import %s' % test_name
+            init_stmt = ('auto_test = %s.%s(job, testdir, outputdir)' %
+                         (test_name, test_name))
+            exec import_stmt + '\n' + init_stmt in locals_dict, globals_dict
+            client_test = globals_dict['auto_test']
+        except ImportError, e:
+           # skips error if test is control file without python test 
+           if re.search(test_name, str(e)):
+               pass
+           # give the user a warning if there is an import error.
+           else:
+               logging.error('%s import error: %s.  Skipping %s' %
+                             (test_name, e, test_name))
+        except Exception, e:
+           # Log other errors (e.g., syntax errors) and collect the test.
+           logging.error("%s: %s", test_name, e)
+    finally:
+       sys.path.pop(0) # pop up testbindir
+    return client_test
 
 
 def load_all_client_tests(options):
@@ -60,44 +107,50 @@ def load_all_client_tests(options):
     for test_base_dir in ['tests', 'site_tests']:
         testdir = os.path.join(os.environ['AUTODIR'], test_base_dir)
         for test_name in os.listdir(testdir):
-            job = setup_job(options=options)
-            testbindir = os.path.join(testdir, test_name)
-            local_namespace['testbindir'] = testbindir
+            client_test = init_test(options, os.path.join(testdir, test_name))
+            if client_test:
+                all_tests.append(client_test)
+            else:
+                broken_tests.append(test_name) 
+    return all_tests, broken_tests
 
-            outputdir = os.path.join(job.resultdir, test_name)
+
+def setup_test(client_test):
+    """
+    Direct invoke test.setup() method.
+
+    @returns A boolean to represent success or not.
+    """
+
+    # TODO: check if its already build. .version? hash?
+    test_name = client_test.__class__.__name__
+    cwd = os.getcwd()
+    good_setup = False
+    try:
+        try:
+            outputdir = os.path.join(client_test.job.resultdir, test_name)
             try:
                 os.makedirs(outputdir)
+                os.chdir(outputdir)
             except OSError:
                 pass
+            logging.info('setup %s.' % test_name)
+            client_test.setup()
 
-            local_namespace['job'] = job
-            local_namespace['outputdir'] = outputdir
-
-            sys.path.insert(0, testbindir)
-            try:
-                try:
-                    exec("import %s" % test_name, local_namespace,
-                         global_namespace)
-                    exec("auto_test = %s.%s(job, testbindir, outputdir)" %
-                         (test_name, test_name), local_namespace,
-                         global_namespace)
-                    client_test = global_namespace['auto_test']
-                    all_tests.append(client_test)
-                except ImportError, e:
-                    # skips error if test is control file without python test 
-                    if re.search(test_name, str(e)):
-                        pass
-                    # give the user a warning if there is an import error.
-                    else:
-                        logging.warning("%s import error: %s.  Skipping %s" \
-                            % (test_name, e, test_name))
-            except Exception, e:
-                # Log other errors (e.g., syntax errors) and collect the test.
-                logging.error("%s: %s", test_name, e)
-                broken_tests.append(test_name)
-            finally:
-                sys.path.pop(0) # pop up testbindir
-    return all_tests, broken_tests
+            # Touch .version file under src to prevent further setup on client
+            # host. See client/common_lib/utils.py update_version()
+            if os.path.exists(client_test.srcdir):
+                versionfile = os.path.join(client_test.srcdir, '.version')
+                pickle.dump(client_test.version, open(versionfile, 'w'))
+            good_setup = True
+        except Exception, err:
+            logging.error(err)
+            raise error.AutoservError('Failed to build client test %s on '
+                                      'server.' % test_name)
+    finally:
+        # back to original working dir
+        os.chdir(cwd)
+    return good_setup
 
 
 def setup_tests(options):
@@ -138,25 +191,10 @@ def setup_tests(options):
         logging.error('### No test setup candidates ###')
         raise error.AutoservError('No test setup candidates.')
 
-    for setup_test in need_to_setup:
-        test_name = setup_test.__class__.__name__
-        try:
-            outputdir = os.path.join(setup_test.job.resultdir, test_name)
-            try:
-                os.makedirs(outputdir)
-                os.chdir(outputdir)
-            except OSError:
-                pass
-            logging.info('setup %s.' % test_name)
-            setup_test.setup()
-            # Touch .version file under src to prevent further setup on client
-            # host. See client/common_lib/utils.py update_version()
-            if os.path.exists(setup_test.srcdir):
-                versionfile = os.path.join(setup_test.srcdir, '.version')
-                pickle.dump(setup_test.version, open(versionfile, 'w'))
-        except Exception, err:
-            logging.error(err)
-            failed_tests.append(test_name)
+    for client_test in need_to_setup:
+        good_setup = setup_test(client_test)
+        if not good_setup:
+            failed_tests.append(client_test.__class__.__name__)
 
     logging.info('############################# SUMMARY '
                  '#############################')

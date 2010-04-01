@@ -63,7 +63,10 @@ def extract_tarball_to_dir(tarball, dir):
     the top level of a tarball is - useful for versioned directory names, etc
     """
     if os.path.exists(dir):
-        raise NameError, 'target %s already exists' % dir
+      if os.path.isdir(dir):
+        shutil.rmtree(dir)
+      else:
+        os.remove(dir)
     pwd = os.getcwd()
     os.chdir(os.path.dirname(os.path.abspath(dir)))
     newdir = extract_tarball(tarball)
