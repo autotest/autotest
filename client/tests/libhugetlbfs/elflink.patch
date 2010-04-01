@@ -1,0 +1,12 @@
+diff --git a/elflink.c b/elflink.c
+index c39c04e..92729cc 100644
+--- a/elflink.c
++++ b/elflink.c
+@@ -37,6 +37,7 @@
+ #include <limits.h>
+ #include <elf.h>
+ #include <dlfcn.h>
++#include <sys/stat.h>
+ 
+ #include "version.h"
+ #include "hugetlbfs.h"
