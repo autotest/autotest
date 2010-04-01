@@ -145,6 +145,9 @@ variants:
             - scrashme:
                 test_name = scrashme
                 test_control_file = scrashme.control
+            - hwclock:
+                test_name = hwclock
+                test_control_file = hwclock.control
 
     - linux_s3:     install setup unattended_install
         type = linux_s3
