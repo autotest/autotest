@@ -347,6 +347,19 @@ def postprocess(test, params, env):
                         int(params.get("post_command_timeout", "600")),
                         params.get("post_command_noncritical") == "yes")
 
+    # Abort on error?
+    if params.get("abort") == "yes":
+        exc_string = str(sys.exc_info()[1])
+        logging.info("Aborting job (%s)", exc_string)
+        for vm in kvm_utils.env_get_all_vms(env):
+            if not vm.is_dead():
+                logging.info("VM '%s' is alive.", vm.name)
+                logging.info("The monitor unix socket of '%s' is: %s",
+                             vm.name, vm.monitor_file_name)
+                logging.info("The command line used to start '%s' was:\n%s",
+                             vm.name, vm.make_qemu_command())
+        raise error.JobError("Abort requested (%s)" % exc_string)
+
 
 def postprocess_on_error(test, params, env):
     """
