@@ -1,0 +1,12 @@
+AUTHOR = "Martin J. Bligh <mbligh@mbligh.org>"
+NAME = "Hwclock"
+TIME = "SHORT"
+TEST_CATEGORY = "Functional"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+
+DOC = """
+This test checks that we can set and read the hwclock successfully
+"""
+
+job.run_test('hwclock')
