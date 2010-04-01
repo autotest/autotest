@@ -486,6 +486,7 @@ class VM:
                               "qemu command:\n%s" % qemu_command)
                 logging.error("Output:" + kvm_utils.format_str_for_message(
                               self.process.get_output()))
+                self.destroy()
                 return False
 
             logging.debug("VM appears to be alive with PID %d",
