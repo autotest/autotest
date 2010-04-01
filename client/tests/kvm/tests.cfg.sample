@@ -79,5 +79,10 @@ variants:
         only Fedora.12.64
         only unattended_install boot shutdown
 
+# Uncomment the following lines to enable abort-on-error mode:
+#abort_on_error = yes
+#kill_vm.* ?= no
+#kill_unresponsive_vms.* ?= no
+
 # Choose your test list from the testsets defined
 only qemu_kvm_f12_quick
