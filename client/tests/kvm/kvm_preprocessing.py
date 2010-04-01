@@ -1,4 +1,4 @@
-import sys, os, time, commands, re, logging, signal, glob
+import sys, os, time, commands, re, logging, signal, glob, threading, shutil
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 import kvm_vm, kvm_utils, kvm_subprocess, ppm_utils
@@ -9,6 +9,10 @@ except ImportError:
                     'conversion to JPEG disabled. In order to enable it, '
                     'please install python-imaging or the equivalent for your '
                     'distro.')
+
+
+_screendump_thread = None
+_screendump_thread_termination_event = None
 
 
 def preprocess_image(test, params):
@@ -254,6 +258,15 @@ def preprocess(test, params, env):
     # Preprocess all VMs and images
     process(test, params, env, preprocess_image, preprocess_vm)
 
+    # Start the screendump thread
+    if params.get("take_regular_screendumps") == "yes":
+        logging.debug("Starting screendump thread")
+        global _screendump_thread, _screendump_thread_termination_event
+        _screendump_thread_termination_event = threading.Event()
+        _screendump_thread = threading.Thread(target=_take_screendumps,
+                                              args=(test, params, env))
+        _screendump_thread.start()
+
 
 def postprocess(test, params, env):
     """
@@ -263,7 +276,15 @@ def postprocess(test, params, env):
     @param params: Dict containing all VM and image parameters.
     @param env: The environment (a dict-like object).
     """
+    # Postprocess all VMs and images
     process(test, params, env, postprocess_image, postprocess_vm)
+
+    # Terminate the screendump thread
+    global _screendump_thread, _screendump_thread_termination_event
+    if _screendump_thread:
+        logging.debug("Terminating screendump thread...")
+        _screendump_thread_termination_event.set()
+        _screendump_thread.join(10)
 
     # Warn about corrupt PPM files
     for f in glob.glob(os.path.join(test.debugdir, "*.ppm")):
@@ -290,11 +311,13 @@ def postprocess(test, params, env):
         for f in glob.glob(os.path.join(test.debugdir, '*.ppm')):
             os.unlink(f)
 
-    # Execute any post_commands
-    if params.get("post_command"):
-        process_command(test, params, env, params.get("post_command"),
-                        int(params.get("post_command_timeout", "600")),
-                        params.get("post_command_noncritical") == "yes")
+    # Should we keep the screendump dirs?
+    if params.get("keep_screendumps") != "yes":
+        logging.debug("'keep_screendumps' not specified; removing screendump "
+                      "dirs...")
+        for d in glob.glob(os.path.join(test.debugdir, "screendumps_*")):
+            if os.path.isdir(d) and not os.path.islink(d):
+                shutil.rmtree(d, ignore_errors=True)
 
     # Kill all unresponsive VMs
     if params.get("kill_unresponsive_vms") == "yes":
@@ -317,6 +340,12 @@ def postprocess(test, params, env):
     if not living_vms and "tcpdump" in env:
         env["tcpdump"].close()
         del env["tcpdump"]
+
+    # Execute any post_commands
+    if params.get("post_command"):
+        process_command(test, params, env, params.get("post_command"),
+                        int(params.get("post_command_timeout", "600")),
+                        params.get("post_command_noncritical") == "yes")
 
 
 def postprocess_on_error(test, params, env):
@@ -343,3 +372,60 @@ def _update_address_cache(address_cache, line):
                           mac_address, address_cache.get("last_seen"))
             address_cache[mac_address] = address_cache.get("last_seen")
             del address_cache["last_seen"]
+
+
+def _take_screendumps(test, params, env):
+    global _screendump_thread_termination_event
+    temp_dir = test.debugdir
+    if params.get("screendump_temp_dir"):
+        temp_dir = kvm_utils.get_path(test.bindir,
+                                      params.get("screendump_temp_dir"))
+        try:
+            os.makedirs(temp_dir)
+        except OSError:
+            pass
+    temp_filename = os.path.join(temp_dir, "scrdump-%s.ppm" %
+                                 kvm_utils.generate_random_string(6))
+    delay = float(params.get("screendump_delay", 5))
+    quality = int(params.get("screendump_quality", 30))
+
+    cache = {}
+
+    while True:
+        for vm in kvm_utils.env_get_all_vms(env):
+            if vm.is_dead():
+                continue
+            vm.send_monitor_cmd("screendump %s" % temp_filename)
+            if not os.path.exists(temp_filename):
+                logging.warn("VM '%s' failed to produce a screendump", vm.name)
+                continue
+            if not ppm_utils.image_verify_ppm_file(temp_filename):
+                logging.warn("VM '%s' produced an invalid screendump", vm.name)
+                os.unlink(temp_filename)
+                continue
+            screendump_dir = os.path.join(test.debugdir,
+                                          "screendumps_%s" % vm.name)
+            try:
+                os.makedirs(screendump_dir)
+            except OSError:
+                pass
+            screendump_filename = os.path.join(screendump_dir,
+                    "%s_%s.jpg" % (vm.name,
+                                   time.strftime("%Y-%m-%d_%H-%M-%S")))
+            hash = utils.hash_file(temp_filename)
+            if hash in cache:
+                try:
+                    os.link(cache[hash], screendump_filename)
+                except OSError:
+                    pass
+            else:
+                try:
+                    image = PIL.Image.open(temp_filename)
+                    image.save(screendump_filename, format="JPEG", quality=quality)
+                    cache[hash] = screendump_filename
+                except NameError:
+                    pass
+            os.unlink(temp_filename)
+        if _screendump_thread_termination_event.isSet():
+            break
+        _screendump_thread_termination_event.wait(delay)
