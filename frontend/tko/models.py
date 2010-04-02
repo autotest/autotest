@@ -233,8 +233,7 @@ class IterationResult(dbmodels.Model, model_logic.ModelExtensions):
     test = dbmodels.ForeignKey(Test, db_column='test_idx', primary_key=True)
     iteration = dbmodels.IntegerField()
     attribute = dbmodels.CharField(max_length=90)
-    value = dbmodels.DecimalField(null=True, max_digits=12, decimal_places=31,
-                                  blank=True)
+    value = dbmodels.FloatField(null=True, blank=True)
 
     objects = model_logic.ExtendedManager()
 
