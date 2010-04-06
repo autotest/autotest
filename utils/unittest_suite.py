@@ -45,6 +45,10 @@ REQUIRES_SIMPLEJSON = set((
         'serviceHandler_unittest.py',
         ))
 
+REQUIRES_AUTH = set ((
+    'trigger_unittest.py',
+    ))
+
 LONG_RUNTIME = set((
     'barrier_unittest.py',
     'logging_manager_test.py',
@@ -54,6 +58,7 @@ LONG_TESTS = (REQUIRES_DJANGO |
               REQUIRES_MYSQLDB |
               REQUIRES_GWT |
               REQUIRES_SIMPLEJSON |
+              REQUIRES_AUTH |
               LONG_RUNTIME)
 
 
