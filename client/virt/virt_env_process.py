@@ -295,27 +295,47 @@ def preprocess(test, params, env):
             env["cpu_model"] = virt_utils.get_cpu_model()
         params["cpu_model"] = env.get("cpu_model")
 
-    # Get the KVM kernel module version and write it as a keyval
-    if os.path.exists("/dev/kvm"):
+    kvm_ver_cmd = params.get("kvm_ver_cmd", "")
+
+    if kvm_ver_cmd:
         try:
-            kvm_version = open("/sys/module/kvm/version").read().strip()
-        except Exception:
-            kvm_version = os.uname()[2]
+            cmd_result = utils.run(kvm_ver_cmd)
+            kvm_version = cmd_result.stdout.strip()
+        except error.CmdError, e:
+            kvm_version = "Unknown"
     else:
-        kvm_version = "Unknown"
-        logging.debug("KVM module not loaded")
+        # Get the KVM kernel module version and write it as a keyval
+        if os.path.exists("/dev/kvm"):
+            try:
+                kvm_version = open("/sys/module/kvm/version").read().strip()
+            except Exception:
+                kvm_version = os.uname()[2]
+        else:
+            logging.warning("KVM module not loaded")
+            kvm_version = "Unknown"
+
     logging.debug("KVM version: %s" % kvm_version)
     test.write_test_keyval({"kvm_version": kvm_version})
 
     # Get the KVM userspace version and write it as a keyval
-    qemu_path = virt_utils.get_path(test.bindir, params.get("qemu_binary",
-                                                           "qemu"))
-    version_line = commands.getoutput("%s -help | head -n 1" % qemu_path)
-    matches = re.findall("[Vv]ersion .*?,", version_line)
-    if matches:
-        kvm_userspace_version = " ".join(matches[0].split()[1:]).strip(",")
+    kvm_userspace_ver_cmd = params.get("kvm_userspace_ver_cmd", "")
+
+    if kvm_userspace_ver_cmd:
+        try:
+            cmd_result = utils.run(kvm_userspace_ver_cmd)
+            kvm_userspace_version = cmd_result.stdout.strip()
+        except error.CmdError, e:
+            kvm_userspace_version = "Unknown"
     else:
-        kvm_userspace_version = "Unknown"
+        qemu_path = virt_utils.get_path(test.bindir,
+                                        params.get("qemu_binary", "qemu"))
+        version_line = commands.getoutput("%s -help | head -n 1" % qemu_path)
+        matches = re.findall("[Vv]ersion .*?,", version_line)
+        if matches:
+            kvm_userspace_version = " ".join(matches[0].split()[1:]).strip(",")
+        else:
+            kvm_userspace_version = "Unknown"
+
     logging.debug("KVM userspace version: %s" % kvm_userspace_version)
     test.write_test_keyval({"kvm_userspace_version": kvm_userspace_version})
 
