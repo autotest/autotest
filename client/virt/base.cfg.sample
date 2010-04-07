@@ -305,6 +305,11 @@ netdev_peer_re = "\s{2,}(.*?): .*?\\\s(.*?):"
 # for RHEL6 host, the regex should be:
 # netdev_peer_re = "\s{2,}(.*?):.*?peer=(.*?)\n"
 
+# You can set custom commands to verify kvm module and userspace version, here
+# is a convenient example for RHEL and Fedora.
+#kvm_ver_cmd = "modinfo kvm | grep vermagic | awk '{print $2}'"
+#kvm_userspace_ver_cmd = "grep -q el5 /proc/version && rpm -qa | grep ^kvm-83-.* || rpm -qa | grep qemu-kvm | head -n 1"
+
 image_clone_commnad = 'cp --reflink=auto %s %s'
 image_remove_commnad = 'rm -rf %s'
 
