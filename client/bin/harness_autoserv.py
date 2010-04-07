@@ -99,6 +99,8 @@ class AutoservFetcher(base_packages.RepositoryFetcher):
 
 
     def fetch_pkg_file(self, filename, dest_path):
+        if os.path.exists(dest_path):
+            os.remove(dest_path)
         logging.info('Fetching %s from autoserv to %s', filename, dest_path)
         self.job_harness.fetch_package(filename, dest_path)
         if os.path.exists(dest_path):

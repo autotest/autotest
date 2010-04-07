@@ -152,6 +152,9 @@ class HttpFetcher(RepositoryFetcher):
             logging.debug('Successfully fetched %s from %s', filename,
                           package_url)
         except error.CmdError:
+            # remove whatever junk was retrieved when the get failed
+            self.run_command('rm -f %s' % dest_path)
+
             raise error.PackageFetchError('%s not found in %s' % (filename,
                                                                   package_url))
 
