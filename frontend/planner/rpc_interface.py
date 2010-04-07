@@ -12,7 +12,7 @@ from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import model_logic, models as afe_models
 from autotest_lib.frontend.afe import rpc_utils as afe_rpc_utils
 from autotest_lib.frontend.tko import models as tko_models
-from autotest_lib.frontend.planner import models, rpc_utils
+from autotest_lib.frontend.planner import models, rpc_utils, model_attributes
 from autotest_lib.client.common_lib import utils
 
 # basic getter/setter calls
@@ -235,3 +235,47 @@ def update_test_runs(plan_id):
                                     'hostname': hostname})
 
     return updated
+
+
+def get_failures(plan_id):
+    """
+    Gets a list of the untriaged failures associated with this plan
+
+    @return a list of dictionaries:
+                id: the failure ID, for passing back to triage the failure
+                group: the group for the failure. Normally the same as the
+                       reason, but can be different for custom queries
+                machine: the failed machine
+                blocked: True if the failure caused the machine to block
+                test_name: Concatenation of the Planner alias and the TKO test
+                           name for the failed test
+                reason: test failure reason
+                seen: True if the failure is marked as "seen"
+    """
+    plan = models.Plan.smart_get(plan_id)
+    result = {}
+
+    failures = plan.testrun_set.filter(
+            finalized=True, triaged=False,
+            status=model_attributes.TestRunStatus.FAILED)
+    failures = failures.select_related('test_job__test', 'host__host',
+                                       'tko_test')
+    for failure in failures:
+        test_name = '%s:%s' % (
+                failure.test_job.test_config.alias, failure.tko_test.test)
+
+        group_failures = result.setdefault(failure.tko_test.reason, [])
+        failure_dict = {'id': failure.id,
+                        'machine': failure.host.host.hostname,
+                        'blocked': bool(failure.host.blocked),
+                        'test_name': test_name,
+                        'reason': failure.tko_test.reason,
+                        'seen': bool(failure.seen)}
+        group_failures.append(failure_dict)
+
+    return result
+
+
+def get_static_data():
+    result = {'motd': afe_rpc_utils.get_motd()}
+    return result

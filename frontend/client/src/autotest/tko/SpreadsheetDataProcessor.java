@@ -1,11 +1,12 @@
 package autotest.tko;
 
+import autotest.common.spreadsheet.Spreadsheet;
+import autotest.common.spreadsheet.Spreadsheet.CellInfo;
+import autotest.common.spreadsheet.Spreadsheet.Header;
+import autotest.common.spreadsheet.Spreadsheet.HeaderImpl;
 import autotest.common.table.DataSource.DataCallback;
 import autotest.common.table.DataSource.Query;
 import autotest.common.ui.NotifyManager;
-import autotest.tko.Spreadsheet.CellInfo;
-import autotest.tko.Spreadsheet.Header;
-import autotest.tko.Spreadsheet.HeaderImpl;
 
 import com.google.gwt.core.client.Duration;
 import com.google.gwt.json.client.JSONArray;

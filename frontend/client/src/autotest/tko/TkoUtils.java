@@ -7,7 +7,6 @@ import autotest.common.Utils;
 import autotest.common.table.RpcDataSource;
 import autotest.common.table.DataSource.Query;
 
-import com.google.gwt.dom.client.Element;
 import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
@@ -50,15 +49,6 @@ public class TkoUtils {
         JSONObject params = new JSONObject();
         params.put("extra_where", new JSONString(condition));
         return params;
-    }
-
-    protected static void clearDomChildren(Element elem) {
-        Element child = elem.getFirstChildElement();
-        while (child != null) {
-            Element nextChild = child.getNextSiblingElement();
-            elem.removeChild(child);
-            child = nextChild;
-        }
     }
 
     static void setElementVisible(String elementId, boolean visible) {
