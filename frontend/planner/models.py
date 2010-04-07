@@ -127,7 +127,7 @@ class ControlFile(model_logic.ModelWithHash,
 
 
 class TestConfig(ModelWithPlan, model_logic.ModelExtensions):
-    """A planned test
+    """A configuration for a planned test
 
     Required:
         alias: The name to give this test within the plan. Unique with plan id
