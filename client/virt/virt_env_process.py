@@ -296,24 +296,20 @@ def preprocess(test, params, env):
         params["cpu_model"] = env.get("cpu_model")
 
     # Get the KVM kernel module version and write it as a keyval
-    if os.path.exists("/dev/kvm"):
-        try:
-            kvm_version = open("/sys/module/kvm/version").read().strip()
-        except Exception:
-            kvm_version = os.uname()[2]
+    if not os.path.exists("/dev/kvm"):
+        logging.debug("KVM module not loaded")
+    kvm_ver_cmd = params.get("kvm_ver_cmd")
+    if kvm_ver_cmd is not None:
+        kvm_version = commands.getoutput(kvm_ver_cmd)
     else:
         kvm_version = "Unknown"
-        logging.debug("KVM module not loaded")
     logging.debug("KVM version: %s" % kvm_version)
     test.write_test_keyval({"kvm_version": kvm_version})
 
     # Get the KVM userspace version and write it as a keyval
-    qemu_path = virt_utils.get_path(test.bindir, params.get("qemu_binary",
-                                                           "qemu"))
-    version_line = commands.getoutput("%s -help | head -n 1" % qemu_path)
-    matches = re.findall("[Vv]ersion .*?,", version_line)
-    if matches:
-        kvm_userspace_version = " ".join(matches[0].split()[1:]).strip(",")
+    kvm_userspace_ver_cmd = params.get("kvm_userspace_ver_cmd")
+    if kvm_userspace_ver_cmd is not None:
+        kvm_userspace_version = commands.getoutput(kvm_userspace_ver_cmd)
     else:
         kvm_userspace_version = "Unknown"
     logging.debug("KVM userspace version: %s" % kvm_userspace_version)
