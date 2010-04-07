@@ -298,12 +298,12 @@ def run_autotest(vm, session, control_path, timeout, test_name, outputdir):
         @param dest_dir: Destination dir for the contents
         """
         basename = os.path.basename(remote_path)
-        logging.info("Extracting %s..." % basename)
+        logging.info("Extracting %s...", basename)
         (status, output) = session.get_command_status_output(
                                   "tar xjvf %s -C %s" % (remote_path, dest_dir))
         if status != 0:
             logging.error("Uncompress output:\n%s" % output)
-            raise error.TestFail("Could not extract % on guest")
+            raise error.TestFail("Could not extract %s on guest" % basename)
 
     if not os.path.isfile(control_path):
         raise error.TestError("Invalid path to autotest control file: %s" %
@@ -356,7 +356,7 @@ def run_autotest(vm, session, control_path, timeout, test_name, outputdir):
         raise error.TestFail("Could not copy the test control file to guest")
 
     # Run the test
-    logging.info("Running test '%s'..." % test_name)
+    logging.info("Running test '%s'...", test_name)
     session.get_command_output("cd %s" % autotest_path)
     session.get_command_output("rm -f control.state")
     session.get_command_output("rm -rf results/*")
@@ -364,7 +364,7 @@ def run_autotest(vm, session, control_path, timeout, test_name, outputdir):
     status = session.get_command_status("bin/autotest control",
                                         timeout=timeout,
                                         print_func=logging.info)
-    logging.info("--------------End of test output ------------")
+    logging.info("------------- End of test output ------------")
     if status is None:
         raise error.TestFail("Timeout elapsed while waiting for autotest to "
                              "complete")
