@@ -1247,3 +1247,24 @@ def sh_escape(command):
     command = command.replace('"', r'\"')
     command = command.replace('`', r'\`')
     return command
+
+
+def configure(extra=None, configure='./configure'):
+    """
+    Run configure passing in the correct host, build, and target options.
+
+    @param extra: extra command line arguments to pass to configure
+    @param configure: which configure script to use
+    """
+    args = []
+    if 'CHOST' in os.environ:
+        args.append('--host=' + os.environ['CHOST'])
+    if 'CBUILD' in os.environ:
+        args.append('--build=' + os.environ['CBUILD'])
+    if 'CTARGET' in os.environ:
+        args.append('--target=' + os.environ['CTARGET'])
+    if extra:
+        args.append(extra)
+
+    system('%s %s' % (configure, ' '.join(args)))
+
