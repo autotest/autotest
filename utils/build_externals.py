@@ -12,7 +12,7 @@ Usage?  Just run it.
     utils/build_externals.py
 """
 
-import compileall, logging, os, sha, shutil, sys, tempfile, time, urllib2
+import compileall, logging, os, shutil, sys, tempfile, time, urllib2
 import subprocess, re
 import common
 from autotest_lib.client.common_lib import logging_config, logging_manager
@@ -84,7 +84,7 @@ def main():
 
     errors = fetch_errors + install_errors
     for error_msg in errors:
-        print >>sys.stderr, error_msg
+        logging.error(error_msg)
 
     return len(errors)
 
@@ -116,8 +116,8 @@ def fetch_necessary_packages(dest_dir, install_dir):
             else:
                 continue
         if not package.fetch(dest_dir):
-            msg = '!!! Unable to download %s' % package.name
-            print msg
+            msg = 'Unable to download %s' % package.name
+            logging.error(msg)
             errors.append(msg)
         else:
             fetched_packages.append(package)
@@ -137,8 +137,8 @@ def build_and_install_packages(packages, install_dir):
     errors = []
     for package in packages:
         if not package.build_and_install(install_dir):
-            msg = '!!! Unable to build and install %s' % package.name
-            print msg
+            msg = 'Unable to build and install %s' % package.name
+            logging.error(msg)
             errors.append(msg)
     return errors
 
