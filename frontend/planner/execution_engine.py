@@ -1,7 +1,7 @@
 import time, logging
 from autotest_lib.frontend.afe import model_attributes as afe_model_attributes
 from autotest_lib.frontend.shared import rest_client
-from autotest_lib.frontend.planner import model_attributes
+from autotest_lib.frontend.planner import model_attributes, support
 from autotest_lib.server import frontend
 
 
@@ -133,8 +133,19 @@ class ExecutionEngine(object):
                                      finalized=False)
         for run in runs:
             logging.info('finalizing test run %s', run)
-            if run['status'] == Status.FAILED:
-                self._planner_rpc.run('modify_host', id=run['host'],
+
+            controller = support.TestPlanController(
+                    machine=run['host']['host'],
+                    test_alias=run['test_job']['test_config']['alias'])
+            self._run_execute_after(controller, tko_test_id=run['tko_test'],
+                                    success=(run['status'] == Status.PASSED))
+
+            if controller._fail:
+                raise NotImplemented('TODO: implement forced failure')
+
+            failed = (run['status'] == Status.FAILED or controller._fail)
+            if failed and not controller._unblock:
+                self._planner_rpc.run('modify_host', id=run['host']['id'],
                                       blocked=True)
             self._planner_rpc.run('modify_test_run', id=run['id'],
                                   finalized=True)
@@ -162,19 +173,36 @@ class ExecutionEngine(object):
             return True
 
         for config in next_configs['next_configs']:
+            config_id = config['next_test_config_id']
+            controller = support.TestPlanController(
+                    machine=config['host'],
+                    test_alias=config['next_test_config_alias'])
+            self._run_execute_before(controller)
+            if controller._skip:
+                self._planner_rpc.run('skip_test', test_config_id=config_id,
+                                      hostname=config['host'])
+                continue
+
             self._run_job(hostname=config['host'],
-                          test_config_id=config['next_test_config_id'])
+                          test_config_id=config_id,
+                          cleanup_before_job=controller._reboot_before,
+                          cleanup_after_job=controller._reboot_after,
+                          run_verify=controller._run_verify)
 
         return False
 
 
-    def _run_job(self, hostname, test_config_id):
+    def _run_job(self, hostname, test_config_id, cleanup_before_job,
+                 cleanup_after_job, run_verify):
         test_config = self._planner_rpc.run('get_test_config',
                                             id=test_config_id)
 
         info = self._afe_rest.execution_info.get().execution_info
         info['control_file'] = test_config['control_file']['contents']
         info['is_server'] = test_config['is_server']
+        info['cleanup_before_job'] = cleanup_before_job
+        info['cleanup_after_job'] = cleanup_after_job
+        info['run_verify'] = run_verify
 
         atomic_group_class = self._afe_rest.labels.get(
                 name=self._label_name).members[0].get().atomic_group_class.href
@@ -199,3 +227,31 @@ class ExecutionEngine(object):
                               plan_id=self._plan_id,
                               test_config_id=test_config_id,
                               afe_job_id=job.get().id)
+
+
+    def _run_execute_before(self, controller):
+        """
+        Execute the global support's execute_before() for the plan
+        """
+        self._run_global_support(controller, 'execute_before')
+
+
+    def _run_execute_after(self, controller, tko_test_id, success):
+        """
+        Execute the global support's execute_after() for the plan
+        """
+        self._run_global_support(controller, 'execute_after',
+                                 tko_test_id=tko_test_id, success=success)
+
+
+    def _run_global_support(self, controller, function_name, **kwargs):
+        plan = self._planner_rpc.run('get_plan', id=self._plan_id)
+        if plan['support']:
+            context = {'model_attributes': afe_model_attributes}
+            exec plan['support'] in context
+            function = context.get(function_name)
+            if function:
+                if not callable(function):
+                    raise Exception('Global support defines %s, but it is not '
+                                    'callable' % function_name)
+                function(controller, **kwargs)

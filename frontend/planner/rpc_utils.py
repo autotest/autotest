@@ -111,8 +111,8 @@ def compute_next_test_config(plan, host):
         afe_job_ids = afe_jobs.values_list('afe_job', flat=True)
         hqes = afe_models.HostQueueEntry.objects.filter(job__id__in=afe_job_ids,
                                                         host=host.host)
-        if not hqes:
-            return test_config.id
+        if not hqes and not bool(test_config.skipped_hosts.filter(host=host)):
+            return test_config
         for hqe in hqes:
             if not hqe.complete:
                 # HostQueueEntry still active for this host,
