@@ -1,6 +1,25 @@
-diff -urw lmbench3.old/Makefile lmbench3/Makefile
---- lmbench3.old/Makefile	2005-08-22 17:19:55.000000000 -0700
-+++ lmbench3/Makefile	2009-12-02 15:55:29.000000000 -0800
+From 05546bfc9968a58e9569f2a8a9764f6e53f20167 Mon Sep 17 00:00:00 2001
+From: Lucas Meneghel Rodrigues <lmr@redhat.com>
+Date: Thu, 8 Apr 2010 10:38:13 -0300
+Subject: [PATCH 1/2] Fix build issues with lmbench
+
+* removes Makefile references to bitkeeper
+* default mail to no, fix job placement defaults (masouds)
+* adds "config" Makefile targets to perform configuration only
+* changes scripts/getlist to consider result files that do
+* not start with "[lmbench 3.x..." (still requires such a line somewhere
+  in the first 1000 bytes of the file)
+---
+ Makefile           |    4 ++++
+ scripts/config-run |   13 ++++++++-----
+ scripts/getlist    |    4 ++--
+ src/Makefile       |   44 ++++++--------------------------------------
+ 4 files changed, 20 insertions(+), 45 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index d3d00f4..9a568f3 100644
+--- a/Makefile
++++ b/Makefile
 @@ -5,6 +5,7 @@
  #
  # build		(default) go to the source directory and build the benchmark
@@ -9,7 +28,7 @@ diff -urw lmbench3.old/Makefile lmbench3/Makefile
  # rerun		run the benchmark again
  # see		see the results that came with this release
  #		Go to the results directory and read the Makefile.
-@@ -22,6 +23,9 @@
+@@ -22,6 +23,9 @@ build:
  results: FRC
  	cd src && $(MAKE) results
  
@@ -19,10 +38,11 @@ diff -urw lmbench3.old/Makefile lmbench3/Makefile
  rerun: 
  	cd src && $(MAKE) rerun
  
-diff -urw lmbench3.old/scripts/config-run lmbench3/scripts/config-run
---- lmbench3.old/scripts/config-run	2005-08-22 17:19:55.000000000 -0700
-+++ lmbench3/scripts/config-run	2009-12-03 15:03:46.000000000 -0800
-@@ -115,9 +115,12 @@
+diff --git a/scripts/config-run b/scripts/config-run
+index b8c17d5..9958a31 100755
+--- a/scripts/config-run
++++ b/scripts/config-run
+@@ -115,9 +115,12 @@ three attendent child processes sending data down the pipes and
  three benchmark processes reading data and doing the measurements.
  
  EOF
@@ -36,7 +56,7 @@ diff -urw lmbench3.old/scripts/config-run lmbench3/scripts/config-run
  	case "$LMBENCH_SCHED" in
  	    1) LMBENCH_SCHED=DEFAULT;;
  	    2) LMBENCH_SCHED=BALANCED;;
-@@ -657,13 +660,13 @@
+@@ -657,13 +660,13 @@ fast box, they may be made available on the lmbench web page, which is
  
  EOF
  
@@ -54,10 +74,11 @@ diff -urw lmbench3.old/scripts/config-run lmbench3/scripts/config-run
  		;;
  esac
  
-diff -urw lmbench3.old/scripts/getlist lmbench3/scripts/getlist
---- lmbench3.old/scripts/getlist	2005-08-22 17:19:55.000000000 -0700
-+++ lmbench3/scripts/getlist	2009-12-01 17:52:29.000000000 -0800
-@@ -22,9 +22,9 @@
+diff --git a/scripts/getlist b/scripts/getlist
+index 8c35970..f03b679 100755
+--- a/scripts/getlist
++++ b/scripts/getlist
+@@ -22,9 +22,9 @@ if (-f $LIST) {
  foreach $file (@files) {
  	next if $file =~ /\.INFO$/;
  	open(FD, $file) || next;
@@ -69,9 +90,10 @@ diff -urw lmbench3.old/scripts/getlist lmbench3/scripts/getlist
  	print "$file ";
  }
  print "\n";
-diff -urw lmbench3.old/src/Makefile lmbench3/src/Makefile
---- lmbench3.old/src/Makefile	2005-08-22 17:19:54.000000000 -0700
-+++ lmbench3/src/Makefile	2009-12-02 15:55:22.000000000 -0800
+diff --git a/src/Makefile b/src/Makefile
+index 2555014..cf0b779 100644
+--- a/src/Makefile
++++ b/src/Makefile
 @@ -4,6 +4,7 @@
  #
  # lmbench	[default] builds the benchmark suite for the current os/arch
@@ -80,7 +102,7 @@ diff -urw lmbench3.old/src/Makefile lmbench3/src/Makefile
  # rerun		reruns the benchmark using the same parameters as last time
  # scaling	reruns the benchmark using same parameters as last time,
  #		except it asks what scaling value to use
-@@ -118,8 +119,10 @@
+@@ -118,8 +119,10 @@ results: lmbench
  	@env OS="${OS}" ../scripts/config-run
  	@env OS="${OS}" ../scripts/results
  
@@ -92,7 +114,7 @@ diff -urw lmbench3.old/src/Makefile lmbench3/src/Makefile
  	@env OS="${OS}" ../scripts/results
  
  scaling: lmbench
-@@ -165,41 +168,6 @@
+@@ -165,41 +168,6 @@ debug:
  assembler:
  	@env CFLAGS=-O MAKE="$(MAKE)" MAKEFLAGS="$(MAKEFLAGS)" CC="${CC}" OS="${OS}" ../scripts/build asm
  
@@ -134,7 +156,7 @@ diff -urw lmbench3.old/src/Makefile lmbench3/src/Makefile
  get $(SRCS):
  	-get -s $(SRCS)
  
-@@ -228,9 +196,9 @@
+@@ -228,9 +196,9 @@ testmake: $(SRCS) $(UTILS) # used by scripts/make to test gmake
  	install install-target dist get edit get-e clean clobber \
  	share depend testmake
  
@@ -146,3 +168,6 @@ diff -urw lmbench3.old/src/Makefile lmbench3/src/Makefile
  	chmod +x $O/lmbench
  
  $O/lmbench.a: $(LIBOBJS)
+-- 
+1.6.6.1
+
