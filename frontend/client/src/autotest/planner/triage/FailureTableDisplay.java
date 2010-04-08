@@ -12,7 +12,13 @@ public class FailureTableDisplay extends Composite implements FailureTable.Displ
         initWidget(spreadsheet);
     }
     
+    @Override
     public Spreadsheet getSpreadsheet() {
         return spreadsheet;
+    }
+    
+    @Override
+    public TriagePopup.Display generateTriagePopupDisplay() {
+        return new TriagePopupDisplay();
     }
 }

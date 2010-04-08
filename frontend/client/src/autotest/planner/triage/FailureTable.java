@@ -5,19 +5,22 @@ import autotest.common.spreadsheet.Spreadsheet.CellInfo;
 import autotest.common.spreadsheet.Spreadsheet.Header;
 import autotest.common.spreadsheet.Spreadsheet.HeaderImpl;
 import autotest.common.spreadsheet.Spreadsheet.SpreadsheetListener;
+import autotest.common.ui.NotifyManager;
 
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.IncrementalCommand;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-class FailureTable implements SpreadsheetListener {
+class FailureTable implements SpreadsheetListener, TriagePopup.Listener {
     
     public interface Display {
         public Spreadsheet getSpreadsheet();
+        public TriagePopup.Display generateTriagePopupDisplay();
     }
     
     private static class Failure {
@@ -59,10 +62,11 @@ class FailureTable implements SpreadsheetListener {
     
     public void bindDisplay(Display display) {
         this.display = display;
+        display.getSpreadsheet().setListener(this);
     }
     
     public void addFailure(JSONObject failureObj) {
-        rendered = false;
+        setRendered(false);
         
         Failure failure = Failure.fromJsonObject(failureObj);
         
@@ -81,8 +85,14 @@ class FailureTable implements SpreadsheetListener {
         return display;
     }
     
+    private void setRendered(boolean rendered) {
+        this.rendered = rendered;
+        display.getSpreadsheet().setVisible(rendered);
+    }
+    
     public void renderDisplay() {
         Spreadsheet spreadsheet = display.getSpreadsheet();
+        spreadsheet.clear();
         
         Header rowFields = HeaderImpl.fromBaseType(Collections.singletonList("machine"));
         Header columnFields = new HeaderImpl();
@@ -110,6 +120,8 @@ class FailureTable implements SpreadsheetListener {
             
             test.contents = failure.testName;
             reason.contents = failure.reason;
+            test.testIndex = failure.id;
+            reason.testIndex = failure.id;
             
             if (!failure.seen) {
                 test.contents = "<b>" + test.contents + "</b>";
@@ -122,8 +134,8 @@ class FailureTable implements SpreadsheetListener {
         spreadsheet.render(new IncrementalCommand() {
             @Override
             public boolean execute() {
-              rendered = true;
-              return false;
+                setRendered(true);
+                return false;
             }
         });
     }
@@ -137,6 +149,39 @@ class FailureTable implements SpreadsheetListener {
 
     @Override
     public void onCellClicked(CellInfo cellInfo, boolean isRightClick) {
-        //TODO: handle row clicks (pop up the triage panel)
+        if (cellInfo.testIndex == 0) {
+            return;
+        }
+        
+        TriagePopup popup = new TriagePopup(this, cellInfo.testIndex);
+        popup.bindDisplay(display.generateTriagePopupDisplay());
+        popup.render();
+    }
+
+    @Override
+    public void onTriage(TriagePopup source) {
+        if (removeFailure(source.getId())) {
+            renderDisplay();
+        }
+    }
+    
+    private boolean removeFailure(int id) {
+        setRendered(false);
+        
+        Iterator<Failure> iter = failures.iterator();
+        while (iter.hasNext()) {
+            if (iter.next().id == id) {
+                iter.remove();
+                return true;
+            }
+        }
+        
+        /*
+         * TODO: throw an Exception instead, and register a handler with
+         * GWT.setUncaughtExceptionHandler()
+         */
+        NotifyManager.getInstance().showError("Did not find failure id " + id);
+        setRendered(true);
+        return false;
     }
 }
