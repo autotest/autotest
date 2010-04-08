@@ -10,6 +10,12 @@ from autotest_lib.frontend.afe import models as afe_models
 from autotest_lib.frontend.tko import models as tko_models
 
 
+class DummyTestConfig(object):
+    def __init__(self):
+        self.id = object()
+        self.alias = object()
+
+
 class RpcInterfaceTest(unittest.TestCase,
                        planner_test_utils.PlannerTestMixin):
     def setUp(self):
@@ -74,8 +80,8 @@ class RpcInterfaceTest(unittest.TestCase,
 
 
     def test_get_next_test_configs(self):
-        DUMMY_CONFIGS = {'host1': object(),
-                         'host2': object()}
+        DUMMY_CONFIGS = {'host1': DummyTestConfig(),
+                         'host2': DummyTestConfig()}
         DUMMY_COMPLETE = object()
         self.god.stub_function(rpc_utils, 'compute_next_test_config')
 
@@ -95,7 +101,9 @@ class RpcInterfaceTest(unittest.TestCase,
         for config in result['next_configs']:
             self.assertTrue(config['host'] in DUMMY_CONFIGS)
             self.assertEqual(config['next_test_config_id'],
-                             DUMMY_CONFIGS[config['host']])
+                             DUMMY_CONFIGS[config['host']].id)
+            self.assertEqual(config['next_test_config_alias'],
+                             DUMMY_CONFIGS[config['host']].alias)
 
 
     def test_update_test_runs(self):

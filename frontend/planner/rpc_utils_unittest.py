@@ -108,7 +108,7 @@ class RpcUtilsTest(unittest.TestCase,
         hqe.save()
 
         self.assertEqual(
-                test_config.id,
+                test_config,
                 rpc_utils.compute_next_test_config(self._plan,
                                                    self._planner_host))
         self.assertFalse(self._planner_host.complete)
