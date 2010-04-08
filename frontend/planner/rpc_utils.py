@@ -2,6 +2,7 @@ import common
 import os
 from autotest_lib.frontend.afe import models as afe_models, model_logic
 from autotest_lib.frontend.planner import models, model_attributes
+from autotest_lib.frontend.planner import failure_actions
 from autotest_lib.client.common_lib import global_config, utils
 
 
@@ -159,3 +160,50 @@ def add_test_run(plan, planner_job, tko_test, hostname, status):
                                                        host=planner_host)
     test_run.status = status
     test_run.save()
+
+
+def _site_process_host_action_dummy(host, action):
+    return False
+
+
+def process_host_action(host, action):
+    """
+    Takes the specified action on the host
+    """
+    HostAction = failure_actions.HostAction
+    if action not in HostAction.values:
+        raise ValueError('Unexpected host action %s' % action)
+
+    site_process = utils.import_site_function(
+            __file__, 'autotest_lib.frontend.planner.site_rpc_utils',
+            'site_process_host_action', _site_process_host_action_dummy)
+
+    if not site_process(host, action):
+        # site_process_host_action returns True and and only if it matched a
+        # site-specific processing option
+        if action == HostAction.BLOCK:
+            host.blocked = True
+        elif action == HostAction.UNBLOCK:
+            host.blocked = False
+        else:
+            assert action == HostAction.REINSTALL
+            raise NotImplemented('TODO: implement reinstall')
+
+        host.save()
+
+
+def process_test_action(planner_job, action):
+    """
+    Takes the specified action for this planner job
+    """
+    TestAction = failure_actions.TestAction
+    if action not in TestAction.values:
+        raise ValueError('Unexpected test action %s' % action)
+
+    if action == TestAction.SKIP:
+        # Do nothing
+        pass
+    else:
+        assert action == TestAction.RERUN
+        planner_job.requires_rerun = True
+        planner_job.save()

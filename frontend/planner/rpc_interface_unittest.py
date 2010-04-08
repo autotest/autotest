@@ -5,6 +5,7 @@ import common
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.planner import planner_test_utils, model_attributes
 from autotest_lib.frontend.planner import rpc_interface, models, rpc_utils
+from autotest_lib.frontend.planner import failure_actions
 from autotest_lib.frontend.afe import model_logic
 from autotest_lib.frontend.afe import models as afe_models
 from autotest_lib.frontend.tko import models as tko_models
@@ -159,6 +160,56 @@ class RpcInterfaceTest(unittest.TestCase,
                          [{'status': model_attributes.TestRunStatus.PASSED,
                            'tko_test_idx': tko_test.test_idx,
                            'hostname': self._hostname}])
+        self.god.check_playback()
+
+
+    def test_process_failure(self):
+        self._setup_active_plan()
+        tko_test = tko_models.Test.objects.create(job=self._tko_job,
+                                                  machine=self._tko_machine,
+                                                  kernel=self._tko_kernel,
+                                                  status=self._running_status)
+        failure = models.TestRun.objects.create(
+                plan=self._plan,
+                test_job=self._planner_job,
+                tko_test=tko_test,
+                host=self._planner_host,
+                status=model_attributes.TestRunStatus.FAILED,
+                finalized=True, seen=False, triaged=False)
+        host_action = failure_actions.HostAction.UNBLOCK
+        test_action = failure_actions.TestAction.SKIP
+        labels = ['label1', 'label2']
+        keyvals = {'key1': 'value1',
+                   'key2': 'value2'}
+        bugs = ['bug1', 'bug2']
+        reason = 'overriden reason'
+        invalidate = True
+
+        self.god.stub_function(rpc_utils, 'process_host_action')
+        self.god.stub_function(rpc_utils, 'process_test_action')
+
+        rpc_utils.process_host_action.expect_call(self._planner_host,
+                                                  host_action)
+        rpc_utils.process_test_action.expect_call(self._planner_job,
+                                                  test_action)
+
+        rpc_interface.process_failure(failure.id, host_action, test_action,
+                                      labels, keyvals, bugs, reason, invalidate)
+        failure = models.TestRun.objects.get(id=failure.id)
+
+        self.assertEqual(
+                set(failure.tko_test.testlabel_set.all()),
+                set(tko_models.TestLabel.objects.filter(name__in=labels)))
+        self.assertEqual(
+                set(failure.tko_test.job.jobkeyval_set.all()),
+                set(tko_models.JobKeyval.objects.filter(
+                        key__in=keyvals.iterkeys())))
+        self.assertEqual(set(failure.bugs.all()),
+                         set(models.Bug.objects.filter(external_uid__in=bugs)))
+        self.assertEqual(failure.tko_test.reason, reason)
+        self.assertEqual(failure.invalidated, invalidate)
+        self.assertTrue(failure.seen)
+        self.assertTrue(failure.triaged)
         self.god.check_playback()
 
 

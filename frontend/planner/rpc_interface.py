@@ -13,6 +13,7 @@ from autotest_lib.frontend.afe import model_logic, models as afe_models
 from autotest_lib.frontend.afe import rpc_utils as afe_rpc_utils
 from autotest_lib.frontend.tko import models as tko_models
 from autotest_lib.frontend.planner import models, rpc_utils, model_attributes
+from autotest_lib.frontend.planner import failure_actions
 from autotest_lib.client.common_lib import utils
 
 # basic getter/setter calls
@@ -207,7 +208,7 @@ def update_test_runs(plan_id):
                 tko_test_idx: the ID of the TKO test added
                 hostname: the host added
     """
-    plan = models.Plan.objects.get(id=plan_id)
+    plan = models.Plan.smart_get(plan_id)
     updated = []
 
     for planner_job in plan.job_set.all():
@@ -298,6 +299,90 @@ def skip_test(test_config_id, hostname):
     config.skipped_hosts.add(afe_models.Host.objects.get(hostname=hostname))
 
 
+def mark_failures_as_seen(failure_ids):
+    """
+    Marks a set of failures as 'seen'
+
+    @param failure_ids: A list of failure IDs, as returned by get_failures(), to
+                        mark as seen
+    """
+    models.TestRun.objects.filter(id__in=failure_ids).update(seen=True)
+
+
+def process_failure(failure_id, host_action, test_action, labels=(),
+                    keyvals=None, bugs=(), reason=None, invalidate=False):
+    """
+    Triage a failure
+
+    @param failure_id: The failure ID, as returned by get_failures()
+    @param host_action: One of 'Block', 'Unblock', 'Reinstall'
+    @param test_action: One of 'Skip', 'Rerun'
+
+    @param labels: Test labels to apply, by name
+    @param keyvals: Dictionary of job keyvals to add (or replace)
+    @param bugs: List of bug IDs to associate with this failure
+    @param reason: An override for the test failure reason
+    @param invalidate: True if failure should be invalidated for the purposes of
+                       reporting. Defaults to False.
+    """
+    if keyvals is None:
+        keyvals = {}
+
+    host_choices = failure_actions.HostAction.values
+    test_choices = failure_actions.TestAction.values
+    if host_action not in host_choices:
+        raise model_logic.ValidationError(
+                {'host_action': ('host action %s not valid; must be one of %s'
+                                 % (host_action, ', '.join(host_choices)))})
+    if test_action not in test_choices:
+        raise model_logic.ValidationError(
+                {'test_action': ('test action %s not valid; must be one of %s'
+                                 % (test_action, ', '.join(test_choices)))})
+
+    failure = models.TestRun.objects.get(id=failure_id)
+
+    rpc_utils.process_host_action(failure.host, host_action)
+    rpc_utils.process_test_action(failure.test_job, test_action)
+
+    # Add the test labels
+    for label in labels:
+        tko_test_label, _ = (
+                tko_models.TestLabel.objects.get_or_create(name=label))
+        failure.tko_test.testlabel_set.add(tko_test_label)
+
+    # Set the job keyvals
+    for key, value in keyvals.iteritems():
+        keyval, created = tko_models.JobKeyval.objects.get_or_create(
+                job=failure.tko_test.job, key=key)
+        if not created:
+            tko_models.JobKeyval.objects.create(job=failure.tko_test.job,
+                                                key='original_' + key,
+                                                value=keyval.value)
+        keyval.value = value
+        keyval.save()
+
+    # Add the bugs
+    for bug_id in bugs:
+        bug, _ = models.Bug.objects.get_or_create(external_uid=bug_id)
+        failure.bugs.add(bug)
+
+    # Set the failure reason
+    if reason is not None:
+        tko_models.TestAttribute.objects.create(test=failure.tko_test,
+                                                attribute='original_reason',
+                                                value=failure.tko_test.reason)
+        failure.tko_test.reason = reason
+        failure.tko_test.save()
+
+    # Set 'invalidated', 'seen', and 'triaged'
+    failure.invalidated = invalidate
+    failure.seen = True
+    failure.triaged = True
+    failure.save()
+
+
 def get_static_data():
-    result = {'motd': afe_rpc_utils.get_motd()}
+    result = {'motd': afe_rpc_utils.get_motd(),
+              'host_actions': sorted(failure_actions.HostAction.values),
+              'test_actions': sorted(failure_actions.TestAction.values)}
     return result
