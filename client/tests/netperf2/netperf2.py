@@ -21,7 +21,7 @@ class netperf2(test.test):
         # CPU_SET_S defined on /usr/include/sched.h, backported from
         # upstream svn trunk
         utils.system('patch -p0 < ../fix_netperf_build.patch')
-        utils.system('./configure')
+        utils.configure()
         utils.system('make')
         utils.system('sync')
 
