@@ -16,7 +16,7 @@ class iperf(test.test):
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('./configure')
+        utils.configure()
         utils.system('make')
         utils.system('sync')
 
