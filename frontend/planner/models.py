@@ -167,6 +167,7 @@ class Job(ModelWithPlan, model_logic.ModelExtensions):
     """
     test_config = dbmodels.ForeignKey(TestConfig)
     afe_job = dbmodels.ForeignKey(afe_models.Job)
+    requires_rerun = dbmodels.BooleanField(default=False)
 
     class Meta:
         db_table = 'planner_test_jobs'
@@ -222,6 +223,7 @@ class TestRun(ModelWithPlan, model_logic.ModelExtensions):
     finalized = dbmodels.BooleanField(default=False)
     seen = dbmodels.BooleanField(default=False)
     triaged = dbmodels.BooleanField(default=False)
+    invalidated = dbmodels.BooleanField(default=False)
 
     bugs = dbmodels.ManyToManyField(Bug, null=True,
                                     db_table='planner_test_run_bugs')

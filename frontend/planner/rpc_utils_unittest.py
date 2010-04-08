@@ -5,8 +5,7 @@ import common
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.planner import planner_test_utils
 from autotest_lib.frontend.afe import model_logic, models as afe_models
-from autotest_lib.frontend.afe import rpc_interface as afe_rpc_interface
-from autotest_lib.frontend.planner import models, rpc_utils
+from autotest_lib.frontend.planner import models, rpc_utils, failure_actions
 from autotest_lib.client.common_lib import utils, host_queue_entry_states
 
 
@@ -131,6 +130,89 @@ class RpcUtilsTest(unittest.TestCase,
                 None, rpc_utils.compute_next_test_config(self._plan,
                                                          self._planner_host))
         self.assertTrue(self._planner_host.complete)
+
+
+    def _replace_site_process_host_action(self, replacement):
+        self.god.stub_function(utils, 'import_site_function')
+        utils.import_site_function.expect_any_call().and_return(replacement)
+
+
+    def _remove_site_process_host_action(self):
+        def _site_process_host_action_dummy(host, action):
+            return False
+        self._replace_site_process_host_action(_site_process_host_action_dummy)
+
+
+    def test_process_host_action_block(self):
+        self._remove_site_process_host_action()
+        host = models.Host.objects.create(plan=self._plan, host=self.hosts[0],
+                                          blocked=False)
+        assert not host.blocked
+
+        rpc_utils.process_host_action(host, failure_actions.HostAction.BLOCK)
+        host = models.Host.objects.get(id=host.id)
+
+        self.assertTrue(host.blocked)
+        self.god.check_playback()
+
+
+    def test_process_host_action_unblock(self):
+        self._remove_site_process_host_action()
+        host = models.Host.objects.create(plan=self._plan, host=self.hosts[0],
+                                          blocked=True)
+        assert host.blocked
+
+        rpc_utils.process_host_action(host, failure_actions.HostAction.UNBLOCK)
+        host = models.Host.objects.get(id=host.id)
+
+        self.assertFalse(host.blocked)
+        self.god.check_playback()
+
+
+    def test_process_host_action_site(self):
+        self._remove_site_process_host_action
+        action = object()
+        failure_actions.HostAction.values.append(action)
+        host = models.Host.objects.create(plan=self._plan, host=self.hosts[0])
+
+        self.assertRaises(AssertionError, rpc_utils.process_host_action,
+                          host, action)
+        self.god.check_playback()
+
+        self._called = False
+        def _site_process_host_action(host, action):
+            self._called = True
+            return True
+        self._replace_site_process_host_action(_site_process_host_action)
+
+        rpc_utils.process_host_action(host, action)
+
+        self.assertTrue(self._called)
+        self.god.check_playback()
+
+
+    def test_process_test_action_skip(self):
+        self._setup_active_plan()
+        planner_job = self._planner_job
+        assert not planner_job.requires_rerun
+
+        rpc_utils.process_test_action(planner_job,
+                                      failure_actions.TestAction.SKIP)
+        planner_job = models.Job.objects.get(id=planner_job.id)
+
+        self.assertFalse(planner_job.requires_rerun)
+
+
+    def test_process_test_action_rerun(self):
+        self._setup_active_plan()
+        planner_job = self._planner_job
+        assert not planner_job.requires_rerun
+
+        rpc_utils.process_test_action(planner_job,
+                                      failure_actions.TestAction.RERUN)
+        planner_job = models.Job.objects.get(id=planner_job.id)
+
+        self.assertTrue(planner_job.requires_rerun)
 
 
 if __name__ == '__main__':
