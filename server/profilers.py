@@ -13,7 +13,7 @@ def get_profiler_results_dir(autodir):
     Given the directory of the autotest client used to run a profiler,
     return the remote path where profiler results will be stored.
     """
-    return os.path.join(autodir, 'results', 'default', 'barriertest',
+    return os.path.join(autodir, 'results', 'default', 'profiler_sync',
                         'profiling')
 
 
