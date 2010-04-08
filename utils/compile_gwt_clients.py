@@ -2,12 +2,11 @@
 import common
 import sys, os, shutil, errno, optparse, logging
 from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.common_lib import logging_config, logging_manager
 """
 Compile All Autotest GWT Clients Living in autotest/frontend/client/src
 """
 
-
-logging.basicConfig(level=logging.DEBUG)
 _AUTOTEST_DIR = common.autotest_dir
 _DEFAULT_GWT_DIR = '/usr/local/lib/gwt'
 _DEFAULT_APP_DIR = os.path.join(_AUTOTEST_DIR, 'frontend/client')
@@ -20,6 +19,11 @@ _COMPILE_LINE = ('java  -Xmx512M '
                  '-Djava.awt.headless=true com.google.gwt.dev.Compiler '
                  '-war "%(compile_dir)s" %(extra_args)s %(project_client)s')
 
+class CompileClientsLoggingConfig(logging_config.LoggingConfig):
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(CompileClientsLoggingConfig, self).configure_logging(
+                                                               use_console=True,
+                                                               verbose=verbose)
 
 def enumerate_projects():
     """List projects in _DEFAULT_APP_DIR."""
@@ -44,7 +48,8 @@ def find_gwt_dir():
         return site_gwt
 
     if not os.path.isdir(_DEFAULT_GWT_DIR):
-        print 'Error: Unable to find GWT, is GWT installed?\n'
+        logging.error('Unable to find GWT. '
+                      'You can use utils/build_externals.py to install it.')
         sys.exit(1)
 
     return _DEFAULT_GWT_DIR
@@ -78,9 +83,9 @@ def install_completed_client(compiled_dir, project_client):
             # and put the old client back
             shutil.rmtree(install_dir)
             shutil.copytree(old_install_dir, install_dir)
-            print 'Error: copying old client:', err
+            logging.error('Copying old client: %s', err)
     else:
-        print 'Error: Compiled directory is gone, something went wrong'
+        logging.error('Compiled directory is gone, something went wrong')
 
     return False
 
@@ -101,7 +106,7 @@ def compile_and_install_client(project_client, extra_args='',
     java_args['project_client'] = project_client
     cmd = _COMPILE_LINE % java_args
 
-    print 'Compiling client %s' % project_client
+    logging.info('Compiling client %s', project_client)
     try:
         utils.run(cmd, verbose=True)
         if install_client:
@@ -109,7 +114,7 @@ def compile_and_install_client(project_client, extra_args='',
                                             project_client)
         return True
     except error.CmdError:
-        print 'Error compiling %s, leaving old client' % project_client
+        logging.info('Error compiling %s, leaving old client', project_client)
 
     return False
 
@@ -129,13 +134,15 @@ def compile_all_projects(projects, extra_args=''):
 
 
 def print_projects():
-    print 'Projects that can be compiled:'
+    logging.info('Projects that can be compiled:')
     for project,clients in enumerate_projects().iteritems():
         for client in clients:
-            print '%s.%s' % (project, client)
+            logging.info('%s.%s', project, client)
 
 
 def main():
+    logging_manager.configure_logging(CompileClientsLoggingConfig(),
+                                      verbose=True)
     parser = optparse.OptionParser()
     parser.add_option('-l', '--list-projects',
                       action='store_true', dest='list_projects',
@@ -164,7 +171,7 @@ def main():
         print_projects()
         sys.exit(0)
     elif options.compile_all and options.compile_list:
-        print '-c and -a are mutually exclusive'
+        logging.error('Options -c and -a are mutually exclusive')
         parser.print_help()
         sys.exit(1)
 
@@ -181,8 +188,8 @@ def main():
         shutil.rmtree(_TMP_COMPILE_DIR)
 
     if failed_clients:
-        print ('Error: The following clients failed: %s'
-               % '\n'.join(failed_clients))
+        logging.error('The following clients failed: %s',
+                      '\n'.join(failed_clients))
         sys.exit(1)
 
 
