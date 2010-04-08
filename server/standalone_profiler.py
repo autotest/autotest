@@ -12,8 +12,13 @@ __author__ = 'cranger@google.com (Colby Ranger)'
 import common
 from autotest_lib.client.common_lib import barrier
 
-RUNTEST_PATTERN="job.run_test('barriertest',timeout_sync=%r,timeout_start=%r,\
-timeout_stop=%r,hostid='%s',masterid='%s',all_ids=%r)"
+# Client control file snippet used to synchronize profiler start & stop.
+_RUNTEST_PATTERN = ("job.run_test('profiler_sync', timeout_sync=%r,\n"
+                    "             timeout_start=%r, timeout_stop=%r,\n"
+                    "             hostid='%s', masterid='%s', all_ids=%r)")
+_PROF_MASTER = "PROF_MASTER"
+_PORT = 11920
+
 
 def _encode_args(profiler, args, dargs):
     parts = [repr(profiler)]
@@ -23,9 +28,9 @@ def _encode_args(profiler, args, dargs):
 
 
 def generate_test(machines, hostname, profilers, timeout_start, timeout_stop,
-                        timeout_sync=180):
+                  timeout_sync=180):
     """
-    Generate control file that enables given profilers and starts barriertest.
+    Generate a control file that enables profilers and starts profiler_sync.
 
     @param machines: sequence of all the hostnames involved in the barrier
             synchronization
@@ -35,12 +40,12 @@ def generate_test(machines, hostname, profilers, timeout_start, timeout_stop,
             non keyword arguments to give to the profiler when being added
             with "job.profilers.add()" in the control file, third item is
             a dictionary of the keyword arguments to give it
-    @param timeout_start: how many seconds to wait in barriertest for the
+    @param timeout_start: how many seconds to wait in profiler_sync for the
             profilers to start (None means no timeout)
-    @param timeout_stop: how many seconds to wait in barriertest for the
+    @param timeout_stop: how many seconds to wait in profiler_sync for the
             profilers to stop (None means no timeout)
-    @param timeout_sync: how many seconds to wait in barriertest for other
-            machines to reach the start of the barriertest (None means no
+    @param timeout_sync: how many seconds to wait in profiler_sync for other
+            machines to reach the start of the profiler_sync (None means no
             timeout)
     """
     control_file = []
@@ -48,34 +53,36 @@ def generate_test(machines, hostname, profilers, timeout_start, timeout_stop,
         control_file.append("job.profilers.add(%s)"
                             % _encode_args(*profiler))
 
-    control_file.append(RUNTEST_PATTERN % (timeout_sync, timeout_start,
-        timeout_stop, hostname, "PROF_MASTER", machines))
+    profiler_sync_call = (_RUNTEST_PATTERN %
+                          (timeout_sync, timeout_start, timeout_stop,
+                           hostname, _PROF_MASTER, machines))
+    control_file.append(profiler_sync_call)
 
-    for profiler in profilers:
+    for profiler in reversed(profilers):
         control_file.append("job.profilers.delete('%s')" % profiler[0])
 
     return "\n".join(control_file)
 
 
-def wait_for_profilers(machines, timeout = 300):
-    sb = barrier.barrier("PROF_MASTER", "sync_profilers",
-            timeout, port=11920)
-    sb.rendezvous_servers("PROF_MASTER", *machines)
+def wait_for_profilers(machines, timeout=300):
+    sb = barrier.barrier(_PROF_MASTER, "sync_profilers",
+            timeout, port=_PORT)
+    sb.rendezvous_servers(_PROF_MASTER, *machines)
 
 
-def start_profilers(machines, timeout = 120):
-    sb = barrier.barrier("PROF_MASTER", "start_profilers",
-            timeout, port=11920)
-    sb.rendezvous_servers("PROF_MASTER", *machines)
+def start_profilers(machines, timeout=120):
+    sb = barrier.barrier(_PROF_MASTER, "start_profilers",
+            timeout, port=_PORT)
+    sb.rendezvous_servers(_PROF_MASTER, *machines)
 
 
-def stop_profilers(machines, timeout = 120):
-    sb = barrier.barrier("PROF_MASTER", "stop_profilers",
-            timeout, port=11920)
-    sb.rendezvous_servers("PROF_MASTER", *machines)
+def stop_profilers(machines, timeout=120):
+    sb = barrier.barrier(_PROF_MASTER, "stop_profilers",
+            timeout, port=_PORT)
+    sb.rendezvous_servers(_PROF_MASTER, *machines)
 
 
-def finish_profilers(machines, timeout = 120):
-    sb = barrier.barrier("PROF_MASTER", "finish_profilers",
-            timeout, port=11920)
-    sb.rendezvous_servers("PROF_MASTER", *machines)
+def finish_profilers(machines, timeout=120):
+    sb = barrier.barrier(_PROF_MASTER, "finish_profilers",
+            timeout, port=_PORT)
+    sb.rendezvous_servers(_PROF_MASTER, *machines)
