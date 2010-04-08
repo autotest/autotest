@@ -27,12 +27,6 @@ def modify_plan(id, **data):
     models.Plan.smart_get(id).update_object(data)
 
 
-def get_test_runs(**filter_data):
-    return afe_rpc_utils.prepare_for_serialization(
-            [test_run.get_object_dict() for test_run
-             in models.TestRun.objects.filter(**filter_data)])
-
-
 def modify_test_run(id, **data):
     models.TestRun.objects.get(id=id).update_object(data)
 
@@ -70,7 +64,7 @@ def submit_plan(name, hosts, host_labels, tests,
                       is_server: True if is a server-side control file
                       estimated_runtime: estimated number of hours this test
                                          will run
-    @param support: the global support object
+    @param support: the global support script
     @param label_override: label to prepend to all AFE jobs for this test plan.
                            Defaults to the plan name.
     """
@@ -185,9 +179,10 @@ def get_next_test_configs(plan_id):
 
     rpc_utils.update_hosts_table(plan)
     for host in models.Host.objects.filter(plan=plan):
-        next_test_config_id = rpc_utils.compute_next_test_config(plan, host)
-        if next_test_config_id:
-            config = {'next_test_config_id': next_test_config_id,
+        next_test_config = rpc_utils.compute_next_test_config(plan, host)
+        if next_test_config:
+            config = {'next_test_config_id': next_test_config.id,
+                      'next_test_config_alias': next_test_config.alias,
                       'host': host.host.hostname}
             result['next_configs'].append(config)
 
@@ -274,6 +269,33 @@ def get_failures(plan_id):
         group_failures.append(failure_dict)
 
     return result
+
+
+def get_test_runs(**filter_data):
+    """
+    Gets a list of test runs that match the filter data.
+
+    Returns a list of expanded TestRun object dictionaries. Specifically, the
+    "host" and "test_job" fields are expanded. Additionally, the "test_config"
+    field of the "test_job" expansion is also expanded.
+    """
+    result = []
+    for test_run in models.TestRun.objects.filter(**filter_data):
+        test_run_dict = test_run.get_object_dict()
+        test_run_dict['host'] = test_run.host.get_object_dict()
+        test_run_dict['test_job'] = test_run.test_job.get_object_dict()
+        test_run_dict['test_job']['test_config'] = (
+                test_run.test_job.test_config.get_object_dict())
+        result.append(test_run_dict)
+    return result
+
+
+def skip_test(test_config_id, hostname):
+    """
+    Marks a test config as "skipped" for a given host
+    """
+    config = models.TestConfig.objects.get(id=test_config_id)
+    config.skipped_hosts.add(afe_models.Host.objects.get(hostname=hostname))
 
 
 def get_static_data():

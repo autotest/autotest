@@ -19,7 +19,7 @@ class Plan(dbmodels.Model, model_logic.ModelExtensions):
 
     Optional:
         label_override: A label to apply to each Autotest job.
-        support: The global support object to apply to this plan
+        support: The global support script to apply to this plan
     """
     name = dbmodels.CharField(max_length=255, unique=True)
     label_override = dbmodels.CharField(max_length=255, null=True, blank=True)
@@ -138,12 +138,15 @@ class TestConfig(ModelWithPlan, model_logic.ModelExtensions):
         estimated_runtime: Time in hours that the test is expected to run. Will
                            be automatically generated (on the frontend) for
                            tests in Autotest.
+        skipped_hosts: Hosts that are going to skip this test.
     """
     alias = dbmodels.CharField(max_length=255)
     control_file = dbmodels.ForeignKey(ControlFile)
     is_server = dbmodels.BooleanField(default=True)
     execution_order = dbmodels.IntegerField(blank=True)
     estimated_runtime = dbmodels.IntegerField()
+    skipped_hosts = dbmodels.ManyToManyField(
+            afe_models.Host, db_table='planner_test_configs_skipped_hosts')
 
     class Meta:
         db_table = 'planner_test_configs'
