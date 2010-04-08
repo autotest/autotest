@@ -834,10 +834,10 @@ class virtual_partition:
             raise error.AutotestError(e_msg)
 
         logging.debug('Creating virtual partition')
-        self.img = self.__create_disk_img(file_img, file_size)
-        self.loop = self.__attach_img_loop(self.img)
-        self.__create_single_partition(self.loop)
-        self.device = self.__create_entries_partition(self.loop)
+        self.img = self._create_disk_img(file_img, file_size)
+        self.loop = self._attach_img_loop(self.img)
+        self._create_single_partition(self.loop)
+        self.device = self._create_entries_partition(self.loop)
         logging.debug('Virtual partition successfuly created')
         logging.debug('Image disk: %s', self.img)
         logging.debug('Loopback device: %s', self.loop)
@@ -850,12 +850,12 @@ class virtual_partition:
         from the loopback device and removes the image file.
         """
         logging.debug('Removing virtual partition - device %s', self.device)
-        self.__remove_entries_partition()
-        self.__detach_img_loop()
-        self.__remove_disk_img()
+        self._remove_entries_partition()
+        self._detach_img_loop()
+        self._remove_disk_img()
 
 
-    def __create_disk_img(self, img_path, size):
+    def _create_disk_img(self, img_path, size):
         """
         Creates a disk image using dd.
 
@@ -873,7 +873,7 @@ class virtual_partition:
         return img_path
 
 
-    def __attach_img_loop(self, img_path):
+    def _attach_img_loop(self, img_path):
         """
         Attaches a file image to a loopback device using losetup.
 
@@ -894,7 +894,7 @@ class virtual_partition:
         return loop_path
 
 
-    def __create_single_partition(self, loop_path):
+    def _create_single_partition(self, loop_path):
         """
         Creates a single partition encompassing the whole 'disk' using cfdisk.
 
@@ -913,7 +913,7 @@ class virtual_partition:
             raise error.AutotestError(e_msg)
 
 
-    def __create_entries_partition(self, loop_path):
+    def _create_entries_partition(self, loop_path):
         """
         Takes the newly created partition table on the loopback device and
         makes all its devices available under /dev/mapper. As we previously
@@ -935,7 +935,7 @@ class virtual_partition:
         return os.path.join('/dev/mapper', device)
 
 
-    def __remove_entries_partition(self):
+    def _remove_entries_partition(self):
         """
         Removes the entries under /dev/mapper for the partition associated
         to the loopback device.
@@ -950,7 +950,7 @@ class virtual_partition:
             raise error.AutotestError(e_msg)
 
 
-    def __detach_img_loop(self):
+    def _detach_img_loop(self):
         """
         Detaches the image file from the loopback device.
         """
@@ -965,7 +965,7 @@ class virtual_partition:
             raise error.AutotestError(e_msg)
 
 
-    def __remove_disk_img(self):
+    def _remove_disk_img(self):
         """
         Removes the disk image.
         """
