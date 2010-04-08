@@ -271,7 +271,7 @@ class kernel(object):
         else:
             os.chdir(os.path.dirname(self.src_dir))
             # Figure out local destination for tarball
-            tarball = os.path.join(self.src_dir, os.path.basename(base_tree))
+            tarball = os.path.join(self.src_dir, os.path.basename(base_tree.split(';')[0]))
             utils.get_file(base_tree, tarball)
             print 'Extracting kernel tarball:', tarball, '...'
             utils.extract_tarball_to_dir(tarball, self.build_dir)
