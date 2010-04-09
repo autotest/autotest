@@ -2,6 +2,7 @@ import logging, pprint, re, urllib, getpass, urlparse
 import httplib2
 from django.utils import simplejson
 from autotest_lib.frontend.afe import rpc_client_lib
+from autotest_lib.client.common_lib import utils
 
 
 _http = httplib2.Http()
@@ -18,6 +19,16 @@ def _get_request_headers(uri):
 
     _request_headers[server] = headers
     return headers
+
+
+def _clear_request_headers(uri):
+    server = urlparse.urlparse(uri)[0:2]
+    if server in _request_headers:
+        del _request_headers[server]
+
+
+def _site_verify_response_default(headers, response_body):
+    return headers['status'] != '401'
 
 
 class RestClientError(Exception):
@@ -116,9 +127,21 @@ class Resource(object):
         logging.debug('%s %s', method, full_uri)
         if entity_body:
             logging.debug(entity_body)
+
+        site_verify = utils.import_site_function(
+                __file__, 'autotest_lib.frontend.shared.site_rest_client',
+                'site_verify_response', _site_verify_response_default)
         headers, response_body = _http.request(
                 full_uri, method, body=entity_body,
                 headers=_get_request_headers(uri))
+        if not site_verify(headers, response_body):
+            logging.debug('Response verification failed, clearing headers and '
+                          'trying again:\n%s', response_body)
+            _clear_request_headers(uri)
+            headers, response_body = _http.request(
+                full_uri, method, body=entity_body,
+                headers=_get_request_headers(uri))
+
         logging.debug('Response: %s', headers['status'])
 
         return Response(headers, response_body)
