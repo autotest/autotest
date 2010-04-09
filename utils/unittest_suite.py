@@ -29,6 +29,8 @@ REQUIRES_DJANGO = set((
         'metahost_scheduler_unittest.py',
         'site_metahost_scheduler_unittest.py',
         'rpc_utils_unittest.py',
+        'site_rpc_utils_unittest.py'
+        'execution_engine_unittest.py',
         ))
 
 REQUIRES_MYSQLDB = set((
