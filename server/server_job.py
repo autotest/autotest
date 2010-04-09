@@ -103,7 +103,7 @@ class base_server_job(base_job.base_job):
         else:
             self.user = getpass.getuser()
 
-        self._args = args
+        self.args = args
         self.machines = machines
         self._client = client
         self._record_prefix = ''
@@ -406,7 +406,7 @@ class base_server_job(base_job.base_job):
 
         self.aborted = False
         namespace['machines'] = machines
-        namespace['args'] = self._args
+        namespace['args'] = self.args
         namespace['job'] = self
         namespace['ssh_user'] = self._ssh_user
         namespace['ssh_port'] = self._ssh_port

@@ -85,6 +85,7 @@ class test_init_minimal_options(abstract_test_init, job_test_case):
             hostname = None
             user = None
             log = False
+            args = ''
         self.god.stub_function_to_return(job.utils, 'drop_caches', None)
 
         self.job._job_state = base_job_unittest.stub_job_state
@@ -236,6 +237,7 @@ class test_base_job(unittest.TestCase):
         options.verbose = False
         options.hostname = 'localhost'
         options.user = 'my_user'
+        options.args = ''
         self.job.__init__(self.control, options,
                           extra_copy_cmdline=['more-blah'])
 
@@ -274,6 +276,7 @@ class test_base_job(unittest.TestCase):
         options.verbose = False
         options.hostname = 'localhost'
         options.user = 'my_user'
+        options.args = ''
         error = Exception('fail')
 
         self.god.stub_function(self.job, '_post_record_init')
