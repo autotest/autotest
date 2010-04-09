@@ -381,8 +381,13 @@ def process_failure(failure_id, host_action, test_action, labels=(),
     failure.save()
 
 
+def get_motd():
+    return afe_rpc_utils.get_motd()
+
+
+
 def get_static_data():
-    result = {'motd': afe_rpc_utils.get_motd(),
+    result = {'motd': get_motd(),
               'host_actions': sorted(failure_actions.HostAction.values),
               'test_actions': sorted(failure_actions.TestAction.values)}
     return result
