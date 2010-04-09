@@ -3,7 +3,7 @@ import os
 from autotest_lib.frontend.afe import models as afe_models, model_logic
 from autotest_lib.frontend.planner import models, model_attributes
 from autotest_lib.frontend.planner import failure_actions
-from autotest_lib.client.common_lib import global_config, utils
+from autotest_lib.client.common_lib import global_config, utils, global_config
 
 
 PLANNER_LABEL_PREFIX = 'planner_'
@@ -36,6 +36,8 @@ def start_plan(plan, label):
     """
     Takes the necessary steps to start a test plan in Autotest
     """
+    timeout = global_config.global_config.get_config_value(
+            'PLANNER', 'execution_engine_timeout')
     keyvals = {'server': SERVER,
                'plan_id': plan.id,
                'label_name': label.name}
@@ -44,6 +46,7 @@ def start_plan(plan, label):
                'control_file': _get_execution_engine_control(),
                'control_type': afe_models.Job.ControlType.SERVER,
                'synch_count': None,
+               'timeout': timeout,
                'run_verify': False,
                'reboot_before': False,
                'reboot_after': False,
