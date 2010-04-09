@@ -372,9 +372,23 @@ def rounded_memtotal():
     return phys_kbytes
 
 
+def sysctl(key, value=None):
+    """Generic implementation of sysctl, to read and write.
+
+    @param key: A location under /proc/sys
+    @param value: If not None, a value to write into the sysctl.
+
+    @return The single-line sysctl value as a string.
+    """
+    path = '/proc/sys/%s' % key
+    if value is not None:
+        utils.write_one_line(path, str(value))
+    return utils.read_one_line(path)
+
+
 def sysctl_kernel(key, value=None):
     """(Very) partial implementation of sysctl, for kernel params"""
-    if value:
+    if value is not None:
         # write
         utils.write_one_line('/proc/sys/kernel/%s' % key, str(value))
     else:
