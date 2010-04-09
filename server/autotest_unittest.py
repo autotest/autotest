@@ -30,6 +30,8 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.job.profilers.add_log = {}
         self.host.job.tmpdir = "/job/tmp"
         self.host.job.default_profile_only = False
+        self.host.job.args = []
+        self.host.job.record = lambda *args: None
 
         # stubs
         self.god.stub_function(utils, "get_server_dir")
@@ -69,6 +71,7 @@ class TestBaseAutotest(unittest.TestCase):
 
         # create the autotest object
         self.base_autotest = autotest.BaseAutotest(self.host)
+        self.base_autotest.job = self.host.job
         self.god.stub_function(self.base_autotest, "_install_using_send_file")
 
         # stub out abspath
@@ -140,7 +143,6 @@ class TestBaseAutotest(unittest.TestCase):
                                        type=bool).and_return(True)
         self.base_autotest._install_using_send_file.expect_call(self.host,
                                                                 'autodir')
-
         # run and check
         self.base_autotest.install()
         self.god.check_playback()
@@ -212,7 +214,7 @@ class TestBaseAutotest(unittest.TestCase):
 
         cfile = self.god.create_mock_class(file, "file")
         cfile_orig = "original control file"
-        cfile_new = "job.add_repository(['repo'])\n"
+        cfile_new = "args = []\njob.add_repository(['repo'])\n"
         cfile_new += cfile_orig
 
         autotest.open.expect_call("temp").and_return(cfile)

@@ -363,7 +363,7 @@ class BaseAutotest(installable_object.InstallableObject):
         prologue_lines = []
 
         # Add the additional user arguments
-        prologue_lines.append("args = %r\n" % self.job._args)
+        prologue_lines.append("args = %r\n" % self.job.args)
 
         # If the packaging system is being used, add the repository list.
         repos = None

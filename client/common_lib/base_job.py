@@ -461,6 +461,9 @@ class base_job(object):
         tag
             A tag identifying the job. Often used by the scheduler to give
             a name of the form NUMBER-USERNAME/HOSTNAME.
+        args
+            A list of addtional miscellaneous command-line arguments provided
+            when starting the job.
 
         last_boot_tag
             The label of the kernel from the last reboot. [OPTIONAL,PERSISTENT]
