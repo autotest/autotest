@@ -76,7 +76,7 @@ class test_init(unittest.TestCase):
             'configdir', 'profdir', 'toolsdir', 'conmuxdir',
 
             # other special attributes
-            'automatic_test_tag', 'bootloader', 'control',
+            'args', 'automatic_test_tag', 'bootloader', 'control',
             'default_profile_only', 'drop_caches',
             'drop_caches_between_iterations', 'harness', 'hosts',
             'last_boot_tag', 'logging', 'machines', 'num_tests_failed',
