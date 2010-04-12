@@ -395,6 +395,7 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
     one_time_hosts = []
     meta_hosts = []
     atomic_group = None
+    hostless = False
 
     queue_entries = job.hostqueueentry_set.all()
     if queue_entry_filter_data:
@@ -410,8 +411,11 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
                 one_time_hosts.append(queue_entry.host)
             else:
                 hosts.append(queue_entry.host)
-        else:
+        elif queue_entry.meta_host:
             meta_hosts.append(queue_entry.meta_host)
+        else:
+            hostless = True
+
         if atomic_group is None:
             if queue_entry.atomic_group is not None:
                 atomic_group = queue_entry.atomic_group
@@ -429,7 +433,8 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
                 meta_hosts=meta_hosts,
                 meta_host_counts=meta_host_counts,
                 one_time_hosts=one_time_hosts,
-                atomic_group=atomic_group)
+                atomic_group=atomic_group,
+                hostless=hostless)
     return info
 
 
