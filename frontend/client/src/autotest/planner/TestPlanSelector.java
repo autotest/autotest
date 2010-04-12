@@ -9,6 +9,9 @@ import com.google.gwt.event.dom.client.KeyPressEvent;
 import com.google.gwt.event.dom.client.KeyPressHandler;
 import com.google.gwt.user.client.ui.HasText;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class TestPlanSelector implements ClickHandler, KeyPressHandler {
     
     public static interface Display {
@@ -17,14 +20,23 @@ public class TestPlanSelector implements ClickHandler, KeyPressHandler {
         public HasKeyPressHandlers getInputField();
     }
     
+    public static interface Listener {
+        public void onPlanSelected();
+    }
+    
     
     private Display display;
     private String selectedPlan;
+    private List<Listener> listeners = new ArrayList<Listener>();
     
     public void bindDisplay(Display display) {
         this.display = display;
         display.getShowButton().addClickHandler(this);
         display.getInputField().addKeyPressHandler(this);
+    }
+    
+    public void addListener(Listener listener) {
+        listeners.add(listener);
     }
     
     @Override
@@ -41,6 +53,9 @@ public class TestPlanSelector implements ClickHandler, KeyPressHandler {
     
     private void selectPlan() {
         selectedPlan = display.getInputText().getText();
+        for (Listener listener : listeners) {
+            listener.onPlanSelected();
+        }
     }
     
     public String getSelectedPlan() {

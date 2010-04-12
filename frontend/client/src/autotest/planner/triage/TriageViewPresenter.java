@@ -2,6 +2,7 @@ package autotest.planner.triage;
 
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
+import autotest.common.ui.HasTabVisible;
 import autotest.planner.TestPlanSelector;
 
 import com.google.gwt.json.client.JSONArray;
@@ -9,7 +10,7 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
-public class TriageViewPresenter {
+public class TriageViewPresenter implements TestPlanSelector.Listener {
     
     public interface Display {
         public void setLoading(boolean loading);
@@ -19,9 +20,12 @@ public class TriageViewPresenter {
     
     private TestPlanSelector selector;
     private Display display;
+    private HasTabVisible tab;
     
-    public TriageViewPresenter(TestPlanSelector selector) {
+    public TriageViewPresenter(TestPlanSelector selector, HasTabVisible tab) {
         this.selector = selector;
+        this.tab = tab;
+        selector.addListener(this);
     }
     
     public void bindDisplay(Display display) {
@@ -62,6 +66,13 @@ public class TriageViewPresenter {
             }
             
             table.renderDisplay();
+        }
+    }
+
+    @Override
+    public void onPlanSelected() {
+        if (tab.isTabVisible()) {
+            refresh();
         }
     }
 }
