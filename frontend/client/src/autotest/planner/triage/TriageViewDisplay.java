@@ -3,15 +3,15 @@ package autotest.planner.triage;
 import autotest.common.ui.NotifyManager;
 
 import com.google.gwt.user.client.ui.HTMLPanel;
-import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 
 
 public class TriageViewDisplay implements TriageViewPresenter.Display {
     
-    private Panel container = new VerticalPanel();
+    private VerticalPanel container = new VerticalPanel();
     
     public void initialize(HTMLPanel htmlPanel) {
+        container.setSpacing(25);
         htmlPanel.add(container, "triage_failure_tables");
     }
     
