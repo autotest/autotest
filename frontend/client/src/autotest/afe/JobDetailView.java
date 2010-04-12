@@ -257,7 +257,8 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         menu.addItem("Use failed and aborted hosts", new Command() {
             public void execute() {
                 JSONObject queueEntryFilterData = new JSONObject();
-                String sql = "(status = 'Failed' OR aborted = TRUE)";
+                String sql = "(status = 'Failed' OR aborted = TRUE OR " +
+                             "(host_id IS NULL AND meta_host IS NULL))";
                 
                 queueEntryFilterData.put("extra_where", new JSONString(sql));
                 cloneJob(true, queueEntryFilterData);

@@ -28,6 +28,7 @@ import com.google.gwt.event.logical.shared.OpenEvent;
 import com.google.gwt.event.logical.shared.OpenHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
+import com.google.gwt.json.client.JSONNull;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -172,6 +173,7 @@ public class CreateJobView extends TabView
     private RadioChooser rebootBefore = new RadioChooser();
     private RadioChooser rebootAfter = new RadioChooser();
     private CheckBox parseFailedRepair = new CheckBox();
+    private CheckBox hostless = new CheckBox();
     protected TestSelector testSelector;
     protected CheckBoxPanel<CheckBox> profilersPanel = 
         new CheckBoxPanel<CheckBox>(TEST_COLUMNS);
@@ -232,6 +234,10 @@ public class CreateJobView extends TabView
         rebootAfter.setSelectedChoice(Utils.jsonToString(jobObject.get("reboot_after")));
         parseFailedRepair.setValue(
                 jobObject.get("parse_failed_repair").isBoolean().booleanValue());
+        hostless.setValue(cloneObject.get("hostless").isBoolean().booleanValue());
+        if (hostless.getValue()) {
+            hostSelector.setEnabled(false);
+        }
 
         controlTypeSelect.setControlType(
                 jobObject.get("control_type").isString().stringValue());
@@ -582,6 +588,13 @@ public class CreateJobView extends TabView
             }
         });
         
+        hostless.addClickHandler(new ClickHandler() {
+            @Override
+            public void onClick(ClickEvent event) {
+                hostSelector.setEnabled(!hostless.getValue());
+            }
+        });
+        
         reset();
         
         addWidget(jobName, "create_job_name");
@@ -595,6 +608,7 @@ public class CreateJobView extends TabView
         addWidget(rebootBefore, "create_reboot_before");
         addWidget(rebootAfter, "create_reboot_after");
         addWidget(parseFailedRepair, "create_parse_failed_repair");
+        addWidget(hostless, "create_hostless");
         addWidget(testSelector, "create_tests");
         addWidget(profilerControls, "create_profilers");
         addWidget(controlFilePanel, "create_edit_control");
@@ -615,6 +629,7 @@ public class CreateJobView extends TabView
         rebootAfter.reset();
         parseFailedRepair.setValue(
                 repository.getData("parse_failed_repair_default").isBoolean().booleanValue());
+        hostless.setValue(false);
         kernel.setText("");
         kernel_cmdline.setText("");
         timeout.setText(Utils.jsonToString(repository.getData("job_timeout_default")));
@@ -638,12 +653,18 @@ public class CreateJobView extends TabView
     }
     
     protected void submitJob(final boolean isTemplate) {
-        final int timeoutValue, maxRuntimeValue, synchCount;
+        final int timeoutValue, maxRuntimeValue;
+        final JSONValue synchCount;
         try {
             timeoutValue = parsePositiveIntegerInput(timeout.getText(), "timeout");
             maxRuntimeValue = parsePositiveIntegerInput(maxRuntime.getText(), "max runtime");
-            synchCount = parsePositiveIntegerInput(synchCountInput.getText(), 
-                                                   "number of machines used per execution");
+            
+            if (hostless.getValue()) {
+                synchCount = JSONNull.getInstance();
+            } else {
+                synchCount = new JSONNumber(parsePositiveIntegerInput(
+                    synchCountInput.getText(), "number of machines used per execution"));
+            }
         } catch (IllegalArgumentException exc) {
             return;
         }
@@ -660,7 +681,7 @@ public class CreateJobView extends TabView
                 args.put("control_file", new JSONString(controlFile.getText()));
                 args.put("control_type", 
                          new JSONString(controlTypeSelect.getControlType()));
-                args.put("synch_count", new JSONNumber(synchCount));
+                args.put("synch_count", synchCount);
                 args.put("timeout", new JSONNumber(timeoutValue));
                 args.put("max_runtime_hrs", new JSONNumber(maxRuntimeValue));
                 args.put("email_list", new JSONString(emailList.getText()));
@@ -671,6 +692,7 @@ public class CreateJobView extends TabView
                 args.put("reboot_after", new JSONString(rebootAfter.getSelectedChoice()));
                 args.put("parse_failed_repair",
                          JSONBoolean.getInstance(parseFailedRepair.getValue()));
+                args.put("hostless", JSONBoolean.getInstance(hostless.getValue()));
 
                 HostSelector.HostSelection hosts = hostSelector.getSelectedHosts();
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));

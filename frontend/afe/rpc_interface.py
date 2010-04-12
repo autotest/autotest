@@ -655,6 +655,7 @@ def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
         info['atomic_group_name'] = (job_info['atomic_group']).name
     else:
         info['atomic_group_name'] = None
+    info['hostless'] = job_info['hostless']
 
     return rpc_utils.prepare_for_serialization(info)
 
