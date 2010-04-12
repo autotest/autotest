@@ -41,8 +41,8 @@ class sar(profiler.profiler):
         else:
             # Sar process didn't return, so 0 means generate continuously
             # Just terminate the process
-            self.cmd = self.sar_path + "-o %s %d 0"
-            t_process.terminate()
+            self.cmd = self.sar_path + " -o %s %d 0"
+            os.kill(t_process.pid, 15)
 
 
     def start(self, test):
@@ -65,8 +65,10 @@ class sar(profiler.profiler):
 
         @param test: Autotest test on which this profiler will operate on.
         """
-        self.sar_process.terminate()
-
+        try:
+            os.kill(self.sar_process.pid, 15)
+        except OSError:
+            pass
 
     def report(self, test):
         """
