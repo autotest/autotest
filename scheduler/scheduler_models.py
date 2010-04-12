@@ -710,7 +710,8 @@ class HostQueueEntry(DBObject):
             # with status "Aborted" and take care of the host
             return
 
-        if self.status in (Status.STARTING, Status.PENDING, Status.RUNNING):
+        if self.status in (Status.STARTING, Status.PENDING, Status.RUNNING,
+                           Status.WAITING):
             assert not dispatcher.get_agents_for_entry(self)
             self.host.set_status(models.Host.Status.READY)
         elif self.status == Status.VERIFYING:
