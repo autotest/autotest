@@ -161,7 +161,10 @@ class FailureTable implements SpreadsheetListener, TriagePopup.Listener {
     @Override
     public void onTriage(TriagePopup source) {
         if (removeFailure(source.getId())) {
-            renderDisplay();
+            if (!failures.isEmpty()) {
+                // If no more failures, leave the spreadsheet invisible
+                renderDisplay();
+            }
         }
     }
     
