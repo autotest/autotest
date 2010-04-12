@@ -1,9 +1,6 @@
-from autotest_lib.client.common_lib import utils
 from autotest_lib.frontend.planner import execution_engine
 
-keyvals = utils.read_keyval(job.resultdir)
-
-engine = execution_engine.ExecutionEngine(plan_id=keyvals['plan_id'],
-                                          server=keyvals['server'],
-                                          label_name=keyvals['label_name'])
+engine = execution_engine.ExecutionEngine(plan_id=%(plan_id)d,
+                                          server='%(server)s',
+                                          label_name='%(label_name)s')
 engine.start()
