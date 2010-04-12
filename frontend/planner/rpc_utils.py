@@ -38,12 +38,12 @@ def start_plan(plan, label):
     """
     timeout = global_config.global_config.get_config_value(
             'PLANNER', 'execution_engine_timeout')
-    keyvals = {'server': SERVER,
-               'plan_id': plan.id,
-               'label_name': label.name}
+    control = _get_execution_engine_control(server=SERVER,
+                                            plan_id=plan.id,
+                                            label_name=label.name)
     options = {'name': plan.name + '_execution_engine',
                'priority': afe_models.Job.Priority.MEDIUM,
-               'control_file': _get_execution_engine_control(),
+               'control_file': control,
                'control_type': afe_models.Job.ControlType.SERVER,
                'synch_count': None,
                'timeout': timeout,
@@ -58,12 +58,13 @@ def start_plan(plan, label):
     job.queue(hosts=())
 
 
-def _get_execution_engine_control():
+def _get_execution_engine_control(server, plan_id, label_name):
     """
     Gets the control file to run the execution engine
     """
-    return lazy_load(os.path.join(os.path.dirname(__file__),
-                                  'execution_engine_control.srv'))
+    control = lazy_load(os.path.join(os.path.dirname(__file__),
+                                     'execution_engine_control.srv'))
+    return control % dict(server=server, plan_id=plan_id, label_name=label_name)
 
 
 def lazy_load(path):
