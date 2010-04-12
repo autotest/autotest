@@ -56,6 +56,7 @@ public class HostSelector implements ClickHandler {
         public SimplifiedList getLabelList();
         public HasText getLabelNumberField();
         public HasClickHandlers getAddByLabelButton();
+        public void setVisible(boolean visible);
 
         // a temporary measure until the table code gets refactored to support Passive View
         public void addTables(Widget availableTable, Widget selectedTable);
@@ -72,6 +73,7 @@ public class HostSelector implements ClickHandler {
         new HostTableDecorator(availableTable, TABLE_SIZE);
     private HostTable selectedTable = new HostTable(selectedHostData);
     private TableDecorator selectedDecorator = new TableDecorator(selectedTable);
+    private boolean enabled = true;
     
     private SelectionManager availableSelection;
     
@@ -297,6 +299,10 @@ public class HostSelector implements ClickHandler {
      */
     public HostSelection getSelectedHosts() {
         HostSelection selection = new HostSelection();
+        if (!enabled) {
+            return selection;
+        }
+        
         for (JSONObject row : selectedHostData.getItems() ) {
             if (isMetaEntry(row)) {
                 int count =  getMetaNumber(row);
@@ -324,6 +330,7 @@ public class HostSelector implements ClickHandler {
     public void reset() {
         deselectAll();
         selectionRefresh();
+        setEnabled(true);
     }
     
     /**
@@ -349,5 +356,10 @@ public class HostSelector implements ClickHandler {
     public void refresh() {
         availableTable.refresh();
         selectionRefresh();
+    }
+    
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        display.setVisible(enabled);
     }
 }
