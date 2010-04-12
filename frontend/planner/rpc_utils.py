@@ -47,6 +47,7 @@ def start_plan(plan, label):
                'control_type': afe_models.Job.ControlType.SERVER,
                'synch_count': None,
                'timeout': timeout,
+               'max_runtime_hrs': timeout,
                'run_verify': False,
                'reboot_before': False,
                'reboot_after': False,
