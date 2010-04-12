@@ -23,7 +23,7 @@ import java.util.Map;
  * tab from the "title" attribute of the HTML element.  This class also supports
  * lazy initialization of the tab by waiting until the tab is first displayed.
  */
-public abstract class TabView {
+public abstract class TabView implements HasTabVisible {
     private boolean initialized = false;
     private HTMLPanel htmlPanel;
     private String title;
@@ -70,7 +70,7 @@ public abstract class TabView {
         visible = false;
     }
     
-    protected boolean isTabVisible() {
+    public boolean isTabVisible() {
         return visible;
     }
 

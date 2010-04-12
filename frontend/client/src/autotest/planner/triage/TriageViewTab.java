@@ -12,7 +12,7 @@ public class TriageViewTab extends TabView {
     private TriageViewDisplay display = new TriageViewDisplay();
     
     public TriageViewTab(TestPlanSelector selector) {
-        presenter = new TriageViewPresenter(selector);
+        presenter = new TriageViewPresenter(selector, this);
     }
     
     @Override
