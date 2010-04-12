@@ -54,7 +54,7 @@ class JobStatusDataSource extends RpcDataSource {
             queueEntry.put("status", new JSONString(translation));
             
             boolean hasHost = (queueEntry.get("host").isNull() == null);
-            boolean hasMetaHost = (queueEntry.get("meta_host") == null);
+            boolean hasMetaHost = (queueEntry.get("meta_host").isNull() == null);
             
             if (!hasHost && !hasMetaHost) {
                 queueEntry.put("hostname", new JSONString("(hostless)"));
