@@ -1124,13 +1124,15 @@ class base_server_job(base_job.base_job):
         @param state_file A path to the state file from the client.
         """
         # update the on-disk state
-        self._state.read_from_file(state_path)
         try:
+            self._state.read_from_file(state_path)
             os.remove(state_path)
         except OSError, e:
             # ignore file-not-found errors
             if e.errno != errno.ENOENT:
                 raise
+            else:
+                logging.debug('Client state file %s not found', state_path)
 
         # update the sysinfo state
         if self._state.has('client', 'sysinfo'):
