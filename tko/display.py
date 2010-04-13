@@ -200,14 +200,17 @@ def status_html(db, box_data, shade):
     eg. { 'GOOD' : 4, 'FAIL' : 1 }
     """
     status_count_subset = box_data.status_count.copy()
-    status_count_subset[8] = 0  # Don't count TEST_NA
-    status_count_subset[9] = 0  # Don't count RUNNING
+    test_na = db.status_idx['TEST_NA']
+    running = db.status_idx['RUNNING']
+
+    status_count_subset[test_na] = 0  # Don't count TEST_NA
+    status_count_subset[running] = 0  # Don't count RUNNING
     html = "%d&nbsp;/&nbsp;%d " % (status_count_subset.get(6, 0),
                                    sum(status_count_subset.values()))
-    if 8 in box_data.status_count.keys():
-        html += ' (%d&nbsp;N/A)' % box_data.status_count[8]
-    if 9 in box_data.status_count.keys():
-        html += ' (%d&nbsp;running)' % box_data.status_count[9]
+    if test_na in box_data.status_count.keys():
+        html += ' (%d&nbsp;N/A)' % box_data.status_count[test_na]
+    if running in box_data.status_count.keys():
+        html += ' (%d&nbsp;running)' % box_data.status_count[running]
 
     if box_data.reasons_list:
         reasons_list = box_data.reasons_list
