@@ -144,7 +144,7 @@ class AFE(RpcClient):
 
 
     def host_statuses(self, live=None):
-        dead_statuses = ['Dead', 'Repair Failed', 'Repairing']
+        dead_statuses = ['Repair Failed', 'Repairing']
         statuses = self.run('get_static_data')['host_statuses']
         if live == True:
             return list(set(statuses) - set(dead_statuses))
