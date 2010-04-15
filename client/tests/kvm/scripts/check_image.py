@@ -79,6 +79,9 @@ class ImageCheck(object):
         # Check all the image in list.
         errmsg = []
         for image_path in self.image_path_list:
+            if not os.path.exists(image_path):
+                print "Image %s does not exist!" % image_path
+                continue
             s, o = self.exec_img_cmd('info', image_path)
             if not s:
                 errmsg.append(o)
