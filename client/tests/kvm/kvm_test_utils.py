@@ -241,15 +241,14 @@ def get_memory_info(lvms):
     return meminfo
 
 
-def run_autotest(vm, session, control_path, timeout, test_name, outputdir):
+def run_autotest(vm, session, control_path, timeout, outputdir):
     """
     Run an autotest control file inside a guest (linux only utility).
 
     @param vm: VM object.
     @param session: A shell session on the VM provided.
-    @param control: An autotest control file.
-    @param timeout: Timeout under which the autotest test must complete.
-    @param test_name: Autotest client test name.
+    @param control_path: A path to an autotest control file.
+    @param timeout: Timeout under which the autotest control file must complete.
     @param outputdir: Path on host where we should copy the guest autotest
             results to.
     """
@@ -305,22 +304,49 @@ def run_autotest(vm, session, control_path, timeout, test_name, outputdir):
             logging.error("Uncompress output:\n%s" % output)
             raise error.TestFail("Could not extract %s on guest" % basename)
 
+
+    def get_results():
+        """
+        Copy autotest results present on the guest back to the host.
+        """
+        logging.info("Trying to copy autotest results from guest")
+        guest_results_dir = os.path.join(outputdir, "guest_autotest_results")
+        if not os.path.exists(guest_results_dir):
+            os.mkdir(guest_results_dir)
+        if not vm.copy_files_from("%s/results/default/*" % autotest_path,
+                                  guest_results_dir):
+            logging.error("Could not copy autotest results from guest")
+
+
+    def get_results_summary():
+        """
+        Get the status of the tests that were executed on the host and close
+        the session where autotest was being executed.
+        """
+        output = session.get_command_output("cat results/*/status")
+        results = scan_results.parse_results(output)
+        # Report test results
+        logging.info("Results (test, status, duration, info):")
+        for result in results:
+            logging.info(str(result))
+        session.close()
+        return results
+
+
     if not os.path.isfile(control_path):
         raise error.TestError("Invalid path to autotest control file: %s" %
                               control_path)
 
-    tarred_autotest_path = "/tmp/autotest.tar.bz2"
-    tarred_test_path = "/tmp/%s.tar.bz2" % test_name
+    compressed_autotest_path = "/tmp/autotest.tar.bz2"
 
     # To avoid problems, let's make the test use the current AUTODIR
     # (autotest client path) location
     autotest_path = os.environ['AUTODIR']
-    tests_path = os.path.join(autotest_path, 'tests')
-    test_path = os.path.join(tests_path, test_name)
 
     # tar the contents of bindir/autotest
-    cmd = "tar cvjf %s %s/*" % (tarred_autotest_path, autotest_path)
-    cmd += " --exclude=%s/tests" % autotest_path
+    cmd = "tar cvjf %s %s/*" % (compressed_autotest_path, autotest_path)
+    # Until we have nested virtualization, we don't need the kvm test :)
+    cmd += " --exclude=%s/tests/kvm" % autotest_path
     cmd += " --exclude=%s/results" % autotest_path
     cmd += " --exclude=%s/tmp" % autotest_path
     cmd += " --exclude=%s/control" % autotest_path
@@ -329,34 +355,18 @@ def run_autotest(vm, session, control_path, timeout, test_name, outputdir):
     cmd += " --exclude=*.git"
     utils.run(cmd)
 
-    # tar the contents of bindir/autotest/tests/<test_name>
-    cmd = "tar cvjf %s %s/*" % (tarred_test_path, test_path)
-    cmd += " --exclude=*.pyc"
-    cmd += " --exclude=*.svn"
-    cmd += " --exclude=*.git"
-    utils.run(cmd)
-
     # Copy autotest.tar.bz2
-    copy_if_size_differs(vm, tarred_autotest_path, tarred_autotest_path)
-
-    # Copy <test_name>.tar.bz2
-    copy_if_size_differs(vm, tarred_test_path, tarred_test_path)
+    copy_if_size_differs(vm, compressed_autotest_path, compressed_autotest_path)
 
     # Extract autotest.tar.bz2
-    extract(vm, tarred_autotest_path, "/")
-
-    # mkdir autotest/tests
-    session.get_command_output("mkdir -p %s" % tests_path)
-
-    # Extract <test_name>.tar.bz2 into autotest/tests
-    extract(vm, tarred_test_path, "/")
+    extract(vm, compressed_autotest_path, "/")
 
     if not vm.copy_files_to(control_path,
                             os.path.join(autotest_path, 'control')):
         raise error.TestFail("Could not copy the test control file to guest")
 
     # Run the test
-    logging.info("Running test '%s'...", test_name)
+    logging.info("Running autotest control file %s on guest", control_path)
     session.get_command_output("cd %s" % autotest_path)
     session.get_command_output("rm -f control.state")
     session.get_command_output("rm -rf results/*")
@@ -366,39 +376,28 @@ def run_autotest(vm, session, control_path, timeout, test_name, outputdir):
                                         print_func=logging.info)
     logging.info("------------- End of test output ------------")
     if status is None:
+        get_results_summary()
+        get_results()
         raise error.TestFail("Timeout elapsed while waiting for autotest to "
                              "complete")
 
-    # Get the results generated by autotest
-    output = session.get_command_output("cat results/*/status")
-    results = scan_results.parse_results(output)
-    session.close
-
-    # Copy test results to the local bindir/guest_results
-    logging.info("Copying results back from guest...")
-    guest_results_dir = os.path.join(outputdir, "guest_autotest_results")
-    if not os.path.exists(guest_results_dir):
-        os.mkdir(guest_results_dir)
-    if not vm.copy_files_from("%s/results/default/*" % autotest_path,
-                              guest_results_dir):
-        logging.error("Could not copy results back from guest")
-
-    # Report test results
-    logging.info("Results (test, status, duration, info):")
-    for result in results:
-        logging.info(str(result))
+    results = get_results_summary()
+    get_results()
 
     # Make a list of FAIL/ERROR/ABORT results (make sure FAIL results appear
     # before ERROR results, and ERROR results appear before ABORT results)
-    bad_results = [r for r in results if r[1] == "FAIL"]
-    bad_results += [r for r in results if r[1] == "ERROR"]
-    bad_results += [r for r in results if r[1] == "ABORT"]
+    bad_results = [r[0] for r in results if r[1] == "FAIL"]
+    bad_results += [r[0] for r in results if r[1] == "ERROR"]
+    bad_results += [r[0] for r in results if r[1] == "ABORT"]
 
     # Fail the test if necessary
     if not results:
-        raise error.TestFail("Test '%s' did not produce any recognizable "
-                             "results" % test_name)
+        raise error.TestFail("Autotest control file run did not produce any "
+                             "recognizable results")
     if bad_results:
-        result = bad_results[0]
-        raise error.TestFail("Test '%s' ended with %s (reason: '%s')"
-                             % (result[0], result[1], result[3]))
+        if len(bad_results) == 1:
+            e_msg = "Test %s failed during control file execution" % r[0]
+        else:
+            e_msg = ("Tests %s failed during control file execution" %
+                     " ".join(bad_results))
+        raise error.TestFail(e_msg)
