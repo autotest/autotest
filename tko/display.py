@@ -138,25 +138,25 @@ class box:
                                 (box_html, self.color, data, box_html)
 
 
-def grade_from_status(status):
+def grade_from_status(status_idx, status):
     # % of goodness
     # GOOD (6)  -> 1
     # TEST_NA (8) is not counted
     # ##  If the test doesn't PASS, it FAILS
     # else -> 0
 
-    if status == 6:
+    if status == status_idx['GOOD']:
         return 1.0
     else:
         return 0.0
 
 
-def average_grade_from_status_count(status_count):
+def average_grade_from_status_count(status_idx, status_count):
     average_grade = 0
     total_count = 0
     for key in status_count.keys():
-        if key not in (8, 9): # TEST_NA, RUNNING
-            average_grade += (grade_from_status(key)
+        if key not in (status_idx['TEST_NA'], status_idx['RUNNING']):
+            average_grade += (grade_from_status(status_idx, key)
                                     * status_count[key])
             total_count += status_count[key]
     if total_count != 0:
@@ -166,7 +166,7 @@ def average_grade_from_status_count(status_count):
     return average_grade
 
 
-def shade_from_status_count(status_count):
+def shade_from_status_count(status_idx, status_count):
     if not status_count:
         return None
 
@@ -175,7 +175,7 @@ def shade_from_status_count(status_count):
     ## 0.76 -> red
     ## 0.88-> yellow
     ## 1.0 -> green
-    average_grade = average_grade_from_status_count(status_count)
+    average_grade = average_grade_from_status_count(status_idx, status_count)
 
     ## find appropiate keyword from color_map
     if average_grade<0.01:
@@ -202,10 +202,11 @@ def status_html(db, box_data, shade):
     status_count_subset = box_data.status_count.copy()
     test_na = db.status_idx['TEST_NA']
     running = db.status_idx['RUNNING']
+    good = db.status_idx['GOOD']
 
     status_count_subset[test_na] = 0  # Don't count TEST_NA
     status_count_subset[running] = 0  # Don't count RUNNING
-    html = "%d&nbsp;/&nbsp;%d " % (status_count_subset.get(6, 0),
+    html = "%d&nbsp;/&nbsp;%d " % (status_count_subset.get(good, 0),
                                    sum(status_count_subset.values()))
     if test_na in box_data.status_count.keys():
         html += ' (%d&nbsp;N/A)' % box_data.status_count[test_na]
@@ -260,7 +261,7 @@ def status_precounted_box(db, box_data, link = None,
     if not status_count:
         return box(None, None)
 
-    shade = shade_from_status_count(status_count)
+    shade = shade_from_status_count(db.status_idx, status_count)
     html,tooltip = status_html(db, box_data, shade)
     precounted_box = box(html, shade, False, link, tooltip,
                             x_label, y_label)
