@@ -733,6 +733,29 @@ variants:
                             tftp = images/rhel54-64/tftpboot
                             floppy = images/rhel54-64/floppy.img
 
+                    - 5.5.i386:
+                        no setup
+                        image_name = rhel5-32
+                        cdrom = linux/RHEL-5.5-i386-DVD.iso
+                        md5sum = 148858b157f275d9153797efddfc83c3
+                        md5sum_1m = 2502cc7ddb9d0684fe08c4a83d247902
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            tftp = images/rhel55-32/tftpboot
+                            floppy = images/rhel55-32/floppy.img
+
+                    - 5.5.x86_64:
+                        no setup
+                        image_name = rhel5-64
+                        cdrom = linux/RHEL-5.5-x86_64-DVD.iso
+                        md5sum = f3119f883257ef9041234feda2f1cad0
+                        md5sum_1m = a744084a03f6a08627f71527fc107a1e
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            tftp = images/rhel55-64/tftpboot
+                            floppy = images/rhel55-64/floppy.img
+
+
     # Windows section
     - @Windows:
         no autotest linux_s3 vlan_tag
