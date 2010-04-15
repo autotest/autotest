@@ -291,6 +291,48 @@ variants:
             - ksm_parallel:
                 ksm_mode = "parallel"
 
+    - qemu_img:
+        type = qemu_img
+        vms = ''
+        profilers = ''
+        take_regular_screendumps = no
+        variants:
+            - check:
+                subcommand = check
+                image_name_dd = dd_created_image
+                force_create_image_dd = no
+                remove_image_dd = yes
+                create_image_cmd = "dd if=/dev/zero of=%s bs=1G count=1"
+                # Test the convertion from 'dd_image_name' to specified format
+                supported_image_formats = qcow2 raw
+            - create:
+                subcommand = create
+                images += " large"
+                force_create_image_large = yes
+                image_size_large = 1G
+                image_name_large = create_large_image
+                remove_image_large = yes
+            - convert:
+                subcommand = convert
+                variants:
+                    - to_qcow2:
+                        dest_image_format = qcow2
+                        compressed = no
+                        encrypted = no
+                    - to_raw:
+                        dest_image_format = raw
+            - snapshot:
+                subcommand = snapshot
+            - commit:
+                subcommand = commit
+            - info:
+                subcommand = info
+            - rebase:
+                subcommand = rebase
+                rebase_mode = unsafe
+                image_name_snapshot1 = sn1
+                image_name_snapshot2 = sn2
+
     # system_powerdown, system_reset and shutdown *must* be the last ones
     # defined (in this order), since the effect of such tests can leave
     # the VM on a bad state.
