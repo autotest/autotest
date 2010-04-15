@@ -23,6 +23,7 @@ class setup_job_test_case(unittest.TestCase):
                            classmethod(lambda cls: '/adir'))
         self.job = self.job_class.__new__(self.job_class)
         self.job._job_directory = base_job_unittest.stub_job_directory
+        self.job.args = []
 
 
     def tearDown(self):
