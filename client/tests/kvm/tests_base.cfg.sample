@@ -110,50 +110,36 @@ variants:
         test_timeout = 1800
         variants:
             - sleeptest:
-                test_name = sleeptest
                 test_timeout = 120
                 test_control_file = sleeptest.control
             - dbench:
-                test_name = dbench
                 test_control_file = dbench.control
             - bonnie:
-                test_name = bonnie
                 test_control_file = bonnie.control
             - ebizzy:
-                test_name = ebizzy
                 test_control_file = ebizzy.control
             - stress:
-                test_name = stress
                 test_control_file = stress.control
             - disktest:
-                test_name = disktest
                 test_control_file = disktest.control
             - ctcs2:
-                test_name = cerberus
                 # If you think this is too lengthy, please change the cerberus
                 # control file and set this timeout appropriately.
                 test_timeout = 3900
                 test_control_file = cerberus.control
             - npb:
-                test_name = npb
                 test_control_file = npb.control
             - hackbench:
-                test_name = hackbench
                 test_control_file = hackbench.control
             - cpu_hotplug:
-                test_name = cpu_hotplug
                 test_control_file = cpu_hotplug.control
             - monotonic_time:
-                test_name = monotonic_time
                 test_control_file = monotonic_time.control
             - tsc:
-                test_name = tsc
                 test_control_file = tsc.control
             - scrashme:
-                test_name = scrashme
                 test_control_file = scrashme.control
             - hwclock:
-                test_name = hwclock
                 test_control_file = hwclock.control
 
     - linux_s3:     install setup unattended_install
