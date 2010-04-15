@@ -1,17 +1,35 @@
-#!/usr/bin/python
 import os, re
 from autotest_lib.client.bin import test, utils
 
 
 class iozone(test.test):
-    version = 2
+    """
+    This autotest module runs the IOzone filesystem benchmark. The benchmark
+    generates and measures a variety of file operations. Iozone has been ported
+    to many machines and runs under many operating systems.
+
+    Iozone is useful for performing a broad filesystem analysis of a vendor's
+    computer platform. The benchmark tests file I/O performance for the
+    following operations:
+
+    Read, write, re-read, re-write, read backwards, read strided, fread, fwrite,
+    random read, pread ,mmap, aio_read, aio_write
+
+    @author: Ying Tao (yingtao@cn.ibm.com)
+    @see: http://www.iozone.org
+    """
+    version = 3
 
     def initialize(self):
         self.job.require_gcc()
 
 
-    # http://www.iozone.org/src/current/iozone3_283.tar
-    def setup(self, tarball='iozone3_283.tar'):
+    def setup(self, tarball='iozone3_347.tar'):
+        """
+        Builds the given version of IOzone from a tarball.
+        @param tarball: Tarball with IOzone
+        @see: http://www.iozone.org/src/current/iozone3_347.tar
+        """
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(os.path.join(self.srcdir, 'src/current'))
@@ -28,6 +46,13 @@ class iozone(test.test):
 
 
     def run_once(self, dir=None, args=None):
+        """
+        Runs IOzone with appropriate parameters, record raw results in a per
+        iteration raw output file as well as in the results attribute
+
+        @param dir: IOzone file generation dir.
+        @param args: Arguments to the iozone program.
+        """
         if not dir:
             dir = self.tmpdir
         os.chdir(dir)
@@ -37,6 +62,11 @@ class iozone(test.test):
         cmd = os.path.join(self.srcdir, 'src', 'current', 'iozone')
         self.results = utils.system_output('%s %s' % (cmd, args))
         self.auto_mode = ("-a" in args)
+
+        path = os.path.join(self.resultsdir, 'raw_output_%s' % self.iteration)
+        raw_output_file = open(path, 'w')
+        raw_output_file.write(self.results)
+        raw_output_file.close()
 
 
     def __get_section_name(self, desc):
