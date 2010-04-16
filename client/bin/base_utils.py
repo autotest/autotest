@@ -9,7 +9,7 @@ precedence order defined there
 """
 import os, shutil, sys, signal, commands, pickle, glob, statvfs
 import math, re, string, fnmatch, logging
-from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.common_lib import error, utils, magic
 
 
 def grep(pattern, file):
@@ -47,9 +47,9 @@ def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
     else:
         run_cmd = utils.system
 
-    if file.endswith('.bz2'):
+    if magic.guess_type(file) == 'application/x-bzip2':
         cat = 'bzcat'
-    elif (file.endswith('.gz') or file.endswith('.tgz')):
+    elif magic.guess_type(file) == 'application/x-gzip':
         cat = 'zcat'
     else:
         cat = 'cat'
@@ -63,10 +63,10 @@ def extract_tarball_to_dir(tarball, dir):
     the top level of a tarball is - useful for versioned directory names, etc
     """
     if os.path.exists(dir):
-      if os.path.isdir(dir):
-        shutil.rmtree(dir)
-      else:
-        os.remove(dir)
+        if os.path.isdir(dir):
+            shutil.rmtree(dir)
+        else:
+            os.remove(dir)
     pwd = os.getcwd()
     os.chdir(os.path.dirname(os.path.abspath(dir)))
     newdir = extract_tarball(tarball)
@@ -500,7 +500,7 @@ def check_for_kernel_feature(feature):
     if not config:
         raise TypeError("Can't find kernel config file")
 
-    if config.endswith('.gz'):
+    if magic.guess_type(config) == 'application/x-gzip':
         grep = 'zgrep'
     else:
         grep = 'grep'
