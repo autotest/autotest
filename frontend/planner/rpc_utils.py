@@ -51,8 +51,7 @@ def start_plan(plan, label):
                'run_verify': False,
                'reboot_before': False,
                'reboot_after': False,
-               'dependencies': (),
-               'keyvals': keyvals}
+               'dependencies': ()}
     job = afe_models.Job.create(owner=afe_models.User.current_user().login,
                                 options=options, hosts=())
     job.queue(hosts=())
