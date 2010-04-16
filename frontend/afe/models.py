@@ -724,7 +724,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
         job.dependency_labels = options['dependencies']
 
-        if options['keyvals'] is not None:
+        if options.get('keyvals'):
             for key, value in options['keyvals'].iteritems():
                 JobKeyval.objects.create(job=job, key=key, value=value)
 
