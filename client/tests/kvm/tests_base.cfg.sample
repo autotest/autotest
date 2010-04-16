@@ -171,6 +171,11 @@ variants:
                 drift_threshold = 10
                 drift_threshold_single = 3
 
+    - balloon_check:  install setup unattended_install
+        type = balloon_check
+        extra_params += "-balloon virtio"
+        iterations = 5
+
     - stress_boot:  install setup unattended_install
         type = stress_boot
         max_vms = 5    
@@ -381,6 +386,7 @@ variants:
         file_transfer_client = scp
         file_transfer_port = 22
         mem_chk_cmd = dmidecode -t 17 | awk -F: '/Size/ {print $2}'
+        mem_chk_cur_cmd = grep MemTotal /proc/meminfo
         cpu_chk_cmd = grep -c processor /proc/cpuinfo
         timedrift:
             extra_params += " -no-kvm-pit-reinjection"
@@ -777,6 +783,7 @@ variants:
 
         cpu_chk_cmd = echo %NUMBER_OF_PROCESSORS%
         mem_chk_cmd = wmic memphysical
+        mem_chk_cur_cmd = wmic memphysical
 
         unattended_install:
             timeout = 7200
@@ -1179,7 +1186,7 @@ variants:
         image_boot=yes
 
 
-virtio|virtio_blk|e1000:
+virtio|virtio_blk|e1000|balloon_check:
     only Fedora.11 Fedora.12 Win2008 WinVista Win7 openSUSE-11 Ubuntu-8.10-server
 
 

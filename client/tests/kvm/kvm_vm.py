@@ -916,15 +916,19 @@ class VM:
             session.close()
 
 
-    def get_memory_size(self):
+    def get_memory_size(self, cmd=None):
         """
-        Get memory size of the VM.
+        Get bootup memory size of the VM.
+
+        @param check_cmd: Command used to check memory. If not provided,
+                self.params.get("mem_chk_cmd") will be used.
         """
         session = self.remote_login()
         if not session:
             return None
         try:
-            cmd = self.params.get("mem_chk_cmd")
+            if not cmd:
+                cmd = self.params.get("mem_chk_cmd")
             s, mem_str = session.get_command_status_output(cmd)
             if s != 0:
                 return None
@@ -941,3 +945,11 @@ class VM:
             return int(mem_size)
         finally:
             session.close()
+
+
+    def get_current_memory_size(self):
+        """
+        Get current memory size of the VM, rather than bootup memory.
+        """
+        cmd = self.params.get("mem_chk_cur_cmd")
+        return self.get_memory_size(cmd)
