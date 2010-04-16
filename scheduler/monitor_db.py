@@ -1722,7 +1722,7 @@ class TaskWithJobKeyvals(object):
 
     def _keyval_path(self):
         """Subclasses must override this"""
-        raise NotImplemented
+        raise NotImplementedError
 
 
     def _write_keyval_after_job(self, field, value):
@@ -1776,8 +1776,7 @@ class SpecialAgentTask(AgentTask, TaskWithJobKeyvals):
     def __init__(self, task, extra_command_args):
         super(SpecialAgentTask, self).__init__()
 
-        assert (self.TASK_TYPE is not None,
-                'self.TASK_TYPE must be overridden')
+        assert self.TASK_TYPE is not None, 'self.TASK_TYPE must be overridden'
 
         self.host = scheduler_models.Host(id=task.host.id)
         self.queue_entry = None
