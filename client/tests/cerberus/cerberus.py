@@ -46,11 +46,12 @@ class cerberus(test.test):
         os.chdir(self.srcdir)
         # Apply patch to fix build problems on newer distros (absence of
         # asm/page.h include, and platform(32/64bit) related issues.
-        utils.system('patch -p1 < ../0001-fix-ctcs2-build.patch')
+        p1 = 'patch -p1 < ../0001-Fix-CTCS2-Build.patch'
+        utils.system(p1)
 
-        output = os.popen('uname -i').read()
-        if output.find('x86_64') != -1:
-            utils.system('patch -p1 < ../0002-compile-on-64bit.patch')
+        if utils.get_cpu_arch() == 'x86_64':
+            p2 = 'patch -p1 < ../0002-Fix-CTCS2-build-in-64-bit-boxes.patch'
+            utils.system(p2)
 
         utils.system('make')
 
