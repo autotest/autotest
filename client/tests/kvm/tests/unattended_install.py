@@ -18,6 +18,10 @@ def run_unattended_install(test, params, env):
 
     port = vm.get_port(int(params.get("guest_port_unattended_install")))
     addr = ('localhost', port)
+    if params.get("post_install_delay"):
+        post_install_delay = int(params.get("post_install_delay"))
+    else:
+        post_install_delay = 0
 
     install_timeout = float(params.get("timeout", 3000))
     logging.info("Starting unattended install watch process. "
@@ -31,6 +35,10 @@ def run_unattended_install(test, params, env):
             client.connect(addr)
             msg = client.recv(1024)
             if msg == 'done':
+                if post_install_delay:
+                    logging.debug("Post install delay specified, "
+                                  "waiting %ss...", post_install_delay)
+                    time.sleep(post_install_delay)
                 break
         except socket.error:
             pass
