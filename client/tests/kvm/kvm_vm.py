@@ -498,7 +498,7 @@ class VM:
             lockfile.close()
 
 
-    def send_monitor_cmd(self, command, block=True, timeout=20.0):
+    def send_monitor_cmd(self, command, block=True, timeout=20.0, verbose=True):
         """
         Send command to the QEMU monitor.
 
@@ -541,8 +541,11 @@ class VM:
                     time.sleep(0.01)
             return (False, o)
 
+        # In certain conditions printing this debug output might be too much
+        # Just print it if verbose is enabled (True by default)
+        if verbose:
+            logging.debug("Sending monitor command: %s" % command)
         # Connect to monitor
-        logging.debug("Sending monitor command: %s" % command)
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.setblocking(False)
