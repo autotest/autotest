@@ -252,36 +252,32 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
     @param outputdir: Path on host where we should copy the guest autotest
             results to.
     """
-    def copy_if_size_differs(vm, local_path, remote_path):
+    def copy_if_hash_differs(vm, local_path, remote_path):
         """
-        Copy a file to a guest if it doesn't exist or if its size differs.
+        Copy a file to a guest if it doesn't exist or if its MD5sum differs.
 
         @param vm: VM object.
         @param local_path: Local path.
         @param remote_path: Remote path.
         """
         copy = False
+        local_hash = utils.hash_file(local_path)
         basename = os.path.basename(local_path)
-        local_size = os.path.getsize(local_path)
-        output = session.get_command_output("ls -l %s" % remote_path)
+        output = session.get_command_output("md5sum %s" % remote_path)
         if "such file" in output:
-            logging.info("Copying %s to guest (remote file is missing)" %
-                         basename)
-            copy = True
+            remote_hash = "0"
+        elif output:
+            remote_hash = output.split()[0]
         else:
-            try:
-                remote_size = output.split()[4]
-                remote_size = int(remote_size)
-            except IndexError, ValueError:
-                logging.error("Check for remote path size %s returned %s. "
-                              "Cannot process.", remote_path, output)
-                raise error.TestFail("Failed to check for %s (Guest died?)" %
-                                     remote_path)
-            if remote_size != local_size:
-                logging.debug("Copying %s to guest due to size mismatch"
-                              "(remote size %s, local size %s)" %
-                              (basename, remote_size, local_size))
-                copy = True
+            logging.warning("MD5 check for remote path %s did not return.",
+                            remote_path)
+            # Let's be a little more lenient here and see if it wasn't a
+            # temporary problem
+            remote_hash = "0"
+
+        if remote_hash != local_hash:
+            logging.debug("Copying %s to guest", basename)
+            copy = True
 
         if copy:
             if not vm.copy_files_to(local_path, remote_path):
@@ -298,11 +294,11 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
         """
         basename = os.path.basename(remote_path)
         logging.info("Extracting %s...", basename)
-        (status, output) = session.get_command_status_output(
-                                  "tar xjvf %s -C %s" % (remote_path, dest_dir))
-        if status != 0:
-            logging.error("Uncompress output:\n%s" % output)
-            raise error.TestFail("Could not extract %s on guest" % basename)
+        e_cmd = "tar xjvf %s -C %s" % (remote_path, dest_dir)
+        s, o = session.get_command_status_output(e_cmd)
+        if s != 0:
+            logging.error("Uncompress output:\n%s", o)
+            raise error.TestFail("Failed to extract %s on guest" % basename)
 
 
     def get_results():
@@ -324,13 +320,17 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
         the session where autotest was being executed.
         """
         output = session.get_command_output("cat results/*/status")
-        results = scan_results.parse_results(output)
-        # Report test results
-        logging.info("Results (test, status, duration, info):")
-        for result in results:
-            logging.info(str(result))
-        session.close()
-        return results
+        try:
+            results = scan_results.parse_results(output)
+            # Report test results
+            logging.info("Results (test, status, duration, info):")
+            for result in results:
+                logging.info(str(result))
+            session.close()
+            return results
+        except Exception, e:
+            logging.error("Error processing guest autotest results: %s", e)
+            return None
 
 
     if not os.path.isfile(control_path):
@@ -349,14 +349,14 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
     cmd += " --exclude=%s/tests/kvm" % autotest_path
     cmd += " --exclude=%s/results" % autotest_path
     cmd += " --exclude=%s/tmp" % autotest_path
-    cmd += " --exclude=%s/control" % autotest_path
+    cmd += " --exclude=%s/control*" % autotest_path
     cmd += " --exclude=*.pyc"
     cmd += " --exclude=*.svn"
     cmd += " --exclude=*.git"
     utils.run(cmd)
 
     # Copy autotest.tar.bz2
-    copy_if_size_differs(vm, compressed_autotest_path, compressed_autotest_path)
+    copy_if_hash_differs(vm, compressed_autotest_path, compressed_autotest_path)
 
     # Extract autotest.tar.bz2
     extract(vm, compressed_autotest_path, "/")
@@ -366,7 +366,8 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
         raise error.TestFail("Could not copy the test control file to guest")
 
     # Run the test
-    logging.info("Running autotest control file %s on guest", control_path)
+    logging.info("Running autotest control file %s on guest, timeout %ss",
+                 os.path.basename(control_path), timeout)
     session.get_command_output("cd %s" % autotest_path)
     session.get_command_output("rm -f control.state")
     session.get_command_output("rm -rf results/*")
@@ -376,10 +377,17 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
                                         print_func=logging.info)
     logging.info("------------- End of test output ------------")
     if status is None:
-        get_results_summary()
+        if not vm.is_alive():
+            raise error.TestError("Autotest job on guest failed "
+                                  "(VM terminated during job)")
+        if not session.is_alive():
+            get_results()
+            raise error.TestError("Autotest job on guest failed "
+                                  "(Remote session terminated during job)")
         get_results()
-        raise error.TestFail("Timeout elapsed while waiting for autotest to "
-                             "complete")
+        get_results_summary()
+        raise error.TestError("Timeout elapsed while waiting for job to "
+                              "complete")
 
     results = get_results_summary()
     get_results()
@@ -396,7 +404,8 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
                              "recognizable results")
     if bad_results:
         if len(bad_results) == 1:
-            e_msg = "Test %s failed during control file execution" % r[0]
+            e_msg = ("Test %s failed during control file execution" %
+                     bad_results[0])
         else:
             e_msg = ("Tests %s failed during control file execution" %
                      " ".join(bad_results))
