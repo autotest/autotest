@@ -401,6 +401,10 @@ def _take_screendumps(test, params, env):
                                  kvm_utils.generate_random_string(6))
     delay = float(params.get("screendump_delay", 5))
     quality = int(params.get("screendump_quality", 30))
+    if params.get("screendump_verbose") == 'yes':
+        screendump_verbose = True
+    else:
+        screendump_verbose = False
 
     cache = {}
 
@@ -408,7 +412,11 @@ def _take_screendumps(test, params, env):
         for vm in kvm_utils.env_get_all_vms(env):
             if vm.is_dead():
                 continue
-            vm.send_monitor_cmd("screendump %s" % temp_filename)
+            if screendump_verbose:
+                vm.send_monitor_cmd("screendump %s" % temp_filename)
+            else:
+                vm.send_monitor_cmd("screendump %s" % temp_filename,
+                                    verbose=False)
             if not os.path.exists(temp_filename):
                 logging.warn("VM '%s' failed to produce a screendump", vm.name)
                 continue

@@ -23,6 +23,7 @@ keep_screendumps_on_error = yes
 screendump_delay = 5
 screendump_quality = 30
 screendump_temp_dir = /dev/shm
+screendump_verbose = no
 
 # Some default VM params
 qemu_binary = qemu
