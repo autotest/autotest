@@ -1,3 +1,17 @@
+From ad38da9928b2c46c3be9ffa508cdc273583ed44f Mon Sep 17 00:00:00 2001
+From: Lucas Meneghel Rodrigues <lmr@redhat.com>
+Date: Sat, 17 Apr 2010 16:08:09 -0300
+Subject: [PATCH 2/2] Fix CTCS2 build in 64 bit boxes
+
+Signed-off-by: Chen Cao <kcao@redhat.com>
+---
+ runin/src/pi_fftc6/Makefile       |    8 ++--
+ runin/src/pi_fftc6/Makefile_32bit |   68 +++++++++++++++++++++++++++++++++++++
+ runin/src/pi_fftc6/Makefile_64bit |   68 -------------------------------------
+ 3 files changed, 72 insertions(+), 72 deletions(-)
+ create mode 100644 runin/src/pi_fftc6/Makefile_32bit
+ delete mode 100644 runin/src/pi_fftc6/Makefile_64bit
+
 diff --git a/runin/src/pi_fftc6/Makefile b/runin/src/pi_fftc6/Makefile
 index e1166bd..57fe30c 100644
 --- a/runin/src/pi_fftc6/Makefile
@@ -173,3 +187,6 @@ index 57fe30c..0000000
 -clean:
 -	rm -f *.o
 -
+-- 
+1.6.6.1
+
