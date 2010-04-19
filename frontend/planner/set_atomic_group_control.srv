@@ -11,9 +11,11 @@ afe_rest = rest_client.Resource.load(
 
 label = afe_rest.labels.get(name=keyvals['label_name']).members[0].get()
 
-for machine in machines:
+def run(machine):
     hostname = hosts.create_host(machine).hostname
     host = afe_rest.hosts.get(hostname=hostname).members[0]
     label.hosts.post({'host': host})
+
+job.parallel_simple(run, machines)
 
 planner_rpc.run('modify_plan', id=keyvals['plan_id'], initialized=True)
