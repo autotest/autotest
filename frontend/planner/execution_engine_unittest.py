@@ -44,6 +44,7 @@ class MockExecutionEngine(execution_engine.ExecutionEngine):
     _server = object()
     _afe_rest = MockAfeRest()
     _label_name = object()
+    _owner = object()
 
 
     def __init__(self, *args, **kwargs):
@@ -136,6 +137,7 @@ class ExecutionEngineTest(unittest.TestCase,
                    'plan_id': self.engine._plan_id}
 
         job_req = {'name': name,
+                   'owner': self.engine._owner,
                    'execution_info': DUMMY_EXECUTION_INFO.execution_info,
                    'queue_entries': DUMMY_QUEUE_ENTRIES_REQUEST.queue_entries,
                    'keyvals': keyvals}
