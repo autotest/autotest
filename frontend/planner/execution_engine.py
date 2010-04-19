@@ -15,12 +15,13 @@ class ExecutionEngine(object):
     _planner_rpc = frontend.Planner()
     _tko_rpc = frontend.TKO()
 
-    def __init__(self, plan_id, server, label_name):
+    def __init__(self, plan_id, server, label_name, owner):
         self._plan_id = plan_id
         self._server = server
+        self._label_name = label_name
+        self._owner = owner
         self._afe_rest = rest_client.Resource.load(
                 'http://%s/afe/server/resources' % server)
-        self._label_name = label_name
 
 
     def start(self):
@@ -80,6 +81,7 @@ class ExecutionEngine(object):
                        'plan_id': self._plan_id}
 
             job_req = {'name' : name,
+                       'owner': self._owner,
                        'execution_info' : info,
                        'queue_entries' : entries,
                        'keyvals' : keyvals}
@@ -217,6 +219,7 @@ class ExecutionEngine(object):
             prefix = plan['name']
         job_req = {'name' : '%s_%s_%s' % (prefix, test_config['alias'],
                                           hostname),
+                   'owner': self._owner,
                    'execution_info' : info,
                    'queue_entries' : entries}
 

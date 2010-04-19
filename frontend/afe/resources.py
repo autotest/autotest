@@ -639,6 +639,10 @@ class Job(resource_lib.InstanceEntry):
 
     @classmethod
     def create_instance(cls, input_dict, containing_collection):
+        owner = input_dict.get('owner')
+        if not owner:
+            owner = models.User.current_user().login
+
         cls._check_for_required_fields(input_dict, ('name', 'execution_info',
                                                     'queue_entries'))
         execution_info = input_dict['execution_info']
@@ -686,7 +690,7 @@ class Job(resource_lib.InstanceEntry):
                     atomic_group = atomic_group_entry.instance
 
         job_id = rpc_utils.create_new_job(
-                owner=models.User.current_user().login,
+                owner=owner,
                 options=options,
                 host_objects=host_objects,
                 metahost_objects=metahost_label_objects,

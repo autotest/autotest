@@ -442,10 +442,11 @@ class JobTest(ResourceTestCase):
         self.check_collection(entries, ['host', 'hostname'], ['host1', 'host2'])
 
 
-    def test_post(self):
+    def _test_post_helper(self, owner):
         data = {'name': 'myjob',
                 'execution_info': {'control_file': self.CONTROL_FILE_CONTENTS,
                                    'is_server': True},
+                'owner': owner,
                 'queue_entries':
                 [{'host': {'href': self.URI_PREFIX + '/hosts/host1'}},
                  {'host': {'href': self.URI_PREFIX + '/hosts/host2'}}]}
@@ -458,6 +459,19 @@ class JobTest(ResourceTestCase):
         entries = job.hostqueueentry_set.order_by('host__hostname')
         self.assertEquals(entries[0].host.hostname, 'host1')
         self.assertEquals(entries[1].host.hostname, 'host2')
+
+        owner_test = owner
+        if not owner_test:
+            owner_test = models.User.current_user().login
+        self.assertEquals(job.owner, owner_test)
+
+
+    def test_post_no_owner(self):
+        self._test_post_helper(None)
+
+
+    def test_post_with_owner(self):
+        self._test_post_helper('job_owner')
 
 
 class DirectoryTest(ResourceTestCase):
