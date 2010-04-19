@@ -306,6 +306,38 @@ variants:
             - ksm_parallel:
                 ksm_mode = "parallel"
 
+    # This unit test module is for older branches of KVM that use the
+    # kvmctl test harness (such as the code shipped with RHEL 5.x)
+    - unit_test_kvmctl:
+        type = unit_test
+        vms = ''
+        profilers = ''
+        variants:
+            - access:
+                case = access
+            - apic:
+                case = apic
+            - emulator:
+                case = emulator
+            - hypercall:
+                case = hypercall
+            - msr:
+                case = msr
+            - port80:
+                case = port80
+            - realmode:
+                case = realmode
+            - sieve:
+                case = sieve
+            - smptest:
+                case = smptest
+            - tsc:
+                case = tsc
+            - stringio:
+                case = stringio
+            - vmexit:
+                case = vmexit
+
     - qemu_img:
         type = qemu_img
         vms = ''
