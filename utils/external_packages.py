@@ -106,7 +106,7 @@ class ExternalPackage(object):
         try:
             module = __import__(self.module_name)
         except ImportError, e:
-            logging.info('Could not import %s.', self.module_name)
+            logging.info("%s isn't present. Will install.", self.module_name)
             return True
         self.installed_version = self._get_installed_version_from_module(module)
         logging.info('imported %s version %s.', self.module_name,
@@ -709,7 +709,7 @@ class GwtPackage(ExternalPackage):
         return match.group(1) != self.version
 
 
-    def build_and_install(self, install_dir):
+    def _build_and_install(self, install_dir):
         os.chdir(install_dir)
         self._extract_compressed_package()
         extracted_dir = self.local_filename[:-len('.tar.bz2')]
@@ -717,6 +717,30 @@ class GwtPackage(ExternalPackage):
         if os.path.exists(target_dir):
             shutil.rmtree(target_dir)
         os.rename(extracted_dir, target_dir)
+        return True
+
+
+# This requires GWT to already be installed, so it must be declared after
+# GwtPackage
+class GwtIncubatorPackage(ExternalPackage):
+    version = 'march-02-2009'
+    local_filename = 'gwt-incubator.jar'
+    remote_filename = 'gwt-incubator-%s.jar' % version
+    urls = ('http://google-web-toolkit-incubator.googlecode.com/files/'
+            + remote_filename,)
+    hex_sum = 'adc4c5c96e832b33885fa6dfec8399f7c13413c7'
+    module_name = None  # Not a Python module
+
+
+    def is_needed(self, install_dir):
+        gwt_dir = os.path.join(install_dir, GwtPackage.name)
+        assert os.path.exists(gwt_dir)
+        return not os.path.exists(os.path.join(gwt_dir, self.local_filename))
+
+
+    def _build_and_install(self, install_dir):
+        dest = os.path.join(install_dir, GwtPackage.name, self.local_filename)
+        shutil.copyfile(self.verified_package, dest)
         return True
 
 
