@@ -5,5 +5,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/3"/>
 	<classpathentry kind="lib" path="/usr/local/lib/gwt/gwt-user.jar"/>
+	<classpathentry kind="lib" path="/usr/local/lib/gwt/gwt-incubator.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
