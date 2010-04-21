@@ -570,3 +570,17 @@ class AbstractSSHHost(SiteHost):
             master_cmd = self.ssh_command(options="-N -o ControlMaster=yes")
             logging.info("Starting master ssh connection '%s'" % master_cmd)
             self.master_ssh_job = utils.BgJob(master_cmd)
+
+
+    def clear_known_hosts(self):
+        """Clears out the temporary ssh known_hosts file.
+
+        This is useful if the test SSHes to the machine, then reinstalls it,
+        then SSHes to it again.  It can be called after the reinstall to
+        reduce the spam in the logs.
+        """
+        logging.info("Clearing known hosts for host '%s', file '%s'.",
+                     self.hostname, self.known_hosts_fd)
+        # Clear out the file by opening it for writing and then closing.
+        fh = open(self.known_hosts_fd, "w")
+        fh.close()

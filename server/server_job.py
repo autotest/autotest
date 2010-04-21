@@ -13,6 +13,7 @@ from autotest_lib.client.common_lib import base_job
 from autotest_lib.client.common_lib import error, log, utils, packages
 from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.server import test, subcommand, profilers
+from autotest_lib.server.hosts import abstract_ssh
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
 
 
@@ -1140,6 +1141,13 @@ class base_server_job(base_job.base_job):
 
         # drop all the client-specific state
         self._state.discard_namespace('client')
+
+
+    def clear_all_known_hosts(self):
+        """Clears known hosts files for all AbstractSSHHosts."""
+        for host in self.hosts:
+            if isinstance(host, abstract_ssh.AbstractSSHHost):
+                host.clear_known_hosts()
 
 
 site_server_job = utils.import_site_class(
