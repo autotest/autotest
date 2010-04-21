@@ -734,7 +734,6 @@ class GwtIncubatorPackage(ExternalPackage):
 
     def is_needed(self, install_dir):
         gwt_dir = os.path.join(install_dir, GwtPackage.name)
-        assert os.path.exists(gwt_dir)
         return not os.path.exists(os.path.join(gwt_dir, self.local_filename))
 
 
