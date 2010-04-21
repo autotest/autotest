@@ -16,6 +16,9 @@ import com.google.gwt.json.client.JSONBoolean;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.user.client.DOM;
+import com.google.gwt.user.client.Element;
+import com.google.gwt.user.client.ui.ListBox;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -311,6 +314,28 @@ public class AfeUtils {
         for (JSONString jsonOption : new JSONArrayList<JSONString>(options)) {
             chooser.addChoice(Utils.jsonToString(jsonOption));
         }
+    }
+    
+    public static void popualateListBox(ListBox box, String staticDataKey) {
+        JSONArray options = staticData.getData(staticDataKey).isArray();
+        for (JSONString jsonOption : new JSONArrayList<JSONString>(options)) {
+            box.addItem(Utils.jsonToString(jsonOption));
+        }
+    }
+    
+    public static void setSelectedItem(ListBox box, String item) {
+        box.setSelectedIndex(0);
+        for (int i = 0; i < box.getItemCount(); i++) {
+            if (box.getItemText(i).equals(item)) {
+                box.setSelectedIndex(i);
+                break;
+            }
+        }
+    }
+    
+    public static void removeElement(String id) {
+        Element element = DOM.getElementById(id);
+        element.getParentElement().removeChild(element);
     }
 
     public static int parsePositiveIntegerInput(String input, String fieldName) {

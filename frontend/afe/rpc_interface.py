@@ -403,7 +403,7 @@ def create_job(name, priority, control_file, control_type,
                timeout=None, max_runtime_hrs=None, run_verify=True,
                email_list='', dependencies=(), reboot_before=None,
                reboot_after=None, parse_failed_repair=None, hostless=False,
-               keyvals=None):
+               keyvals=None, drone_set=None):
     """\
     Create and enqueue a job.
 
@@ -432,6 +432,7 @@ def create_job(name, priority, control_file, control_type,
     one host will be chosen from that label to run the job on.
     @param one_time_hosts List of hosts not in the database to run the job on.
     @param atomic_group_name The name of an atomic group to schedule the job on.
+    @param drone_set The name of the drone set to run this test on.
 
 
     @returns The created Job id number.
@@ -529,7 +530,8 @@ def create_job(name, priority, control_file, control_type,
                    reboot_before=reboot_before,
                    reboot_after=reboot_after,
                    parse_failed_repair=parse_failed_repair,
-                   keyvals=keyvals)
+                   keyvals=keyvals,
+                   drone_set=drone_set)
     return rpc_utils.create_new_job(owner=owner,
                                     options=options,
                                     host_objects=host_objects,
@@ -656,6 +658,7 @@ def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
     else:
         info['atomic_group_name'] = None
     info['hostless'] = job_info['hostless']
+    info['drone_set'] = job.drone_set and job.drone_set.name
 
     return rpc_utils.prepare_for_serialization(info)
 
@@ -802,6 +805,11 @@ def get_static_data():
     """
 
     job_fields = models.Job.get_field_dict()
+    default_drone_set_name = models.DroneSet.default_drone_set_name()
+    drone_sets = ([default_drone_set_name] +
+                  sorted(drone_set.name for drone_set in
+                         models.DroneSet.objects.exclude(
+                                 name=default_drone_set_name)))
 
     result = {}
     result['priorities'] = models.Job.Priority.choices()
@@ -824,6 +832,8 @@ def get_static_data():
     result['reboot_before_options'] = model_attributes.RebootBefore.names
     result['reboot_after_options'] = model_attributes.RebootAfter.names
     result['motd'] = rpc_utils.get_motd()
+    result['drone_sets_enabled'] = models.DroneSet.drone_sets_enabled()
+    result['drone_sets'] = drone_sets
 
     result['status_dictionary'] = {"Aborted": "Aborted",
                                    "Verifying": "Verifying Host",

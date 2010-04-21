@@ -77,7 +77,8 @@ class SpecialTaskUnittest(unittest.TestCase,
 
     def _create_task(self):
         return models.SpecialTask.objects.create(
-                host=self.hosts[0], task=models.SpecialTask.Task.VERIFY)
+                host=self.hosts[0], task=models.SpecialTask.Task.VERIFY,
+                requested_by=models.User.current_user())
 
 
     def test_execution_path(self):

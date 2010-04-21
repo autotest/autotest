@@ -350,6 +350,7 @@ class JobTest(AfeResourceTestCase):
                 'execution_info': {'control_file': self.CONTROL_FILE_CONTENTS,
                                    'is_server': True},
                 'owner': owner,
+                'drone_set': models.DroneSet.default_drone_set_name(),
                 'queue_entries':
                 [{'host': {'href': self.URI_PREFIX + '/hosts/host1'}},
                  {'host': {'href': self.URI_PREFIX + '/hosts/host2'}}]}

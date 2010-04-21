@@ -76,6 +76,8 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     private Label controlFile = new Label();
     private DisclosurePanel controlFilePanel = new DisclosurePanel("");
     
+    protected StaticDataRepository staticData = StaticDataRepository.getRepository();
+    
     public JobDetailView(JobDetailListener listener) {
         this.listener = listener;
     }
@@ -113,6 +115,10 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                 showField(jobObject, "parse_failed_repair", "view_parse_failed_repair");
                 showField(jobObject, "synch_count", "view_synch_count");
                 showField(jobObject, "dependencies", "view_dependencies");
+                
+                if (staticData.getData("drone_sets_enabled").isBoolean().booleanValue()) {
+                    showField(jobObject, "drone_set", "view_drone_set");
+                }
                 
                 String header = Utils.jsonToString(jobObject.get("control_type")) + " control file";
                 controlFilePanel.getHeaderTextAccessor().setText(header);
@@ -208,6 +214,10 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         controlFile.addStyleName("code");
         controlFilePanel.setContent(controlFile);
         addWidget(controlFilePanel, "view_control_file");
+        
+        if (!staticData.getData("drone_sets_enabled").isBoolean().booleanValue()) {
+            AfeUtils.removeElement("view_drone_set_wrapper");
+        }
     }
 
     

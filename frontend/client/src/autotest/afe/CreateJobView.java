@@ -179,6 +179,7 @@ public class CreateJobView extends TabView
         new CheckBoxPanel<CheckBox>(TEST_COLUMNS);
     private CheckBox runNonProfiledIteration =
         new CheckBox("Run each test without profilers first");
+    private ListBox droneSet = new ListBox();
     protected TextArea controlFile = new TextArea();
     protected DisclosurePanel controlFilePanel = new DisclosurePanel();
     protected ControlTypeSelect controlTypeSelect;
@@ -237,6 +238,9 @@ public class CreateJobView extends TabView
         hostless.setValue(cloneObject.get("hostless").isBoolean().booleanValue());
         if (hostless.getValue()) {
             hostSelector.setEnabled(false);
+        }
+        if (cloneObject.get("drone_set").isNull() == null) {
+            AfeUtils.setSelectedItem(droneSet, Utils.jsonToString(cloneObject.get("drone_set")));
         }
 
         controlTypeSelect.setControlType(
@@ -455,8 +459,9 @@ public class CreateJobView extends TabView
     @Override
     public void initialize() {
         super.initialize();
+        
         populatePriorities(staticData.getData("priorities").isArray());
-
+        
         BlurHandler kernelBlurHandler = new BlurHandler() {
             public void onBlur(BlurEvent event) {
                 generateControlFile(false);
@@ -617,6 +622,13 @@ public class CreateJobView extends TabView
         addWidget(createTemplateJobButton, "create_template_job");
         addWidget(resetButton, "create_reset");
         
+        if (staticData.getData("drone_sets_enabled").isBoolean().booleanValue()) {
+            AfeUtils.popualateListBox(droneSet, "drone_sets");
+            addWidget(droneSet, "create_drone_set");
+        } else {
+            AfeUtils.removeElement("create_drone_set_wrapper");
+        }
+        
         testSelector.setListener(this);
     }
 
@@ -693,6 +705,11 @@ public class CreateJobView extends TabView
                 args.put("parse_failed_repair",
                          JSONBoolean.getInstance(parseFailedRepair.getValue()));
                 args.put("hostless", JSONBoolean.getInstance(hostless.getValue()));
+                
+                if (staticData.getData("drone_sets_enabled").isBoolean().booleanValue()) {
+                    args.put("drone_set",
+                            new JSONString(droneSet.getItemText(droneSet.getSelectedIndex())));
+                }
 
                 HostSelector.HostSelection hosts = hostSelector.getSelectedHosts();
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));
@@ -773,10 +790,17 @@ public class CreateJobView extends TabView
         String defaultOption = Utils.jsonToString(user.get(name));
         chooser.setDefaultChoice(defaultOption);
     }
-
+    
+    private void selectPreferredDroneSet() {
+        JSONObject user = staticData.getData("current_user").isObject();
+        String preference = Utils.jsonToString(user.get("drone_set"));
+        AfeUtils.setSelectedItem(droneSet, preference);
+    }
+    
     public void onPreferencesChanged() {
         setRebootSelectorDefault(rebootBefore, "reboot_before");
         setRebootSelectorDefault(rebootAfter, "reboot_after");
+        selectPreferredDroneSet();
         testSelector.reset();
     }
 }

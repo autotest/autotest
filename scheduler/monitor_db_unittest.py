@@ -20,6 +20,9 @@ class DummyAgentTask(object):
     num_processes = 1
     owner_username = 'my_user'
 
+    def get_drone_hostnames_allowed(self):
+        return None
+
 
 class DummyAgent(object):
     started = False
@@ -730,7 +733,8 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
         scheduler_config.config.max_processes_started_per_cycle = (
             self._MAX_STARTED)
 
-        def fake_max_runnable_processes(fake_self, username):
+        def fake_max_runnable_processes(fake_self, username,
+                                        drone_hostnames_allowed):
             running = sum(agent.task.num_processes
                           for agent in self._agents
                           if agent.started and not agent.is_done())
@@ -1356,6 +1360,66 @@ class TopLevelFunctionsTest(unittest.TestCase):
         command_line = set(monitor_db._autoserv_command_line(
                 machines, extra_args=[], queue_entry=FakeHQE, verbose=False))
         self.assertEqual(expected_command_line, command_line)
+
+
+class AgentTaskTest(unittest.TestCase,
+                    frontend_test_utils.FrontendTestMixin):
+    def setUp(self):
+        self._frontend_common_setup()
+
+
+    def tearDown(self):
+        self._frontend_common_teardown()
+
+
+    def _setup_drones(self):
+        self.god.stub_function(models.DroneSet, 'drone_sets_enabled')
+        models.DroneSet.drone_sets_enabled.expect_call().and_return(True)
+
+        drones = []
+        for x in xrange(4):
+            drones.append(models.Drone.objects.create(hostname=str(x)))
+
+        drone_set_1 = models.DroneSet.objects.create(name='1')
+        drone_set_1.drones.add(*drones[0:2])
+        drone_set_2 = models.DroneSet.objects.create(name='2')
+        drone_set_2.drones.add(*drones[2:4])
+        drone_set_3 = models.DroneSet.objects.create(name='3')
+
+        job_1 = self._create_job_simple([self.hosts[0].id],
+                                        drone_set=drone_set_1)
+        job_2 = self._create_job_simple([self.hosts[0].id],
+                                        drone_set=drone_set_2)
+        job_3 = self._create_job_simple([self.hosts[0].id],
+                                        drone_set=drone_set_3)
+
+        hqe_1 = job_1.hostqueueentry_set.all()[0].id
+        hqe_2 = job_2.hostqueueentry_set.all()[0].id
+        hqe_3 = job_3.hostqueueentry_set.all()[0].id
+
+        return (hqe_1, hqe_2, hqe_3), monitor_db.AgentTask()
+
+
+    def test_get_drone_hostnames_allowed_no_associated_sets(self):
+        hqes, task = self._setup_drones()
+        task.queue_entry_ids = (hqes[2],)
+        self.assertEqual(set(), task.get_drone_hostnames_allowed())
+        self.god.check_playback()
+
+
+    def test_get_drone_hostnames_allowed_success(self):
+        hqes, task = self._setup_drones()
+        task.queue_entry_ids = (hqes[0],)
+        self.assertEqual(set(('0','1')), task.get_drone_hostnames_allowed())
+        self.god.check_playback()
+
+
+    def test_get_drone_hostnames_allowed_multiple_jobs(self):
+        hqes, task = self._setup_drones()
+        task.queue_entry_ids = (hqes[0], hqes[1])
+        self.assertRaises(AssertionError,
+                          task.get_drone_hostnames_allowed)
+        self.god.check_playback()
 
 
 if __name__ == '__main__':

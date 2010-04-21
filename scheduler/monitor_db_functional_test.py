@@ -185,7 +185,7 @@ class MockDroneManager(NullMethodObject):
                    for pidfile_id in self.nonfinished_pidfile_ids())
 
 
-    def max_runnable_processes(self, username):
+    def max_runnable_processes(self, username, drone_hostnames_allowed):
         return self.process_capacity - self.total_running_processes()
 
 
@@ -232,7 +232,7 @@ class MockDroneManager(NullMethodObject):
 
     def execute_command(self, command, working_directory, pidfile_name,
                         num_processes, log_file=None, paired_with_pidfile=None,
-                        username=None):
+                        username=None, drone_hostnames_allowed=None):
         logging.debug('Executing %s in %s', command, working_directory)
         pidfile_id = self._DummyPidfileId(working_directory, pidfile_name)
         if pidfile_id.key() in self._pidfile_index:
@@ -707,12 +707,16 @@ class SchedulerFunctionalTest(unittest.TestCase,
         queue_entry.save()
 
         # make some dummy SpecialTasks that shouldn't count
-        models.SpecialTask.objects.create(host=queue_entry.host,
-                                          task=models.SpecialTask.Task.VERIFY)
-        models.SpecialTask.objects.create(host=queue_entry.host,
-                                          task=models.SpecialTask.Task.CLEANUP,
-                                          queue_entry=queue_entry,
-                                          is_complete=True)
+        models.SpecialTask.objects.create(
+                host=queue_entry.host,
+                task=models.SpecialTask.Task.VERIFY,
+                requested_by=models.User.current_user())
+        models.SpecialTask.objects.create(
+                host=queue_entry.host,
+                task=models.SpecialTask.Task.CLEANUP,
+                queue_entry=queue_entry,
+                is_complete=True,
+                requested_by=models.User.current_user())
 
         self.assertRaises(monitor_db.SchedulerError, self._initialize_test)
 
