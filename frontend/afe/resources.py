@@ -109,7 +109,9 @@ class Label(EntryWithInvalid):
 
     def update(self, input_dict):
         # TODO update atomic group
-        raise NotImplementedError
+        if 'is_platform' in input_dict:
+            self.instance.platform = input_dict['is_platform']
+            self.instance.save()
 
 
 class LabelCollection(resource_lib.Collection):
@@ -352,6 +354,11 @@ class Test(resource_lib.InstanceEntry):
 
 
     @classmethod
+    def add_query_selectors(cls, query_processor):
+        query_processor.add_field_selector('name')
+
+
+    @classmethod
     def from_uri_args(cls, request, test_name, **kwargs):
         return cls(request, models.Test.objects.get(name=test_name))
 
@@ -374,6 +381,7 @@ class Test(resource_lib.InstanceEntry):
                     model_attributes.TestTypes.get_string(
                         self.instance.test_type),
                     'control_file_path': self.instance.path,
+                    'sync_count': self.instance.sync_count,
                     'dependencies':
                     TestDependencyCollection(fixed_entry=self).link(),
                     })
@@ -599,6 +607,8 @@ class Job(resource_lib.InstanceEntry):
                 query_lib.Selector('status',
                                    doc='One of queued, active or complete'),
                 Job._StatusConstraint())
+        query_processor.add_keyval_selector('has_keyval', models.JobKeyval,
+                                            'key', 'value')
 
 
     @classmethod
@@ -608,6 +618,12 @@ class Job(resource_lib.InstanceEntry):
 
     def _uri_args(self):
         return {'job_id': self.instance.id}
+
+
+    @classmethod
+    def _do_prepare_for_full_representation(cls, instances):
+        models.Job.objects.populate_relationships(instances, models.JobKeyval,
+                                                  'keyvals')
 
 
     def short_representation(self):
@@ -633,6 +649,8 @@ class Job(resource_lib.InstanceEntry):
                     'execution_info':
                         ExecutionInfo.execution_info_from_job(self.instance),
                     'queue_entries': queue_entries.link(),
+                    'keyvals': dict((keyval.key, keyval.value)
+                                    for keyval in self.instance.keyvals)
                     })
         return rep
 

@@ -1,11 +1,10 @@
-import logging, pprint, re, urllib, getpass, urlparse
+import copy, getpass, logging, pprint, re, urllib, urlparse
 import httplib2
-from django.utils import simplejson
+from django.utils import datastructures, simplejson
 from autotest_lib.frontend.afe import rpc_client_lib
 from autotest_lib.client.common_lib import utils
 
 
-_http = httplib2.Http()
 _request_headers = {}
 
 
@@ -59,7 +58,8 @@ class Response(object):
 
 
 class Resource(object):
-    def __init__(self, representation_dict):
+    def __init__(self, representation_dict, http):
+        self._http = http
         assert 'href' in representation_dict
         for key, value in representation_dict.iteritems():
             setattr(self, str(key), value)
@@ -75,8 +75,10 @@ class Resource(object):
 
 
     @classmethod
-    def load(cls, uri):
-        directory = cls({'href': uri})
+    def load(cls, uri, http=None):
+        if not http:
+            http = httplib2.Http()
+        directory = cls({'href': uri}, http)
         return directory.get()
 
 
@@ -88,7 +90,7 @@ class Resource(object):
             converted_dict = dict((key, self._read_representation(sub_value))
                                   for key, sub_value in value.iteritems())
             if 'href' in converted_dict:
-                return type(self)(converted_dict)
+                return type(self)(converted_dict, http=self._http)
             return converted_dict
         return value
 
@@ -113,11 +115,14 @@ class Resource(object):
 
 
     def _do_request(self, method, uri, query_parameters, encoded_body):
+        uri_parts = [uri]
         if query_parameters:
-            query_string = '?' + urllib.urlencode(query_parameters)
-        else:
-            query_string = ''
-        full_uri = uri + query_string
+            if '?' in uri:
+                uri_parts += '&'
+            else:
+                uri_parts += '?'
+            uri_parts += urllib.urlencode(query_parameters, doseq=True)
+        full_uri = ''.join(uri_parts)
 
         if encoded_body:
             entity_body = simplejson.dumps(encoded_body)
@@ -131,7 +136,7 @@ class Resource(object):
         site_verify = utils.import_site_function(
                 __file__, 'autotest_lib.frontend.shared.site_rest_client',
                 'site_verify_response', _site_verify_response_default)
-        headers, response_body = _http.request(
+        headers, response_body = self._http.request(
                 full_uri, method, body=entity_body,
                 headers=_get_request_headers(uri))
         if not site_verify(headers, response_body):
@@ -155,7 +160,8 @@ class Resource(object):
                                     encoded_body)
 
         if 300 <= response.status < 400: # redirection
-            raise NotImplementedError(str(response)) # TODO
+            return self._do_request(method, response.headers['location'],
+                                    query_parameters, encoded_body)
         if 400 <= response.status < 500:
             raise ClientError(str(response))
         if 500 <= response.status < 600:
@@ -165,17 +171,57 @@ class Resource(object):
 
     def _stringify_query_parameter(self, value):
         if isinstance(value, (list, tuple)):
-            return ','.join(value)
+            return ','.join(self._stringify_query_parameter(item)
+                            for item in value)
         return str(value)
 
 
-    def get(self, **query_parameters):
-        string_parameters = dict((key, self._stringify_query_parameter(value))
-                                 for key, value in query_parameters.iteritems()
-                                 if value is not None)
-        response = self._request('GET', query_parameters=string_parameters)
+    def _iterlists(self, mapping):
+        """This effectively lets us treat dicts as MultiValueDicts."""
+        if hasattr(mapping, 'iterlists'): # mapping is already a MultiValueDict
+            return mapping.iterlists()
+        return ((key, (value,)) for key, value in mapping.iteritems())
+
+
+    def get(self, query_parameters=None, **kwarg_query_parameters):
+        """
+        @param query_parameters: a dict or MultiValueDict
+        """
+        query_parameters = copy.copy(query_parameters) # avoid mutating original
+        if query_parameters is None:
+            query_parameters = {}
+        query_parameters.update(kwarg_query_parameters)
+
+        string_parameters = datastructures.MultiValueDict()
+        for key, values in self._iterlists(query_parameters):
+            string_parameters.setlist(
+                    key, [self._stringify_query_parameter(value)
+                          for value in values])
+
+        response = self._request('GET',
+                                 query_parameters=string_parameters.lists())
         assert response.status == 200
         return self._read_representation(response.decoded_body())
+
+
+    def get_full(self, results_limit, query_parameters=None,
+                 **kwarg_query_parameters):
+        """
+        Like get() for collections, when the full collection is expected.
+
+        @param results_limit: maxmimum number of results to allow
+        @raises ClientError if there are more than results_limit results.
+        """
+        result = self.get(query_parameters=query_parameters,
+                          items_per_page=results_limit,
+                          **kwarg_query_parameters)
+        if result.total_results > results_limit:
+            raise ClientError(
+                    'Too many results (%s > %s) for request %s (%s %s)'
+                    % (result.total_results, results_limit, self.href,
+                       query_parameters, kwarg_query_parameters))
+        return result
+
 
 
     def put(self):

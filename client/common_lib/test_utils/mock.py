@@ -262,6 +262,10 @@ class mock_class(object):
                 setattr(self, symbol, orig_symbol)
 
 
+    def __repr__(self):
+        return '<mock_class: %s>' % self.__name
+
+
 class mock_god:
     NONEXISTENT_ATTRIBUTE = object()
 

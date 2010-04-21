@@ -396,6 +396,7 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     run_verify: Whether or not the scheduler should run the verify stage
     """
     TestTime = enum.Enum('SHORT', 'MEDIUM', 'LONG', start_value=1)
+    TestTypes = model_attributes.TestTypes
     # TODO(showard) - this should be merged with Job.ControlType (but right
     # now they use opposite values)
 
@@ -409,8 +410,7 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     run_verify = dbmodels.BooleanField(default=True)
     test_time = dbmodels.SmallIntegerField(choices=TestTime.choices(),
                                            default=TestTime.MEDIUM)
-    test_type = dbmodels.SmallIntegerField(
-        choices=model_attributes.TestTypes.choices())
+    test_type = dbmodels.SmallIntegerField(choices=TestTypes.choices())
     sync_count = dbmodels.IntegerField(default=1)
     path = dbmodels.CharField(max_length=255, unique=True)
 
