@@ -18,6 +18,7 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HTMLTable;
+import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.google.gwt.user.client.ui.Widget;
@@ -35,6 +36,7 @@ public class UserPreferencesView extends TabView implements ClickHandler {
     
     private RadioChooser rebootBefore = new RadioChooser();
     private RadioChooser rebootAfter = new RadioChooser();
+    private ListBox droneSet = new ListBox();
     private CheckBox showExperimental = new CheckBox();
     private Button saveButton = new Button("Save preferences");
     private HTMLTable preferencesTable = new FlexTable();
@@ -60,6 +62,11 @@ public class UserPreferencesView extends TabView implements ClickHandler {
         addOption("Reboot before", rebootBefore);
         addOption("Reboot after", rebootAfter);
         addOption("Show experimental tests", showExperimental);
+        if (staticData.getData("drone_sets_enabled").isBoolean().booleanValue()) {
+            AfeUtils.popualateListBox(droneSet, "drone_sets");
+            addOption("Drone set", droneSet);
+        }
+
         container.add(preferencesTable);
         container.add(saveButton);
         addWidget(container, "user_preferences_table");
@@ -81,6 +88,8 @@ public class UserPreferencesView extends TabView implements ClickHandler {
     private void updateValues() {
         rebootBefore.setSelectedChoice(getValue("reboot_before"));
         rebootAfter.setSelectedChoice(getValue("reboot_after"));
+        AfeUtils.setSelectedItem(droneSet, getValue("drone_set"));
+
         showExperimental.setValue(user.get("show_experimental").isBoolean().booleanValue());
     }
     
@@ -98,6 +107,7 @@ public class UserPreferencesView extends TabView implements ClickHandler {
         values.put("id", user.get("id"));
         values.put("reboot_before", new JSONString(rebootBefore.getSelectedChoice()));
         values.put("reboot_after", new JSONString(rebootAfter.getSelectedChoice()));
+        values.put("drone_set", new JSONString(droneSet.getItemText(droneSet.getSelectedIndex())));
         values.put("show_experimental", JSONBoolean.getInstance(showExperimental.getValue()));
         proxy.rpcCall("modify_user", values, new JsonRpcCallback() {
             @Override

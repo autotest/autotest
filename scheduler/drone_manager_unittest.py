@@ -12,6 +12,7 @@ class MockDrone(drones._AbstractDrone):
                  allowed_users=None):
         super(MockDrone, self).__init__()
         self.name = name
+        self.hostname = name
         self.active_processes = active_processes
         self.max_processes = max_processes
         self.allowed_users = allowed_users
@@ -100,7 +101,7 @@ class DroneManager(unittest.TestCase):
                                                   max_processes))
 
         return self.manager._choose_drone_for_execution(requested_processes,
-                                                        self._USERNAME)
+                                                        self._USERNAME, None)
 
 
     def test_choose_drone_for_execution(self):
@@ -136,9 +137,10 @@ class DroneManager(unittest.TestCase):
                                               allowed_users=[self._USERNAME]))
 
         self.assertEquals(2,
-                          self.manager.max_runnable_processes(self._USERNAME))
+                          self.manager.max_runnable_processes(self._USERNAME,
+                                                              None))
         drone = self.manager._choose_drone_for_execution(
-                1, username=self._USERNAME)
+                1, username=self._USERNAME, drone_hostnames_allowed=None)
         self.assertEquals(drone.name, 2)
 
 
@@ -152,10 +154,67 @@ class DroneManager(unittest.TestCase):
                                               allowed_users=[self._USERNAME]))
 
         self.assertEquals(0,
-                          self.manager.max_runnable_processes(self._USERNAME))
+                          self.manager.max_runnable_processes(self._USERNAME,
+                                                              None))
         drone = self.manager._choose_drone_for_execution(
-                1, username=self._USERNAME)
+                1, username=self._USERNAME, drone_hostnames_allowed=None)
         self.assertEquals(drone.name, 2)
+
+
+    def _setup_test_drone_restrictions(self, active_processes=0):
+        self.manager._enqueue_drone(MockDrone(
+                1, active_processes=active_processes, max_processes=10))
+        self.manager._enqueue_drone(MockDrone(
+                2, active_processes=active_processes, max_processes=5))
+        self.manager._enqueue_drone(MockDrone(
+                3, active_processes=active_processes, max_processes=2))
+
+
+    def test_drone_restrictions_allow_any(self):
+        self._setup_test_drone_restrictions()
+        self.assertEquals(10,
+                          self.manager.max_runnable_processes(self._USERNAME,
+                                                              None))
+        drone = self.manager._choose_drone_for_execution(
+                1, username=self._USERNAME, drone_hostnames_allowed=None)
+        self.assertEqual(drone.name, 1)
+
+
+    def test_drone_restrictions_under_capacity(self):
+        self._setup_test_drone_restrictions()
+        drone_hostnames_allowed = (2, 3)
+        self.assertEquals(
+                5, self.manager.max_runnable_processes(self._USERNAME,
+                                                       drone_hostnames_allowed))
+        drone = self.manager._choose_drone_for_execution(
+                1, username=self._USERNAME,
+                drone_hostnames_allowed=drone_hostnames_allowed)
+
+        self.assertEqual(drone.name, 2)
+
+
+    def test_drone_restrictions_over_capacity(self):
+        self._setup_test_drone_restrictions(active_processes=6)
+        drone_hostnames_allowed = (2, 3)
+        self.assertEquals(
+                0, self.manager.max_runnable_processes(self._USERNAME,
+                                                       drone_hostnames_allowed))
+        drone = self.manager._choose_drone_for_execution(
+                7, username=self._USERNAME,
+                drone_hostnames_allowed=drone_hostnames_allowed)
+        self.assertEqual(drone.name, 2)
+
+
+    def test_drone_restrictions_allow_none(self):
+        self._setup_test_drone_restrictions()
+        drone_hostnames_allowed = ()
+        self.assertEquals(
+                0, self.manager.max_runnable_processes(self._USERNAME,
+                                                       drone_hostnames_allowed))
+        drone = self.manager._choose_drone_for_execution(
+                1, username=self._USERNAME,
+                drone_hostnames_allowed=drone_hostnames_allowed)
+        self.assertEqual(drone, None)
 
 
     def test_initialize(self):
@@ -214,7 +273,8 @@ class DroneManager(unittest.TestCase):
         self.manager.execute_command(command=['test'],
                                      working_directory=self._WORKING_DIRECTORY,
                                      pidfile_name='mypidfile',
-                                     num_processes=1)
+                                     num_processes=1,
+                                     drone_hostnames_allowed=None)
 
         self.assert_(self.mock_drone.was_call_queued(
                 'write_to_file',

@@ -643,9 +643,11 @@ class Job(resource_lib.InstanceEntry):
         rep = super(Job, self).full_representation()
         queue_entries = QueueEntryCollection(self._request)
         queue_entries.set_query_parameters(job=self.instance.id)
+        drone_set = self.instance.drone_set and self.instance.drone_set.name
         rep.update({'email_list': self.instance.email_list,
                     'parse_failed_repair':
                         bool(self.instance.parse_failed_repair),
+                    'drone_set': drone_set,
                     'execution_info':
                         ExecutionInfo.execution_info_from_job(self.instance),
                     'queue_entries': queue_entries.link(),
@@ -686,6 +688,7 @@ class Job(resource_lib.InstanceEntry):
                 reboot_before=execution_info.get('cleanup_before_job'),
                 reboot_after=execution_info.get('cleanup_after_job'),
                 parse_failed_repair=input_dict.get('parse_failed_repair', None),
+                drone_set=input_dict.get('drone_set', None),
                 keyvals=input_dict.get('keyvals', None))
 
         host_objects, metahost_label_objects, atomic_group = [], [], None

@@ -74,6 +74,17 @@ get_site_metahost_schedulers = utils.import_site_function(
         'get_metahost_schedulers', lambda : ())
 
 
+def _verify_default_drone_set_exists():
+    if (models.DroneSet.drone_sets_enabled() and
+            not models.DroneSet.default_drone_set_name()):
+        raise SchedulerError('Drone sets are enabled, but no default is set')
+
+
+def _sanity_check():
+    """Make sure the configs are consistent before starting the scheduler"""
+    _verify_default_drone_set_exists()
+
+
 def main():
     try:
         try:
@@ -1138,7 +1149,8 @@ class Dispatcher(object):
             return False
         # total process throttling
         max_runnable_processes = _drone_manager.max_runnable_processes(
-                agent.task.owner_username)
+                agent.task.owner_username,
+                agent.task.get_drone_hostnames_allowed())
         if agent.task.num_processes > max_runnable_processes:
             return False
         # if a single agent exceeds the per-cycle throttling, still allow it to
@@ -1244,7 +1256,7 @@ class PidfileRunMonitor(object):
 
     def run(self, command, working_directory, num_processes, nice_level=None,
             log_file=None, pidfile_name=None, paired_with_pidfile=None,
-            username=None):
+            username=None, drone_hostnames_allowed=None):
         assert command is not None
         if nice_level is not None:
             command = ['nice', '-n', str(nice_level)] + command
@@ -1252,7 +1264,8 @@ class PidfileRunMonitor(object):
         self.pidfile_id = _drone_manager.execute_command(
             command, working_directory, pidfile_name=pidfile_name,
             num_processes=num_processes, log_file=log_file,
-            paired_with_pidfile=paired_with_pidfile, username=username)
+            paired_with_pidfile=paired_with_pidfile, username=username,
+            drone_hostnames_allowed=drone_hostnames_allowed)
 
 
     def attach_to_existing_process(self, execution_path,
@@ -1665,7 +1678,49 @@ class AgentTask(object):
                 nice_level=AUTOSERV_NICE_LEVEL, log_file=self._log_file(),
                 pidfile_name=self._pidfile_name(),
                 paired_with_pidfile=self._paired_with_monitor().pidfile_id,
-                username=self.owner_username)
+                username=self.owner_username,
+                drone_hostnames_allowed=self.get_drone_hostnames_allowed())
+
+
+    def get_drone_hostnames_allowed(self):
+        if not models.DroneSet.drone_sets_enabled():
+            return None
+
+        hqes = models.HostQueueEntry.objects.filter(id__in=self.queue_entry_ids)
+        if not hqes:
+            # Only special tasks could be missing host queue entries
+            assert isinstance(self, SpecialAgentTask)
+            return self._user_or_global_default_drone_set(
+                    self.task, self.task.requested_by)
+
+        job_ids = hqes.values_list('job', flat=True).distinct()
+        assert job_ids.count() == 1, ("AgentTask's queue entries "
+                                      "span multiple jobs")
+
+        job = models.Job.objects.get(id=job_ids[0])
+        drone_set = job.drone_set
+        if not drone_set:
+            return self_user_or_global_default_drone_set(job, job.user())
+
+        return drone_set.get_drone_hostnames()
+
+
+    def _user_or_global_default_drone_set(self, obj_with_owner, user):
+        """
+        Returns the user's default drone set, if present.
+
+        Otherwise, returns the global default drone set.
+        """
+        default_hostnames = models.DroneSet.get_default().get_drone_hostnames()
+        if not user:
+            logging.warn('%s had no owner; using default drone set',
+                         obj_with_owner)
+            return default_hostnames
+        if not user.drone_set:
+            logging.warn('User %s has no default drone set, using global '
+                         'default', user.login)
+            return default_hostnames
+        return user.drone_set.get_drone_hostnames()
 
 
     def register_necessary_pidfiles(self):

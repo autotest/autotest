@@ -412,14 +412,19 @@ class DroneManager(object):
         return sum(drone.active_processes for drone in self.get_drones())
 
 
-    def max_runnable_processes(self, username):
+    def max_runnable_processes(self, username, drone_hostnames_allowed):
         """
         Return the maximum number of processes that can be run (in a single
         execution) given the current load on drones.
         @param username: login of user to run a process.  may be None.
+        @param drone_hostnames_allowed: list of drones that can be used. May be
+                                        None
         """
         usable_drone_wrappers = [wrapper for wrapper in self._drone_queue
-                                 if wrapper.drone.usable_by(username)]
+                                 if wrapper.drone.usable_by(username) and
+                                 (drone_hostnames_allowed is None or
+                                          wrapper.drone.hostname in
+                                                  drone_hostnames_allowed)]
         if not usable_drone_wrappers:
             # all drones disabled or inaccessible
             return 0
@@ -437,7 +442,8 @@ class DroneManager(object):
         return drone_to_use
 
 
-    def _choose_drone_for_execution(self, num_processes, username):
+    def _choose_drone_for_execution(self, num_processes, username,
+                                    drone_hostnames_allowed):
         # cycle through drones is order of increasing used capacity until
         # we find one that can handle these processes
         checked_drones = []
@@ -448,12 +454,19 @@ class DroneManager(object):
             checked_drones.append(drone)
             if not drone.usable_by(username):
                 continue
+
+            drone_allowed = (drone_hostnames_allowed is None
+                             or drone.hostname in drone_hostnames_allowed)
+            if not drone_allowed:
+                continue
+
             usable_drones.append(drone)
+
             if drone.active_processes + num_processes <= drone.max_processes:
                 drone_to_use = drone
                 break
 
-        if not drone_to_use:
+        if not drone_to_use and usable_drones:
             drone_summary = ','.join('%s %s/%s' % (drone.hostname,
                                                    drone.active_processes,
                                                    drone.max_processes)
@@ -478,7 +491,7 @@ class DroneManager(object):
 
     def execute_command(self, command, working_directory, pidfile_name,
                         num_processes, log_file=None, paired_with_pidfile=None,
-                        username=None):
+                        username=None, drone_hostnames_allowed=None):
         """
         Execute the given command, taken as an argv list.
 
@@ -496,6 +509,9 @@ class DroneManager(object):
                 same drone as the previous process.
         @param username (optional): login of the user responsible for this
                 process.
+        @param drone_hostnames_allowed (optional): hostnames of the drones that
+                                                   this command is allowed to
+                                                   execute on
         """
         abs_working_directory = self.absolute_path(working_directory)
         if not log_file:
@@ -508,7 +524,13 @@ class DroneManager(object):
         if paired_with_pidfile:
             drone = self._get_drone_for_pidfile_id(paired_with_pidfile)
         else:
-            drone = self._choose_drone_for_execution(num_processes, username)
+            drone = self._choose_drone_for_execution(num_processes, username,
+                                                     drone_hostnames_allowed)
+
+        if not drone:
+            raise DroneManagerError('command failed; no drones available: %s'
+                                    % command)
+
         logging.info("command = %s" % command)
         logging.info('log file = %s:%s' % (drone.hostname, log_file))
         self._write_attached_files(working_directory, drone)
