@@ -131,10 +131,12 @@ class Resource(object):
 
     def read_query_parameters(self, parameters):
         """Read relevant query parameters from a Django MultiValueDict."""
-        for param_name, _ in self._query_parameters_accepted():
-            if param_name in parameters:
-                self._query_params.setlist(param_name,
-                                           parameters.getlist(param_name))
+        params_acccepted = set(param_name for param_name, _
+                               in self._query_parameters_accepted())
+        for name, values in parameters.iterlists():
+            base_name = name.split(':', 1)[0]
+            if base_name in params_acccepted:
+                self._query_params.setlist(name, values)
 
 
     def set_query_parameters(self, **parameters):
@@ -216,6 +218,9 @@ class Resource(object):
             except ValueError, exc:
                 raise exceptions.BadRequest('Error decoding request body: '
                                             '%s\n%r' % (exc, raw_data))
+            if not isinstance(raw_dict, dict):
+                raise exceptions.BadRequest('Expected dict input, got %s: %r' %
+                                            (type(raw_dict), raw_dict))
         elif content_type == 'application/x-www-form-urlencoded':
             cgi_dict = cgi.parse_qs(raw_data) # django won't do this for PUT
             raw_dict = {}
@@ -319,6 +324,7 @@ class InstanceEntry(Entry):
         assert self.model is not None
         super(Entry, self).__init__(request)
         self.instance = instance
+        self._is_prepared_for_full_representation = False
 
 
     @classmethod
@@ -330,6 +336,41 @@ class InstanceEntry(Entry):
 
     def _delete_entry(self):
         self.instance.delete()
+
+
+    def full_representation(self):
+        self.prepare_for_full_representation([self])
+        return super(InstanceEntry, self).full_representation()
+
+
+    @classmethod
+    def prepare_for_full_representation(cls, entries):
+        """
+        Prepare the given list of entries to generate full representations.
+
+        This method delegates to _do_prepare_for_full_representation(), which
+        subclasses may override as necessary to do the actual processing.  This
+        method also marks the instance as prepared, so it's safe to call this
+        multiple times with the same instance(s) without wasting work.
+        """
+        not_prepared = [entry for entry in entries
+                        if not entry._is_prepared_for_full_representation]
+        cls._do_prepare_for_full_representation([entry.instance
+                                                 for entry in not_prepared])
+        for entry in not_prepared:
+            entry._is_prepared_for_full_representation = True
+
+
+    @classmethod
+    def _do_prepare_for_full_representation(cls, instances):
+        """
+        Subclasses may override this to gather data as needed for full
+        representations of the given model instances.  Typically, this involves
+        querying over related objects, and this method offers a chance to query
+        for many instances at once, which can provide a great performance
+        benefit.
+        """
+        pass
 
 
 class Collection(Resource):
@@ -354,7 +395,9 @@ class Collection(Resource):
 
     def _query_parameters_accepted(self):
         params = [('start_index', 'Index of first member to include'),
-                  ('items_per_page', 'Number of members to include')]
+                  ('items_per_page', 'Number of members to include'),
+                  ('full_representations',
+                   'True to include full representations of members')]
         for selector in self._query_processor.selectors():
             params.append((selector.name, selector.doc))
         return params
@@ -371,14 +414,31 @@ class Collection(Resource):
 
 
     def _representation(self, entry_instances):
+        entries = [self._entry_from_instance(instance)
+                   for instance in entry_instances]
+
+        want_full_representation = self._read_bool_parameter(
+                'full_representations')
+        if want_full_representation:
+            self.entry_class.prepare_for_full_representation(entries)
+
         members = []
-        for instance in entry_instances:
-            entry = self._entry_from_instance(instance)
-            members.append(entry.short_representation())
+        for entry in entries:
+            if want_full_representation:
+                rep = entry.full_representation()
+            else:
+                rep = entry.short_representation()
+            members.append(rep)
 
         rep = self.link()
         rep.update({'members': members})
         return rep
+
+
+    def _read_bool_parameter(self, name):
+        if name not in self._query_params:
+            return False
+        return (self._query_params[name].lower() == 'true')
 
 
     def _read_int_parameter(self, name, default):
@@ -395,12 +455,17 @@ class Collection(Resource):
     def _apply_form_query(self, queryset):
         """Apply any query selectors passed as form variables."""
         for parameter, values in self._query_params.lists():
+            if ':' in parameter:
+                parameter, comparison_type = parameter.split(':', 1)
+            else:
+                comparison_type = None
+
             if not self._query_processor.has_selector(parameter):
                 continue
             for value in values: # forms keys can have multiple values
-                queryset = self._query_processor.apply_selector(queryset,
-                                                                parameter,
-                                                                value)
+                queryset = self._query_processor.apply_selector(
+                        queryset, parameter, value,
+                        comparison_type=comparison_type)
         return queryset
 
 

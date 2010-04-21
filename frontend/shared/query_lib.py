@@ -22,7 +22,16 @@ class QueryProcessor(object):
     def add_related_existence_selector(self, name, model, field, doc=None):
         self.add_selector(
                 Selector(name, doc),
-                _RelatedExistenceConstraint(model, field, self.make_alias))
+                _RelatedExistenceConstraint(model, field,
+                                            make_alias_fn=self.make_alias))
+
+
+    def add_keyval_selector(self, name, model, key_field, value_field,
+                            doc=None):
+        self.add_selector(
+                Selector(name, doc),
+                _KeyvalConstraint(model, key_field, value_field,
+                                  make_alias_fn=self.make_alias))
 
 
     def add_selector(self, selector, constraint):
@@ -46,7 +55,9 @@ class QueryProcessor(object):
 
 
     def apply_selector(self, queryset, selector_name, value,
-                       comparison_type='equals', is_inverse=False):
+                       comparison_type=None, is_inverse=False):
+        if comparison_type is None:
+            comparison_type = 'equals'
         _, constraint = self._selectors[selector_name]
         try:
             return constraint.apply_constraint(queryset, value, comparison_type,
@@ -103,6 +114,8 @@ class _FieldConstraint(Constraint):
 
         kwarg_name = str(self._field + '__' +
                          self._COMPARISON_MAP[comparison_type])
+        if comparison_type == 'in':
+            value = value.split(',')
 
         if is_inverse:
             return queryset.exclude(**{kwarg_name: value})
@@ -124,6 +137,41 @@ class _RelatedExistenceConstraint(Constraint):
         related_query = self._model.objects.filter(**{self._field: value})
         if not related_query:
             raise ConstraintError('%s %s not found' % (self._model_name, value))
+        alias = self._make_alias_fn()
+        queryset = queryset.model.objects.join_custom_field(queryset,
+                                                            related_query,
+                                                            alias)
+        if is_inverse:
+            condition = '%s.%s IS NULL'
+        else:
+            condition = '%s.%s IS NOT NULL'
+        condition %= (alias,
+                      queryset.model.objects.key_on_joined_table(related_query))
+
+        queryset = queryset.model.objects.add_where(queryset, condition)
+
+        return queryset
+
+
+class _KeyvalConstraint(Constraint):
+    def __init__(self, model, key_field, value_field, make_alias_fn):
+        self._model = model
+        self._key_field = key_field
+        self._value_field = value_field
+        self._make_alias_fn = make_alias_fn
+
+
+    def apply_constraint(self, queryset, value, comparison_type, is_inverse):
+        if comparison_type not in (None, 'equals'):
+            raise ConstraintError('Can only use equals or not equals with '
+                                  'this selector')
+        if '=' not in value:
+            raise ConstraintError('You must specify a key=value pair for this '
+                                  'selector')
+
+        key, actual_value = value.split('=', 1)
+        related_query = self._model.objects.filter(
+                **{self._key_field: key, self._value_field: actual_value})
         alias = self._make_alias_fn()
         queryset = queryset.model.objects.join_custom_field(queryset,
                                                             related_query,
