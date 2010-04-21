@@ -212,13 +212,14 @@ class RpcInterfaceTest(unittest.TestCase,
         self.task1 = models.SpecialTask.objects.create(
                 host=host, task=models.SpecialTask.Task.VERIFY,
                 time_started=datetime.datetime(2009, 1, 1), # ran before job 1
-                is_complete=True)
+                is_complete=True, requested_by=models.User.current_user())
         self.task2 = models.SpecialTask.objects.create(
                 host=host, task=models.SpecialTask.Task.VERIFY,
                 queue_entry=entry2, # ran with job 2
-                is_active=True)
+                is_active=True, requested_by=models.User.current_user())
         self.task3 = models.SpecialTask.objects.create(
-                host=host, task=models.SpecialTask.Task.VERIFY) # not yet run
+                host=host, task=models.SpecialTask.Task.VERIFY,
+                requested_by=models.User.current_user()) # not yet run
 
 
     def test_get_special_tasks(self):

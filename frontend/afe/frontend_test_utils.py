@@ -8,6 +8,10 @@ from autotest_lib.client.common_lib.test_utils import mock
 class FrontendTestMixin(object):
     def _fill_in_test_data(self):
         """Populate the test database with some hosts and labels."""
+        if models.DroneSet.drone_sets_enabled():
+            models.DroneSet.objects.create(
+                    name=models.DroneSet.default_drone_set_name())
+
         acl_group = models.AclGroup.objects.create(name='my_acl')
         acl_group.users.add(models.User.current_user())
 
@@ -72,7 +76,8 @@ class FrontendTestMixin(object):
 
 
     def _create_job(self, hosts=[], metahosts=[], priority=0, active=False,
-                    synchronous=False, atomic_group=None, hostless=False):
+                    synchronous=False, atomic_group=None, hostless=False,
+                    drone_set=None):
         """
         Create a job row in the test database.
 
@@ -93,6 +98,10 @@ class FrontendTestMixin(object):
 
         @returns A Django frontend.afe.models.Job instance.
         """
+        if not drone_set:
+            drone_set = (models.DroneSet.default_drone_set_name()
+                         and models.DroneSet.get_default())
+
         assert not (atomic_group and active)  # TODO(gps): support this
         synch_count = synchronous and 2 or 1
         created_on = datetime.datetime(2008, 1, 1)
@@ -102,7 +111,8 @@ class FrontendTestMixin(object):
         job = models.Job.objects.create(
             name='test', owner='autotest_system', priority=priority,
             synch_count=synch_count, created_on=created_on,
-            reboot_before=model_attributes.RebootBefore.NEVER)
+            reboot_before=model_attributes.RebootBefore.NEVER,
+            drone_set=drone_set)
         for host_id in hosts:
             models.HostQueueEntry.objects.create(job=job, host_id=host_id,
                                                  status=status,
@@ -126,11 +136,12 @@ class FrontendTestMixin(object):
 
 
     def _create_job_simple(self, hosts, use_metahost=False,
-                          priority=0, active=False):
+                          priority=0, active=False, drone_set=None):
         """An alternative interface to _create_job"""
         args = {'hosts' : [], 'metahosts' : []}
         if use_metahost:
             args['metahosts'] = hosts
         else:
             args['hosts'] = hosts
-        return self._create_job(priority=priority, active=active, **args)
+        return self._create_job(priority=priority, active=active,
+                                drone_set=drone_set, **args)

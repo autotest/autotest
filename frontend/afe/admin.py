@@ -136,6 +136,14 @@ class AclGroupAdmin(SiteAdmin):
 admin.site.register(models.AclGroup, AclGroupAdmin)
 
 
+class DroneSetAdmin(SiteAdmin):
+    filter_horizontal = ('drones',)
+
+admin.site.register(models.DroneSet, DroneSetAdmin)
+
+admin.site.register(models.Drone)
+
+
 if settings.FULL_ADMIN:
     class JobAdmin(SiteAdmin):
         list_display = ('id', 'owner', 'name', 'control_type')

@@ -116,6 +116,119 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
         return unicode(self.name)
 
 
+class Drone(dbmodels.Model, model_logic.ModelExtensions):
+    """
+    A scheduler drone
+
+    hostname: the drone's hostname
+    """
+    hostname = dbmodels.CharField(max_length=255, unique=True)
+
+    name_field = 'hostname'
+    objects = model_logic.ExtendedManager()
+
+
+    def save(self, *args, **kwargs):
+        if not User.current_user().is_superuser():
+            raise Exception('Only superusers may edit drones')
+        super(Drone, self).save(*args, **kwargs)
+
+
+    def delete(self):
+        if not User.current_user().is_superuser():
+            raise Exception('Only superusers may delete drones')
+        super(Drone, self).delete()
+
+
+    class Meta:
+        db_table = 'afe_drones'
+
+    def __unicode__(self):
+        return unicode(self.hostname)
+
+
+class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
+    """
+    A set of scheduler drones
+
+    These will be used by the scheduler to decide what drones a job is allowed
+    to run on.
+
+    name: the drone set's name
+    drones: the drones that are part of the set
+    """
+    DRONE_SETS_ENABLED = global_config.global_config.get_config_value(
+            'SCHEDULER', 'drone_sets_enabled', type=bool, default=False)
+    DEFAULT_DRONE_SET_NAME = global_config.global_config.get_config_value(
+            'SCHEDULER', 'default_drone_set_name', default=None)
+
+    name = dbmodels.CharField(max_length=255, unique=True)
+    drones = dbmodels.ManyToManyField(Drone, db_table='afe_drone_sets_drones')
+
+    name_field = 'name'
+    objects = model_logic.ExtendedManager()
+
+
+    def save(self, *args, **kwargs):
+        if not User.current_user().is_superuser():
+            raise Exception('Only superusers may edit drone sets')
+        super(DroneSet, self).save(*args, **kwargs)
+
+
+    def delete(self):
+        if not User.current_user().is_superuser():
+            raise Exception('Only superusers may delete drone sets')
+        super(DroneSet, self).delete()
+
+
+    @classmethod
+    def drone_sets_enabled(cls):
+        return cls.DRONE_SETS_ENABLED
+
+
+    @classmethod
+    def default_drone_set_name(cls):
+        return cls.DEFAULT_DRONE_SET_NAME
+
+
+    @classmethod
+    def get_default(cls):
+        return cls.smart_get(cls.DEFAULT_DRONE_SET_NAME)
+
+
+    @classmethod
+    def resolve_name(cls, drone_set_name):
+        """
+        Returns the name of one of these, if not None, in order of preference:
+        1) the drone set given,
+        2) the current user's default drone set, or
+        3) the global default drone set
+
+        or returns None if drone sets are disabled
+        """
+        if not cls.drone_sets_enabled():
+            return None
+
+        user = User.current_user()
+        user_drone_set_name = user.drone_set and user.drone_set.name
+
+        return drone_set_name or user_drone_set_name or cls.get_default().name
+
+
+    def get_drone_hostnames(self):
+        """
+        Gets the hostnames of all drones in this drone set
+        """
+        return set(self.drones.all().values_list('hostname', flat=True))
+
+
+    class Meta:
+        db_table = 'afe_drone_sets'
+
+    def __unicode__(self):
+        return unicode(self.name)
+
+
 class User(dbmodels.Model, model_logic.ModelExtensions):
     """\
     Required:
@@ -140,6 +253,7 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     reboot_after = dbmodels.SmallIntegerField(
         choices=model_attributes.RebootAfter.choices(), blank=True,
         default=DEFAULT_REBOOT_AFTER)
+    drone_set = dbmodels.ForeignKey(DroneSet, null=True, blank=True)
     show_experimental = dbmodels.BooleanField(default=False)
 
     name_field = 'login'
@@ -644,6 +758,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     reboot_after: Never, If all tests passed, or Always
     parse_failed_repair: if True, a failed repair launched by this job will have
     its results parsed as part of the job.
+    drone_set: The set of drones to run this job on
     """
     DEFAULT_TIMEOUT = global_config.global_config.get_config_value(
         'AUTOTEST_WEB', 'job_timeout_default', default=240)
@@ -682,6 +797,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     parse_failed_repair = dbmodels.BooleanField(
         default=DEFAULT_PARSE_FAILED_REPAIR)
     max_runtime_hrs = dbmodels.IntegerField(default=DEFAULT_MAX_RUNTIME_HRS)
+    drone_set = dbmodels.ForeignKey(DroneSet, null=True, blank=True)
 
 
     # custom manager
@@ -706,6 +822,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         if options.get('reboot_after') is None:
             options['reboot_after'] = user.get_reboot_after_display()
 
+        drone_set = DroneSet.resolve_name(options.get('drone_set'))
+
         job = cls.add_object(
             owner=owner,
             name=options['name'],
@@ -720,7 +838,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             reboot_before=options.get('reboot_before'),
             reboot_after=options.get('reboot_after'),
             parse_failed_repair=options.get('parse_failed_repair'),
-            created_on=datetime.now())
+            created_on=datetime.now(),
+            drone_set=drone_set)
 
         job.dependency_labels = options['dependencies']
 
@@ -995,7 +1114,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
     host = dbmodels.ForeignKey(Host, blank=False, null=False)
     task = dbmodels.CharField(max_length=64, choices=Task.choices(),
                               blank=False, null=False)
-    requested_by = dbmodels.ForeignKey(User, blank=True, null=True)
+    requested_by = dbmodels.ForeignKey(User)
     time_requested = dbmodels.DateTimeField(auto_now_add=True, blank=False,
                                             null=False)
     is_active = dbmodels.BooleanField(default=False, blank=False, null=False)

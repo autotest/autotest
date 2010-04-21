@@ -30,6 +30,10 @@
 >>> from autotest_lib.client.common_lib import logging_manager
 >>> logging_manager.logger.setLevel(100)
 
+>>> drone_set = models.DroneSet.default_drone_set_name()
+>>> if drone_set:
+...     _ = models.DroneSet.objects.create(name=drone_set)
+
 # basic interface test
 ######################
 
@@ -184,6 +188,7 @@ True
 ...           'access_level': 1,
 ...           'reboot_before': 'If dirty',
 ...           'reboot_after': 'Always',
+...           'drone_set': None,
 ...           'show_experimental': False}]
 True
 >>> rpc_interface.delete_user('showard')
@@ -538,7 +543,8 @@ True
 ...         'email_list': '',
 ...         'reboot_before': 'If dirty',
 ...         'reboot_after': 'Always',
-...         'parse_failed_repair': True}
+...         'parse_failed_repair': True,
+...         'drone_set': drone_set}
 True
 
 # get_host_queue_entries returns a lot of data, so let's only check a couple
