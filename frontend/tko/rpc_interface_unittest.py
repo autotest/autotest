@@ -87,13 +87,12 @@ def fix_iteration_tables():
     cursor.execute(_CREATE_ITERATION_RESULTS)
 
 
-class RpcInterfaceTest(unittest.TestCase):
-    def setUp(self):
-        self._god = mock.mock_god()
-        self._god.stub_with(models.TempManager, '_get_column_names',
-                            self._get_column_names_for_sqlite3)
-        self._god.stub_with(models.TempManager, '_cursor_rowcount',
-                            self._cursor_rowcount_for_sqlite3)
+class TkoTestMixin(object):
+    def _patch_sqlite_stuff(self):
+        self.god.stub_with(models.TempManager, '_get_column_names',
+                           self._get_column_names_for_sqlite3)
+        self.god.stub_with(models.TempManager, '_cursor_rowcount',
+                           self._cursor_rowcount_for_sqlite3)
 
         # add some functions to SQLite for MySQL compatibility
         connection.cursor() # ensure connection is alive
@@ -101,10 +100,7 @@ class RpcInterfaceTest(unittest.TestCase):
         connection.connection.create_function('find_in_set', 2,
                                               self._sqlite_find_in_set)
 
-        setup_test_environment.set_up()
         fix_iteration_tables()
-        setup_test_view()
-        self._create_initial_data()
 
 
     def _cursor_rowcount_for_sqlite3(self, cursor):
@@ -139,11 +135,6 @@ class RpcInterfaceTest(unittest.TestCase):
         return names
 
 
-    def tearDown(self):
-        setup_test_environment.tear_down()
-        self._god.unstub_all()
-
-
     def _create_initial_data(self):
         machine = models.Machine.objects.create(hostname='myhost')
 
@@ -162,9 +153,11 @@ class RpcInterfaceTest(unittest.TestCase):
         failed_status = models.Status.objects.create(word='FAILED')
 
         job1 = models.Job.objects.create(tag='1-myjobtag1', label='myjob1',
-                                         username='myuser', machine=machine)
+                                         username='myuser', machine=machine,
+                                         afe_job_id=1)
         job2 = models.Job.objects.create(tag='2-myjobtag2', label='myjob2',
-                                         username='myuser', machine=machine)
+                                         username='myuser', machine=machine,
+                                         afe_job_id=2)
 
         job1_test1 = models.Test.objects.create(job=job1, test='mytest1',
                                                 kernel=kernel1,
@@ -214,6 +207,21 @@ class RpcInterfaceTest(unittest.TestCase):
         cursor = connection.cursor()
         cursor.execute('INSERT INTO %s ' 'VALUES (%%s, %%s, %%s, %%s)' % table,
                        (test.test_idx, iteration, attribute, value))
+
+
+class RpcInterfaceTest(unittest.TestCase, TkoTestMixin):
+    def setUp(self):
+        self.god = mock.mock_god()
+
+        setup_test_environment.set_up()
+        self._patch_sqlite_stuff()
+        setup_test_view()
+        self._create_initial_data()
+
+
+    def tearDown(self):
+        setup_test_environment.tear_down()
+        self.god.unstub_all()
 
 
     def _check_for_get_test_views(self, test):
