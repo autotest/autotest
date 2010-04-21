@@ -176,6 +176,7 @@ def update_profilers_in_db(profilers, description='NA',
                 doc = description
             else:
                 logging.info("Skipping %s, missing docstring", profiler)
+                continue
         else:
             doc = profilers[profiler]
 
