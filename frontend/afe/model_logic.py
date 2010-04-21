@@ -756,7 +756,7 @@ class ModelExtensions(object):
                 python_value = f.to_python(
                     getattr(self, f.attname, f.get_default()))
             except django.core.exceptions.ValidationError, e:
-                error_dict[f.name] = str(e.message)
+                error_dict[f.name] = str(e)
                 continue
 
             if not f.blank and not python_value:
