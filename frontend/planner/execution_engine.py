@@ -6,6 +6,7 @@ from autotest_lib.server import frontend
 
 
 TICK_INTERVAL_SECS = 10
+PAUSE_BEFORE_RESTARTING_SECS = 60
 
 class ExecutionEngine(object):
     """
@@ -30,14 +31,19 @@ class ExecutionEngine(object):
 
         Thread remains in this method until the execution engine is complete.
         """
-        self._initialize_plan()
-
         while True:
-            if self._tick():
-                break
-            time.sleep(TICK_INTERVAL_SECS)
+            try:
+                self._initialize_plan()
 
-        self._cleanup()
+                while not self._tick():
+                    time.sleep(TICK_INTERVAL_SECS)
+
+                self._cleanup()
+                break
+            except Exception, e:
+                logging.error('Execution engine caught exception, restarting:'
+                              '\n%s', e)
+                time.sleep(PAUSE_BEFORE_RESTARTING_SECS)
 
 
     def _initialize_plan(self):
