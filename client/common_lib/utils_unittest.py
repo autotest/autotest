@@ -710,5 +710,18 @@ class test_run(unittest.TestCase):
         self.assertRaises(TypeError, utils.run, 'echo', args='hello')
 
 
+class test_compare_versions(unittest.TestCase):
+    def test_less_than(self):
+        self.assertEqual(utils.compare_versions('1.2.3', '1.7.5'), -1)
+
+
+    def test_equal(self):
+        self.assertEqual(utils.compare_versions('1.2.3', '1.2.3'), 0)
+
+
+    def test_greater_than(self):
+        self.assertEqual(utils.compare_versions('1.3.3', '1.2.3'), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

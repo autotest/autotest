@@ -1268,3 +1268,21 @@ def configure(extra=None, configure='./configure'):
 
     system('%s %s' % (configure, ' '.join(args)))
 
+
+def compare_versions(ver1, ver2):
+    """Compares two dot-delimited version strings.
+
+    Version number comparison between ver1 and ver2 of the form 'x.y.z'
+
+    Args:
+        ver1: dot-delimited string in 'x.y.z' form
+        ver2: dot-delimited string in 'x.y.z' form
+
+    Returns:
+        int:  1 if ver1 >  ver2
+              0 if ver1 == ver2
+             -1 if ver1 <  ver2
+    """
+    v1 = [int(x) for x in ver1.split('.')]
+    v2 = [int(x) for x in ver2.split('.')]
+    return cmp(v1, v2)
