@@ -143,6 +143,11 @@ class BarrierError(JobError):
     pass
 
 
+class BarrierAbortError(BarrierError):
+    """Indicate that the barrier was explicitly aborted by a member."""
+    pass
+
+
 class InstallError(JobError):
     """Indicates an installation error which Terminates and fails the job."""
     pass

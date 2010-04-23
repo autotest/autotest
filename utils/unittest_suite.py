@@ -56,7 +56,7 @@ REQUIRES_HTTPLIB2 = set((
         ))
 
 LONG_RUNTIME = set((
-    'barrier_unittest.py',
+    'base_barrier_unittest.py',
     'logging_manager_test.py',
     ))
 
