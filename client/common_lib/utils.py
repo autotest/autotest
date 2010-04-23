@@ -8,7 +8,7 @@ try:
     import hashlib
 except ImportError:
     import md5, sha
-from autotest_lib.client.common_lib import error, barrier, logging_manager
+from autotest_lib.client.common_lib import error, logging_manager
 
 def deprecated(func):
     """This is a decorator which can be used to mark functions as deprecated.
@@ -759,112 +759,6 @@ def get_cpu_percentage(function, *args, **dargs):
     cpu_percent = (s_user + c_user + s_system + c_system) / elapsed
 
     return cpu_percent, to_return
-
-
-"""
-This function is used when there is a need to run more than one
-job simultaneously starting exactly at the same time. It basically returns
-a modified control file (containing the synchronization code prepended)
-whenever it is ready to run the control file. The synchronization
-is done using barriers to make sure that the jobs start at the same time.
-
-Here is how the synchronization is done to make sure that the tests
-start at exactly the same time on the client.
-sc_bar is a server barrier and s_bar, c_bar are the normal barriers
-
-                  Job1              Job2         ......      JobN
- Server:   |                        sc_bar
- Server:   |                        s_bar        ......      s_bar
- Server:   |      at.run()         at.run()      ......      at.run()
- ----------|------------------------------------------------------
- Client    |      sc_bar
- Client    |      c_bar             c_bar        ......      c_bar
- Client    |    <run test>         <run test>    ......     <run test>
-
-
-PARAMS:
-   control_file : The control file which to which the above synchronization
-                  code would be prepended to
-   host_name    : The host name on which the job is going to run
-   host_num (non negative) : A number to identify the machine so that we have
-                  different sets of s_bar_ports for each of the machines.
-   instance     : The number of the job
-   num_jobs     : Total number of jobs that are going to run in parallel with
-                  this job starting at the same time
-   port_base    : Port number that is used to derive the actual barrier ports.
-
-RETURN VALUE:
-    The modified control file.
-
-"""
-def get_sync_control_file(control, host_name, host_num,
-                          instance, num_jobs, port_base=63100):
-    sc_bar_port = port_base
-    c_bar_port = port_base
-    if host_num < 0:
-        print "Please provide a non negative number for the host"
-        return None
-    s_bar_port = port_base + 1 + host_num # The set of s_bar_ports are
-                                          # the same for a given machine
-
-    sc_bar_timeout = 180
-    s_bar_timeout = c_bar_timeout = 120
-
-    # The barrier code snippet is prepended into the conrol file
-    # dynamically before at.run() is called finally.
-    control_new = []
-
-    # jobid is the unique name used to identify the processes
-    # trying to reach the barriers
-    jobid = "%s#%d" % (host_name, instance)
-
-    rendv = []
-    # rendvstr is a temp holder for the rendezvous list of the processes
-    for n in range(num_jobs):
-        rendv.append("'%s#%d'" % (host_name, n))
-    rendvstr = ",".join(rendv)
-
-    if instance == 0:
-        # Do the setup and wait at the server barrier
-        # Clean up the tmp and the control dirs for the first instance
-        control_new.append('if os.path.exists(job.tmpdir):')
-        control_new.append("\t system('umount -f %s > /dev/null"
-                           "2> /dev/null' % job.tmpdir,"
-                           "ignore_status=True)")
-        control_new.append("\t system('rm -rf ' + job.tmpdir)")
-        control_new.append(
-            'b0 = job.barrier("%s", "sc_bar", %d, port=%d)'
-            % (jobid, sc_bar_timeout, sc_bar_port))
-        control_new.append(
-        'b0.rendezvous_servers("PARALLEL_MASTER", "%s")'
-         % jobid)
-
-    elif instance == 1:
-        # Wait at the server barrier to wait for instance=0
-        # process to complete setup
-        b0 = barrier.barrier("PARALLEL_MASTER", "sc_bar", sc_bar_timeout,
-                     port=sc_bar_port)
-        b0.rendezvous_servers("PARALLEL_MASTER", jobid)
-
-        if(num_jobs > 2):
-            b1 = barrier.barrier(jobid, "s_bar", s_bar_timeout,
-                         port=s_bar_port)
-            b1.rendezvous(rendvstr)
-
-    else:
-        # For the rest of the clients
-        b2 = barrier.barrier(jobid, "s_bar", s_bar_timeout, port=s_bar_port)
-        b2.rendezvous(rendvstr)
-
-    # Client side barrier for all the tests to start at the same time
-    control_new.append('b1 = job.barrier("%s", "c_bar", %d, port=%d)'
-                    % (jobid, c_bar_timeout, c_bar_port))
-    control_new.append("b1.rendezvous(%s)" % rendvstr)
-
-    # Stick in the rest of the control file
-    control_new.append(control)
-
-    return "\n".join(control_new)
 
 
 def get_arch(run_function=run):
