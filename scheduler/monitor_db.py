@@ -2487,7 +2487,8 @@ class SelfThrottledPostJobTask(PostJobTask):
 
         # actually run the command
         super(SelfThrottledPostJobTask, self).run()
-        self._increment_running_processes()
+        if self._process_started():
+            self._increment_running_processes()
 
 
     def finished(self, success):
