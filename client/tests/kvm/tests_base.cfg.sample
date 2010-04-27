@@ -183,7 +183,7 @@ variants:
 
     - balloon_check:  install setup unattended_install
         type = balloon_check
-        extra_params += "-balloon virtio"
+        extra_params += " -balloon virtio"
         iterations = 5
 
     - stress_boot:  install setup unattended_install
