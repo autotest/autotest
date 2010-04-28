@@ -39,6 +39,18 @@ public class Utils {
         }
         return result;
     }
+    
+    /**
+     * Converts a collection of Java <code>Integers</code>s into a <code>JSONArray
+     * </code> of <code>JSONNumber</code>s.
+     */
+    public static JSONArray integersToJSON(Collection<Integer> integers) {
+        JSONArray result = new JSONArray();
+        for(Integer i : integers) {
+            result.set(result.size(), new JSONNumber(i));
+        }
+        return result;
+    }
 
     /**
      * Converts a <code>JSONArray</code> of <code>JSONStrings</code> to an 

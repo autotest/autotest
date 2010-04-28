@@ -3,6 +3,7 @@ package autotest.planner.triage;
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
+import autotest.common.Utils;
 import autotest.common.ui.SimplifiedList;
 
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -13,13 +14,14 @@ import com.google.gwt.event.logical.shared.CloseHandler;
 import com.google.gwt.event.logical.shared.HasCloseHandlers;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
-import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.HasText;
 import com.google.gwt.user.client.ui.HasValue;
 import com.google.gwt.user.client.ui.PopupPanel;
+
+import java.util.List;
 
 public class TriagePopup implements ClickHandler, CloseHandler<PopupPanel> {
     public static interface Display extends HasCloseHandlers<PopupPanel> {
@@ -37,17 +39,17 @@ public class TriagePopup implements ClickHandler, CloseHandler<PopupPanel> {
     }
     
     public static interface Listener {
-        public void onTriage(TriagePopup source);
+        public void onTriage();
     }
     
     private Display display;
     private Listener listener;
-    private int id;
+    private List<Integer> ids;
     private boolean triaged = false;
     
-    public TriagePopup(Listener listener, int id) {
+    public TriagePopup(Listener listener, List<Integer> ids) {
         this.listener = listener;
-        this.id = id;
+        this.ids = ids;
     }
     
     public void bindDisplay(Display display) {
@@ -61,8 +63,8 @@ public class TriagePopup implements ClickHandler, CloseHandler<PopupPanel> {
         display.center();
     }
     
-    public int getId() {
-        return id;
+    public List<Integer> getIds() {
+        return ids;
     }
     
     private void populateActionsFields() {
@@ -93,7 +95,7 @@ public class TriagePopup implements ClickHandler, CloseHandler<PopupPanel> {
             
             JSONObject params = getParams();
             
-            proxy.rpcCall("process_failure", params, new JsonRpcCallback() {
+            proxy.rpcCall("process_failures", params, new JsonRpcCallback() {
                 @Override
                 public void onSuccess(JSONValue result) {
                     triaged = true;
@@ -105,7 +107,7 @@ public class TriagePopup implements ClickHandler, CloseHandler<PopupPanel> {
     
     private JSONObject getParams() {
         JSONObject params = new JSONObject();
-        params.put("failure_id", new JSONNumber(id));
+        params.put("failure_ids", Utils.integersToJSON(ids));
         params.put("host_action", new JSONString(display.getHostActionField().getSelectedName()));
         params.put("test_action", new JSONString(display.getTestActionField().getSelectedName()));
         
@@ -146,7 +148,7 @@ public class TriagePopup implements ClickHandler, CloseHandler<PopupPanel> {
     @Override
     public void onClose(CloseEvent<PopupPanel> event) {
         if (triaged) {
-            listener.onTriage(this);
+            listener.onTriage();
         }
     }
 }

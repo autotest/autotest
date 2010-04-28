@@ -1,0 +1,18 @@
+<module>
+  <inherits name='com.google.gwt.user.User'/>
+  <inherits name='com.google.gwt.json.JSON'/>
+  <inherits name='com.google.gwt.http.HTTP'/>
+  
+  <inherits name='com.google.gwt.widgetideas.WidgetIdeas'/>
+  <inherits name='com.google.gwt.gen2.table.ScrollTable'/>
+
+  <source path="planner"/>
+  <source path="common"/>
+  <entry-point class='autotest.planner.TestPlannerClient'/>
+
+  <stylesheet src='common.css'/>
+  <stylesheet src='standard.css'/>
+  <stylesheet src='scrolltable.css'/>
+  <stylesheet src='afeclient.css'/>
+  <stylesheet src='tkoclient.css'/>
+</module>
