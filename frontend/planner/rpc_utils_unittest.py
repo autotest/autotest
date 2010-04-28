@@ -3,9 +3,11 @@
 import unittest
 import common
 from autotest_lib.frontend import setup_django_environment
-from autotest_lib.frontend.planner import planner_test_utils
+from autotest_lib.frontend import setup_test_environment
 from autotest_lib.frontend.afe import model_logic, models as afe_models
+from autotest_lib.frontend.planner import planner_test_utils, model_attributes
 from autotest_lib.frontend.planner import models, rpc_utils, failure_actions
+from autotest_lib.frontend.tko import models as tko_models
 from autotest_lib.client.common_lib import utils, host_queue_entry_states
 
 
@@ -132,6 +134,58 @@ class RpcUtilsTest(unittest.TestCase,
         self.assertTrue(self._planner_host.complete)
 
 
+    def test_process_failure(self):
+        self._setup_active_plan()
+        tko_test = tko_models.Test.objects.create(job=self._tko_job,
+                                                  machine=self._tko_machine,
+                                                  kernel=self._tko_kernel,
+                                                  status=self._running_status)
+        failure = models.TestRun.objects.create(
+                plan=self._plan,
+                test_job=self._planner_job,
+                tko_test=tko_test,
+                host=self._planner_host,
+                status=model_attributes.TestRunStatus.FAILED,
+                finalized=True, seen=False, triaged=False)
+        host_action = failure_actions.HostAction.UNBLOCK
+        test_action = failure_actions.TestAction.SKIP
+        labels = ['label1', 'label2']
+        keyvals = {'key1': 'value1',
+                   'key2': 'value2'}
+        bugs = ['bug1', 'bug2']
+        reason = 'overriden reason'
+        invalidate = True
+
+        self.god.stub_function(rpc_utils, '_process_host_action')
+        self.god.stub_function(rpc_utils, '_process_test_action')
+
+        rpc_utils._process_host_action.expect_call(self._planner_host,
+                                                   host_action)
+        rpc_utils._process_test_action.expect_call(self._planner_job,
+                                                   test_action)
+
+        rpc_utils.process_failure(
+                failure_id=failure.id, host_action=host_action,
+                test_action=test_action, labels=labels, keyvals=keyvals,
+                bugs=bugs, reason=reason, invalidate=invalidate)
+        failure = models.TestRun.objects.get(id=failure.id)
+
+        self.assertEqual(
+                set(failure.tko_test.testlabel_set.all()),
+                set(tko_models.TestLabel.objects.filter(name__in=labels)))
+        self.assertEqual(
+                set(failure.tko_test.job.jobkeyval_set.all()),
+                set(tko_models.JobKeyval.objects.filter(
+                        key__in=keyvals.iterkeys())))
+        self.assertEqual(set(failure.bugs.all()),
+                         set(models.Bug.objects.filter(external_uid__in=bugs)))
+        self.assertEqual(failure.tko_test.reason, reason)
+        self.assertEqual(failure.invalidated, invalidate)
+        self.assertTrue(failure.seen)
+        self.assertTrue(failure.triaged)
+        self.god.check_playback()
+
+
     def _replace_site_process_host_action(self, replacement):
         self.god.stub_function(utils, 'import_site_function')
         utils.import_site_function.expect_any_call().and_return(replacement)
@@ -149,7 +203,7 @@ class RpcUtilsTest(unittest.TestCase,
                                           blocked=False)
         assert not host.blocked
 
-        rpc_utils.process_host_action(host, failure_actions.HostAction.BLOCK)
+        rpc_utils._process_host_action(host, failure_actions.HostAction.BLOCK)
         host = models.Host.objects.get(id=host.id)
 
         self.assertTrue(host.blocked)
@@ -162,7 +216,7 @@ class RpcUtilsTest(unittest.TestCase,
                                           blocked=True)
         assert host.blocked
 
-        rpc_utils.process_host_action(host, failure_actions.HostAction.UNBLOCK)
+        rpc_utils._process_host_action(host, failure_actions.HostAction.UNBLOCK)
         host = models.Host.objects.get(id=host.id)
 
         self.assertFalse(host.blocked)
@@ -175,7 +229,7 @@ class RpcUtilsTest(unittest.TestCase,
         failure_actions.HostAction.values.append(action)
         host = models.Host.objects.create(plan=self._plan, host=self.hosts[0])
 
-        self.assertRaises(AssertionError, rpc_utils.process_host_action,
+        self.assertRaises(AssertionError, rpc_utils._process_host_action,
                           host, action)
         self.god.check_playback()
 
@@ -185,7 +239,7 @@ class RpcUtilsTest(unittest.TestCase,
             return True
         self._replace_site_process_host_action(_site_process_host_action)
 
-        rpc_utils.process_host_action(host, action)
+        rpc_utils._process_host_action(host, action)
 
         self.assertTrue(self._called)
         self.god.check_playback()
@@ -196,8 +250,8 @@ class RpcUtilsTest(unittest.TestCase,
         planner_job = self._planner_job
         assert not planner_job.requires_rerun
 
-        rpc_utils.process_test_action(planner_job,
-                                      failure_actions.TestAction.SKIP)
+        rpc_utils._process_test_action(planner_job,
+                                       failure_actions.TestAction.SKIP)
         planner_job = models.Job.objects.get(id=planner_job.id)
 
         self.assertFalse(planner_job.requires_rerun)
@@ -208,8 +262,8 @@ class RpcUtilsTest(unittest.TestCase,
         planner_job = self._planner_job
         assert not planner_job.requires_rerun
 
-        rpc_utils.process_test_action(planner_job,
-                                      failure_actions.TestAction.RERUN)
+        rpc_utils._process_test_action(planner_job,
+                                       failure_actions.TestAction.RERUN)
         planner_job = models.Job.objects.get(id=planner_job.id)
 
         self.assertTrue(planner_job.requires_rerun)

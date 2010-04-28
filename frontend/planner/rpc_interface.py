@@ -254,10 +254,11 @@ def get_failures(plan_id):
     failures = plan.testrun_set.filter(
             finalized=True, triaged=False,
             status=model_attributes.TestRunStatus.FAILED)
-    failures = failures.select_related('test_job__test', 'host__host',
-                                       'tko_test')
+    failures = failures.order_by('seen').select_related('test_job__test',
+                                                        'host__host',
+                                                        'tko_test')
     for failure in failures:
-        test_name = '%s:%s' % (
+        test_name = '%s: %s' % (
                 failure.test_job.test_config.alias, failure.tko_test.test)
 
         group_failures = result.setdefault(failure.tko_test.reason, [])
@@ -309,8 +310,8 @@ def mark_failures_as_seen(failure_ids):
     models.TestRun.objects.filter(id__in=failure_ids).update(seen=True)
 
 
-def process_failure(failure_id, host_action, test_action, labels=(),
-                    keyvals=None, bugs=(), reason=None, invalidate=False):
+def process_failures(failure_ids, host_action, test_action, labels=(),
+                     keyvals=None, bugs=(), reason=None, invalidate=False):
     """
     Triage a failure
 
@@ -325,9 +326,6 @@ def process_failure(failure_id, host_action, test_action, labels=(),
     @param invalidate: True if failure should be invalidated for the purposes of
                        reporting. Defaults to False.
     """
-    if keyvals is None:
-        keyvals = {}
-
     host_choices = failure_actions.HostAction.values
     test_choices = failure_actions.TestAction.values
     if host_action not in host_choices:
@@ -339,51 +337,15 @@ def process_failure(failure_id, host_action, test_action, labels=(),
                 {'test_action': ('test action %s not valid; must be one of %s'
                                  % (test_action, ', '.join(test_choices)))})
 
-    failure = models.TestRun.objects.get(id=failure_id)
-
-    rpc_utils.process_host_action(failure.host, host_action)
-    rpc_utils.process_test_action(failure.test_job, test_action)
-
-    # Add the test labels
-    for label in labels:
-        tko_test_label, _ = (
-                tko_models.TestLabel.objects.get_or_create(name=label))
-        failure.tko_test.testlabel_set.add(tko_test_label)
-
-    # Set the job keyvals
-    for key, value in keyvals.iteritems():
-        keyval, created = tko_models.JobKeyval.objects.get_or_create(
-                job=failure.tko_test.job, key=key)
-        if not created:
-            tko_models.JobKeyval.objects.create(job=failure.tko_test.job,
-                                                key='original_' + key,
-                                                value=keyval.value)
-        keyval.value = value
-        keyval.save()
-
-    # Add the bugs
-    for bug_id in bugs:
-        bug, _ = models.Bug.objects.get_or_create(external_uid=bug_id)
-        failure.bugs.add(bug)
-
-    # Set the failure reason
-    if reason is not None:
-        tko_models.TestAttribute.objects.create(test=failure.tko_test,
-                                                attribute='original_reason',
-                                                value=failure.tko_test.reason)
-        failure.tko_test.reason = reason
-        failure.tko_test.save()
-
-    # Set 'invalidated', 'seen', and 'triaged'
-    failure.invalidated = invalidate
-    failure.seen = True
-    failure.triaged = True
-    failure.save()
+    for failure_id in failure_ids:
+        rpc_utils.process_failure(
+                failure_id=failure_id, host_action=host_action,
+                test_action=test_action, labels=labels, keyvals=keyvals,
+                bugs=bugs, reason=reason, invalidate=invalidate)
 
 
 def get_motd():
     return afe_rpc_utils.get_motd()
-
 
 
 def get_static_data():
