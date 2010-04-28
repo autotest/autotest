@@ -2,7 +2,7 @@ package autotest.tko;
 
 
 public class IterationAttributeField extends AttributeField {
-    public static final String TYPE_NAME = "Iteration result";
+    public static final String TYPE_NAME = "Iteration attribute";
 
     @Override
     protected ParameterizedField freshInstance() {
