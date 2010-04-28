@@ -1700,7 +1700,7 @@ class AgentTask(object):
         job = models.Job.objects.get(id=job_ids[0])
         drone_set = job.drone_set
         if not drone_set:
-            return self_user_or_global_default_drone_set(job, job.user())
+            return self._user_or_global_default_drone_set(job, job.user())
 
         return drone_set.get_drone_hostnames()
 
