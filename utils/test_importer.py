@@ -348,6 +348,8 @@ def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):
                     except control_data.ControlVariableException, e:
                         logging.info("Skipping %s\n%s", file, e)
                         pass
+                    except Exception, e:
+                        logging.error("Bad %s\n%s", file, e)
                 else:
                     found_test = control_data.parse_control(file)
                     tests[file] = found_test
