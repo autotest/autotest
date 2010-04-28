@@ -1,0 +1,43 @@
+.gwt-ScrollTable {
+  border-color: #aaa;
+  border-style: solid;
+  border-width: 1px 0px 1px 1px;
+}
+
+.gwt-ScrollTable .headerWrapper {
+  background: #8bd;
+}
+
+.gwt-ScrollTable .footerWrapper {
+  border-top: 1px solid #aaa;
+  background: #8bd;
+}
+
+.gwt-ScrollTable .dataTable td,
+.gwt-ScrollTable .headerTable td,
+.gwt-ScrollTable .footerTable td {
+  border-color: #aaa;
+  border-style: solid;
+  border-width: 0px 1px 1px 0px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.gwt-ScrollTable .headerTable td,
+.gwt-ScrollTable .footerTable td {
+  color: #fff;
+}
+
+.gwt-ScrollTable .dataTable tr.highlighted {
+  background: #C3D9FF;
+}
+
+.gwt-ScrollTable .dataTable td.highlighted {
+  background: #FFFFAA;
+  cursor: hand;
+  cursor: pointer;
+}
+
+.gwt-ScrollTable .dataTable tr.selected td {
+  background: #7AA5D6;
+}

@@ -5,22 +5,32 @@ import autotest.common.JsonRpcProxy;
 import autotest.common.ui.HasTabVisible;
 import autotest.planner.TestPlanSelector;
 
+import com.google.gwt.event.dom.client.ClickEvent;
+import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.event.dom.client.HasClickHandlers;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
-public class TriageViewPresenter implements TestPlanSelector.Listener {
+import java.util.ArrayList;
+import java.util.List;
+
+public class TriageViewPresenter implements ClickHandler, TestPlanSelector.Listener,
+                                            TriagePopup.Listener {
     
     public interface Display {
         public void setLoading(boolean loading);
         public void clearAllFailureTables();
-        public FailureTable.Display generateFailureTable();
+        public FailureTable.Display generateFailureTable(String group, String[] columnNames);
+        public TriagePopup.Display generateTriagePopupDisplay();
+        public HasClickHandlers getTriageButton();
     }
     
     private TestPlanSelector selector;
     private Display display;
     private HasTabVisible tab;
+    private List<FailureTable> failureTables = new ArrayList<FailureTable>();
     
     public TriageViewPresenter(TestPlanSelector selector, HasTabVisible tab) {
         this.selector = selector;
@@ -30,6 +40,7 @@ public class TriageViewPresenter implements TestPlanSelector.Listener {
     
     public void bindDisplay(Display display) {
         this.display = display;
+        display.getTriageButton().addClickHandler(this);
     }
     
     public void refresh() {
@@ -47,16 +58,25 @@ public class TriageViewPresenter implements TestPlanSelector.Listener {
             @Override
             public void onSuccess(JSONValue result) {
                 display.clearAllFailureTables();
+                display.setLoading(false);
                 generateFailureTables(result.isObject());
+            }
+            
+            @Override
+            public void onError(JSONObject errorObject) {
+                super.onError(errorObject);
                 display.setLoading(false);
             }
         });
     }
     
-    private void generateFailureTables(JSONObject failures) {        
+    private void generateFailureTables(JSONObject failures) {
+        failureTables.clear();
+        
         for (String group : failures.keySet()) {
-            FailureTable table = new FailureTable(group);
-            FailureTable.Display tableDisplay = display.generateFailureTable();
+            FailureTable table = new FailureTable();
+            FailureTable.Display tableDisplay =
+                    display.generateFailureTable(group, FailureTable.COLUMN_NAMES);
             table.bindDisplay(tableDisplay);
             
             JSONArray groupFailures = failures.get(group).isArray();
@@ -65,7 +85,7 @@ public class TriageViewPresenter implements TestPlanSelector.Listener {
                 table.addFailure(groupFailures.get(i).isObject());
             }
             
-            table.renderDisplay();
+            failureTables.add(table);
         }
     }
 
@@ -74,5 +94,24 @@ public class TriageViewPresenter implements TestPlanSelector.Listener {
         if (tab.isTabVisible()) {
             refresh();
         }
+    }
+
+    @Override
+    public void onClick(ClickEvent event) {
+        assert event.getSource() == display.getTriageButton();
+        
+        List<Integer> failureIds = new ArrayList<Integer>();
+        for (FailureTable failure : failureTables) {
+            failureIds.addAll(failure.getSelectedFailureIds());
+        }
+        
+        TriagePopup popup = new TriagePopup(this, failureIds);
+        popup.bindDisplay(display.generateTriagePopupDisplay());
+        popup.render();
+    }
+
+    @Override
+    public void onTriage() {
+        refresh();
     }
 }
