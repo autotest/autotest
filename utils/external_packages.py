@@ -740,7 +740,12 @@ class GwtIncubatorPackage(ExternalPackage):
     def _build_and_install(self, install_dir):
         dest = os.path.join(install_dir, GwtPackage.name, self.local_filename)
         shutil.copyfile(self.verified_package, dest)
-        os.symlink(dest, self.symlink_name)
+
+        symlink_path = os.path.join(
+                install_dir, GwtPackage.name, self.symlink_name)
+        if os.path.exists(symlink_path):
+            os.remove(symlink_path)
+        os.symlink(dest, symlink_path)
         return True
 
 
