@@ -255,6 +255,16 @@ class parser(base.parser):
                     and not running_test):
                     # we just started a client, all tests are relative to here
                     min_stack_size = stack.size()
+                    # start a "RUNNING" CLIENT_JOB entry
+                    job_name = "CLIENT_JOB.%d" % job_count
+                    running_job = test.parse_partial_test(self.job, None,
+                                                          job_name,
+                                                          "", current_kernel,
+                                                          started_time)
+                    msg = "RUNNING: %s\n%s\n"
+                    msg %= (running_job.status, running_job.testname)
+                    tko_utils.dprint(msg)
+                    new_tests.append(running_job)
                 elif stack.size() == min_stack_size + 1 and not running_test:
                     # we just started a new test, insert a running record
                     running_reasons = set()
