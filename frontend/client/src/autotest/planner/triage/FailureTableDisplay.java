@@ -18,12 +18,12 @@ import java.util.Set;
 
 public class FailureTableDisplay extends Composite implements FailureTable.Display {
     
+    private FixedWidthFlexTable header = new FixedWidthFlexTable();
     private FixedWidthGrid dataTable;
     private ScrollTable scrollTable;
     private CheckBox selectAll = new CheckBox();
     
     public FailureTableDisplay(String group, String[] columnNames) {
-        FixedWidthFlexTable header = new FixedWidthFlexTable();
         FlexCellFormatter formatter = header.getFlexCellFormatter();
         
         dataTable = new FixedWidthGrid(0, columnNames.length);
@@ -41,9 +41,6 @@ public class FailureTableDisplay extends Composite implements FailureTable.Displ
         formatter.setColSpan(0, 0, columnNames.length + 1);
         for (int i = 0; i < columnNames.length; i++) {
             header.setText(1, i + 1, columnNames[i]);
-            header.setColumnWidth(i + 1, 1);
-            scrollTable.setHeaderColumnTruncatable(i, false);
-            scrollTable.setColumnTruncatable(i, false);
         }
         
         initWidget(scrollTable);
@@ -57,7 +54,14 @@ public class FailureTableDisplay extends Composite implements FailureTable.Displ
         dataTable.resizeRows(row + 1);
         for (int cell = 0; cell < cells.length; cell++) {
             dataTable.setText(row, cell, cells[cell]);
-            dataTable.setColumnWidth(cell, 1);
+        }
+        
+        for (int column = 0; column < dataTable.getColumnCount(); column++) {
+            int width = Math.max(
+                      dataTable.getIdealColumnWidth(column), header.getColumnWidth(column + 1));
+            
+            header.setColumnWidth(column + 1, width);
+            dataTable.setColumnWidth(column, width);
         }
     }
 

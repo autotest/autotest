@@ -3,8 +3,7 @@
   <inherits name='com.google.gwt.json.JSON'/>
   <inherits name='com.google.gwt.http.HTTP'/>
   
-  <inherits name='com.google.gwt.widgetideas.WidgetIdeas'/>
-  <inherits name='com.google.gwt.gen2.table.ScrollTable'/>
+  <inherits name='com.google.gwt.gen2.Gen2'/>
 
   <source path="planner"/>
   <source path="common"/>
