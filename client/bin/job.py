@@ -6,7 +6,7 @@ Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
 import copy, os, platform, re, shutil, sys, time, traceback, types, glob
-import logging, getpass, errno
+import logging, getpass, errno, weakref
 import cPickle as pickle
 from autotest_lib.client.bin import client_logging_config
 from autotest_lib.client.bin import utils, parallel, kernel, xen
@@ -41,7 +41,7 @@ def _run_test_complete_on_exit(f):
         try:
             return f(self, *args, **dargs)
         finally:
-            if self._log_filename == self._DEFAULT_LOG_FILENAME:
+            if self._logger.global_filename == 'status':
                 self.harness.run_test_complete()
                 if self.drop_caches:
                     logging.debug("Dropping caches")
@@ -50,6 +50,25 @@ def _run_test_complete_on_exit(f):
     wrapped.__doc__ = f.__doc__
     wrapped.__dict__.update(f.__dict__)
     return wrapped
+
+
+class status_indenter(base_job.status_indenter):
+    """Provide a status indenter that is backed by job._record_prefix."""
+    def __init__(self, job):
+        self.job = weakref.proxy(job)  # avoid a circular reference
+
+
+    @property
+    def indent(self):
+        return self.job._record_indent
+
+
+    def increment(self):
+        self.job._record_indent += 1
+
+
+    def decrement(self):
+        self.job._record_indent -= 1
 
 
 class base_client_job(base_job.base_job):
@@ -61,13 +80,12 @@ class base_client_job(base_job.base_job):
         harness
     """
 
-    _DEFAULT_LOG_FILENAME = "status"
     _WARNING_DISABLE_DELAY = 5
 
-    # _record_prefix is a persistent property, but only on the client
+    # _record_indent is a persistent property, but only on the client
     _job_state = base_job.base_job._job_state
-    _record_prefix = _job_state.property_factory(
-        '_state', '_record_prefix', '', namespace='client')
+    _record_indent = _job_state.property_factory(
+        '_state', '_record_indent', 0, namespace='client')
     _max_disk_usage_rate = _job_state.property_factory(
         '_state', '_max_disk_usage_rate', 0.0, namespace='client')
 
@@ -126,13 +144,18 @@ class base_client_job(base_job.base_job):
         return os.path.join(self.autodir, 'results', options.tag)
 
 
+    def _get_status_logger(self):
+        """Return a reference to the status logger."""
+        return self._logger
+
+
     def _pre_record_init(self, control, options):
         """
         Initialization function that should peform ONLY the required
         setup so that the self.record() method works.
 
         As of now self.record() needs self.resultdir, self._group_level,
-        self._log_filename, self.harness.
+        self.harness and of course self._logger.
         """
         if not options.cont:
             self._cleanup_results_dir()
@@ -143,8 +166,6 @@ class base_client_job(base_job.base_job):
                 verbose=options.verbose)
         logging.info('Writing results to %s', self.resultdir)
 
-        self._log_filename = self._DEFAULT_LOG_FILENAME
-
         # init_group_level needs the state
         self.control = os.path.realpath(control)
         self._is_continuation = options.cont
@@ -153,6 +174,22 @@ class base_client_job(base_job.base_job):
         self._load_state()
 
         self.harness = harness.select(options.harness, self)
+
+        # set up the status logger
+        def client_job_record_hook(entry):
+            msg_tag = ''
+            if '.' in self._logger.global_filename:
+                msg_tag = self._logger.global_filename.split('.', 1)[1]
+            # send the entry to the job harness
+            message = '\n'.join([entry.message] + entry.extra_message_lines)
+            rendered_entry = self._logger.render_entry(entry)
+            self.harness.test_status_detail(entry.status_code, entry.subdir,
+                                            entry.operation, message, msg_tag)
+            self.harness.test_status(rendered_entry, msg_tag)
+            # send the entry to stdout, if it's enabled
+            logging.info(rendered_entry)
+        self._logger = base_job.status_logger(
+            self, status_indenter(self), record_hook=client_job_record_hook)
 
 
     def _post_record_init(self, control, options, drop_caches,
@@ -203,7 +240,6 @@ class base_client_job(base_job.base_job):
 
         if not options.cont:
             self.record('START', None, None)
-            self._increment_group_level()
 
         self.harness.run_start()
 
@@ -535,17 +571,13 @@ class base_client_job(base_job.base_job):
 
         try:
             self.record('START', subdir, testname)
-            self._increment_group_level()
             result = function(*args, **dargs)
-            self._decrement_group_level()
             self.record('END GOOD', subdir, testname)
             return result
         except error.TestBaseException, e:
-            self._decrement_group_level()
             self.record('END %s' % e.exit_status, subdir, testname)
             raise
         except error.JobError, e:
-            self._decrement_group_level()
             self.record('END ABORT', subdir, testname)
             raise
         except Exception, e:
@@ -554,7 +586,6 @@ class base_client_job(base_job.base_job):
             # run_test() will never reach this.  If a control file called
             # run_group() itself, bugs in its function will be caught
             # here.
-            self._decrement_group_level()
             err_msg = str(e) + '\n' + traceback.format_exc()
             self.record('END ERROR', subdir, testname, err_msg)
             raise
@@ -594,14 +625,12 @@ class base_client_job(base_job.base_job):
 
     def start_reboot(self):
         self.record('START', None, 'reboot')
-        self._increment_group_level()
         self.record('GOOD', None, 'reboot.start')
 
 
     def _record_reboot_failure(self, subdir, operation, status,
                                running_id=None):
         self.record("ABORT", subdir, operation, status)
-        self._decrement_group_level()
         if not running_id:
             running_id = utils.running_os_ident()
         kernel = {"kernel": running_id.split("::")[0]}
@@ -636,7 +665,6 @@ class base_client_job(base_job.base_job):
         kernel_info = {"kernel": kernel}
         for i, patch in enumerate(patches):
             kernel_info["patch%d" % i] = patch
-        self._decrement_group_level()
         self.record("END GOOD", subdir, "reboot", optional_fields=kernel_info)
 
 
@@ -763,17 +791,17 @@ class base_client_job(base_job.base_job):
         """Run tasks in parallel"""
 
         pids = []
-        old_log_filename = self._log_filename
+        old_log_filename = self._logger.global_filename
         for i, task in enumerate(tasklist):
             assert isinstance(task, (tuple, list))
-            self._log_filename = old_log_filename + (".%d" % i)
+            self._logger.global_filename = old_log_filename + (".%d" % i)
             def task_func():
-                # stub out _record_prefix with a process-local one
-                base_record_prefix = self._record_prefix
+                # stub out _record_indent with a process-local one
+                base_record_indent = self._record_indent
                 proc_local = self._job_state.property_factory(
-                    '_state', '_record_prefix.%d' % os.getpid(),
-                    base_record_prefix, namespace='client')
-                self.__class__._record_prefix = proc_local
+                    '_state', '_record_indent.%d' % os.getpid(),
+                    base_record_indent, namespace='client')
+                self.__class__._record_indent = proc_local
                 task[0](*task[1:])
             pids.append(parallel.fork_start(self.resultdir, task_func))
 
@@ -796,7 +824,7 @@ class base_client_job(base_job.base_job):
                 os.remove(new_log_path)
         old_log.close()
 
-        self._log_filename = old_log_filename
+        self._logger.global_filename = old_log_filename
 
         # handle any exceptions raised by the parallel tasks
         if exceptions:
@@ -1027,107 +1055,6 @@ class base_client_job(base_job.base_job):
         self._state.set('client', 'sysinfo', state)
 
 
-    def _increment_group_level(self):
-        self._record_prefix += '\t'
-
-
-    def _decrement_group_level(self):
-        self._record_prefix = self._record_prefix[:-1]
-
-
-    def record(self, status_code, subdir, operation, status = '',
-               optional_fields=None):
-        """
-        Record job-level status
-
-        The intent is to make this file both machine parseable and
-        human readable. That involves a little more complexity, but
-        really isn't all that bad ;-)
-
-        Format is <status code>\t<subdir>\t<operation>\t<status>
-
-        status code: (GOOD|WARN|FAIL|ABORT)
-                or   START
-                or   END (GOOD|WARN|FAIL|ABORT)
-
-        subdir: MUST be a relevant subdirectory in the results,
-        or None, which will be represented as '----'
-
-        operation: description of what you ran (e.g. "dbench", or
-                                        "mkfs -t foobar /dev/sda9")
-
-        status: error message or "completed sucessfully"
-
-        ------------------------------------------------------------
-
-        Initial tabs indicate indent levels for grouping, and is
-        governed by self.group_level
-
-        multiline messages have secondary lines prefaced by a double
-        space ('  ')
-        """
-
-        if subdir:
-            if re.match(r'[\n\t]', subdir):
-                raise ValueError("Invalid character in subdir string")
-            substr = subdir
-        else:
-            substr = '----'
-
-        if not log.is_valid_status(status_code):
-            raise ValueError("Invalid status code supplied: %s" % status_code)
-        if not operation:
-            operation = '----'
-
-        if re.match(r'[\n\t]', operation):
-            raise ValueError("Invalid character in operation string")
-        operation = operation.rstrip()
-
-        if not optional_fields:
-            optional_fields = {}
-
-        status = status.rstrip()
-        status = re.sub(r"\t", "  ", status)
-        # Ensure any continuation lines are marked so we can
-        # detect them in the status file to ensure it is parsable.
-        status = re.sub(r"\n", "\n" + self._record_prefix + "  ", status)
-
-        # Generate timestamps for inclusion in the logs
-        epoch_time = int(time.time())  # seconds since epoch, in UTC
-        local_time = time.localtime(epoch_time)
-        optional_fields["timestamp"] = str(epoch_time)
-        optional_fields["localtime"] = time.strftime("%b %d %H:%M:%S",
-                                                     local_time)
-
-        fields = [status_code, substr, operation]
-        fields += ["%s=%s" % x for x in optional_fields.iteritems()]
-        fields.append(status)
-
-        msg = '\t'.join(str(x) for x in fields)
-        msg = self._record_prefix + msg
-
-        msg_tag = ""
-        if "." in self._log_filename:
-            msg_tag = self._log_filename.split(".", 1)[1]
-
-        self.harness.test_status_detail(status_code, substr, operation, status,
-                                        msg_tag)
-        self.harness.test_status(msg, msg_tag)
-
-        # log to stdout (if enabled)
-        logging.info(msg)
-
-        # log to the "root" status log
-        status_file = os.path.join(self.resultdir, self._log_filename)
-        open(status_file, "a").write(msg + "\n")
-
-        # log to the subdir status log (if subdir is set)
-        if subdir:
-            dir = os.path.join(self.resultdir, subdir)
-            status_file = os.path.join(dir, self._DEFAULT_LOG_FILENAME)
-            open(status_file, "a").write(msg + "\n")
-
-
 class disk_usage_monitor:
     def __init__(self, logging_func, device, max_mb_per_hour):
         self.func = logging_func
@@ -1230,9 +1157,8 @@ def runjob(control, drop_caches, options):
             if len(instance.args) > 1:
                 command = instance.args[1]
                 myjob.record('ABORT', None, command, instance.args[0])
-            myjob._decrement_group_level()
             myjob.record('END ABORT', None, None, instance.args[0])
-            assert myjob._record_prefix == ''
+            assert myjob._record_indent == 0
             myjob.complete(1)
         else:
             sys.exit(1)
@@ -1243,17 +1169,15 @@ def runjob(control, drop_caches, options):
         msg = str(e) + '\n' + traceback.format_exc()
         logging.critical("JOB ERROR (autotest bug?): " + msg)
         if myjob:
-            myjob._decrement_group_level()
             myjob.record('END ABORT', None, None, msg)
-            assert myjob._record_prefix == ''
+            assert myjob._record_indent == 0
             myjob.complete(1)
         else:
             sys.exit(1)
 
     # If we get here, then we assume the job is complete and good.
-    myjob._decrement_group_level()
     myjob.record('END GOOD', None, None)
-    assert myjob._record_prefix == ''
+    assert myjob._record_indent == 0
 
     myjob.complete(0)
 
