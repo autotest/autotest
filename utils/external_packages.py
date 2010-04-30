@@ -679,10 +679,10 @@ class Httplib2Package(ExternalPackage):
 class GwtPackage(ExternalPackage):
     """Fetch and extract a local copy of GWT used to build the frontend."""
 
-    version = '1.7.0'
-    local_filename = 'gwt-linux-%s.tar.bz2' % version
+    version = '2.0.3'
+    local_filename = 'gwt-%s.zip' % version
     urls = ('http://google-web-toolkit.googlecode.com/files/' + local_filename,)
-    hex_sum = 'accb39506e1fa719ba166cf54451c91dafd9d456'
+    hex_sum = '1dabd25a02b9299f6fa84c51c97210a3373a663e'
     name = 'gwt'
     about_filename = 'about.txt'
     module_name = None  # Not a Python module.
@@ -712,7 +712,7 @@ class GwtPackage(ExternalPackage):
     def _build_and_install(self, install_dir):
         os.chdir(install_dir)
         self._extract_compressed_package()
-        extracted_dir = self.local_filename[:-len('.tar.bz2')]
+        extracted_dir = self.local_filename[:-len('.zip')]
         target_dir = os.path.join(install_dir, self.name)
         if os.path.exists(target_dir):
             shutil.rmtree(target_dir)
@@ -723,12 +723,12 @@ class GwtPackage(ExternalPackage):
 # This requires GWT to already be installed, so it must be declared after
 # GwtPackage
 class GwtIncubatorPackage(ExternalPackage):
-    version = 'march-02-2009'
-    local_filename = 'gwt-incubator.jar'
-    remote_filename = 'gwt-incubator-%s.jar' % version
+    version = '20100204-r1747'
+    local_filename = 'gwt-incubator-%s.jar' % version
+    symlink_name = 'gwt-incubator.jar'
     urls = ('http://google-web-toolkit-incubator.googlecode.com/files/'
-            + remote_filename,)
-    hex_sum = 'adc4c5c96e832b33885fa6dfec8399f7c13413c7'
+            + local_filename,)
+    hex_sum = '0c9495634f0627d0b4de0d78a50a3aefebf67f8c'
     module_name = None  # Not a Python module
 
 
@@ -740,6 +740,7 @@ class GwtIncubatorPackage(ExternalPackage):
     def _build_and_install(self, install_dir):
         dest = os.path.join(install_dir, GwtPackage.name, self.local_filename)
         shutil.copyfile(self.verified_package, dest)
+        os.symlink(dest, self.symlink_name)
         return True
 
 

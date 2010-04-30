@@ -84,6 +84,7 @@ public class PaddedJsonRpcProxy extends JsonRpcProxy {
          * See the implementation of com.google.gwt.user.client.Timer.fire(), from which this
          * technique was borrowed.
          */
+        @SuppressWarnings("unused")
         public void handleResponse(JavaScriptObject responseJso) {
             UncaughtExceptionHandler handler = GWT.getUncaughtExceptionHandler();
             if (handler == null) {

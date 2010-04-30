@@ -15,8 +15,7 @@ _TMP_COMPILE_DIR = _DEFAULT_INSTALL_DIR + '.new'
 
 _COMPILE_LINE = ('java  -Xmx512M '
                  '-cp "%(app_dir)s/src:%(app_dir)s/bin:%(gwt_dir)s/gwt-user.jar'
-                 ':%(gwt_dir)s/gwt-dev-linux.jar'
-                 ':%(gwt_dir)s/gwt-incubator.jar" '
+                 ':%(gwt_dir)s/gwt-dev.jar:%(gwt_dir)s/gwt-incubator.jar" '
                  '-Djava.awt.headless=true com.google.gwt.dev.Compiler '
                  '-war "%(compile_dir)s" %(extra_args)s %(project_client)s')
 
