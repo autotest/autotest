@@ -1,6 +1,7 @@
-import os, copy, logging, errno, cPickle as pickle, fcntl
+import os, copy, logging, errno, fcntl, time, re, weakref, traceback
+import cPickle as pickle
 
-from autotest_lib.client.common_lib import autotemp, error
+from autotest_lib.client.common_lib import autotemp, error, log
 
 
 class job_directory(object):
@@ -38,15 +39,15 @@ class job_directory(object):
         """
         Instantiate a job directory.
 
-        @param path The path of the directory. If None a temporary directory
+        @param path: The path of the directory. If None a temporary directory
             will be created instead.
-        @param is_writable If True, expect the directory to be writable.
+        @param is_writable: If True, expect the directory to be writable.
 
-        @raises MissingDirectoryException raised if is_writable=False and the
+        @raise MissingDirectoryException: raised if is_writable=False and the
             directory does not exist.
-        @raises UnwritableDirectoryException raised if is_writable=True and
+        @raise UnwritableDirectoryException: raised if is_writable=True and
             the directory exists but is not writable.
-        @raises UncreatableDirectoryException raised if is_writable=True, the
+        @raise UncreatableDirectoryException: raised if is_writable=True, the
             directory does not exist and it cannot be created.
         """
         if path is None:
@@ -207,13 +208,13 @@ class job_state(object):
         Any state specified on-disk will be set in-memory, even if an in-memory
         setting already exists.
 
-        @param file_path The path where the state should be read from. It must
+        @param file_path: The path where the state should be read from. It must
             exist but it can be empty.
-        @param merge If true, merge the on-disk state with the in-memory
+        @param merge: If true, merge the on-disk state with the in-memory
             state. If false, replace the in-memory state with the on-disk
             state.
 
-        @warning This method is intentionally concurrency-unsafe. It makes no
+        @warning: This method is intentionally concurrency-unsafe. It makes no
             attempt to control concurrent access to the file at file_path.
         """
 
@@ -252,10 +253,10 @@ class job_state(object):
     def write_to_file(self, file_path):
         """Write out the current state to the given path.
 
-        @param file_path The path where the state should be written out to.
+        @param file_path: The path where the state should be written out to.
             Must be writable.
 
-        @warning This method is intentionally concurrency-unsafe. It makes no
+        @warning: This method is intentionally concurrency-unsafe. It makes no
             attempt to control concurrent access to the file at file_path.
         """
         outfile = open(file_path, 'w')
@@ -300,7 +301,7 @@ class job_state(object):
         contents. The file will then be kept in sync with the (combined)
         in-memory state. The syncing can be disabled by setting this to None.
 
-        @param file_path A path on the filesystem that can be read from and
+        @param file_path: A path on the filesystem that can be read from and
             written to, or None to turn off the backing store.
         """
         self._synchronize_backing_file()
@@ -313,15 +314,15 @@ class job_state(object):
     def get(self, namespace, name, default=NO_DEFAULT):
         """Returns the value associated with a particular name.
 
-        @param namespace The namespace that the property should be stored in.
-        @param name The name the value was saved with.
-        @param default A default value to return if no state is currently
+        @param namespace: The namespace that the property should be stored in.
+        @param name: The name the value was saved with.
+        @param default: A default value to return if no state is currently
             associated with var.
 
-        @returns A deep copy of the value associated with name. Note that this
+        @return: A deep copy of the value associated with name. Note that this
             explicitly returns a deep copy to avoid problems with mutable
             values; mutations are not persisted or shared.
-        @raises KeyError raised when no state is associated with var and a
+        @raise KeyError: raised when no state is associated with var and a
             default value is not provided.
         """
         if self.has(namespace, name):
@@ -336,9 +337,9 @@ class job_state(object):
     def set(self, namespace, name, value):
         """Saves the value given with the provided name.
 
-        @param namespace The namespace that the property should be stored in.
-        @param name The name the value should be saved with.
-        @param value The value to save.
+        @param namespace: The namespace that the property should be stored in.
+        @param name: The name the value should be saved with.
+        @param value: The value to save.
         """
         namespace_dict = self._state.setdefault(namespace, {})
         namespace_dict[name] = copy.deepcopy(value)
@@ -350,10 +351,10 @@ class job_state(object):
     def has(self, namespace, name):
         """Return a boolean indicating if namespace.name is defined.
 
-        @param namespace The namespace to check for a definition.
-        @param name The name to check for a definition.
+        @param namespace: The namespace to check for a definition.
+        @param name: The name to check for a definition.
 
-        @returns True if the given name is defined in the given namespace and
+        @return: True if the given name is defined in the given namespace and
             False otherwise.
         """
         return namespace in self._state and name in self._state[namespace]
@@ -363,8 +364,8 @@ class job_state(object):
     def discard(self, namespace, name):
         """If namespace.name is a defined value, deletes it.
 
-        @param namespace The namespace that the property is stored in.
-        @param name The name the value is saved with.
+        @param namespace: The namespace that the property is stored in.
+        @param name: The name the value is saved with.
         """
         if self.has(namespace, name):
             del self._state[namespace][name]
@@ -381,7 +382,7 @@ class job_state(object):
     def discard_namespace(self, namespace):
         """Delete all defined namespace.* names.
 
-        @param namespace The namespace to be cleared.
+        @param namespace: The namespace to be cleared.
         """
         if namespace in self._state:
             del self._state[namespace]
@@ -394,15 +395,15 @@ class job_state(object):
         """
         Create a property object for an attribute using self.get and self.set.
 
-        @param state_attribute A string with the name of the attribute on
+        @param state_attribute: A string with the name of the attribute on
             job that contains the job_state instance.
-        @param property_attribute A string with the name of the attribute
+        @param property_attribute: A string with the name of the attribute
             this property is exposed as.
-        @param default A default value that should be used for this property
+        @param default: A default value that should be used for this property
             if it is not set.
-        @param namespace The namespace to store the attribute value in.
+        @param namespace: The namespace to store the attribute value in.
 
-        @returns A read-write property object that performs self.get calls
+        @return: A read-write property object that performs self.get calls
             to read the value and self.set calls to set it.
         """
         def getter(job):
@@ -414,102 +415,287 @@ class job_state(object):
         return property(getter, setter)
 
 
+class status_log_entry(object):
+    """Represents a single status log entry."""
+
+    def __init__(self, status_code, subdir, operation, message, fields,
+                 timestamp=None):
+        """Construct a status.log entry.
+
+        @param status_code: A message status code. Must match the codes
+            accepted by autotest_lib.common_lib.log.is_valid_status.
+        @param subdir: A valid job subdirectory, or None.
+        @param operation: Description of the operation, or None.
+        @param message: A printable string describing event to be recorded.
+        @param fields: A dictionary of arbitrary alphanumeric key=value pairs
+            to be included in the log, or None.
+        @param timestamp: An optional integer timestamp, in the same format
+            as a time.time() timestamp. If unspecified, the current time is
+            used.
+
+        @raise ValueError: if any of the parameters are invalid
+        """
+        # non-space whitespace is forbidden in any fields
+        bad_char_regex = r'[\t\n\r\v\f]'
+
+        if not log.is_valid_status(status_code):
+            raise ValueError('status code %r is not valid' % status_code)
+        self.status_code = status_code
+
+        if subdir and re.search(bad_char_regex, subdir):
+            raise ValueError('Invalid character in subdir string')
+        self.subdir = subdir
+
+        if operation and re.search(bad_char_regex, operation):
+            raise ValueError('Invalid character in operation string')
+        self.operation = operation
+
+        # break the message line into a single-line message that goes into the
+        # database, and a block of additional lines that goes into the status
+        # log but will never be parsed
+        message_lines = message.split('\n')
+        self.message = message_lines[0].replace('\t', ' ' * 8)
+        self.extra_message_lines = message_lines[1:]
+        if re.search(bad_char_regex, self.message):
+            raise ValueError('Invalid character in message %r' % self.message)
+
+        if not fields:
+            self.fields = {}
+        else:
+            self.fields = fields.copy()
+        for key, value in self.fields.iteritems():
+            if re.search(bad_char_regex, key + value):
+                raise ValueError('Invalid character in %r=%r field'
+                                 % (key, value))
+
+        # build up the timestamp
+        if timestamp is None:
+            timestamp = int(time.time())
+        self.fields['timestamp'] = str(timestamp)
+        self.fields['localtime'] = time.strftime('%b %d %H:%M:%S',
+                                                 time.localtime(timestamp))
+
+
+    def is_start(self):
+        """Indicates if this status log is the start of a new nested block.
+
+        @return: A boolean indicating if this entry starts a new nested block.
+        """
+        return self.status_code == 'START'
+
+
+    def is_end(self):
+        """Indicates if this status log is the end of a nested block.
+
+        @return: A boolean indicating if this entry ends a nested block.
+        """
+        return self.status_code.startswith('END ')
+
+
+    def render(self):
+        """Render the status log entry into a text string.
+
+        @return: A text string suitable for writing into a status log file.
+        """
+        # combine all the log line data into a tab-delimited string
+        subdir = self.subdir or '----'
+        operation = self.operation or '----'
+        extra_fields = ['%s=%s' % field for field in self.fields.iteritems()]
+        line_items = [self.status_code, subdir, operation]
+        line_items += extra_fields + [self.message]
+        first_line = '\t'.join(line_items)
+
+        # append the extra unparsable lines, two-space indented
+        all_lines = [first_line]
+        all_lines += ['  ' + line for line in self.extra_message_lines]
+        return '\n'.join(all_lines)
+
+
+class status_indenter(object):
+    """Abstract interface that a status log indenter should use."""
+
+    @property
+    def indent(self):
+        raise NotImplementedError
+
+
+    def increment(self):
+        """Increase indentation by one level."""
+        raise NotImplementedError
+
+
+    def decrement(self):
+        """Decrease indentation by one level."""
+
+
+class status_logger(object):
+    """Represents a status log file. Responsible for translating messages
+    into on-disk status log lines.
+
+    @property global_filename: The filename to write top-level logs to.
+    @property subdir_filename: The filename to write subdir-level logs to.
+    """
+    def __init__(self, job, indenter, global_filename='status',
+                 subdir_filename='status', record_hook=None):
+        """Construct a logger instance.
+
+        @param job: A reference to the job object this is logging for. Only a
+            weak reference to the job is held, to avoid a
+            status_logger <-> job circular reference.
+        @param indenter: A status_indenter instance, for tracking the
+            indentation level.
+        @param global_filename: An optional filename to initialize the
+            self.global_filename attribute.
+        @param subdir_filename: An optional filename to initialize the
+            self.subdir_filename attribute.
+        @param record_hook: An optional function to be called after an entry
+            is logged. The function should expect a single parameter, a
+            copy of the status_log_entry object.
+        """
+        self._jobref = weakref.ref(job)
+        self._indenter = indenter
+        self.global_filename = global_filename
+        self.subdir_filename = subdir_filename
+        self._record_hook = record_hook
+
+    @staticmethod
+    def _indent_multiline_text(multiline_string, num_tabs):
+        """Indents all the lines of a multiline block of text.
+
+        @param multiline_string: A string to indent
+        @param num_tabs: The number of tabs to prepend to each line
+
+        @return: A copy of multiline_string with each line prepended with
+            num_tabs hard tabs.
+        """
+        prefix = '\t' * num_tabs
+        # indent every line after the first
+        indented = multiline_string.rstrip('\n').replace('\n', '\n' + prefix)
+        # stick an indent on the first line as well
+        return prefix + indented
+
+
+    def render_entry(self, log_entry):
+        """Render a status_log_entry as it would be written to a log file.
+
+        @param log_entry: A status_log_entry instance to be rendered.
+
+        @return: The status log entry, rendered as it would be written to the
+            logs (including indentation).
+        """
+        if log_entry.is_end():
+            indent = self._indenter.indent - 1
+        else:
+            indent = self._indenter.indent
+        return self._indent_multiline_text(log_entry.render(), indent)
+
+
+    def record_entry(self, log_entry):
+        """Record a status_log_entry into the appropriate status log files.
+
+        @param log_entry: A status_log_entry instance to be recorded into the
+                status logs.
+        """
+        # acquire a strong reference for the duration of the method
+        job = self._jobref()
+        if job is None:
+            logging.warning('Something attempted to write a status log entry '
+                            'after its job terminated, ignoring the attempt.')
+            logging.warning(traceback.format_stack())
+            return
+
+        # figure out where we need to log to
+        log_files = [os.path.join(job.resultdir, self.global_filename)]
+        if log_entry.subdir:
+            log_files.append(os.path.join(job.resultdir, log_entry.subdir,
+                                          self.subdir_filename))
+
+        # write out to entry to the log files
+        log_text = self.render_entry(log_entry)
+        for log_file in log_files:
+            fileobj = open(log_file, 'a')
+            try:
+                print >> fileobj, log_text
+            finally:
+                fileobj.close()
+
+        # call the record hook if one was given
+        if self._record_hook:
+            self._record_hook(log_entry)
+
+        # adjust the indentation if this was a START or END entry
+        if log_entry.is_start():
+            self._indenter.increment()
+        elif log_entry.is_end():
+            self._indenter.decrement()
+
+
 class base_job(object):
     """An abstract base class for the various autotest job classes.
 
-    Properties:
-        autodir
-            The top level autotest directory.
-        clientdir
-            The autotest client directory.
-        serverdir
-            The autotest server directory. [OPTIONAL]
-        resultdir
-            The directory where results should be written out. [WRITABLE]
+    @property autodir: The top level autotest directory.
+    @property clientdir: The autotest client directory.
+    @property serverdir: The autotest server directory. [OPTIONAL]
+    @property resultdir: The directory where results should be written out.
+        [WRITABLE]
 
-        pkgdir
-            The job packages directory. [WRITABLE]
-        tmpdir
-            The job temporary directory. [WRITABLE]
-        testdir
-            The job test directory. [WRITABLE]
-        site_testdir
-            The job site test directory. [WRITABLE]
+    @property pkgdir: The job packages directory. [WRITABLE]
+    @property tmpdir: The job temporary directory. [WRITABLE]
+    @property testdir: The job test directory. [WRITABLE]
+    @property site_testdir: The job site test directory. [WRITABLE]
 
-        bindir
-            The client bin/ directory.
-        configdir
-            The client config/ directory.
-        profdir
-            The client profilers/ directory.
-        toolsdir
-            The client tools/ directory.
+    @property bindir: The client bin/ directory.
+    @property configdir: The client config/ directory.
+    @property profdir: The client profilers/ directory.
+    @property toolsdir: The client tools/ directory.
 
-        conmuxdir
-            The conmux directory. [OPTIONAL]
+    @property conmuxdir: The conmux directory. [OPTIONAL]
 
-        control
-            A path to the control file to be executed. [OPTIONAL]
-        hosts
-            A set of all live Host objects currently in use by the job.
-            Code running in the context of a local client can safely assume
-            that this set contains only a single entry.
-        machines
-            A list of the machine names associated with the job.
-        user
-            The user executing the job.
-        tag
-            A tag identifying the job. Often used by the scheduler to give
-            a name of the form NUMBER-USERNAME/HOSTNAME.
-        args
-            A list of addtional miscellaneous command-line arguments provided
-            when starting the job.
+    @property control: A path to the control file to be executed. [OPTIONAL]
+    @property hosts: A set of all live Host objects currently in use by the
+        job. Code running in the context of a local client can safely assume
+        that this set contains only a single entry.
+    @property machines: A list of the machine names associated with the job.
+    @property user: The user executing the job.
+    @property tag: A tag identifying the job. Often used by the scheduler to
+        give a name of the form NUMBER-USERNAME/HOSTNAME.
+    @property args: A list of addtional miscellaneous command-line arguments
+        provided when starting the job.
 
-        last_boot_tag
-            The label of the kernel from the last reboot. [OPTIONAL,PERSISTENT]
-        automatic_test_tag
-            A string which, if set, will be automatically added to the test
-            name when running tests.
+    @property last_boot_tag: The label of the kernel from the last reboot.
+        [OPTIONAL,PERSISTENT]
+    @property automatic_test_tag: A string which, if set, will be automatically
+        added to the test name when running tests.
 
-        default_profile_only
-            A boolean indicating the default value of profile_only used
-            by test.execute. [PERSISTENT]
-        drop_caches
-            A boolean indicating if caches should be dropped before each
-            test is executed.
-        drop_caches_between_iterations
-            A boolean indicating if caches should be dropped before each
-            test iteration is executed.
-        run_test_cleanup
-            A boolean indicating if test.cleanup should be run by default
-            after a test completes, if the run_cleanup argument is not
-            specified. [PERSISTENT]
+    @property default_profile_only: A boolean indicating the default value of
+        profile_only used by test.execute. [PERSISTENT]
+    @property drop_caches: A boolean indicating if caches should be dropped
+        before each test is executed.
+    @property drop_caches_between_iterations: A boolean indicating if caches
+        should be dropped before each test iteration is executed.
+    @property run_test_cleanup: A boolean indicating if test.cleanup should be
+        run by default after a test completes, if the run_cleanup argument is
+        not specified. [PERSISTENT]
 
-        num_tests_run
-            The number of tests run during the job. [OPTIONAL]
-        num_tests_failed
-            The number of tests failed during the job. [OPTIONAL]
+    @property num_tests_run: The number of tests run during the job. [OPTIONAL]
+    @property num_tests_failed: The number of tests failed during the job.
+        [OPTIONAL]
 
-        bootloader
-            An instance of the boottool class. May not be available on job
-            instances where access to the bootloader is not available
-            (e.g. on the server running a server job). [OPTIONAL]
-        harness
-            An instance of the client test harness. Only available in contexts
-            where client test execution happens. [OPTIONAL]
-        logging
-            An instance of the logging manager associated with the job.
-        profilers
-            An instance of the profiler manager associated with the job.
-        sysinfo
-            An instance of the sysinfo object. Only available in contexts
-            where it's possible to collect sysinfo.
-        warning_manager
-            A class for managing which types of WARN messages should be
-            logged and which should be supressed. [OPTIONAL]
-        warning_loggers
-            A set of readable streams that will be monitored for WARN messages
-            to be logged. [OPTIONAL]
+    @property bootloader: An instance of the boottool class. May not be
+        available on job instances where access to the bootloader is not
+        available (e.g. on the server running a server job). [OPTIONAL]
+    @property harness: An instance of the client test harness. Only available
+        in contexts where client test execution happens. [OPTIONAL]
+    @property logging: An instance of the logging manager associated with the
+        job.
+    @property profilers: An instance of the profiler manager associated with
+        the job.
+    @property sysinfo: An instance of the sysinfo object. Only available in
+        contexts where it's possible to collect sysinfo.
+    @property warning_manager: A class for managing which types of WARN
+        messages should be logged and which should be supressed. [OPTIONAL]
+    @property warning_loggers: A set of readable streams that will be monitored
+        for WARN messages to be logged. [OPTIONAL]
 
     Abstract methods:
         _find_base_directories [CLASSMETHOD]
@@ -519,6 +705,9 @@ class base_job(object):
             Returns the location of resultdir. Gets a copy of any parameters
             passed into base_job.__init__. Can return None to indicate that
             no resultdir is to be used.
+
+        _get_status_logger
+            Returns a status_logger instance for recording job status logs.
     """
 
    # capture the dependency on several helper classes with factories
@@ -640,7 +829,7 @@ class base_job(object):
         the way parallel_simple does). The original context can be restored
         with a pop_execution_context call.
 
-        @param resultdir The new resultdir, relative to the current one.
+        @param resultdir: The new resultdir, relative to the current one.
         """
         new_dir = self._job_directory(
             os.path.join(self.resultdir, resultdir), True)
@@ -652,7 +841,7 @@ class base_job(object):
         """
         Reverse the effects of the previous push_execution_context call.
 
-        @raises IndexError raised when the stack of contexts is empty.
+        @raise IndexError: raised when the stack of contexts is empty.
         """
         if not self._execution_contexts:
             raise IndexError('No old execution context to restore')
@@ -662,14 +851,14 @@ class base_job(object):
     def get_state(self, name, default=_job_state.NO_DEFAULT):
         """Returns the value associated with a particular name.
 
-        @param name The name the value was saved with.
-        @param default A default value to return if no state is currently
+        @param name: The name the value was saved with.
+        @param default: A default value to return if no state is currently
             associated with var.
 
-        @returns A deep copy of the value associated with name. Note that this
+        @return: A deep copy of the value associated with name. Note that this
             explicitly returns a deep copy to avoid problems with mutable
             values; mutations are not persisted or shared.
-        @raises KeyError raised when no state is associated with var and a
+        @raise KeyError: raised when no state is associated with var and a
             default value is not provided.
         """
         try:
@@ -681,8 +870,8 @@ class base_job(object):
     def set_state(self, name, value):
         """Saves the value given with the provided name.
 
-        @param name The name the value should be saved with.
-        @param value The value to save.
+        @param name: The name the value should be saved with.
+        @param value: The value to save.
         """
         self._state.set('public', name, value)
 
@@ -690,11 +879,11 @@ class base_job(object):
     def _build_tagged_test_name(self, testname, dargs):
         """Builds the fully tagged testname and subdirectory for job.run_test.
 
-        @param testname The base name of the test
-        @param dargs The ** arguments passed to run_test. And arguments
+        @param testname: The base name of the test
+        @param dargs: The ** arguments passed to run_test. And arguments
             consumed by this method will be removed from the dictionary.
 
-        @returns A 3-tuple of the full name of the test, the subdirectory it
+        @return: A 3-tuple of the full name of the test, the subdirectory it
             should be stored in, and the full tag of the subdir.
         """
         tag_parts = []
@@ -723,12 +912,12 @@ class base_job(object):
     def _make_test_outputdir(self, subdir):
         """Creates an output directory for a test to run it.
 
-        @param subdir The subdirectory of the test. Generally computed by
+        @param subdir: The subdirectory of the test. Generally computed by
             _build_tagged_test_name.
 
-        @returns A job_directory instance corresponding to the outputdir of
+        @return: A job_directory instance corresponding to the outputdir of
             the test.
-        @raises A TestError if the output directory is invalid.
+        @raise TestError: If the output directory is invalid.
         """
         # explicitly check that this subdirectory is new
         path = os.path.join(self.resultdir, subdir)
@@ -745,3 +934,30 @@ class base_job(object):
             logging.exception('%s directory creation failed with %s',
                               subdir, e)
             raise error.TestError('%s directory creation failed' % subdir)
+
+
+    def record(self, status_code, subdir, operation, status='',
+               optional_fields=None):
+        """Record a job-level status event.
+
+        Logs an event noteworthy to the Autotest job as a whole. Messages will
+        be written into a global status log file, as well as a subdir-local
+        status log file (if subdir is specified).
+
+        @param status_code: A string status code describing the type of status
+            entry being recorded. It must pass log.is_valid_status to be
+            considered valid.
+        @param subdir: A specific results subdirectory this also applies to, or
+            None. If not None the subdirectory must exist.
+        @param operation: A string describing the operation that was run.
+        @param status: An optional human-readable message describing the status
+            entry, for example an error message or "completed successfully".
+        @param optional_fields: An optional dictionary of addtional named fields
+            to be included with the status message. Every time timestamp and
+            localtime entries are generated with the current time and added
+            to this dictionary.
+        """
+        entry = status_log_entry(status_code, subdir, operation, status,
+                                 optional_fields)
+        logger = self._get_status_logger()
+        logger.record_entry(entry)

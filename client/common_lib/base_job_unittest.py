@@ -885,6 +885,319 @@ class test_job_state_property_factory(unittest.TestCase):
         self.assertEqual('alsonotdefault', self.job.ns2)
 
 
+class test_status_log_entry(unittest.TestCase):
+    def test_accepts_valid_status_code(self):
+        base_job.status_log_entry('GOOD', None, None, '', None)
+        base_job.status_log_entry('FAIL', None, None, '', None)
+        base_job.status_log_entry('ABORT', None, None, '', None)
+
+
+    def test_accepts_valid_start_status_code(self):
+        base_job.status_log_entry('START', None, None, '', None)
+
+
+    def test_accepts_valid_end_status_code(self):
+        base_job.status_log_entry('END GOOD', None, None, '', None)
+        base_job.status_log_entry('END FAIL', None, None, '', None)
+        base_job.status_log_entry('END ABORT', None, None, '', None)
+
+
+    def test_rejects_invalid_status_code(self):
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'FAKE', None, None, '', None)
+
+
+    def test_rejects_invalid_start_status_code(self):
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'START GOOD', None, None, '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'START FAIL', None, None, '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'START ABORT', None, None, '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'START FAKE', None, None, '', None)
+
+
+    def test_rejects_invalid_end_status_code(self):
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'END FAKE', None, None, '', None)
+
+
+    def test_accepts_valid_subdir(self):
+        base_job.status_log_entry('GOOD', 'subdir', None, '', None)
+        base_job.status_log_entry('FAIL', 'good.subdir', None, '', None)
+
+
+    def test_rejects_bad_subdir(self):
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'GOOD', 'bad.subdir\t', None, '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'GOOD', 'bad.subdir\t', None, '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'GOOD', 'bad.subdir\t', None, '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'GOOD', 'bad.subdir\t', None, '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'GOOD', 'bad.subdir\t', None, '', None)
+
+
+    def test_accepts_valid_operation(self):
+        base_job.status_log_entry('GOOD', None, 'build', '', None)
+        base_job.status_log_entry('FAIL', None, 'clean', '', None)
+
+
+    def test_rejects_bad_operation(self):
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'GOOD', None, 'bad.operation\n', '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'GOOD', None, 'bad.\voperation', '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'GOOD', None, 'bad.\foperation', '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'GOOD', None, 'bad\r.operation', '', None)
+        self.assertRaises(ValueError, base_job.status_log_entry,
+                          'GOOD', None, '\tbad.operation', '', None)
+
+
+    def test_simple_message(self):
+        base_job.status_log_entry('ERROR', None, None, 'simple error message',
+                                  None)
+
+
+    def test_message_split_into_multiple_lines(self):
+        def make_entry(msg):
+            return base_job.status_log_entry('GOOD', None, None, msg, None)
+        base_job.status_log_entry('ABORT', None, None, 'first line\nsecond',
+                                  None)
+
+
+    def test_message_with_tabs(self):
+        base_job.status_log_entry('GOOD', None, None, '\tindent\tagain', None)
+
+
+    def test_message_with_custom_fields(self):
+        base_job.status_log_entry('GOOD', None, None, 'my message',
+                                  {'key1': 'blah', 'key2': 'blahblah'})
+
+
+    def assertRendered(self, rendered, status, subdir, operation, msg,
+                       extra_fields, timestamp):
+        parts = rendered.split('\t')
+        self.assertEqual(parts[0], status)
+        self.assertEqual(parts[1], subdir)
+        self.assertEqual(parts[2], operation)
+        self.assertEqual(parts[-1], msg)
+        fields = dict(f.split('=', 1) for f in parts[3:-1])
+        self.assertEqual(int(fields['timestamp']), timestamp)
+        self.assert_('localtime' in fields)  # too flaky to do an exact check
+        del fields['timestamp']
+        del fields['localtime']
+        self.assertEqual(fields, extra_fields)
+
+
+    def test_base_render(self):
+        entry = base_job.status_log_entry('GOOD', None, None, 'message1', None,
+                                          timestamp=1)
+        self.assertRendered(entry.render(), 'GOOD', '----', '----', 'message1',
+                            {}, 1)
+
+
+    def test_subdir_render(self):
+        entry = base_job.status_log_entry('FAIL', 'sub', None, 'message2', None,
+                                          timestamp=2)
+        self.assertRendered(entry.render(), 'FAIL', 'sub', '----', 'message2',
+                            {}, 2)
+
+
+    def test_operation_render(self):
+        entry = base_job.status_log_entry('ABORT', None, 'myop', 'message3',
+                                          None, timestamp=4)
+        self.assertRendered(entry.render(), 'ABORT', '----', 'myop', 'message3',
+                            {}, 4)
+
+
+    def test_fields_render(self):
+        custom_fields = {'custom1': 'foo', 'custom2': 'bar'}
+        entry = base_job.status_log_entry('WARN', None, None, 'message4',
+                                          custom_fields, timestamp=8)
+        self.assertRendered(entry.render(), 'WARN', '----', '----', 'message4',
+                            custom_fields, 8)
+
+
+
+class test_status_logger(unittest.TestCase):
+    def setUp(self):
+        self.testdir = tempfile.mkdtemp(suffix='unittest')
+        self.original_wd = os.getcwd()
+        os.chdir(self.testdir)
+
+        class stub_job(object):
+            resultdir = self.testdir
+        self.job = stub_job()  # need to hold a reference to the job
+        class stub_indenter(object):
+            def __init__(self):
+                self.indent = 0
+            def increment(self):
+                self.indent += 1
+            def decrement(self):
+                self.indent -= 1
+        self.indenter = stub_indenter()
+        self.logger = base_job.status_logger(self.job, self.indenter)
+
+
+    def make_dummy_entry(self, rendered_text, start=False, end=False,
+                         subdir=None):
+        """Helper to make a dummy status log entry with custom rendered text.
+
+        Helpful when validating the logging since it lets the test control
+        the rendered text and so it doesn't depend on the exact formatting
+        of a "real" status log entry.
+
+        @param rendred_text: The value to return when rendering the entry.
+        @param start: An optional value indicating if this should be the start
+            of a nested group.
+        @param end: An optional value indicating if this should be the end
+            of a nested group.
+        @param subdir: An optional value to use for the entry subdir field.
+
+        @return: A dummy status log entry object with the given subdir field
+            and a render implementation that returns rendered_text.
+        """
+        assert not start or not end  # real entries would never be both
+        class dummy_entry(object):
+            def is_start(self):
+                return start
+            def is_end(self):
+                return end
+            def render(self):
+                return rendered_text
+        entry = dummy_entry()
+        entry.subdir = subdir
+        return entry
+
+
+    def test_render_includes_indent(self):
+        entry = self.make_dummy_entry('LINE0')
+        self.assertEqual('LINE0', self.logger.render_entry(entry))
+        self.indenter.increment()
+        self.indenter.increment()
+        self.assertEqual('\t\tLINE0', self.logger.render_entry(entry))
+
+
+    def test_render_handles_start(self):
+        entry = self.make_dummy_entry('LINE10', start=True)
+        self.indenter.increment()
+        self.assertEqual('\tLINE10', self.logger.render_entry(entry))
+
+
+    def test_render_handles_end(self):
+        entry = self.make_dummy_entry('LINE20', end=True)
+        self.indenter.increment()
+        self.indenter.increment()
+        self.indenter.increment()
+        self.assertEqual('\t\tLINE20', self.logger.render_entry(entry))
+
+
+    def test_writes_toplevel_log(self):
+        entries = [self.make_dummy_entry('LINE%d' % x) for x in xrange(3)]
+        for entry in entries:
+            self.logger.record_entry(entry)
+        self.assertEqual('LINE0\nLINE1\nLINE2\n', open('status').read())
+
+
+    def test_uses_given_filenames(self):
+        os.mkdir('sub')
+        self.logger = base_job.status_logger(self.job, self.indenter,
+                                             global_filename='global.log',
+                                             subdir_filename='subdir.log')
+        self.logger.record_entry(self.make_dummy_entry('LINE1', subdir='sub'))
+        self.logger.record_entry(self.make_dummy_entry('LINE2', subdir='sub'))
+        self.logger.record_entry(self.make_dummy_entry('LINE3'))
+
+        self.assertEqual('LINE1\nLINE2\nLINE3\n', open('global.log').read())
+        self.assertEqual('LINE1\nLINE2\n', open('sub/subdir.log').read())
+
+        self.assertFalse(os.path.exists('status'))
+        self.assertFalse(os.path.exists('sub/status'))
+        self.assertFalse(os.path.exists('subdir.log'))
+        self.assertFalse(os.path.exists('sub/global.log'))
+
+
+    def test_filenames_are_mutable(self):
+        os.mkdir('sub2')
+        self.logger = base_job.status_logger(self.job, self.indenter,
+                                             global_filename='global.log',
+                                             subdir_filename='subdir.log')
+        self.logger.record_entry(self.make_dummy_entry('LINE1', subdir='sub2'))
+        self.logger.record_entry(self.make_dummy_entry('LINE2'))
+        self.logger.global_filename = 'global.log2'
+        self.logger.subdir_filename = 'subdir.log2'
+        self.logger.record_entry(self.make_dummy_entry('LINE3', subdir='sub2'))
+        self.logger.record_entry(self.make_dummy_entry('LINE4'))
+
+        self.assertEqual('LINE1\nLINE2\n', open('global.log').read())
+        self.assertEqual('LINE1\n', open('sub2/subdir.log').read())
+        self.assertEqual('LINE3\nLINE4\n', open('global.log2').read())
+        self.assertEqual('LINE3\n', open('sub2/subdir.log2').read())
+
+
+    def test_writes_subdir_logs(self):
+        os.mkdir('abc')
+        os.mkdir('123')
+        self.logger.record_entry(self.make_dummy_entry('LINE1'))
+        self.logger.record_entry(self.make_dummy_entry('LINE2', subdir='abc'))
+        self.logger.record_entry(self.make_dummy_entry('LINE3', subdir='abc'))
+        self.logger.record_entry(self.make_dummy_entry('LINE4', subdir='123'))
+
+        self.assertEqual('LINE1\nLINE2\nLINE3\nLINE4\n', open('status').read())
+        self.assertEqual('LINE2\nLINE3\n', open('abc/status').read())
+        self.assertEqual('LINE4\n', open('123/status').read())
+
+
+    def test_indentation(self):
+        self.logger.record_entry(self.make_dummy_entry('LINE1', start=True))
+        self.logger.record_entry(self.make_dummy_entry('LINE2'))
+        self.logger.record_entry(self.make_dummy_entry('LINE3', start=True))
+        self.logger.record_entry(self.make_dummy_entry('LINE4'))
+        self.logger.record_entry(self.make_dummy_entry('LINE5'))
+        self.logger.record_entry(self.make_dummy_entry('LINE6', end=True))
+        self.logger.record_entry(self.make_dummy_entry('LINE7', end=True))
+        self.logger.record_entry(self.make_dummy_entry('LINE8'))
+
+        expected_log = ('LINE1\n\tLINE2\n\tLINE3\n\t\tLINE4\n\t\tLINE5\n'
+                        '\tLINE6\nLINE7\nLINE8\n')
+        self.assertEqual(expected_log, open('status').read())
+
+
+    def test_multiline_indent(self):
+        self.logger.record_entry(self.make_dummy_entry('LINE1\n  blah\n'))
+        self.logger.record_entry(self.make_dummy_entry('LINE2', start=True))
+        self.logger.record_entry(
+            self.make_dummy_entry('LINE3\n  blah\n  two\n'))
+        self.logger.record_entry(self.make_dummy_entry('LINE4', end=True))
+
+        expected_log = ('LINE1\n  blah\nLINE2\n'
+                        '\tLINE3\n\t  blah\n\t  two\nLINE4\n')
+        self.assertEqual(expected_log, open('status').read())
+
+
+    def test_hook_is_called(self):
+        entries = [self.make_dummy_entry('LINE%d' % x) for x in xrange(5)]
+        recorded_entries = []
+        def hook(entry):
+            recorded_entries.append(entry)
+        self.logger = base_job.status_logger(self.job, self.indenter,
+                                             record_hook=hook)
+        for entry in entries:
+            self.logger.record_entry(entry)
+        self.assertEqual(entries, recorded_entries)
+
+
+    def tearDown(self):
+        os.chdir(self.original_wd)
+        shutil.rmtree(self.testdir, ignore_errors=True)
+
+
 class test_job_tags(unittest.TestCase):
     def setUp(self):
         class stub_job(base_job.base_job):

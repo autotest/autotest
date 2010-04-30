@@ -539,59 +539,6 @@ class test_base_job(unittest.TestCase):
         self.god.check_playback()
 
 
-    def test_record(self):
-        self.construct_job(True)
-
-        # steup
-        self.job._record_prefix = '\t'
-        status = ''
-        status_code = "PASS"
-        subdir = "subdir"
-        operation = "super_fun"
-        mytime = "1234"
-        msg_tag = ""
-        if "." in self.job._log_filename:
-            msg_tag = self.job._log_filename.split(".", 1)[1]
-        epoch_time = int(mytime)
-        local_time = time.localtime(epoch_time)
-        optional_fields = {}
-        optional_fields["timestamp"] = str(epoch_time)
-        optional_fields["localtime"] = time.strftime("%b %d %H:%M:%S",
-                                                     local_time)
-        fields = [status_code, subdir, operation]
-        fields += ["%s=%s" % x for x in optional_fields.iteritems()]
-        fields.append(status)
-        msg = '\t'.join(str(x) for x in fields)
-        msg = self.job._record_prefix + msg
-
-        self.god.stub_function(log, "is_valid_status")
-        self.god.stub_function(time, "time")
-        self.god.stub_function(self.job, "open")
-
-
-        # record
-        log.is_valid_status.expect_call(status_code).and_return(True)
-        time.time.expect_call().and_return(mytime)
-        self.job.harness.test_status_detail.expect_call(status_code, subdir,
-                                                        operation, '', msg_tag)
-        self.job.harness.test_status.expect_call(msg, msg_tag)
-        myfile = self.god.create_mock_class(file, "file")
-        status_file = os.path.join(self.job.resultdir, self.job._log_filename)
-        self.job.open.expect_call(status_file, "a").and_return(myfile)
-        myfile.write.expect_call(msg + "\n")
-
-        dir = os.path.join(self.job.resultdir, subdir)
-        status_file = os.path.join(dir, self.job._DEFAULT_LOG_FILENAME)
-        self.job.open.expect_call(status_file, "a").and_return(myfile)
-        myfile.write.expect_call(msg + "\n")
-
-
-        # run test
-        self.god.unstub(self.job, "record")
-        self.job.record(status_code, subdir, operation)
-        self.god.check_playback()
-
-
     def test_report_reboot_failure(self):
         self.construct_job(True)
 
