@@ -177,7 +177,7 @@ def update_profilers_in_db(profilers, description='NA',
             if add_noncompliant:
                 doc = description
             else:
-                logging.info("Skipping %s, missing docstring", profiler)
+                logging.warn("Skipping %s, missing docstring", profiler)
                 continue
         else:
             doc = profilers[profiler]
@@ -346,8 +346,7 @@ def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):
                                                             raise_warnings=True)
                         tests[file] = found_test
                     except control_data.ControlVariableException, e:
-                        logging.info("Skipping %s\n%s", file, e)
-                        pass
+                        logging.warn("Skipping %s\n%s", file, e)
                     except Exception, e:
                         logging.error("Bad %s\n%s", file, e)
                 else:
@@ -438,8 +437,7 @@ def update_from_whitelist(whitelist_set, add_experimental, add_noncompliant,
                                                         raise_warnings=True)
                 tests[file_path] = found_test
             except control_data.ControlVariableException, e:
-                logging.info("Skipping %s\n%s", file, e)
-                pass
+                logging.warn("Skipping %s\n%s", file, e)
         else:
             profilers[file_path] = compiler.parseFile(file_path).doc
 
@@ -502,6 +500,9 @@ def main(argv):
                       help='Autotest directory root')
     options, args = parser.parse_args()
     DRY_RUN = options.dry_run
+    if DRY_RUN:
+        logging.getLogger().setLevel(logging.WARN)
+
     # Make sure autotest_dir is the absolute path
     options.autotest_dir = os.path.abspath(options.autotest_dir)
 
