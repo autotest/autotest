@@ -59,6 +59,7 @@ import getpass, optparse, os, pwd, re, socket, sys, textwrap, traceback
 import socket, urllib2
 from autotest_lib.cli import rpc
 from autotest_lib.frontend.afe.json_rpc import proxy
+from autotest_lib.client.common_lib.test_utils import mock
 
 
 # Maps the AFE keys to printable names.
@@ -479,6 +480,8 @@ class atest(object):
                                  what_failed=("Timed-out contacting "
                                               "the Autotest server"))
                     raise CliError("Timed-out contacting the Autotest server")
+            except mock.CheckPlaybackError:
+                raise
             except Exception, full_error:
                 # There are various exceptions throwns by JSON,
                 # urllib & httplib, so catch them all.

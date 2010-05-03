@@ -1,7 +1,7 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
 
-import re, collections, StringIO, sys
+import re, collections, StringIO, sys, unittest
 
 
 class StubNotFoundError(Exception):
@@ -269,7 +269,7 @@ class mock_class(object):
 class mock_god:
     NONEXISTENT_ATTRIBUTE = object()
 
-    def __init__(self, debug=False, fail_fast=True):
+    def __init__(self, debug=False, fail_fast=True, ut=None):
         """
         With debug=True, all recorded method calls will be printed as
         they happen.
@@ -282,6 +282,7 @@ class mock_god:
         self._stubs = []
         self._debug = debug
         self._fail_fast = fail_fast
+        self._ut = ut
 
 
     def set_fail_fast(self, fail_fast):
@@ -516,10 +517,15 @@ class mock_god:
                 print '\nPlayback errors:'
             for error in self.errors:
                 print >> sys.__stdout__, error
+            self._ut.fail('\n'.join(self.errors))
             raise CheckPlaybackError
         elif len(self.recording) != 0:
+            errors = []
             for func_call in self.recording:
-                print >> sys.__stdout__, "%s not called" % (func_call)
+                error = "%s not called" % (func_call,)
+                errors.append(error)
+                print >> sys.__stdout__, error
+            self._ut.fail('\n'.join(errors))
             raise CheckPlaybackError
         self.recording.clear()
 
