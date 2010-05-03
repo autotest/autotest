@@ -103,6 +103,7 @@ def foo(param1, param2):
     @param param1: A thing called param1 that is used for a bunch of stuff
             that has methods bar() and baz() which raise SpamError if
             something goes awry.
+    @return a list of integers describing changes in a source tree
     ...
     """
 
@@ -119,6 +120,8 @@ writing code.
 @warning - Call attention to potential problems with the code
 @raises - If the function can throw an exception, this tag documents the
 possible exception types.
+
+When in doubt refer to: http://doxygen.nl/commands.html
 
 Simple code
 
