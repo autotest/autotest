@@ -56,7 +56,7 @@ class ThreadPool:
     def _start_threads(self, nthreads):
         """ Start up threads to spawn workers. """
         self.numthreads += nthreads
-        for i in range(nthreads):
+        for i in xrange(nthreads):
             thread = threading.Thread(target=self._new_worker)
             thread.setDaemon(True)
             self.threads.put(thread)
@@ -72,7 +72,7 @@ class ThreadPool:
                 return
             try:
                 self.function(data)
-            except Exception:
-                # We don't want one function that raises to kill everything.
-                # TODO: Maybe keep a list of errors or something?
-                pass
+            except Exception, full_error:
+                # Put a catch all here.
+                print ('Unexpected failure in the thread calling %s: %s' %
+                       (self.function.__name__, full_error))
