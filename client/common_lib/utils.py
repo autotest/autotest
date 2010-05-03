@@ -1164,19 +1164,35 @@ def configure(extra=None, configure='./configure'):
 
 
 def compare_versions(ver1, ver2):
-    """Compares two dot-delimited version strings.
+    """Version number comparison between ver1 and ver2 strings.
 
-    Version number comparison between ver1 and ver2 of the form 'x.y.z'
+    >>> compare_tuple("1", "2")
+    -1
+    >>> compare_tuple("foo-1.1", "foo-1.2")
+    -1
+    >>> compare_tuple("1.2", "1.2a")
+    -1
+    >>> compare_tuple("1.2b", "1.2a")
+    1
+    >>> compare_tuple("1.3.5.3a", "1.3.5.3b")
+    -1
 
     Args:
-        ver1: dot-delimited string in 'x.y.z' form
-        ver2: dot-delimited string in 'x.y.z' form
+        ver1: version string
+        ver2: version string
 
     Returns:
         int:  1 if ver1 >  ver2
               0 if ver1 == ver2
              -1 if ver1 <  ver2
     """
-    v1 = [int(x) for x in ver1.split('.')]
-    v2 = [int(x) for x in ver2.split('.')]
-    return cmp(v1, v2)
+    ax = re.split('[.-]', ver1)
+    ay = re.split('[.-]', ver2)
+    while len(ax) > 0 and len(ay) > 0:
+        cx = ax.pop(0)
+        cy = ay.pop(0)
+        maxlen = max(len(cx), len(cy))
+        c = cmp(cx.zfill(maxlen), cy.zfill(maxlen))
+        if c != 0:
+            return c
+    return cmp(len(ax), len(ay))

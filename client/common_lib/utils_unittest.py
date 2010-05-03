@@ -711,16 +711,37 @@ class test_run(unittest.TestCase):
 
 
 class test_compare_versions(unittest.TestCase):
-    def test_less_than(self):
-        self.assertEqual(utils.compare_versions('1.2.3', '1.7.5'), -1)
+    def test_zerofill(self):
+        self.assertEqual(utils.compare_versions('1.7', '1.10'), -1)
+        self.assertEqual(utils.compare_versions('1.222', '1.3'), 1)
+        self.assertEqual(utils.compare_versions('1.03', '1.3'), 0)
 
 
-    def test_equal(self):
-        self.assertEqual(utils.compare_versions('1.2.3', '1.2.3'), 0)
+    def test_unequal_len(self):
+        self.assertEqual(utils.compare_versions('1.3', '1.3.4'), -1)
+        self.assertEqual(utils.compare_versions('1.3.1', '1.3'), 1)
 
 
-    def test_greater_than(self):
-        self.assertEqual(utils.compare_versions('1.3.3', '1.2.3'), 1)
+    def test_dash_delimited(self):
+        self.assertEqual(utils.compare_versions('1-2-3', '1-5-1'), -1)
+        self.assertEqual(utils.compare_versions('1-2-1', '1-1-1'), 1)
+        self.assertEqual(utils.compare_versions('1-2-4', '1-2-4'), 0)
+
+
+    def test_alphabets(self):
+        self.assertEqual(utils.compare_versions('m.l.b', 'n.b.a'), -1)
+        self.assertEqual(utils.compare_versions('n.b.a', 'm.l.b'), 1)
+        self.assertEqual(utils.compare_versions('abc.e', 'abc.e'), 0)
+
+
+    def test_mix_symbols(self):
+        self.assertEqual(utils.compare_versions('k-320.1', 'k-320.3'), -1)
+        self.assertEqual(utils.compare_versions('k-231.5', 'k-231.1'), 1)
+        self.assertEqual(utils.compare_versions('k-231.1', 'k-231.1'), 0)
+
+        self.assertEqual(utils.compare_versions('k.320-1', 'k.320-3'), -1)
+        self.assertEqual(utils.compare_versions('k.231-5', 'k.231-1'), 1)
+        self.assertEqual(utils.compare_versions('k.231-1', 'k.231-1'), 0)
 
 
 if __name__ == "__main__":
