@@ -11,6 +11,34 @@ from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.client.bin import utils, os_dep
 
 
+def check_iso(url, destination, hash):
+    """
+    Verifies if ISO that can be find on url is on destination with right hash.
+
+    This function will verify the SHA1 hash of the ISO image. If the file
+    turns out to be missing or corrupted, let the user know we can download it.
+
+    @param url: URL where the ISO file can be found.
+    @param destination: Directory in local disk where we'd like the iso to be.
+    @param hash: SHA1 hash for the ISO image.
+    """
+    logging.info("Verifying iso %s", os.path.basename(url))
+    if not destination:
+        os.makedirs(destination)
+    iso_path = os.path.join(destination, os.path.basename(url))
+    if not os.path.isfile(iso_path) or (
+                            utils.hash_file(iso_path, method="sha1") != hash):
+        logging.warning("%s not found or corrupted", iso_path)
+        logging.warning("Would you like to download it? (y/n)")
+        iso_download = raw_input()
+        if iso_download == 'y':
+            utils.unmap_url_cache(destination, url, hash, method="sha1")
+        else:
+            logging.warning("Missing file %s. Please download it", iso_path)
+    else:
+        logging.debug("%s present, with proper checksum", iso_path)
+
+
 if __name__ == "__main__":
     logging_manager.configure_logging(kvm_utils.KvmLoggingConfig(),
                                       verbose=True)
@@ -51,30 +79,29 @@ if __name__ == "__main__":
         else:
             logging.debug("Config file %s exists, not touching" % dst_file)
 
-    logging.info("3 - Verifying iso (make sure we have the OS iso needed for "
+    logging.info("3 - Verifying iso (make sure we have the OS ISO needed for "
                  "the default test set)")
-    base_iso_name = "Fedora-12-x86_64-DVD.iso"
+
+    iso_name = "Fedora-12-x86_64-DVD.iso"
     fedora_dir = "pub/fedora/linux/releases/12/Fedora/x86_64/iso"
     url = os.path.join("http://download.fedoraproject.org/", fedora_dir,
-                       base_iso_name)
-    md5sum = "6dd31e292cc2eb1140544e9b1ba61c56"
-    iso_dir = os.path.join(base_dir, 'isos', 'linux')
-    if not iso_dir:
-        os.makedirs(iso_dir)
-    iso_path = os.path.join(iso_dir, base_iso_name)
-    if not os.path.isfile(iso_path) or (
-                             utils.hash_file(iso_path, method="md5") != md5sum):
-        logging.warning("%s not found or corrupted", iso_path)
-        logging.warning("Would you like to download it? (y/n)")
-        iso_download = raw_input()
-        if iso_download == 'y':
-            utils.unmap_url_cache(iso_dir, url, md5sum)
-        else:
-            logging.warning("Missing file %s. Please download it", iso_path)
-    else:
-        logging.debug("%s present, with proper checksum", iso_path)
+                       iso_name)
+    hash = "97a018ba32d43d0e76d032834fe7562bffe8ceb3"
+    destination = os.path.join(base_dir, 'isos', 'linux')
+    check_iso(url, destination, hash)
 
-    logging.info("4 - Checking if qemu is installed (certify qemu and qemu-kvm "
+    logging.info("4 - Verifying winutils.iso (make sure we have the utility "
+                 "ISO needed for Windows testing)")
+
+    logging.info("In order to run the KVM autotests in Windows guests, we "
+                 "provide you an ISO that this script can download")
+
+    url = "http://people.redhat.com/mrodrigu/kvm/winutils.iso"
+    hash = "301da394fe840172188a32f8ba01524993baa0cb"
+    destination = os.path.join(base_dir, 'isos', 'windows')
+    check_iso(url, destination, hash)
+
+    logging.info("5 - Checking if qemu is installed (certify qemu and qemu-kvm "
                  "are in the place the default config expects)")
     qemu_default_paths = ['/usr/bin/qemu-kvm', '/usr/bin/qemu-img']
     for qemu_path in qemu_default_paths:
@@ -84,14 +111,14 @@ if __name__ == "__main__":
         else:
             logging.debug("%s present", qemu_path)
 
-    logging.info("5 - Checking for the KVM module (make sure kvm is loaded "
+    logging.info("6 - Checking for the KVM module (make sure kvm is loaded "
                  "to accelerate qemu-kvm)")
     if not utils.module_is_loaded("kvm"):
         logging.warning("KVM module is not loaded. You might want to load it")
     else:
         logging.debug("KVM module loaded")
 
-    logging.info("6 - Verify needed packages to get started")
+    logging.info("7 - Verify needed packages to get started")
     logging.info("Please take a look at the online documentation "
                  "http://www.linux-kvm.org/page/KVM-Autotest/Client_Install "
                  "(session 'Install Prerequisite packages')")
