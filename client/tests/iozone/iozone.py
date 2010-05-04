@@ -1,5 +1,6 @@
 import os, re
 from autotest_lib.client.bin import test, utils
+import postprocessing
 
 
 class iozone(test.test):
@@ -63,17 +64,19 @@ class iozone(test.test):
         self.results = utils.system_output('%s %s' % (cmd, args))
         self.auto_mode = ("-a" in args)
 
-        path = os.path.join(self.resultsdir, 'raw_output_%s' % self.iteration)
-        raw_output_file = open(path, 'w')
-        raw_output_file.write(self.results)
-        raw_output_file.close()
+        self.results_path = os.path.join(self.resultsdir,
+                                         'raw_output_%s' % self.iteration)
+        self.analysisdir = os.path.join(self.resultsdir,
+                                        'analysis_%s' % self.iteration)
+
+        utils.open_write_close(self.results_path, self.results)
 
 
     def __get_section_name(self, desc):
         return desc.strip().replace(' ', '_')
 
 
-    def postprocess_iteration(self):
+    def generate_keyval(self):
         keylist = {}
 
         if self.auto_mode:
@@ -150,3 +153,14 @@ class iozone(test.test):
                             keylist[key_name] = result
 
         self.write_perf_keyval(keylist)
+
+
+    def postprocess_iteration(self):
+        self.generate_keyval()
+        if self.auto_mode:
+            a = postprocessing.IOzoneAnalyzer(list_files=[self.results_path],
+                                              output_dir=self.analysisdir)
+            a.analyze()
+            p = postprocessing.IOzonePlotter(results_file=self.results_path,
+                                             output_dir=self.analysisdir)
+            p.plot_all()
