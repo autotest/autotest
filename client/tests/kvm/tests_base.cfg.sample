@@ -214,6 +214,11 @@ variants:
                 dst_rsc_dir = "C:\"
                 autoit_entry = "C:\autoit\stub\stub.au3"
 
+    - iozone_windows: unattended_install
+        type = iozone_windows
+        iozone_cmd = "D:\IOzone\iozone.exe -a"
+        iozone_timeout = 3600
+
     - guest_s4:     install setup unattended_install
         type = guest_s4
         check_s4_support_cmd = grep -q disk /sys/power/state
@@ -417,7 +422,7 @@ variants:
 variants:
     # Linux section
     - @Linux:
-        no autoit
+        no autoit iozone_windows
         shutdown_command = shutdown -h now
         reboot_command = shutdown -r now
         status_test_command = echo $?
