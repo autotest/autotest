@@ -257,14 +257,14 @@ class parser(base.parser):
                     min_stack_size = stack.size()
                     # start a "RUNNING" CLIENT_JOB entry
                     job_name = "CLIENT_JOB.%d" % job_count
-                    running_job = test.parse_partial_test(self.job, None,
-                                                          job_name,
-                                                          "", current_kernel,
-                                                          started_time)
+                    running_client = test.parse_partial_test(self.job, None,
+                                                             job_name,
+                                                             "", current_kernel,
+                                                             started_time)
                     msg = "RUNNING: %s\n%s\n"
-                    msg %= (running_job.status, running_job.testname)
+                    msg %= (running_client.status, running_client.testname)
                     tko_utils.dprint(msg)
-                    new_tests.append(running_job)
+                    new_tests.append(running_client)
                 elif stack.size() == min_stack_size + 1 and not running_test:
                     # we just started a new test, insert a running record
                     running_reasons = set()
@@ -353,6 +353,7 @@ class parser(base.parser):
                 # if there was no testname or subdir, use 'CLIENT_JOB'
                 if line.testname is None:
                     line.testname = "CLIENT_JOB.%d" % job_count
+                    running_test = running_client
                     job_count += 1
                     if not status_lib.is_worse_than_or_equal_to(
                         current_status, "ABORT"):
