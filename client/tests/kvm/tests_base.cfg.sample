@@ -741,7 +741,7 @@ variants:
 
                 variants:
                     - 3.9.i386:
-                        no setup autotest linux_s3
+                        no setup autotest linux_s3 guest_s4 shutdown
                         image_name = rhel3-32
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         cdrom = linux/RHEL-3.9-i386-DVD.iso
@@ -755,7 +755,7 @@ variants:
                             floppy = images/rhel39-32/floppy.img
 
                     - 3.9.x86_64:
-                        no setup autotest linux_s3
+                        no setup autotest linux_s3 guest_s4 shutdown
                         image_name = rhel3-64
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         cdrom = linux/RHEL-3.9-x86_64-DVD.iso
