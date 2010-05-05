@@ -70,7 +70,9 @@ class ExecutionEngine(object):
         """
         while True:
             hosts = self._planner_rpc.run('get_hosts', plan_id=self._plan_id)
-            control = self._planner_rpc.run('get_atomic_group_control_file')
+            control = (self._planner_rpc.run('get_atomic_group_control_file') %
+                       dict(server=self._server, label_name=self._label_name,
+                            plan_id=self._plan_id))
 
             info = self._afe_rest.execution_info.get().execution_info
             info['control_file'] = control
@@ -82,15 +84,10 @@ class ExecutionEngine(object):
             entries = self._afe_rest.queue_entries_request.get(
                     hosts=hosts).queue_entries
 
-            keyvals = {'server': self._server,
-                       'label_name': self._label_name,
-                       'plan_id': self._plan_id}
-
             job_req = {'name' : name,
                        'owner': self._owner,
                        'execution_info' : info,
-                       'queue_entries' : entries,
-                       'keyvals' : keyvals}
+                       'queue_entries' : entries}
 
             try:
                 self._afe_rest.jobs.post(job_req)
