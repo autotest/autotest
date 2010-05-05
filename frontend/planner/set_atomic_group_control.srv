@@ -1,15 +1,11 @@
-from autotest_lib.client.common_lib import utils
 from autotest_lib.frontend.shared import rest_client
 from autotest_lib.server import frontend
 
-keyvals = utils.read_keyval(job.resultdir)
-
 planner_rpc = frontend.Planner()
-afe_rest = rest_client.Resource.load(
-        'http://%s/afe/server/resources' % keyvals['server'])
+afe_rest = rest_client.Resource.load('http://%(server)s/afe/server/resources')
 
 
-label = afe_rest.labels.get(name=keyvals['label_name']).members[0].get()
+label = afe_rest.labels.get(name='%(label_name)s').members[0].get()
 
 def run(machine):
     hostname = hosts.create_host(machine).hostname
@@ -18,4 +14,4 @@ def run(machine):
 
 job.parallel_simple(run, machines)
 
-planner_rpc.run('modify_plan', id=keyvals['plan_id'], initialized=True)
+planner_rpc.run('modify_plan', id=%(plan_id)d, initialized=True)
