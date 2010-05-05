@@ -269,5 +269,58 @@ class RpcUtilsTest(unittest.TestCase,
         self.assertTrue(planner_job.requires_rerun)
 
 
+    def test_set_additional_parameters(self):
+        hostname_regex = 'host[0-9]'
+        param_type = model_attributes.AdditionalParameterType.VERIFY
+        param_values = {'key1': 'value1',
+                        'key2': []}
+
+        additional_parameters = {'hostname_regex': hostname_regex,
+                                 'param_type': param_type,
+                                 'param_values': param_values}
+
+        rpc_utils.set_additional_parameters(self._plan, [additional_parameters])
+
+        additional_parameters_query = (
+                models.AdditionalParameter.objects.filter(plan=self._plan))
+        self.assertEqual(additional_parameters_query.count(), 1)
+
+        additional_parameter = additional_parameters_query[0]
+        self.assertEqual(additional_parameter.hostname_regex, hostname_regex)
+        self.assertEqual(additional_parameter.param_type, param_type)
+        self.assertEqual(additional_parameter.application_order, 0)
+
+        values_query = additional_parameter.additionalparametervalue_set.all()
+        self.assertEqual(values_query.count(), 2)
+
+        value_query1 = values_query.filter(key='key1')
+        value_query2 = values_query.filter(key='key2')
+        self.assertEqual(value_query1.count(), 1)
+        self.assertEqual(value_query2.count(), 1)
+
+        self.assertEqual(value_query1[0].value, repr('value1'))
+        self.assertEqual(value_query2[0].value, repr([]))
+
+
+    def test_get_wrap_arguments(self):
+        hostname_regex = '.*'
+        param_type = model_attributes.AdditionalParameterType.VERIFY
+
+        additional_param = models.AdditionalParameter.objects.create(
+                plan=self._plan, hostname_regex=hostname_regex,
+                param_type=param_type, application_order=0)
+        models.AdditionalParameterValue.objects.create(
+                additional_parameter=additional_param,
+                key='key1', value=repr('value1'))
+        models.AdditionalParameterValue.objects.create(
+                additional_parameter=additional_param,
+                key='key2', value=repr([]))
+
+        actual = rpc_utils.get_wrap_arguments(self._plan, 'host', param_type)
+        expected = {'key1': repr('value1'),
+                    'key2': repr([])}
+
+        self.assertEqual(actual, expected)
+
 if __name__ == '__main__':
     unittest.main()

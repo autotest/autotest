@@ -7,8 +7,8 @@ from autotest_lib.frontend import setup_test_environment
 from autotest_lib.frontend.planner import planner_test_utils, model_attributes
 from autotest_lib.frontend.planner import rpc_interface, models, rpc_utils
 from autotest_lib.frontend.planner import failure_actions
-from autotest_lib.frontend.afe import model_logic
-from autotest_lib.frontend.afe import models as afe_models
+from autotest_lib.frontend.afe import model_logic, models as afe_models
+from autotest_lib.frontend.afe import rpc_interface as afe_rpc_interface
 from autotest_lib.frontend.tko import models as tko_models
 
 
@@ -161,6 +161,28 @@ class RpcInterfaceTest(unittest.TestCase,
                          [{'status': model_attributes.TestRunStatus.PASSED,
                            'tko_test_idx': tko_test.test_idx,
                            'hostname': self._hostname}])
+        self.god.check_playback()
+
+
+    def test_generate_test_config(self):
+        control = {'control_file': object(),
+                   'is_server': object()}
+        test = 'test'
+        alias = 'test alias'
+        estimated_runtime = object()
+
+        self.god.stub_function(afe_rpc_interface, 'generate_control_file')
+        afe_rpc_interface.generate_control_file.expect_call(
+                tests=[test]).and_return(control)
+
+        result = rpc_interface.generate_test_config(
+                alias=alias, afe_test_name=test,
+                estimated_runtime=estimated_runtime)
+
+        self.assertEqual(result['alias'], 'test_alias')
+        self.assertEqual(result['control_file'], control['control_file'])
+        self.assertEqual(result['is_server'], control['is_server'])
+        self.assertEqual(result['estimated_runtime'], estimated_runtime)
         self.god.check_playback()
 
 

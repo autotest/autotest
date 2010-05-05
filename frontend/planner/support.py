@@ -19,7 +19,7 @@ class TestPlanController(object):
 
         self._reboot_before = afe_model_attributes.RebootBefore.IF_DIRTY
         self._reboot_after = afe_model_attributes.RebootAfter.ALWAYS
-        self._run_verify = True
+        self._run_verify = None
 
 
     def skip_test(self):
@@ -77,7 +77,7 @@ class TestPlanController(object):
 
     def set_run_verify(self, run_verify):
         """
-        Sets whether or not the job should run the "Verify" stage.
+        Sets whether or not the job should run the verify_test.
 
         Defaults to True.
         """

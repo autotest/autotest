@@ -1,3 +1,4 @@
+import re
 from django.db import models as dbmodels
 import common
 from autotest_lib.frontend.afe import models as afe_models
@@ -131,7 +132,7 @@ class TestConfig(ModelWithPlan, model_logic.ModelExtensions):
 
     Required:
         alias: The name to give this test within the plan. Unique with plan id
-        test_control_file: The control file to run
+        control_file: The control file to run
         is_server: True if this control file is a server-side test
         execution_order: An integer describing when this test should be run in
                          the test plan
@@ -394,3 +395,69 @@ class AutoProcess(ModelWithPlan):
 
     def _get_details_unicode(self):
         return 'Autoprocessing condition: %s' % self.condition
+
+
+class AdditionalParameter(ModelWithPlan):
+    """
+    Allows parameters to be passed to the execution engine for test configs
+
+    If this object matches a hostname by regex, it will apply the associated
+    parameters at their applicable locations.
+
+    Required:
+        hostname_regex: A regular expression, for matching on the hostname
+        param_type: Currently only 'Verify' (and site-specific values) allowed
+        application_order: The order in which to apply this parameter.
+                           Parameters are attempted in the order specified here,
+                           and stop when the first match is found
+    """
+    hostname_regex = dbmodels.CharField(max_length=255)
+    param_type = dbmodels.CharField(
+            max_length=32,
+            choices=model_attributes.AdditionalParameterType.choices())
+    application_order = dbmodels.IntegerField(blank=True)
+
+    class Meta:
+        db_table = 'planner_additional_parameters'
+        unique_together = ('plan', 'hostname_regex', 'param_type')
+
+
+    @classmethod
+    def find_applicable_additional_parameter(cls, plan, hostname, param_type):
+        """
+        Finds the first AdditionalParameter that matches the given arguments
+        """
+        params = cls.objects.filter(
+                plan=plan, param_type=param_type).order_by('application_order')
+        for param in params:
+            if re.match(param.hostname_regex, hostname):
+                return param
+        return None
+
+
+    def _get_details_unicode(self):
+        return 'Additional %s parameters, regex: %s' % (self.param_type,
+                                                        self.hostname_regex)
+
+
+class AdditionalParameterValue(dbmodels.Model):
+    """
+    The actual values for the additional parameters
+
+    Required:
+        additional_parameter: The associated AdditionalParameter
+        key: The name of the parameter
+        value: The value of the parameter
+    """
+    additional_parameter = dbmodels.ForeignKey(AdditionalParameter)
+    key = dbmodels.CharField(max_length=255)
+    value = dbmodels.CharField(max_length=255)
+
+    class Meta:
+        db_table = 'planner_additional_parameter_values'
+        unique_together = ('additional_parameter', 'key')
+
+
+    def __unicode__(self):
+        return u'Value for parameter %d: %s=%s' % (self.additional_parameter.id,
+                                                   self.key, self.value)

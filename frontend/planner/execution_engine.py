@@ -202,15 +202,20 @@ class ExecutionEngine(object):
 
     def _run_job(self, hostname, test_config_id, cleanup_before_job,
                  cleanup_after_job, run_verify):
-        test_config = self._planner_rpc.run('get_test_config',
-                                            id=test_config_id)
+        if run_verify is None:
+            run_verify = True
+
+        test_config = self._planner_rpc.run('get_wrapped_test_config',
+                                            id=test_config_id,
+                                            hostname=hostname,
+                                            run_verify=run_verify)
 
         info = self._afe_rest.execution_info.get().execution_info
-        info['control_file'] = test_config['control_file']['contents']
-        info['is_server'] = test_config['is_server']
+        info['control_file'] = test_config['wrapped_control_file']
+        info['is_server'] = True
         info['cleanup_before_job'] = cleanup_before_job
         info['cleanup_after_job'] = cleanup_after_job
-        info['run_verify'] = run_verify
+        info['run_verify'] = False
 
         atomic_group_class = self._afe_rest.labels.get(
                 name=self._label_name).members[0].get().atomic_group_class.href
