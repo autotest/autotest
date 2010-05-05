@@ -41,9 +41,7 @@ public class TriageViewDisplay implements TestPlannerDisplay,
     public void setLoading(boolean loading) {
         NotifyManager.getInstance().setLoading(loading);
         scroll.setVisible(!loading);
-
-        scroll.setVisible(true);
-        triage.setVisible(true);
+        triage.setVisible(!loading);
     }
 
     @Override

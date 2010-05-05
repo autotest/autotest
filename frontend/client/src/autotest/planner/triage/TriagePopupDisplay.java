@@ -33,16 +33,17 @@ public class TriagePopupDisplay extends PopupPanel implements TriagePopup.Displa
     private ExtendedListBox testAction = new ExtendedListBox();
     private CheckBox invalidate = new CheckBox("Invalidate Test");
     private Button apply = new Button("Apply");
-    
+
     public TriagePopupDisplay() {
         super(false, true);
-        
+        super.setGlassEnabled(true);
+
         HorizontalPanel topPanel = new HorizontalPanel();
         topPanel.setWidth("100%");
         topPanel.setHorizontalAlignment(HasHorizontalAlignment.ALIGN_RIGHT);
         topPanel.add(closeX);
         container.add(topPanel);
-        
+
         FlexTable bottomTable = new FlexTable();
         addRow(bottomTable, "Labels", labels);
         addRow(bottomTable, "Keyvals", keyvals);
@@ -52,12 +53,12 @@ public class TriagePopupDisplay extends PopupPanel implements TriagePopup.Displa
         addRow(bottomTable, "Test", testAction);
         addRow(bottomTable, null, invalidate);
         container.add(bottomTable);
-        
+
         container.add(apply);
-        
+
         setWidget(container);
     }
-    
+
     private void addRow(FlexTable table, String label, Widget field) {
         int row = table.getRowCount();
         if (label != null) {
