@@ -5,12 +5,13 @@ Functions to expose over the RPC interface.
 __author__ = 'jamesren@google.com (James Ren)'
 
 
-import os
+import os, re
 import common
 from django.db import models as django_models
 from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import model_logic, models as afe_models
 from autotest_lib.frontend.afe import rpc_utils as afe_rpc_utils
+from autotest_lib.frontend.afe import rpc_interface as afe_rpc_interface
 from autotest_lib.frontend.tko import models as tko_models
 from autotest_lib.frontend.planner import models, rpc_utils, model_attributes
 from autotest_lib.frontend.planner import failure_actions
@@ -36,11 +37,6 @@ def modify_host(id, **data):
     models.Host.objects.get(id=id).update_object(data)
 
 
-def get_test_config(id):
-    return afe_rpc_utils.prepare_rows_as_nested_dicts(
-            models.TestConfig.objects.filter(id=id), ('control_file',))[0]
-
-
 def add_job(plan_id, test_config_id, afe_job_id):
     models.Job.objects.create(
             plan=models.Plan.objects.get(id=plan_id),
@@ -50,8 +46,8 @@ def add_job(plan_id, test_config_id, afe_job_id):
 
 # more advanced calls
 
-def submit_plan(name, hosts, host_labels, tests,
-                support=None, label_override=None):
+def submit_plan(name, hosts, host_labels, tests, support=None,
+                label_override=None, additional_parameters=None):
     """
     Submits a plan to the Test Planner
 
@@ -68,6 +64,32 @@ def submit_plan(name, hosts, host_labels, tests,
     @param support: the global support script
     @param label_override: label to prepend to all AFE jobs for this test plan.
                            Defaults to the plan name.
+    @param additional_parameters: A mapping of AdditionalParameters to apply to
+                                  this test plan, as an ordered list. Each item
+                                  of the list is a dictionary:
+                                  hostname_regex: A regular expression; the
+                                                  additional parameter in the
+                                                  value will be applied if the
+                                                  hostname matches this regex
+                                  param_type: The type of additional parameter
+                                  param_values: A dictionary of key=value pairs
+                                                for this parameter
+               example:
+               [{'hostname_regex': 'host[0-9]',
+                 'param_type': 'Verify',
+                 'param_values': {'key1': 'value1',
+                                  'key2': 'value2'}},
+                {'hostname_regex': '.*',
+                 'param_type': 'Verify',
+                 'param_values': {'key': 'value'}}]
+
+                                  Currently, the only (non-site-specific)
+                                  param_type available is 'Verify'. Setting
+                                  these parameters allows the user to specify
+                                  arguments to the
+                                  job.run_test('verify_test', ...) line at the
+                                  beginning of the wrapped control file for each
+                                  test
     """
     host_objects = []
     label_objects = []
@@ -108,6 +130,7 @@ def submit_plan(name, hosts, host_labels, tests,
                 {'name': 'Plan name %s already exists' % name})
 
     try:
+        rpc_utils.set_additional_parameters(plan, additional_parameters)
         label = rpc_utils.create_plan_label(plan)
         try:
             for i, test in enumerate(tests):
@@ -344,6 +367,85 @@ def process_failures(failure_ids, host_action, test_action, labels=(),
                 bugs=bugs, reason=reason, invalidate=invalidate)
 
 
+def generate_test_config(alias, afe_test_name=None,
+                         estimated_runtime=0, **kwargs):
+    """
+    Creates and returns a test config suitable for passing into submit_plan()
+
+    Also accepts optional parameters to pass directly in to the AFE RPC
+    interface's generate_control_file() method.
+
+    @param alias: The alias for the test
+    @param afe_test_name: The name of the test, as shown on AFE
+    @param estimated_runtime: Estimated number of hours this test is expected to
+                              run. For reporting purposes.
+    """
+    if afe_test_name is None:
+        afe_test_name = alias
+    alias = alias.replace(' ', '_')
+
+    control = afe_rpc_interface.generate_control_file(tests=[afe_test_name],
+                                                      **kwargs)
+
+    return {'alias': alias,
+            'control_file': control['control_file'],
+            'is_server': control['is_server'],
+            'estimated_runtime': estimated_runtime}
+
+
+def get_wrapped_test_config(id, hostname, run_verify):
+    """
+    Gets the TestConfig object identified by the ID
+
+    Returns the object dict of the TestConfig, plus an additional
+    'wrapped_control_file' value, which includes the pre-processing that the
+    ControlParameters specify.
+
+    @param hostname: Hostname of the machine this test config will run on
+    @param run_verify: Set to True or False to override the default behavior
+                       (which is to run the verify test unless the skip_verify
+                       ControlParameter is set)
+    """
+    test_config = models.TestConfig.objects.get(id=id)
+    object_dict = test_config.get_object_dict()
+    object_dict['control_file'] = test_config.control_file.get_object_dict()
+    object_dict['wrapped_control_file'] = rpc_utils.wrap_control_file(
+            plan=test_config.plan, hostname=hostname,
+            run_verify=run_verify, test_config=test_config)
+
+    return object_dict
+
+
+def generate_additional_parameters(hostname_regex, param_type, param_values):
+    """
+    Generates an AdditionalParamter dictionary, for passing in to submit_plan()
+
+    Returns a dictionary. To use in submit_job(), put this dictionary into a
+    list (possibly with other additional_parameters dictionaries)
+
+    @param hostname_regex: The hostname regular expression to match
+    @param param_type: One of get_static_data()['additional_parameter_types']
+    @param param_values: Dictionary of key=value pairs for this parameter
+    """
+    try:
+        re.compile(hostname_regex)
+    except Exception:
+        raise model_logic.ValidationError(
+                {'hostname_regex': '%s is not a valid regex' % hostname_regex})
+
+    if param_type not in model_attributes.AdditionalParameterType.values:
+        raise model_logic.ValidationError(
+                {'param_type': '%s is not a valid parameter type' % param_type})
+
+    if type(param_values) is not dict:
+        raise model_logic.ValidationError(
+                {'param_values': '%s is not a dictionary' % repr(param_values)})
+
+    return {'hostname_regex': hostname_regex,
+            'param_type': param_type,
+            'param_values': param_values}
+
+
 def get_motd():
     return afe_rpc_utils.get_motd()
 
@@ -351,5 +453,7 @@ def get_motd():
 def get_static_data():
     result = {'motd': get_motd(),
               'host_actions': sorted(failure_actions.HostAction.values),
-              'test_actions': sorted(failure_actions.TestAction.values)}
+              'test_actions': sorted(failure_actions.TestAction.values),
+              'additional_parameter_types':
+                      sorted(model_attributes.AdditionalParameterType.values)}
     return result

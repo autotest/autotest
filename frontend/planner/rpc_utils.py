@@ -2,7 +2,7 @@ import common
 import os
 from autotest_lib.frontend.afe import models as afe_models, model_logic
 from autotest_lib.frontend.planner import models, model_attributes
-from autotest_lib.frontend.planner import failure_actions
+from autotest_lib.frontend.planner import failure_actions, control_file
 from autotest_lib.frontend.tko import models as tko_models
 from autotest_lib.client.common_lib import global_config, utils, global_config
 
@@ -262,3 +262,58 @@ def _process_test_action(planner_job, action):
         assert action == TestAction.RERUN
         planner_job.requires_rerun = True
         planner_job.save()
+
+
+def set_additional_parameters(plan, additional_parameters):
+    if not additional_parameters:
+        return
+
+    for index, additional_parameter in enumerate(additional_parameters):
+        hostname_regex = additional_parameter['hostname_regex']
+        param_type = additional_parameter['param_type']
+        param_values = additional_parameter['param_values']
+
+        additional_param = models.AdditionalParameter.objects.create(
+                plan=plan, hostname_regex=hostname_regex,
+                param_type=param_type, application_order=index)
+
+        for key, value in param_values.iteritems():
+            models.AdditionalParameterValue.objects.create(
+                    additional_parameter=additional_param,
+                    key=key, value=repr(value))
+
+
+def _additional_wrap_arguments_dummy(plan, hostname):
+    return {}
+
+
+def get_wrap_arguments(plan, hostname, param_type):
+    additional_param = (
+            models.AdditionalParameter.find_applicable_additional_parameter(
+                    plan=plan, hostname=hostname, param_type=param_type))
+    if not additional_param:
+        return {}
+
+    param_values = additional_param.additionalparametervalue_set.values_list(
+            'key', 'value')
+    return dict(param_values)
+
+
+def wrap_control_file(plan, hostname, run_verify, test_config):
+    """
+    Wraps a control file using the ControlParameters for the plan
+    """
+    site_additional_wrap_arguments = utils.import_site_function(
+            __file__, 'autotest_lib.frontend.planner.site_rpc_utils',
+            'additional_wrap_arguments', _additional_wrap_arguments_dummy)
+    additional_wrap_arguments = site_additional_wrap_arguments(plan, hostname)
+
+    verify_params = get_wrap_arguments(
+            plan, hostname, model_attributes.AdditionalParameterType.VERIFY)
+
+    return control_file.wrap_control_file(
+            control_file=test_config.control_file.contents,
+            is_server=test_config.is_server,
+            skip_verify=(not run_verify),
+            verify_params=verify_params,
+            **additional_wrap_arguments)
