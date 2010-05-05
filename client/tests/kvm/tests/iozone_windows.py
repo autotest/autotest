@@ -24,10 +24,11 @@ def run_iozone_windows(test, params, env):
     analysisdir = os.path.join(test.resultsdir, 'analysis_%s' % test.iteration)
 
     # Run IOzone and record its results
-    c = command=params.get("iozone_cmd")
+    c = params.get("iozone_cmd")
     t = int(params.get("iozone_timeout"))
     logging.info("Running IOzone command on guest, timeout %ss", t)
-    results = session.get_command_output(command=c, timeout=t)
+    results = session.get_command_output(command=c, timeout=t,
+                                         print_func=logging.debug)
     utils.open_write_close(results_path, results)
 
     # Postprocess the results using the IOzone postprocessing module
