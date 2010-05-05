@@ -2,9 +2,8 @@ package autotest.planner.triage;
 
 import autotest.common.ui.ExtendedListBox;
 import autotest.common.ui.SimplifiedList;
-import autotest.planner.resources.PlannerImageBundle;
+import autotest.planner.resources.PlannerClientBundle;
 
-import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.HasClickHandlers;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
@@ -23,8 +22,7 @@ import com.google.gwt.user.client.ui.Widget;
 
 public class TriagePopupDisplay extends PopupPanel implements TriagePopup.Display {
     private Panel container = new VerticalPanel();
-    private Image closeX =
-            ((PlannerImageBundle) GWT.create(PlannerImageBundle.class)).close().createImage();
+    private Image closeX = new Image(PlannerClientBundle.INSTANCE.close().getURL());
     private TextBox labels = new TextBox();
     private TextArea keyvals = new TextArea();
     private TextBox bugs = new TextBox();
