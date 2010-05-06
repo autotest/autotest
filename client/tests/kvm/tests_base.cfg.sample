@@ -313,6 +313,8 @@ variants:
                 ksm_mode = "serial"
             - ksm_parallel:
                 ksm_mode = "parallel"
+    - iofuzz:
+        type = iofuzz
 
     # This unit test module is for older branches of KVM that use the
     # kvmctl test harness (such as the code shipped with RHEL 5.x)
