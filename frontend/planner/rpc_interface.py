@@ -446,6 +446,48 @@ def generate_additional_parameters(hostname_regex, param_type, param_values):
             'param_values': param_values}
 
 
+def get_machine_view_data(plan_id):
+    """
+    Gets the data required for the web frontend Machine View.
+
+    @param plan_id: The ID of the test plan
+    @return An array. Each element is a dictionary:
+                    machine: The name of the machine
+                    status: The machine's status (one of
+                            model_attributes.HostStatus)
+                    bug_ids: List of the IDs for the bugs filed
+                    tests_run: An array of dictionaries:
+                            test_name: The TKO name of the test
+                            success: True if the test passed
+    """
+    plan = models.Plan.smart_get(plan_id)
+    result = []
+    for host in plan.host_set.all():
+        tests_run = []
+
+        machine = host.host.hostname
+        status = host.status()
+        bug_ids = set()
+
+        testruns = plan.testrun_set.filter(host=host, invalidated=False,
+                                           finalized=True)
+        for testrun in testruns:
+            test_name = testrun.tko_test.test
+            success = (testrun.tko_test.status.word == 'GOOD')
+            testrun_bug_ids = testrun.bugs.all().values_list(
+                    'external_uid', flat=True)
+
+            tests_run.append({'test_name': test_name,
+                              'success': success})
+            bug_ids.update(testrun_bug_ids)
+
+        result.append({'machine': machine,
+                       'status': status,
+                       'tests_run': tests_run,
+                       'bug_ids': list(bug_ids)})
+    return result
+
+
 def get_motd():
     return afe_rpc_utils.get_motd()
 

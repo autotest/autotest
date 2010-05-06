@@ -59,8 +59,7 @@ class PlannerTestMixin(frontend_test_utils.FrontendTestMixin):
                 plan=self._plan, alias='config', control_file=self._control,
                 execution_order=1, estimated_runtime=1)
         self._afe_job = self._create_job(hosts=(1,))
-        self._planner_host = models.Host.objects.create(plan=self._plan,
-                                                        host=self.hosts[0])
+        self._planner_host = self._plan.host_set.get(host=self.hosts[0])
         self._planner_job = models.Job.objects.create(
                 plan=self._plan, test_config=self._test_config,
                 afe_job=self._afe_job)

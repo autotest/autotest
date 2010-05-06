@@ -1,5 +1,7 @@
 package autotest.planner.triage;
 
+import autotest.planner.TestPlannerUtils;
+
 import com.google.gwt.event.dom.client.HasClickHandlers;
 import com.google.gwt.gen2.table.client.FixedWidthFlexTable;
 import com.google.gwt.gen2.table.client.FixedWidthGrid;
@@ -17,52 +19,61 @@ import java.util.Set;
 
 
 public class FailureTableDisplay extends Composite implements FailureTable.Display {
-    
+
     private FixedWidthFlexTable header = new FixedWidthFlexTable();
     private FixedWidthGrid dataTable;
     private ScrollTable scrollTable;
     private CheckBox selectAll = new CheckBox();
-    
+
+    private String group;
+
     public FailureTableDisplay(String group, String[] columnNames) {
-        FlexCellFormatter formatter = header.getFlexCellFormatter();
-        
+        this.group = group;
+
+
         dataTable = new FixedWidthGrid(0, columnNames.length);
         dataTable.setSelectionPolicy(SelectionPolicy.CHECKBOX);
-        
+
         scrollTable = new ScrollTable(dataTable, header);
         scrollTable.setSortPolicy(SortPolicy.DISABLED);
         scrollTable.setResizePolicy(ResizePolicy.UNCONSTRAINED);
         scrollTable.setScrollPolicy(ScrollPolicy.BOTH);
         scrollTable.setHeight("200px");
-        
-        header.setText(0, 0, group);
+
         header.setWidget(1, 0, selectAll);
-        
-        formatter.setColSpan(0, 0, columnNames.length + 1);
+
         for (int i = 0; i < columnNames.length; i++) {
             header.setText(1, i + 1, columnNames[i]);
         }
-        
+
         initWidget(scrollTable);
     }
-    
+
     @Override
     public void addRow(String[] cells, boolean isNew) {
         assert dataTable.getColumnCount() == cells.length;
-        
+
         int row = dataTable.getRowCount();
         dataTable.resizeRows(row + 1);
         for (int cell = 0; cell < cells.length; cell++) {
             dataTable.setText(row, cell, cells[cell]);
         }
-        
-        for (int column = 0; column < dataTable.getColumnCount(); column++) {
-            int width = Math.max(
-                      dataTable.getIdealColumnWidth(column), header.getColumnWidth(column + 1));
-            
-            header.setColumnWidth(column + 1, width);
-            dataTable.setColumnWidth(column, width);
-        }
+    }
+
+    @Override
+    public void finalRender() {
+        TestPlannerUtils.resizeScrollTable(scrollTable, true);
+
+        /*
+         * Add the group header and redraw the table after the column resizing. This is to work
+         * around a bug (feature?) where getIdealColumnWidth() computes weird numbers for ideal
+         * width when there's a colspan'd column.
+         */
+        header.setText(0, 0, group);
+        FlexCellFormatter formatter = header.getFlexCellFormatter();
+        formatter.setColSpan(0, 0, header.getColumnCount());
+
+        scrollTable.redraw();
     }
 
     @Override
