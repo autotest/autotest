@@ -218,6 +218,12 @@ tsc_delta(int cpu_a, int cpu_b)
 		wait_for_state(&slave, DONE);
 		t1 = rdtsc();
 
+		/* Ignore roundtrips bigger than 2 * treshold, as one of the threads
+		 * that reads TSC is likely out of the CPU in this case */
+		if ((t1 - t0) > 2 * threshold)
+			continue;
+
+
 		if ((t1 - t0) < (best_t1 - best_t0)) {
 			best_t0 = t0;
 			best_t1 = t1;
