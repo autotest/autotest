@@ -2,6 +2,7 @@ package autotest.common.ui;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -14,20 +15,20 @@ public class TableSelectionPanel extends Composite implements ClickHandler {
     }
 
     private SelectionPanelListener listener;
-    private SimpleHyperlink selectAll = new SimpleHyperlink("all");
-    private SimpleHyperlink selectVisible;
-    private SimpleHyperlink selectNone = new SimpleHyperlink("none");
-    
+    private Anchor selectAll = new Anchor("all");
+    private Anchor selectVisible;
+    private Anchor selectNone = new Anchor("none");
+
     public TableSelectionPanel(boolean wantSelectVisible) {
         selectAll.addClickHandler(this);
         selectNone.addClickHandler(this);
-        
+
         Panel selectPanel = new HorizontalPanel();
         selectPanel.add(new HTML("Select:&nbsp;"));
         selectPanel.add(selectAll);
         selectPanel.add(new HTML(",&nbsp;"));
         if (wantSelectVisible) {
-            selectVisible = new SimpleHyperlink("visible");
+            selectVisible = new Anchor("visible");
             selectVisible.addClickHandler(this);
             selectPanel.add(selectVisible);
             selectPanel.add(new HTML(",&nbsp;"));
@@ -36,7 +37,7 @@ public class TableSelectionPanel extends Composite implements ClickHandler {
         selectPanel.add(new HTML("&nbsp;"));
         initWidget(selectPanel);
     }
-    
+
     public void setListener(SelectionPanelListener listener) {
         this.listener = listener;
     }

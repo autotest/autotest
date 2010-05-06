@@ -3,13 +3,13 @@ package autotest.tko;
 import autotest.common.SimpleCallback;
 import autotest.common.Utils;
 import autotest.common.ui.NotifyManager;
-import autotest.common.ui.SimpleHyperlink;
 import autotest.tko.TkoUtils.FieldInfo;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FlexTable;
@@ -48,21 +48,21 @@ class CommonPanel extends Composite implements ClickHandler, PositionCallback {
     private HTMLPanel htmlPanel;
     private TextArea customSqlBox = new TextArea();
     private CheckBox showInvalid = new CheckBox("Show invalidated tests");
-    private SimpleHyperlink quickReferenceLink = new SimpleHyperlink(SHOW_QUICK_REFERENCE);
+    private Anchor quickReferenceLink = new Anchor(SHOW_QUICK_REFERENCE);
     private PopupPanel quickReferencePopup;
-    private SimpleHyperlink showHideControlsLink = new SimpleHyperlink(HIDE_CONTROLS);
+    private Anchor showHideControlsLink = new Anchor(HIDE_CONTROLS);
     private Panel allControlsPanel = RootPanel.get("common_all_controls");
     private Set<CommonPanelListener> listeners = new HashSet<CommonPanelListener>();
     private ParameterizedFieldListDisplay parameterizedFieldDisplay =
         new ParameterizedFieldListDisplay();
-    
+
 
     public static interface CommonPanelListener {
         /**
          * Called to show or hide tab-specific controls.
          */
         public void onSetControlsVisible(boolean visible);
-        
+
         /**
          * Called when the set of HeaderFields has changed.
          */
@@ -133,13 +133,13 @@ class CommonPanel extends Composite implements ClickHandler, PositionCallback {
     public void setSqlCondition(String text) {
         savedSqlCondition = text;
     }
-    
+
     public boolean isViewReadyForQuery() {
         if (customSqlBox.getText().trim().equals("")) {
             NotifyManager.getInstance().showError("Global filter cannot be empty");
             return false;
         }
-        
+
         return true;
     }
 
@@ -262,7 +262,7 @@ class CommonPanel extends Composite implements ClickHandler, PositionCallback {
     public void addListener(CommonPanelListener listener) {
         listeners.add(listener);
     }
-    
+
     public HeaderFieldCollection getHeaderFields() {
         return headerFields;
     }

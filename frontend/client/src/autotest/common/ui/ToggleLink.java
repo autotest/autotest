@@ -5,18 +5,19 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.DomEvent;
 import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.user.client.Event;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 
 public class ToggleLink extends Composite implements ClickHandler, ToggleControl {
     private String activateText;
     private String deactivateText;
-    private SimpleHyperlink link;
-    
+    private Anchor link;
+
     public ToggleLink(String activateText, String deactivateText) {
         this.activateText = activateText;
         this.deactivateText = deactivateText;
-        
-        link = new SimpleHyperlink(activateText);
+
+        link = new Anchor(activateText);
         link.addClickHandler(this);
         initWidget(link);
     }

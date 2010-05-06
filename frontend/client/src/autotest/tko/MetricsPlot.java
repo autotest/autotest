@@ -3,7 +3,6 @@ package autotest.tko;
 import autotest.common.JsonRpcCallback;
 import autotest.common.Utils;
 import autotest.common.ui.SimpleDialog;
-import autotest.common.ui.SimpleHyperlink;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -11,6 +10,7 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.FlexTable;
 
 class MetricsPlot extends Plot {
@@ -37,17 +37,17 @@ class MetricsPlot extends Plot {
             @Override
             public void onSuccess(JSONValue result) {
                 JSONArray data = result.isArray();
-                
+
                 String title = series + " for " + param;
                 FlexTable contents = new FlexTable();
                 final SimpleDialog drill = new SimpleDialog(title, contents);
-                
+
                 for (int i = 0; i < data.size(); i++) {
                     final JSONArray row = data.get(i).isArray();
                     final int testId = (int) row.get(0).isNumber().doubleValue();
                     String yValue = Utils.jsonToString(row.get(1));
 
-                    SimpleHyperlink link = new SimpleHyperlink(yValue);
+                    Anchor link = new Anchor(yValue);
                     link.addClickHandler(new ClickHandler() {
                         public void onClick(ClickEvent event) {
                             drill.hide();
@@ -56,7 +56,7 @@ class MetricsPlot extends Plot {
                     });
                     contents.setWidget(i, 0, link);
                 }
-                
+
                 drill.center();
             }
         });

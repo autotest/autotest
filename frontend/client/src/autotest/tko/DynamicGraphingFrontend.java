@@ -14,7 +14,7 @@ import com.google.gwt.user.client.ui.HasHorizontalAlignment;
 
 import java.util.Map;
 
-public abstract class DynamicGraphingFrontend extends GraphingFrontend 
+public abstract class DynamicGraphingFrontend extends GraphingFrontend
                                               implements ClickHandler, PreconfigHandler {
     protected PreconfigSelector preconfig;
     protected Button graphButton = new Button("Graph");
@@ -35,18 +35,18 @@ public abstract class DynamicGraphingFrontend extends GraphingFrontend
             super.onClick(event);
             return;
         }
-        
+
         parent.updateHistory();
         plot.setVisible(false);
         embeddingLink.setVisible(false);
         graphButton.setEnabled(false);
-        
+
         JSONObject params = buildParams();
         if (params == null) {
             graphButton.setEnabled(true);
             return;
         }
-        
+
         plot.refresh(params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
@@ -74,14 +74,14 @@ public abstract class DynamicGraphingFrontend extends GraphingFrontend
         table.setWidget(table.getRowCount(), 1, graphButton);
         table.setWidget(table.getRowCount(), 0, plot);
         table.getFlexCellFormatter().setColSpan(table.getRowCount() - 1, 0, 3);
-        
+
         table.setWidget(table.getRowCount(), 2, embeddingLink);
         table.getFlexCellFormatter().setHorizontalAlignment(
                 table.getRowCount() - 1, 2, HasHorizontalAlignment.ALIGN_RIGHT);
-        
+
         plot.setVisible(false);
         embeddingLink.setVisible(false);
-        
+
         initWidget(table);
     }
 
