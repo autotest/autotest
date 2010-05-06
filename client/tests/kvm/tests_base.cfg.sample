@@ -227,6 +227,7 @@ variants:
         set_s4_cmd = echo disk > /sys/power/state
         kill_test_s4_cmd = pkill tcpdump
         services_up_timeout = 30
+        relogin_timeout = 240
 
     - nic_hotplug:  install setup unattended_install
         type = pci_hotplug
