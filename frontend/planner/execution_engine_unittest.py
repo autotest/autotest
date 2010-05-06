@@ -106,7 +106,7 @@ class ExecutionEngineTest(unittest.TestCase,
 
 
     def _setup_test_launch_atomic_group_job(self, name):
-        DUMMY_CONTROL = object()
+        DUMMY_CONTROL = '%(server)r %(label_name)r %(plan_id)r'
         DUMMY_EXECUTION_INFO = MockExecutionInfo()
         DUMMY_QUEUE_ENTRIES_REQUEST = MockQueueEntriesRequest()
 
@@ -125,22 +125,20 @@ class ExecutionEngineTest(unittest.TestCase,
         self.engine._afe_rest.queue_entries_request.get.expect_call(
                 hosts=self.hosts).and_return(DUMMY_QUEUE_ENTRIES_REQUEST)
 
+        control_file = DUMMY_CONTROL % dict(server=self.engine._server,
+                                            label_name=self.engine._label_name,
+                                            plan_id=self.engine._plan_id)
         DUMMY_EXECUTION_INFO.execution_info = {
-                'control_file': DUMMY_CONTROL,
+                'control_file': control_file,
                 'cleanup_before_job': afe_model_attributes.RebootBefore.NEVER,
                 'cleanup_after_job': afe_model_attributes.RebootAfter.NEVER,
                 'run_verify': False,
                 'machines_per_execution': len(self.hosts)}
 
-        keyvals = {'server': self.engine._server,
-                   'label_name': self.engine._label_name,
-                   'plan_id': self.engine._plan_id}
-
         job_req = {'name': name,
                    'owner': self.engine._owner,
                    'execution_info': DUMMY_EXECUTION_INFO.execution_info,
-                   'queue_entries': DUMMY_QUEUE_ENTRIES_REQUEST.queue_entries,
-                   'keyvals': keyvals}
+                   'queue_entries': DUMMY_QUEUE_ENTRIES_REQUEST.queue_entries}
 
         return job_req
 
