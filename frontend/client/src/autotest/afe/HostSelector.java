@@ -9,7 +9,6 @@ import autotest.common.table.DataSource.Query;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.table.SelectionManager.SelectionListener;
 import autotest.common.ui.NotifyManager;
-import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.SimplifiedList;
 
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -19,6 +18,7 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.HasText;
 import com.google.gwt.user.client.ui.HasValue;
 import com.google.gwt.user.client.ui.Widget;
@@ -31,10 +31,10 @@ import java.util.Set;
 
 /**
  * A widget to facilitate selection of a group of hosts for running a job.  The
- * widget displays two side-by-side tables; the left table is a normal 
- * {@link HostTable} displaying available, unselected hosts, and the right table 
- * displays selected hosts.  Click on a host in either table moves it to the 
- * other (i.e. selects or deselects a host).  The widget provides several 
+ * widget displays two side-by-side tables; the left table is a normal
+ * {@link HostTable} displaying available, unselected hosts, and the right table
+ * displays selected hosts.  Click on a host in either table moves it to the
+ * other (i.e. selects or deselects a host).  The widget provides several
  * convenience controls (such as one to remove all selected hosts) and a special
  * section for adding meta-host entries.
  */
@@ -42,13 +42,13 @@ public class HostSelector implements ClickHandler {
     private static final int TABLE_SIZE = 10;
     public static final String META_PREFIX = "Any ";
     public static final String ONE_TIME = "(one-time host)";
-    
+
     public static class HostSelection {
         public List<String> hosts = new ArrayList<String>();
         public List<String> metaHosts = new ArrayList<String>();
         public List<String> oneTimeHosts = new ArrayList<String>();
     }
-    
+
     public interface Display {
         public HasText getHostnameField();
         public HasValue<Boolean> getAllowOneTimeHostsField();
@@ -61,32 +61,32 @@ public class HostSelector implements ClickHandler {
         // a temporary measure until the table code gets refactored to support Passive View
         public void addTables(Widget availableTable, Widget selectedTable);
     }
-    
+
     private ArrayDataSource<JSONObject> selectedHostData =
         new ArrayDataSource<JSONObject>(new String[] {"hostname"});
-    
+
     private Display display;
     private HostDataSource hostDataSource = new HostDataSource();
     // availableTable needs its own data source
     private HostTable availableTable = new HostTable(new HostDataSource());
-    private HostTableDecorator availableDecorator = 
+    private HostTableDecorator availableDecorator =
         new HostTableDecorator(availableTable, TABLE_SIZE);
     private HostTable selectedTable = new HostTable(selectedHostData);
     private TableDecorator selectedDecorator = new TableDecorator(selectedTable);
     private boolean enabled = true;
-    
+
     private SelectionManager availableSelection;
-    
+
     public void initialize() {
         selectedTable.setClickable(true);
         selectedTable.setRowsPerPage(TABLE_SIZE);
         selectedDecorator.addPaginators();
 
-        SimpleHyperlink clearSelection = new SimpleHyperlink("Clear selection");
+        Anchor clearSelection = new Anchor("Clear selection");
         clearSelection.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 deselectAll();
-            } 
+            }
         });
         selectedDecorator.setActionsWidget(clearSelection);
 
@@ -96,15 +96,15 @@ public class HostSelector implements ClickHandler {
         availableDecorator.excludeAtomicGroupsFilter.setActive(true);
         availableSelection = availableDecorator.addSelectionManager(false);
         availableDecorator.addSelectionPanel(true);
-        
+
         availableTable.addListener(new DynamicTableListener() {
             public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
                 availableSelection.toggleSelected(row);
-            } 
-            
+            }
+
             public void onTableRefreshed() {}
         });
-        
+
         availableSelection.addListener(new SelectionListener() {
             public void onAdd(Collection<JSONObject> objects) {
                 for (JSONObject row : objects) {
@@ -130,20 +130,20 @@ public class HostSelector implements ClickHandler {
                 else
                     availableSelection.deselectObject(row);
             }
-            
+
             public void onTableRefreshed() {}
         });
     }
-    
+
     public void bindDisplay(Display display) {
         this.display = display;
         display.getAddByHostnameButton().addClickHandler(this);
         display.getAddByLabelButton().addClickHandler(this);
         display.addTables(availableDecorator, selectedDecorator);
-        
+
         populateLabels(display.getLabelList());
     }
-    
+
     @Override
     public void onClick(ClickEvent event) {
         if (event.getSource() == display.getAddByLabelButton()) {
@@ -175,30 +175,30 @@ public class HostSelector implements ClickHandler {
             }
         });
     }
-    
-    private List<String> findOneTimeHosts(List<String> requestedHostnames, 
+
+    private List<String> findOneTimeHosts(List<String> requestedHostnames,
                                           List<JSONObject> foundHosts) {
         Set<String> existingHosts = new HashSet<String>();
         for (JSONObject host : foundHosts) {
             existingHosts.add(Utils.jsonToString(host.get("hostname")));
         }
-        
+
         List<String> oneTimeHostnames = new ArrayList<String>();
         for (String hostname : requestedHostnames) {
             if (!existingHosts.contains(hostname)) {
                 oneTimeHostnames.add(hostname);
             }
         }
-        
+
         return oneTimeHostnames;
     }
 
-    private void processAddByHostname(final List<String> requestedHostnames, 
-                                      List<JSONObject> foundHosts, 
+    private void processAddByHostname(final List<String> requestedHostnames,
+                                      List<JSONObject> foundHosts,
                                       boolean allowOneTimeHosts) {
         List<String> oneTimeHostnames = findOneTimeHosts(requestedHostnames, foundHosts);
         if (!allowOneTimeHosts && !oneTimeHostnames.isEmpty()) {
-            NotifyManager.getInstance().showError("Hosts not found: " + 
+            NotifyManager.getInstance().showError("Hosts not found: " +
                                                   Utils.joinStrings(", ", oneTimeHostnames));
             return;
         }
@@ -237,7 +237,7 @@ public class HostSelector implements ClickHandler {
             NotifyManager.getInstance().showError(error);
             return;
         }
-        
+
         addMetaHosts(label, number);
         selectionRefresh();
     }
@@ -251,41 +251,41 @@ public class HostSelector implements ClickHandler {
         metaObject.put("locked", new JSONNumber(0));
         selectRow(metaObject);
     }
-    
+
     private void selectRow(JSONObject row) {
         selectedHostData.addItem(row);
     }
-    
+
     private void deselectRow(JSONObject row) {
         selectedHostData.removeItem(row);
     }
-    
+
     private void deselectAll() {
         availableSelection.deselectAll();
         // get rid of leftover meta-host entries
         selectedHostData.clear();
         selectionRefresh();
     }
-    
+
     private void populateLabels(SimplifiedList list) {
         String[] labelNames = AfeUtils.getLabelStrings();
         for(int i = 0; i < labelNames.length; i++) {
             list.addItem(labelNames[i], "");
         }
     }
-    
+
     private String getHostname(JSONObject row) {
         return row.get("hostname").isString().stringValue();
     }
-    
+
     private boolean isMetaEntry(JSONObject row) {
         return getHostname(row).startsWith(META_PREFIX);
     }
-    
+
     private int getMetaNumber(JSONObject row) {
         return Integer.parseInt(getHostname(row).substring(META_PREFIX.length()));
     }
-    
+
     private boolean isOneTimeHost(JSONObject row) {
         JSONString platform = row.get("platform").isString();
         if (platform == null) {
@@ -293,7 +293,7 @@ public class HostSelector implements ClickHandler {
         }
         return platform.stringValue().equals(ONE_TIME);
     }
-    
+
     /**
      * Retrieve the set of selected hosts.
      */
@@ -302,7 +302,7 @@ public class HostSelector implements ClickHandler {
         if (!enabled) {
             return selection;
         }
-        
+
         for (JSONObject row : selectedHostData.getItems() ) {
             if (isMetaEntry(row)) {
                 int count =  getMetaNumber(row);
@@ -320,10 +320,10 @@ public class HostSelector implements ClickHandler {
                 }
             }
         }
-        
+
         return selection;
     }
-    
+
     /**
      * Reset the widget (deselect all hosts).
      */
@@ -332,7 +332,7 @@ public class HostSelector implements ClickHandler {
         selectionRefresh();
         setEnabled(true);
     }
-    
+
     /**
      * Refresh as necessary for selection change, but don't make any RPCs.
      */
@@ -340,7 +340,7 @@ public class HostSelector implements ClickHandler {
         selectedTable.refresh();
         updateHostnameList();
     }
-    
+
     private void updateHostnameList() {
         List<String> hostnames = new ArrayList<String>();
         for (JSONObject hostObject : selectedHostData.getItems()) {
@@ -348,7 +348,7 @@ public class HostSelector implements ClickHandler {
                 hostnames.add(Utils.jsonToString(hostObject.get("hostname")));
             }
         }
-        
+
         String hostList = Utils.joinStrings(", ", hostnames);
         display.getHostnameField().setText(hostList);
     }
@@ -357,7 +357,7 @@ public class HostSelector implements ClickHandler {
         availableTable.refresh();
         selectionRefresh();
     }
-    
+
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
         display.setVisible(enabled);
