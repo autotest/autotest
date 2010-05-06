@@ -11,7 +11,6 @@ import autotest.common.spreadsheet.Spreadsheet.Header;
 import autotest.common.spreadsheet.Spreadsheet.SpreadsheetListener;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.NotifyManager;
-import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TableActionsPanel;
 import autotest.common.ui.TableActionsPanel.TableActionsWithExportCsvListener;
 import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
@@ -33,6 +32,7 @@ import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.History;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.HTML;
@@ -45,27 +45,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SpreadsheetView extends ConditionTabView 
-                             implements SpreadsheetListener, TableActionsWithExportCsvListener, 
+public class SpreadsheetView extends ConditionTabView
+                             implements SpreadsheetListener, TableActionsWithExportCsvListener,
                                         CommonPanelListener, SelectionPanelListener {
     private static final String HISTORY_ONLY_LATEST = "show_only_latest";
     public static final String DEFAULT_ROW = "kernel";
     public static final String DEFAULT_COLUMN = "platform";
     public static final String DEFAULT_DRILLDOWN = "job_tag";
-    
+
     private static final String HISTORY_SHOW_INCOMPLETE = "show_incomplete";
     private static final String HISTORY_COLUMN = "column";
     private static final String HISTORY_ROW = "row";
     private static final String HISTORY_CONTENT = "content";
-    
+
     private static enum DrilldownType {DRILLDOWN_ROW, DRILLDOWN_COLUMN, DRILLDOWN_BOTH}
-    
+
     private static JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     private static JsonRpcProxy afeRpcProxy = JsonRpcProxy.getProxy(JsonRpcProxy.AFE_BASE_URL);
     private TableSwitchListener listener;
     protected Map<String,String[]> drilldownMap = new HashMap<String,String[]>();
     private HeaderFieldCollection headerFields = commonPanel.getHeaderFields();
-    
+
     private SpreadsheetHeaderSelect rowSelect = new SpreadsheetHeaderSelect(headerFields);
     private SpreadsheetHeaderSelectorView rowSelectDisplay = new SpreadsheetHeaderSelectorView();
     private SpreadsheetHeaderSelect columnSelect = new SpreadsheetHeaderSelect(headerFields);
@@ -77,9 +77,9 @@ public class SpreadsheetView extends ConditionTabView
     private TestGroupDataSource normalDataSource = TestGroupDataSource.getStatusCountDataSource();
     private TestGroupDataSource latestDataSource = TestGroupDataSource.getLatestTestsDataSource();
     private Spreadsheet spreadsheet = new Spreadsheet();
-    private SpreadsheetDataProcessor spreadsheetProcessor = 
+    private SpreadsheetDataProcessor spreadsheetProcessor =
         new SpreadsheetDataProcessor(spreadsheet);
-    private SpreadsheetSelectionManager selectionManager = 
+    private SpreadsheetSelectionManager selectionManager =
         new SpreadsheetSelectionManager(spreadsheet, null);
     private TableActionsPanel actionsPanel = new TableActionsPanel(false);
     private Panel jobCompletionPanel = new SimplePanel();
@@ -92,7 +92,7 @@ public class SpreadsheetView extends ConditionTabView
         rowSelect.bindDisplay(rowSelectDisplay);
         columnSelect.bindDisplay(columnSelectDisplay);
     }
-    
+
     @Override
     public String getElementId() {
         return "spreadsheet_view";
@@ -110,7 +110,7 @@ public class SpreadsheetView extends ConditionTabView
         actionsPanel.setVisible(false);
 
         contentSelect.addValueChangeHandler(new ValueChangeHandler<Boolean>() {
-            public void onValueChange(ValueChangeEvent<Boolean> event) {                
+            public void onValueChange(ValueChangeEvent<Boolean> event) {
                 if (event.getValue()) {
                     showOnlyLatest.setValue(true);
                     showOnlyLatest.setEnabled(false);
@@ -119,32 +119,32 @@ public class SpreadsheetView extends ConditionTabView
                 }
             }
         });
-        
+
         updateViewFromState();
 
         queryButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 doQueryWithCommonPanelCheck();
                 updateHistory();
-            } 
+            }
         });
-        
+
         spreadsheet.setVisible(false);
         spreadsheet.setListener(this);
-        
-        SimpleHyperlink swapLink = new SimpleHyperlink("swap");
+
+        Anchor swapLink = new Anchor("swap");
         swapLink.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 SpreadsheetHeaderSelect.State rowState = rowSelect.getStateFromView();
                 rowSelect.loadFromState(columnSelect.getStateFromView());
                 columnSelect.loadFromState(rowState);
-            } 
+            }
         });
-        
+
         Panel filterOptions = new VerticalPanel();
         filterOptions.add(showIncomplete);
         filterOptions.add(showOnlyLatest);
-        
+
         addWidget(filterOptions, "ss_filter_options");
         addWidget(rowSelectDisplay, "ss_row_select");
         addWidget(columnSelectDisplay, "ss_column_select");
@@ -154,18 +154,18 @@ public class SpreadsheetView extends ConditionTabView
         addWidget(actionsPanel, "ss_actions");
         addWidget(spreadsheet, "ss_spreadsheet");
         addWidget(jobCompletionPanel, "ss_job_completion");
-        
+
         Window.addResizeHandler(new ResizeHandler() {
             public void onResize(ResizeEvent event) {
                 if(spreadsheet.isVisible())
                     spreadsheet.fillWindow(true);
-            } 
+            }
         });
-        
+
         setupDrilldownMap();
     }
 
-    private void setHeaderSelectField(SpreadsheetHeaderSelect headerSelect,  
+    private void setHeaderSelectField(SpreadsheetHeaderSelect headerSelect,
                                       String defaultField) {
         headerSelect.setSelectedItem(headerFields.getFieldBySqlName(defaultField));
     }
@@ -190,21 +190,21 @@ public class SpreadsheetView extends ConditionTabView
     protected void setupDrilldownMap() {
         drilldownMap.put("platform", new String[] {"hostname", "test_name"});
         drilldownMap.put("hostname", new String[] {"job_tag", "status"});
-        
+
         drilldownMap.put("kernel", new String[] {"test_name", "status"});
         drilldownMap.put("test_name", new String[] {"subdir", "job_name", "job_tag"});
-        
+
         drilldownMap.put("status", new String[] {"reason", "job_tag"});
-        
+
         drilldownMap.put("job_owner", new String[] {"job_name", "job_tag"});
-        
+
         drilldownMap.put("test_finished_time", new String[] {"status", "job_tag"});
-        drilldownMap.put("DATE(test_finished_time)", 
+        drilldownMap.put("DATE(test_finished_time)",
                          new String[] {"test_finished_time", "job_tag"});
-        
+
         drilldownMap.put("job_tag", new String[] {"subdir"});
     }
-    
+
     protected void setSelectedHeader(HeaderSelect list, List<HeaderField> fields) {
         list.setSelectedItems(fields);
     }
@@ -217,9 +217,9 @@ public class SpreadsheetView extends ConditionTabView
         selectionManager.clearSelection();
         spreadsheet.clear();
         setJobCompletionHtml("&nbsp");
-        
+
         final JSONObject condition = getFullConditionArgs();
-        
+
         contentSelect.addToCondition(condition);
 
         setLoading(true);
@@ -228,13 +228,13 @@ public class SpreadsheetView extends ConditionTabView
         } else {
             spreadsheetProcessor.setDataSource(normalDataSource);
         }
-        spreadsheetProcessor.setHeaders(rowSelect.getSelectedItems(), 
-                                        columnSelect.getSelectedItems(), 
+        spreadsheetProcessor.setHeaders(rowSelect.getSelectedItems(),
+                                        columnSelect.getSelectedItems(),
                                         getQueryParameters());
         spreadsheetProcessor.refresh(condition, new Command() {
             public void execute() {
                 condition.put("extra_info", null);
-                
+
                 if (isJobFilteringCondition(condition)) {
                     showCompletionPercentage(condition);
                 } else {
@@ -264,7 +264,7 @@ public class SpreadsheetView extends ConditionTabView
         args.put("extra_where", new JSONString(condition));
         return args;
     }
-    
+
     private void updateStateFromView() {
         rowSelect.updateStateFromView();
         columnSelect.updateStateFromView();
@@ -272,7 +272,7 @@ public class SpreadsheetView extends ConditionTabView
         currentShowOnlyLatest = showOnlyLatest.getValue();
         commonPanel.updateStateFromView();
     }
-    
+
     @Override
     public void doQuery() {
         List<HeaderField> rows = rowSelect.getSelectedItems();
@@ -307,7 +307,7 @@ public class SpreadsheetView extends ConditionTabView
         if (jobCount == 0) {
             return;
         }
-        
+
         JSONObject args = new JSONObject();
         args.put("job__id__in", jobIds);
         afeRpcProxy.rpcCall("get_hqe_percentage_complete", args, new JsonRpcCallback() {
@@ -326,7 +326,7 @@ public class SpreadsheetView extends ConditionTabView
             }
         });
     }
-    
+
     private void setJobCompletionHtml(String html) {
         jobCompletionPanel.clear();
         jobCompletionPanel.add(new HTML(html));
@@ -335,7 +335,7 @@ public class SpreadsheetView extends ConditionTabView
     private boolean isJobFilteringCondition(JSONObject condition) {
         return TkoUtils.getSqlCondition(condition).indexOf("job_tag") != -1;
     }
-    
+
     @Override
     public void onCellClicked(CellInfo cellInfo, boolean isRightClick) {
         Event event = Event.getCurrentEvent();
@@ -350,7 +350,7 @@ public class SpreadsheetView extends ConditionTabView
             menu.showAtWindow(event.getClientX(), event.getClientY());
             return;
         }
-        
+
         if (isSelectEvent(event)) {
             selectionManager.toggleSelected(cellInfo);
             return;
@@ -360,13 +360,13 @@ public class SpreadsheetView extends ConditionTabView
         if (testSet.isSingleTest()) {
             historyToken = listener.getSelectTestHistoryToken(testSet.getTestIndex());
         } else {
-            historyToken = getDrilldownHistoryToken(testSet, 
-                                                    getDefaultDrilldownRow(drilldownType), 
+            historyToken = getDrilldownHistoryToken(testSet,
+                                                    getDefaultDrilldownRow(drilldownType),
                                                     getDefaultDrilldownColumn(drilldownType));
         }
         openHistoryToken(historyToken);
     }
-    
+
      private DrilldownType getDrilldownType(CellInfo cellInfo) {
         if (cellInfo.row == null) {
             // column header
@@ -384,7 +384,7 @@ public class SpreadsheetView extends ConditionTabView
         if (isSingleTest) {
             return new SingleTestSet(cellInfo.testIndex, getFullConditionArgs());
         }
-        
+
         ConditionTestSet testSet = new ConditionTestSet(getFullConditionArgs());
         if (cellInfo.row != null) {
             setSomeFields(testSet, rowSelect.getSelectedItems(), cellInfo.row);
@@ -394,8 +394,8 @@ public class SpreadsheetView extends ConditionTabView
         }
         return testSet;
     }
-    
-    private void setSomeFields(ConditionTestSet testSet, List<HeaderField> allFields, 
+
+    private void setSomeFields(ConditionTestSet testSet, List<HeaderField> allFields,
                                Header values) {
         for (int i = 0; i < values.size(); i++) {
             HeaderField field = allFields.get(i);
@@ -403,7 +403,7 @@ public class SpreadsheetView extends ConditionTabView
             testSet.addCondition(field.getSqlCondition(value));
         }
     }
-    
+
     private TestSet getTestSet(List<CellInfo> cells) {
         CompositeTestSet tests = new CompositeTestSet();
         for (CellInfo cell : cells) {
@@ -412,7 +412,7 @@ public class SpreadsheetView extends ConditionTabView
         return tests;
     }
 
-    private HistoryToken getDrilldownHistoryToken(TestSet tests, String newRowField, 
+    private HistoryToken getDrilldownHistoryToken(TestSet tests, String newRowField,
                                                   String newColumnField) {
         saveHistoryState();
         commonPanel.refineCondition(tests);
@@ -422,7 +422,7 @@ public class SpreadsheetView extends ConditionTabView
         restoreHistoryState();
         return historyArguments;
     }
-    
+
     private void doDrilldown(TestSet tests, String newRowField, String newColumnField) {
         History.newItem(getDrilldownHistoryToken(tests, newRowField, newColumnField).toString());
     }
@@ -430,19 +430,19 @@ public class SpreadsheetView extends ConditionTabView
     private String getDefaultDrilldownRow(DrilldownType type) {
         return getDrilldownRows(type)[0];
     }
-    
+
     private String getDefaultDrilldownColumn(DrilldownType type) {
         return getDrilldownColumns(type)[0];
     }
 
     private ContextMenu getContextMenu(final TestSet tests, DrilldownType drilldownType) {
         TestContextMenu menu = new TestContextMenu(tests, listener);
-        
+
         if (!menu.addViewDetailsIfSingleTest()) {
             MenuBar drilldownMenu = menu.addSubMenuItem("Drill down");
             fillDrilldownMenu(tests, drilldownType, drilldownMenu);
         }
-        
+
         menu.addItem("View in table", new Command() {
             public void execute() {
                 switchToTable(tests, false);
@@ -453,7 +453,7 @@ public class SpreadsheetView extends ConditionTabView
                 switchToTable(tests, true);
             }
         });
-        
+
         menu.addLabelItems();
         return menu;
     }
@@ -492,15 +492,15 @@ public class SpreadsheetView extends ConditionTabView
     }
 
     private String[] getDrilldownRows(DrilldownType type) {
-        return getDrilldownFields(rowSelect.getSelectedItems(), type, 
+        return getDrilldownFields(rowSelect.getSelectedItems(), type,
                                   DrilldownType.DRILLDOWN_COLUMN);
     }
-    
+
     private String[] getDrilldownColumns(DrilldownType type) {
-        return getDrilldownFields(columnSelect.getSelectedItems(), type, 
+        return getDrilldownFields(columnSelect.getSelectedItems(), type,
                                   DrilldownType.DRILLDOWN_ROW);
     }
-    
+
     private void updateViewFromState() {
         rowSelect.updateViewFromState();
         columnSelect.updateViewFromState();
@@ -522,7 +522,7 @@ public class SpreadsheetView extends ConditionTabView
         }
         return arguments;
     }
-    
+
     @Override
     public void handleHistoryArguments(Map<String, String> arguments) {
         super.handleHistoryArguments(arguments);
@@ -540,9 +540,9 @@ public class SpreadsheetView extends ConditionTabView
     protected void fillDefaultHistoryValues(Map<String, String> arguments) {
         Utils.setDefaultValue(arguments, HISTORY_ROW, DEFAULT_ROW);
         Utils.setDefaultValue(arguments, HISTORY_COLUMN, DEFAULT_COLUMN);
-        Utils.setDefaultValue(arguments, 
+        Utils.setDefaultValue(arguments,
                               HISTORY_ROW + SpreadsheetHeaderSelect.HISTORY_FIXED_VALUES, "");
-        Utils.setDefaultValue(arguments, 
+        Utils.setDefaultValue(arguments,
                               HISTORY_COLUMN + SpreadsheetHeaderSelect.HISTORY_FIXED_VALUES, "");
         Utils.setDefaultValue(arguments, HISTORY_SHOW_INCOMPLETE, Boolean.toString(false));
         Utils.setDefaultValue(arguments, HISTORY_ONLY_LATEST, Boolean.toString(false));
@@ -577,7 +577,7 @@ public class SpreadsheetView extends ConditionTabView
     public void onExportCsv() {
         JSONObject params = new JSONObject();
         contentSelect.addToCondition(params);
-        TkoUtils.doCsvRequest(spreadsheetProcessor.getDataSource(), 
+        TkoUtils.doCsvRequest(spreadsheetProcessor.getDataSource(),
                               spreadsheetProcessor.getCurrentQuery(), params);
     }
 

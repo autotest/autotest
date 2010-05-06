@@ -10,7 +10,6 @@ import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RadioChooser;
-import autotest.common.ui.SimpleHyperlink;
 import autotest.common.ui.TabView;
 
 import com.google.gwt.event.dom.client.BlurEvent;
@@ -35,13 +34,13 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.DOM;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.Hyperlink;
 import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Panel;
@@ -55,32 +54,32 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CreateJobView extends TabView 
+public class CreateJobView extends TabView
                            implements TestSelectorListener, UserPreferencesListener {
     public static final int TEST_COLUMNS = 5;
-    
+
     protected static final String EDIT_CONTROL_STRING = "Edit control file";
     protected static final String UNEDIT_CONTROL_STRING= "Revert changes";
     protected static final String VIEW_CONTROL_STRING = "View control file";
     protected static final String HIDE_CONTROL_STRING = "Hide control file";
-    
+
     public interface JobCreateListener {
         public void onJobCreated(int jobId);
     }
 
     protected JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     protected JobCreateListener listener;
-    
+
     private static class CheckBoxPanel<T extends CheckBox> extends Composite {
         protected int numColumns;
         protected FlexTable table = new FlexTable();
         protected List<T> testBoxes = new ArrayList<T>();
-        
+
         public CheckBoxPanel(int columns) {
             numColumns = columns;
             initWidget(table);
         }
-        
+
         public void add(T checkBox) {
             int row = testBoxes.size() / numColumns;
             int col = testBoxes.size() % numColumns;
@@ -109,12 +108,12 @@ public class CreateJobView extends TabView
             }
         }
     }
-    
+
     private static class ControlTypeSelect extends Composite {
         public static final String RADIO_GROUP = "controlTypeGroup";
         protected RadioButton client, server;
         protected Panel panel = new HorizontalPanel();
-        
+
         public ControlTypeSelect() {
             client = new RadioButton(RADIO_GROUP, TestSelector.CLIENT_TYPE);
             server = new RadioButton(RADIO_GROUP, TestSelector.SERVER_TYPE);
@@ -122,7 +121,7 @@ public class CreateJobView extends TabView
             panel.add(server);
             client.setValue(true); // client is default
             initWidget(panel);
-            
+
             client.addClickHandler(new ClickHandler() {
                 public void onClick(ClickEvent event) {
                     onChanged();
@@ -134,13 +133,13 @@ public class CreateJobView extends TabView
                 }
             });
         }
-        
+
         public String getControlType() {
             if (client.getValue())
                 return client.getText();
             return server.getText();
         }
-        
+
         public void setControlType(String type) {
             if (client.getText().equals(type))
                 client.setValue(true);
@@ -150,18 +149,18 @@ public class CreateJobView extends TabView
                 throw new IllegalArgumentException("Invalid control type");
             onChanged();
         }
-        
+
         public void setEnabled(boolean enabled) {
             client.setEnabled(enabled);
             server.setEnabled(enabled);
         }
-        
+
         protected void onChanged() {
         }
     }
-    
+
     protected StaticDataRepository staticData = StaticDataRepository.getRepository();
-    
+
     protected TextBox jobName = new TextBox();
     protected ListBox priorityList = new ListBox();
     protected TextBox kernel = new TextBox();
@@ -175,7 +174,7 @@ public class CreateJobView extends TabView
     private CheckBox parseFailedRepair = new CheckBox();
     private CheckBox hostless = new CheckBox();
     protected TestSelector testSelector;
-    protected CheckBoxPanel<CheckBox> profilersPanel = 
+    protected CheckBoxPanel<CheckBox> profilersPanel =
         new CheckBoxPanel<CheckBox>(TEST_COLUMNS);
     private CheckBox runNonProfiledIteration =
         new CheckBox("Run each test without profilers first");
@@ -189,11 +188,11 @@ public class CreateJobView extends TabView
     protected Button submitJobButton = new Button("Submit Job");
     protected Button createTemplateJobButton = new Button("Create Template Job");
     private Button resetButton = new Button("Reset");
-    
+
     protected boolean controlEdited = false;
     protected boolean controlReadyForSubmit = false;
     private JSONArray dependencies = new JSONArray();
-    
+
     public CreateJobView(JobCreateListener listener) {
         this.listener = listener;
     }
@@ -202,21 +201,21 @@ public class CreateJobView extends TabView
     public String getElementId() {
         return "create_job";
     }
-    
+
     public void cloneJob(JSONValue cloneInfo) {
         // reset() fires the TestSelectorListener, which will generate a new control file. We do
         // no want this, so we'll stop listening to it for a bit.
         testSelector.setListener(null);
         reset();
         testSelector.setListener(this);
-        
+
         disableInputs();
         openControlFileEditor();
         JSONObject cloneObject = cloneInfo.isObject();
         JSONObject jobObject = cloneObject.get("job").isObject();
-        
+
         jobName.setText(jobObject.get("name").isString().stringValue());
-        
+
         String priority = jobObject.get("priority").isString().stringValue();
         for (int i = 0; i < priorityList.getItemCount(); i++) {
             if (priorityList.getItemText(i).equals(priority)) {
@@ -224,7 +223,7 @@ public class CreateJobView extends TabView
                 break;
             }
         }
-        
+
         timeout.setText(Utils.jsonToString(jobObject.get("timeout")));
         maxRuntime.setText(Utils.jsonToString(jobObject.get("max_runtime_hrs")));
         emailList.setText(
@@ -250,25 +249,25 @@ public class CreateJobView extends TabView
         controlFile.setText(
                 jobObject.get("control_file").isString().stringValue());
         controlReadyForSubmit = true;
-        
+
         JSONArray hostInfo = cloneObject.get("hosts").isArray();
         List<String> hostnames = new ArrayList<String>();
         for (JSONObject host : new JSONArrayList<JSONObject>(hostInfo)) {
             hostnames.add(Utils.jsonToString(host.get("hostname")));
         }
         hostSelector.setSelectedHostnames(hostnames, true);
-        
+
         JSONObject metaHostCounts = cloneObject.get("meta_host_counts").isObject();
-        
+
         for (String label : metaHostCounts.keySet()) {
             String number = Integer.toString(
                 (int) metaHostCounts.get(label).isNumber().doubleValue());
             hostSelector.addMetaHosts(label, number);
         }
-        
+
         hostSelector.refresh();
     }
-    
+
     protected void openControlFileEditor() {
         controlFile.setReadOnly(false);
         editControlButton.setText(UNEDIT_CONTROL_STRING);
@@ -277,17 +276,17 @@ public class CreateJobView extends TabView
         synchCountInput.setEnabled(true);
         editControlButton.setEnabled(true);
     }
-    
+
     protected void populatePriorities(JSONArray priorities) {
         for(int i = 0; i < priorities.size(); i++) {
             JSONArray priorityData = priorities.get(i).isArray();
             String priority = priorityData.get(1).isString().stringValue();
             priorityList.addItem(priority);
         }
-        
+
         resetPriorityToDefault();
     }
-    
+
     protected void resetPriorityToDefault() {
         JSONValue defaultValue = staticData.getData("default_priority");
         String defaultPriority = defaultValue.isString().stringValue();
@@ -296,10 +295,10 @@ public class CreateJobView extends TabView
                 priorityList.setSelectedIndex(i);
         }
     }
-    
+
     protected void populateProfilers() {
         JSONArray tests = staticData.getData("profilers").isArray();
-        
+
         for(JSONObject profiler : new JSONArrayList<JSONObject>(tests)) {
             String name = profiler.get("name").isString().stringValue();
             CheckBox checkbox = new CheckBox(name);
@@ -312,7 +311,7 @@ public class CreateJobView extends TabView
             });
             profilersPanel.add(checkbox);
         }
-        
+
         runNonProfiledIteration.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
@@ -322,7 +321,7 @@ public class CreateJobView extends TabView
         // default to checked -- run a non-profiled iteration by default
         runNonProfiledIteration.setValue(true);
     }
-    
+
     private void updateNonProfiledRunControl() {
         boolean anyProfilersChecked = !profilersPanel.getChecked().isEmpty();
         runNonProfiledIteration.setVisible(anyProfilersChecked);
@@ -358,22 +357,22 @@ public class CreateJobView extends TabView
      */
     protected JSONObject getControlFileParams(boolean readyForSubmit) {
         JSONObject params = new JSONObject();
-        
+
         String kernelString = kernel.getText();
         if (!kernelString.equals("")) {
             params.put("kernel", getKernelParams(kernelString, kernel_cmdline.getText()));
         }
-        
+
         JSONArray tests = new JSONArray();
         for (JSONObject test : testSelector.getSelectedTests()) {
             tests.set(tests.size(), test.get("id"));
         }
-        
+
         JSONArray profilers = new JSONArray();
         for (CheckBox profiler : profilersPanel.getChecked()) {
             profilers.set(profilers.size(), new JSONString(profiler.getText()));
         }
-        
+
         params.put("tests", tests);
         params.put("profilers", profilers);
 
@@ -384,8 +383,8 @@ public class CreateJobView extends TabView
 
         return params;
     }
-    
-    protected void generateControlFile(final boolean readyForSubmit, 
+
+    protected void generateControlFile(final boolean readyForSubmit,
                                        final SimpleCallback finishedCallback,
                                        final SimpleCallback errorCallback) {
         JSONObject params = getControlFileParams(readyForSubmit);
@@ -398,7 +397,7 @@ public class CreateJobView extends TabView
                 String synchCount = Utils.jsonToString(controlInfo.get("synch_count"));
                 setSelectedDependencies(controlInfo.get("dependencies").isArray());
                 controlFile.setText(controlFileText);
-                controlTypeSelect.setControlType(isServer ? TestSelector.SERVER_TYPE : 
+                controlTypeSelect.setControlType(isServer ? TestSelector.SERVER_TYPE :
                                                             TestSelector.CLIENT_TYPE);
                 synchCountInput.setText(synchCount);
                 controlReadyForSubmit = readyForSubmit;
@@ -418,7 +417,7 @@ public class CreateJobView extends TabView
     protected void generateControlFile(boolean readyForSubmit) {
         generateControlFile(readyForSubmit, null, null);
     }
-    
+
     public void handleSkipVerify() {
         boolean shouldSkipVerify = false;
         for (JSONObject test : testSelector.getSelectedTests()) {
@@ -428,7 +427,7 @@ public class CreateJobView extends TabView
                 break;
             }
         }
-        
+
         if (shouldSkipVerify) {
             skipVerify.setValue(true);
             skipVerify.setEnabled(false);
@@ -436,7 +435,7 @@ public class CreateJobView extends TabView
             skipVerify.setEnabled(true);
         }
     }
-    
+
     protected void setInputsEnabled() {
         testSelector.setEnabled(true);
         profilersPanel.setEnabled(true);
@@ -448,20 +447,20 @@ public class CreateJobView extends TabView
     protected  boolean isClientTypeSelected() {
         return testSelector.getSelectedTestType().equals(TestSelector.CLIENT_TYPE);
     }
-    
+
     protected void disableInputs() {
         testSelector.setEnabled(false);
         profilersPanel.setEnabled(false);
         kernel.setEnabled(false);
         kernel_cmdline.setEnabled(false);
     }
-    
+
     @Override
     public void initialize() {
         super.initialize();
-        
+
         populatePriorities(staticData.getData("priorities").isArray());
-        
+
         BlurHandler kernelBlurHandler = new BlurHandler() {
             public void onBlur(BlurEvent event) {
                 generateControlFile(false);
@@ -488,7 +487,7 @@ public class CreateJobView extends TabView
         updateNonProfiledRunControl();
 
         testSelector = new TestSelector();
-        
+
         populateRebootChoices();
         onPreferencesChanged();
 
@@ -507,19 +506,19 @@ public class CreateJobView extends TabView
         Panel controlEditPanel = new VerticalPanel();
         controlEditPanel.add(controlOptionsPanel);
         controlEditPanel.add(controlFile);
-        
+
         Panel controlHeaderPanel = new HorizontalPanel();
-        final Hyperlink viewLink = new SimpleHyperlink(VIEW_CONTROL_STRING);
+        final Anchor viewLink = new Anchor(VIEW_CONTROL_STRING);
         controlHeaderPanel.add(viewLink);
         controlHeaderPanel.add(editControlButton);
-        
+
         controlFilePanel.setHeader(controlHeaderPanel);
         controlFilePanel.add(controlEditPanel);
-        
+
         editControlButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 DOM.eventCancelBubble(DOM.eventGetCurrentEvent(), true);
-                
+
                 if (editControlButton.getText().equals(EDIT_CONTROL_STRING)) {
                     disableInputs();
                     editControlButton.setEnabled(false);
@@ -537,7 +536,7 @@ public class CreateJobView extends TabView
                     generateControlFile(true, onGotControlFile, onControlFileError);
                 }
                 else {
-                    if (controlEdited && 
+                    if (controlEdited &&
                         !Window.confirm("Are you sure you want to revert your" +
                                         " changes?"))
                         return;
@@ -551,25 +550,25 @@ public class CreateJobView extends TabView
                 }
             }
         });
-        
+
         controlFile.addChangeHandler(new ChangeHandler() {
             public void onChange(ChangeEvent event) {
                 controlEdited = true;
-            } 
+            }
         });
-        
+
         controlFilePanel.addCloseHandler(new CloseHandler<DisclosurePanel>() {
             public void onClose(CloseEvent<DisclosurePanel> event) {
                 viewLink.setText(VIEW_CONTROL_STRING);
             }
         });
-        
+
         controlFilePanel.addOpenHandler(new OpenHandler<DisclosurePanel>() {
             public void onOpen(OpenEvent<DisclosurePanel> event) {
                 viewLink.setText(HIDE_CONTROL_STRING);
             }
         });
-        
+
         hostSelector = new HostSelector();
         HostSelectorDisplay hostSelectorDisplay = new HostSelectorDisplay();
         hostSelector.initialize();
@@ -580,28 +579,28 @@ public class CreateJobView extends TabView
                 submitJob(false);
             }
         });
-        
+
         createTemplateJobButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 submitJob(true);
             }
         });
-        
+
         resetButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 reset();
             }
         });
-        
+
         hostless.addClickHandler(new ClickHandler() {
             @Override
             public void onClick(ClickEvent event) {
                 hostSelector.setEnabled(!hostless.getValue());
             }
         });
-        
+
         reset();
-        
+
         addWidget(jobName, "create_job_name");
         addWidget(kernel, "create_kernel");
         addWidget(kernel_cmdline, "create_kernel_cmdline");
@@ -621,14 +620,14 @@ public class CreateJobView extends TabView
         addWidget(submitJobButton, "create_submit");
         addWidget(createTemplateJobButton, "create_template_job");
         addWidget(resetButton, "create_reset");
-        
+
         if (staticData.getData("drone_sets_enabled").isBoolean().booleanValue()) {
             AfeUtils.popualateListBox(droneSet, "drone_sets");
             addWidget(droneSet, "create_drone_set");
         } else {
             AfeUtils.removeElement("create_drone_set_wrapper");
         }
-        
+
         testSelector.setListener(this);
     }
 
@@ -663,14 +662,14 @@ public class CreateJobView extends TabView
         hostSelector.reset();
         dependencies = new JSONArray();
     }
-    
+
     protected void submitJob(final boolean isTemplate) {
         final int timeoutValue, maxRuntimeValue;
         final JSONValue synchCount;
         try {
             timeoutValue = parsePositiveIntegerInput(timeout.getText(), "timeout");
             maxRuntimeValue = parsePositiveIntegerInput(maxRuntime.getText(), "max runtime");
-            
+
             if (hostless.getValue()) {
                 synchCount = JSONNull.getInstance();
             } else {
@@ -680,10 +679,10 @@ public class CreateJobView extends TabView
         } catch (IllegalArgumentException exc) {
             return;
         }
-      
+
         // disallow accidentally clicking submit twice
         submitJobButton.setEnabled(false);
-        
+
         final SimpleCallback doSubmit = new SimpleCallback() {
             public void doCallback(Object source) {
                 JSONObject args = new JSONObject();
@@ -691,7 +690,7 @@ public class CreateJobView extends TabView
                 String priority = priorityList.getItemText(priorityList.getSelectedIndex());
                 args.put("priority", new JSONString(priority));
                 args.put("control_file", new JSONString(controlFile.getText()));
-                args.put("control_type", 
+                args.put("control_type",
                          new JSONString(controlTypeSelect.getControlType()));
                 args.put("synch_count", synchCount);
                 args.put("timeout", new JSONNumber(timeoutValue));
@@ -705,7 +704,7 @@ public class CreateJobView extends TabView
                 args.put("parse_failed_repair",
                          JSONBoolean.getInstance(parseFailedRepair.getValue()));
                 args.put("hostless", JSONBoolean.getInstance(hostless.getValue()));
-                
+
                 if (staticData.getData("drone_sets_enabled").isBoolean().booleanValue()) {
                     args.put("drone_set",
                             new JSONString(droneSet.getItemText(droneSet.getSelectedIndex())));
@@ -737,7 +736,7 @@ public class CreateJobView extends TabView
                 });
             }
         };
-        
+
         // ensure control file is ready for submission
         if (!controlReadyForSubmit)
             generateControlFile(true, doSubmit, new SimpleCallback() {
@@ -773,7 +772,7 @@ public class CreateJobView extends TabView
         }
         return parsedInt;
     }
-    
+
     @Override
     public void refresh() {
         super.refresh();
@@ -784,19 +783,19 @@ public class CreateJobView extends TabView
         generateControlFile(false);
         setInputsEnabled();
     }
-    
+
     private void setRebootSelectorDefault(RadioChooser chooser, String name) {
         JSONObject user = staticData.getData("current_user").isObject();
         String defaultOption = Utils.jsonToString(user.get(name));
         chooser.setDefaultChoice(defaultOption);
     }
-    
+
     private void selectPreferredDroneSet() {
         JSONObject user = staticData.getData("current_user").isObject();
         String preference = Utils.jsonToString(user.get("drone_set"));
         AfeUtils.setSelectedItem(droneSet, preference);
     }
-    
+
     public void onPreferencesChanged() {
         setRebootSelectorDefault(rebootBefore, "reboot_before");
         setRebootSelectorDefault(rebootAfter, "reboot_after");

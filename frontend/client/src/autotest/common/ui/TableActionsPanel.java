@@ -7,6 +7,7 @@ import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.logical.shared.CloseEvent;
 import com.google.gwt.event.logical.shared.CloseHandler;
+import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HorizontalPanel;
 import com.google.gwt.user.client.ui.Panel;
@@ -17,7 +18,7 @@ public class TableActionsPanel extends Composite implements ClickHandler, CloseH
     public static interface TableActionsListener {
         public ContextMenu getActionMenu();
     }
-    
+
     public static interface TableActionsWithExportCsvListener extends TableActionsListener {
         public void onExportCsv();
     }
@@ -26,8 +27,8 @@ public class TableActionsPanel extends Composite implements ClickHandler, CloseH
     private TableActionsWithExportCsvListener csvListener;
     private ToggleButton actionsButton = new ToggleButton("Actions");
     private TableSelectionPanel selectionPanel;
-    private SimpleHyperlink exportCsvLink = new SimpleHyperlink("Export to CSV");
-    
+    private Anchor exportCsvLink = new Anchor("Export to CSV");
+
     public TableActionsPanel(boolean wantSelectVisible) {
         selectionPanel = new TableSelectionPanel(wantSelectVisible);
         actionsButton.addClickHandler(this);
@@ -41,11 +42,11 @@ public class TableActionsPanel extends Composite implements ClickHandler, CloseH
         mainPanel.add(exportCsvLink);
         initWidget(mainPanel);
     }
-    
+
     public void setActionsListener(TableActionsListener listener) {
         this.listener = listener;
     }
-    
+
     /**
      * This automatically enables the Export CSV link, which is disabled by default.
      */
@@ -54,11 +55,11 @@ public class TableActionsPanel extends Composite implements ClickHandler, CloseH
         this.listener = listener;
         exportCsvLink.setVisible(true);
     }
-    
+
     public void setSelectionListener(SelectionPanelListener listener) {
         selectionPanel.setListener(listener);
     }
-    
+
     public void onClick(ClickEvent event) {
         if (event.getSource() == exportCsvLink) {
             assert csvListener != null;
@@ -67,11 +68,11 @@ public class TableActionsPanel extends Composite implements ClickHandler, CloseH
             assert event.getSource() == actionsButton;
             ContextMenu menu = listener.getActionMenu();
             menu.addCloseHandler(this);
-            menu.showAt(actionsButton.getAbsoluteLeft(), 
+            menu.showAt(actionsButton.getAbsoluteLeft(),
                         actionsButton.getAbsoluteTop() + actionsButton.getOffsetHeight());
         }
     }
-    
+
     @Override
     public void onClose(CloseEvent<PopupPanel> event) {
         actionsButton.setDown(false);
