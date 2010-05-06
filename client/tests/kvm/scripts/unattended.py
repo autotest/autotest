@@ -209,7 +209,6 @@ class UnattendedInstall(object):
         pxe_config.write('PROMPT 0\n')
         pxe_config.write('LABEL pxeboot\n')
         pxe_config.write('     KERNEL vmlinuz\n')
-        pxe_config.write('     KERNEL vmlinuz\n')
         pxe_config.write('     APPEND initrd=initrd.img %s\n' %
                          self.kernel_args)
         pxe_config.close()
