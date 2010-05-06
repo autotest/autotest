@@ -1,6 +1,5 @@
 CC=		cc
 CFLAGS=		-O
-LDFLAGS=	--static
 LIBS=		-lpthread
 
 PROGS=		checktsc
