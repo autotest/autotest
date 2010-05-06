@@ -412,21 +412,6 @@ def run_ksm_overcommit(test, params, env):
                                      (3100 - 64.0)))
                 mem = int(math.floor(host_mem * overcommit / vmsc))
 
-    logging.debug("Checking KSM status...")
-    ksm_flag = 0
-    for line in os.popen('ksmctl info').readlines():
-        if line.startswith('flags'):
-            ksm_flag = int(line.split(' ')[1].split(',')[0])
-    if int(ksm_flag) != 1:
-        logging.info("KSM module is not loaded! Trying to load module and "
-                     "start ksmctl...")
-        try:
-            utils.run("modprobe ksm")
-            utils.run("ksmctl start 5000 100")
-        except error.CmdError, e:
-            raise error.TestFail("Failed to load KSM: %s" % e)
-    logging.debug("KSM module loaded and ksmctl started")
-
     swap = int(utils.read_from_meminfo("SwapTotal")) / 1024
 
     logging.debug("Overcommit = %f", overcommit)
