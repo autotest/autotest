@@ -186,5 +186,51 @@ class RpcInterfaceTest(unittest.TestCase,
         self.god.check_playback()
 
 
+    def test_get_machine_view_data(self):
+        self._setup_active_plan()
+
+        host1_expected = {'machine': 'host1',
+                          'status': 'Running',
+                          'tests_run': [],
+                          'bug_ids': []}
+        host2_expected = {'machine': 'host2',
+                          'status': 'Running',
+                          'tests_run': [],
+                          'bug_ids': []}
+
+        expected = (host1_expected, host2_expected)
+        actual = rpc_interface.get_machine_view_data(plan_id=self._plan.id)
+        self.assertEqual(sorted(actual), sorted(expected))
+
+        # active TKO test
+        tko_test = tko_models.Test.objects.create(job=self._tko_job,
+                                                  test='test',
+                                                  machine=self._tko_machine,
+                                                  kernel=self._tko_kernel,
+                                                  status=self._running_status)
+        testrun = models.TestRun.objects.create(plan=self._plan,
+                                                test_job=self._planner_job,
+                                                host=self._planner_host,
+                                                tko_test=tko_test,
+                                                finalized=True)
+
+        host1_expected['tests_run'] = [{'test_name': 'test',
+                                        'success': False}]
+        actual = rpc_interface.get_machine_view_data(plan_id=self._plan.id)
+        self.assertEqual(sorted(actual), sorted(expected))
+
+        # TKO test complete, passed, with bug filed
+        tko_test.status = self._good_status
+        tko_test.save()
+        bug = models.Bug.objects.create(external_uid='bug')
+        testrun.bugs.add(bug)
+
+        host1_expected['tests_run'] = [{'test_name': 'test',
+                                        'success': True}]
+        host1_expected['bug_ids'] = ['bug']
+        actual = rpc_interface.get_machine_view_data(plan_id=self._plan.id)
+        self.assertEqual(sorted(actual), sorted(expected))
+
+
 if __name__ == '__main__':
     unittest.main()
