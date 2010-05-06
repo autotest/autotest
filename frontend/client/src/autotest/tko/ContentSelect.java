@@ -106,21 +106,25 @@ public class ContentSelect extends Composite implements HasValueChangeHandlers<B
     }
 
     public void addHistoryArguments(HistoryToken arguments, String name) {
-      List<String> fields = new ArrayList<String>();
-      for (int i = 0; i < contentSelect.getItemCount(); i++) {
-          if (contentSelect.isItemSelected(i)) {
-              fields.add(contentSelect.getValue(i));
-          }
-      }
-      String fieldList = Utils.joinStrings(",", fields);
-      arguments.put(name, fieldList);
+        List<String> fields = new ArrayList<String>();
+        for (int i = 0; i < contentSelect.getItemCount(); i++) {
+            if (contentSelect.isItemSelected(i)) {
+                fields.add(contentSelect.getValue(i));
+            }
+        }
+        String fieldList = Utils.joinStrings(",", fields);
+        arguments.put(name, fieldList);
 
-      if (contentSelect.isVisible()) {
-          arguments.put(name + HISTORY_OPENED, "true");
-      }
-  }
+        if (contentSelect.isVisible()) {
+            arguments.put(name + HISTORY_OPENED, "true");
+        }
+    }
 
     public void handleHistoryArguments(Map<String, String> arguments, String name) {
+        if (!arguments.containsKey(name)) {
+            return;
+        }
+
         Set<String> fields = new HashSet<String>(Arrays.asList(arguments.get(name).split(",")));
         for (int i = 0; i < contentSelect.getItemCount(); i++) {
             if (fields.contains(contentSelect.getValue(i))) {
