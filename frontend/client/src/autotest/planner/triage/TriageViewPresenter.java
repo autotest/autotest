@@ -72,6 +72,7 @@ public class TriageViewPresenter extends TestPlannerPresenter
                 table.addFailure(groupFailures.get(i).isObject());
             }
 
+            table.finishedAdding();
             failureTables.add(table);
         }
     }

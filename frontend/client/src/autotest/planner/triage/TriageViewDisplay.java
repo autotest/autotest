@@ -2,6 +2,7 @@ package autotest.planner.triage;
 
 import autotest.common.ui.NotifyManager;
 import autotest.planner.TestPlannerDisplay;
+import autotest.planner.TestPlannerUtils;
 
 import com.google.gwt.event.dom.client.HasClickHandlers;
 import com.google.gwt.event.logical.shared.ResizeEvent;
@@ -16,8 +17,6 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 public class TriageViewDisplay implements TestPlannerDisplay,
         TriageViewPresenter.Display, ResizeHandler {
 
-    private static final int HEIGHT_FUDGE = 300;
-
     private VerticalPanel container = new VerticalPanel();
     private ScrollPanel scroll = new ScrollPanel(container);
     private Button triage = new Button("Triage");
@@ -27,7 +26,7 @@ public class TriageViewDisplay implements TestPlannerDisplay,
         container.setSpacing(25);
         container.setWidth("90%");
 
-        scroll.setSize("100%", getHeightParam(Window.getClientHeight()));
+        scroll.setSize("100%", TestPlannerUtils.getHeightParam(Window.getClientHeight()));
         scroll.setVisible(false);
         triage.setVisible(false);
 
@@ -68,10 +67,6 @@ public class TriageViewDisplay implements TestPlannerDisplay,
 
     @Override
     public void onResize(ResizeEvent event) {
-        scroll.setHeight(getHeightParam(event.getHeight()));
-    }
-
-    private String getHeightParam(int height) {
-        return (height - HEIGHT_FUDGE) + "px";
+        scroll.setHeight(TestPlannerUtils.getHeightParam(event.getHeight()));
     }
 }
