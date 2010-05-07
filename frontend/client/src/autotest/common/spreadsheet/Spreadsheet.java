@@ -33,7 +33,7 @@ import java.util.Map;
 
 public class Spreadsheet extends Composite
       implements ScrollHandler, ClickHandler, ContextMenuHandler {
-    
+
     private static final int MIN_TABLE_SIZE_PX = 90;
     private static final int WINDOW_BORDER_PX = 15;
     private static final int SCROLLBAR_FUDGE = 16;
@@ -42,7 +42,7 @@ public class Spreadsheet extends Composite
     private static final int TD_BORDER_PX = 1;
     private static final String HIGHLIGHTED_CLASS = "highlighted";
     private static final int CELLS_PER_ITERATION = 1000;
-    
+
     private Header rowFields, columnFields;
     private List<Header> rowHeaderValues = new ArrayList<Header>();
     private List<Header> columnHeaderValues = new ArrayList<Header>();
@@ -57,13 +57,13 @@ public class Spreadsheet extends Composite
     private Panel rowHeadersClipPanel, columnHeadersClipPanel;
     private ScrollPanel scrollPanel = new ScrollPanel(dataTable);
     private TableRenderer renderer = new TableRenderer();
-    
+
     private SpreadsheetListener listener;
-    
+
     public interface SpreadsheetListener {
         public void onCellClicked(CellInfo cellInfo, boolean isRightClick);
     }
-    
+
     public static interface Header extends List<String> {}
     public static class HeaderImpl extends ArrayList<String> implements Header {
         public HeaderImpl() {
@@ -77,49 +77,49 @@ public class Spreadsheet extends Composite
             return new HeaderImpl(baseType);
         }
     }
-    
+
     public static class CellInfo {
         public Header row, column;
         public String contents;
-        public String color;
+        public String cssClass;
         public Integer widthPx, heightPx;
         public int rowSpan = 1, colSpan = 1;
         public int testCount = 0;
         public int testIndex;
-        
+
         public CellInfo(Header row, Header column, String contents) {
             this.row = row;
             this.column = column;
             this.contents = contents;
         }
-        
+
         public boolean isHeader() {
             return !isEmpty() && (row == null || column == null);
         }
-        
+
         public boolean isEmpty() {
             return row == null && column == null;
         }
     }
-    
+
     private class RenderCommand implements IncrementalCommand {
         private int state = 0;
         private int rowIndex = 0;
         private IncrementalCommand onFinished;
-        
+
         public RenderCommand(IncrementalCommand onFinished) {
             this.onFinished = onFinished;
         }
-        
+
         private void renderSomeRows() {
-            renderer.renderRowsAndAppend(dataTable, dataCells, 
+            renderer.renderRowsAndAppend(dataTable, dataCells,
                                          rowIndex, rowsPerIteration, true);
             rowIndex += rowsPerIteration;
             if (rowIndex > dataCells.length) {
                 state++;
             }
         }
-        
+
         public boolean execute() {
             switch (state) {
                 case 0:
@@ -163,7 +163,7 @@ public class Spreadsheet extends Composite
                     DeferredCommand.addCommand(onFinished);
                     return false;
             }
-            
+
             state++;
             return true;
         }
@@ -172,29 +172,29 @@ public class Spreadsheet extends Composite
     public Spreadsheet() {
         dataTable.setStyleName("spreadsheet-data");
         killPaddingAndSpacing(dataTable);
-        
+
         rowHeaders.setStyleName("spreadsheet-headers");
         killPaddingAndSpacing(rowHeaders);
         rowHeadersClipPanel = wrapWithClipper(rowHeaders);
-        
+
         columnHeaders.setStyleName("spreadsheet-headers");
         killPaddingAndSpacing(columnHeaders);
         columnHeadersClipPanel = wrapWithClipper(columnHeaders);
-        
+
         scrollPanel.setStyleName("spreadsheet-scroller");
         scrollPanel.setAlwaysShowScrollBars(true);
         scrollPanel.addScrollHandler(this);
-        
+
         parentTable.setStyleName("spreadsheet-parent");
         killPaddingAndSpacing(parentTable);
         parentTable.setWidget(0, 1, columnHeadersClipPanel);
         parentTable.setWidget(1, 0, rowHeadersClipPanel);
         parentTable.setWidget(1, 1, scrollPanel);
-        
+
         setupTableInput(dataTable);
         setupTableInput(rowHeaders);
         setupTableInput(columnHeaders);
-        
+
         initWidget(parentTable);
     }
 
@@ -207,7 +207,7 @@ public class Spreadsheet extends Composite
         table.setCellSpacing(0);
         table.setCellPadding(0);
     }
-    
+
     /*
      * Wrap a widget with a panel that will clip its contents rather than grow
      * too much.
@@ -218,12 +218,12 @@ public class Spreadsheet extends Composite
         wrapper.setStyleName("clipper");
         return wrapper;
     }
-    
+
     public void setHeaderFields(Header rowFields, Header columnFields) {
         this.rowFields = rowFields;
         this.columnFields = columnFields;
     }
-    
+
     private void addHeader(List<Header> headerList, Map<Header, Integer> headerMap,
                           List<String> header) {
         Header headerObject = HeaderImpl.fromBaseType(header);
@@ -231,28 +231,28 @@ public class Spreadsheet extends Composite
         headerList.add(headerObject);
         headerMap.put(headerObject, headerMap.size());
     }
-    
+
     public void addRowHeader(List<String> header) {
         addHeader(rowHeaderValues, rowHeaderMap, header);
     }
-    
+
     public void addColumnHeader(List<String> header) {
         addHeader(columnHeaderValues, columnHeaderMap, header);
     }
-    
+
     private int getHeaderPosition(Map<Header, Integer> headerMap, Header header) {
         assert headerMap.containsKey(header);
         return headerMap.get(header);
     }
-    
+
     private int getRowPosition(Header rowHeader) {
         return getHeaderPosition(rowHeaderMap, rowHeader);
     }
-    
+
     private int getColumnPosition(Header columnHeader) {
         return getHeaderPosition(columnHeaderMap, columnHeader);
     }
-    
+
     /**
      * Must be called after adding headers but before adding data
      */
@@ -268,14 +268,14 @@ public class Spreadsheet extends Composite
         }
         return dataCells[row][column];
     }
-    
+
     private CellInfo getCellInfo(CellInfo[][] cells, int row, int column) {
         if (cells[row][column] == null) {
             cells[row][column] = new CellInfo(null, null, " ");
         }
         return cells[row][column];
     }
-    
+
     /**
      * Render the data into HTML tables.  Done through a deferred command.
      */
@@ -287,25 +287,25 @@ public class Spreadsheet extends Composite
         renderer.renderRows(rowHeaders, rowHeaderCells, false);
         renderer.renderRows(columnHeaders, columnHeaderCells, false);
     }
-    
+
     public void computeRowsPerIteration() {
         int cellsPerRow = columnHeaderValues.size();
         rowsPerIteration = Math.max(CELLS_PER_ITERATION / cellsPerRow, 1);
         dataTable.setRowsPerFragment(rowsPerIteration);
     }
-    
+
     private void computeHeaderCells() {
         rowHeaderCells = new CellInfo[rowHeaderValues.size()][rowFields.size()];
         fillHeaderCells(rowHeaderCells, rowFields, rowHeaderValues, true);
-        
+
         columnHeaderCells = new CellInfo[columnFields.size()][columnHeaderValues.size()];
         fillHeaderCells(columnHeaderCells, columnFields, columnHeaderValues, false);
     }
-    
+
     /**
      * TODO (post-1.0) - this method needs good cleanup and documentation
      */
-    private void fillHeaderCells(CellInfo[][] cells, Header fields, List<Header> headerValues, 
+    private void fillHeaderCells(CellInfo[][] cells, Header fields, List<Header> headerValues,
                                  boolean isRows) {
         int headerSize = fields.size();
         String[] lastFieldValue = new String[headerSize];
@@ -338,7 +338,7 @@ public class Spreadsheet extends Composite
             }
         }
     }
-    
+
     private String formatHeader(String field, String value) {
         if (value.equals("")) {
             return BLANK_STRING;
@@ -375,7 +375,7 @@ public class Spreadsheet extends Composite
             getCellInfo(to, row, lastColumn).heightPx = height - 2 * CELL_PADDING_PX;
         }
     }
-    
+
     private void matchColumnWidths(HTMLTable from, CellInfo[][] to) {
         int lastToRow = to.length - 1;
         int lastFromRow = from.getRowCount() - 1;
@@ -384,7 +384,7 @@ public class Spreadsheet extends Composite
             getCellInfo(to, lastToRow, column).widthPx = width - 2 * CELL_PADDING_PX;
         }
     }
-    
+
     protected String getTableCellText(HTMLTable table, int row, int column) {
         Element td = table.getCellFormatter().getElement(row, column);
         Element div = td.getFirstChildElement();
@@ -403,27 +403,27 @@ public class Spreadsheet extends Composite
         columnHeaderMap.clear();
         dataCells = rowHeaderCells = columnHeaderCells = null;
         dataTable.reset();
-        
+
         setRowHeadersOffset(0);
         setColumnHeadersOffset(0);
     }
-    
+
     /**
      * Make the spreadsheet fill the available window space to the right and bottom
      * of its position.
      */
     public void fillWindow(boolean useTableSize) {
-        int newHeightPx = Window.getClientHeight() - (columnHeaders.getAbsoluteTop() + 
+        int newHeightPx = Window.getClientHeight() - (columnHeaders.getAbsoluteTop() +
                                                       columnHeaders.getOffsetHeight());
         newHeightPx = adjustMaxDimension(newHeightPx);
-        int newWidthPx = Window.getClientWidth() - (rowHeaders.getAbsoluteLeft() + 
+        int newWidthPx = Window.getClientWidth() - (rowHeaders.getAbsoluteLeft() +
                                                     rowHeaders.getOffsetWidth());
         newWidthPx = adjustMaxDimension(newWidthPx);
         if (useTableSize) {
             newHeightPx = Math.min(newHeightPx, rowHeaders.getOffsetHeight());
             newWidthPx = Math.min(newWidthPx, columnHeaders.getOffsetWidth());
         }
-        
+
         // apply the changes all together
         rowHeadersClipPanel.setHeight(getSizePxString(newHeightPx));
         columnHeadersClipPanel.setWidth(getSizePxString(newWidthPx));
@@ -432,18 +432,18 @@ public class Spreadsheet extends Composite
     }
 
     /**
-     * Adjust a maximum table dimension to allow room for edge decoration and 
+     * Adjust a maximum table dimension to allow room for edge decoration and
      * always maintain a minimum height
      */
     protected int adjustMaxDimension(int maxDimensionPx) {
-        return Math.max(maxDimensionPx - WINDOW_BORDER_PX - SCROLLBAR_FUDGE, 
+        return Math.max(maxDimensionPx - WINDOW_BORDER_PX - SCROLLBAR_FUDGE,
                         MIN_TABLE_SIZE_PX);
     }
 
     protected String getSizePxString(int sizePx) {
         return sizePx + "px";
     }
-    
+
     /**
      * Ensure the row header clip panel allows the full width of the row headers
      * to display.
@@ -452,11 +452,11 @@ public class Spreadsheet extends Composite
         int width = rowHeaders.getOffsetWidth();
         rowHeadersClipPanel.setWidth(getSizePxString(width));
     }
-    
+
     private Element getCellElement(HTMLTable table, int row, int column) {
         return table.getCellFormatter().getElement(row, column);
     }
-    
+
     private Element getCellElement(CellInfo cellInfo) {
         assert cellInfo.row != null || cellInfo.column != null;
         Element tdElement;
@@ -465,25 +465,25 @@ public class Spreadsheet extends Composite
         } else if (cellInfo.column == null) {
             tdElement = getCellElement(rowHeaders, getRowPosition(cellInfo.row), 0);
         } else {
-            tdElement = getCellElement(dataTable, getRowPosition(cellInfo.row), 
+            tdElement = getCellElement(dataTable, getRowPosition(cellInfo.row),
                                                   getColumnPosition(cellInfo.column));
         }
         Element cellElement = tdElement.getFirstChildElement();
         assert cellElement != null;
         return cellElement;
     }
-    
+
     protected int getColumnWidth(HTMLTable table, int column) {
         // using the column formatter doesn't seem to work
         int numRows = table.getRowCount();
-        return table.getCellFormatter().getElement(numRows - 1, column).getOffsetWidth() - 
+        return table.getCellFormatter().getElement(numRows - 1, column).getOffsetWidth() -
                TD_BORDER_PX;
     }
-    
+
     protected int getRowHeight(HTMLTable table, int row) {
         // see getColumnWidth()
         int numCols = table.getCellCount(row);
-        return table.getCellFormatter().getElement(row, numCols - 1).getOffsetHeight() - 
+        return table.getCellFormatter().getElement(row, numCols - 1).getOffsetHeight() -
                TD_BORDER_PX;
     }
 
@@ -494,7 +494,7 @@ public class Spreadsheet extends Composite
     public void onScroll(ScrollEvent event) {
         int scrollLeft = scrollPanel.getHorizontalScrollPosition();
         int scrollTop = scrollPanel.getScrollPosition();
-        
+
         setColumnHeadersOffset(-scrollLeft);
         setRowHeadersOffset(-scrollTop);
     }
@@ -506,26 +506,26 @@ public class Spreadsheet extends Composite
     protected void setColumnHeadersOffset(int offset) {
         columnHeaders.getElement().getStyle().setPropertyPx("left", offset);
     }
-    
+
     @Override
     public void onClick(ClickEvent event) {
         handleEvent(event, false);
     }
-    
+
     @Override
     public void onContextMenu(ContextMenuEvent event) {
         handleEvent(event, true);
     }
-    
+
     private void handleEvent(DomEvent<?> event, boolean isRightClick) {
         if (listener == null)
             return;
-        
+
         assert event.getSource() instanceof RightClickTable;
         HTMLTable.Cell tableCell = ((RightClickTable) event.getSource()).getCellForDomEvent(event);
         int row = tableCell.getRowIndex();
         int column = tableCell.getCellIndex();
-        
+
         CellInfo[][] cells;
         if (event.getSource() == rowHeaders) {
             cells = rowHeaderCells;
@@ -541,12 +541,12 @@ public class Spreadsheet extends Composite
         CellInfo cell = cells[row][column];
         if (cell == null || cell.isEmpty())
             return; // don't report clicks on empty cells
-        
+
         listener.onCellClicked(cell, isRightClick);
     }
 
     /**
-     * In HTMLTables, a cell with rowspan > 1 won't count in column indices for the extra rows it 
+     * In HTMLTables, a cell with rowspan > 1 won't count in column indices for the extra rows it
      * spans, which will mess up column indices for other cells in those rows.  This method adjusts
      * the column index passed to onCellClicked() to account for that.
      */
@@ -556,7 +556,7 @@ public class Spreadsheet extends Composite
                 return i + column;
             }
         }
-        
+
         throw new RuntimeException("Failed to find non-null cell");
     }
 
@@ -572,7 +572,7 @@ public class Spreadsheet extends Composite
             cellElement.setClassName("");
         }
     }
-    
+
     public List<Integer> getAllTestIndices() {
         List<Integer> testIndices = new ArrayList<Integer>();
 
