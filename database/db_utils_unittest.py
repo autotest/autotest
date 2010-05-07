@@ -28,7 +28,7 @@ class UtilsTest(unittest.TestCase):
     def test_check_exists(self):
         views = ('view1', 'view2')
         def _call_check_exists():
-            db_utils._check_exists(self.manager, views, db_utils.VIEW_TYPE)
+            db_utils.check_exists(self.manager, views, db_utils.VIEW_TYPE)
 
         self._setup_exists_expects(views, 'VIEWS')
         _call_check_exists()

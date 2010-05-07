@@ -2,6 +2,10 @@ TABLE_TYPE = object()
 VIEW_TYPE = object()
 
 
+class NameMissingException(Exception):
+    pass
+
+
 def drop_views(manager, views):
     """
     Drops the specified views from the database
@@ -12,7 +16,7 @@ def drop_views(manager, views):
     @param manager the migration manager
     @param views the views to drop
     """
-    _check_exists(manager, views, VIEW_TYPE)
+    check_exists(manager, views, VIEW_TYPE)
     for view in views:
         manager.execute('DROP VIEW `%s`' % view)
 
@@ -28,7 +32,7 @@ def rename(manager, mapping):
     @param mapping a dictionary of orig_name => new_name. Any table not matching
                    an entry in this dictionary will not be renamed
     """
-    _check_exists(manager, (table for table, _ in mapping.iteritems()),
+    check_exists(manager, (table for table, _ in mapping.iteritems()),
                   TABLE_TYPE)
     for orig_name, new_name in mapping.iteritems():
         manager.execute('RENAME TABLE `%s` TO `%s`' % (orig_name, new_name))
@@ -45,7 +49,7 @@ def move_tables(manager, src_manager, tables):
     @param src_manager a migration manager that handles the source database
     @param tables a list of tables to move
     """
-    _check_exists(src_manager, tables, TABLE_TYPE)
+    check_exists(src_manager, tables, TABLE_TYPE)
     for table in tables:
         manager.execute('RENAME TABLE `%(db)s`.`%(table)s` TO `%(table)s`'
                         % dict(db=src_manager.get_db_name(), table=table))
@@ -60,7 +64,7 @@ def drop_database(manager):
     manager.execute('DROP DATABASE `%s`' % manager.get_db_name())
 
 
-def _check_exists(manager, names, type):
+def check_exists(manager, names, type):
     """
     Checks if the tables or views exists.
 
@@ -84,4 +88,15 @@ def _check_exists(manager, names, type):
 
     for name in names:
         if name not in existing_names:
-            raise Exception('%s missing from database, stopping' % name)
+            raise NameMissingException(
+                    '%s missing from database, stopping' % name)
+
+
+DJANGO_AUTH_TABLES = ('auth_group', 'auth_group_permissions', 'auth_permission')
+
+def auth_tables_exist(manager):
+    try:
+        check_exists(manager, DJANGO_AUTH_TABLES, TABLE_TYPE)
+        return True
+    except NameMissingException:
+        return False
