@@ -524,7 +524,7 @@ def remote_login(command, password, prompt, linesep="\n", timeout=10):
             return None
 
 
-def remote_scp(command, password, timeout=300, login_timeout=10):
+def remote_scp(command, password, timeout=600, login_timeout=10):
     """
     Run the given command using kvm_spawn and provide answers to the questions
     asked. If timeout expires while waiting for the transfer to complete ,
@@ -548,12 +548,18 @@ def remote_scp(command, password, timeout=300, login_timeout=10):
 
     password_prompt_count = 0
     _timeout = login_timeout
-
-    logging.debug("Trying to login...")
+    end_time = time.time() + timeout
+    logging.debug("Trying to SCP with command '%s', timeout %ss", command,
+                  timeout)
 
     while True:
+        if end_time <= time.time():
+            logging.debug("SCP transfer timed out")
+            sub.close()
+            return False
         (match, text) = sub.read_until_last_line_matches(
-                [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"lost connection"],
+                [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"lost connection",
+                 r"Exit status", r"stalled"],
                 timeout=_timeout, internal_timeout=0.5)
         if match == 0:  # "Are you sure you want to continue connecting"
             logging.debug("Got 'Are you sure...'; sending 'yes'")
@@ -574,15 +580,29 @@ def remote_scp(command, password, timeout=300, login_timeout=10):
             logging.debug("Got 'lost connection'")
             sub.close()
             return False
+        elif match == 3: # "Exit status"
+            sub.close()
+            if "Exit status 0" in text:
+                logging.debug("SCP command completed successfully")
+                return True
+            else:
+                logging.debug("SCP command fail with exit status %s" % text)
+                return False
+        elif match == 4: # "stalled"
+            logging.debug("SCP connection is stalled")
+            continue
+
         else:  # match == None
-            logging.debug("Timeout elapsed or process terminated")
+            if sub.is_alive():
+                continue
+            logging.debug("SCP process terminated")
             status = sub.get_status()
             sub.close()
             return status == 0
 
 
 def scp_to_remote(host, port, username, password, local_path, remote_path,
-                  timeout=300):
+                  timeout=600):
     """
     Copy files to a remote host (guest).
 
@@ -596,14 +616,14 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
 
     @return: True on success and False on failure.
     """
-    command = ("scp -o UserKnownHostsFile=/dev/null "
+    command = ("scp -v -o UserKnownHostsFile=/dev/null "
                "-o PreferredAuthentications=password -r -P %s %s %s@%s:%s" %
                (port, local_path, username, host, remote_path))
     return remote_scp(command, password, timeout)
 
 
 def scp_from_remote(host, port, username, password, remote_path, local_path,
-                    timeout=300):
+                    timeout=600):
     """
     Copy files from a remote host (guest).
 
@@ -617,7 +637,7 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
 
     @return: True on success and False on failure.
     """
-    command = ("scp -o UserKnownHostsFile=/dev/null "
+    command = ("scp -v -o UserKnownHostsFile=/dev/null "
                "-o PreferredAuthentications=password -r -P %s %s@%s:%s %s" %
                (port, username, host, remote_path, local_path))
     return remote_scp(command, password, timeout)
