@@ -808,7 +808,7 @@ class VM:
         return session
 
 
-    def copy_files_to(self, local_path, remote_path, nic_index=0, timeout=300):
+    def copy_files_to(self, local_path, remote_path, nic_index=0, timeout=600):
         """
         Transfer files to the guest.
 
@@ -833,7 +833,7 @@ class VM:
                                            local_path, remote_path, timeout)
 
 
-    def copy_files_from(self, remote_path, local_path, nic_index=0, timeout=300):
+    def copy_files_from(self, remote_path, local_path, nic_index=0, timeout=600):
         """
         Transfer files from the guest.
 
