@@ -22,7 +22,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
     private static final NotifyManager notifyManager = NotifyManager.getInstance();
     private static final int MAX_CELL_COUNT = 500000;
     private static final int ROWS_PROCESSED_PER_ITERATION = 1000;
-    
+
     private Spreadsheet spreadsheet;
     private TestGroupDataSource dataSource;
     private int numTotalTests;
@@ -32,7 +32,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
     private Command onFinished;
     private Duration timer;
     private Query currentQuery;
-    
+
     public static class TooManyCellsError extends Exception {
         public int cellCount;
 
@@ -41,16 +41,16 @@ public class SpreadsheetDataProcessor implements DataCallback {
             this.cellCount = cellCount;
         }
     }
-    
+
     private class ProcessDataCommand implements IncrementalCommand {
         private int state = 0;
         private List<JSONObject> counts;
         private int currentRow = 0;
-        
+
         public ProcessDataCommand(List<JSONObject> counts) {
             this.counts = counts;
         }
-        
+
         public void processSomeRows() {
             for (int i = 0; i < ROWS_PROCESSED_PER_ITERATION; i++, currentRow++) {
                 if (currentRow == counts.size()) {
@@ -60,7 +60,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
                 processRow(counts.get(currentRow).isObject());
             }
         }
-        
+
         public boolean execute() {
             switch (state) {
                 case 0:
@@ -82,7 +82,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
                     processSomeRows();
                     return true;
                 case 3:
-                    // we must make the spreadsheet visible before rendering, or size computations 
+                    // we must make the spreadsheet visible before rendering, or size computations
                     // won't work correctly
                     spreadsheet.setVisible(true);
                     break;
@@ -95,7 +95,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
                     finalizeCommand();
                     return false;
             }
-            
+
             state++;
             return true;
         }
@@ -105,7 +105,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
             onFinished.execute();
         }
     }
-    
+
     public SpreadsheetDataProcessor(Spreadsheet spreadsheet) {
         this.spreadsheet = spreadsheet;
     }
@@ -134,18 +134,18 @@ public class SpreadsheetDataProcessor implements DataCallback {
         StatusSummary statusSummary = StatusSummary.getStatusSummary(group);
         numTotalTests += statusSummary.getTotal();
         cellInfo.contents = statusSummary.formatContents();
-        cellInfo.color = statusSummary.getColor();
+        cellInfo.cssClass = statusSummary.getCssClass();
         cellInfo.testCount = statusSummary.getTotal();
         cellInfo.testIndex = (int) group.get("test_idx").isNumber().doubleValue();
         lastCellInfo = cellInfo;
     }
-    
+
     public void refresh(JSONObject condition, Command onFinished) {
         timer = new Duration();
         this.onFinished = onFinished;
         dataSource.query(condition, this);
     }
-    
+
     public void onQueryReady(Query query) {
         currentQuery = query;
         query.getPage(null, null, null, this);
@@ -172,7 +172,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
     public int getNumTotalTests() {
         return numTotalTests;
     }
-    
+
     /**
      * This is useful when there turns out to be only a single test return.
      * @return the last CellInfo created.  Should only really be called when there was only a single
@@ -182,16 +182,16 @@ public class SpreadsheetDataProcessor implements DataCallback {
         assert numTotalTests == 1;
         return lastCellInfo;
     }
-    
+
     public void onError(JSONObject errorObject) {
         onFinished.execute();
     }
 
-    public void setHeaders(List<HeaderField> rowFields, List<HeaderField> columnFields, 
+    public void setHeaders(List<HeaderField> rowFields, List<HeaderField> columnFields,
                            JSONObject queryParameters) {
         this.rowFields = getHeaderSqlNames(rowFields);
         this.columnFields = getHeaderSqlNames(columnFields);
-        
+
         List<List<String>> headerGroups = new ArrayList<List<String>>();
         headerGroups.add(this.rowFields);
         headerGroups.add(this.columnFields);
@@ -214,7 +214,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
     public TestGroupDataSource getDataSource() {
         return dataSource;
     }
-    
+
     public Query getCurrentQuery() {
         return currentQuery;
     }

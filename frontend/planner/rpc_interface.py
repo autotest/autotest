@@ -466,23 +466,23 @@ def get_machine_view_data(plan_id):
         tests_run = []
 
         machine = host.host.hostname
-        status = host.status()
+        host_status = host.status()
         bug_ids = set()
 
         testruns = plan.testrun_set.filter(host=host, invalidated=False,
                                            finalized=True)
         for testrun in testruns:
             test_name = testrun.tko_test.test
-            success = (testrun.tko_test.status.word == 'GOOD')
+            test_status = testrun.tko_test.status.word
             testrun_bug_ids = testrun.bugs.all().values_list(
                     'external_uid', flat=True)
 
             tests_run.append({'test_name': test_name,
-                              'success': success})
+                              'status': test_status})
             bug_ids.update(testrun_bug_ids)
 
         result.append({'machine': machine,
-                       'status': status,
+                       'status': host_status,
                        'tests_run': tests_run,
                        'bug_ids': list(bug_ids)})
     return result

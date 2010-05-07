@@ -215,7 +215,7 @@ class RpcInterfaceTest(unittest.TestCase,
                                                 finalized=True)
 
         host1_expected['tests_run'] = [{'test_name': 'test',
-                                        'success': False}]
+                                        'status': self._running_status.word}]
         actual = rpc_interface.get_machine_view_data(plan_id=self._plan.id)
         self.assertEqual(sorted(actual), sorted(expected))
 
@@ -226,7 +226,7 @@ class RpcInterfaceTest(unittest.TestCase,
         testrun.bugs.add(bug)
 
         host1_expected['tests_run'] = [{'test_name': 'test',
-                                        'success': True}]
+                                        'status': self._good_status.word}]
         host1_expected['bug_ids'] = ['bug']
         actual = rpc_interface.get_machine_view_data(plan_id=self._plan.id)
         self.assertEqual(sorted(actual), sorted(expected))

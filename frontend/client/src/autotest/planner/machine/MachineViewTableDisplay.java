@@ -1,6 +1,7 @@
 package autotest.planner.machine;
 
 import autotest.planner.TestPlannerUtils;
+import autotest.planner.machine.MachineViewTable.RowDisplay;
 
 import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
@@ -26,6 +27,7 @@ public class MachineViewTableDisplay extends Composite
         scrollTable.setSortPolicy(SortPolicy.DISABLED);
         scrollTable.setResizePolicy(ResizePolicy.UNCONSTRAINED);
         scrollTable.setScrollPolicy(ScrollPolicy.BOTH);
+        dataTable.setSelectionEnabled(false);
 
         scrollTable.setSize("100%", TestPlannerUtils.getHeightParam(Window.getClientHeight()));
         scrollTable.setVisible(false);
@@ -34,14 +36,15 @@ public class MachineViewTableDisplay extends Composite
     }
 
     @Override
-    public void addRow(Collection<String> rowData) {
+    public void addRow(Collection<RowDisplay> rowData) {
         assert rowData.size() == dataTable.getColumnCount();
 
         int row = dataTable.insertRow(dataTable.getRowCount());
 
         int column = 0;
-        for (String data : rowData) {
-            dataTable.setText(row, column++, data);
+        for (RowDisplay data : rowData) {
+            dataTable.setText(row, column, data.content);
+            dataTable.getCellFormatter().addStyleName(row, column++, data.cssClass);
         }
     }
 
