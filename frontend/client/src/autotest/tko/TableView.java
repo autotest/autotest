@@ -43,14 +43,14 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 
-public class TableView extends ConditionTabView 
-                       implements DynamicTableListener, TableActionsWithExportCsvListener, 
-                                  ClickHandler, TableWidgetFactory, CommonPanelListener, 
+public class TableView extends ConditionTabView
+                       implements DynamicTableListener, TableActionsWithExportCsvListener,
+                                  ClickHandler, TableWidgetFactory, CommonPanelListener,
                                   MultiListSelectPresenter.GeneratorHandler {
     private static final int ROWS_PER_PAGE = 30;
     private static final String COUNT_NAME = "Count in group";
     private static final String STATUS_COUNTS_NAME = "Test pass rate";
-    private static final String[] DEFAULT_COLUMNS = 
+    private static final String[] DEFAULT_COLUMNS =
         {"Test index", "Test name", "Job tag", "Hostname", "Status"};
     private static final String[] TRIAGE_GROUP_COLUMNS =
         {"Test name", "Status", COUNT_NAME, "Reason"};
@@ -87,14 +87,14 @@ public class TableView extends ConditionTabView
             return false;
         }
     }
-    
+
     private GroupCountField groupCountField =
         new GroupCountField(COUNT_NAME, TestGroupDataSource.GROUP_COUNT_FIELD);
     private GroupCountField statusCountsField =
         new GroupCountField(STATUS_COUNTS_NAME, DataTable.WIDGET_COLUMN);
 
     private TestSelectionListener listener;
-    
+
     private DynamicTable table;
     private TableDecorator tableDecorator;
     private SelectionManager selectionManager;
@@ -107,7 +107,7 @@ public class TableView extends ConditionTabView
 
     private DoubleListSelector columnSelectDisplay = new DoubleListSelector();
     private CheckBox groupCheckbox = new CheckBox("Group by these columns and show counts");
-    private CheckBox statusGroupCheckbox = 
+    private CheckBox statusGroupCheckbox =
         new CheckBox("Group by these columns and show pass rates");
     private Button queryButton = new Button("Query");
     private Panel tablePanel = new SimplePanel();
@@ -117,11 +117,11 @@ public class TableView extends ConditionTabView
     public enum TableViewConfig {
         DEFAULT, PASS_RATE, TRIAGE
     }
-    
+
     public static interface TableSwitchListener extends TestSelectionListener {
         public void onSwitchToTable(TableViewConfig config);
     }
-    
+
     public TableView(TestSelectionListener listener) {
         this.listener = listener;
         commonPanel.addListener(this);
@@ -147,17 +147,17 @@ public class TableView extends ConditionTabView
         queryButton.addClickHandler(this);
         groupCheckbox.addClickHandler(this);
         statusGroupCheckbox.addClickHandler(this);
-        
+
         Panel columnPanel = new VerticalPanel();
         columnPanel.add(columnSelectDisplay);
         columnPanel.add(groupCheckbox);
         columnPanel.add(statusGroupCheckbox);
-        
+
         addWidget(columnPanel, "table_column_select");
         addWidget(queryButton, "table_query_controls");
         addWidget(tablePanel, "table_table");
     }
-    
+
     private void selectColumnsByName(String[] columnNames) {
         List<HeaderField> fields = new ArrayList<HeaderField>();
         for (String name : columnNames) {
@@ -166,7 +166,7 @@ public class TableView extends ConditionTabView
         columnSelect.setSelectedItems(fields);
         cleanupSortsForNewColumns();
     }
-    
+
     public void setupDefaultView() {
         tableSorts.clear();
         selectColumnsByName(DEFAULT_COLUMNS);
@@ -198,14 +198,14 @@ public class TableView extends ConditionTabView
         table.addListener(this);
         table.setWidgetFactory(this);
         restoreTableSorting();
-        
+
         tableDecorator = new TableDecorator(table);
         tableDecorator.addPaginators();
         selectionManager = tableDecorator.addSelectionManager(false);
         tableDecorator.addTableActionsWithExportCsvListener(this);
         tablePanel.clear();
         tablePanel.add(tableDecorator);
-        
+
         selectionManager = new SelectionManager(table, false);
     }
 
@@ -234,7 +234,7 @@ public class TableView extends ConditionTabView
         } else {
             groupDataSource = TestGroupDataSource.getStatusCountDataSource();
         }
-        
+
         updateGroupColumns();
         return groupDataSource;
     }
@@ -243,7 +243,7 @@ public class TableView extends ConditionTabView
         commonPanel.updateStateFromView();
         columnSelect.updateStateFromView();
     }
-    
+
     private void updateViewFromState() {
         commonPanel.updateViewFromState();
         columnSelect.updateViewFromState();
@@ -263,7 +263,7 @@ public class TableView extends ConditionTabView
     private boolean isGroupField(HeaderField field) {
         return field instanceof GroupCountField;
     }
-    
+
     private void saveTableSorting() {
         if (table != null) {
             // we need our own copy so we can modify it later
@@ -272,7 +272,7 @@ public class TableView extends ConditionTabView
     }
 
     private void restoreTableSorting() {
-        for (ListIterator<SortSpec> i = tableSorts.listIterator(tableSorts.size()); 
+        for (ListIterator<SortSpec> i = tableSorts.listIterator(tableSorts.size());
              i.hasPrevious();) {
             SortSpec sortSpec = i.previous();
             table.sortOnColumn(sortSpec.getField(), sortSpec.getDirection());
@@ -313,7 +313,7 @@ public class TableView extends ConditionTabView
         sqlConditionFilter.setAllParameters(condition);
         table.refresh();
     }
-    
+
     @Override
     public void doQuery() {
         if (savedColumns().isEmpty()) {
@@ -323,7 +323,7 @@ public class TableView extends ConditionTabView
         updateStateFromView();
         refresh();
     }
-    
+
     @Override
     public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
         Event event = Event.getCurrentEvent();
@@ -336,7 +336,7 @@ public class TableView extends ConditionTabView
             menu.showAtWindow(event.getClientX(), event.getClientY());
             return;
         }
-        
+
         if (isSelectEvent(event)) {
             selectionManager.toggleSelected(row);
             return;
@@ -353,7 +353,7 @@ public class TableView extends ConditionTabView
 
     private ContextMenu getContextMenu(final TestSet testSet) {
         TestContextMenu menu = new TestContextMenu(testSet, listener);
-        
+
         if (!menu.addViewDetailsIfSingleTest() && isAnyGroupingEnabled()) {
             menu.addItem("Drill down", new Command() {
                 public void execute() {
@@ -361,7 +361,7 @@ public class TableView extends ConditionTabView
                 }
             });
         }
-        
+
         menu.addLabelItems();
         return menu;
     }
@@ -374,7 +374,7 @@ public class TableView extends ConditionTabView
         restoreHistoryState();
         return historyToken;
     }
-    
+
     private void doDrilldown(TestSet testSet) {
         History.newItem(getDrilldownHistoryToken(testSet).toString());
     }
@@ -395,7 +395,7 @@ public class TableView extends ConditionTabView
         }
         return testSet;
     }
-    
+
     private TestSet getTestSet(Collection<JSONObject> selectedObjects) {
         CompositeTestSet compositeSet = new CompositeTestSet();
         for (JSONObject row : selectedObjects) {
@@ -409,7 +409,7 @@ public class TableView extends ConditionTabView
         saveTableSorting();
         updateHistory();
     }
-    
+
     private void setCheckboxesEnabled() {
         assert !(groupCheckbox.getValue() && statusGroupCheckbox.getValue());
 
@@ -485,7 +485,7 @@ public class TableView extends ConditionTabView
     protected void fillDefaultHistoryValues(Map<String, String> arguments) {
         HeaderField defaultSortField = headerFields.getFieldByName(DEFAULT_COLUMNS[0]);
         Utils.setDefaultValue(arguments, "sort", defaultSortField.getSqlName());
-        Utils.setDefaultValue(arguments, "columns", 
+        Utils.setDefaultValue(arguments, "columns",
                         Utils.joinStrings(",", Arrays.asList(DEFAULT_COLUMNS)));
     }
 
@@ -515,7 +515,7 @@ public class TableView extends ConditionTabView
     private boolean isAnyGroupingEnabled() {
         return getActiveGrouping() != GroupingType.NO_GROUPING;
     }
-    
+
     private GroupingType getGroupingFromFields(List<HeaderField> fields) {
         for (HeaderField field : fields) {
             if (field.getName().equals(COUNT_NAME)) {
@@ -527,7 +527,7 @@ public class TableView extends ConditionTabView
         }
         return GroupingType.NO_GROUPING;
     }
-    
+
     /**
      * Get grouping currently active for displayed table.
      */
@@ -540,8 +540,7 @@ public class TableView extends ConditionTabView
         StatusSummary statusSummary = StatusSummary.getStatusSummary(rowObject);
         SimplePanel panel = new SimplePanel();
         panel.add(new HTML(statusSummary.formatContents()));
-        panel.getElement().getStyle().setProperty("backgroundColor", 
-                                                  statusSummary.getColor());
+        panel.getElement().addClassName(statusSummary.getCssClass());
         return panel;
     }
 
@@ -563,10 +562,10 @@ public class TableView extends ConditionTabView
     public void onExportCsv() {
         JSONObject extraParams = new JSONObject();
         extraParams.put("columns", buildCsvColumnSpecs());
-        TkoUtils.doCsvRequest((RpcDataSource) table.getDataSource(), table.getCurrentQuery(), 
+        TkoUtils.doCsvRequest((RpcDataSource) table.getDataSource(), table.getCurrentQuery(),
                               extraParams);
     }
-    
+
     private JSONArray buildCsvColumnSpecs() {
         String[][] columnSpecs = buildColumnSpecs();
         JSONArray jsonColumnSpecs = new JSONArray();

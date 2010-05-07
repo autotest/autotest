@@ -35,3 +35,30 @@ body .menubar-hand-cursor .gwt-MenuItem {
   font-family: Courier New, Courier, monospace;
 }
 
+td .status_blank {
+  background-color: #ffffff;
+}
+
+td .status_none {
+  background-color: #d080d0;
+}
+
+td .status_bad {
+  background-color: #ff4040;
+}
+
+td .status_75 {
+  background-color: #ffc040;
+}
+
+td .status_85 {
+  background-color: #ffff00;
+}
+
+td .status_90 {
+  background-color: #c0ff80;
+}
+
+td .status_95 {
+  background-color: #32CD32;
+}

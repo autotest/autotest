@@ -1,5 +1,6 @@
 package autotest.planner.machine;
 
+import autotest.common.AbstractStatusSummary;
 import autotest.common.Utils;
 
 import com.google.gwt.json.client.JSONArray;
@@ -15,49 +16,54 @@ import java.util.Set;
 import java.util.TreeSet;
 
 public class MachineViewTable {
+    public static class RowDisplay {
+        String content;
+        String cssClass = AbstractStatusSummary.BLANK_COLOR;
 
-    public static class PassRate {
-        int passed;
-        int total;
+        public RowDisplay(String content) {
+            this.content = content;
+        }
+
+        public RowDisplay(String content, String cssClass) {
+            this.content = content;
+            this.cssClass = cssClass;
+        }
     }
 
     public static class Row {
         String machine;
         String status;
-        Map<String, PassRate> passRates;
+        Map<String, StatusSummary> statusSummaries;
         List<String> bugIds;
 
         private Row(String machine, String status,
-                Map<String, PassRate> passRates, List<String> bugIds) {
+                Map<String, StatusSummary> statusSummaries, List<String> bugIds) {
             this.machine = machine;
             this.status = status;
-            this.passRates = passRates;
+            this.statusSummaries = statusSummaries;
             this.bugIds = bugIds;
         }
 
         public static Row fromJsonObject(JSONObject rowObject) {
-            Map<String, PassRate> passRates = new HashMap<String, PassRate>();
+            Map<String, StatusSummary> statusSummaries = new HashMap<String, StatusSummary>();
 
             JSONArray testsRun = rowObject.get("tests_run").isArray();
             for (int i = 0; i < testsRun.size(); i++) {
                 JSONObject test = testsRun.get(i).isObject();
                 String testName = Utils.jsonToString(test.get("test_name"));
 
-                PassRate passRate = passRates.get(testName);
-                if (passRate == null) {
-                    passRate = new PassRate();
-                    passRates.put(testName, passRate);
+                StatusSummary statusSummary = statusSummaries.get(testName);
+                if (statusSummary == null) {
+                    statusSummary = new StatusSummary();
+                    statusSummaries.put(testName, statusSummary);
                 }
 
-                passRate.total++;
-                if (test.get("success").isBoolean().booleanValue()) {
-                    passRate.passed++;
-                }
+                statusSummary.addStatus(Utils.jsonToString(test.get("status")));
             }
 
             return new Row(Utils.jsonToString(rowObject.get("machine")),
                     Utils.jsonToString(rowObject.get("status")),
-                    passRates,
+                    statusSummaries,
                     Arrays.asList(Utils.JSONtoStrings(rowObject.get("bug_ids").isArray())));
         }
     }
@@ -65,7 +71,7 @@ public class MachineViewTable {
     public static interface Display {
         public void clearData();
         public void setHeaders(Collection<String> headers);
-        public void addRow(Collection<String> rowData);
+        public void addRow(Collection<RowDisplay> rowData);
         public void finalRender();
     }
 
@@ -88,7 +94,7 @@ public class MachineViewTable {
     private void displayData() {
         Set<String> allTestNames = new TreeSet<String>();
         for (Row row : rows) {
-            allTestNames.addAll(row.passRates.keySet());
+            allTestNames.addAll(row.statusSummaries.keySet());
         }
 
         List<String> headers = new ArrayList<String>();
@@ -99,20 +105,21 @@ public class MachineViewTable {
         display.setHeaders(headers);
 
         for (Row row : rows) {
-            List<String> rowData = new ArrayList<String>();
-            rowData.add(row.machine);
-            rowData.add(row.status);
+            List<RowDisplay> rowData = new ArrayList<RowDisplay>();
+            rowData.add(new RowDisplay(row.machine));
+            rowData.add(new RowDisplay(row.status));
 
             for (String testName : allTestNames) {
-                PassRate passRate = row.passRates.get(testName);
-                if (passRate != null) {
-                    rowData.add(passRate.passed + "/" + passRate.total);
+                StatusSummary statusSummary = row.statusSummaries.get(testName);
+                if (statusSummary != null) {
+                    rowData.add(new RowDisplay(
+                            statusSummary.formatStatusCounts(), statusSummary.getCssClass()));
                 } else {
-                    rowData.add("");
+                    rowData.add(new RowDisplay(""));
                 }
             }
 
-            rowData.add(String.valueOf(row.bugIds.size()));
+            rowData.add(new RowDisplay(String.valueOf(row.bugIds.size())));
 
             display.addRow(rowData);
         }
