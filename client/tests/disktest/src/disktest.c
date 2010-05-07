@@ -116,13 +116,13 @@ int verify_block(int fd, unsigned int block, struct pattern *buffer, char *err)
 			}
 		}
 		if (sector_errors)
-			printf("Block %d (from %d to %d) sector %08x has wrong sector number %08x (%d/%d) filename %s %s\n",
+			printf("Block %d (from %d to %d) sector %08x has wrong sector number %08x (%d/%lu) filename %s %s\n",
 					block, start_block, start_block+blocks,
 					sector, read_sector,
 					sector_errors, PATTERN_PER_SECTOR, 
 					filename, err);
 		if (signature_errors)
-			printf("Block %d (from %d to %d) sector %08x signature is %08x should be %08x (%d/%d) filename %s %s\n", 
+			printf("Block %d (from %d to %d) sector %08x signature is %08x should be %08x (%d/%lu) filename %s %s\n",
 				block, start_block, start_block+blocks,
 				sector, read_signature, signature, 
 				signature_errors, PATTERN_PER_SECTOR, 
