@@ -2021,12 +2021,12 @@ class VerifyTask(PreJobTask):
             self.queue_entry.set_status(models.HostQueueEntry.Status.VERIFYING)
         self.host.set_status(models.Host.Status.VERIFYING)
 
-        # Delete any other queued verifies for this host.  One verify will do
+        # Delete any queued manual reverifies for this host.  One verify will do
         # and there's no need to keep records of other requests.
         queued_verifies = models.SpecialTask.objects.filter(
             host__id=self.host.id,
             task=models.SpecialTask.Task.VERIFY,
-            is_active=False, is_complete=False)
+            is_active=False, is_complete=False, queue_entry=None)
         queued_verifies = queued_verifies.exclude(id=self.task.id)
         queued_verifies.delete()
 
