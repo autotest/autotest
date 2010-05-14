@@ -517,7 +517,10 @@ class mock_god:
                 print '\nPlayback errors:'
             for error in self.errors:
                 print >> sys.__stdout__, error
-            self._ut.fail('\n'.join(self.errors))
+
+            if self._ut:
+                self._ut.fail('\n'.join(self.errors))
+
             raise CheckPlaybackError
         elif len(self.recording) != 0:
             errors = []
@@ -525,7 +528,10 @@ class mock_god:
                 error = "%s not called" % (func_call,)
                 errors.append(error)
                 print >> sys.__stdout__, error
-            self._ut.fail('\n'.join(errors))
+
+            if self._ut:
+                self._ut.fail('\n'.join(errors))
+
             raise CheckPlaybackError
         self.recording.clear()
 
