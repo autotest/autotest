@@ -639,9 +639,17 @@ class base_client_job(base_job.base_job):
 
     def _check_post_reboot(self, subdir, running_id=None):
         """
-        Function to perform post boot checks such as if the mounted
-        partition list has changed across reboots.
+        Function to perform post boot checks such as if the system configuration
+        has changed across reboots (specifically, CPUs and partitions).
+
+        @param subdir: The subdir to use in the job.record call.
+        @param running_id: An optional running_id to include in the reboot
+            failure log message
+
+        @raise JobError: Raised if the current configuration does not match the
+            pre-reboot configuration.
         """
+        # check to see if any partitions have changed
         partition_list = partition_lib.get_partition_list(self,
                                                           exclude_swap=False)
         mount_info = set((p.device, p.get_mountpoint()) for p in partition_list)
@@ -655,6 +663,17 @@ class base_client_job(base_job.base_job):
             self._record_reboot_failure(subdir, "reboot.verify_config",
                                         description, running_id=running_id)
             raise error.JobError("Reboot failed: %s" % description)
+
+        # check to see if any CPUs have changed
+        cpu_count = utils.count_cpus()
+        old_count = self._state.get('client', 'cpu_count')
+        if cpu_count != old_count:
+            description = ('Number of CPUs changed after reboot '
+                           '(old count: %d, new count: %d)' %
+                           (old_count, cpu_count))
+            self._record_reboot_failure(subdir, 'reboot.verify_config',
+                                        description, running_id=running_id)
+            raise error.JobError('Reboot failed: %s' % description)
 
 
     def end_reboot(self, subdir, kernel, patches, running_id=None):
@@ -749,12 +768,12 @@ class base_client_job(base_job.base_job):
 
 
     def reboot_setup(self):
-        # save the partition list and their mount point and compare it
-        # after reboot
+        # save the partition list and mount points, as well as the cpu count
         partition_list = partition_lib.get_partition_list(self,
                                                           exclude_swap=False)
         mount_info = set((p.device, p.get_mountpoint()) for p in partition_list)
         self._state.set('client', 'mount_info', mount_info)
+        self._state.set('client', 'cpu_count', utils.count_cpus())
 
 
     def reboot(self, tag=LAST_BOOT_TAG):
