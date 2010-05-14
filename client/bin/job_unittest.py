@@ -554,9 +554,10 @@ class test_base_job(unittest.TestCase):
         self.god.check_playback()
 
 
-    def _setup_check_post_reboot(self, mount_info):
+    def _setup_check_post_reboot(self, mount_info, cpu_count):
         # setup
         self.god.stub_function(job.partition_lib, "get_partition_list")
+        self.god.stub_function(utils, "count_cpus")
 
         part_list = [self.get_partition_mock("/dev/hda1"),
                      self.get_partition_mock("/dev/hdb1")]
@@ -567,7 +568,10 @@ class test_base_job(unittest.TestCase):
                 self.job, exclude_swap=False).and_return(part_list)
         for i in xrange(len(part_list)):
             part_list[i].get_mountpoint.expect_call().and_return(mount_list[i])
+        if cpu_count is not None:
+            utils.count_cpus.expect_call().and_return(cpu_count)
         self.job._state.set('client', 'mount_info', mount_info)
+        self.job._state.set('client', 'cpu_count', 8)
 
 
     def test_check_post_reboot_success(self):
@@ -575,7 +579,7 @@ class test_base_job(unittest.TestCase):
 
         mount_info = set([("/dev/hda1", "/mnt/hda1"),
                           ("/dev/hdb1", "/mnt/hdb1")])
-        self._setup_check_post_reboot(mount_info)
+        self._setup_check_post_reboot(mount_info, 8)
 
         # playback
         self.job._check_post_reboot("sub")
@@ -586,13 +590,31 @@ class test_base_job(unittest.TestCase):
         self.construct_job(True)
 
         mount_info = set([("/dev/hda1", "/mnt/hda1")])
-        self._setup_check_post_reboot(mount_info)
+        self._setup_check_post_reboot(mount_info, None)
 
         self.god.stub_function(self.job, "_record_reboot_failure")
         self.job._record_reboot_failure.expect_call("sub",
                 "reboot.verify_config", "mounted partitions are different after"
                 " reboot (old entries: set([]), new entries: set([('/dev/hdb1',"
                 " '/mnt/hdb1')]))", running_id=None)
+
+        # playback
+        self.assertRaises(error.JobError, self.job._check_post_reboot, "sub")
+        self.god.check_playback()
+
+
+    def test_check_post_reboot_cpu_failure(self):
+        self.construct_job(True)
+
+        mount_info = set([("/dev/hda1", "/mnt/hda1"),
+                          ("/dev/hdb1", "/mnt/hdb1")])
+        self._setup_check_post_reboot(mount_info, 4)
+
+        self.god.stub_function(self.job, "_record_reboot_failure")
+        self.job._record_reboot_failure.expect_call(
+            'sub', 'reboot.verify_config',
+            'Number of CPUs changed after reboot (old count: 8, new count: 4)',
+            running_id=None)
 
         # playback
         self.assertRaises(error.JobError, self.job._check_post_reboot, "sub")
