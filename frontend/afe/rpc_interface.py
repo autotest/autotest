@@ -439,6 +439,10 @@ def create_job(name, priority, control_file, control_type,
     """
     user = models.User.current_user()
     owner = user.login
+
+    # Convert metahost names to lower case, to avoid case sensitivity issues
+    meta_hosts = [meta_host.lower() for meta_host in meta_hosts]
+
     # input validation
     if not (hosts or meta_hosts or one_time_hosts or atomic_group_name
             or hostless):
@@ -459,9 +463,9 @@ def create_job(name, priority, control_file, control_type,
                     'control_type': 'Hostless jobs cannot use client-side '
                                     'control files'})
 
-    labels_by_name = dict((label.name, label)
+    labels_by_name = dict((label.name.lower(), label)
                           for label in models.Label.objects.all())
-    atomic_groups_by_name = dict((ag.name, ag)
+    atomic_groups_by_name = dict((ag.name.lower(), ag)
                                  for ag in models.AtomicGroup.objects.all())
 
     # Schedule on an atomic group automagically if one of the labels given
@@ -494,7 +498,7 @@ def create_job(name, priority, control_file, control_type,
             atomic_group_name = atomic_group.name
         else:
             raise model_logic.ValidationError(
-                {'meta_hosts' : 'Label "%s" not found' % label})
+                {'meta_hosts' : 'Label "%s" not found' % label_name})
 
     # Create and sanity check an AtomicGroup object if requested.
     if atomic_group_name:
