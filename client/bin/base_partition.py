@@ -715,7 +715,7 @@ class partition(object):
                 m = re.match('(\d+)(.*)', user)
                 (pid, usage) = (m.group(1), m.group(2))
                 try:
-                    ps = utils.system_output('ps -p %s | tail +2' % pid)
+                    ps = utils.system_output('ps -p %s | sed 1d' % pid)
                     logging.debug('%s %s %s' % (usage, pid, ps))
                 except Exception:
                     pass
@@ -961,7 +961,7 @@ class virtual_partition:
             utils.system(cmd)
         except error.CmdError, e:
             e_msg = ('Error detaching image %s from loop device %s: %s' %
-                    (self.loop, e))
+                    (self.img, self.loop, e))
             raise error.AutotestError(e_msg)
 
 
