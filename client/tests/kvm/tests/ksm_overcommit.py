@@ -142,6 +142,12 @@ def run_ksm_overcommit(test, params, env):
         session = None
         vm = None
         for i in range(1, vmsc):
+            # Check VMs
+            for j in range(0, vmsc):
+                if not lvms[j].is_alive:
+                    e_msg = ("VM %d died while executing static_random_fill in "
+                             "VM %d on allocator loop" % (j, i))
+                    raise error.TestFail(e_msg)
             vm = lvms[i]
             session = lsessions[i]
             a_cmd = "mem.static_random_fill()"
@@ -154,6 +160,10 @@ def run_ksm_overcommit(test, params, env):
                 logging.debug("Watching host memory while filling vm %s memory",
                               vm.name)
                 while not out.startswith("PASS") and not out.startswith("FAIL"):
+                    if not vm.is_alive():
+                        e_msg = ("VM %d died while executing static_random_fill"
+                                 " on allocator loop" % i)
+                        raise error.TestFail(e_msg)
                     free_mem = int(utils.read_from_meminfo("MemFree"))
                     if (ksm_swap):
                         free_mem = (free_mem +
@@ -202,7 +212,7 @@ def run_ksm_overcommit(test, params, env):
 
         # Verify last machine with randomly generated memory
         a_cmd = "mem.static_random_verify()"
-        _execute_allocator(a_cmd, lvms[last_vm], session,
+        _execute_allocator(a_cmd, lvms[last_vm], lsessions[last_vm],
                            (mem / 200 * 50 * perf_ratio))
         logging.debug(kvm_test_utils.get_memory_info([lvms[last_vm]]))
 
@@ -338,12 +348,29 @@ def run_ksm_overcommit(test, params, env):
 
     # Main test code
     logging.info("Starting phase 0: Initialization")
+
     # host_reserve: mem reserve kept for the host system to run
-    host_reserve = int(params.get("ksm_host_reserve", 512))
+    host_reserve = int(params.get("ksm_host_reserve", -1))
+    if (host_reserve == -1):
+        # default host_reserve = MemAvailable + one_minimal_guest(128MB)
+        # later we add 64MB per additional guest
+        host_reserve = ((utils.memtotal() - utils.read_from_meminfo("MemFree"))
+                        / 1024 + 128)
+        # using default reserve
+        _host_reserve = True
+    else:
+        _host_reserve = False
+
     # guest_reserve: mem reserve kept to avoid guest OS to kill processes
-    guest_reserve = int(params.get("ksm_guest_reserve", 1024))
-    logging.debug("Memory reserved for host to run: %d", host_reserve)
-    logging.debug("Memory reserved for guest to run: %d", guest_reserve)
+    guest_reserve = int(params.get("ksm_guest_reserve", -1))
+    if (guest_reserve == -1):
+        # default guest_reserve = minimal_system_mem(256MB)
+        # later we add tmpfs overhead
+        guest_reserve = 256
+        # using default reserve
+        _guest_reserve = True
+    else:
+        _guest_reserve = False
 
     max_vms = int(params.get("max_vms", 2))
     overcommit = float(params.get("ksm_overcommit_ratio", 2.0))
@@ -355,6 +382,10 @@ def run_ksm_overcommit(test, params, env):
 
     if (params['ksm_mode'] == "serial"):
         max_alloc = vmsc
+        if _host_reserve:
+            # First round of additional guest reserves
+            host_reserve += vmsc * 64
+            _host_reserve = vmsc
 
     host_mem = (int(utils.memtotal()) / 1024 - host_reserve)
 
@@ -402,6 +433,10 @@ def run_ksm_overcommit(test, params, env):
             if mem - guest_reserve - 1 > 3100:
                 vmsc = int(math.ceil((host_mem * overcommit) /
                                      (3100 + guest_reserve)))
+                if _host_reserve:
+                    host_reserve += (vmsc - _host_reserve) * 64
+                    host_mem -= (vmsc - _host_reserve) * 64
+                    _host_reserve = vmsc
                 mem = int(math.floor(host_mem * overcommit / vmsc))
 
         if os.popen("uname -i").readline().startswith("i386"):
@@ -410,7 +445,15 @@ def run_ksm_overcommit(test, params, env):
             if mem > 3100 - 64:
                 vmsc = int(math.ceil((host_mem * overcommit) /
                                      (3100 - 64.0)))
+                if _host_reserve:
+                    host_reserve += (vmsc - _host_reserve) * 64
+                    host_mem -= (vmsc - _host_reserve) * 64
+                    _host_reserve = vmsc
                 mem = int(math.floor(host_mem * overcommit / vmsc))
+
+    # 0.055 represents OS + TMPFS additional reserve per guest ram MB
+    if _guest_reserve:
+        guest_reserve += math.ceil(mem * 0.055)
 
     swap = int(utils.read_from_meminfo("SwapTotal")) / 1024
 

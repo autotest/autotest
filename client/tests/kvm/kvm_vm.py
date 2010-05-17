@@ -396,7 +396,7 @@ class VM:
 
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
-                self.vnc_port = kvm_utils.find_free_port(5900, 6000)
+                self.vnc_port = kvm_utils.find_free_port(5900, 6100)
 
             # Find random UUID if specified 'uuid = random' in config file
             if params.get("uuid") == "random":

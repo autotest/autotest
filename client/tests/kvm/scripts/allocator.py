@@ -8,9 +8,11 @@ Auxiliary script used to allocate memory on guests.
 """
 
 
-import os, array, sys, struct, random, copy, inspect, tempfile, datetime
+import os, array, sys, struct, random, copy, inspect, tempfile, datetime, math
 
 PAGE_SIZE = 4096 # machine page size
+
+TMPFS_OVERHEAD = 0.0022 # overhead on 1MB of write data 
 
 
 class MemFill(object):
@@ -32,7 +34,8 @@ class MemFill(object):
 
         self.tmpdp = tempfile.mkdtemp()
         ret_code = os.system("mount -o size=%dM tmpfs %s -t tmpfs" %
-                             ((mem + 25), self.tmpdp))
+                             ((mem+math.ceil(mem*TMPFS_OVERHEAD)), 
+                             self.tmpdp))
         if ret_code != 0:
             if os.getuid() != 0:
                 print ("FAIL: Unable to mount tmpfs "
@@ -42,7 +45,7 @@ class MemFill(object):
         else:
             self.f = tempfile.TemporaryFile(prefix='mem', dir=self.tmpdp)
             self.allocate_by = 'L'
-            self.npages = (mem * 1024 * 1024) / PAGE_SIZE
+            self.npages = ((mem * 1024 * 1024) / PAGE_SIZE)
             self.random_key = random_key
             self.static_value = static_value
             print "PASS: Initialization"
@@ -83,7 +86,7 @@ class MemFill(object):
         @return: return array of bytes size PAGE_SIZE.
         """
         a = array.array("B")
-        for i in range(PAGE_SIZE / a.itemsize):
+        for i in range((PAGE_SIZE / a.itemsize)):
             try:
                 a.append(value)
             except:
