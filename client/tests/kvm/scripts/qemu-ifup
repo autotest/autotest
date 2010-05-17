@@ -6,3 +6,5 @@ switch=$(/usr/sbin/brctl show | awk 'NR==2 { print $1 }')
 
 /sbin/ifconfig $1 0.0.0.0 up
 /usr/sbin/brctl addif ${switch} $1
+/usr/sbin/brctl setfd ${switch} 0
+/usr/sbin/brctl stp ${switch} off
