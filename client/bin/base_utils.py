@@ -524,14 +524,14 @@ def cpu_online_map():
 def check_glibc_ver(ver):
     glibc_ver = commands.getoutput('ldd --version').splitlines()[0]
     glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
-    if glibc_ver.split('.') < ver.split('.'):
+    if utils.compare_versions(glibc_ver, ver) == 1:
         raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." % \
                                                 (glibc_ver, ver))
 
 def check_kernel_ver(ver):
     kernel_ver = utils.system_output('uname -r')
     kv_tmp = re.split(r'[-]', kernel_ver)[0:3]
-    if kv_tmp[0].split('.') < ver.split('.'):
+    if utils.compare_versions(kv_tmp[0], ver) == 1:
         raise error.TestError("Kernel too old (%s). Kernel > %s is needed." % \
                                                 (kernel_ver, ver))
 
