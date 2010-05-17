@@ -295,7 +295,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
         basename = os.path.basename(remote_path)
         logging.info("Extracting %s...", basename)
         e_cmd = "tar xjvf %s -C %s" % (remote_path, dest_dir)
-        s, o = session.get_command_status_output(e_cmd)
+        s, o = session.get_command_status_output(e_cmd, timeout=120)
         if s != 0:
             logging.error("Uncompress output:\n%s", o)
             raise error.TestFail("Failed to extract %s on guest" % basename)
