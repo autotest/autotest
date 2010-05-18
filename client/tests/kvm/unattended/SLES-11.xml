@@ -534,26 +534,27 @@
     <default>3</default>
   </runlevel>
   <scripts>
-    <post-scripts config:type="list">
+   <init-scripts config:type="list">
       <script>
         <debug config:type="boolean">true</debug>
-        <feedback config:type="boolean">false</feedback>
-        <filename>server</filename>
-        <interpreter>python</interpreter>
-        <location></location>
-        <network_needed config:type="boolean">true</network_needed>
-        <source><![CDATA[import socket, os
-os.system('dhclient')
-os.system('iptables -F')
+        <filename>config</filename>
+        <source><![CDATA[dhclient eth0
+chkconfig sshd on
+sed -i -e 's/\(PasswordAuthentication\s\)no/\1yes/g'  /etc/ssh/sshd_config
+cat <<EOF>server
+#!/usr/bin/python
+import socket, os
 server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(('',12323))
 server.listen(1)
 (client, addr) = server.accept()
 client.send("done")
 client.close()
+EOF
+python server
 ]]></source>
       </script>
-    </post-scripts>
+    </init-scripts>
   </scripts>
   <software>
     <packages config:type="list">

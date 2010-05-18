@@ -682,7 +682,7 @@ variants:
                 unattended_install:
                     pxe_image = "linux"
                     pxe_initrd = "initrd"
-                    extra_params += " -bootp /pxelinux.0 -boot n"
+                    extra_params += " -bootp /pxelinux.0 -boot cn"
                     kernel_args = "autoyast=floppy"
                     post_install_delay = 10
 
