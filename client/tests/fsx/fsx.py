@@ -27,7 +27,10 @@ class fsx(test.test):
         self.make_flags = var_ldflags + ' ' + var_cflags
 
         os.chdir(self.srcdir)
-        utils.system('patch -p1 < ../fsx-linux.diff')
+        p1 = '0001-Minor-fixes-to-PAGE_SIZE-handling.patch'
+        p2 = '0002-Enable-cross-compiling-for-fsx.patch'
+        utils.system('patch -p1 < ../%s' % p1)
+        utils.system('patch -p1 < ../%s' % p2)
         utils.system(self.make_flags + ' make fsx-linux')
 
 
