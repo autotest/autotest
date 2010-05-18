@@ -698,6 +698,18 @@ variants:
                             floppy = "images/sles11-64floppy.img"
                             pxe_dir = "boot/x86_64/loader"
 
+                variants:
+                    - 11.32:
+                        image_name = sles11-32
+                        cdrom=linux/SLES-11-DVD-i586-GM-DVD1.iso
+                        md5sum = 4958d4dde2575666355c8a1c5858bab0
+                        md5sum_1m = 1f19d4eff5bcead2a3e5b8b4212b6796
+                        unattended_install:
+                            unattended_file = unattended/SLES-11.xml
+                            tftp = "images/sles11-32/tftpboot"
+                            floppy = "images/sles11-32floppy.img"
+                            pxe_dir = "boot/i386/loader"
+
             - @Ubuntu:
                 shell_prompt = "^root@.*[\#\$]\s*$"
 
@@ -1317,7 +1329,7 @@ variants:
 
 
 virtio|virtio_blk|e1000|balloon_check:
-    only Fedora.11 Fedora.12 Win2008 WinVista Win7 OpenSUSE.11 Ubuntu-8.10-server
+    only Fedora.11 Fedora.12 Win2008 WinVista Win7 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
 
 
 variants:
