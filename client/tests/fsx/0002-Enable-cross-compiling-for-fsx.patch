@@ -1,0 +1,24 @@
+From ee9798e2d40e56427e99f40640b6158926ec2a99 Mon Sep 17 00:00:00 2001
+From: Lucas Meneghel Rodrigues <lmr@redhat.com>
+Date: Tue, 18 May 2010 10:41:01 -0300
+Subject: [PATCH 2/2] Enable cross compiling for fsx
+
+Signed-off-by: Eric Li <ericli@google.com>
+---
+ Makefile |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 337c023..0ebfec2 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,5 +1,5 @@
+ 
+-CC	=	gcc
++CC	?=	gcc
+ CFLAGS	+= 	-O -Wall -g -DAIO
+ CXXFLAGS+=	-O -Wall -g
+ 
+-- 
+1.7.0.1
+
