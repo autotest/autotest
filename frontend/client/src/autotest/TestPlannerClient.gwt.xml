@@ -15,4 +15,5 @@
   <stylesheet src='scrolltable.css'/>
   <stylesheet src='afeclient.css'/>
   <stylesheet src='tkoclient.css'/>
+  <stylesheet src='testplannerclient.css'/>
 </module>

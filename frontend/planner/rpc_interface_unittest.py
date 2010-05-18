@@ -232,5 +232,52 @@ class RpcInterfaceTest(unittest.TestCase,
         self.assertEqual(sorted(actual), sorted(expected))
 
 
+    def _test_get_overview_data_helper(self, stage):
+        self._setup_active_plan()
+        self.god.stub_function(rpc_utils, 'compute_passed')
+        rpc_utils.compute_passed.expect_call(
+                self._plan.host_set.get(host=self.hosts[0])).and_return(None)
+        rpc_utils.compute_passed.expect_call(
+                self._plan.host_set.get(host=self.hosts[1])).and_return(None)
+
+        data = {'test_configs': [{'complete': 0, 'estimated_runtime': 1}],
+                'bugs': [],
+                'machines': [{'hostname': self.hosts[0].hostname,
+                              'status': 'Running',
+                              'passed': None},
+                             {'hostname': self.hosts[1].hostname,
+                              'status': 'Running',
+                              'passed': None}]}
+        if stage < 1:
+            return {self._plan.name: data}
+
+        tko_test = self._tko_job.test_set.create(kernel=self._tko_kernel,
+                                                 machine=self._tko_machine,
+                                                 status=self._fail_status)
+        test_run = self._plan.testrun_set.create(test_job=self._planner_job,
+                                                 tko_test=tko_test,
+                                                 host=self._planner_host)
+        self._afe_job.hostqueueentry_set.update(status='Completed')
+        self._planner_host.complete = True
+        self._planner_host.save()
+        test_run.bugs.create(external_uid='bug')
+        data['bugs'] = ['bug']
+        data['test_configs'][0]['complete'] = 1
+        data['machines'][0]['status'] = 'Finished'
+        return {self._plan.name: data}
+
+
+    def test_get_overview_data_no_progress(self):
+        self.assertEqual(self._test_get_overview_data_helper(0),
+                         rpc_interface.get_overview_data([self._plan.id]))
+        self.god.check_playback()
+
+
+    def test_get_overview_data_one_finished_with_bug(self):
+        self.assertEqual(self._test_get_overview_data_helper(1),
+                         rpc_interface.get_overview_data([self._plan.id]))
+        self.god.check_playback()
+
+
 if __name__ == '__main__':
     unittest.main()

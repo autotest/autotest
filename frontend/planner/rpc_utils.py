@@ -317,3 +317,26 @@ def wrap_control_file(plan, hostname, run_verify, test_config):
             skip_verify=(not run_verify),
             verify_params=verify_params,
             **additional_wrap_arguments)
+
+
+def compute_passed(host):
+    """
+    Returns True if the host can be considered to have passed its test plan
+
+    A 'pass' means that, for every test configuration in the plan, the machine
+    had at least one AFE job with no failed tests. 'passed' could also be None,
+    meaning that this host is still running tests.
+    """
+    if not host.complete:
+        return None
+
+    test_configs = host.plan.testconfig_set.exclude(skipped_hosts=host.host)
+    for test_config in test_configs:
+        for planner_job in test_config.job_set.all():
+            bad = planner_job.testrun_set.exclude(tko_test__status__word='GOOD')
+            if not bad:
+                break
+        else:
+            # Didn't break out of loop; this test config had no good jobs
+            return False
+    return True
