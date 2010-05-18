@@ -1,0 +1,12 @@
+.overview_table {
+  border-width: 2px;
+  border-style: solid;
+}
+
+.overview_table .header {
+  background-color: lightBlue;
+}
+
+.overview_table .even {
+  background-color: lightCyan;
+}

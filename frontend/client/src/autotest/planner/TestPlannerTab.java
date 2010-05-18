@@ -26,6 +26,16 @@ public abstract class TestPlannerTab extends TabView {
         getPresenter().refresh();
     }
 
+    @Override
+    public void display() {
+        super.display();
+        setSelectorVisible(true);
+    }
+
+    protected final void setSelectorVisible(boolean visible) {
+        selector.setVisible(visible);
+    }
+
     protected abstract TestPlannerPresenter getPresenter();
     protected abstract TestPlannerDisplay getDisplay();
     protected abstract void bindDisplay();
