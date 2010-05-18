@@ -322,5 +322,41 @@ class RpcUtilsTest(unittest.TestCase,
 
         self.assertEqual(actual, expected)
 
+
+    def test_compute_passed_incomplete(self):
+        self._setup_active_plan()
+        self._planner_host.complete = False
+        self._planner_host.save()
+        self.assertEqual(rpc_utils.compute_passed(self._planner_host), None)
+
+
+    def test_compute_passed_good(self):
+        self._setup_active_plan()
+        tko_test = self._tko_job.test_set.create(kernel=self._tko_kernel,
+                                                 status=self._good_status,
+                                                 machine=self._tko_machine)
+        self._plan.testrun_set.create(test_job=self._planner_job,
+                                      tko_test=tko_test,
+                                      host=self._planner_host)
+        self._planner_host.complete = True
+        self._planner_host.save()
+
+        self.assertEqual(rpc_utils.compute_passed(self._planner_host), True)
+
+
+    def test_compute_passed_bad(self):
+        self._setup_active_plan()
+        tko_test = self._tko_job.test_set.create(kernel=self._tko_kernel,
+                                                 status=self._fail_status,
+                                                 machine=self._tko_machine)
+        self._plan.testrun_set.create(test_job=self._planner_job,
+                                      tko_test=tko_test,
+                                      host=self._planner_host)
+        self._planner_host.complete = True
+        self._planner_host.save()
+
+        self.assertEqual(rpc_utils.compute_passed(self._planner_host), False)
+
+
 if __name__ == '__main__':
     unittest.main()

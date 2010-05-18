@@ -7,6 +7,7 @@ import autotest.common.StaticDataRepository;
 import autotest.common.ui.CustomTabPanel;
 import autotest.common.ui.NotifyManager;
 import autotest.planner.machine.MachineViewTab;
+import autotest.planner.overview.OverviewTab;
 import autotest.planner.triage.TriageViewTab;
 
 import com.google.gwt.core.client.EntryPoint;
@@ -17,15 +18,12 @@ public class TestPlannerClient implements EntryPoint {
     private TestPlanSelector planSelector = new TestPlanSelector();
     private TestPlanSelectorDisplay planSelectorView = new TestPlanSelectorDisplay();
 
-    private OverviewTab overviewTab = new OverviewTab();
-    private OverviewTabDisplay overviewTabDisplay = new OverviewTabDisplay();
-
+    private OverviewTab overviewTab = new OverviewTab(planSelector);
     private MachineViewTab machineViewTab = new MachineViewTab(planSelector);
+    private TriageViewTab triageViewTab = new TriageViewTab(planSelector);
 
     private TestViewTab testViewTab = new TestViewTab();
     private TestViewTabDisplay testViewTabDisplay = new TestViewTabDisplay();
-
-    private TriageViewTab triageViewTab = new TriageViewTab(planSelector);
 
     private AutoprocessedTab autoprocessedTab = new AutoprocessedTab();
     private AutoprocessedTabDisplay autoprocessedTabDisplay = new AutoprocessedTabDisplay();
@@ -51,7 +49,6 @@ public class TestPlannerClient implements EntryPoint {
     private void finishLoading() {
         SiteCommonClassFactory.globalInitialize();
 
-        overviewTab.bindDisplay(overviewTabDisplay);
         testViewTab.bindDisplay(testViewTabDisplay);
         autoprocessedTab.bindDisplay(autoprocessedTabDisplay);
         historyTab.bindDisplay(historyTabDisplay);
@@ -60,7 +57,7 @@ public class TestPlannerClient implements EntryPoint {
         planSelector.bindDisplay(planSelectorView);
         mainTabPanel.getCommonAreaPanel().add(planSelectorView);
 
-        mainTabPanel.addTabView(overviewTabDisplay);
+        mainTabPanel.addTabView(overviewTab);
         mainTabPanel.addTabView(machineViewTab);
         mainTabPanel.addTabView(testViewTabDisplay);
         mainTabPanel.addTabView(triageViewTab);

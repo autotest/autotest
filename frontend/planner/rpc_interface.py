@@ -488,6 +488,66 @@ def get_machine_view_data(plan_id):
     return result
 
 
+def get_overview_data(plan_ids):
+    """
+    Gets the data for the Overview tab
+
+    @param plan_ids: A list of the plans, by id or name
+    @return A dictionary - keys are plan names, values are dictionaries of data:
+                machines: A list of dictionaries:
+                hostname: The machine's hostname
+                status: The host's status
+                passed: True if the machine passed the test plan. A 'pass' means
+                        that, for every test configuration in the plan, the
+                        machine had at least one AFE job with no failed tests.
+                        'passed' could also be None, meaning that this host is
+                        still running tests.
+                bugs: A list of the bugs filed
+                test_configs: A list of dictionaries, each representing a test
+                              config:
+                    complete: Number of hosts that have completed this test
+                              config
+                    estimated_runtime: Number of hours this test config is
+                                       expected to run on each host
+    """
+    plans = models.Plan.smart_get_bulk(plan_ids)
+    result = {}
+
+    for plan in plans:
+        machines = []
+        for host in plan.host_set.all():
+            machines.append({'hostname': host.host.hostname,
+                             'status': host.status(),
+                             'passed': rpc_utils.compute_passed(host)})
+
+        bugs = set()
+        for testrun in plan.testrun_set.all():
+            bugs.update(testrun.bugs.values_list('external_uid', flat=True))
+
+        test_configs = []
+        for test_config in plan.testconfig_set.all():
+            complete_statuses = afe_models.HostQueueEntry.COMPLETE_STATUSES
+            complete_jobs = test_config.job_set.filter(
+                    afe_job__hostqueueentry__status__in=complete_statuses)
+            complete_afe_jobs = afe_models.Job.objects.filter(
+                    id__in=complete_jobs.values_list('afe_job', flat=True))
+
+            complete_hosts = afe_models.Host.objects.filter(
+                    hostqueueentry__job__in=complete_afe_jobs)
+            complete_hosts |= test_config.skipped_hosts.all()
+
+            test_configs.append(
+                    {'complete': complete_hosts.distinct().count(),
+                     'estimated_runtime': test_config.estimated_runtime})
+
+        plan_data = {'machines': machines,
+                     'bugs': list(bugs),
+                     'test_configs': test_configs}
+        result[plan.name] = plan_data
+
+    return result
+
+
 def get_motd():
     return afe_rpc_utils.get_motd()
 
@@ -497,5 +557,6 @@ def get_static_data():
               'host_actions': sorted(failure_actions.HostAction.values),
               'test_actions': sorted(failure_actions.TestAction.values),
               'additional_parameter_types':
-                      sorted(model_attributes.AdditionalParameterType.values)}
+                      sorted(model_attributes.AdditionalParameterType.values),
+              'host_statuses': sorted(model_attributes.HostStatus.values)}
     return result

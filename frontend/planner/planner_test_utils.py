@@ -9,6 +9,7 @@ class PlannerTestMixin(frontend_test_utils.FrontendTestMixin):
     _PLAN_NAME = 'plan'
     GOOD_STATUS_WORD = 'GOOD'
     RUNNING_STATUS_WORD = 'RUNNING'
+    FAIL_STATUS_WORD = 'FAIL'
 
     def _planner_common_setup(self):
         self._frontend_common_setup()
@@ -73,3 +74,5 @@ class PlannerTestMixin(frontend_test_utils.FrontendTestMixin):
                 word=self.RUNNING_STATUS_WORD)
         self._good_status = tko_models.Status.objects.create(
                 word=self.GOOD_STATUS_WORD)
+        self._fail_status = tko_models.Status.objects.create(
+                word=self.FAIL_STATUS_WORD)
