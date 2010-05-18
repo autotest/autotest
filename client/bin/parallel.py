@@ -51,7 +51,17 @@ def fork_start(tmp, l):
 def _check_for_subprocess_exception(temp_dir, pid):
     ename = temp_dir + "/debug/error-%d" % pid
     if os.path.exists(ename):
-        raise pickle.load(file(ename, 'r'))
+        e = pickle.load(file(ename, 'r'))
+        # rename the error-pid file so that they do not affect later child
+        # processes that use recycled pids.
+        i = 0
+        while True:
+            pename = ename + ('-%d' % i)
+            i += 1
+            if not os.path.exists(pename):
+                break
+        os.rename(ename, pename)
+        raise e
 
 
 def fork_waitfor(tmp, pid):
