@@ -22,7 +22,7 @@ autotest_start() {
   cd /tmp
 
   log_daemon_msg "Starting monitor_db_babysitter"
-  ( ulimit -v 819200 ; \
+  ( ulimit -v 2048000 ; \
     start-stop-daemon --start --quiet --chuid $BECOME_USER \
       --background --exec $BASE_DIR/scheduler/monitor_db_babysitter )
 }
