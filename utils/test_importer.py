@@ -31,9 +31,16 @@ import logging, re, os, sys, optparse, compiler
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import models
 from autotest_lib.client.common_lib import control_data, utils
+from autotest_lib.client.common_lib import logging_config, logging_manager
 
 
-logging.basicConfig(level=logging.ERROR)
+class TestImporterLoggingConfig(logging_config.LoggingConfig):
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(TestImporterLoggingConfig, self).configure_logging(
+                                                               use_console=True,
+                                                               verbose=verbose)
+
+
 # Global
 DRY_RUN = False
 DEPENDENCIES_NOT_FOUND = set()
@@ -499,6 +506,10 @@ def main(argv):
                       default=os.path.join(os.path.dirname(__file__), '..'),
                       help='Autotest directory root')
     options, args = parser.parse_args()
+
+    logging_manager.configure_logging(TestImporterLoggingConfig(),
+                                      verbose=options.verbose)
+
     DRY_RUN = options.dry_run
     if DRY_RUN:
         logging.getLogger().setLevel(logging.WARN)
