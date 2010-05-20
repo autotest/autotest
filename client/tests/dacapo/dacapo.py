@@ -1,104 +1,109 @@
-# Dacapo test suite wrapper
-#
-import os
+import os, re, logging, shutil
 from autotest_lib.client.bin import utils, package, test
 from autotest_lib.client.bin.test_config import config_loader
 from autotest_lib.client.common_lib import error
 
 
 class dacapo(test.test):
-    version = 1
+    """
+    This autotest module runs the dacapo benchmark suite.
+
+    This benchmark suite is intended as a tool for Java benchmarking by the
+    programming language, memory management and computer architecture
+    communities. It consists of a set of open source, real world applications
+    with non-trivial memory loads. The suite is the culmination of over five
+    years work at eight institutions, as part of the DaCapo research project,
+    which was funded by a National Science Foundation ITR Grant, CCR-0085792.
+
+    @author: Lucas Meneghel Rodrigues (lucasmr@br.ibm.com)
+    @see: http://dacapobench.org/
+    """
+    version = 2
 
     def set_java_environment(self, jvm, java_root):
-        '''\
+        """
         Setup java environment variables (path and classpath in order to
         execute a specific jvm specified by the java_root variable.
         java_root - Base of the java vm installation
-        '''
+        """
         if jvm.startswith('ibm'):
-            self.java_home = os.path.join(java_root, 'jre')
+            java_home = os.path.join(java_root, 'jre')
         else:
-            self.java_home = java_root
-        self.java_bin = os.path.join(self.java_home, 'bin')
-        self.java_lib =  os.path.join(self.java_home, 'lib')
+            java_home = java_root
+        java_bin = os.path.join(java_home, 'bin')
+        java_lib =  os.path.join(java_home, 'lib')
         os.environ['JAVA_ROOT'] = java_root
-        os.environ['JAVA_HOME'] = self.java_home
-        os.environ['JRE_HOME'] = self.java_home
-        os.environ['CLASSPATH'] = self.java_lib
-        os.environ['JAVA_BINDIR'] = self.java_bin
-        os.environ['PATH'] = self.java_bin + ':' + os.environ['PATH']
+        os.environ['JAVA_HOME'] = java_home
+        os.environ['JRE_HOME'] = java_home
+        os.environ['CLASSPATH'] = java_lib
+        os.environ['JAVA_BINDIR'] = java_bin
+        os.environ['PATH'] = java_bin + ':' + os.environ['PATH']
 
 
-    def execute(self, test = 'antlr', config = './dacapo.cfg', jvm = 'ibm14-ppc64'):
-        # Load the test configuration. If needed, use autotest tmpdir to write
-        # files.
-        my_config = config_loader(config, self.tmpdir)
-        # Directory where we will cache the dacapo jar file
-        # and the jvm package files
-        self.cachedir = os.path.join(self.bindir, 'cache')
-        if not os.path.isdir(self.cachedir):
-            os.makedirs(self.cachedir)
+    def run_once(self, test='antlr', config='./dacapo.cfg', jvm='default'):
+        cfg = config_loader(cfg=config, tmpdir=self.tmpdir, raise_errors=True)
+        self.test = test
+        cachedir = os.path.join(self.bindir, 'cache')
+        if not os.path.isdir(cachedir):
+            os.makedirs(cachedir)
 
-        # Get dacapo jar URL
-        # (It's possible to override the default URL that points to the
-        # sourceforge repository)
-        if my_config.get('dacapo', 'override_default_url') == 'no':
-            self.dacapo_url = my_config.get('dacapo', 'tarball_url')
+        dacapo_url = cfg.get('dacapo', 'tarball_url')
+        dacapo_md5 = cfg.get('dacapo', 'package_md5')
+        dacapo_pkg = utils.unmap_url_cache(cachedir, dacapo_url, dacapo_md5)
+
+        if not jvm == 'default':
+            # Get the jvm package
+            jvm_pkg_url = cfg.get(jvm, 'jvm_pkg_url')
+            jvm_pkg_md5 = cfg.get(jvm, 'package_md5')
+            jvm_pkg = utils.unmap_url_cache(cachedir, jvm_pkg_url, jvm_pkg_md5)
+            # Install it
+            package.install(jvm_pkg)
+            # Basic Java environment variables setup
+            java_root = cfg.get(jvm, 'java_root')
+            self.set_java_environment(jvm, java_root)
+
+        if cfg.get('global', 'use_global') == 'yes':
+            iterations = cfg.get('global', 'iterations')
+            workload = cfg.get('global', 'workload')
         else:
-            self.dacapo_url = my_config.get('dacapo', 'tarball_url_alt')
-        if not self.dacapo_url:
-            raise error.TestError('Could not read dacapo URL from conf file')
-        # We can cache the dacapo package file if we take some
-        # precautions (checking md5 sum of the downloaded file)
-        self.dacapo_md5 = my_config.get('dacapo', 'package_md5')
-        if not self.dacapo_md5:
-            e_msg = 'Could not read dacapo package md5sum from conf file'
-            raise error.TestError(e_msg)
-        self.dacapo_pkg = \
-        utils.unmap_url_cache(self.cachedir, self.dacapo_url,
-                                       self.dacapo_md5)
+            iterations = cfg.get(test, 'iterations')
+            workload = cfg.get(test, 'workload')
 
-        # Get jvm package URL
-        self.jvm_pkg_url = my_config.get(jvm, 'jvm_pkg_url')
-        if not self.jvm_pkg_url:
-            raise error.TestError('Could not read java vm URL from conf file')
-        # Let's cache the jvm package as well
-        self.jvm_pkg_md5 = my_config.get(jvm, 'package_md5')
-        if not self.jvm_pkg_md5:
-            raise error.TestError('Could not read java package_md5 from conf file')
-        self.jvm_pkg = \
-        utils.unmap_url_cache(self.cachedir, self.jvm_pkg_url,
-                                       self.jvm_pkg_md5)
+        verbose = '-v '
+        workload = '-s %s ' % workload
+        iterations = '-n %s ' % iterations
+        self.scratch = os.path.join(self.resultsdir, test)
+        scratch = '--scratch-directory %s ' % self.scratch
+        args = verbose + workload + scratch + iterations + test
 
-        # Install the jvm pakage
-        package.install(self.jvm_pkg)
+        self.raw_result_file = os.path.join(self.resultsdir,
+                                            'raw_output_%s' % self.iteration)
+        raw_result = open(self.raw_result_file, 'w')
 
-        # Basic Java environment variables setup
-        self.java_root = my_config.get(jvm, 'java_root')
-        if not self.java_root:
-            raise error.TestError('Could not read java root dir from conf file')
-        self.set_java_environment(jvm, self.java_root)
-
-        # If use_global is set to 'yes', then we want to use the global
-        # setting instead of per test settings
-        if my_config.get('global', 'use_global') == 'yes':
-            self.iterations = my_config.get('global', 'iterations')
-            self.workload = my_config.get('global', 'workload')
-        else:
-            self.iterations = my_config.get(test, 'iterations')
-            self.workload = my_config.get(test, 'workload')
-
-        self.verbose = '-v '
-        self.workload = '-s %s ' % self.workload
-        self.iterations = '-n %s ' % self.iterations
-        self.scratch = '-scratch %s ' % os.path.join(self.resultsdir, test)
-        # Compose the arguments string
-        self.args = self.verbose + self.workload + self.scratch \
-        + self.iterations + test
-        # Execute the actual test
+        logging.info('Running dacapo benchmark %s', test)
         try:
-            utils.system('java -jar %s %s' % (self.dacapo_pkg, self.args))
-        except:
-            e_msg = \
-            'Test %s has failed, command line options "%s"' % (test, self.args)
-            raise error.TestError(e_msg)
+            cmd = 'java -jar %s %s' % (dacapo_pkg, args)
+            results = utils.run(command=cmd, stdout_tee=raw_result,
+                                stderr_tee=raw_result)
+            self.results = results.stderr
+            raw_result.close()
+        except CmdError, e:
+            raise error.TestError('Dacapo benchmark %s has failed: %s' %
+                                  (test, e))
+
+
+    def postprocess_iteration(self):
+        result_line = self.results.splitlines()[-1]
+        time_regexp = re.compile('PASSED in (\d+) ms')
+        matches = time_regexp.findall(result_line)
+        if len(matches) == 1:
+            keylist = {}
+            logging.info('Benchmark %s completed in %s ms', self.test,
+                         matches[0])
+            keylist[self.test] = int(matches[0])
+            self.write_perf_keyval(keylist)
+            # Remove scratch directory
+            shutil.rmtree(self.scratch)
+        else:
+            logging.error('Problems executing benchmark %s, not recording '
+                          'results on the perf keyval', self.test)

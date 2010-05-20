@@ -1,8 +1,8 @@
 """
 Wrapper around ConfigParser to manage testcases configuration.
-"""
 
-__author__ = 'rsalveti@linux.vnet.ibm.com (Ricardo Salveti de Araujo)'
+@author rsalveti@linux.vnet.ibm.com (Ricardo Salveti de Araujo)
+"""
 
 from ConfigParser import ConfigParser
 from StringIO import StringIO
@@ -13,21 +13,25 @@ from autotest_lib.client.common_lib import utils
 __all__ = ['config_loader']
 
 class config_loader:
-    """Base class of the configuration parser"""
-    def __init__(self, cfg, tmpdir = '/tmp'):
-        """\
+    """
+    Base class of the configuration parser
+    """
+    def __init__(self, cfg, tmpdir='/tmp', raise_errors=False):
+        """
         Instantiate ConfigParser and provide the file like object that we'll
         use to read configuration data from.
-        Args:
-                * cfg: Where we'll get configuration data. It can be either:
-                        * A URL containing the file
-                        * A valid file path inside the filesystem
-                        * A string containing configuration data
-                * tmpdir: Where we'll dump the temporary conf files. The default
-                is the /tmp directory.
+        @param cfg: Where we'll get configuration data. It can be either:
+                * A URL containing the file
+                * A valid file path inside the filesystem
+                * A string containing configuration data
+        @param tmpdir: Where we'll dump the temporary conf files.
+        @param raise_errors: Whether config value absences will raise
+                ValueError exceptions.
         """
         # Base Parser
         self.parser = ConfigParser()
+        # Raise errors when lacking values
+        self.raise_errors = raise_errors
         # File is already a file like object
         if hasattr(cfg, 'read'):
             self.cfg = cfg
@@ -54,18 +58,30 @@ class config_loader:
 
 
     def get(self, section, option, default=None):
-        """Get the value of a option.
+        """
+        Get the value of a option.
 
         Section of the config file and the option name.
         You can pass a default value if the option doesn't exist.
+
+        @param section: Configuration file section.
+        @param option: Option we're looking after.
+        @default: In case the option is not available and raise_errors is set
+                to False, return the default.
         """
         if not self.parser.has_option(section, option):
-            return default
+            if self.raise_errors:
+                raise ValueError('No value for option %s. Please check your '
+                                 'config file "%s".' % (option, self.cfg))
+            else:
+                return default
+
         return self.parser.get(section, option)
 
 
     def set(self, section, option, value):
-        """Set an option.
+        """
+        Set an option.
 
         This change is not persistent unless saved with 'save()'.
         """
@@ -75,13 +91,17 @@ class config_loader:
 
 
     def remove(self, section, option):
-        """Remove an option."""
+        """
+        Remove an option.
+        """
         if self.parser.has_section(section):
             self.parser.remove_option(section, option)
 
 
     def save(self):
-        """Save the configuration file with all modifications"""
+        """
+        Save the configuration file with all modifications
+        """
         if not self.cfg:
             return
         fileobj = file(self.cfg, 'w')
