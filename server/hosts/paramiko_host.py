@@ -98,17 +98,23 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         return user_keys
 
 
-    @staticmethod
-    def _check_transport_error(transport):
+    def _check_transport_error(self, transport):
         error = transport.get_exception()
         if error:
             transport.close()
             raise error
 
 
+    def _connect_socket(self):
+        """Return a socket for use in instantiating a paramiko transport. Does
+        not have to be a literal socket, it can be anything that the
+        paramiko.Transport constructor accepts."""
+        return self.hostname, self.port
+
+
     def _connect_transport(self, pkey):
         for _ in xrange(self.CONNECT_TIMEOUT_RETRIES):
-            transport = paramiko.Transport((self.hostname, self.port))
+            transport = paramiko.Transport(self._connect_socket())
             completed = threading.Event()
             transport.start_client(completed)
             completed.wait(self.CONNECT_TIMEOUT_SECONDS)
