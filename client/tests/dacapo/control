@@ -15,29 +15,19 @@ National Science Foundation ITR Grant, CCR-0085792.
 
 dacapo_base_config = '''
 [dacapo]
-tarball_url = http://easynews.dl.sourceforge.net/sourceforge/dacapobench/dacapo-2006-10-MR2.jar
-tarball_url_alt = http://myhost.foo.com/packages/dacapobench/dacapo-2006-10-MR2.jar
-override_default_url = no
-package_md5 = 35cf23b26ac1b4fb83f11445300f492f
+tarball_url = http://downloads.sourceforge.net/project/dacapobench/9.12-bach/dacapo-9.12-bach.jar
+package_md5 = 3f5c11927268b567bc90629c17ec446b
 
 [global]
 iterations = 5
 workload = large
 use_global = yes
 
-[small]
+[avrora]
 iterations = 0
 workload = large
 
-[antlr]
-iterations = 0
-workload = large
-
-[bloat]
-iterations = 0
-workload = large
-
-[chart]
+[batik]
 iterations = 0
 workload = large
 
@@ -49,7 +39,7 @@ workload = large
 iterations = 0
 workload = large
 
-[hsqldb]
+[h2]
 iterations = 0
 workload = large
 
@@ -57,15 +47,31 @@ workload = large
 iterations = 0
 workload = large
 
-[lusearch]
-iterations = 0
-workload = large
-
 [luindex]
 iterations = 0
 workload = large
 
+[lusearch]
+iterations = 0
+workload = large
+
 [pmd]
+iterations = 0
+workload = large
+
+[sunflow]
+iterations = 0
+workload = large
+
+[tomcat]
+iterations = 0
+workload = large
+
+[tradebeans]
+iterations = 0
+workload = large
+
+[tradesoap]
 iterations = 0
 workload = large
 
@@ -96,18 +102,19 @@ java_root = /usr/java/jre1.6.0_03
 package_md5 = e94c47adedf329200fc975662d667307
 '''
 
-# This shows the flexibility of our test configuration system
 dacapo_config = dacapo_base_config + java_config
-#dacapo_config = '/tmp/dacapo.cfg'
-#dacapo_config = 'http://my-host.foo.com/repository/dacapo.cfg'
 
-# list of jvm entries inside the configuration file
-jvm_list = ['ibm14-ppc64', 'ibm15-ppc64']
+# list of jvm entries inside the configuration file. 'default' means the test
+# will use the jvm installed on the machine.
+jvm_list = ['default']
+
 # list of dacapo tests that will be executed
-dacapo_tests = ['antlr', 'bloat', 'chart', 'eclipse', 'fop', 'hsqldb',
-                'jython', 'lusearch', 'luindex', 'pmd', 'xalan']
+dacapo_tests = ['avrora', 'batik', 'eclipse', 'fop', 'h2', 'jython', 'luindex',
+                'lusearch', 'pmd', 'sunflow', 'tomcat', 'tradebeans',
+                'tradesoap', 'xalan']
 
 # No go trough the tests and jvms
 for jvm in jvm_list:
     for test in dacapo_tests:
-        job.run_test('dacapo', test=test, config=dacapo_config, jvm=jvm, tag = test + '-' + jvm)
+        t = test + '-' + jvm
+        job.run_test('dacapo', test=test, config=dacapo_config, jvm=jvm, tag=t)
