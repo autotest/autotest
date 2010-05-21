@@ -524,9 +524,9 @@ def cpu_online_map():
 def check_glibc_ver(ver):
     glibc_ver = commands.getoutput('ldd --version').splitlines()[0]
     glibc_ver = re.search(r'(\d+\.\d+(\.\d+)?)', glibc_ver).group()
-    if utils.compare_versions(glibc_ver, ver) == 1:
-        raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." % \
-                                                (glibc_ver, ver))
+    if utils.compare_versions(glibc_ver, ver) == -1:
+        raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." %
+                              (glibc_ver, ver))
 
 def check_kernel_ver(ver):
     kernel_ver = utils.system_output('uname -r')
