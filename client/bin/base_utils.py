@@ -531,9 +531,10 @@ def check_glibc_ver(ver):
 def check_kernel_ver(ver):
     kernel_ver = utils.system_output('uname -r')
     kv_tmp = re.split(r'[-]', kernel_ver)[0:3]
-    if utils.compare_versions(kv_tmp[0], ver) == 1:
-        raise error.TestError("Kernel too old (%s). Kernel > %s is needed." % \
-                                                (kernel_ver, ver))
+    # In compare_versions, if v1 < v2, return value == -1
+    if utils.compare_versions(kv_tmp[0], ver) == -1:
+        raise error.TestError("Kernel too old (%s). Kernel > %s is needed." %
+                              (kernel_ver, ver))
 
 
 def human_format(number):
