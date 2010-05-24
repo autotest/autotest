@@ -1,4 +1,4 @@
-package autotest.planner.machine;
+package autotest.planner.test;
 
 import autotest.common.ui.NotifyManager;
 import autotest.planner.TestPlannerDisplay;
@@ -10,13 +10,13 @@ import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.SimplePanel;
 
 
-public class MachineViewDisplay implements TestPlannerDisplay, MachineViewPresenter.Display {
+public class TestViewDisplay implements TestPlannerDisplay, TestViewPresenter.Display {
 
     private Panel container = new SimplePanel();
 
     @Override
     public void initialize(HTMLPanel htmlPanel) {
-        htmlPanel.add(container, "machine_view_main");
+        htmlPanel.add(container, "test_view_table");
     }
 
     @Override
@@ -31,7 +31,7 @@ public class MachineViewDisplay implements TestPlannerDisplay, MachineViewPresen
     }
 
     @Override
-    public TestPlannerTableDisplay generateMachineViewTableDisplay() {
+    public TestPlannerTableDisplay generateTestViewTableDisplay() {
         TestPlannerTableImpl display = new TestPlannerTableImpl();
         container.add(display);
         return display;

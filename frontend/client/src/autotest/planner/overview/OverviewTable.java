@@ -1,12 +1,10 @@
 package autotest.planner.overview;
 
 import autotest.common.JSONArrayList;
-import autotest.common.JsonManipulator;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
-import autotest.common.JsonManipulator.IFactory;
+import autotest.common.Utils.JsonObjectFactory;
 
-import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
@@ -26,7 +24,7 @@ public class OverviewTable {
     }
 
     private static class Machine {
-        static IFactory<Machine> FACTORY = new IFactory<Machine>() {
+        static JsonObjectFactory<Machine> FACTORY = new JsonObjectFactory<Machine>() {
             public Machine fromJsonObject(JSONObject object) {
                 return Machine.fromJsonObject(object);
             }
@@ -58,7 +56,7 @@ public class OverviewTable {
     }
 
     private static class TestConfig {
-        static IFactory<TestConfig> FACTORY = new IFactory<TestConfig>() {
+        static JsonObjectFactory<TestConfig> FACTORY = new JsonObjectFactory<TestConfig>() {
             public TestConfig fromJsonObject(JSONObject object) {
                 return TestConfig.fromJsonObject(object);
             }
@@ -91,14 +89,14 @@ public class OverviewTable {
 
         static PlanData fromJsonObject(JSONObject planData) {
             JSONArray machinesJson = planData.get("machines").isArray();
-            List<Machine> machines = JsonManipulator.createList(machinesJson, Machine.FACTORY);
+            List<Machine> machines = Utils.createList(machinesJson, Machine.FACTORY);
 
             JSONArray bugsJson = planData.get("bugs").isArray();
             List<String> bugs = Arrays.asList(Utils.JSONtoStrings(bugsJson));
 
             JSONArray testConfigsJson = planData.get("test_configs").isArray();
             List<TestConfig> testConfigs =
-                    JsonManipulator.createList(testConfigsJson, TestConfig.FACTORY);
+                    Utils.createList(testConfigsJson, TestConfig.FACTORY);
 
             return new PlanData(machines, bugs, testConfigs);
         }
@@ -154,7 +152,7 @@ public class OverviewTable {
                 remainingHours += remaining * config.estimatedRuntime;
             }
 
-            String progress = percentage(runHours, runHours + remainingHours);
+            String progress = Utils.percentage(runHours, runHours + remainingHours);
             String bugs = String.valueOf(planData.bugs.size());
 
             int passed = 0;
@@ -179,26 +177,14 @@ public class OverviewTable {
             displayData.add(progress);
             displayData.add(bugs);
             for (String status : statuses) {
-                displayData.add(numberAndPercentage(statusCounts.get(status), total));
+                displayData.add(Utils.numberAndPercentage(statusCounts.get(status), total));
             }
-            displayData.add(numberAndPercentage(passed, passFailTotal));
-            displayData.add(numberAndPercentage(passFailTotal - passed, passFailTotal));
+            displayData.add(Utils.numberAndPercentage(passed, passFailTotal));
+            displayData.add(Utils.numberAndPercentage(passFailTotal - passed, passFailTotal));
             displayData.add(runNumber + " (" + runHours + " hours)");
             displayData.add(remainingNumber + " (" + remainingHours + " hours)");
 
             display.addData(entry.getKey(), displayData);
         }
-    }
-
-    private String percentage(int num, int total) {
-        if (total == 0) {
-            return "N/A";
-        }
-        NumberFormat format = NumberFormat.getFormat("##0.#%");
-        return format.format(num / (double) total);
-    }
-
-    private String numberAndPercentage(int num, int total) {
-        return num + " (" + percentage(num, total) + ")";
     }
 }
