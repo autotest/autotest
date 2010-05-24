@@ -63,7 +63,7 @@ class FrontendTestMixin(object):
 
 
     def _frontend_common_setup(self, fill_data=True):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         setup_test_environment.set_up()
         if fill_data:
             self._fill_in_test_data()

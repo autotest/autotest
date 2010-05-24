@@ -367,6 +367,48 @@ def process_failures(failure_ids, host_action, test_action, labels=(),
                 bugs=bugs, reason=reason, invalidate=invalidate)
 
 
+def get_machine_view_data(plan_id):
+    """
+    Gets the data required for the web frontend Machine View.
+
+    @param plan_id: The ID of the test plan
+    @return An array. Each element is a dictionary:
+                    machine: The name of the machine
+                    status: The machine's status (one of
+                            model_attributes.HostStatus)
+                    bug_ids: List of the IDs for the bugs filed
+                    tests_run: An array of dictionaries:
+                            test_name: The TKO name of the test
+                            success: True if the test passed
+    """
+    plan = models.Plan.smart_get(plan_id)
+    result = []
+    for host in plan.host_set.all():
+        tests_run = []
+
+        machine = host.host.hostname
+        host_status = host.status()
+        bug_ids = set()
+
+        testruns = plan.testrun_set.filter(host=host, invalidated=False,
+                                           finalized=True)
+        for testrun in testruns:
+            test_name = testrun.tko_test.test
+            test_status = testrun.tko_test.status.word
+            testrun_bug_ids = testrun.bugs.all().values_list(
+                    'external_uid', flat=True)
+
+            tests_run.append({'test_name': test_name,
+                              'status': test_status})
+            bug_ids.update(testrun_bug_ids)
+
+        result.append({'machine': machine,
+                       'status': host_status,
+                       'tests_run': tests_run,
+                       'bug_ids': list(bug_ids)})
+    return result
+
+
 def generate_test_config(alias, afe_test_name=None,
                          estimated_runtime=0, **kwargs):
     """
@@ -446,48 +488,6 @@ def generate_additional_parameters(hostname_regex, param_type, param_values):
             'param_values': param_values}
 
 
-def get_machine_view_data(plan_id):
-    """
-    Gets the data required for the web frontend Machine View.
-
-    @param plan_id: The ID of the test plan
-    @return An array. Each element is a dictionary:
-                    machine: The name of the machine
-                    status: The machine's status (one of
-                            model_attributes.HostStatus)
-                    bug_ids: List of the IDs for the bugs filed
-                    tests_run: An array of dictionaries:
-                            test_name: The TKO name of the test
-                            success: True if the test passed
-    """
-    plan = models.Plan.smart_get(plan_id)
-    result = []
-    for host in plan.host_set.all():
-        tests_run = []
-
-        machine = host.host.hostname
-        host_status = host.status()
-        bug_ids = set()
-
-        testruns = plan.testrun_set.filter(host=host, invalidated=False,
-                                           finalized=True)
-        for testrun in testruns:
-            test_name = testrun.tko_test.test
-            test_status = testrun.tko_test.status.word
-            testrun_bug_ids = testrun.bugs.all().values_list(
-                    'external_uid', flat=True)
-
-            tests_run.append({'test_name': test_name,
-                              'status': test_status})
-            bug_ids.update(testrun_bug_ids)
-
-        result.append({'machine': machine,
-                       'status': host_status,
-                       'tests_run': tests_run,
-                       'bug_ids': list(bug_ids)})
-    return result
-
-
 def get_overview_data(plan_ids):
     """
     Gets the data for the Overview tab
@@ -516,9 +516,16 @@ def get_overview_data(plan_ids):
     for plan in plans:
         machines = []
         for host in plan.host_set.all():
+            pass_status = rpc_utils.compute_test_config_status(host)
+            if pass_status == rpc_utils.ComputeTestConfigStatusResult.PASS:
+                passed = True
+            elif pass_status == rpc_utils.ComputeTestConfigStatusResult.FAIL:
+                passed = False
+            else:
+                passed = None
             machines.append({'hostname': host.host.hostname,
                              'status': host.status(),
-                             'passed': rpc_utils.compute_passed(host)})
+                             'passed': passed})
 
         bugs = set()
         for testrun in plan.testrun_set.all():
@@ -526,9 +533,8 @@ def get_overview_data(plan_ids):
 
         test_configs = []
         for test_config in plan.testconfig_set.all():
-            complete_statuses = afe_models.HostQueueEntry.COMPLETE_STATUSES
             complete_jobs = test_config.job_set.filter(
-                    afe_job__hostqueueentry__status__in=complete_statuses)
+                    afe_job__hostqueueentry__complete=True)
             complete_afe_jobs = afe_models.Job.objects.filter(
                     id__in=complete_jobs.values_list('afe_job', flat=True))
 
@@ -545,6 +551,61 @@ def get_overview_data(plan_ids):
                      'test_configs': test_configs}
         result[plan.name] = plan_data
 
+    return result
+
+
+def get_test_view_data(plan_id):
+    """
+    Gets the data for the Test View tab
+
+    @param plan_id: The name or ID of the test plan
+    @return A dictionary - Keys are test config aliases, values are dictionaries
+                           of data:
+                total_machines: Total number of machines scheduled for this test
+                                config. Excludes machines that are set to skip
+                                this config.
+                machine_status: A dictionary:
+                    key: The hostname
+                    value: The status of the machine: one of 'Scheduled',
+                           'Running', 'Pass', or 'Fail'
+                total_runs: Total number of runs of this test config. Includes
+                            repeated runs (from triage re-run)
+                total_passes: Number of runs that resulted in a 'pass', meaning
+                              that none of the tests in the test config had any
+                              status other than GOOD.
+                bugs: List of bugs that were filed under this test config
+    """
+    plan = models.Plan.smart_get(plan_id)
+    result = {}
+    for test_config in plan.testconfig_set.all():
+        skipped_host_ids = test_config.skipped_hosts.values_list('id',
+                                                                 flat=True)
+        hosts = plan.host_set.exclude(host__id__in=skipped_host_ids)
+        total_machines = hosts.count()
+
+        machine_status = {}
+        for host in hosts:
+            machine_status[host.host.hostname] = (
+                    rpc_utils.compute_test_config_status(host, test_config))
+
+        planner_jobs = test_config.job_set.all()
+        total_runs = planner_jobs.count()
+        total_passes = 0
+        for planner_job in planner_jobs:
+            if planner_job.all_tests_passed():
+                total_passes += 1
+
+        test_runs = plan.testrun_set.filter(
+                test_job__in=test_config.job_set.all())
+        bugs = set()
+        for test_run in test_runs:
+            bugs.update(test_run.bugs.values_list('external_uid', flat=True))
+
+        result[test_config.alias] = {'total_machines': total_machines,
+                                     'machine_status': machine_status,
+                                     'total_runs': total_runs,
+                                     'total_passes': total_passes,
+                                     'bugs': list(bugs)}
     return result
 
 

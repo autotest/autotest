@@ -3,6 +3,7 @@ package autotest.common;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Element;
 import com.google.gwt.http.client.URL;
+import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
@@ -13,6 +14,7 @@ import com.google.gwt.user.client.ui.HTMLPanel;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,7 +41,7 @@ public class Utils {
         }
         return result;
     }
-    
+
     /**
      * Converts a collection of Java <code>Integers</code>s into a <code>JSONArray
      * </code> of <code>JSONNumber</code>s.
@@ -53,7 +55,7 @@ public class Utils {
     }
 
     /**
-     * Converts a <code>JSONArray</code> of <code>JSONStrings</code> to an 
+     * Converts a <code>JSONArray</code> of <code>JSONStrings</code> to an
      * array of Java <code>Strings</code>.
      */
     public static String[] JSONtoStrings(JSONArray strings) {
@@ -65,7 +67,7 @@ public class Utils {
     }
 
     /**
-     * Converts a <code>JSONArray</code> of <code>JSONObjects</code> to an 
+     * Converts a <code>JSONArray</code> of <code>JSONObjects</code> to an
      * array of Java <code>Strings</code> by grabbing the specified field from
      * each object.
      */
@@ -77,11 +79,19 @@ public class Utils {
         }
         return result;
     }
-    
+
     public static JSONObject mapToJsonObject(Map<String, String> map) {
         JSONObject result = new JSONObject();
         for (Map.Entry<String, String> entry : map.entrySet()) {
             result.put(entry.getKey(), new JSONString(entry.getValue()));
+        }
+        return result;
+    }
+
+    public static Map<String, String> jsonObjectToMap(JSONObject object) {
+        Map<String, String> result = new HashMap<String, String>();
+        for (String key : object.keySet()) {
+            result.put(key, jsonToString(object.get(key)));
         }
         return result;
     }
@@ -97,7 +107,7 @@ public class Utils {
         }
         return list.get(0);
     }
-    
+
     public static JSONObject getSingleObjectFromArray(JSONArray array) {
         return getSingleObjectFromList(new JSONArrayList<JSONObject>(array));
     }
@@ -109,14 +119,14 @@ public class Utils {
         }
         return dest;
     }
-    
+
     public static String escape(String text) {
         for (String[] mapping : escapeMappings) {
             text = text.replace(mapping[0], mapping[1]);
         }
         return text;
     }
-    
+
     public static String unescape(String text) {
         // must iterate in reverse order
         for (int i = escapeMappings.length - 1; i >= 0; i--) {
@@ -124,13 +134,13 @@ public class Utils {
         }
         return text;
     }
-    
+
     public static <T> List<T> wrapObjectWithList(T object) {
         List<T> list = new ArrayList<T>();
         list.add(object);
         return list;
     }
-    
+
     public static <T> String joinStrings(String joiner, List<T> objects, boolean wantBlanks) {
         StringBuilder result = new StringBuilder();
         boolean first = true;
@@ -148,12 +158,12 @@ public class Utils {
         }
         return result.toString();
     }
-    
+
     public static <T> String joinStrings(String joiner, List<T> objects) {
         return joinStrings(joiner, objects, false);
     }
-    
-    public static Map<String,String> decodeUrlArguments(String urlArguments, 
+
+    public static Map<String,String> decodeUrlArguments(String urlArguments,
                                                         Map<String, String> arguments) {
         String[] components = urlArguments.split("&");
         for (String component : components) {
@@ -174,7 +184,7 @@ public class Utils {
     private static String decodeComponent(String component) {
         return URL.decodeComponent(component.replace("%27", "'"));
     }
-    
+
     public static String encodeUrlArguments(Map<String, String> arguments) {
         List<String> components = new ArrayList<String>();
         for (Map.Entry<String, String> entry : arguments.entrySet()) {
@@ -214,7 +224,7 @@ public class Utils {
                 return Integer.toString((int) doubleValue);
             }
             return Double.toString(doubleValue);
-            
+
         }
         if (value.isNull() != null) {
             return JSON_NULL;
@@ -229,7 +239,7 @@ public class Utils {
         map.put(key, defaultValue);
         return defaultValue;
     }
-    
+
     public static JSONValue setDefaultValue(JSONObject object, String key, JSONValue defaultValue) {
         if (object.containsKey(key)) {
             return object.get(key);
@@ -237,7 +247,7 @@ public class Utils {
         object.put(key, defaultValue);
         return defaultValue;
     }
-    
+
     public static List<String> splitList(String list, String splitRegex) {
         String[] parts = list.split(splitRegex);
         List<String> finalParts = new ArrayList<String>();
@@ -248,11 +258,11 @@ public class Utils {
         }
         return finalParts;
     }
-    
+
     public static List<String> splitList(String list) {
         return splitList(list, ",");
     }
-    
+
     public static List<String> splitListWithSpaces(String list) {
         return splitList(list, "[,\\s]+");
     }
@@ -269,15 +279,39 @@ public class Utils {
     public static void openUrlInNewWindow(String url) {
         Window.open(url, "_blank", "");
     }
-    
+
     public static HTMLPanel divToPanel(String elementId) {
         Element divElement = Document.get().getElementById(elementId);
         divElement.getParentElement().removeChild(divElement);
         return new HTMLPanel(divElement.getInnerHTML());
     }
-    
+
     public static void setElementVisible(String elementId, boolean visible) {
         String display = visible ? "block" : "none";
         Document.get().getElementById(elementId).getStyle().setProperty("display", display);
+    }
+
+    public static String percentage(int num, int total) {
+        if (total == 0) {
+            return "N/A";
+        }
+        NumberFormat format = NumberFormat.getFormat("##0.#%");
+        return format.format(num / (double) total);
+    }
+
+    public static String numberAndPercentage(int num, int total) {
+        return num + " (" + percentage(num, total) + ")";
+    }
+
+    public static interface JsonObjectFactory<T> {
+        public T fromJsonObject(JSONObject object);
+    }
+
+    public static <T> List<T> createList(JSONArray objects, JsonObjectFactory<T> factory) {
+        List<T> list = new ArrayList<T>();
+        for (JSONObject object : new JSONArrayList<JSONObject>(objects)) {
+            list.add(factory.fromJsonObject(object));
+        }
+        return list;
     }
 }

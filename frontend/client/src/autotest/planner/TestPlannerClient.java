@@ -8,6 +8,7 @@ import autotest.common.ui.CustomTabPanel;
 import autotest.common.ui.NotifyManager;
 import autotest.planner.machine.MachineViewTab;
 import autotest.planner.overview.OverviewTab;
+import autotest.planner.test.TestViewTab;
 import autotest.planner.triage.TriageViewTab;
 
 import com.google.gwt.core.client.EntryPoint;
@@ -20,10 +21,8 @@ public class TestPlannerClient implements EntryPoint {
 
     private OverviewTab overviewTab = new OverviewTab(planSelector);
     private MachineViewTab machineViewTab = new MachineViewTab(planSelector);
+    private TestViewTab testViewTab = new TestViewTab(planSelector);
     private TriageViewTab triageViewTab = new TriageViewTab(planSelector);
-
-    private TestViewTab testViewTab = new TestViewTab();
-    private TestViewTabDisplay testViewTabDisplay = new TestViewTabDisplay();
 
     private AutoprocessedTab autoprocessedTab = new AutoprocessedTab();
     private AutoprocessedTabDisplay autoprocessedTabDisplay = new AutoprocessedTabDisplay();
@@ -49,7 +48,6 @@ public class TestPlannerClient implements EntryPoint {
     private void finishLoading() {
         SiteCommonClassFactory.globalInitialize();
 
-        testViewTab.bindDisplay(testViewTabDisplay);
         autoprocessedTab.bindDisplay(autoprocessedTabDisplay);
         historyTab.bindDisplay(historyTabDisplay);
 
@@ -59,7 +57,7 @@ public class TestPlannerClient implements EntryPoint {
 
         mainTabPanel.addTabView(overviewTab);
         mainTabPanel.addTabView(machineViewTab);
-        mainTabPanel.addTabView(testViewTabDisplay);
+        mainTabPanel.addTabView(testViewTab);
         mainTabPanel.addTabView(triageViewTab);
         mainTabPanel.addTabView(autoprocessedTabDisplay);
         mainTabPanel.addTabView(historyTabDisplay);

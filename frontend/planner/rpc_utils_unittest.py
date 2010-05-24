@@ -323,14 +323,27 @@ class RpcUtilsTest(unittest.TestCase,
         self.assertEqual(actual, expected)
 
 
-    def test_compute_passed_incomplete(self):
+    def test_compute_test_config_status_scheduled(self):
         self._setup_active_plan()
-        self._planner_host.complete = False
-        self._planner_host.save()
-        self.assertEqual(rpc_utils.compute_passed(self._planner_host), None)
+        self._planner_job.delete()
+
+        self.assertEqual(
+                rpc_utils.compute_test_config_status(self._planner_host),
+                rpc_utils.ComputeTestConfigStatusResult.SCHEDULED)
 
 
-    def test_compute_passed_good(self):
+    def test_compute_test_config_status_running(self):
+        self._setup_active_plan()
+        self.god.stub_function(models.Job, 'active')
+        models.Job.active.expect_call().and_return(True)
+
+        self.assertEqual(
+                rpc_utils.compute_test_config_status(self._planner_host),
+                rpc_utils.ComputeTestConfigStatusResult.RUNNING)
+        self.god.check_playback()
+
+
+    def test_compute_test_config_status_good(self):
         self._setup_active_plan()
         tko_test = self._tko_job.test_set.create(kernel=self._tko_kernel,
                                                  status=self._good_status,
@@ -340,11 +353,16 @@ class RpcUtilsTest(unittest.TestCase,
                                       host=self._planner_host)
         self._planner_host.complete = True
         self._planner_host.save()
+        self.god.stub_function(models.Job, 'active')
+        models.Job.active.expect_call().and_return(False)
 
-        self.assertEqual(rpc_utils.compute_passed(self._planner_host), True)
+        self.assertEqual(
+                rpc_utils.compute_test_config_status(self._planner_host),
+                rpc_utils.ComputeTestConfigStatusResult.PASS)
+        self.god.check_playback()
 
 
-    def test_compute_passed_bad(self):
+    def test_compute_test_config_status_bad(self):
         self._setup_active_plan()
         tko_test = self._tko_job.test_set.create(kernel=self._tko_kernel,
                                                  status=self._fail_status,
@@ -354,8 +372,13 @@ class RpcUtilsTest(unittest.TestCase,
                                       host=self._planner_host)
         self._planner_host.complete = True
         self._planner_host.save()
+        self.god.stub_function(models.Job, 'active')
+        models.Job.active.expect_call().and_return(False)
 
-        self.assertEqual(rpc_utils.compute_passed(self._planner_host), False)
+        self.assertEqual(
+                rpc_utils.compute_test_config_status(self._planner_host),
+                rpc_utils.ComputeTestConfigStatusResult.FAIL)
+        self.god.check_playback()
 
 
 if __name__ == '__main__':
