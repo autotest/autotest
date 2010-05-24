@@ -1,14 +1,14 @@
 package autotest.planner.machine;
 
-import autotest.common.AbstractStatusSummary;
 import autotest.common.Utils;
+import autotest.planner.TestPlannerTableDisplay;
+import autotest.planner.TestPlannerTableDisplay.RowDisplay;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,19 +16,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 public class MachineViewTable {
-    public static class RowDisplay {
-        String content;
-        String cssClass = AbstractStatusSummary.BLANK_COLOR;
-
-        public RowDisplay(String content) {
-            this.content = content;
-        }
-
-        public RowDisplay(String content, String cssClass) {
-            this.content = content;
-            this.cssClass = cssClass;
-        }
-    }
 
     public static class Row {
         String machine;
@@ -68,17 +55,10 @@ public class MachineViewTable {
         }
     }
 
-    public static interface Display {
-        public void clearData();
-        public void setHeaders(Collection<String> headers);
-        public void addRow(Collection<RowDisplay> rowData);
-        public void finalRender();
-    }
-
-    private Display display;
+    private TestPlannerTableDisplay display;
     private List<Row> rows = new ArrayList<Row>();
 
-    public void bindDisplay(Display display) {
+    public void bindDisplay(TestPlannerTableDisplay display) {
         this.display = display;
     }
 

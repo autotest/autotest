@@ -5,6 +5,7 @@ from autotest_lib.frontend.planner import models, model_attributes
 from autotest_lib.frontend.planner import failure_actions, control_file
 from autotest_lib.frontend.tko import models as tko_models
 from autotest_lib.client.common_lib import global_config, utils, global_config
+from autotest_lib.client.common_lib import enum
 
 
 PLANNER_LABEL_PREFIX = 'planner_'
@@ -114,21 +115,27 @@ def compute_next_test_config(plan, host):
     if host.blocked:
         return None
 
-    test_configs = plan.testconfig_set.order_by('execution_order')
-    for test_config in test_configs:
-        afe_jobs = plan.job_set.filter(test_config=test_config)
-        afe_job_ids = afe_jobs.values_list('afe_job', flat=True)
-        hqes = afe_models.HostQueueEntry.objects.filter(job__id__in=afe_job_ids,
-                                                        host=host.host)
-        if not hqes and not bool(test_config.skipped_hosts.filter(host=host)):
-            return test_config
-        for hqe in hqes:
-            if not hqe.complete:
-                # HostQueueEntry still active for this host,
-                # should not run another test
-                return None
+    test_configs = plan.testconfig_set.exclude(
+            skipped_hosts=host.host).order_by('execution_order')
+    result = None
 
-    # All HQEs related to this host are complete
+    for test_config in test_configs:
+        planner_jobs = test_config.job_set.filter(
+                afe_job__hostqueueentry__host=host.host)
+        for planner_job in planner_jobs:
+            if planner_job.active():
+                # There is a job active; do not start another one
+                return None
+        try:
+            planner_job = planner_jobs.get(requires_rerun=False)
+        except models.Job.DoesNotExist:
+            if not result:
+                result = test_config
+
+    if result:
+        return result
+
+    # All jobs related to this host are complete
     host.complete = True
     host.save()
     return None
@@ -319,24 +326,40 @@ def wrap_control_file(plan, hostname, run_verify, test_config):
             **additional_wrap_arguments)
 
 
-def compute_passed(host):
+ComputeTestConfigStatusResult = enum.Enum('Pass', 'Fail', 'Scheduled',
+                                          'Running', string_values=True)
+def compute_test_config_status(host, test_config=None):
     """
-    Returns True if the host can be considered to have passed its test plan
+    Returns a value of ComputeTestConfigStatusResult:
+        Pass: This host passed the test config
+        Fail: This host failed the test config
+        Scheduled: This host has not yet run this test config
+        Running: This host is currently running this test config
 
     A 'pass' means that, for every test configuration in the plan, the machine
     had at least one AFE job with no failed tests. 'passed' could also be None,
     meaning that this host is still running tests.
-    """
-    if not host.complete:
-        return None
 
-    test_configs = host.plan.testconfig_set.exclude(skipped_hosts=host.host)
+    @param test_config: A test config to check. None to check all test configs
+                        in the plan
+    """
+    if test_config:
+        test_configs = [test_config]
+    else:
+        test_configs = host.plan.testconfig_set.exclude(skipped_hosts=host.host)
+
     for test_config in test_configs:
-        for planner_job in test_config.job_set.all():
-            bad = planner_job.testrun_set.exclude(tko_test__status__word='GOOD')
-            if not bad:
-                break
-        else:
-            # Didn't break out of loop; this test config had no good jobs
-            return False
-    return True
+        try:
+            planner_job = test_config.job_set.get(
+                    afe_job__hostqueueentry__host=host.host,
+                    requires_rerun=False)
+        except models.Job.DoesNotExist:
+            return ComputeTestConfigStatusResult.SCHEDULED
+
+        if planner_job.active():
+            return ComputeTestConfigStatusResult.RUNNING
+
+        if planner_job.testrun_set.exclude(tko_test__status__word='GOOD'):
+            return ComputeTestConfigStatusResult.FAIL
+
+    return ComputeTestConfigStatusResult.PASS

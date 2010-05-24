@@ -4,7 +4,9 @@ import unittest
 import common
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import frontend_test_utils, rpc_utils
+from autotest_lib.frontend.tko import models as tko_models
 from autotest_lib.frontend.planner import models, model_attributes
+from autotest_lib.frontend.planner import planner_test_utils
 
 
 class ModelWithHashTestBase(frontend_test_utils.FrontendTestMixin):
@@ -111,6 +113,55 @@ class AdditionalParameterTest(frontend_test_utils.FrontendTestMixin,
                 plan=self.plan, hostname='other', param_type=self.param_type)
 
         self.assertEqual(None, found)
+
+
+class JobTest(planner_test_utils.PlannerTestMixin,
+              unittest.TestCase):
+    def setUp(self):
+        self._planner_common_setup()
+        self._setup_active_plan()
+
+
+    def tearDown(self):
+        self._planner_common_teardown()
+
+
+    def test_active(self):
+        self.assertEqual(True, self._planner_job.active())
+        self._afe_job.hostqueueentry_set.update(complete=True)
+        self.assertEqual(False, self._planner_job.active())
+
+
+    def test_all_tests_passed_active(self):
+        self.assertEqual(True, self._planner_job.active())
+        self.assertEqual(False, self._planner_job.all_tests_passed())
+
+
+    def test_all_tests_passed_failed_queue_entry(self):
+        self._afe_job.hostqueueentry_set.update(complete=True, status='Failed')
+        self.assertEqual(False, self._planner_job.active())
+
+        self.assertEqual(False, self._planner_job.all_tests_passed())
+
+
+    def _setup_test_all_tests_passed(self, status):
+        self._afe_job.hostqueueentry_set.update(complete=True,
+                                                status='Completed')
+        tko_test = tko_models.Test.objects.create(job=self._tko_job,
+                                                  status=status,
+                                                  kernel=self._tko_kernel,
+                                                  machine=self._tko_machine)
+        self.assertEqual(False, self._planner_job.active())
+
+
+    def test_all_tests_passed_success(self):
+        self._setup_test_all_tests_passed(self._good_status)
+        self.assertEqual(True, self._planner_job.all_tests_passed())
+
+
+    def test_all_tests_passed_failure(self):
+        self._setup_test_all_tests_passed(self._fail_status)
+        self.assertEqual(False, self._planner_job.all_tests_passed())
 
 
 if __name__ == '__main__':

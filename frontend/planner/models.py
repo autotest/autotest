@@ -5,7 +5,7 @@ from autotest_lib.frontend.afe import models as afe_models
 from autotest_lib.frontend.afe import model_logic, rpc_utils
 from autotest_lib.frontend.tko import models as tko_models
 from autotest_lib.frontend.planner import model_attributes
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import utils, host_queue_entry_states
 
 
 class Plan(dbmodels.Model, model_logic.ModelExtensions):
@@ -172,6 +172,29 @@ class Job(ModelWithPlan, model_logic.ModelExtensions):
 
     class Meta:
         db_table = 'planner_test_jobs'
+
+
+    def active(self):
+        for hqe in self.afe_job.hostqueueentry_set.all():
+            if not hqe.complete:
+                return True
+        return False
+
+
+    def all_tests_passed(self):
+        if self.active():
+            return False
+
+        Status = host_queue_entry_states.Status
+        if self.afe_job.hostqueueentry_set.exclude(status=Status.COMPLETED):
+            return False
+
+        tko_tests = tko_models.Test.objects.filter(
+                job__afe_job_id=self.afe_job.id)
+        for tko_test in tko_tests:
+            if tko_test.status.word != 'GOOD':
+                return False
+        return True
 
 
     def _get_details_unicode(self):

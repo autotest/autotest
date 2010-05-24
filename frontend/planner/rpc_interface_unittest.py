@@ -164,28 +164,6 @@ class RpcInterfaceTest(unittest.TestCase,
         self.god.check_playback()
 
 
-    def test_generate_test_config(self):
-        control = {'control_file': object(),
-                   'is_server': object()}
-        test = 'test'
-        alias = 'test alias'
-        estimated_runtime = object()
-
-        self.god.stub_function(afe_rpc_interface, 'generate_control_file')
-        afe_rpc_interface.generate_control_file.expect_call(
-                tests=[test]).and_return(control)
-
-        result = rpc_interface.generate_test_config(
-                alias=alias, afe_test_name=test,
-                estimated_runtime=estimated_runtime)
-
-        self.assertEqual(result['alias'], 'test_alias')
-        self.assertEqual(result['control_file'], control['control_file'])
-        self.assertEqual(result['is_server'], control['is_server'])
-        self.assertEqual(result['estimated_runtime'], estimated_runtime)
-        self.god.check_playback()
-
-
     def test_get_machine_view_data(self):
         self._setup_active_plan()
 
@@ -232,12 +210,34 @@ class RpcInterfaceTest(unittest.TestCase,
         self.assertEqual(sorted(actual), sorted(expected))
 
 
+    def test_generate_test_config(self):
+        control = {'control_file': object(),
+                   'is_server': object()}
+        test = 'test'
+        alias = 'test alias'
+        estimated_runtime = object()
+
+        self.god.stub_function(afe_rpc_interface, 'generate_control_file')
+        afe_rpc_interface.generate_control_file.expect_call(
+                tests=[test]).and_return(control)
+
+        result = rpc_interface.generate_test_config(
+                alias=alias, afe_test_name=test,
+                estimated_runtime=estimated_runtime)
+
+        self.assertEqual(result['alias'], 'test_alias')
+        self.assertEqual(result['control_file'], control['control_file'])
+        self.assertEqual(result['is_server'], control['is_server'])
+        self.assertEqual(result['estimated_runtime'], estimated_runtime)
+        self.god.check_playback()
+
+
     def _test_get_overview_data_helper(self, stage):
         self._setup_active_plan()
-        self.god.stub_function(rpc_utils, 'compute_passed')
-        rpc_utils.compute_passed.expect_call(
+        self.god.stub_function(rpc_utils, 'compute_test_config_status')
+        rpc_utils.compute_test_config_status.expect_call(
                 self._plan.host_set.get(host=self.hosts[0])).and_return(None)
-        rpc_utils.compute_passed.expect_call(
+        rpc_utils.compute_test_config_status.expect_call(
                 self._plan.host_set.get(host=self.hosts[1])).and_return(None)
 
         data = {'test_configs': [{'complete': 0, 'estimated_runtime': 1}],
@@ -257,7 +257,7 @@ class RpcInterfaceTest(unittest.TestCase,
         test_run = self._plan.testrun_set.create(test_job=self._planner_job,
                                                  tko_test=tko_test,
                                                  host=self._planner_host)
-        self._afe_job.hostqueueentry_set.update(status='Completed')
+        self._afe_job.hostqueueentry_set.update(complete=True)
         self._planner_host.complete = True
         self._planner_host.save()
         test_run.bugs.create(external_uid='bug')
@@ -276,6 +276,54 @@ class RpcInterfaceTest(unittest.TestCase,
     def test_get_overview_data_one_finished_with_bug(self):
         self.assertEqual(self._test_get_overview_data_helper(1),
                          rpc_interface.get_overview_data([self._plan.id]))
+        self.god.check_playback()
+
+
+    def _test_get_test_view_data_helper(self, stage):
+        self._setup_active_plan()
+        self.god.stub_function(rpc_utils, 'compute_test_config_status')
+        hosts = self._plan.host_set.filter(host__in=self.hosts[0:2])
+        rpc_utils.compute_test_config_status.expect_call(
+                hosts[0], self._test_config).and_return(None)
+
+        data = {'total_machines': 2,
+                'machine_status': {'host1': None,
+                                   'host2': None},
+                'total_runs': 1,
+                'total_passes': 0,
+                'bugs': []}
+        if stage < 1:
+            rpc_utils.compute_test_config_status.expect_call(
+                    hosts[1], self._test_config).and_return(None)
+            return {self._test_config.alias: data}
+
+        fail_status = rpc_utils.ComputeTestConfigStatusResult.FAIL
+        rpc_utils.compute_test_config_status.expect_call(
+                hosts[1], self._test_config).and_return(fail_status)
+        tko_test = self._tko_job.test_set.create(kernel=self._tko_kernel,
+                                                 machine=self._tko_machine,
+                                                 status=self._fail_status)
+        test_run = self._plan.testrun_set.create(test_job=self._planner_job,
+                                                 tko_test=tko_test,
+                                                 host=self._planner_host)
+        self._afe_job.hostqueueentry_set.update(complete=True)
+
+        test_run.bugs.create(external_uid='bug')
+
+        data['machine_status']['host2'] = fail_status
+        data['bugs'] = ['bug']
+        return {self._test_config.alias: data}
+
+
+    def test_get_test_view_data_no_progress(self):
+        self.assertEqual(self._test_get_test_view_data_helper(0),
+                         rpc_interface.get_test_view_data(self._plan.id))
+        self.god.check_playback()
+
+
+    def test_get_test_view_data_one_failed_with_bug(self):
+        self.assertEqual(self._test_get_test_view_data_helper(1),
+                         rpc_interface.get_test_view_data(self._plan.id))
         self.god.check_playback()
 
 

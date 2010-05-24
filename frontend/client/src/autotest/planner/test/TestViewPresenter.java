@@ -1,4 +1,4 @@
-package autotest.planner.machine;
+package autotest.planner.test;
 
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
@@ -9,13 +9,12 @@ import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 
-
-public class MachineViewPresenter extends TestPlannerPresenter {
+public class TestViewPresenter extends TestPlannerPresenter {
 
     public static interface Display {
         public void setLoading(boolean loading);
         public void clearAllData();
-        public TestPlannerTableDisplay generateMachineViewTableDisplay();
+        public TestPlannerTableDisplay generateTestViewTableDisplay();
     }
 
     private Display display;
@@ -31,15 +30,15 @@ public class MachineViewPresenter extends TestPlannerPresenter {
         JSONObject params = new JSONObject();
         params.put("plan_id", new JSONString(planId));
 
-        JsonRpcProxy.getProxy().rpcCall("get_machine_view_data", params, new JsonRpcCallback() {
+        JsonRpcProxy.getProxy().rpcCall("get_test_view_data", params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
                 display.clearAllData();
                 display.setLoading(false);
 
-                MachineViewTable table = new MachineViewTable();
-                table.bindDisplay(display.generateMachineViewTableDisplay());
-                table.setData(result.isArray());
+                TestViewTable table = new TestViewTable();
+                table.bindDisplay(display.generateTestViewTableDisplay());
+                table.setData(result.isObject());
             }
 
             @Override
@@ -49,4 +48,5 @@ public class MachineViewPresenter extends TestPlannerPresenter {
             }
         });
     }
+
 }
