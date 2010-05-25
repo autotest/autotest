@@ -1,0 +1,15 @@
+TIME="SHORT"
+AUTHOR = "Jason Wang <jasowag@redhat.com>"
+DOC = """
+rtc is a simple test of realtime clock driver which was grabbed from 
+Documentation/rtc.txt. It does the functional test of interrupt, alarm and 
+requeseted frequency.
+
+Please refer the kernel documentation for details.
+"""
+NAME = 'rtc'
+TEST_CLASS = 'kernel'
+TEST_CATEGORY = 'Functional'
+TEST_TYPE = 'client'
+
+job.run_test('rtc', maxfreq=8192)
