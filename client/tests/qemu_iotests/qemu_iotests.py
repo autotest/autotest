@@ -1,5 +1,5 @@
 import os, re, logging
-from autotest_lib.client.bin import test, utils
+from autotest_lib.client.bin import test, utils, os_dep
 from autotest_lib.client.common_lib import error
 
 
@@ -11,8 +11,21 @@ class qemu_iotests(test.test):
     @author: Yolkfull Chow (yzhou@redhat.com)
     @see: http://www.kernel.org/pub/scm/linux/kernel/git/hch/qemu-iotests.git
     """
-    version = 1
-    def setup(self, tarball = 'qemu_iotests.tar.bz2'):
+    version = 2
+    def initialize(self, qemu_path=''):
+        if qemu_path:
+            # Prepending the path at the beginning of $PATH will make the
+            # version found on qemu_path be preferred over other ones.
+            os.environ['PATH'] =  qemu_path + ":" + os.environ['PATH']
+        try:
+            self.qemu_img_path = os_dep.command('qemu-img')
+            self.qemu_io_path = os_dep.command('qemu-io')
+        except ValueError, e:
+            raise error.TestNAError('Commands qemu-img or qemu-io missing')
+        self.job.require_gcc()
+
+
+    def setup(self, tarball='qemu-iotests.tar.bz2'):
         """
         Uncompresses the tarball and cleans any leftover output files.
 
@@ -24,7 +37,7 @@ class qemu_iotests(test.test):
         utils.system("make clean")
 
 
-    def run_once(self, qemu_path='', options='', testlist=''):
+    def run_once(self, options='', testlist=''):
         """
         Passes the appropriate parameters to the testsuite.
 
@@ -54,11 +67,6 @@ class qemu_iotests(test.test):
         @param testlist: List of tests that will be executed (by default, all
                 testcases will be executed).
         """
-        if qemu_path:
-            # Prepending the path at the beginning of $PATH will make the
-            # version found on qemu_path be preferred over other ones.
-            os.environ['PATH'] =  qemu_path + ":" + os.environ['PATH']
-
         os.chdir(self.srcdir)
         test_dir = os.path.join(self.srcdir, "scratch")
         if not os.path.exists(test_dir):
@@ -68,28 +76,24 @@ class qemu_iotests(test.test):
             cmd += " " + options
         if testlist:
             cmd += " " + testlist
-        result = utils.run(cmd, ignore_status=True)
 
-        msg = re.findall("Failures: .*", result.stdout)[0]
-        if msg:
-            self.failed_cases = re.findall("(\d+)", msg)
-            raise error.TestFail("Failed cases: %s" % self.failed_cases)
-
-
-    def postprocess_iteration(self):
-        """
-        Copies the log files to the results dir.
-        """
-        src = os.path.join(self.srcdir, "check.log")
-        dest = os.path.join(self.resultsdir, "qemu_iotests.log")
-        logging.critical('First copy')
-        utils.get_file(src, dest)
-
-        # copy the failed cases' log file to self.resultsdir
-        if self.failed_cases:
-            for num in self.failed_cases:
-                failed_name = num + ".out.bad"
-                src = os.path.join(self.srcdir, failed_name)
-                dest = os.path.join(self.resultsdir, failed_name)
-                logging.critical('Second copy')
-                utils.get_file(src, dest)
+        try:
+            try:
+                result = utils.system(cmd)
+            except error.CmdError, e:
+                failed_cases = re.findall("Failures: (\d+)", str(e))
+                for num in failed_cases:
+                    failed_name = num + ".out.bad"
+                    src = os.path.join(self.srcdir, failed_name)
+                    dest = os.path.join(self.resultsdir, failed_name)
+                    utils.get_file(src, dest)
+                if failed_cases:
+                    e_msg = ("Qemu-iotests failed. Failed cases: %s" %
+                             failed_cases)
+                else:
+                    e_msg = "Qemu-iotests failed"
+                raise error.TestFail(e_msg)
+        finally:
+            src = os.path.join(self.srcdir, "check.log")
+            dest = os.path.join(self.resultsdir, "check.log")
+            utils.get_file(src, dest)
