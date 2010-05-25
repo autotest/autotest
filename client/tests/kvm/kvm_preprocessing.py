@@ -196,7 +196,7 @@ def preprocess(test, params, env):
     if "tcpdump" in env and not env["tcpdump"].is_alive():
         env["tcpdump"].close()
         del env["tcpdump"]
-    if "tcpdump" not in env:
+    if "tcpdump" not in env and params.get("run_tcpdump", "yes") == "yes":
         command = "/usr/sbin/tcpdump -npvi any 'dst port 68'"
         logging.debug("Starting tcpdump (%s)...", command)
         env["tcpdump"] = kvm_subprocess.kvm_tail(
