@@ -9,18 +9,14 @@ NETPERF_IX = 1
 class netperf2(test.test):
     version = 3
 
-    # ftp://ftp.netperf.org/netperf/netperf-2.4.4.tar.gz
-    def setup(self, tarball = 'netperf-2.4.4.tar.gz'):
+    # ftp://ftp.netperf.org/netperf/netperf-2.4.5.tar.bz2
+    def setup(self, tarball = 'netperf-2.4.5.tar.bz2'):
         self.job.require_gcc()
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         utils.system('patch -p0 < ../wait_before_data.patch')
-        # Fixing up a compile issue under newer systems that have
-        # CPU_SET_S defined on /usr/include/sched.h, backported from
-        # upstream svn trunk
-        utils.system('patch -p0 < ../fix_netperf_build.patch')
         utils.configure()
         utils.system('make')
         utils.system('sync')
