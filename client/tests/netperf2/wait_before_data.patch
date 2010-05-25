@@ -1,6 +1,7 @@
---- src/netserver.c	2007-10-17 14:09:12.000000000 -0700
-+++ src.patch/netserver.c	2008-11-05 10:23:55.253300000 -0800
-@@ -527,7 +527,7 @@
+diff -urp src.orig/netserver.c src/netserver.c
+--- src.orig/netserver.c	2009-05-28 05:48:44.000000000 +0800
++++ src/netserver.c	2010-05-22 11:43:40.000000000 +0800
+@@ -580,7 +580,7 @@ set_up_server(char hostname[], char port
      if ((bind (server_control, 
  	       local_res_temp->ai_addr, 
  	       local_res_temp->ai_addrlen) != SOCKET_ERROR) &&
@@ -9,9 +10,10 @@
        not_listening = 0;
        break;
      }
---- src/netsh.c	2007-08-08 13:29:21.000000000 -0700
-+++ src.patch/netsh.c	2008-11-05 09:45:47.967668000 -0800
-@@ -93,7 +93,7 @@
+diff -urp src.orig/netsh.c src/netsh.c
+--- src.orig/netsh.c	2008-10-25 07:38:57.000000000 +0800
++++ src/netsh.c	2010-05-22 11:44:29.000000000 +0800
+@@ -94,7 +94,7 @@ double atof(const char *);
   /* Some of the args take optional parameters. Since we are using */
   /* getopt to parse the command line, we will tell getopt that they do */
   /* not take parms, and then look for them ourselves */
@@ -20,18 +22,18 @@
  
  /************************************************************************/
  /*									*/
-@@ -174,6 +174,10 @@
-   remote_send_offset = 0,
-   remote_recv_offset = 0;
+@@ -186,6 +186,10 @@ int
+   remote_interval_usecs,
+   remote_interval_burst;
  
 +/* wait time between control/data connection establishment and
 +   start of data traffic 					*/
 +int wait_time_secs;
 +
  #if defined(WANT_INTERVALS) || defined(WANT_DEMO)
- int
-   interval_usecs,
-@@ -269,6 +273,7 @@
+ 
+ int demo_mode;                    /* are we actually in demo mode? */
+@@ -275,6 +279,7 @@ Global options:\n\
      -p port,lport*    Specify netserver port number and/or local port\n\
      -P 0|1            Don't/Do display test headers\n\
      -r                Allow confidence to be hit on result only\n\
@@ -39,7 +41,7 @@
      -t testname       Specify test to perform\n\
      -T lcpu,rcpu      Request netperf/netserver be bound to local/remote cpu\n\
      -v verbosity      Specify the verbosity level\n\
-@@ -697,6 +702,9 @@
+@@ -816,6 +821,9 @@ scan_cmd_line(int argc, char *argv[])
  	test_time = 0;
        }
        break;
@@ -49,9 +51,10 @@
      case 'v':
        /* say how much to say */
        verbosity = convert(optarg);
---- src/netsh.h	2007-08-08 13:30:15.000000000 -0700
-+++ src.patch/netsh.h	2008-11-05 09:45:48.020604000 -0800
-@@ -65,6 +65,8 @@
+diff -urp src.orig/netsh.h src/netsh.h
+--- src.orig/netsh.h	2008-02-20 06:48:52.000000000 +0800
++++ src/netsh.h	2010-05-22 11:44:32.000000000 +0800
+@@ -91,6 +91,8 @@ extern int	
    test_bytes,		/* test ends on byte count		*/
    test_trans;		/* test ends on tran count		*/
  
@@ -60,9 +63,10 @@
  /* the alignment conditions for the tests				*/
  extern int
    local_recv_align,	/* alignment for local receives		*/
---- src/nettest_bsd.c	2007-10-17 14:17:13.000000000 -0700
-+++ src.patch/nettest_bsd.c	2008-11-05 10:41:34.391144000 -0800
-@@ -306,6 +306,12 @@
+diff -urp src.orig/nettest_bsd.c src/nettest_bsd.c
+--- src.orig/nettest_bsd.c	2009-06-04 08:31:15.000000000 +0800
++++ src/nettest_bsd.c	2010-05-22 11:43:09.000000000 +0800
+@@ -326,6 +326,12 @@ static struct timeval *temp_intvl_ptr = 
  #endif
  #endif
  
@@ -75,7 +79,7 @@
  #ifdef WANT_DEMO
  #ifdef HAVE_GETHRTIME
  static hrtime_t demo_one;
-@@ -1535,6 +1541,8 @@
+@@ -1836,6 +1842,8 @@ Size (bytes)\n\
      /* we'll see it here. If it didn't, we might as well start pumping */
      /* data. */ 
      
@@ -84,7 +88,7 @@
      /* Set-up the test end conditions. For a stream test, they can be */
      /* either time or byte-count based. */
      
-@@ -2229,6 +2237,8 @@
+@@ -2542,6 +2550,8 @@ Size (bytes)\n\
      /* we'll see it here. If it didn't, we might as well start pumping */
      /* data. */ 
      
@@ -93,7 +97,7 @@
      /* Set-up the test end conditions. For a maerts test, they can be */
      /* either time or byte-count based. */
      
-@@ -3681,7 +3691,7 @@
+@@ -4195,7 +4205,7 @@ Size (bytes)\n\
      tcp_stream_request->cpu_rate	=	remote_cpu_rate;
  
      if (test_time) {
@@ -102,7 +106,7 @@
      }
      else {
        tcp_stream_request->test_length	=	test_bytes;
-@@ -3762,6 +3772,8 @@
+@@ -4286,6 +4296,8 @@ Size (bytes)\n\
         we'll see it here. If it didn't, we might as well start pumping
         data. */
      
@@ -111,7 +115,7 @@
      /* Set-up the test end conditions. For a stream test, they can be */
      /* either time or byte-count based. */
      
-@@ -5149,7 +5161,7 @@
+@@ -5715,7 +5727,7 @@ Send   Recv    Send   Recv    usec/Tran 
        tcp_rr_request->so_rcvavoid	=	rem_rcvavoid;
        tcp_rr_request->so_sndavoid	=	rem_sndavoid;
        if (test_time) {
@@ -120,25 +124,25 @@
        }
        else {
  	tcp_rr_request->test_length	=	test_trans * -1;
-@@ -5211,6 +5223,8 @@
+@@ -5777,6 +5789,8 @@ Send   Recv    Send   Recv    usec/Tran 
        
        exit(1);
      }
 +
 +    WAIT_BEFORE_DATA_TRAFFIC();
      
-     /* Data Socket set-up is finished. If there were problems, either the */
-     /* connect would have failed, or the previous response would have */
-@@ -5925,6 +5939,8 @@
+ #ifdef WIN32
+     /* this is used so the timer thread can close the socket out from */
+@@ -6501,6 +6515,8 @@ bytes   bytes    secs            #      
            fflush(where);
         }
      }
 +
 +    WAIT_BEFORE_DATA_TRAFFIC();
      
-     /* set up the timer to call us after test_time. one of these days, */
-     /* it might be nice to figure-out a nice reliable way to have the */
-@@ -6776,7 +6792,7 @@
+ #ifdef WIN32
+   /* this is used so the timer thread can close the socket out from */
+@@ -7375,7 +7391,7 @@ bytes  bytes  bytes   bytes  secs.   per
        udp_rr_request->so_rcvavoid	        = rem_rcvavoid;
        udp_rr_request->so_sndavoid	        = rem_sndavoid;
        if (test_time) {
@@ -147,7 +151,7 @@
        }
        else {
  	udp_rr_request->test_length	= test_trans * -1;
-@@ -6847,6 +6863,8 @@
+@@ -7456,6 +7472,8 @@ bytes  bytes  bytes   bytes  secs.   per
      /* message after the accept on the remote. If it failed, we'll see it */
      /* here. If it didn't, we might as well start pumping data. */
      
@@ -155,8 +159,8 @@
 +
      /* Set-up the test end conditions. For a request/response test, they */
      /* can be either time or transaction based. */
-     
-@@ -8128,7 +8146,7 @@
+ 
+@@ -8767,7 +8785,7 @@ Send   Recv    Send   Recv\n\
      tcp_conn_rr_request->so_rcvavoid	=	rem_rcvavoid;
      tcp_conn_rr_request->so_sndavoid	=	rem_sndavoid;
      if (test_time) {
@@ -165,16 +169,7 @@
      }
      else {
        tcp_conn_rr_request->test_length	=	test_trans * -1;
-@@ -8199,6 +8217,8 @@
-   /* Set-up the test end conditions. For a request/response test, they */
-   /* can be either time or transaction based. */
-   
-+  WAIT_BEFORE_DATA_TRAFFIC();
-+
-   if (test_time) {
-     /* The user wanted to end the test after a period of time. */
-     times_up = 0;
-@@ -10313,7 +10333,7 @@
+@@ -10961,7 +10979,7 @@ Send   Recv    Send   Recv\n\
      tcp_rr_request->so_rcvavoid	        =	rem_rcvavoid;
      tcp_rr_request->so_sndavoid	        =	rem_sndavoid;
      if (test_time) {
@@ -183,14 +178,21 @@
      }
      else {
        tcp_rr_request->test_length	=	test_trans * -1;
-@@ -10379,7 +10399,9 @@
-     /* indicated a problem. I failed to see the value of the extra */
+@@ -11038,6 +11056,8 @@ Send   Recv    Send   Recv\n\
      /* message after the accept on the remote. If it failed, we'll see it */
      /* here. If it didn't, we might as well start pumping data. */
--    
-+
+     
 +    WAIT_BEFORE_DATA_TRAFFIC();
 +
      /* Set-up the test end conditions. For a request/response test, they */
      /* can be either time or transaction based. */
      
+@@ -12021,6 +12041,8 @@ Send   Recv    Send   Recv\n\
+   /* Set-up the test end conditions. For a request/response test, they */
+   /* can be either time or transaction based. */
+   
++  WAIT_BEFORE_DATA_TRAFFIC();
++
+   if (test_time) {
+     /* The user wanted to end the test after a period of time. */
+     times_up = 0;
