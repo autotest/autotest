@@ -186,12 +186,100 @@ class VM:
                nic_model -- string to pass as 'model' parameter for this
                NIC (e.g. e1000)
         """
-        if name is None:
-            name = self.name
-        if params is None:
-            params = self.params
-        if root_dir is None:
-            root_dir = self.root_dir
+        # Helper function for command line option wrappers
+        def has_option(help, option):
+            return bool(re.search(r"^-%s(\s|$)" % option, help, re.MULTILINE))
+
+        # Wrappers for all supported qemu command line parameters.
+        # This is meant to allow support for multiple qemu versions.
+        # Each of these functions receives the output of 'qemu -help' as a
+        # parameter, and should add the requested command line option
+        # accordingly.
+
+        def add_name(help, name):
+            return " -name '%s'" % name
+
+        def add_unix_socket_monitor(help, filename):
+            return " -monitor unix:%s,server,nowait" % filename
+
+        def add_mem(help, mem):
+            return " -m %s" % mem
+
+        def add_smp(help, smp):
+            return " -smp %s" % smp
+
+        def add_cdrom(help, filename, index=2):
+            if has_option(help, "drive"):
+                return " -drive file=%s,index=%d,media=cdrom" % (filename,
+                                                                 index)
+            else:
+                return " -cdrom %s" % filename
+
+        def add_drive(help, filename, format=None, cache=None, werror=None,
+                      serial=None, snapshot=False, boot=False):
+            cmd = " -drive file=%s" % filename
+            if format: cmd += ",if=%s" % format
+            if cache: cmd += ",cache=%s" % cache
+            if werror: cmd += ",werror=%s" % werror
+            if serial: cmd += ",serial=%s" % serial
+            if snapshot: cmd += ",snapshot=on"
+            if boot: cmd += ",boot=on"
+            return cmd
+
+        def add_nic(help, vlan, model=None, mac=None):
+            cmd = " -net nic,vlan=%d" % vlan
+            if model: cmd += ",model=%s" % model
+            if mac: cmd += ",macaddr=%s" % mac
+            return cmd
+
+        def add_net(help, vlan, mode, ifname=None, script=None,
+                    downscript=None):
+            cmd = " -net %s,vlan=%d" % (mode, vlan)
+            if mode == "tap":
+                if ifname: cmd += ",ifname=%s" % ifname
+                if script: cmd += ",script=%s" % script
+                cmd += ",downscript=%s" % (downscript or "no")
+            return cmd
+
+        def add_floppy(help, filename):
+            return " -fda %s" % filename
+
+        def add_tftp(help, filename):
+            return " -tftp %s" % filename
+
+        def add_tcp_redir(help, host_port, guest_port):
+            return " -redir tcp:%s::%s" % (host_port, guest_port)
+
+        def add_vnc(help, vnc_port):
+            return " -vnc :%d" % (vnc_port - 5900)
+
+        def add_sdl(help):
+            if has_option(help, "sdl"):
+                return " -sdl"
+            else:
+                return ""
+
+        def add_nographic(help):
+            return " -nographic"
+
+        def add_uuid(help, uuid):
+            return " -uuid %s" % uuid
+
+        def add_pcidevice(help, host):
+            return " -pcidevice host=%s" % host
+
+        # End of command line option wrappers
+
+        if name is None: name = self.name
+        if params is None: params = self.params
+        if root_dir is None: root_dir = self.root_dir
+
+        qemu_binary = kvm_utils.get_path(root_dir, params.get("qemu_binary",
+                                                              "qemu"))
+        # Get the output of 'qemu -help' (log a message in case this call never
+        # returns or causes some other kind of trouble)
+        logging.debug("Getting output of 'qemu -help'")
+        help = commands.getoutput("%s -help" % qemu_binary)
 
         # Start constructing the qemu command
         qemu_cmd = ""
@@ -199,65 +287,49 @@ class VM:
         if params.get("x11_display"):
             qemu_cmd += "DISPLAY=%s " % params.get("x11_display")
         # Add the qemu binary
-        qemu_cmd += kvm_utils.get_path(root_dir, params.get("qemu_binary",
-                                                            "qemu"))
+        qemu_cmd += qemu_binary
         # Add the VM's name
-        qemu_cmd += " -name '%s'" % name
+        qemu_cmd += add_name(help, name)
         # Add the monitor socket parameter
-        qemu_cmd += " -monitor unix:%s,server,nowait" % self.monitor_file_name
+        qemu_cmd += add_unix_socket_monitor(help, self.monitor_file_name)
 
         for image_name in kvm_utils.get_sub_dict_names(params, "images"):
             image_params = kvm_utils.get_sub_dict(params, image_name)
             if image_params.get("boot_drive") == "no":
                 continue
-            qemu_cmd += " -drive file=%s" % get_image_filename(image_params,
-                                                               root_dir)
-            if image_params.get("drive_format"):
-                qemu_cmd += ",if=%s" % image_params.get("drive_format")
-            if image_params.get("drive_cache"):
-                qemu_cmd += ",cache=%s" % image_params.get("drive_cache")
-            if image_params.get("drive_werror"):
-                qemu_cmd += ",werror=%s" % image_params.get("drive_werror")
-            if image_params.get("drive_serial"):
-                qemu_cmd += ",serial=%s" % image_params.get("drive_serial")
-            if image_params.get("image_snapshot") == "yes":
-                qemu_cmd += ",snapshot=on"
-            if image_params.get("image_boot") == "yes":
-                qemu_cmd += ",boot=on"
+            qemu_cmd += add_drive(help,
+                                  get_image_filename(image_params, root_dir),
+                                  image_params.get("drive_format"),
+                                  image_params.get("drive_cache"),
+                                  image_params.get("drive_werror"),
+                                  image_params.get("drive_serial"),
+                                  image_params.get("image_snapshot") == "yes",
+                                  image_params.get("image_boot") == "yes")
 
         vlan = 0
         for nic_name in kvm_utils.get_sub_dict_names(params, "nics"):
             nic_params = kvm_utils.get_sub_dict(params, nic_name)
             # Handle the '-net nic' part
-            qemu_cmd += " -net nic,vlan=%d" % vlan
-            if nic_params.get("nic_model"):
-                qemu_cmd += ",model=%s" % nic_params.get("nic_model")
-            if nic_params.has_key("address_index"):
-                mac, ip = kvm_utils.get_mac_ip_pair_from_dict(nic_params)
-                if mac:
-                    qemu_cmd += ",macaddr=%s" % mac
+            mac = None
+            if "address_index" in nic_params:
+                mac = kvm_utils.get_mac_ip_pair_from_dict(nic_params)[0]
+            qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac)
             # Handle the '-net tap' or '-net user' part
-            mode = nic_params.get("nic_mode", "user")
-            qemu_cmd += " -net %s,vlan=%d" % (mode, vlan)
-            if mode == "tap":
-                if nic_params.get("nic_ifname"):
-                    qemu_cmd += ",ifname=%s" % nic_params.get("nic_ifname")
-                script_path = nic_params.get("nic_script")
-                if script_path:
-                    script_path = kvm_utils.get_path(root_dir, script_path)
-                    qemu_cmd += ",script=%s" % script_path
-                script_path = nic_params.get("nic_downscript")
-                if script_path:
-                    script_path = kvm_utils.get_path(root_dir, script_path)
-                    qemu_cmd += ",downscript=%s" % script_path
-                else:
-                    qemu_cmd += ",downscript=no"
+            script = nic_params.get("script")
+            downscript = nic_params.get("downscript")
+            if script:
+                script = kvm_utils.get_path(root_dir, script)
+            if downscript:
+                downscript = kvm_utils.get_path(root_dir, downscript)
+            qemu_cmd += add_net(help, vlan, nic_params.get("nic_mode", "user"),
+                                nic_params.get("nic_ifname"),
+                                script, downscript)
             # Proceed to next NIC
             vlan += 1
 
         mem = params.get("mem")
         if mem:
-            qemu_cmd += " -m %s" % mem
+            qemu_cmd += add_mem(help, mem)
 
         smp = params.get("smp")
         if smp:
@@ -266,7 +338,7 @@ class VM:
         iso = params.get("cdrom")
         if iso:
             iso = kvm_utils.get_path(root_dir, iso)
-            qemu_cmd += " -drive file=%s,index=2,media=cdrom" % iso
+            qemu_cmd += add_cdrom(help, iso)
 
         # Even though this is not a really scalable approach,
         # it doesn't seem like we are going to need more than
@@ -274,47 +346,47 @@ class VM:
         iso_extra = params.get("cdrom_extra")
         if iso_extra:
             iso_extra = kvm_utils.get_path(root_dir, iso_extra)
-            qemu_cmd += " -drive file=%s,index=3,media=cdrom" % iso_extra
+            qemu_cmd += add_cdrom(help, iso_extra, 3)
 
         # We may want to add {floppy_otps} parameter for -fda
-        # {fat:floppy:}/path/. However vvfat is not usually recommended
+        # {fat:floppy:}/path/. However vvfat is not usually recommended.
         floppy = params.get("floppy")
         if floppy:
             floppy = kvm_utils.get_path(root_dir, floppy)
-            qemu_cmd += " -fda %s" % floppy
+            qemu_cmd += add_floppy(help, floppy)
 
         tftp = params.get("tftp")
         if tftp:
             tftp = kvm_utils.get_path(root_dir, tftp)
-            qemu_cmd += " -tftp %s" % tftp
-
-        extra_params = params.get("extra_params")
-        if extra_params:
-            qemu_cmd += " %s" % extra_params
+            qemu_cmd += add_tftp(help, tftp)
 
         for redir_name in kvm_utils.get_sub_dict_names(params, "redirs"):
             redir_params = kvm_utils.get_sub_dict(params, redir_name)
             guest_port = int(redir_params.get("guest_port"))
             host_port = self.redirs.get(guest_port)
-            qemu_cmd += " -redir tcp:%s::%s" % (host_port, guest_port)
+            qemu_cmd += add_tcp_redir(help, host_port, guest_port)
 
         if params.get("display") == "vnc":
-            qemu_cmd += " -vnc :%d" % (self.vnc_port - 5900)
+            qemu_cmd += add_vnc(help, self.vnc_port)
         elif params.get("display") == "sdl":
-            qemu_cmd += " -sdl"
+            qemu_cmd += add_sdl(help)
         elif params.get("display") == "nographic":
-            qemu_cmd += " -nographic"
+            qemu_cmd += add_nographic(help)
 
         if params.get("uuid") == "random":
-            qemu_cmd += " -uuid %s" % self.uuid
+            qemu_cmd += add_uuid(help, self.uuid)
         elif params.get("uuid"):
-            qemu_cmd += " -uuid %s" % params.get("uuid")
+            qemu_cmd += add_uuid(help, params.get("uuid"))
 
         # If the PCI assignment step went OK, add each one of the PCI assigned
         # devices to the qemu command line.
         if self.pci_assignable:
             for pci_id in self.pa_pci_ids:
-                qemu_cmd += " -pcidevice host=%s" % pci_id
+                qemu_cmd += add_pcidevice(help, pci_id)
+
+        extra_params = params.get("extra_params")
+        if extra_params:
+            qemu_cmd += " %s" % extra_params
 
         return qemu_cmd
 
