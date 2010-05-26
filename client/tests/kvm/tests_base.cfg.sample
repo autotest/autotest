@@ -351,6 +351,12 @@ variants:
             - vmexit:
                 case = vmexit
 
+    - ioquit:
+        type = ioquit
+        background_cmd = "for i in 1 2 3 4; do (nohup dd if=/dev/urandom of=/tmp/file bs=102400 count=10000000 &) done"
+        check_cmd = ps -a |grep dd |wc -l
+        login_timeout = 360
+
     - qemu_img:
         type = qemu_img
         vms = ''
@@ -1360,6 +1366,12 @@ variants:
     - hugepages:
         pre_command += " scripts/hugepage.py /mnt/kvm_hugepage;"
         extra_params += " -mem-path /mnt/kvm_hugepage"
+
+
+ioquit:
+    post_command_noncritical = no
+    only qcow2
+    only Linux
 
 
 variants:
