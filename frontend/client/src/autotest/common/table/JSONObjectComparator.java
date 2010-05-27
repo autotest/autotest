@@ -8,7 +8,7 @@ import java.util.Comparator;
 
 public class JSONObjectComparator implements Comparator<JSONObject> {
     SortSpec[] sortSpecs;
-    
+
     public JSONObjectComparator(SortSpec[] specs) {
         sortSpecs = new SortSpec[specs.length];
         System.arraycopy(specs, 0, sortSpecs, 0, specs.length);
@@ -24,8 +24,8 @@ public class JSONObjectComparator implements Comparator<JSONObject> {
                 return compareValue;
             }
         }
-        
-        // the given sort keys were all equal, but we'll ensure we're consistent with 
+
+        // the given sort keys were all equal, but we'll ensure we're consistent with
         // JSONObject.equals()
         if (arg0.equals(arg1)) {
             return 0;

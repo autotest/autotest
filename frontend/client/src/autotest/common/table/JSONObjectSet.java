@@ -9,21 +9,21 @@ import java.util.Iterator;
 import java.util.Map;
 
 /**
- * Set that hashes JSONObjects by their ID, so that identical objects get 
+ * Set that hashes JSONObjects by their ID, so that identical objects get
  * matched together.
  */
 public class JSONObjectSet<T extends JSONObject> extends AbstractSet<T> {
     protected Map<String, T> backingMap = new HashMap<String, T>();
-    
+
     public JSONObjectSet() {
         super();
     }
-    
+
     public JSONObjectSet(Collection<T> items) {
         super();
         addAll(items);
     }
-    
+
     protected String getKey(Object obj) {
         return ((JSONObject) obj).get("id").toString();
     }

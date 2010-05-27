@@ -14,13 +14,13 @@ import com.google.gwt.user.client.ui.Widget;
 public class SimpleDialog extends DialogBox {
     public SimpleDialog(String title, Widget contents) {
         super(false, false);
-        
+
         FlexTable flex = new FlexTable();
         flex.setText(0, 0, title);
         flex.getFlexCellFormatter().setStylePrimaryName(0, 0, "field-name");
-        
+
         flex.setWidget(1, 0, contents);
-        
+
         Button ok = new Button("OK");
         ok.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
@@ -28,7 +28,7 @@ public class SimpleDialog extends DialogBox {
             }
         });
         flex.setWidget(2, 0, ok);
-        
+
         add(flex);
     }
 }
