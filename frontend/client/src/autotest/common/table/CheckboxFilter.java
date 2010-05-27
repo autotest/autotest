@@ -10,12 +10,12 @@ import com.google.gwt.user.client.ui.Widget;
 
 public abstract class CheckboxFilter extends FieldFilter implements ClickHandler {
     private CheckBox checkBox = new CheckBox();
-    
+
     public CheckboxFilter(String fieldName) {
         super(fieldName);
         checkBox.addClickHandler(this);
     }
-    
+
     public void onClick(ClickEvent event) {
         notifyListeners();
     }
@@ -29,7 +29,7 @@ public abstract class CheckboxFilter extends FieldFilter implements ClickHandler
     public boolean isActive() {
         return checkBox.getValue();
     }
-    
+
     public void setActive(boolean active) {
         checkBox.setValue(active);
     }
