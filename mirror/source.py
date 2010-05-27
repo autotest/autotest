@@ -1,6 +1,6 @@
 # Copyright 2009 Google Inc. Released under the GPL v2
 
-import re, time, urllib2, urlparse, HTMLParser
+import os, re, time, urllib2, urlparse, HTMLParser
 
 from autotest_lib.mirror import database
 from autotest_lib.client.common_lib import utils
@@ -183,3 +183,46 @@ class url_source(source):
                     files[item.name] = item
 
         return self._get_new_files(files)
+
+
+class directory_source(source):
+    """
+    Source that finds kernel files by listing the contents of a directory.
+    """
+    def __init__(self, database, path):
+        """
+        Initialize a directory_source instance.
+
+        @param database: Persistent database with known kernels information.
+        @param path: Path to the directory with the kernel files found by
+                this source.
+        """
+        super(directory_source, self).__init__(database)
+
+        self._path = path
+
+
+    def get_new_files(self, _stat_func=os.stat):
+        """
+        Main function, see source.get_new_files().
+
+        @param _stat_func: Used for unit testing, if we stub os.stat in the
+                unit test then unit test failures get reported confusingly
+                because the unit test framework tries to stat() the unit test
+                file.
+        """
+        all_files = {}
+        for filename in os.listdir(self._path):
+            full_filename = os.path.join(self._path, filename)
+            try:
+                stat_data = _stat_func(full_filename)
+            except OSError:
+                # File might have been removed/renamed since we listed the
+                # directory so skip it.
+                continue
+
+            item = database.item(full_filename, stat_data.st_size,
+                                 int(stat_data.st_mtime))
+            all_files[filename] = item
+
+        return self._get_new_files(all_files)

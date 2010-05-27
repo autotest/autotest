@@ -8,7 +8,28 @@ from autotest_lib.mirror import source
 from autotest_lib.client.common_lib.test_utils import mock
 
 
-class rsync_source_unittest(unittest.TestCase):
+class common_source(unittest.TestCase):
+    """
+    Common support class for source unit tests.
+    """
+    def setUp(self):
+        self.god = mock.mock_god()
+        self.db_mock = self.god.create_mock_class(
+                source.database.database, 'database')
+
+        # Set fixed timezone so parsing time values does not break.
+        self._old_tz = getattr(os.environ, 'TZ', '')
+        os.environ['TZ'] = 'America/Los_Angeles'
+        time.tzset()
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+        os.environ['TZ'] = self._old_tz
+        time.tzset()
+
+
+class rsync_source_unittest(common_source):
     _cmd_template = '/usr/bin/rsync -rltz --no-motd %s %s/%s'
     _prefix = 'rsync://rsync.kernel.org/pub/linux/kernel'
     _path1 = 'v2.6/patch-2.6.*.bz2'
@@ -61,19 +82,9 @@ class rsync_source_unittest(unittest.TestCase):
         }
 
     def setUp(self):
-        self.god = mock.mock_god()
-        self.db_mock = self.god.create_mock_class(
-            source.database.database, 'database')
+        super(rsync_source_unittest, self).setUp()
+
         self.god.stub_function(source.utils, 'system_output')
-        self.old_tz = getattr(os.environ, 'TZ', '')
-        os.environ['TZ'] = 'America/Los_Angeles'
-        time.tzset()
-
-
-    def tearDown(self):
-        self.god.unstub_all()
-        os.environ['TZ'] = self.old_tz
-        time.tzset()
 
 
     def test_simple(self):
@@ -118,7 +129,7 @@ class rsync_source_unittest(unittest.TestCase):
         self.god.check_playback()
 
 
-class url_source_unittest(unittest.TestCase):
+class url_source_unittest(common_source):
     _prefix = 'http://www.kernel.org/pub/linux/kernel/'
 
     _path1 = 'v2.6/'
@@ -221,23 +232,13 @@ class url_source_unittest(unittest.TestCase):
         }
 
     def setUp(self):
-        self.god = mock.mock_god()
-        self.db_mock = self.god.create_mock_class(
-            source.database.database, 'database')
+        super(url_source_unittest, self).setUp()
+
         self.god.stub_function(source.urllib2, 'urlopen')
         self.addinfourl_mock = self.god.create_mock_class(
             source.urllib2.addinfourl, 'addinfourl')
         self.mime_mock = self.god.create_mock_class(
             httplib.HTTPMessage, 'HTTPMessage')
-        self.old_tz = getattr(os.environ, 'TZ', '')
-        os.environ['TZ'] = 'America/Los_Angeles'
-        time.tzset()
-
-
-    def tearDown(self):
-        self.god.unstub_all()
-        os.environ['TZ'] = self.old_tz
-        time.tzset()
 
 
     def test_get_new_files(self):
@@ -267,6 +268,96 @@ class url_source_unittest(unittest.TestCase):
         s.add_url(self._path1, r'.*\.(gz|bz2)$')
         s.add_url(self._path2, r'.*patch-[0-9.]+(-rc[0-9]+)?\.bz2$')
         self.assertEquals(s.get_new_files(), self._result)
+        self.god.check_playback()
+
+
+class directory_source_unittest(common_source):
+    """
+    Unit test class for directory_source.
+    """
+    def setUp(self):
+        super(directory_source_unittest, self).setUp()
+
+        self.god.stub_function(os, 'listdir')
+        self._stat_mock = self.god.create_mock_function('stat')
+
+
+    @staticmethod
+    def _get_stat_result(mode=0644, ino=12345, dev=12345, nlink=1, uid=1000,
+                         gid=1000, size=10, atime=123, mtime=123, ctime=123):
+        """
+        Build an os.stat_result() instance with many default values.
+
+        @param mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime:
+                See help(os.stat_result).
+        """
+        return os.stat_result((mode, ino, dev, nlink, uid, gid, size, atime,
+                               mtime, ctime))
+
+
+    def test_get_new_files_invalid_path(self):
+        """
+        Test directory_source.get_new_files() on an invalid path.
+        """
+        path = '/some/invalid/path'
+        os.listdir.expect_call(path).and_raises(OSError('Error'))
+
+        s = source.directory_source(self.db_mock, path)
+        self.assertRaises(OSError, s.get_new_files)
+        self.god.check_playback()
+
+
+    def test_get_new_files_stat_fails(self):
+        """
+        Test directory_source.get_new_files() when stat fails.
+        """
+        path = '/some/valid/path'
+        os.listdir.expect_call(path).and_return(['file1', 'file2'])
+        (self._stat_mock.expect_call(os.path.join(path, 'file1'))
+                .and_raises(OSError('Error')))
+        stat_result = self._get_stat_result(size=1010, mtime=123)
+        file2_full_path = os.path.join(path, 'file2')
+        self._stat_mock.expect_call(file2_full_path).and_return(stat_result)
+
+        self.db_mock.get_dictionary.expect_call().and_return({})
+
+        s = source.directory_source(self.db_mock, path)
+        expected = {'file2': source.database.item(file2_full_path, 1010, 123)}
+        self.assertEquals(expected, s.get_new_files(_stat_func=self._stat_mock))
+        self.god.check_playback()
+
+
+    def test_get_new_files_success(self):
+        """
+        Test directory_source.get_new_files() success.
+        """
+        path = '/some/valid/path'
+        file1_full_path = os.path.join(path, 'file1')
+        file2_full_path = os.path.join(path, 'file2')
+        file3_full_path = os.path.join(path, 'file3')
+
+        os.listdir.expect_call(path).and_return(['file1', 'file2', 'file3'])
+
+        stat_result = self._get_stat_result(size=1010, mtime=123)
+        self._stat_mock.expect_call(file1_full_path).and_return(stat_result)
+
+        stat_result = self._get_stat_result(size=1020, mtime=1234)
+        self._stat_mock.expect_call(file2_full_path).and_return(stat_result)
+
+        stat_result = self._get_stat_result(size=1030, mtime=12345)
+        self._stat_mock.expect_call(file3_full_path).and_return(stat_result)
+
+        known_files = {
+                'file2': source.database.item(file2_full_path, 1020, 1234),
+                }
+        self.db_mock.get_dictionary.expect_call().and_return(known_files)
+
+        s = source.directory_source(self.db_mock, path)
+        expected = {
+                'file1': source.database.item(file1_full_path, 1010, 123),
+                'file3': source.database.item(file3_full_path, 1030, 12345),
+                }
+        self.assertEquals(expected, s.get_new_files(_stat_func=self._stat_mock))
         self.god.check_playback()
 
 
