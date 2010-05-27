@@ -165,9 +165,15 @@ class Host(object):
 
         @param timeout The number of seconds to wait before timing out.
 
-        @return A string unique to this boot."""
-        return self.run('cat /proc/sys/kernel/random/boot_id',
-                        timeout=timeout).stdout.strip()
+        @return A string unique to this boot or None if not available."""
+        BOOT_ID_FILE = '/proc/sys/kernel/random/boot_id'
+        NO_ID_MSG = 'no boot_id available'
+        cmd = 'if [ -f %r ]; then cat %r; else echo %r; fi' % (
+                BOOT_ID_FILE, BOOT_ID_FILE, NO_ID_MSG)
+        boot_id = self.run(cmd, timeout=timeout).stdout.strip()
+        if boot_id == NO_ID_MSG:
+            return None
+        return boot_id
 
 
     def wait_up(self, timeout=None):

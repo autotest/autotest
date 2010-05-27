@@ -444,6 +444,8 @@ class AbstractSSHHost(SiteHost):
 
         @returns True if the host was found to be down, False otherwise
         """
+        #TODO: there is currently no way to distinguish between knowing
+        #TODO: boot_id was unsupported and not knowing the boot_id.
         current_time = time.time()
         if timeout:
             end_time = current_time + timeout
