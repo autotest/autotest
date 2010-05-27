@@ -33,28 +33,31 @@ public class AfeUtils {
     public static final String PLATFORM_SUFFIX = " (platform)";
     public static final String ATOMIC_GROUP_SUFFIX = " (atomic group)";
     public static final String REINSTALL_TEST_NAME = "Re-install Machine";
-    
+
     public static final ClassFactory factory = new SiteClassFactory();
 
     private static StaticDataRepository staticData = StaticDataRepository.getRepository();
-    
+
     public static String formatStatusCounts(JSONObject counts, String joinWith) {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         Set<String> statusSet = counts.keySet();
         for (Iterator<String> i = statusSet.iterator(); i.hasNext();) {
             String status = i.next();
             int count = (int) counts.get(status).isNumber().doubleValue();
-            result += Integer.toString(count) + " " + status;
-            if (i.hasNext())
-                result += joinWith;
+            result.append(Integer.toString(count));
+            result.append(" ");
+            result.append(status);
+            if (i.hasNext()) {
+                result.append(joinWith);
+            }
         }
-        return result;
+        return result.toString();
     }
-    
+
     public static String[] getLabelStrings() {
         return getFilteredLabelStrings(false, false);
     }
-    
+
     protected static String[] getFilteredLabelStrings(boolean onlyPlatforms,
                                                       boolean onlyNonPlatforms) {
         assert( !(onlyPlatforms && onlyNonPlatforms));
@@ -84,7 +87,7 @@ public class AfeUtils {
     public static String[] getPlatformStrings() {
         return getFilteredLabelStrings(true, false);
     }
-    
+
     public static String[] getNonPlatformLabelStrings() {
         return getFilteredLabelStrings(false, true);
     }
@@ -106,20 +109,20 @@ public class AfeUtils {
         boolean locked = host.get("locked").isBoolean().booleanValue();
         return new JSONString(locked ? "Yes" : "No");
     }
-    
-    public static void abortHostQueueEntries(Collection<JSONObject> entries, 
+
+    public static void abortHostQueueEntries(Collection<JSONObject> entries,
                                              final SimpleCallback onSuccess) {
         if (entries.isEmpty()) {
             NotifyManager.getInstance().showError("No entries selected to abort");
             return;
         }
-        
+
         final JSONArray asynchronousEntryIds = new JSONArray();
         Set<JSONObject> synchronousEntries = new JSONObjectSet<JSONObject>();
         for (JSONObject entry : entries) {
             JSONObject job = entry.get("job").isObject();
             int synchCount = (int) job.get("synch_count").isNumber().doubleValue();
-            boolean hasExecutionSubdir = 
+            boolean hasExecutionSubdir =
                 !Utils.jsonToString(entry.get("execution_subdir")).equals("");
             if (synchCount > 1 && hasExecutionSubdir) {
                 synchronousEntries.add(entry);
@@ -134,7 +137,7 @@ public class AfeUtils {
                 asynchronousEntryIds.set(asynchronousEntryIds.size(), entry.get("id"));
             }
         }
-        
+
         SimpleCallback abortAsynchronousEntries = new SimpleCallback() {
             public void doCallback(Object source) {
                 JSONObject params = new JSONObject();
@@ -142,7 +145,7 @@ public class AfeUtils {
                 AfeUtils.callAbort(params, onSuccess);
             }
         };
-        
+
         if (synchronousEntries.size() == 0) {
             abortAsynchronousEntries.doCallback(null);
         } else {
@@ -157,7 +160,7 @@ public class AfeUtils {
             array.set(array.size(), value);
         }
     }
-    
+
     public static void callAbort(JSONObject params, final SimpleCallback onSuccess,
                                  final boolean showMessage) {
         JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
@@ -173,28 +176,28 @@ public class AfeUtils {
             }
         });
     }
-    
+
     public static void callAbort(JSONObject params, final SimpleCallback onSuccess) {
         callAbort(params, onSuccess, true);
     }
-    
+
     public static void callReverify(JSONObject params, final SimpleCallback onSuccess,
                                     final String messagePrefix) {
         JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
         rpcProxy.rpcCall("reverify_hosts", params, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
-                
+
                 NotifyManager.getInstance().showMessage(
                         messagePrefix + " scheduled for reverification");
-                    
+
                 if (onSuccess != null) {
                     onSuccess.doCallback(null);
                 }
             }
         });
     }
-    
+
     private static void scheduleReinstallHelper(JSONArray hosts, JSONObject controlInfo,
                                                 final String messagePrefix,
                                                 final JobCreateListener listener) {
@@ -202,11 +205,11 @@ public class AfeUtils {
         if (hosts.size() > 1) {
             name += "_etc";
         }
-        
+
         // Get the option for "Never"
         JSONValue rebootBefore = staticData.getData("reboot_before_options").isArray().get(0);
         JSONValue rebootAfter = staticData.getData("reboot_after_options").isArray().get(0);
-        
+
         JSONObject args = new JSONObject();
         args.put("name", new JSONString(name));
         args.put("priority", staticData.getData("default_priority"));
@@ -220,7 +223,7 @@ public class AfeUtils {
         args.put("reboot_before", rebootBefore);
         args.put("reboot_after", rebootAfter);
         args.put("hosts", hosts);
-        
+
         JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
         rpcProxy.rpcCall("create_job", args, new JsonRpcCallback() {
             @Override
@@ -232,7 +235,7 @@ public class AfeUtils {
             }
         });
     }
-    
+
     public static void scheduleReinstall(final JSONArray hosts, final String messagePrefix,
                                          final JobCreateListener listener) {
         // Find the test
@@ -245,16 +248,16 @@ public class AfeUtils {
                 break;
             }
         }
-        
+
         if (reinstallTest == null) {
             NotifyManager.getInstance().showError("No test found: " + REINSTALL_TEST_NAME);
             return;
         }
-        
+
         JSONObject params = new JSONObject();
         JSONArray array = new JSONArray();
         JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
-        
+
         array.set(0, reinstallTest.get("id"));
         params.put("tests", array);
         rpcProxy.rpcCall("generate_control_file", params, new JsonRpcCallback() {
@@ -265,7 +268,7 @@ public class AfeUtils {
             }
         });
     }
-    
+
     public static void callModifyHosts(JSONObject params, final SimpleCallback onSuccess) {
         JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
         rpcProxy.rpcCall("modify_hosts", params, new JsonRpcCallback() {
@@ -277,19 +280,19 @@ public class AfeUtils {
             }
         });
     }
-    
+
     public static void changeHostLocks(JSONArray hostIds, final boolean lock,
                                        final String messagePrefix, final SimpleCallback callback) {
         JSONObject hostFilterData = new JSONObject();
         JSONObject updateData = new JSONObject();
         JSONObject params = new JSONObject();
-        
+
         hostFilterData.put("id__in", hostIds);
         updateData.put("locked", JSONBoolean.getInstance(lock));
-        
+
         params.put("host_filter_data", hostFilterData);
         params.put("update_data", updateData);
-        
+
         callModifyHosts(params, new SimpleCallback() {
             public void doCallback(Object source) {
                 String message = messagePrefix + " ";
@@ -297,9 +300,9 @@ public class AfeUtils {
                     message += "un";
                 }
                 message += "locked";
-                
+
                 NotifyManager.getInstance().showMessage(message);
-                
+
                 callback.doCallback(source);
             }
         });
@@ -315,14 +318,14 @@ public class AfeUtils {
             chooser.addChoice(Utils.jsonToString(jsonOption));
         }
     }
-    
+
     public static void popualateListBox(ListBox box, String staticDataKey) {
         JSONArray options = staticData.getData(staticDataKey).isArray();
         for (JSONString jsonOption : new JSONArrayList<JSONString>(options)) {
             box.addItem(Utils.jsonToString(jsonOption));
         }
     }
-    
+
     public static void setSelectedItem(ListBox box, String item) {
         box.setSelectedIndex(0);
         for (int i = 0; i < box.getItemCount(); i++) {
@@ -332,7 +335,7 @@ public class AfeUtils {
             }
         }
     }
-    
+
     public static void removeElement(String id) {
         Element element = DOM.getElementById(id);
         element.getParentElement().removeChild(element);

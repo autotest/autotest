@@ -20,28 +20,28 @@ import java.util.Map;
  * Custom RpcDataSource to process the list of host queue entries for a job and
  * consolidate metahosts of the same label.
  */
-class JobStatusDataSource extends RpcDataSource { 
+class JobStatusDataSource extends RpcDataSource {
     private JSONObject dictionary;
-    
+
     public JobStatusDataSource() {
         super("get_host_queue_entries", "get_num_host_queue_entries");
-        
+
         // retrieve the dictionary from static data
         StaticDataRepository staticData = StaticDataRepository.getRepository();
         dictionary = staticData.getData("status_dictionary").isObject();
     }
-    
+
     private String translateStatus(String status)  {
         if (dictionary.containsKey(status)) {
             return dictionary.get(status).isString().stringValue();
         }
         else {
-            NotifyManager.getInstance().showError("Unknown status", "Can not find status " + 
+            NotifyManager.getInstance().showError("Unknown status", "Can not find status " +
                                                   status);
             return status;
         }
     }
-    
+
     @Override
     protected List<JSONObject> handleJsonResult(JSONValue result) {
         List<JSONObject> queueEntries = super.handleJsonResult(result);
@@ -52,14 +52,14 @@ class JobStatusDataSource extends RpcDataSource {
             String status = queueEntry.get("status").isString().stringValue();
             String translation = translateStatus(status);
             queueEntry.put("status", new JSONString(translation));
-            
+
             boolean hasHost = (queueEntry.get("host").isNull() == null);
             boolean hasMetaHost = (queueEntry.get("meta_host").isNull() == null);
-            
+
             if (!hasHost && !hasMetaHost) {
                 queueEntry.put("hostname", new JSONString("(hostless)"));
                 rows.add(queueEntry);
-                
+
             } else if (!hasHost && hasMetaHost) {
                 // metahost
                 incrementMetaHostCount(metaHostEntries, queueEntry);
@@ -69,12 +69,12 @@ class JobStatusDataSource extends RpcDataSource {
                 rows.add(queueEntry);
             }
         }
-        
+
         addMetaHostRows(metaHostEntries, rows);
-        
+
         return rows;
     }
-    
+
     protected void processHostData(JSONObject queueEntry) {
         JSONObject host = queueEntry.get("host").isObject();
         queueEntry.put("hostname", host.get("hostname"));
@@ -87,7 +87,7 @@ class JobStatusDataSource extends RpcDataSource {
         }
     }
 
-    private void incrementMetaHostCount(Map<List<String>, JSONObject> metaHostEntries, 
+    private void incrementMetaHostCount(Map<List<String>, JSONObject> metaHostEntries,
                                         JSONObject queueEntry) {
         String label = queueEntry.get("meta_host").isString().stringValue();
         String status = queueEntry.get("status").isString().stringValue();
@@ -110,14 +110,14 @@ class JobStatusDataSource extends RpcDataSource {
         // arrays don't hash correctly, so use a list instead
         return Arrays.asList(new String[] {label, status});
     }
-    
+
     private void addMetaHostRows(Map<List<String>, JSONObject> metaHostEntries,
                                  List<JSONObject> rows) {
         for (JSONObject entry : metaHostEntries.values()) {
             String label = Utils.jsonToString(entry.get("meta_host"));
             String status = Utils.jsonToString(entry.get("status"));
             int count = entry.get("id_list").isArray().size();
-            
+
             entry.put("hostname", new JSONString(label + " (label)"));
             entry.put("status", new JSONString(Integer.toString(count) + " " + status));
             rows.add(entry);
