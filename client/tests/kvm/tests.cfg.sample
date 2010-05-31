@@ -43,12 +43,12 @@ variants:
         # No large memory pages
         only smallpages
         # Operating system choice
-        only WinVista.64
+        only Win7.64
         # Subtest choice. You can modify that line to add more subtests
         only unattended_install boot shutdown
 
-    # Runs qemu, f12 64 bit guest OS, install, boot, shutdown
-    - @qemu_f12_quick:
+    # Runs qemu, f13 64 bit guest OS, install, boot, shutdown
+    - @qemu_f13_quick:
         # We want qemu for this run
         qemu_binary = /usr/bin/qemu
         only qcow2
@@ -60,13 +60,13 @@ variants:
         only up
         only no_pci_assignable
         only smallpages
-        only Fedora.12.64
+        only Fedora.13.64
         only unattended_install boot shutdown
         # qemu needs -enable-kvm on the cmdline
         extra_params = ' -enable-kvm'
 
-    # Runs qemu-kvm, f12 64 bit guest OS, install, boot, shutdown
-    - @qemu_kvm_f12_quick:
+    # Runs qemu-kvm, f13 64 bit guest OS, install, boot, shutdown
+    - @qemu_kvm_f13_quick:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
         only qcow2
@@ -76,7 +76,7 @@ variants:
         only smp2
         only no_pci_assignable
         only smallpages
-        only Fedora.12.64
+        only Fedora.13.64
         only unattended_install boot shutdown
 
 # Uncomment the following lines to enable abort-on-error mode:
@@ -85,4 +85,4 @@ variants:
 #kill_unresponsive_vms.* ?= no
 
 # Choose your test list from the testsets defined
-only qemu_kvm_f12_quick
+only qemu_kvm_f13_quick
