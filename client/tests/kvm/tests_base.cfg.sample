@@ -585,6 +585,27 @@ variants:
                             tftp = images/f12-64/tftpboot
                             floppy = images/f12-64/floppy.img
 
+                    - 13.32:
+                        image_name = f13-32
+                        cdrom = linux/Fedora-13-i386-DVD.iso
+                        md5sum = 212fec517c2629b4b5eaf3662ac13136
+                        md5sum_1m = 4e1578a6ed5a6e7cd03b8fb074030746
+                        unattended_install:
+                            unattended_file = unattended/Fedora-13.ks
+                            tftp = images/f13-32/tftpboot
+                            floppy = images/f13-32/floppy.img
+
+                    - 13.64:
+                        image_name = f13-64
+                        cdrom = linux/Fedora-13-x86_64-DVD.iso
+                        md5sum = 6fbae6379cf27f36e1f2c7827ba7dc35
+                        md5sum_1m = 68821b9de4d3b5975d6634334e7f47a6
+                        unattended_install:
+                            unattended_file = unattended/Fedora-13.ks
+                            tftp = images/f13-64/tftpboot
+                            floppy = images/f13-64/floppy.img
+
+
             - DSL-4.2.5:
                 no setup dbench bonnie linux_s3
                 image_name = dsl-4.2.5
