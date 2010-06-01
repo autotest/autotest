@@ -315,8 +315,8 @@ class VM:
                 mac = kvm_utils.get_mac_ip_pair_from_dict(nic_params)[0]
             qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac)
             # Handle the '-net tap' or '-net user' part
-            script = nic_params.get("script")
-            downscript = nic_params.get("downscript")
+            script = nic_params.get("nic_script")
+            downscript = nic_params.get("nic_downscript")
             if script:
                 script = kvm_utils.get_path(root_dir, script)
             if downscript:
