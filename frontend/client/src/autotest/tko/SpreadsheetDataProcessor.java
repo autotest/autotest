@@ -187,7 +187,8 @@ public class SpreadsheetDataProcessor implements DataCallback {
         onFinished.execute();
     }
 
-    public void setHeaders(List<HeaderField> rowFields, List<HeaderField> columnFields,
+    public void setHeaders(List<? extends HeaderField> rowFields,
+                           List<? extends HeaderField> columnFields,
                            JSONObject queryParameters) {
         this.rowFields = getHeaderSqlNames(rowFields);
         this.columnFields = getHeaderSqlNames(columnFields);
@@ -199,7 +200,7 @@ public class SpreadsheetDataProcessor implements DataCallback {
         dataSource.setQueryParameters(queryParameters);
     }
 
-    private Header getHeaderSqlNames(List<HeaderField> fields) {
+    private Header getHeaderSqlNames(List<? extends HeaderField> fields) {
         Header header = new HeaderImpl();
         for (HeaderField field : fields) {
             header.add(field.getSqlName());

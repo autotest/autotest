@@ -314,4 +314,8 @@ public class Utils {
         }
         return list;
     }
+
+    public static String getBaseUrl() {
+        return Window.Location.getProtocol() + "//" + Window.Location.getHost();
+    }
 }

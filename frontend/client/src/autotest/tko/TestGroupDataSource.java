@@ -22,24 +22,24 @@ class TestGroupDataSource extends RpcDataSource {
     public static final String PASS_COUNT_FIELD = "pass_count";
     public static final String COMPLETE_COUNT_FIELD = "complete_count";
     public static final String INCOMPLETE_COUNT_FIELD = "incomplete_count";
-    
+
     private JSONArray groupByFields;
     private JSONArray headerGroups;
     private JSONArray headerGroupValues;
     private JSONObject queryParameters;
-    
+
     public static TestGroupDataSource getTestGroupDataSource() {
         return new TestGroupDataSource(GROUP_COUNTS_RPC);
     }
-    
+
     public static TestGroupDataSource getStatusCountDataSource() {
         return new TestGroupDataSource(STATUS_COUNTS_RPC);
     }
-    
+
     public static TestGroupDataSource getLatestTestsDataSource() {
         return new TestGroupDataSource(LATEST_TESTS_RPC);
     }
-    
+
     // force construction to go through above factory methods
     private TestGroupDataSource(String dataMethodName) {
         super(dataMethodName, NUM_GROUPS_RPC);
@@ -69,7 +69,7 @@ class TestGroupDataSource extends RpcDataSource {
         headerGroupValues = resultObject.get("header_values").isArray();
         return new JSONArrayList<JSONObject>(resultObject.get("groups").isArray());
     }
-    
+
     public void setGroupColumns(String[] columns) {
         groupByFields = new JSONArray();
         for (String field : columns) {
@@ -77,7 +77,7 @@ class TestGroupDataSource extends RpcDataSource {
         }
         headerGroups = null;
     }
-    
+
     public void setHeaderGroups(List<List<String>> headerFieldGroups) {
         groupByFields = new JSONArray();
         headerGroups = new JSONArray();
@@ -88,9 +88,9 @@ class TestGroupDataSource extends RpcDataSource {
             }
         }
     }
-    
+
     /**
-     * Get a list of values for the header group with the given index, as specified to 
+     * Get a list of values for the header group with the given index, as specified to
      * setHeaderGroups().
      */
     public List<List<String>> getHeaderGroupValues(int groupIndex) {
