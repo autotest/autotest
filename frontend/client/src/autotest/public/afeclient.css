@@ -134,13 +134,6 @@ tr.data-row-clickable:hover {
   margin: 0.2em;
 }
 
-.results-frame {
-  max-width: 700px;
-  max-height: 500px;
-  margin-bottom: 0.2em;
-  border: 2px solid gray;
-}
-
 .gwt-DialogBox {
   background: white;
   border: 2px solid #f4f4f4;
