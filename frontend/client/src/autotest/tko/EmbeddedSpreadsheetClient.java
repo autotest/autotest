@@ -1,12 +1,17 @@
 package autotest.tko;
 
+import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.spreadsheet.Spreadsheet;
 
 import com.google.gwt.core.client.EntryPoint;
+import com.google.gwt.dom.client.Element;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
+import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.RootPanel;
 
 import java.util.Collections;
@@ -25,7 +30,9 @@ public class EmbeddedSpreadsheetClient implements EntryPoint {
 
     public static final String ROW_HEADER = "hostname";
     public static final String COLUMN_HEADER = "test_name";
+    private static final String NO_RESULTS = "There are no results for this query (yet?)";
 
+    private Label noResults = new Label(NO_RESULTS);
     private Spreadsheet spreadsheet = new Spreadsheet();
     private SpreadsheetDataProcessor spreadsheetProcessor =
             new SpreadsheetDataProcessor(spreadsheet);
@@ -33,8 +40,50 @@ public class EmbeddedSpreadsheetClient implements EntryPoint {
     @Override
     public void onModuleLoad() {
         JsonRpcProxy.setDefaultBaseUrl(JsonRpcProxy.TKO_BASE_URL);
-        setupListener();
+        checkAndRender(Window.Location.getParameter("afe_job_id"));
+    }
 
+    private void checkAndRender(String afeJobIdStr) {
+        final JSONObject condition = getFilterCondition(afeJobIdStr);
+        if (condition == null) {
+            showNoResults();
+        }
+
+        JsonRpcProxy.getProxy().rpcCall("get_num_test_views", condition, new JsonRpcCallback() {
+            @Override
+            public void onSuccess(JSONValue result) {
+                if (result.isNumber().doubleValue() != 0) {
+                    renderSpreadsheet(condition);
+                } else {
+                    showNoResults();
+                }
+            }
+        });
+    }
+
+    private JSONObject getFilterCondition(String afeJobIdStr) {
+        if (afeJobIdStr == null) {
+            return null;
+        }
+
+        int afeJobId;
+        try {
+            afeJobId = Integer.parseInt(afeJobIdStr);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+
+        JSONObject condition = new JSONObject();
+        condition.put("afe_job_id", new JSONNumber(afeJobId));
+        return condition;
+    }
+
+    private void showNoResults() {
+        RootPanel.get().add(noResults);
+        notifyParent(noResults.getElement());
+    }
+
+    private void renderSpreadsheet(JSONObject condition) {
         spreadsheetProcessor.setDataSource(TestGroupDataSource.getStatusCountDataSource());
         spreadsheetProcessor.setHeaders(
                 Collections.singletonList(new SimpleHeaderField(ROW_HEADER)),
@@ -42,35 +91,15 @@ public class EmbeddedSpreadsheetClient implements EntryPoint {
                 new JSONObject());
 
         RootPanel.get().add(spreadsheet);
-    }
-
-    private native void setupListener() /*-{
-        var instance = this;
-        $wnd.onGotJobId = function(event) {
-            var jobId = parseInt(event.data);
-            instance.@autotest.tko.EmbeddedSpreadsheetClient::createSpreadsheet(I)(jobId);
-        }
-
-        $wnd.addEventListener("message", $wnd.onGotJobId, false);
-    }-*/;
-
-    @SuppressWarnings("unused") // called from native
-    private void createSpreadsheet(int afeJobId) {
-        spreadsheet.clear();
-        final JSONObject condition = getFilterCondition(afeJobId);
         spreadsheetProcessor.refresh(condition, new Command() {
             public void execute() {
-                condition.put("extra_info", null);
-                notifyParent(spreadsheet.getElement().getClientWidth(),
-                        spreadsheet.getElement().getClientHeight());
+                notifyParent(spreadsheet.getElement());
             }
         });
     }
 
-    private JSONObject getFilterCondition(int afeJobId) {
-        JSONObject condition = new JSONObject();
-        condition.put("afe_job_id", new JSONNumber(afeJobId));
-        return condition;
+    private void notifyParent(Element elem) {
+        notifyParent(elem.getClientWidth(), elem.getClientHeight());
     }
 
     private native void notifyParent(int width, int height) /*-{
