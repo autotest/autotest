@@ -50,8 +50,6 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     public static final int HOSTS_PER_PAGE = 30;
     public static final String RESULTS_MAX_WIDTH = "700px";
     public static final String RESULTS_MAX_HEIGHT = "500px";
-    public static final String EMBEDDED_SPREADSHEET_URL =
-            "/embedded_spreadsheet/EmbeddedSpreadsheetClient.html";
 
     public interface JobDetailListener {
         public void onHostSelected(String hostname);
@@ -68,7 +66,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     protected Button abortButton = new Button("Abort job");
     protected Button cloneButton = new Button("Clone job");
     protected Button recurringButton = new Button("Create recurring job");
-    protected Frame tkoResultsFrame = new Frame(EMBEDDED_SPREADSHEET_URL);
+    protected Frame tkoResultsFrame = new Frame();
 
     protected JobDetailListener listener;
     private SelectionManager selectionManager;
@@ -103,7 +101,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
 
     @Override
     protected void fetchData() {
-        pointToResults(NO_URL, NO_URL, NO_URL, NO_URL);
+        pointToResults(NO_URL, NO_URL, NO_URL, NO_URL, NO_URL);
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
         rpcProxy.rpcCall("get_jobs_summary", params, new JsonRpcCallback() {
@@ -150,7 +148,8 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
 
                 String jobTag = AfeUtils.getJobTag(jobObject);
                 pointToResults(getResultsURL(jobId), getLogsURL(jobTag),
-                               getOldResultsUrl(jobId), getTriageUrl(jobId));
+                               getOldResultsUrl(jobId), getTriageUrl(jobId),
+                               getEmbeddedUrl(jobId));
 
                 String jobTitle = "Job: " + name + " (" + jobTag + ")";
                 displayObjectData(jobTitle);
@@ -360,6 +359,10 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                "+AND+status+%253C%253E+%2527GOOD%2527&show_invalid=false";
     }
 
+    private String getEmbeddedUrl(int jobId) {
+        return "/embedded_spreadsheet/EmbeddedSpreadsheetClient.html?afe_job_id=" + jobId;
+    }
+
     /**
      * Get the path for a job's raw result files.
      * @param jobLogsId id-owner, e.g. "172-showard"
@@ -369,7 +372,8 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     }
 
     protected void pointToResults(String resultsUrl, String logsUrl,
-                                  String oldResultsUrl, String triageUrl) {
+                                  String oldResultsUrl, String triageUrl,
+                                  String embeddedUrl) {
         getElementById("results_link").setAttribute("href", resultsUrl);
         getElementById("old_results_link").setAttribute("href", oldResultsUrl);
         getElementById("raw_results_link").setAttribute("href", logsUrl);
@@ -377,13 +381,14 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
 
         tkoResultsFrame.setSize(RESULTS_MAX_WIDTH, RESULTS_MAX_HEIGHT);
         if (!resultsUrl.equals(NO_URL)) {
-            updateResultsFrame(tkoResultsFrame.getElement(),
-                    String.valueOf(jobId), Utils.getBaseUrl());
+            updateResultsFrame(tkoResultsFrame.getElement(), embeddedUrl);
         }
     }
 
-    private native void updateResultsFrame(Element frame, String jobId, String baseUrl) /*-{
-        frame.contentWindow.postMessage(jobId, baseUrl);
+    private native void updateResultsFrame(Element frame, String embeddedUrl) /*-{
+        // Use location.replace() here so that the frame's URL changes don't show up in the browser
+        // window's history
+        frame.contentWindow.location.replace(embeddedUrl);
     }-*/;
 
     @Override
