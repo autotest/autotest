@@ -17,7 +17,11 @@ class hackbench(test.test):
 
     def setup(self):
         os.chdir(self.srcdir)
-        utils.system('cc -lpthread hackbench.c -o hackbench')
+        if 'CC' in os.environ:
+          cc = '$CC'
+        else:
+          cc = 'cc'
+        utils.system('%s -lpthread hackbench.c -o hackbench' % cc)
 
 
     def initialize(self):
@@ -38,9 +42,7 @@ class hackbench(test.test):
         self.results = raw_output
 
         path = os.path.join(self.resultsdir, 'raw_output_%s' % self.iteration)
-        raw_output_file = open(path, 'w')
-        raw_output_file.write(raw_output)
-        raw_output_file.close()
+        utils.open_write_close(path, raw_output)
 
 
     def postprocess_iteration(self):
