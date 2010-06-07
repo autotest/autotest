@@ -476,49 +476,48 @@ class VM:
                 self.uuid = f.read().strip()
                 f.close()
 
-            if not params.get("pci_assignable") == "no":
-                pa_type = params.get("pci_assignable")
+            # Assign a PCI assignable device
+            self.pci_assignable = None
+            pa_type = params.get("pci_assignable")
+            if pa_type in ["vf", "pf", "mixed"]:
                 pa_devices_requested = params.get("devices_requested")
 
                 # Virtual Functions (VF) assignable devices
                 if pa_type == "vf":
-                    pa_driver = params.get("driver")
-                    pa_driver_option = params.get("driver_option")
-                    self.pci_assignable = kvm_utils.PciAssignable(type=pa_type,
-                                        driver=pa_driver,
-                                        driver_option=pa_driver_option,
-                                        devices_requested=pa_devices_requested)
+                    self.pci_assignable = kvm_utils.PciAssignable(
+                        type=pa_type,
+                        driver=params.get("driver"),
+                        driver_option=params.get("driver_option"),
+                        devices_requested=pa_devices_requested)
                 # Physical NIC (PF) assignable devices
                 elif pa_type == "pf":
-                    pa_device_names = params.get("device_names")
-                    self.pci_assignable = kvm_utils.PciAssignable(type=pa_type,
-                                         names=pa_device_names,
-                                         devices_requested=pa_devices_requested)
+                    self.pci_assignable = kvm_utils.PciAssignable(
+                        type=pa_type,
+                        names=params.get("device_names"),
+                        devices_requested=pa_devices_requested)
                 # Working with both VF and PF
                 elif pa_type == "mixed":
-                    pa_device_names = params.get("device_names")
-                    pa_driver = params.get("driver")
-                    pa_driver_option = params.get("driver_option")
-                    self.pci_assignable = kvm_utils.PciAssignable(type=pa_type,
-                                        driver=pa_driver,
-                                        driver_option=pa_driver_option,
-                                        names=pa_device_names,
-                                        devices_requested=pa_devices_requested)
+                    self.pci_assignable = kvm_utils.PciAssignable(
+                        type=pa_type,
+                        driver=params.get("driver"),
+                        driver_option=params.get("driver_option"),
+                        names=params.get("device_names"),
+                        devices_requested=pa_devices_requested)
 
                 self.pa_pci_ids = self.pci_assignable.request_devs()
 
                 if self.pa_pci_ids:
-                    logging.debug("Successfuly assigned devices: %s" %
+                    logging.debug("Successfuly assigned devices: %s",
                                   self.pa_pci_ids)
                 else:
                     logging.error("No PCI assignable devices were assigned "
                                   "and 'pci_assignable' is defined to %s "
-                                  "on your config file. Aborting VM creation." %
+                                  "on your config file. Aborting VM creation.",
                                   pa_type)
                     return False
 
-            else:
-                self.pci_assignable = None
+            elif pa_type and pa_type != "no":
+                logging.warn("Unsupported pci_assignable type: %s", pa_type)
 
             # Make qemu command
             qemu_command = self.make_qemu_command()
