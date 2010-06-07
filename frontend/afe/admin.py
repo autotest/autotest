@@ -136,8 +136,21 @@ class AclGroupAdmin(SiteAdmin):
 admin.site.register(models.AclGroup, AclGroupAdmin)
 
 
+class DroneSetForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(DroneSetForm, self).__init__(*args, **kwargs)
+        drone_ids_used = set()
+        for drone_set in models.DroneSet.objects.exclude(id=self.instance.id):
+            drone_ids_used.update(drone_set.drones.values_list('id', flat=True))
+        available_drones = models.Drone.objects.exclude(id__in=drone_ids_used)
+
+        self.fields['drones'].widget.choices = [(drone.id, drone.hostname)
+                                                for drone in available_drones]
+
+
 class DroneSetAdmin(SiteAdmin):
     filter_horizontal = ('drones',)
+    form = DroneSetForm
 
 admin.site.register(models.DroneSet, DroneSetAdmin)
 
