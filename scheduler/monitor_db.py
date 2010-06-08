@@ -1130,12 +1130,16 @@ class Dispatcher(object):
 
 
     def _find_aborting(self):
+        jobs_to_stop = set()
         for entry in scheduler_models.HostQueueEntry.fetch(
                 where='aborted and not complete'):
             logging.info('Aborting %s', entry)
             for agent in self.get_agents_for_entry(entry):
                 agent.abort()
             entry.abort(self)
+            jobs_to_stop.add(entry.job)
+        for job in jobs_to_stop:
+            job.stop_if_necessary()
 
 
     def _can_start_agent(self, agent, num_started_this_cycle,
