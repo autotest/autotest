@@ -22,7 +22,7 @@ import os, traceback, sys, shutil, logging, resource, glob
 
 from autotest_lib.client.common_lib import error, utils
 from autotest_lib.client.common_lib import test as common_test
-from autotest_lib.client.bin import sysinfo
+from autotest_lib.client.bin import sysinfo, os_dep
 
 
 class test(common_test.base_test):
@@ -52,11 +52,11 @@ class test(common_test.base_test):
                "print sys.version_info[0], sys.version_info[1]'")
         result = utils.run(cmd, ignore_status=True)
         if result.exit_status != 0:
-            logging.warn('System python is too old, crash handling disabled')
+            logging.warning('System python is too old, crash handling disabled')
             return
         major, minor = [int(x) for x in result.stdout.strip().split()]
         if (major, minor) < (2, 4):
-            logging.warn('System python is too old, crash handling disabled')
+            logging.warning('System python is too old, crash handling disabled')
             return
 
         self.pattern_file = '/proc/sys/kernel/core_pattern'
@@ -74,10 +74,15 @@ class test(common_test.base_test):
                                       os.getpid())
             utils.open_write_close(self.debugdir_tmp_file, self.debugdir + "\n")
         except Exception, e:
-            logging.error('Crash handling system disabled: %s' % e)
+            logging.warning('Crash handling disabled: %s', e)
         else:
             self.crash_handling_enabled = True
-            logging.debug('Crash handling system enabled')
+            try:
+                os_dep.command('gdb')
+            except ValueError:
+                logging.warning('Could not find GDB installed. Crash handling '
+                                'will operate with limited functionality')
+            logging.debug('Crash handling enabled')
 
 
     def crash_handler_report(self):
