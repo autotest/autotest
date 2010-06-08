@@ -55,6 +55,10 @@ REQUIRES_AUTH = set ((
 REQUIRES_HTTPLIB2 = set((
         ))
 
+REQUIRES_PROTOBUFS = set((
+        'job_serializer_unittest.py',
+        ))
+
 LONG_RUNTIME = set((
     'base_barrier_unittest.py',
     'logging_manager_test.py',
@@ -66,6 +70,7 @@ LONG_TESTS = (REQUIRES_DJANGO |
               REQUIRES_SIMPLEJSON |
               REQUIRES_HTTPLIB2 |
               REQUIRES_AUTH |
+              REQUIRES_PROTOBUFS |
               LONG_RUNTIME)
 
 
