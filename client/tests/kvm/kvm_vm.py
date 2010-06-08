@@ -516,7 +516,7 @@ class VM:
                                   pa_type)
                     return False
 
-            elif pa_type and pa_type != "no":
+            elif pa_type is not None and pa_type != "no":
                 logging.warn("Unsupported pci_assignable type: %s", pa_type)
 
             # Make qemu command
