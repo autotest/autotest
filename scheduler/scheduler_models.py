@@ -569,7 +569,7 @@ class HostQueueEntry(DBObject):
         self.update_field('complete', complete)
 
         if complete:
-            self._on_complete()
+            self._on_complete(status)
             self._email_on_job_complete()
 
         should_email_status = (status.lower() in _notify_email_statuses or
@@ -578,8 +578,10 @@ class HostQueueEntry(DBObject):
             self._email_on_status(status)
 
 
-    def _on_complete(self):
-        self.job.stop_if_necessary()
+    def _on_complete(self, status):
+        if status is not models.HostQueueEntry.Status.ABORTED:
+            self.job.stop_if_necessary()
+
         if not self.execution_subdir:
             return
         # unregister any possible pidfiles associated with this queue entry
