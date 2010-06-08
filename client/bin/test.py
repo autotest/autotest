@@ -45,6 +45,20 @@ class test(common_test.base_test):
         parent of the current test execution. If we can't determine it, the
         core file and the report file will be copied to all test debug dirs.
         """
+        self.crash_handling_enabled = False
+
+        # make sure this script will run with a new enough python to work
+        cmd = ("python -c 'import sys; "
+               "print sys.version_info[0], sys.version_info[1]'")
+        result = utils.run(cmd, ignore_status=True)
+        if result.exit_status != 0:
+            logging.warn('System python is too old, crash handling disabled')
+            return
+        major, minor = [int(x) for x in result.stdout.strip().split()]
+        if (major, minor) < (2, 4):
+            logging.warn('System python is too old, crash handling disabled')
+            return
+
         self.pattern_file = '/proc/sys/kernel/core_pattern'
         try:
             # Enable core dumps
@@ -60,7 +74,6 @@ class test(common_test.base_test):
                                       os.getpid())
             utils.open_write_close(self.debugdir_tmp_file, self.debugdir + "\n")
         except Exception, e:
-            self.crash_handling_enabled = False
             logging.error('Crash handling system disabled: %s' % e)
         else:
             self.crash_handling_enabled = True
