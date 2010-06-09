@@ -12,6 +12,8 @@ variants:
         type = build
         # Load modules built/installed by the build test?
         load_modules = no
+        # Save the results of this build on test.resultsdir?
+        save_results = no
         variants:
             - release:
                 mode = release
@@ -47,18 +49,30 @@ variants:
                 ## * git_repo (linux sources)
                 ## * user_git_repo (qemu sources)
                 ## * kmod_repo" to build KVM userspace + kernel modules.
-                git_repo = git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git
+                # git_repo = git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git
                 # kernel_branch = kernel_branch_name
                 # kernel_lbranch = kernel_lbranch_name
-                # kernel_tag = kernel_tag_name
+                # kernel_commit = kernel_commit_name
+                # kernel_patches = ['http://foo.com/patch1', 'http://foo.com/patch2']
                 user_git_repo = git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git
                 # user_branch = user_branch_name
                 # user_lbranch = user_lbranch_name
-                # user_tag = user_tag_name
-                kmod_repo = git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git
+                # user_commit = user_commit_name
+                # user_patches = ['http://foo.com/patch1', 'http://foo.com/patch2']
+                # kmod_repo = git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git
                 # kmod_branch = kmod_branch_name
                 # kmod_lbranch = kmod_lbranch_name
-                # kmod_tag = kmod_tag_name
+                # kmod_commit = kmod_commit_name
+                # kmod_patches = ['http://foo.com/patch1', 'http://foo.com/patch2']
+            - yum:
+                mode = yum
+                src_pkg = qemu
+                ## Name of the rpms we need installed
+                pkg_list = ['qemu-kvm', 'qemu-kvm-tools', 'qemu-system-x86', 'qemu-common', 'qemu-img']
+                ## Paths of the qemu relevant executables that should be checked
+                qemu_bin_paths = ['/usr/bin/qemu-kvm', '/usr/bin/qemu-img']
+                ## List of RPMs that will be installed
+                pkg_path_list = ['http://foo.com/rpm1', 'http://foo.com/rpm2']
             - koji:
                 mode = koji
                 ## Install KVM from koji (Fedora build server)
@@ -67,7 +81,9 @@ variants:
                 ## Tag (if available)
                 koji_tag = dist-f11
                 ## Build (if available, is going to override tag).
+                ## Build ID can be either an integer or a string as below
                 koji_build = qemu-0.10-16.fc11
+                # koji_build = 250544
                 ## Command to interact with the build server
                 koji_cmd = /usr/bin/koji
                 ## The name of the source package that will be built
@@ -82,4 +98,3 @@ variants:
 # default, so therefore no attempt to build/install KVM will be made by
 # default
 only build.noinstall
-

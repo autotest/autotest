@@ -394,7 +394,7 @@ def get_git_branch(repository, branch, srcdir, commit=None, lbranch=None):
 
     @param repository: Git repository URL
     """
-    logging.info("Fetching git [REP '%s' BRANCH '%s' TAG '%s'] -> %s",
+    logging.info("Fetching git [REP '%s' BRANCH '%s' COMMIT '%s'] -> %s",
                  repository, branch, commit, srcdir)
     if not os.path.exists(srcdir):
         os.makedirs(srcdir)
