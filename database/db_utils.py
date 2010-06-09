@@ -92,6 +92,20 @@ def check_exists(manager, names, type):
                     '%s missing from database, stopping' % name)
 
 
+def check_index_exists(manager, table_name, index_name):
+    """
+    Checks if a particular index exists on the table
+
+    @param manager the migration manager
+    @param table_name the table to check
+    @param index_name the index to check
+    """
+    query = ('SELECT 1 FROM information_schema.statistics '
+             'WHERE table_schema = %s AND table_name = %s AND index_name = %s')
+    rows = manager.execute(query, manager.get_db_name(), table_name, index_name)
+    return bool(rows)
+
+
 DJANGO_AUTH_TABLES = ('auth_group', 'auth_group_permissions', 'auth_permission')
 
 def auth_tables_exist(manager):
