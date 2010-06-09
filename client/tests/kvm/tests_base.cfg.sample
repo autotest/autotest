@@ -739,6 +739,28 @@ variants:
                             floppy = "images/sles11-64floppy.img"
                             pxe_dir = "boot/x86_64/loader"
 
+                    - 11.1.32:
+                        image_name = sles11sp1-32
+                        cdrom=linux/SLES-11-SP1-DVD-i586-GM-DVD1.iso
+                        md5sum = 0dd6886858d93501c38854552b9b1b0d
+                        md5sum_1m = a626a3d50813410e3ac42794e05773bb
+                        unattended_install:
+                            unattended_file = unattended/SLES-11.xml
+                            tftp = "images/sles11sp1-32/tftpboot"
+                            floppy = "images/sles11sp1-32floppy.img"
+                            pxe_dir = "boot/i386/loader"
+
+                    - 11.1.64:
+                        image_name = sles11sp1-64
+                        cdrom=linux/SLES-11-SP1-DVD-x86_64-GM-DVD1.iso
+                        md5sum = d2e10420f3689faa49a004b60fb396b7
+                        md5sum_1m = f7f67b5da46923a9f01da8a2b6909654
+                        unattended_install:
+                            unattended_file = unattended/SLES-11.xml
+                            tftp = "images/sles11sp1-64/tftpboot"
+                            floppy = "images/sles11sp1-64floppy.img"
+                            pxe_dir = "boot/x86_64/loader"
+
             - @Ubuntu:
                 shell_prompt = "^root@.*[\#\$]\s*$"
 
