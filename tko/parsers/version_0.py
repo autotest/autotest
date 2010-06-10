@@ -174,7 +174,7 @@ class kernel(models.kernel):
 class test(models.test):
     def __init__(self, subdir, testname, status, reason, test_kernel,
                  machine, started_time, finished_time, iterations,
-                 attributes):
+                 attributes, labels):
         # for backwards compatibility with the original parser
         # implementation, if there is no test version we need a NULL
         # value to be used; also, if there is a version it should
@@ -187,7 +187,7 @@ class test(models.test):
         super(test, self).__init__(subdir, testname, status, reason,
                                    test_kernel, machine, started_time,
                                    finished_time, iterations,
-                                   attributes)
+                                   attributes, labels)
 
 
     @staticmethod
