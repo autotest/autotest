@@ -1,0 +1,52 @@
+message keyval {
+    required string name = 1;
+    required string value = 2;
+}
+
+message job {
+    required string dir = 1;
+    repeated test tests = 2;
+    required string user = 3;
+    required string label = 4;
+    required string machine = 5;
+    required int64 queued_time = 6;
+    required int64 started_time = 7;
+    required int64 finished_time = 8;
+    required string machine_owner = 9;
+    required string machine_group = 10;
+    required string aborted_by = 11;
+    required int64 aborted_on = 12;
+    repeated keyval keyval_dict = 13;
+}
+
+message kernel {
+    required string base = 1;
+    repeated patch patches = 2;
+    required string kernel_hash = 3;
+}
+
+message patch {
+    required string spec = 1;
+    required string reference = 2;
+    required int64 hash = 3;
+}
+
+message iteration {
+    required int64 index = 1;
+    repeated keyval attr_keyval = 2;
+    repeated keyval perf_keyval = 3;
+}
+
+message test {
+    required string subdir = 1;
+    required string testname = 2;
+    required string status = 3;
+    required string reason = 4;
+    required kernel kernel = 5;
+    required string machine = 6;
+    required int64 started_time = 7;
+    required int64 finished_time = 8;
+    repeated iteration iterations = 9;
+    repeated keyval attributes = 10;
+    repeated string labels = 11;
+}
