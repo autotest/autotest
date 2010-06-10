@@ -1,5 +1,5 @@
 install
-cdrom
+KVM_TEST_MEDIUM
 text
 reboot
 lang en_US.UTF-8
