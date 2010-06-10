@@ -47,7 +47,7 @@ class JobFeed(feeds.Feed):
     NUM_ITEMS = 20
 
     def __init__(self, slug, request):
-        super(JobFeed, self).__init__(slug, request.path)
+        super(JobFeed, self).__init__(slug, request)
         server_hostname = django.http.get_host(request)
         self.full_link = 'http://' + server_hostname + self.link
 
