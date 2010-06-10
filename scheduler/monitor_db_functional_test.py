@@ -976,6 +976,13 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
         job.hostqueueentry_set.update(aborted=True)
         self._run_dispatcher()
+        self._check_statuses(queue_entry, HqeStatus.GATHERING,
+                             HostStatus.RUNNING)
+
+        self.mock_drone_manager.process_capacity = 5
+        self._run_dispatcher()
+        self._check_statuses(queue_entry, HqeStatus.ABORTED,
+                             HostStatus.CLEANING)
 
 
     def test_simple_atomic_group_job(self):
