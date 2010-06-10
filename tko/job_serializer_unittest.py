@@ -32,7 +32,7 @@ class JobSerializerUnittest(unittest.TestCase):
         tko_kernel = models.kernel('tubes', tko_patches, '1234567')
         tko_time = datetime.now()
 
-        tko_job = models.job('/tmp/', 'root', 'test', 'My Computer',
+        tko_job = models.job('/tmp/', 'darrenkuo', 'test', 'My Computer',
                              tko_time, tko_time, tko_time, 'root',
                              'www', 'No one', tko_time, {'1+1':2})
 
@@ -41,7 +41,7 @@ class JobSerializerUnittest(unittest.TestCase):
 
         tko_labels = ['unittest', 'dummy test', 'autotest']
 
-        tko_test = models.test('/tmp/', 'mocktest', 'PASS', 'N/A',
+        tko_test = models.test('/tmp/', 'mocktest', 'Completed', 'N/A',
                                tko_kernel, 'My Computer', tko_time,
                                tko_time, [tko_iteration,
                                tko_iteration, tko_iteration],
@@ -50,7 +50,7 @@ class JobSerializerUnittest(unittest.TestCase):
         self.tko_job = tko_job
         self.tko_job.tests = [tko_test, tko_test, tko_test]
 
-        self.pb_job = tko_pb2.job()
+        self.pb_job = tko_pb2.Job()
         js = job_serializer.JobSerializer()
         js.set_pb_job(self.tko_job, self.pb_job)
 
@@ -237,7 +237,7 @@ class ReadBackTest(JobSerializerUnittest):
 
             binary = open(out_binary.name, 'rb')
             try:
-                self.pb_job = tko_pb2.job()
+                self.pb_job = tko_pb2.Job()
                 self.pb_job.ParseFromString(binary.read())
             finally:
                 binary.close()
@@ -258,7 +258,9 @@ class ReadBackGetterTest(JobSerializerUnittest):
         try:
             temp_binary.write(self.pb_job.SerializeToString())
             temp_binary.flush()
-
+            f = open('qa-job.serialize', 'wb')
+            f.write(self.pb_job.SerializeToString())
+            f.close()
             js = job_serializer.JobSerializer()
             self.from_pb_job = js.deserialize_from_binary(temp_binary.name)
         finally:
