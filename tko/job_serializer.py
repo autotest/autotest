@@ -77,7 +77,7 @@ class JobSerializer(object):
         be returned.
         """
 
-        job_pb = tko_pb2.job()
+        job_pb = tko_pb2.Job()
 
         binary = open(infile, 'r')
         try:
@@ -109,7 +109,7 @@ class JobSerializer(object):
         binary of the serialized object.
         """
 
-        job_pb = tko_pb2.job()
+        job_pb = tko_pb2.Job()
         self.set_pb_job(the_job, job_pb)
 
         out = open(binaryfilename, 'wb')
