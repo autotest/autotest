@@ -268,6 +268,12 @@ class VM:
         def add_pcidevice(help, host):
             return " -pcidevice host=%s" % host
 
+        def add_kernel(help, filename):
+            return " -kernel %s" % filename
+
+        def add_initrd(help, filename):
+            return " -initrd %s" % filename
+
         # End of command line option wrappers
 
         if name is None: name = self.name
@@ -359,6 +365,16 @@ class VM:
         if tftp:
             tftp = kvm_utils.get_path(root_dir, tftp)
             qemu_cmd += add_tftp(help, tftp)
+
+        kernel = params.get("kernel")
+        if kernel:
+            kernel = kvm_utils.get_path(root_dir, kernel)
+            qemu_cmd += add_kernel(help, kernel)
+
+        initrd = params.get("initrd")
+        if initrd:
+            initrd = kvm_utils.get_path(root_dir, initrd)
+            qemu_cmd += add_initrd(help, initrd)
 
         for redir_name in kvm_utils.get_sub_dict_names(params, "redirs"):
             redir_params = kvm_utils.get_sub_dict(params, redir_name)
