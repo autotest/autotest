@@ -50,8 +50,9 @@ class UnattendedInstall(object):
         self.cdrom_iso = os.path.join(kvm_test_dir, cdrom_iso)
         self.floppy_mount = tempfile.mkdtemp(prefix='floppy_', dir='/tmp')
         self.cdrom_mount = tempfile.mkdtemp(prefix='cdrom_', dir='/tmp')
-        flopy_name = os.environ['KVM_TEST_floppy']
-        self.floppy_img = os.path.join(kvm_test_dir, flopy_name)
+        self.nfs_mount = tempfile.mkdtemp(prefix='nfs_', dir='/tmp')
+        floppy_name = os.environ['KVM_TEST_floppy']
+        self.floppy_img = os.path.join(kvm_test_dir, floppy_name)
         floppy_dir = os.path.dirname(self.floppy_img)
         if not os.path.isdir(floppy_dir):
             os.makedirs(floppy_dir)
@@ -59,6 +60,16 @@ class UnattendedInstall(object):
         self.pxe_dir = os.environ.get('KVM_TEST_pxe_dir', '')
         self.pxe_image = os.environ.get('KVM_TEST_pxe_image', '')
         self.pxe_initrd = os.environ.get('KVM_TEST_pxe_initrd', '')
+
+        self.medium = os.environ.get('KVM_TEST_medium', '')
+        self.url = os.environ.get('KVM_TEST_url', '')
+        self.kernel = os.environ.get('KVM_TEST_kernel', '')
+        self.initrd = os.environ.get('KVM_TEST_initrd', '')
+        self.nfs_server = os.environ.get('KVM_TEST_nfs_server', '')
+        self.nfs_dir = os.environ.get('KVM_TEST_nfs_dir', '')
+        self.image_path = kvm_test_dir
+        self.kernel_path = os.path.join(self.image_path, self.kernel)
+        self.initrd_path = os.path.join(self.image_path, self.initrd)
 
 
     def create_boot_floppy(self):
@@ -106,7 +117,8 @@ class UnattendedInstall(object):
             dest = os.path.join(self.floppy_mount, dest_fname)
 
             # Replace KVM_TEST_CDKEY (in the unattended file) with the cdkey
-            # provided for this test
+            # provided for this test and replace the KVM_TEST_MEDIUM with
+            # the tree url or nfs address provided for this test.
             unattended_contents = open(self.unattended_file).read()
             dummy_cdkey_re = r'\bKVM_TEST_CDKEY\b'
             real_cdkey = os.environ.get('KVM_TEST_cdkey')
@@ -117,7 +129,20 @@ class UnattendedInstall(object):
                 else:
                     print ("WARNING: 'cdkey' required but not specified for "
                            "this unattended installation")
+            
+            dummy_re = r'\bKVM_TEST_MEDIUM\b'
+            if self.medium == "cdrom":
+                content = "cdrom"
+            elif self.medium == "url":
+                content = "url --url %s" % self.url
+            elif self.medium == "nfs":
+                content = "nfs --server=%s --dir=%s" % (self.nfs_server, self.nfs_dir)
+            else:
+                raise SetupError("Unexpected installation medium %s" % self.url)
+                
+            unattended_contents = re.sub(dummy_re, content, unattended_contents)
 
+            print unattended_contents
             # Write the unattended file contents to 'dest'
             open(dest, 'w').write(unattended_contents)
 
@@ -216,6 +241,58 @@ class UnattendedInstall(object):
         print "PXE boot successfuly set"
 
 
+    def setup_url(self):
+        """
+        Download the vmlinuz and initrd.img from URL
+        """
+        print "Downloading the vmlinuz and initrd.img"
+        os.chdir(self.image_path)
+
+        kernel_fetch_cmd = "wget -q %s/isolinux/%s" % (self.url, self.kernel)
+        initrd_fetch_cmd = "wget -q %s/isolinux/%s" % (self.url, self.initrd)
+
+        if os.path.exists(self.kernel):
+            os.unlink(self.kernel)
+        if os.path.exists(self.initrd):
+            os.unlink(self.initrd)
+
+        if os.system(kernel_fetch_cmd) != 0:
+            raise SetupError("Could not fetch vmlinuz from %s" % self.url)
+        if os.system(initrd_fetch_cmd) != 0:
+            raise SetupError("Could not fetch initrd.img from %s" % self.url)
+
+        print "Downloading finish"
+
+    def setup_nfs(self):
+        """
+        Copy the vmlinuz and initrd.img from nfs.
+        """
+        print "Copying the vmlinuz and initrd.img from nfs"
+
+        m_cmd = "mount %s:%s %s -o ro" % (self.nfs_server, self.nfs_dir, self.nfs_mount)
+        if os.system(m_cmd):
+            raise SetupError('Could not mount nfs server.')
+
+        kernel_fetch_cmd = "cp %s/isolinux/%s %s" % (self.nfs_mount,
+                                                     self.kernel,
+                                                     self.image_path)
+        initrd_fetch_cmd = "cp %s/isolinux/%s %s" % (self.nfs_mount,
+                                                     self.initrd,
+                                                     self.image_path)
+
+        try:
+            if os.system(kernel_fetch_cmd):
+                raise SetupError("Could not copy the vmlinuz from %s" %
+                                 self.nfs_mount)
+            if os.system(initrd_fetch_cmd):
+                raise SetupError("Could not copy the initrd.img from %s" %
+                                 self.nfs_mount)
+        finally:
+            u_cmd = "umount %s" % self.nfs_mount
+            if os.system(u_cmd):
+                raise SetupError("Could not unmont nfs at %s" % self.nfs_mount)
+            self.cleanup(self.nfs_mount)
+
     def cleanup(self, mount):
         """
         Clean up a previously used mountpoint.
@@ -234,6 +311,7 @@ class UnattendedInstall(object):
         print "Starting unattended install setup"
 
         print "Variables set:"
+        print "    medium: " + str(self.medium)
         print "    qemu_img_bin: " + str(self.qemu_img_bin)
         print "    cdrom iso: " + str(self.cdrom_iso)
         print "    unattended_file: " + str(self.unattended_file)
@@ -245,10 +323,25 @@ class UnattendedInstall(object):
         print "    pxe_dir: " + str(self.pxe_dir)
         print "    pxe_image: " + str(self.pxe_image)
         print "    pxe_initrd: " + str(self.pxe_initrd)
+        print "    url: " + str(self.url)
+        print "    kernel: " + str(self.kernel)
+        print "    initrd: " + str(self.initrd)
+        print "    nfs_server: " + str(self.nfs_server)
+        print "    nfs_dir: " + str(self.nfs_dir)
+        print "    nfs_mount: " + str(self.nfs_mount)
 
-        self.create_boot_floppy()
-        if self.tftp_root:
-            self.setup_pxe_boot()
+        if self.unattended_file and self.floppy_img is not None:
+            self.create_boot_floppy()
+        if self.medium == "cdrom":
+            if self.tftp_root:
+                self.setup_pxe_boot()
+        elif self.medium == "url":
+            self.setup_url()
+        elif self.medium == "nfs":
+            self.setup_nfs()
+        else:
+            raise SetupError("Unexpected installation method %s" %
+                                   self.medium)
         print "Unattended install setup finished successfuly"
 
 
