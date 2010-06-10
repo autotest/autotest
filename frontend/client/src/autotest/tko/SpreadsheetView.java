@@ -7,7 +7,6 @@ import autotest.common.CustomHistory.HistoryToken;
 import autotest.common.spreadsheet.Spreadsheet;
 import autotest.common.spreadsheet.SpreadsheetSelectionManager;
 import autotest.common.spreadsheet.Spreadsheet.CellInfo;
-import autotest.common.spreadsheet.Spreadsheet.Header;
 import autotest.common.spreadsheet.Spreadsheet.SpreadsheetListener;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.NotifyManager;
@@ -17,6 +16,7 @@ import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
 import autotest.tko.CommonPanel.CommonPanelListener;
 import autotest.tko.TableView.TableSwitchListener;
 import autotest.tko.TableView.TableViewConfig;
+import autotest.tko.TkoSpreadsheetUtils.DrilldownType;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -57,8 +57,6 @@ public class SpreadsheetView extends ConditionTabView
     private static final String HISTORY_COLUMN = "column";
     private static final String HISTORY_ROW = "row";
     private static final String HISTORY_CONTENT = "content";
-
-    private static enum DrilldownType {DRILLDOWN_ROW, DRILLDOWN_COLUMN, DRILLDOWN_BOTH}
 
     private static JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
     private static JsonRpcProxy afeRpcProxy = JsonRpcProxy.getProxy(JsonRpcProxy.AFE_BASE_URL);
@@ -157,8 +155,9 @@ public class SpreadsheetView extends ConditionTabView
 
         Window.addResizeHandler(new ResizeHandler() {
             public void onResize(ResizeEvent event) {
-                if(spreadsheet.isVisible())
+                if(spreadsheet.isVisible()) {
                     spreadsheet.fillWindow(true);
+                }
             }
         });
 
@@ -340,7 +339,7 @@ public class SpreadsheetView extends ConditionTabView
     public void onCellClicked(CellInfo cellInfo, boolean isRightClick) {
         Event event = Event.getCurrentEvent();
         TestSet testSet = getTestSet(cellInfo);
-        DrilldownType drilldownType = getDrilldownType(cellInfo);
+        DrilldownType drilldownType = TkoSpreadsheetUtils.getDrilldownType(cellInfo);
         if (isRightClick) {
             if (!selectionManager.isEmpty()) {
                 testSet = getTestSet(selectionManager.getSelectedCells());
@@ -367,41 +366,9 @@ public class SpreadsheetView extends ConditionTabView
         openHistoryToken(historyToken);
     }
 
-     private DrilldownType getDrilldownType(CellInfo cellInfo) {
-        if (cellInfo.row == null) {
-            // column header
-            return DrilldownType.DRILLDOWN_COLUMN;
-        }
-        if (cellInfo.column == null) {
-            // row header
-            return DrilldownType.DRILLDOWN_ROW;
-        }
-        return DrilldownType.DRILLDOWN_BOTH;
-    }
-
     private TestSet getTestSet(CellInfo cellInfo) {
-        boolean isSingleTest = cellInfo.testCount == 1;
-        if (isSingleTest) {
-            return new SingleTestSet(cellInfo.testIndex, getFullConditionArgs());
-        }
-
-        ConditionTestSet testSet = new ConditionTestSet(getFullConditionArgs());
-        if (cellInfo.row != null) {
-            setSomeFields(testSet, rowSelect.getSelectedItems(), cellInfo.row);
-        }
-        if (cellInfo.column != null) {
-            setSomeFields(testSet, columnSelect.getSelectedItems(), cellInfo.column);
-        }
-        return testSet;
-    }
-
-    private void setSomeFields(ConditionTestSet testSet, List<HeaderField> allFields,
-                               Header values) {
-        for (int i = 0; i < values.size(); i++) {
-            HeaderField field = allFields.get(i);
-            String value = values.get(i);
-            testSet.addCondition(field.getSqlCondition(value));
-        }
+        return TkoSpreadsheetUtils.getTestSet(cellInfo, getFullConditionArgs(),
+                rowSelect.getSelectedItems(), columnSelect.getSelectedItems());
     }
 
     private TestSet getTestSet(List<CellInfo> cells) {
