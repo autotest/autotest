@@ -5,7 +5,7 @@
 
   <source path="tko"/>
   <source path="common"/>
-  <entry-point class='autotest.tko.EmbeddedSpreadsheetClient'/>
+  <entry-point class='autotest.tko.embedded_spreadsheet.EmbeddedSpreadsheetClient'/>
 
   <stylesheet src='common.css'/>
   <stylesheet src='standard.css'/>
