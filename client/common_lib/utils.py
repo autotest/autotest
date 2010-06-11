@@ -564,6 +564,7 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
             bg_job.result.exit_status = bg_job.sp.poll()
             if bg_job.result.exit_status is not None:
                 # process exited, remove its stdout/stdin from the select set
+                bg_job.result.duration = time.time() - start_time
                 read_list.remove(bg_job.sp.stdout)
                 read_list.remove(bg_job.sp.stderr)
                 del reverse_dict[bg_job.sp.stdout]
@@ -586,6 +587,7 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
                      bg_job.command)
         nuke_subprocess(bg_job.sp)
         bg_job.result.exit_status = bg_job.sp.poll()
+        bg_job.result.duration = time.time() - start_time
 
     return True
 
