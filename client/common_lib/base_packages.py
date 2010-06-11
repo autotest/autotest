@@ -399,7 +399,6 @@ class BasePackageManager(object):
         else:
             raise error.PackageFetchError("No repository urls specified")
 
-        error_msgs = {}
         # install the package from the package repos, try the repos in
         # reverse order, assuming that the 'newest' repos are most desirable
         for fetcher in reversed(repositories):
@@ -414,16 +413,16 @@ class BasePackageManager(object):
                 return
             except (error.PackageFetchError, error.AutoservRunError):
                 # The package could not be found in this repo, continue looking
-                logging.error('%s could not be fetched from %s', pkg_name,
+                logging.debug('%s could not be fetched from %s', pkg_name,
                               fetcher.url)
 
+        message = ('%s could not be fetched from any of the repos %s' %
+                   (pkg_name, repo_url_list))
+        logging.error(message)
         # if we got here then that means the package is not found
         # in any of the repositories.
         repo_url_list = [repo.url for repo in repositories]
-        raise error.PackageFetchError("%s could not be fetched from any of"
-                                      " the repos %s : %s " % (pkg_name,
-                                                               repo_url_list,
-                                                               error_msgs))
+        raise error.PackageFetchError(message)
 
 
     def upload_pkg(self, pkg_path, upload_path=None, update_checksum=False):
