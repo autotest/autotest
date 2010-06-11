@@ -312,38 +312,5 @@ class TestBaseAutotest(unittest.TestCase):
                              '/autotest/dest/:/autotest/fifo3')
 
 
-    def test_client_logger_write_handles_process_line_failures(self):
-        collector = autotest.log_collector.expect_new(self.host, '', '')
-        logger = autotest.client_logger(self.host, '', '')
-        logger.server_warnings = [(x, 'warn%d' % x) for x in xrange(5)]
-        self.god.stub_function(logger, '_process_warnings')
-        self.god.stub_function(logger, '_process_line')
-        def _update_timestamp(line):
-            logger.newest_timestamp += 2
-        class ProcessingException(Exception):
-            pass
-        def _read_warnings():
-            return [(5, 'warn5')]
-        logger._update_timestamp = _update_timestamp
-        logger.newest_timestamp = 0
-        self.host.job._read_warnings = _read_warnings
-        # process line1, newest_timestamp -> 2
-        logger._process_warnings.expect_call(
-                '', {}, [(0, 'warn0'), (1, 'warn1')])
-        logger._process_line.expect_call('line1')
-        # process line2, newest_timestamp -> 4, failure occurs during process
-        logger._process_warnings.expect_call(
-                '', {}, [(2, 'warn2'), (3, 'warn3')])
-        logger._process_line.expect_call('line2').and_raises(
-                ProcessingException('line processing failure'))
-        # when we call write with data we should get an exception
-        self.assertRaises(ProcessingException, logger.write,
-                          'line1\nline2\nline3\nline4')
-        # but, after the exception, the server_warnings and leftover buffers
-        # should contain the unprocessed data, and ONLY the unprocessed data
-        self.assertEqual(logger.server_warnings, [(4, 'warn4'), (5, 'warn5')])
-        self.assertEqual(logger.leftover, 'line2\nline3\nline4')
-
-
 if __name__ == "__main__":
     unittest.main()
