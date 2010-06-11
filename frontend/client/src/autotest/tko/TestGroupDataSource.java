@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-class TestGroupDataSource extends RpcDataSource {
+public class TestGroupDataSource extends RpcDataSource {
     private static final String NUM_GROUPS_RPC = "get_num_groups";
     private static final String GROUP_COUNTS_RPC = "get_group_counts";
     private static final String STATUS_COUNTS_RPC = "get_status_counts";
