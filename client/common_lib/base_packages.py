@@ -416,12 +416,12 @@ class BasePackageManager(object):
                 logging.debug('%s could not be fetched from %s', pkg_name,
                               fetcher.url)
 
+        repo_url_list = [repo.url for repo in repositories]
         message = ('%s could not be fetched from any of the repos %s' %
                    (pkg_name, repo_url_list))
         logging.error(message)
         # if we got here then that means the package is not found
         # in any of the repositories.
-        repo_url_list = [repo.url for repo in repositories]
         raise error.PackageFetchError(message)
 
 
