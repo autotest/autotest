@@ -1024,6 +1024,44 @@ class test_status_log_entry(unittest.TestCase):
                             custom_fields, 8)
 
 
+    def assertEntryEqual(self, lhs, rhs):
+        self.assertEqual(
+          (lhs.status_code, lhs.subdir, lhs.operation, lhs.fields, lhs.message),
+          (rhs.status_code, rhs.subdir, rhs.operation, rhs.fields, rhs.message))
+
+
+    def test_base_parse(self):
+        entry = base_job.status_log_entry(
+            'GOOD', None, None, 'message', {'field1': 'x', 'field2': 'y'},
+            timestamp=16)
+        parsed_entry = base_job.status_log_entry.parse(
+            'GOOD\t----\t----\tfield1=x\tfield2=y\ttimestamp=16\tmessage\n')
+        self.assertEntryEqual(entry, parsed_entry)
+
+
+    def test_subdir_parse(self):
+        entry = base_job.status_log_entry(
+            'FAIL', 'sub', None, 'message', {'field1': 'x', 'field2': 'y'},
+            timestamp=32)
+        parsed_entry = base_job.status_log_entry.parse(
+            'FAIL\tsub\t----\tfield1=x\tfield2=y\ttimestamp=32\tmessage\n')
+        self.assertEntryEqual(entry, parsed_entry)
+
+
+    def test_operation_parse(self):
+        entry = base_job.status_log_entry(
+            'ABORT', None, 'myop', 'message', {'field1': 'x', 'field2': 'y'},
+            timestamp=64)
+        parsed_entry = base_job.status_log_entry.parse(
+            'ABORT\t----\tmyop\tfield1=x\tfield2=y\ttimestamp=64\tmessage\n')
+        self.assertEntryEqual(entry, parsed_entry)
+
+
+    def test_extra_lines_parse(self):
+        parsed_entry = base_job.status_log_entry.parse(
+            '  This is a non-status line, line in a traceback\n')
+        self.assertEqual(None, parsed_entry)
+
 
 class test_status_logger(unittest.TestCase):
     def setUp(self):
@@ -1152,6 +1190,19 @@ class test_status_logger(unittest.TestCase):
         self.assertEqual('LINE1\nLINE2\nLINE3\nLINE4\n', open('status').read())
         self.assertEqual('LINE2\nLINE3\n', open('abc/status').read())
         self.assertEqual('LINE4\n', open('123/status').read())
+
+
+    def test_writes_no_subdir_when_disabled(self):
+        os.mkdir('sub')
+        self.logger.record_entry(self.make_dummy_entry('LINE1'))
+        self.logger.record_entry(self.make_dummy_entry('LINE2', subdir='sub'))
+        self.logger.record_entry(self.make_dummy_entry(
+            'LINE3', subdir='sub_nowrite'), log_in_subdir=False)
+        self.logger.record_entry(self.make_dummy_entry('LINE4', subdir='sub'))
+
+        self.assertEqual('LINE1\nLINE2\nLINE3\nLINE4\n', open('status').read())
+        self.assertEqual('LINE2\nLINE4\n', open('sub/status').read())
+        self.assert_(not os.path.exists('sub_nowrite/status'))
 
 
     def test_indentation(self):
