@@ -418,6 +418,10 @@ class job_state(object):
 class status_log_entry(object):
     """Represents a single status log entry."""
 
+    RENDERED_NONE_VALUE = '----'
+    TIMESTAMP_FIELD = 'timestamp'
+    LOCALTIME_FIELD = 'localtime'
+
     def __init__(self, status_code, subdir, operation, message, fields,
                  timestamp=None):
         """Construct a status.log entry.
@@ -471,9 +475,9 @@ class status_log_entry(object):
         # build up the timestamp
         if timestamp is None:
             timestamp = int(time.time())
-        self.fields['timestamp'] = str(timestamp)
-        self.fields['localtime'] = time.strftime('%b %d %H:%M:%S',
-                                                 time.localtime(timestamp))
+        self.fields[self.TIMESTAMP_FIELD] = str(timestamp)
+        self.fields[self.LOCALTIME_FIELD] = time.strftime(
+            '%b %d %H:%M:%S', time.localtime(timestamp))
 
 
     def is_start(self):
@@ -498,8 +502,8 @@ class status_log_entry(object):
         @return: A text string suitable for writing into a status log file.
         """
         # combine all the log line data into a tab-delimited string
-        subdir = self.subdir or '----'
-        operation = self.operation or '----'
+        subdir = self.subdir or self.RENDERED_NONE_VALUE
+        operation = self.operation or self.RENDERED_NONE_VALUE
         extra_fields = ['%s=%s' % field for field in self.fields.iteritems()]
         line_items = [self.status_code, subdir, operation]
         line_items += extra_fields + [self.message]
@@ -509,6 +513,40 @@ class status_log_entry(object):
         all_lines = [first_line]
         all_lines += ['  ' + line for line in self.extra_message_lines]
         return '\n'.join(all_lines)
+
+
+    @classmethod
+    def parse(cls, line):
+        """Parse a status log entry from a text string.
+
+        This method is the inverse of render; it should always be true that
+        parse(entry.render()) produces a new status_log_entry equivalent to
+        entry.
+
+        @return: A new status_log_entry instance with fields extracted from the
+            given status line. If the line is an extra message line then None
+            is returned.
+        """
+        # extra message lines are always prepended with two spaces
+        if line.startswith('  '):
+            return None
+
+        line = line.lstrip('\t')  # ignore indentation
+        entry_parts = line.split('\t')
+        if len(entry_parts) < 4:
+            raise ValueError('%r is not a valid status line' % line)
+        status_code, subdir, operation = entry_parts[:3]
+        if subdir == cls.RENDERED_NONE_VALUE:
+            subdir = None
+        if operation == cls.RENDERED_NONE_VALUE:
+            operation = None
+        message = entry_parts[-1]
+        fields = dict(part.split('=', 1) for part in entry_parts[3:-1])
+        if cls.TIMESTAMP_FIELD in fields:
+            timestamp = int(fields[cls.TIMESTAMP_FIELD])
+        else:
+            timestamp = None
+        return cls(status_code, subdir, operation, message, fields, timestamp)
 
 
 class status_indenter(object):
@@ -548,7 +586,7 @@ class status_logger(object):
             self.global_filename attribute.
         @param subdir_filename: An optional filename to initialize the
             self.subdir_filename attribute.
-        @param record_hook: An optional function to be called after an entry
+        @param record_hook: An optional function to be called before an entry
             is logged. The function should expect a single parameter, a
             copy of the status_log_entry object.
         """
@@ -590,11 +628,13 @@ class status_logger(object):
         return self._indent_multiline_text(log_entry.render(), indent)
 
 
-    def record_entry(self, log_entry):
+    def record_entry(self, log_entry, log_in_subdir=True):
         """Record a status_log_entry into the appropriate status log files.
 
         @param log_entry: A status_log_entry instance to be recorded into the
                 status logs.
+        @param log_in_subdir: A boolean that indicates (when true) that subdir
+                logs should be written into the subdirectory status log file.
         """
         # acquire a strong reference for the duration of the method
         job = self._jobref()
@@ -604,9 +644,13 @@ class status_logger(object):
             logging.warning(traceback.format_stack())
             return
 
+        # call the record hook if one was given
+        if self._record_hook:
+            self._record_hook(log_entry)
+
         # figure out where we need to log to
         log_files = [os.path.join(job.resultdir, self.global_filename)]
-        if log_entry.subdir:
+        if log_in_subdir and log_entry.subdir:
             log_files.append(os.path.join(job.resultdir, log_entry.subdir,
                                           self.subdir_filename))
 
@@ -618,10 +662,6 @@ class status_logger(object):
                 print >> fileobj, log_text
             finally:
                 fileobj.close()
-
-        # call the record hook if one was given
-        if self._record_hook:
-            self._record_hook(log_entry)
 
         # adjust the indentation if this was a START or END entry
         if log_entry.is_start():
@@ -959,5 +999,17 @@ class base_job(object):
         """
         entry = status_log_entry(status_code, subdir, operation, status,
                                  optional_fields)
-        logger = self._get_status_logger()
-        logger.record_entry(entry)
+        self.record_entry(entry)
+
+
+    def record_entry(self, entry, log_in_subdir=True):
+        """Record a job-level status event, using a status_log_entry.
+
+        This is the same as self.record but using an existing status log
+        entry object rather than constructing one for you.
+
+        @param entry: A status_log_entry object
+        @param log_in_subdir: A boolean that indicates (when true) that subdir
+                logs should be written into the subdirectory status log file.
+        """
+        self._get_status_logger().record_entry(entry, log_in_subdir)
