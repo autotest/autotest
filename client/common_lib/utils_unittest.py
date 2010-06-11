@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, unittest, StringIO, socket, urllib2, shutil, subprocess
+import os, unittest, StringIO, socket, urllib2, shutil, subprocess, logging
 
 import common
 from autotest_lib.client.common_lib import utils, autotemp
@@ -742,6 +742,35 @@ class test_compare_versions(unittest.TestCase):
         self.assertEqual(utils.compare_versions('k.320-1', 'k.320-3'), -1)
         self.assertEqual(utils.compare_versions('k.231-5', 'k.231-1'), 1)
         self.assertEqual(utils.compare_versions('k.231-1', 'k.231-1'), 0)
+
+
+class test_args_to_dict(unittest.TestCase):
+    def test_no_args(self):
+        result = utils.args_to_dict([])
+        self.assertEqual({}, result)
+
+
+    def test_matches(self):
+        result = utils.args_to_dict(['aBc:DeF', 'SyS=DEf', 'XY_Z:',
+                                     'F__o0O=', 'B8r:=:=', '_bAZ_=:=:'])
+        self.assertEqual(result, {'abc':'DeF', 'sys':'DEf', 'xy_z':'',
+                                  'f__o0o':'', 'b8r':'=:=', '_baz_':':=:'})
+
+
+    def test_unmatches(self):
+        # Temporarily shut warning messages from args_to_dict() when an argument
+        # doesn't match its pattern.
+        logger = logging.getLogger()
+        saved_level = logger.level
+        logger.setLevel(logging.ERROR)
+
+        try:
+            result = utils.args_to_dict(['ab-c:DeF', '--SyS=DEf', 'a*=b', 'a*b',
+                                         ':VAL', '=VVV', 'WORD'])
+            self.assertEqual({}, result)
+        finally:
+            # Restore level.
+            logger.setLevel(saved_level)
 
 
 if __name__ == "__main__":

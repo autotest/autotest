@@ -1196,3 +1196,25 @@ def compare_versions(ver1, ver2):
         if c != 0:
             return c
     return cmp(len(ax), len(ay))
+
+
+def args_to_dict(args):
+    """Convert autoserv extra arguments in the form of key=val or key:val to a
+    dictionary.  Each argument key is converted to lowercase dictionary key.
+
+    Args:
+        args - list of autoserv extra arguments.
+
+    Returns:
+        dictionary
+    """
+    arg_re = re.compile(r'(\w+)[:=](.*)$')
+    dict = {}
+    for arg in args:
+        match = arg_re.match(arg)
+        if match:
+            dict[match.group(1).lower()] = match.group(2)
+        else:
+            logging.warning("args_to_dict: argument '%s' doesn't match "
+                            "'%s' pattern. Ignored." % (arg, arg_re.pattern))
+    return dict
