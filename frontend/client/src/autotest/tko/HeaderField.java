@@ -11,15 +11,15 @@ import com.google.gwt.json.client.JSONObject;
  * * sort by this field in table view,
  * * group by this field in spreadsheet or table view, and
  * * filter on this field in the SQL condition.
- * It's assumed that the name returned by getSqlName() is a field returned by the server which may 
- * also be used for grouping and sorting.  Filtering, however, is done separately (through 
- * getSqlCondition()), so HeaderFields may generate arbitrary SQL to perform filtering.  
+ * It's assumed that the name returned by getSqlName() is a field returned by the server which may
+ * also be used for grouping and sorting.  Filtering, however, is done separately (through
+ * getSqlCondition()), so HeaderFields may generate arbitrary SQL to perform filtering.
  * HeaderFields may also add arbitrary query arguments to support themselves.
- * 
- * While the set of HeaderFields active in the application may change at runtime, HeaderField 
+ *
+ * While the set of HeaderFields active in the application may change at runtime, HeaderField
  * objects themselves are immutable.
  */
-abstract class HeaderField implements Comparable<HeaderField> {
+public abstract class HeaderField implements Comparable<HeaderField> {
     protected String name;
     protected String sqlName;
 
@@ -31,7 +31,7 @@ abstract class HeaderField implements Comparable<HeaderField> {
         this.name = name;
         this.sqlName = sqlName;
     }
-    
+
     public int compareTo(HeaderField other) {
         return name.compareTo(other.name);
     }
@@ -65,7 +65,7 @@ abstract class HeaderField implements Comparable<HeaderField> {
     public String getSqlName() {
         return sqlName;
     }
-    
+
     /**
      * Get a quoted version of getSqlName() safe for use directly in SQL.
      */
@@ -89,7 +89,7 @@ abstract class HeaderField implements Comparable<HeaderField> {
     public boolean isUserSelectable() {
         return true;
     }
-    
+
     /**
      * @return a MultiListSelectPresenter.Item for this HeaderField.
      */
