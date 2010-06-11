@@ -67,6 +67,17 @@ class status_indenter(base_job.status_indenter):
         self._indent -= 1
 
 
+    def get_context(self):
+        """Returns a context object for use by job.get_record_context."""
+        class context(object):
+            def __init__(self, indenter, indent):
+                self._indenter = indenter
+                self._indent = indent
+            def restore(self):
+                self._indenter._indent = self._indent
+        return context(self, self._indent)
+
+
 class server_job_record_hook(object):
     """The job.record hook for server job. Used to inject WARN messages from
     the console or vlm whenever new logs are written, and to echo any logs
@@ -171,7 +182,6 @@ class base_server_job(base_job.base_job):
         self.args = args
         self.machines = machines
         self._client = client
-        self._record_prefix = ''
         self.warning_loggers = set()
         self.warning_manager = warning_manager()
         self._ssh_user = ssh_user
@@ -217,8 +227,9 @@ class base_server_job(base_job.base_job):
         self.harness = None
 
         # set up the status logger
+        self._indenter = status_indenter()
         self._logger = base_job.status_logger(
-            self, status_indenter(), 'status.log', 'status.log',
+            self, self._indenter, 'status.log', 'status.log',
             record_hook=server_job_record_hook(self))
 
 
@@ -602,14 +613,9 @@ class base_server_job(base_job.base_job):
         Underlying method for running something inside of a group.
         """
         result, exc_info = None, None
-        old_record_prefix = self._record_prefix
         try:
             self.record('START', subdir, name)
-            self._record_prefix += '\t'
-            try:
-                result = function(*args, **dargs)
-            finally:
-                self._record_prefix = old_record_prefix
+            result = function(*args, **dargs)
         except error.TestBaseException, e:
             self.record("END %s" % e.exit_status, subdir, name)
             exc_info = sys.exc_info()
@@ -653,20 +659,15 @@ class base_server_job(base_job.base_job):
         get_kernel_func: a function that returns a string
         representing the kernel version.
         """
-
-        old_record_prefix = self._record_prefix
         try:
             self.record('START', None, 'reboot')
-            self._record_prefix += '\t'
             reboot_func()
         except Exception, e:
-            self._record_prefix = old_record_prefix
             err_msg = str(e) + '\n' + traceback.format_exc()
             self.record('END FAIL', None, 'reboot', err_msg)
             raise
         else:
             kernel = get_kernel_func()
-            self._record_prefix = old_record_prefix
             self.record('END GOOD', None, 'reboot',
                         optional_fields={"kernel": kernel})
 
@@ -747,6 +748,20 @@ class base_server_job(base_job.base_job):
             subdirectory = base_subdirectory_name + '.' + str(counter)
             counter += 1
         return subdirectory
+
+
+    def get_record_context(self):
+        """Returns an object representing the current job.record context.
+
+        The object returned is an opaque object with a 0-arg restore method
+        which can be called to restore the job.record context (i.e. indentation)
+        to the current level. The intention is that it should be used when
+        something external which generate job.record calls (e.g. an autotest
+        client) can fail catastrophically and the server job record state
+        needs to be reset to its original "known good" state.
+
+        @return: A context object with a 0-arg restore() method."""
+        return self._indenter.get_context()
 
 
     def record_summary(self, status_code, test_name, reason='', attributes=None,

@@ -735,6 +735,7 @@ class _Run(object):
             local_results = collector.server_results_dir
             self.host.job.add_client_log(hostname, remote_results,
                                          local_results)
+            job_record_context = self.host.job.get_record_context()
 
         section = 0
         start_time = time.time()
@@ -783,6 +784,7 @@ class _Run(object):
                 self.host.job.postprocess_client_state(state_path)
                 self.host.job.remove_client_log(hostname, remote_results,
                                                 local_results)
+                job_record_context.restore()
 
         # should only get here if we timed out
         assert timeout
@@ -842,9 +844,6 @@ class client_logger(object):
     """Partial file object to write to both stdout and
     the status log file.  We only implement those methods
     utils.run() actually calls.
-
-    Note that this class is fairly closely coupled with server_job, as it
-    uses special job._ methods to actually carry out the loggging.
     """
     status_parser = re.compile(r"^AUTOTEST_STATUS:([^:]*):(.*)$")
     test_complete_parser = re.compile(r"^AUTOTEST_TEST_COMPLETE:(.*)$")
