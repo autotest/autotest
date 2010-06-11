@@ -770,7 +770,7 @@ class _Run(object):
                 # give the client machine a chance to recover from a crash
                 self.host.wait_up(CRASH_RECOVERY_TIME)
                 msg = ("Aborting - unexpected final status message from "
-                       "client: %s\n") % last
+                       "client on %s: %s\n") % (self.host.hostname, last)
                 raise error.AutotestRunError(msg)
         finally:
             logger.close()
