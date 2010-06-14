@@ -2,7 +2,7 @@
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-import sys, logging, os, pickle, traceback
+import sys, logging, os, pickle, traceback, gc
 from autotest_lib.client.common_lib import error, utils
 
 def fork_start(tmp, l):
@@ -39,6 +39,10 @@ def fork_start(tmp, l):
                 sys.stdout.flush()
                 sys.stderr.flush()
         finally:
+            # clear exception information to allow garbage collection of
+            # objects referenced by the exception's traceback
+            sys.exc_clear()
+            gc.collect()
             os._exit(1)
     else:
         try:
