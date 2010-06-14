@@ -982,7 +982,7 @@ variants:
 
     # Windows section
     - @Windows:
-        no autotest linux_s3 vlan_tag
+        no autotest linux_s3 vlan_tag ioquit unattended_install.(url|nfs|remote_ks)
         shutdown_command = shutdown /s /f /t 0
         reboot_command = shutdown /r /f /t 0
         status_test_command = echo %errorlevel%
@@ -1368,13 +1368,6 @@ variants:
                 md5sum = 9fae22f2666369968a76ef59e9a81ced
 
 
-linux_s3
-    only Linux
-
-unattended_install.url|unattended_install.nfs|unattended_install.remote_ks:
-    only Linux
-
-
 variants:
     - @up:
         no autotest.npb autotest.tsc
@@ -1414,17 +1407,20 @@ virtio|virtio_blk|e1000|balloon_check:
 variants:
     - @qcow2:
         image_format = qcow2
-        post_command = " python scripts/check_image.py;"
-        remove_image = no
+        post_command += " python scripts/check_image.py;"
         post_command_timeout = 600
         post_command_noncritical = yes
+        ioquit:
+            post_command_noncritical = no
     - vmdk:
+        no ioquit
         only Fedora Ubuntu Windows
         only smp2
         only rtl8139
         only acpi
         image_format = vmdk
     - raw:
+        no ioquit
         only Fedora Ubuntu Windows
         only smp2
         only rtl8139
@@ -1437,12 +1433,6 @@ variants:
     - hugepages:
         pre_command += " scripts/hugepage.py /mnt/kvm_hugepage;"
         extra_params += " -mem-path /mnt/kvm_hugepage"
-
-
-ioquit:
-    post_command_noncritical = no
-    only qcow2
-    only Linux
 
 
 variants:
