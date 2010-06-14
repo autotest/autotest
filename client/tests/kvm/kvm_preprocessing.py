@@ -285,6 +285,8 @@ def postprocess(test, params, env):
         logging.debug("Terminating screendump thread...")
         _screendump_thread_termination_event.set()
         _screendump_thread.join(10)
+        _screendump_thread = None
+        _screendump_thread_termination_event = None
 
     # Warn about corrupt PPM files
     for f in glob.glob(os.path.join(test.debugdir, "*.ppm")):
