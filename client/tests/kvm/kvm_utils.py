@@ -35,7 +35,8 @@ def load_env(filename, default={}):
         return obj
     # Almost any exception can be raised during unpickling, so let's catch
     # them all
-    except:
+    except Exception, e:
+        logging.warn(e)
         return default
 
 
