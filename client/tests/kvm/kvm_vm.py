@@ -865,11 +865,10 @@ class VM:
             logging.error("Could not get shared memory info from dead VM.")
             return None
 
-        cmd = "cat /proc/%d/statm" % self.params.get('pid_' + self.name)
-        shm = int(os.popen(cmd).readline().split()[2])
+        filename = "/proc/%d/statm" % self.get_pid()
+        shm = int(open(filename).read().split()[2])
         # statm stores informations in pages, translate it to MB
-        shm = shm * 4 / 1024
-        return shm
+        return shm * 4.0 / 1024
 
 
     def remote_login(self, nic_index=0, timeout=10):
