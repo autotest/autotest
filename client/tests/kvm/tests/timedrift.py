@@ -80,7 +80,7 @@ def run_timedrift(test, params, env):
 
     try:
         # Set the VM's CPU affinity
-        prev_affinity = set_cpu_affinity(vm.get_pid(), cpu_mask)
+        prev_affinity = set_cpu_affinity(vm.get_shell_pid(), cpu_mask)
 
         try:
             # Open shell sessions with the guest
