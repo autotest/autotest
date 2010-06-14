@@ -4,8 +4,7 @@ KVM test utility functions.
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import thread, subprocess, time, string, random, socket, os, signal
-import select, re, logging, commands, cPickle, pty
+import time, string, random, socket, os, signal, re, logging, commands, cPickle
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error, logging_config
 import kvm_subprocess
