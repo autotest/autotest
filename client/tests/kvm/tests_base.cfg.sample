@@ -86,22 +86,26 @@ variants:
         initrd = initrd.img
         nic_mode = tap
         variants:
-            - cdrom: # install guest from cdrom 
+            # Install guest from cdrom 
+            - cdrom:
                 medium = cdrom
                 nic_mode = user
                 redirs += " unattended_install"
                 kernel =
                 initrd = 
-            - url: # install guest from http/ftp url
+            # Install guest from http/ftp url
+            - url:
                 medium = url
                 extra_params += " --append ks=floppy"
                 url = REPLACE_THIS_WITH_TREE_URL
-            - nfs: # install guest from nfs nfs_server:nfs_dir
+            # Install guest from nfs nfs_server:nfs_dir
+            - nfs:
                 medium = nfs
                 extra_params += " --append ks=floppy"
                 nfs_server = REPLACE_THIS_WITH_NFS_SERVER
                 nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-            - remote_ks: # install guest with a remote kickstart
+            # Install guest with a remote kickstart
+            - remote_ks:
                 medium = url
                 extra_params += " --append ks=REPLACE_THIS_WITH_URL_OF_KS"
                 url = REPLACE_THIS_WITH_TREE_URL
