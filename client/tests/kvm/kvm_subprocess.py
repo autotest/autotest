@@ -337,7 +337,7 @@ class kvm_spawn:
 
         # Start the server (which runs the command)
         if command:
-            sub = subprocess.Popen("python %s" % __file__,
+            sub = subprocess.Popen("%s %s" % (sys.executable, __file__),
                                    shell=True,
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
