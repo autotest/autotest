@@ -203,7 +203,17 @@ def get_time(session, time_command, time_filter_re, time_format):
     (match, s) = session.read_up_to_prompt()
     if not match:
         raise error.TestError("Could not get guest time")
-    s = re.findall(time_filter_re, s)[0]
+
+    try:
+        s = re.findall(time_filter_re, s)[0]
+    except IndexError:
+        logging.debug("The time string from guest is:\n%s" % s)
+        raise error.TestError("The time string from guest is unexpected.")
+    except Exception as e:
+        logging.debug("(time_filter_re, time_string): (%s, %s)" %
+                       (time_filter_re, s))
+        raise e
+
     guest_time = time.mktime(time.strptime(s, time_format))
     return (host_time, guest_time)
 
