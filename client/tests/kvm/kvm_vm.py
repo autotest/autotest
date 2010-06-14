@@ -200,7 +200,7 @@ class VM:
             return " -name '%s'" % name
 
         def add_unix_socket_monitor(help, filename):
-            return " -monitor unix:%s,server,nowait" % filename
+            return " -monitor unix:'%s',server,nowait" % filename
 
         def add_mem(help, mem):
             return " -m %s" % mem
@@ -210,18 +210,18 @@ class VM:
 
         def add_cdrom(help, filename, index=2):
             if has_option(help, "drive"):
-                return " -drive file=%s,index=%d,media=cdrom" % (filename,
-                                                                 index)
+                return " -drive file='%s',index=%d,media=cdrom" % (filename,
+                                                                   index)
             else:
-                return " -cdrom %s" % filename
+                return " -cdrom '%s'" % filename
 
         def add_drive(help, filename, format=None, cache=None, werror=None,
                       serial=None, snapshot=False, boot=False):
-            cmd = " -drive file=%s" % filename
+            cmd = " -drive file='%s'" % filename
             if format: cmd += ",if=%s" % format
             if cache: cmd += ",cache=%s" % cache
             if werror: cmd += ",werror=%s" % werror
-            if serial: cmd += ",serial=%s" % serial
+            if serial: cmd += ",serial='%s'" % serial
             if snapshot: cmd += ",snapshot=on"
             if boot: cmd += ",boot=on"
             return cmd
@@ -229,23 +229,23 @@ class VM:
         def add_nic(help, vlan, model=None, mac=None):
             cmd = " -net nic,vlan=%d" % vlan
             if model: cmd += ",model=%s" % model
-            if mac: cmd += ",macaddr=%s" % mac
+            if mac: cmd += ",macaddr='%s'" % mac
             return cmd
 
         def add_net(help, vlan, mode, ifname=None, script=None,
                     downscript=None):
             cmd = " -net %s,vlan=%d" % (mode, vlan)
             if mode == "tap":
-                if ifname: cmd += ",ifname=%s" % ifname
-                if script: cmd += ",script=%s" % script
-                cmd += ",downscript=%s" % (downscript or "no")
+                if ifname: cmd += ",ifname='%s'" % ifname
+                if script: cmd += ",script='%s'" % script
+                cmd += ",downscript='%s'" % (downscript or "no")
             return cmd
 
         def add_floppy(help, filename):
-            return " -fda %s" % filename
+            return " -fda '%s'" % filename
 
         def add_tftp(help, filename):
-            return " -tftp %s" % filename
+            return " -tftp '%s'" % filename
 
         def add_tcp_redir(help, host_port, guest_port):
             return " -redir tcp:%s::%s" % (host_port, guest_port)
@@ -263,16 +263,16 @@ class VM:
             return " -nographic"
 
         def add_uuid(help, uuid):
-            return " -uuid %s" % uuid
+            return " -uuid '%s'" % uuid
 
         def add_pcidevice(help, host):
-            return " -pcidevice host=%s" % host
+            return " -pcidevice host='%s'" % host
 
         def add_kernel(help, filename):
-            return " -kernel %s" % filename
+            return " -kernel '%s'" % filename
 
         def add_initrd(help, filename):
-            return " -initrd %s" % filename
+            return " -initrd '%s'" % filename
 
         # End of command line option wrappers
 
