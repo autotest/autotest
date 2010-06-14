@@ -339,7 +339,7 @@ class VM:
 
         smp = params.get("smp")
         if smp:
-            qemu_cmd += " -smp %s" % smp
+            qemu_cmd += add_smp(help, smp)
 
         iso = params.get("cdrom")
         if iso:
