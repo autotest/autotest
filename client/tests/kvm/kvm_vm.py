@@ -576,8 +576,7 @@ class VM:
                 self.destroy()
                 return False
 
-            logging.debug("VM appears to be alive with PID %d",
-                          self.process.get_pid())
+            logging.debug("VM appears to be alive with PID %s", self.get_pid())
             return True
 
         finally:
@@ -686,8 +685,7 @@ class VM:
                 logging.debug("VM is already down")
                 return
 
-            logging.debug("Destroying VM with PID %d..." %
-                          self.process.get_pid())
+            logging.debug("Destroying VM with PID %s...", self.get_pid())
 
             if gracefully and self.params.get("shutdown_command"):
                 # Try to destroy with shell command
@@ -834,7 +832,25 @@ class VM:
 
     def get_pid(self):
         """
-        Return the VM's PID.
+        Return the VM's PID.  If the VM is dead return None.
+
+        @note: This works under the assumption that self.process.get_pid()
+        returns the PID of the parent shell process.
+        """
+        try:
+            children = commands.getoutput("ps --ppid=%d -o pid=" %
+                                          self.process.get_pid()).split()
+            return int(children[0])
+        except (TypeError, IndexError, ValueError):
+            return None
+
+
+    def get_shell_pid(self):
+        """
+        Return the PID of the parent shell process.
+
+        @note: This works under the assumption that self.process.get_pid()
+        returns the PID of the parent shell process.
         """
         return self.process.get_pid()
 
