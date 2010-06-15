@@ -319,8 +319,6 @@ variants:
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
 
     - ksm_overcommit:
-        pre_command = "[ -e /dev/ksm ] && true || modprobe ksm && ksmctl start 5000 50"
-        pre_command_critical = yes
         # Don't preprocess any vms as we need to change its params
         vms = ''
         image_snapshot = yes

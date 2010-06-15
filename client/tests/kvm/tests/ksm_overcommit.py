@@ -59,6 +59,18 @@ def run_ksm_overcommit(test, params, env):
         return (match, data)
 
 
+    def get_ksmstat():
+        """
+        Return sharing memory by ksm in MB
+
+        @return: memory in MB
+        """
+        f = open('/sys/kernel/mm/ksm/pages_sharing')
+        ksm_pages = int(f.read())
+        f.close()
+        return ((ksm_pages*4096)/1e6)
+
+
     def initialize_guests():
         """
         Initialize guests (fill their memories with specified patterns).
@@ -88,21 +100,25 @@ def run_ksm_overcommit(test, params, env):
             # Let allocator.py do its job
             # (until shared mem reaches expected value)
             shm = 0
-            i = 0
+            j = 0
             logging.debug("Target shared meminfo for guest %s: %s", vm.name,
                           ksm_size)
-            while shm < ksm_size:
-                if i > 64:
+            while ((new_ksm and (shm < (ksm_size*(i+1)))) or
+                    (not new_ksm and (shm < (ksm_size)))):
+                if j > 64:
                     logging.debug(kvm_test_utils.get_memory_info(lvms))
                     raise error.TestError("SHM didn't merge the memory until "
                                           "the DL on guest: %s" % vm.name)
                 st = ksm_size / 200 * perf_ratio
                 logging.debug("Waiting %ds before proceeding..." % st)
                 time.sleep(st)
-                shm = vm.get_shared_meminfo()
+                if (new_ksm):
+                    shm = get_ksmstat()
+                else:
+                    shm = vm.get_shared_meminfo()
                 logging.debug("Shared meminfo for guest %s after "
-                              "iteration %s: %s", vm.name, i, shm)
-                i += 1
+                              "iteration %s: %s", vm.name, j, shm)
+                j += 1
 
         # Keep some reserve
         rt = ksm_size / 200 * perf_ratio
@@ -263,14 +279,17 @@ def run_ksm_overcommit(test, params, env):
         shm = 0
         i = 0
         logging.debug("Target shared memory size: %s", ksm_size)
-        while shm < ksm_size:
+        while (shm < ksm_size):
             if i > 64:
                 logging.debug(kvm_test_utils.get_memory_info(lvms))
                 raise error.TestError("SHM didn't merge the memory until DL")
             wt = ksm_size / 200 * perf_ratio
             logging.debug("Waiting %ds before proceed...", wt)
             time.sleep(wt)
-            shm = vm.get_shared_meminfo()
+            if (new_ksm):
+                shm = get_ksmstat()
+            else:
+                shm = vm.get_shared_meminfo()
             logging.debug("Shared meminfo after attempt %s: %s", i, shm)
             i += 1
 
@@ -348,6 +367,18 @@ def run_ksm_overcommit(test, params, env):
 
     # Main test code
     logging.info("Starting phase 0: Initialization")
+    new_ksm = False
+    if (os.path.exists("/sys/kernel/mm/ksm/run")):
+        utils.run("echo 50 > /sys/kernel/mm/ksm/sleep_millisecs")
+        utils.run("echo 5000 > /sys/kernel/mm/ksm/pages_to_scan")
+        utils.run("echo 1 > /sys/kernel/mm/ksm/run")
+        new_ksm = True
+    else:
+        try:
+            utils.run("modprobe ksm")
+            utils.run("ksmctl start 5000 100")
+        except error.CmdError, e:
+            raise error.TestFail("Failed to load KSM: %s" % e)
 
     # host_reserve: mem reserve kept for the host system to run
     host_reserve = int(params.get("ksm_host_reserve", -1))
