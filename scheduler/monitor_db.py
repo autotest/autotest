@@ -2320,10 +2320,12 @@ class PostJobTask(AgentTask):
             if was_aborted is None: # first queue entry
                 was_aborted = bool(queue_entry.aborted)
             elif was_aborted != bool(queue_entry.aborted): # subsequent entries
+                entries = ['%s (aborted: %s)' % (entry, entry.aborted)
+                           for entry in self.queue_entries]
                 email_manager.manager.enqueue_notify_email(
-                    'Inconsistent abort state',
-                    'Queue entries have inconsistent abort state: ' +
-                    ', '.join('%s (%s)' % (queue_entry, queue_entry.aborted)))
+                        'Inconsistent abort state',
+                        'Queue entries have inconsistent abort state:\n' +
+                        '\n'.join(entries))
                 # don't crash here, just assume true
                 return True
         return was_aborted
