@@ -1,4 +1,4 @@
-import os, sys, datetime
+import os, sys, datetime, re
 
 
 _debug_logger = sys.stderr
@@ -49,3 +49,19 @@ def drop_redundant_messages(messages):
         else:
             filtered_messages.add(message)
     return filtered_messages
+
+
+def get_afe_job_id(tag):
+    """ Given a tag return the afe_job_id (if any).
+
+    @param
+    tag: afe_job_id is extracted from this tag
+
+    @return
+    returns the afe_job_id if regex matches, else return ''
+    """
+
+    match = re.search('^([0-9]+)-.+/.+$', tag)
+    if match:
+        return match.group(1)
+    return ''
