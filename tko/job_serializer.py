@@ -14,10 +14,12 @@ import os
 import datetime
 import time
 import random
+import re
 
 # import autotest libraries
 from autotest_lib.tko import models
 from autotest_lib.tko import tko_pb2
+from autotest_lib.tko import utils
 
 __author__ = 'darrenkuo@google.com (Darren Kuo)'
 
@@ -88,7 +90,7 @@ class JobSerializer(object):
         return self.get_tko_job(job_pb)
 
 
-    def serialize_to_binary(self, the_job, binaryfilename):
+    def serialize_to_binary(self, the_job, tag, binaryfilename):
         """Serializes the tko job object into a binary by using a
         protocol buffer.
 
@@ -103,20 +105,32 @@ class JobSerializer(object):
 
         @param
         the_job: the tko job object that will be serialized.
+        tag: contains the job name and the afe_job_id
         binaryfilename: the name of the file that will be written to
 
         @return the filename of the file that contains the
         binary of the serialized object.
         """
 
-        job_pb = tko_pb2.Job()
-        self.set_pb_job(the_job, job_pb)
+        pb_job = tko_pb2.Job()
+        self.set_pb_job(the_job, pb_job, tag)
 
         out = open(binaryfilename, 'wb')
         try:
-            out.write(job_pb.SerializeToString())
+            out.write(pb_job.SerializeToString())
         finally:
             out.close()
+
+
+    def set_afe_job_id_and_tag(self, pb_job, tag):
+        """Sets the pb job's afe_job_id and tag field.
+
+        @param
+        pb_job: the pb job that will have it's fields set.
+        tag: used to set pb_job.tag and pb_job.afe_job_id.
+        """
+        pb_job.tag = tag
+        pb_job.afe_job_id = utils.get_afe_job_id(tag)
 
 
     # getter setter methods
@@ -157,7 +171,7 @@ class JobSerializer(object):
         return newjob
 
 
-    def set_pb_job(self, tko_job, pb_job):
+    def set_pb_job(self, tko_job, pb_job, tag):
         """Set the fields for the new job object.
 
         Method takes in a tko job and an empty protocol buffer job
@@ -169,10 +183,11 @@ class JobSerializer(object):
         transfered to the new job
         pb_job: a new instance of the job class provided in the
         protocol buffer.
-
+        tag: used to set pb_job.tag and pb_job.afe_job_id.
         """
 
         self.set_trivial_attr(tko_job, pb_job, self.job_type_dict)
+        self.set_afe_job_id_and_tag(pb_job, tag)
 
         for test in tko_job.tests:
             newtest = pb_job.tests.add()
@@ -185,6 +200,16 @@ class JobSerializer(object):
 
 
     def get_tko_test(self, test):
+        """Creates a tko test from pb_test.
+
+        Extracts data from pb_test by calling helper methods and
+        creates a tko test using the models.test constructor.
+
+        @param:
+        test: a pb_test where fields will be extracted from.
+
+        @return a new instance of models.test
+        """
         fields_dict = self.get_trivial_attr(test, self.test_type_dict)
 
         fields_dict['kernel'] = self.get_tko_kernel(test.kernel)

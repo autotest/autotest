@@ -42,13 +42,15 @@ message Job {
     repeated Test tests = 2;
     required string user = 3;
     required string label = 4;
-    required string machine = 5;
+    required string tag = 5;
     required int64 queued_time = 6;
     required int64 started_time = 7;
     required int64 finished_time = 8;
-    required string machine_owner = 9;
-    required string machine_group = 10;
-    required string aborted_by = 11;
-    required int64 aborted_on = 12;
-    repeated KeyVal keyval_dict = 13;
+    required string machine = 9;
+    required string machine_owner = 10;
+    required string machine_group = 11;
+    required string aborted_by = 12;
+    required int64 aborted_on = 13;
+    required string afe_job_id = 14;
+    repeated KeyVal keyval_dict = 15;
 }

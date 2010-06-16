@@ -2,6 +2,7 @@ import re, os, sys, types, time, random
 
 import common
 from autotest_lib.client.common_lib import global_config
+from autotest_lib.tko import utils
 
 
 class MySQLTooManyRows(Exception):
@@ -327,11 +328,7 @@ class db_sql(object):
         else:
             self.update_machine_information(job, commit=commit)
 
-        afe_job_id = None
-        pattern = re.compile('^([0-9]+)-.+/.+$')
-        match = pattern.match(tag)
-        if match:
-            afe_job_id = match.group(1)
+        afe_job_id = utils.get_afe_job_id(tag)
 
         data = {'tag':tag,
                 'label': job.label,
