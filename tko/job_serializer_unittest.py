@@ -7,10 +7,11 @@ Mostly test if the serialized object has the expected content.
 """
 
 import common
-import time
-import os
 import datetime
+import os
+import re
 import tempfile
+import time
 
 from autotest_lib.tko import tko_pb2
 from autotest_lib.tko import job_serializer
@@ -32,7 +33,7 @@ class JobSerializerUnittest(unittest.TestCase):
         tko_kernel = models.kernel('My Computer', tko_patches, '1234567')
         tko_time = datetime.now()
 
-        tko_job = models.job('/tmp/', 'root', 'test', 'My Computer',
+        tko_job = models.job('/tmp/', 'autotest', 'test', 'My Computer',
                              tko_time, tko_time, tko_time, 'root',
                              'www', 'No one', tko_time, {'1+1':2})
 
@@ -51,8 +52,20 @@ class JobSerializerUnittest(unittest.TestCase):
         self.tko_job.tests = [tko_test, tko_test, tko_test]
 
         self.pb_job = tko_pb2.Job()
+        self.tag = '1-abc./.'
+        self.expected_afe_job_id = '1'
+
         js = job_serializer.JobSerializer()
-        js.set_pb_job(self.tko_job, self.pb_job)
+        js.set_pb_job(self.tko_job, self.pb_job, self.tag)
+
+
+    def test_tag(self):
+        self.assertEqual(self.tag, self.pb_job.tag)
+
+
+    def test_afe_job_id(self):
+        self.assertEqual(self.expected_afe_job_id,
+                         self.pb_job.afe_job_id)
 
 
     def test_job_dir(self):
@@ -208,7 +221,6 @@ class JobSerializerUnittest(unittest.TestCase):
     def check_kernel(self, kernel, newkernel):
         """Check if the kernels are the same.
         """
-
         self.assertEqual(kernel.base, newkernel.base)
         self.assertEqual(kernel.kernel_hash, newkernel.kernel_hash)
 
