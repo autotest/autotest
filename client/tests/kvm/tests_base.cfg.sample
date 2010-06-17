@@ -131,6 +131,17 @@ variants:
         kill_vm_on_error = yes
         iterations = 2
         used_mem = 1024
+        mig_timeout = 3600
+        variants:
+            - tcp:
+                migration_protocol = "tcp"
+            - unix:
+                migration_protocol = "unix"
+            - exec:
+                migration_protocol = "exec"
+            - mig_cancel:
+                migration_protocol = "tcp"
+                mig_cancel = True
 
     - boot_savevm: install setup unattended_install.cdrom
         type = boot_savevm
