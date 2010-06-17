@@ -34,12 +34,13 @@ def run_autoit(test, params, env):
         if params.get("download") == "yes":
             download_cmd = params.get("download_cmd")
             rsc_server = params.get("rsc_server")
+            rsc_dir = os.path.basename(rsc_server)
             dst_rsc_dir = params.get("dst_rsc_dir")
 
             # Change dir to dst_rsc_dir, and remove 'autoit' there, then
             # download the resource.
-            rsc_cmd = "cd %s && (rmdir /s /q autoit || del /s /q autoit) && " \
-                      "%s %s" % (dst_rsc_dir, download_cmd, rsc_server)
+            rsc_cmd = "cd %s && (rmdir /s /q %s || del /s /q %s) && %s %s" % \
+                    (dst_rsc_dir, rsc_dir, rsc_dir, download_cmd, rsc_server)
 
             if session.get_command_status(rsc_cmd, timeout=timeout) != 0:
                 raise error.TestFail("Download test resource failed.")
