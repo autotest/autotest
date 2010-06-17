@@ -17,9 +17,14 @@ def run_autoit(test, params, env):
     @param env: Dictionary with the test environment.
     """
     login_timeout = int(params.get("login_timeout", 360))
+    reboot = params.get("reboot", "no")
 
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     session = kvm_test_utils.wait_for_login(vm, timeout=login_timeout)
+
+    if reboot == "yes":
+        logging.debug("Rebooting guest before test ...")
+        session = kvm_test_utils.reboot(vm, session, timeout=login_timeout)
 
     try:
         logging.info("Starting script...")
@@ -79,5 +84,8 @@ def run_autoit(test, params, env):
         if status != 0:
             raise error.TestFail("Script execution failed")
 
+        if reboot == "yes":
+            logging.debug("Rebooting guest after test ...")
+            session = kvm_test_utils.reboot(vm, session, timeout=login_timeout)
     finally:
         session.close()
