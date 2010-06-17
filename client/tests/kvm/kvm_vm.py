@@ -115,6 +115,9 @@ class VM:
         self.root_dir = root_dir
         self.address_cache = address_cache
         self.pci_assignable = None
+        self.netdev_id = []
+        for nic in params.get("nics").split():
+            self.netdev_id.append(kvm_utils.generate_random_string(4))
 
         # Find available monitor filename
         while True:
@@ -226,15 +229,20 @@ class VM:
             if boot: cmd += ",boot=on"
             return cmd
 
-        def add_nic(help, vlan, model=None, mac=None):
+        def add_nic(help, vlan, model=None, mac=None, netdev_id=None):
             cmd = " -net nic,vlan=%d" % vlan
+            if has_option(help, "netdev"):
+                cmd +=",netdev=%s" % netdev_id
             if model: cmd += ",model=%s" % model
             if mac: cmd += ",macaddr='%s'" % mac
             return cmd
 
         def add_net(help, vlan, mode, ifname=None, script=None,
-                    downscript=None):
-            cmd = " -net %s,vlan=%d" % (mode, vlan)
+                    downscript=None, netdev_id=None):
+            if has_option(help, "netdev"):
+                cmd = " -netdev %s,id=%s" % (mode, netdev_id)
+            else:
+                cmd = " -net %s,vlan=%d" % (mode, vlan)
             if mode == "tap":
                 if ifname: cmd += ",ifname='%s'" % ifname
                 if script: cmd += ",script='%s'" % script
@@ -319,7 +327,8 @@ class VM:
             mac = None
             if "address_index" in nic_params:
                 mac = kvm_utils.get_mac_ip_pair_from_dict(nic_params)[0]
-            qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac)
+            qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac,
+                                self.netdev_id[vlan])
             # Handle the '-net tap' or '-net user' part
             script = nic_params.get("nic_script")
             downscript = nic_params.get("nic_downscript")
@@ -329,7 +338,7 @@ class VM:
                 downscript = kvm_utils.get_path(root_dir, downscript)
             qemu_cmd += add_net(help, vlan, nic_params.get("nic_mode", "user"),
                                 nic_params.get("nic_ifname"),
-                                script, downscript)
+                                script, downscript, self.netdev_id[vlan])
             # Proceed to next NIC
             vlan += 1
 
