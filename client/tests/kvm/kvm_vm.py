@@ -408,7 +408,7 @@ class VM:
 
 
     def create(self, name=None, params=None, root_dir=None,
-               for_migration=False, timeout=5.0):
+               for_migration=False, timeout=5.0, extra_params=None):
         """
         Start the VM by running a qemu command.
         All parameters are optional. The following applies to all parameters
@@ -421,6 +421,8 @@ class VM:
         @param root_dir: Base directory for relative filenames
         @param for_migration: If True, start the VM with the -incoming
         option
+        @param extra_params: extra params for qemu command.e.g -incoming option
+        Please use this parameter instead of for_migration.
         """
         self.destroy()
 
@@ -538,12 +540,17 @@ class VM:
             # Make qemu command
             qemu_command = self.make_qemu_command()
 
-            # Is this VM supposed to accept incoming migrations?
-            if for_migration:
-                # Find available migration port
-                self.migration_port = kvm_utils.find_free_port(5200, 6000)
-                # Add -incoming option to the qemu command
-                qemu_command += " -incoming tcp:0:%d" % self.migration_port
+            # Enable migration support for VM by adding extra_params.
+            if extra_params is not None:
+                if " -incoming tcp:0:%d" == extra_params:
+                    self.migration_port = kvm_utils.find_free_port(5200, 6000)
+                    qemu_command += extra_params % self.migration_port
+                elif " -incoming unix:%s" == extra_params:
+                    self.migration_file = os.path.join("/tmp/", "unix-" +
+                                          time.strftime("%Y%m%d-%H%M%S"))
+                    qemu_command += extra_params % self.migration_file
+                else:
+                    qemu_command += extra_params
 
             logging.debug("Running qemu command:\n%s", qemu_command)
             self.process = kvm_subprocess.run_bg(qemu_command, None,
