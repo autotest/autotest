@@ -45,7 +45,7 @@ variants:
         # Operating system choice
         only Win7.64
         # Subtest choice. You can modify that line to add more subtests
-        only unattended_install boot shutdown
+        only unattended_install.cdrom boot shutdown
 
     # Runs qemu, f13 64 bit guest OS, install, boot, shutdown
     - @qemu_f13_quick:
@@ -61,7 +61,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Fedora.13.64
-        only unattended_install boot shutdown
+        only unattended_install.cdrom boot shutdown
         # qemu needs -enable-kvm on the cmdline
         extra_params = ' -enable-kvm'
 
@@ -77,7 +77,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Fedora.13.64
-        only unattended_install boot shutdown
+        only unattended_install.cdrom boot shutdown
 
 # Uncomment the following lines to enable abort-on-error mode:
 #abort_on_error = yes
