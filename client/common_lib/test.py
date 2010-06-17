@@ -562,7 +562,7 @@ def _installtest(job, url):
     # an empty  __init__.py so that sub-directories are
     # considered for import.
     if not os.path.exists(group_dir):
-        os.mkdir(group_dir)
+        os.makedirs(group_dir)
         f = file(os.path.join(group_dir, '__init__.py'), 'w+')
         f.close()
 
@@ -617,7 +617,7 @@ def runtest(job, url, tag, args, dargs,
     if url.endswith('.tar.bz2'):
         (testgroup, testname) = _installtest(job, url)
         bindir = os.path.join(job.testdir, 'download', testgroup, testname)
-        importdir = os.path.join(testdir, 'download', testgroup)
+        importdir = os.path.join(job.testdir, 'download')
         site_bindir = None
         modulename = '%s.%s' % (re.sub('/', '.', testgroup), testname)
         classname = '%s.%s' % (modulename, testname)
@@ -659,7 +659,7 @@ def runtest(job, url, tag, args, dargs,
     local_namespace['bindir'] = bindir
     local_namespace['outputdir'] = outputdir
 
-    sys.path.insert(0, importdir) 
+    sys.path.insert(0, importdir)
     try:
         exec ('import %s' % modulename, local_namespace, global_namespace)
         exec ("mytest = %s(job, bindir, outputdir)" % classname,
