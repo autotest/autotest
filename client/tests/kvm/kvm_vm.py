@@ -666,6 +666,7 @@ class VM:
                                   "output so far:" +
                                   kvm_utils.format_str_for_message(data))
                     return (1, data)
+            data = "".join(data.rstrip().splitlines(True)[:-1])
             return (0, data)
 
         # Clean up before exiting
