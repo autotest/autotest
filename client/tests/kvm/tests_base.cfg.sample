@@ -219,6 +219,11 @@ variants:
                 reboot_iterations = 1
                 drift_threshold = 10
                 drift_threshold_single = 3
+            - with_stop:
+                type = timedrift_with_stop
+                stop_interations = 1
+                drift_threshold = 10
+                drift_threshold_single = 3
 
     - balloon_check:  install setup unattended_install.cdrom
         type = balloon_check

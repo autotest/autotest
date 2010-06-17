@@ -237,6 +237,30 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
         raise
 
 
+def stop(vm):
+    """
+    Stop a running vm
+    """
+    s, o = vm.send_monitor_cmd("stop")
+    if s != 0:
+        raise error.TestError("Could not send the stop command")
+    s, o = vm.send_monitor_cmd("info status")
+    if "paused" not in o:
+        raise error.TestFail("VM does not stop afer send stop command")
+
+
+def cont(vm):
+    """
+    Continue a stopped vm
+    """
+    s, o = vm.send_monitor_cmd("cont")
+    if s != 0:
+        raise error.TestError("Could not send the cont command")
+    s, o = vm.send_monitor_cmd("info status")
+    if "running" not in o:
+        raise error.TestFail("VM still in paused status after sending cont")
+
+
 def get_time(session, time_command, time_filter_re, time_format):
     """
     Return the host time and guest time.  If the guest time cannot be fetched
