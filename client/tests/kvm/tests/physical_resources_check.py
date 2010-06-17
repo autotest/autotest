@@ -18,7 +18,8 @@ def run_physical_resources_check(test, params, env):
     @param env: Dictionary with test environment.
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm)
+    timeout = int(params.get("login_timeout", 360))
+    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     logging.info("Starting physical resources check test")
     logging.info("Values assigned to VM are the values we expect "

@@ -18,7 +18,8 @@ def run_timedrift_with_migration(test, params, env):
     @param env: Dictionary with the test environment.
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm)
+    timeout = int(params.get("login_timeout", 360))
+    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     # Collect test parameters:
     # Command to run to get the current time

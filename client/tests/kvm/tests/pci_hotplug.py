@@ -18,7 +18,8 @@ def run_pci_hotplug(test, params, env):
     @param env:    Dictionary with test environment.
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm)
+    timeout = int(params.get("login_timeout", 360))
+    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     # Modprobe the module if specified in config file
     module = params.get("modprobe_module")
