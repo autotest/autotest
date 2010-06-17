@@ -4,7 +4,7 @@
 vms = vm1
 images = image1
 nics = nic1
-
+login_timeout = 360
 # Choose the main VM
 main_vm = vm1
 

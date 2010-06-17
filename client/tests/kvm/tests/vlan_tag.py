@@ -23,8 +23,9 @@ def run_vlan_tag(test, params, env):
     vm1 = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     vm2 = kvm_test_utils.get_living_vm(env, "vm2")
 
-    session1 = kvm_test_utils.wait_for_login(vm1)
-    session2 = kvm_test_utils.wait_for_login(vm2)
+    timeout = int(params.get("login_timeout", 360))
+    session = kvm_test_utils.wait_for_login(vm1, timeout=timeout)
+    session2 = kvm_test_utils.wait_for_login(vm2, timeout=timeout)
 
     try:
         ip_cfg_base = "vconfig add eth0 %s && ifconfig eth0.%s %s.%s"

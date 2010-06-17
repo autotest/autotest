@@ -39,7 +39,8 @@ def run_yum_update(test, params, env):
     @param env: Dictionary with the test environment.
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm)
+    timeout = int(params.get("login_timeout", 360))
+    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     internal_yum_update(session, "yum update", params.get("shell_prompt"), 600)
     internal_yum_update(session, "yum update kernel",

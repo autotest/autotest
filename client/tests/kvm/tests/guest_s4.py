@@ -12,7 +12,8 @@ def run_guest_s4(test, params, env):
     @param env: Dictionary with the test environment.
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm)
+    timeout = int(params.get("login_timeout", 360))
+    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     logging.info("Checking whether guest OS supports suspend to disk (S4)...")
     s, o = session.get_command_status_output(params.get("check_s4_support_cmd"))
@@ -31,7 +32,7 @@ def run_guest_s4(test, params, env):
     time.sleep(5)
 
     # Get the second session to start S4
-    session2 = kvm_test_utils.wait_for_login(vm)
+    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     # Make sure the background program is running as expected
     check_s4_cmd = params.get("check_s4_cmd")
