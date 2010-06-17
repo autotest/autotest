@@ -413,11 +413,14 @@ class AbstractSSHHost(SiteHost):
             if self.is_up():
                 try:
                     if self.are_wait_up_processes_up():
+                        logging.debug('Host %s is now up', self.hostname)
                         return True
                 except error.AutoservError:
                     pass
             time.sleep(1)
 
+        logging.debug('Host %s is still down after waiting %d seconds',
+                      self.hostname, int(timeout + time.time() - end_time))
         return False
 
 
