@@ -16,8 +16,10 @@ def run_autoit(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
+    login_timeout = int(params.get("login_timeout", 360))
+
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm)
+    session = kvm_test_utils.wait_for_login(vm, timeout=login_timeout)
 
     try:
         logging.info("Starting script...")
