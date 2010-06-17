@@ -229,6 +229,7 @@ variants:
 
     - autoit:       install setup unattended_install.cdrom
         type = autoit
+        login_timeout = 360
         autoit_binary = D:\AutoIt3.exe
         autoit_script_timeout = 600
         autoit_script_params =
