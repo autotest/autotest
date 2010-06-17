@@ -37,11 +37,15 @@ def run_autoit(test, params, env):
             rsc_dir = os.path.basename(rsc_server)
             dst_rsc_dir = params.get("dst_rsc_dir")
 
-            # Change dir to dst_rsc_dir, and remove 'autoit' there, then
-            # download the resource.
-            rsc_cmd = "cd %s && (rmdir /s /q %s || del /s /q %s) && %s %s" % \
-                    (dst_rsc_dir, rsc_dir, rsc_dir, download_cmd, rsc_server)
+            # Change dir to dst_rsc_dir, and remove 'autoit' there,
+            rm_cmd = "cd %s && (rmdir /s /q %s || del /s /q %s)" % \
+                     (dst_rsc_dir, rsc_dir, rsc_dir)
+            if session.get_command_status(rm_cmd, timeout=timeout) != 0:
+                raise error.TestFail("Remove %s failed." % rsc_dir)
+            logging.debug("Clean directory succeeded.")
 
+            # then download the resource.
+            rsc_cmd = "cd %s && %s %s" %(dst_rsc_dir, download_cmd, rsc_server)
             if session.get_command_status(rsc_cmd, timeout=timeout) != 0:
                 raise error.TestFail("Download test resource failed.")
             logging.info("Download resource finished.")
