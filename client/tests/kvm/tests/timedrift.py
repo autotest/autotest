@@ -53,7 +53,8 @@ def run_timedrift(test, params, env):
             commands.getoutput("taskset -p %s %s" % (mask, tid))
 
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm)
+    timeout = int(params.get("login_timeout", 360))
+    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     # Collect test parameters:
     # Command to run to get the current time

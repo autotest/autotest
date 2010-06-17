@@ -20,7 +20,8 @@ def run_migration(test, params, env):
     @param env: Dictionary with the test environment.
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm)
+    timeout = int(params.get("login_timeout", 360))
+    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     mig_timeout = float(params.get("mig_timeout", "3600"))
     mig_protocol = params.get("migration_protocol", "tcp")
@@ -37,7 +38,7 @@ def run_migration(test, params, env):
 
     # Start another session with the guest and make sure the background
     # process is running
-    session2 = kvm_test_utils.wait_for_login(vm)
+    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     try:
         check_command = params.get("migration_bg_check_command", "")
