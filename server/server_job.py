@@ -121,6 +121,7 @@ class server_job_record_hook(object):
         for entry in entries:
             rendered_entry = job._logger.render_entry(entry)
             logging.info(rendered_entry)
+            job._parse_status(rendered_entry)
 
 
 class base_server_job(base_job.base_job):
@@ -1017,10 +1018,10 @@ class base_server_job(base_job.base_job):
         execfile(code_file, namespace, namespace)
 
 
-    def __parse_status(self, new_lines):
+    def _parse_status(self, new_line):
         if not self._using_parser:
             return
-        new_tests = self.parser.process_lines(new_lines)
+        new_tests = self.parser.process_lines([new_line])
         for test in new_tests:
             self.__insert_test(test)
 
