@@ -32,49 +32,79 @@ class kvm(test.test):
             self.write_test_keyval({key: params[key]})
 
         # Open the environment file
+        logging.info("Unpickling env. You may see some harmless error "
+                     "messages.")
         env_filename = os.path.join(self.bindir, params.get("env", "env"))
         env = kvm_utils.load_env(env_filename, {})
-        logging.debug("Contents of environment: %s", str(env))
+        logging.debug("Contents of environment: %s", env)
+
+        test_passed = False
 
         try:
             try:
-                # Get the test routine corresponding to the specified test type
-                t_type = params.get("type")
-                # Verify if we have the correspondent source file for it
-                subtest_dir = os.path.join(self.bindir, "tests")
-                module_path = os.path.join(subtest_dir, "%s.py" % t_type)
-                if not os.path.isfile(module_path):
-                    raise error.TestError("No %s.py test file found" % t_type)
-                # Load the test module
-                f, p, d = imp.find_module(t_type, [subtest_dir])
-                test_module = imp.load_module(t_type, f, p, d)
-                f.close()
-
-                # Preprocess
                 try:
-                    kvm_preprocessing.preprocess(self, params, env)
-                finally:
-                    kvm_utils.dump_env(env, env_filename)
-                # Run the test function
-                run_func = getattr(test_module, "run_%s" % t_type)
-                try:
-                    run_func(self, params, env)
-                finally:
-                    kvm_utils.dump_env(env, env_filename)
+                    # Get the test routine corresponding to the specified
+                    # test type
+                    t_type = params.get("type")
+                    # Verify if we have the correspondent source file for it
+                    subtest_dir = os.path.join(self.bindir, "tests")
+                    module_path = os.path.join(subtest_dir, "%s.py" % t_type)
+                    if not os.path.isfile(module_path):
+                        raise error.TestError("No %s.py test file found" %
+                                              t_type)
+                    # Load the test module
+                    f, p, d = imp.find_module(t_type, [subtest_dir])
+                    test_module = imp.load_module(t_type, f, p, d)
+                    f.close()
 
-            except Exception, e:
-                logging.error("Test failed: %s", e)
-                logging.debug("Postprocessing on error...")
-                try:
-                    kvm_preprocessing.postprocess_on_error(self, params, env)
-                finally:
-                    kvm_utils.dump_env(env, env_filename)
-                raise
+                    # Preprocess
+                    try:
+                        kvm_preprocessing.preprocess(self, params, env)
+                    finally:
+                        kvm_utils.dump_env(env, env_filename)
+                    # Run the test function
+                    run_func = getattr(test_module, "run_%s" % t_type)
+                    try:
+                        run_func(self, params, env)
+                    finally:
+                        kvm_utils.dump_env(env, env_filename)
+                    test_passed = True
 
-        finally:
-            # Postprocess
-            try:
-                kvm_preprocessing.postprocess(self, params, env)
+                except Exception, e:
+                    logging.error("Test failed: %s", e)
+                    try:
+                        kvm_preprocessing.postprocess_on_error(
+                            self, params, env)
+                    finally:
+                        kvm_utils.dump_env(env, env_filename)
+                    raise
+
             finally:
-                kvm_utils.dump_env(env, env_filename)
-                logging.debug("Contents of environment: %s", str(env))
+                # Postprocess
+                try:
+                    try:
+                        kvm_preprocessing.postprocess(self, params, env)
+                    except Exception, e:
+                        if test_passed:
+                            raise
+                        logging.error("Exception raised during "
+                                      "postprocessing: %s", e)
+                finally:
+                    kvm_utils.dump_env(env, env_filename)
+                    logging.debug("Contents of environment: %s", env)
+
+        except Exception, e:
+            if params.get("abort_on_error") != "yes":
+                raise
+            # Abort on error
+            logging.info("Aborting job (%s)", e)
+            for vm in kvm_utils.env_get_all_vms(env):
+                if vm.is_dead():
+                    continue
+                logging.info("VM '%s' is alive.", vm.name)
+                for m in vm.monitors:
+                    logging.info("'%s' has a %s monitor unix socket at: %s",
+                                 vm.name, m.protocol, m.filename)
+                logging.info("The command line used to start '%s' was:\n%s",
+                             vm.name, vm.make_qemu_command())
+            raise error.JobError("Abort requested (%s)" % e)
