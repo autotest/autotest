@@ -34,8 +34,6 @@ variants:
         only rtl8139
         # Only ide hard drives
         only ide
-        # acpi means that acpi and kvm irq chip are enabled
-        only acpi
         # qemu-kvm will start only with -smp 2 (2 processors)
         only smp2
         # No PCI assignable devices
@@ -55,7 +53,6 @@ variants:
         # The default nw card for qemu is e1000
         only e1000
         only ide
-        only acpi
         # qemu using kvm doesn't support smp yet
         only up
         only no_pci_assignable
@@ -72,7 +69,6 @@ variants:
         only qcow2
         only rtl8139
         only ide
-        only acpi
         only smp2
         only no_pci_assignable
         only smallpages

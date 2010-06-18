@@ -1400,18 +1400,6 @@ variants:
 
 
 variants:
-    - @acpi:
-    - noacpi:
-        only Fedora Ubuntu Windows
-        no WinVista Win2008
-        no smp2.*Windows
-        extra_params += " -no-acpi"
-    - userirq:
-        only Fedora Ubuntu Windows
-        extra_params += " -no-kvm-irqchip -no-kvm-pit"
-
-
-variants:
     - @ide:
         drive_format=ide
     - scsi:
@@ -1438,14 +1426,12 @@ variants:
         only Fedora Ubuntu Windows
         only smp2
         only rtl8139
-        only acpi
         image_format = vmdk
     - raw:
         no ioquit
         only Fedora Ubuntu Windows
         only smp2
         only rtl8139
-        only acpi
         image_format = raw
 
 
