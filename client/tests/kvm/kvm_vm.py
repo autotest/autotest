@@ -592,8 +592,10 @@ class VM:
                 while time.time() < end_time:
                     try:
                         if monitor_params.get("monitor_type") == "qmp":
-                            # Add a QMP monitor: not implemented yet
-                            monitor = None
+                            # Add a QMP monitor
+                            monitor = kvm_monitor.QMPMonitor(
+                                monitor_name,
+                                self.get_monitor_filename(monitor_name))
                         else:
                             # Add a "human" monitor
                             monitor = kvm_monitor.HumanMonitor(
@@ -602,7 +604,7 @@ class VM:
                     except kvm_monitor.MonitorError, e:
                         logging.warn(e)
                     else:
-                        if monitor and monitor.is_responsive():
+                        if monitor.is_responsive():
                             break
                     time.sleep(1)
                 else:
