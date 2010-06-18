@@ -80,14 +80,26 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
     if method == "shell":
         # Send a reboot command to the guest's shell
         session.sendline(vm.get_params().get("reboot_command"))
-        logging.info("Reboot command sent. Waiting for guest to go down")
+        logging.info("Reboot command sent. Waiting for guest to go down...")
     elif method == "system_reset":
         # Sleep for a while before sending the command
         time.sleep(sleep_before_reset)
+        # Clear the event list of all QMP monitors
+        monitors = [m for m in vm.monitors if m.protocol == "qmp"]
+        for m in monitors:
+            m.clear_events()
         # Send a system_reset monitor command
         vm.monitor.cmd("system_reset")
         logging.info("Monitor command system_reset sent. Waiting for guest to "
                      "go down...")
+        # Look for RESET QMP events
+        time.sleep(1)
+        for m in monitors:
+            if not m.get_event("RESET"):
+                raise error.TestFail("RESET QMP event not received after "
+                                     "system_reset (monitor '%s')" % m.name)
+            else:
+                logging.info("RESET QMP event received")
     else:
         logging.error("Unknown reboot method: %s", method)
 
