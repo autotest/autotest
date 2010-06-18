@@ -251,19 +251,19 @@ variants:
     - autoit:       install setup unattended_install.cdrom
         type = autoit
         login_timeout = 360
-        autoit_binary = D:\AutoIt3.exe
-        autoit_script_timeout = 600
-        autoit_script_params =
+        interpreter = D:\AutoIt3.exe
+        test_timeout = 600
+        script_params =
         reboot = yes
         variants:
             - notepad:
-                autoit_script = autoit/notepad1.au3
+                guest_script = autoit/notepad1.au3
             - stub:
                 download = yes
                 download_cmd = "git clone"
                 rsc_server = "git://the.resource.server/autoit"
                 dst_rsc_dir = "C:\"
-                autoit_entry = "C:\autoit\stub\stub.au3"
+                dst_rsc_path = "C:\autoit\stub\stub.au3"
 
     - iozone_windows: unattended_install.cdrom
         type = iozone_windows
