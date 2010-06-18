@@ -29,7 +29,7 @@ def run_shutdown(test, params, env):
             # Sleep for a while -- give the guest a chance to finish booting
             time.sleep(float(params.get("sleep_before_powerdown", 10)))
             # Send a system_powerdown monitor command
-            vm.send_monitor_cmd("system_powerdown")
+            vm.monitor.cmd("system_powerdown")
             logging.info("system_powerdown monitor command sent; waiting for "
                          "guest to go down...")
 

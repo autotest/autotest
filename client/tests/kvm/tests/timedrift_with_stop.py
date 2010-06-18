@@ -49,11 +49,11 @@ def run_timedrift_with_stop(test, params, env):
             # Run current iteration
             logging.info("Stop %s second: iteration %d of %d..." %
                          (stop_time, i + 1, stop_iterations))
-            
-            kvm_test_utils.stop(vm)
+
+            vm.monitor.cmd("stop")
             time.sleep(stop_time)
-            kvm_test_utils.cont(vm)
-            
+            vm.monitor.cmd("cont")
+
             # Get time after current iteration
             (ht1_, gt1_) = kvm_test_utils.get_time(session, time_command,
                                                    time_filter_re, time_format)

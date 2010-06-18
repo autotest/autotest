@@ -5,8 +5,8 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, socket, os, logging, fcntl, re, commands
-import kvm_utils, kvm_subprocess
+import time, socket, os, logging, fcntl, re, commands, glob
+import kvm_utils, kvm_subprocess, kvm_monitor
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 
@@ -109,24 +109,22 @@ class VM:
         self.redirs = {}
         self.vnc_port = 5900
         self.uuid = None
+        self.monitors = []
+        self.pci_assignable = None
 
         self.name = name
         self.params = params
         self.root_dir = root_dir
         self.address_cache = address_cache
-        self.pci_assignable = None
         self.netdev_id = []
         for nic in params.get("nics").split():
             self.netdev_id.append(kvm_utils.generate_random_string(4))
 
-        # Find available monitor filename
+        # Find a unique identifier for this VM
         while True:
-            # The monitor filename should be unique
             self.instance = (time.strftime("%Y%m%d-%H%M%S-") +
                              kvm_utils.generate_random_string(4))
-            self.monitor_file_name = os.path.join("/tmp",
-                                                  "monitor-" + self.instance)
-            if not os.path.exists(self.monitor_file_name):
+            if not glob.glob("/tmp/*%s" % self.instance):
                 break
 
 
@@ -202,8 +200,11 @@ class VM:
         def add_name(help, name):
             return " -name '%s'" % name
 
-        def add_unix_socket_monitor(help, filename):
+        def add_human_monitor(help, filename):
             return " -monitor unix:'%s',server,nowait" % filename
+
+        def add_qmp_monitor(help, filename):
+            return " -qmp unix:'%s',server,nowait" % filename
 
         def add_mem(help, mem):
             return " -m %s" % mem
@@ -304,8 +305,14 @@ class VM:
         qemu_cmd += qemu_binary
         # Add the VM's name
         qemu_cmd += add_name(help, name)
-        # Add the monitor socket parameter
-        qemu_cmd += add_unix_socket_monitor(help, self.monitor_file_name)
+        # Add monitors
+        for monitor_name in kvm_utils.get_sub_dict_names(params, "monitors"):
+            monitor_params = kvm_utils.get_sub_dict(params, monitor_name)
+            monitor_filename = self.get_monitor_filename(monitor_name)
+            if monitor_params.get("monitor_type") == "qmp":
+                qemu_cmd += add_qmp_monitor(help, monitor_filename)
+            else:
+                qemu_cmd += add_human_monitor(help, monitor_filename)
 
         for image_name in kvm_utils.get_sub_dict_names(params, "images"):
             image_params = kvm_utils.get_sub_dict(params, image_name)
@@ -565,6 +572,7 @@ class VM:
             self.process = kvm_subprocess.run_bg(qemu_command, None,
                                                  logging.debug, "(qemu) ")
 
+            # Make sure the process was started successfully
             if not self.process.is_alive():
                 logging.error("VM could not be created; "
                               "qemu command failed:\n%s" % qemu_command)
@@ -574,11 +582,36 @@ class VM:
                 self.destroy()
                 return False
 
-            if not kvm_utils.wait_for(self.is_alive, timeout, 0, 1):
-                logging.error("VM is not alive for some reason; "
-                              "qemu command:\n%s" % qemu_command)
-                self.destroy()
-                return False
+            # Establish monitor connections
+            self.monitors = []
+            for monitor_name in kvm_utils.get_sub_dict_names(params,
+                                                             "monitors"):
+                monitor_params = kvm_utils.get_sub_dict(params, monitor_name)
+                # Wait for monitor connection to succeed
+                end_time = time.time() + timeout
+                while time.time() < end_time:
+                    try:
+                        if monitor_params.get("monitor_type") == "qmp":
+                            # Add a QMP monitor: not implemented yet
+                            monitor = None
+                        else:
+                            # Add a "human" monitor
+                            monitor = kvm_monitor.HumanMonitor(
+                                monitor_name,
+                                self.get_monitor_filename(monitor_name))
+                    except kvm_monitor.MonitorError, e:
+                        logging.warn(e)
+                    else:
+                        if monitor and monitor.is_responsive():
+                            break
+                    time.sleep(1)
+                else:
+                    logging.error("Could not connect to monitor '%s'" %
+                                  monitor_name)
+                    self.destroy()
+                    return False
+                # Add this monitor to the list
+                self.monitors += [monitor]
 
             # Get the output so far, to see if we have any problems with
             # hugepage setup.
@@ -598,90 +631,6 @@ class VM:
         finally:
             fcntl.lockf(lockfile, fcntl.LOCK_UN)
             lockfile.close()
-
-
-    def send_monitor_cmd(self, command, block=True, timeout=20.0, verbose=True):
-        """
-        Send command to the QEMU monitor.
-
-        Connect to the VM's monitor socket and wait for the (qemu) prompt.
-        If block is True, read output from the socket until the (qemu) prompt
-        is found again, or until timeout expires.
-
-        Return a tuple containing an integer indicating success or failure,
-        and the data read so far. The integer is 0 on success and 1 on failure.
-        A failure is any of the following cases: connection to the socket
-        failed, or the first (qemu) prompt could not be found, or block is
-        True and the second prompt could not be found.
-
-        @param command: Command that will be sent to the monitor
-        @param block: Whether the output from the socket will be read until
-                the timeout expires
-        @param timeout: Timeout (seconds) before giving up on reading from
-                socket
-        """
-        def read_up_to_qemu_prompt(s, timeout):
-            """
-            Read data from socket s until the (qemu) prompt is found.
-
-            If the prompt is found before timeout expires, return a tuple
-            containing True and the data read. Otherwise return a tuple
-            containing False and the data read so far.
-
-            @param s: Socket object
-            @param timeout: Time (seconds) before giving up trying to get the
-                    qemu prompt.
-            """
-            o = ""
-            end_time = time.time() + timeout
-            while time.time() < end_time:
-                try:
-                    o += s.recv(1024)
-                    if o.splitlines()[-1].split()[-1] == "(qemu)":
-                        return (True, o)
-                except:
-                    time.sleep(0.01)
-            return (False, o)
-
-        # In certain conditions printing this debug output might be too much
-        # Just print it if verbose is enabled (True by default)
-        if verbose:
-            logging.debug("Sending monitor command: %s" % command)
-        # Connect to monitor
-        try:
-            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            s.setblocking(False)
-            s.connect(self.monitor_file_name)
-        except:
-            logging.debug("Could not connect to monitor socket")
-            return (1, "")
-
-        # Send the command and get the resulting output
-        try:
-            status, data = read_up_to_qemu_prompt(s, timeout)
-            if not status:
-                logging.debug("Could not find (qemu) prompt; output so far:" +
-                              kvm_utils.format_str_for_message(data))
-                return (1, "")
-            # Send command
-            s.sendall(command + "\n")
-            # Receive command output
-            data = ""
-            if block:
-                status, data = read_up_to_qemu_prompt(s, timeout)
-                data = "\n".join(data.splitlines()[1:])
-                if not status:
-                    logging.debug("Could not find (qemu) prompt after command; "
-                                  "output so far:" +
-                                  kvm_utils.format_str_for_message(data))
-                    return (1, data)
-            data = "".join(data.rstrip().splitlines(True)[:-1])
-            return (0, data)
-
-        # Clean up before exiting
-        finally:
-            s.shutdown(socket.SHUT_RDWR)
-            s.close()
 
 
     def destroy(self, gracefully=True):
@@ -720,15 +669,18 @@ class VM:
                     finally:
                         session.close()
 
-            # Try to destroy with a monitor command
-            logging.debug("Trying to kill VM with monitor command...")
-            status, output = self.send_monitor_cmd("quit", block=False)
-            # Was the command sent successfully?
-            if status == 0:
-                # Wait for the VM to be really dead
-                if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
-                    logging.debug("VM is down")
-                    return
+            if self.monitor:
+                # Try to destroy with a monitor command
+                logging.debug("Trying to kill VM with monitor command...")
+                try:
+                    self.monitor.quit()
+                except kvm_monitor.MonitorError, e:
+                    logging.warn(e)
+                else:
+                    # Wait for the VM to be really dead
+                    if kvm_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
+                        logging.debug("VM is down")
+                        return
 
             # If the VM isn't dead yet...
             logging.debug("Cannot quit normally; sending a kill to close the "
@@ -742,28 +694,43 @@ class VM:
             logging.error("Process %s is a zombie!" % self.process.get_pid())
 
         finally:
+            self.monitors = []
             if self.pci_assignable:
                 self.pci_assignable.release_devs()
             if self.process:
                 self.process.close()
-            try:
-                os.unlink(self.monitor_file_name)
-            except OSError:
-                pass
+            for f in ([self.get_testlog_filename()] +
+                      self.get_monitor_filenames()):
+                try:
+                    os.unlink(f)
+                except OSError:
+                    pass
+
+
+    @property
+    def monitor(self):
+        """
+        Return the main monitor object, selected by the parameter main_monitor.
+        If main_monitor isn't defined, return the first monitor.
+        If no monitors exist, or if main_monitor refers to a nonexistent
+        monitor, return None.
+        """
+        for m in self.monitors:
+            if m.name == self.params.get("main_monitor"):
+                return m
+        if self.monitors and not self.params.get("main_monitor"):
+            return self.monitors[0]
 
 
     def is_alive(self):
         """
-        Return True if the VM's monitor is responsive.
+        Return True if the VM is alive and its monitor is responsive.
         """
         # Check if the process is running
         if self.is_dead():
             return False
         # Try sending a monitor command
-        (status, output) = self.send_monitor_cmd("help")
-        if status:
-            return False
-        return True
+        return bool(self.monitor) and self.monitor.is_responsive()
 
 
     def is_dead(self):
@@ -787,6 +754,29 @@ class VM:
         upon VM.create().
         """
         return self.params
+
+
+    def get_monitor_filename(self, monitor_name):
+        """
+        Return the filename corresponding to a given monitor name.
+        """
+        return "/tmp/monitor-%s-%s" % (monitor_name, self.instance)
+
+
+    def get_monitor_filenames(self):
+        """
+        Return a list of all monitor filenames (as specified in the VM's
+        params).
+        """
+        return [self.get_monitor_filename(m) for m in
+                kvm_utils.get_sub_dict_names(self.params, "monitors")]
+
+
+    def get_testlog_filename(self):
+        """
+        Return the testlog filename.
+        """
+        return "/tmp/testlog-%s" % self.instance
 
 
     def get_address(self, index=0):
@@ -986,12 +976,12 @@ class VM:
         # For compatibility with versions of QEMU that do not recognize all
         # key names: replace keyname with the hex value from the dict, which
         # QEMU will definitely accept
-        dict = { "comma": "0x33",
-                 "dot": "0x34",
-                 "slash": "0x35" }
-        for key in dict.keys():
-            keystr = keystr.replace(key, dict[key])
-        self.send_monitor_cmd("sendkey %s 1" % keystr)
+        dict = {"comma": "0x33",
+                "dot":   "0x34",
+                "slash": "0x35"}
+        for key, value in dict.items():
+            keystr = keystr.replace(key, value)
+        self.monitor.sendkey(keystr)
         time.sleep(0.2)
 
 

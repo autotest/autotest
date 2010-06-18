@@ -1,6 +1,6 @@
 import re, string, logging
 from autotest_lib.client.common_lib import error
-import kvm_test_utils, kvm_utils
+import kvm_test_utils, kvm_utils, kvm_monitor
 
 
 def run_physical_resources_check(test, params, env):
@@ -49,13 +49,15 @@ def run_physical_resources_check(test, params, env):
         logging.error("    Reported by OS: %s" % actual_mem)
 
     # Define a function for checking number of hard drivers & NICs
-    def check_num(devices, cmd, check_str):
+    def check_num(devices, info_cmd, check_str):
         f_fail = 0
         expected_num = kvm_utils.get_sub_dict_names(params, devices).__len__()
-        s, o = vm.send_monitor_cmd(cmd)
-        if s != 0:
+        try:
+            o = vm.monitor.info(info_cmd)
+        except kvm_monitor.MonitorError, e:
             f_fail += 1
-            logging.error("qemu monitor command failed: %s" % cmd)
+            logging.error(e)
+            logging.error("info/query monitor command failed (%s)", info_cmd)
 
         actual_num = string.count(o, check_str)
         if expected_num != actual_num:
@@ -66,25 +68,28 @@ def run_physical_resources_check(test, params, env):
         return expected_num, f_fail
 
     logging.info("Hard drive count check")
-    drives_num, f_fail = check_num("images", "info block", "type=hd")
+    drives_num, f_fail = check_num("images", "block", "type=hd")
     n_fail += f_fail
 
     logging.info("NIC count check")
-    nics_num, f_fail = check_num("nics", "info network", "model=")
+    nics_num, f_fail = check_num("nics", "network", "model=")
     n_fail += f_fail
 
     # Define a function for checking hard drives & NICs' model
-    def chk_fmt_model(device, fmt_model, cmd, str):
+    def chk_fmt_model(device, fmt_model, info_cmd, str):
         f_fail = 0
         devices = kvm_utils.get_sub_dict_names(params, device)
         for chk_device in devices:
             expected = kvm_utils.get_sub_dict(params, chk_device).get(fmt_model)
             if not expected:
                 expected = "rtl8139"
-            s, o = vm.send_monitor_cmd(cmd)
-            if s != 0:
+            try:
+                o = vm.monitor.info(info_cmd)
+            except kvm_monitor.MonitorError, e:
                 f_fail += 1
-                logging.error("qemu monitor command failed: %s" % cmd)
+                logging.error(e)
+                logging.error("info/query monitor command failed (%s)",
+                              info_cmd)
 
             device_found = re.findall(str, o)
             logging.debug("Found devices: %s" % device_found)
@@ -101,19 +106,20 @@ def run_physical_resources_check(test, params, env):
         return f_fail
 
     logging.info("NICs model check")
-    f_fail = chk_fmt_model("nics", "nic_model", "info network", "model=(.*),")
+    f_fail = chk_fmt_model("nics", "nic_model", "network", "model=(.*),")
     n_fail += f_fail
 
     logging.info("Drive format check")
-    f_fail = chk_fmt_model("images", "drive_format", "info block",
-                           "(.*)\: type=hd")
+    f_fail = chk_fmt_model("images", "drive_format", "block", "(.*)\: type=hd")
     n_fail += f_fail
 
     logging.info("Network card MAC check")
-    s, o = vm.send_monitor_cmd("info network")
-    if s != 0:
+    try:
+        o = vm.monitor.info("network")
+    except kvm_monitor.MonitorError, e:
         n_fail += 1
-        logging.error("qemu monitor command failed: info network")
+        logging.error(e)
+        logging.error("info/query monitor command failed (network)")
     found_mac_addresses = re.findall("macaddr=(.*)", o)
     logging.debug("Found MAC adresses: %s" % found_mac_addresses)
 

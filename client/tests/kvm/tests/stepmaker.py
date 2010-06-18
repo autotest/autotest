@@ -10,7 +10,7 @@ Step file creator/editor.
 import pygtk, gtk, gobject, time, os, commands
 import common
 from autotest_lib.client.common_lib import error
-import kvm_utils, logging, ppm_utils, stepeditor
+import kvm_utils, logging, ppm_utils, stepeditor, kvm_monitor
 pygtk.require('2.0')
 
 
@@ -84,7 +84,7 @@ class StepMaker(stepeditor.StepMakerWindow):
 
 
     def destroy(self, widget):
-        self.vm.send_monitor_cmd("cont")
+        self.vm.monitor.cmd("cont")
         self.steps_file.close()
         self.vars_file.close()
         stepeditor.StepMakerWindow.destroy(self, widget)
@@ -112,7 +112,7 @@ class StepMaker(stepeditor.StepMakerWindow):
         # Start the screendump timer
         self.redirect_timer(100, self.update)
         # Resume the VM
-        self.vm.send_monitor_cmd("cont")
+        self.vm.monitor.cmd("cont")
 
 
     def switch_to_step_mode(self):
@@ -127,7 +127,7 @@ class StepMaker(stepeditor.StepMakerWindow):
         # Start the screendump timer
         self.redirect_timer()
         # Stop the VM
-        self.vm.send_monitor_cmd("stop")
+        self.vm.monitor.cmd("stop")
 
 
     # Events in step mode
@@ -137,10 +137,10 @@ class StepMaker(stepeditor.StepMakerWindow):
         if os.path.exists(self.screendump_filename):
             os.unlink(self.screendump_filename)
 
-        (status, output) = self.vm.send_monitor_cmd("screendump " +
-                                                    self.screendump_filename)
-        if status: # Failure
-            logging.info("Could not fetch screendump")
+        try:
+            self.vm.monitor.screendump(self.screendump_filename)
+        except kvm_monitor.MonitorError, e:
+            logging.warn(e)
         else:
             self.set_image_from_file(self.screendump_filename)
 
@@ -228,15 +228,14 @@ class StepMaker(stepeditor.StepMakerWindow):
                     continue
                 self.vm.send_string(val)
             elif words[0] == "mousemove":
-                self.vm.send_monitor_cmd("mouse_move %d %d" % (-8000,-8000))
+                self.vm.monitor.mouse_move(-8000, -8000)
                 time.sleep(0.5)
-                self.vm.send_monitor_cmd("mouse_move %s %s" % (words[1],
-                                                               words[2]))
+                self.vm.monitor.mouse_move(words[1], words[2])
                 time.sleep(0.5)
             elif words[0] == "mouseclick":
-                self.vm.send_monitor_cmd("mouse_button %s" % words[1])
+                self.vm.monitor.mouse_button(words[1])
                 time.sleep(0.1)
-                self.vm.send_monitor_cmd("mouse_button 0")
+                self.vm.monitor.mouse_button(0)
 
         # Remember the current time
         self.time_when_actions_completed = time.time()
@@ -267,7 +266,7 @@ class StepMaker(stepeditor.StepMakerWindow):
                 self.event_capture_button_release,
                 self.event_capture_scroll)
         self.redirect_timer(10, self.update_capture)
-        self.vm.send_monitor_cmd("cont")
+        self.vm.monitor.cmd("cont")
 
     # Events in mouse capture mode
 
@@ -280,11 +279,10 @@ class StepMaker(stepeditor.StepMakerWindow):
 
         delay = self.spin_latency.get_value() / 1000
         if (x, y) != (self.prev_x, self.prev_y):
-            self.vm.send_monitor_cmd("mouse_move %d %d" % (-8000, -8000))
+            self.vm.monitor.mouse_move(-8000, -8000)
             time.sleep(delay)
-            self.vm.send_monitor_cmd("mouse_move %d %d" %
-                                     (self.mouse_click_coords[0],
-                                      self.mouse_click_coords[1]))
+            self.vm.monitor.mouse_move(self.mouse_click_coords[0],
+                                       self.mouse_click_coords[1])
             time.sleep(delay)
 
         self.prev_x = x
@@ -293,10 +291,10 @@ class StepMaker(stepeditor.StepMakerWindow):
         if os.path.exists(self.screendump_filename):
             os.unlink(self.screendump_filename)
 
-        (status, output) = self.vm.send_monitor_cmd("screendump " +
-                                                    self.screendump_filename)
-        if status: # Failure
-            logging.info("Could not fetch screendump")
+        try:
+            self.vm.monitor.screendump(self.screendump_filename)
+        except kvm_monitor.MonitorError, e:
+            logging.warn(e)
         else:
             self.set_image_from_file(self.screendump_filename)
 
@@ -317,7 +315,7 @@ class StepMaker(stepeditor.StepMakerWindow):
                 None,
                 self.event_expose)
         self.redirect_timer()
-        self.vm.send_monitor_cmd("stop")
+        self.vm.monitor.cmd("stop")
         self.mouse_click_captured = True
         self.mouse_click_button = event.button
         self.set_image(self.image_width_backup, self.image_height_backup,
