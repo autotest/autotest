@@ -123,19 +123,31 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
     """
     def mig_finished():
         o = vm.monitor.info("migrate")
-        return "status: active" not in o
+        if isinstance(o, str):
+            return "status: active" not in o
+        else:
+            return o.get("status") != "active"
 
     def mig_succeeded():
         o = vm.monitor.info("migrate")
-        return "status: completed" in o
+        if isinstance(o, str):
+            return "status: completed" in o
+        else:
+            return o.get("status") == "completed"
 
     def mig_failed():
         o = vm.monitor.info("migrate")
-        return "status: failed" in o
+        if isinstance(o, str):
+            return "status: failed" in o
+        else:
+            return o.get("status") == "failed"
 
     def mig_cancelled():
         o = vm.monitor.info("migrate")
-        return "Migration status: cancelled" in o
+        if isinstance(o, str):
+            return "Migration status: cancelled" in o
+        else:
+            return o.get("status") == "cancelled"
 
     def wait_for_migration():
         if not kvm_utils.wait_for(mig_finished, mig_timeout, 2, 2,
