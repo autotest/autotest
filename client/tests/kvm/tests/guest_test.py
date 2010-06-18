@@ -3,7 +3,7 @@ from autotest_lib.client.common_lib import error
 import kvm_utils, kvm_test_utils
 
 
-def run_autoit(test, params, env):
+def run_guest_test(test, params, env):
     """
     A wrapper for running customized tests in guests.
 
