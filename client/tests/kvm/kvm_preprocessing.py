@@ -79,8 +79,13 @@ def preprocess_vm(test, params, env, name):
                           "restarting it...")
             start_vm = True
 
-    if start_vm and not vm.create(name, params, test.bindir, for_migration):
-        raise error.TestError("Could not start VM")
+    if start_vm:
+        # Start the VM (or restart it if it's already up)
+        if not vm.create(name, params, test.bindir, for_migration):
+            raise error.TestError("Could not start VM")
+    else:
+        # Don't start the VM, just update its params
+        vm.params = params
 
     scrdump_filename = os.path.join(test.debugdir, "pre_%s.ppm" % name)
     try:
