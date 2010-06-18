@@ -129,7 +129,7 @@ class UnattendedInstall(object):
                 else:
                     print ("WARNING: 'cdkey' required but not specified for "
                            "this unattended installation")
-            
+
             dummy_re = r'\bKVM_TEST_MEDIUM\b'
             if self.medium == "cdrom":
                 content = "cdrom"
@@ -139,9 +139,11 @@ class UnattendedInstall(object):
                 content = "nfs --server=%s --dir=%s" % (self.nfs_server, self.nfs_dir)
             else:
                 raise SetupError("Unexpected installation medium %s" % self.url)
-                
+
             unattended_contents = re.sub(dummy_re, content, unattended_contents)
 
+            print
+            print "Unattended install %s contents:" % dest_fname
             print unattended_contents
             # Write the unattended file contents to 'dest'
             open(dest, 'w').write(unattended_contents)
