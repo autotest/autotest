@@ -29,6 +29,8 @@ def run_unattended_install(test, params, env):
     start_time = time.time()
     time_elapsed = 0
     while time_elapsed < install_timeout:
+        if not vm.is_alive():
+            raise error.TestError("Guest died before end of OS install")
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         addr = vm.get_address()
         if addr is not None:
