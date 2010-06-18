@@ -32,7 +32,7 @@ def run_guest_s4(test, params, env):
     time.sleep(5)
 
     # Get the second session to start S4
-    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+    session2 = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     # Make sure the background program is running as expected
     check_s4_cmd = params.get("check_s4_cmd")

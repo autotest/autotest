@@ -24,7 +24,7 @@ def run_vlan_tag(test, params, env):
     vm2 = kvm_test_utils.get_living_vm(env, "vm2")
 
     timeout = int(params.get("login_timeout", 360))
-    session = kvm_test_utils.wait_for_login(vm1, timeout=timeout)
+    session1 = kvm_test_utils.wait_for_login(vm1, timeout=timeout)
     session2 = kvm_test_utils.wait_for_login(vm2, timeout=timeout)
 
     try:

@@ -1,6 +1,6 @@
 import re, string, logging, random, time
 from autotest_lib.client.common_lib import error
-import kvm_test_utils, kvm_utils
+import kvm_test_utils, kvm_utils, kvm_monitor
 
 def run_balloon_check(test, params, env):
     """
@@ -21,9 +21,10 @@ def run_balloon_check(test, params, env):
         @return: Number of failures occurred during operation.
         """
         fail = 0
-        status, output = vm.send_monitor_cmd("info balloon")
-        if status != 0:
-            logging.error("qemu monitor command failed: info balloon")
+        try:
+            output = vm.monitor.info("balloon")
+        except kvm_monitor.MonitorError, e:
+            logging.error(e)
             fail += 1
             return 0
         return int(re.findall("\d+", output)[0]), fail
@@ -39,7 +40,8 @@ def run_balloon_check(test, params, env):
         """
         fail = 0
         logging.info("Changing VM memory to %s", new_mem)
-        vm.send_monitor_cmd("balloon %s" % new_mem)
+        # This should be replaced by proper monitor method call
+        vm.monitor.cmd("balloon %s" % new_mem)
         time.sleep(20)
 
         ballooned_mem, cfail = check_ballooned_memory()
