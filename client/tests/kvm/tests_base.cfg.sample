@@ -4,9 +4,11 @@
 vms = vm1
 images = image1
 nics = nic1
+monitors = humanmonitor1
 login_timeout = 360
-# Choose the main VM
+# Choose the main VM and monitor
 main_vm = vm1
+main_monitor = humanmonitor1
 
 # Some preprocessor/postprocessor params
 start_vm = yes
@@ -33,6 +35,9 @@ mem = 512
 image_size = 10G
 shell_port = 22
 display = vnc
+
+# Monitor params
+monitor_type = human
 
 # Default scheduler params
 used_cpus = 1

@@ -28,7 +28,7 @@ def run_pci_hotplug(test, params, env):
             raise error.TestError("Modprobe module '%s' failed" % module)
 
     # Get output of command 'info pci' as reference
-    s, info_pci_ref = vm.send_monitor_cmd("info pci")
+    info_pci_ref = vm.monitor.info("pci")
 
     # Get output of command as reference
     reference = session.get_command_output(params.get("reference_cmd"))
@@ -44,21 +44,22 @@ def run_pci_hotplug(test, params, env):
         pci_add_cmd = ("pci_add pci_addr=auto storage file=%s,if=%s" %
                        (image_filename, tested_model))
 
-    # Implement pci_add
-    s, add_output = vm.send_monitor_cmd(pci_add_cmd)
+    # Execute pci_add (should be replaced by a proper monitor method call)
+    add_output = vm.monitor.cmd(pci_add_cmd)
     if not "OK domain" in add_output:
         raise error.TestFail("Add device failed. Hypervisor command is: %s. "
                              "Output: %r" % (pci_add_cmd, add_output))
-    s, after_add = vm.send_monitor_cmd("info pci")
+    after_add = vm.monitor.info("pci")
 
     # Define a helper function to delete the device
     def pci_del(ignore_failure=False):
         slot_id = "0" + add_output.split(",")[2].split()[1]
         cmd = "pci_del pci_addr=%s" % slot_id
-        vm.send_monitor_cmd(cmd)
+        # This should be replaced by a proper monitor method call
+        vm.monitor.cmd(cmd)
 
         def device_removed():
-            s, after_del = vm.send_monitor_cmd("info pci")
+            after_del = vm.monitor.info("pci")
             return after_del != after_add
 
         if (not kvm_utils.wait_for(device_removed, 10, 0, 1)

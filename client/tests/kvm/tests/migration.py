@@ -38,7 +38,7 @@ def run_migration(test, params, env):
 
     # Start another session with the guest and make sure the background
     # process is running
-    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+    session2 = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     try:
         check_command = params.get("migration_bg_check_command", "")

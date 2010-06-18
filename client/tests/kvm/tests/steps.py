@@ -6,7 +6,7 @@ Utilities to perform automatic guest installation using step files.
 
 import os, time, re, shutil, logging
 from autotest_lib.client.common_lib import utils, error
-import kvm_utils, ppm_utils, kvm_subprocess
+import kvm_utils, ppm_utils, kvm_subprocess, kvm_monitor
 try:
     import PIL.Image
 except ImportError:
@@ -85,10 +85,10 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
             break
 
         # Request screendump
-        (status, output) = vm.send_monitor_cmd("screendump %s" %
-                                               scrdump_filename)
-        if status:
-            logging.error("Could not fetch screendump")
+        try:
+            vm.monitor.screendump(scrdump_filename)
+        except kvm_monitor.MonitorError, e:
+            logging.warn(e)
             continue
 
         # Read image file
@@ -199,7 +199,7 @@ def run_steps(test, params, env):
     lines = sf.readlines()
     sf.close()
 
-    vm.send_monitor_cmd("cont")
+    vm.monitor.cmd("cont")
 
     current_step_num = 0
     current_screendump = None

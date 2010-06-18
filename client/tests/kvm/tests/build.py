@@ -650,4 +650,3 @@ def run_build(test, params, env):
                               ' install mode: %s' % install_mode)
 
     installer.install()
-

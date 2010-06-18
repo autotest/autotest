@@ -1,6 +1,6 @@
 import logging, time
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils
+import kvm_test_utils, kvm_utils, kvm_monitor
 
 def run_boot_savevm(test, params, env):
     """
@@ -23,23 +23,30 @@ def run_boot_savevm(test, params, env):
     while time.time() < end_time:
         time.sleep(savevm_delay)
 
-        s, o = vm.send_monitor_cmd("stop")
-        if s:
-            logging.error("stop failed: %r" % o)
-        s, o = vm.send_monitor_cmd("savevm 1")
-        if s:
-            logging.error("savevm failed: %r" % o)
-        s, o = vm.send_monitor_cmd("system_reset")
-        if s:
-            logging.error("system_reset: %r" % o)
-        s, o = vm.send_monitor_cmd("loadvm 1")
-        if s:
-            logging.error("loadvm failed: %r" % o)
-        s, o = vm.send_monitor_cmd("cont")
-        if s:
-            logging.error("cont failed: %r" % o)
+        try:
+            vm.monitor.cmd("stop")
+        except kvm_monitor.MonitorError, e:
+            logging.error(e)
+        try:
+            # This should be replaced by a proper monitor method call
+            vm.monitor.cmd("savevm 1")
+        except kvm_monitor.MonitorError, e:
+            logging.error(e)
+        try:
+            vm.monitor.cmd("system_reset")
+        except kvm_monitor.MonitorError, e:
+            logging.error(e)
+        try:
+            # This should be replaced by a proper monitor method call
+            vm.monitor.cmd("loadvm 1")
+        except kvm_monitor.MonitorError, e:
+            logging.error(e)
+        try:
+            vm.monitor.cmd("cont")
+        except kvm_monitor.MonitorError, e:
+            logging.error(e)
 
-         # Log in
+        # Log in
         if (time.time() > login_expire):
             login_expire = time.time() + savevm_login_delay
             logging.info("Logging in after loadvm...")
