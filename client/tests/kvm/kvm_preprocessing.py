@@ -162,12 +162,10 @@ def process_command(test, params, env, command, command_timeout,
     try:
         utils.system("cd %s; %s" % (test.bindir, command))
     except error.CmdError, e:
-        logging.warn("Custom processing command '%s' failed, output is: %s",
-                     command, str(e))
-        if not command_noncritical:
-            raise error.TestError("Custom processing command failed: %s" %
-                                  str(e))
-
+        if command_noncritical:
+            logging.warn(e)
+        else:
+            raise
 
 def process(test, params, env, image_func, vm_func):
     """
