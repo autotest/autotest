@@ -567,6 +567,18 @@ class QMPMonitor(Monitor):
             self._lock.release()
 
 
+    def get_event(self, name):
+        """
+        Look for an event with the given name in the list of events.
+
+        @param name: The name of the event to look for (e.g. 'RESET')
+        @return: An event object or None if none is found
+        """
+        for e in self.get_events():
+            if e.get("event") == name:
+                return e
+
+
     def clear_events(self):
         """
         Clear the list of asynchronous events.
