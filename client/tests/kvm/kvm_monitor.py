@@ -428,10 +428,12 @@ class QMPMonitor(Monitor):
 
     # Private methods
 
-    def _build_cmd(self, cmd, args=None):
+    def _build_cmd(self, cmd, args=None, id=None):
         obj = {"execute": cmd}
-        if args:
+        if args is not None:
             obj["arguments"] = args
+        if id is not None:
+            obj["id"] = id
         return obj
 
 
@@ -468,7 +470,7 @@ class QMPMonitor(Monitor):
         return objs
 
 
-    def _send_command(self, cmd, args=None):
+    def _send_command(self, cmd, args=None, id=None):
         """
         Send command without waiting for response.
 
@@ -482,7 +484,7 @@ class QMPMonitor(Monitor):
                                    "QMP command '%s'" % cmd)
 
         try:
-            cmdobj = self._build_cmd(cmd, args)
+            cmdobj = self._build_cmd(cmd, args, id)
             try:
                 self._socket.sendall(json.dumps(cmdobj) + "\n")
             except socket.error:
@@ -515,20 +517,23 @@ class QMPMonitor(Monitor):
             # Read any data that might be available
             self._read_objects()
             # Send command
-            self._send_command(cmd, args)
+            id = kvm_utils.generate_random_string(8)
+            self._send_command(cmd, args, id)
             # Read response
             end_time = time.time() + timeout
             while time.time() < end_time:
                 for obj in self._read_objects():
-                    if "return" in obj:
-                        return obj["return"]
-                    elif "error" in obj:
-                        raise QMPCmdError("QMP command '%s' failed" % cmd,
-                                          obj["error"])
+                    if isinstance(obj, dict) and obj.get("id") == id:
+                        if "return" in obj:
+                            return obj["return"]
+                        elif "error" in obj:
+                            raise QMPCmdError("QMP command '%s' failed" % cmd,
+                                              obj["error"])
                 time.sleep(0.1)
             # No response found
             raise MonitorProtocolError("Received no response to QMP command "
-                                       "'%s'" % cmd)
+                                       "'%s', or received a response with an "
+                                       "incorrect id" % cmd)
 
         finally:
             self._lock.release()
