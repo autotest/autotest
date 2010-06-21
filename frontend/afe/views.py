@@ -1,4 +1,4 @@
-import urllib2, sys, traceback, cgi
+import httplib2, sys, traceback, cgi
 
 from django.http import HttpResponse, HttpResponsePermanentRedirect
 from django.http import HttpResponseServerError
@@ -40,13 +40,14 @@ def redirect_with_extra_data(request, url, **kwargs):
 
 GWT_SERVER = 'http://localhost:8888/'
 def gwt_forward(request, forward_addr):
+    url = GWT_SERVER + forward_addr
     if len(request.POST) == 0:
-        data = None
+        headers, content = httplib2.Http().request(url, 'GET')
     else:
-        data = request.raw_post_data
-    url_response = urllib2.urlopen(GWT_SERVER + forward_addr, data=data)
-    http_response = HttpResponse(url_response.read())
-    for header, value in url_response.info().items():
+        headers, content = httplib2.Http().request(url, 'POST',
+                                                   body=request.raw_post_data)
+    http_response = HttpResponse(content)
+    for header, value in headers.iteritems():
         if header not in ('connection',):
             http_response[header] = value
     return http_response
