@@ -474,7 +474,7 @@ def _remote_login(session, username, password, prompt, timeout=10):
 
     while True:
         (match, text) = session.read_until_last_line_matches(
-                [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"^\s*[Ll]ogin:\s*$",
+                [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"[Ll]ogin:\s*$",
                  r"[Cc]onnection.*closed", r"[Cc]onnection.*refused",
                  r"[Pp]lease wait", prompt],
                  timeout=timeout, internal_timeout=0.5)
