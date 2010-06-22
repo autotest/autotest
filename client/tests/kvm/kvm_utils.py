@@ -733,6 +733,43 @@ def find_free_ports(start_port, end_port, count):
     return ports
 
 
+# An easy way to log lines to files when the logging system can't be used
+
+_open_log_files = {}
+_log_file_dir = "/tmp"
+
+
+def log_line(filename, line):
+    """
+    Write a line to a file.  '\n' is appended to the line.
+
+    @param filename: Path of file to write to, either absolute or relative to
+            the dir set by set_log_file_dir().
+    @param line: Line to write.
+    """
+    global _open_log_files, _log_file_dir
+    if filename not in _open_log_files:
+        path = get_path(_log_file_dir, filename)
+        try:
+            os.makedirs(os.path.dirname(path))
+        except OSError:
+            pass
+        _open_log_files[filename] = open(path, "w")
+    timestr = time.strftime("%Y-%m-%d %H:%M:%S")
+    _open_log_files[filename].write("%s: %s\n" % (timestr, line))
+    _open_log_files[filename].flush()
+
+
+def set_log_file_dir(dir):
+    """
+    Set the base directory for log files created by log_line().
+
+    @param dir: Directory for log files.
+    """
+    global _log_file_dir
+    _log_file_dir = dir
+
+
 # The following are miscellaneous utility functions.
 
 def get_path(base_path, user_path):
