@@ -406,7 +406,7 @@ def _take_screendumps(test, params, env):
 
     while True:
         for vm in kvm_utils.env_get_all_vms(env):
-            if vm.is_dead():
+            if not vm.is_alive():
                 continue
             try:
                 vm.monitor.screendump(temp_filename)
