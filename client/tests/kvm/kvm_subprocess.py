@@ -688,9 +688,7 @@ class kvm_tail(kvm_spawn):
         def print_line(text):
             # Pre-pend prefix and remove trailing whitespace
             text = self.output_prefix + text.rstrip()
-            # Sanitize text
-            text = text.decode("utf-8", "replace")
-            # Pass it to output_func
+            # Pass text to output_func
             try:
                 params = self.output_params + (text,)
                 self.output_func(*params)
@@ -888,7 +886,7 @@ class kvm_expect(kvm_tail):
                 if str.endswith("\n"):
                     str = str[:-1]
                 for line in str.split("\n"):
-                    print_func(line.decode("utf-8", "replace"))
+                    print_func(line)
             data += newdata
 
             done = False
