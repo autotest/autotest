@@ -50,6 +50,7 @@
         <module>edd</module>
       </initrd_module>
     </initrd_modules>
+    <append>console=ttyS0,115200 console=tty0</append>
     <loader_type>grub</loader_type>
     <sections config:type="list"/>
   </bootloader>
