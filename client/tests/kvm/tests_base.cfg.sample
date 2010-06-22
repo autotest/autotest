@@ -527,7 +527,7 @@ variants:
                     pxe_initrd = "initrd.img"
                     tftp = "images/tftpboot"
                     extra_params += " -bootp /pxelinux.0 -boot cn"
-                    kernel_args = "ks=floppy nicdelay=60"
+                    kernel_args = "ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
 
                 variants:
                     - 8.32:
@@ -688,7 +688,7 @@ variants:
                     pxe_initrd = "initrd"
                     tftp = "images/tftpboot"
                     extra_params += " -bootp /pxelinux.0 -boot cn"
-                    kernel_args = "autoyast=floppy"
+                    kernel_args = "autoyast=floppy console=ttyS0,115200 console=tty0"
                     post_install_delay = 10
 
                 variants:
@@ -770,7 +770,7 @@ variants:
                     pxe_image = "linux"
                     pxe_initrd = "initrd"
                     extra_params += " -bootp /pxelinux.0 -boot cn"
-                    kernel_args = "autoyast=floppy"
+                    kernel_args = "autoyast=floppy console=ttyS0,115200 console=tty0"
                     post_install_delay = 10
 
                 variants:
@@ -862,7 +862,7 @@ variants:
                     pxe_initrd = "initrd.img"
                     tftp = "images/tftpboot"
                     extra_params += " -bootp /pxelinux.0 -boot cn"
-                    kernel_args = "ks=floppy nicdelay=60"
+                    kernel_args = "ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
 
                 variants:
                     - 3.9.i386:
