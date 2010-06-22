@@ -451,7 +451,7 @@ def check_kvm_source_dir(source_dir):
 # The following are functions used for SSH, SCP and Telnet communication with
 # guests.
 
-def _remote_login(session, password, prompt, timeout=10):
+def _remote_login(session, username, password, prompt, timeout=10):
     """
     Log into a remote host (guest) using SSH or Telnet.  Wait for questions
     and provide answers.  If timeout expires while waiting for output from the
@@ -460,6 +460,7 @@ def _remote_login(session, password, prompt, timeout=10):
     @brief: Log into a remote host (guest) using SSH or Telnet.
 
     @param session: A kvm_expect or kvm_shell_session instance to operate on
+    @param username: The username to send in reply to a login prompt
     @param password: The password to send in reply to a password prompt
     @param prompt: The shell prompt that indicates a successful login
     @param timeout: The maximal time duration (in seconds) to wait for each
@@ -469,6 +470,7 @@ def _remote_login(session, password, prompt, timeout=10):
     @return: True on success and False otherwise.
     """
     password_prompt_count = 0
+    login_prompt_count = 0
 
     while True:
         (match, text) = session.read_until_last_line_matches(
@@ -490,8 +492,14 @@ def _remote_login(session, password, prompt, timeout=10):
                 logging.debug("Got password prompt again")
                 return False
         elif match == 2:  # "login:"
-            logging.debug("Got unexpected login prompt")
-            return False
+            if login_prompt_count == 0:
+                logging.debug("Got username prompt; sending '%s'" % username)
+                session.sendline(username)
+                login_prompt_count += 1
+                continue
+            else:
+                logging.debug("Got username prompt again")
+                return False
         elif match == 3:  # "Connection closed"
             logging.debug("Got 'Connection closed'")
             return False
@@ -596,7 +604,7 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     logging.debug("Trying to login with command '%s'" % cmd)
     session = kvm_subprocess.kvm_shell_session(cmd, linesep=linesep,
                                                prompt=prompt)
-    if _remote_login(session, password, prompt, timeout):
+    if _remote_login(session, username, password, prompt, timeout):
         return session
     else:
         session.close()
