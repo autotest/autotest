@@ -815,6 +815,12 @@ def generate_random_string(length):
         length -= 1
     return str
 
+def generate_random_id():
+    """
+    Return a random string suitable for use as a qemu id.
+    """
+    return "id" + generate_random_string(6)
+
 
 def generate_tmp_file_name(file, ext=None, dir='/tmp/'):
     """
