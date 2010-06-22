@@ -903,15 +903,8 @@ class VM:
             logging.debug("IP address or port unavailable")
             return None
 
-        if client == "ssh":
-            session = kvm_utils.ssh(address, port, username, password,
-                                    prompt, linesep, timeout)
-        elif client == "telnet":
-            session = kvm_utils.telnet(address, port, username, password,
-                                       prompt, linesep, timeout)
-        elif client == "nc":
-            session = kvm_utils.netcat(address, port, username, password,
-                                       prompt, linesep, timeout)
+        session = kvm_utils.remote_login(client, address, port, username,
+                                         password, prompt, linesep, timeout)
 
         if session:
             session.set_status_test_command(self.params.get("status_test_"
