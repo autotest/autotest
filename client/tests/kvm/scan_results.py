@@ -74,7 +74,7 @@ def main(resfiles):
             continue
         results = parse_results(text)
         result_lists.append((resfile, results))
-        name_width = max(name_width, max(len(r[0]) for r in results))
+        name_width = max([name_width] + [len(r[0]) for r in results])
 
     print_result(("Test", "Status", "Seconds", "Info"), name_width)
     print_result(("----", "------", "-------", "----"), name_width)
