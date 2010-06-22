@@ -268,7 +268,7 @@ def get_time(session, time_command, time_filter_re, time_format):
     except IndexError:
         logging.debug("The time string from guest is:\n%s" % s)
         raise error.TestError("The time string from guest is unexpected.")
-    except Exception as e:
+    except Exception, e:
         logging.debug("(time_filter_re, time_string): (%s, %s)" %
                        (time_filter_re, s))
         raise e
