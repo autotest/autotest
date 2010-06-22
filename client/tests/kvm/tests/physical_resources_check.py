@@ -120,7 +120,7 @@ def run_physical_resources_check(test, params, env):
         n_fail += 1
         logging.error(e)
         logging.error("info/query monitor command failed (network)")
-    found_mac_addresses = re.findall("macaddr=(.*)", o)
+    found_mac_addresses = re.findall("macaddr=(\S+)", o)
     logging.debug("Found MAC adresses: %s" % found_mac_addresses)
 
     for nic_name in kvm_utils.get_sub_dict_names(params, "nics"):
