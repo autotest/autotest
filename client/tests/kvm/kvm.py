@@ -31,6 +31,10 @@ class kvm(test.test):
             logging.debug("    %s = %s", key, params[key])
             self.write_test_keyval({key: params[key]})
 
+        # Set the log file dir for the logging mechanism used by kvm_subprocess
+        # (this must be done before unpickling env)
+        kvm_utils.set_log_file_dir(self.debugdir)
+
         # Open the environment file
         logging.info("Unpickling env. You may see some harmless error "
                      "messages.")
