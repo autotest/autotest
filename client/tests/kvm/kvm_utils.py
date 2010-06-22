@@ -572,7 +572,7 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
 
 
 def remote_login(client, host, port, username, password, prompt, linesep="\n",
-                 timeout=10):
+                 log_filename=None, timeout=10):
     """
     Log into a remote host (guest) using SSH/Telnet/Netcat.
 
@@ -584,6 +584,7 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     @param prompt: Shell prompt (regular expression)
     @param linesep: The line separator to use when sending lines
             (e.g. '\\n' or '\\r\\n')
+    @param log_filename: If specified, log all output to this file
     @param timeout: The maximal time duration (in seconds) to wait for
             each step of the login procedure (i.e. the "Are you sure" prompt
             or the password prompt)
@@ -601,16 +602,21 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     else:
         logging.error("Unknown remote shell client: %s" % client)
         return
+
     logging.debug("Trying to login with command '%s'" % cmd)
     session = kvm_subprocess.kvm_shell_session(cmd, linesep=linesep,
                                                prompt=prompt)
     if _remote_login(session, username, password, prompt, timeout):
+        if log_filename:
+            session.set_output_func(log_line)
+            session.set_output_params((log_filename,))
         return session
     else:
         session.close()
 
 
-def remote_scp(command, password, transfer_timeout=600, login_timeout=10):
+def remote_scp(command, password, log_filename=None, transfer_timeout=600,
+               login_timeout=10):
     """
     Transfer file(s) to a remote host (guest) using SCP.
 
@@ -619,6 +625,7 @@ def remote_scp(command, password, transfer_timeout=600, login_timeout=10):
     @param command: The command to execute
         (e.g. "scp -r foobar root@localhost:/tmp/").
     @param password: The password to send in reply to a password prompt.
+    @param log_filename: If specified, log all output to this file
     @param transfer_timeout: The time duration (in seconds) to wait for the
             transfer to complete.
     @param login_timeout: The maximal time duration (in seconds) to wait for
@@ -629,7 +636,17 @@ def remote_scp(command, password, transfer_timeout=600, login_timeout=10):
     """
     logging.debug("Trying to SCP with command '%s', timeout %ss",
                   command, transfer_timeout)
-    session = kvm_subprocess.kvm_expect(command)
+
+    if log_filename:
+        output_func = log_line
+        output_params = (log_filename,)
+    else:
+        output_func = None
+        output_params = ()
+
+    session = kvm_subprocess.kvm_expect(command,
+                                        output_func=output_func,
+                                        output_params=output_params)
     try:
         return _remote_scp(session, password, transfer_timeout, login_timeout)
     finally:
@@ -637,7 +654,7 @@ def remote_scp(command, password, transfer_timeout=600, login_timeout=10):
 
 
 def scp_to_remote(host, port, username, password, local_path, remote_path,
-                  timeout=600):
+                  log_filename=None, timeout=600):
     """
     Copy files to a remote host (guest).
 
@@ -646,6 +663,7 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
     @param password: Password (if required)
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
+    @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
 
@@ -654,11 +672,11 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
     command = ("scp -v -o UserKnownHostsFile=/dev/null "
                "-o PreferredAuthentications=password -r -P %s %s %s@%s:%s" %
                (port, local_path, username, host, remote_path))
-    return remote_scp(command, password, timeout)
+    return remote_scp(command, password, log_filename, timeout)
 
 
 def scp_from_remote(host, port, username, password, remote_path, local_path,
-                    timeout=600):
+                    log_filename=None, timeout=600):
     """
     Copy files from a remote host (guest).
 
@@ -667,6 +685,7 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
     @param password: Password (if required)
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
+    @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
 
@@ -675,7 +694,7 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
     command = ("scp -v -o UserKnownHostsFile=/dev/null "
                "-o PreferredAuthentications=password -r -P %s %s@%s:%s %s" %
                (port, username, host, remote_path, local_path))
-    return remote_scp(command, password, timeout)
+    return remote_scp(command, password, log_filename, timeout)
 
 
 # The following are utility functions related to ports.
