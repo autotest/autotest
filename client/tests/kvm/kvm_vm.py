@@ -206,6 +206,9 @@ class VM:
         def add_qmp_monitor(help, filename):
             return " -qmp unix:'%s',server,nowait" % filename
 
+        def add_serial(help, filename):
+            return " -serial unix:'%s',server,nowait" % filename
+
         def add_mem(help, mem):
             return " -m %s" % mem
 
@@ -313,6 +316,9 @@ class VM:
                 qemu_cmd += add_qmp_monitor(help, monitor_filename)
             else:
                 qemu_cmd += add_human_monitor(help, monitor_filename)
+
+        # Add serial console redirection
+        qemu_cmd += add_serial(help, self.get_serial_console_filename())
 
         for image_name in kvm_utils.get_sub_dict_names(params, "images"):
             image_params = kvm_utils.get_sub_dict(params, image_name)
@@ -772,6 +778,13 @@ class VM:
         """
         return [self.get_monitor_filename(m) for m in
                 kvm_utils.get_sub_dict_names(self.params, "monitors")]
+
+
+    def get_serial_console_filename(self):
+        """
+        Return the serial console filename.
+        """
+        return "/tmp/serial-%s" % self.instance
 
 
     def get_testlog_filename(self):
