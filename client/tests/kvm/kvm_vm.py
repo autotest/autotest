@@ -106,6 +106,7 @@ class VM:
         @param address_cache: A dict that maps MAC addresses to IP addresses
         """
         self.process = None
+        self.serial_console = None
         self.redirs = {}
         self.vnc_port = 5900
         self.uuid = None
@@ -634,6 +635,15 @@ class VM:
                 return False
 
             logging.debug("VM appears to be alive with PID %s", self.get_pid())
+
+            # Establish a session with the serial console -- requires a version
+            # of netcat that supports -U
+            self.serial_console = kvm_subprocess.kvm_shell_session(
+                "nc -U %s" % self.get_serial_console_filename(),
+                auto_close=False,
+                output_func=kvm_utils.log_line,
+                output_params=("serial-%s.log" % name,))
+
             return True
 
         finally:
@@ -707,6 +717,8 @@ class VM:
                 self.pci_assignable.release_devs()
             if self.process:
                 self.process.close()
+            if self.serial_console:
+                self.serial_console.close()
             for f in ([self.get_testlog_filename()] +
                       self.get_monitor_filenames()):
                 try:
@@ -973,6 +985,35 @@ class VM:
         if client == "scp":
             return kvm_utils.scp_from_remote(address, port, username, password,
                                              remote_path, local_path, timeout)
+
+
+    def serial_login(self, timeout=10):
+        """
+        Log into the guest via the serial console.
+        If timeout expires while waiting for output from the guest (e.g. a
+        password prompt or a shell prompt) -- fail.
+
+        @param timeout: Time (seconds) before giving up logging into the guest.
+        @return: kvm_spawn object on success and None on failure.
+        """
+        username = self.params.get("username", "")
+        password = self.params.get("password", "")
+        prompt = self.params.get("shell_prompt", "[\#\$]")
+        linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
+        status_test_command = self.params.get("status_test_command", "")
+
+        if self.serial_console:
+            self.serial_console.set_linesep(linesep)
+            self.serial_console.set_status_test_command(status_test_command)
+        else:
+            return None
+
+        # Make sure we get a login prompt
+        self.serial_console.sendline()
+
+        if kvm_utils._remote_login(self.serial_console, username, password,
+                                   prompt, timeout):
+            return self.serial_console
 
 
     def send_key(self, keystr):
