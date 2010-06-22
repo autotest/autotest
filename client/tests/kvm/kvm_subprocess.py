@@ -285,7 +285,8 @@ class kvm_spawn:
     resumes _tail() if needed.
     """
 
-    def __init__(self, command=None, id=None, echo=False, linesep="\n"):
+    def __init__(self, command=None, id=None, auto_close=False, echo=False,
+                 linesep="\n"):
         """
         Initialize the class and run command as a child process.
 
@@ -293,6 +294,8 @@ class kvm_spawn:
                 server.
         @param id: ID of an already running server, if accessing a running
                 server, or None if starting a new one.
+        @param auto_close: If True, close() the instance automatically when its
+                reference count drops to zero (default False).
         @param echo: Boolean indicating whether echo should be initially
                 enabled for the pseudo terminal running the subprocess.  This
                 parameter has an effect only when starting a new server.
@@ -316,6 +319,7 @@ class kvm_spawn:
                                                               self.id)
 
         # Remember some attributes
+        self.auto_close = auto_close
         self.echo = echo
         self.linesep = linesep
 
@@ -378,7 +382,12 @@ class kvm_spawn:
     def __getinitargs__(self):
         # Save some information when pickling -- will be passed to the
         # constructor upon unpickling
-        return (None, self.id, self.echo, self.linesep)
+        return (None, self.id, self.auto_close, self.echo, self.linesep)
+
+
+    def __del__(self):
+        if self.auto_close:
+            self.close()
 
 
     def _add_reader(self, reader):
@@ -554,10 +563,9 @@ class kvm_tail(kvm_spawn):
     When this class is unpickled, it automatically resumes reporting output.
     """
 
-    def __init__(self, command=None, id=None, echo=False, linesep="\n",
-                 termination_func=None, termination_params=(),
-                 output_func=None, output_params=(),
-                 output_prefix=""):
+    def __init__(self, command=None, id=None, auto_close=False, echo=False,
+                 linesep="\n", termination_func=None, termination_params=(),
+                 output_func=None, output_params=(), output_prefix=""):
         """
         Initialize the class and run command as a child process.
 
@@ -565,6 +573,8 @@ class kvm_tail(kvm_spawn):
                 server.
         @param id: ID of an already running server, if accessing a running
                 server, or None if starting a new one.
+        @param auto_close: If True, close() the instance automatically when its
+                reference count drops to zero (default False).
         @param echo: Boolean indicating whether echo should be initially
                 enabled for the pseudo terminal running the subprocess.  This
                 parameter has an effect only when starting a new server.
@@ -587,7 +597,7 @@ class kvm_tail(kvm_spawn):
         self._add_close_hook(kvm_tail._join_thread)
 
         # Init the superclass
-        kvm_spawn.__init__(self, command, id, echo, linesep)
+        kvm_spawn.__init__(self, command, id, auto_close, echo, linesep)
 
         # Remember some attributes
         self.termination_func = termination_func
@@ -751,10 +761,9 @@ class kvm_expect(kvm_tail):
     It also provides all of kvm_tail's functionality.
     """
 
-    def __init__(self, command=None, id=None, echo=False, linesep="\n",
-                 termination_func=None, termination_params=(),
-                 output_func=None, output_params=(),
-                 output_prefix=""):
+    def __init__(self, command=None, id=None, auto_close=False, echo=False,
+                 linesep="\n", termination_func=None, termination_params=(),
+                 output_func=None, output_params=(), output_prefix=""):
         """
         Initialize the class and run command as a child process.
 
@@ -762,6 +771,8 @@ class kvm_expect(kvm_tail):
                 server.
         @param id: ID of an already running server, if accessing a running
                 server, or None if starting a new one.
+        @param auto_close: If True, close() the instance automatically when its
+                reference count drops to zero (default False).
         @param echo: Boolean indicating whether echo should be initially
                 enabled for the pseudo terminal running the subprocess.  This
                 parameter has an effect only when starting a new server.
@@ -783,7 +794,7 @@ class kvm_expect(kvm_tail):
         self._add_reader("expect")
 
         # Init the superclass
-        kvm_tail.__init__(self, command, id, echo, linesep,
+        kvm_tail.__init__(self, command, id, auto_close, echo, linesep,
                           termination_func, termination_params,
                           output_func, output_params, output_prefix)
 
@@ -967,10 +978,9 @@ class kvm_shell_session(kvm_expect):
     process for responsiveness.
     """
 
-    def __init__(self, command=None, id=None, echo=False, linesep="\n",
-                 termination_func=None, termination_params=(),
-                 output_func=None, output_params=(),
-                 output_prefix="",
+    def __init__(self, command=None, id=None, auto_close=True, echo=False,
+                 linesep="\n", termination_func=None, termination_params=(),
+                 output_func=None, output_params=(), output_prefix="",
                  prompt=r"[\#\$]\s*$", status_test_command="echo $?"):
         """
         Initialize the class and run command as a child process.
@@ -979,6 +989,8 @@ class kvm_shell_session(kvm_expect):
                 server.
         @param id: ID of an already running server, if accessing a running
                 server, or None if starting a new one.
+        @param auto_close: If True, close() the instance automatically when its
+                reference count drops to zero (default True).
         @param echo: Boolean indicating whether echo should be initially
                 enabled for the pseudo terminal running the subprocess.  This
                 parameter has an effect only when starting a new server.
@@ -1001,7 +1013,7 @@ class kvm_shell_session(kvm_expect):
                 get_command_status_output() and friends).
         """
         # Init the superclass
-        kvm_expect.__init__(self, command, id, echo, linesep,
+        kvm_expect.__init__(self, command, id, auto_close, echo, linesep,
                             termination_func, termination_params,
                             output_func, output_params, output_prefix)
 
@@ -1013,10 +1025,6 @@ class kvm_shell_session(kvm_expect):
     def __getinitargs__(self):
         return kvm_expect.__getinitargs__(self) + (self.prompt,
                                                    self.status_test_command)
-
-
-    def __del__(self):
-        self.close()
 
 
     def set_prompt(self, prompt):
