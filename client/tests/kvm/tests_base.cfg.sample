@@ -1474,6 +1474,4 @@ variants:
         devices_requested = 7
 
 
-image_name.* ?<= images/
-cdrom.* ?<= isos/
 steps ?<= steps/
