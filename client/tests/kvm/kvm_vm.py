@@ -119,7 +119,7 @@ class VM:
         self.address_cache = address_cache
         self.netdev_id = []
         for nic in params.get("nics").split():
-            self.netdev_id.append(kvm_utils.generate_random_string(4))
+            self.netdev_id.append(kvm_utils.generate_random_id())
 
         # Find a unique identifier for this VM
         while True:
