@@ -4,19 +4,17 @@
 include tests_base.cfg
 include cdkeys.cfg
 
-# Modify/comment the following lines if you wish to modify
-# the paths of the image files, ISO files, step files or qemu binaries.
+# Modify/comment the following lines if you wish to modify the paths of the
+# image files, ISO files or qemu binaries.
 #
 # As for the defaults:
 # * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
 #   /usr/bin/qemu-img respectively.
 # * All image files are expected under /tmp/kvm_autotest_root/images/
 # * All iso files are expected under /tmp/kvm_autotest_root/isos/
-# * All step files are expected under /tmp/kvm_autotest_root/steps/
 qemu_img_binary = /usr/bin/qemu-img
-image_name.* ?<= /tmp/kvm_autotest_root/
-cdrom.* ?<= /tmp/kvm_autotest_root/
-steps ?<= /tmp/kvm_autotest_root/
+image_name.* ?<= /tmp/kvm_autotest_root/images/
+cdrom.* ?<= /tmp/kvm_autotest_root/isos/
 
 # Here are the test sets variants. The variant 'qemu_kvm_windows_quick' is
 # fully commented, the following ones have comments only on noteworthy points
