@@ -923,13 +923,16 @@ class VM:
         client = self.params.get("shell_client")
         address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("shell_port")))
+        log_filename = ("session-%s-%s.log" %
+                        (self.name, kvm_utils.generate_random_string(4)))
 
         if not address or not port:
             logging.debug("IP address or port unavailable")
             return None
 
         session = kvm_utils.remote_login(client, address, port, username,
-                                         password, prompt, linesep, timeout)
+                                         password, prompt, linesep,
+                                         log_filename, timeout)
 
         if session:
             session.set_status_test_command(self.params.get("status_test_"
@@ -952,6 +955,8 @@ class VM:
         client = self.params.get("file_transfer_client")
         address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("file_transfer_port")))
+        log_filename = ("scp-%s-%s.log" %
+                        (self.name, kvm_utils.generate_random_string(4)))
 
         if not address or not port:
             logging.debug("IP address or port unavailable")
@@ -959,7 +964,8 @@ class VM:
 
         if client == "scp":
             return kvm_utils.scp_to_remote(address, port, username, password,
-                                           local_path, remote_path, timeout)
+                                           local_path, remote_path,
+                                           log_filename, timeout)
 
 
     def copy_files_from(self, remote_path, local_path, nic_index=0, timeout=600):
@@ -977,6 +983,8 @@ class VM:
         client = self.params.get("file_transfer_client")
         address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("file_transfer_port")))
+        log_filename = ("scp-%s-%s.log" %
+                        (self.name, kvm_utils.generate_random_string(4)))
 
         if not address or not port:
             logging.debug("IP address or port unavailable")
@@ -984,7 +992,8 @@ class VM:
 
         if client == "scp":
             return kvm_utils.scp_from_remote(address, port, username, password,
-                                             remote_path, local_path, timeout)
+                                             remote_path, local_path,
+                                             log_filename, timeout)
 
 
     def serial_login(self, timeout=10):
