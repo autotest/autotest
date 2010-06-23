@@ -222,8 +222,10 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
         if "paused" in o:
             logging.debug("Destination VM is paused, resuming it...")
             dest_vm.monitor.cmd("cont")
-            if os.path.exists(migration_file):
-                os.remove(migration_file)
+
+        if os.path.exists(migration_file):
+            logging.debug("Removing migration file %s", migration_file)
+            os.remove(migration_file)
 
         # Kill the source VM
         vm.destroy(gracefully=False)
