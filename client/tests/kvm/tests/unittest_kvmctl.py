@@ -3,7 +3,7 @@ from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
 
 
-def run_unit_test_kvmctl(test, params, env):
+def run_unittest_kvmctl(test, params, env):
     """
     This is kvm userspace unit test, use kvm test harness kvmctl load binary
     test case file to test various functions of the kvm kernel module.
