@@ -1,0 +1,12 @@
+NAME = "Profiler Test"
+AUTHOR = "Mihai Rusu <dizzy@google.com>"
+TIME = "SHORT"
+TEST_CATEGORY = "Functional"
+TEST_CLASS = "General"
+TEST_TYPE = "Client"
+DOC = """
+Tests a profiler (adds it, starts it, waits a couple of seconds then it
+stops it, generates the profiler report and removes it).
+"""
+
+job.run_test('profiler_test', profiler='oprofile')
