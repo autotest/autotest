@@ -117,12 +117,10 @@ class BaseAutotest(installable_object.InstallableObject):
                 ', '.join(client_autodir_paths))
 
 
-    @log.record
     def install(self, host=None, autodir=None):
         self._install(host=host, autodir=autodir)
 
 
-    @log.record
     def install_full_client(self, host=None, autodir=None):
         self._install(host=host, autodir=autodir, use_autoserv=False,
                       use_packaging=False)
