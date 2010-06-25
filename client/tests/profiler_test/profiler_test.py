@@ -1,71 +1,45 @@
-import os, errno
-from autotest_lib.client.bin import test
+import time
+from autotest_lib.client.common_lib import error
+from autotest_lib.client.bin import test, utils
 
 
 class profiler_test(test.test):
-    version = 1
+    version = 2
 
 
-    def make_path_from_command(self, command):
-        return os.path.join(self.job.autodir, "profiler.%s" % command)
+    def initialize(self, profiler=None, profiler_args=(), profiler_dargs=None):
+        """
+        Initialize this test with the profiler name, args and dargs.
+
+        @param profiler: Profiler name.
+        @param profiler_args: Profiler non-keyword arguments.
+        @param profiler_dargs: Profiler keyword arguments.
+        """
+        if not profiler:
+            raise error.TestError('No profiler specified.')
+        self._profiler = profiler
+        self._profiler_args = profiler_args
+        self._profiler_dargs = profiler_dargs or {}
 
 
-    def wait_for_command(self, command):
-        path = self.make_path_from_command(command)
+    def execute(self, seconds=5):
+        """
+        Add and start the profiler, sleep some seconds, stop and delete it.
 
-        # create a pipe at the path
-        try:
-            os.mkfifo(path)
-        except OSError, e:
-            if e.errno == errno.EEXIST:
-                os.remove(path)
-                return  # already written into, no wait
-            raise
+        We override "execute" and not "run_once" because we need to control
+        profilers here and in "run_once" it would be too late for that.
 
-        # wait for something to be written into the pipe
-        fifo = open(path)
-        fifo.read(1)
-        fifo.close()
-        os.remove(path)
+        @param seconds: Number of seconds to sleep while the profiler is
+                running.
+        """
+        profilers = self.job.profilers
+        profilers.add(self._profiler, *self._profiler_args,
+                      **self._profiler_dargs)
+        profilers.start(self)
 
+        time.sleep(seconds)
 
-    def signal_server(self, command):
-        path = self.make_path_from_command(command)
-        try:
-            fifo = open(path, "w")
-            fifo.write("A")
-            fifo.close()
-        except IOError, e:
-            if e.errno != errno.EPIPE:
-                raise   # the server may have already given up waiting
-
-
-    def execute(self):
-        # set up a pipe for signalling we are finished
-        finished_path = self.make_path_from_command("finished")
-        if os.path.exists(finished_path):
-            os.remove(finished_path)
-        os.mkfifo(finished_path)
-
-        # signal the server that we're ready
-        self.signal_server("ready")
-
-        try:
-            # wait until each command is signalled, and then execute the
-            # equivalent job.profilers command
-            self.wait_for_command("start")
-            self.job.profilers.start(self)
-            self.wait_for_command("stop")
-            self.job.profilers.stop(self)
-            self.wait_for_command("report")
-            self.job.profilers.report(self)
-
-            # signal that the profiling run is finished
-            self.signal_server("finished")
-        finally:
-            for command in ("start", "stop", "report"):
-                try:
-                    os.remove(self.make_path_from_command(command))
-                except OSError, e:
-                    if e.errno != errno.ENOENT:
-                        raise  # it may have already been removed
+        profilers.stop(self)
+        profilers.report(self)
+        # TODO: check for profiler result files?
+        profilers.delete(self._profiler)
