@@ -23,7 +23,7 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 
 
-class base_test:
+class base_test(object):
     preserve_srcdir = False
     network_destabilizing = False
 
