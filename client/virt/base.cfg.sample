@@ -48,6 +48,10 @@ usb_controller_tablet1 = uhci
 
 # Default number of processors for each VM
 smp = 1
+# Detail config for vcpu
+vcpu_cores = ""
+vcpu_threads = ""
+vcpu_sockets = ""
 # Memory for each VM
 mem = 1024
 
