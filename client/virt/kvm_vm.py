@@ -269,8 +269,18 @@ class VM(virt_vm.BaseVM):
         def add_mem(help, mem):
             return " -m %s" % mem
 
-        def add_smp(help, smp):
-            return " -smp %s" % smp
+
+        def add_smp(help, smp, vcpu_cores=0, vcpu_threads=0, vcpu_sockets=0):
+            smp_str = " -smp %d" % int(smp)
+            # the value is not None, "", or "0"
+            if vcpu_cores:
+                smp_str += ",cores=%d" % int(vcpu_cores)
+            if vcpu_threads:
+                smp_str += ",threads=%d" % int(vcpu_threads)
+            if vcpu_sockets:
+                smp_str += ",sockets=%d" % int(vcpu_sockets)
+            return smp_str
+
 
         def add_cdrom(help, filename, index=None, format=None, bus=None,
                       port=None):
@@ -840,9 +850,24 @@ class VM(virt_vm.BaseVM):
         if mem:
             qemu_cmd += add_mem(help, mem)
 
-        smp = params.get("smp")
+        smp = int(params.get("smp", 1))
         if smp:
-            qemu_cmd += add_smp(help, smp)
+            vcpu_threads = int(params.get("vcpu_threads", 1))
+            vcpu_cores = int(params.get("vcpu_cores", smp))
+            vcpu_sockets = int(params.get("vcpu_sockets", 1))
+
+            if smp > 8 and vcpu_threads == 1:
+                vcpu_threads = 2
+
+            if not vcpu_cores:
+                vcpu_cores = smp / vcpu_threads / vcpu_sockets
+            if not vcpu_threads:
+                vcpu_threads = smp / vcpu_cores / vcpu_sockets
+            if not vcpu_sockets:
+                vcpu_sockets = smp / vcpu_cores / vcpu_threads
+
+            qemu_cmd += add_smp(help, smp, vcpu_cores, vcpu_threads,
+                                vcpu_sockets)
 
         cpu_model = params.get("cpu_model")
         use_default_cpu_model = True
