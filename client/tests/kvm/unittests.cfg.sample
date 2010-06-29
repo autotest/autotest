@@ -1,0 +1,56 @@
+# Copy this file to unittests.cfg and edit it.
+#
+# Define the objects we'll be using
+vms = vm1
+
+# Choose the main VM
+main_vm = vm1
+
+# Some preprocessor/postprocessor params
+start_vm = yes
+kill_vm = yes
+kill_vm_gracefully = no
+
+# Monitor
+monitors = humanmonitor1
+main_monitor = humanmonitor1
+monitor_type = human
+
+# Screendump specific stuff
+convert_ppm_files_to_png_on_error = yes
+#keep_ppm_files = yes
+#keep_ppm_files_on_error = yes
+take_regular_screendumps = yes
+keep_screendumps_on_error = yes
+screendump_delay = 5
+screendump_quality = 30
+screendump_temp_dir = /dev/shm
+
+# Some default VM params
+qemu_binary = qemu
+qemu_img_binary = qemu-img
+mem = 512
+display = vnc
+
+# Default scheduler params
+used_cpus = 1
+used_mem = 512
+
+# NIC parameters
+run_tcpdump = no
+
+# Misc
+run_kvm_stat = yes
+
+# Tests
+variants:
+    - unittest:
+        type = unittest
+        vms = ''
+        start_vm = no
+        unittest_timeout = 600
+        testdev = yes
+        extra_params += " -S"
+        # In case you want to execute only a subset of the tests defined on the
+        # unittests.cfg file on qemu-kvm, uncomment and edit test_list
+        #test_list = idt_test hypercall vmexit realmode
