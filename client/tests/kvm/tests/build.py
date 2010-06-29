@@ -115,20 +115,25 @@ def load_kvm_modules(module_dir=None, load_stock=False, extra_modules=None):
                 utils.system("modprobe %s" % module)
 
 
-def create_symlinks(test_bindir, prefix=None, bin_list=None):
+def create_symlinks(test_bindir, prefix=None, bin_list=None, unittest=None):
     """
     Create symbolic links for the appropriate qemu and qemu-img commands on
     the kvm test bindir.
 
     @param test_bindir: KVM test bindir
     @param prefix: KVM prefix path
+    @param bin_list: List of qemu binaries to link
+    @param unittest: Path to configuration file unittests.cfg
     """
     qemu_path = os.path.join(test_bindir, "qemu")
     qemu_img_path = os.path.join(test_bindir, "qemu-img")
+    qemu_unittest_path = os.path.join(test_bindir, "unittests")
     if os.path.lexists(qemu_path):
         os.unlink(qemu_path)
     if os.path.lexists(qemu_img_path):
         os.unlink(qemu_img_path)
+    if unittest and os.path.lexists(qemu_unittest_path):
+        os.unlink(qemu_unittest_path)
 
     logging.debug("Linking qemu binaries")
 
@@ -148,6 +153,11 @@ def create_symlinks(test_bindir, prefix=None, bin_list=None):
             raise error.TestError('Invalid qemu-img path')
         os.symlink(kvm_qemu, qemu_path)
         os.symlink(kvm_qemu_img, qemu_img_path)
+
+    elif unittest:
+        logging.debug("Linking unittest dir")
+        unittest_dir = os.path.dirname(unittest)
+        os.symlink(unittest_dir, qemu_unittest_path)
 
 
 def save_build(build_dir, dest_dir):
@@ -512,12 +522,20 @@ class GitInstaller(SourceDirInstaller):
         kvm_utils.get_git_branch(user_repo, user_branch, userspace_srcdir,
                                  user_commit, user_lbranch)
         self.userspace_srcdir = userspace_srcdir
+
         if user_patches:
             os.chdir(self.userspace_srcdir)
             for patch in user_patches:
                 utils.get_file(patch, os.path.join(self.userspace_srcdir,
                                                    os.path.basename(patch)))
                 utils.system('patch -p1 %s' % os.path.basename(patch))
+
+        unittest_cfg = os.path.join(userspace_srcdir, 'kvm', 'test',
+                                    'unittests.cfg')
+
+        self.unittest_cfg = None
+        if os.path.isfile(unittest_cfg):
+            self.unittest_cfg = unittest_cfg
 
         if kernel_repo:
             kernel_srcdir = os.path.join(self.srcdir, "kvm")
@@ -591,12 +609,18 @@ class GitInstaller(SourceDirInstaller):
         utils.system('make clean')
         utils.system('make -j %s' % make_jobs)
 
+        if self.unittest_cfg:
+            os.chdir(os.path.dirname(self.unittest_cfg))
+            utils.system('./configure --prefix=%s' % self.prefix)
+            utils.system('make')
+            utils.system('make install')
+
 
     def _install(self):
         os.chdir(self.userspace_srcdir)
         utils.system('make install')
-        create_symlinks(self.test_bindir, self.prefix)
-
+        create_symlinks(test_bindir=self.test_bindir, prefix=self.prefix,
+                        bin_list=None, unittest=self.unittest_cfg)
 
     def _load_modules(self):
         if self.kmod_srcdir and self.modules_build_succeed:
