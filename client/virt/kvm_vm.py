@@ -604,6 +604,21 @@ class VM(virt_vm.BaseVM):
         def add_initrd(help, filename):
             return " -initrd '%s'" % filename
 
+
+        def add_rtc(help):
+            # Pay attention that rtc-td-hack is for early version
+            # if "rtc " in help:
+            if has_option(help, "rtc"):
+                cmd = " -rtc base=%s" % params.get("rtc_base", "utc")
+                cmd += _add_option("clock", params.get("rtc_clock", "host"))
+                cmd += _add_option("driftfix", params.get("rtc_drift", "none"))
+                return cmd
+            elif has_option(help, "rtc-td-hack"):
+                return " -rtc-td-hack"
+            else:
+                return ""
+
+
         def add_kernel_cmdline(help, cmdline):
             return " -append '%s'" % cmdline
 
@@ -1022,6 +1037,8 @@ class VM(virt_vm.BaseVM):
         if vm.pci_assignable:
             for pci_id in vm.pa_pci_ids:
                 qemu_cmd += add_pcidevice(help, pci_id)
+
+        qemu_cmd += add_rtc(help)
 
         p9_export_dir = params.get("9p_export_dir")
         if p9_export_dir:
