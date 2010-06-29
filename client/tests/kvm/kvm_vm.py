@@ -734,7 +734,8 @@ class VM:
                 self.process.close()
             if self.serial_console:
                 self.serial_console.close()
-            for f in ([self.get_testlog_filename()] +
+            for f in ([self.get_testlog_filename(),
+                       self.get_serial_console_filename()] +
                       self.get_monitor_filenames()):
                 try:
                     os.unlink(f)
