@@ -290,6 +290,10 @@ class VM:
         def add_kernel_cmdline(help, cmdline):
             return " -append %s" % cmdline
 
+        def add_testdev(help, filename):
+            return (" -chardev file,id=testlog,path=%s"
+                    " -device testdev,chardev=testlog" % filename)
+
         # End of command line option wrappers
 
         if name is None: name = self.name
@@ -423,6 +427,9 @@ class VM:
             qemu_cmd += add_uuid(help, self.uuid)
         elif params.get("uuid"):
             qemu_cmd += add_uuid(help, params.get("uuid"))
+
+        if params.get("testdev") == "yes":
+            qemu_cmd += add_testdev(help, self.get_testlog_filename())
 
         # If the PCI assignment step went OK, add each one of the PCI assigned
         # devices to the qemu command line.
