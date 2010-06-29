@@ -47,19 +47,26 @@ def run_unittest(test, params, env):
     timeout = int(params.get('unittest_timeout', 600))
 
     for t in test_list:
+        logging.info('Running %s', t)
+
         file = None
         if parser.has_option(t, 'file'):
             file = parser.get(t, 'file')
 
         if file is None:
-            raise error.TestError('Unittest config file %s has section %s but '
-                                  'no mandatory option file.' %
-                                  (unittest_cfg, t))
+            nfail += 1
+            tests_failed.append(t)
+            logging.error('Unittest config file %s has section %s but no '
+                          'mandatory option file' % (unittest_cfg, t))
+            continue
 
         if file not in unittest_list:
-            raise error.TestError('Unittest file %s referenced in config file '
-                                  '%s but was not find under the unittest dir' %
-                                  (file, unittest_cfg))
+            nfail += 1
+            tests_failed.append(t)
+            logging.error('Unittest file %s referenced in config file %s but '
+                          'was not find under the unittest dir' %
+                          (file, unittest_cfg))
+            continue
 
         smp = None
         if parser.has_option(t, 'smp'):
@@ -70,11 +77,7 @@ def run_unittest(test, params, env):
             extra_params = parser.get(t, 'extra_params')
 
         vm_name = params.get("main_vm")
-        testlog_path = os.path.join(test.debugdir, "%s.log" % t)
-
         params['kernel'] = os.path.join(unittest_dir, file)
-        logging.info('Running %s', t)
-
         testlog_path = os.path.join(test.debugdir, "%s.log" % t)
 
         try:
@@ -97,6 +100,7 @@ def run_unittest(test, params, env):
                     logging.error("Unit test %s failed", t)
             except Exception, e:
                 nfail += 1
+                tests_failed.append(t)
                 logging.error('Exception happened during %s: %s', t, str(e))
         finally:
             try:
