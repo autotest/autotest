@@ -118,8 +118,6 @@ class VM:
         self.root_dir = root_dir
         self.address_cache = address_cache
         self.netdev_id = []
-        for nic in params.get("nics").split():
-            self.netdev_id.append(kvm_utils.generate_random_id())
 
         # Find a unique identifier for this VM
         while True:
@@ -520,6 +518,9 @@ class VM:
                 redir_params = kvm_utils.get_sub_dict(params, redir_names[i])
                 guest_port = int(redir_params.get("guest_port"))
                 self.redirs[guest_port] = host_ports[i]
+
+            for nic in kvm_utils.get_sub_dict_names(params, "nics"):
+                self.netdev_id.append(kvm_utils.generate_random_id())
 
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
