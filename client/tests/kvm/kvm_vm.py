@@ -287,6 +287,9 @@ class VM:
         def add_initrd(help, filename):
             return " -initrd '%s'" % filename
 
+        def add_kernel_cmdline(help, cmdline):
+            return " -append %s" % cmdline
+
         # End of command line option wrappers
 
         if name is None: name = self.name
@@ -393,6 +396,10 @@ class VM:
         if kernel:
             kernel = kvm_utils.get_path(root_dir, kernel)
             qemu_cmd += add_kernel(help, kernel)
+
+        kernel_cmdline = params.get("kernel_cmdline")
+        if kernel_cmdline:
+            qemu_cmd += add_kernel_cmdline(help, kernel_cmdline)
 
         initrd = params.get("initrd")
         if initrd:
