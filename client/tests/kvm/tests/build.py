@@ -154,10 +154,9 @@ def create_symlinks(test_bindir, prefix=None, bin_list=None, unittest=None):
         os.symlink(kvm_qemu, qemu_path)
         os.symlink(kvm_qemu_img, qemu_img_path)
 
-    elif unittest:
+    if unittest:
         logging.debug("Linking unittest dir")
-        unittest_dir = os.path.dirname(unittest)
-        os.symlink(unittest_dir, qemu_unittest_path)
+        os.symlink(unittest, qemu_unittest_path)
 
 
 def save_build(build_dir, dest_dir):
@@ -530,7 +529,7 @@ class GitInstaller(SourceDirInstaller):
                                                    os.path.basename(patch)))
                 utils.system('patch -p1 %s' % os.path.basename(patch))
 
-        unittest_cfg = os.path.join(userspace_srcdir, 'kvm', 'test',
+        unittest_cfg = os.path.join(userspace_srcdir, 'kvm', 'test', 'x86',
                                     'unittests.cfg')
 
         self.unittest_cfg = None
@@ -609,18 +608,23 @@ class GitInstaller(SourceDirInstaller):
         utils.system('make clean')
         utils.system('make -j %s' % make_jobs)
 
+        self.unittest_prefix = None
         if self.unittest_cfg:
-            os.chdir(os.path.dirname(self.unittest_cfg))
+            os.chdir(os.path.dirname(os.path.dirname(self.unittest_cfg)))
             utils.system('./configure --prefix=%s' % self.prefix)
             utils.system('make')
             utils.system('make install')
+            self.unittest_prefix = os.path.join(self.prefix, 'share', 'qemu',
+                                                'tests')
 
 
     def _install(self):
         os.chdir(self.userspace_srcdir)
         utils.system('make install')
         create_symlinks(test_bindir=self.test_bindir, prefix=self.prefix,
-                        bin_list=None, unittest=self.unittest_cfg)
+                        bin_list=None,
+                        unittest=self.unittest_prefix)
+
 
     def _load_modules(self):
         if self.kmod_srcdir and self.modules_build_succeed:
