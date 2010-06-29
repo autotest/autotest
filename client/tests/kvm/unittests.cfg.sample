@@ -44,6 +44,21 @@ run_kvm_stat = yes
 
 # Tests
 variants:
+    - build:
+        type = build
+        vms = ''
+        start_vm = no
+        # Load modules built/installed by the build test?
+        load_modules = no
+        # Save the results of this build on test.resultsdir?
+        save_results = no
+        variants:
+            - git:
+                mode = git
+                user_git_repo = git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git
+                user_branch = next
+                user_lbranch = next
+
     - unittest:
         type = unittest
         vms = ''
@@ -54,3 +69,5 @@ variants:
         # In case you want to execute only a subset of the tests defined on the
         # unittests.cfg file on qemu-kvm, uncomment and edit test_list
         #test_list = idt_test hypercall vmexit realmode
+
+only build.git unittest
