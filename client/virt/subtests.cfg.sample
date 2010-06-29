@@ -772,6 +772,7 @@ variants:
         type = linux_s3
 
     - timedrift: install setup image_copy unattended_install.cdrom
+        rtc_drift = "slew"
         variants:
             - ntp:
                 variants:
