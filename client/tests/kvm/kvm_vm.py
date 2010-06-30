@@ -390,7 +390,7 @@ class VM:
             qemu_cmd += add_floppy(help, floppy)
 
         tftp = params.get("tftp")
-        if tftp:
+        if tftp and nic_params.get("nic_mode") == "user":
             tftp = kvm_utils.get_path(root_dir, tftp)
             qemu_cmd += add_tftp(help, tftp)
 
