@@ -292,6 +292,12 @@ class VM:
             return (" -chardev file,id=testlog,path=%s"
                     " -device testdev,chardev=testlog" % filename)
 
+        def add_no_hpet(help):
+            if has_option(help, "no-hpet"):
+                return " -no-hpet"
+            else:
+                return ""
+
         # End of command line option wrappers
 
         if name is None: name = self.name
@@ -428,6 +434,9 @@ class VM:
 
         if params.get("testdev") == "yes":
             qemu_cmd += add_testdev(help, self.get_testlog_filename())
+
+        if params.get("disable_hpet") == "yes":
+            qemu_cmd += add_no_hpet(help)
 
         # If the PCI assignment step went OK, add each one of the PCI assigned
         # devices to the qemu command line.

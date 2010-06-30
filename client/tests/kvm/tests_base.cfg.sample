@@ -1047,6 +1047,8 @@ variants:
         stress_boot:
             alive_test_cmd = systeminfo
         timedrift:
+            # Timedrift compensation on Windows with hpet does not happen
+            disable_hpet = yes
             extra_params += " -rtc-td-hack"
             time_command = "echo TIME: %date% %time%"
             time_filter_re = "(?<=TIME: \w\w\w ).{19}(?=\.\d\d)"
