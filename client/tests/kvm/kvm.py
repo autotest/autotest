@@ -75,7 +75,8 @@ class kvm(test.test):
                     test_passed = True
 
                 except Exception, e:
-                    logging.error("Test failed: %s", e)
+                    logging.error("Test failed: %s: %s",
+                                  e.__class__.__name__, e)
                     try:
                         kvm_preprocessing.postprocess_on_error(
                             self, params, env)
