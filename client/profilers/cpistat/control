@@ -1,0 +1,3 @@
+job.profilers.add('cpistat')
+job.run_test('sleeptest', seconds=10)
+job.profilers.delete('cpistat')
