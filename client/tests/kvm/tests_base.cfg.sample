@@ -1452,6 +1452,7 @@ variants:
     - @smallpages:
     - hugepages:
         pre_command += " scripts/hugepage.py /mnt/kvm_hugepage;"
+        post_command += " echo 0 > /proc/sys/vm/nr_hugepages; umount /mnt/kvm_hugepage;"
         extra_params += " -mem-path /mnt/kvm_hugepage"
 
 
