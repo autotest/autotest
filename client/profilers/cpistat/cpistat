@@ -1,0 +1,84 @@
+#!/usr/bin/python
+
+"""
+python-libpfm4 provides python bindings to the libpfm4
+library and the perf_event kernel subsystem. This
+script builds on them to provide a *stat like interface
+to CPU performance counters.
+
+Run as: ./cpistat -c cpulist -e eventlist
+
+Depends on libpfm4: http://perfmon2.sf.net/
+
+git://perfmon2.git.sourceforge.net/gitroot/perfmon2/libpfm4
+"""
+
+import sys, os, optparse, time, struct, perfmon
+
+if __name__ == '__main__':
+    parser = optparse.OptionParser()
+    parser.add_option('-e', '--events', help='Events to use',
+                       action='store', dest='events')
+    parser.add_option('-c', '--cpulist', help='CPUs to monitor',
+                       action='store', dest='cpulist')
+    parser.set_defaults(events='PERF_COUNT_HW_CPU_CYCLES,' +
+                               'PERF_COUNT_HW_INSTRUCTIONS')
+    (options, args) = parser.parse_args()
+
+    show_per_cpu = False
+    if not options.cpulist:
+        ncpus = os.sysconf('SC_NPROCESSORS_ONLN')
+        cpus = range(0, ncpus)
+    else:
+        cpus = options.cpulist.split(',')
+        cpus = [ int(c) for c in cpus ]
+        show_per_cpu = True
+
+    if options.events:
+        events = options.events.split(',')
+    else:
+        raise ValueError('You need to specify events to monitor')
+
+    s = perfmon.SystemWideSession(cpus, events)
+
+    s.start()
+    # Measuring loop
+    interval = 1
+    iters = -1
+    infinite = True
+    if len(args) == 2:
+        interval = int(args[0])
+        iters = int(args[1])
+        infinite = False
+
+    delta = {}
+    last = {}
+    sum = {}
+    for e in events:
+        delta[e] = {}
+        last[e] = {}
+        sum[e] = {}
+        for c in cpus:
+            delta[e][c] = 0
+            last[e][c] = 0
+
+    while infinite or iters:
+        for i in range(0, len(events)):
+          e = events[i]
+          sum[e] = 0
+          for c in cpus:
+              count = struct.unpack('L', s.read(c, i))[0]
+              delta[e][c] = count - last[e][c]
+              last[e][c] = count
+              if show_per_cpu:
+                  print '''CPU%d: %s\t%lu''' % (c, e, delta[e][c])
+              sum[e] += delta[e][c]
+
+        cycles = sum['PERF_COUNT_HW_CPU_CYCLES']
+        instructions = sum['PERF_COUNT_HW_INSTRUCTIONS']
+        CPI = cycles * 1.0/instructions
+        print ('cycles: %12lu, instructions: %12lu, CPI: %2.4f'
+               % (cycles, instructions, CPI))
+        sys.stdout.flush()
+        time.sleep(interval)
+        iters = iters - 1
