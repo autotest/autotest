@@ -58,18 +58,10 @@ def run_guest_test(test, params, env):
                 raise error.TestFail("Download test resource failed.")
             logging.info("Download resource finished.")
         else:
-            # Send AutoIt script to guest (this code will be replaced once we
-            # support sending files to Windows guests)
-            session.get_command_output("del script.au3", internal_timeout=0)
-            file = open(kvm_utils.get_path(test.bindir, script))
-            for line in file.readlines():
-                # Insert a '^' before each character
-                line = "".join("^" + c for c in line.rstrip())
-                if line:
-                    # Append line to the file
-                    session.get_command_output("echo %s>>script.au3" % line,
-                                               internal_timeout=0)
-            file.close()
+            session.get_command_output("del %s" % dst_rsc_path,
+                                       internal_timeout=0)
+            script_path = kvm_utils.get_path(test.bindir, script)
+            vm.copy_files_to(script_path, dst_rsc_path, timeout=60)
 
         command = "cmd /c %s %s %s" %(interpreter, dst_rsc_path, script_params)
 
