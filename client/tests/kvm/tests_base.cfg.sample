@@ -1023,10 +1023,12 @@ variants:
         password = 123456
         shell_linesep = "\r\n"
         shell_client = nc
-        shell_port = 22
-        # File transfers are currently unsupported
-        # file_transfer_client = scp
-        # file_transfer_port = 22
+        shell_port = 10022
+        file_transfer_client = rss
+        file_transfer_port = 10023
+        redirs += " file_transfer"
+        guest_port_remote_shell = 10022
+        guest_port_file_transfer = 10023
 
         # This ISO will be used for all tests except install:
         cdrom = windows/winutils.iso
