@@ -6,7 +6,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 """
 
 import time, socket, os, logging, fcntl, re, commands, glob
-import kvm_utils, kvm_subprocess, kvm_monitor
+import kvm_utils, kvm_subprocess, kvm_monitor, rss_file_transfer
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 
@@ -980,17 +980,22 @@ class VM:
         client = self.params.get("file_transfer_client")
         address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("file_transfer_port")))
-        log_filename = ("scp-%s-%s.log" %
-                        (self.name, kvm_utils.generate_random_string(4)))
 
         if not address or not port:
             logging.debug("IP address or port unavailable")
             return None
 
         if client == "scp":
+            log_filename = ("scp-%s-%s.log" %
+                            (self.name, kvm_utils.generate_random_string(4)))
             return kvm_utils.scp_to_remote(address, port, username, password,
                                            local_path, remote_path,
                                            log_filename, timeout)
+        elif client == "rss":
+            c = rss_file_transfer.FileUploadClient(address, port)
+            c.upload(local_path, remote_path, timeout)
+            c.close()
+            return True
 
 
     def copy_files_from(self, remote_path, local_path, nic_index=0, timeout=600):
@@ -1008,17 +1013,22 @@ class VM:
         client = self.params.get("file_transfer_client")
         address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("file_transfer_port")))
-        log_filename = ("scp-%s-%s.log" %
-                        (self.name, kvm_utils.generate_random_string(4)))
 
         if not address or not port:
             logging.debug("IP address or port unavailable")
             return None
 
         if client == "scp":
+            log_filename = ("scp-%s-%s.log" %
+                            (self.name, kvm_utils.generate_random_string(4)))
             return kvm_utils.scp_from_remote(address, port, username, password,
                                              remote_path, local_path,
                                              log_filename, timeout)
+        elif client == "rss":
+            c = rss_file_transfer.FileDownloadClient(address, port)
+            c.download(remote_path, local_path, timeout)
+            c.close()
+            return True
 
 
     def serial_login(self, timeout=10):
