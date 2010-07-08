@@ -69,7 +69,7 @@ if __name__ == "__main__":
     kvm_test_dir = os.path.dirname(sys.modules[__name__].__file__)
     kvm_test_dir = os.path.abspath(kvm_test_dir)
     config_file_list = ["address_pools.cfg", "build.cfg", "cdkeys.cfg",
-                        "tests_base.cfg", "tests.cfg"]
+                        "tests_base.cfg", "tests.cfg", "unittests.cfg"]
     for config_file in config_file_list:
         src_file = os.path.join(kvm_test_dir, "%s.sample" % config_file)
         dst_file = os.path.join(kvm_test_dir, config_file)

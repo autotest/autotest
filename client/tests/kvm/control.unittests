@@ -1,0 +1,28 @@
+AUTHOR = """
+mgoldish@redhat.com (Michael Goldish)
+nsprei@redhat.com (Naphtali Sprei)
+lmr@redhat.com (Lucas Meneghel Rodrigues)
+"""
+TIME = 'MEDIUM'
+NAME = 'KVM test'
+TEST_TYPE = 'client'
+TEST_CLASS = 'Virtualization'
+TEST_CATEGORY = 'Unittest'
+
+DOC = """
+Runs the unittests available for a given KVM build.
+"""
+
+import sys, os, logging
+# Add the KVM tests dir to the python path
+kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests/kvm')
+sys.path.append(kvm_test_dir)
+# Now we can import modules inside the KVM tests dir
+import kvm_utils, kvm_config
+
+tests_cfg = kvm_config.config()
+tests_cfg_path = os.path.join(kvm_test_dir, "unittests.cfg")
+tests_cfg.fork_and_parse(tests_cfg_path)
+
+# Run the tests
+kvm_utils.run_tests(tests_cfg.get_generator(), job)
