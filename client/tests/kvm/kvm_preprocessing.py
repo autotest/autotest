@@ -344,9 +344,8 @@ def postprocess(test, params, env):
                 else:
                     vm.destroy(gracefully=False)
 
-    # Kill the tailing threads of all VMs
-    for vm in kvm_utils.env_get_all_vms(env):
-        vm.kill_tail_thread()
+    # Kill all kvm_subprocess tail threads
+    kvm_subprocess.kill_tail_threads()
 
     # Terminate tcpdump if no VMs are alive
     living_vms = [vm for vm in kvm_utils.env_get_all_vms(env) if vm.is_alive()]
