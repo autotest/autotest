@@ -91,9 +91,9 @@ def run_iofuzz(test, params, env):
                                          (op, operand))
 
 
-    boot_timeout = float(params.get("boot_timeout", 240))
+    login_timeout = float(params.get("login_timeout", 240))
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm, 0, boot_timeout, 0, 2)
+    session = kvm_test_utils.wait_for_login(vm, 0, login_timeout, 0, 2)
 
     try:
         ports = {}
