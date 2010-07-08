@@ -21,6 +21,7 @@ class kvm(test.test):
             (Online doc - Getting started with KVM testing)
     """
     version = 1
+    env_version = 0
 
     def run_once(self, params):
         # Report the parameters we've received and write them as keyvals
@@ -39,7 +40,7 @@ class kvm(test.test):
         logging.info("Unpickling env. You may see some harmless error "
                      "messages.")
         env_filename = os.path.join(self.bindir, params.get("env", "env"))
-        env = kvm_utils.load_env(env_filename, {})
+        env = kvm_utils.load_env(env_filename, self.env_version)
         logging.debug("Contents of environment: %s", env)
 
         test_passed = False
