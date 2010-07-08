@@ -1,7 +1,7 @@
 Windows Registry Editor Version 5.00
 
 [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run]
-"Remote Shell Server"="C:\\rss.exe 22"
+"Remote Shell Server"="C:\\rss.exe"
 
 [HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\winlogon]
 "AutoAdminLogon"="1"
