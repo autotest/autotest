@@ -647,8 +647,16 @@ class VM:
                 self.monitors += [monitor]
 
             # Get the output so far, to see if we have any problems with
-            # hugepage setup.
+            # KVM modules or with hugepage setup.
             output = self.process.get_output()
+
+            if re.search("Could not initialize KVM", output, re.IGNORECASE):
+                logging.error("Could not initialize KVM; "
+                              "qemu command:\n%s" % qemu_command)
+                logging.error("Output:" + kvm_utils.format_str_for_message(
+                              self.process.get_output()))
+                self.destroy()
+                return False
 
             if "alloc_mem_area" in output:
                 logging.error("Could not allocate hugepage memory; "
