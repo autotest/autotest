@@ -322,6 +322,15 @@ def env_unregister_vm(env, name):
 
 # Utility functions for dealing with external processes
 
+def find_command(cmd):
+    for dir in ["/usr/local/sbin", "/usr/local/bin",
+                "/usr/sbin", "/usr/bin", "/sbin", "/bin"]:
+        file = os.path.join(dir, cmd)
+        if os.path.exists(file):
+            return file
+    raise ValueError('Missing command: %s' % cmd)
+
+
 def pid_exists(pid):
     """
     Return True if a given PID exists.
