@@ -241,7 +241,8 @@ class VM:
             return cmd
 
         def add_net(help, vlan, mode, ifname=None, script=None,
-                    downscript=None, netdev_id=None):
+                    downscript=None, tftp=None, bootfile=None, hostfwd=[],
+                    netdev_id=None):
             if has_option(help, "netdev"):
                 cmd = " -netdev %s,id=%s" % (mode, netdev_id)
             else:
@@ -250,16 +251,39 @@ class VM:
                 if ifname: cmd += ",ifname='%s'" % ifname
                 if script: cmd += ",script='%s'" % script
                 cmd += ",downscript='%s'" % (downscript or "no")
+            elif mode == "user":
+                if tftp and "[,tftp=" in help:
+                    cmd += ",tftp='%s'" % tftp
+                if bootfile and "[,bootfile=" in help:
+                    cmd += ",bootfile='%s'" % bootfile
+                if "[,hostfwd=" in help:
+                    for host_port, guest_port in hostfwd:
+                        cmd += ",hostfwd=tcp::%s-:%s" % (host_port, guest_port)
             return cmd
 
         def add_floppy(help, filename):
             return " -fda '%s'" % filename
 
         def add_tftp(help, filename):
-            return " -tftp '%s'" % filename
+            # If the new syntax is supported, don't add -tftp
+            if "[,tftp=" in help:
+                return ""
+            else:
+                return " -tftp '%s'" % filename
+
+        def add_bootp(help, filename):
+            # If the new syntax is supported, don't add -bootp
+            if "[,bootfile=" in help:
+                return ""
+            else:
+                return " -bootp '%s'" % filename
 
         def add_tcp_redir(help, host_port, guest_port):
-            return " -redir tcp:%s::%s" % (host_port, guest_port)
+            # If the new syntax is supported, don't add -redir
+            if "[,hostfwd=" in help:
+                return ""
+            else:
+                return " -redir tcp:%s::%s" % (host_port, guest_port)
 
         def add_vnc(help, vnc_port):
             return " -vnc :%d" % (vnc_port - 5900)
@@ -345,6 +369,13 @@ class VM:
                                   image_params.get("image_snapshot") == "yes",
                                   image_params.get("image_boot") == "yes")
 
+        redirs = []
+        for redir_name in kvm_utils.get_sub_dict_names(params, "redirs"):
+            redir_params = kvm_utils.get_sub_dict(params, redir_name)
+            guest_port = int(redir_params.get("guest_port"))
+            host_port = self.redirs.get(guest_port)
+            redirs += [(host_port, guest_port)]
+
         vlan = 0
         for nic_name in kvm_utils.get_sub_dict_names(params, "nics"):
             nic_params = kvm_utils.get_sub_dict(params, nic_name)
@@ -357,13 +388,18 @@ class VM:
             # Handle the '-net tap' or '-net user' part
             script = nic_params.get("nic_script")
             downscript = nic_params.get("nic_downscript")
+            tftp = nic_params.get("tftp")
             if script:
                 script = kvm_utils.get_path(root_dir, script)
             if downscript:
                 downscript = kvm_utils.get_path(root_dir, downscript)
+            if tftp:
+                tftp = kvm_utils.get_path(root_dir, tftp)
             qemu_cmd += add_net(help, vlan, nic_params.get("nic_mode", "user"),
                                 nic_params.get("nic_ifname"),
-                                script, downscript, self.netdev_id[vlan])
+                                script, downscript, tftp,
+                                nic_params.get("bootp"), redirs,
+                                self.netdev_id[vlan])
             # Proceed to next NIC
             vlan += 1
 
@@ -400,6 +436,10 @@ class VM:
             tftp = kvm_utils.get_path(root_dir, tftp)
             qemu_cmd += add_tftp(help, tftp)
 
+        bootp = params.get("bootp")
+        if bootp:
+            qemu_cmd += add_bootp(help, bootp)
+
         kernel = params.get("kernel")
         if kernel:
             kernel = kvm_utils.get_path(root_dir, kernel)
@@ -414,10 +454,7 @@ class VM:
             initrd = kvm_utils.get_path(root_dir, initrd)
             qemu_cmd += add_initrd(help, initrd)
 
-        for redir_name in kvm_utils.get_sub_dict_names(params, "redirs"):
-            redir_params = kvm_utils.get_sub_dict(params, redir_name)
-            guest_port = int(redir_params.get("guest_port"))
-            host_port = self.redirs.get(guest_port)
+        for host_port, guest_port in redirs:
             qemu_cmd += add_tcp_redir(help, host_port, guest_port)
 
         if params.get("display") == "vnc":
