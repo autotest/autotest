@@ -260,6 +260,7 @@ variants:
                 variants:
                     - notepad:
                         guest_script = autoit/notepad1.au3
+                        dst_rsc_path = "C:\script.au3"
                     - stub:
                         download = yes
                         download_cmd = "git clone"
