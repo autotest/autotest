@@ -1,0 +1,73 @@
+;SetupMgrTag
+[Data]
+    AutoPartition=1
+    MsDosInitiated="0"
+    UnattendedInstall="Yes"
+
+[Unattended]
+    Repartition=Yes
+    UnattendMode=FullUnattended
+    OemSkipEula=Yes
+    OemPreinstall=No
+    TargetPath=\WINDOWS
+    UnattendSwitch=Yes
+    CrashDumpSetting=1
+    DriverSigningPolicy=ignore
+    WaitForReboot=no
+
+[GuiUnattended]
+    AdminPassword="1q2w3eP"
+    EncryptedAdminPassword=NO
+    TimeZone=85
+    OemSkipWelcome=1
+    AutoLogon=Yes
+    AutoLogonCount=1000
+    OEMSkipRegional=1
+
+[UserData]
+    ProductKey=KVM_TEST_CDKEY
+    FullName="Autotest Mindless Drone"
+    OrgName="Autotest"
+    ComputerName=*
+
+[Identification]
+    JoinWorkgroup=WORKGROUP
+
+[Networking]
+    InstallDefaultComponents=Yes
+
+[Proxy]
+    Proxy_Enable=0
+    Use_Same_Proxy=0
+
+[Components]
+    dialer=off
+    media_clips=off
+    media_utopia=off
+    msnexplr=off
+    netoc=off
+    OEAccess=off
+    templates=off
+    WMAccess=off
+    zonegames=off
+
+[TerminalServices]
+    AllowConnections=1
+
+[WindowsFirewall]
+    Profiles=WindowsFirewall.TurnOffFirewall
+
+[WindowsFirewall.TurnOffFirewall]
+    Mode=0
+
+[Branding]
+    BrandIEUsingUnattended=Yes
+
+[Display]
+    Xresolution=1024
+    YResolution=768
+
+[GuiRunOnce]
+   Command0="cmd /c E:\setuprss.bat"
+   Command1="cmd /c netsh interface ip set address local dhcp"
+   Command2="cmd /c ping 10.0.2.2 -n 20 && A:\finish.exe"
