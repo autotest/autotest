@@ -1101,6 +1101,12 @@ variants:
                     user = user
                 setup:
                     steps = Win2000-32-rss.steps
+                unattended_install.cdrom:
+                    cdrom = windows/Windows2000_sp4.iso
+                    md5sum = dda6039f3a9173f0f6bfae40f5efdfea
+                    md5sum_1m = dd28fba196d366d56fe774bd93df5527
+                    unattended_file = unattended/win2000-32.sif
+                    floppy = images/win2000-32/floppy.img
 
             - WinXP:
                 image_name = winXP

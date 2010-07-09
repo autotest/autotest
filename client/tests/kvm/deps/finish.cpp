@@ -9,11 +9,9 @@
 
 // Usage: finish.exe
 
-// MinGW's ws2tcpip.h only defines getaddrinfo and other functions only for
-// the case _WIN32_WINNT >= 0x0501.
 #ifdef __MINGW32__
 #undef _WIN32_WINNT
-#define _WIN32_WINNT 0x501
+#define _WIN32_WINNT 0x500
 #endif
 
 #include <windows.h>
@@ -22,7 +20,74 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define DEFAULT_PORT "12323"
+int DEFAULT_PORT = 12323;
+
+void ExitOnError(const char *message, BOOL winsock = FALSE)
+{
+    LPVOID system_message;
+    char buffer[512];
+    int error_code;
+
+    if (winsock)
+        error_code = WSAGetLastError();
+    else
+        error_code = GetLastError();
+    WSACleanup();
+
+    FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                  FORMAT_MESSAGE_FROM_SYSTEM,
+                  NULL,
+                  error_code,
+                  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                  (LPTSTR)&system_message,
+                  0,
+                  NULL);
+
+    sprintf(buffer,
+            "%s!\n"
+            "Error code = %d\n"
+            "Error message = %s",
+            message, error_code, (char *)system_message);
+
+    MessageBox(NULL, buffer, "Error", MB_OK | MB_ICONERROR);
+
+    LocalFree(system_message);
+    ExitProcess(1);
+}
+
+SOCKET PrepareListenSocket(int port)
+{
+    sockaddr_in addr;
+    linger l;
+    int result;
+
+    // Create socket
+    SOCKET ListenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (ListenSocket == INVALID_SOCKET)
+        ExitOnError("Socket creation failed", TRUE);
+
+    // Enable lingering
+    l.l_linger = 10;
+    l.l_onoff = 1;
+    setsockopt(ListenSocket, SOL_SOCKET, SO_LINGER, (char *)&l, sizeof(l));
+
+    // Bind the socket
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(port);
+
+    result = bind(ListenSocket, (sockaddr *)&addr, sizeof(addr));
+    if (result == SOCKET_ERROR)
+        ExitOnError("Bind failed", TRUE);
+
+    // Start listening for incoming connections
+    result = listen(ListenSocket, SOMAXCONN);
+    if (result == SOCKET_ERROR)
+        ExitOnError("Listen failed", TRUE);
+
+    return ListenSocket;
+}
+
 int main(int argc, char **argv)
 {
     WSADATA wsaData;
@@ -33,68 +98,23 @@ int main(int argc, char **argv)
 
     // Validate the parameters
     if (argc != 1) {
-        printf("usage: %s", argv[0]);
-        return 1;
+        ExitOnError("Finish.exe takes no parameters", FALSE);
     }
 
     // Initialize Winsock
     iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
     if (iResult != 0) {
-        printf("WSAStartup failed: %d\n", iResult);
-        return 1;
+        ExitOnError("WSAStartup failed", FALSE);
     }
-
-    ZeroMemory(&hints, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-    hints.ai_flags = AI_PASSIVE;
 
     // Resolve the server address and port
-    iResult = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
-    if (iResult != 0) {
-        printf("getaddrinfo failed: %d\n", iResult);
-        WSACleanup();
-        return 1;
-    }
-
-    // Create a SOCKET for connecting to server
-    ListenSocket = socket(result->ai_family, result->ai_socktype,
-                          result->ai_protocol);
-    if (ListenSocket == INVALID_SOCKET) {
-        printf("socket failed: %ld\n", WSAGetLastError());
-        freeaddrinfo(result);
-        WSACleanup();
-        return 1;
-    }
-
-    // Setup the TCP listening socket
-    iResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
-    if (iResult == SOCKET_ERROR) {
-        printf("bind failed: %d\n", WSAGetLastError());
-        freeaddrinfo(result);
-        closesocket(ListenSocket);
-        WSACleanup();
-        return 1;
-    }
-
-    freeaddrinfo(result);
-
-    iResult = listen(ListenSocket, SOMAXCONN);
-    if (iResult == SOCKET_ERROR) {
-        printf("listen failed: %d\n", WSAGetLastError());
-        closesocket(ListenSocket);
-        WSACleanup();
-        return 1;
-    }
+    ListenSocket = PrepareListenSocket(DEFAULT_PORT);
 
     // Accept a client socket
     ClientSocket = accept(ListenSocket, NULL, NULL);
     if (ClientSocket == INVALID_SOCKET) {
-        printf("accept failed: %d\n", WSAGetLastError());
         closesocket(ListenSocket);
-        WSACleanup();
-        return 1;
+        ExitOnError("Accept failed", TRUE);
     }
 
     // No longer need the server socket
@@ -103,10 +123,8 @@ int main(int argc, char **argv)
     // Send the ack string to the client
     iSendResult = send(ClientSocket, sendbuf, sizeof(sendbuf), 0);
     if (iSendResult == SOCKET_ERROR) {
-        printf("send failed: %d\n", WSAGetLastError());
         closesocket(ClientSocket);
-        WSACleanup();
-        return 1;
+        ExitOnError("Send failed", TRUE);
     }
     // Report the number of bytes sent
     printf("Bytes sent: %d\n", iSendResult);
@@ -114,10 +132,8 @@ int main(int argc, char **argv)
     // Shutdown the connection since we're done
     iResult = shutdown(ClientSocket, SD_SEND);
     if (iResult == SOCKET_ERROR) {
-        printf("shutdown failed: %d\n", WSAGetLastError());
         closesocket(ClientSocket);
-        WSACleanup();
-        return 1;
+        ExitOnError("Shutdown failed", TRUE);
     }
 
     // Cleanup
