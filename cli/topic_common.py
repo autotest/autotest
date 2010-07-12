@@ -56,7 +56,7 @@ High Level Algorithm:
 """
 
 import getpass, optparse, os, pwd, re, socket, sys, textwrap, traceback
-import socket, urllib2
+import socket, string, urllib2
 from autotest_lib.cli import rpc
 from autotest_lib.frontend.afe.json_rpc import proxy
 from autotest_lib.client.common_lib.test_utils import mock
@@ -176,9 +176,27 @@ class item_parse_info(object):
         """Returns the value for that attribute by accumualting all
         the values found through the inline option, the parsing of the
         file and the leftover"""
-        def __get_items(string, split_re='[\s,]\s*'):
-            return (item.strip() for item in re.split(split_re, string)
-                    if item)
+
+        def __get_items(input, split_spaces=True):
+            """Splits a string of comma separated items. Escaped commas will not
+            be split. I.e. Splitting 'a, b\,c, d' will yield ['a', 'b,c', 'd'].
+            If split_spaces is set to False spaces will not be split. I.e.
+            Splitting 'a b, c\,d, e' will yield ['a b', 'c,d', 'e']"""
+
+            # Replace escaped slashes with null characters so we don't misparse
+            # proceeding commas.
+            input = input.replace(r'\\', '\0')
+
+            # Split on commas which are not preceded by a slash.
+            if not split_spaces:
+                split = re.split(r'(?<!\\),', input)
+            else:
+                split = re.split(r'(?<!\\),|\s', input)
+
+            # Convert null characters to single slashes and escaped commas to
+            # just plain commas.
+            return (item.strip().replace('\0', '\\').replace(r'\,', ',') for
+                    item in split if item.strip())
 
         if self.use_leftover:
             add_on = leftover
@@ -191,7 +209,7 @@ class item_parse_info(object):
         for items in add_on:
             # Don't split on space here because the add-on
             # may have some spaces (like the job name)
-            result.update(__get_items(items, split_re='[,]'))
+            result.update(__get_items(items, split_spaces=False))
 
         # Process the inline_option, if any
         try:

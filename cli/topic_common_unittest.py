@@ -161,6 +161,20 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
         self.__test_parsing_flist_good(opt(), ['a', 'b', 'c'])
 
 
+    def test_file_list_escaped_commas(self):
+        class opt(object):
+            flist_obj = cli_mock.create_file('a\nb\\,c\\,d\nef\\,g')
+            flist = flist_obj.name
+        self.__test_parsing_flist_good(opt(), ['a', 'b,c,d', 'ef,g'])
+
+
+    def test_file_list_escaped_commas_slashes(self):
+        class opt(object):
+            flist_obj = cli_mock.create_file('a\nb\\\\\\,c\\,d\nef\\\\,g')
+            flist = flist_obj.name
+        self.__test_parsing_flist_good(opt(), ['a', 'b\\,c,d', 'ef\\', 'g'])
+
+
     def test_file_list_opt_list_one(self):
         class opt(object):
             inline = 'a'
@@ -191,6 +205,18 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
         self.__test_parsing_inline_good(opt(), ['a', 'b', 'c', 'd', 'e'])
 
 
+    def test_file_list_opt_list_escaped_commas(self):
+        class opt(object):
+            inline = 'a\\,b,c, d'
+        self.__test_parsing_inline_good(opt(), ['a,b', 'c', 'd'])
+
+
+    def test_file_list_opt_list_escaped_commas_slashes(self):
+        class opt(object):
+            inline = 'a\\,b\\\\\\,c,d,e'
+        self.__test_parsing_inline_good(opt(), ['a,b\\,c', 'd', 'e'])
+
+
     def test_file_list_add_on_space(self):
         self.__test_parsing_leftover_good(['a','c','b'],
                                           ['a', 'b', 'c'])
@@ -209,6 +235,16 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
     def test_file_list_add_on_end_comma_space(self):
         self.__test_parsing_leftover_good(['a', 'c', 'b,', 'd,', ','],
                                           ['a', 'b', 'c', 'd'])
+
+
+    def test_file_list_add_on_escaped_commas(self):
+        self.__test_parsing_leftover_good(['a', 'c', 'b,', 'd\\,e\\,f'],
+                                          ['a', 'b', 'c', 'd,e,f'])
+
+
+    def test_file_list_add_on_escaped_commas_slashes(self):
+        self.__test_parsing_leftover_good(['a', 'c', 'b,', 'd\\\\\\,e,f'],
+                                          ['a', 'b', 'c', 'd\\,e', 'f'])
 
 
     def test_file_list_all_opt(self):
@@ -256,6 +292,26 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
         self.__test_parsing_all_good(opt(), ['i','j,d'],
                                      ['a', 'b', 'c', 'd', 'e',
                                       'f', 'g', 'h', 'i', 'j'])
+
+
+    def test_file_list_all_opt_in_common_escaped_commas(self):
+        class opt(object):
+            flist_obj = cli_mock.create_file('a\\,b\\,c\nd,e\nf\ng')
+            flist = flist_obj.name
+            inline = 'a\\,b\\,c,d h'
+        self.__test_parsing_all_good(opt(), ['i','j,d'],
+                                     ['a,b,c', 'd', 'e', 'f', 'g', 'h',
+                                      'i', 'j'])
+
+
+    def test_file_list_all_opt_in_common_escaped_commas_slashes(self):
+        class opt(object):
+            flist_obj = cli_mock.create_file('a\\,b\\\\\\,c\nd,e\nf,ghi, ,, j,')
+            flist = flist_obj.name
+            inline = 'a\\,b\\\\\\,c,d h,ijk'
+        self.__test_parsing_all_good(opt(), ['i','j,d'],
+                                     ['a,b\\,c', 'd', 'e', 'f', 'ghi', 'h',
+                                      'i', 'j', 'ijk'])
 
 
 class atest_unittest(cli_mock.cli_unittest):
