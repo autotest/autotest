@@ -101,10 +101,11 @@ int file_transfer_port = 10023;
 
 HWND hMainWindow = NULL;
 HWND hTextBox = NULL;
-HANDLE hTextBufferMutex = NULL;
 
 char text_buffer[8192] = {0};
 int text_size = 0;
+
+CRITICAL_SECTION critical_section;
 
 struct client_info {
     SOCKET socket;
@@ -179,12 +180,12 @@ void AppendMessage(const char *message, ...)
     strcat(str, "\r\n");
     int len = strlen(str);
 
-    WaitForSingleObject(hTextBufferMutex, INFINITE);
+    EnterCriticalSection(&critical_section);
     if (text_size + len + 1 > sizeof(text_buffer))
         FlushTextBuffer();
     strcpy(text_buffer + text_size, str);
     text_size += len;
-    ReleaseMutex(hTextBufferMutex);
+    LeaveCriticalSection(&critical_section);
 }
 
 // Flush the text buffer every 250 ms
@@ -192,9 +193,9 @@ DWORD WINAPI UpdateTextBox(LPVOID client_info_ptr)
 {
     while (1) {
         Sleep(250);
-        WaitForSingleObject(hTextBufferMutex, INFINITE);
+        EnterCriticalSection(&critical_section);
         FlushTextBuffer();
-        ReleaseMutex(hTextBufferMutex);
+        LeaveCriticalSection(&critical_section);
     }
     return 0;
 }
@@ -904,8 +905,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     MAKELPARAM(FALSE, 0));
         // Set size limit
         SendMessage(hTextBox, EM_LIMITTEXT, TEXTBOX_LIMIT, 0);
-        // Create mutex for text buffer access
-        hTextBufferMutex = CreateMutex(NULL, FALSE, NULL);
+        // Initialize critical section object for text buffer access
+        InitializeCriticalSection(&critical_section);
         // Create text box update thread
         if (!CreateThread(NULL, 0, UpdateTextBox, NULL, 0, NULL))
             ExitOnError("Could not create text box update thread");
