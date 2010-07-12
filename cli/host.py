@@ -128,8 +128,11 @@ class host_list(action_common.atest_list, host):
 
     def parse(self):
         """Consume the specific options"""
-        (options, leftover) = super(host_list, self).parse()
-        self.labels = options.label
+        label_info = topic_common.item_parse_info(attribute_name='labels',
+                                                  inline_option='label')
+
+        (options, leftover) = super(host_list, self).parse([label_info])
+
         self.status = options.status
         self.acl = options.acl
         self.user = options.user
@@ -151,15 +154,12 @@ class host_list(action_common.atest_list, host):
             check_results['hostname__in'] = 'hostname'
 
         if self.labels:
-            labels = self.labels.split(',')
-            labels = [label.strip() for label in labels if label.strip()]
-
-            if len(labels) == 1:
+            if len(self.labels) == 1:
                 # This is needed for labels with wildcards (x86*)
-                filters['labels__name__in'] = labels
+                filters['labels__name__in'] = self.labels
                 check_results['labels__name__in'] = None
             else:
-                filters['multiple_labels'] = labels
+                filters['multiple_labels'] = self.labels
                 check_results['multiple_labels'] = None
 
         if self.status:

@@ -70,7 +70,7 @@ class host_list_unittest(cli_mock.cli_unittest):
         hl = host.host_list()
         sys.argv = ['atest', '--label', 'label0']
         (options, leftover) = hl.parse()
-        self.assertEqual('label0', hl.labels)
+        self.assertEqual(['label0'], hl.labels)
         self.assertEqual(leftover, [])
 
 
@@ -78,7 +78,23 @@ class host_list_unittest(cli_mock.cli_unittest):
         hl = host.host_list()
         sys.argv = ['atest', '--label', 'label0,label2']
         (options, leftover) = hl.parse()
-        self.assertEqual('label0,label2', hl.labels)
+        self.assertEqualNoOrder(['label0', 'label2'], hl.labels)
+        self.assertEqual(leftover, [])
+
+
+    def test_parse_with_escaped_commas_label(self):
+        hl = host.host_list()
+        sys.argv = ['atest', '--label', 'label\\,0']
+        (options, leftover) = hl.parse()
+        self.assertEqual(['label,0'], hl.labels)
+        self.assertEqual(leftover, [])
+
+
+    def test_parse_with_escaped_commas_multi_labels(self):
+        hl = host.host_list()
+        sys.argv = ['atest', '--label', 'label\\,0,label\\,2']
+        (options, leftover) = hl.parse()
+        self.assertEqualNoOrder(['label,0', 'label,2'], hl.labels)
         self.assertEqual(leftover, [])
 
 
@@ -90,7 +106,7 @@ class host_list_unittest(cli_mock.cli_unittest):
         (options, leftover) = hl.parse()
         self.assertEqualNoOrder(['host0', 'host1','host3', 'host4'],
                                 hl.hosts)
-        self.assertEqual('label0', hl.labels)
+        self.assertEqual(['label0'], hl.labels)
         self.assertEqual(leftover, [])
         mfile.clean()
 
@@ -277,8 +293,8 @@ class host_list_unittest(cli_mock.cli_unittest):
     def test_execute_list_filter_multi_labels(self):
         self.run_cmd(argv=['atest', 'host', 'list',
                            '-b', 'label3,label2', '--ignore_site_file'],
-                     rpcs=[('get_hosts', {'multiple_labels': ['label3',
-                                                              'label2']},
+                     rpcs=[('get_hosts', {'multiple_labels': ['label2',
+                                                              'label3']},
                             True,
                             [{u'status': u'Ready',
                               u'hostname': u'host1',
@@ -309,8 +325,8 @@ class host_list_unittest(cli_mock.cli_unittest):
         self.run_cmd(argv=['atest', 'host', 'list',
                            '-b', 'label3,label2, label4',
                            '--ignore_site_file'],
-                     rpcs=[('get_hosts', {'multiple_labels': ['label3',
-                                                              'label2',
+                     rpcs=[('get_hosts', {'multiple_labels': ['label2',
+                                                              'label3',
                                                               'label4']},
                             True,
                             [{u'status': u'Ready',
@@ -355,8 +371,8 @@ class host_list_unittest(cli_mock.cli_unittest):
     def test_execute_list_filter_multi_labels_no_results(self):
         self.run_cmd(argv=['atest', 'host', 'list',
                            '-b', 'label3,label2, ', '--ignore_site_file'],
-                     rpcs=[('get_hosts', {'multiple_labels': ['label3',
-                                                              'label2']},
+                     rpcs=[('get_hosts', {'multiple_labels': ['label2',
+                                                              'label3']},
                             True,
                             [])],
                      out_words_ok=[],
@@ -1328,6 +1344,62 @@ class host_create_unittest(cli_mock.cli_unittest):
                             True, 42),
                            ('host_add_labels', {'id': 'host0',
                                                 'labels': ['label0']},
+                            True, None),
+                           ('acl_group_add_hosts',
+                            {'id': 'acl0', 'hosts': ['host1', 'host0']},
+                            True, None),
+                           ('modify_host', {'id': 'host1', 'locked': False},
+                            True, None),
+                           ('modify_host', {'id': 'host0', 'locked': False},
+                            True, None)],
+                     out_words_ok=['host0', 'host1'])
+
+
+    def test_execute_create_muliple_hosts_label_escaped_quotes(self):
+        self.run_cmd(argv=['atest', 'host', 'create',
+                           '-b', 'label0,label\\,1,label\\,2',
+                           '--acls', 'acl0', 'host0', 'host1',
+                           '--ignore_site_file'],
+                     rpcs=[('get_labels', {'name': 'label0'},
+                            True,
+                            [{u'id': 4,
+                              u'platform': 0,
+                              u'name': u'label0',
+                              u'invalid': False,
+                              u'kernel_config': u''}]),
+                           ('get_labels', {'name': 'label,1'},
+                            True,
+                            [{u'id': 4,
+                              u'platform': 0,
+                              u'name': u'label,1',
+                              u'invalid': False,
+                              u'kernel_config': u''}]),
+                           ('get_labels', {'name': 'label,2'},
+                            True,
+                            [{u'id': 4,
+                              u'platform': 0,
+                              u'name': u'label,2',
+                              u'invalid': False,
+                              u'kernel_config': u''}]),
+                           ('get_acl_groups', {'name': 'acl0'},
+                            True, []),
+                           ('add_acl_group', {'name': 'acl0'},
+                            True, 5),
+                           ('add_host', {'hostname': 'host1',
+                                         'status': 'Ready',
+                                         'locked': True},
+                            True, 42),
+                           ('host_add_labels', {'id': 'host1',
+                                                'labels': ['label0', 'label,1',
+                                                           'label,2']},
+                            True, None),
+                           ('add_host', {'hostname': 'host0',
+                                         'status': 'Ready',
+                                         'locked': True},
+                            True, 42),
+                           ('host_add_labels', {'id': 'host0',
+                                                'labels': ['label0', 'label,1',
+                                                           'label,2']},
                             True, None),
                            ('acl_group_add_hosts',
                             {'id': 'acl0', 'hosts': ['host1', 'host0']},
