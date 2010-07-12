@@ -307,10 +307,12 @@ class job_create_or_clone(action_common.atest_create, job):
                                                 use_leftover=True)
         oth_info = topic_common.item_parse_info(attribute_name='one_time_hosts',
                                                 inline_option='one_time_hosts')
+        label_info = topic_common.item_parse_info(attribute_name='labels',
+                                                  inline_option='labels')
 
         options, leftover = super(job_create_or_clone,
-                                  self).parse([host_info, job_info, oth_info],
-                                              req_items='jobname')
+                                  self).parse([host_info, job_info, oth_info,
+                                               label_info], req_items='jobname')
         self.data = {}
         if len(self.jobname) > 1:
             self.invalid_syntax('Too many arguments specified, only expected '
@@ -323,11 +325,9 @@ class job_create_or_clone(action_common.atest_create, job):
         if self.one_time_hosts:
             self.data['one_time_hosts'] = self.one_time_hosts
 
-        if options.labels:
-            labels = options.labels.split(',')
-            labels = [label.strip() for label in labels if label.strip()]
+        if self.labels:
             label_hosts = self.execute_rpc(op='get_hosts',
-                                           multiple_labels=labels)
+                                           multiple_labels=self.labels)
             for host in label_hosts:
                 self.hosts.append(host['hostname'])
 
