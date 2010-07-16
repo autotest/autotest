@@ -544,7 +544,8 @@ True
 ...         'reboot_before': 'If dirty',
 ...         'reboot_after': 'Always',
 ...         'parse_failed_repair': True,
-...         'drone_set': drone_set}
+...         'drone_set': drone_set,
+...         'parameterized_job': None}
 True
 
 # get_host_queue_entries returns a lot of data, so let's only check a couple

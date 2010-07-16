@@ -512,6 +512,10 @@ public class CreateJobView extends TabView
         controlHeaderPanel.add(viewLink);
         controlHeaderPanel.add(editControlButton);
 
+        if (parameterizedJobsEnabled()) {
+            editControlButton.setEnabled(false);
+        }
+
         controlFilePanel.setHeader(controlHeaderPanel);
         controlFilePanel.add(controlEditPanel);
 
@@ -801,5 +805,9 @@ public class CreateJobView extends TabView
         setRebootSelectorDefault(rebootAfter, "reboot_after");
         selectPreferredDroneSet();
         testSelector.reset();
+    }
+
+    private boolean parameterizedJobsEnabled() {
+        return staticData.getData("parameterized_jobs").isBoolean().booleanValue();
     }
 }

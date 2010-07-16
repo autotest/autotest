@@ -765,7 +765,8 @@ class Job(DBObject):
     _fields = ('id', 'owner', 'name', 'priority', 'control_file',
                'control_type', 'created_on', 'synch_count', 'timeout',
                'run_verify', 'email_list', 'reboot_before', 'reboot_after',
-               'parse_failed_repair', 'max_runtime_hrs', 'drone_set_id')
+               'parse_failed_repair', 'max_runtime_hrs', 'drone_set_id',
+               'parameterized_job_id')
 
     # This does not need to be a column in the DB.  The delays are likely to
     # be configured short.  If the scheduler is stopped and restarted in
