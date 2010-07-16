@@ -5,7 +5,7 @@ only RPC interface functions go into that file.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import datetime, os, sys
+import datetime, os, sys, inspect
 import django.http
 from autotest_lib.frontend.afe import models, model_logic, model_attributes
 
@@ -620,3 +620,132 @@ def interleave_entries(queue_entries, special_tasks):
             special_task_index += 1
 
     return interleaved_entries
+
+
+def get_create_job_common_args(local_args):
+    """
+    Returns a dict containing only the args that apply for create_job_common
+
+    Returns a subset of local_args, which contains only the arguments that can
+    be passed in to create_job_common().
+    """
+    arg_names, _, _, _ = inspect.getargspec(create_job_common)
+    return dict(item for item in local_args.iteritems() if item[0] in arg_names)
+
+
+def create_job_common(name, priority, control_type, control_file=None,
+                      hosts=(), meta_hosts=(), one_time_hosts=(),
+                      atomic_group_name=None, synch_count=None,
+                      is_template=False, timeout=None, max_runtime_hrs=None,
+                      run_verify=True, email_list='', dependencies=(),
+                      reboot_before=None, reboot_after=None,
+                      parse_failed_repair=None, hostless=False, keyvals=None,
+                      drone_set=None, parameterized_job=None):
+    """
+    Common code between creating "standard" jobs and creating parameterized jobs
+    """
+    user = models.User.current_user()
+    owner = user.login
+
+    # Convert metahost names to lower case, to avoid case sensitivity issues
+    meta_hosts = [meta_host.lower() for meta_host in meta_hosts]
+
+    # input validation
+    if not (hosts or meta_hosts or one_time_hosts or atomic_group_name
+            or hostless):
+        raise model_logic.ValidationError({
+            'arguments' : "You must pass at least one of 'hosts', "
+                          "'meta_hosts', 'one_time_hosts', "
+                          "'atomic_group_name', or 'hostless'"
+            })
+
+    if hostless:
+        if hosts or meta_hosts or one_time_hosts or atomic_group_name:
+            raise model_logic.ValidationError({
+                    'hostless': 'Hostless jobs cannot include any hosts!'})
+        server_type = models.Job.ControlType.get_string(
+                models.Job.ControlType.SERVER)
+        if control_type != server_type:
+            raise model_logic.ValidationError({
+                    'control_type': 'Hostless jobs cannot use client-side '
+                                    'control files'})
+
+    labels_by_name = dict((label.name.lower(), label)
+                          for label in models.Label.objects.all())
+    atomic_groups_by_name = dict((ag.name.lower(), ag)
+                                 for ag in models.AtomicGroup.objects.all())
+
+    # Schedule on an atomic group automagically if one of the labels given
+    # is an atomic group label and no explicit atomic_group_name was supplied.
+    if not atomic_group_name:
+        for label_name in meta_hosts or []:
+            label = labels_by_name.get(label_name)
+            if label and label.atomic_group:
+                atomic_group_name = label.atomic_group.name
+                break
+
+    # convert hostnames & meta hosts to host/label objects
+    host_objects = models.Host.smart_get_bulk(hosts)
+    metahost_objects = []
+    for label_name in meta_hosts or []:
+        if label_name in labels_by_name:
+            label = labels_by_name[label_name]
+            metahost_objects.append(label)
+        elif label_name in atomic_groups_by_name:
+            # If given a metahost name that isn't a Label, check to
+            # see if the user was specifying an Atomic Group instead.
+            atomic_group = atomic_groups_by_name[label_name]
+            if atomic_group_name and atomic_group_name != atomic_group.name:
+                raise model_logic.ValidationError({
+                        'meta_hosts': (
+                                'Label "%s" not found.  If assumed to be an '
+                                'atomic group it would conflict with the '
+                                'supplied atomic group "%s".' % (
+                                        label_name, atomic_group_name))})
+            atomic_group_name = atomic_group.name
+        else:
+            raise model_logic.ValidationError(
+                {'meta_hosts' : 'Label "%s" not found' % label_name})
+
+    # Create and sanity check an AtomicGroup object if requested.
+    if atomic_group_name:
+        if one_time_hosts:
+            raise model_logic.ValidationError(
+                    {'one_time_hosts':
+                     'One time hosts cannot be used with an Atomic Group.'})
+        atomic_group = models.AtomicGroup.smart_get(atomic_group_name)
+        if synch_count and synch_count > atomic_group.max_number_of_machines:
+            raise model_logic.ValidationError(
+                    {'atomic_group_name' :
+                     'You have requested a synch_count (%d) greater than the '
+                     'maximum machines in the requested Atomic Group (%d).' %
+                     (synch_count, atomic_group.max_number_of_machines)})
+    else:
+        atomic_group = None
+
+    for host in one_time_hosts or []:
+        this_host = models.Host.create_one_time_host(host)
+        host_objects.append(this_host)
+
+    options = dict(name=name,
+                   priority=priority,
+                   control_file=control_file,
+                   control_type=control_type,
+                   is_template=is_template,
+                   timeout=timeout,
+                   max_runtime_hrs=max_runtime_hrs,
+                   synch_count=synch_count,
+                   run_verify=run_verify,
+                   email_list=email_list,
+                   dependencies=dependencies,
+                   reboot_before=reboot_before,
+                   reboot_after=reboot_after,
+                   parse_failed_repair=parse_failed_repair,
+                   keyvals=keyvals,
+                   drone_set=drone_set,
+                   parameterized_job=parameterized_job)
+    return create_new_job(owner=owner,
+                          options=options,
+                          host_objects=host_objects,
+                          metahost_objects=metahost_objects,
+                          atomic_group=atomic_group)

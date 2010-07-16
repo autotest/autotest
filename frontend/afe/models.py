@@ -549,6 +549,21 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
         return unicode(self.name)
 
 
+class TestParameter(dbmodels.Model):
+    """
+    A declared parameter of a test
+    """
+    test = dbmodels.ForeignKey(Test)
+    name = dbmodels.CharField(max_length=255)
+
+    class Meta:
+        db_table = 'afe_test_parameters'
+        unique_together = ('test', 'name')
+
+    def __unicode__(self):
+        return u'%s (%s)' % (self.name, test.name)
+
+
 class Profiler(dbmodels.Model, model_logic.ModelExtensions):
     """\
     Required:
@@ -710,6 +725,135 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         return unicode(self.name)
 
 
+class Kernel(dbmodels.Model):
+    """
+    A kernel configuration for a parameterized job
+    """
+    version = dbmodels.CharField(max_length=255)
+    cmdline = dbmodels.CharField(max_length=255, blank=True)
+
+    @classmethod
+    def create_kernels(cls, kernel_list):
+        """
+        Creates all kernels in the kernel list
+
+        @param kernel_list A list of dictionaries that describe the kernels, in
+                           the same format as the 'kernel' argument to
+                           rpc_interface.generate_control_file
+        @returns a list of the created kernels
+        """
+        if not kernel_list:
+            return None
+        return [cls._create(kernel) for kernel in kernel_list]
+
+
+    @classmethod
+    def _create(cls, kernel_dict):
+        version = kernel_dict.pop('version')
+        cmdline = kernel_dict.pop('cmdline', '')
+
+        if kernel_dict:
+            raise Exception('Extraneous kernel arguments remain: %r'
+                            % kernel_dict)
+
+        kernel, _ = cls.objects.get_or_create(version=version,
+                                              cmdline=cmdline)
+        return kernel
+
+
+    class Meta:
+        db_table = 'afe_kernels'
+        unique_together = ('version', 'cmdline')
+
+    def __unicode__(self):
+        return u'%s %s' % (self.version, self.cmdline)
+
+
+class ParameterizedJob(dbmodels.Model):
+    """
+    Auxiliary configuration for a parameterized job
+    """
+    test = dbmodels.ForeignKey(Test)
+    label = dbmodels.ForeignKey(Label, null=True)
+    use_container = dbmodels.BooleanField(default=False)
+    profile_only = dbmodels.BooleanField(default=False)
+    upload_kernel_config = dbmodels.BooleanField(default=False)
+
+    kernels = dbmodels.ManyToManyField(
+            Kernel, db_table='afe_parameterized_job_kernels')
+    profilers = dbmodels.ManyToManyField(
+            Profiler, through='ParameterizedJobProfiler')
+
+
+    @classmethod
+    def smart_get(cls, id_or_name, *args, **kwargs):
+        """For compatibility with Job.add_object"""
+        return cls.objects.get(pk=id_or_name)
+
+
+    def job(self):
+        jobs = self.job_set.all()
+        assert jobs.count() <= 1
+        return jobs and jobs[0] or None
+
+
+    class Meta:
+        db_table = 'afe_parameterized_jobs'
+
+    def __unicode__(self):
+        return u'%s (parameterized) - %s' % (self.test.name, self.job())
+
+
+class ParameterizedJobProfiler(dbmodels.Model):
+    """
+    A profiler to run on a parameterized job
+    """
+    parameterized_job = dbmodels.ForeignKey(ParameterizedJob)
+    profiler = dbmodels.ForeignKey(Profiler)
+
+    class Meta:
+        db_table = 'afe_parameterized_jobs_profilers'
+        unique_together = ('parameterized_job', 'profiler')
+
+
+class ParameterizedJobProfilerParameter(dbmodels.Model):
+    """
+    A parameter for a profiler in a parameterized job
+    """
+    parameterized_job_profiler = dbmodels.ForeignKey(ParameterizedJobProfiler)
+    parameter_name = dbmodels.CharField(max_length=255)
+    parameter_value = dbmodels.TextField()
+    parameter_type = dbmodels.CharField(
+            max_length=8, choices=model_attributes.ParameterTypes.choices())
+
+    class Meta:
+        db_table = 'afe_parameterized_job_profiler_parameters'
+        unique_together = ('parameterized_job_profiler', 'parameter_name')
+
+    def __unicode__(self):
+        return u'%s - %s' % (self.parameterized_job_profiler.profiler.name,
+                             self.parameter_name)
+
+
+class ParameterizedJobParameter(dbmodels.Model):
+    """
+    Parameters for a parameterized job
+    """
+    parameterized_job = dbmodels.ForeignKey(ParameterizedJob)
+    test_parameter = dbmodels.ForeignKey(TestParameter)
+    parameter_value = dbmodels.TextField()
+    parameter_type = dbmodels.CharField(
+            max_length=8, choices=model_attributes.ParameterTypes.choices())
+
+    class Meta:
+        db_table = 'afe_parameterized_job_parameters'
+        unique_together = ('parameterized_job', 'test_parameter')
+
+    def __unicode__(self):
+        return u'%s - %s' % (self.parameterized_job.job().name,
+                             self.test_parameter.name)
+
+
 class JobManager(model_logic.ExtendedManager):
     'Custom manager to provide efficient status counts querying.'
     def get_status_counts(self, job_ids):
@@ -776,7 +920,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     priority = dbmodels.SmallIntegerField(choices=Priority.choices(),
                                           blank=True, # to allow 0
                                           default=Priority.MEDIUM)
-    control_file = dbmodels.TextField()
+    control_file = dbmodels.TextField(null=True, blank=True)
     control_type = dbmodels.SmallIntegerField(choices=ControlType.choices(),
                                               blank=True, # to allow 0
                                               default=ControlType.CLIENT)
@@ -799,6 +943,9 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     max_runtime_hrs = dbmodels.IntegerField(default=DEFAULT_MAX_RUNTIME_HRS)
     drone_set = dbmodels.ForeignKey(DroneSet, null=True, blank=True)
 
+    parameterized_job = dbmodels.ForeignKey(ParameterizedJob, null=True,
+                                            blank=True)
+
 
     # custom manager
     objects = JobManager()
@@ -809,12 +956,45 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
 
     @classmethod
+    def parameterized_jobs_enabled(cls):
+        return global_config.global_config.get_config_value(
+                'AUTOTEST_WEB', 'parameterized_jobs', type=bool)
+
+
+    @classmethod
+    def check_parameterized_job(cls, control_file, parameterized_job):
+        """
+        Checks that the job is valid given the global config settings
+
+        First, either control_file must be set, or parameterized_job must be
+        set, but not both. Second, parameterized_job must be set if and only if
+        the parameterized_jobs option in the global config is set to True.
+        """
+        if not (bool(control_file) ^ bool(parameterized_job)):
+            raise Exception('Job must have either control file or '
+                            'parameterization, but not both')
+
+        parameterized_jobs_enabled = cls.parameterized_jobs_enabled()
+        if control_file and parameterized_jobs_enabled:
+            raise Exception('Control file specified, but parameterized jobs '
+                            'are enabled')
+        if parameterized_job and not parameterized_jobs_enabled:
+            raise Exception('Parameterized job specified, but parameterized '
+                            'jobs are not enabled')
+
+
+    @classmethod
     def create(cls, owner, options, hosts):
         """\
         Creates a job by taking some information (the listed args)
         and filling in the rest of the necessary information.
         """
         AclGroup.check_for_acl_violation_hosts(hosts)
+
+        control_file = options.get('control_file')
+        parameterized_job = options.get('parameterized_job')
+        cls.check_parameterized_job(control_file=control_file,
+                                    parameterized_job=parameterized_job)
 
         user = User.current_user()
         if options.get('reboot_before') is None:
@@ -828,7 +1008,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             owner=owner,
             name=options['name'],
             priority=options['priority'],
-            control_file=options['control_file'],
+            control_file=control_file,
             control_type=options['control_type'],
             synch_count=options.get('synch_count'),
             timeout=options.get('timeout'),
@@ -839,7 +1019,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             reboot_after=options.get('reboot_after'),
             parse_failed_repair=options.get('parse_failed_repair'),
             created_on=datetime.now(),
-            drone_set=drone_set)
+            drone_set=drone_set,
+            parameterized_job=parameterized_job)
 
         job.dependency_labels = options['dependencies']
 
@@ -848,6 +1029,12 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                 JobKeyval.objects.create(job=job, key=key, value=value)
 
         return job
+
+
+    def save(self, *args, **kwargs):
+        self.check_parameterized_job(control_file=self.control_file,
+                                     parameterized_job=self.parameterized_job)
+        super(Job, self).save(*args, **kwargs)
 
 
     def queue(self, hosts, atomic_group=None, is_template=False):
