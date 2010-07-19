@@ -311,6 +311,47 @@ class TestBaseAutotest(unittest.TestCase):
         logger._process_line('AUTOTEST_FETCH_PACKAGE:pkgname.tar.bz2:'
                              '/autotest/dest/:/autotest/fifo3')
 
+class test_autotest_mixin(unittest.TestCase):
+    def setUp(self):
+        # a dummy Autotest and job class for use in the mixin
+        class stub_autotest(object):
+            class job(object):
+                state_dict = {}
+                def get_state(self, var, default):
+                    return self.state_dict.get(var, default)
+            job = job()
+
+            @staticmethod
+            def run(control_file, host=None):
+                self.control_file = control_file
+                self.host = host
+
+        self.mixin = autotest.AutotestHostMixin()
+        self.mixin._Autotest = stub_autotest
+        self.job = self.mixin._Autotest.job
+
+
+    def test_passes(self):
+        self.job.state_dict['test_result'] = True
+        self.assertEqual(True, self.mixin.run_test('sleeptest', seconds=1))
+        self.assert_("job.run_test('sleeptest', seconds=1)\n"
+                     in self.control_file)
+        self.assertEqual(self.mixin, self.host)
+
+
+    def test_fails_clean(self):
+        self.job.state_dict['test_result'] = False
+        self.assertEqual(False, self.mixin.run_test('sleeptest', seconds='2'))
+        self.assert_("job.run_test('sleeptest', seconds='2')\n"
+                     in self.control_file)
+        self.assertEqual(self.mixin, self.host)
+
+
+    def test_fails_with_exception(self):
+        self.assertEqual(False, self.mixin.run_test('sleeptest'))
+        self.assert_("job.run_test('sleeptest')\n" in self.control_file)
+        self.assertEqual(self.mixin, self.host)
+
 
 if __name__ == "__main__":
     unittest.main()
