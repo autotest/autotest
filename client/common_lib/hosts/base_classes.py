@@ -504,6 +504,16 @@ class Host(object):
         return self.run('cat /proc/cmdline').stdout.rstrip()
 
 
+    def get_meminfo(self):
+        """ Get the kernel memory info (/proc/meminfo) of the remote machine
+        and return a dictionary mapping the various statistics. """
+        meminfo_dict = {}
+        meminfo = self.run('cat /proc/meminfo').stdout.splitlines()
+        for key, val in (line.split(':', 1) for line in meminfo):
+            meminfo_dict[key.strip()] = val.strip()
+        return meminfo_dict
+
+
     def path_exists(self, path):
         """ Determine if path exists on the remote machine. """
         result = self.run('ls "%s" > /dev/null' % utils.sh_escape(path),
