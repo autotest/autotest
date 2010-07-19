@@ -1228,7 +1228,7 @@ class test_status_logger(unittest.TestCase):
         self.logger.record_entry(self.make_dummy_entry('LINE4', end=True))
 
         expected_log = ('LINE1\n  blah\nLINE2\n'
-                        '\tLINE3\n\t  blah\n\t  two\nLINE4\n')
+                        '\tLINE3\n  blah\n  two\nLINE4\n')
         self.assertEqual(expected_log, open('status').read())
 
 

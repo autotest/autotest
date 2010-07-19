@@ -596,22 +596,6 @@ class status_logger(object):
         self.subdir_filename = subdir_filename
         self._record_hook = record_hook
 
-    @staticmethod
-    def _indent_multiline_text(multiline_string, num_tabs):
-        """Indents all the lines of a multiline block of text.
-
-        @param multiline_string: A string to indent
-        @param num_tabs: The number of tabs to prepend to each line
-
-        @return: A copy of multiline_string with each line prepended with
-            num_tabs hard tabs.
-        """
-        prefix = '\t' * num_tabs
-        # indent every line after the first
-        indented = multiline_string.rstrip('\n').replace('\n', '\n' + prefix)
-        # stick an indent on the first line as well
-        return prefix + indented
-
 
     def render_entry(self, log_entry):
         """Render a status_log_entry as it would be written to a log file.
@@ -625,7 +609,7 @@ class status_logger(object):
             indent = self._indenter.indent - 1
         else:
             indent = self._indenter.indent
-        return self._indent_multiline_text(log_entry.render(), indent)
+        return '\t' * indent + log_entry.render().rstrip('\n')
 
 
     def record_entry(self, log_entry, log_in_subdir=True):
