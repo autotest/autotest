@@ -107,6 +107,8 @@ int text_size = 0;
 
 CRITICAL_SECTION critical_section;
 
+FILE *log_file;
+
 struct client_info {
     SOCKET socket;
     char addr_str[256];
@@ -157,16 +159,22 @@ void ExitOnError(const char *message, BOOL winsock = FALSE)
 void FlushTextBuffer()
 {
     if (!text_size) return;
+    // Clear the text box if it contains too much text
     int len = GetWindowTextLength(hTextBox);
     while (len > TEXTBOX_LIMIT - sizeof(text_buffer)) {
         SendMessage(hTextBox, EM_SETSEL, 0, TEXTBOX_LIMIT * 1/4);
         SendMessage(hTextBox, EM_REPLACESEL, FALSE, (LPARAM)"...");
         len = GetWindowTextLength(hTextBox);
     }
+    // Append the contents of text_buffer to the text box
     SendMessage(hTextBox, EM_SETSEL, len, len);
     SendMessage(hTextBox, EM_REPLACESEL, FALSE, (LPARAM)text_buffer);
+    // Clear text_buffer
     text_buffer[0] = 0;
     text_size = 0;
+    // Make sure the log file's buffer is flushed as well
+    if (log_file)
+        fflush(log_file);
 }
 
 void AppendMessage(const char *message, ...)
@@ -181,8 +189,13 @@ void AppendMessage(const char *message, ...)
     int len = strlen(str);
 
     EnterCriticalSection(&critical_section);
+    // Write message to the log file
+    if (log_file)
+        fwrite(str, len, 1, log_file);
+    // Flush the text buffer if necessary
     if (text_size + len + 1 > sizeof(text_buffer))
         FlushTextBuffer();
+    // Append message to the text buffer
     strcpy(text_buffer + text_size, str);
     text_size += len;
     LeaveCriticalSection(&critical_section);
@@ -881,6 +894,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     RECT rect;
     WSADATA wsaData;
+    SYSTEMTIME lt;
+    char log_filename[256];
 
     switch (msg) {
     case WM_CREATE:
@@ -907,6 +922,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         SendMessage(hTextBox, EM_LIMITTEXT, TEXTBOX_LIMIT, 0);
         // Initialize critical section object for text buffer access
         InitializeCriticalSection(&critical_section);
+        // Open log file
+        GetLocalTime(&lt);
+        sprintf(log_filename, "rss_%02d-%02d-%02d_%02d-%02d-%02d.log",
+                lt.wYear, lt.wMonth, lt.wDay,
+                lt.wHour, lt.wMinute, lt.wSecond);
+        log_file = fopen(log_filename, "wb");
         // Create text box update thread
         if (!CreateThread(NULL, 0, UpdateTextBox, NULL, 0, NULL))
             ExitOnError("Could not create text box update thread");
