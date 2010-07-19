@@ -54,6 +54,9 @@ class Host(object):
     WAIT_DOWN_REBOOT_TIMEOUT = 840
     WAIT_DOWN_REBOOT_WARNING = 540
     HOURS_TO_WAIT_FOR_RECOVERY = 2.5
+    # the number of hardware repair requests that need to happen before we
+    # actually send machines to hardware repair
+    HARDWARE_REPAIR_REQUEST_THRESHOLD = 4
 
 
     def __init__(self, *args, **dargs):
@@ -343,8 +346,9 @@ class Host(object):
 
         try:
             func(*args, **dargs)
-        except error.AutoservHardwareRepairRequestedError:
-            # let this special exception propagate
+        except (error.AutoservHardwareRepairRequestedError,
+                error.AutoservHardwareRepairRequiredError):
+            # let these special exceptions propagate
             raise
         except error.AutoservError:
             logging.exception('Repair failed but continuing in case it managed'
@@ -389,10 +393,26 @@ class Host(object):
 
 
     def repair_full(self):
+        hardware_repair_requests = 0
         while True:
             try:
                 self.repair_software_only()
                 break
+            except error.AutoservHardwareRepairRequiredError, err:
+                logging.exception('software repair failed, '
+                                  'hardware repair requested')
+                hardware_repair_requests += 1
+                try_hardware_repair = (hardware_repair_requests >=
+                                       self.HARDWARE_REPAIR_REQUEST_THRESHOLD)
+                if try_hardware_repair:
+                    logging.info('hardware repair requested %d times, '
+                                 'trying hardware repair',
+                                 hardware_repair_requests)
+                    self._call_repair_func(err, self.request_hardware_repair)
+                else:
+                    logging.info('hardware repair requested %d times, '
+                                 'trying software repair again',
+                                 hardware_repair_requests)
             except error.AutoservHardwareHostError, err:
                 logging.exception('verify failed')
                 # software repair failed, try hardware repair

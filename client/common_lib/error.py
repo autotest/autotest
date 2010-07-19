@@ -282,6 +282,14 @@ class AutoservHardwareRepairRequestedError(AutoservError):
     pass
 
 
+class AutoservHardwareRepairRequiredError(AutoservError):
+    """
+    Exception class raised during repairs to indicate that a hardware repair
+    is going to be necessary.
+    """
+    pass
+
+
 class AutoservInstallError(AutoservError):
     """Error occured while installing autotest on a host"""
     pass
