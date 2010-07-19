@@ -1048,3 +1048,27 @@ SiteAutotest = client_utils.import_site_class(
 
 class Autotest(SiteAutotest):
     pass
+
+
+class AutotestHostMixin(object):
+    """A generic mixin to add a run_test method to classes, which will allow
+    you to run an autotest client test on a machine directly."""
+
+    # for testing purposes
+    _Autotest = Autotest
+
+    def run_test(self, test_name, **dargs):
+        """Run an autotest client test on the host.
+
+        @param test_name: The name of the client test.
+        @param dargs: Keyword arguments to pass to the test.
+
+        @returns: True if the test passes, False otherwise."""
+        at = self._Autotest()
+        control_file = ('result = job.run_test(%s)\n'
+                        'job.set_state("test_result", result)\n')
+        test_args = [repr(test_name)]
+        test_args += ['%s=%r' % (k, v) for k, v in dargs.iteritems()]
+        control_file %= ', '.join(test_args)
+        at.run(control_file, host=self)
+        return at.job.get_state('test_result', default=False)
