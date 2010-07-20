@@ -414,18 +414,13 @@ class VM:
         if smp:
             qemu_cmd += add_smp(help, smp)
 
-        iso = params.get("cdrom")
-        if iso:
-            iso = kvm_utils.get_path(root_dir, iso)
-            qemu_cmd += add_cdrom(help, iso, 2)
-
-        # Even though this is not a really scalable approach,
-        # it doesn't seem like we are going to need more than
-        # 2 CDs active on the same VM.
-        iso_extra = params.get("cdrom_extra")
-        if iso_extra:
-            iso_extra = kvm_utils.get_path(root_dir, iso_extra)
-            qemu_cmd += add_cdrom(help, iso_extra, 3)
+        cdroms = kvm_utils.get_sub_dict_names(params, "cdroms")
+        for cdrom in cdroms:
+            cdrom_params = kvm_utils.get_sub_dict(params, cdrom)
+            iso = cdrom_params.get("cdrom")
+            if iso:
+                qemu_cmd += add_cdrom(help, kvm_utils.get_path(root_dir, iso),
+                                      cdrom_params.get("drive_index"))
 
         # We may want to add {floppy_otps} parameter for -fda
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
