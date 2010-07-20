@@ -214,16 +214,18 @@ class VM:
         def add_smp(help, smp):
             return " -smp %s" % smp
 
-        def add_cdrom(help, filename, index=2):
+        def add_cdrom(help, filename, index=None):
             if has_option(help, "drive"):
-                return " -drive file='%s',index=%d,media=cdrom" % (filename,
-                                                                   index)
+                cmd = " -drive file='%s',media=cdrom" % filename
+                if index is not None: cmd += ",index=%s" % index
+                return cmd
             else:
                 return " -cdrom '%s'" % filename
 
-        def add_drive(help, filename, format=None, cache=None, werror=None,
-                      serial=None, snapshot=False, boot=False):
+        def add_drive(help, filename, index=None, format=None, cache=None,
+                      werror=None, serial=None, snapshot=False, boot=False):
             cmd = " -drive file='%s'" % filename
+            if index is not None: cmd += ",index=%s" % index
             if format: cmd += ",if=%s" % format
             if cache: cmd += ",cache=%s" % cache
             if werror: cmd += ",werror=%s" % werror
@@ -362,6 +364,7 @@ class VM:
                 continue
             qemu_cmd += add_drive(help,
                                   get_image_filename(image_params, root_dir),
+                                  image_params.get("drive_index"),
                                   image_params.get("drive_format"),
                                   image_params.get("drive_cache"),
                                   image_params.get("drive_werror"),
@@ -414,7 +417,7 @@ class VM:
         iso = params.get("cdrom")
         if iso:
             iso = kvm_utils.get_path(root_dir, iso)
-            qemu_cmd += add_cdrom(help, iso)
+            qemu_cmd += add_cdrom(help, iso, 2)
 
         # Even though this is not a really scalable approach,
         # it doesn't seem like we are going to need more than
