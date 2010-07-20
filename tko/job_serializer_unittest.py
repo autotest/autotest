@@ -224,15 +224,6 @@ class JobSerializerUnittest(unittest.TestCase):
         self.assertEqual(kernel.base, newkernel.base)
         self.assertEqual(kernel.kernel_hash, newkernel.kernel_hash)
 
-        self.check_patches(kernel.patches, newkernel.patches)
-
-
-    def check_patches(self, patches, newpatches):
-        for patch, newpatch in zip(patches, newpatches):
-            self.assertEqual(patch.spec, newpatch.spec)
-            self.assertEqual(patch.reference, newpatch.reference)
-            self.assertEqual(patch.hash, newpatch.hash)
-
 
 class ReadBackTest(JobSerializerUnittest):
     """Check if convert between models.job and pb job is correct even

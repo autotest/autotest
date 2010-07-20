@@ -1,3 +1,4 @@
+
 syntax = "proto2";
 
 message Job {
@@ -8,14 +9,7 @@ message Job {
 
     message Kernel {
         required string base = 1;
-        repeated Patch patches = 2;
-        required string kernel_hash = 3;
-    }
-
-    message Patch {
-        required string spec = 1;
-        required string reference = 2;
-        required int64 hash = 3;
+        required string kernel_hash = 2;
     }
 
     message Iteration {

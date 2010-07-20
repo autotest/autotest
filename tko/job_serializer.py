@@ -55,14 +55,10 @@ class JobSerializer(object):
                                'iterations':list, 'attributes':dict,
                                'labels':list}
 
-        self.kernel_type_dict = {'base':str, 'patches':list,
-                                 'kernel_hash':str }
+        self.kernel_type_dict = {'base':str, 'kernel_hash':str}
 
         self.iteration_type_dict = {'index':int, 'attr_keyval':dict,
-                                    'perf_keyval':dict }
-
-        self.patch_type_dict = {'spec':str, 'reference':str,
-                                'hash':int}
+                                    'perf_keyval':dict}
 
 
     def deserialize_from_binary(self, infile):
@@ -279,11 +275,7 @@ class JobSerializer(object):
 
         fields_dict = self.get_trivial_attr(kernel, self.kernel_type_dict)
 
-        fields_dict['patches'] = [self.get_tko_patch(patch) for patch
-                                  in kernel.patches]
-
-        return models.kernel(fields_dict['base'], fields_dict['patches'],
-                             fields_dict['kernel_hash'])
+        return models.kernel(fields_dict['base'], [], fields_dict['kernel_hash'])
 
 
     def set_pb_kernel(self, tko_kernel, pb_kernel):
@@ -300,45 +292,6 @@ class JobSerializer(object):
         """
 
         self.set_trivial_attr(tko_kernel, pb_kernel, self.kernel_type_dict)
-
-        for patch in tko_kernel.patches:
-            newpatch = pb_kernel.patches.add()
-            self.set_pb_patch(patch, newpatch)
-
-
-    def get_tko_patch(self, patch):
-        """Constructs a new tko patch object from the provided pb
-        patch instance.
-
-        Extracts data from the provided pb patch and creates a new tko
-        patch using the models.patch constructor.
-
-        @param
-        patch: a pb patch that contains the data for the new tko patch
-
-        @return a new tko patch with the same data as in the pb patch.
-        """
-
-        fields_dict = self.get_trivial_attr(patch, self.patch_type_dict)
-        return models.patch(fields_dict['spec'],
-                            fields_dict['reference'],
-                            fields_dict['hash'])
-
-
-    def set_pb_patch(self, tko_patch, pb_patch):
-        """Set a specific patch of a kernel.
-
-        Takes the same form of all the other setting methods.  It
-        seperates the string variables from the int variables and set
-        them safely.
-
-        @param
-        tko_patch: a tko patch.
-        pb_patch: an empty protocol buffer patch.
-
-        """
-
-        self.set_trivial_attr(tko_patch, pb_patch, self.patch_type_dict)
 
 
     def get_tko_iteration(self, iteration):
