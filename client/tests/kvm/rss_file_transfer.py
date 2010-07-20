@@ -395,6 +395,30 @@ class FileDownloadClient(FileTransferClient):
             raise
 
 
+def upload(address, port, src_pattern, dst_path, timeout=60,
+           connect_timeout=10):
+    """
+    Connect to server and upload files.
+
+    @see: FileUploadClient
+    """
+    client = FileUploadClient(address, port, connect_timeout)
+    client.upload(src_pattern, dst_path, timeout)
+    client.close()
+
+
+def download(address, port, src_pattern, dst_path, timeout=60,
+             connect_timeout=10):
+    """
+    Connect to server and upload files.
+
+    @see: FileDownloadClient
+    """
+    client = FileDownloadClient(address, port, connect_timeout)
+    client.download(src_pattern, dst_path, timeout)
+    client.close()
+
+
 def main():
     import optparse
 
@@ -418,13 +442,9 @@ def main():
     port = int(port)
 
     if options.download:
-        client = FileDownloadClient(address, port)
-        client.download(src_pattern, dst_path, timeout=options.timeout)
-        client.close()
+        download(address, port, src_pattern, dst_path, options.timeout)
     elif options.upload:
-        client = FileUploadClient(address, port)
-        client.upload(src_pattern, dst_path, timeout=options.timeout)
-        client.close()
+        upload(address, port, src_pattern, dst_path, options.timeout)
 
 
 if __name__ == "__main__":
