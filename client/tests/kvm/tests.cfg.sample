@@ -13,8 +13,8 @@ include cdkeys.cfg
 # * All image files are expected under /tmp/kvm_autotest_root/images/
 # * All iso files are expected under /tmp/kvm_autotest_root/isos/
 qemu_img_binary = /usr/bin/qemu-img
-image_name.* ?<= /tmp/kvm_autotest_root/images/
-cdrom.* ?<= /tmp/kvm_autotest_root/isos/
+image_name(_.*)? ?<= /tmp/kvm_autotest_root/images/
+cdrom(_.*)? ?<= /tmp/kvm_autotest_root/isos/
 
 # Here are the test sets variants. The variant 'qemu_kvm_windows_quick' is
 # fully commented, the following ones have comments only on noteworthy points

@@ -3,9 +3,10 @@
 # Define the objects we'll be using
 vms = vm1
 images = image1
+cdroms = cd1
 nics = nic1
 monitors = humanmonitor1
-login_timeout = 360
+
 # Choose the main VM and monitor
 main_vm = vm1
 main_monitor = humanmonitor1
@@ -33,8 +34,10 @@ qemu_img_binary = qemu-img
 smp = 1
 mem = 512
 image_size = 10G
+drive_index_image1 = 0
 shell_port = 22
 display = vnc
+drive_index_cd1 = 2
 
 # Monitor params
 monitor_type = human
@@ -56,6 +59,7 @@ run_tcpdump = yes
 
 # Misc
 profilers = kvm_stat
+login_timeout = 360
 
 
 # Tests
@@ -1045,7 +1049,9 @@ variants:
         unattended_install.cdrom:
             timeout = 7200
             finish_program = deps/finish.exe
-            cdrom_extra = windows/winutils.iso
+            cdroms += " extracd"
+            cdrom_extracd = windows/winutils.iso
+            drive_index_extracd = 3
         migrate:
             migration_test_command = ver && vol
             migration_bg_command = start ping -t localhost
