@@ -91,11 +91,6 @@ class test(common_test.base_test):
         test, let the user know.
         """
         if self.crash_handling_enabled:
-            core_dirs = glob.glob('%s/crash.*' % self.debugdir)
-            if core_dirs:
-                logging.warning('Programs crashed during test execution:')
-                for dir in core_dirs:
-                    logging.warning('Please verify %s for more info', dir)
             # Remove the debugdir info file
             os.unlink(self.debugdir_tmp_file)
             # Restore the core pattern backup
@@ -104,6 +99,12 @@ class test(common_test.base_test):
                                        self.core_pattern_backup)
             except EnvironmentError:
                 pass
+            # Let the user know if core dumps were generated during the test
+            core_dirs = glob.glob('%s/crash.*' % self.debugdir)
+            if core_dirs:
+                logging.warning('Programs crashed during test execution')
+                for dir in core_dirs:
+                    logging.warning('Please verify %s for more info', dir)
 
 
 def runtest(job, url, tag, args, dargs):
