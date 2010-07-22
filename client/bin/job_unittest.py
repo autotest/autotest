@@ -153,6 +153,8 @@ class test_base_job(unittest.TestCase):
         self.god.stub_class(boottool, 'boottool')
         self.god.stub_class(sysinfo, 'sysinfo')
 
+        self.god.stub_class_method(job.base_client_job,
+                                   '_cleanup_debugdir_files')
         self.god.stub_class_method(job.base_client_job, '_cleanup_results_dir')
 
         self.god.stub_with(job.base_job.job_directory, '_ensure_valid',
@@ -170,6 +172,7 @@ class test_base_job(unittest.TestCase):
         resultdir = os.path.join(self.autodir, 'results', self.jobtag)
         tmpdir = os.path.join(self.autodir, 'tmp')
         if not cont:
+            job.base_client_job._cleanup_debugdir_files.expect_call()
             job.base_client_job._cleanup_results_dir.expect_call()
 
         self.job._load_state.expect_call()

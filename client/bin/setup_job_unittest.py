@@ -135,8 +135,9 @@ class test_setup_job(unittest.TestCase):
         self.god.stub_function(setup_job, 'open')
         self.god.stub_function(utils, 'system')
 
+        self.god.stub_class_method(job.base_client_job,
+                                   '_cleanup_debugdir_files')
         self.god.stub_class_method(job.base_client_job, '_cleanup_results_dir')
-#        self.god.stub_class_method(setup_job.setup_job, '_cleanup_results_dir')
 
         self.god.stub_with(base_job.job_directory, '_ensure_valid',
                            lambda *_: None)
@@ -150,6 +151,7 @@ class test_setup_job(unittest.TestCase):
     def _setup_pre_record_init(self):
         resultdir = os.path.join(self.autodir, 'results', self.jobtag)
         tmpdir = os.path.join(self.autodir, 'tmp')
+        job.base_client_job._cleanup_debugdir_files.expect_call()
         job.base_client_job._cleanup_results_dir.expect_call()
 
         return resultdir

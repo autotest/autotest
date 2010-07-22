@@ -30,6 +30,7 @@ class setup_job(client_job.job):
                         See all options defined on client/bin/autotest.
         """
         base_job.base_job.__init__(self, options=options)
+        self._cleanup_debugdir_files()
         self._cleanup_results_dir()
         self.pkgmgr = packages.PackageManager(
             self.autodir, run_function_dargs={'timeout':3600})
@@ -71,18 +72,18 @@ def init_test(options, testdir):
             exec import_stmt + '\n' + init_stmt in locals_dict, globals_dict
             client_test = globals_dict['auto_test']
         except ImportError, e:
-           # skips error if test is control file without python test 
-           if re.search(test_name, str(e)):
-               pass
-           # give the user a warning if there is an import error.
-           else:
-               logging.error('%s import error: %s.  Skipping %s' %
-                             (test_name, e, test_name))
+            # skips error if test is control file without python test
+            if re.search(test_name, str(e)):
+                pass
+            # give the user a warning if there is an import error.
+            else:
+                logging.error('%s import error: %s.  Skipping %s' %
+                              (test_name, e, test_name))
         except Exception, e:
-           # Log other errors (e.g., syntax errors) and collect the test.
-           logging.error("%s: %s", test_name, e)
+            # Log other errors (e.g., syntax errors) and collect the test.
+            logging.error("%s: %s", test_name, e)
     finally:
-       sys.path.pop(0) # pop up testbindir
+        sys.path.pop(0) # pop up testbindir
     return client_test
 
 
@@ -111,7 +112,7 @@ def load_all_client_tests(options):
             if client_test:
                 all_tests.append(client_test)
             else:
-                broken_tests.append(test_name) 
+                broken_tests.append(test_name)
     return all_tests, broken_tests
 
 
