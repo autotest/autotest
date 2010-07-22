@@ -5,7 +5,22 @@ Simple crash handling application for autotest
 @copyright Red Hat Inc 2009
 @author Lucas Meneghel Rodrigues <lmr@redhat.com>
 """
-import sys, os, commands, glob, tempfile, shutil, syslog, re, time
+import sys, os, commands, glob, shutil, syslog, re, time, random, string
+
+
+def generate_random_string(length):
+    """
+    Return a random string using alphanumeric characters.
+
+    @length: length of the string that will be generated.
+    """
+    r = random.SystemRandom()
+    str = ""
+    chars = string.letters + string.digits
+    while length > 0:
+        str += r.choice(chars)
+        length -= 1
+    return str
 
 
 def get_parent_pid(pid):
@@ -24,15 +39,15 @@ def get_parent_pid(pid):
     return ppid
 
 
-def write_to_file(filename, data, compress=False):
+def write_to_file(filename, data, report=False):
     """
     Write contents to a given file path specified. If not specified, the file
-    will be created. Optionally, compress the destination file.
+    will be created.
 
     @param file_path: Path to a given file.
     @param data: File contents.
-    @param compress: Whether the file is going to be compressed at the end of
-            the data write process.
+    @param report: Whether we'll use GDB to get a backtrace report of the
+                   file.
     """
     f = open(filename, 'w')
     try:
@@ -40,12 +55,8 @@ def write_to_file(filename, data, compress=False):
     finally:
         f.close()
 
-    if compress:
-        s, o = commands.getstatusoutput('bzip2 %s' % filename)
-        if s:
-            syslog.syslog("File %s compression failed: %s" % (filename, o))
-        else:
-            filename += '.bz2'
+    if report:
+        gdb_report(filename)
 
     return filename
 
@@ -89,6 +100,7 @@ def get_results_dir_list(pid, core_dir_basename):
 def get_info_from_core(path):
     """
     Reads a core file and extracts a dictionary with useful core information.
+
     Right now, the only information extracted is the full executable name.
 
     @param path: Path to core file.
@@ -111,110 +123,98 @@ def get_info_from_core(path):
     return {'full_exe_path': full_exe_path}
 
 
+def gdb_report(path):
+    """
+    Use GDB to produce a report with information about a given core.
+
+    @param path: Path to core file.
+    """
+    # Get full command path
+    exe_path = get_info_from_core(path)['full_exe_path']
+    basedir = os.path.dirname(path)
+    gdb_command_path = os.path.join(basedir, 'gdb_cmd')
+
+    if exe_path is not None:
+        # Write a command file for GDB
+        gdb_command = 'bt full\n'
+        write_to_file(gdb_command_path, gdb_command)
+
+        # Take a backtrace from the running program
+        gdb_cmd = ('gdb -e %s -c %s -x %s -n -batch -quiet' %
+                   (exe_path, path, gdb_command_path))
+        backtrace = commands.getoutput(gdb_cmd)
+        # Sanitize output before passing it to the report
+        backtrace = backtrace.decode('utf-8', 'ignore')
+    else:
+        exe_path = "Unknown"
+        backtrace = ("Could not determine backtrace for core file %s" % path)
+
+    # Composing the format_dict
+    report = "Program: %s\n" % exe_path
+    if crashed_pid is not None:
+        report += "PID: %s\n" % crashed_pid
+    if signal is not None:
+        report += "Signal: %s\n" % signal
+    if hostname is not None:
+        report += "Hostname: %s\n" % hostname
+    if crash_time is not None:
+        report += ("Time of the crash (according to kernel): %s\n" %
+                   time.ctime(float(crash_time)))
+    report += "Program backtrace:\n%s\n" % backtrace
+
+    report_path = os.path.join(basedir, 'report')
+    write_to_file(report_path, report)
+
+
+def write_cores(core_data, dir_list):
+    """
+    Write core files to all directories, optionally providing reports.
+
+    @param core_data: Contents of the core file.
+    @param dir_list: List of directories the cores have to be written.
+    @param report: Whether reports are to be generated for those core files.
+    """
+    syslog.syslog("Writing core files to %s" % dir_list)
+    for result_dir in dir_list:
+        if not os.path.isdir(result_dir):
+            os.makedirs(result_dir)
+        core_path = os.path.join(result_dir, 'core')
+        core_path = write_to_file(core_path, core_file, report=True)
+
+
 if __name__ == "__main__":
     syslog.openlog('AutotestCrashHandler', 0, syslog.LOG_DAEMON)
+    global crashed_pid, crash_time, uid, signal, hostname, exe
     try:
+        full_functionality = False
         try:
-            full_functionality = False
-            try:
-                (crashed_pid, crash_time, uid, signal, hostname, exe) = sys.argv[1:]
-                full_functionality = True
-            except ValueError, e:
-                # Probably due a kernel bug, we can't exactly map the parameters
-                # passed to this script. So we have to reduce the functionality
-                # of the script (just write the core at a fixed place).
-                syslog.syslog("Unable to unpack parameters passed to the "
-                              "script. Operating with limited functionality.")
+            crashed_pid, crash_time, uid, signal, hostname, exe = sys.argv[1:]
+            full_functionality = True
+        except ValueError, e:
+            # Probably due a kernel bug, we can't exactly map the parameters
+            # passed to this script. So we have to reduce the functionality
+            # of the script (just write the core at a fixed place).
+            syslog.syslog("Unable to unpack parameters passed to the "
+                          "script. Operating with limited functionality.")
+            crashed_pid, crash_time, uid, signal, hostname, exe = (None, None,
+                                                                   None, None,
+                                                                   None, None)
 
-            core_name = 'core'
-            report_name = 'report'
-
-            core_tmp_dir = tempfile.mkdtemp(prefix='core_', dir='/tmp')
-            core_tmp_path = os.path.join(core_tmp_dir, core_name)
-            gdb_command_path = os.path.join(core_tmp_dir, 'gdb_command')
-
-            if full_functionality:
-                core_dir_name = 'crash.%s.%s' % (exe, crashed_pid)
-            else:
-                crashed_pid = None
-                core_dir_name = os.path.basename(core_tmp_dir)
-
-            # Get the filtered results dir list
-            current_results_dir_list = get_results_dir_list(crashed_pid,
-                                                            core_dir_name)
-
-            # Write the core file to the appropriate directory
-            # (we are piping it to this script)
-            core_file = sys.stdin.read()
-            # Write the core file to its temporary location, let's keep it
-            # there in case something goes wrong
-            core_tmp_path = write_to_file(core_tmp_path, core_file)
-            processing_succeed = False
-
-            if not full_functionality:
-                syslog.syslog("Writing core files to %s" %
-                              current_results_dir_list)
-                for result_dir in current_results_dir_list:
-                    if not os.path.isdir(result_dir):
-                        os.makedirs(result_dir)
-                    core_path = os.path.join(result_dir, 'core')
-                    core_path = write_to_file(core_path, core_file,
-                                              compress=True)
-                    processing_succeed = True
-                raise ValueError("Incorrect params passed to handler "
-                                 "script: %s." % sys.argv[1:])
-
-            # Get full command path
-            exe_path = get_info_from_core(core_tmp_path)['full_exe_path']
-
-            if exe_path is not None:
-                # Write a command file for GDB
-                gdb_command = 'bt full\n'
-                write_to_file(gdb_command_path, gdb_command)
-
-                # Take a backtrace from the running program
-                gdb_cmd = ('gdb -e %s -c %s -x %s -n -batch -quiet' %
-                           (exe_path, core_tmp_path, gdb_command_path))
-                backtrace = commands.getoutput(gdb_cmd)
-                # Sanitize output before passing it to the report
-                backtrace = backtrace.decode('utf-8', 'ignore')
-            else:
-                exe_path = "Unknown"
-                backtrace = ("Could not determine backtrace for core file %s" %
-                             core_tmp_path)
-
-            # Composing the format_dict
-            report = "Program: %s\n" % exe_path
-            report += "PID: %s\n" % crashed_pid
-            report += "Signal: %s\n" % signal
-            report += "Hostname: %s\n" % hostname
-            report += "Time of the crash: %s\n" % time.ctime(float(crash_time))
-            report += "Program backtrace:\n%s\n" % backtrace
-
-            syslog.syslog("Application %s, PID %s crashed" %
-                          (exe_path, crashed_pid))
-
-            # Now, for all results dir, let's create the directory if it doesn't
-            # exist, and write the core file and the report to it.
-            syslog.syslog("Writing core files and reports to %s" %
-                          current_results_dir_list)
-            for result_dir in current_results_dir_list:
-                if not os.path.isdir(result_dir):
-                    os.makedirs(result_dir)
-                core_path = os.path.join(result_dir, 'core')
-                core_path = write_to_file(core_path, core_file, compress=True)
-                report_path = os.path.join(result_dir, 'report')
-                write_to_file(report_path, report)
-            processing_succeed = True
-
-        except Exception, e:
-            syslog.syslog("Crash handler had a problem: %s" % e)
-
-    finally:
-        if processing_succeed:
-            if os.path.isdir(core_tmp_dir):
-                shutil.rmtree(core_tmp_dir)
+        if full_functionality:
+            core_dir_name = 'crash.%s.%s' % (exe, crashed_pid)
         else:
-            syslog.syslog("Crash handler failed to process the core file. "
-                          "A copy of the file was kept at %s" %
-                          core_tmp_path)
+            core_dir_name = 'core.%s' % generate_random_string(4)
+
+        # Get the filtered results dir list
+        results_dir_list = get_results_dir_list(crashed_pid, core_dir_name)
+
+        # Write the core file to the appropriate directory
+        # (we are piping it to this script)
+        core_file = sys.stdin.read()
+
+        if (exe is not None) and (crashed_pid is not None):
+            syslog.syslog("Application %s, PID %s crashed" % (exe, crashed_pid))
+        write_cores(core_file, results_dir_list)
+
+    except Exception, e:
+        syslog.syslog("Crash handler had a problem: %s" % e)
