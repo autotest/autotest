@@ -158,6 +158,7 @@ class base_client_job(base_job.base_job):
         self.harness and of course self._logger.
         """
         if not options.cont:
+            self._cleanup_debugdir_files()
             self._cleanup_results_dir()
 
         logging_manager.configure_logging(
@@ -314,6 +315,15 @@ class base_client_job(base_job.base_job):
                 shutil.rmtree(f)
             elif os.path.isfile(f):
                 os.remove(f)
+
+
+    def _cleanup_debugdir_files(self):
+        """
+        Delete any leftover debugdir files
+        """
+        list_files = glob.glob("/tmp/autotest_results_dir.*")
+        for f in list_files:
+            os.remove(f)
 
 
     def disable_warnings(self, warning_type):
