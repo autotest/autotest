@@ -97,7 +97,7 @@ if __name__ == "__main__":
                  "provide you an ISO that this script can download")
 
     url = "http://people.redhat.com/mrodrigu/kvm/winutils.iso"
-    hash = "301da394fe840172188a32f8ba01524993baa0cb"
+    hash = "02930224756510e383c44c49bffb760e35d6f892"
     destination = os.path.join(base_dir, 'isos', 'windows')
     check_iso(url, destination, hash)
 
