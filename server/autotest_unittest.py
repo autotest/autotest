@@ -3,6 +3,7 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
 import unittest, os, tempfile, logging
+
 import common
 from autotest_lib.server import autotest, utils, hosts, server_job, profilers
 from autotest_lib.client.bin import sysinfo
@@ -49,7 +50,6 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(os, "remove")
         self.god.stub_function(os, "fdopen")
         self.god.stub_function(os.path, "exists")
-        self.god.stub_function(os.path, "isdir")
         self.god.stub_function(autotest, "open")
         self.god.stub_function(autotest.global_config.global_config,
                                "get_config_value")
@@ -117,7 +117,6 @@ class TestBaseAutotest(unittest.TestCase):
     def test_full_client_install(self):
         self.record_install_prologue()
 
-        os.path.isdir.expect_call('source_material').and_return(True)
         c = autotest.global_config.global_config
         c.get_config_value.expect_call('PACKAGES',
                                        'serve_packages_from_autoserv',
@@ -137,7 +136,6 @@ class TestBaseAutotest(unittest.TestCase):
         c.get_config_value.expect_call('PACKAGES',
             'fetch_location', type=list, default=[]).and_return([])
 
-        os.path.isdir.expect_call('source_material').and_return(True)
         c.get_config_value.expect_call('PACKAGES',
                                        'serve_packages_from_autoserv',
                                        type=bool).and_return(True)
@@ -310,6 +308,7 @@ class TestBaseAutotest(unittest.TestCase):
         logging.exception.expect_call(mock.is_string_comparator())
         logger._process_line('AUTOTEST_FETCH_PACKAGE:pkgname.tar.bz2:'
                              '/autotest/dest/:/autotest/fifo3')
+
 
 class test_autotest_mixin(unittest.TestCase):
     def setUp(self):
