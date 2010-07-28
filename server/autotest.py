@@ -221,20 +221,14 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # try to install from file or directory
         if self.source_material:
-            if os.path.isdir(self.source_material):
-                c = global_config.global_config
-                supports_autoserv_packaging = c.get_config_value(
-                    "PACKAGES", "serve_packages_from_autoserv", type=bool)
-                # Copy autotest recursively
-                if supports_autoserv_packaging and use_autoserv:
-                    self._install_using_send_file(host, autodir)
-                else:
-                    host.send_file(self.source_material, autodir,
-                                   delete_dest=True)
+            c = global_config.global_config
+            supports_autoserv_packaging = c.get_config_value(
+                "PACKAGES", "serve_packages_from_autoserv", type=bool)
+            # Copy autotest recursively
+            if supports_autoserv_packaging and use_autoserv:
+                self._install_using_send_file(host, autodir)
             else:
-                # Copy autotest via tarball
-                e_msg = 'Installation method not yet implemented!'
-                raise NotImplementedError(e_msg)
+                host.send_file(self.source_material, autodir, delete_dest=True)
             logging.info("Installation of autotest completed")
             self.installed = True
             return
@@ -427,7 +421,7 @@ class BaseAutotest(installable_object.InstallableObject):
                             *args, **dargs)
 
 
-class _Run(object):
+class _BaseRun(object):
     """
     Represents a run of autotest control file.  This class maintains
     all the state necessary as an autotest control file is executed.
@@ -485,7 +479,7 @@ class _Run(object):
     def get_background_cmd(self, section):
         cmd = ['nohup', os.path.join(self.autodir, 'bin/autotest_client')]
         cmd += self.get_base_cmd_args(section)
-        cmd.append('>/dev/null 2>/dev/null &')
+        cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
 
 
@@ -493,7 +487,7 @@ class _Run(object):
         cmd = ['nohup', os.path.join(self.autodir, 'bin/autotestd'),
                monitor_dir, '-H autoserv']
         cmd += self.get_base_cmd_args(section)
-        cmd.append('>/dev/null 2>/dev/null </dev/null &')
+        cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
 
 
@@ -1046,7 +1040,15 @@ SiteAutotest = client_utils.import_site_class(
     BaseAutotest)
 
 
+_SiteRun = client_utils.import_site_class(
+    __file__, "autotest_lib.server.site_autotest", "_SiteRun", _BaseRun)
+
+
 class Autotest(SiteAutotest):
+    pass
+
+
+class _Run(_SiteRun):
     pass
 
 
