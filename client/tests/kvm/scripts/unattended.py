@@ -41,7 +41,7 @@ class UnattendedInstall(object):
 
         self.kernel_args = os.environ.get('KVM_TEST_kernel_args', '')
         self.finish_program= os.environ.get('KVM_TEST_finish_program', '')
-        cdrom_iso = os.environ.get('KVM_TEST_cdrom')
+        cdrom_iso = os.environ.get('KVM_TEST_cdrom_cd1')
         self.unattended_file = os.environ.get('KVM_TEST_unattended_file')
 
         self.qemu_img_bin = os.environ.get('KVM_TEST_qemu_img_binary')
