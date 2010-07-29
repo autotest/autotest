@@ -36,6 +36,12 @@ class HugePage:
 
         self.hugepage_size = self.get_hugepage_size()
         self.target_hugepages = self.get_target_hugepages()
+        print "Number of VMs this test will use: %d" % self.vms
+        print "Amount of memory used by each vm: %s" % self.mem
+        print ("System setting for large memory page size: %s" %
+               self.hugepage_size)
+        print ("Number of large memory pages needed for this test: %s" %
+               self.target_hugepages)
 
 
     def get_hugepage_size(self):
@@ -79,6 +85,8 @@ class HugePage:
                                     "to the target value of %d hugepages." %
                                     self.target_hugepages)
         hugepage_cfg.close()
+        print ("Successfuly set %s large memory pages on host " %
+               self.target_hugepages)
 
 
     def mount_hugepage_fs(self):
