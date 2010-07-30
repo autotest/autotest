@@ -4,10 +4,11 @@
 
 __author__ = 'gps@google.com (Gregory P. Smith)'
 
-import os, unittest
+import os, sys, unittest
 from cStringIO import StringIO
 import common
 from autotest_lib.client.common_lib.test_utils import mock
+from autotest_lib.client.bin import partition
 
 
 class FsOptions_common(object):
@@ -132,31 +133,29 @@ class get_partition_list_common(object):
 # non site specific code
 class FSOptions_base_test(FsOptions_common, unittest.TestCase):
     def setUp(self):
-        global partition
-        from autotest_lib.client.bin import base_partition
-        partition = base_partition
+        sys.modules['autotest_lib.client.bin.site_partition'] = None
+        reload(partition)
 
 
 class get_partition_list_base_test(get_partition_list_common, unittest.TestCase):
     def setUp(self):
-        global partition
-        from autotest_lib.client.bin import base_partition
-        partition = base_partition
-
+        sys.modules['autotest_lib.client.bin.site_partition'] = None
+        reload(partition)
         get_partition_list_common.setUp(self)
 
 
 class FSOptions_test(FsOptions_common, unittest.TestCase):
     def setUp(self):
-        global partition
-        from autotest_lib.client.bin import partition
+        if 'autotest_lib.client.bin.site_partition' in sys.modules:
+            del sys.modules['autotest_lib.client.bin.site_partition']
+        reload(partition)
 
 
 class get_partition_list_test(get_partition_list_common, unittest.TestCase):
     def setUp(self):
-        global partition
-        from autotest_lib.client.bin import partition
-
+        if 'autotest_lib.client.bin.site_partition' in sys.modules:
+            del sys.modules['autotest_lib.client.bin.site_partition']
+        reload(partition)
         get_partition_list_common.setUp(self)
 
 
