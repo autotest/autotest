@@ -20,6 +20,7 @@ def run_timedrift_with_stop(test, params, env):
     @param env: Dictionary with the test environment.
     """
     login_timeout = int(params.get("login_timeout", 360))
+    sleep_time = int(params.get("sleep_time", 30))
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     session = kvm_test_utils.wait_for_login(vm, timeout=login_timeout)
 
@@ -53,6 +54,10 @@ def run_timedrift_with_stop(test, params, env):
             vm.monitor.cmd("stop")
             time.sleep(stop_time)
             vm.monitor.cmd("cont")
+
+            # Sleep for a while to wait the interrupt to be reinjected
+            logging.info("Waiting for the interrupt to be reinjected ...")
+            time.sleep(sleep_time)
 
             # Get time after current iteration
             (ht1_, gt1_) = kvm_test_utils.get_time(session, time_command,
