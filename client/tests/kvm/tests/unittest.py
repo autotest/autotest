@@ -75,6 +75,7 @@ def run_unittest(test, params, env):
         extra_params = None
         if parser.has_option(t, 'extra_params'):
             extra_params = parser.get(t, 'extra_params')
+            params['extra_params'] += ' %s' % extra_params
 
         vm_name = params.get("main_vm")
         params['kernel'] = os.path.join(unittest_dir, file)
@@ -108,7 +109,7 @@ def run_unittest(test, params, env):
                 logging.info("Unit test log collected and available under %s",
                              testlog_path)
             except NameError, IOError:
-               logging.error("Not possible to collect logs")
+                logging.error("Not possible to collect logs")
 
     if nfail != 0:
         raise error.TestFail("Unit tests failed: %s" % " ".join(tests_failed))
