@@ -46,6 +46,8 @@ def run_unittest(test, params, env):
 
     timeout = int(params.get('unittest_timeout', 600))
 
+    extra_params_original = params['extra_params']
+
     for t in test_list:
         logging.info('Running %s', t)
 
@@ -110,6 +112,9 @@ def run_unittest(test, params, env):
                              testlog_path)
             except NameError, IOError:
                 logging.error("Not possible to collect logs")
+
+        # Restore the extra params so other tests can run normally
+        params['extra_params'] = extra_params_original
 
     if nfail != 0:
         raise error.TestFail("Unit tests failed: %s" % " ".join(tests_failed))
