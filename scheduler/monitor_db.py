@@ -135,6 +135,9 @@ def main_without_exception_handling():
     # sudo to launch us as the appropriate user).
     os.chdir(RESULTS_DIR)
 
+    # This is helpful for debugging why stuff a scheduler launches is
+    # misbehaving.
+    logging.info('os.environ: %s', os.environ)
 
     if options.test:
         global _autoserv_path
