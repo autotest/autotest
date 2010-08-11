@@ -257,11 +257,41 @@ class VM(virt_vm.BaseVM):
         def add_name(help, name):
             return " -name '%s'" % name
 
-        def add_human_monitor(help, filename):
-            return " -monitor unix:'%s',server,nowait" % filename
 
-        def add_qmp_monitor(help, filename):
-            return " -qmp unix:'%s',server,nowait" % filename
+        def add_human_monitor(help, monitor_name, filename):
+            if not has_option(help, "chardev"):
+                return " -monitor unix:'%s',server,nowait" % filename
+
+            monitor_id = "hmp_id_%s" % monitor_name
+            cmd = " -chardev socket"
+            cmd += _add_option("id", monitor_id)
+            cmd += _add_option("path", filename)
+            cmd += _add_option("server", "NO_EQUAL_STRING")
+            cmd += _add_option("nowait", "NO_EQUAL_STRING")
+            cmd += " -mon chardev=%s" % monitor_id
+            cmd += _add_option("mode", "readline")
+            return cmd
+
+
+        def add_qmp_monitor(help, monitor_name, filename):
+            if not has_option(help, "qmp"):
+                logging.warn("Fallback to human monitor since qmp is"
+                             " unsupported")
+                return add_human_monitor(help, monitor_name, filename)
+
+            if not has_option(help, "chardev"):
+                return " -qmp unix:'%s',server,nowait" % filename
+
+            monitor_id = "qmp_id_%s" % monitor_name
+            cmd = " -chardev socket"
+            cmd += _add_option("id", monitor_id)
+            cmd += _add_option("path", filename)
+            cmd += _add_option("server", "NO_EQUAL_STRING")
+            cmd += _add_option("nowait", "NO_EQUAL_STRING")
+            cmd += " -mon chardev=%s" % monitor_id
+            cmd += _add_option("mode", "control")
+            return cmd
+
 
         def add_serial(help, filename):
             return " -serial unix:'%s',server,nowait" % filename
@@ -714,6 +744,7 @@ class VM(virt_vm.BaseVM):
 
         qemu_binary = virt_utils.get_path(root_dir, params.get("qemu_binary",
                                                               "qemu"))
+        self.qemu_binary = qemu_binary
         help = commands.getoutput("%s -help" % qemu_binary)
         support_cpu_model = commands.getoutput("%s -cpu ?list" % qemu_binary)
 
@@ -756,9 +787,11 @@ class VM(virt_vm.BaseVM):
             monitor_params = params.object_params(monitor_name)
             monitor_filename = vm.get_monitor_filename(monitor_name)
             if monitor_params.get("monitor_type") == "qmp":
-                qemu_cmd += add_qmp_monitor(help, monitor_filename)
+                qemu_cmd += add_qmp_monitor(help, monitor_name,
+                                            monitor_filename)
             else:
-                qemu_cmd += add_human_monitor(help, monitor_filename)
+                qemu_cmd += add_human_monitor(help, monitor_name,
+                                              monitor_filename)
 
         # Add serial console redirection
         qemu_cmd += add_serial(help, vm.get_serial_console_filename())
@@ -1341,10 +1374,19 @@ class VM(virt_vm.BaseVM):
                 while time.time() < end_time:
                     try:
                         if monitor_params.get("monitor_type") == "qmp":
-                            # Add a QMP monitor
-                            monitor = kvm_monitor.QMPMonitor(
-                                monitor_name,
-                                self.get_monitor_filename(monitor_name))
+                            if virt_utils.qemu_has_option("qmp",
+                                                          self.qemu_binary):
+                                # Add a QMP monitor
+                                monitor = kvm_monitor.QMPMonitor(
+                                    monitor_name,
+                                    self.get_monitor_filename(monitor_name))
+                            else:
+                                logging.warn("qmp monitor is unsupported, "
+                                             "using human monitor instead.")
+                                # Add a "human" monitor
+                                monitor = kvm_monitor.HumanMonitor(
+                                    monitor_name,
+                                    self.get_monitor_filename(monitor_name))
                         else:
                             # Add a "human" monitor
                             monitor = kvm_monitor.HumanMonitor(
