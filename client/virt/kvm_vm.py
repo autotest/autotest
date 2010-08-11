@@ -294,7 +294,19 @@ class VM(virt_vm.BaseVM):
 
 
         def add_serial(help, filename):
-            return " -serial unix:'%s',server,nowait" % filename
+            if not has_option(help, "chardev"):
+                return " -serial unix:'%s',server,nowait" % filename
+
+            default_id = "serial_id_%s" % self.instance
+            cmd = " -chardev socket"
+            cmd += _add_option("id", default_id)
+            cmd += _add_option("path", filename)
+            cmd += _add_option("server", "NO_EQUAL_STRING")
+            cmd += _add_option("nowait", "NO_EQUAL_STRING")
+            cmd += " -device isa-serial"
+            cmd += _add_option("chardev", default_id)
+            return cmd
+
 
         def add_mem(help, mem):
             return " -m %s" % mem
