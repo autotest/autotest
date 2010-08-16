@@ -255,6 +255,29 @@ class VMDeviceNotSupportedError(VMDeviceError):
         return ("Device '%s' is not supported for vm '%s' on this Host." %
                 (self.device, self.name))
 
+class VMPCIDeviceError(VMDeviceError):
+    pass
+
+class VMPCISlotInUseError(VMPCIDeviceError):
+    def __init__(self, name, slot):
+        VMPCIDeviceError.__init__(self, name, slot)
+        self.name = name
+        self.slot = slot
+
+    def __str__(self):
+        return ("PCI slot '0x%s' is already in use on vm '%s'. Please assign"
+                " another slot in config file." % (self.slot, self.name))
+
+class VMPCIOutOfRangeError(VMPCIDeviceError):
+    def __init__(self, name, max_dev_num):
+        VMPCIDeviceError.__init__(self, name, max_dev_num)
+        self.name = name
+        self.max_dev_num = max_dev_num
+
+    def __str__(self):
+        return ("Too many PCI devices added on vm '%s', max supported '%s'" %
+                (self.name, str(self.max_dev_num)))
+
 class VMUSBError(VMError):
     pass
 

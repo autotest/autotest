@@ -59,6 +59,9 @@ mem = 1024
 # Networking type (nic, user, tap, socket, vde, dump, none)
 nic_mode = tap
 
+# initial PCI address for guest.
+init_pci_addr = 4
+
 # Host networking restart command line for PCI assign cases
 # net_restart_cmd = /etc/init.d/network restart
 
