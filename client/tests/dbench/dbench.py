@@ -13,7 +13,7 @@ class dbench(test.test):
 
         utils.system('patch -p1 < ../dbench_startup.patch')
         utils.configure()
-        utils.system('make')
+        utils.make()
 
 
     def initialize(self):

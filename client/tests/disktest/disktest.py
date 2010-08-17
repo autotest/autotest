@@ -23,8 +23,8 @@ class disktest(test.test):
         Compiles disktest.
         """
         os.chdir(self.srcdir)
-        utils.system('make clean')
-        utils.system('make')
+        utils.make('clean')
+        utils.make()
 
 
     def initialize(self):
