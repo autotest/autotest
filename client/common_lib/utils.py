@@ -1165,6 +1165,16 @@ def configure(extra=None, configure='./configure'):
     system('%s %s' % (configure, ' '.join(args)))
 
 
+def make(extra='', make='make', timeout=None, ignore_status=False):
+    """
+    Run make, adding MAKEOPTS to the list of options.
+
+    @param extra: extra command line arguments to pass to make.
+    """
+    cmd = '%s %s %s' % (make, os.environ.get('MAKEOPTS', ''), extra)
+    return system(cmd, timeout=timeout, ignore_status=ignore_status)
+
+
 def compare_versions(ver1, ver2):
     """Version number comparison between ver1 and ver2 strings.
 
