@@ -1074,6 +1074,12 @@ variants:
             cdroms += " winutilscd"
             cdrom_winutilscd = windows/winutils.iso
             drive_index_winutilscd = 2
+            #cdroms += " virtiocd"
+            #cdrom_virtiocd = windows/virtio-win.iso
+            #drive_index_virtiocd = 3
+            #virtio_floppy = /usr/share/virtio-win/virtio-drivers.vfd
+            # Some flavors of the virtio drivers have an msi installer
+            #virtio_network_installer = F:\\RHEV-Network.msi
         migrate:
             migration_test_command = ver && vol
             migration_bg_command = start ping -t localhost
@@ -1160,6 +1166,8 @@ variants:
                             md5sum_1m = b473bf75af2d1269fec8958cf0202bfd
                             unattended_file = unattended/winxp32.sif
                             floppy = images/winXP-32/floppy.img
+                            virtio_oemsetup_id = WXP32
+                            virtio_network_path = 'D:\NetKVM\XP\x86'
 
                     - 64:
                         image_name += -64
@@ -1177,6 +1185,8 @@ variants:
                             md5sum_1m = e812363ff427effc512b7801ee70e513
                             unattended_file = unattended/winxp64.sif
                             floppy = images/winXP-64/floppy.img
+                            virtio_oemsetup_id = WNET64
+                            virtio_network_path = 'D:\NetKVM\XP\amd64'
 
             - Win2003:
                 image_name = win2003
@@ -1199,6 +1209,8 @@ variants:
                             md5sum_1m = 37c2fdec15ac4ec16aa10fdfdb338aa3
                             unattended_file = unattended/win2003-32.sif
                             floppy = images/win2003-32/floppy.img
+                            virtio_oemsetup_id = WNET32
+                            virtio_network_path = 'D:\NetKVM\XP\X86'
 
                     - 64:
                         image_name += -64
@@ -1216,6 +1228,8 @@ variants:
                             md5sum_1m = 439393c384116aa09e08a0ad047dcea8
                             unattended_file = unattended/win2003-64.sif
                             floppy = images/win2003-64/floppy.img
+                            virtio_oemsetup_id = WNET64
+                            virtio_network_path = 'D:\NetKVM\XP\AMD64'
 
             - WinVista:
                 image_name = winvista
@@ -1237,6 +1251,8 @@ variants:
                             md5sum_1m = c724e9695da483bc0fd59e426eaefc72
                             unattended_file = unattended/winvista-32-autounattend.xml
                             floppy = images/winvista-sp1-32/floppy.img
+                            virtio_storage_path = 'D:\viostor\Wlh\x86'
+                            virtio_network_path = 'D:\NetKVM\Vista\x86'
 
                     - 64sp1:
                         image_name += sp1-64
@@ -1253,6 +1269,8 @@ variants:
                             md5sum_1m = 0947bcd5390546139e25f25217d6f165
                             unattended_file = unattended/winvista-64-autounattend.xml
                             floppy = images/winvista-sp1-64/floppy.img
+                            virtio_storage_path = 'D:\viostor\Wlh\amd64'
+                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
 
                     - 32sp2:
                         image_name += sp2-32
@@ -1264,6 +1282,8 @@ variants:
                             sha1sum_1m = a2afa4cffdc1c362dbf9e62942337f4f875a22cf
                             unattended_file = unattended/winvista-32-autounattend.xml
                             floppy = images/winvista-sp2-32/floppy.img
+                            virtio_storage_path = 'D:\viostor\Wlh\x86'
+                            virtio_network_path = 'D:\NetKVM\Vista\x86'
 
                     - 64sp2:
                         image_name += sp2-64
@@ -1275,6 +1295,8 @@ variants:
                             sha1sum_1m = 1fd21bd3ce2a4de8856c7b8fe6fdf80260f6d1c7
                             unattended_file = unattended/winvista-64-autounattend.xml
                             floppy = images/winvista-sp2-64/floppy.img
+                            virtio_storage_path = 'D:\viostor\Wlh\amd64'
+                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
 
             - Win2008:
                 image_name = win2008
@@ -1298,6 +1320,8 @@ variants:
                             md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
                             unattended_file = unattended/win2008-32-autounattend.xml
                             floppy = images/win2008-sp1-32/floppy.img
+                            virtio_storage_path = 'D:\viostor\Wlh\x86'
+                            virtio_network_path = 'D:\NetKVM\Vista\x86'
 
                     - 64sp1:
                         image_name += sp1-64
@@ -1317,6 +1341,8 @@ variants:
                             md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
                             unattended_file = unattended/win2008-64-autounattend.xml
                             floppy = images/win2008-sp1-64/floppy.img
+                            virtio_storage_path = 'D:\viostor\Wlh\amd64'
+                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
 
                     - 32sp2:
                         image_name += sp2-32
@@ -1328,6 +1354,8 @@ variants:
                             sha1sum_1m = 9662ff7ed715faa00407e4befc484ea52a92a9fb
                             unattended_file = unattended/win2008-32-autounattend.xml
                             floppy = images/win2008-sp2-32/floppy.img
+                            virtio_storage_path = 'D:\viostor\Wlh\x86'
+                            virtio_network_path = 'D:\NetKVM\Vista\x86'
 
                     - 64sp2:
                         image_name += sp2-64
@@ -1339,6 +1367,8 @@ variants:
                             sha1sum_1m = 8fe08b03e3531906855a60a78020ac9577dff5ba
                             unattended_file = unattended/win2008-64-autounattend.xml
                             floppy = images/win2008-sp2-64/floppy.img
+                            virtio_storage_path = 'D:\viostor\Wlh\amd64'
+                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
 
                     - r2:
                         image_name += -r2
@@ -1350,6 +1380,8 @@ variants:
                             sha1sum_1m = 9194a3aabae25b36e5f73cad001314b2c8d07d14
                             unattended_file = unattended/win2008-r2-autounattend.xml
                             floppy = images/win2008-r2-64/floppy.img
+                            virtio_storage_path = 'D:\viostor\Wlh\amd64'
+                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
 
             - Win7:
                 image_name = win7
@@ -1366,6 +1398,8 @@ variants:
                             sha1sum_1m = 9f9c3780aebeb28a9bf22188eed6bc15475dc9c5
                             unattended_file = unattended/win7-32-autounattend.xml
                             floppy = images/win7-32/floppy.img
+                            virtio_storage_path = 'D:\viostor\Win7\x86'
+                            virtio_network_path = 'D:\NetKVM\Vista\x86'
 
                     - 64:
                         image_name += -64
@@ -1385,6 +1419,8 @@ variants:
                             sha1sum_1m = 4a3903bd5157de54f0702e5263e0a683c5775515
                             unattended_file = unattended/win7-64-autounattend.xml
                             floppy = images/win7-64/floppy.img
+                            virtio_storage_path = 'D:\viostor\Win7\amd64'
+                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
 
 
     # Unix/BSD section
@@ -1464,7 +1500,8 @@ variants:
 
 
 virtio|virtio_blk|e1000|balloon_check:
-    only Fedora.11 Fedora.12 Win2008 WinVista Win7 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
+    only Fedora.11 Fedora.12 Fedora.13 RHEL.5 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
+    # only WinXP Win2003 Win2008 WinVista Win7 Fedora.11 Fedora.12 Fedora.13 RHEL.5 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
 
 
 variants:
