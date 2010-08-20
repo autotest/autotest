@@ -100,6 +100,20 @@
 			<UILanguage>en-US</UILanguage>
 			<UserLocale>en-US</UserLocale>
 		</component>
+		<component name="Microsoft-Windows-PnpCustomizationsWinPE"
+			processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+			language="neutral" versionScope="nonSxS"
+			xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+			<DriverPaths>
+				<PathAndCredentials wcm:keyValue="1" wcm:action="add">
+					<Path>KVM_TEST_STORAGE_DRIVER_PATH</Path>
+				</PathAndCredentials>
+				<PathAndCredentials wcm:keyValue="2" wcm:action="add">
+					<Path>KVM_TEST_NETWORK_DRIVER_PATH</Path>
+				</PathAndCredentials>
+			</DriverPaths>
+		</component>
 	</settings>
 	<settings pass="oobeSystem">
 		<component name="Microsoft-Windows-Shell-Setup"
@@ -124,32 +138,36 @@
 			</AutoLogon>
 			<FirstLogonCommands>
 				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c KVM_TEST_VIRTIO_NETWORK_INSTALLER"</CommandLine>
 					<Order>1</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
 					<CommandLine>%WINDIR%\System32\cmd /c start /w pkgmgr /iu:"TelnetServer"</CommandLine>
-				</SynchronousCommand>
-				<SynchronousCommand wcm:action="add">
 					<Order>2</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
 					<CommandLine>%WINDIR%\System32\cmd /c sc config TlntSvr start= auto</CommandLine>
-				</SynchronousCommand>
-				<SynchronousCommand wcm:action="add">
 					<Order>3</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
 					<CommandLine>%WINDIR%\System32\cmd /c netsh firewall set opmode disable</CommandLine>
-				</SynchronousCommand>
-				<SynchronousCommand wcm:action="add">
 					<Order>4</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
 					<CommandLine>%WINDIR%\System32\cmd /c net start telnet</CommandLine>
-				</SynchronousCommand>
-				<SynchronousCommand wcm:action="add">
 					<Order>5</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
 					<CommandLine>%WINDIR%\System32\cmd /c E:\setuprss.bat</CommandLine>
-				</SynchronousCommand>
-				<SynchronousCommand wcm:action="add">
 					<Order>6</Order>
-					<CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" dhcp</CommandLine>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
+					<CommandLine>%WINDIR%\System32\cmd /c netsh interface ip set address "Local Area Connection" dhcp</CommandLine>
 					<Order>7</Order>
+				</SynchronousCommand>
+				<SynchronousCommand wcm:action="add">
 					<CommandLine>%WINDIR%\System32\cmd /c ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe</CommandLine>
+					<Order>8</Order>
 				</SynchronousCommand>
 			</FirstLogonCommands>
 			<OOBE>
