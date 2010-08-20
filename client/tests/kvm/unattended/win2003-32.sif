@@ -10,6 +10,7 @@
     UnattendSwitch = Yes
     CrashDumpSetting = 1
     DriverSigningPolicy = ignore
+    OemPnPDriversPath="KVM_TEST_NETWORK_DRIVER_PATH"
     WaitForReboot = no
     Repartition = yes
 
@@ -56,9 +57,10 @@
     YResolution=768
 
 [GuiRunOnce]
-    Command0="cmd /c sc config TlntSvr start= auto"
-    Command1="cmd /c netsh firewall set opmode disable"
-    Command2="cmd /c net start telnet"
-    Command3="cmd /c E:\setuprss.bat"
-    Command4="cmd /c netsh interface ip set address local dhcp"
-    Command5="cmd /c ping 10.0.2.2 -n 20 && A:\finish.exe"
+    Command0="cmd /c KVM_TEST_VIRTIO_NETWORK_INSTALLER"
+    Command1="cmd /c sc config TlntSvr start= auto"
+    Command2="cmd /c netsh firewall set opmode disable"
+    Command3="cmd /c net start telnet"
+    Command4="cmd /c E:\setuprss.bat"
+    Command5="cmd /c netsh interface ip set address local dhcp"
+    Command6="cmd /c ping 10.0.2.2 -n 20 && A:\finish.exe"
