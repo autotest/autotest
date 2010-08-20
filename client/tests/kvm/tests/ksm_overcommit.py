@@ -372,6 +372,11 @@ def run_ksm_overcommit(test, params, env):
         utils.run("echo 50 > /sys/kernel/mm/ksm/sleep_millisecs")
         utils.run("echo 5000 > /sys/kernel/mm/ksm/pages_to_scan")
         utils.run("echo 1 > /sys/kernel/mm/ksm/run")
+
+        if (os.path.exists("/sys/kernel/mm/transparent_hugepage/enabled")):
+            utils.run("echo 'never' > /sys/kernel/mm/transparent_hugepage/enabled ")
+        if (os.path.exists("/sys/kernel/mm/redhat_transparent_hugepage/enabled")):
+            utils.run("echo 'never' > /sys/kernel/mm/redhat_transparent_hugepage/enabled ")
         new_ksm = True
     else:
         try:
