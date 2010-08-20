@@ -13,6 +13,7 @@
     UnattendSwitch=Yes
     CrashDumpSetting=1
     DriverSigningPolicy=ignore
+    OemPnPDriversPath="KVM_TEST_NETWORK_DRIVER_PATH"
     WaitForReboot=no
 
 [GuiUnattended]
@@ -68,6 +69,7 @@
     YResolution=768
 
 [GuiRunOnce]
-   Command0="cmd /c E:\setuprss.bat"
-   Command1="cmd /c netsh interface ip set address local dhcp"
-   Command2="cmd /c ping 10.0.2.2 -n 20 && A:\finish.exe"
+   Command0="cmd /c KVM_TEST_VIRTIO_NETWORK_INSTALLER"
+   Command1="cmd /c E:\setuprss.bat"
+   Command2="cmd /c netsh interface ip set address local dhcp"
+   Command3="cmd /c ping 10.0.2.2 -n 20 && A:\finish.exe"
