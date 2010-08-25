@@ -6,6 +6,94 @@ from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.bin import kernel, job, utils, kernelexpand
 from autotest_lib.client.bin import kernel_config, boottool, os_dep
 
+
+class TestAddKernelToBootLoader(unittest.TestCase):
+
+    def add_to_bootloader(self, base_args, args, bootloader_args,
+                          bootloader_root, tag='image', image='image',
+                          initrd='initrd'):
+        god = mock.mock_god()
+        bootloader = god.create_mock_class(boottool.boottool, "boottool")
+
+        # record
+        bootloader.remove_kernel.expect_call(tag)
+        bootloader.add_kernel.expect_call(image, tag, initrd=initrd,
+                                          args=bootloader_args,
+                                          root=bootloader_root)
+
+        # run and check
+        kernel._add_kernel_to_bootloader(bootloader, base_args, tag, args,
+                                         image, initrd)
+        god.check_playback()
+
+
+    def test_add_kernel_to_bootloader(self):
+        self.add_to_bootloader(base_args='baseargs', args='',
+                               bootloader_args='baseargs', bootloader_root=None)
+        self.add_to_bootloader(base_args='arg1 root=/dev/oldroot arg2',
+                               args='root=/dev/newroot arg3',
+                               bootloader_args='arg1 arg2 arg3',
+                               bootloader_root='/dev/newroot')
+
+
+class TestBootableKernel(unittest.TestCase):
+
+    def setUp(self):
+        self.god = mock.mock_god()
+        self.god.stub_function(time, "time")
+        self.god.stub_function(utils, "system")
+        self.god.stub_function(kernel, "_add_kernel_to_bootloader")
+        job_ = self.god.create_mock_class(job.job, "job")
+        self.kernel = kernel.BootableKernel(job_)
+        self.kernel.job.bootloader = self.god.create_mock_class(
+                              boottool.boottool, "boottool")
+
+
+    def tearDown(self):
+        # note: time.time() can only be unstubbed via tearDown()
+        self.god.unstub_all()
+
+
+    def boot_kernel(self, ident_check):
+        notes = "applied_patches"
+        when = 1
+        args = ''
+        base_args = 'base_args'
+        tag = 'ident'
+        subdir = 'subdir'
+        self.kernel.image = 'image'
+        self.kernel.initrd = 'initrd'
+        self.kernel.installed_as = tag
+
+        # record
+        args_ = args
+        if ident_check:
+            time.time.expect_call().and_return(when)
+            args_ += " IDENT=%d" % when
+            status = ["job.end_reboot_and_verify", when, tag, subdir, notes]
+        else:
+            status = ["job.end_reboot", subdir, tag, notes]
+        self.kernel.job.next_step_prepend.expect_call(status)
+        self.kernel.job.config_get.expect_call(
+                'boot.default_args').and_return(base_args)
+        kernel._add_kernel_to_bootloader.expect_call(
+                self.kernel.job.bootloader, base_args, tag,
+                args_, self.kernel.image, self.kernel.initrd)
+        utils.system.expect_call('touch /fastboot')
+        self.kernel.job.start_reboot.expect_call()
+        self.kernel.job.reboot.expect_call(tag=tag)
+
+        # run and check
+        self.kernel._boot_kernel(args=args, ident_check=ident_check,
+                                 expected_ident=tag, subdir=subdir, notes=notes)
+        self.god.check_playback()
+
+
+    def test_boot_kernel(self):
+        self.boot_kernel(ident_check=False)
+        self.boot_kernel(ident_check=True)
+
+
 class TestKernel(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()
@@ -473,47 +561,6 @@ class TestKernel(unittest.TestCase):
         self.god.check_playback()
 
 
-    def _setup_add_to_bootloader(self, tag='autotest', args='', image='image',
-                                 initrd='initrd', base_args='baseargs',
-                                 bootloader_args='baseargs',
-                                 bootloader_root=None):
-        self.construct_kernel()
-
-        # setup
-        self.kernel.image = image
-        self.kernel.initrd = initrd
-
-        # record
-        self.job.config_get.expect_call(
-                'boot.default_args').and_return(base_args)
-        self.job.bootloader.remove_kernel.expect_call(tag)
-        self.job.bootloader.add_kernel.expect_call(
-                image, tag, initrd=initrd, args=bootloader_args,
-                root=bootloader_root)
-
-
-    def test_add_to_bootloader(self):
-        # setup
-        self._setup_add_to_bootloader()
-
-        # run and check
-        self.kernel.add_to_bootloader()
-        self.god.check_playback()
-
-
-    def test_add_to_bootloader_root_args(self):
-        # setup
-        args = 'root=/dev/newroot arg3'
-        self._setup_add_to_bootloader(args=args,
-                                      base_args='arg1 root=/dev/oldroot arg2',
-                                      bootloader_args='arg1 arg2 arg3',
-                                      bootloader_root='/dev/newroot')
-
-        # run and check
-        self.kernel.add_to_bootloader(args=args)
-        self.god.check_playback()
-
-
     def test_get_kernel_build_arch1(self):
         self.construct_kernel()
 
@@ -573,51 +620,23 @@ class TestKernel(unittest.TestCase):
         self.construct_kernel()
         self.god.stub_function(self.kernel, "get_kernel_build_ident")
         self.god.stub_function(self.kernel, "install")
-        self.god.stub_function(self.kernel, "add_to_bootloader")
+        self.god.stub_function(self.kernel, "_boot_kernel")
         self.kernel.applied_patches = "applied_patches"
-        when = 1
+        self.kernel.installed_as = None
         args = ''
-        self.kernel.installed_as = False
+        expected_ident = 'ident'
+        ident = True
 
         # record
-        self.kernel.get_kernel_build_ident.expect_call().and_return("ident")
-        time.time.expect_call().and_return(when)
-        args += " IDENT=%d" % (when)
-        self.job.next_step_prepend.expect_call(["job.end_reboot_and_verify",
-            when, "ident", self.subdir, self.kernel.applied_patches])
         self.kernel.install.expect_call()
-        self.kernel.add_to_bootloader.expect_call(args=args,
-            tag=False)
-        self.job.start_reboot.expect_call()
-        self.job.reboot.expect_call(tag=False)
+        self.kernel.get_kernel_build_ident.expect_call(
+                ).and_return(expected_ident)
+        self.kernel._boot_kernel.expect_call(
+                args, ident, expected_ident,
+                self.subdir, self.kernel.applied_patches)
 
         # run and check
-        self.kernel.boot()
-        self.god.check_playback()
-
-
-    def test_boot_without_ident(self):
-        self.construct_kernel()
-        self.god.stub_function(self.kernel, "get_kernel_build_ident")
-        self.god.stub_function(self.kernel, "install")
-        self.god.stub_function(self.kernel, "add_to_bootloader")
-        self.kernel.applied_patches = "applied_patches"
-        when = 1
-        args = ''
-        self.kernel.installed_as = False
-
-        # record
-        self.kernel.get_kernel_build_ident.expect_call().and_return("ident")
-        self.job.next_step_prepend.expect_call(["job.end_reboot",
-            self.subdir, "ident", self.kernel.applied_patches])
-        self.kernel.install.expect_call()
-        self.kernel.add_to_bootloader.expect_call(args=args,
-            tag=False)
-        self.job.start_reboot.expect_call()
-        self.job.reboot.expect_call(tag=False)
-
-        # run and check
-        self.kernel.boot(ident=False)
+        self.kernel.boot(args=args, ident=ident)
         self.god.check_playback()
 
 
