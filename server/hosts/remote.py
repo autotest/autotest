@@ -25,6 +25,7 @@ class RemoteHost(base_classes.Host):
 
     DEFAULT_REBOOT_TIMEOUT = base_classes.Host.DEFAULT_REBOOT_TIMEOUT
     LAST_BOOT_TAG = object()
+    DEFAULT_HALT_TIMEOUT = 2 * 60
 
     VAR_LOG_MESSAGES_COPY_PATH = "/var/log/messages.autotest_start"
 
@@ -86,6 +87,12 @@ class RemoteHost(base_classes.Host):
 
     def sysrq_reboot(self):
         self.run('echo b > /proc/sysrq-trigger &')
+
+
+    def halt(self, timeout=DEFAULT_HALT_TIMEOUT, wait=True):
+        self.run('/sbin/halt')
+        if wait:
+            self.wait_down(timeout=timeout)
 
 
     def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label=LAST_BOOT_TAG,
