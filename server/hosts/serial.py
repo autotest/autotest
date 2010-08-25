@@ -114,7 +114,7 @@ class SerialHost(SiteHost):
 
 
     def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,
-                  conmux_command='hardreset', num_attempts=1,
+                  conmux_command='hardreset', num_attempts=1, halt=False,
                   **wait_for_restart_kwargs):
         """
         Reach out and slap the box in the power switch.
@@ -124,6 +124,7 @@ class SerialHost(SiteHost):
         @params wait: Whether or not to wait for the machine to reboot
         @params num_attempts: Number of times to attempt hard reset erroring
                               on the last attempt.
+        @params halt: Halts the machine before hardresetting.
         @params **wait_for_restart_kwargs: keyword arguments passed to
                 wait_for_restart()
         """
@@ -138,6 +139,8 @@ class SerialHost(SiteHost):
             old_boot_id = 'unknown boot_id prior to SerialHost.hardreset'
 
         def reboot():
+            if halt:
+                self.halt()
             if not self.run_conmux(conmux_command):
                 self.record("ABORT", None, "reboot.start",
                             "hard reset unavailable")
