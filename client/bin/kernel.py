@@ -64,7 +64,51 @@ def _add_kernel_to_bootloader(bootloader, base_args, tag, args, image, initrd):
                           root=root)
 
 
-class kernel(object):
+class BootableKernel(object):
+
+    def __init__(self, job):
+        self.job = job
+        self.installed_as = None  # kernel choice in bootloader menu
+        self.image = None
+        self.initrd = ''
+
+
+    def _boot_kernel(self, args, ident_check, expected_ident, subdir, notes):
+        """
+        Boot a kernel, with post-boot kernel id check
+
+        @param args:  kernel cmdline arguments
+        @param ident_check: check kernel id after boot
+        @param expected_ident:
+        @param subdir: job-step qualifier in status log
+        @param notes:  additional comment in status log
+        """
+
+        # If we can check the kernel identity do so.
+        if ident_check:
+            when = int(time.time())
+            args += " IDENT=%d" % when
+            self.job.next_step_prepend(["job.end_reboot_and_verify", when,
+                                        expected_ident, subdir, notes])
+        else:
+            self.job.next_step_prepend(["job.end_reboot", subdir,
+                                        expected_ident, notes])
+
+        # Point bootloader to the selected tag.
+        _add_kernel_to_bootloader(self.job.bootloader,
+                                  self.job.config_get('boot.default_args'),
+                                  self.installed_as, args, self.image,
+                                  self.initrd)
+
+        # defer fsck for next reboot, to avoid reboots back to default kernel
+        utils.system('touch /fastboot')  # this file is removed automatically
+
+        # Boot it.
+        self.job.start_reboot()
+        self.job.reboot(tag=self.installed_as)
+
+
+class kernel(BootableKernel):
     """ Class for compiling kernels.
 
     Data for the object includes the src files
@@ -109,7 +153,7 @@ class kernel(object):
         leave
                 Boolean, whether to leave existing tmpdir or not
         """
-        self.job = job
+        super(kernel, self).__init__(job)
         self.autodir = job.autodir
 
         self.src_dir    = os.path.join(tmp_dir, 'src')
@@ -119,8 +163,6 @@ class kernel(object):
         self.log_dir    = os.path.join(subdir, 'debug')
         self.results_dir = os.path.join(subdir, 'results')
         self.subdir     = os.path.basename(subdir)
-
-        self.installed_as = None
 
         if not leave:
             if os.path.isdir(self.src_dir):
@@ -450,16 +492,6 @@ class kernel(object):
                           self.system_map, self.initrd)
 
 
-    def add_to_bootloader(self, tag='autotest', args=''):
-        """ add this kernel to bootloader, taking an
-            optional parameter of space separated parameters
-            e.g.:  kernel.add_to_bootloader('mykernel', 'ro acpi=off')
-        """
-        _add_kernel_to_bootloader(self.job.bootloader,
-                                  self.job.config_get('boot.default_args'),
-                                  tag, args, self.image, self.initrd)
-
-
     def get_kernel_build_arch(self, arch=None):
         """
         Work out the current kernel architecture (as a kernel arch)
@@ -526,29 +558,14 @@ class kernel(object):
             just make it happen.
         """
 
-        # If we can check the kernel identity do so.
-        expected_ident = self.get_kernel_build_ident()
-        if ident:
-            when = int(time.time())
-            args += " IDENT=%d" % (when)
-            self.job.next_step_prepend(["job.end_reboot_and_verify", when,
-                                        expected_ident, self.subdir,
-                                        self.applied_patches])
-        else:
-            self.job.next_step_prepend(["job.end_reboot", self.subdir,
-                                        expected_ident, self.applied_patches])
-
-        # Check if the kernel has been installed, if not install
-        # as the default tag and boot that.
+        # If the kernel has not yet been installed,
+        #   install it now as default tag.
         if not self.installed_as:
             self.install()
 
-        # Boot the selected tag.
-        self.add_to_bootloader(args=args, tag=self.installed_as)
-
-        # Boot it.
-        self.job.start_reboot()
-        self.job.reboot(tag=self.installed_as)
+        expected_ident = self.get_kernel_build_ident()
+        self._boot_kernel(args, ident, expected_ident,
+                          self.subdir, self.applied_patches)
 
 
     def get_kernel_build_ver(self):
@@ -646,20 +663,19 @@ class kernel(object):
         pickle.dump(temp, open(filename, 'w'))
 
 
-class rpm_kernel(object):
+class rpm_kernel(BootableKernel):
     """
     Class for installing a binary rpm kernel package
     """
 
     def __init__(self, job, rpm_package, subdir):
-        self.job = job
+        super(rpm_kernel, self).__init__(job)
         self.rpm_package = rpm_package
         self.log_dir = os.path.join(subdir, 'debug')
         self.subdir = os.path.basename(subdir)
         if os.path.exists(self.log_dir):
             utils.system('rm -rf ' + self.log_dir)
         os.mkdir(self.log_dir)
-        self.installed_as = None
 
 
     def build(self, *args, **dargs):
@@ -725,44 +741,23 @@ class rpm_kernel(object):
                                       % (vmlinux, rpm_pack))
 
 
-    def add_to_bootloader(self, tag='autotest', args=''):
-        """ Add this kernel to bootloader
-        """
-        _add_kernel_to_bootloader(self.job.bootloader,
-                                  self.job.config_get('boot.default_args'),
-                                  tag, args, self.image, self.initrd)
-
-
     def boot(self, args='', ident=True):
         """ install and boot this kernel
         """
 
-        # Check if the kernel has been installed, if not install
-        # as the default tag and boot that.
+        # If the kernel has not yet been installed,
+        #   install it now as default tag.
         if not self.installed_as:
             self.install()
 
-        # If we can check the kernel identity do so.
         expected_ident = self.full_version
         if not expected_ident:
             expected_ident = '-'.join([self.version,
                                        self.rpm_flavour,
                                        self.release])
-        if ident:
-            when = int(time.time())
-            args += " IDENT=%d" % (when)
-            self.job.next_step_prepend(["job.end_reboot_and_verify",
-                                        when, expected_ident, None, 'rpm'])
-        else:
-            self.job.next_step_prepend(["job.end_reboot", None,
-                                        expected_ident, []])
 
-        # Boot the selected tag.
-        self.add_to_bootloader(args=args, tag=self.installed_as)
-
-        # Boot it.
-        self.job.start_reboot()
-        self.job.reboot(tag=self.installed_as)
+        self._boot_kernel(args, ident, expected_ident,
+                          None, 'rpm')
 
 
 class rpm_kernel_suse(rpm_kernel):
