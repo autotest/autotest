@@ -73,6 +73,14 @@ variants:
         only Fedora.13.64
         only unattended_install.cdrom boot shutdown
 
+# You may provide information about the DTM server for WHQL tests here:
+#whql:
+#    server_address = 10.20.30.40
+#    server_shell_port = 10022
+#    server_file_transfer_port = 10023
+# Note that the DTM server must run rss.exe (available under deps/),
+# preferably with administrator privileges.
+
 # Uncomment the following lines to enable abort-on-error mode:
 #abort_on_error = yes
 #kill_vm.* ?= no
