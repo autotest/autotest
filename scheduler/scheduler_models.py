@@ -617,20 +617,23 @@ class HostQueueEntry(DBObject):
             subject += '| Success Rate: %.2f %%' % job_stats['success_rate']
 
         body =  "Job ID: %s\n" % self.job.id
-        body += "Job Name: %s\n" % self.job.name
+        body += "Job name: %s\n" % self.job.name
         if hostname is not None:
             body += "Host: %s\n" % hostname
         if summary is not None:
             body += "Summary: %s\n" % summary
         body += "Status: %s\n" % status
         body += "Results interface URL: %s\n" % self._view_job_url()
-        body += "Execution Time (HH:MM:SS): %s\n" % job_stats['execution_time']
-        body += "Tests Executed: %s\n" % job_stats['total_executed']
-        body += "Tests Passed: %s\n" % job_stats['total_passed']
-        body += "Tests Failed: %s\n" % job_stats['total_failed']
-        body += "Success Rate: %.2f %%\n" % job_stats['success_rate']
-        body += "Failures Summary:\n"
-        body += job_stats['failed_rows']
+        body += "Execution time (HH:MM:SS): %s\n" % job_stats['execution_time']
+        if int(job_stats['total_executed']) > 0:
+            body += "User tests executed: %s\n" % job_stats['total_executed']
+            body += "User tests passed: %s\n" % job_stats['total_passed']
+            body += "User tests failed: %s\n" % job_stats['total_failed']
+            body += ("User tests success rate: %.2f %%\n" %
+                     job_stats['success_rate'])
+        if job_stats['failed_rows']:
+            body += "Failures:\n"
+            body += job_stats['failed_rows']
 
         return subject, body
 
@@ -873,17 +876,23 @@ class Job(DBObject):
         total_executed = len(rows)
         failed_rows = [r for r in rows if not 'GOOD' in r]
 
-        # Here the job failed, so no 'real' tests were executed
-        if total_executed <= 2:
-            total_executed = 0
-            total_failed = 0
-            success_rate = 0
-        else:
-            # Here we are taking SERVER_JOB and CLIENT_JOB.0, since they are
-            # not 'real' tests
-            total_executed -= 2
-            total_failed = len(failed_rows)
+        job_failure_count = 0
+        for r in failed_rows:
+            test_name = r[0]
+            # Here we are looking for tests such as SERVER_JOB and CLIENT_JOB.*
+            # Those are autotest 'internal job' tests, so they should not be
+            # Counted when evaluating the test stats
+            job_test_pattern = re.compile('SERVER|CLIENT\\_JOB\.[\d]')
+            if job_test_pattern.match(test_name):
+                job_failure_count += 1
+
+        total_executed -= job_failure_count
+        total_failed = len(failed_rows) - job_failure_count
+
+        if total_executed > 0:
             success_rate = 100 - ((total_failed / float(total_executed)) * 100)
+        else:
+            success_rate = 0
 
         failed_str = '%-30s %-10s %-40s\n' % ("Test Name", "Status", "Reason")
         for row in failed_rows:
@@ -898,7 +907,7 @@ class Job(DBObject):
         time_row = _db.execute("""
                    SELECT started_time, finished_time
                    FROM tko_jobs
-                   WHERE afe_job_id = %s;
+                   WHERE afe_job_id = %s
                    """ % self.id)
 
         t_begin, t_end = time_row[0]
