@@ -286,6 +286,90 @@ variants:
         iozone_cmd = "D:\IOzone\iozone.exe -a"
         iozone_timeout = 3600
 
+    - @whql:         install setup unattended_install.cdrom
+        nic_mode = tap
+        # Replace this with the address of an installed DTM server
+        server_address = 10.20.30.40
+        # The server should run rss.exe like a regular Windows VM, preferably
+        # with administrator privileges (or at least with permission to write
+        # to the DTM studio directory)
+        server_shell_port = 10022
+        server_file_transfer_port = 10023
+        server_studio_path = %programfiles%\Microsoft Driver Test Manager\Studio
+        wtt_services = wttsvc
+        variants:
+            - whql_client_install:
+                type = whql_client_install
+                dsso_delete_machine_binary = deps/whql_delete_machine_15.exe
+                # The username and password are required for accessing the DTM client
+                # installer binary shared by the server
+                server_username = administrator
+                server_password = 1q2w3eP
+                # This path refers to a shared directory on the server
+                # (the final cmd will be something like \\servername\DTMInstall\...)
+                install_cmd = \DTMInstall\Client\Setup.exe /passive
+                install_timeout = 3600
+            - whql_submission:    whql_client_install
+                type = whql_submission
+                extra_params += " -snapshot"
+                dsso_test_binary = deps/whql_submission_15.exe
+                test_timeout = 3600
+                device_data = cat0 cat1 cat2 cat3 logoarch logoos whqlos whqlqual prog desc filter virt
+                descriptors = desc1 desc2 desc3
+                # DeviceData names
+                dd_name_cat0     = Category
+                dd_name_cat1     = Category
+                dd_name_cat2     = Category
+                dd_name_cat3     = Category
+                dd_name_logoarch = LogoProcessorArchitecture
+                dd_name_logoos   = LogoOperatingSystem
+                dd_name_whqlos   = WhqlOs
+                dd_name_whqlqual = WhqlQualification
+                dd_name_prog     = LogoProgramId
+                dd_name_desc     = LogoProgramDescription
+                dd_name_filter   = WDKFilterAttribute
+                dd_name_virt     = ParaVirtualizationDriver
+                # Common DeviceData data
+                dd_data_filter   = FilterIfNoInf
+                dd_data_virt     = True
+                variants:
+                    - keyboard:
+                        # test_device is a regular expression that should match a device's
+                        # name as it appears in device manager.  The first device that matches
+                        # is used.
+                        test_device = keyboard
+                        # Set timeout to 10 hours
+                        test_timeout = 36000
+                        dd_data_cat0 = Input\Keyboard
+                        dd_data_cat1 = Device Fundamentals
+                        dd_data_cat2 = System Fundamentals\Dynamic Partitioning
+                        dd_data_prog = InputKbd
+                        dd_data_desc = Input > Keyboard
+                    - hdd:
+                        test_device = qemu harddisk
+                        device_data += " ex0 ex1 ex2 ex3"
+                        dd_data_cat0 = Storage\Device Class\Disk\Disk
+                        dd_data_cat1 = Storage\Device Class\Disk\Fixed
+                        dd_data_cat2 = Storage\Device Class\Disk\Bus\ATA
+                        dd_data_cat3 = Device Fundamentals
+                        dd_data_prog = StorHDD
+                        dd_data_desc = Storage > Hard Disk Drive (HDD)
+                        dd_name_ex0 = Storage_bus_type
+                        dd_data_ex0 = ATA/ATAPI
+                        dd_name_ex1 = Hybrid_HDD_Support
+                        dd_data_ex1 = 0
+                        dd_name_ex2 = Non_Rotating_Media
+                        dd_data_ex2 = 0
+                        dd_name_ex3 = Secure_Storage
+                        dd_data_ex3 = 0
+                        variants:
+                            - full:
+                                # Yes, 100 hours, this is not a mistake
+                                test_timeout = 360000
+                            - syscache_test:
+                                job_filter = syscache test
+                                test_timeout = 7200
+
     - guest_s4:     install setup unattended_install.cdrom
         type = guest_s4
         check_s4_support_cmd = grep -q disk /sys/power/state
@@ -498,7 +582,7 @@ variants:
 variants:
     # Linux section
     - @Linux:
-        no autoit iozone_windows
+        no autoit iozone_windows whql
         shutdown_command = shutdown -h now
         reboot_command = shutdown -r now
         status_test_command = echo $?
@@ -1129,7 +1213,7 @@ variants:
 
         variants:
             - Win2000:
-                no reboot
+                no reboot whql
                 image_name = win2000-32
                 kill_vm_gracefully = no
                 install:
@@ -1168,6 +1252,13 @@ variants:
                             floppy = images/winXP-32/floppy.img
                             virtio_oemsetup_id = WXP32
                             virtio_network_path = 'D:\NetKVM\XP\x86'
+                        whql_submission:
+                            desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows XP
+                            desc_path_desc2 = $\WDK\Logo Type\Systems Logo\Windows XP
+                            dd_data_logoarch = X86
+                            dd_data_logoos = Windows XP
+                            dd_data_whqlos = Windows XP
+                            dd_data_whqlqual = Basic
 
                     - 64:
                         image_name += -64
@@ -1187,6 +1278,13 @@ variants:
                             floppy = images/winXP-64/floppy.img
                             virtio_oemsetup_id = WNET64
                             virtio_network_path = 'D:\NetKVM\XP\amd64'
+                        whql_submission:
+                            desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows XP
+                            desc_path_desc2 = $\WDK\Logo Type\Systems Logo\Windows XP
+                            dd_data_logoarch = AMD64
+                            dd_data_logoos = Windows XP 64-Bit Edition Version 2003
+                            dd_data_whqlos = Windows XP x64
+                            dd_data_whqlqual = Basic
 
             - Win2003:
                 image_name = win2003
@@ -1211,6 +1309,12 @@ variants:
                             floppy = images/win2003-32/floppy.img
                             virtio_oemsetup_id = WNET32
                             virtio_network_path = 'D:\NetKVM\XP\X86'
+                        whql_submission:
+                            desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows Server 2003
+                            dd_data_logoarch = X86
+                            dd_data_logoos = Windows Server 2003
+                            dd_data_whqlos = Windows Server 2003
+                            dd_data_whqlqual = Basic
 
                     - 64:
                         image_name += -64
@@ -1230,75 +1334,99 @@ variants:
                             floppy = images/win2003-64/floppy.img
                             virtio_oemsetup_id = WNET64
                             virtio_network_path = 'D:\NetKVM\XP\AMD64'
+                        whql_submission:
+                            desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows Server 2003
+                            dd_data_logoarch = AMD64
+                            dd_data_logoos = Windows Server 2003
+                            dd_data_whqlos = Windows Server 2003 x64
+                            dd_data_whqlqual = Basic
 
             - WinVista:
                 image_name = winvista
                 image_size = 20G
+                whql_submission:
+                    desc_path_desc1 = $\WDK\Logo Type\Device Logo\Vista Client\Device Premium
+                    desc_path_desc2 = $\WDK\Logo Type\Device Logo\Vista Client\Device Standard
+                    desc_path_desc3 = $\WDK\Logo Type\Device Logo\Vista Client
 
                 variants:
-                    - 32sp1:
-                        image_name += sp1-32
-                        install:
-                            cdrom_cd1 = windows/WindowsVista-32.iso
-                            md5sum = 1008f323d5170c8e614e52ccb85c0491
-                            md5sum_1m = c724e9695da483bc0fd59e426eaefc72
-                            steps = Win-Vista-32.steps
-                        setup:
-                            steps = WinVista-32-rss.steps
-                        unattended_install.cdrom:
-                            cdrom_cd1 = windows/WindowsVista-32.iso
-                            md5sum = 1008f323d5170c8e614e52ccb85c0491
-                            md5sum_1m = c724e9695da483bc0fd59e426eaefc72
-                            unattended_file = unattended/winvista-32-autounattend.xml
-                            floppy = images/winvista-sp1-32/floppy.img
-                            virtio_storage_path = 'D:\viostor\Wlh\x86'
-                            virtio_network_path = 'D:\NetKVM\Vista\x86'
+                    - 32:
+                        whql_submission:
+                            dd_data_logoarch = X86
+                            dd_data_logoos = Windows Vista
+                            dd_data_whqlos = Windows Vista Client
+                            dd_data_whqlqual = Premium
+                        variants:
+                            - sp1:
+                                image_name += sp1-32
+                                install:
+                                    cdrom = windows/WindowsVista-32.iso
+                                    md5sum = 1008f323d5170c8e614e52ccb85c0491
+                                    md5sum_1m = c724e9695da483bc0fd59e426eaefc72
+                                    steps = Win-Vista-32.steps
+                                setup:
+                                    steps = WinVista-32-rss.steps
+                                unattended_install.cdrom:
+                                    cdrom = windows/WindowsVista-32.iso
+                                    md5sum = 1008f323d5170c8e614e52ccb85c0491
+                                    md5sum_1m = c724e9695da483bc0fd59e426eaefc72
+                                    unattended_file = unattended/winvista-32-autounattend.xml
+                                    floppy = images/winvista-sp1-32/floppy.img
+                                    virtio_storage_path = 'D:\viostor\Wlh\x86'
+                                    virtio_network_path = 'D:\NetKVM\Vista\x86'
 
-                    - 64sp1:
-                        image_name += sp1-64
-                        install:
-                            cdrom_cd1 = windows/WindowsVista-64.iso
-                            md5sum = 11e2010d857fffc47813295e6be6d58d
-                            md5sum_1m = 0947bcd5390546139e25f25217d6f165
-                            steps = Win-Vista-64.steps
-                        setup:
-                            steps = WinVista-64-rss.steps
-                        unattended_install.cdrom:
-                            cdrom_cd1 = windows/WindowsVista-64.iso
-                            md5sum = 11e2010d857fffc47813295e6be6d58d
-                            md5sum_1m = 0947bcd5390546139e25f25217d6f165
-                            unattended_file = unattended/winvista-64-autounattend.xml
-                            floppy = images/winvista-sp1-64/floppy.img
-                            virtio_storage_path = 'D:\viostor\Wlh\amd64'
-                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
+                            - sp2:
+                                image_name += sp2-32
+                                unattended_install.cdrom:
+                                    cdrom = windows/en_windows_vista_with_sp2_x86_dvd_342266.iso
+                                    md5sum = 19ca90a425667812977bab6f4ce24175
+                                    md5sum_1m = 89c15020e0e6125be19acf7a2e5dc614
+                                    sha1sum = 25ad9a776503e6a583bec07879dbcc5dfd20cd6e
+                                    sha1sum_1m = a2afa4cffdc1c362dbf9e62942337f4f875a22cf
+                                    unattended_file = unattended/winvista-32-autounattend.xml
+                                    floppy = images/winvista-sp2-32/floppy.img
+                                    virtio_storage_path = 'D:\viostor\Wlh\x86'
+                                    virtio_network_path = 'D:\NetKVM\Vista\x86'
 
-                    - 32sp2:
-                        image_name += sp2-32
-                        unattended_install.cdrom:
-                            cdrom_cd1 = windows/en_windows_vista_with_sp2_x86_dvd_342266.iso
-                            md5sum = 19ca90a425667812977bab6f4ce24175
-                            md5sum_1m = 89c15020e0e6125be19acf7a2e5dc614
-                            sha1sum = 25ad9a776503e6a583bec07879dbcc5dfd20cd6e
-                            sha1sum_1m = a2afa4cffdc1c362dbf9e62942337f4f875a22cf
-                            unattended_file = unattended/winvista-32-autounattend.xml
-                            floppy = images/winvista-sp2-32/floppy.img
-                            virtio_storage_path = 'D:\viostor\Wlh\x86'
-                            virtio_network_path = 'D:\NetKVM\Vista\x86'
-
-                    - 64sp2:
-                        image_name += sp2-64
-                        unattended_install.cdrom:
-                            cdrom_cd1 = windows/en_windows_vista_sp2_x64_dvd_342267.iso
-                            md5sum = a1c024d7abaf34bac3368e88efbc2574
-                            md5sum_1m = 3d84911a80f3df71d1026f7adedc2181
-                            sha1sum = aaee3c04533899f9f8c4ae0c4250ef5fafbe29a3
-                            sha1sum_1m = 1fd21bd3ce2a4de8856c7b8fe6fdf80260f6d1c7
-                            unattended_file = unattended/winvista-64-autounattend.xml
-                            floppy = images/winvista-sp2-64/floppy.img
-                            virtio_storage_path = 'D:\viostor\Wlh\amd64'
-                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
+                    - 64:
+                        whql_submission:
+                            dd_data_logoarch = AMD64
+                            dd_data_logoos = Windows Vista
+                            dd_data_whqlos = Windows Vista Client x64
+                            dd_data_whqlqual = Premium
+                        variants:
+                            - sp1:
+                                image_name += sp1-64
+                                install:
+                                    cdrom = windows/WindowsVista-64.iso
+                                    md5sum = 11e2010d857fffc47813295e6be6d58d
+                                    md5sum_1m = 0947bcd5390546139e25f25217d6f165
+                                    steps = Win-Vista-64.steps
+                                setup:
+                                    steps = WinVista-64-rss.steps
+                                unattended_install.cdrom:
+                                    cdrom = windows/WindowsVista-64.iso
+                                    md5sum = 11e2010d857fffc47813295e6be6d58d
+                                    md5sum_1m = 0947bcd5390546139e25f25217d6f165
+                                    unattended_file = unattended/winvista-64-autounattend.xml
+                                    floppy = images/winvista-sp1-64/floppy.img
+                                    virtio_storage_path = 'D:\viostor\Wlh\amd64'
+                                    virtio_network_path = 'D:\NetKVM\Vista\amd64'
+                            - sp2:
+                                image_name += sp2-64
+                                unattended_install.cdrom:
+                                    cdrom = windows/en_windows_vista_sp2_x64_dvd_342267.iso
+                                    md5sum = a1c024d7abaf34bac3368e88efbc2574
+                                    md5sum_1m = 3d84911a80f3df71d1026f7adedc2181
+                                    sha1sum = aaee3c04533899f9f8c4ae0c4250ef5fafbe29a3
+                                    sha1sum_1m = 1fd21bd3ce2a4de8856c7b8fe6fdf80260f6d1c7
+                                    unattended_file = unattended/winvista-64-autounattend.xml
+                                    floppy = images/winvista-sp2-64/floppy.img
+                                    virtio_storage_path = 'D:\viostor\Wlh\amd64'
+                                    virtio_network_path = 'D:\NetKVM\Vista\amd64'
 
             - Win2008:
+                no whql
                 image_name = win2008
                 image_size = 20G
 
@@ -1386,6 +1514,12 @@ variants:
             - Win7:
                 image_name = win7
                 image_size = 20G
+                whql_submission:
+                    desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows 7 Client\Logo
+                    desc_path_desc2 = $\WDK\Logo Type\Device Logo\Windows 7 Client
+                    device_data += " adq"
+                    dd_name_adq = AdditionalQualificationGroup
+                    dd_data_adq = Windows 7
 
                 variants:
                     - 32:
@@ -1400,6 +1534,11 @@ variants:
                             floppy = images/win7-32/floppy.img
                             virtio_storage_path = 'D:\viostor\Win7\x86'
                             virtio_network_path = 'D:\NetKVM\Vista\x86'
+                        whql_submission:
+                            dd_data_logoarch = X86
+                            dd_data_logoos = Windows 7
+                            dd_data_whqlos = Windows 7 Client
+                            dd_data_whqlqual = Logo
 
                     - 64:
                         image_name += -64
@@ -1421,6 +1560,11 @@ variants:
                             floppy = images/win7-64/floppy.img
                             virtio_storage_path = 'D:\viostor\Win7\amd64'
                             virtio_network_path = 'D:\NetKVM\Vista\amd64'
+                        whql_submission:
+                            dd_data_logoarch = AMD64
+                            dd_data_logoos = Windows 7
+                            dd_data_whqlos = Windows 7 Client x64
+                            dd_data_whqlqual = Logo
 
 
     # Unix/BSD section
