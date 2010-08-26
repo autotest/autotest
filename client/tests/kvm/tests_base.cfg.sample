@@ -205,34 +205,66 @@ variants:
 
     - timedrift:    install setup unattended_install.cdrom
         variants:
-            - with_load:
-                type = timedrift
-                # Pin the VM and host load to CPU #0
-                cpu_mask = 0x1
-                # Set the load and rest durations
-                load_duration = 20
-                rest_duration = 20
-                # Fail if the drift after load is higher than 50%
-                drift_threshold = 50
-                # Fail if the drift after the rest period is higher than 10%
-                drift_threshold_after_rest = 10
-                # For now, make sure this test is executed alone
-                used_cpus = 100
-            - with_migration:
-                type = timedrift_with_migration
-                migration_iterations = 3
-                drift_threshold = 10
-                drift_threshold_single = 3
-            - with_reboot:
-                type = timedrift_with_reboot
-                reboot_iterations = 1
-                drift_threshold = 10
-                drift_threshold_single = 3
-            - with_stop:
-                type = timedrift_with_stop
-                stop_interations = 1
-                drift_threshold = 10
-                drift_threshold_single = 3
+            - ntp:
+                variants:
+                    - with_load:
+                        type = timedrift
+                        # Pin the VM and host load to CPU #0
+                        cpu_mask = 0x1
+                        # Set the load and rest durations
+                        load_duration = 20
+                        rest_duration = 20
+                        # Fail if the drift after load is higher than 50%
+                        drift_threshold = 50
+                        # Fail if the drift after the rest period is higher than 10%
+                        drift_threshold_after_rest = 10
+                        # For now, make sure this test is executed alone
+                        used_cpus = 100
+                    - with_migration:
+                        type = timedrift_with_migration
+                        migration_iterations = 3
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+                    - with_reboot:
+                        type = timedrift_with_reboot
+                        reboot_iterations = 1
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+                    - with_stop:
+                        type = timedrift_with_stop
+                        stop_interations = 1
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+            - date:
+                variants:
+                    - with_load:
+                        type = timedrift
+                        # Pin the VM and host load to CPU #0
+                        cpu_mask = 0x1
+                        # Set the load and rest durations
+                        load_duration = 20
+                        rest_duration = 20
+                        # Fail if the drift after load is higher than 50%
+                        drift_threshold = 50
+                        # Fail if the drift after the rest period is higher than 10%
+                        drift_threshold_after_rest = 10
+                        # For now, make sure this test is executed alone
+                        used_cpus = 100
+                    - with_migration:
+                        type = timedrift_with_migration
+                        migration_iterations = 3
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+                    - with_reboot:
+                        type = timedrift_with_reboot
+                        reboot_iterations = 1
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+                    - with_stop:
+                        type = timedrift_with_stop
+                        stop_interations = 1
+                        drift_threshold = 10
+                        drift_threshold_single = 3
 
     - balloon_check:  install setup unattended_install.cdrom
         type = balloon_check
@@ -605,6 +637,14 @@ variants:
             guest_load_stop_command = "killall -9 dd"
             host_load_command = "bzip2 -c --best /dev/urandom > /dev/null"
             host_load_instances = 8
+            ntp:
+                time_command = "ntpdate -d -q ns1.nay.redhat.com"
+                time_filter_re = "originate timestamp:.*, (.\w+\s+\d+\s+\d+\s+\d+:\d+:\d+)\.(.\d+)"
+                time_format = "%b %d %Y %H:%M:%S"
+            date:
+                time_command = date +'TIME: %a %m/%d/%Y %H:%M:%S.%N'
+                time_filter_re = "(?:TIME: \w\w\w )(.{19})(?:\.\d\d)"
+                time_format = "%m/%d/%Y %H:%M:%S"
 
         variants:
             - Fedora:
@@ -1188,6 +1228,15 @@ variants:
             # Alternative host load:
             #host_load_command = "dd if=/dev/urandom of=/dev/null"
             host_load_instances = 8
+            ntp:
+                time_command = "w32tm /stripchart /samples:1 /computer:ns1.nay.redhat.com"
+                time_filter_re = "\d+/\d+/\d+\s\d+:\d+:\d+ [AP]M"
+                time_format = "%m/%d/%Y %H:%M:%S"
+            date:
+                time_command = "echo TIME: %date% %time%"
+                time_filter_re = "(?<=TIME: \w\w\w ).{19}(?=\.\d\d)"
+                time_format = "%m/%d/%Y %H:%M:%S"
+
         guest_s4:
             check_s4_support_cmd = powercfg /hibernate on
             test_s4_cmd = start ping -t localhost
