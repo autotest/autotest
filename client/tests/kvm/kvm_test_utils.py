@@ -259,23 +259,47 @@ def get_time(session, time_command, time_filter_re, time_format):
             result of the regex filter.
     @return: A tuple containing the host time and guest time.
     """
-    host_time = time.time()
-    session.sendline(time_command)
-    (match, s) = session.read_up_to_prompt()
-    if not match:
-        raise error.TestError("Could not get guest time")
+    if len(re.findall("ntpdate|w32tm", time_command)) == 0:
+        host_time = time.time()
+        session.sendline(time_command)
+        (match, s) = session.read_up_to_prompt()
+        if not match:
+            raise error.TestError("Could not get guest time")
 
-    try:
-        s = re.findall(time_filter_re, s)[0]
-    except IndexError:
-        logging.debug("The time string from guest is:\n%s" % s)
-        raise error.TestError("The time string from guest is unexpected.")
-    except Exception, e:
-        logging.debug("(time_filter_re, time_string): (%s, %s)" %
-                       (time_filter_re, s))
-        raise e
+        try:
+            s = re.findall(time_filter_re, s)[0]
+        except IndexError:
+            logging.debug("The time string from guest is:\n%s" % s)
+            raise error.TestError("The time string from guest is unexpected.")
+        except Exception, e:
+            logging.debug("(time_filter_re, time_string): (%s, %s)" %
+                           (time_filter_re, s))
+            raise e
 
-    guest_time = time.mktime(time.strptime(s, time_format))
+        guest_time = time.mktime(time.strptime(s, time_format))
+    else:
+        s , o = session.get_command_status_output(time_command)
+        if s != 0:
+            raise error.TestError("Could not get guest time")
+        if re.match('ntpdate', time_command):
+            offset = re.findall('offset (.*) sec',o)[0]
+            host_main, host_mantissa = re.findall(time_filter_re, o)[0]
+            host_time = time.mktime(time.strptime(host_main, time_format)) \
+                        + float("0.%s" % host_mantissa)
+            guest_time = host_time + float(offset)
+        else:
+            guest_time =  re.findall(time_filter_re, o)[0]
+            offset = re.findall("o:(.*)s", o)[0]
+            if re.match('PM', guest_time):
+                hour = re.findall('\d+ (\d+):', guest_time)[0]
+                hour = str(int(hour) + 12)
+                guest_time = re.sub('\d+\s\d+:', "\d+\s%s:" % hour,
+                                    guest_time)[:-3]
+            else:
+                guest_time = guest_time[:-3]
+            guest_time = time.mktime(time.strptime(guest_time, time_format))
+            host_time = guest_time - float(offset)
+
     return (host_time, guest_time)
 
 
