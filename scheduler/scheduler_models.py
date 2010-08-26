@@ -591,14 +591,53 @@ class HostQueueEntry(DBObject):
             _drone_manager.unregister_pidfile(pidfile_id)
 
 
+    def _get_status_email_contents(self, status, summary=None, hostname=None):
+        """
+        Gather info for the status notification e-mails.
+
+        If needed, we could start using the Django templating engine to create
+        the subject and the e-mail body, but that doesn't seem necessary right
+        now.
+
+        @param status: Job status text. Mandatory.
+        @param summary: Job summary text. Optional.
+        @param hostname: A hostname for the job. Optional.
+
+        @return: Tuple (subject, body) for the notification e-mail.
+        """
+        job_stats = Job(id=self.job.id).get_execution_details()
+
+        subject = ('Autotest | Job ID: %s "%s" | Status: %s ' %
+                    (self.job.id, self.job.name, status))
+
+        if hostname is not None:
+            subject += '| Hostname: %s ' % hostname
+
+        if status not in ["1 Failed", "Failed"]:
+            subject += '| Success Rate: %.2f %%' % job_stats['success_rate']
+
+        body =  "Job ID: %s\n" % self.job.id
+        body += "Job Name: %s\n" % self.job.name
+        if hostname is not None:
+            body += "Host: %s\n" % hostname
+        if summary is not None:
+            body += "Summary: %s\n" % summary
+        body += "Status: %s\n" % status
+        body += "Results interface URL: %s\n" % self._view_job_url()
+        body += "Execution Time (HH:MM:SS): %s\n" % job_stats['execution_time']
+        body += "Tests Executed: %s\n" % job_stats['total_executed']
+        body += "Tests Passed: %s\n" % job_stats['total_passed']
+        body += "Tests Failed: %s\n" % job_stats['total_failed']
+        body += "Success Rate: %.2f %%\n" % job_stats['success_rate']
+        body += "Failures Summary:\n"
+        body += job_stats['failed_rows']
+
+        return subject, body
+
+
     def _email_on_status(self, status):
         hostname = self._get_hostname()
-
-        subject = 'Autotest: Job ID: %s "%s" Host: %s %s' % (
-                self.job.id, self.job.name, hostname, status)
-        body = "Job ID: %s\nJob Name: %s\nHost: %s\nStatus: %s\n%s\n" % (
-                self.job.id, self.job.name, hostname, status,
-                self._view_job_url())
+        subject, body = self._get_status_email_contents(status, None, hostname)
         email_manager.manager.send_email(self.job.email_list, subject, body)
 
 
@@ -606,24 +645,20 @@ class HostQueueEntry(DBObject):
         if not self.job.is_finished():
             return
 
-        summary_text = []
+        summary = []
         hosts_queue = HostQueueEntry.fetch('job_id = %s' % self.job.id)
         for queue_entry in hosts_queue:
-            summary_text.append("Host: %s Status: %s" %
+            summary.append("Host: %s Status: %s" %
                                 (queue_entry._get_hostname(),
                                  queue_entry.status))
 
-        summary_text = "\n".join(summary_text)
+        summary = "\n".join(summary)
         status_counts = models.Job.objects.get_status_counts(
                 [self.job.id])[self.job.id]
         status = ', '.join('%d %s' % (count, status) for status, count
                     in status_counts.iteritems())
 
-        subject = 'Autotest: Job ID: %s "%s" %s' % (
-                self.job.id, self.job.name, status)
-        body = "Job ID: %s\nJob Name: %s\nStatus: %s\n%s\nSummary:\n%s" % (
-                self.job.id, self.job.name, status,  self._view_job_url(),
-                summary_text)
+        subject, body = self._get_status_email_contents(status, summary, None)
         email_manager.manager.send_email(self.job.email_list, subject, body)
 
 
@@ -819,6 +854,60 @@ class Job(DBObject):
         assert len(entries)>0
 
         return entries
+
+
+    def get_execution_details(self):
+        """
+        Get test execution details for this job.
+
+        @return: Dictionary with test execution details
+        """
+        stats = {}
+        rows = _db.execute("""
+                SELECT t.test, s.word, t.reason
+                FROM tko_tests AS t, tko_jobs AS j, tko_status AS s
+                WHERE t.job_idx = j.job_idx
+                AND s.status_idx = t.status
+                AND j.afe_job_id = %s
+                """ % self.id)
+        total_executed = len(rows)
+        failed_rows = [r for r in rows if not 'GOOD' in r]
+
+        # Here the job failed, so no 'real' tests were executed
+        if total_executed <= 2:
+            total_executed = 0
+            total_failed = 0
+            success_rate = 0
+        else:
+            # Here we are taking SERVER_JOB and CLIENT_JOB.0, since they are
+            # not 'real' tests
+            total_executed -= 2
+            total_failed = len(failed_rows)
+            success_rate = 100 - ((total_failed / float(total_executed)) * 100)
+
+        failed_str = '%-30s %-10s %-40s\n' % ("Test Name", "Status", "Reason")
+        for row in failed_rows:
+            failed_str += '%-30s %-10s %-40s\n' % row
+
+        stats['total_executed'] = total_executed
+        stats['total_failed'] = total_failed
+        stats['total_passed'] = total_executed - total_failed
+        stats['success_rate'] = success_rate
+        stats['failed_rows'] = failed_str
+
+        time_row = _db.execute("""
+                   SELECT started_time, finished_time
+                   FROM tko_jobs
+                   WHERE afe_job_id = %s;
+                   """ % self.id)
+
+        t_begin, t_end = time_row[0]
+        delta = t_end - t_begin
+        minutes, seconds = divmod(delta.seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        stats['execution_time'] = "%02d:%02d:%02d" % (hours, minutes, seconds)
+
+        return stats
 
 
     def set_status(self, status, update_queues=False):
