@@ -606,7 +606,7 @@ variants:
         nic_model = rtl8139
     - e1000:
         nic_model = e1000
-    - virtio:
+    - virtio_net:
         nic_model = virtio
 
 
@@ -1700,7 +1700,7 @@ variants:
         image_boot=yes
 
 
-virtio|virtio_blk|e1000|balloon_check:
+virtio_net|virtio_blk|e1000|balloon_check:
     only Fedora.11 Fedora.12 Fedora.13 RHEL.5 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
     # only WinXP Win2003 Win2008 WinVista Win7 Fedora.11 Fedora.12 Fedora.13 RHEL.5 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
 

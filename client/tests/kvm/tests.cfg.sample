@@ -65,8 +65,8 @@ variants:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
         only qcow2
-        only rtl8139
-        only ide
+        only virtio_net
+        only virtio_blk
         only smp2
         only no_pci_assignable
         only smallpages
