@@ -866,6 +866,7 @@ class Job(DBObject):
         @return: Dictionary with test execution details
         """
         stats = {}
+
         rows = _db.execute("""
                 SELECT t.test, s.word, t.reason
                 FROM tko_tests AS t, tko_jobs AS j, tko_status AS s
@@ -873,35 +874,44 @@ class Job(DBObject):
                 AND s.status_idx = t.status
                 AND j.afe_job_id = %s
                 """ % self.id)
-        total_executed = len(rows)
+
         failed_rows = [r for r in rows if not 'GOOD' in r]
 
-        job_failure_count = 0
-        for r in failed_rows:
-            test_name = r[0]
-            # Here we are looking for tests such as SERVER_JOB and CLIENT_JOB.*
-            # Those are autotest 'internal job' tests, so they should not be
-            # Counted when evaluating the test stats
-            job_test_pattern = re.compile('SERVER|CLIENT\\_JOB\.[\d]')
-            if job_test_pattern.match(test_name):
-                job_failure_count += 1
 
-        total_executed -= job_failure_count
-        total_failed = len(failed_rows) - job_failure_count
+        # Here we are looking for tests such as SERVER_JOB and CLIENT_JOB.*
+        # Those are autotest 'internal job' tests, so they should not be
+        # counted when evaluating the test stats
+        job_test_pattern = re.compile('SERVER|CLIENT\\_JOB\.[\d]')
+        n_test_jobs = 0
+        for r in rows:
+            test_name = r[0]
+            if job_test_pattern.match(test_name):
+                n_test_jobs += 1
+
+        # Same for the failed jobs
+        n_test_jobs_failed = 0
+        for f in failed_rows:
+            test_name_failed = f[0]
+            if job_test_pattern.match(test_name_failed):
+                n_test_jobs_failed += 1
+
+        total_executed = len(rows) - n_test_jobs
+        total_failed = len(failed_rows) - n_test_jobs_failed
 
         if total_executed > 0:
             success_rate = 100 - ((total_failed / float(total_executed)) * 100)
         else:
             success_rate = 0
 
-        failed_str = '%-30s %-10s %-40s\n' % ("Test Name", "Status", "Reason")
-        for row in failed_rows:
-            failed_str += '%-30s %-10s %-40s\n' % row
-
         stats['total_executed'] = total_executed
         stats['total_failed'] = total_failed
         stats['total_passed'] = total_executed - total_failed
         stats['success_rate'] = success_rate
+
+        failed_str = '%-30s %-10s %-40s\n' % ("Test Name", "Status", "Reason")
+        for row in failed_rows:
+            failed_str += '%-30s %-10s %-40s\n' % row
+
         stats['failed_rows'] = failed_str
 
         time_row = _db.execute("""
