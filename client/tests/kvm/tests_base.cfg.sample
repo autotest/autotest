@@ -1407,7 +1407,7 @@ variants:
                             dd_data_whqlqual = Premium
                         variants:
                             - sp1:
-                                image_name += sp1-32
+                                image_name += -sp1-32
                                 install:
                                     cdrom = windows/WindowsVista-32.iso
                                     md5sum = 1008f323d5170c8e614e52ccb85c0491
@@ -1425,7 +1425,7 @@ variants:
                                     virtio_network_path = 'D:\NetKVM\Vista\x86'
 
                             - sp2:
-                                image_name += sp2-32
+                                image_name += -sp2-32
                                 unattended_install.cdrom:
                                     cdrom = windows/en_windows_vista_with_sp2_x86_dvd_342266.iso
                                     md5sum = 19ca90a425667812977bab6f4ce24175
@@ -1445,7 +1445,7 @@ variants:
                             dd_data_whqlqual = Premium
                         variants:
                             - sp1:
-                                image_name += sp1-64
+                                image_name += -sp1-64
                                 install:
                                     cdrom = windows/WindowsVista-64.iso
                                     md5sum = 11e2010d857fffc47813295e6be6d58d
@@ -1462,7 +1462,7 @@ variants:
                                     virtio_storage_path = 'D:\viostor\Wlh\amd64'
                                     virtio_network_path = 'D:\NetKVM\Vista\amd64'
                             - sp2:
-                                image_name += sp2-64
+                                image_name += -sp2-64
                                 unattended_install.cdrom:
                                     cdrom = windows/en_windows_vista_sp2_x64_dvd_342267.iso
                                     md5sum = a1c024d7abaf34bac3368e88efbc2574
@@ -1480,85 +1480,89 @@ variants:
                 image_size = 20G
 
                 variants:
-                    - 32sp1:
-                        image_name += sp1-32
-                        install:
-                            cdrom_cd1 = windows/Windows2008-x86.iso
-                            #en_windows_server_2008_datacenter_enterprise_standard_x86_dvd_X14-26710.iso
-                            md5sum=0bfca49f0164de0a8eba236ced47007d
-                            md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
-                            sha1sum = 6ca018ff96f1e9b2b310a36546b6fded99a421e6
-                            steps = Win2008-32.steps
-                        setup:
-                            steps = Win2008-32-rss.steps
-                        unattended_install.cdrom:
-                            cdrom_cd1 = windows/Windows2008-x86.iso
-                            md5sum=0bfca49f0164de0a8eba236ced47007d
-                            md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
-                            unattended_file = unattended/win2008-32-autounattend.xml
-                            floppy = images/win2008-sp1-32/floppy.img
-                            virtio_storage_path = 'D:\viostor\Wlh\x86'
-                            virtio_network_path = 'D:\NetKVM\Vista\x86'
+                    - 32:
+                        variants:
+                            - sp1:
+                                image_name += -sp1-32
+                                install:
+                                    cdrom_cd1 = windows/Windows2008-x86.iso
+                                    #en_windows_server_2008_datacenter_enterprise_standard_x86_dvd_X14-26710.iso
+                                    md5sum=0bfca49f0164de0a8eba236ced47007d
+                                    md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
+                                    sha1sum = 6ca018ff96f1e9b2b310a36546b6fded99a421e6
+                                    steps = Win2008-32.steps
+                                setup:
+                                    steps = Win2008-32-rss.steps
+                                unattended_install.cdrom:
+                                    cdrom_cd1 = windows/Windows2008-x86.iso
+                                    md5sum=0bfca49f0164de0a8eba236ced47007d
+                                    md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
+                                    unattended_file = unattended/win2008-32-autounattend.xml
+                                    floppy = images/win2008-sp1-32/floppy.img
+                                    virtio_storage_path = 'D:\viostor\Wlh\x86'
+                                    virtio_network_path = 'D:\NetKVM\Vista\x86'
 
-                    - 64sp1:
-                        image_name += sp1-64
-                        install:
-                            steps = Win2008-64.steps
-                            cdrom_cd1 = windows/Windows2008-x64.iso
-                            #en_windows_server_2008_datacenter_enterprise_standard_x64_dvd_X14-26714.iso
-                            md5sum=27c58cdb3d620f28c36333a5552f271c
-                            md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
-                            sha1sum = bd000374709f67e9358814db6ec8f0ddaaa16f70
-                            passwd = 1q2w3eP
-                        setup:
-                            steps = Win2008-64-rss.steps
-                        unattended_install.cdrom:
-                            cdrom_cd1 = windows/Windows2008-x64.iso
-                            md5sum=27c58cdb3d620f28c36333a5552f271c
-                            md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
-                            unattended_file = unattended/win2008-64-autounattend.xml
-                            floppy = images/win2008-sp1-64/floppy.img
-                            virtio_storage_path = 'D:\viostor\Wlh\amd64'
-                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
+                            - sp2:
+                                image_name += -sp2-32
+                                unattended_install.cdrom:
+                                    cdrom_cd1 = windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x86_dvd_342333.iso
+                                    md5sum = b9201aeb6eef04a3c573d036a8780bdf
+                                    md5sum_1m = b7a9d42e55ea1e85105a3a6ad4da8e04
+                                    sha1sum = 49d0d6917c1256fe81048d414fa473bbc76a8724
+                                    sha1sum_1m = 9662ff7ed715faa00407e4befc484ea52a92a9fb
+                                    unattended_file = unattended/win2008-32-autounattend.xml
+                                    floppy = images/win2008-sp2-32/floppy.img
+                                    virtio_storage_path = 'D:\viostor\Wlh\x86'
+                                    virtio_network_path = 'D:\NetKVM\Vista\x86'
 
-                    - 32sp2:
-                        image_name += sp2-32
-                        unattended_install.cdrom:
-                            cdrom_cd1 = windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x86_dvd_342333.iso
-                            md5sum = b9201aeb6eef04a3c573d036a8780bdf
-                            md5sum_1m = b7a9d42e55ea1e85105a3a6ad4da8e04
-                            sha1sum = 49d0d6917c1256fe81048d414fa473bbc76a8724
-                            sha1sum_1m = 9662ff7ed715faa00407e4befc484ea52a92a9fb
-                            unattended_file = unattended/win2008-32-autounattend.xml
-                            floppy = images/win2008-sp2-32/floppy.img
-                            virtio_storage_path = 'D:\viostor\Wlh\x86'
-                            virtio_network_path = 'D:\NetKVM\Vista\x86'
+                    - 64:
+                        variants:
+                            -sp1:
+                                image_name += -sp1-64
+                                install:
+                                    steps = Win2008-64.steps
+                                    cdrom_cd1 = windows/Windows2008-x64.iso
+                                    #en_windows_server_2008_datacenter_enterprise_standard_x64_dvd_X14-26714.iso
+                                    md5sum=27c58cdb3d620f28c36333a5552f271c
+                                    md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
+                                    sha1sum = bd000374709f67e9358814db6ec8f0ddaaa16f70
+                                    passwd = 1q2w3eP
+                                setup:
+                                    steps = Win2008-64-rss.steps
+                                unattended_install.cdrom:
+                                    cdrom_cd1 = windows/Windows2008-x64.iso
+                                    md5sum=27c58cdb3d620f28c36333a5552f271c
+                                    md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
+                                    unattended_file = unattended/win2008-64-autounattend.xml
+                                    floppy = images/win2008-sp1-64/floppy.img
+                                    virtio_storage_path = 'D:\viostor\Wlh\amd64'
+                                    virtio_network_path = 'D:\NetKVM\Vista\amd64'
 
-                    - 64sp2:
-                        image_name += sp2-64
-                        unattended_install.cdrom:
-                            cdrom_cd1 = windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x64_dvd_342336.iso
-                            md5sum = e94943ef484035b3288d8db69599a6b5
-                            md5sum_1m = ee55506823d0efffb5532ddd88a8e47b
-                            sha1sum = 34c7d726c57b0f8b19ba3b40d1b4044c15fc2029
-                            sha1sum_1m = 8fe08b03e3531906855a60a78020ac9577dff5ba
-                            unattended_file = unattended/win2008-64-autounattend.xml
-                            floppy = images/win2008-sp2-64/floppy.img
-                            virtio_storage_path = 'D:\viostor\Wlh\amd64'
-                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
+                            - sp2:
+                                image_name += -sp2-64
+                                unattended_install.cdrom:
+                                    cdrom_cd1 = windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x64_dvd_342336.iso
+                                    md5sum = e94943ef484035b3288d8db69599a6b5
+                                    md5sum_1m = ee55506823d0efffb5532ddd88a8e47b
+                                    sha1sum = 34c7d726c57b0f8b19ba3b40d1b4044c15fc2029
+                                    sha1sum_1m = 8fe08b03e3531906855a60a78020ac9577dff5ba
+                                    unattended_file = unattended/win2008-64-autounattend.xml
+                                    floppy = images/win2008-sp2-64/floppy.img
+                                    virtio_storage_path = 'D:\viostor\Wlh\amd64'
+                                    virtio_network_path = 'D:\NetKVM\Vista\amd64'
 
-                    - r2:
-                        image_name += -r2
-                        unattended_install.cdrom:
-                            cdrom_cd1 = windows/en_windows_server_2008_r2_standard_enterprise_datacenter_and_web_x64_dvd_x15-59754.iso
-                            md5sum = 0207ef392c60efdda92071b0559ca0f9
-                            md5sum_1m = a5a22ce25008bd7109f6d830d627e3ed
-                            sha1sum = ad855ea913aaec3f1d0e1833c1aef7a0de326b0a
-                            sha1sum_1m = 9194a3aabae25b36e5f73cad001314b2c8d07d14
-                            unattended_file = unattended/win2008-r2-autounattend.xml
-                            floppy = images/win2008-r2-64/floppy.img
-                            virtio_storage_path = 'D:\viostor\Wlh\amd64'
-                            virtio_network_path = 'D:\NetKVM\Vista\amd64'
+                            - r2:
+                                image_name += -r2-64
+                                unattended_install.cdrom:
+                                    cdrom_cd1 = windows/en_windows_server_2008_r2_standard_enterprise_datacenter_and_web_x64_dvd_x15-59754.iso
+                                    md5sum = 0207ef392c60efdda92071b0559ca0f9
+                                    md5sum_1m = a5a22ce25008bd7109f6d830d627e3ed
+                                    sha1sum = ad855ea913aaec3f1d0e1833c1aef7a0de326b0a
+                                    sha1sum_1m = 9194a3aabae25b36e5f73cad001314b2c8d07d14
+                                    unattended_file = unattended/win2008-r2-autounattend.xml
+                                    floppy = images/win2008-r2-64/floppy.img
+                                    virtio_storage_path = 'D:\viostor\Wlh\amd64'
+                                    virtio_network_path = 'D:\NetKVM\Vista\amd64'
 
             - Win7:
                 image_name = win7
