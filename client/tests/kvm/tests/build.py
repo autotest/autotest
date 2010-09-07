@@ -495,18 +495,22 @@ class GitInstaller(SourceDirInstaller):
         kernel_repo = params.get("git_repo")
         user_repo = params.get("user_git_repo")
         kmod_repo = params.get("kmod_repo")
+        test_repo = params.get("test_git_repo")
 
         kernel_branch = params.get("kernel_branch", "master")
         user_branch = params.get("user_branch", "master")
         kmod_branch = params.get("kmod_branch", "master")
+        test_branch = params.get("test_branch", "master")
 
         kernel_lbranch = params.get("kernel_lbranch", "master")
         user_lbranch = params.get("user_lbranch", "master")
         kmod_lbranch = params.get("kmod_lbranch", "master")
+        test_lbranch = params.get("test_lbranch", "master")
 
         kernel_commit = params.get("kernel_commit", None)
         user_commit = params.get("user_commit", None)
         kmod_commit = params.get("kmod_commit", None)
+        test_commit = params.get("test_commit", None)
 
         kernel_patches = eval(params.get("kernel_patches", "[]"))
         user_patches = eval(params.get("user_patches", "[]"))
@@ -529,8 +533,16 @@ class GitInstaller(SourceDirInstaller):
                                                    os.path.basename(patch)))
                 utils.system('patch -p1 %s' % os.path.basename(patch))
 
-        unittest_cfg = os.path.join(userspace_srcdir, 'kvm', 'test', 'x86',
-                                    'unittests.cfg')
+        if test_repo:
+            test_srcdir = os.path.join(self.srcdir, "kvm-unit-tests")
+            kvm_utils.get_git_branch(test_repo, test_branch, test_srcdir,
+                                     test_commit, test_lbranch)
+            unittest_cfg = os.path.join(test_srcdir, 'x86',
+                                        'unittests.cfg')
+            self.test_srcdir = test_srcdir
+        else:
+            unittest_cfg = os.path.join(userspace_srcdir, 'kvm', 'test', 'x86',
+                                        'unittests.cfg')
 
         self.unittest_cfg = None
         if os.path.isfile(unittest_cfg):

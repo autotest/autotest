@@ -58,6 +58,7 @@ variants:
                 user_git_repo = git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git
                 user_branch = next
                 user_lbranch = next
+                test_git_repo = git://git.kernel.org/pub/scm/virt/kvm/kvm-unit-tests.git
 
     - unittest:
         type = unittest
