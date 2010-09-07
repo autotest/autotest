@@ -494,8 +494,19 @@ variants:
                 ksm_mode = "serial"
             - ksm_parallel:
                 ksm_mode = "parallel"
+
     - iofuzz:
         type = iofuzz
+
+    - virtio_console:
+        vms = ''
+        type = virtio_console
+        # smoke params - $console_type:data_string
+        virtio_console_smoke = "serialport;console:Custom data"
+        # loopback params - '$source_console_type@buffer_length:$destination_console_type1@buffer_length:...:$loopback_buffer_length;...'
+        virtio_console_loopback = "serialport:serialport;serialport@1024:serialport@32:console@1024:console@8:16"
+        # perf params - $console_type@buffer_length:$test_duration
+        virtio_console_perf = "serialport;serialport@1000000:120;console@1024:60"
 
     # This unit test module is for older branches of KVM that use the
     # kvmctl test harness (such as the code shipped with RHEL 5.x)
