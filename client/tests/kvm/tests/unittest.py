@@ -73,6 +73,7 @@ def run_unittest(test, params, env):
         smp = None
         if parser.has_option(t, 'smp'):
             smp = int(parser.get(t, 'smp'))
+            params['smp'] = smp
 
         extra_params = None
         if parser.has_option(t, 'extra_params'):
