@@ -173,6 +173,8 @@ class TkoTestMixin(object):
                                                 status=good_status,
                                                 machine=machine)
 
+        job1.jobkeyval_set.create(key='keyval_key', value='keyval_value')
+
         # create test attributes, test labels, and iterations
         # like Noah's Ark, include two of each...just in case there's a bug with
         # multiple related items
@@ -249,6 +251,7 @@ class RpcInterfaceTest(unittest.TestCase, TkoTestMixin):
                                                 'perf': {'iresult': 3,
                                                          'iresult2': 4}}])
         self.assertEquals(test['labels'], ['testlabel1', 'testlabel2'])
+        self.assertEquals(test['job_keyvals'], {'keyval_key': 'keyval_value'})
 
 
     def test_test_attributes(self):

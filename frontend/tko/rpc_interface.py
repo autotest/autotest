@@ -173,8 +173,13 @@ def _format_iteration_keyvals(test):
             for index in xrange(1, max_iterations + 1)]
 
 
+def _job_keyvals_to_dict(keyvals):
+    return dict((keyval.key, keyval.value) for keyval in keyvals)
+
+
 def get_detailed_test_views(**filter_data):
     test_views = models.TestView.list_objects(filter_data)
+
     tests_by_id = models.Test.objects.in_bulk([test_view['test_idx']
                                                for test_view in test_views])
     tests = tests_by_id.values()
@@ -186,11 +191,22 @@ def get_detailed_test_views(**filter_data):
                                                'iteration_results')
     models.Test.objects.populate_relationships(tests, models.TestLabel,
                                                'labels')
+
+    jobs_by_id = models.Job.objects.in_bulk([test_view['job_idx']
+                                             for test_view in test_views])
+    jobs = jobs_by_id.values()
+    models.Job.objects.populate_relationships(jobs, models.JobKeyval,
+                                              'keyvals')
+
     for test_view in test_views:
         test = tests_by_id[test_view['test_idx']]
         test_view['attributes'] = _attributes_to_dict(test.attributes)
         test_view['iterations'] = _format_iteration_keyvals(test)
         test_view['labels'] = [label.name for label in test.labels]
+
+        job = jobs_by_id[test_view['job_idx']]
+        test_view['job_keyvals'] = _job_keyvals_to_dict(job.keyvals)
+
     return rpc_utils.prepare_for_serialization(test_views)
 
 # graphing view support
