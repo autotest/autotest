@@ -32,8 +32,8 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         public HandlerRegistration addDoubleClickHandler(DoubleClickHandler handler);
     }
 
-    /* Optional additional display allowing toggle between a simple ListBox and a 
-     * DoubleListSelector 
+    /* Optional additional display allowing toggle between a simple ListBox and a
+     * DoubleListSelector
      */
     public interface ToggleDisplay {
         public SimplifiedList getSingleSelector();
@@ -93,14 +93,14 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         public String toString() {
             return "Item<" + name + ", " + value + ">";
         }
-        
+
         private boolean isSelected() {
             if (isGeneratedItem) {
                 return true;
             }
             return selected;
         }
-        
+
         private void setSelected(boolean selected) {
             assert !isGeneratedItem;
             this.selected = selected;
@@ -136,6 +136,11 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
 
                 @Override
                 public HandlerRegistration addChangeHandler(ChangeHandler handler) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public void setEnabled(boolean enabled) {
                     throw new UnsupportedOperationException();
                 }
             };
@@ -205,7 +210,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         // check consistency of selectedItems
         for (Item item : items) {
             if (item.isSelected() && !selectedItems.contains(item)) {
-                throw new RuntimeException("selectedItems is inconsistent, missing: " 
+                throw new RuntimeException("selectedItems is inconsistent, missing: "
                                            + item.toString());
             }
         }
@@ -228,7 +233,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
     private boolean isItemPresent(Item item) {
         return Collections.binarySearch(items, item) >= 0;
     }
-    
+
     private void removeItem(Item item) {
         items.remove(item);
         if (item.isSelected()) {
@@ -294,7 +299,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         selectedItems.add(item);
         assert verifyConsistency();
     }
-    
+
     public void selectItemByName(String name) {
         selectItem(getItemByName(name));
         refresh();
@@ -326,7 +331,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
     }
 
     /**
-     * Set the set of selected items, silently dropping any that don't exist in the header field 
+     * Set the set of selected items, silently dropping any that don't exist in the header field
      * list.
      */
     public void restoreSelectedItems(List<Item> items) {
@@ -389,15 +394,15 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         }
         return null;
     }
-    
+
     public boolean hasItemName(String name) {
         return findItem(name) != null;
     }
 
     @Override
     public void onClick(ClickEvent event) {
-        boolean isItemSelectedOnLeft = (display.getAvailableList().getSelectedName() != null);
-        boolean isItemSelectedOnRight = (display.getSelectedList().getSelectedName() != null);
+        boolean isItemSelectedOnLeft = display.getAvailableList().getSelectedName() != null;
+        boolean isItemSelectedOnRight = display.getSelectedList().getSelectedName() != null;
         Object source = event.getSource();
         if (source == display.getAddAllButton()) {
             addAll();
@@ -420,7 +425,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
         } else {
             throw new RuntimeException("Unexpected ClickEvent from " + event.getSource());
         }
-        
+
         refresh();
     }
 
@@ -435,7 +440,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
             // ignore double-clicks on other widgets
             return;
         }
-        
+
         refresh();
     }
 
@@ -454,7 +459,7 @@ public class MultiListSelectPresenter implements ClickHandler, DoubleClickHandle
                 selectItem(item);
             }
         }
-        
+
         refresh();
     }
 

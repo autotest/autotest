@@ -4,24 +4,19 @@ import autotest.common.JSONArrayList;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.DataTable;
-import autotest.common.table.SelectionManager;
-import autotest.common.table.TableClickWidget;
 import autotest.common.table.DataTable.DataTableListener;
 import autotest.common.table.DataTable.TableWidgetFactory;
+import autotest.common.table.SelectionManager;
 import autotest.common.table.SelectionManager.SelectionListener;
+import autotest.common.table.TableClickWidget;
+import autotest.common.ui.SimplifiedList;
 
 import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.ui.Composite;
-import com.google.gwt.user.client.ui.HTML;
-import com.google.gwt.user.client.ui.HorizontalPanel;
-import com.google.gwt.user.client.ui.HorizontalSplitPanel;
-import com.google.gwt.user.client.ui.Label;
-import com.google.gwt.user.client.ui.ListBox;
-import com.google.gwt.user.client.ui.Panel;
-import com.google.gwt.user.client.ui.VerticalPanel;
+import com.google.gwt.user.client.ui.HasHTML;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
@@ -30,24 +25,57 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class TestSelector extends Composite implements DataTableListener, ChangeHandler, 
+public class TestSelector extends Composite implements DataTableListener, ChangeHandler,
                                                 TableWidgetFactory, SelectionListener {
+    public static interface Display {
+        public SimplifiedList getTestTypeSelect();
+        public IDataTable getTestTable();
+        public ISelectionManager getTestSelection();
+        public HasHTML getTestInfo();
+    }
+
+    // TODO: Change DataTable to passive view, then get rid of this ad-hoc interface
+    public static interface IDataTable {
+        public void setWidgetFactory(TableWidgetFactory widgetFactory);
+        public void addListener(DataTableListener listener);
+        public void clear();
+        public void addRow(JSONObject row);
+        public void refreshWidgets();
+
+        public static class DataTableImpl extends DataTable implements IDataTable {
+            public DataTableImpl(String[][] columns) {
+                super(columns);
+            }
+        }
+    }
+
+    // TODO: Change SelectionManager to use the DataTable passive view model, then get rid of this
+    // ad-hoc interface
+    public static interface ISelectionManager {
+        public void deselectAll();
+        public Widget createWidget(int row, int cell, JSONObject rowObject);
+        public void addListener(SelectionListener listener);
+
+        public static class SelectionManagerImpl extends SelectionManager
+                implements ISelectionManager {
+            public SelectionManagerImpl(DataTable table, boolean selectOnlyOne) {
+                super(table, selectOnlyOne);
+            }
+
+        }
+    }
+
     // control file types
-    static final String SERVER_TYPE = "Server";
-    static final String CLIENT_TYPE = "Client";
-    
-    private static final String[][] testTableColumns = new String[][] {
-        {DataTable.WIDGET_COLUMN, ""},
-        {"name", "Test"},
-    };
-    
+    public static final String SERVER_TYPE = "Server";
+    public static final String CLIENT_TYPE = "Client";
+
     public static interface TestSelectorListener {
         /**
          * Called when a test is selected or deselected, or when the test type is changed.
          */
         public void onTestSelectionChanged();
     }
-    
+
     private static class TestInfoBuilder {
         private static final Map<String, String> timeMap = new HashMap<String, String>();
         static {
@@ -55,30 +83,30 @@ class TestSelector extends Composite implements DataTableListener, ChangeHandler
             timeMap.put("MEDIUM", "15 minutes to four hours");
             timeMap.put("LONG", "over four hours");
         }
-        
+
         private StringBuilder builder = new StringBuilder();
         private JSONObject test;
-        
+
         public TestInfoBuilder(JSONObject test) {
             this.test = test;
-            
+
             writeTitleLine();
             appendTextField("Written by", getField("author"));
             appendTextField("Type", getField("test_type"));
             appendTextField("Synchronization count", getField("sync_count"));
             writeTime();
             writeSkipVerify(test);
-            
+
             builder.append("<br>" + getField("description"));
         }
 
         private void writeTitleLine() {
             builder.append("<b>" + getField("name") + "</b> ");
-            builder.append("(" + 
-                           getField("test_class") + " / " + getField("test_category") + 
+            builder.append("(" +
+                           getField("test_class") + " / " + getField("test_category") +
                            ")<br><br>");
         }
-        
+
         private void writeTime() {
             String time = getField("test_time");
             String timeDetail = "unknown time";
@@ -101,71 +129,47 @@ class TestSelector extends Composite implements DataTableListener, ChangeHandler
         private String getField(String field) {
             return Utils.escape(Utils.jsonToString(test.get(field)));
         }
-        
+
         public String getInfo() {
             return builder.toString();
         }
     }
-    
-    private ListBox testTypeSelect = new ListBox();
-    private DataTable testTable = new DataTable(testTableColumns);
-    private SelectionManager testSelection = new SelectionManager(testTable, false);
-    private HTML testInfo = new HTML("Click a test to view its description");
-    private HorizontalSplitPanel mainPanel = new HorizontalSplitPanel();
+
     private boolean enabled = true;
     private TestSelectorListener listener;
     private StaticDataRepository staticData = StaticDataRepository.getRepository();
     private List<JSONObject> selectedTests = new ArrayList<JSONObject>();
-    
-    public TestSelector() {
-        testInfo.setStyleName("test-description");
-        
-        testTypeSelect.addItem(CLIENT_TYPE);
-        testTypeSelect.addItem(SERVER_TYPE);
-        testTypeSelect.addChangeHandler(this);
-        
-        testTable.fillParent();
-        testTable.setWidgetFactory(this);
-        testTable.setClickable(true);
-        testTable.addListener(this);
-        
-        Panel testTypePanel = new HorizontalPanel();
-        testTypePanel.add(new Label("Test type:"));
-        testTypePanel.add(testTypeSelect);
-        
-        Panel testInfoPanel = new VerticalPanel();
-        testInfoPanel.add(testInfo);
-        
-        mainPanel.setLeftWidget(testTable);
-        mainPanel.setRightWidget(testInfoPanel);
-        mainPanel.setSize("100%", "30em");
-        mainPanel.setSplitPosition("20em");
-        
-        Panel container = new VerticalPanel();
-        container.add(testTypePanel);
-        container.add(mainPanel);
-        container.setWidth("100%");
-        
+
+    private Display display;
+
+    public void bindDisplay(Display display) {
+        this.display = display;
+
+        display.getTestTypeSelect().addItem(CLIENT_TYPE, CLIENT_TYPE);
+        display.getTestTypeSelect().addItem(SERVER_TYPE, SERVER_TYPE);
+        display.getTestTypeSelect().addChangeHandler(this);
+
+        display.getTestTable().setWidgetFactory(this);
+        display.getTestTable().addListener(this);
+
         populateTests();
-        
-        initWidget(container);
-        
-        testSelection.addListener(this);
+
+        display.getTestSelection().addListener(this);
     }
-    
+
     private void populateTests() {
-        testSelection.deselectAll();
-        testTable.clear();
-        
+        display.getTestSelection().deselectAll();
+        display.getTestTable().clear();
+
         JSONArray tests = staticData.getData("tests").isArray();
         for (JSONObject test : new JSONArrayList<JSONObject>(tests)) {
-            if (!includeExperimentalTests() 
+            if (!includeExperimentalTests()
                     && test.get("experimental").isBoolean().booleanValue()) {
                 continue;
             }
             String testType = test.get("test_type").isString().stringValue();
             if (testType.equals(getSelectedTestType())) {
-                testTable.addRow(test);
+                display.getTestTable().addRow(test);
             }
         }
     }
@@ -174,36 +178,36 @@ class TestSelector extends Composite implements DataTableListener, ChangeHandler
         JSONObject user = staticData.getData("current_user").isObject();
         return user.get("show_experimental").isBoolean().booleanValue();
     }
-    
+
     @Override
     public void onRowClicked(int rowIndex, JSONObject row, boolean isRightClick) {
         TestInfoBuilder builder = new TestInfoBuilder(row);
-        testInfo.setHTML(builder.getInfo());
+        display.getTestInfo().setHTML(builder.getInfo());
     }
-    
+
     @Override
     public void onChange(ChangeEvent event) {
         populateTests();
         notifyListener();
     }
-    
+
     public Collection<JSONObject> getSelectedTests() {
         return selectedTests;
     }
 
     public String getSelectedTestType() {
-        return testTypeSelect.getItemText(testTypeSelect.getSelectedIndex());
+        return display.getTestTypeSelect().getSelectedName();
     }
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-        testTypeSelect.setEnabled(enabled);
-        testTable.refreshWidgets();
+        display.getTestTypeSelect().setEnabled(enabled);
+        display.getTestTable().refreshWidgets();
     }
 
     public Widget createWidget(int row, int cell, JSONObject rowObject) {
-        TableClickWidget widget = 
-            (TableClickWidget) testSelection.createWidget(row, cell, rowObject);
+        TableClickWidget widget =
+            (TableClickWidget) display.getTestSelection().createWidget(row, cell, rowObject);
         if (!enabled) {
             widget.getContainedWidget().setEnabled(false);
         }
@@ -211,10 +215,10 @@ class TestSelector extends Composite implements DataTableListener, ChangeHandler
     }
 
     public void reset() {
-        testTypeSelect.setSelectedIndex(0);
+        display.getTestTypeSelect().selectByName(CLIENT_TYPE);
         populateTests();
     }
-    
+
     private void notifyListener() {
         if (listener != null) {
             listener.onTestSelectionChanged();

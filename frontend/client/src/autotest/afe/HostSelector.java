@@ -2,12 +2,12 @@ package autotest.afe;
 
 import autotest.common.Utils;
 import autotest.common.table.ArrayDataSource;
-import autotest.common.table.SelectionManager;
-import autotest.common.table.TableDecorator;
 import autotest.common.table.DataSource.DefaultDataCallback;
 import autotest.common.table.DataSource.Query;
 import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.table.SelectionManager;
 import autotest.common.table.SelectionManager.SelectionListener;
+import autotest.common.table.TableDecorator;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.SimplifiedList;
 
@@ -126,9 +126,9 @@ public class HostSelector implements ClickHandler {
                 if (isMetaEntry(row) || isOneTimeHost(row)) {
                     deselectRow(row);
                     selectionRefresh();
-                }
-                else
+                } else {
                     availableSelection.deselectObject(row);
+                }
             }
 
             public void onTableRefreshed() {}
@@ -269,8 +269,8 @@ public class HostSelector implements ClickHandler {
 
     private void populateLabels(SimplifiedList list) {
         String[] labelNames = AfeUtils.getLabelStrings();
-        for(int i = 0; i < labelNames.length; i++) {
-            list.addItem(labelNames[i], "");
+        for (String labelName : labelNames) {
+            list.addItem(labelName, "");
         }
     }
 

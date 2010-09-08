@@ -3,9 +3,10 @@ package autotest.afe;
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
 import autotest.common.StaticDataRepository;
-import autotest.common.Utils;
 import autotest.common.StaticDataRepository.FinishedCallback;
+import autotest.common.Utils;
 import autotest.common.ui.RadioChooser;
+import autotest.common.ui.RadioChooserDisplay;
 import autotest.common.ui.TabView;
 
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -26,14 +27,14 @@ import com.google.gwt.user.client.ui.Widget;
 public class UserPreferencesView extends TabView implements ClickHandler {
     private static final StaticDataRepository staticData = StaticDataRepository.getRepository();
     private static final JsonRpcProxy proxy = JsonRpcProxy.getProxy();
-    
+
     public static interface UserPreferencesListener {
         public void onPreferencesChanged();
     }
-    
+
     private JSONObject user;
     private UserPreferencesListener listener;
-    
+
     private RadioChooser rebootBefore = new RadioChooser();
     private RadioChooser rebootAfter = new RadioChooser();
     private ListBox droneSet = new ListBox();
@@ -53,17 +54,23 @@ public class UserPreferencesView extends TabView implements ClickHandler {
     @Override
     public void initialize() {
         super.initialize();
+
+        RadioChooserDisplay rebootBeforeDisplay = new RadioChooserDisplay();
+        RadioChooserDisplay rebootAfterDisplay = new RadioChooserDisplay();
+        rebootBefore.bindDisplay(rebootBeforeDisplay);
+        rebootAfter.bindDisplay(rebootAfterDisplay);
+
         Panel container = new VerticalPanel();
         AfeUtils.populateRadioChooser(rebootBefore, "reboot_before");
         AfeUtils.populateRadioChooser(rebootAfter, "reboot_after");
 
         saveButton.addClickHandler(this);
 
-        addOption("Reboot before", rebootBefore);
-        addOption("Reboot after", rebootAfter);
+        addOption("Reboot before", rebootBeforeDisplay);
+        addOption("Reboot after", rebootAfterDisplay);
         addOption("Show experimental tests", showExperimental);
         if (staticData.getData("drone_sets_enabled").isBoolean().booleanValue()) {
-            AfeUtils.popualateListBox(droneSet, "drone_sets");
+            AfeUtils.populateListBox(droneSet, "drone_sets");
             addOption("Drone set", droneSet);
         }
 
@@ -92,7 +99,7 @@ public class UserPreferencesView extends TabView implements ClickHandler {
 
         showExperimental.setValue(user.get("show_experimental").isBoolean().booleanValue());
     }
-    
+
     private String getValue(String key) {
         return Utils.jsonToString(user.get(key));
     }
