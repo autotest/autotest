@@ -1,6 +1,6 @@
 package autotest.afe;
 
-import autotest.afe.CreateJobView.JobCreateListener;
+import autotest.afe.create.CreateJobViewPresenter.JobCreateListener;
 import autotest.common.JSONArrayList;
 import autotest.common.JsonRpcCallback;
 import autotest.common.JsonRpcProxy;
@@ -10,6 +10,7 @@ import autotest.common.Utils;
 import autotest.common.table.JSONObjectSet;
 import autotest.common.ui.NotifyManager;
 import autotest.common.ui.RadioChooser;
+import autotest.common.ui.SimplifiedList;
 
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONBoolean;
@@ -60,7 +61,7 @@ public class AfeUtils {
 
     protected static String[] getFilteredLabelStrings(boolean onlyPlatforms,
                                                       boolean onlyNonPlatforms) {
-        assert( !(onlyPlatforms && onlyNonPlatforms));
+        assert !(onlyPlatforms && onlyNonPlatforms);
         JSONArray labels = staticData.getData("labels").isArray();
         List<String> result = new ArrayList<String>();
         for (int i = 0; i < labels.size(); i++) {
@@ -71,8 +72,8 @@ public class AfeUtils {
             if (atomicGroup != null) {
                 name += ATOMIC_GROUP_SUFFIX;
             }
-            if ((onlyPlatforms && labelIsPlatform) ||
-                (onlyNonPlatforms && !labelIsPlatform)) {
+            if (onlyPlatforms && labelIsPlatform ||
+                onlyNonPlatforms && !labelIsPlatform) {
                     result.add(name);
             } else if (!onlyPlatforms && !onlyNonPlatforms) {
                 if (labelIsPlatform) {
@@ -319,10 +320,18 @@ public class AfeUtils {
         }
     }
 
-    public static void popualateListBox(ListBox box, String staticDataKey) {
+    public static void populateListBox(ListBox box, String staticDataKey) {
         JSONArray options = staticData.getData(staticDataKey).isArray();
         for (JSONString jsonOption : new JSONArrayList<JSONString>(options)) {
             box.addItem(Utils.jsonToString(jsonOption));
+        }
+    }
+
+    public static void populateListBox(SimplifiedList box, String staticDataKey) {
+        JSONArray options = staticData.getData(staticDataKey).isArray();
+        for (JSONString jsonOption : new JSONArrayList<JSONString>(options)) {
+            String option = Utils.jsonToString(jsonOption);
+            box.addItem(option, option);
         }
     }
 

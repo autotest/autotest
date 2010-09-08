@@ -24,82 +24,82 @@ public class DynamicTable extends DataTable implements DataCallback {
     public static final int NO_COLUMN = -1;
     public static final String SORT_UP_IMAGE = "arrow_up.png",
                                SORT_DOWN_IMAGE = "arrow_down.png";
-    
+
     public static interface DynamicTableListener extends DataTableListener {
         public void onTableRefreshed();
     }
-    
+
     static class SortIndicator extends Composite {
         public int column;
         private Image image = new Image();
-        
+
         public SortIndicator(int column) {
             this.column = column;
             initWidget(image);
             setVisible(false);
         }
-        
+
         public void sortOn(SortDirection direction) {
             image.setUrl(direction == SortDirection.ASCENDING ? SORT_UP_IMAGE : SORT_DOWN_IMAGE);
             setVisible(true);
         }
-        
+
         public void sortOff() {
             setVisible(false);
         }
     }
-    
+
     protected DataSource dataSource;
     private Query currentQuery;
-    
+
     private boolean clientSortable = false;
     private SortIndicator[] sortIndicators;
     private List<SortSpec> sortColumns = new ArrayList<SortSpec>();
-    
+
     protected List<Filter> filters = new ArrayList<Filter>();
     protected List<Paginator> paginators = new ArrayList<Paginator>();
     protected Integer rowsPerPage;
-    
-    protected List<DynamicTableListener> dynamicTableListeners = 
+
+    protected List<DynamicTableListener> dynamicTableListeners =
         new ArrayList<DynamicTableListener>();
-    
+
     public DynamicTable(String[][] columns, DataSource dataSource) {
         super(columns);
         setDataSource(dataSource);
     }
-    
+
     // SORTING
-    
+
     /**
-     * Makes the table client sortable, that is, sortable by the user by 
-     * clicking on column headers. 
+     * Makes the table client sortable, that is, sortable by the user by
+     * clicking on column headers.
      */
     public void makeClientSortable() {
         this.clientSortable = true;
-        table.getRowFormatter().addStyleName(0, 
+        table.getRowFormatter().addStyleName(0,
                                          DataTable.HEADER_STYLE + "-sortable");
-        
+
         sortIndicators = new SortIndicator[columns.length];
         for(int i = 0; i < columns.length; i++) {
             sortIndicators[i] = new SortIndicator(i);
-            
+
             // we have to use an HTMLPanel here to preserve styles correctly and
             // not break hover
             // we add a <span> with a unique ID to hold the sort indicator
             String name = columns[i][COL_TITLE];
             String id = HTMLPanel.createUniqueId();
-            HTMLPanel panel = new HTMLPanel(name + 
+            HTMLPanel panel = new HTMLPanel(name +
                                             " <span id=\"" + id + "\"></span>");
             panel.add(sortIndicators[i], id);
             table.setWidget(0, i, panel);
         }
     }
-    
+
     private void updateSortIndicators() {
         if (!clientSortable) {
             return;
         }
-        
+
         SortSpec firstSpec = getFirstSortSpec();
         for (SortIndicator indicator : sortIndicators) {
             if (columns[indicator.column][COL_NAME].equals(firstSpec.getField())) {
@@ -116,7 +116,7 @@ public class DynamicTable extends DataTable implements DataCallback {
         }
         return sortColumns.get(0);
     }
-    
+
     /**
      * Set column on which data is sorted.  You must call <code>refresh()</code>
      * after this to display the results.
@@ -131,25 +131,25 @@ public class DynamicTable extends DataTable implements DataCallback {
                 break;
             }
         }
-        
+
         sortColumns.add(0, new SortSpec(columnField, sortDirection));
         updateSortIndicators();
     }
-    
+
     /**
      * Defaults to ascending order.
      */
     public void sortOnColumn(String columnField) {
         sortOnColumn(columnField, SortDirection.ASCENDING);
     }
-    
+
     public void clearSorts() {
         sortColumns.clear();
         updateSortIndicators();
     }
-    
+
     // PAGINATION
-    
+
     /**
      * Attach a new paginator to this table.
      */
@@ -160,11 +160,11 @@ public class DynamicTable extends DataTable implements DataCallback {
             public void doCallback(Object source) {
                 setPaginatorStart(((Paginator) source).getStart());
                 fetchPage();
-            } 
+            }
         });
         paginator.setResultsPerPage(rowsPerPage.intValue());
     }
-    
+
     /**
      * Set the page size of this table (only useful if you attach paginators).
      */
@@ -175,9 +175,9 @@ public class DynamicTable extends DataTable implements DataCallback {
             paginator.setResultsPerPage(rowsPerPage);
         }
     }
-    
+
     /**
-     * Set start row for pagination.  You must call 
+     * Set start row for pagination.  You must call
      * <code>refresh()</code> after this to display the results.
      */
     public void setPaginatorStart(int start) {
@@ -185,22 +185,22 @@ public class DynamicTable extends DataTable implements DataCallback {
             paginator.setStart(start);
         }
     }
-    
+
     protected void refreshPaginators() {
         for (Paginator paginator : paginators) {
             paginator.update();
         }
     }
-    
+
     protected void updatePaginatorTotalResults(int totalResults) {
         for (Paginator paginator : paginators) {
             paginator.setNumTotalResults(totalResults);
         }
     }
-    
-    
+
+
     // FILTERING
-    
+
     public void addFilter(Filter filter) {
         filters.add(filter);
         filter.addCallback(new SimpleCallback() {
@@ -210,7 +210,7 @@ public class DynamicTable extends DataTable implements DataCallback {
             }
         });
     }
-    
+
     protected void addFilterParams(JSONObject params) {
         for (Filter filter : filters) {
             if (filter.isActive()) {
@@ -218,7 +218,7 @@ public class DynamicTable extends DataTable implements DataCallback {
             }
         }
     }
-    
+
     public boolean isAnyUserFilterActive() {
         for (Filter filter : filters) {
             if (filter.isUserControlled() && filter.isActive()) {
@@ -228,10 +228,10 @@ public class DynamicTable extends DataTable implements DataCallback {
 
         return false;
     }
-    
-    
+
+
     // DATA MANAGEMENT
-    
+
     public void refresh() {
         JSONObject params = new JSONObject();
         addFilterParams(params);
@@ -278,28 +278,29 @@ public class DynamicTable extends DataTable implements DataCallback {
     public String[] getRowData(int row) {
         String[] data = new String[columns.length];
         for (int i = 0; i < columns.length; i++) {
-            if(isWidgetColumn(i))
+            if(isWidgetColumn(i)) {
                 continue;
+            }
             data[i] = table.getHTML(row, i);
         }
         return data;
     }
-    
+
     public DataSource getDataSource() {
         return dataSource;
     }
-    
+
     public void setDataSource(DataSource dataSource) {
         this.dataSource = dataSource;
     }
-    
+
     public Query getCurrentQuery() {
         return currentQuery;
     }
-    
-    
+
+
     // INPUT
-    
+
     @Override
     protected void onCellClicked(int row, int cell, boolean isRightClick) {
         if (row == headerRow) {
@@ -314,17 +315,17 @@ public class DynamicTable extends DataTable implements DataCallback {
             if (firstSortSpec != null && columnName.equals(firstSortSpec.getField())) {
                 newSortDirection = invertSortDirection(firstSortSpec.getDirection());
             }
-            
+
             sortOnColumn(columnName, newSortDirection);
             refresh();
             return;
         }
-        
+
         super.onCellClicked(row, cell, isRightClick);
     }
-    
+
     private SortDirection invertSortDirection(SortDirection direction) {
-        return direction == SortDirection.ASCENDING ? 
+        return direction == SortDirection.ASCENDING ?
                                         SortDirection.DESCENDING : SortDirection.ASCENDING;
     }
 
@@ -332,18 +333,18 @@ public class DynamicTable extends DataTable implements DataCallback {
         super.addListener(listener);
         dynamicTableListeners.add(listener);
     }
-    
+
     public void removeListener(DynamicTableListener listener) {
         super.removeListener(listener);
         dynamicTableListeners.remove(listener);
     }
-    
+
     protected void notifyListenersRefreshed() {
         for (DynamicTableListener listener : dynamicTableListeners) {
             listener.onTableRefreshed();
         }
     }
-    
+
     public List<SortSpec> getSortSpecs() {
         return Collections.unmodifiableList(sortColumns);
     }
