@@ -1,20 +1,20 @@
 package autotest.afe;
 
-import autotest.afe.CreateJobView.JobCreateListener;
+import autotest.afe.create.CreateJobViewPresenter.JobCreateListener;
 import autotest.common.SimpleCallback;
 import autotest.common.Utils;
 import autotest.common.table.DataSource;
-import autotest.common.table.DataTable;
-import autotest.common.table.DynamicTable;
-import autotest.common.table.RpcDataSource;
-import autotest.common.table.SelectionManager;
-import autotest.common.table.SimpleFilter;
-import autotest.common.table.TableDecorator;
 import autotest.common.table.DataSource.DataCallback;
 import autotest.common.table.DataSource.Query;
 import autotest.common.table.DataSource.SortDirection;
+import autotest.common.table.DataTable;
+import autotest.common.table.DynamicTable;
 import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.table.RpcDataSource;
+import autotest.common.table.SelectionManager;
 import autotest.common.table.SelectionManager.SelectableRowFilter;
+import autotest.common.table.SimpleFilter;
+import autotest.common.table.TableDecorator;
 import autotest.common.ui.ContextMenu;
 import autotest.common.ui.DetailView;
 import autotest.common.ui.NotifyManager;
@@ -33,19 +33,19 @@ import com.google.gwt.user.client.ui.CheckBox;
 
 import java.util.List;
 
-public class HostDetailView extends DetailView 
+public class HostDetailView extends DetailView
                             implements DataCallback, TableActionsListener, SelectableRowFilter {
     private static final String[][] HOST_JOBS_COLUMNS = {
-            {DataTable.WIDGET_COLUMN, ""}, {"type", "Type"}, {"job__id", "Job ID"}, 
+            {DataTable.WIDGET_COLUMN, ""}, {"type", "Type"}, {"job__id", "Job ID"},
             {"job_owner", "Job Owner"}, {"job_name", "Job Name"}, {"started_on", "Time started"},
             {"status", "Status"}
     };
     public static final int JOBS_PER_PAGE = 20;
-    
+
     public interface HostDetailListener {
         public void onJobSelected(int jobId);
     }
-    
+
     private static class HostQueueEntryDataSource extends RpcDataSource {
         public HostQueueEntryDataSource() {
             super("get_host_queue_entries", "get_num_host_queue_entries");
@@ -62,10 +62,10 @@ public class HostDetailView extends DetailView
             return resultArray;
         }
     }
-    
+
     private static class HostJobsTable extends DynamicTable {
         private static final DataSource normalDataSource = new HostQueueEntryDataSource();
-        private static final DataSource dataSourceWithSpecialTasks = 
+        private static final DataSource dataSourceWithSpecialTasks =
             new RpcDataSource("get_host_queue_entries_and_special_tasks",
                               "get_num_host_queue_entries_and_special_tasks");
 
@@ -76,7 +76,7 @@ public class HostDetailView extends DetailView
             super(HOST_JOBS_COLUMNS, normalDataSource);
             addFilter(hostFilter);
         }
-        
+
         public void setHostname(String hostname) {
             this.hostname = hostname;
             updateFilter();
@@ -95,14 +95,14 @@ public class HostDetailView extends DetailView
             hostFilter.clear();
             hostFilter.setParameter(key, new JSONString(hostname));
         }
-        
+
         public void setSpecialTasksEnabled(boolean enabled) {
             if (enabled) {
                 setDataSource(dataSourceWithSpecialTasks);
             } else {
                 setDataSource(normalDataSource);
             }
-            
+
             updateFilter();
         }
 
@@ -123,7 +123,7 @@ public class HostDetailView extends DetailView
             row.put("job_name", name);
         }
     }
-    
+
     private String hostname = "";
     private DataSource hostDataSource = new HostDataSource();
     private HostJobsTable jobsTable = new HostJobsTable();
@@ -131,9 +131,9 @@ public class HostDetailView extends DetailView
     private HostDetailListener hostDetailListener = null;
     private JobCreateListener jobCreateListener = null;
     private SelectionManager selectionManager;
-    
+
     private JSONObject currentHostObject;
-    
+
     private Button lockButton = new Button();
     private Button reverifyButton = new Button("Reverify");
     private Button reinstallButton = new Button("Reinstall");
@@ -154,12 +154,12 @@ public class HostDetailView extends DetailView
     protected String getFetchControlsElementId() {
         return "view_host_fetch_controls";
     }
-    
+
     @Override
     protected String getDataElementId() {
         return "view_host_data";
     }
-    
+
     @Override
     protected String getTitleElementId() {
         return "view_host_title";
@@ -169,19 +169,20 @@ public class HostDetailView extends DetailView
     protected String getNoObjectText() {
         return "No host selected";
     }
-    
+
     @Override
     protected String getObjectId() {
         return hostname;
     }
-    
+
     @Override
     protected void setObjectId(String id) {
-        if (id.length() == 0)
+        if (id.length() == 0) {
             throw new IllegalArgumentException();
+        }
         this.hostname = id;
     }
-    
+
     @Override
     protected void fetchData() {
         JSONObject params = new JSONObject();
@@ -207,14 +208,14 @@ public class HostDetailView extends DetailView
             resetPage();
             return;
         }
-        
+
         String lockedText = Utils.jsonToString(currentHostObject.get(HostDataSource.LOCKED_TEXT));
         if (currentHostObject.get("locked").isBoolean().booleanValue()) {
             String lockedBy = Utils.jsonToString(currentHostObject.get("locked_by"));
             String lockedTime = Utils.jsonToString(currentHostObject.get("lock_time"));
             lockedText += ", by " + lockedBy + " on " + lockedTime;
         }
-        
+
         showField(currentHostObject, "status", "view_host_status");
         showField(currentHostObject, "platform", "view_host_platform");
         showField(currentHostObject, HostDataSource.HOST_ACLS, "view_host_acls");
@@ -224,15 +225,15 @@ public class HostDetailView extends DetailView
         String pageTitle = "Host " + hostname;
         updateLockButton();
         displayObjectData(pageTitle);
-        
+
         jobsTable.setHostname(hostname);
         jobsTable.refresh();
     }
-    
+
     @Override
     public void initialize() {
         super.initialize();
-        
+
         jobsTable.setRowsPerPage(JOBS_PER_PAGE);
         jobsTable.setClickable(true);
         jobsTable.addListener(new DynamicTableListener() {
@@ -256,26 +257,26 @@ public class HostDetailView extends DetailView
         tableDecorator.addTableActionsPanel(this, true);
         tableDecorator.addControl("Show verifies, repairs and cleanups", showSpecialTasks);
         addWidget(tableDecorator, "view_host_jobs_table");
-        
+
         showSpecialTasks.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 jobsTable.setSpecialTasksEnabled(showSpecialTasks.getValue());
                 jobsTable.refresh();
             }
         });
-        
+
         lockButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                boolean locked = currentHostObject.get("locked").isBoolean().booleanValue();
                changeLock(!locked);
-            } 
+            }
         });
         addWidget(lockButton, "view_host_lock_button");
-        
+
         reverifyButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 JSONObject params = new JSONObject();
-                
+
                 params.put("id", currentHostObject.get("id"));
                 AfeUtils.callReverify(params, new SimpleCallback() {
                     public void doCallback(Object source) {
@@ -285,7 +286,7 @@ public class HostDetailView extends DetailView
             }
         });
         addWidget(reverifyButton, "view_host_reverify_button");
-        
+
         reinstallButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 JSONArray array = new JSONArray();
@@ -314,10 +315,10 @@ public class HostDetailView extends DetailView
         AfeUtils.abortHostQueueEntries(selectionManager.getSelectedObjects(), new SimpleCallback() {
             public void doCallback(Object source) {
                 refresh();
-            } 
+            }
         });
     }
-    
+
     private void updateLockButton() {
         boolean locked = currentHostObject.get("locked").isBoolean().booleanValue();
         if (locked) {
@@ -326,18 +327,18 @@ public class HostDetailView extends DetailView
             lockButton.setText("Lock");
         }
     }
-    
+
     private void changeLock(final boolean lock) {
         JSONArray hostIds = new JSONArray();
         hostIds.set(0, currentHostObject.get("id"));
-        
+
         AfeUtils.changeHostLocks(hostIds, lock, "Host " + hostname, new SimpleCallback() {
             public void doCallback(Object source) {
                 refresh();
             }
         });
     }
-    
+
     private boolean isJobRow(JSONObject row) {
         String type = Utils.jsonToString(row.get("type"));
         return type.equals("Job");

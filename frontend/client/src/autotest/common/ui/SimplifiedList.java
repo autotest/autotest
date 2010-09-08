@@ -11,4 +11,5 @@ public interface SimplifiedList {
     public String getSelectedName();
     public void selectByName(String name);
     public HandlerRegistration addChangeHandler(ChangeHandler handler);
+    public void setEnabled(boolean enabled);
 }
