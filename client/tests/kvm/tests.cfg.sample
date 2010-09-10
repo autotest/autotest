@@ -58,7 +58,7 @@ variants:
         only Fedora.13.64
         only unattended_install.cdrom boot shutdown
         # qemu needs -enable-kvm on the cmdline
-        extra_params = ' -enable-kvm'
+        extra_params += ' -enable-kvm'
 
     # Runs qemu-kvm, f13 64 bit guest OS, install, boot, shutdown
     - @qemu_kvm_f13_quick:
