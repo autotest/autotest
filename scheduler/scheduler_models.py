@@ -920,11 +920,15 @@ class Job(DBObject):
                    WHERE afe_job_id = %s
                    """ % self.id)
 
-        t_begin, t_end = time_row[0]
-        delta = t_end - t_begin
-        minutes, seconds = divmod(delta.seconds, 60)
-        hours, minutes = divmod(minutes, 60)
-        stats['execution_time'] = "%02d:%02d:%02d" % (hours, minutes, seconds)
+        if time_row:
+            t_begin, t_end = time_row[0]
+            delta = t_end - t_begin
+            minutes, seconds = divmod(delta.seconds, 60)
+            hours, minutes = divmod(minutes, 60)
+            stats['execution_time'] = "%02d:%02d:%02d" % (
+                    hours, minutes, seconds)
+        else:
+            stats['execution_time'] = '(none)'
 
         return stats
 
