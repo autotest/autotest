@@ -1,18 +1,11 @@
-#
-# Copyright 2007 IBM Corp. Released under the GPL v2
-# Authors: Ryan Harper <ryanh@us.ibm.com>
-#
-
 """
 This module defines the GitKernel class
+
+@author: Ryan Harper (ryanh@us.ibm.com)
+@copyright: IBM 2007
 """
 
-__author__ = """
-ryanh@us.ibm.com (Ryan Harper)
-"""
-
-
-import os
+import os, logging
 import git, source_kernel
 
 
@@ -25,56 +18,60 @@ class GitKernel(git.GitRepo):
     """
     def __init__(self, repodir, giturl, weburl):
         git.GitRepo.__init__(self, repodir, giturl, weburl)
-        self.__patches = []
-        self.__config = None
-        self.__build = None
-        self.__branch = None
-        self.__revision = None
+        self._patches = []
+        self._config = None
+        self._build = None
+        self._branch = None
+        self._revision = None
 
 
     def configure(self, config):
-        self.__config = config
+        self._config = config
 
 
     def patch(self, patch):
-        self.__patches.append(patch)
+        self._patches.append(patch)
 
 
     def checkout(self, revision, local=None):
         """
-        Checkout the commit id, branch, or tag
+        Checkout the commit id, branch, or tag.
 
-        revision:str - name of the git remote branch, revision or tag
-        local:str - name of the local branch, implies -b
+        @param revision: Name of the git remote branch, revision or tag
+        @param local: Name of the local branch, implies -b
         """
-        print 'checking out %s' % revision
+        logging.info('Checking out %s', revision)
         super(GitKernel, self).checkout(revision)
-        self.__revision = super(GitKernel, self).get_revision()
-        self.__branch = super(GitKernel, self).get_branch()
-        print 'checked out %s on branch %s' % (self.__revision, self.__branch)
+        self._revision = super(GitKernel, self).get_revision()
+        self._branch = super(GitKernel, self).get_branch()
+        logging.info('Checked out %s on branch %s', self._revision,
+                     self._branch)
 
     def show_branch(self):
         """
-        Print the current local branch name
+        Print the current local branch name.
         """
-        self.__branch = super(GitKernel, self).get_branch()
-        print self.__branch
+        self._branch = super(GitKernel, self).get_branch()
+        logging.info(self._branch)
 
 
     def show_branches(self, all=True):
         """
-        Print the local and remote branches
+        Print the local and remote branches.
+
+        @param all: Whether to show all branches (True) or only local branches
+                (False).
         """
-        self.__branch = super(GitKernel, self).get_branch()
-        print super(GitKernel, self).get_branch(all=all)
+        self._branch = super(GitKernel, self).get_branch()
+        logging.info(super(GitKernel, self).get_branch(all=all))
 
 
     def show_revision(self):
         """
-        Show the current git revision
+        Show the current git revision.
         """
-        self.__revision = super(GitKernel, self).get_revision()
-        print self.__revision
+        self._revision = super(GitKernel, self).get_revision()
+        logging.info(self._revision)
 
 
     def install(self, host, build=True, builddir=None, revision=None):
@@ -91,17 +88,18 @@ class GitKernel(git.GitRepo):
         """
         if revision:
             self.checkout(revision)
-            self.__revision = super(GitKernel, self).get_revision()
-            print 'checked out revision: %s' %(self.__revision)
+            self._revision = super(GitKernel, self).get_revision()
+            logging.info('Checked out revision: %s', self._revision)
 
         if not builddir:
-            self.__build = os.path.join(host.get_tmp_dir(),"build")
-            print 'warning: builddir %s is not persistent' %(self.__build)
+            self._build = os.path.join(host.get_tmp_dir(),"build")
+            logging.warning('Builddir %s is not persistent (it will be erased '
+                            'in future jobs)', self._build)
 
         # push source to host for install
-        print 'pushing %s to host' % self.source_material
-        host.send_file(self.source_material, self.__build)
-        remote_source_material= os.path.join(self.__build,
+        logging.info('Pushing %s to host', self.source_material)
+        host.send_file(self.source_material, self._build)
+        remote_source_material= os.path.join(self._build,
                                         os.path.basename(self.source_material))
 
         # use a source_kernel to configure, patch, build and install.
@@ -109,11 +107,11 @@ class GitKernel(git.GitRepo):
 
         if build:
             # apply patches
-            for p in self.__patches:
+            for p in self._patches:
                 sk.patch(p)
 
             # configure
-            sk.configure(self.__config)
+            sk.configure(self._config)
 
             # build
             sk.build(host)
