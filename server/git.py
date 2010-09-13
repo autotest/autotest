@@ -12,8 +12,9 @@ ryanh@us.ibm.com (Ryan Harper)
 """
 
 
-import os
+import os, warnings
 from autotest_lib.client.common_lib import error
+from autotest_lib.client.bin import os_dep
 from autotest_lib.server import utils, installable_object
 
 
@@ -27,7 +28,7 @@ class GitRepo(installable_object.InstallableObject):
 
     """
 
-    def __init__(self, repodir, giturl, weburl):
+    def __init__(self, repodir, giturl, weburl=None):
         super(installable_object.InstallableObject, self).__init__()
         if repodir is None:
             e_msg = 'You must provide a directory to hold the git repository'
@@ -36,15 +37,18 @@ class GitRepo(installable_object.InstallableObject):
         if giturl is None:
             raise ValueError('You must provide a git URL to the repository')
         self.giturl = giturl
-        if weburl is None:
-            raise ValueError('You must provide a http URL to the repository')
-        self.weburl = weburl
+        if weburl is not None:
+            warnings.warn("Param weburl: You are no longer required to provide "
+                          "a web URL for your git repos", DeprecationWarning)
 
         # path to .git dir
         self.gitpath = utils.sh_escape(os.path.join(self.repodir,'.git'))
 
+        # Find git base command. If not found, this will throw an exception
+        git_base_cmd = os_dep.command('git')
+
         # base git command , pointing to gitpath git dir
-        self.gitcmdbase = 'git --git-dir=%s' % self.gitpath
+        self.gitcmdbase = '%s --git-dir=%s' % (git_base_cmd, self.gitpath)
 
         # default to same remote path as local
         self.__build = os.path.dirname(self.repodir)
@@ -67,8 +71,8 @@ class GitRepo(installable_object.InstallableObject):
 
 
     def gitcmd(self, cmd, ignore_status=False):
-        return self.run('%s %s'%(self.gitcmdbase, cmd),
-                                        ignore_status=ignore_status)
+        cmd = '%s %s' % (self.gitcmdbase, cmd)
+        return self.run(cmd, ignore_status=ignore_status)
 
 
     def get(self, **kwargs):
@@ -109,57 +113,17 @@ class GitRepo(installable_object.InstallableObject):
 
 
     def get_local_head(self):
-        cmd = 'log --max-count=1'
-        gitlog = self.gitcmd(cmd).stdout
-
-        # parsing the commit checksum out of git log 's first entry.
-        # Output looks like:
-        #
-        #       commit 1dccba29b4e5bf99fb98c324f952386dda5b097f
-        #       Merge: 031b69b... df6af41...
-        #       Author: Avi Kivity <avi@qumranet.com>
-        #       Date:   Tue Oct 23 10:36:11 2007 +0200
-        #
-        #           Merge home:/home/avi/kvm/linux-2.6
-        return str(gitlog.split('\n')[0]).split()[1]
+        cmd = 'log --pretty=format:"%H" -1'
+        l_head_cmd = self.gitcmd(cmd)
+        return l_head_cmd.stdout
 
 
     def get_remote_head(self):
-        def __needs_refresh(lines):
-            tag = '<meta http-equiv="refresh" content="0"/>'
-            if len(filter(lambda x: x.startswith(tag), lines)) > 0:
-                return True
-
-            return False
-
-
-        # scan git web interface for revision HEAD's commit tag
-        gitwebaction=';a=commit;h=HEAD'
-        url = self.weburl+gitwebaction
-        max_refresh = 4
-        r = 0
-
-        print 'checking %s for changes' %(url)
-        u = utils.urlopen(url)
-        lines = u.read().split('\n')
-
-        while __needs_refresh(lines) and r < max_refresh:
-            print 'refreshing url'
-            r = r+1
-            u = utils.urlopen(url)
-            lines = u.read().split('\n')
-
-        if r >= max_refresh:
-            e_msg = 'Failed to get remote repo status, refreshed %s times' % r
-            raise IndexError(e_msg)
-
-        # looking for a line like:
-        # <tr><td>commit</td><td # class="sha1">aadea67210c8b9e7a57744a1c2845501d2cdbac7</td></tr>
-        commit_filter = lambda x: x.startswith('<tr><td>commit</td>')
-        commit_line = filter(commit_filter, lines)
-
-        # extract the sha1 sum from the commit line
-        return str(commit_line).split('>')[4].split('<')[0]
+        cmd1 = 'remote show'
+        origin_name_cmd = self.gitcmd(cmd1)
+        cmd2 = 'log --pretty=format:"%H" -1 ' + origin_name_cmd.stdout
+        r_head_cmd = self.gitcmd(cmd2)
+        return r_head_cmd.stdout
 
 
     def is_out_of_date(self):
