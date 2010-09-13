@@ -183,3 +183,72 @@ class GitRepo(installable_object.InstallableObject):
             return True
 
         return False
+
+
+    def get_revision(self):
+        """
+        Return current HEAD commit id
+        """
+
+        if not self.is_repo_initialized():
+            self.get()
+
+        cmd = 'rev-parse --verify HEAD'
+        gitlog = self.gitcmd(cmd, True)
+        if gitlog.exit_status != 0:
+            print gitlog.stderr
+            raise error.CmdError('Failed to find git sha1 revision', gitlog)
+        else:
+            return gitlog.stdout.strip('\n')
+
+
+    def checkout(self, remote, local=None):
+        """
+        Check out the git commit id, branch, or tag given by remote.
+
+        Optional give the local branch name as local.
+
+        Note, for git checkout tag git version >= 1.5.0 is required
+        """
+        if not self.is_repo_initialized():
+            self.get()
+
+        assert(isinstance(remote, basestring))
+        if local:
+            cmd = 'checkout -b %s %s' % (local, remote)
+        else:
+            cmd = 'checkout %s' % (remote)
+        gitlog = self.gitcmd(cmd, True)
+        if gitlog.exit_status != 0:
+            print gitlog.stderr
+            raise error.CmdError('Failed to checkout git branch', gitlog)
+        else:
+            print gitlog.stdout
+
+
+    def get_branch(self, all=False, remote_tracking=False):
+        """
+        Show the branches.
+
+        all - list both remote-tracking branches and local branches.
+        remote_tracking - lists the remote-tracking branches.
+        """
+        if not self.is_repo_initialized():
+            self.get()
+
+        cmd = 'branch --no-color'
+        if all:
+            cmd = " ".join([cmd, "-a"])
+        if remote_tracking:
+            cmd = " ".join([cmd, "-r"])
+
+        gitlog = self.gitcmd(cmd, True)
+        if gitlog.exit_status != 0:
+            print gitlog.stderr
+            raise error.CmdError('Failed to get git branch', gitlog)
+        elif all or remote_tracking:
+            return gitlog.stdout.strip('\n')
+        else:
+            branch = [b.lstrip('* ') for b in gitlog.stdout.split('\n') \
+                      if b.startswith('*')][0]
+            return branch
