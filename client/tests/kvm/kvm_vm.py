@@ -235,9 +235,10 @@ class VM:
             return cmd
 
         def add_nic(help, vlan, model=None, mac=None, netdev_id=None):
-            cmd = " -net nic,vlan=%d" % vlan
             if has_option(help, "netdev"):
-                cmd +=",netdev=%s" % netdev_id
+                cmd = " -net nic,netdev=%s" % netdev_id
+            else:
+                cmd = " -net nic,vlan=%d" % vlan
             if model: cmd += ",model=%s" % model
             if mac: cmd += ",macaddr='%s'" % mac
             return cmd
