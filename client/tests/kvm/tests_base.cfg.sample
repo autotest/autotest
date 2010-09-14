@@ -1340,7 +1340,7 @@ variants:
                             unattended_file = unattended/winxp64.sif
                             floppy = images/winXP-64/floppy.img
                             virtio_oemsetup_id = WNET64
-                            virtio_network_path = F:\\NetKVM\2k3\\amd64
+                            virtio_network_path = F:\\NetKVM\xp\\amd64
                         whql_submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows XP
                             desc_path_desc2 = $\WDK\Logo Type\Systems Logo\Windows XP
