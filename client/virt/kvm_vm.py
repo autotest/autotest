@@ -1154,6 +1154,10 @@ class VM(virt_vm.BaseVM):
         if extra_params:
             qemu_cmd += " %s" % extra_params
 
+        if (has_option(help, "enable-kvm")
+            and params.get("enable-kvm", "yes") == "yes"):
+            qemu_cmd += " -enable-kvm"
+
         return qemu_cmd
 
 
