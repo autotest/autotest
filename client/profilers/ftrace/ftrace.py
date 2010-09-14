@@ -62,6 +62,7 @@ class ftrace(profiler.profiler):
                 trace-cmd -f, eg "((sig >= 10 && sig < 15) || sig == 17)"
         @param buffer_size_kb: Set the size of the ring buffer (per cpu).
         """
+        self.job.require_gcc()
         self.trace_cmd_args = ['-b', str(buffer_size_kb)]
         for tracepoint in tracepoints:
             if isinstance(tracepoint, tuple):
