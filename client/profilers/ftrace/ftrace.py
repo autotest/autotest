@@ -47,15 +47,8 @@ class ftrace(profiler.profiler):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
-        self.builddir = os.path.join(self.bindir, 'build')
-        if not os.path.isdir(self.builddir):
-            os.makedirs(self.builddir)
         utils.system("make prefix='%s'" % self.builddir)
         utils.system("make prefix='%s' install" % self.builddir)
-        self.trace_cmd = os.path.join(self.builddir, 'bin', 'trace-cmd')
-
-        # Make sure debugfs is mounted.
-        utils.system('%s reset' % self.trace_cmd)
 
 
     def initialize(self, tracepoints, buffer_size_kb=1408, **kwargs):
@@ -79,6 +72,11 @@ class ftrace(profiler.profiler):
             if event_filter:
                 self.trace_cmd_args += ['-f', event_filter]
 
+        self.builddir = os.path.join(self.bindir, 'build')
+        if not os.path.isdir(self.builddir):
+            os.makedirs(self.builddir)
+        self.trace_cmd = os.path.join(self.builddir, 'bin', 'trace-cmd')
+
 
     def start(self, test):
         """
@@ -86,6 +84,9 @@ class ftrace(profiler.profiler):
 
         @param test: Autotest test in which the profiler will operate on.
         """
+        # Make sure debugfs is mounted.
+        utils.system('%s reset' % self.trace_cmd)
+
         output_dir = os.path.join(test.profdir, 'ftrace')
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
