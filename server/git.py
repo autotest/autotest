@@ -249,6 +249,6 @@ class GitRepo(installable_object.InstallableObject):
         elif all or remote_tracking:
             return gitlog.stdout.strip('\n')
         else:
-            branch = [b.lstrip('* ') for b in gitlog.stdout.split('\n')
+            branch = [b[2:] for b in gitlog.stdout.split('\n')
                       if b.startswith('*')][0]
             return branch
