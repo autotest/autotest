@@ -9,9 +9,9 @@ import os, logging
 import git, source_kernel
 
 
-class GitKernel(git.GitRepo):
+class GitKernel(git.InstallableGitRepo):
     """
-    This class represents a git kernel repo.
+    This class represents an installable git kernel repo.
 
     It is used to pull down a local copy of a git repo, check if the local repo
     is up-to-date, if not update and then build the kernel from the git repo.
@@ -46,6 +46,7 @@ class GitKernel(git.GitRepo):
         self._branch = super(GitKernel, self).get_branch()
         logging.info('Checked out %s on branch %s', self._revision,
                      self._branch)
+
 
     def show_branch(self):
         """
