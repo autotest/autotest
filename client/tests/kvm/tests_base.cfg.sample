@@ -1217,7 +1217,7 @@ variants:
             #drive_index_virtiocd = 3
             #virtio_floppy = /usr/share/virtio-win/virtio-drivers.vfd
             # Some flavors of the virtio drivers have an msi installer
-            #virtio_network_installer = F:\\RHEV-Network.msi
+            #virtio_network_installer = ' msiexec /passive /package  F:\RHEV-Network64.msi'
         migrate:
             migration_test_command = ver && vol
             migration_bg_command = start ping -t localhost
