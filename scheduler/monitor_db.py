@@ -7,7 +7,7 @@ Autotest scheduler
 
 import common
 import datetime, errno, optparse, os, pwd, Queue, re, shutil, signal
-import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback
+import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback, urllib
 import itertools, logging, weakref, gc
 
 import MySQLdb
@@ -1823,6 +1823,7 @@ class TaskWithJobKeyvals(object):
         keyval_path = os.path.join(self._working_directory(), 'host_keyvals',
                                    host.hostname)
         platform, all_labels = host.platform_and_labels()
+        all_labels = [ urllib.quote(label) for label in all_labels ]
         keyval_dict = dict(platform=platform, labels=','.join(all_labels))
         self._write_keyvals_before_job_helper(keyval_dict, keyval_path)
 
