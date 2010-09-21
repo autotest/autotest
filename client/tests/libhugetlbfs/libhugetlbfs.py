@@ -44,9 +44,9 @@ class libhugetlbfs(test.test):
         # make might fail if there are no proper headers for the 32 bit
         # version, in that case try only for the 64 bit version
         try:
-            utils.system('make')
+            utils.make()
         except:
-            utils.system('make OBJDIRS=obj64')
+            utils.make('OBJDIRS=obj64')
 
 
     def run_once(self):
@@ -54,9 +54,9 @@ class libhugetlbfs(test.test):
         # make check might fail for 32 bit if the 32 bit compile earlier
         # had failed. See if it passes for 64 bit in that case.
         try:
-            utils.system('make check')
+            utils.make('check')
         except:
-            utils.system('make check OBJDIRS=obj64')
+            utils.make('check OBJDIRS=obj64')
 
 
     def cleanup(self):

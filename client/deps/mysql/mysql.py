@@ -12,10 +12,10 @@ def setup(tarball, topdir):
         utils.get_file('http://mirror.x10.com/mirror/mysql/Downloads/MySQL-5.0/mysql-5.0.45.tar.gz', tarball)
     utils.extract_tarball_to_dir(tarball, 'src')
     os.chdir(srcdir)
-    utils.system ('./configure --prefix=%s/mysql --enable-thread-safe-client' \
+    utils.configure('--prefix=%s/mysql --enable-thread-safe-client' \
                     % topdir)
-    utils.system('make -j %d' % utils.count_cpus())
-    utils.system('make install')
+    utils.make('-j %d' % utils.count_cpus())
+    utils.make('install')
 
     #
     # MySQL doesn't create this directory on it's own.

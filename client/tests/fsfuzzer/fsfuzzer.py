@@ -15,7 +15,7 @@ class fsfuzzer(test.test):
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('make')
+        utils.make()
 
 
     def run_once(self, fstype = 'iso9660'):

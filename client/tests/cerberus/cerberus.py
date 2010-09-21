@@ -53,7 +53,7 @@ class cerberus(test.test):
             p2 = 'patch -p1 < ../0002-Fix-CTCS2-build-in-64-bit-boxes.patch'
             utils.system(p2)
 
-        utils.system('make')
+        utils.make()
 
         # Here we define the cerberus suite control file that will be used.
         # It will be kept on the debug directory for further analysis.

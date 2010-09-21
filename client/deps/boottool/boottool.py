@@ -16,9 +16,9 @@ def setup(tarball, topdir):
     srcdir = os.path.join(topdir, 'src')
     utils.extract_tarball_to_dir(tarball, srcdir)
     os.chdir(srcdir)
-    utils.system ('perl Makefile.PL PREFIX=' + topdir)
-    utils.system ('make')
-    utils.system ('make install')
+    utils.system('perl Makefile.PL PREFIX=' + topdir)
+    utils.make()
+    utils.make('install')
     os.chdir(topdir)
 
 

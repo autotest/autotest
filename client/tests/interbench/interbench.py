@@ -14,7 +14,7 @@ class interbench(test.test):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
-        utils.system('make')
+        utils.make()
 
 
     def run_once(self, args = ''):

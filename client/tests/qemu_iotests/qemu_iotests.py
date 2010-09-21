@@ -34,7 +34,7 @@ class qemu_iotests(test.test):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
-        utils.system("make clean")
+        utils.make('clean')
 
 
     def run_once(self, options='', testlist=''):

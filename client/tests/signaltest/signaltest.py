@@ -14,7 +14,7 @@ class signaltest(test.test):
     # git://git.kernel.org/pub/scm/linux/kernel/git/tglx/rt-tests.git
     def setup(self):
         os.chdir(self.srcdir)
-        utils.system('make')
+        utils.make()
 
 
     def execute(self, args = '-t 10 -l 100000'):

@@ -18,7 +18,7 @@ class netperf2(test.test):
 
         utils.system('patch -p0 < ../wait_before_data.patch')
         utils.configure()
-        utils.system('make')
+        utils.make()
         utils.system('sync')
 
 

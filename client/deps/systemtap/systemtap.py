@@ -12,10 +12,10 @@ def setup(topdir):
 
     os.chdir(srcdir)
 
-    utils.system('./configure --with-elfutils=elfutils ' \
-                 '--prefix=%s/systemtap' % topdir)
-    utils.system('make -j %d' % utils.count_cpus())
-    utils.system('make install')
+    utils.configure('--with-elfutils=elfutils ' \
+                    '--prefix=%s/systemtap' % topdir)
+    utils.make('-j %d' % utils.count_cpus())
+    utils.make('install')
 
     os.chdir(topdir)
 
