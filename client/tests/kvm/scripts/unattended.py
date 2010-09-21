@@ -144,7 +144,7 @@ class FloppyDisk(Disk):
             cleanup(virtio_mount)
 
 
-    def setup_virtio_win2003(self, virtio_floppy):
+    def setup_virtio_win2003(self, virtio_floppy, virtio_oemsetup_id):
         """
         Setup the install floppy with the virtio storage drivers, win2003 style.
 
@@ -170,8 +170,8 @@ class FloppyDisk(Disk):
             raise SetupError('File txtsetup.oem does not have the session '
                              '"Defaults". Please check txtsetup.oem')
         default_driver = parser.get('Defaults', 'SCSI')
-        if default_driver != self.virtio_oemsetup_identifier:
-            parser.set('Defaults', 'SCSI', self.virtio_oemsetup_identifier)
+        if default_driver != virtio_oemsetup_id:
+            parser.set('Defaults', 'SCSI', virtio_oemsetup_id)
             fp = open(txtsetup_oem, 'w')
             parser.write(fp)
             fp.close()
@@ -366,7 +366,8 @@ class UnattendedInstall(object):
             setup_file_path = os.path.join(self.unattended_dir, setup_file)
             boot_disk.copy_to(setup_file_path)
             if self.install_virtio == "yes":
-                boot_disk.setup_virtio_win2003(self.virtio_floppy)
+                boot_disk.setup_virtio_win2003(self.virtio_floppy,
+                                               self.virtio_oemsetup_id)
             boot_disk.copy_to(self.finish_program)
 
         elif self.unattended_file.endswith('.ks'):
