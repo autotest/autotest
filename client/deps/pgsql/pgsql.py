@@ -12,9 +12,9 @@ def setup(tarball, topdir):
         utils.get_file('ftp://ftp.postgresql.org/pub/source/v8.3.1/postgresql-8.3.1.tar.bz2', tarball)
     utils.extract_tarball_to_dir(tarball, 'src')
     os.chdir(srcdir)
-    utils.system ('./configure --without-readline --without-zlib --enable-debug --prefix=%s/pgsql' % topdir)
-    utils.system('make -j %d' % utils.count_cpus())
-    utils.system('make install')
+    utils.configure('--without-readline --without-zlib --enable-debug --prefix=%s/pgsql' % topdir)
+    utils.make('-j %d' % utils.count_cpus())
+    utils.make('install')
 
     os.chdir(topdir)
 

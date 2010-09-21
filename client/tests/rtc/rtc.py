@@ -8,8 +8,8 @@ class rtc(test.test):
 
     def setup(self):
         os.chdir(self.srcdir)
-        utils.system('make clobber')
-        utils.system('make')
+        utils.make('clobber')
+        utils.make()
 
 
     def initialize(self):

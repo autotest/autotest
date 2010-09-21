@@ -26,7 +26,7 @@ class aio_dio_bugs(test.test):
 
     def setup(self):
         os.chdir(self.srcdir)
-        utils.system('make ' + '"CFLAGS=' + self.gcc_flags + '"')
+        utils.make('"CFLAGS=' + self.gcc_flags + '"')
 
 
     def execute(self, args = ''):

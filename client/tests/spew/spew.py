@@ -15,8 +15,8 @@ class spew(test.test):
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
         os.chdir(self.srcdir)
-        utils.system('./configure')
-        utils.system('make')
+        utils.configure()
+        utils.make()
 
 
     def run_once(self, testdir = None, filesize='100M', type='write',

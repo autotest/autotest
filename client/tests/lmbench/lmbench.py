@@ -34,7 +34,7 @@ class lmbench(test.test):
         utils.system(p2)
 
         # build lmbench
-        utils.system('make')
+        utils.make()
 
         # configure lmbench
         utils.system('yes "" | make config')
@@ -62,11 +62,11 @@ class lmbench(test.test):
 
     def run_once(self):
         os.chdir(self.srcdir)
-        utils.system('make rerun')
+        utils.make('rerun')
 
 
     def postprocess(self):
         # Get the results:
         outputdir = self.srcdir + "/results"
         results = self.resultsdir + "/summary.txt"
-        utils.system("make -C " + outputdir + " summary > " + results)
+        utils.make("-C " + outputdir + " summary > " + results)

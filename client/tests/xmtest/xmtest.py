@@ -26,8 +26,8 @@ class xmtest(test.test):
         os.chdir(self.srcdir)
 
         utils.system('./autogen')
-        utils.system('./configure')
-        utils.system('make existing')
+        utils.configure()
+        utils.make('existing')
 
 
     def execute(self, args = ''):

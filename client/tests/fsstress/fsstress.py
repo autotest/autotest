@@ -16,7 +16,7 @@ class fsstress(test.test):
 
         os.chdir(self.srcdir)
         utils.system('patch -p1 < ../fsstress-ltp.patch')
-        utils.system('make fsstress')
+        utils.make('fsstress')
 
 
     def run_once(self, testdir = None, extra_args = '', nproc = '1000', nops = '1000'):

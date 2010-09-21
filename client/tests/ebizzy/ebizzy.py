@@ -16,7 +16,7 @@ class ebizzy(test.test):
         os.chdir(self.srcdir)
 
         utils.system('[ -x configure ] && ./configure')
-        utils.system('make')
+        utils.make()
 
 
     # Note: default we use always mmap()

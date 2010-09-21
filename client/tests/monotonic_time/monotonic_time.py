@@ -9,7 +9,7 @@ class monotonic_time(test.test):
 
     def setup(self):
         os.chdir(self.srcdir)
-        utils.system('make')
+        utils.make()
 
 
     def initialize(self):

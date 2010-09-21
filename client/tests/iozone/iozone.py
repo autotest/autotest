@@ -37,13 +37,13 @@ class iozone(test.test):
 
         arch = utils.get_current_kernel_arch()
         if (arch == 'ppc'):
-            utils.system('make linux-powerpc')
+            utils.make('linux-powerpc')
         elif (arch == 'ppc64'):
-            utils.system('make linux-powerpc64')
+            utils.make('linux-powerpc64')
         elif (arch == 'x86_64'):
-            utils.system('make linux-AMD64')
+            utils.make('linux-AMD64')
         else:
-            utils.system('make linux')
+            utils.make('linux')
 
 
     def run_once(self, dir=None, args=None):

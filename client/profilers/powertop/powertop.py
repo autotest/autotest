@@ -13,7 +13,7 @@ class powertop(profiler.profiler):
     # filenames: list of filenames to cat
     def setup(self, *args, **dargs):
         os.chdir(self.srcdir)
-        utils.system('make')
+        utils.make()
 
 
     def start(self, test):

@@ -47,8 +47,8 @@ class ftrace(profiler.profiler):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
-        utils.system("make prefix='%s'" % self.builddir)
-        utils.system("make prefix='%s' install" % self.builddir)
+        utils.make("prefix='%s'" % self.builddir)
+        utils.make("prefix='%s' install" % self.builddir)
 
 
     def initialize(self, tracepoints, buffer_size_kb=1408, **kwargs):

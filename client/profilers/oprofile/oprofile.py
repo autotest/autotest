@@ -40,10 +40,10 @@ class oprofile(profiler.profiler):
 
             patch = os.path.join(self.bindir,"oprofile-69455.patch")
             utils.system('patch -p1 < %s' % patch)
-            utils.system('./configure --with-kernel-support --prefix=' + \
+            utils.configure('--with-kernel-support --prefix=' + \
                                                     self.srcdir)
-            utils.system('make -j %d' % utils.count_cpus())
-            utils.system('make install')
+            utils.make('-j %d' % utils.count_cpus())
+            utils.make('install')
         except:
             # Build from source failed.
             # But maybe can still use the local copy

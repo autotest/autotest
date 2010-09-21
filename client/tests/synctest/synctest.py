@@ -13,7 +13,7 @@ class synctest(test.test):
 
     def setup(self):
         os.chdir(self.srcdir)
-        utils.system('make')
+        utils.make()
 
 
     def run_once(self, len, loop, testdir=None):
