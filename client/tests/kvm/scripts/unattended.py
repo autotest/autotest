@@ -196,7 +196,7 @@ class CdromDisk(Disk):
     """
     def __init__(self, path):
         print "Creating ISO unattended image %s" % path
-        self.mount = tempfile.mkdtemp(prefix='cdrom_unattended', dir='/tmp')
+        self.mount = tempfile.mkdtemp(prefix='cdrom_unattended_', dir='/tmp')
         self.path = path
         clean_old_image(path)
         if not os.path.isdir(os.path.dirname(path)):
@@ -253,7 +253,7 @@ class UnattendedInstall(object):
                 os.makedirs(self.tftp)
 
         self.cdrom_cd1 = os.path.join(KVM_TEST_DIR, self.cdrom_cd1)
-        self.cdrom_mount = tempfile.mkdtemp(prefix='cdrom_', dir='/tmp')
+        self.cdrom_cd1_mount = tempfile.mkdtemp(prefix='cdrom_cd1_', dir='/tmp')
         if self.medium == 'nfs':
             self.nfs_mount = tempfile.mkdtemp(prefix='nfs_', dir='/tmp')
 
@@ -437,12 +437,12 @@ class UnattendedInstall(object):
 
         try:
             m_cmd = 'mount -t iso9660 -v -o loop,ro %s %s' % (self.cdrom_cd1,
-                                                              self.cdrom_mount)
+                                                              self.cdrom_cd1_mount)
             if os.system(m_cmd):
                 raise SetupError('Could not mount CD image %s.' %
                                  self.cdrom_cd1)
 
-            pxe_dir = os.path.join(self.cdrom_mount, self.pxe_dir)
+            pxe_dir = os.path.join(self.cdrom_cd1_mount, self.pxe_dir)
             pxe_image = os.path.join(pxe_dir, self.pxe_image)
             pxe_initrd = os.path.join(pxe_dir, self.pxe_initrd)
 
@@ -463,11 +463,7 @@ class UnattendedInstall(object):
             shutil.copyfile(pxe_initrd, tftp_initrd)
 
         finally:
-            u_cmd = 'umount %s' % self.cdrom_mount
-            if os.system(u_cmd):
-                raise SetupError('Could not unmount CD at %s.' %
-                                 self.cdrom_mount)
-            self.cleanup(self.cdrom_mount)
+            cleanup(self.cdrom_cd1_mount)
 
         pxe_config_dir = os.path.join(self.tftp, 'pxelinux.cfg')
         if not os.path.isdir(pxe_config_dir):
@@ -536,24 +532,7 @@ class UnattendedInstall(object):
                 raise SetupError("Could not copy the initrd.img from %s" %
                                  self.nfs_mount)
         finally:
-            u_cmd = "umount %s" % self.nfs_mount
-            if os.system(u_cmd):
-                raise SetupError("Could not unmont nfs at %s" % self.nfs_mount)
-            self.cleanup(self.nfs_mount)
-
-
-    def cleanup(self, mount):
-        """
-        Clean up a previously used mountpoint.
-
-        @param mount: Mountpoint to be cleaned up.
-        """
-        if os.path.isdir(mount):
-            if os.path.ismount(mount):
-                print "Path %s is still mounted, please verify" % mount
-            else:
-                print "Removing mount point %s" % mount
-                os.rmdir(mount)
+            cleanup(self.nfs_mount)
 
 
     def setup(self):
