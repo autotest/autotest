@@ -3,48 +3,8 @@
 Simple script to setup unattended installs on KVM guests.
 """
 # -*- coding: utf-8 -*-
-import os, sys, shutil, tempfile, re, ConfigParser, glob
+import os, sys, shutil, tempfile, re, ConfigParser, glob, inspect
 import common
-
-KNOWN_PACKAGE_MANAGERS = ['rpm', 'dpkg']
-
-
-def command(cmd):
-    """
-    Find a given command on the user's PATH.
-
-    @param cmd: Command you wish to find (ie, 'ls').
-    @return: Full path to the command.
-    @raise ValueError: In case the command are not found on PATH.
-    """
-    for dir in os.environ['PATH'].split(':'):
-        file = os.path.join(dir, cmd)
-        if os.path.exists(file):
-            return file
-    raise ValueError('Missing command: %s' % cmd)
-
-
-def package_that_owns(file):
-    """
-    Inquiry the main package manager which package owns file.
-
-    @param file: Path to a given file
-    """
-    support_info = {}
-    for package_manager in KNOWN_PACKAGE_MANAGERS:
-        try:
-            command(package_manager)
-            support_info[package_manager] = True
-        except:
-            support_info[package_manager] = False
-
-    if support_info['rpm']:
-        return str(os.popen('rpm -qf %s' % file).read())
-    elif support_info['dpkg']:
-        return str(os.popen('dpkg -S %s' % file).read())
-    else:
-        return ('Did not find a known package manager to inquire about '
-                'file %s' % file)
 
 
 class SetupError(Exception):
@@ -71,78 +31,58 @@ class UnattendedInstall(object):
         self.deps_dir = os.path.join(kvm_test_dir, 'deps')
         self.unattended_dir = os.path.join(kvm_test_dir, 'unattended')
 
-        tftp_root = os.environ.get('KVM_TEST_tftp', '')
-        if tftp_root:
-            self.tftp_root = os.path.join(kvm_test_dir, tftp_root)
-            if not os.path.isdir(self.tftp_root):
-                os.makedirs(self.tftp_root)
-        else:
-            self.tftp_root = tftp_root
+        attributes = ['kernel_args', 'finish_program', 'cdrom_cd1',
+                      'unattended_file', 'medium', 'url', 'kernel', 'initrd',
+                      'nfs_server', 'nfs_dir', 'pxe_dir', 'pxe_image',
+                      'pxe_initrd', 'install_virtio', 'tftp', 'qemu_img_binary',
+                      'floppy']
+        for a in attributes:
+            self._setattr(a)
 
-        self.kernel_args = os.environ.get('KVM_TEST_kernel_args', '')
-        self.finish_program = os.environ.get('KVM_TEST_finish_program', '')
-        cdrom_iso = os.environ.get('KVM_TEST_cdrom_cd1')
-        self.unattended_file = os.environ.get('KVM_TEST_unattended_file')
+        if self.install_virtio == 'yes':
+            v_attributes = ['virtio_floppy', 'virtio_storage_path',
+                            'virtio_network_path', 'virtio_oemsetup_id',
+                            'virtio_network_installer']
+            for va in v_attributes:
+                self._setattr(va)
+            self.virtio_floppy_mount = tempfile.mkdtemp(prefix='virtio_floppy_',
+                                                        dir='/tmp')
 
-        install_virtio = os.environ.get('KVM_TEST_install_virtio', 'no')
-        if install_virtio == 'yes':
-            self.install_virtio = True
-        else:
-            self.install_virtio = False
+        if self.tftp:
+            self.tftp = os.path.join(kvm_test_dir, self.tftp)
+            if not os.path.isdir(self.tftp):
+                os.makedirs(self.tftp)
 
-        virtio_floppy = os.environ.get('KVM_TEST_virtio_floppy', '')
-        self.virtio_floppy = None
-        self.virtio_floppy_mount = tempfile.mkdtemp(prefix='floppy_',
-                                                    dir='/tmp')
-        if self.install_virtio:
-            if virtio_floppy and os.path.isfile(virtio_floppy):
-                print package_that_owns(virtio_floppy)
-                self.virtio_floppy = virtio_floppy
-            elif virtio_floppy and not os.path.isfile(virtio_floppy):
-                print ('Virtio floppy path %s was not found. Please verify' %
-                       virtio_floppy)
+        if not os.path.isabs(self.qemu_img_binary):
+            self.qemu_img_binary = os.path.join(kvm_test_dir,
+                                                self.qemu_img_binary)
 
-        vni = os.environ.get('KVM_TEST_virtio_network_installer', '')
-        self.virtio_network_installer = None
-        if self.install_virtio and vni:
-            self.virtio_network_installer = vni
-
-        voi = os.environ.get('KVM_TEST_virtio_oemsetup_id', '')
-        self.virtio_oemsetup_identifier = None
-        if self.install_virtio and voi:
-            self.virtio_oemsetup_identifier = voi
-
-        vsp = os.environ.get('KVM_TEST_virtio_storage_path', '')
-        self.virtio_storage_path = None
-        if self.install_virtio and vsp:
-            self.virtio_storage_path = vsp
-
-        self.qemu_img_bin = os.environ.get('KVM_TEST_qemu_img_binary')
-        if not os.path.isabs(self.qemu_img_bin):
-            self.qemu_img_bin = os.path.join(kvm_test_dir, self.qemu_img_bin)
-        self.cdrom_iso = os.path.join(kvm_test_dir, cdrom_iso)
+        self.cdrom_cd1 = os.path.join(kvm_test_dir, self.cdrom_cd1)
         self.floppy_mount = tempfile.mkdtemp(prefix='floppy_', dir='/tmp')
         self.cdrom_mount = tempfile.mkdtemp(prefix='cdrom_', dir='/tmp')
-        self.nfs_mount = tempfile.mkdtemp(prefix='nfs_', dir='/tmp')
-        floppy_name = os.environ['KVM_TEST_floppy']
-        self.floppy_img = os.path.join(kvm_test_dir, floppy_name)
-        floppy_dir = os.path.dirname(self.floppy_img)
-        if not os.path.isdir(floppy_dir):
-            os.makedirs(floppy_dir)
+        if self.medium == 'nfs':
+            self.nfs_mount = tempfile.mkdtemp(prefix='nfs_', dir='/tmp')
 
-        self.pxe_dir = os.environ.get('KVM_TEST_pxe_dir', '')
-        self.pxe_image = os.environ.get('KVM_TEST_pxe_image', '')
-        self.pxe_initrd = os.environ.get('KVM_TEST_pxe_initrd', '')
+        self.floppy = os.path.join(kvm_test_dir, self.floppy)
+        if not os.path.isdir(os.path.dirname(self.floppy)):
+            os.makedirs(os.path.dirname(self.floppy))
 
-        self.medium = os.environ.get('KVM_TEST_medium', '')
-        self.url = os.environ.get('KVM_TEST_url', '')
-        self.kernel = os.environ.get('KVM_TEST_kernel', '')
-        self.initrd = os.environ.get('KVM_TEST_initrd', '')
-        self.nfs_server = os.environ.get('KVM_TEST_nfs_server', '')
-        self.nfs_dir = os.environ.get('KVM_TEST_nfs_dir', '')
         self.image_path = kvm_test_dir
         self.kernel_path = os.path.join(self.image_path, self.kernel)
         self.initrd_path = os.path.join(self.image_path, self.initrd)
+
+
+    def _setattr(self, key):
+        """
+        Populate class attributes with contents of environment variables.
+
+        Example: KVM_TEST_medium will populate self.medium.
+
+        @param key: Name of the class attribute we desire to have.
+        """
+        env_name = 'KVM_TEST_%s' % key
+        value = os.environ.get(env_name, '')
+        setattr(self, key, value)
 
 
     def copy_virtio_drivers_floppy(self):
@@ -231,20 +171,20 @@ class UnattendedInstall(object):
         """
         print "Creating boot floppy"
 
-        if os.path.exists(self.floppy_img):
-            os.remove(self.floppy_img)
+        if os.path.exists(self.floppy):
+            os.remove(self.floppy)
 
-        c_cmd = '%s create -f raw %s 1440k' % (self.qemu_img_bin,
-                                               self.floppy_img)
+        c_cmd = '%s create -f raw %s 1440k' % (self.qemu_img_binary,
+                                               self.floppy)
         if os.system(c_cmd):
             raise SetupError('Could not create floppy image.')
 
-        f_cmd = 'mkfs.msdos -s 1 %s' % self.floppy_img
+        f_cmd = 'mkfs.msdos -s 1 %s' % self.floppy
         if os.system(f_cmd):
             raise SetupError('Error formatting floppy image.')
 
         try:
-            m_cmd = 'mount -o loop,rw %s %s' % (self.floppy_img,
+            m_cmd = 'mount -o loop,rw %s %s' % (self.floppy,
                                                 self.floppy_mount)
             if os.system(m_cmd):
                 raise SetupError('Could not mount floppy image.')
@@ -255,17 +195,17 @@ class UnattendedInstall(object):
                 setup_file_path = os.path.join(self.unattended_dir, setup_file)
                 setup_file_dest = os.path.join(self.floppy_mount, setup_file)
                 shutil.copyfile(setup_file_path, setup_file_dest)
-                if self.install_virtio:
+                if self.install_virtio == "yes":
                     self.setup_virtio_win2003()
 
             elif self.unattended_file.endswith('.ks'):
                 # Red Hat kickstart install
                 dest_fname = 'ks.cfg'
             elif self.unattended_file.endswith('.xml'):
-                if  self.tftp_root is '':
+                if not self.tftp:
                     # Windows unattended install
                     dest_fname = "autounattend.xml"
-                    if self.install_virtio:
+                    if self.install_virtio == "yes":
                         self.setup_virtio_win2008()
                 else:
                     # SUSE autoyast install
@@ -293,50 +233,54 @@ class UnattendedInstall(object):
             elif self.medium == "url":
                 content = "url --url %s" % self.url
             elif self.medium == "nfs":
-                content = "nfs --server=%s --dir=%s" % (self.nfs_server, self.nfs_dir)
+                content = "nfs --server=%s --dir=%s" % (self.nfs_server,
+                                                        self.nfs_dir)
             else:
                 raise SetupError("Unexpected installation medium %s" % self.url)
 
-            unattended_contents = re.sub(dummy_medium_re, content, unattended_contents)
+            unattended_contents = re.sub(dummy_medium_re, content,
+                                         unattended_contents)
 
-            dummy_path = "C:"
+            def replace_virtio_key(contents, dummy_re, env):
+                """
+                Replace a virtio dummy string with contents.
 
-            dummy_storage_re = r'\bKVM_TEST_STORAGE_DRIVER_PATH\b'
-            storage_driver = os.environ.get('KVM_TEST_virtio_storage_path', '')
-            if re.search(dummy_storage_re, unattended_contents):
-                if self.install_virtio:
-                    unattended_contents = re.sub(dummy_storage_re,
-                                                 storage_driver,
-                                                 unattended_contents)
-                else:
-                    unattended_contents = re.sub(dummy_storage_re,
-                                                 dummy_path,
-                                                 unattended_contents)
+                If install_virtio is not set, replace it with a dummy string.
 
-            dummy_network_re = r'\bKVM_TEST_NETWORK_DRIVER_PATH\b'
-            network_driver = os.environ.get('KVM_TEST_virtio_network_path', '')
-            if re.search(dummy_network_re, unattended_contents):
-                if self.install_virtio:
-                    unattended_contents = re.sub(dummy_network_re,
-                                                 network_driver,
-                                                 unattended_contents)
-                else:
-                    unattended_contents = re.sub(dummy_network_re,
-                                                 dummy_path,
-                                                 unattended_contents)
+                @param contents: Contents of the unattended file
+                @param dummy_re: Regular expression used to search on the.
+                        unattended file contents.
+                @param env: Name of the environment variable.
+                """
+                dummy_path = "C:"
+                driver = os.environ.get(env, '')
 
-            dummy_nw_install_re = r'\bKVM_TEST_VIRTIO_NETWORK_INSTALLER\b'
-            nw_install = os.environ.get('KVM_TEST_virtio_network_installer',
-                                        'help')
-            if re.search(dummy_nw_install_re, unattended_contents):
-                if self.install_virtio:
-                    unattended_contents = re.sub(dummy_nw_install_re,
-                                                 nw_install,
-                                                 unattended_contents)
-                else:
-                    unattended_contents = re.sub(dummy_nw_install_re,
-                                                 'help',
-                                                 unattended_contents)
+                if re.search(dummy_re, contents):
+                    if self.install_virtio == "yes":
+                        if driver.endswith("msi"):
+                            driver = 'msiexec /passive /package ' + driver
+                        else:
+                            try:
+                                # Let's escape windows style paths properly
+                                drive, path = driver.split(":")
+                                driver = drive + ":" + re.escape(path)
+                            except:
+                                pass
+                        contents = re.sub(dummy_re, driver, contents)
+                    else:
+                        contents = re.sub(dummy_re, dummy_path, contents)
+                return contents
+
+            vdict = {r'\bKVM_TEST_STORAGE_DRIVER_PATH\b':
+                     'KVM_TEST_virtio_storage_path',
+                     r'\bKVM_TEST_NETWORK_DRIVER_PATH\b':
+                     'KVM_TEST_virtio_network_path',
+                     r'\bKVM_TEST_VIRTIO_NETWORK_INSTALLER\b':
+                     'KVM_TEST_virtio_network_installer_path'}
+
+            for vkey in vdict:
+                unattended_contents = replace_virtio_key(unattended_contents,
+                                                         vkey, vdict[vkey])
 
             print
             print "Unattended install %s contents:" % dest_fname
@@ -356,7 +300,7 @@ class UnattendedInstall(object):
                                  self.floppy_mount)
             self.cleanup(self.floppy_mount)
 
-        os.chmod(self.floppy_img, 0755)
+        os.chmod(self.floppy, 0755)
 
         print "Boot floppy created successfuly"
 
@@ -369,7 +313,7 @@ class UnattendedInstall(object):
         initrd.img files from the CD to a directory that qemu will serve trough
         TFTP to the VM.
         """
-        print "Setting up PXE boot using TFTP root %s" % self.tftp_root
+        print "Setting up PXE boot using TFTP root %s" % self.tftp
 
         pxe_file = None
         pxe_paths = ['/usr/lib/syslinux/pxelinux.0',
@@ -384,15 +328,15 @@ class UnattendedInstall(object):
                              'sure pxelinux or equivalent package for your '
                              'distro is installed.')
 
-        pxe_dest = os.path.join(self.tftp_root, 'pxelinux.0')
+        pxe_dest = os.path.join(self.tftp, 'pxelinux.0')
         shutil.copyfile(pxe_file, pxe_dest)
 
         try:
-            m_cmd = 'mount -t iso9660 -v -o loop,ro %s %s' % (self.cdrom_iso,
+            m_cmd = 'mount -t iso9660 -v -o loop,ro %s %s' % (self.cdrom_cd1,
                                                               self.cdrom_mount)
             if os.system(m_cmd):
                 raise SetupError('Could not mount CD image %s.' %
-                                 self.cdrom_iso)
+                                 self.cdrom_cd1)
 
             pxe_dir = os.path.join(self.cdrom_mount, self.pxe_dir)
             pxe_image = os.path.join(pxe_dir, self.pxe_image)
@@ -409,8 +353,8 @@ class UnattendedInstall(object):
                                  'or a initrd.img file. Cannot find a PXE '
                                  'image to proceed.' % self.pxe_dir)
 
-            tftp_image = os.path.join(self.tftp_root, 'vmlinuz')
-            tftp_initrd = os.path.join(self.tftp_root, 'initrd.img')
+            tftp_image = os.path.join(self.tftp, 'vmlinuz')
+            tftp_initrd = os.path.join(self.tftp, 'initrd.img')
             shutil.copyfile(pxe_image, tftp_image)
             shutil.copyfile(pxe_initrd, tftp_initrd)
 
@@ -421,7 +365,7 @@ class UnattendedInstall(object):
                                  self.cdrom_mount)
             self.cleanup(self.cdrom_mount)
 
-        pxe_config_dir = os.path.join(self.tftp_root, 'pxelinux.cfg')
+        pxe_config_dir = os.path.join(self.tftp, 'pxelinux.cfg')
         if not os.path.isdir(pxe_config_dir):
             os.makedirs(pxe_config_dir)
         pxe_config_path = os.path.join(pxe_config_dir, 'default')
@@ -461,13 +405,15 @@ class UnattendedInstall(object):
 
         print "Downloading finish"
 
+
     def setup_nfs(self):
         """
         Copy the vmlinuz and initrd.img from nfs.
         """
         print "Copying the vmlinuz and initrd.img from nfs"
 
-        m_cmd = "mount %s:%s %s -o ro" % (self.nfs_server, self.nfs_dir, self.nfs_mount)
+        m_cmd = "mount %s:%s %s -o ro" % (self.nfs_server, self.nfs_dir,
+                                          self.nfs_mount)
         if os.system(m_cmd):
             raise SetupError('Could not mount nfs server.')
 
@@ -491,6 +437,7 @@ class UnattendedInstall(object):
                 raise SetupError("Could not unmont nfs at %s" % self.nfs_mount)
             self.cleanup(self.nfs_mount)
 
+
     def cleanup(self, mount):
         """
         Clean up a previously used mountpoint.
@@ -507,31 +454,20 @@ class UnattendedInstall(object):
 
     def setup(self):
         print "Starting unattended install setup"
+        print
 
         print "Variables set:"
-        print "    medium: " + str(self.medium)
-        print "    qemu_img_bin: " + str(self.qemu_img_bin)
-        print "    cdrom iso: " + str(self.cdrom_iso)
-        print "    unattended_file: " + str(self.unattended_file)
-        print "    kernel_args: " + str(self.kernel_args)
-        print "    tftp_root: " + str(self.tftp_root)
-        print "    floppy_mount: " + str(self.floppy_mount)
-        print "    floppy_img: " + str(self.floppy_img)
-        print "    finish_program: " + str(self.finish_program)
-        print "    pxe_dir: " + str(self.pxe_dir)
-        print "    pxe_image: " + str(self.pxe_image)
-        print "    pxe_initrd: " + str(self.pxe_initrd)
-        print "    url: " + str(self.url)
-        print "    kernel: " + str(self.kernel)
-        print "    initrd: " + str(self.initrd)
-        print "    nfs_server: " + str(self.nfs_server)
-        print "    nfs_dir: " + str(self.nfs_dir)
-        print "    nfs_mount: " + str(self.nfs_mount)
+        for member in inspect.getmembers(self):
+            name, value = member
+            attribute = getattr(self, name)
+            if not (name.startswith("__") or callable(attribute) or not value):
+                print "    %s: %s" % (name, value)
+        print
 
-        if self.unattended_file and self.floppy_img is not None:
+        if self.unattended_file and self.floppy is not None:
             self.create_boot_floppy()
         if self.medium == "cdrom":
-            if self.tftp_root:
+            if self.tftp:
                 self.setup_pxe_boot()
         elif self.medium == "url":
             self.setup_url()
@@ -539,7 +475,7 @@ class UnattendedInstall(object):
             self.setup_nfs()
         else:
             raise SetupError("Unexpected installation method %s" %
-                                   self.medium)
+                             self.medium)
         print "Unattended install setup finished successfuly"
 
 
