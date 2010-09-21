@@ -7,6 +7,13 @@ import os, sys, shutil, tempfile, re, ConfigParser, glob, inspect
 import common
 
 
+class SetupError(Exception):
+    """
+    Simple wrapper for the builtin Exception class.
+    """
+    pass
+
+
 SCRIPT_DIR = os.path.dirname(sys.modules[__name__].__file__)
 KVM_TEST_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 try:
@@ -15,14 +22,8 @@ except KeyError:
     QEMU_IMG_BINARY = os.path.join(KVM_TEST_DIR, QEMU_IMG_BINARY)
 if not os.path.exists(QEMU_IMG_BINARY):
     raise SetupError('The qemu-img binary that is supposed to be used (%s) '
-                     'does not exist. Please verify your configuration')
-
-
-class SetupError(Exception):
-    """
-    Simple wrapper for the builtin Exception class.
-    """
-    pass
+                     'does not exist. Please verify your configuration' %
+                     QEMU_IMG_BINARY)
 
 
 def cleanup(dir):
