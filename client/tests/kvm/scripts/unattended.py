@@ -7,6 +7,17 @@ import os, sys, shutil, tempfile, re, ConfigParser, glob, inspect
 import common
 
 
+SCRIPT_DIR = os.path.dirname(sys.modules[__name__].__file__)
+KVM_TEST_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+try:
+    QEMU_IMG_BINARY = os.environ['KVM_TEST_qemu_img_binary']
+except KeyError:
+    QEMU_IMG_BINARY = os.path.join(KVM_TEST_DIR, QEMU_IMG_BINARY)
+if not os.path.exists(QEMU_IMG_BINARY):
+    raise SetupError('The qemu-img binary that is supposed to be used (%s) '
+                     'does not exist. Please verify your configuration')
+
+
 class SetupError(Exception):
     """
     Simple wrapper for the builtin Exception class.
@@ -14,123 +25,125 @@ class SetupError(Exception):
     pass
 
 
-class UnattendedInstall(object):
+def cleanup(dir):
     """
-    Creates a floppy disk image that will contain a config file for unattended
-    OS install. Optionally, sets up a PXE install server using qemu built in
-    TFTP and DHCP servers to install a particular operating system. The
-    parameters to the script are retrieved from environment variables.
+    If dir is a mountpoint, do what is possible to unmount it. Afterwards,
+    try to remove it.
+
+    @param dir: Directory to be cleaned up.
+    """
+    print "Cleaning up directory %s" % dir
+    if os.path.ismount(dir):
+        f_cmd = 'fuser -k %s' % dir
+        os.system(f_cmd)
+        u_cmd = 'umount %s' % dir
+        if os.system(u_cmd):
+            raise SetupError('Could not unmount %s' % dir)
+    if os.path.isdir(dir):
+        shutil.rmtree(dir)
+
+
+def clean_old_image(image):
+    """
+    Clean a leftover image file from previous processes. If it contains a
+    mounted file system, do the proper cleanup procedures.
+
+    @param image: Path to image to be cleaned up.
+    """
+    if os.path.exists(image):
+        mtab = open('/etc/mtab', 'r')
+        mtab_contents = mtab.read()
+        mtab.close()
+        if image in mtab_contents:
+            os.system('fuser -k %s' % image)
+            os.system('umount %s' % image)
+        os.remove(image)
+
+
+class Disk(object):
+    """
+    Abstract class for Disk objects, with the common methods implemented.
     """
     def __init__(self):
-        """
-        Gets params from environment variables and sets class attributes.
-        """
-        script_dir = os.path.dirname(sys.modules[__name__].__file__)
-        kvm_test_dir = os.path.abspath(os.path.join(script_dir, ".."))
-        images_dir = os.path.join(kvm_test_dir, 'images')
-        self.deps_dir = os.path.join(kvm_test_dir, 'deps')
-        self.unattended_dir = os.path.join(kvm_test_dir, 'unattended')
-
-        attributes = ['kernel_args', 'finish_program', 'cdrom_cd1',
-                      'unattended_file', 'medium', 'url', 'kernel', 'initrd',
-                      'nfs_server', 'nfs_dir', 'pxe_dir', 'pxe_image',
-                      'pxe_initrd', 'install_virtio', 'tftp', 'qemu_img_binary',
-                      'floppy']
-        for a in attributes:
-            self._setattr(a)
-
-        if self.install_virtio == 'yes':
-            v_attributes = ['virtio_floppy', 'virtio_storage_path',
-                            'virtio_network_path', 'virtio_oemsetup_id',
-                            'virtio_network_installer']
-            for va in v_attributes:
-                self._setattr(va)
-            self.virtio_floppy_mount = tempfile.mkdtemp(prefix='virtio_floppy_',
-                                                        dir='/tmp')
-
-        if self.tftp:
-            self.tftp = os.path.join(kvm_test_dir, self.tftp)
-            if not os.path.isdir(self.tftp):
-                os.makedirs(self.tftp)
-
-        if not os.path.isabs(self.qemu_img_binary):
-            self.qemu_img_binary = os.path.join(kvm_test_dir,
-                                                self.qemu_img_binary)
-
-        self.cdrom_cd1 = os.path.join(kvm_test_dir, self.cdrom_cd1)
-        self.floppy_mount = tempfile.mkdtemp(prefix='floppy_', dir='/tmp')
-        self.cdrom_mount = tempfile.mkdtemp(prefix='cdrom_', dir='/tmp')
-        if self.medium == 'nfs':
-            self.nfs_mount = tempfile.mkdtemp(prefix='nfs_', dir='/tmp')
-
-        self.floppy = os.path.join(kvm_test_dir, self.floppy)
-        if not os.path.isdir(os.path.dirname(self.floppy)):
-            os.makedirs(os.path.dirname(self.floppy))
-
-        self.image_path = kvm_test_dir
-        self.kernel_path = os.path.join(self.image_path, self.kernel)
-        self.initrd_path = os.path.join(self.image_path, self.initrd)
+        self.path = None
 
 
-    def _setattr(self, key):
-        """
-        Populate class attributes with contents of environment variables.
-
-        Example: KVM_TEST_medium will populate self.medium.
-
-        @param key: Name of the class attribute we desire to have.
-        """
-        env_name = 'KVM_TEST_%s' % key
-        value = os.environ.get(env_name, '')
-        setattr(self, key, value)
+    def setup_answer_file(self, filename, contents):
+        answer_file = open(os.path.join(self.mount, filename), 'w')
+        answer_file.write(contents)
+        answer_file.close()
 
 
-    def copy_virtio_drivers_floppy(self):
+    def copy_to(self, src):
+        dst = os.path.join(self.mount, os.path.basename(src))
+        if os.path.isdir(src):
+            shutil.copytree(src, dst)
+        elif os.path.isfile(src):
+            shutil.copyfile(src, dst)
+
+
+    def close(self):
+        os.chmod(self.path, 0755)
+        cleanup(self.mount)
+        print "Disk %s successfuly set" % self.path
+
+
+class FloppyDisk(Disk):
+    """
+    Represents a 1.44 MB floppy disk. We can copy files to it, and setup it in
+    convenient ways.
+    """
+    def __init__(self, path):
+        print "Creating floppy unattended image %s" % path
+
+        self.mount = tempfile.mkdtemp(prefix='floppy_', dir='/tmp')
+        self.virtio_mount = None
+        self.path = path
+        clean_old_image(path)
+        if not os.path.isdir(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
+
+        try:
+            c_cmd = '%s create -f raw %s 1440k' % (QEMU_IMG_BINARY,
+                                                   path)
+            if os.system(c_cmd):
+                raise SetupError('Could not create floppy image.')
+
+            f_cmd = 'mkfs.msdos -s 1 %s' % path
+            if os.system(f_cmd):
+                raise SetupError('Error formatting floppy image.')
+
+            m_cmd = 'mount -o loop,rw %s %s' % (path, self.mount)
+            if os.system(m_cmd):
+                raise SetupError('Could not mount floppy image.')
+        except:
+            cleanup(self.mount)
+
+
+    def _copy_virtio_drivers(self, virtio_floppy):
         """
         Copy the virtio drivers on the virtio floppy to the install floppy.
 
         1) Mount the floppy containing the viostor drivers
         2) Copy its contents to the root of the install floppy
         """
-        m_cmd = 'mount -o loop %s %s' % (self.virtio_floppy,
-                                         self.virtio_floppy_mount)
+        virtio_mount = tempfile.mkdtemp(prefix='virtio_floppy_', dir='/tmp')
+
+        m_cmd = 'mount -o loop %s %s' % (virtio_floppy, virtio_mount)
         pwd = os.getcwd()
         try:
             if os.system(m_cmd):
                 raise SetupError('Could not mount virtio floppy driver')
-            os.chdir(self.virtio_floppy_mount)
+            os.chdir(virtio_mount)
             path_list = glob.glob('*')
             for path in path_list:
-                src = os.path.join(self.virtio_floppy_mount, path)
-                dst = os.path.join(self.floppy_mount, path)
-                if os.path.isdir(path):
-                    shutil.copytree(src, dst)
-                elif os.path.isfile(path):
-                    shutil.copyfile(src, dst)
+                self.copy_to(path)
         finally:
             os.chdir(pwd)
-            u_cmd = 'umount %s' % self.virtio_floppy_mount
-            if os.system(u_cmd):
-                raise SetupError('Could not unmount virtio floppy at %s' %
-                                 self.virtio_floppy_mount)
-            self.cleanup(self.virtio_floppy_mount)
+            cleanup(virtio_mount)
 
 
-    def setup_virtio_win2008(self):
-        """
-        Setup the install floppy with the virtio storage drivers, win2008 style.
-
-        Win2008, Vista and 7 require people to point out the path to the drivers
-        on the unattended file, so we just need to copy the drivers to the
-        driver floppy disk.
-        Process:
-
-        1) Copy the virtio drivers on the virtio floppy to the install floppy
-        """
-        self.copy_virtio_drivers_floppy()
-
-
-    def setup_virtio_win2003(self):
+    def setup_virtio_win2003(self, virtio_floppy):
         """
         Setup the install floppy with the virtio storage drivers, win2003 style.
 
@@ -144,8 +157,8 @@ class UnattendedInstall(object):
            executed on the config parser object
         4) Re-write the config file to the disk
         """
-        self.copy_virtio_drivers_floppy()
-        txtsetup_oem = os.path.join(self.floppy_mount, 'txtsetup.oem')
+        self._copy_virtio_drivers(virtio_floppy)
+        txtsetup_oem = os.path.join(self.mount, 'txtsetup.oem')
         if not os.path.isfile(txtsetup_oem):
             raise SetupError('File txtsetup.oem not found on the install '
                              'floppy. Please verify if your floppy virtio '
@@ -163,146 +176,237 @@ class UnattendedInstall(object):
             fp.close()
 
 
-    def create_boot_floppy(self):
+    def setup_virtio_win2008(self, virtio_floppy):
         """
-        Prepares a boot floppy by creating a floppy image file, mounting it and
-        copying an answer file (kickstarts for RH based distros, answer files
-        for windows) to it. After that the image is umounted.
+        Setup the install floppy with the virtio storage drivers, win2008 style.
+
+        Win2008, Vista and 7 require people to point out the path to the drivers
+        on the unattended file, so we just need to copy the drivers to the
+        driver floppy disk.
+        Process:
+
+        1) Copy the virtio drivers on the virtio floppy to the install floppy
         """
-        print "Creating boot floppy"
+        self._copy_virtio_drivers(virtio_floppy)
 
-        if os.path.exists(self.floppy):
-            os.remove(self.floppy)
 
-        c_cmd = '%s create -f raw %s 1440k' % (self.qemu_img_binary,
-                                               self.floppy)
-        if os.system(c_cmd):
-            raise SetupError('Could not create floppy image.')
+class CdromDisk(Disk):
+    """
+    Represents a CDROM disk that we can master according to our needs.
+    """
+    def __init__(self, path):
+        print "Creating ISO unattended image %s" % path
+        self.mount = tempfile.mkdtemp(prefix='cdrom_unattended', dir='/tmp')
+        self.path = path
+        clean_old_image(path)
+        if not os.path.isdir(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path))
 
-        f_cmd = 'mkfs.msdos -s 1 %s' % self.floppy
-        if os.system(f_cmd):
-            raise SetupError('Error formatting floppy image.')
 
-        try:
-            m_cmd = 'mount -o loop,rw %s %s' % (self.floppy,
-                                                self.floppy_mount)
-            if os.system(m_cmd):
-                raise SetupError('Could not mount floppy image.')
+    def close(self):
+        g_cmd = ('genisoimage -o %s -max-iso9660-filenames '
+                 '-relaxed-filenames -D --input-charset iso8859-1 '
+                 '%s' % (self.path, self.mount))
+        if os.system(g_cmd):
+            raise SetupError("Could not generate iso with answer file")
 
-            if self.unattended_file.endswith('.sif'):
-                dest_fname = 'winnt.sif'
-                setup_file = 'winnt.bat'
-                setup_file_path = os.path.join(self.unattended_dir, setup_file)
-                setup_file_dest = os.path.join(self.floppy_mount, setup_file)
-                shutil.copyfile(setup_file_path, setup_file_dest)
-                if self.install_virtio == "yes":
-                    self.setup_virtio_win2003()
+        os.chmod(self.path, 0755)
+        cleanup(self.mount)
+        print "Disk %s successfuly set" % self.path
 
-            elif self.unattended_file.endswith('.ks'):
-                # Red Hat kickstart install
-                dest_fname = 'ks.cfg'
-            elif self.unattended_file.endswith('.xml'):
-                if not self.tftp:
-                    # Windows unattended install
-                    dest_fname = "autounattend.xml"
-                    if self.install_virtio == "yes":
-                        self.setup_virtio_win2008()
-                else:
-                    # SUSE autoyast install
-                    dest_fname = "autoinst.xml"
 
-            dest = os.path.join(self.floppy_mount, dest_fname)
+class UnattendedInstall(object):
+    """
+    Creates a floppy disk image that will contain a config file for unattended
+    OS install. Optionally, sets up a PXE install server using qemu built in
+    TFTP and DHCP servers to install a particular operating system. The
+    parameters to the script are retrieved from environment variables.
+    """
+    def __init__(self):
+        """
+        Gets params from environment variables and sets class attributes.
+        """
+        images_dir = os.path.join(KVM_TEST_DIR, 'images')
+        self.deps_dir = os.path.join(KVM_TEST_DIR, 'deps')
+        self.unattended_dir = os.path.join(KVM_TEST_DIR, 'unattended')
 
-            # Replace KVM_TEST_CDKEY (in the unattended file) with the cdkey
-            # provided for this test and replace the KVM_TEST_MEDIUM with
-            # the tree url or nfs address provided for this test.
-            unattended_contents = open(self.unattended_file).read()
-            dummy_cdkey_re = r'\bKVM_TEST_CDKEY\b'
-            real_cdkey = os.environ.get('KVM_TEST_cdkey')
-            if re.search(dummy_cdkey_re, unattended_contents):
-                if real_cdkey:
-                    unattended_contents = re.sub(dummy_cdkey_re, real_cdkey,
-                                                 unattended_contents)
-                else:
-                    print ("WARNING: 'cdkey' required but not specified for "
-                           "this unattended installation")
+        attributes = ['kernel_args', 'finish_program', 'cdrom_cd1',
+                      'unattended_file', 'medium', 'url', 'kernel', 'initrd',
+                      'nfs_server', 'nfs_dir', 'pxe_dir', 'pxe_image',
+                      'pxe_initrd', 'install_virtio', 'tftp',
+                      'floppy', 'cdrom_unattended']
+        for a in attributes:
+            self._setattr(a)
 
-            dummy_medium_re = r'\bKVM_TEST_MEDIUM\b'
-            if self.medium == "cdrom":
-                content = "cdrom"
-            elif self.medium == "url":
-                content = "url --url %s" % self.url
-            elif self.medium == "nfs":
-                content = "nfs --server=%s --dir=%s" % (self.nfs_server,
-                                                        self.nfs_dir)
+        if self.install_virtio == 'yes':
+            v_attributes = ['virtio_floppy', 'virtio_storage_path',
+                            'virtio_network_path', 'virtio_oemsetup_id',
+                            'virtio_network_installer']
+            for va in v_attributes:
+                self._setattr(va)
+
+        # Silly attribution just to calm pylint down...
+        self.tftp = self.tftp
+        if self.tftp:
+            self.tftp = os.path.join(KVM_TEST_DIR, self.tftp)
+            if not os.path.isdir(self.tftp):
+                os.makedirs(self.tftp)
+
+        self.cdrom_cd1 = os.path.join(KVM_TEST_DIR, self.cdrom_cd1)
+        self.cdrom_mount = tempfile.mkdtemp(prefix='cdrom_', dir='/tmp')
+        if self.medium == 'nfs':
+            self.nfs_mount = tempfile.mkdtemp(prefix='nfs_', dir='/tmp')
+
+        self.floppy = os.path.join(KVM_TEST_DIR, self.floppy)
+        if not os.path.isdir(os.path.dirname(self.floppy)):
+            os.makedirs(os.path.dirname(self.floppy))
+
+        self.image_path = KVM_TEST_DIR
+        self.kernel_path = os.path.join(self.image_path, self.kernel)
+        self.initrd_path = os.path.join(self.image_path, self.initrd)
+
+
+    def _setattr(self, key):
+        """
+        Populate class attributes with contents of environment variables.
+
+        Example: KVM_TEST_medium will populate self.medium.
+
+        @param key: Name of the class attribute we desire to have.
+        """
+        env_name = 'KVM_TEST_%s' % key
+        value = os.environ.get(env_name, '')
+        setattr(self, key, value)
+
+
+    def render_answer_file(self):
+        # Replace KVM_TEST_CDKEY (in the unattended file) with the cdkey
+        # provided for this test and replace the KVM_TEST_MEDIUM with
+        # the tree url or nfs address provided for this test.
+        unattended_contents = open(self.unattended_file).read()
+        dummy_cdkey_re = r'\bKVM_TEST_CDKEY\b'
+        real_cdkey = os.environ.get('KVM_TEST_cdkey')
+        if re.search(dummy_cdkey_re, unattended_contents):
+            if real_cdkey:
+                unattended_contents = re.sub(dummy_cdkey_re, real_cdkey,
+                                             unattended_contents)
             else:
-                raise SetupError("Unexpected installation medium %s" % self.url)
+                print ("WARNING: 'cdkey' required but not specified for "
+                       "this unattended installation")
 
-            unattended_contents = re.sub(dummy_medium_re, content,
-                                         unattended_contents)
+        dummy_medium_re = r'\bKVM_TEST_MEDIUM\b'
+        if self.medium == "cdrom":
+            content = "cdrom"
+        elif self.medium == "url":
+            content = "url --url %s" % self.url
+        elif self.medium == "nfs":
+            content = "nfs --server=%s --dir=%s" % (self.nfs_server,
+                                                    self.nfs_dir)
+        else:
+            raise SetupError("Unexpected installation medium %s" % self.url)
 
-            def replace_virtio_key(contents, dummy_re, env):
-                """
-                Replace a virtio dummy string with contents.
+        unattended_contents = re.sub(dummy_medium_re, content,
+                                     unattended_contents)
 
-                If install_virtio is not set, replace it with a dummy string.
+        def replace_virtio_key(contents, dummy_re, env):
+            """
+            Replace a virtio dummy string with contents.
 
-                @param contents: Contents of the unattended file
-                @param dummy_re: Regular expression used to search on the.
-                        unattended file contents.
-                @param env: Name of the environment variable.
-                """
-                dummy_path = "C:"
-                driver = os.environ.get(env, '')
+            If install_virtio is not set, replace it with a dummy string.
 
-                if re.search(dummy_re, contents):
-                    if self.install_virtio == "yes":
-                        if driver.endswith("msi"):
-                            driver = 'msiexec /passive /package ' + driver
-                        else:
-                            try:
-                                # Let's escape windows style paths properly
-                                drive, path = driver.split(":")
-                                driver = drive + ":" + re.escape(path)
-                            except:
-                                pass
-                        contents = re.sub(dummy_re, driver, contents)
+            @param contents: Contents of the unattended file
+            @param dummy_re: Regular expression used to search on the.
+                    unattended file contents.
+            @param env: Name of the environment variable.
+            """
+            dummy_path = "C:"
+            driver = os.environ.get(env, '')
+
+            if re.search(dummy_re, contents):
+                if self.install_virtio == "yes":
+                    if driver.endswith("msi"):
+                        driver = 'msiexec /passive /package ' + driver
                     else:
-                        contents = re.sub(dummy_re, dummy_path, contents)
-                return contents
+                        try:
+                            # Let's escape windows style paths properly
+                            drive, path = driver.split(":")
+                            driver = drive + ":" + re.escape(path)
+                        except:
+                            pass
+                    contents = re.sub(dummy_re, driver, contents)
+                else:
+                    contents = re.sub(dummy_re, dummy_path, contents)
+            return contents
 
-            vdict = {r'\bKVM_TEST_STORAGE_DRIVER_PATH\b':
-                     'KVM_TEST_virtio_storage_path',
-                     r'\bKVM_TEST_NETWORK_DRIVER_PATH\b':
-                     'KVM_TEST_virtio_network_path',
-                     r'\bKVM_TEST_VIRTIO_NETWORK_INSTALLER\b':
-                     'KVM_TEST_virtio_network_installer_path'}
+        vdict = {r'\bKVM_TEST_STORAGE_DRIVER_PATH\b':
+                 'KVM_TEST_virtio_storage_path',
+                 r'\bKVM_TEST_NETWORK_DRIVER_PATH\b':
+                 'KVM_TEST_virtio_network_path',
+                 r'\bKVM_TEST_VIRTIO_NETWORK_INSTALLER\b':
+                 'KVM_TEST_virtio_network_installer_path'}
 
-            for vkey in vdict:
-                unattended_contents = replace_virtio_key(unattended_contents,
-                                                         vkey, vdict[vkey])
+        for vkey in vdict:
+            unattended_contents = replace_virtio_key(unattended_contents,
+                                                     vkey, vdict[vkey])
 
-            print
-            print "Unattended install %s contents:" % dest_fname
-            print unattended_contents
-            # Write the unattended file contents to 'dest'
-            open(dest, 'w').write(unattended_contents)
+        print "Unattended install contents:"
+        print unattended_contents
+        return unattended_contents
 
-            if self.finish_program:
-                dest_fname = os.path.basename(self.finish_program)
-                dest = os.path.join(self.floppy_mount, dest_fname)
-                shutil.copyfile(self.finish_program, dest)
 
-        finally:
-            u_cmd = 'umount %s' % self.floppy_mount
-            if os.system(u_cmd):
-                raise SetupError('Could not unmount floppy at %s.' %
-                                 self.floppy_mount)
-            self.cleanup(self.floppy_mount)
+    def setup_boot_disk(self):
+        answer_contents = self.render_answer_file()
 
-        os.chmod(self.floppy, 0755)
+        if self.unattended_file.endswith('.sif'):
+            dest_fname = 'winnt.sif'
+            setup_file = 'winnt.bat'
+            boot_disk = FloppyDisk(self.floppy)
+            boot_disk.setup_answer_file(dest_fname, answer_contents)
+            setup_file_path = os.path.join(self.unattended_dir, setup_file)
+            boot_disk.copy_to(setup_file_path)
+            if self.install_virtio == "yes":
+                boot_disk.setup_virtio_win2003(self.virtio_floppy)
+            boot_disk.copy_to(self.finish_program)
 
-        print "Boot floppy created successfuly"
+        elif self.unattended_file.endswith('.ks'):
+            # Red Hat kickstart install
+            dest_fname = 'ks.cfg'
+            if self.cdrom_unattended:
+                boot_disk = CdromDisk(self.cdrom_unattended)
+            elif self.floppy:
+                boot_disk = FloppyDisk(self.floppy)
+            else:
+                raise SetupError("Neither cdrom_unattended nor floppy set "
+                                 "on the config file, please verify")
+            boot_disk.setup_answer_file(dest_fname, answer_contents)
+
+        elif self.unattended_file.endswith('.xml'):
+            if self.tftp:
+                # SUSE autoyast install
+                dest_fname = "autoinst.xml"
+                if self.cdrom_unattended:
+                    boot_disk = CdromDisk(self.cdrom_unattended)
+                elif self.floppy:
+                    boot_disk = FloppyDisk(self.floppy)
+                else:
+                    raise SetupError("Neither cdrom_unattended nor floppy set "
+                                     "on the config file, please verify")
+                boot_disk.setup_answer_file(dest_fname, answer_contents)
+
+            else:
+                # Windows unattended install
+                dest_fname = "autounattend.xml"
+                boot_disk = FloppyDisk(self.floppy)
+                boot_disk.setup_answer_file(dest_fname, answer_contents)
+                if self.install_virtio == "yes":
+                    boot_disk.setup_virtio_win2008(self.virtio_floppy)
+                boot_disk.copy_to(self.finish_program)
+
+        else:
+            raise SetupError('Unknown answer file %s' %
+                             self.unattended_file)
+
+        boot_disk.close()
 
 
     def setup_pxe_boot(self):
@@ -385,7 +489,7 @@ class UnattendedInstall(object):
 
     def setup_url(self):
         """
-        Download the vmlinuz and initrd.img from URL
+        Download the vmlinuz and initrd.img from URL.
         """
         print "Downloading the vmlinuz and initrd.img"
         os.chdir(self.image_path)
@@ -453,6 +557,11 @@ class UnattendedInstall(object):
 
 
     def setup(self):
+        """
+        Configure the environment for unattended install.
+
+        Uses an appropriate strategy according to each install model.
+        """
         print "Starting unattended install setup"
         print
 
@@ -464,8 +573,8 @@ class UnattendedInstall(object):
                 print "    %s: %s" % (name, value)
         print
 
-        if self.unattended_file and self.floppy is not None:
-            self.create_boot_floppy()
+        if self.unattended_file and (self.floppy or self.cdrom_unattended):
+            self.setup_boot_disk()
         if self.medium == "cdrom":
             if self.tftp:
                 self.setup_pxe_boot()

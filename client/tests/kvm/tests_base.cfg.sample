@@ -90,7 +90,6 @@ variants:
         pre_command += " scripts/unattended.py;"
         extra_params += " -boot d"
         guest_port_unattended_install = 12323
-        floppy = "images/floppy.img"
         kernel = vmlinuz
         initrd = initrd.img
         nic_mode = tap
@@ -638,6 +637,12 @@ variants:
         mem_chk_cmd = dmidecode -t 17 | awk -F: '/Size/ {print $2}'
         mem_chk_cur_cmd = grep MemTotal /proc/meminfo
         cpu_chk_cmd = grep -c processor /proc/cpuinfo
+        unattended_install.cdrom:
+            # If you want to use floppy to hold kickstarts,
+            # comment the 3 lines below
+            cdroms += " unattended"
+            drive_index_unattended = 1
+            drive_index_cd1 = 2
         timedrift:
             extra_params += " -no-kvm-pit-reinjection"
             time_command = date +'TIME: %a %m/%d/%Y %H:%M:%S.%N'
@@ -668,7 +673,10 @@ variants:
                     tftp = "images/tftpboot"
                     bootp = "/pxelinux.0"
                     extra_params += " -boot cn"
-                    kernel_args = "ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
+                    # You have to use ks=floppy if you want to use floppies to
+                    # hold your kickstart file
+                    #kernel_args = "ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
+                    kernel_args = "ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
 
                 variants:
                     - 8.32:
@@ -682,7 +690,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/Fedora-8.ks
                             tftp = images/f8-32/tftpboot
-                            floppy = images/f8-32/floppy.img
+                            #floppy = images/f8-32/ks.vfd
+                            cdrom_unattended = images/f8-32/ks.iso
 
                     - 8.64:
                         no setup
@@ -695,7 +704,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/Fedora-8.ks
                             tftp = images/f8-64/tftpboot
-                            floppy = images/f8-64/floppy.img
+                            #floppy = images/f8-64/ks.vfd
+                            cdrom_unattended = images/f8-64/ks.iso
 
                     - 9.32:
                         image_name = f9-32
@@ -707,7 +717,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/Fedora-9.ks
                             tftp = images/f9-32/tftpboot
-                            floppy = images/f9-32/floppy.img
+                            #floppy = images/f9-32/ks.vfd
+                            cdrom_unattended = images/f9-32/ks.iso
 
                     - 9.64:
                         image_name = f9-64
@@ -719,7 +730,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/Fedora-9.ks
                             tftp = images/f9-64/tftpboot
-                            floppy = images/f9-64/floppy.img
+                            #floppy = images/f9-64/ks.vfd
+                            cdrom_unattended = images/f9-64/ks.iso
 
                     - 10.32:
                         image_name = f10-32
@@ -729,7 +741,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/Fedora-10.ks
                             tftp = images/f10-32/tftpboot
-                            floppy = images/f10-32/floppy.img
+                            #floppy = images/f10-32/ks.vfd
+                            cdrom_unattended = images/f10-32/ks.iso
 
                     - 10.64:
                         image_name = f10-64
@@ -739,7 +752,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/Fedora-10.ks
                             tftp = images/f10-64/tftpboot
-                            floppy = images/f10-64/floppy.img
+                            #floppy = images/f10-64/ks.vfd
+                            cdrom_unattended = images/f10-64/ks.iso
 
                     - 11.32:
                         image_name = f11-32
@@ -751,7 +765,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/Fedora-11.ks
                             tftp = images/f11-32/tftpboot
-                            floppy = images/f11-32/floppy.img
+                            #floppy = images/f11-32/ks.vfd
+                            cdrom_unattended = images/f11-32/ks.iso
 
                     - 11.64:
                         image_name = f11-64
@@ -761,7 +776,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/Fedora-11.ks
                             tftp = images/f11-64/tftpboot
-                            floppy = images/f11-64/floppy.img
+                            #floppy = images/f11-64/ks.vfd
+                            cdrom_unattended = images/f11-64/ks.iso
 
                     - 12.32:
                         image_name = f12-32
@@ -771,7 +787,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/Fedora-12.ks
                             tftp = images/f12-32/tftpboot
-                            floppy = images/f12-32/floppy.img
+                            #floppy = images/f12-32/ks.vfd
+                            cdrom_unattended = images/f12-32/ks.iso
 
                     - 12.64:
                         image_name = f12-64
@@ -781,27 +798,30 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/Fedora-12.ks
                             tftp = images/f12-64/tftpboot
-                            floppy = images/f12-64/floppy.img
+                            #floppy = images/f12-64/ks.vfd
+                            cdrom_unattended = images/f12-64/ks.iso
 
                     - 13.32:
                         image_name = f13-32
                         cdrom_cd1 = linux/Fedora-13-i386-DVD.iso
                         md5sum = 212fec517c2629b4b5eaf3662ac13136
                         md5sum_1m = 4e1578a6ed5a6e7cd03b8fb074030746
-                        unattended_install:
+                        unattended_install.cdrom:
                             unattended_file = unattended/Fedora-13.ks
                             tftp = images/f13-32/tftpboot
-                            floppy = images/f13-32/floppy.img
+                            #floppy = images/f13-32/ks.vfd
+                            cdrom_unattended = images/f13-32/ks.iso
 
                     - 13.64:
                         image_name = f13-64
                         cdrom_cd1 = linux/Fedora-13-x86_64-DVD.iso
                         md5sum = 6fbae6379cf27f36e1f2c7827ba7dc35
                         md5sum_1m = 68821b9de4d3b5975d6634334e7f47a6
-                        unattended_install:
+                        unattended_install.cdrom:
                             unattended_file = unattended/Fedora-13.ks
                             tftp = images/f13-64/tftpboot
-                            floppy = images/f13-64/floppy.img
+                            #floppy = images/f13-64/ks.vfd
+                            cdrom_unattended = images/f13-64/ks.iso
 
 
             - DSL-4.2.5:
@@ -830,7 +850,10 @@ variants:
                     tftp = "images/tftpboot"
                     bootp = "/pxelinux.0"
                     extra_params += " -boot cn"
-                    kernel_args = "autoyast=floppy console=ttyS0,115200 console=tty0"
+                    # You have to use autoyast=floppy if you want to use floppies to
+                    # hold your autoyast file
+                    #kernel_args = "autoyast=floppy console=ttyS0,115200 console=tty0"
+                    kernel_args = "autoyast=cdrom console=ttyS0,115200 console=tty0"
                     post_install_delay = 10
 
                 variants:
@@ -855,7 +878,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-0-64/tftpboot
-                            floppy = images/opensuse-11-0-64/floppy.img
+                            #floppy = images/opensuse-11-0-64/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-0-64/autoyast.iso
                             pxe_dir = boot/x86_64/loader
 
                     - 11.1.32:
@@ -868,7 +892,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-1-32/tftpboot
-                            floppy = images/opensuse-11-1-32/floppy.img
+                            #floppy = images/opensuse-11-1-32/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-1-32/autoyast.iso
                             pxe_dir = boot/i386/loader
 
                     - 11.1.64:
@@ -881,7 +906,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-1-64/tftpboot
-                            floppy = images/opensuse-11-1-64/floppy.img
+                            #floppy = images/opensuse-11-1-64/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-1-64/autoyast.iso
                             pxe_dir = boot/x86_64/loader
 
                     - 11.2.32:
@@ -892,7 +918,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-2-32/tftpboot
-                            floppy = images/opensuse-11-2-32/floppy.img
+                            #floppy = images/opensuse-11-2-32/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-2-32/autoyast.iso
                             pxe_dir = boot/i386/loader
 
                     - 11.2.64:
@@ -903,7 +930,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-2-64/tftpboot
-                            floppy = images/opensuse11-2-64/floppy.img
+                            #floppy = images/opensuse11-2-64/autoyast.vfd
+                            cdrom_unattended = images/opensuse11-2-64/autoyast.iso
                             pxe_dir = boot/x86_64/loader
 
                     - 11.3.32:
@@ -914,7 +942,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-3-32/tftpboot
-                            floppy = images/opensuse-11-3-32/floppy.img
+                            #floppy = images/opensuse-11-3-32/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-3-32/autoyast.iso
                             pxe_dir = boot/i386/loader
 
                     - 11.3.64:
@@ -925,7 +954,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-3-64/tftpboot
-                            floppy = images/opensuse-11-3-64/floppy.img
+                            #floppy = images/opensuse-11-3-64/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-3-64/autoyast.iso
                             pxe_dir = boot/x86_64/loader
 
             - SLES:
@@ -935,7 +965,10 @@ variants:
                     pxe_initrd = "initrd"
                     bootp = "/pxelinux.0"
                     extra_params += " -boot cn"
-                    kernel_args = "autoyast=floppy console=ttyS0,115200 console=tty0"
+                    # You have to use autoyast=floppy if you want to use floppies to
+                    # hold your autoyast file
+                    #kernel_args = "autoyast=floppy console=ttyS0,115200 console=tty0"
+                    kernel_args = "autoyast=cdrom console=ttyS0,115200 console=tty0"
                     post_install_delay = 10
 
                 variants:
@@ -946,9 +979,10 @@ variants:
                         md5sum_1m = 1f19d4eff5bcead2a3e5b8b4212b6796
                         unattended_install.cdrom:
                             unattended_file = unattended/SLES-11.xml
-                            tftp = "images/sles-11-0-32/tftpboot"
-                            floppy = "images/sles-11-0-32/floppy.img"
-                            pxe_dir = "boot/i386/loader"
+                            tftp = images/sles-11-0-32/tftpboot
+                            #floppy = images/sles-11-0-32/autoyast.vfd
+                            cdrom_unattended = images/sles-11-0-32/autoyast.iso
+                            pxe_dir = boot/i386/loader
 
                     - 11.0.64:
                         image_name = sles11-64
@@ -957,9 +991,10 @@ variants:
                         md5sum_1m = 00000951cab7c32e332362fc424c1054
                         unattended_install.cdrom:
                             unattended_file = unattended/SLES-11.xml
-                            tftp = "images/sles-11-0-64/tftpboot"
-                            floppy = "images/sles-11-0-64/floppy.img"
-                            pxe_dir = "boot/x86_64/loader"
+                            tftp = images/sles-11-0-64/tftpboot
+                            #floppy = images/sles-11-0-64/autoyast.vfd
+                            cdrom_unattended = images/sles-11-0-64/autoyast.iso
+                            pxe_dir = boot/x86_64/loader
 
                     - 11.1.32:
                         image_name = sles11sp1-32
@@ -968,9 +1003,10 @@ variants:
                         md5sum_1m = a626a3d50813410e3ac42794e05773bb
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
-                            tftp = "images/sles-11-1-32/tftpboot"
-                            floppy = "images/sles-11-1-32/floppy.img"
-                            pxe_dir = "boot/i386/loader"
+                            tftp = images/sles-11-1-32/tftpboot
+                            #floppy = images/sles-11-1-32/autoyast.vfd
+                            cdrom_unattended = images/sles-11-1-32/autoyast.iso
+                            pxe_dir = boot/i386/loader
 
                     - 11.1.64:
                         image_name = sles11sp1-64
@@ -979,9 +1015,10 @@ variants:
                         md5sum_1m = f7f67b5da46923a9f01da8a2b6909654
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
-                            tftp = "images/sles-11-1-64/tftpboot"
-                            floppy = "images/sles-11-1-64/floppy.img"
-                            pxe_dir = "boot/x86_64/loader"
+                            tftp = images/sles-11-1-64/tftpboot
+                            #floppy = images/sles-11-1-64/autoyast.vfd
+                            cdrom_unattended = images/sles-11-1-64/autoyast.iso
+                            pxe_dir = boot/x86_64/loader
 
             - @Ubuntu:
                 shell_prompt = "^root@.*[\#\$]\s*$"
@@ -1028,7 +1065,10 @@ variants:
                     tftp = "images/tftpboot"
                     bootp = "/pxelinux.0"
                     extra_params += " -boot cn"
-                    kernel_args = "ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
+                    # You have to use ks=floppy if you want to use floppies to
+                    # hold your kickstart file
+                    #kernel_args = "ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
+                    kernel_args = "ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
 
                 variants:
                     - 3.9.i386:
@@ -1043,7 +1083,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-3-series.ks
                             tftp = images/rhel39-32/tftpboot
-                            floppy = images/rhel39-32/floppy.img
+                            #floppy = images/rhel39-32/ks.vfd
+                            cdrom_unattended = images/rhel39-32/ks.iso
 
                     - 3.9.x86_64:
                         no setup autotest linux_s3 guest_s4 shutdown
@@ -1057,7 +1098,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-3-series.ks
                             tftp = images/rhel39-64/tftpboot
-                            floppy = images/rhel39-64/floppy.img
+                            #floppy = images/rhel39-64/ks.vfd
+                            cdrom_unattended = images/rhel39-64/ks.iso
 
                     - 4.7.i386:
                         no setup autotest
@@ -1070,7 +1112,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-4-series.ks
                             tftp = images/rhel47-32/tftpboot
-                            floppy = images/rhel47-32/floppy.img
+                            #floppy = images/rhel47-32/ks.vfd
+                            cdrom_unattended = images/rhel47-32/ks.iso
 
                     - 4.7.x86_64:
                         no setup autotest
@@ -1083,7 +1126,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-4-series.ks
                             tftp = images/rhel47-64/tftpboot
-                            floppy = images/rhel47-64/floppy.img
+                            #floppy = images/rhel47-64/ks.vfd
+                            cdrom_unattended = images/rhel47-64/ks.iso
 
                     - 4.8.i386:
                         no setup autotest
@@ -1094,7 +1138,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-4-series.ks
                             tftp = images/rhel48-32/tftpboot
-                            floppy = images/rhel48-32/floppy.img
+                            #floppy = images/rhel48-32/ks.vfd
+                            cdrom_unattended = images/rhel48-32/ks.iso
 
                     - 4.8.x86_64:
                         no setup autotest
@@ -1105,7 +1150,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-4-series.ks
                             tftp = images/rhel48-64/tftpboot
-                            floppy = images/rhel48-64/floppy.img
+                            #floppy = images/rhel48-64/ks.vfd
+                            cdrom_unattended = images/rhel48-64/ks.iso
 
                     - 5.3.i386:
                         no setup
@@ -1118,7 +1164,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-5-series.ks
                             tftp = images/rhel53-32/tftpboot
-                            floppy = images/rhel53-32/floppy.img
+                            #floppy = images/rhel53-32/ks.vfd
+                            cdrom_unattended = images/rhel53-32/ks.iso
 
                     - 5.3.x86_64:
                         no setup
@@ -1131,7 +1178,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-5-series.ks
                             tftp = images/rhel53-64/tftpboot
-                            floppy = images/rhel53-64/floppy.img
+                            #floppy = images/rhel53-64/ks.vfd
+                            cdrom_unattended = images/rhel53-64/ks.iso
 
                     - 5.4.i386:
                         no setup
@@ -1142,7 +1190,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-5-series.ks
                             tftp = images/rhel54-32/tftpboot
-                            floppy = images/rhel54-32/floppy.img
+                            #floppy = images/rhel54-32/ks.vfd
+                            cdrom_unattended = images/rhel54-32/ks.iso
 
                     - 5.4.x86_64:
                         no setup
@@ -1153,7 +1202,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-5-series.ks
                             tftp = images/rhel54-64/tftpboot
-                            floppy = images/rhel54-64/floppy.img
+                            #floppy = images/rhel54-64/ks.vfd
+                            cdrom_unattended = images/rhel54-64/ks.iso
 
                     - 5.5.i386:
                         no setup
@@ -1164,7 +1214,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-5-series.ks
                             tftp = images/rhel55-32/tftpboot
-                            floppy = images/rhel55-32/floppy.img
+                            #floppy = images/rhel55-32/ks.vfd
+                            cdrom_unattended = images/rhel55-32/ks.iso
 
                     - 5.5.x86_64:
                         no setup
@@ -1175,7 +1226,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/RHEL-5-series.ks
                             tftp = images/rhel55-64/tftpboot
-                            floppy = images/rhel55-64/floppy.img
+                            #floppy = images/rhel55-64/ks.vfd
+                            cdrom_unattended = images/rhel55-64/ks.iso
 
 
     # Windows section
@@ -1212,9 +1264,9 @@ variants:
             # Turn install_virtio = yes if you want to install the
             # Windows virtio drivers. It might be a lot of setup though :)
             #install_virtio = no
-            #cdroms += " virtiocd"
-            #cdrom_virtiocd = windows/virtio-win.iso
-            #drive_index_virtiocd = 3
+            #cdroms += " virtio"
+            #cdrom_virtio = windows/virtio-win.iso
+            #drive_index_virtio = 3
             #virtio_floppy = /usr/share/virtio-win/virtio-drivers.vfd
         migrate:
             migration_test_command = ver && vol
@@ -1290,7 +1342,7 @@ variants:
                     md5sum = dda6039f3a9173f0f6bfae40f5efdfea
                     md5sum_1m = dd28fba196d366d56fe774bd93df5527
                     unattended_file = unattended/win2000-32.sif
-                    floppy = images/win2000-32/floppy.img
+                    floppy = images/win2000-32/answer.vfd
 
             - WinXP:
                 image_name = winXP
@@ -1310,7 +1362,7 @@ variants:
                             md5sum = 743450644b1d9fe97b3cf379e22dceb0
                             md5sum_1m = b473bf75af2d1269fec8958cf0202bfd
                             unattended_file = unattended/winxp32.sif
-                            floppy = images/winXP-32/floppy.img
+                            floppy = images/winXP-32/answer.vfd
                             # Uncomment virtio_network_installer_path line if
                             # you have an msi installer, also make sure the
                             # paths are properly set in your virtio driver iso.
@@ -1340,7 +1392,7 @@ variants:
                             md5sum = 8d3f007ec9c2060cec8a50ee7d7dc512
                             md5sum_1m = e812363ff427effc512b7801ee70e513
                             unattended_file = unattended/winxp64.sif
-                            floppy = images/winXP-64/floppy.img
+                            floppy = images/winXP-64/answer.vfd
                             # Uncomment virtio_network_installer_path line if
                             # you have an msi installer, also make sure the
                             # paths are properly set in your virtio driver iso.
@@ -1375,7 +1427,7 @@ variants:
                             md5sum = 03e921e9b4214773c21a39f5c3f42ef7
                             md5sum_1m = 37c2fdec15ac4ec16aa10fdfdb338aa3
                             unattended_file = unattended/win2003-32.sif
-                            floppy = images/win2003-32/floppy.img
+                            floppy = images/win2003-32/answer.vfd
                             # Uncomment virtio_network_installer_path line if
                             # you have an msi installer, also make sure the
                             # paths are properly set in your virtio driver iso.
@@ -1404,7 +1456,7 @@ variants:
                             md5sum = 5703f87c9fd77d28c05ffadd3354dbbd
                             md5sum_1m = 439393c384116aa09e08a0ad047dcea8
                             unattended_file = unattended/win2003-64.sif
-                            floppy = images/win2003-64/floppy.img
+                            floppy = images/win2003-64/answer.vfd
                             # Uncomment virtio_network_installer_path line if
                             # you have an msi installer, also make sure the
                             # paths are properly set in your virtio driver iso.
@@ -1449,7 +1501,7 @@ variants:
                                     md5sum = 1008f323d5170c8e614e52ccb85c0491
                                     md5sum_1m = c724e9695da483bc0fd59e426eaefc72
                                     unattended_file = unattended/winvista-32-autounattend.xml
-                                    floppy = images/winvista-sp1-32/floppy.img
+                                    floppy = images/winvista-sp1-32/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
                                     # you have an msi installer, also make sure the
                                     # paths are properly set in your virtio driver iso.
@@ -1466,7 +1518,7 @@ variants:
                                     sha1sum = 25ad9a776503e6a583bec07879dbcc5dfd20cd6e
                                     sha1sum_1m = a2afa4cffdc1c362dbf9e62942337f4f875a22cf
                                     unattended_file = unattended/winvista-32-autounattend.xml
-                                    floppy = images/winvista-sp2-32/floppy.img
+                                    floppy = images/winvista-sp2-32/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
                                     # you have an msi installer, also make sure the
                                     # paths are properly set in your virtio driver iso.
@@ -1495,7 +1547,7 @@ variants:
                                     md5sum = 11e2010d857fffc47813295e6be6d58d
                                     md5sum_1m = 0947bcd5390546139e25f25217d6f165
                                     unattended_file = unattended/winvista-64-autounattend.xml
-                                    floppy = images/winvista-sp1-64/floppy.img
+                                    floppy = images/winvista-sp1-64/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
                                     # you have an msi installer, also make sure the
                                     # paths are properly set in your virtio driver iso.
@@ -1511,7 +1563,7 @@ variants:
                                     sha1sum = aaee3c04533899f9f8c4ae0c4250ef5fafbe29a3
                                     sha1sum_1m = 1fd21bd3ce2a4de8856c7b8fe6fdf80260f6d1c7
                                     unattended_file = unattended/winvista-64-autounattend.xml
-                                    floppy = images/winvista-sp2-64/floppy.img
+                                    floppy = images/winvista-sp2-64/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
                                     # you have an msi installer, also make sure the
                                     # paths are properly set in your virtio driver iso.
@@ -1543,7 +1595,7 @@ variants:
                                     md5sum=0bfca49f0164de0a8eba236ced47007d
                                     md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
                                     unattended_file = unattended/win2008-32-autounattend.xml
-                                    floppy = images/win2008-sp1-32/floppy.img
+                                    floppy = images/win2008-sp1-32/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
                                     # you have an msi installer, also make sure the
                                     # paths are properly set in your virtio driver iso.
@@ -1560,7 +1612,7 @@ variants:
                                     sha1sum = 49d0d6917c1256fe81048d414fa473bbc76a8724
                                     sha1sum_1m = 9662ff7ed715faa00407e4befc484ea52a92a9fb
                                     unattended_file = unattended/win2008-32-autounattend.xml
-                                    floppy = images/win2008-sp2-32/floppy.img
+                                    floppy = images/win2008-sp2-32/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
                                     # you have an msi installer, also make sure the
                                     # paths are properly set in your virtio driver iso.
@@ -1587,7 +1639,7 @@ variants:
                                     md5sum=27c58cdb3d620f28c36333a5552f271c
                                     md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
                                     unattended_file = unattended/win2008-64-autounattend.xml
-                                    floppy = images/win2008-sp1-64/floppy.img
+                                    floppy = images/win2008-sp1-64/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
                                     # you have an msi installer, also make sure the
                                     # paths are properly set in your virtio driver iso.
@@ -1604,7 +1656,7 @@ variants:
                                     sha1sum = 34c7d726c57b0f8b19ba3b40d1b4044c15fc2029
                                     sha1sum_1m = 8fe08b03e3531906855a60a78020ac9577dff5ba
                                     unattended_file = unattended/win2008-64-autounattend.xml
-                                    floppy = images/win2008-sp2-64/floppy.img
+                                    floppy = images/win2008-sp2-64/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
                                     # you have an msi installer, also make sure the
                                     # paths are properly set in your virtio driver iso.
@@ -1621,7 +1673,7 @@ variants:
                                     sha1sum = ad855ea913aaec3f1d0e1833c1aef7a0de326b0a
                                     sha1sum_1m = 9194a3aabae25b36e5f73cad001314b2c8d07d14
                                     unattended_file = unattended/win2008-r2-autounattend.xml
-                                    floppy = images/win2008-r2-64/floppy.img
+                                    floppy = images/win2008-r2-64/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
                                     # you have an msi installer, also make sure the
                                     # paths are properly set in your virtio driver iso.
@@ -1649,7 +1701,7 @@ variants:
                             sha1sum = 5395dc4b38f7bdb1e005ff414deedfdb16dbf610
                             sha1sum_1m = 9f9c3780aebeb28a9bf22188eed6bc15475dc9c5
                             unattended_file = unattended/win7-32-autounattend.xml
-                            floppy = images/win7-32/floppy.img
+                            floppy = images/win7-32/answer.vfd
                             # Uncomment virtio_network_installer_path line if
                             # you have an msi installer, also make sure the
                             # paths are properly set in your virtio driver iso.
@@ -1679,7 +1731,7 @@ variants:
                             sha1sum = 326327cc2ff9f05379f5058c41be6bc5e004baa7
                             sha1sum_1m = 4a3903bd5157de54f0702e5263e0a683c5775515
                             unattended_file = unattended/win7-64-autounattend.xml
-                            floppy = images/win7-64/floppy.img
+                            floppy = images/win7-64/answer.vfd
                             # Uncomment virtio_network_installer_path line if
                             # you have an msi installer, also make sure the
                             # paths are properly set in your virtio driver iso.
