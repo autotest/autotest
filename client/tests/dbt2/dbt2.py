@@ -23,18 +23,16 @@ class dbt2(test.test):
         #
         utils.system('cp -pR ' + self.srcdir + ' ' + self.srcdir + '.mysql')
         os.chdir(self.srcdir + '.mysql')
-        utils.system('./configure --with-mysql=%s/deps/mysql/mysql' \
-                        % self.autodir)
-        utils.system('make')
+        utils.configure('--with-mysql=%s/deps/mysql/mysql' % self.autodir)
+        utils.make()
 
         #
         # Extract one copy of the kit for PostgreSQL.
         #
         utils.system('cp -pR ' + self.srcdir + ' ' + self.srcdir + '.pgsql')
         os.chdir(self.srcdir + '.pgsql')
-        utils.system('./configure --with-postgresql=%s/deps/pgsql/pgsql' \
-                        % self.autodir)
-        utils.system('make')
+        utils.configure('--with-postgresql=%s/deps/pgsql/pgsql' % self.autodir)
+        utils.make()
 
         # Create symlinks to autotest's results directory from dbt-2's
         # preferred results directory to self.resultsdir

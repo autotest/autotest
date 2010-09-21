@@ -25,7 +25,7 @@ class lockmeter(profiler.profiler):
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('make')
+        utils.make()
         self.cmd = self.srcdir + '/lockstat'
 
 

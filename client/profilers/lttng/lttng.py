@@ -33,8 +33,8 @@ class lttng(profiler.profiler):
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('./configure')
-        utils.system('make')
+        utils.configure()
+        utils.make()
 
 
     # tracepoints: list of trace points to enable

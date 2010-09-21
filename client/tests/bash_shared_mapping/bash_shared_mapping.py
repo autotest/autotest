@@ -10,7 +10,7 @@ class bash_shared_mapping(test.test):
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
         os.chdir(self.srcdir)
-        utils.system('make bash-shared-mapping usemem')
+        utils.make('bash-shared-mapping usemem')
 
 
     def initialize(self):

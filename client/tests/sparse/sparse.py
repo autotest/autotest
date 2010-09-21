@@ -15,7 +15,7 @@ class sparse(test.test):
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('make')
+        utils.make()
         utils.system('ln check sparse')
 
         self.top_dir = self.job.tmpdir+'/sparse'

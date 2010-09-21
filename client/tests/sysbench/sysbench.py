@@ -25,7 +25,7 @@ class sysbench(test.test):
         utils.system(
             'PATH=%s/bin:$PATH ./configure --with-mysql=%s --with-pgsql'
             % (pgsql_dir, mysql_dir))
-        utils.system('make -j %d' % utils.count_cpus())
+        utils.make('-j %d' % utils.count_cpus())
 
 
     def run_once(self, db_type = 'pgsql', build = 1, \

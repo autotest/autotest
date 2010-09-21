@@ -21,9 +21,9 @@ class readprofile(profiler.profiler):
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('./configure')
+        utils.configure()
         os.chdir('sys-utils')
-        utils.system('make readprofile')
+        utils.make('readprofile')
 
 
     def initialize(self):

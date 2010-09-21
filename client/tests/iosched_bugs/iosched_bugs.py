@@ -14,7 +14,7 @@ class iosched_bugs(test.test):
 
     def setup(self):
         os.chdir(self.srcdir)
-        utils.system('make')
+        utils.make()
 
 
     def execute(self):

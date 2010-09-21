@@ -30,7 +30,7 @@ class blktrace(profiler.profiler):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
-        utils.system('make ' + '"CFLAGS=' + self.gcc_flags + '"')
+        utils.make('"CFLAGS=' + self.gcc_flags + '"')
 
 
     def get_device(self, test):
