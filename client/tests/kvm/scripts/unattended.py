@@ -7,6 +7,10 @@ import os, sys, shutil, tempfile, re, ConfigParser, glob, inspect
 import common
 
 
+SCRIPT_DIR = os.path.dirname(sys.modules[__name__].__file__)
+KVM_TEST_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+
+
 class SetupError(Exception):
     """
     Simple wrapper for the builtin Exception class.
@@ -14,16 +18,38 @@ class SetupError(Exception):
     pass
 
 
-SCRIPT_DIR = os.path.dirname(sys.modules[__name__].__file__)
-KVM_TEST_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
-try:
-    QEMU_IMG_BINARY = os.environ['KVM_TEST_qemu_img_binary']
-except KeyError:
-    QEMU_IMG_BINARY = os.path.join(KVM_TEST_DIR, QEMU_IMG_BINARY)
-if not os.path.exists(QEMU_IMG_BINARY):
-    raise SetupError('The qemu-img binary that is supposed to be used (%s) '
-                     'does not exist. Please verify your configuration' %
-                     QEMU_IMG_BINARY)
+def find_command(cmd):
+    """
+    Searches for a command on common paths, error if it can't find it.
+
+    @param cmd: Command to be found.
+    """
+    for dir in ["/usr/local/sbin", "/usr/local/bin",
+                "/usr/sbin", "/usr/bin", "/sbin", "/bin"]:
+        file = os.path.join(dir, cmd)
+        if os.path.exists(file):
+            return file
+    raise ValueError('Missing command: %s' % cmd)
+
+
+def run(cmd, info=None):
+    """
+    Run a command and throw an exception if it fails.
+    Optionally, you can provide additional contextual info.
+
+    @param cmd: Command string.
+    @param reason: Optional string that explains the context of the failure.
+
+    @raise: SetupError if command fails.
+    """
+    print "Running '%s'" % cmd
+    cmd_name = cmd.split(' ')[0]
+    find_command(cmd_name)
+    if os.system(cmd):
+        e_msg = 'Command failed: %s' % cmd
+        if info is not None:
+            e_msg += '. %s' % info
+        raise SetupError(e_msg)
 
 
 def cleanup(dir):
@@ -35,11 +61,8 @@ def cleanup(dir):
     """
     print "Cleaning up directory %s" % dir
     if os.path.ismount(dir):
-        f_cmd = 'fuser -k %s' % dir
-        os.system(f_cmd)
-        u_cmd = 'umount %s' % dir
-        if os.system(u_cmd):
-            raise SetupError('Could not unmount %s' % dir)
+        os.system('fuser -k %s' % dir)
+        run('umount %s' % dir, info='Could not unmount %s' % dir)
     if os.path.isdir(dir):
         shutil.rmtree(dir)
 
@@ -96,6 +119,14 @@ class FloppyDisk(Disk):
     """
     def __init__(self, path):
         print "Creating floppy unattended image %s" % path
+        try:
+            qemu_img_binary = os.environ['KVM_TEST_qemu_img_binary']
+        except KeyError:
+            qemu_img_binary = os.path.join(KVM_TEST_DIR, qemu_img_binary)
+        if not os.path.exists(qemu_img_binary):
+            raise SetupError('The qemu-img binary that is supposed to be used '
+                             '(%s) does not exist. Please verify your '
+                             'configuration' % qemu_img_binary)
 
         self.mount = tempfile.mkdtemp(prefix='floppy_', dir='/tmp')
         self.virtio_mount = None
@@ -105,18 +136,12 @@ class FloppyDisk(Disk):
             os.makedirs(os.path.dirname(path))
 
         try:
-            c_cmd = '%s create -f raw %s 1440k' % (QEMU_IMG_BINARY,
-                                                   path)
-            if os.system(c_cmd):
-                raise SetupError('Could not create floppy image.')
-
+            c_cmd = '%s create -f raw %s 1440k' % (qemu_img_binary, path)
+            run(c_cmd, info='Could not create floppy image')
             f_cmd = 'mkfs.msdos -s 1 %s' % path
-            if os.system(f_cmd):
-                raise SetupError('Error formatting floppy image.')
-
+            run(f_cmd, info='Error formatting floppy image')
             m_cmd = 'mount -o loop,rw %s %s' % (path, self.mount)
-            if os.system(m_cmd):
-                raise SetupError('Could not mount floppy image.')
+            run(m_cmd, info='Could not mount floppy image')
         except:
             cleanup(self.mount)
 
@@ -130,11 +155,10 @@ class FloppyDisk(Disk):
         """
         virtio_mount = tempfile.mkdtemp(prefix='virtio_floppy_', dir='/tmp')
 
-        m_cmd = 'mount -o loop %s %s' % (virtio_floppy, virtio_mount)
         pwd = os.getcwd()
         try:
-            if os.system(m_cmd):
-                raise SetupError('Could not mount virtio floppy driver')
+            m_cmd = 'mount -o loop %s %s' % (virtio_floppy, virtio_mount)
+            run(m_cmd, info='Could not mount virtio floppy driver')
             os.chdir(virtio_mount)
             path_list = glob.glob('*')
             for path in path_list:
@@ -205,11 +229,10 @@ class CdromDisk(Disk):
 
 
     def close(self):
-        g_cmd = ('genisoimage -o %s -max-iso9660-filenames '
+        g_cmd = ('mkisofs -o %s -max-iso9660-filenames '
                  '-relaxed-filenames -D --input-charset iso8859-1 '
                  '%s' % (self.path, self.mount))
-        if os.system(g_cmd):
-            raise SetupError("Could not generate iso with answer file")
+        run(g_cmd, info='Could not generate iso with answer file')
 
         os.chmod(self.path, 0755)
         cleanup(self.mount)
@@ -438,11 +461,9 @@ class UnattendedInstall(object):
         shutil.copyfile(pxe_file, pxe_dest)
 
         try:
-            m_cmd = 'mount -t iso9660 -v -o loop,ro %s %s' % (self.cdrom_cd1,
-                                                              self.cdrom_cd1_mount)
-            if os.system(m_cmd):
-                raise SetupError('Could not mount CD image %s.' %
-                                 self.cdrom_cd1)
+            m_cmd = ('mount -t iso9660 -v -o loop,ro %s %s' %
+                     (self.cdrom_cd1, self.cdrom_cd1_mount))
+            run(m_cmd, info='Could not mount CD image %s.' % self.cdrom_cd1)
 
             pxe_dir = os.path.join(self.cdrom_cd1_mount, self.pxe_dir)
             pxe_image = os.path.join(pxe_dir, self.pxe_image)
@@ -500,12 +521,10 @@ class UnattendedInstall(object):
         if os.path.exists(self.initrd):
             os.unlink(self.initrd)
 
-        if os.system(kernel_fetch_cmd) != 0:
-            raise SetupError("Could not fetch vmlinuz from %s" % self.url)
-        if os.system(initrd_fetch_cmd) != 0:
-            raise SetupError("Could not fetch initrd.img from %s" % self.url)
-
-        print "Downloading finish"
+        run(kernel_fetch_cmd, info="Could not fetch vmlinuz from %s" % self.url)
+        run(initrd_fetch_cmd, info=("Could not fetch initrd.img from %s" %
+                                    self.url))
+        print "Download of vmlinuz and initrd.img finished"
 
 
     def setup_nfs(self):
@@ -514,25 +533,19 @@ class UnattendedInstall(object):
         """
         print "Copying the vmlinuz and initrd.img from nfs"
 
-        m_cmd = "mount %s:%s %s -o ro" % (self.nfs_server, self.nfs_dir,
-                                          self.nfs_mount)
-        if os.system(m_cmd):
-            raise SetupError('Could not mount nfs server.')
-
-        kernel_fetch_cmd = "cp %s/isolinux/%s %s" % (self.nfs_mount,
-                                                     self.kernel,
-                                                     self.image_path)
-        initrd_fetch_cmd = "cp %s/isolinux/%s %s" % (self.nfs_mount,
-                                                     self.initrd,
-                                                     self.image_path)
+        m_cmd = ("mount %s:%s %s -o ro" %
+                 (self.nfs_server, self.nfs_dir, self.nfs_mount))
+        run(m_cmd, info='Could not mount nfs server')
 
         try:
-            if os.system(kernel_fetch_cmd):
-                raise SetupError("Could not copy the vmlinuz from %s" %
-                                 self.nfs_mount)
-            if os.system(initrd_fetch_cmd):
-                raise SetupError("Could not copy the initrd.img from %s" %
-                                 self.nfs_mount)
+            kernel_fetch_cmd = ("cp %s/isolinux/%s %s" %
+                                (self.nfs_mount, self.kernel, self.image_path))
+            run(kernel_fetch_cmd, info=("Could not copy the vmlinuz from %s" %
+                                        self.nfs_mount))
+            initrd_fetch_cmd = ("cp %s/isolinux/%s %s" %
+                                (self.nfs_mount, self.initrd, self.image_path))
+            run(initrd_fetch_cmd, info=("Could not copy the initrd.img from "
+                                        "%s" % self.nfs_mount))
         finally:
             cleanup(self.nfs_mount)
 
