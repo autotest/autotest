@@ -1490,14 +1490,14 @@ variants:
                             - sp1:
                                 image_name += -sp1-32
                                 install:
-                                    cdrom = windows/WindowsVista-32.iso
+                                    cdrom_cd1 = windows/WindowsVista-32.iso
                                     md5sum = 1008f323d5170c8e614e52ccb85c0491
                                     md5sum_1m = c724e9695da483bc0fd59e426eaefc72
                                     steps = Win-Vista-32.steps
                                 setup:
                                     steps = WinVista-32-rss.steps
                                 unattended_install.cdrom:
-                                    cdrom = windows/WindowsVista-32.iso
+                                    cdrom_cd1 = windows/WindowsVista-32.iso
                                     md5sum = 1008f323d5170c8e614e52ccb85c0491
                                     md5sum_1m = c724e9695da483bc0fd59e426eaefc72
                                     unattended_file = unattended/winvista-32-autounattend.xml
@@ -1512,7 +1512,7 @@ variants:
                             - sp2:
                                 image_name += -sp2-32
                                 unattended_install.cdrom:
-                                    cdrom = windows/en_windows_vista_with_sp2_x86_dvd_342266.iso
+                                    cdrom_cd1 = windows/en_windows_vista_with_sp2_x86_dvd_342266.iso
                                     md5sum = 19ca90a425667812977bab6f4ce24175
                                     md5sum_1m = 89c15020e0e6125be19acf7a2e5dc614
                                     sha1sum = 25ad9a776503e6a583bec07879dbcc5dfd20cd6e
@@ -1536,14 +1536,14 @@ variants:
                             - sp1:
                                 image_name += -sp1-64
                                 install:
-                                    cdrom = windows/WindowsVista-64.iso
+                                    cdrom_cd1 = windows/WindowsVista-64.iso
                                     md5sum = 11e2010d857fffc47813295e6be6d58d
                                     md5sum_1m = 0947bcd5390546139e25f25217d6f165
                                     steps = Win-Vista-64.steps
                                 setup:
                                     steps = WinVista-64-rss.steps
                                 unattended_install.cdrom:
-                                    cdrom = windows/WindowsVista-64.iso
+                                    cdrom_cd1 = windows/WindowsVista-64.iso
                                     md5sum = 11e2010d857fffc47813295e6be6d58d
                                     md5sum_1m = 0947bcd5390546139e25f25217d6f165
                                     unattended_file = unattended/winvista-64-autounattend.xml
@@ -1557,7 +1557,7 @@ variants:
                             - sp2:
                                 image_name += -sp2-64
                                 unattended_install.cdrom:
-                                    cdrom = windows/en_windows_vista_sp2_x64_dvd_342267.iso
+                                    cdrom_cd1 = windows/en_windows_vista_sp2_x64_dvd_342267.iso
                                     md5sum = a1c024d7abaf34bac3368e88efbc2574
                                     md5sum_1m = 3d84911a80f3df71d1026f7adedc2181
                                     sha1sum = aaee3c04533899f9f8c4ae0c4250ef5fafbe29a3
