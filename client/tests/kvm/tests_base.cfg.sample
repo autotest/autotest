@@ -1258,9 +1258,9 @@ variants:
         unattended_install.cdrom:
             timeout = 7200
             finish_program = deps/finish.exe
-            cdroms += " winutilscd"
-            cdrom_winutilscd = windows/winutils.iso
-            drive_index_winutilscd = 2
+            cdroms += " winutils"
+            cdrom_winutils = windows/winutils.iso
+            drive_index_winutils = 2
             # Turn install_virtio = yes if you want to install the
             # Windows virtio drivers. It might be a lot of setup though :)
             #install_virtio = no
