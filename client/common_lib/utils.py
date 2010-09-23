@@ -202,6 +202,44 @@ def open_write_close(filename, data):
         f.close()
 
 
+def matrix_to_string(matrix, header=None):
+    """
+    Return a pretty, aligned string representation of a nxm matrix.
+
+    This representation can be used to print any tabular data, such as
+    database results. It works by scanning the lengths of each element
+    in each column, and determining the format string dynamically.
+
+    @param matrix: Matrix representation (list with n rows of m elements).
+    @param header: Optional tuple with header elements to be displayed.
+    """
+    lengths = []
+    for row in matrix:
+        for column in row:
+            i = row.index(column)
+            cl = len(column)
+            try:
+                ml = lengths[i]
+                if cl > ml:
+                    lengths[i] = cl
+            except IndexError:
+                lengths.append(cl)
+
+    lengths = tuple(lengths)
+    format_string = ""
+    for length in lengths:
+        format_string += "%-" + str(length) + "s "
+    format_string += "\n"
+
+    matrix_str = ""
+    if header:
+        matrix_str += format_string % header
+    for row in matrix:
+        matrix_str += format_string % tuple(row)
+
+    return matrix_str
+
+
 def read_keyval(path):
     """
     Read a key-value pair format file into a dictionary, and return it.
