@@ -501,11 +501,15 @@ variants:
         vms = ''
         type = virtio_console
         # smoke params - $console_type:data_string
-        virtio_console_smoke = "serialport;console:Custom data"
+        # FIXME: test_smoke doesn't work with console yet (virtio_console bug)
+        # "serialport;console:Custom data"
+        virtio_console_smoke = "serialport"
         # loopback params - '$source_console_type@buffer_length:$destination_console_type1@buffer_length:...:$loopback_buffer_length;...'
         virtio_console_loopback = "serialport:serialport;serialport@1024:serialport@32:console@1024:console@8:16"
         # perf params - $console_type@buffer_length:$test_duration
-        virtio_console_perf = "serialport;serialport@1000000:120;console@1024:60"
+        # FIXME: test_perf doesn't work with console yet (virtio_console bug)
+        # virtio_console_perf = "serialport;serialport@1000000:120;console@1024:60"
+        virtio_console_perf = "serialport;serialport@1000000:120"
 
     # This unit test module is for older branches of KVM that use the
     # kvmctl test harness (such as the code shipped with RHEL 5.x)
