@@ -478,11 +478,11 @@ class SetuptoolsPackage(ExternalPackage):
     # For all known setuptools releases a string compare works for the
     # version string.  Hopefully they never release a 0.10.  (Their own
     # version comparison code would break if they did.)
-    version = '0.6c9'
+    version = '0.6c11'
     urls = ('http://pypi.python.org/packages/source/s/setuptools/'
             'setuptools-%s.tar.gz' % (version,),)
     local_filename = 'setuptools-%s.tar.gz' % version
-    hex_sum = '79086433b341f0c1df45e10d586a7d3cc25089f1'
+    hex_sum = '8d1ad6384d358c547c50c60f1bfdb3362c6c4a7d'
 
     SUDO_SLEEP_DELAY = 15
 
