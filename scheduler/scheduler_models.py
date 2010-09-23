@@ -19,6 +19,7 @@ _drone_manager: reference to global DroneManager instance.
 import datetime, itertools, logging, os, re, sys, time, weakref
 from django.db import connection
 from autotest_lib.client.common_lib import global_config, host_protections
+from autotest_lib.client.common_lib import global_config, utils
 from autotest_lib.frontend.afe import models, model_attributes
 from autotest_lib.database import database_connection
 from autotest_lib.scheduler import drone_manager, email_manager
@@ -608,7 +609,7 @@ class HostQueueEntry(DBObject):
         job_stats = Job(id=self.job.id).get_execution_details()
 
         subject = ('Autotest | Job ID: %s "%s" | Status: %s ' %
-                    (self.job.id, self.job.name, status))
+                   (self.job.id, self.job.name, status))
 
         if hostname is not None:
             subject += '| Hostname: %s ' % hostname
@@ -631,6 +632,7 @@ class HostQueueEntry(DBObject):
             body += "User tests failed: %s\n" % job_stats['total_failed']
             body += ("User tests success rate: %.2f %%\n" %
                      job_stats['success_rate'])
+
         if job_stats['failed_rows']:
             body += "Failures:\n"
             body += job_stats['failed_rows']
@@ -865,6 +867,23 @@ class Job(DBObject):
 
         @return: Dictionary with test execution details
         """
+        def _find_test_jobs(rows):
+            """
+            Here we are looking for tests such as SERVER_JOB and CLIENT_JOB.*
+            Those are autotest 'internal job' tests, so they should not be
+            counted when evaluating the test stats.
+
+            @param rows: List of rows (matrix) with database results.
+            """
+            job_test_pattern = re.compile('SERVER|CLIENT\\_JOB\.[\d]')
+            n_test_jobs = 0
+            for r in rows:
+                test_name = r[0]
+                if job_test_pattern.match(test_name):
+                    n_test_jobs += 1
+
+            return n_test_jobs
+
         stats = {}
 
         rows = _db.execute("""
@@ -877,23 +896,8 @@ class Job(DBObject):
 
         failed_rows = [r for r in rows if not 'GOOD' in r]
 
-
-        # Here we are looking for tests such as SERVER_JOB and CLIENT_JOB.*
-        # Those are autotest 'internal job' tests, so they should not be
-        # counted when evaluating the test stats
-        job_test_pattern = re.compile('SERVER|CLIENT\\_JOB\.[\d]')
-        n_test_jobs = 0
-        for r in rows:
-            test_name = r[0]
-            if job_test_pattern.match(test_name):
-                n_test_jobs += 1
-
-        # Same for the failed jobs
-        n_test_jobs_failed = 0
-        for f in failed_rows:
-            test_name_failed = f[0]
-            if job_test_pattern.match(test_name_failed):
-                n_test_jobs_failed += 1
+        n_test_jobs = _find_test_jobs(rows)
+        n_test_jobs_failed = _find_test_jobs(failed_rows)
 
         total_executed = len(rows) - n_test_jobs
         total_failed = len(failed_rows) - n_test_jobs_failed
@@ -908,11 +912,12 @@ class Job(DBObject):
         stats['total_passed'] = total_executed - total_failed
         stats['success_rate'] = success_rate
 
-        failed_str = '%-30s %-10s %-40s\n' % ("Test Name", "Status", "Reason")
-        for row in failed_rows:
-            failed_str += '%-30s %-10s %-40s\n' % row
-
-        stats['failed_rows'] = failed_str
+        status_header = ("Test Name", "Status", "Reason")
+        if failed_rows:
+            stats['failed_rows'] = utils.matrix_to_string(failed_rows,
+                                                          status_header)
+        else:
+            stats['failed_rows'] = ''
 
         time_row = _db.execute("""
                    SELECT started_time, finished_time
@@ -925,8 +930,8 @@ class Job(DBObject):
             delta = t_end - t_begin
             minutes, seconds = divmod(delta.seconds, 60)
             hours, minutes = divmod(minutes, 60)
-            stats['execution_time'] = "%02d:%02d:%02d" % (
-                    hours, minutes, seconds)
+            stats['execution_time'] = ("%02d:%02d:%02d" %
+                                       (hours, minutes, seconds))
         else:
             stats['execution_time'] = '(none)'
 
