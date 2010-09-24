@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import os
-import common
 from autotest_lib.client.bin import utils
 
 # To use this, you have to set PERL5LIB to:

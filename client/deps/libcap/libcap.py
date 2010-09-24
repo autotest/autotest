@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, common
+import os
 from autotest_lib.client.bin import utils
 
 version = 2
