@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import os
-import common
 import shutil
 from autotest_lib.client.bin import utils
 
