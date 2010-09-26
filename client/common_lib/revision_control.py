@@ -115,7 +115,7 @@ class GitRepo(object):
         """
         cmd = 'log --pretty=format:"%H" -1'
         l_head_cmd = self.gitcmd(cmd)
-        return l_head_cmd.stdout
+        return l_head_cmd.stdout.strip()
 
 
     def get_remote_head(self):
@@ -126,9 +126,9 @@ class GitRepo(object):
         """
         cmd1 = 'remote show'
         origin_name_cmd = self.gitcmd(cmd1)
-        cmd2 = 'log --pretty=format:"%H" -1 ' + origin_name_cmd.stdout
+        cmd2 = 'log --pretty=format:"%H" -1 ' + origin_name_cmd.stdout.strip()
         r_head_cmd = self.gitcmd(cmd2)
-        return r_head_cmd.stdout
+        return r_head_cmd.stdout.strip()
 
 
     def is_out_of_date(self):
