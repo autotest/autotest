@@ -17,7 +17,7 @@ class GitKernel(git.InstallableGitRepo):
     is up-to-date, if not update and then build the kernel from the git repo.
     """
     def __init__(self, repodir, giturl, weburl):
-        git.GitRepo.__init__(self, repodir, giturl, weburl)
+        super(GitKernel, self).__init__(repodir, giturl, weburl)
         self._patches = []
         self._config = None
         self._build = None
