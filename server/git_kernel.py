@@ -93,18 +93,16 @@ class GitKernel(git.InstallableGitRepo):
             logging.info('Checked out revision: %s', self._revision)
 
         if not builddir:
-            self._build = os.path.join(host.get_tmp_dir(),"build")
+            self._build = os.path.join(host.get_tmp_dir(), "build")
             logging.warning('Builddir %s is not persistent (it will be erased '
                             'in future jobs)', self._build)
 
         # push source to host for install
         logging.info('Pushing %s to host', self.source_material)
         host.send_file(self.source_material, self._build)
-        remote_source_material= os.path.join(self._build,
-                                        os.path.basename(self.source_material))
 
         # use a source_kernel to configure, patch, build and install.
-        sk = source_kernel.SourceKernel(remote_source_material)
+        sk = source_kernel.SourceKernel(self._build)
 
         if build:
             # apply patches
