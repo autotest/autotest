@@ -773,5 +773,22 @@ class test_args_to_dict(unittest.TestCase):
             logger.setLevel(saved_level)
 
 
+class test_get_random_port(unittest.TestCase):
+    def do_bind(self, port, socket_type, socket_proto):
+        s = socket.socket(socket.AF_INET, socket_type, socket_proto)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(('', port))
+        return s
+
+
+    def test_get_port(self):
+        for _ in xrange(100):
+            p = utils.get_unused_port()
+            s = self.do_bind(p, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+            self.assert_(s.getsockname())
+            s = self.do_bind(p, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+            self.assert_(s.getsockname())
+
+
 if __name__ == "__main__":
     unittest.main()
