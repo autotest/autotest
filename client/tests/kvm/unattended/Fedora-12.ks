@@ -10,7 +10,7 @@ firewall --enabled --ssh
 selinux --enforcing
 timezone --utc America/New_York
 firstboot --disable
-bootloader --location=mbr --append="console=ttyS0,115200 console=tty0"
+bootloader --location=mbr --append="console=tty0 console=ttyS0,115200"
 zerombr
 
 clearpart --all --initlabel
