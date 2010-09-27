@@ -10,7 +10,7 @@ rootpw 123456
 firewall --enabled --ssh
 timezone America/New_York
 firstboot --disable
-bootloader --location=mbr --append="console=ttyS0,115200 console=tty0"
+bootloader --location=mbr --append="console=tty0 console=ttyS0,115200"
 clearpart --all --initlabel
 autopart
 reboot
