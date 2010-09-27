@@ -638,7 +638,7 @@ class partition(object):
                 self.job.record('GOOD', None, fsck_cmd)
 
 
-    def mount(self, mountpoint, fstype=None, args='', record=True):
+    def mount(self, mountpoint=None, fstype=None, args='', record=True):
         """
         Mount this partition to a mount point
 
