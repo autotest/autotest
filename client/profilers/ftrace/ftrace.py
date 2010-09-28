@@ -3,7 +3,7 @@ Function tracer profiler for autotest.
 
 @author: David Sharp (dhsharp@google.com)
 """
-import os, signal, subprocess
+import logging, os, signal, time
 from autotest_lib.client.bin import profiler, utils
 
 
@@ -85,7 +85,7 @@ class ftrace(profiler.profiler):
 
         @param test: Autotest test in which the profiler will operate on.
         """
-        # Make sure debugfs is mounted.
+        # Make sure debugfs is mounted and tracing disabled.
         utils.system('%s reset' % self.trace_cmd)
 
         output_dir = os.path.join(test.profdir, 'ftrace')
@@ -94,8 +94,20 @@ class ftrace(profiler.profiler):
         self.output = os.path.join(output_dir, 'trace.dat')
         cmd = [self.trace_cmd, 'record', '-o', self.output]
         cmd += self.trace_cmd_args
-        self.record_job = utils.BgJob(self.join_command(cmd))
+        self.record_job = utils.BgJob(self.join_command(cmd),
+                                      stderr_tee=utils.TEE_TO_LOGS)
 
+        # Wait for tracing to be enabled. If trace-cmd dies before enabling
+        # tracing, then there was a problem.
+        tracing_on = os.path.join(self.tracing_dir, 'tracing_on')
+        while (self.record_job.sp.poll() is None and
+               utils.read_file(tracing_on).strip() != '1'):
+            time.sleep(0.1)
+        if self.record_job.sp.poll() is not None:
+            utils.join_bg_jobs([self.record_job])
+            raise error.CmdError(self.record_job.command,
+                                 self.record_job.sp.returncode,
+                                 'trace-cmd exited early.')
 
     def stop(self, test):
         """
@@ -107,4 +119,15 @@ class ftrace(profiler.profiler):
         utils.join_bg_jobs([self.record_job])
         # shrink the buffer to free memory.
         utils.system('%s reset -b 1' % self.trace_cmd)
+
+        #compress output
         utils.system('bzip2 %s' % self.output)
+        compressed_output = self.output + '.bz2'
+        # if the compressed trace file is large (10MB), just delete it.
+        compressed_output_size = os.path.getsize(compressed_output)
+        if compressed_output_size > 10*1024*1024:
+            logging.warn('Deleting large trace file %s (%d bytes)',
+                         compressed_output, compressed_output_size)
+            os.remove(compressed_output)
+        # remove per-cpu files in case trace-cmd died.
+        utils.system('rm -f %s.cpu*' % self.output)
