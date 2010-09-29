@@ -211,9 +211,14 @@ def matrix_to_string(matrix, header=None):
     in each column, and determining the format string dynamically.
 
     @param matrix: Matrix representation (list with n rows of m elements).
-    @param header: Optional tuple with header elements to be displayed.
+    @param header: Optional tuple or list with header elements to be displayed.
     """
+    if type(header) is list:
+        header = tuple(header)
     lengths = []
+    if header:
+        for column in header:
+            lengths.append(len(column))
     for row in matrix:
         for column in row:
             i = row.index(column)
