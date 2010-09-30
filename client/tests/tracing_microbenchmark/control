@@ -1,0 +1,28 @@
+AUTHOR = "David Sharp <dhsharp@google.com>"
+NAME = "Tracing microbenchmark"
+TIME = "SHORT"
+TEST_CATEGORY = "Benchmark"
+TEST_CLASS = "Kernel"
+TEST_TYPE = "client"
+
+DOC = """
+A simple benchmark of kernel tracers such as ftrace. Enables tracepoints in
+sys_getuid and makes 100,000 calls to getuid with tracing on and off to measure
+the overhead of enabling tracing. The intent for this benchmark is to not
+overflow the ring buffer, so the buffer is generously sized.
+
+
+tracer:  tracepoint enabled
+------
+off:     n/a
+ftrace:  syscalls:sys_enter_getuid
+
+Args:
+  tracer: see table above.
+  buffer_size_kb: Set the tracing ring buffer to this size (per-cpu).
+  calls: Set the number of calls to make to getuid.
+"""
+
+
+job.run_test('tracing_microbenchmark', tracer='off', tag='off', iterations=10)
+job.run_test('tracing_microbenchmark', tracer='ftrace', tag='ftrace', iterations=10)
