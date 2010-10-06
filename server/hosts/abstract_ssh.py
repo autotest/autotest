@@ -69,6 +69,7 @@ class AbstractSSHHost(SiteHost):
         if not self._use_rsync:
             logging.warn("rsync not available on remote host %s -- disabled",
                          self.hostname)
+        return self._use_rsync
 
 
     def _check_rsync(self):
