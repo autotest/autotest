@@ -171,15 +171,6 @@ cfg = kvm_config.config()
 filename = os.path.join(pwd, "tests.cfg")
 cfg.fork_and_parse(filename, str)
 
-filename = os.path.join(pwd, "address_pools.cfg")
-if os.path.exists(filename):
-    cfg.parse_file(filename)
-    hostname = os.uname()[1].split(".")[0]
-    if cfg.count("^" + hostname):
-        cfg.parse_string("only ^%s" % hostname)
-    else:
-        cfg.parse_string("only ^default_host")
-
 tests = cfg.get_list()
 
 

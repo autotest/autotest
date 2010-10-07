@@ -55,14 +55,6 @@ tests_cfg = kvm_config.config()
 tests_cfg_path = os.path.join(kvm_test_dir, "tests.cfg")
 tests_cfg.fork_and_parse(tests_cfg_path, str)
 
-pools_cfg_path = os.path.join(kvm_test_dir, "address_pools.cfg")
-tests_cfg.parse_file(pools_cfg_path)
-hostname = os.uname()[1].split(".")[0]
-if tests_cfg.count("^" + hostname):
-    tests_cfg.parse_string("only ^%s" % hostname)
-else:
-    tests_cfg.parse_string("only ^default_host")
-
 # Run the tests
 kvm_utils.run_tests(tests_cfg.get_generator(), job)
 
