@@ -496,6 +496,13 @@ variants:
         type = nic_promisc
         file_size = 1, 1460, 65000, 100000000
 
+    - multicast: install setup unattended_install.cdrom
+        type = multicast
+        nic_mode = tap
+        mcast = 225.0.0.1
+        mgroup_count = 20
+        flood_minutes = 1
+
     - physical_resources_check: install setup unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
@@ -1273,7 +1280,7 @@ variants:
 
     # Windows section
     - @Windows:
-        no autotest linux_s3 vlan_tag ioquit unattended_install.(url|nfs|remote_ks) jumbo file_transfer nicdriver_unload nic_promisc
+        no autotest linux_s3 vlan_tag ioquit unattended_install.(url|nfs|remote_ks) jumbo file_transfer nicdriver_unload nic_promisc multicast
         shutdown_command = shutdown /s /f /t 0
         reboot_command = shutdown /r /f /t 0
         status_test_command = echo %errorlevel%
