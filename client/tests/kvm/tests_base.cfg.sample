@@ -467,8 +467,7 @@ variants:
         send_cmd = "nc %s %s < %s"
         nic_mode = tap
         vms += " vm2"
-        extra_params_vm1 += " -snapshot"
-        extra_params_vm2 += " -snapshot"
+        image_snapshot = yes
         kill_vm_vm2 = yes
         kill_vm_gracefully_vm2 = no
 
