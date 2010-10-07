@@ -516,6 +516,10 @@ variants:
         restart_vm = yes
         pxe_timeout = 60
 
+    - mac_change: install setup unattended_install.cdrom
+        type = mac_change
+        kill_vm = yes
+
     - physical_resources_check: install setup unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
@@ -1293,7 +1297,7 @@ variants:
 
     # Windows section
     - @Windows:
-        no autotest linux_s3 vlan_tag ioquit unattended_install.(url|nfs|remote_ks) jumbo file_transfer nicdriver_unload nic_promisc multicast
+        no autotest linux_s3 vlan_tag ioquit unattended_install.(url|nfs|remote_ks) jumbo file_transfer nicdriver_unload nic_promisc multicast mac_change
         shutdown_command = shutdown /s /f /t 0
         reboot_command = shutdown /r /f /t 0
         status_test_command = echo %errorlevel%
