@@ -54,7 +54,7 @@ guest_port_remote_shell = 22
 nic_mode = user
 #nic_mode = tap
 nic_script = scripts/qemu-ifup
-address_index = 0
+#address_index = 0
 run_tcpdump = yes
 
 # Misc
