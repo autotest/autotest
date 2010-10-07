@@ -533,6 +533,11 @@ variants:
         netperf_cmd = %s/netperf-2.4.5/src/netperf -t %s -H %s -l 60 -- -m 1
         protocols = "TCP_STREAM TCP_MAERTS TCP_RR TCP_CRR UDP_RR TCP_SENDFILE UDP_STREAM"
 
+    - ethtool: install setup unattended_install.cdrom
+        type = ethtool
+        filesize = 512
+        nic_mode = tap
+
     - physical_resources_check: install setup unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
@@ -689,11 +694,15 @@ variants:
         nic_model = e1000
         jumbo:
             mtu = 16110
+        ethtool:
+                # gso gro lro is only supported by latest kernel
+                supported_features = "tx rx sg tso gso gro lro"
     - virtio_net:
         nic_model = virtio
         jumbo:
             mtu = 65520
-
+        ethtool:
+            supported_features = "tx sg tso gso"
 
 # Guests
 variants:
@@ -1310,7 +1319,7 @@ variants:
 
     # Windows section
     - @Windows:
-        no autotest linux_s3 vlan ioquit unattended_install.(url|nfs|remote_ks) jumbo file_transfer nicdriver_unload nic_promisc multicast mac_change
+        no autotest linux_s3 vlan ioquit unattended_install.(url|nfs|remote_ks) jumbo file_transfer nicdriver_unload nic_promisc multicast mac_change ethtool
         shutdown_command = shutdown /s /f /t 0
         reboot_command = shutdown /r /f /t 0
         status_test_command = echo %errorlevel%
