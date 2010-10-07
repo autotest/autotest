@@ -456,17 +456,21 @@ variants:
             - fmt_raw:
                 image_format_stg = raw
 
-    - vlan_tag:  install setup unattended_install.cdrom
-        type = vlan_tag
+    - vlan:  install setup unattended_install.cdrom
+        type = vlan
         # subnet should not be used by host
-        subnet = 192.168.123
-        vlans = "10 20"
+        subnet = "192.168"
+        vlan_num = 5
+        file_size = 10
+        maximal = 4094
+        listen_cmd = "nc -l %s > %s"
+        send_cmd = "nc %s %s < %s"
         nic_mode = tap
         vms += " vm2"
         extra_params_vm1 += " -snapshot"
         extra_params_vm2 += " -snapshot"
+        kill_vm_vm2 = yes
         kill_vm_gracefully_vm2 = no
-        address_index_vm2 = 1
 
     - ping: install setup unattended_install.cdrom
         type = ping
@@ -1307,7 +1311,7 @@ variants:
 
     # Windows section
     - @Windows:
-        no autotest linux_s3 vlan_tag ioquit unattended_install.(url|nfs|remote_ks) jumbo file_transfer nicdriver_unload nic_promisc multicast mac_change
+        no autotest linux_s3 vlan ioquit unattended_install.(url|nfs|remote_ks) jumbo file_transfer nicdriver_unload nic_promisc multicast mac_change
         shutdown_command = shutdown /s /f /t 0
         reboot_command = shutdown /r /f /t 0
         status_test_command = echo %errorlevel%
