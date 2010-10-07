@@ -21,7 +21,7 @@ More specifically:
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, re, commands
+import time, os, logging, re, commands, signal
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 import kvm_utils, kvm_vm, kvm_subprocess, scan_results
@@ -505,3 +505,131 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
             e_msg = ("Tests %s failed during control file execution" %
                      " ".join(bad_results))
         raise error.TestFail(e_msg)
+
+
+def get_loss_ratio(output):
+    """
+    Get the packet loss ratio from the output of ping
+.
+    @param output: Ping output.
+    """
+    try:
+        return int(re.findall('(\d+)% packet loss', output)[0])
+    except IndexError:
+        logging.debug(output)
+        return -1
+
+
+def raw_ping(command, timeout, session, output_func):
+    """
+    Low-level ping command execution.
+
+    @param command: Ping command.
+    @param timeout: Timeout of the ping command.
+    @param session: Local executon hint or session to execute the ping command.
+    """
+    if session is None:
+        process = kvm_subprocess.run_bg(command, output_func=output_func,
+                                        timeout=timeout)
+
+        # Send SIGINT signal to notify the timeout of running ping process,
+        # Because ping have the ability to catch the SIGINT signal so we can
+        # always get the packet loss ratio even if timeout.
+        if process.is_alive():
+            kvm_utils.kill_process_tree(process.get_pid(), signal.SIGINT)
+
+        status = process.get_status()
+        output = process.get_output()
+
+        process.close()
+        return status, output
+    else:
+        session.sendline(command)
+        status, output = session.read_up_to_prompt(timeout=timeout,
+                                                   print_func=output_func)
+        if not status:
+            # Send ctrl+c (SIGINT) through ssh session
+            session.send("\003")
+            status, output2 = session.read_up_to_prompt(print_func=output_func)
+            output += output2
+            if not status:
+                # We also need to use this session to query the return value
+                session.send("\003")
+
+        session.sendline(session.status_test_command)
+        s2, o2 = session.read_up_to_prompt()
+        if not s2:
+            status = -1
+        else:
+            try:
+                status = int(re.findall("\d+", o2)[0])
+            except:
+                status = -1
+
+        return status, output
+
+
+def ping(dest=None, count=None, interval=None, interface=None,
+         packetsize=None, ttl=None, hint=None, adaptive=False,
+         broadcast=False, flood=False, timeout=0,
+         output_func=logging.debug, session=None):
+    """
+    Wrapper of ping.
+
+    @param dest: Destination address.
+    @param count: Count of icmp packet.
+    @param interval: Interval of two icmp echo request.
+    @param interface: Specified interface of the source address.
+    @param packetsize: Packet size of icmp.
+    @param ttl: IP time to live.
+    @param hint: Path mtu discovery hint.
+    @param adaptive: Adaptive ping flag.
+    @param broadcast: Broadcast ping flag.
+    @param flood: Flood ping flag.
+    @param timeout: Timeout for the ping command.
+    @param output_func: Function used to log the result of ping.
+    @param session: Local executon hint or session to execute the ping command.
+    """
+    if dest is not None:
+        command = "ping %s " % dest
+    else:
+        command = "ping localhost "
+    if count is not None:
+        command += " -c %s" % count
+    if interval is not None:
+        command += " -i %s" % interval
+    if interface is not None:
+        command += " -I %s" % interface
+    if packetsize is not None:
+        command += " -s %s" % packetsize
+    if ttl is not None:
+        command += " -t %s" % ttl
+    if hint is not None:
+        command += " -M %s" % hint
+    if adaptive:
+        command += " -A"
+    if broadcast:
+        command += " -b"
+    if flood:
+        command += " -f -q"
+        output_func = None
+
+    return raw_ping(command, timeout, session, output_func)
+
+
+def get_linux_ifname(session, mac_address):
+    """
+    Get the interface name through the mac address.
+
+    @param session: session to the virtual machine
+    @mac_address: the macaddress of nic
+    """
+
+    output = session.get_command_output("ifconfig -a")
+
+    try:
+        ethname = re.findall("(\w+)\s+Link.*%s" % mac_address, output,
+                             re.IGNORECASE)[0]
+        return ethname
+    except:
+        return None
