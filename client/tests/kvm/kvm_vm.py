@@ -426,7 +426,7 @@ class VM:
             if tftp:
                 tftp = kvm_utils.get_path(root_dir, tftp)
             qemu_cmd += add_net(help, vlan, nic_params.get("nic_mode", "user"),
-                                nic_params.get("nic_ifname"),
+                                self.get_ifname(vlan),
                                 script, downscript, tftp,
                                 nic_params.get("bootp"), redirs,
                                 self.netdev_id[vlan])
@@ -957,6 +957,25 @@ class VM:
                 logging.warn("Warning: guest port %s requested but not "
                              "redirected" % port)
             return self.redirs.get(port)
+
+
+    def get_ifname(self, nic_index=0):
+        """
+        Return the ifname of tap device for the guest nic.
+
+        The vnc_port is unique for each VM, nic_index is unique for each nic
+        of one VM, it can avoid repeated ifname.
+
+        @param nic_index: Index of the NIC
+        """
+        nics = kvm_utils.get_sub_dict_names(self.params, "nics")
+        nic_name = nics[nic_index]
+        nic_params = kvm_utils.get_sub_dict(self.params, nic_name)
+        if nic_params.get("nic_ifname"):
+            return nic_params.get("nic_ifname")
+        else:
+            return "%s_%s_%s" % (nic_params.get("nic_model"),
+                                 nic_index, self.vnc_port)
 
 
     def get_mac_address(self, nic_index=0):
