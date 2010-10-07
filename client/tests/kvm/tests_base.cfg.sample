@@ -476,6 +476,14 @@ variants:
     - jumbo: install setup unattended_install.cdrom
         type = jumbo
 
+    - file_transfer: install setup unattended_install.cdrom
+        type = file_transfer
+        filesize = 4000
+        transfer_timeout = 1000
+        variants:
+            - remote:
+                transfer_type = remote
+
     - physical_resources_check: install setup unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
@@ -679,6 +687,9 @@ variants:
                 time_command = date +'TIME: %a %m/%d/%Y %H:%M:%S.%N'
                 time_filter_re = "(?:TIME: \w\w\w )(.{19})(?:\.\d\d)"
                 time_format = "%m/%d/%Y %H:%M:%S"
+        file_transfer:
+            tmp_dir = /tmp/
+            clean_cmd = rm -f
 
         variants:
             - Fedora:
@@ -1250,7 +1261,7 @@ variants:
 
     # Windows section
     - @Windows:
-        no autotest linux_s3 vlan_tag ioquit unattended_install.(url|nfs|remote_ks) jumbo
+        no autotest linux_s3 vlan_tag ioquit unattended_install.(url|nfs|remote_ks) jumbo file_transfer
         shutdown_command = shutdown /s /f /t 0
         reboot_command = shutdown /r /f /t 0
         status_test_command = echo %errorlevel%
@@ -1342,6 +1353,9 @@ variants:
         physical_resources_check:
             catch_uuid_cmd = 
 
+        file_transfer:
+            tmp_dir = C:\
+            clean_cmd = del
         variants:
             - Win2000:
                 no reboot whql
