@@ -831,7 +831,7 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
 
 # The following are utility functions related to ports.
 
-def is_port_free(port):
+def is_port_free(port, address):
     """
     Return True if the given port is available for use.
 
@@ -840,15 +840,22 @@ def is_port_free(port):
     try:
         s = socket.socket()
         #s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind(("localhost", port))
-        free = True
+        if address == "localhost":
+            s.bind(("localhost", port))
+            free = True
+        else:
+            s.connect((address, port))
+            free = False
     except socket.error:
-        free = False
+        if address == "localhost":
+            free = False
+        else:
+            free = True
     s.close()
     return free
 
 
-def find_free_port(start_port, end_port):
+def find_free_port(start_port, end_port, address="localhost"):
     """
     Return a host free port in the range [start_port, end_port].
 
@@ -856,12 +863,12 @@ def find_free_port(start_port, end_port):
     @param end_port: Port immediately after the last one that will be checked.
     """
     for i in range(start_port, end_port):
-        if is_port_free(i):
+        if is_port_free(i, address):
             return i
     return None
 
 
-def find_free_ports(start_port, end_port, count):
+def find_free_ports(start_port, end_port, count, address="localhost"):
     """
     Return count of host free ports in the range [start_port, end_port].
 
@@ -872,7 +879,7 @@ def find_free_ports(start_port, end_port, count):
     ports = []
     i = start_port
     while i < end_port and count > 0:
-        if is_port_free(i):
+        if is_port_free(i, address):
             ports.append(i)
             count -= 1
         i += 1
