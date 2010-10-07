@@ -473,6 +473,9 @@ variants:
         counts = 100
         flood_minutes = 10
 
+    - jumbo: install setup unattended_install.cdrom
+        type = jumbo
+
     - physical_resources_check: install setup unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
@@ -623,10 +626,16 @@ variants:
 variants:
     - @rtl8139:
         nic_model = rtl8139
+        jumbo:
+            mtu = 1500
     - e1000:
         nic_model = e1000
+        jumbo:
+            mtu = 16110
     - virtio_net:
         nic_model = virtio
+        jumbo:
+            mtu = 65520
 
 
 # Guests
@@ -1241,7 +1250,7 @@ variants:
 
     # Windows section
     - @Windows:
-        no autotest linux_s3 vlan_tag ioquit unattended_install.(url|nfs|remote_ks)
+        no autotest linux_s3 vlan_tag ioquit unattended_install.(url|nfs|remote_ks) jumbo
         shutdown_command = shutdown /s /f /t 0
         reboot_command = shutdown /r /f /t 0
         status_test_command = echo %errorlevel%
