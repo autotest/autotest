@@ -503,6 +503,19 @@ variants:
         mgroup_count = 20
         flood_minutes = 1
 
+    - pxe:
+        type = pxe
+        images = pxe
+        image_name_pxe = pxe-test
+        image_size_pxe = 1G
+        force_create_image_pxe = yes
+        remove_image_pxe = yes
+        extra_params += ' -boot n'
+        kill_vm_on_error = yes
+        network = bridge
+        restart_vm = yes
+        pxe_timeout = 60
+
     - physical_resources_check: install setup unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
