@@ -5,6 +5,7 @@ KVM test utility functions.
 """
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
+import fcntl, shelve
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error, logging_config
 import kvm_subprocess
@@ -81,6 +82,121 @@ def get_sub_dict_names(dict, keyword):
 
 
 # Functions related to MAC/IP addresses
+
+def _generate_mac_address_prefix():
+    """
+    Generate a MAC address prefix. By convention we will set KVM autotest
+    MAC addresses to start with 0x9a.
+    """
+    r = random.SystemRandom()
+    l = [0x9a, r.randint(0x00, 0x7f), r.randint(0x00, 0x7f),
+         r.randint(0x00, 0xff)]
+    prefix = ':'.join(map(lambda x: "%02x" % x, l)) + ":"
+    return prefix
+
+
+def generate_mac_address_prefix():
+    """
+    Generate a random MAC address prefix and add it to the MAC pool dictionary.
+    If there's a MAC prefix there already, do not update the MAC pool and just
+    return what's in there.
+    """
+    lock_file = open("/tmp/mac_lock", 'w')
+    fcntl.lockf(lock_file.fileno() ,fcntl.LOCK_EX)
+    mac_pool = shelve.open("/tmp/address_pool", writeback=False)
+
+    if mac_pool.get('prefix'):
+        prefix = mac_pool.get('prefix')
+        logging.debug('Retrieved previously generated MAC prefix for this '
+                      'host: %s', prefix)
+    else:
+        prefix = _generate_mac_address_prefix()
+        mac_pool['prefix'] = prefix
+        logging.debug('Generated MAC address prefix for this host: %s', prefix)
+
+    mac_pool.close()
+    fcntl.lockf(lock_file.fileno(), fcntl.LOCK_UN)
+    lock_file.close()
+
+    return prefix
+
+
+def generate_mac_address(root_dir, instance_vm, nic_index, prefix=None):
+    """
+    Random generate a MAC address and add it to the MAC pool.
+
+    Try to generate macaddress based on the mac address prefix, add it to a
+    dictionary 'address_pool'.
+    key = VM instance + nic index, value = mac address
+    {['20100310-165222-Wt7l:0'] : 'AE:9D:94:6A:9b:f9'}
+
+    @param root_dir: Root dir for kvm.
+    @param instance_vm: Here we use instance of vm.
+    @param nic_index: The index of nic.
+    @param prefix: Prefix of MAC address.
+    @return: MAC address string.
+    """
+    if prefix is None:
+        prefix = generate_mac_address_prefix()
+
+    r = random.SystemRandom()
+    lock_file = open("/tmp/mac_lock", 'w')
+    fcntl.lockf(lock_file.fileno() ,fcntl.LOCK_EX)
+    mac_pool = shelve.open("/tmp/address_pool", writeback=False)
+    found = False
+    key = "%s:%s" % (instance_vm, nic_index)
+
+    if mac_pool.get(key):
+        found = True
+        mac = mac_pool.get(key)
+
+    while not found:
+        suffix = "%02x:%02x" % (r.randint(0x00,0xfe),
+                                r.randint(0x00,0xfe))
+        mac = prefix + suffix
+        mac_list = mac.split(":")
+        # Clear multicast bit
+        mac_list[0] = int(mac_list[0],16) & 0xfe
+        # Set local assignment bit (IEEE802)
+        mac_list[0] = mac_list[0] | 0x02
+        mac_list[0] = "%02x" % mac_list[0]
+        mac = ":".join(mac_list)
+        if mac in [mac_pool.get(k) for k in mac_pool.keys()]:
+                continue
+        mac_pool[key] = mac
+        found = True
+    logging.debug("Generated MAC address for NIC %s: %s ", key, mac)
+
+    mac_pool.close()
+    fcntl.lockf(lock_file.fileno(), fcntl.LOCK_UN)
+    lock_file.close()
+    return mac
+
+
+def free_mac_address(root_dir, instance_vm, nic_index):
+    """
+    Free mac address from address pool
+
+    @param root_dir: Root dir for kvm
+    @param instance_vm: Here we use instance attribute of vm
+    @param nic_index: The index of nic
+    """
+    lock_file = open("/tmp/mac_lock", 'w')
+    fcntl.lockf(lock_file.fileno() ,fcntl.LOCK_EX)
+    mac_pool = shelve.open("/tmp/address_pool", writeback=False)
+    key = "%s:%s" % (instance_vm, nic_index)
+    if not mac_pool or (not key in mac_pool.keys()):
+        logging.debug("NIC not present in the MAC pool, not modifying pool")
+        logging.debug("NIC: %s" % key)
+        logging.debug("Contents of MAC pool: %s" % mac_pool)
+    else:
+        logging.debug("Freeing MAC addr for NIC %s: %s", key, mac_pool[key])
+        mac_pool.pop(key)
+
+    mac_pool.close()
+    fcntl.lockf(lock_file.fileno(), fcntl.LOCK_UN)
+    lock_file.close()
+
 
 def mac_str_to_int(addr):
     """
