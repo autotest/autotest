@@ -468,6 +468,11 @@ variants:
         kill_vm_gracefully_vm2 = no
         address_index_vm2 = 1
 
+    - ping: install setup unattended_install.cdrom
+        type = ping
+        counts = 100
+        flood_minutes = 10
+
     - physical_resources_check: install setup unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
