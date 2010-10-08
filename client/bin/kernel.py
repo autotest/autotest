@@ -307,6 +307,8 @@ class kernel(BootableKernel):
         # if base_tree is a dir, assume uncompressed kernel
         if os.path.isdir(base_tree):
             print 'Symlinking existing kernel source'
+            if os.path.islink(self.build_dir):
+                os.remove(self.build_dir)
             os.symlink(base_tree, self.build_dir)
 
         # otherwise, extract tarball
