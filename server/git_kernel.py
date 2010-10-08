@@ -16,7 +16,7 @@ class GitKernel(git.InstallableGitRepo):
     It is used to pull down a local copy of a git repo, check if the local repo
     is up-to-date, if not update and then build the kernel from the git repo.
     """
-    def __init__(self, repodir, giturl, weburl):
+    def __init__(self, repodir, giturl, weburl=None):
         super(GitKernel, self).__init__(repodir, giturl, weburl)
         self._patches = []
         self._config = None
