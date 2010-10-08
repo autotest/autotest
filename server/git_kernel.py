@@ -100,9 +100,11 @@ class GitKernel(git.InstallableGitRepo):
         # push source to host for install
         logging.info('Pushing %s to host', self.source_material)
         host.send_file(self.source_material, self._build)
+        remote_source_material= os.path.join(self._build,
+                                        os.path.basename(self.source_material))
 
         # use a source_kernel to configure, patch, build and install.
-        sk = source_kernel.SourceKernel(self._build)
+        sk = source_kernel.SourceKernel(remote_source_material)
 
         if build:
             # apply patches
