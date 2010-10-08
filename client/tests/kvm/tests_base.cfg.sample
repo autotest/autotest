@@ -699,6 +699,9 @@ variants:
                 supported_features = "tx rx sg tso gso gro lro"
     - virtio_net:
         nic_model = virtio
+        # you can add advanced attributes on nic_extra_params
+        # such as mrg_rxbuf
+        #nic_extra_params =
         jumbo:
             mtu = 65520
         ethtool:
