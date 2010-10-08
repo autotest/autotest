@@ -253,13 +253,31 @@ class VM:
             if boot: cmd += ",boot=on"
             return cmd
 
-        def add_nic(help, vlan, model=None, mac=None, netdev_id=None):
-            if has_option(help, "netdev"):
-                cmd = " -net nic,netdev=%s" % netdev_id
+        def add_nic(help, vlan, model=None, mac=None, netdev_id=None,
+                    nic_extra_params=None):
+            if has_option(help, "device"):
+                if model == "virtio":
+                    model="virtio-net-pci"
+                if not model:
+                    model= "rtl8139"
+                cmd = " -device %s" % model
+                if mac:
+                    cmd += ",mac=%s" % mac
+                if has_option(help, "netdev"):
+                    cmd += ",netdev=%s" % netdev_id
+                else:
+                    cmd += "vlan=%d,"  % vlan
+                if nic_extra_params:
+                    cmd += ",%s" % nic_extra_params
             else:
-                cmd = " -net nic,vlan=%d" % vlan
-            if model: cmd += ",model=%s" % model
-            if mac: cmd += ",macaddr='%s'" % mac
+                if has_option(help, "netdev"):
+                    cmd = " -net nic,netdev=%s" % netdev_id
+                else:
+                    cmd = " -net nic,vlan=%d" % vlan
+                if model:
+                    cmd += ",model=%s" % model
+                if mac:
+                    cmd += ",macaddr='%s'" % mac
             return cmd
 
         def add_net(help, vlan, mode, ifname=None, script=None,
@@ -414,7 +432,8 @@ class VM:
                                                      self.mac_prefix)
 
             qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac,
-                                self.netdev_id[vlan])
+                                self.netdev_id[vlan],
+                                nic_params.get("nic_extra_params"))
             # Handle the '-net tap' or '-net user' part
             script = nic_params.get("nic_script")
             downscript = nic_params.get("nic_downscript")
