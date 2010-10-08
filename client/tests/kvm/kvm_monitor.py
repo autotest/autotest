@@ -243,7 +243,7 @@ class HumanMonitor(Monitor):
         @return: True if responsive, False otherwise
         """
         try:
-            self._get_command_output("help")
+            self._get_command_output("info status")
             return True
         except MonitorError:
             return False
@@ -548,7 +548,7 @@ class QMPMonitor(Monitor):
         @return: True if responsive, False otherwise
         """
         try:
-            self._get_command_output("query-version")
+            self._get_command_output("query-status")
             return True
         except MonitorError:
             return False
