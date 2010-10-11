@@ -699,9 +699,11 @@ variants:
                 supported_features = "tx rx sg tso gso gro lro"
     - virtio_net:
         nic_model = virtio
-        # you can add advanced attributes on nic_extra_params
-        # such as mrg_rxbuf
+        # You can add advanced attributes on nic_extra_params such as mrg_rxbuf
         #nic_extra_params =
+        # You can set vhost = yes to enable the vhost kernel backend
+        # (This only works if nic_mode=tap)
+        vhost = no
         jumbo:
             mtu = 65520
         ethtool:

@@ -282,9 +282,11 @@ class VM:
 
         def add_net(help, vlan, mode, ifname=None, script=None,
                     downscript=None, tftp=None, bootfile=None, hostfwd=[],
-                    netdev_id=None):
+                    netdev_id=None, vhost=False):
             if has_option(help, "netdev"):
                 cmd = " -netdev %s,id=%s" % (mode, netdev_id)
+                if vhost:
+                    cmd +=",vhost=on"
             else:
                 cmd = " -net %s,vlan=%d" % (mode, vlan)
             if mode == "tap":
@@ -448,7 +450,8 @@ class VM:
                                 self.get_ifname(vlan),
                                 script, downscript, tftp,
                                 nic_params.get("bootp"), redirs,
-                                self.netdev_id[vlan])
+                                self.netdev_id[vlan],
+                                nic_params.get("vhost")=="yes")
             # Proceed to next NIC
             vlan += 1
 
