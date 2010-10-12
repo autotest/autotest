@@ -96,6 +96,8 @@ class GitKernel(git.InstallableGitRepo):
             self._build = os.path.join(host.get_tmp_dir(), "build")
             logging.warning('Builddir %s is not persistent (it will be erased '
                             'in future jobs)', self._build)
+        else:
+            self._build = builddir
 
         # push source to host for install
         logging.info('Pushing %s to host', self.source_material)
