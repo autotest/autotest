@@ -1,0 +1,19 @@
+# default svn:ignore property:
+*.o
+*.lo
+*.la
+#*#
+.*.rej
+*.rej
+.*~
+*~
+.#*
+.DS_Store.
+# additional patterns:
+*.pyc
+client/control
+client/results/
+client/tests/kvm/images
+client/tests/kvm/env
+client/tmp
+client/tests/kvm/*.cfg
