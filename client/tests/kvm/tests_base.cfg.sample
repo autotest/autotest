@@ -35,6 +35,7 @@ smp = 1
 mem = 512
 image_size = 10G
 drive_index_image1 = 0
+drive_cache = none
 shell_port = 22
 display = vnc
 drive_index_cd1 = 1
