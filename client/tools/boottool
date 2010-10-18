@@ -791,6 +791,38 @@ sub detect_architecture {
     return $arch;
 }
 
+=head3 detect_os_vendor()
+
+Input:
+Output: string
+
+This function determines the OS vendor (linux distribution breed).
+
+Return values: "Red Hat", "Fedora", "SUSE", "Ubuntu", "Debian", or
+"Unknown" if none of the predefined patterns could be found on the
+issue file.
+
+=cut
+
+sub detect_os_vendor {
+    my $vendor = "";
+    my $issue_file = '/etc/issue';
+    if ( not system("egrep 'Red Hat' $issue_file") ){
+       $vendor = 'Red Hat';
+    } elsif ( not system("egrep 'Fedora' $issue_file") ){
+       $vendor = 'Fedora';
+    } elsif ( not system("egrep 'SUSE' $issue_file") ){
+       $vendor = 'SUSE';
+    } elsif ( not system("egrep 'Ubuntu' $issue_file") ){
+       $vendor = 'Ubuntu';
+    } elsif ( not system("egrep 'Debian' $issue_file") ){
+       $vendor = 'Debian';
+    } else {
+       $vendor = 'Unknown';
+    }
+    return $vendor;
+}
+
 =head3 detect_bootloader(['device1', 'device2', ...])
 
 Input:  devices to detect against (optional)
@@ -1595,17 +1627,28 @@ sub update_main_options{
 sub boot_once {
   my $self=shift;
   my $entry_to_boot_once = shift;
+  my $detected_os_vendor = Linux::Bootloader::Detect::detect_os_vendor();
 
   unless ( $entry_to_boot_once ) { print "No kernel\n"; return undef;}
   $self->read();
   my $default=$self->get_default();
 
-  if ( $default == $self->_lookup($entry_to_boot_once)){
-     warn "The default and once-boot kernels are the same.  No action taken.  \nSet default to something else, then re-try.\n";
-     return undef;
-  }
   if ( $self->_get_bootloader_version() < 0.97 ){
      warn "This function works for grub version 0.97 and up.  No action taken.  \nUpgrade, then re-try.\n";
+     return undef;
+  }
+
+  if ( $detected_os_vendor eq "Red Hat" or $detected_os_vendor eq "Fedora" ) {
+    # if not a number, do title lookup
+    if ( $entry_to_boot_once !~ /^\d+$/ ) {
+      $entry_to_boot_once = $self->_lookup($entry_to_boot_once);
+      return undef unless ( defined $entry_to_boot_once );
+    }
+
+    return `echo "savedefault --default=$entry_to_boot_once" --once | grub --batch`;
+  } else {
+  if ( $default == $self->_lookup($entry_to_boot_once)){
+     warn "The default and once-boot kernels are the same.  No action taken.  \nSet default to something else, then re-try.\n";
      return undef;
   }
 
@@ -1635,7 +1678,7 @@ sub boot_once {
   $self->update( 'update-kernel'=>"$entry_to_boot_once",'option'=>'','savedefault' => 'fallback' );
   $self->update( 'update-kernel'=>"$default",'option'=>'', 'savedefault' => '' );
   $self->write();
-  
+  }
 }
 
 sub _get_bootloader_version {
