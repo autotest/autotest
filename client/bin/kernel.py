@@ -87,7 +87,6 @@ class BootableKernel(object):
         @param subdir: job-step qualifier in status log
         @param notes:  additional comment in status log
         """
-
         # If we can check the kernel identity do so.
         if ident_check:
             when = int(time.time())
@@ -98,11 +97,7 @@ class BootableKernel(object):
             self.job.next_step_prepend(["job.end_reboot", subdir,
                                         expected_ident, notes])
 
-        # Point bootloader to the selected tag.
-        _add_kernel_to_bootloader(self.job.bootloader,
-                                  self.job.config_get('boot.default_args'),
-                                  self.installed_as, args, self.image,
-                                  self.initrd)
+        self.add_to_bootloader(args)
 
         # defer fsck for next reboot, to avoid reboots back to default kernel
         utils.system('touch /fastboot')  # this file is removed automatically
@@ -110,6 +105,14 @@ class BootableKernel(object):
         # Boot it.
         self.job.start_reboot()
         self.job.reboot(tag=self.installed_as)
+
+
+    def add_to_bootloader(self, args=''):
+        # Point bootloader to the selected tag.
+        _add_kernel_to_bootloader(self.job.bootloader,
+                                  self.job.config_get('boot.default_args'),
+                                  self.installed_as, args, self.image,
+                                  self.initrd)
 
 
 class kernel(BootableKernel):
