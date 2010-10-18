@@ -728,7 +728,7 @@ class rpm_kernel(BootableKernel):
 
             # search for initrd
             for file in files:
-                if file.startswith('/boot/initrd'):
+                if file.startswith('/boot/init'):
                     self.initrd = file
                     # prefer /boot/initrd-version before /boot/initrd
                     if len(file) > len('/boot/initrd'):
