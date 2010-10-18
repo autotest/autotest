@@ -561,6 +561,7 @@ def kill_tail_threads():
     for t in threading.enumerate():
         if hasattr(t, "name") and t.name.startswith("tail_thread"):
             t.join(10)
+    _thread_kill_requested = False
 
 
 class kvm_tail(kvm_spawn):
@@ -706,7 +707,6 @@ class kvm_tail(kvm_spawn):
             while True:
                 global _thread_kill_requested
                 if _thread_kill_requested:
-                    _thread_kill_requested = False
                     return
                 try:
                     # See if there's any data to read from the pipe
