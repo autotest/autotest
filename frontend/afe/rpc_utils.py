@@ -233,8 +233,10 @@ def check_job_dependencies(host_objects, job_dependencies):
                      set(host.hostname for host in ok_hosts))
     if failing_hosts:
         raise model_logic.ValidationError(
-            {'hosts' : 'Host(s) failed to meet job dependencies: ' +
-                       ', '.join(failing_hosts)})
+            {'hosts' : 'Host(s) failed to meet job dependencies (' +
+                       (', '.join(job_dependencies)) + '): ' +
+                       (', '.join(failing_hosts))})
+
 
 
 def _execution_key_for(host_queue_entry):
