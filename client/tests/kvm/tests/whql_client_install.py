@@ -60,7 +60,11 @@ def run_whql_client_install(test, params, env):
     server_workgroup = server_workgroup.splitlines()[-1]
     regkey = r"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters"
     cmd = "reg query %s /v Domain" % regkey
-    server_dns_suffix = server_session.get_command_output(cmd).split()[-1]
+    o = server_session.get_command_output(cmd).strip().splitlines()[-1]
+    try:
+        server_dns_suffix = o.split(None, 2)[2]
+    except IndexError:
+        server_dns_suffix = ""
 
     # Delete the client machine from the server's data store (if it's there)
     server_session.get_command_output("cd %s" % server_studio_path)
@@ -86,7 +90,7 @@ def run_whql_client_install(test, params, env):
 
     # Set the client machine's DNS suffix
     logging.info("Setting DNS suffix to '%s'" % server_dns_suffix)
-    cmd = "reg add %s /v Domain /d %s /f" % (regkey, server_dns_suffix)
+    cmd = 'reg add %s /v Domain /d "%s" /f' % (regkey, server_dns_suffix)
     if session.get_command_status(cmd, timeout=300) != 0:
         raise error.TestError("Could not set the client's DNS suffix")
 
