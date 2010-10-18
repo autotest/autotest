@@ -1,10 +1,5 @@
 import time, os, sys, urllib, re, signal, logging, datetime, glob, ConfigParser
 import shutil
-try:
-    import koji
-    KOJI_INSTALLED = True
-except ImportError:
-    KOJI_INSTALLED = False
 from autotest_lib.client.bin import utils, test, os_dep
 from autotest_lib.client.common_lib import error
 import kvm_utils
@@ -268,96 +263,27 @@ class KojiInstaller(YumInstaller):
     """
     def __init__(self, test, params):
         """
-        Initialize koji/brew session.
+        Gets parameters and initializes the package downloader.
 
         @param test: kvm test object
         @param params: Dictionary with test arguments
         """
         super(KojiInstaller, self).__init__(test, params)
-
         default_koji_cmd = '/usr/bin/koji'
         default_src_pkg = 'qemu'
-
-        self.koji_cmd = params.get("koji_cmd", default_koji_cmd)
         self.src_pkg = params.get("src_pkg", default_src_pkg)
-
-        # Checking if all required dependencies are available
-        os_dep.command(self.koji_cmd)
-
-        config_map = {'/usr/bin/koji': '/etc/koji.conf',
-                      '/usr/bin/brew': '/etc/brewkoji.conf'}
-        config_file = config_map[self.koji_cmd]
-        base_name = os.path.basename(self.koji_cmd)
-        if os.access(config_file, os.F_OK):
-            f = open(config_file)
-            config = ConfigParser.ConfigParser()
-            config.readfp(f)
-            f.close()
-        else:
-            raise error.TestError('Configuration file %s missing or with wrong '
-                                  'permissions' % config_file)
-
-        if config.has_section(base_name):
-            self.koji_options = {}
-            session_options = {}
-            server = None
-            for name, value in config.items(base_name):
-                if name in ('user', 'password', 'debug_xmlrpc', 'debug'):
-                    session_options[name] = value
-                self.koji_options[name] = value
-            self.session = koji.ClientSession(self.koji_options['server'],
-                                              session_options)
-        else:
-            raise error.TestError('Koji config file %s does not have a %s '
-                                  'session' % (config_file, base_name))
-
         self.tag = params.get("koji_tag", None)
         self.build = params.get("koji_build", None)
-        if self.build and self.build.isdigit():
-            self.build = int(self.build)
-        if self.tag and self.build:
-            logging.info("Both tag and build parameters provided, ignoring tag "
-                         "parameter...")
-        if not self.tag and not self.build:
-            raise error.TestError("Koji install selected but neither koji_tag "
-                                  "nor koji_build parameters provided. Please "
-                                  "provide an appropriate tag or build name.")
+        koji_cmd = params.get("koji_cmd", default_koji_cmd)
+        self.downloader = kvm_utils.KojiDownloader(cmd=koji_cmd)
 
 
     def _get_packages(self):
         """
         Downloads the specific arch RPMs for the specific build name.
         """
-        if self.build is None:
-            try:
-                builds = self.session.listTagged(self.tag, latest=True,
-                                                 package=self.src_pkg)
-            except koji.GenericError, e:
-                raise error.TestError("Error finding latest build for tag %s: "
-                                      "%s" % (self.tag, e))
-            if not builds:
-                raise error.TestError("Tag %s has no builds of %s" %
-                                      (self.tag, self.src_pkg))
-            info = builds[0]
-        else:
-            info = self.session.getBuild(self.build)
-
-        if info is None:
-            raise error.TestError('No such brew/koji build: %s' %
-                                  self.build)
-        rpms = self.session.listRPMs(buildID=info['id'],
-                                     arches=utils.get_arch())
-        if not rpms:
-            raise error.TestError("No %s packages available for %s" %
-                                  utils.get_arch(), koji.buildLabel(info))
-        for rpm in rpms:
-            rpm_name = koji.pathinfo.rpm(rpm)
-            url = ("%s/%s/%s/%s/%s" % (self.koji_options['pkgurl'],
-                                       info['package_name'],
-                                       info['version'], info['release'],
-                                       rpm_name))
-            utils.get_file(url,
-                           os.path.join(self.srcdir, os.path.basename(url)))
+        self.downloader.get(src_package=self.src_pkg, tag=self.tag,
+                            build=self.build, dst_dir=self.srcdir)
 
 
     def install(self):
@@ -680,11 +606,7 @@ def run_build(test, params, env):
     elif install_mode == 'yum':
         installer = YumInstaller(test, params)
     elif install_mode == 'koji':
-        if KOJI_INSTALLED:
-            installer = KojiInstaller(test, params)
-        else:
-            raise error.TestError('Koji install selected but koji/brew are not '
-                                  'installed')
+        installer = KojiInstaller(test, params)
     else:
         raise error.TestError('Invalid or unsupported'
                               ' install mode: %s' % install_mode)
