@@ -892,6 +892,7 @@ class Job(DBObject):
                 WHERE t.job_idx = j.job_idx
                 AND s.status_idx = t.status
                 AND j.afe_job_id = %s
+                ORDER BY t.reason
                 """ % self.id)
 
         failed_rows = [r for r in rows if not 'GOOD' in r]
