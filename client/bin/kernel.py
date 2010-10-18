@@ -381,7 +381,7 @@ class kernel(BootableKernel):
         os.chdir(self.build_dir)
         self.set_cross_cc()
 
-        self.clean(logged=False)
+        self.clean()
         build_string = "/usr/bin/time -o %s make %s -j %s vmlinux" \
                                         % (timefile, make_opts, threads)
         build_string += ' > %s 2>&1' % output
