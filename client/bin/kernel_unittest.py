@@ -511,6 +511,7 @@ class TestKernel(unittest.TestCase):
         self.job.config_get.expect_call(
             'kernel.mkinitrd_extra_args').and_return(None)
         args = ''
+        glob.glob.expect_call('/lib/modules/2.6.24*').and_return(['2.6.24'])
         os.path.isfile.expect_call('/usr/sbin/mkinitrd').and_return(True)
         cmd = '/usr/sbin/mkinitrd'
         utils.system.expect_call('%s %s -o initrd 2.6.24' % (cmd, args))

@@ -429,8 +429,28 @@ class kernel(BootableKernel):
         if not args:
             args = ''
 
+        # It is important to match the version with a real directory inside
+        # /lib/modules
+        real_version_list = glob.glob('/lib/modules/%s*' % version)
+        rl = len(real_version_list)
+        if rl == 0:
+            logging.error("No directory %s found under /lib/modules. Initramfs"
+                          "creation will most likely fail and your new kernel"
+                          "will fail to build", version)
+        else:
+            if rl > 1:
+                logging.warning("Found more than one possible match for "
+                                "kernel version %s under /lib/modules", version)
+            version = os.path.basename(real_version_list[0])
+
         if vendor in ['Red Hat', 'Fedora Core']:
-            utils.system('mkinitrd %s %s %s' % (args, initrd, version))
+            try:
+                cmd = os_dep.command('dracut')
+                full_cmd = '%s -f %s %s' % (cmd, initrd, version)
+            except ValueError:
+                cmd = os_dep.command('mkinitrd')
+                full_cmd = '%s %s %s %s' % (cmd, args, initrd, version)
+            utils.system(full_cmd)
         elif vendor in ['SUSE']:
             utils.system('mkinitrd %s -k %s -i %s -M %s' %
                          (args, image, initrd, system_map))
