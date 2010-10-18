@@ -119,14 +119,13 @@ class HttpFetcher(RepositoryFetcher):
         dest_file_path = self.run_command(mktemp).stdout.strip()
 
         try:
-            # build up a wget command using the server name
-            server_name = urlparse.urlparse(self.url)[1]
-            http_cmd = self.wget_cmd_pattern % (server_name, dest_file_path)
+            # build up a wget command
+            http_cmd = self.wget_cmd_pattern % (self.url, dest_file_path)
             try:
                 self.run_command(http_cmd, _run_command_dargs={'timeout': 30})
             except Exception, e:
                 msg = 'HTTP test failed, unable to contact %s: %s'
-                raise error.PackageFetchError(msg % (server_name, e))
+                raise error.PackageFetchError(msg % (self.url, e))
         finally:
             self.run_command('rm -rf %s' % dest_file_path)
 
