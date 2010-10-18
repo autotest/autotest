@@ -59,9 +59,13 @@ def _add_kernel_to_bootloader(bootloader, base_args, tag, args, image, initrd):
         else:
             arglist.append(arg)
 
-    # add the kernel entry
-    bootloader.add_kernel(image, tag, initrd=initrd, args=' '.join(arglist),
-                          root=root)
+    # add the kernel entry. it will keep all arguments from the default entry
+    bootloader.add_kernel(image, tag, initrd=initrd, root=root)
+    # Now, for each argument in arglist, try to add it to the kernel that was
+    # just added. In each step, if the arg already existed on the args string,
+    # that particular arg will be skipped
+    for a in arglist:
+        bootloader.add_args(kernel=tag, args=a)
 
 
 class BootableKernel(object):
