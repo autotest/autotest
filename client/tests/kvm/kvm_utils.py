@@ -5,10 +5,15 @@ KVM test utility functions.
 """
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
-import fcntl, shelve
-from autotest_lib.client.bin import utils
+import fcntl, shelve, ConfigParser
+from autotest_lib.client.bin import utils, os_dep
 from autotest_lib.client.common_lib import error, logging_config
 import kvm_subprocess
+try:
+    import koji
+    KOJI_INSTALLED = True
+except ImportError:
+    KOJI_INSTALLED = False
 
 
 def dump_env(obj, filename):
@@ -162,7 +167,7 @@ def generate_mac_address(root_dir, instance_vm, nic_index, prefix=None):
         mac_list[0] = "%02x" % mac_list[0]
         mac = ":".join(mac_list)
         if mac in [mac_pool.get(k) for k in mac_pool.keys()]:
-                continue
+            continue
         mac_pool[key] = mac
         found = True
     logging.debug("Generated MAC address for NIC %s: %s ", key, mac)
@@ -1401,3 +1406,141 @@ class PciAssignable(object):
                     logging.info("Released device %s successfully", pci_id)
         except:
             return
+
+
+class KojiDownloader(object):
+    """
+    Stablish a connection with the build system, either koji or brew.
+
+    This class provides a convenience methods to retrieve packages hosted on
+    the build system.
+    """
+    def __init__(self, cmd):
+        """
+        Verifies whether the system has koji or brew installed, then loads
+        the configuration file that will be used to download the files.
+
+        @param cmd: Command name, either 'brew' or 'koji'. It is important
+                to figure out the appropriate configuration used by the
+                downloader.
+        @param dst_dir: Destination dir for the packages.
+        """
+        if not KOJI_INSTALLED:
+            raise ValueError('No koji/brew installed on the machine')
+
+        if os.path.isfile(cmd):
+            koji_cmd = cmd
+        else:
+            koji_cmd = os_dep.command(cmd)
+
+        logging.debug("Found %s as the buildsystem interface", koji_cmd)
+
+        config_map = {'/usr/bin/koji': '/etc/koji.conf',
+                      '/usr/bin/brew': '/etc/brewkoji.conf'}
+
+        try:
+            config_file = config_map[koji_cmd]
+        except IndexError:
+            raise ValueError('Could not find config file for %s' % koji_cmd)
+
+        base_name = os.path.basename(koji_cmd)
+        if os.access(config_file, os.F_OK):
+            f = open(config_file)
+            config = ConfigParser.ConfigParser()
+            config.readfp(f)
+            f.close()
+        else:
+            raise IOError('Configuration file %s missing or with wrong '
+                          'permissions' % config_file)
+
+        if config.has_section(base_name):
+            self.koji_options = {}
+            session_options = {}
+            server = None
+            for name, value in config.items(base_name):
+                if name in ('user', 'password', 'debug_xmlrpc', 'debug'):
+                    session_options[name] = value
+                self.koji_options[name] = value
+            self.session = koji.ClientSession(self.koji_options['server'],
+                                              session_options)
+        else:
+            raise ValueError('Koji config file %s does not have a %s '
+                             'session' % (config_file, base_name))
+
+
+    def get(self, src_package, dst_dir, rfilter=None, tag=None, build=None,
+            arch=None):
+        """
+        Download a list of packages from the build system.
+
+        This will download all packages originated from source package [package]
+        with given [tag] or [build] for the architecture reported by the
+        machine.
+
+        @param src_package: Source package name.
+        @param dst_dir: Destination directory for the downloaded packages.
+        @param rfilter: Regexp filter, only download the packages that match
+                that particular filter.
+        @param tag: Build system tag.
+        @param build: Build system ID.
+        @param arch: Package arch. Useful when you want to download noarch
+                packages.
+
+        @return: List of paths with the downloaded rpm packages.
+        """
+        if build and build.isdigit():
+            build = int(build)
+
+        if tag and build:
+            logging.info("Both tag and build parameters provided, ignoring tag "
+                         "parameter...")
+
+        if not tag and not build:
+            raise ValueError("Koji install selected but neither koji_tag "
+                             "nor koji_build parameters provided. Please "
+                             "provide an appropriate tag or build name.")
+
+        if not build:
+            builds = self.session.listTagged(tag, latest=True,
+                                             package=src_package)
+            if not builds:
+                raise ValueError("Tag %s has no builds of %s" % (tag,
+                                                                 src_package))
+            info = builds[0]
+        else:
+            info = self.session.getBuild(build)
+
+        if info is None:
+            raise ValueError('No such brew/koji build: %s' % build)
+
+        if arch is None:
+            arch = utils.get_arch()
+
+        rpms = self.session.listRPMs(buildID=info['id'],
+                                     arches=arch)
+        if not rpms:
+            raise ValueError("No %s packages available for %s" %
+                             arch, koji.buildLabel(info))
+
+        rpm_paths = []
+        for rpm in rpms:
+            rpm_name = koji.pathinfo.rpm(rpm)
+            url = ("%s/%s/%s/%s/%s" % (self.koji_options['pkgurl'],
+                                       info['package_name'],
+                                       info['version'], info['release'],
+                                       rpm_name))
+            if rfilter:
+                filter_regexp = re.compile(rfilter, re.IGNORECASE)
+                if filter_regexp.match(os.path.basename(rpm_name)):
+                    download = True
+                else:
+                    download = False
+            else:
+                download = True
+
+            if download:
+                r = utils.get_file(url,
+                                   os.path.join(dst_dir, os.path.basename(url)))
+                rpm_paths.append(r)
+
+        return rpm_paths
