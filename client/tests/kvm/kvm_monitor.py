@@ -38,7 +38,9 @@ class MonitorNotSupportedError(MonitorError):
 
 
 class QMPCmdError(MonitorError):
-    pass
+    def __str__(self):
+        return ("QMP command '%s' failed (arguments: %r, error message: %r)" %
+                tuple(self.args))
 
 
 class Monitor:
@@ -501,8 +503,8 @@ class QMPMonitor(Monitor):
         @raise MonitorSendError: Raised if the command cannot be sent
         @raise MonitorProtocolError: Raised if no response is received
         @raise QMPCmdError: Raised if the response is an error message
-                (the exception's args are (msg, data) where msg is a string and
-                data is the error data)
+                (the exception's args are (cmd, args, data) where data is the
+                error data)
         """
         if not self._acquire_lock(20):
             raise MonitorLockError("Could not acquire exclusive lock to send "
@@ -524,7 +526,7 @@ class QMPMonitor(Monitor):
             if "return" in r:
                 return r["return"]
             if "error" in r:
-                raise QMPCmdError("QMP command '%s' failed" % cmd, r["error"])
+                raise QMPCmdError(cmd, args, r["error"])
 
         finally:
             self._lock.release()
