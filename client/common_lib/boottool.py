@@ -264,18 +264,14 @@ class boottool(object):
 
     def boot_once(self, title=None):
         """
-        Sets a specific entry for the next boot  Then falls back to the
+        Sets a specific entry for the next boot, then falls back to the
         default kernel.
 
         @param kernel: title that identifies the entry to set for booting. If
-                evaluates to false it will use the default entry title.
-                (FIXME: that does not make much sense, if an entry is default
-                by definition that means it boots next anyways so maybe it
-                should be a NOP for title evaluating to False)
+                evaluates to false, this becomes a no-op.
         """
-        if not title:
-            title = self.get_default_title()
-        self._run_boottool('--boot-once', '--title=%s' % title)
+        if title:
+            self._run_boottool('--boot-once', '--title=%s' % title)
 
 
     def enable_xen_mode(self):
