@@ -928,11 +928,15 @@ class Job(DBObject):
 
         if time_row:
             t_begin, t_end = time_row[0]
-            delta = t_end - t_begin
-            minutes, seconds = divmod(delta.seconds, 60)
-            hours, minutes = divmod(minutes, 60)
-            stats['execution_time'] = ("%02d:%02d:%02d" %
-                                       (hours, minutes, seconds))
+            try:
+                delta = t_end - t_begin
+                minutes, seconds = divmod(delta.seconds, 60)
+                hours, minutes = divmod(minutes, 60)
+                stats['execution_time'] = ("%02d:%02d:%02d" %
+                                           (hours, minutes, seconds))
+            # One of t_end or t_begin are None
+            except TypeError:
+                stats['execution_time'] = '(could not determine)'
         else:
             stats['execution_time'] = '(none)'
 
