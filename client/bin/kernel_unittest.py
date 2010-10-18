@@ -477,7 +477,7 @@ class TestKernel(unittest.TestCase):
         # record
         os.chdir.expect_call(self.build_dir)
         self.kernel.set_cross_cc.expect_call()
-        self.kernel.clean.expect_call(logged=False)
+        self.kernel.clean.expect_call()
         build_string = "/usr/bin/time -o /dev/null make  -j 8 vmlinux"
         build_string += ' > /dev/null 2>&1'
         utils.system.expect_call(build_string)
