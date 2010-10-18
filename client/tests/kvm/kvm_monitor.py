@@ -130,7 +130,7 @@ class HumanMonitor(Monitor):
                 suppress_exceptions is False
         @raise MonitorProtocolError: Raised if the initial (qemu) prompt isn't
                 found and suppress_exceptions is False
-        @note: Other exceptions may be raised.  See _get_command_output's
+        @note: Other exceptions may be raised.  See cmd()'s
                 docstring.
         """
         try:
@@ -146,7 +146,7 @@ class HumanMonitor(Monitor):
                                            "Output so far: %r" % o)
 
             # Save the output of 'help' for future use
-            self._help_str = self._get_command_output("help")
+            self._help_str = self.cmd("help")
 
         except MonitorError, e:
             if suppress_exceptions:
@@ -173,31 +173,32 @@ class HumanMonitor(Monitor):
         return False, "\n".join(o.splitlines())
 
 
-    def _send_command(self, command):
+    def _send(self, cmd):
         """
         Send a command without waiting for output.
 
-        @param command: Command to send
-        @return: True if successful, False otherwise
+        @param cmd: Command to send
         @raise MonitorLockError: Raised if the lock cannot be acquired
         @raise MonitorSendError: Raised if the command cannot be sent
         """
         if not self._acquire_lock(20):
             raise MonitorLockError("Could not acquire exclusive lock to send "
-                                   "monitor command '%s'" % command)
+                                   "monitor command '%s'" % cmd)
 
         try:
             try:
-                self._socket.sendall(command + "\n")
+                self._socket.sendall(cmd + "\n")
             except socket.error:
                 raise MonitorSendError("Could not send monitor command '%s'" %
-                                       command)
+                                       cmd)
 
         finally:
             self._lock.release()
 
 
-    def _get_command_output(self, command, timeout=20):
+    # Public methods
+
+    def cmd(self, command, timeout=20):
         """
         Send command to the monitor.
 
@@ -217,7 +218,7 @@ class HumanMonitor(Monitor):
             # Read any data that might be available
             self._recvall()
             # Send command
-            self._send_command(command)
+            self._send(command)
             # Read output
             s, o = self._read_up_to_qemu_prompt(timeout)
             # Remove command echo from output
@@ -234,8 +235,6 @@ class HumanMonitor(Monitor):
             self._lock.release()
 
 
-    # Public methods
-
     def is_responsive(self):
         """
         Make sure the monitor is responsive by sending a command.
@@ -243,7 +242,7 @@ class HumanMonitor(Monitor):
         @return: True if responsive, False otherwise
         """
         try:
-            self._get_command_output("info status")
+            self.cmd("info status")
             return True
         except MonitorError:
             return False
@@ -252,39 +251,22 @@ class HumanMonitor(Monitor):
     # Command wrappers
     # Notes:
     # - All of the following commands raise exceptions in a similar manner to
-    #   cmd() and _get_command_output().
+    #   cmd().
     # - A command wrapper should use self._help_str if it requires information
     #   about the monitor's capabilities.
-
-    def cmd(self, command, timeout=20):
-        """
-        Send a simple command with no parameters and return its output.
-        Should only be used for commands that take no parameters and are
-        implemented under the same name for both the human and QMP monitors.
-
-        @param command: Command to send
-        @param timeout: Time duration to wait for (qemu) prompt after command
-        @return: The output of the command
-        @raise MonitorLockError: Raised if the lock cannot be acquired
-        @raise MonitorSendError: Raised if the command cannot be sent
-        @raise MonitorProtocolError: Raised if the (qemu) prompt cannot be
-                found after sending the command
-        """
-        return self._get_command_output(command, timeout)
-
 
     def quit(self):
         """
         Send "quit" without waiting for output.
         """
-        self._send_command("quit")
+        self._send("quit")
 
 
     def info(self, what):
         """
         Request info about something and return the output.
         """
-        return self._get_command_output("info %s" % what)
+        return self.cmd("info %s" % what)
 
 
     def query(self, what):
@@ -301,7 +283,7 @@ class HumanMonitor(Monitor):
         @param filename: Location for the screendump
         @return: The command's output
         """
-        return self._get_command_output("screendump %s" % filename)
+        return self.cmd("screendump %s" % filename)
 
 
     def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):
@@ -323,7 +305,7 @@ class HumanMonitor(Monitor):
         if incremental_copy:
             cmd += " -i"
         cmd += " %s" % uri
-        return self._get_command_output(cmd)
+        return self.cmd(cmd)
 
 
     def migrate_set_speed(self, value):
@@ -333,7 +315,7 @@ class HumanMonitor(Monitor):
         @param value: Speed in bytes/sec
         @return: The command's output
         """
-        return self._get_command_output("migrate_set_speed %s" % value)
+        return self.cmd("migrate_set_speed %s" % value)
 
 
     def sendkey(self, keystr, hold_time=1):
@@ -344,7 +326,7 @@ class HumanMonitor(Monitor):
         @param hold_time: Hold time in ms (should normally stay 1 ms)
         @return: The command's output
         """
-        return self._get_command_output("sendkey %s %s" % (keystr, hold_time))
+        return self.cmd("sendkey %s %s" % (keystr, hold_time))
 
 
     def mouse_move(self, dx, dy):
@@ -355,7 +337,7 @@ class HumanMonitor(Monitor):
         @param dy: Y amount
         @return: The command's output
         """
-        return self._get_command_output("mouse_move %d %d" % (dx, dy))
+        return self.cmd("mouse_move %d %d" % (dx, dy))
 
 
     def mouse_button(self, state):
@@ -365,7 +347,7 @@ class HumanMonitor(Monitor):
         @param state: Button state (1=L, 2=M, 4=R)
         @return: The command's output
         """
-        return self._get_command_output("mouse_button %d" % state)
+        return self.cmd("mouse_button %d" % state)
 
 
 class QMPMonitor(Monitor):
@@ -387,7 +369,7 @@ class QMPMonitor(Monitor):
         @raise MonitorNotSupportedError: Raised if json isn't available and
                 suppress_exceptions is False
         @note: Other exceptions may be raised if the qmp_capabilities command
-                fails.  See _get_command_output's docstring.
+                fails.  See cmd()'s docstring.
         """
         try:
             Monitor.__init__(self, name, filename)
@@ -417,7 +399,7 @@ class QMPMonitor(Monitor):
                 raise MonitorProtocolError("No QMP greeting message received")
 
             # Issue qmp_capabilities
-            self._get_command_output("qmp_capabilities")
+            self.cmd("qmp_capabilities")
 
         except MonitorError, e:
             if suppress_exceptions:
@@ -470,33 +452,46 @@ class QMPMonitor(Monitor):
         return objs
 
 
-    def _send_command(self, cmd, args=None, id=None):
+    def _send(self, data):
         """
-        Send command without waiting for response.
+        Send raw data without waiting for response.
 
-        @param cmd: Command to send
-        @param args: A dict containing command arguments, or None
-        @raise MonitorLockError: Raised if the lock cannot be acquired
-        @raise MonitorSendError: Raised if the command cannot be sent
+        @param data: Data to send
+        @raise MonitorSendError: Raised if the data cannot be sent
         """
-        if not self._acquire_lock(20):
-            raise MonitorLockError("Could not acquire exclusive lock to send "
-                                   "QMP command '%s'" % cmd)
-
         try:
-            cmdobj = self._build_cmd(cmd, args, id)
-            try:
-                self._socket.sendall(json.dumps(cmdobj) + "\n")
-            except socket.error:
-                raise MonitorSendError("Could not send QMP command '%s'" % cmd)
-
-        finally:
-            self._lock.release()
+            self._socket.sendall(data)
+        except socket.error:
+            raise MonitorSendError("Could not send data: %r" % data)
 
 
-    def _get_command_output(self, cmd, args=None, timeout=20):
+    def _get_response(self, id=None, timeout=20):
         """
-        Send monitor command and wait for response.
+        Read a response from the QMP monitor.
+
+        @param id: If not None, look for a response with this id
+        @param timeout: Time duration to wait for response
+        @return: The response dict, or None if none was found
+        """
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            for obj in self._read_objects():
+                if isinstance(obj, dict):
+                    if id is not None and obj.get("id") != id:
+                        continue
+                    if "return" in obj or "error" in obj:
+                        return obj
+            time.sleep(0.1)
+
+
+    # Public methods
+
+    def cmd(self, cmd, args=None, timeout=20):
+        """
+        Send a QMP monitor command and return the response.
+
+        Note: an id is automatically assigned to the command and the response
+        is checked for the presence of the same id.
 
         @param cmd: Command to send
         @param args: A dict containing command arguments, or None
@@ -518,28 +513,86 @@ class QMPMonitor(Monitor):
             self._read_objects()
             # Send command
             id = kvm_utils.generate_random_string(8)
-            self._send_command(cmd, args, id)
+            self._send(json.dumps(self._build_cmd(cmd, args, id)) + "\n")
             # Read response
-            end_time = time.time() + timeout
-            while time.time() < end_time:
-                for obj in self._read_objects():
-                    if isinstance(obj, dict) and obj.get("id") == id:
-                        if "return" in obj:
-                            return obj["return"]
-                        elif "error" in obj:
-                            raise QMPCmdError("QMP command '%s' failed" % cmd,
-                                              obj["error"])
-                time.sleep(0.1)
-            # No response found
-            raise MonitorProtocolError("Received no response to QMP command "
-                                       "'%s', or received a response with an "
-                                       "incorrect id" % cmd)
+            r = self._get_response(id, timeout)
+            if r is None:
+                raise MonitorProtocolError("Received no response to QMP "
+                                           "command '%s', or received a "
+                                           "response with an incorrect id"
+                                           % cmd)
+            if "return" in r:
+                return r["return"]
+            if "error" in r:
+                raise QMPCmdError("QMP command '%s' failed" % cmd, r["error"])
 
         finally:
             self._lock.release()
 
 
-    # Public methods
+    def cmd_raw(self, data, timeout=20):
+        """
+        Send a raw string to the QMP monitor and return the response.
+        Unlike cmd(), return the raw response dict without performing any
+        checks on it.
+
+        @param data: The data to send
+        @param timeout: Time duration to wait for response
+        @return: The response received
+        @raise MonitorLockError: Raised if the lock cannot be acquired
+        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorProtocolError: Raised if no response is received
+        """
+        if not self._acquire_lock(20):
+            raise MonitorLockError("Could not acquire exclusive lock to send "
+                                   "data: %r" % data)
+
+        try:
+            self._read_objects()
+            self._send(data)
+            r = self._get_response(None, timeout)
+            if r is None:
+                raise MonitorProtocolError("Received no response to data: %r" %
+                                           data)
+            return r
+
+        finally:
+            self._lock.release()
+
+
+    def cmd_obj(self, obj, timeout=20):
+        """
+        Transform a Python object to JSON, send the resulting string to the QMP
+        monitor, and return the response.
+        Unlike cmd(), return the raw response dict without performing any
+        checks on it.
+
+        @param obj: The object to send
+        @param timeout: Time duration to wait for response
+        @return: The response received
+        @raise MonitorLockError: Raised if the lock cannot be acquired
+        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorProtocolError: Raised if no response is received
+        """
+        return self.cmd_raw(json.dumps(obj) + "\n")
+
+
+    def cmd_qmp(self, cmd, args=None, id=None, timeout=20):
+        """
+        Build a QMP command from the passed arguments, send it to the monitor
+        and return the response.
+        Unlike cmd(), return the raw response dict without performing any
+        checks on it.
+
+        @param obj: The object to send
+        @param timeout: Time duration to wait for response
+        @return: The response received
+        @raise MonitorLockError: Raised if the lock cannot be acquired
+        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorProtocolError: Raised if no response is received
+        """
+        return self.cmd_obj(self._build_cmd(cmd, args, id), timeout)
+
 
     def is_responsive(self):
         """
@@ -548,7 +601,7 @@ class QMPMonitor(Monitor):
         @return: True if responsive, False otherwise
         """
         try:
-            self._get_command_output("query-status")
+            self.cmd("query-status")
             return True
         except MonitorError:
             return False
@@ -599,36 +652,20 @@ class QMPMonitor(Monitor):
 
     # Command wrappers
     # Note: all of the following functions raise exceptions in a similar manner
-    # to cmd() and _get_command_output().
-
-    def cmd(self, command, timeout=20):
-        """
-        Send a simple command with no parameters and return its output.
-        Should only be used for commands that take no parameters and are
-        implemented under the same name for both the human and QMP monitors.
-
-        @param command: Command to send
-        @param timeout: Time duration to wait for response
-        @return: The response to the command
-        @raise MonitorLockError: Raised if the lock cannot be acquired
-        @raise MonitorSendError: Raised if the command cannot be sent
-        @raise MonitorProtocolError: Raised if no response is received
-        """
-        return self._get_command_output(command, timeout=timeout)
-
+    # to cmd().
 
     def quit(self):
         """
         Send "quit" and return the response.
         """
-        return self._get_command_output("quit")
+        return self.cmd("quit")
 
 
     def info(self, what):
         """
         Request info about something and return the response.
         """
-        return self._get_command_output("query-%s" % what)
+        return self.cmd("query-%s" % what)
 
 
     def query(self, what):
@@ -646,7 +683,7 @@ class QMPMonitor(Monitor):
         @return: The response to the command
         """
         args = {"filename": filename}
-        return self._get_command_output("screendump", args)
+        return self.cmd("screendump", args)
 
 
     def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):
@@ -662,7 +699,7 @@ class QMPMonitor(Monitor):
         args = {"uri": uri,
                 "blk": full_copy,
                 "inc": incremental_copy}
-        return self._get_command_output("migrate", args)
+        return self.cmd("migrate", args)
 
 
     def migrate_set_speed(self, value):
@@ -673,4 +710,4 @@ class QMPMonitor(Monitor):
         @return: The response to the command
         """
         args = {"value": value}
-        return self._get_command_output("migrate_set_speed", args)
+        return self.cmd("migrate_set_speed", args)
