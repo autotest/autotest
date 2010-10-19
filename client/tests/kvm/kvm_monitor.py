@@ -392,7 +392,7 @@ class QMPMonitor(Monitor):
             while time.time() < end_time:
                 for obj in self._read_objects():
                     if "QMP" in obj:
-                        self._greeting = obj["QMP"]
+                        self._greeting = obj
                         break
                 if self._greeting:
                     break
@@ -650,6 +650,13 @@ class QMPMonitor(Monitor):
                                    "QMP event list")
         self._events = []
         self._lock.release()
+
+
+    def get_greeting(self):
+        """
+        Return QMP greeting message.
+        """
+        return self._greeting
 
 
     # Command wrappers
