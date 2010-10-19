@@ -263,10 +263,14 @@ class AFE(RpcClient):
 
 
     def create_job_by_test(self, tests, kernel=None, use_container=False,
-                           **dargs):
+                           kernel_cmdline=None, **dargs):
         """
         Given a test name, fetch the appropriate control file from the server
         and submit it.
+
+        @param kernel: A comma separated list of kernel versions to boot.
+        @param kernel_cmdline: The command line used to boot all kernels listed
+                in the kernel parameter.
 
         Returns a list of job objects
         """
@@ -274,7 +278,12 @@ class AFE(RpcClient):
                 'atomic_group_name' in dargs and 'synch_count' in dargs)
         if kernel:
             kernel_list =  re.split('[\s,]+', kernel.strip())
-            kernel_info = [{'version': version} for version in kernel_list]
+            kernel_info = []
+            for version in kernel_list:
+                kernel_dict = {'version': version}
+                if kernel_cmdline is not None:
+                    kernel_dict['cmdline'] = kernel_cmdline
+                kernel_info.append(kernel_dict)
         else:
             kernel_info = None
         control_file = self.generate_control_file(
@@ -305,7 +314,7 @@ class AFE(RpcClient):
     def run_test_suites(self, pairings, kernel, kernel_label=None,
                         priority='Medium', wait=True, poll_interval=10,
                         email_from=None, email_to=None, timeout=168,
-                        max_runtime_hrs=168):
+                        max_runtime_hrs=168, kernel_cmdline=None):
         """
         Run a list of test suites on a particular kernel.
 
@@ -317,6 +326,7 @@ class AFE(RpcClient):
                     '<kernel-version> : <config> : <date>'
                     If any pairing object has its job_label attribute set it
                     will override this value for that particular job.
+        @param kernel_cmdline: The command line to boot the kernel(s) with.
         @param wait: boolean - Wait for the results to come back?
         @param poll_interval: Interval between polling for job results (in mins)
         @param email_from: Send notification email upon completion from here.
@@ -327,6 +337,7 @@ class AFE(RpcClient):
             try:
                 new_job = self.invoke_test(pairing, kernel, kernel_label,
                                            priority, timeout=timeout,
+                                           kernel_cmdline=kernel_cmdline,
                                            max_runtime_hrs=max_runtime_hrs)
                 if not new_job:
                     continue
@@ -454,7 +465,7 @@ class AFE(RpcClient):
 
 
     def invoke_test(self, pairing, kernel, kernel_label, priority='Medium',
-                    **dargs):
+                    kernel_cmdline=None, **dargs):
         """
         Given a pairing of a control file to a machine label, find all machines
         with that label, and submit that control file to them.
@@ -486,6 +497,7 @@ class AFE(RpcClient):
                                           tests=[pairing.control_file],
                                           priority=priority,
                                           kernel=kernel,
+                                          kernel_cmdline=kernel_cmdline,
                                           use_container=pairing.container,
                                           **dargs)
         if new_job:
