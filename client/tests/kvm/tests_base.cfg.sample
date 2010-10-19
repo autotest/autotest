@@ -457,6 +457,9 @@ variants:
             - fmt_raw:
                 image_format_stg = raw
 
+    - qmp_basic: install setup unattended_install.cdrom
+        type = qmp_basic
+
     - vlan:  install setup unattended_install.cdrom
         type = vlan
         # subnet should not be used by host
