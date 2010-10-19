@@ -103,13 +103,15 @@ class DroneUtility(object):
                 for line_components in split_lines)
 
 
-    def _refresh_processes(self, command_name, open=open):
+    def _refresh_processes(self, command_name, open=open,
+                           site_check_parse=None):
         # The open argument is used for test injection.
         check_mark = global_config.global_config.get_config_value(
             'SCHEDULER', 'check_processes_for_dark_mark', bool, False)
         processes = []
         for info in self._get_process_info():
-            if info['comm'] == command_name:
+            is_parse = (site_check_parse and site_check_parse(info))
+            if info['comm'] == command_name or is_parse:
                 if (check_mark and not
                         self._check_pid_for_dark_mark(info['pid'], open=open)):
                     self._warn('%(comm)s process pid %(pid)s has no '
@@ -148,10 +150,14 @@ class DroneUtility(object):
         * pidfiles_second_read: same info as pidfiles, but gathered after the
         processes are scanned.
         """
+        site_check_parse = utils.import_site_function(
+                __file__, 'autotest_lib.scheduler.site_drone_utility',
+                'check_parse', lambda x: False)
         results = {
             'pidfiles' : self._read_pidfiles(pidfile_paths),
             'autoserv_processes' : self._refresh_processes('autoserv'),
-            'parse_processes' : self._refresh_processes('parse'),
+            'parse_processes' : self._refresh_processes(
+                    'parse', site_check_parse=site_check_parse),
             'pidfiles_second_read' : self._read_pidfiles(pidfile_paths),
         }
         return results

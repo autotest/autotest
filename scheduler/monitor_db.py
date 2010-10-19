@@ -53,9 +53,15 @@ system error on the Autotest server.  Full results may not be available.  Sorry.
 _db = None
 _shutdown = False
 _autoserv_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'server', 'autoserv')
-_parser_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'tko', 'parse')
 _testing_mode = False
 _drone_manager = None
+
+def _parser_path_default(install_dir):
+    return os.path.join(install_dir, 'tko', 'parse')
+_parser_path_func = utils.import_site_function(
+        __file__, 'autotest_lib.scheduler.site_monitor_db',
+        'parser_path', _parser_path_default)
+_parser_path = _parser_path_func(drones.AUTOTEST_INSTALL_DIR)
 
 
 def _get_pidfile_timeout_secs():
