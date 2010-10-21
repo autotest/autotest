@@ -276,12 +276,14 @@ class UnattendedInstall(object):
             if not os.path.isdir(self.tftp):
                 os.makedirs(self.tftp)
 
-        self.cdrom_cd1 = os.path.join(KVM_TEST_DIR, self.cdrom_cd1)
+        if self.cdrom_cd1:
+            self.cdrom_cd1 = os.path.join(KVM_TEST_DIR, self.cdrom_cd1)
         self.cdrom_cd1_mount = tempfile.mkdtemp(prefix='cdrom_cd1_', dir='/tmp')
         if self.medium == 'nfs':
             self.nfs_mount = tempfile.mkdtemp(prefix='nfs_', dir='/tmp')
 
-        self.floppy = os.path.join(KVM_TEST_DIR, self.floppy)
+        if self.floppy:
+            self.floppy = os.path.join(KVM_TEST_DIR, self.floppy)
         if not os.path.isdir(os.path.dirname(self.floppy)):
             os.makedirs(os.path.dirname(self.floppy))
 
