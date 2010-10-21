@@ -4,7 +4,7 @@ Interfaces to the QEMU monitor.
 @copyright: 2008-2010 Red Hat Inc.
 """
 
-import socket, time, threading, logging
+import socket, time, threading, logging, select
 import kvm_utils
 try:
     import json
@@ -60,7 +60,6 @@ class Monitor:
         self.filename = filename
         self._lock = threading.RLock()
         self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self._socket.setblocking(False)
 
         try:
             self._socket.connect(filename)
@@ -104,13 +103,15 @@ class Monitor:
         return False
 
 
+    def _data_available(self, timeout=0):
+        timeout = max(0, timeout)
+        return bool(select.select([self._socket], [], [], timeout)[0])
+
+
     def _recvall(self):
         s = ""
-        while True:
-            try:
-                data = self._socket.recv(1024)
-            except socket.error:
-                break
+        while self._data_available():
+            data = self._socket.recv(1024)
             if not data:
                 break
             s += data
@@ -160,19 +161,19 @@ class HumanMonitor(Monitor):
     # Private methods
 
     def _read_up_to_qemu_prompt(self, timeout=20):
-        o = ""
+        s = ""
         end_time = time.time() + timeout
-        while time.time() < end_time:
+        while self._data_available(end_time - time.time()):
+            data = self._socket.recv(1024)
+            if not data:
+                break
+            s += data
             try:
-                data = self._socket.recv(1024)
-                if not data:
-                    break
-                o += data
-                if o.splitlines()[-1].split()[-1] == "(qemu)":
-                    return True, "\n".join(o.splitlines()[:-1])
-            except (socket.error, IndexError):
-                time.sleep(0.01)
-        return False, "\n".join(o.splitlines())
+                if s.splitlines()[-1].split()[-1] == "(qemu)":
+                    return True, "\n".join(s.splitlines()[:-1])
+            except IndexError:
+                continue
+        return False, "\n".join(s.splitlines())
 
 
     def _send(self, cmd):
@@ -423,7 +424,7 @@ class QMPMonitor(Monitor):
 
     def _read_objects(self, timeout=5):
         """
-        Read lines from monitor and try to decode them.
+        Read lines from the monitor and try to decode them.
         Stop when all available lines have been successfully decoded, or when
         timeout expires.  If any decoded objects are asynchronous events, store
         them in self._events.  Return all decoded objects.
@@ -431,24 +432,30 @@ class QMPMonitor(Monitor):
         @param timeout: Time to wait for all lines to decode successfully
         @return: A list of objects
         """
+        if not self._data_available():
+            return []
         s = ""
-        objs = []
         end_time = time.time() + timeout
-        while time.time() < end_time:
+        while self._data_available(end_time - time.time()):
             s += self._recvall()
+            # Make sure all lines are decodable
             for line in s.splitlines():
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                except:
-                    # Found an incomplete or broken line -- keep reading
-                    break
-                objs += [obj]
+                if line:
+                    try:
+                        json.loads(line)
+                    except:
+                        # Found an incomplete or broken line -- keep reading
+                        break
             else:
                 # All lines are OK -- stop reading
                 break
-            time.sleep(0.1)
+        # Decode all decodable lines
+        objs = []
+        for line in s.splitlines():
+            try:
+                objs += [json.loads(line)]
+            except:
+                pass
         # Keep track of asynchronous events
         self._events += [obj for obj in objs if "event" in obj]
         return objs
@@ -476,14 +483,13 @@ class QMPMonitor(Monitor):
         @return: The response dict, or None if none was found
         """
         end_time = time.time() + timeout
-        while time.time() < end_time:
+        while self._data_available(end_time - time.time()):
             for obj in self._read_objects():
                 if isinstance(obj, dict):
                     if id is not None and obj.get("id") != id:
                         continue
                     if "return" in obj or "error" in obj:
                         return obj
-            time.sleep(0.1)
 
 
     # Public methods
