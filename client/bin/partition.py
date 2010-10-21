@@ -176,6 +176,24 @@ def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
     return partitions
 
 
+def get_mount_info(partition_list):
+    """
+    Picks up mount point information about the machine mounts. By default, we
+    try to associate mount points with UUIDs, because in newer distros the
+    partitions are uniquely identified using them.
+    """
+    mount_info = set()
+    for p in partition_list:
+        try:
+            uuid = utils.system_output('blkid -s UUID -o value %s' % p.device)
+        except error.CmdError:
+            # fall back to using the partition
+            uuid = p.device
+        mount_info.add((uuid, p.get_mountpoint()))
+
+    return mount_info
+
+
 def filter_partition_list(partitions, devnames):
     """
     Pick and choose which partition to keep.

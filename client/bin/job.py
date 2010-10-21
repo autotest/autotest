@@ -663,7 +663,8 @@ class base_client_job(base_job.base_job):
         # check to see if any partitions have changed
         partition_list = partition_lib.get_partition_list(self,
                                                           exclude_swap=False)
-        mount_info = set((p.device, p.get_mountpoint()) for p in partition_list)
+        mount_info = partition_lib.get_mount_info(partition_list)
+
         old_mount_info = self._state.get('client', 'mount_info')
         if mount_info != old_mount_info:
             new_entries = mount_info - old_mount_info
@@ -782,7 +783,7 @@ class base_client_job(base_job.base_job):
         # save the partition list and mount points, as well as the cpu count
         partition_list = partition_lib.get_partition_list(self,
                                                           exclude_swap=False)
-        mount_info = set((p.device, p.get_mountpoint()) for p in partition_list)
+        mount_info = partition_lib.get_mount_info(partition_list)
         self._state.set('client', 'mount_info', mount_info)
         self._state.set('client', 'cpu_count', utils.count_cpus())
 
