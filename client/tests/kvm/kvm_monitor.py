@@ -592,7 +592,9 @@ class QMPMonitor(Monitor):
         Unlike cmd(), return the raw response dict without performing any
         checks on it.
 
-        @param obj: The object to send
+        @param cmd: Command to send
+        @param args: A dict containing command arguments, or None
+        @param id:  An id for the command, or None
         @param timeout: Time duration to wait for response
         @return: The response received
         @raise MonitorLockError: Raised if the lock cannot be acquired
