@@ -1,4 +1,4 @@
-import os
+import os, logging
 from autotest_lib.client.bin import test, utils
 
 
@@ -29,4 +29,11 @@ class tiobench(test.test):
             self.args = args
 
         os.chdir(self.srcdir)
-        utils.system('./tiobench.pl --dir %s %s' %(self.dir, self.args))
+        results = utils.system_output('./tiobench.pl --dir %s %s' %
+                                      (self.dir, self.args))
+
+        logging.info(results)
+        results_path = os.path.join(self.resultsdir,
+                                    'raw_output_%s' % self.iteration)
+
+        utils.open_write_close(results_path, results)
