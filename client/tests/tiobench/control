@@ -9,4 +9,7 @@ DOC = """
 Performs threaded I/O benchmarks.
 """
 
-job.run_test('tiobench', dir='/mnt')
+job.run_test('tiobench',
+             args='--block=4096 --block=8192 --threads=10 --size=1024',
+             iterations=2,
+             dir='/mnt')
