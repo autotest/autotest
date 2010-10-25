@@ -284,8 +284,8 @@ class UnattendedInstall(object):
 
         if self.floppy:
             self.floppy = os.path.join(KVM_TEST_DIR, self.floppy)
-        if not os.path.isdir(os.path.dirname(self.floppy)):
-            os.makedirs(os.path.dirname(self.floppy))
+            if not os.path.isdir(os.path.dirname(self.floppy)):
+                os.makedirs(os.path.dirname(self.floppy))
 
         self.image_path = KVM_TEST_DIR
         self.kernel_path = os.path.join(self.image_path, self.kernel)
