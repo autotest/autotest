@@ -190,6 +190,30 @@ def read_file(filename):
         f.close()
 
 
+def get_field(data, param, linestart="", sep=" "):
+    """
+    Parse data from string.
+    @param data: Data to parse.
+        example:
+          data:
+             cpu   324 345 34  5 345
+             cpu0  34  11  34 34  33
+             ^^^^
+             start of line
+             params 0   1   2  3   4
+    @param param: Position of parameter after linestart marker.
+    @param linestart: String to which start line with parameters.
+    @param sep: Separator between parameters regular expression.
+    """
+    search = re.compile(r"(?<=^%s)\s*(.*)" % linestart, re.MULTILINE)
+    find = search.search(data)
+    if find != None:
+        return re.split("%s" % sep, find.group(1))[param]
+    else:
+        print "There is no line which starts with %s in data." % linestart
+        return None
+
+
 def write_one_line(filename, line):
     open_write_close(filename, line.rstrip('\n') + '\n')
 
