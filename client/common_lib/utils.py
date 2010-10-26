@@ -4,6 +4,7 @@
 import os, pickle, random, re, resource, select, shutil, signal, StringIO
 import socket, struct, subprocess, sys, time, textwrap, urlparse
 import warnings, smtplib, logging, urllib2
+from threading import Thread, Event
 try:
     import hashlib
 except ImportError:
@@ -321,6 +322,156 @@ def write_keyval(path, dictionary, type_tag=None):
             keyval.write('%s=%s\n' % (key, dictionary[key]))
     finally:
         keyval.close()
+
+
+class FileFieldMonitor():
+    """
+    Monitors the information from the file and reports it's values.
+
+    It gather the information at start and stop of the measurement or
+    continuously during the measurement.
+    """
+    class Monitor(Thread):
+        """
+        Internal monitor class to ensure continuous monitor of monitored file.
+        """
+        def __init__(self, master):
+            """
+            @param master: Master class which control Monitor
+            """
+            Thread.__init__(self)
+            self.master = master
+
+        def run(self):
+            """
+            Start monitor in thread mode
+            """
+            while not self.master.end_event.isSet():
+                self.master._get_value(self.master.logging)
+                time.sleep(self.master.time_step)
+
+
+    def __init__(self, status_file, data_to_read, mode_diff, continuously=False,
+                 contlogging=False, separator=" +", time_step=0.1):
+        """
+        Initialize variables.
+        @param status_file: File contain status.
+        @param mode_diff: If True make a difference of value, else average.
+        @param data_to_read: List of tuples with data position.
+            format: [(start_of_line,position in params)]
+            example:
+              data:
+                 cpu   324 345 34  5 345
+                 cpu0  34  11  34 34  33
+                 ^^^^
+                 start of line
+                 params 0   1   2  3   4
+        @param mode_diff: True to subtract old value from new value,
+            False make average of the values.
+        @parma continuously: Start the monitoring thread using the time_step
+            as the measurement period.
+        @param contlogging: Log data in continuous run.
+        @param separator: Regular expression of separator.
+        @param time_step: Time period of the monitoring value.
+        """
+        self.end_event = Event()
+        self.start_time = 0
+        self.end_time = 0
+        self.test_time = 0
+
+        self.status_file = status_file
+        self.separator = separator
+        self.data_to_read = data_to_read
+        self.num_of_params = len(self.data_to_read)
+        self.mode_diff = mode_diff
+        self.continuously = continuously
+        self.time_step = time_step
+
+        self.value = [0 for i in range(self.num_of_params)]
+        self.old_value = [0 for i in range(self.num_of_params)]
+        self.log = []
+        self.logging = contlogging
+
+        self.started = False
+        self.num_of_get_value = 0
+        self.monitor = None
+
+
+    def _get_value(self, logging=True):
+        """
+        Return current values.
+        @param logging: If true log value in memory. There can be problem
+          with long run.
+        """
+        data = read_file(self.status_file)
+        value = []
+        for i in range(self.num_of_params):
+            value.append(int(get_field(data,
+                             self.data_to_read[i][1],
+                             self.data_to_read[i][0],
+                             self.separator)))
+
+        if logging:
+            self.log.append(value)
+        if not self.mode_diff:
+            value = map(lambda x, y: x + y, value, self.old_value)
+
+        self.old_value = value
+        self.num_of_get_value += 1
+        return value
+
+
+    def start(self):
+        """
+        Start value monitor.
+        """
+        if self.started:
+            self.stop()
+        self.old_value = [0 for i in range(self.num_of_params)]
+        self.num_of_get_value = 0
+        self.log = []
+        self.end_event.clear()
+        self.start_time = time.time()
+        self._get_value()
+        self.started = True
+        if (self.continuously):
+            self.monitor = FileFieldMonitor.Monitor(self)
+            self.monitor.start()
+
+
+    def stop(self):
+        """
+        Stop value monitor.
+        """
+        if self.started:
+            self.started = False
+            self.end_time = time.time()
+            self.test_time = self.end_time - self.start_time
+            self.value = self._get_value()
+            if (self.continuously):
+                self.end_event.set()
+                self.monitor.join()
+            if (self.mode_diff):
+                self.value = map(lambda x, y: x - y, self.log[-1], self.log[0])
+            else:
+                self.value = map(lambda x: x / self.num_of_get_value,
+                                 self.value)
+
+
+    def get_status(self):
+        """
+        @return: Status of monitored process average value,
+            time of test and array of monitored values and time step of
+            continuous run.
+        """
+        if self.started:
+            self.stop()
+        if self.mode_diff:
+            for i in range(len(self.log) - 1):
+                self.log[i] = (map(lambda x, y: x - y,
+                                   self.log[i + 1], self.log[i]))
+            self.log.pop()
+        return (self.value, self.test_time, self.log, self.time_step)
 
 
 def is_url(path):
