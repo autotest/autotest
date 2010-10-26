@@ -1129,6 +1129,14 @@ def get_pid_from_file(program_name):
     return pid
 
 
+def get_process_name(pid):
+    """
+    Get process name from PID.
+    @param pid: PID of process.
+    """
+    return get_field(read_file("/proc/%d/stat" % pid), 1)[1:-1]
+
+
 def program_is_alive(program_name):
     """
     Checks if the process is alive and not in Zombie state.
