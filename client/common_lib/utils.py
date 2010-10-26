@@ -981,6 +981,226 @@ def get_cpu_percentage(function, *args, **dargs):
     return cpu_percent, to_return
 
 
+class SystemLoad():
+    """
+    Get system and/or process values and return average value of load.
+    """
+    def __init__(self, pids, advanced=False, time_step=0.1, cpu_cont=False,
+                 use_log=False):
+        """
+        @param pids: List of pids to be monitored. If pid = 0 whole system will
+          be monitored. pid == 0 means whole system.
+        @param advanced: monitor add value for system irq count and softirq
+          for process minor and maior page fault
+        @param time_step: Time step for continuous monitoring.
+        @param cpu_cont: If True monitor CPU load continuously.
+        @param use_log: If true every monitoring is logged for dump.
+        """
+        self.pids = []
+        self.stats = {}
+        for pid in pids:
+            if pid == 0:
+                cpu = FileFieldMonitor("/proc/stat",
+                                       [("cpu", 0), # User Time
+                                        ("cpu", 2), # System Time
+                                        ("intr", 0), # IRQ Count
+                                        ("softirq", 0)], # Soft IRQ Count
+                                       True,
+                                       cpu_cont,
+                                       use_log,
+                                       " +",
+                                       time_step)
+                mem = FileFieldMonitor("/proc/meminfo",
+                                       [("MemTotal:", 0), # Mem Total
+                                        ("MemFree:", 0), # Mem Free
+                                        ("Buffers:", 0), # Buffers
+                                        ("Cached:", 0)], # Cached
+                                       False,
+                                       True,
+                                       use_log,
+                                       " +",
+                                       time_step)
+                self.stats[pid] = ["TOTAL", cpu, mem]
+                self.pids.append(pid)
+            else:
+                name = ""
+                if (type(pid) is int):
+                    self.pids.append(pid)
+                    name = get_process_name(pid)
+                else:
+                    self.pids.append(pid[0])
+                    name = pid[1]
+
+                cpu = FileFieldMonitor("/proc/%d/stat" %
+                                       self.pids[-1],
+                                       [("", 13), # User Time
+                                        ("", 14), # System Time
+                                        ("", 9), # Minority Page Fault
+                                        ("", 11)], # Majority Page Fault
+                                       True,
+                                       cpu_cont,
+                                       use_log,
+                                       " +",
+                                       time_step)
+                mem = FileFieldMonitor("/proc/%d/status" %
+                                       self.pids[-1],
+                                       [("VmSize:", 0), # Virtual Memory Size
+                                        ("VmRSS:", 0), # Resident Set Size
+                                        ("VmPeak:", 0), # Peak VM Size
+                                        ("VmSwap:", 0)], # VM in Swap
+                                       False,
+                                       True,
+                                       use_log,
+                                       " +",
+                                       time_step)
+                self.stats[self.pids[-1]] = [name, cpu, mem]
+
+        self.advanced = advanced
+
+
+    def __str__(self):
+        """
+        Define format how to print
+        """
+        out = ""
+        for pid in self.pids:
+            for stat in self.stats[pid][1:]:
+                out += str(stat.get_status()) + "\n"
+        return out
+
+
+    def start(self, pids=[]):
+        """
+        Start monitoring of the process system usage.
+        @param pids: List of PIDs you intend to control. Use pids=[] to control
+            all defined PIDs.
+        """
+        if pids == []:
+            pids = self.pids
+
+        for pid in pids:
+            for stat in self.stats[pid][1:]:
+                stat.start()
+
+
+    def stop(self, pids=[]):
+        """
+        Stop monitoring of the process system usage.
+        @param pids: List of PIDs you intend to control. Use pids=[] to control
+            all defined PIDs.
+        """
+        if pids == []:
+            pids = self.pids
+
+        for pid in pids:
+            for stat in self.stats[pid][1:]:
+                stat.stop()
+
+
+    def dump(self, pids=[]):
+        """
+        Get the status of monitoring.
+        @param pids: List of PIDs you intend to control. Use pids=[] to control
+            all defined PIDs.
+         @return:
+            tuple([cpu load], [memory load]):
+                ([(PID1, (PID1_cpu_meas)), (PID2, (PID2_cpu_meas)), ...],
+                 [(PID1, (PID1_mem_meas)), (PID2, (PID2_mem_meas)), ...])
+
+            PID1_cpu_meas:
+                average_values[], test_time, cont_meas_values[[]], time_step
+            PID1_mem_meas:
+                average_values[], test_time, cont_meas_values[[]], time_step
+            where average_values[] are the measured values (mem_free,swap,...)
+            which are described in SystemLoad.__init__()-FileFieldMonitor.
+            cont_meas_values[[]] is a list of average_values in the sampling
+            times.
+        """
+        if pids == []:
+            pids = self.pids
+
+        cpus = []
+        memory = []
+        for pid in pids:
+            stat = (pid, self.stats[pid][1].get_status())
+            cpus.append(stat)
+        for pid in pids:
+            stat = (pid, self.stats[pid][2].get_status())
+            memory.append(stat)
+
+        return (cpus, memory)
+
+
+    def get_cpu_status_string(self, pids=[]):
+        """
+        Convert status to string array.
+        @param pids: List of PIDs you intend to control. Use pids=[] to control
+            all defined PIDs.
+        @return: String format to table.
+        """
+        if pids == []:
+            pids = self.pids
+
+        headers = ["NAME",
+                   ("%7s") % "PID",
+                   ("%5s") % "USER",
+                   ("%5s") % "SYS",
+                   ("%5s") % "SUM"]
+        if self.advanced:
+            headers.extend(["MINFLT/IRQC",
+                            "MAJFLT/SOFTIRQ"])
+        headers.append(("%11s") % "TIME")
+        textstatus = []
+        for pid in pids:
+            stat = self.stats[pid][1].get_status()
+            time = stat[1]
+            stat = stat[0]
+            textstatus.append(["%s" % self.stats[pid][0],
+                               "%7s" % pid,
+                               "%4.0f%%" % (stat[0] / time),
+                               "%4.0f%%" % (stat[1] / time),
+                               "%4.0f%%" % ((stat[0] + stat[1]) / time),
+                               "%10.3fs" % time])
+            if self.advanced:
+                textstatus[-1].insert(-1, "%11d" % stat[2])
+                textstatus[-1].insert(-1, "%14d" % stat[3])
+
+        return matrix_to_string(textstatus, tuple(headers))
+
+
+    def get_mem_status_string(self, pids=[]):
+        """
+        Convert status to string array.
+        @param pids: List of PIDs you intend to control. Use pids=[] to control
+            all defined PIDs.
+        @return: String format to table.
+        """
+        if pids == []:
+            pids = self.pids
+
+        headers = ["NAME",
+                   ("%7s") % "PID",
+                   ("%8s") % "TOTAL/VMSIZE",
+                   ("%8s") % "FREE/VMRSS",
+                   ("%8s") % "BUFFERS/VMPEAK",
+                   ("%8s") % "CACHED/VMSWAP",
+                   ("%11s") % "TIME"]
+        textstatus = []
+        for pid in pids:
+            stat = self.stats[pid][2].get_status()
+            time = stat[1]
+            stat = stat[0]
+            textstatus.append(["%s" % self.stats[pid][0],
+                               "%7s" % pid,
+                               "%10dMB" % (stat[0] / 1024),
+                               "%8dMB" % (stat[1] / 1024),
+                               "%12dMB" % (stat[2] / 1024),
+                               "%11dMB" % (stat[3] / 1024),
+                               "%10.3fs" % time])
+
+        return matrix_to_string(textstatus, tuple(headers))
+
+
 def get_arch(run_function=run):
     """
     Get the hardware architecture of the machine.
