@@ -187,7 +187,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
 
     # Clone the source VM and ask the clone to wait for incoming migration
     dest_vm = vm.clone()
-    if not dest_vm.create(extra_params=mig_extra_params):
+    if not dest_vm.create(extra_params=mig_extra_params, mac_source=vm):
         raise error.TestError("Could not create dest VM")
 
     try:
