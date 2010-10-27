@@ -109,16 +109,15 @@ class VM:
         self.serial_console = None
         self.redirs = {}
         self.vnc_port = 5900
-        self.uuid = None
         self.monitors = []
         self.pci_assignable = None
+        self.netdev_id = []
+        self.uuid = None
 
         self.name = name
         self.params = params
         self.root_dir = root_dir
         self.address_cache = address_cache
-        self.mac_prefix = params.get('mac_prefix')
-        self.netdev_id = []
 
         # Find a unique identifier for this VM
         while True:
@@ -127,12 +126,8 @@ class VM:
             if not glob.glob("/tmp/*%s" % self.instance):
                 break
 
-        if self.mac_prefix is None:
-            self.mac_prefix = kvm_utils.generate_mac_address_prefix()
 
-
-    def clone(self, name=None, params=None, root_dir=None,
-                    address_cache=None, preserve_mac=True):
+    def clone(self, name=None, params=None, root_dir=None, address_cache=None):
         """
         Return a clone of the VM object with optionally modified parameters.
         The clone is initially not alive and needs to be started using create().
@@ -143,7 +138,6 @@ class VM:
         @param params: Optional new VM creation parameters
         @param root_dir: Optional new base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
-        @param preserve_mac: Clone mac address or not.
         """
         if name is None:
             name = self.name
@@ -153,20 +147,7 @@ class VM:
             root_dir = self.root_dir
         if address_cache is None:
             address_cache = self.address_cache
-        vm = VM(name, params, root_dir, address_cache)
-        if preserve_mac:
-            vlan = 0
-            for nic_name in kvm_utils.get_sub_dict_names(params, "nics"):
-                nic_params = kvm_utils.get_sub_dict(params, nic_name)
-                vm.set_mac_address(self.get_mac_address(vlan), vlan, True)
-                vlan += 1
-        return vm
-
-
-    def free_mac_addresses(self):
-        nic_num = len(kvm_utils.get_sub_dict_names(self.params, "nics"))
-        for i in range(nic_num):
-            kvm_utils.free_mac_address(self.root_dir, self.instance, i)
+        return VM(name, params, root_dir, address_cache)
 
 
     def make_qemu_command(self, name=None, params=None, root_dir=None):
@@ -423,16 +404,7 @@ class VM:
         for nic_name in kvm_utils.get_sub_dict_names(params, "nics"):
             nic_params = kvm_utils.get_sub_dict(params, nic_name)
             # Handle the '-net nic' part
-            mac = None
-            if "address_index" in nic_params:
-                mac = kvm_utils.get_mac_ip_pair_from_dict(nic_params)[0]
-                self.set_mac_address(mac=mac, nic_index=vlan)
-            else:
-                mac = kvm_utils.generate_mac_address(self.root_dir,
-                                                     self.instance,
-                                                     vlan,
-                                                     self.mac_prefix)
-
+            mac = self.get_mac_address(vlan)
             qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac,
                                 self.netdev_id[vlan],
                                 nic_params.get("nic_extra_params"))
@@ -536,7 +508,8 @@ class VM:
 
 
     def create(self, name=None, params=None, root_dir=None,
-               for_migration=False, timeout=5.0, extra_params=None):
+               for_migration=False, timeout=5.0, extra_params=None,
+               mac_source=None):
         """
         Start the VM by running a qemu command.
         All parameters are optional. The following applies to all parameters
@@ -551,6 +524,8 @@ class VM:
         option
         @param extra_params: extra params for qemu command.e.g -incoming option
         Please use this parameter instead of for_migration.
+        @param mac_source: A VM object from which to copy MAC addresses. If not
+                specified, new addresses will be generated.
         """
         self.destroy()
 
@@ -624,6 +599,15 @@ class VM:
                 f = open("/proc/sys/kernel/random/uuid")
                 self.uuid = f.read().strip()
                 f.close()
+
+            # Generate or copy MAC addresses for all NICs
+            num_nics = len(kvm_utils.get_sub_dict_names(params, "nics"))
+            for vlan in range(num_nics):
+                mac = mac_source and mac_source.get_mac_address(vlan)
+                if mac:
+                    kvm_utils.set_mac_address(self.instance, vlan, mac)
+                else:
+                    kvm_utils.generate_mac_address(self.instance, vlan)
 
             # Assign a PCI assignable device
             self.pci_assignable = None
@@ -799,13 +783,9 @@ class VM:
                                       "to go down...")
                         if kvm_utils.wait_for(self.is_dead, 60, 1, 1):
                             logging.debug("VM is down, freeing mac address.")
-                            self.free_mac_addresses()
                             return
                     finally:
                         session.close()
-
-            # Free mac addresses
-            self.free_mac_addresses()
 
             if self.monitor:
                 # Try to destroy with a monitor command
@@ -846,6 +826,9 @@ class VM:
                     os.unlink(f)
                 except OSError:
                     pass
+            num_nics = len(kvm_utils.get_sub_dict_names(self.params, "nics"))
+            for vlan in range(num_nics):
+                self.free_mac_address(vlan)
 
 
     @property
@@ -1002,41 +985,25 @@ class VM:
 
     def get_mac_address(self, nic_index=0):
         """
-        Return the macaddr of guest nic.
+        Return the MAC address of a NIC.
 
         @param nic_index: Index of the NIC
         """
-        mac_pool = shelve.open("/tmp/address_pool", writeback=False)
-        key = "%s:%s" % (self.instance, nic_index)
-        if key in mac_pool.keys():
-            return mac_pool[key]
+        nic_name = kvm_utils.get_sub_dict_names(self.params, "nics")[nic_index]
+        nic_params = kvm_utils.get_sub_dict(self.params, nic_name)
+        if nic_params.get("address_index"):
+            return kvm_utils.get_mac_ip_pair_from_dict(nic_params)[0]
         else:
-            return None
+            return kvm_utils.get_mac_address(self.instance, nic_index)
 
 
-    def set_mac_address(self, mac, nic_index=0, shareable=False):
+    def free_mac_address(self, nic_index=0):
         """
-        Set mac address for guest. Note: It just update address pool.
+        Free a NIC's MAC address.
 
-        @param mac: address will set to guest
         @param nic_index: Index of the NIC
-        @param shareable: Where VM can share mac with other VM or not.
         """
-        lock_file = open("/tmp/mac_lock", 'w')
-        fcntl.lockf(lock_file.fileno() ,fcntl.LOCK_EX)
-        mac_pool = shelve.open("/tmp/address_pool", writeback=False)
-        key = "%s:%s" % (self.instance, nic_index)
-
-        if not mac in [mac_pool[i] for i in mac_pool.keys()]:
-            mac_pool[key] = mac
-        else:
-            if shareable:
-                mac_pool[key] = mac
-            else:
-                logging.error("MAC address %s is already in use!", mac)
-        mac_pool.close()
-        fcntl.lockf(lock_file.fileno(), fcntl.LOCK_UN)
-        lock_file.close()
+        kvm_utils.free_mac_address(self.instance, nic_index)
 
 
     def get_pid(self):
