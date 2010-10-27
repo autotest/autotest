@@ -507,23 +507,20 @@ class VM:
         return qemu_cmd
 
 
-    def create(self, name=None, params=None, root_dir=None,
-               for_migration=False, timeout=5.0, extra_params=None,
-               mac_source=None):
+    def create(self, name=None, params=None, root_dir=None, timeout=5.0,
+               migration_mode=None, migration_exec_cmd=None, mac_source=None):
         """
         Start the VM by running a qemu command.
-        All parameters are optional. The following applies to all parameters
-        but for_migration: If a parameter is not supplied, the corresponding
-        value stored in the class attributes is used, and if it is supplied,
-        it is stored for later use.
+        All parameters are optional. If name, params or root_dir are not
+        supplied, the respective values stored as class attributes are used.
 
         @param name: The name of the object
         @param params: A dict containing VM params
         @param root_dir: Base directory for relative filenames
-        @param for_migration: If True, start the VM with the -incoming
-        option
-        @param extra_params: extra params for qemu command.e.g -incoming option
-        Please use this parameter instead of for_migration.
+        @param migration_mode: If supplied, start VM for incoming migration
+                using this protocol (either 'tcp', 'unix' or 'exec')
+        @param migration_exec_cmd: Command to embed in '-incoming "exec: ..."'
+                (e.g. 'gzip -c -d filename') if migration_mode is 'exec'
         @param mac_source: A VM object from which to copy MAC addresses. If not
                 specified, new addresses will be generated.
         """
@@ -655,17 +652,15 @@ class VM:
             # Make qemu command
             qemu_command = self.make_qemu_command()
 
-            # Enable migration support for VM by adding extra_params.
-            if extra_params is not None:
-                if " -incoming tcp:0:%d" == extra_params:
-                    self.migration_port = kvm_utils.find_free_port(5200, 6000)
-                    qemu_command += extra_params % self.migration_port
-                elif " -incoming unix:%s" == extra_params:
-                    self.migration_file = os.path.join("/tmp/", "unix-" +
-                                          time.strftime("%Y%m%d-%H%M%S"))
-                    qemu_command += extra_params % self.migration_file
-                else:
-                    qemu_command += extra_params
+            # Add migration parameters if required
+            if migration_mode == "tcp":
+                self.migration_port = kvm_utils.find_free_port(5200, 6000)
+                qemu_command += " -incoming tcp:0:%d" % self.migration_port
+            elif migration_mode == "unix":
+                self.migration_file = "/tmp/migration-unix-%s" % self.instance
+                qemu_command += " -incoming unix:%s" % self.migration_file
+            elif migration_mode == "exec":
+                qemu_command += ' -incoming "exec:%s"' % migration_exec_cmd
 
             logging.debug("Running qemu command:\n%s", qemu_command)
             self.process = kvm_subprocess.run_bg(qemu_command, None,
@@ -824,6 +819,11 @@ class VM:
                       self.get_monitor_filenames()):
                 try:
                     os.unlink(f)
+                except OSError:
+                    pass
+            if hasattr(self, "migration_file"):
+                try:
+                    os.unlink(self.migration_file)
                 except OSError:
                     pass
             num_nics = len(kvm_utils.get_sub_dict_names(self.params, "nics"))
