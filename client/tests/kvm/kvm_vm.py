@@ -930,11 +930,7 @@ class VM:
                                   "%s" % mac)
                     return None
                 # Make sure the IP address is assigned to this guest
-                nic_dicts = [kvm_utils.get_sub_dict(self.params, nic)
-                             for nic in nics]
-                macs = [kvm_utils.get_mac_ip_pair_from_dict(dict)[0]
-                        for dict in nic_dicts]
-                macs.append(mac)
+                macs = [self.get_mac_address(i) for i in range(len(nics))]
                 if not kvm_utils.verify_ip_address_ownership(ip, macs):
                     logging.debug("Could not verify MAC-IP address mapping: "
                                   "%s ---> %s" % (mac, ip))
