@@ -324,7 +324,7 @@ def write_keyval(path, dictionary, type_tag=None):
         keyval.close()
 
 
-class FileFieldMonitor:
+class FileFieldMonitor(object):
     """
     Monitors the information from the file and reports it's values.
 
@@ -981,7 +981,7 @@ def get_cpu_percentage(function, *args, **dargs):
     return cpu_percent, to_return
 
 
-class SystemLoad:
+class SystemLoad(object):
     """
     Get system and/or process values and return average value of load.
     """
