@@ -157,9 +157,11 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
     def mig_cancelled():
         o = vm.monitor.info("migrate")
         if isinstance(o, str):
-            return "Migration status: cancelled" in o
+            return ("Migration status: cancelled" in o or
+                    "Migration status: canceled" in o)
         else:
-            return o.get("status") == "cancelled"
+            return (o.get("status") == "cancelled" or
+                    o.get("status") == "canceled")
 
     def wait_for_migration():
         if not kvm_utils.wait_for(mig_finished, mig_timeout, 2, 2,
