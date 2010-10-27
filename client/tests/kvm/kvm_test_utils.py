@@ -241,6 +241,52 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
     return dest_vm
 
 
+def stop_windows_service(session, service, timeout=120):
+    """
+    Stop a Windows service using sc.
+    If the service is already stopped or is not installed, do nothing.
+
+    @param service: The name of the service
+    @param timeout: Time duration to wait for service to stop
+    @raise error.TestError: Raised if the service can't be stopped
+    """
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        o = session.get_command_output("sc stop %s" % service, timeout=60)
+        # FAILED 1060 means the service isn't installed.
+        # FAILED 1062 means the service hasn't been started.
+        if re.search(r"\bFAILED (1060|1062)\b", o, re.I):
+            break
+        time.sleep(1)
+    else:
+        raise error.TestError("Could not stop service '%s'" % service)
+
+
+def start_windows_service(session, service, timeout=120):
+    """
+    Start a Windows service using sc.
+    If the service is already running, do nothing.
+    If the service isn't installed, fail.
+
+    @param service: The name of the service
+    @param timeout: Time duration to wait for service to start
+    @raise error.TestError: Raised if the service can't be started
+    """
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        o = session.get_command_output("sc start %s" % service, timeout=60)
+        # FAILED 1060 means the service isn't installed.
+        if re.search(r"\bFAILED 1060\b", o, re.I):
+            raise error.TestError("Could not start service '%s' "
+                                  "(service not installed)" % service)
+        # FAILED 1056 means the service is already running.
+        if re.search(r"\bFAILED 1056\b", o, re.I):
+            break
+        time.sleep(1)
+    else:
+        raise error.TestError("Could not start service '%s'" % service)
+
+
 def get_time(session, time_command, time_filter_re, time_format):
     """
     Return the host time and guest time.  If the guest time cannot be fetched
