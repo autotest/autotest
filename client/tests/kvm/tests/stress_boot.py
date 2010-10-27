@@ -28,7 +28,6 @@ def run_stress_boot(tests, params, env):
 
     num = 2
     sessions = [session]
-    address_index = int(params.get("clone_address_index_base", 10))
 
     # boot the VMs
     while num <= int(params.get("max_vms")):
@@ -36,7 +35,6 @@ def run_stress_boot(tests, params, env):
             # clone vm according to the first one
             vm_name = "vm" + str(num)
             vm_params = vm.get_params().copy()
-            vm_params["address_index"] = str(address_index)
             curr_vm = vm.clone(vm_name, vm_params)
             kvm_utils.env_register_vm(env, vm_name, curr_vm)
             logging.info("Booting guest #%d" % num)
@@ -56,7 +54,6 @@ def run_stress_boot(tests, params, env):
                 if se.get_command_status(params.get("alive_test_cmd")) != 0:
                     raise error.TestFail("Session #%d is not responsive" % i)
             num += 1
-            address_index += 1
 
         except (error.TestFail, OSError):
             for se in sessions:

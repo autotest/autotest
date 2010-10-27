@@ -920,21 +920,18 @@ class VM:
                 logging.debug("MAC address unavailable")
                 return None
             mac = mac.lower()
-            ip = None
-
-            if not ip or nic_params.get("always_use_tcpdump") == "yes":
-                # Get the IP address from the cache
-                ip = self.address_cache.get(mac)
-                if not ip:
-                    logging.debug("Could not find IP address for MAC address: "
-                                  "%s" % mac)
-                    return None
-                # Make sure the IP address is assigned to this guest
-                macs = [self.get_mac_address(i) for i in range(len(nics))]
-                if not kvm_utils.verify_ip_address_ownership(ip, macs):
-                    logging.debug("Could not verify MAC-IP address mapping: "
-                                  "%s ---> %s" % (mac, ip))
-                    return None
+            # Get the IP address from the cache
+            ip = self.address_cache.get(mac)
+            if not ip:
+                logging.debug("Could not find IP address for MAC address: %s" %
+                              mac)
+                return None
+            # Make sure the IP address is assigned to this guest
+            macs = [self.get_mac_address(i) for i in range(len(nics))]
+            if not kvm_utils.verify_ip_address_ownership(ip, macs):
+                logging.debug("Could not verify MAC-IP address mapping: "
+                              "%s ---> %s" % (mac, ip))
+                return None
             return ip
         else:
             return "localhost"
@@ -985,12 +982,7 @@ class VM:
 
         @param nic_index: Index of the NIC
         """
-        nic_name = kvm_utils.get_sub_dict_names(self.params, "nics")[nic_index]
-        nic_params = kvm_utils.get_sub_dict(self.params, nic_name)
-        if nic_params.get("address_index"):
-            return kvm_utils.get_mac_ip_pair_from_dict(nic_params)[0]
-        else:
-            return kvm_utils.get_mac_address(self.instance, nic_index)
+        return kvm_utils.get_mac_address(self.instance, nic_index)
 
 
     def free_mac_address(self, nic_index=0):
