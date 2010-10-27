@@ -123,14 +123,9 @@ def run_physical_resources_check(test, params, env):
     found_mac_addresses = re.findall("macaddr=(\S+)", o)
     logging.debug("Found MAC adresses: %s" % found_mac_addresses)
 
-    nic_index = 0
-    for nic_name in kvm_utils.get_sub_dict_names(params, "nics"):
-        nic_params = kvm_utils.get_sub_dict(params, nic_name)
-        if "address_index" in nic_params:
-            mac, ip = kvm_utils.get_mac_ip_pair_from_dict(nic_params)
-        else:
-            mac = vm.get_mac_address(nic_index)
-            nic_index += 1
+    num_nics = len(kvm_utils.get_sub_dict_names(params, "nics"))
+    for nic_index in range(num_nics):
+        mac = vm.get_mac_address(nic_index)
         if not string.lower(mac) in found_mac_addresses:
             n_fail += 1
             logging.error("MAC address mismatch:")

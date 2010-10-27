@@ -55,7 +55,6 @@ guest_port_remote_shell = 22
 nic_mode = user
 #nic_mode = tap
 nic_script = scripts/qemu-ifup
-#address_index = 0
 run_tcpdump = yes
 
 # Misc
@@ -275,7 +274,6 @@ variants:
         type = stress_boot
         max_vms = 5    
         alive_test_cmd = uname -a
-        clone_address_index_base = 10
         login_timeout = 240
         kill_vm = yes
         kill_vm_vm1 = no
