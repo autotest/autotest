@@ -38,9 +38,15 @@ class MonitorNotSupportedError(MonitorError):
 
 
 class QMPCmdError(MonitorError):
+    def __init__(self, cmd, qmp_args, data):
+        MonitorError.__init__(self, cmd, qmp_args, data)
+        self.cmd = cmd
+        self.qmp_args = qmp_args
+        self.data = data
+
     def __str__(self):
-        return ("QMP command '%s' failed (arguments: %r, error message: %r)" %
-                tuple(self.args))
+        return ("QMP command %r failed (arguments: %r, error message: %r)" %
+                (self.cmd, self.qmp_args, self.data))
 
 
 class Monitor:
