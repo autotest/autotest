@@ -59,14 +59,8 @@ def preprocess_vm(test, params, env, name):
         kvm_utils.env_register_vm(env, name, vm)
 
     start_vm = False
-    for_migration = False
 
-    if params.get("start_vm_for_migration") == "yes":
-        logging.debug("'start_vm_for_migration' specified; (re)starting VM "
-                      "with -incoming option...")
-        start_vm = True
-        for_migration = True
-    elif params.get("restart_vm") == "yes":
+    if params.get("restart_vm") == "yes":
         logging.debug("'restart_vm' specified; (re)starting VM...")
         start_vm = True
     elif params.get("start_vm") == "yes":
@@ -81,7 +75,7 @@ def preprocess_vm(test, params, env, name):
 
     if start_vm:
         # Start the VM (or restart it if it's already up)
-        if not vm.create(name, params, test.bindir, for_migration):
+        if not vm.create(name, params, test.bindir):
             raise error.TestError("Could not start VM")
     else:
         # Don't start the VM, just update its params

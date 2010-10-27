@@ -167,79 +167,76 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
             raise error.TestFail("Timeout expired while waiting for migration "
                                  "to finish")
 
+    dest_vm = vm.clone()
 
-    migration_file = os.path.join("/tmp/",
-                                  mig_protocol + time.strftime("%Y%m%d-%H%M%S"))
-    if mig_protocol == "tcp":
-        mig_extra_params = " -incoming tcp:0:%d"
-    elif mig_protocol == "unix":
-        mig_extra_params = " -incoming unix:%s"
-    elif mig_protocol == "exec":
+    if mig_protocol == "exec":
         # Exec is a little different from other migrate methods - first we
         # ask the monitor the migration, then the vm state is dumped to a
         # compressed file, then we start the dest vm with -incoming pointing
         # to it
-        mig_extra_params = " -incoming \"exec: gzip -c -d %s\"" % migration_file
-        uri = "\"exec:gzip -c > %s\"" % migration_file
-        vm.monitor.cmd("stop")
-        o = vm.monitor.migrate(uri)
-        wait_for_migration()
-
-    # Clone the source VM and ask the clone to wait for incoming migration
-    dest_vm = vm.clone()
-    if not dest_vm.create(extra_params=mig_extra_params, mac_source=vm):
-        raise error.TestError("Could not create dest VM")
-
-    try:
-        if mig_protocol == "tcp":
-            uri = "tcp:localhost:%d" % dest_vm.migration_port
-        elif mig_protocol == "unix":
-            uri = "unix:%s" % dest_vm.migration_file
-
-        if mig_protocol != "exec":
-            o = vm.monitor.migrate(uri)
-
-            if mig_protocol == "tcp" and mig_cancel:
-                time.sleep(2)
-                o = vm.monitor.cmd("migrate_cancel")
-                if not kvm_utils.wait_for(mig_cancelled, 60, 2, 2,
-                                          "Waiting for migration cancel"):
-                    raise error.TestFail("Fail to cancel migration")
-                dest_vm.destroy(gracefully=False)
-                return vm
-
+        try:
+            exec_file = "/tmp/exec-%s.gz" % kvm_utils.generate_random_string(8)
+            exec_cmd = "gzip -c -d %s" % exec_file
+            uri = '"exec:gzip -c > %s"' % exec_file
+            vm.monitor.cmd("stop")
+            vm.monitor.migrate(uri)
             wait_for_migration()
 
-        # Report migration status
-        if mig_succeeded():
-            logging.info("Migration finished successfully")
-        elif mig_failed():
-            raise error.TestFail("Migration failed")
-        else:
-            raise error.TestFail("Migration ended with unknown status")
+            if not dest_vm.create(migration_mode=mig_protocol,
+                                  migration_exec_cmd=exec_cmd, mac_source=vm):
+                raise error.TestError("Could not create dest VM")
+        finally:
+            logging.debug("Removing migration file %s", exec_file)
+            try:
+                os.remove(exec_file)
+            except OSError:
+                pass
+    else:
+        if not dest_vm.create(migration_mode=mig_protocol, mac_source=vm):
+            raise error.TestError("Could not create dest VM")
+        try:
+            if mig_protocol == "tcp":
+                uri = "tcp:localhost:%d" % dest_vm.migration_port
+            elif mig_protocol == "unix":
+                uri = "unix:%s" % dest_vm.migration_file
+            vm.monitor.migrate(uri)
 
-        o = dest_vm.monitor.info("status")
-        if "paused" in o:
-            logging.debug("Destination VM is paused, resuming it...")
-            dest_vm.monitor.cmd("cont")
+            if mig_cancel:
+                time.sleep(2)
+                vm.monitor.cmd("migrate_cancel")
+                if not kvm_utils.wait_for(mig_cancelled, 60, 2, 2,
+                                          "Waiting for migration "
+                                          "cancellation"):
+                    raise error.TestFail("Failed to cancel migration")
+                dest_vm.destroy(gracefully=False)
+                return vm
+            else:
+                wait_for_migration()
+        except:
+            dest_vm.destroy()
+            raise
 
-        if os.path.exists(migration_file):
-            logging.debug("Removing migration file %s", migration_file)
-            os.remove(migration_file)
+    # Report migration status
+    if mig_succeeded():
+        logging.info("Migration finished successfully")
+    elif mig_failed():
+        raise error.TestFail("Migration failed")
+    else:
+        raise error.TestFail("Migration ended with unknown status")
 
-        # Kill the source VM
-        vm.destroy(gracefully=False)
+    if "paused" in dest_vm.monitor.info("status"):
+        logging.debug("Destination VM is paused, resuming it...")
+        dest_vm.monitor.cmd("cont")
 
-        # Replace the source VM with the new cloned VM
-        if env is not None:
-            kvm_utils.env_register_vm(env, vm.name, dest_vm)
+    # Kill the source VM
+    vm.destroy(gracefully=False)
 
-        # Return the new cloned VM
-        return dest_vm
+    # Replace the source VM with the new cloned VM
+    if env is not None:
+        kvm_utils.env_register_vm(env, vm.name, dest_vm)
 
-    except:
-        dest_vm.destroy()
-        raise
+    # Return the new cloned VM
+    return dest_vm
 
 
 def get_time(session, time_command, time_filter_re, time_format):
