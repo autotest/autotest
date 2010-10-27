@@ -24,14 +24,11 @@ def run_mac_change(test, params, env):
         raise error.TestFail("Could not log into guest '%s'" % vm.name)
 
     old_mac = vm.get_mac_address(0)
-    new_different = False
-    while not new_different:
-        kvm_utils.free_mac_address(vm.root_dir, vm.instance, 0)
-        new_mac = kvm_utils.generate_mac_address(vm.root_dir,
-                                                 vm.instance,
-                                                 0, vm.mac_prefix)
+    while True:
+        vm.free_mac_address(0)
+        new_mac = kvm_utils.generate_mac_address(vm.instance, 0)
         if old_mac != new_mac:
-            new_different = True
+            break
     logging.info("The initial MAC address is %s", old_mac)
     interface = kvm_test_utils.get_linux_ifname(session, old_mac)
     # Start change MAC address
