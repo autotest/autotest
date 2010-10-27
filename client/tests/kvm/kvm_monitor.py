@@ -21,7 +21,7 @@ class MonitorConnectError(MonitorError):
     pass
 
 
-class MonitorSendError(MonitorError):
+class MonitorSocketError(MonitorError):
     pass
 
 
@@ -111,7 +111,11 @@ class Monitor:
     def _recvall(self):
         s = ""
         while self._data_available():
-            data = self._socket.recv(1024)
+            try:
+                data = self._socket.recv(1024)
+            except socket.error, (errno, msg):
+                raise MonitorSocketError("Could not receive data from monitor "
+                                         "(%s)" % msg)
             if not data:
                 break
             s += data
@@ -164,7 +168,7 @@ class HumanMonitor(Monitor):
         s = ""
         end_time = time.time() + timeout
         while self._data_available(end_time - time.time()):
-            data = self._socket.recv(1024)
+            data = self._recvall()
             if not data:
                 break
             s += data
@@ -182,7 +186,7 @@ class HumanMonitor(Monitor):
 
         @param cmd: Command to send
         @raise MonitorLockError: Raised if the lock cannot be acquired
-        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorSocketError: Raised if a socket error occurs
         """
         if not self._acquire_lock(20):
             raise MonitorLockError("Could not acquire exclusive lock to send "
@@ -191,9 +195,9 @@ class HumanMonitor(Monitor):
         try:
             try:
                 self._socket.sendall(cmd + "\n")
-            except socket.error:
-                raise MonitorSendError("Could not send monitor command '%s'" %
-                                       cmd)
+            except socket.error, (errno, msg):
+                raise MonitorSocketError("Could not send monitor command '%s' "
+                                         "(%s)" % (cmd, msg))
 
         finally:
             self._lock.release()
@@ -209,7 +213,7 @@ class HumanMonitor(Monitor):
         @param timeout: Time duration to wait for the (qemu) prompt to return
         @return: Output received from the monitor
         @raise MonitorLockError: Raised if the lock cannot be acquired
-        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorSocketError: Raised if a socket error occurs
         @raise MonitorProtocolError: Raised if the (qemu) prompt cannot be
                 found after sending the command
         """
@@ -466,12 +470,13 @@ class QMPMonitor(Monitor):
         Send raw data without waiting for response.
 
         @param data: Data to send
-        @raise MonitorSendError: Raised if the data cannot be sent
+        @raise MonitorSocketError: Raised if a socket error occurs
         """
         try:
             self._socket.sendall(data)
-        except socket.error:
-            raise MonitorSendError("Could not send data: %r" % data)
+        except socket.error, (errno, msg):
+            raise MonitorSocketError("Could not send data: %r (%s)" %
+                                     (data, msg))
 
 
     def _get_response(self, id=None, timeout=20):
@@ -506,7 +511,7 @@ class QMPMonitor(Monitor):
         @param timeout: Time duration to wait for response
         @return: The response received
         @raise MonitorLockError: Raised if the lock cannot be acquired
-        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorSocketError: Raised if a socket error occurs
         @raise MonitorProtocolError: Raised if no response is received
         @raise QMPCmdError: Raised if the response is an error message
                 (the exception's args are (cmd, args, data) where data is the
@@ -548,7 +553,7 @@ class QMPMonitor(Monitor):
         @param timeout: Time duration to wait for response
         @return: The response received
         @raise MonitorLockError: Raised if the lock cannot be acquired
-        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorSocketError: Raised if a socket error occurs
         @raise MonitorProtocolError: Raised if no response is received
         """
         if not self._acquire_lock(20):
@@ -579,7 +584,7 @@ class QMPMonitor(Monitor):
         @param timeout: Time duration to wait for response
         @return: The response received
         @raise MonitorLockError: Raised if the lock cannot be acquired
-        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorSocketError: Raised if a socket error occurs
         @raise MonitorProtocolError: Raised if no response is received
         """
         return self.cmd_raw(json.dumps(obj) + "\n")
@@ -598,7 +603,7 @@ class QMPMonitor(Monitor):
         @param timeout: Time duration to wait for response
         @return: The response received
         @raise MonitorLockError: Raised if the lock cannot be acquired
-        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorSocketError: Raised if a socket error occurs
         @raise MonitorProtocolError: Raised if no response is received
         """
         return self.cmd_obj(self._build_cmd(cmd, args, id), timeout)
