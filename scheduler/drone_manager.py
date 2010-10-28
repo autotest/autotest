@@ -452,12 +452,14 @@ class DroneManager(object):
         while self._drone_queue:
             drone = heapq.heappop(self._drone_queue).drone
             checked_drones.append(drone)
+            logging.info('Checking drone %s', drone.hostname)
             if not drone.usable_by(username):
                 continue
 
             drone_allowed = (drone_hostnames_allowed is None
                              or drone.hostname in drone_hostnames_allowed)
             if not drone_allowed:
+                logging.debug('Drone %s not allowed: ', drone.hostname)
                 continue
 
             usable_drones.append(drone)
@@ -465,6 +467,9 @@ class DroneManager(object):
             if drone.active_processes + num_processes <= drone.max_processes:
                 drone_to_use = drone
                 break
+            logging.info('Drone %s has %d active + %s requested > %s max',
+                         drone.hostname, drone.active_processes, num_processes,
+                         drone.max_processes)
 
         if not drone_to_use and usable_drones:
             drone_summary = ','.join('%s %s/%s' % (drone.hostname,
