@@ -164,10 +164,9 @@ class UserCleanup(PeriodicCleanup):
 
     def _choose_subset_of_hosts_to_reverify(self, hosts):
         """Given hosts needing verification, return a subset to reverify."""
-        if (scheduler_config.reverify_max_hosts_at_once > 0 and
-            len(hosts) > scheduler_config.reverify_max_hosts_at_once):
-            return random.sample(hosts,
-                                 scheduler_config.reverify_max_hosts_at_once)
+        max_at_once = scheduler_config.config.reverify_max_hosts_at_once
+        if (max_at_once > 0 and len(hosts) > max_at_once):
+            return random.sample(hosts, max_at_once)
         return sorted(hosts)
 
 
