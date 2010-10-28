@@ -35,13 +35,11 @@ def create_config_files():
     global_temp = autotemp.tempfile("global", ".ini",
                                             text=True)
     os.write(global_temp.fd, global_config_ini_contents)
-    os.close(global_temp.fd)
 
     shadow_temp = autotemp.tempfile("shadow", ".ini",
                                            text=True)
     fd = shadow_temp.fd
     os.write(shadow_temp.fd, shadow_config_ini_contents)
-    os.close(shadow_temp.fd)
 
     return (global_temp, shadow_temp)
 

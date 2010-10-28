@@ -31,6 +31,7 @@ class tempfile(object):
         t = autotemp.tempfile(unique_id='fig')
         t.name # name of file
         t.fd   # file descriptor
+        t.fo   # file object
         t.clean() # clean up after yourself
     """
     def __init__(self, unique_id, suffix='', prefix='', dir=None,
@@ -40,6 +41,7 @@ class tempfile(object):
         self.fd, self.name = module_tempfile.mkstemp(suffix=suffix,
                                                      prefix=prefix,
                                                      dir=dir, text=text)
+        self.fo = os.fdopen(self.fd)
 
 
     def clean(self):
@@ -47,15 +49,17 @@ class tempfile(object):
         Remove the temporary file that was created.
         This is also called by the destructor.
         """
+        if self.fo:
+            self.fo.close()
         if self.name and os.path.exists(self.name):
             os.remove(self.name)
 
-        self.fd = self.name = None
+        self.fd = self.fo = self.name = None
 
 
     def __del__(self):
         try:
-            if self.name:
+            if self.name is not None:
                 logging.debug('Clean was not called for ' + self.name)
                 self.clean()
         except:

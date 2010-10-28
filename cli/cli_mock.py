@@ -18,7 +18,6 @@ CLI_UT_DEBUG = False
 def create_file(content):
     file_temp = autotemp.tempfile(unique_id='cli_mock', text=True)
     os.write(file_temp.fd, content)
-    os.close(file_temp.fd)
     return file_temp
 
 
