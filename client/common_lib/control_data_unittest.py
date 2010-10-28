@@ -27,7 +27,6 @@ class ParseControlTest(unittest.TestCase):
         self.control_tmp = autotemp.tempfile(unique_id='control_unit',
                                              text=True)
         os.write(self.control_tmp.fd, CONTROL)
-        os.close(self.control_tmp.fd)
 
 
     def tearDown(self):
