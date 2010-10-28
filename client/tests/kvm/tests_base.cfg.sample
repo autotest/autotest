@@ -946,8 +946,8 @@ variants:
                     extra_params += " -boot cn"
                     # You have to use autoyast=floppy if you want to use floppies to
                     # hold your autoyast file
-                    #kernel_args = "autoyast=floppy console=ttyS0,115200 console=tty0"
-                    kernel_args = "autoyast=cdrom console=ttyS0,115200 console=tty0"
+                    kernel_args = "autoyast=floppy console=ttyS0,115200 console=tty0"
+                    #kernel_args = "autoyast=cdrom console=ttyS0,115200 console=tty0"
                     post_install_delay = 10
 
                 variants:
@@ -961,7 +961,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-0-32/tftpboot
-                            floppy = images/opensuse-11-0-32/floppy.img
+                            floppy = images/opensuse-11-0-32/autoyast.vfd
+                            #cdrom_unattended = images/opensuse-11-0-32/autoyast.iso
                             pxe_dir = boot/i386/loader
 
                     - 11.0.64:
@@ -972,8 +973,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-0-64/tftpboot
-                            #floppy = images/opensuse-11-0-64/autoyast.vfd
-                            cdrom_unattended = images/opensuse-11-0-64/autoyast.iso
+                            floppy = images/opensuse-11-0-64/autoyast.vfd
+                            #cdrom_unattended = images/opensuse-11-0-64/autoyast.iso
                             pxe_dir = boot/x86_64/loader
 
                     - 11.1.32:
@@ -986,8 +987,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-1-32/tftpboot
-                            #floppy = images/opensuse-11-1-32/autoyast.vfd
-                            cdrom_unattended = images/opensuse-11-1-32/autoyast.iso
+                            floppy = images/opensuse-11-1-32/autoyast.vfd
+                            #cdrom_unattended = images/opensuse-11-1-32/autoyast.iso
                             pxe_dir = boot/i386/loader
 
                     - 11.1.64:
@@ -1000,8 +1001,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-1-64/tftpboot
-                            #floppy = images/opensuse-11-1-64/autoyast.vfd
-                            cdrom_unattended = images/opensuse-11-1-64/autoyast.iso
+                            floppy = images/opensuse-11-1-64/autoyast.vfd
+                            #cdrom_unattended = images/opensuse-11-1-64/autoyast.iso
                             pxe_dir = boot/x86_64/loader
 
                     - 11.2.32:
@@ -1012,8 +1013,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-2-32/tftpboot
-                            #floppy = images/opensuse-11-2-32/autoyast.vfd
-                            cdrom_unattended = images/opensuse-11-2-32/autoyast.iso
+                            floppy = images/opensuse-11-2-32/autoyast.vfd
+                            #cdrom_unattended = images/opensuse-11-2-32/autoyast.iso
                             pxe_dir = boot/i386/loader
 
                     - 11.2.64:
@@ -1024,8 +1025,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-2-64/tftpboot
-                            #floppy = images/opensuse11-2-64/autoyast.vfd
-                            cdrom_unattended = images/opensuse11-2-64/autoyast.iso
+                            floppy = images/opensuse11-2-64/autoyast.vfd
+                            #cdrom_unattended = images/opensuse11-2-64/autoyast.iso
                             pxe_dir = boot/x86_64/loader
 
                     - 11.3.32:
@@ -1036,8 +1037,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-3-32/tftpboot
-                            #floppy = images/opensuse-11-3-32/autoyast.vfd
-                            cdrom_unattended = images/opensuse-11-3-32/autoyast.iso
+                            floppy = images/opensuse-11-3-32/autoyast.vfd
+                            #cdrom_unattended = images/opensuse-11-3-32/autoyast.iso
                             pxe_dir = boot/i386/loader
 
                     - 11.3.64:
@@ -1048,8 +1049,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/OpenSUSE-11.xml
                             tftp = images/opensuse-11-3-64/tftpboot
-                            #floppy = images/opensuse-11-3-64/autoyast.vfd
-                            cdrom_unattended = images/opensuse-11-3-64/autoyast.iso
+                            floppy = images/opensuse-11-3-64/autoyast.vfd
+                            #cdrom_unattended = images/opensuse-11-3-64/autoyast.iso
                             pxe_dir = boot/x86_64/loader
 
             - SLES:
@@ -1061,8 +1062,8 @@ variants:
                     extra_params += " -boot cn"
                     # You have to use autoyast=floppy if you want to use floppies to
                     # hold your autoyast file
-                    #kernel_args = "autoyast=floppy console=ttyS0,115200 console=tty0"
-                    kernel_args = "autoyast=cdrom console=ttyS0,115200 console=tty0"
+                    kernel_args = "autoyast=floppy console=ttyS0,115200 console=tty0"
+                    #kernel_args = "autoyast=cdrom console=ttyS0,115200 console=tty0"
                     post_install_delay = 10
 
                 variants:
@@ -1074,8 +1075,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/SLES-11.xml
                             tftp = images/sles-11-0-32/tftpboot
-                            #floppy = images/sles-11-0-32/autoyast.vfd
-                            cdrom_unattended = images/sles-11-0-32/autoyast.iso
+                            floppy = images/sles-11-0-32/autoyast.vfd
+                            #cdrom_unattended = images/sles-11-0-32/autoyast.iso
                             pxe_dir = boot/i386/loader
 
                     - 11.0.64:
@@ -1086,8 +1087,8 @@ variants:
                         unattended_install.cdrom:
                             unattended_file = unattended/SLES-11.xml
                             tftp = images/sles-11-0-64/tftpboot
-                            #floppy = images/sles-11-0-64/autoyast.vfd
-                            cdrom_unattended = images/sles-11-0-64/autoyast.iso
+                            floppy = images/sles-11-0-64/autoyast.vfd
+                            #cdrom_unattended = images/sles-11-0-64/autoyast.iso
                             pxe_dir = boot/x86_64/loader
 
                     - 11.1.32:
@@ -1098,8 +1099,8 @@ variants:
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
                             tftp = images/sles-11-1-32/tftpboot
-                            #floppy = images/sles-11-1-32/autoyast.vfd
-                            cdrom_unattended = images/sles-11-1-32/autoyast.iso
+                            floppy = images/sles-11-1-32/autoyast.vfd
+                            #cdrom_unattended = images/sles-11-1-32/autoyast.iso
                             pxe_dir = boot/i386/loader
 
                     - 11.1.64:
@@ -1110,8 +1111,8 @@ variants:
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
                             tftp = images/sles-11-1-64/tftpboot
-                            #floppy = images/sles-11-1-64/autoyast.vfd
-                            cdrom_unattended = images/sles-11-1-64/autoyast.iso
+                            floppy = images/sles-11-1-64/autoyast.vfd
+                            #cdrom_unattended = images/sles-11-1-64/autoyast.iso
                             pxe_dir = boot/x86_64/loader
 
             - @Ubuntu:
