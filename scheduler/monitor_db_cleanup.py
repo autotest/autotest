@@ -3,7 +3,7 @@ Autotest AFE Cleanup used by the scheduler
 """
 
 
-import datetime, time, logging
+import datetime, time, logging, random
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import email_manager, scheduler_config
@@ -162,6 +162,15 @@ class UserCleanup(PeriodicCleanup):
         return (self._last_reverify_time + reverify_period_sec) <= time.time()
 
 
+    def _choose_subset_of_hosts_to_reverify(self, hosts):
+        """Given hosts needing verification, return a subset to reverify."""
+        if (scheduler_config.reverify_max_hosts_at_once > 0 and
+            len(hosts) > scheduler_config.reverify_max_hosts_at_once):
+            return random.sample(hosts,
+                                 scheduler_config.reverify_max_hosts_at_once)
+        return sorted(hosts)
+
+
     def _reverify_dead_hosts(self):
         if not self._should_reverify_hosts_now():
             return
@@ -177,8 +186,11 @@ class UserCleanup(PeriodicCleanup):
         if not hosts:
             return
 
-        logging.info('Reverifying dead hosts %s'
-                     % ', '.join(host.hostname for host in hosts))
+        hosts = list(hosts)
+        total_hosts = len(hosts)
+        hosts = self._choose_subset_of_hosts_to_reverify(hosts)
+        logging.info('Reverifying dead hosts (%d of %d) %s', len(hosts),
+                     total_hosts, ', '.join(host.hostname for host in hosts))
         for host in hosts:
             models.SpecialTask.schedule_special_task(
                     host=host, task=models.SpecialTask.Task.VERIFY)
