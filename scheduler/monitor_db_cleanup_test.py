@@ -24,7 +24,8 @@ class UserCleanupTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
 
     def test_reverify_dead_hosts(self):
         # unlimited reverifies
-        self.god.stub_with(scheduler_config, 'reverify_max_hosts_at_once', 0)
+        self.god.stub_with(scheduler_config.config,
+                           'reverify_max_hosts_at_once', 0)
         for i in (0, 1, 2):
             self.hosts[i].status = models.Host.Status.REPAIR_FAILED
             self.hosts[i].save()
@@ -47,7 +48,10 @@ class UserCleanupTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
 
     def test_reverify_dead_hosts_limits(self):
         # limit the number of reverifies
-        self.god.stub_with(scheduler_config, 'reverify_max_hosts_at_once', 2)
+        self.assertTrue(hasattr(scheduler_config.config,
+                                'reverify_max_hosts_at_once'))
+        self.god.stub_with(scheduler_config.config,
+                           'reverify_max_hosts_at_once', 2)
         for i in (0, 1, 2, 3, 4, 5):
             self.hosts[i].status = models.Host.Status.REPAIR_FAILED
             self.hosts[i].save()
