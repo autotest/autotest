@@ -59,13 +59,17 @@ def _add_kernel_to_bootloader(bootloader, base_args, tag, args, image, initrd):
         else:
             arglist.append(arg)
 
-    # add the kernel entry. it will keep all arguments from the default entry
-    bootloader.add_kernel(image, tag, initrd=initrd, root=root)
+    # Add the kernel entry. it will keep all arguments from the default entry.
+    # args='_dummy_' is used to workaround a boottool limitation of not being
+    # able to add arguments to a kernel that does not already have any of its
+    # own by way of its own append= section below the image= line in lilo.conf.
+    bootloader.add_kernel(image, tag, initrd=initrd, root=root, args='_dummy_')
     # Now, for each argument in arglist, try to add it to the kernel that was
     # just added. In each step, if the arg already existed on the args string,
     # that particular arg will be skipped
     for a in arglist:
         bootloader.add_args(kernel=tag, args=a)
+    bootloader.remove_args(kernel=tag, args='_dummy_')
 
 
 class BootableKernel(object):
