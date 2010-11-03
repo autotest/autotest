@@ -18,10 +18,11 @@ class TestAddKernelToBootLoader(unittest.TestCase):
         # record
         bootloader.remove_kernel.expect_call(tag)
         bootloader.add_kernel.expect_call(image, tag, initrd=initrd,
-                                          root=bootloader_root)
+                                          args='_dummy_', root=bootloader_root)
 
         for a in bootloader_args.split():
             bootloader.add_args.expect_call(kernel=tag, args=a)
+        bootloader.remove_args.expect_call(kernel=tag, args='_dummy_')
 
         # run and check
         kernel._add_kernel_to_bootloader(bootloader, base_args, tag, args,
