@@ -24,6 +24,13 @@ proc arg {_list arg} {
         return [shift list]
 }
 
+proc enter_outlet {outlet} {
+        send "\r"
+        expect "> "
+        send $outlet
+        send "\r"
+}
+
 set timeout 10
 set user {apc}
 set pass {apc}
@@ -68,22 +75,28 @@ set timeout 2
 expect {
    "3- Outlet Control/Configuration" {
       send "3\r"
+      enter_outlet $outlet
       exp_continue
    }
    "2- Outlet Control" {
       send "2\r"
+      enter_outlet $outlet
+      exp_continue
+   }
+   "2- Outlet Management" {
+      send "2\r"
       exp_continue
    }
 }
-send "\r"
-expect "> "
-send $outlet
-send "\r"
 # Here too, if we're just an outlet controller we don't get the option
 # to modify configuration
 expect {
    "1- Control Outlet" {
       send "1\r"
+   }
+   "1- Outlet Control/Configuration" {
+      send "1\r"
+      enter_outlet $outlet
    }
 }
 expect "3- Immediate Reboot"
