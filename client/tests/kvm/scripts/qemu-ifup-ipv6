@@ -4,7 +4,7 @@
 # Modify it to suit your needs.
 switch=$(/usr/sbin/brctl show | awk 'NR==2 { print $1 }')
 
-/bin/echo 1 > /proc/sys/net/ipv6/conf/${switch}/disable_ipv6
+/bin/echo 0 > /proc/sys/net/ipv6/conf/${switch}/disable_ipv6 
 /sbin/ifconfig $1 0.0.0.0 up
 /usr/sbin/brctl addif ${switch} $1
 /usr/sbin/brctl setfd ${switch} 0
