@@ -510,7 +510,7 @@ class partition(object):
         if filename:
             for line in open_func(filename).readlines():
                 parts = line.split()
-                if parts[0] == self.device:
+                if parts[0] == self.device or parts[1] == self.mountpoint:
                     return parts[1] # The mountpoint where it's mounted
             return None
 
