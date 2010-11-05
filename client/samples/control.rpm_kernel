@@ -1,0 +1,22 @@
+AUTHOR = "Autotest Team <autotest@test.kernel.org>"
+TIME = "SHORT"
+NAME = "Sample - More profilers"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+
+DOC = """
+Runs sleeptest after installing a kernel rpm. Please note that syntax works
+only if you have an autotest package repository properly setup.
+"""
+
+def step_init():
+    job.next_step([step_test])
+    # The below won't work unless you have configured an autotest package
+    # repository.
+    testkernel = job.kernel('kernel-smp-2.6.18-210.4.x86_64.rpm')
+    testkernel.install()
+    testkernel.boot() # does autotest by default
+
+def step_test():
+    job.run_test('sleeptest')

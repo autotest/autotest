@@ -1,0 +1,31 @@
+AUTHOR = "Autotest Team <autotest@test.kernel.org>"
+TIME = 'MEDIUM'
+NAME = "Sample - Xen Build"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+
+DOC = """
+this is a sample job to build xen and kernel with xen patches.
+The xen unstable tarball comes with scripts that will automatically
+patch a linux kernel, however, in some cases, PPC for example, the
+kernel is built from a seperate source.  The xen class supports
+defining your own kernel job, and handing that to the xen job.  If
+no kernel job is specified, it will create one using the kernel source
+that the xen tarball uses.
+"""
+
+def step_init():
+    xensrc = 'http://www.cl.cam.ac.uk/Research/SRG/netos/xen/downloads/xen-unstable-src.tgz'
+    # Uncomment the lines below if you want to build an alternate kernel
+    #testkernel = job.kernel('/usr/local/src/linux-2.6.18.tar.bz2')
+    #testkernel.config('http://mbligh.org/config/opteron2')
+    #testxen = job.xen(xensrc, kjob = testkernel)
+    testxen = job.xen(xensrc)
+    testxen.build()
+    testxen.install(tag='autotest', prefix='/tmp/xen')
+    # Uncomment the line below if you want to boot your newly built kernel
+    testxen.boot()
+
+
+def step_test():
+    job.run_test('sleeptest')

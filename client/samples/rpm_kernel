@@ -1,9 +1,0 @@
-def step_init():
-        job.next_step([step_test])
-	testkernel = job.kernel('kernel-smp-2.6.18-210.4.x86_64.rpm')
-	testkernel.install()
-	testkernel.boot()          # does autotest by default
-
-def step_test():
-	print "TEST: sleeptest"
-        job.run_test('sleeptest')

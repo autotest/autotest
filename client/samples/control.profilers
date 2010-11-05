@@ -1,0 +1,24 @@
+AUTHOR = "Autotest Team <autotest@test.kernel.org>"
+TIME = "SHORT"
+NAME = "Sample - More profilers"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+
+DOC = """
+Runs sleeptest with differnt profilers present in the autotest tree. Also,
+it shows the convenience logging methods, such as logging.info and
+logging.error.
+"""
+
+import logging
+
+for profiler in ('readprofile', 'oprofile', 'catprofile', 'lockmeter'):
+    try:
+        logging.info("Testing profiler %s", profiler)
+        job.profilers.add(profiler)
+        job.run_test('sleeptest', seconds=5, tag=profiler)
+        job.profilers.delete(profiler)
+    except:
+        logging.error("Test of profiler %s failed", profiler)
+        raise

@@ -1,7 +1,0 @@
-print "TEST: initing kernel"
-testkernel = job.kernel('/usr/local/autotest/tmp2/build/build')
-print "TEST: installing kernel"
-testkernel.install()
-# print "TEST: booting system"
-# system.boot()          # does autotest by default
-

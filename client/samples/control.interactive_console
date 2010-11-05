@@ -1,0 +1,25 @@
+AUTHOR = "Steve Howard <showard@google.com>"
+TIME = "SHORT"
+NAME = "Sample - Autotest console"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+
+DOC = """
+Gives you an interactive interpreter within an autotest control file.
+
+If you install IPython (http://ipython.scipy.org/, Ubuntu and Fedora's package
+"ipython"), you'll get a snazzy IPython console with readline and completion
+and all that. Otherwise you'll get a simple python console.
+
+The point of this control file is to give you an interactive interpreter with
+all autotest 'magic' loaded in, so you can inspect objects and have fun.
+"""
+
+try:
+    import IPython
+    ipshell = IPython.Shell.IPShellEmbed(argv=[], banner='autotest console')
+    ipshell()
+except ImportError:
+    import code
+    code.interact('autotest console', raw_input)

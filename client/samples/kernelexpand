@@ -1,1 +1,0 @@
-testkernel = job.kernel('2.6.18-rc7-git1')

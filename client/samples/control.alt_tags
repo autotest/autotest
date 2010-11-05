@@ -1,0 +1,33 @@
+AUTHOR = "Autotest Team <autotest@test.kernel.org>"
+TIME = "MEDIUM"
+NAME = "Sample - Building and adding an alternate kernel"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+
+DOC = """
+Builds a test kernel, then runs the kernbench test. This sample shows the
+job.bootloader object, as well as building kernels with alternate idenfifying
+tags.
+"""
+
+def step_init():
+    """
+    Build a kernel from kernel.org. This step will be executed, the machine
+    will be rebooted and then we'll proceed with step_tests.
+    """
+    job.next_step([step_tests])
+    testkernel = job.kernel('2.6.35')
+    # This is the default config that can be retrieved on gitweb
+    testkernel.config('http://git.kernel.org/?p=linux/kernel/git/stable/linux-2.6.35.y.git;a=blob_plain;f=arch/x86/configs/x86_64_defconfig;h=6c86acd847a4e28c09d951b34d488b13d44df3c7;hb=ea8a52f9f4bcc3420c38ae07f8378a2f18443970')
+    testkernel.build()
+    testkernel.install('autotest-alternate')
+    job.bootloader.list_titles()
+    testkernel.boot('autotest-alternate')
+
+
+def step_tests():
+    """
+    Run a series of autotest tests on this machine.
+    """
+    job.run_test('kernbench', iterations=2, threads=5)

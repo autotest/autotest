@@ -1,9 +1,0 @@
-for profiler in ('readprofile', 'oprofile', 'catprofile', 'lockmeter'):
-	try:
-		print "Testing profiler %s ..." % profiler
-		job.profilers.add(profiler)
-		job.run_test('sleeptest', seconds=3, tag=profiler)
-		job.profilers.delete(profiler)
-	except:
-		print "Test of profiler %s failed" % profiler
-		raise
