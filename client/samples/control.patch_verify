@@ -1,0 +1,42 @@
+AUTHOR = "Autotest Team <autotest@test.kernel.org>"
+TIME = "SHORT"
+NAME = "Sample - Parallel dd with kernel build - patch verification"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+
+DOC = """
+Parallel dd test with kernel build with the objective of seeing (or not)
+differences after a patch is applied to the mainline kernel.
+"""
+
+def tests(tag):
+    partition = job.partition('/tmp/looped', 1024, job.tmpdir)
+    # You can use also 'real' partitions, just comment the above and uncomment
+    # the below
+    #partition = job.partition('/dev/sdb1', job.tmpdir)
+
+    job.run_test('parallel_dd', fs=partition, fs_type='ext4', iterations=1,
+                 megabytes=1000, streams=2, tag=tag)
+
+
+def step_init():
+    testkernel = job.kernel('/usr/src/linux-2.6.36.tar.bz2')
+    testkernel.config('/usr/src/config')
+    testkernel.build()
+    job.next_step([step_one])
+    testkernel.boot()
+
+
+def step_one():
+    tests('mainline')
+    testkernel = job.kernel('/usr/src/linux-2.6.36.tar.bz2')
+    testkernel.patch('/usr/src/ext4_patch')
+    testkernel.config('/usr/src/config')
+    testkernel.build()
+    job.next_step([step_two])
+    testkernel.boot()
+
+
+def step_two():
+    tests('post_patch')

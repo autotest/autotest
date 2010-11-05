@@ -1,0 +1,24 @@
+AUTHOR = "Autotest Team <autotest@test.kernel.org>"
+TIME = "MEDIUM"
+NAME = "Sample - Using profilers"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+
+DOC = """
+Runs our sleeptest (bogus test that only sleeps for a given amount of time),
+while running the oprofile profilers, with and without special parameters
+passed to the profiler.
+"""
+
+import logging
+
+logging.info("Testing default event")
+job.profilers.add('oprofile')
+job.run_test('sleeptest', seconds=5, tag='default')
+job.profilers.delete('oprofile')
+
+logging.info("Testing ICACHE_MISSES")
+job.profilers.add('oprofile', 'ICACHE_MISSES:100000')
+job.run_test('sleeptest', seconds=5, tag='icache_misses')
+job.profilers.delete('oprofile')
