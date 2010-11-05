@@ -1,7 +1,0 @@
-def kernbench():
-	job.run_test('kernbench', iterations=2, threads=5)
-
-def dbench():
-	job.run_test('dbench')
-
-job.parallel([kernbench], [dbench])

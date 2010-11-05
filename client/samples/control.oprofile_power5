@@ -1,0 +1,43 @@
+AUTHOR = "Autotest Team <autotest@test.kernel.org>"
+TIME = "MEDIUM"
+NAME = "Sample - Using oprofile - specific power5 options"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+
+DOC = """
+Runs our sleeptest (bogus test that only sleeps for a given amount of time),
+while running the oprofile profilers, with and without special parameters
+passed to the profiler. This particular control shows special features of
+oprofile under power 5 cpu architecture.
+"""
+
+import logging
+
+logging.info("Testing default event")
+job.profilers.add('oprofile')
+job.run_test('sleeptest', seconds=5, tag='default')
+job.profilers.delete('oprofile')
+
+logging.info("Testing specified vmlinux")
+job.profilers.add('oprofile', '/boot/vmlinux-autotest')
+job.run_test('sleeptest', seconds=5, tag='vmlinux')
+job.profilers.delete('oprofile')
+
+logging.info("Testing one event")
+job.profilers.add('oprofile', None, ['PM_RUN_CYC_GRP153:100000'])
+job.run_test('sleeptest', seconds=5, tag='one')
+job.profilers.delete('oprofile')
+
+logging.info("Testing multiple events")
+job.profilers.add('oprofile', None,
+                  ['PM_RUN_CYC_GRP153:100000', 'PM_INST_CMPL_GRP153:10000'])
+job.run_test('sleeptest', seconds=5, tag='multi')
+job.profilers.delete('oprofile')
+
+logging.info("Testing other args")
+job.profilers.add('oprofile', None,
+                  ['PM_RUN_CYC_GRP153:150000', 'PM_INST_CMPL_GRP153:150000'],
+                  '--callgraph=3')
+job.run_test('sleeptest', seconds=5, tag='other')
+job.profilers.delete('oprofile')

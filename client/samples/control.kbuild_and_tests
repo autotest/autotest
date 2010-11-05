@@ -1,0 +1,66 @@
+AUTHOR = "Autotest Team <autotest@test.kernel.org>"
+TIME = "MEDIUM"
+NAME = "Sample - Kernel tests"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+
+DOC = """
+Builds a test kernel, then runs a series of tests on it. This control file shows
+features such as:
+
+ * The step engine - autotest mechanism of executing jobs in steps, where you
+   can interrupt the flow of execution with client reboots, in order to boot
+   newly built kernels
+ * Downloading, configuring, patching, building and booting a kernel straight
+   from kernel.org.
+ * Kernel expand - provide a string such as '2.6.36-git13' and have autotest to
+   expand that and download the proper source tarballs and patches
+   automatically.
+ * Local kernel.org mirror - Alternate kernel.org mirror that you can set on
+   your control file.
+"""
+
+def step_init():
+    """
+    Build a kernel from kernel.org. This step will be executed, the machine
+    will be rebooted and then we'll proceed with step_tests.
+    """
+    job.next_step([step_tests])
+    # If you have a local/different kernel.org mirror, you can set it by
+    # uncommenting the below and set the URL properly.
+    #job.config_set('local_mirror', 'http://foo/bar')
+    testkernel = job.kernel('2.6.35')
+    # If you want to see kernel expansion in action, comment the above and
+    # uncomment the below. Keep in mind that after some months, it's expected
+    # that some of the patches might not exist, so you might want to edit
+    # this to satisfy your needs.
+    #testkernel = job.kernel('2.6.36-git13')
+    # You can provide a path to an uncompressed kernel source as well
+    #testkernel = job.kernel('/path/to/kernel-source')
+    testkernel.patch('http://www.kernel.org/pub/linux/kernel/v2.6/patch-2.6.35.7.bz2')
+    # This is the default config that can be retrieved on gitweb
+    testkernel.config('http://git.kernel.org/?p=linux/kernel/git/stable/linux-2.6.35.y.git;a=blob_plain;f=arch/x86/configs/x86_64_defconfig;h=6c86acd847a4e28c09d951b34d488b13d44df3c7;hb=ea8a52f9f4bcc3420c38ae07f8378a2f18443970')
+    testkernel.build()
+    testkernel.boot()
+
+
+def step_tests():
+    """
+    Run a series of autotest tests on this machine.
+    """
+    job.run_test('aiostress')
+    job.run_test('bonnie')
+    job.run_test('dbench')
+    job.run_test('fio')
+    job.run_test('fsx')
+    job.run_test('interbench')
+    job.run_test('isic')
+    job.run_test('kernbench', iterations=2, threads=5)
+    job.run_test('lmbench')
+    job.run_test('ltp')
+    job.run_test('reaim')
+    job.run_test('sparse')
+    job.run_test('stress')
+    job.run_test('tbench')
+    job.run_test('unixbench')

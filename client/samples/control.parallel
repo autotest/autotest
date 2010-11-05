@@ -1,0 +1,20 @@
+AUTHOR = "Autotest Team <autotest@test.kernel.org>"
+TIME = "SHORT"
+NAME = "Sample - Parallel test execution"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+
+DOC = """
+Runs 2 client tests in parallel, with different options.
+"""
+
+def kernbench():
+    job.run_test('kernbench', iterations=2, threads=5)
+
+
+def dbench():
+    job.run_test('dbench')
+
+
+job.parallel([kernbench], [dbench])

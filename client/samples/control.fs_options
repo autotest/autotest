@@ -1,0 +1,36 @@
+AUTHOR = "Autotest Team <autotest@test.kernel.org>"
+TIME = "MEDIUM"
+NAME = "Sample - Filesystem tests with different fs options"
+TEST_TYPE = "client"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+
+DOC = """
+Runs a series of filesystem tests on a loopback partition. This shows some
+features of the job.partition method, such as creating loopback partitions
+instead of using real disk partitions, looping and tags.
+"""
+
+partition = job.partition(device='/tmp/looped', loop_size=1024,
+                          mountpoint=job.tmpdir)
+# You can use also 'real' partitions, just comment the above and uncomment
+# the below
+#partition = job.partition('/dev/sdb1', job.tmpdir)
+
+iters = 10
+
+for fstype, mountopts, tag in (('ext2', '', 'ext2'),
+                               ('ext3', '-o data=writeback', 'ext3writeback'),
+                               ('ext3', '-o data=ordered', 'ext3ordered'),
+                               ('ext3', '-o data=journal', 'ext3journal'),
+                               ('ext4', '-o data=ordered', 'ext4ordered'),
+                               ('ext4', '-o data=journal', 'ext4journal'),):
+    partition.mkfs(fstype)
+    partition.mount(args=mountopts)
+    try:
+        job.run_test('fsx', dir=job.tmpdir, tag=tag)
+        job.run_test('iozone', dir=job.tmpdir, iterations=iters, tag=tag)
+        job.run_test('dbench', iterations=iters, dir=job.tmpdir, tag=tag)
+        job.run_test('tiobench', dir=job.tmpdir, tag=tag)
+    finally:
+        partition.unmount()
