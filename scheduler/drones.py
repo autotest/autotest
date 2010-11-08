@@ -7,6 +7,11 @@ from autotest_lib.client.common_lib import error, global_config
 AUTOTEST_INSTALL_DIR = global_config.global_config.get_config_value('SCHEDULER',
                                                  'drone_installation_directory')
 
+class DroneUnreachable(Exception):
+    """The drone is non-sshable."""
+    pass
+
+
 class _AbstractDrone(object):
     """
     Attributes:
@@ -111,6 +116,9 @@ class _RemoteDrone(_AbstractDrone):
         super(_RemoteDrone, self).__init__()
         self.hostname = hostname
         self._host = drone_utility.create_host(hostname)
+        if not self._host.is_up():
+            logging.error('Drone %s is unpingable, kicking out', hostname)
+            raise DroneUnreachable
         self._autotest_install_dir = AUTOTEST_INSTALL_DIR
 
 
@@ -156,4 +164,7 @@ def get_drone(hostname):
     """
     if hostname == 'localhost':
         return _LocalDrone()
-    return _RemoteDrone(hostname)
+    try:
+        return _RemoteDrone(hostname)
+    except DroneUnreachable:
+        return None
