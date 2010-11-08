@@ -12,7 +12,7 @@ import os, array, sys, struct, random, copy, inspect, tempfile, datetime, math
 
 PAGE_SIZE = 4096 # machine page size
 
-TMPFS_OVERHEAD = 0.0022 # overhead on 1MB of write data 
+TMPFS_OVERHEAD = 0.0022 # overhead on 1MB of write data
 
 
 class MemFill(object):
@@ -34,7 +34,7 @@ class MemFill(object):
 
         self.tmpdp = tempfile.mkdtemp()
         ret_code = os.system("mount -o size=%dM tmpfs %s -t tmpfs" %
-                             ((mem+math.ceil(mem*TMPFS_OVERHEAD)), 
+                             ((mem+math.ceil(mem*TMPFS_OVERHEAD)),
                              self.tmpdp))
         if ret_code != 0:
             if os.getuid() != 0:

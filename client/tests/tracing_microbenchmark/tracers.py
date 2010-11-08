@@ -56,5 +56,5 @@ class ftrace(base_tracer.Tracer):
                 cpu_key = '%s_%s' % (cpu, key)
                 total_key = 'total_' + key
                 results[cpu_key] = val
-                results[total_key] = (results.get(total_key, 0) + 
+                results[total_key] = (results.get(total_key, 0) +
                                       results[cpu_key])

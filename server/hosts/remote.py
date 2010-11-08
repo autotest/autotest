@@ -230,8 +230,8 @@ class RemoteHost(base_classes.Host):
             keyvals = utils.read_keyval(keyval_path)
             all_labels = keyvals.get('labels', '')
             if all_labels:
-              all_labels = all_labels.split(',')
-              return [urllib.unquote(label) for label in all_labels]
+                all_labels = all_labels.split(',')
+                return [urllib.unquote(label) for label in all_labels]
         return []
 
 
