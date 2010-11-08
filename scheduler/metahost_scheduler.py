@@ -54,16 +54,16 @@ class MetahostScheduler(object):
 
 
     def schedule_metahost(self, queue_entry, scheduling_utility):
-         """Schedule the given queue entry, if possible.
+        """Schedule the given queue entry, if possible.
 
-         This method should make necessary database changes culminating in
-         assigning a host to the given queue entry in the database.  It may
-         take no action if no host can be assigned currently.
+        This method should make necessary database changes culminating in
+        assigning a host to the given queue entry in the database.  It may
+        take no action if no host can be assigned currently.
 
-         @param queue_entry: a HostQueueEntry DBObject
-         @param scheduling_utility: a HostSchedulingUtility object
-         """
-         raise NotImplementedError
+        @param queue_entry: a HostQueueEntry DBObject
+        @param scheduling_utility: a HostSchedulingUtility object
+        """
+        raise NotImplementedError
 
 
     def recovery_on_startup(self):

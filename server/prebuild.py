@@ -61,4 +61,3 @@ def setup(autotest_client_dir, client_test_dir):
     # instantiate a client_test instance.
     client_test = init_test(client_test_dir)
     client_setup_job.setup_test(client_test)
-

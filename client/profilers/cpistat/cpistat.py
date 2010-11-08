@@ -17,7 +17,7 @@ class cpistat(profiler.profiler):
     def start(self, test):
         cmd = os.path.join(self.bindir, 'site_cpistat')
         if not os.path.exists(cmd):
-           cmd = os.path.join(self.bindir, 'cpistat')
+            cmd = os.path.join(self.bindir, 'cpistat')
         logfile = open(os.path.join(test.profdir, "cpistat"), 'w')
         p = subprocess.Popen(cmd, stdout=logfile,
                              stderr=subprocess.STDOUT)
