@@ -33,7 +33,7 @@ class netperf2(test.test):
                             "test_time=%d, stream_list=%s, tag='%s', ",
                             "iterations=%d)"])
 
-        server_control_file = template % (server.ip, client.ip, 'server', test, 
+        server_control_file = template % (server.ip, client.ip, 'server', test,
                                           time, stream_list, test, cycles)
         client_control_file = template % (server.ip, client.ip, 'client', test,
                                           time, stream_list, test, cycles)

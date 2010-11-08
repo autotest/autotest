@@ -41,9 +41,9 @@ def migrate_up(manager):
              'GROUP BY drone_id HAVING COUNT(*) > 1')
     rows = manager.execute(query)
     if rows:
-      raise Exception('Some drones are associated with more than one drone '
-                      'set. Please remove all duplicates before running this '
-                      'migration.')
+        raise Exception('Some drones are associated with more than one drone '
+                        'set. Please remove all duplicates before running this '
+                        'migration.')
     manager.execute_script(UP_SQL)
 
     if db_utils.check_index_exists(manager, 'afe_drone_sets_drones',

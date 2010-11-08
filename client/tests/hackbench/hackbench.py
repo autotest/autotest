@@ -18,9 +18,9 @@ class hackbench(test.test):
     def setup(self):
         os.chdir(self.srcdir)
         if 'CC' in os.environ:
-          cc = '$CC'
+            cc = '$CC'
         else:
-          cc = 'cc'
+            cc = 'cc'
         utils.system('%s -lpthread hackbench.c -o hackbench' % cc)
 
 
