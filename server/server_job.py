@@ -6,7 +6,7 @@ This is the core infrastructure. Derived from the client side job.py
 Copyright Martin J. Bligh, Andy Whitcroft 2007
 """
 
-import getpass, os, sys, re, stat, tempfile, time, select, subprocess
+import getpass, os, sys, re, stat, tempfile, time, select, subprocess, platform
 import traceback, shutil, warnings, fcntl, pickle, logging, itertools, errno
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import base_job
@@ -204,6 +204,7 @@ class base_server_job(base_job.base_job):
 
         job_data = {'label' : label, 'user' : user,
                     'hostname' : ','.join(machines),
+                    'drone' : platform.node(),
                     'status_version' : str(self._STATUS_VERSION),
                     'job_started' : str(int(time.time()))}
         if group_name:
