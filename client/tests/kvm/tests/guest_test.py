@@ -20,7 +20,9 @@ def run_guest_test(test, params, env):
     reboot = params.get("reboot", "no")
 
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm, timeout=login_timeout)
+    serial_login = (params.get("serial_login", "no") == "yes")
+    session = kvm_test_utils.wait_for_login(vm, timeout=login_timeout,
+                                            serial=serial_login)
 
     if reboot == "yes":
         logging.debug("Rebooting guest before test ...")
