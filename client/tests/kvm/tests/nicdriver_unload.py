@@ -20,11 +20,8 @@ def run_nicdriver_unload(test, params, env):
     timeout = int(params.get("login_timeout", 360))
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
-    logging.info("Trying to log into guest '%s' by serial", vm.name)
-    session2 = kvm_utils.wait_for(lambda: vm.serial_login(),
-                                  timeout, 0, step=2)
-    if not session2:
-        raise error.TestFail("Could not log into guest '%s'" % vm.name)
+    session_serial = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2,
+                                                   serial=True)
 
     ethname = kvm_test_utils.get_linux_ifname(session, vm.get_mac_address(0))
     sys_path = "/sys/class/net/%s/device/driver" % (ethname)
@@ -77,7 +74,8 @@ def run_nicdriver_unload(test, params, env):
         logging.info("Unload/load NIC driver repeatedly in guest...")
         while True:
             logging.debug("Try to unload/load nic drive once")
-            if session2.get_command_status(unload_load_cmd, timeout=120) != 0:
+            if session_serial.get_command_status(unload_load_cmd,
+                                                 timeout=120) != 0:
                 session.get_command_output("rm -rf /tmp/Thread-*")
                 raise error.TestFail("Unload/load nic driver failed")
             pid, s = os.waitpid(pid, os.WNOHANG)
@@ -96,7 +94,6 @@ def run_nicdriver_unload(test, params, env):
             t.join(timeout = scp_timeout)
         os._exit(0)
 
-    session2.close()
 
     try:
         logging.info("Check MD5 hash for received files in multi-session")
