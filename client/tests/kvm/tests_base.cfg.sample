@@ -291,7 +291,7 @@ variants:
         reboot = yes
         variants:
             - autoit:
-                interpreter = D:\AutoIt3.exe
+                interpreter = "cmd /c D:\AutoIt3.exe"
                 variants:
                     - notepad:
                         guest_script = autoit/notepad1.au3
@@ -303,7 +303,7 @@ variants:
                         dst_rsc_dir = "C:\"
                         dst_rsc_path = "C:\autoit\stub\stub.au3"
             - powershell:
-                interpreter = "powershell.exe -File"
+                interpreter = "cmd /c powershell.exe -File"
                 variants:
                     - stub:
                         download = yes
