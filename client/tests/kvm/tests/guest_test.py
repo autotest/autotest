@@ -63,7 +63,7 @@ def run_guest_test(test, params, env):
             script_path = kvm_utils.get_path(test.bindir, script)
             vm.copy_files_to(script_path, dst_rsc_path, timeout=60)
 
-        command = "cmd /c %s %s %s" %(interpreter, dst_rsc_path, script_params)
+        command = "%s %s %s" %(interpreter, dst_rsc_path, script_params)
 
         logging.info("---------------- Script output ----------------")
         status = session.get_command_status(command,
