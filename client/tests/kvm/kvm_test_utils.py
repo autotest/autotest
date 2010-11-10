@@ -51,11 +51,15 @@ def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2, serial=None):
     @param vm: VM object.
     @param nic_index: Index of NIC to access in the VM.
     @param timeout: Time to wait before giving up.
+    @param serial: Whether to use a serial connection instead of a remote
+            (ssh, rss) one.
     @return: A shell session object.
     """
+    type = 'remote'
     if serial:
-        logging.info("Trying to log into guest using serial connection,"
-                     " timeout %ds", timeout)
+        type = 'serial'
+        logging.info("Trying to log into guest %s using serial connection,"
+                     " timeout %ds", vm.name, timeout)
         session = kvm_utils.wait_for(lambda: vm.serial_login(), timeout,
                                      start, step)
     else:
@@ -64,8 +68,9 @@ def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2, serial=None):
         session = kvm_utils.wait_for(lambda: vm.remote_login(
                   nic_index=nic_index), timeout, start, step)
     if not session:
-        raise error.TestFail("Could not log into guest '%s'" % vm.name)
-    logging.info("Logged into guest '%s'" % vm.name)
+        raise error.TestFail("Could not log into guest %s using %s connection" %
+                             vm.name, type)
+    logging.info("Logged into guest %s using %s connection" % vm.name, type)
     return session
 
 
