@@ -236,25 +236,22 @@ class VM:
 
         def add_nic(help, vlan, model=None, mac=None, netdev_id=None,
                     nic_extra_params=None):
+            if has_option(help, "netdev"):
+                netdev_vlan_str = ",netdev=%s" % netdev_id
+            else:
+                netdev_vlan_str = ",vlan=%d" % vlan
             if has_option(help, "device"):
-                if model == "virtio":
-                    model="virtio-net-pci"
                 if not model:
-                    model= "rtl8139"
-                cmd = " -device %s" % model
+                    model = "rtl8139"
+                elif model == "virtio":
+                    model = "virtio-net-pci"
+                cmd = " -device %s" % model + netdev_vlan_str
                 if mac:
-                    cmd += ",mac=%s" % mac
-                if has_option(help, "netdev"):
-                    cmd += ",netdev=%s" % netdev_id
-                else:
-                    cmd += "vlan=%d,"  % vlan
+                    cmd += ",mac='%s'" % mac
                 if nic_extra_params:
                     cmd += ",%s" % nic_extra_params
             else:
-                if has_option(help, "netdev"):
-                    cmd = " -net nic,netdev=%s" % netdev_id
-                else:
-                    cmd = " -net nic,vlan=%d" % vlan
+                cmd = " -net nic" + netdev_vlan_str
                 if model:
                     cmd += ",model=%s" % model
                 if mac:
@@ -267,7 +264,7 @@ class VM:
             if has_option(help, "netdev"):
                 cmd = " -netdev %s,id=%s" % (mode, netdev_id)
                 if vhost:
-                    cmd +=",vhost=on"
+                    cmd += ",vhost=on"
             else:
                 cmd = " -net %s,vlan=%d" % (mode, vlan)
             if mode == "tap":
