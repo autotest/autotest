@@ -581,6 +581,8 @@ class VM:
                 guest_port = int(redir_params.get("guest_port"))
                 self.redirs[guest_port] = host_ports[i]
 
+            # Generate netdev IDs for all NICs
+            self.netdev_id = []
             for nic in kvm_utils.get_sub_dict_names(params, "nics"):
                 self.netdev_id.append(kvm_utils.generate_random_id())
 
