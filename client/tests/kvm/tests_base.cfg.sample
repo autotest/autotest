@@ -1328,6 +1328,30 @@ variants:
                             #floppy = images/rhel55-64/ks.vfd
                             cdrom_unattended = images/rhel55-64/ks.iso
 
+                    - 6.0.i386:
+                        no setup
+                        image_name = rhel6-32
+                        cdrom_cd1 = linux/RHEL-6.0-i386-DVD.iso
+                        md5sum = 291d234c93442405972689b4b41c14bc
+                        md5sum_1m = ee2cc3d3babe91a1d581a07099c4318b
+                        unattended_install.cdrom:
+                            unattended_file = unattended/RHEL-6-series.ks
+                            tftp = images/rhel60-32/tftpboot
+                            #floppy = images/rhel60-32/ks.vfd
+                            cdrom_unattended = images/rhel60-32/ks.iso
+
+                    - 6.0.x86_64:
+                        no setup
+                        image_name = rhel6-64
+                        cdrom_cd1 = linux/RHEL-6.0-x86_64-DVD.iso
+                        md5sum = f7141396c6a19399d63e8c195354317d
+                        md5sum_1m = b060eeef63e2c8700db54ae02056e80c
+                        unattended_install.cdrom:
+                            unattended_file = unattended/RHEL-6-series.ks
+                            tftp = images/rhel60-64/tftpboot
+                            #floppy = images/rhel60-64/ks.vfd
+                            cdrom_unattended = images/rhel60-64/ks.iso
+
 
     # Windows section
     - @Windows:
@@ -1924,7 +1948,7 @@ variants:
 
 
 virtio_net|virtio_blk|e1000|balloon_check:
-    only Fedora.11 Fedora.12 Fedora.13 RHEL.5 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
+    only Fedora.11 Fedora.12 Fedora.13 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
     # only WinXP Win2003 Win2008 WinVista Win7 Fedora.11 Fedora.12 Fedora.13 RHEL.5 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
 
 
