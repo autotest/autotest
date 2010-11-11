@@ -667,6 +667,15 @@ variants:
     - clock_getres: install setup unattended_install.cdrom
         type = clock_getres
 
+    - kdump:
+        type = kdump
+        # time waited for the completion of crash dump
+        # crash_timeout = 360
+        # command to add the crashkernel=X@Y to kernel cmd line
+        # kernel_param_cmd = "grubby --update-kernel=`grubby --default-kernel` --args=crashkernel=128M@64M"
+        # command to enable kdump service
+        # kdump_enable_cmd = chkconfig kdump on && service kdump start
+
     # system_powerdown, system_reset and shutdown *must* be the last ones
     # defined (in this order), since the effect of such tests can leave
     # the VM on a bad state.
@@ -1951,6 +1960,8 @@ virtio_net|virtio_blk|e1000|balloon_check:
     only Fedora.11 Fedora.12 Fedora.13 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
     # only WinXP Win2003 Win2008 WinVista Win7 Fedora.11 Fedora.12 Fedora.13 RHEL.5 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
 
+kdump:
+    only RHEL.5 RHEL.6
 
 variants:
     - @qcow2:

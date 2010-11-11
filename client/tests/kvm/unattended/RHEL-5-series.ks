@@ -21,6 +21,7 @@ reboot
 @base
 @development-libs
 @development-tools
+kexec-tools
 
 %post --interpreter /usr/bin/python
 import socket, os
