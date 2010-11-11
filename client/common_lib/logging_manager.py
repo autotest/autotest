@@ -79,7 +79,7 @@ def _logging_manager_aware_logger__find_caller(unused):
     return rv
 
 
-if sys.version_info[:2] > (2, 6):
+if sys.version_info[:2] > (2, 7):
     warnings.warn('This module has not been reviewed for Python %s' %
                   sys.version)
 
