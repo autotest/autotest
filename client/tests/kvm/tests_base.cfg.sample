@@ -664,6 +664,9 @@ variants:
                 image_name_snapshot1 = sn1
                 image_name_snapshot2 = sn2
 
+    - clock_getres: install setup unattended_install.cdrom
+        type = clock_getres
+
     # system_powerdown, system_reset and shutdown *must* be the last ones
     # defined (in this order), since the effect of such tests can leave
     # the VM on a bad state.
