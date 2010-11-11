@@ -391,8 +391,11 @@ class PatchChecker(object):
                 pass
 
         for modified_file in modified_files_after:
-            file_checker = FileChecker(modified_file)
-            file_checker.report()
+            # Additional safety check, new commits might introduce
+            # new directories
+            if os.path.isfile(modified_file):
+                file_checker = FileChecker(modified_file)
+                file_checker.report()
 
 
     def check(self):
