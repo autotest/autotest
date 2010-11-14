@@ -82,11 +82,11 @@ if __name__ == "__main__":
     logging.info("3 - Verifying iso (make sure we have the OS ISO needed for "
                  "the default test set)")
 
-    iso_name = "Fedora-13-x86_64-DVD.iso"
-    fedora_dir = "pub/fedora/linux/releases/13/Fedora/x86_64/iso"
+    iso_name = "Fedora-14-x86_64-DVD.iso"
+    fedora_dir = "pub/fedora/linux/releases/14/Fedora/x86_64/iso"
     url = os.path.join("http://download.fedoraproject.org/", fedora_dir,
                        iso_name)
-    hash = "65c7f1aad3feb888ae3daadaf45d4a2a32b8773a"
+    hash = "38a4078011bac74493db7ecc53c9d9fbc96dbbd5"
     destination = os.path.join(base_dir, 'isos', 'linux')
     check_iso(url, destination, hash)
 

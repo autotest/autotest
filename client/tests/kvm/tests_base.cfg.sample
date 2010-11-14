@@ -930,6 +930,28 @@ variants:
                             #floppy = images/f13-64/ks.vfd
                             cdrom_unattended = images/f13-64/ks.iso
 
+                    - 14.32:
+                        image_name = f14-32
+                        cdrom_cd1 = linux/Fedora-14-i386-DVD.iso
+                        md5sum = 1cc67641506d2f931d669b8d3528dded
+                        md5sum_1m = d314ab126dabab686111e6a0d71d2e67
+                        unattended_install.cdrom:
+                            unattended_file = unattended/Fedora-14.ks
+                            tftp = images/f14-32/tftpboot
+                            #floppy = images/f14-32/ks.vfd
+                            cdrom_unattended = images/f14-32/ks.iso
+
+                    - 14.64:
+                        image_name = f14-64
+                        cdrom_cd1 = linux/Fedora-14-x86_64-DVD.iso
+                        md5sum = f2ebf941dc45f99ee3e8a457c9544552
+                        md5sum_1m = df029f9cffbc3517937a91124a1e0c3a
+                        unattended_install.cdrom:
+                            unattended_file = unattended/Fedora-14.ks
+                            tftp = images/f14-64/tftpboot
+                            #floppy = images/f14-64/ks.vfd
+                            cdrom_unattended = images/f14-64/ks.iso
+
 
             - DSL-4.2.5:
                 no setup dbench bonnie linux_s3
@@ -1957,8 +1979,8 @@ variants:
 
 
 virtio_net|virtio_blk|e1000|balloon_check:
-    only Fedora.11 Fedora.12 Fedora.13 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
-    # only WinXP Win2003 Win2008 WinVista Win7 Fedora.11 Fedora.12 Fedora.13 RHEL.5 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
+    only Fedora.11 Fedora.12 Fedora.13 Fedora.14 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
+    # only WinXP Win2003 Win2008 WinVista Win7 Fedora.11 Fedora.12 Fedora.13 Fedora.14 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
 
 kdump:
     only RHEL.5 RHEL.6
