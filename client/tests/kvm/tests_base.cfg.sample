@@ -716,9 +716,11 @@ variants:
         nic_model = virtio
         # You can add advanced attributes on nic_extra_params such as mrg_rxbuf
         #nic_extra_params =
-        # You can set vhost = yes to enable the vhost kernel backend
-        # (This only works if nic_mode=tap)
-        vhost = no
+        # You can add advanced attributes through netdev_extra_params
+        # such as sndbuf, as an example, you can uncomment the
+        # following lines to enable the vhost support ( only available
+        # for tap )
+        #netdev_extra_params = vhost=on,
         jumbo:
             mtu = 65520
         ethtool:
