@@ -19,8 +19,12 @@ reboot
 
 %packages
 @base
+@core
 @development
+@additional-devel
 @debugging-tools
+@network-tools
+NetworkManager
 
 %post --interpreter /usr/bin/python
 import socket, os
