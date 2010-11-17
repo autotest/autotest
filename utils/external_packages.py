@@ -613,7 +613,8 @@ class AtForkPackage(ExternalPackage):
 class ParamikoPackage(ExternalPackage):
     version = '1.7.5'
     local_filename = 'paramiko-%s.tar.gz' % version
-    urls = ('http://www.lag.net/paramiko/download/' + local_filename,)
+    urls = ('http://www.lag.net/paramiko/download/' + local_filename,
+            'ftp://mirrors.kernel.org/gentoo/distfiles/' + local_filename,)
     hex_sum = '592be7a08290070b71da63a8e6f28a803399e5c5'
 
 
