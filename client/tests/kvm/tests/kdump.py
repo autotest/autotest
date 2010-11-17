@@ -19,10 +19,13 @@ def run_kdump(test, params, env):
     crash_timeout = float(params.get("crash_timeout", 360))
     session = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2)
     def_kernel_param_cmd = ("grubby --update-kernel=`grubby --default-kernel`"
-                            " --args=crashkernel=128M@64M")
+                            " --args=crashkernel=128M")
     kernel_param_cmd = params.get("kernel_param_cmd", def_kernel_param_cmd)
     def_kdump_enable_cmd = "chkconfig kdump on && service kdump start"
     kdump_enable_cmd = params.get("kdump_enable_cmd", def_kdump_enable_cmd)
+    def_crash_kernel_prob_cmd = "grep -q 1 /sys/kernel/kexec_crash_loaded"
+    crash_kernel_prob_cmd = params.get("crash_kernel_prob_cmd",
+                                       def_crash_kernel_prob_cmd)
 
     def crash_test(vcpu):
         """
@@ -55,8 +58,7 @@ def run_kdump(test, params, env):
 
     try:
         logging.info("Checking the existence of crash kernel...")
-        prob_cmd = "grep -q 1 /sys/kernel/kexec_crash_loaded"
-        s = session.get_command_status(prob_cmd)
+        s = session.get_command_status(crash_kernel_prob_cmd)
         if s != 0:
             logging.info("Crash kernel is not loaded. Trying to load it")
             # We need to setup the kernel params
