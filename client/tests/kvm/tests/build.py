@@ -154,6 +154,15 @@ def create_symlinks(test_bindir, prefix=None, bin_list=None, unittest=None):
         os.symlink(unittest, qemu_unittest_path)
 
 
+def install_roms(rom_dir, prefix):
+    logging.debug("Path to roms specified. Copying roms to install prefix")
+    rom_dst_dir = os.path.join(prefix, 'share', 'qemu')
+    for rom_src in glob.glob('%s/*.bin' % rom_dir):
+        rom_dst = os.path.join(rom_dst_dir, os.path.basename(rom_src))
+        logging.debug("Copying rom file %s to %s", rom_src, rom_dst)
+        shutil.copy(rom_src, rom_dst)
+
+
 def save_build(build_dir, dest_dir):
     logging.debug('Saving the result of the build on %s', dest_dir)
     base_name = os.path.basename(build_dir)
@@ -314,6 +323,7 @@ class SourceDirInstaller(BaseInstaller):
 
         install_mode = params["mode"]
         srcdir = params.get("srcdir", None)
+        self.path_to_roms = params.get("path_to_rom_images", None)
 
         if install_mode == 'localsrc':
             if srcdir is None:
@@ -391,6 +401,8 @@ class SourceDirInstaller(BaseInstaller):
             utils.system("make -C qemu install")
         elif self.repo_type == 2:
             utils.system("make install")
+        if self.path_to_roms:
+            install_roms(self.path_to_roms, self.prefix)
         create_symlinks(self.test_bindir, self.prefix)
 
 
@@ -559,6 +571,8 @@ class GitInstaller(SourceDirInstaller):
     def _install(self):
         os.chdir(self.userspace_srcdir)
         utils.system('make install')
+        if self.path_to_roms:
+            install_roms(self.path_to_roms, self.prefix)
         create_symlinks(test_bindir=self.test_bindir, prefix=self.prefix,
                         bin_list=None,
                         unittest=self.unittest_prefix)
