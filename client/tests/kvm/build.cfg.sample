@@ -23,6 +23,9 @@ variants:
                 # release_tag = 84
                 release_dir = http://downloads.sourceforge.net/project/kvm/
                 release_listing = http://sourceforge.net/projects/kvm/files/
+                # In some cases, you might want to provide a ROM dir, so ROM
+                # files can be copied from there to your source based install
+                # path_to_rom_images = /usr/share/kvm
             - snapshot:
                 mode = snapshot
                 ## Install from a kvm snapshot location. You can optionally
@@ -30,14 +33,23 @@ variants:
                 ## yesterday's snapshot.
                 # snapshot_date = 20090712
                 snapshot_dir = http://foo.org/kvm-snapshots/
+                # In some cases, you might want to provide a ROM dir, so ROM
+                # files can be copied from there to your source based install
+                # path_to_rom_images = /usr/share/kvm
             - localtar:
                 mode = localtar
                 ## Install from tarball located on the host's filesystem.
                 tarball = /tmp/kvm-84.tar.gz
+                # In some cases, you might want to provide a ROM dir, so ROM
+                # files can be copied from there to your source based install
+                # path_to_rom_images = /usr/share/kvm
             - localsrc:
                 mode = localsrc
                 ## Install from tarball located on the host's filesystem.
                 srcdir = /tmp/kvm-84
+                # In some cases, you might want to provide a ROM dir, so ROM
+                # files can be copied from there to your source based install
+                # path_to_rom_images = /usr/share/kvm
             - git:
                 mode = git
                 ## Install KVM from git repositories.
@@ -64,6 +76,9 @@ variants:
                 # kmod_lbranch = kmod_lbranch_name
                 # kmod_commit = kmod_commit_name
                 # kmod_patches = ['http://foo.com/patch1', 'http://foo.com/patch2']
+                # In some cases, you might want to provide a ROM dir, so ROM
+                # files can be copied from there to your source based install
+                # path_to_rom_images = /usr/share/kvm
             - yum:
                 mode = yum
                 src_pkg = qemu
