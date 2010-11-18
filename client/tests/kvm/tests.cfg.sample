@@ -11,10 +11,15 @@ include cdkeys.cfg
 # * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
 #   /usr/bin/qemu-img respectively.
 # * All image files are expected under /tmp/kvm_autotest_root/images/
-# * All iso files are expected under /tmp/kvm_autotest_root/isos/
-qemu_img_binary = /usr/bin/qemu-img
+# * All install iso files are expected under /tmp/kvm_autotest_root/isos/
+# * The parameters cdrom_unattended, floppy, kernel and initrd are generated
+#   by KVM autotest, so remember to put them under a writable location
+#   (for example, the cdrom share can be read only)
 image_name(_.*)? ?<= /tmp/kvm_autotest_root/images/
-cdrom(_.*)? ?<= /tmp/kvm_autotest_root/isos/
+cdrom(_.*)? ?<= /tmp/kvm_autotest_root/
+floppy ?<= /tmp/kvm_autotest_root/
+kernel ?<= /tmp/kvm_autotest_root/
+initrd ?<= /tmp/kvm_autotest_root/
 
 # Here are the test sets variants. The variant 'qemu_kvm_windows_quick' is
 # fully commented, the following ones have comments only on noteworthy points
@@ -26,6 +31,7 @@ variants:
     - @qemu_kvm_windows_quick:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
         # Only qcow2 file format
         only qcow2
         # Only rtl8139 for nw card (default on qemu-kvm)
@@ -47,6 +53,7 @@ variants:
     - @qemu_f14_quick:
         # We want qemu for this run
         qemu_binary = /usr/bin/qemu
+        qemu_img_binary = /usr/bin/qemu-img
         only qcow2
         # The default nw card for qemu is e1000
         only e1000
@@ -64,6 +71,7 @@ variants:
     - @qemu_kvm_f14_quick:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
         only qcow2
         only virtio_net
         only virtio_blk
