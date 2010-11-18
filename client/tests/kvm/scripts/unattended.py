@@ -242,9 +242,8 @@ class CdromDisk(Disk):
 class UnattendedInstall(object):
     """
     Creates a floppy disk image that will contain a config file for unattended
-    OS install. Optionally, sets up a PXE install server using qemu built in
-    TFTP and DHCP servers to install a particular operating system. The
-    parameters to the script are retrieved from environment variables.
+    OS install. The parameters to the script are retrieved from environment
+    variables.
     """
     def __init__(self):
         """
@@ -256,9 +255,9 @@ class UnattendedInstall(object):
 
         attributes = ['kernel_args', 'finish_program', 'cdrom_cd1',
                       'unattended_file', 'medium', 'url', 'kernel', 'initrd',
-                      'nfs_server', 'nfs_dir', 'pxe_dir', 'pxe_image',
-                      'pxe_initrd', 'install_virtio', 'tftp',
-                      'floppy', 'cdrom_unattended']
+                      'nfs_server', 'nfs_dir', 'install_virtio', 'floppy',
+                      'cdrom_unattended', 'boot_path', 'extra_params']
+
         for a in attributes:
             self._setattr(a)
 
@@ -268,13 +267,6 @@ class UnattendedInstall(object):
                             'virtio_network_installer']
             for va in v_attributes:
                 self._setattr(va)
-
-        # Silly attribution just to calm pylint down...
-        self.tftp = self.tftp
-        if self.tftp:
-            self.tftp = os.path.join(KVM_TEST_DIR, self.tftp)
-            if not os.path.isdir(self.tftp):
-                os.makedirs(self.tftp)
 
         if self.cdrom_cd1:
             self.cdrom_cd1 = os.path.join(KVM_TEST_DIR, self.cdrom_cd1)
@@ -287,9 +279,7 @@ class UnattendedInstall(object):
             if not os.path.isdir(os.path.dirname(self.floppy)):
                 os.makedirs(os.path.dirname(self.floppy))
 
-        self.image_path = KVM_TEST_DIR
-        self.kernel_path = os.path.join(self.image_path, self.kernel)
-        self.initrd_path = os.path.join(self.image_path, self.initrd)
+        self.image_path = os.path.dirname(self.kernel)
 
 
     def _setattr(self, key):
@@ -408,7 +398,7 @@ class UnattendedInstall(object):
             boot_disk.setup_answer_file(dest_fname, answer_contents)
 
         elif self.unattended_file.endswith('.xml'):
-            if self.tftp:
+            if "autoyast" in self.extra_params:
                 # SUSE autoyast install
                 dest_fname = "autoinst.xml"
                 if self.cdrom_unattended:
@@ -436,87 +426,44 @@ class UnattendedInstall(object):
         boot_disk.close()
 
 
-    def setup_pxe_boot(self):
+    def setup_cdrom(self):
         """
-        Sets up a PXE boot environment using the built in qemu TFTP server.
-        Copies the PXE Linux bootloader pxelinux.0 from the host (needs the
-        pxelinux package or equivalent for your distro), and vmlinuz and
-        initrd.img files from the CD to a directory that qemu will serve trough
-        TFTP to the VM.
+        Mount cdrom and copy vmlinuz and initrd.img.
         """
-        print "Setting up PXE boot using TFTP root %s" % self.tftp
-
-        pxe_file = None
-        pxe_paths = ['/usr/lib/syslinux/pxelinux.0',
-                     '/usr/share/syslinux/pxelinux.0']
-        for path in pxe_paths:
-            if os.path.isfile(path):
-                pxe_file = path
-                break
-
-        if not pxe_file:
-            raise SetupError('Cannot find PXE boot loader pxelinux.0. Make '
-                             'sure pxelinux or equivalent package for your '
-                             'distro is installed.')
-
-        pxe_dest = os.path.join(self.tftp, 'pxelinux.0')
-        shutil.copyfile(pxe_file, pxe_dest)
+        print "Copying vmlinuz and initrd.img from cdrom"
+        m_cmd = ('mount -t iso9660 -v -o loop,ro %s %s' %
+                 (self.cdrom_cd1, self.cdrom_cd1_mount))
+        run(m_cmd, info='Could not mount CD image %s.' % self.cdrom_cd1)
 
         try:
-            m_cmd = ('mount -t iso9660 -v -o loop,ro %s %s' %
-                     (self.cdrom_cd1, self.cdrom_cd1_mount))
-            run(m_cmd, info='Could not mount CD image %s.' % self.cdrom_cd1)
-
-            pxe_dir = os.path.join(self.cdrom_cd1_mount, self.pxe_dir)
-            pxe_image = os.path.join(pxe_dir, self.pxe_image)
-            pxe_initrd = os.path.join(pxe_dir, self.pxe_initrd)
-
-            if not os.path.isdir(pxe_dir):
-                raise SetupError('The ISO image does not have a %s dir. The '
-                                 'script assumes that the cd has a %s dir '
-                                 'where to search for the vmlinuz image.' %
-                                 (self.pxe_dir, self.pxe_dir))
-
-            if not os.path.isfile(pxe_image) or not os.path.isfile(pxe_initrd):
-                raise SetupError('The location %s is lacking either a vmlinuz '
-                                 'or a initrd.img file. Cannot find a PXE '
-                                 'image to proceed.' % self.pxe_dir)
-
-            tftp_image = os.path.join(self.tftp, 'vmlinuz')
-            tftp_initrd = os.path.join(self.tftp, 'initrd.img')
-            shutil.copyfile(pxe_image, tftp_image)
-            shutil.copyfile(pxe_initrd, tftp_initrd)
-
+            img_path_cmd = ("mkdir -p %s" % self.image_path)
+            run(img_path_cmd, info=("Could not create image path dir %s" %
+                                    self.image_path))
+            kernel_fetch_cmd = ("cp %s/%s/%s %s" %
+                                (self.cdrom_cd1_mount, self.boot_path,
+                                 os.path.basename(self.kernel), self.kernel))
+            run(kernel_fetch_cmd, info=("Could not copy the vmlinuz from %s" %
+                                        self.cdrom_cd1_mount))
+            initrd_fetch_cmd = ("cp %s/%s/%s %s" %
+                                (self.cdrom_cd1_mount, self.boot_path,
+                                 os.path.basename(self.initrd), self.initrd))
+            run(initrd_fetch_cmd, info=("Could not copy the initrd.img from "
+                                        "%s" % self.cdrom_cd1_mount))
         finally:
             cleanup(self.cdrom_cd1_mount)
-
-        pxe_config_dir = os.path.join(self.tftp, 'pxelinux.cfg')
-        if not os.path.isdir(pxe_config_dir):
-            os.makedirs(pxe_config_dir)
-        pxe_config_path = os.path.join(pxe_config_dir, 'default')
-
-        pxe_config = open(pxe_config_path, 'w')
-        pxe_config.write('DEFAULT pxeboot\n')
-        pxe_config.write('TIMEOUT 20\n')
-        pxe_config.write('PROMPT 0\n')
-        pxe_config.write('LABEL pxeboot\n')
-        pxe_config.write('     KERNEL vmlinuz\n')
-        pxe_config.write('     APPEND initrd=initrd.img %s\n' %
-                         self.kernel_args)
-        pxe_config.close()
-
-        print "PXE boot successfuly set"
 
 
     def setup_url(self):
         """
         Download the vmlinuz and initrd.img from URL.
         """
-        print "Downloading the vmlinuz and initrd.img"
+        print "Downloading vmlinuz and initrd.img from URL"
         os.chdir(self.image_path)
 
-        kernel_fetch_cmd = "wget -q %s/isolinux/%s" % (self.url, self.kernel)
-        initrd_fetch_cmd = "wget -q %s/isolinux/%s" % (self.url, self.initrd)
+        kernel_fetch_cmd = "wget -q %s/%s/%s" % (self.url, self.boot_path,
+                                                 os.path.basename(self.kernel))
+        initrd_fetch_cmd = "wget -q %s/%s/%s" % (self.url, self.boot_path,
+                                                 os.path.basename(self.initrd))
 
         if os.path.exists(self.kernel):
             os.unlink(self.kernel)
@@ -526,7 +473,6 @@ class UnattendedInstall(object):
         run(kernel_fetch_cmd, info="Could not fetch vmlinuz from %s" % self.url)
         run(initrd_fetch_cmd, info=("Could not fetch initrd.img from %s" %
                                     self.url))
-        print "Download of vmlinuz and initrd.img finished"
 
 
     def setup_nfs(self):
@@ -540,12 +486,14 @@ class UnattendedInstall(object):
         run(m_cmd, info='Could not mount nfs server')
 
         try:
-            kernel_fetch_cmd = ("cp %s/isolinux/%s %s" %
-                                (self.nfs_mount, self.kernel, self.image_path))
+            kernel_fetch_cmd = ("cp %s/%s/%s %s" %
+                                (self.nfs_mount, self.boot_path,
+                                 self.kernel, self.image_path))
             run(kernel_fetch_cmd, info=("Could not copy the vmlinuz from %s" %
                                         self.nfs_mount))
-            initrd_fetch_cmd = ("cp %s/isolinux/%s %s" %
-                                (self.nfs_mount, self.initrd, self.image_path))
+            initrd_fetch_cmd = ("cp %s/%s/%s %s" %
+                                (self.nfs_mount, self.boot_path,
+                                 self.initrd, self.image_path))
             run(initrd_fetch_cmd, info=("Could not copy the initrd.img from "
                                         "%s" % self.nfs_mount))
         finally:
@@ -572,8 +520,8 @@ class UnattendedInstall(object):
         if self.unattended_file and (self.floppy or self.cdrom_unattended):
             self.setup_boot_disk()
         if self.medium == "cdrom":
-            if self.tftp:
-                self.setup_pxe_boot()
+            if self.kernel and self.initrd:
+                self.setup_cdrom()
         elif self.medium == "url":
             self.setup_url()
         elif self.medium == "nfs":
