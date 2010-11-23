@@ -24,13 +24,13 @@ def run_file_transfer(test, params, env):
     if not session:
         raise error.TestFail("Could not log into guest '%s'" % vm.name)
 
-    dir = test.tmpdir
+    dir_name = test.tmpdir
     transfer_timeout = int(params.get("transfer_timeout"))
     transfer_type = params.get("transfer_type")
     tmp_dir = params.get("tmp_dir", "/tmp/")
     clean_cmd = params.get("clean_cmd", "rm -f")
     filesize = int(params.get("filesize", 4000))
-    cmd = "dd if=/dev/urandom of=%s/a.out bs=1M count=%d" % (dir, filesize)
+    cmd = "dd if=/dev/urandom of=%s/a.out bs=1M count=%d" % (dir_name, filesize)
     guest_path = tmp_dir + "b.out"
 
     try:
@@ -41,7 +41,7 @@ def run_file_transfer(test, params, env):
             logging.info("Transfering file host -> guest, timeout: %ss",
                          transfer_timeout)
             t_begin = time.time()
-            success = vm.copy_files_to("%s/a.out" % dir, guest_path,
+            success = vm.copy_files_to("%s/a.out" % dir_name, guest_path,
                                        timeout=transfer_timeout)
             t_end = time.time()
             throughput = filesize / (t_end - t_begin)
@@ -53,7 +53,7 @@ def run_file_transfer(test, params, env):
             logging.info("Transfering file guest -> host, timeout: %ss",
                          transfer_timeout)
             t_begin = time.time()
-            success = vm.copy_files_from(guest_path, "%s/c.out" % dir,
+            success = vm.copy_files_from(guest_path, "%s/c.out" % dir_name,
                                          timeout=transfer_timeout)
             t_end = time.time()
             throughput = filesize / (t_end - t_begin)
@@ -66,12 +66,12 @@ def run_file_transfer(test, params, env):
                                   transfer_type)
 
         for f in ['a.out', 'c.out']:
-            p = os.path.join(dir, f)
+            p = os.path.join(dir_name, f)
             size = os.path.getsize(p)
             logging.debug('Size of %s: %sB', f, size)
 
-        md5_orig = utils.hash_file("%s/a.out" % dir, method="md5")
-        md5_new = utils.hash_file("%s/c.out" % dir, method="md5")
+        md5_orig = utils.hash_file("%s/a.out" % dir_name, method="md5")
+        md5_new = utils.hash_file("%s/c.out" % dir_name, method="md5")
 
         if md5_orig != md5_new:
             raise error.TestFail("File changed after transfer host -> guest "
@@ -86,8 +86,8 @@ def run_file_transfer(test, params, env):
                             guest_path, o)
         logging.info('Cleaning temp files on host')
         try:
-            os.remove('%s/a.out' % dir)
-            os.remove('%s/c.out' % dir)
+            os.remove('%s/a.out' % dir_name)
+            os.remove('%s/c.out' % dir_name)
         except OSError:
             pass
         session.close()
