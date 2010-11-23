@@ -18,8 +18,10 @@ include cdkeys.cfg
 image_name(_.*)? ?<= /tmp/kvm_autotest_root/images/
 cdrom(_.*)? ?<= /tmp/kvm_autotest_root/
 floppy ?<= /tmp/kvm_autotest_root/
-kernel ?<= /tmp/kvm_autotest_root/
-initrd ?<= /tmp/kvm_autotest_root/
+Linux:
+    unattended_install:
+        kernel ?<= /tmp/kvm_autotest_root/
+        initrd ?<= /tmp/kvm_autotest_root/
 
 # Here are the test sets variants. The variant 'qemu_kvm_windows_quick' is
 # fully commented, the following ones have comments only on noteworthy points
