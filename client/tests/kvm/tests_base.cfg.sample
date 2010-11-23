@@ -1538,7 +1538,7 @@ variants:
             timeout = 7200
             finish_program = deps/finish.exe
             cdroms += " winutils"
-            cdrom_winutils = windows/winutils.iso
+            cdrom_winutils = isos/windows/winutils.iso
             drive_index_winutils = 2
             kernel =
             initrd =
@@ -1546,7 +1546,7 @@ variants:
             # Windows virtio drivers. It might be a lot of setup though :)
             #install_virtio = no
             #cdroms += " virtio"
-            #cdrom_virtio = windows/virtio-win.iso
+            #cdrom_virtio = isos/windows/virtio-win.iso
             #drive_index_virtio = 3
             #virtio_floppy = /usr/share/virtio-win/virtio-drivers.vfd
         migrate:
