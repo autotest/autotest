@@ -85,6 +85,9 @@ def run_file_transfer(test, params, env):
             logging.warning("Failed to clean remote file %s, output:%s",
                             guest_path, o)
         logging.info('Cleaning temp files on host')
-        os.remove('%s/a.out' % dir)
-        os.remove('%s/c.out' % dir)
+        try:
+            os.remove('%s/a.out' % dir)
+            os.remove('%s/c.out' % dir)
+        except OSError:
+            pass
         session.close()
