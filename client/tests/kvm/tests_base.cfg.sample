@@ -1528,7 +1528,7 @@ variants:
         guest_port_file_transfer = 10023
 
         # This ISO will be used for all tests except install:
-        cdrom_cd1 = windows/winutils.iso
+        cdrom_cd1 = isos/windows/winutils.iso
 
         cpu_chk_cmd = echo %NUMBER_OF_PROCESSORS%
         mem_chk_cmd = wmic memphysical
