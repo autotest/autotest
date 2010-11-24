@@ -986,6 +986,9 @@ class base_server_job(base_job.base_job):
         namespace['autotest'].Autotest.job = self
         # server.hosts.base_classes.Host uses .job.
         namespace['hosts'].Host.job = self
+        namespace['hosts'].factory.ssh_user = self._ssh_user
+        namespace['hosts'].factory.ssh_port = self._ssh_port
+        namespace['hosts'].factory.ssh_pass = self._ssh_pass
 
 
     def _execute_code(self, code_file, namespace, protect=True):
