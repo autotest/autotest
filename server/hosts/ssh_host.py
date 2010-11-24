@@ -38,17 +38,14 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
     implement the unimplemented methods in parent classes.
     """
 
-    def _initialize(self, hostname, user="root", port=22, password="",
-                    *args, **dargs):
+    def _initialize(self, hostname, *args, **dargs):
         """
         Construct a SSHHost object
 
         Args:
                 hostname: network hostname or address of remote machine
         """
-        super(SSHHost, self)._initialize(hostname=hostname, user=user,
-                                         port=port, password=password,
-                                         *args, **dargs)
+        super(SSHHost, self)._initialize(hostname=hostname, *args, **dargs)
         self.setup_ssh()
 
 

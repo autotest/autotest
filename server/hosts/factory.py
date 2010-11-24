@@ -68,6 +68,10 @@ def create_host(
     site_factory.postprocess_classes(classes, hostname,
                                      auto_monitor=auto_monitor, **args)
 
+    args['user'] = ssh_user
+    args['port'] = ssh_port
+    args['password'] = ssh_pass
+
     # create a custom host class for this machine and return an instance of it
     host_class = type("%s_host" % hostname, tuple(classes), {})
     host_instance = host_class(hostname, **args)
