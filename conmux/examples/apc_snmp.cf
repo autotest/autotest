@@ -1,0 +1,4 @@
+listener localhost/ts63
+socket console 'console' 'localhost:13467'
+command 'config' 'Show conmux configuration' 'cat /usr/local/conmux/etc/apc_snmp.cf'
+command 'hardreset' 'initiated a hard reset' 'fence_apc_snmp.py -a pdu.xx.com -n 11 -l root'
