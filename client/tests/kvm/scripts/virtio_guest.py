@@ -248,7 +248,7 @@ class VirtioGuest:
                         print os.system("stty -F %s raw -echo" % (name))
                         print os.system("stty -F %s -a" % (name))
                     f.append(self.files[name])
-                except Exception as inst:
+                except Exception, inst:
                     print "FAIL: Failed to open file %s" % (name)
                     raise inst
         return f
@@ -316,12 +316,14 @@ class VirtioGuest:
             else:
                 fcntl.fcntl(fd, fcntl.F_SETFL, fl & ~os.O_NONBLOCK)
 
-        except Exception as inst:
+        except Exception, inst:
             print "FAIL: Setting (non)blocking mode: " + str(inst)
             return
 
-        print ("PASS: set blocking mode to %s mode" %
-               ("blocking" if mode else "nonblocking"))
+        if mode:
+            print "PASS: set to blocking mode"
+        else:
+            print "PASS: set to nonblocking mode"
 
 
     def close(self, file):
@@ -339,7 +341,7 @@ class VirtioGuest:
             if descriptor != None:
                 try:
                     os.close(descriptor)
-                except Exception as inst:
+                except Exception, inst:
                     print "FAIL: Closing the file: " + str(inst)
                     return
         print "PASS: Close"
@@ -359,7 +361,7 @@ class VirtioGuest:
                 print os.system("stty -F %s raw -echo" % (name))
                 print os.system("stty -F %s -a" % (name))
             print "PASS: Open all filles correctly."
-        except Exception as inst:
+        except Exception, inst:
             print "%s\nFAIL: Failed open file %s" % (str(inst), name)
 
 
@@ -443,7 +445,7 @@ class VirtioGuest:
             data += "%c" % random.randrange(255)
         try:
             writes = os.write(in_f[0], data)
-        except Exception as inst:
+        except Exception, inst:
             print inst
         if not writes:
             writes = 0
@@ -451,7 +453,7 @@ class VirtioGuest:
             while (writes < length):
                 try:
                     writes += os.write(in_f[0], data)
-                except Exception as inst:
+                except Exception, inst:
                     print inst
         if writes >= length:
             print "PASS: Send data length %d" % writes
@@ -473,13 +475,13 @@ class VirtioGuest:
         recvs = ""
         try:
             recvs = os.read(in_f[0], buffer)
-        except Exception as inst:
+        except Exception, inst:
             print inst
         if mode:
             while (len(recvs) < length):
                 try:
                     recvs += os.read(in_f[0], buffer)
-                except Exception as inst:
+                except Exception, inst:
                     print inst
         if len(recvs) >= length:
             print "PASS: Recv data length %d" % len(recvs)
