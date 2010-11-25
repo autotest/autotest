@@ -3,35 +3,23 @@
 """
 Auxiliary script used to send data between ports on guests.
 
-@copyright: 2008-2009 Red Hat Inc.
+@copyright: 2010 Red Hat, Inc.
 @author: Jiri Zupka (jzupka@redhat.com)
 @author: Lukas Doktor (ldoktor@redhat.com)
 """
-#from _pydev_SimpleXMLRPCServer import fcntl
-
-"""
-TODO:
-virt.init([consoles])   # sysfs, udev, OK
-virt.open(name)
-virt.close(name)
-virt.poll(name, eventmask, timeout) # poll.register(), poll.poll(),
-return event
-virt.send(name, length) # host disconnected
-virt.recv(name, length) # host disconnected
-virt.blocking(name, true)   # true = blocking, false = nonblocking
-virt.loopback(in_names, out_names, type="None")  # use select/poll
-"""
-
 import threading
 from threading import Thread
-import os, time, select, re, random, sys, array, fcntl, array, subprocess
+import os, time, select, re, random, sys, array
+import fcntl, array, subprocess, traceback
 
 DEBUGPATH = "/sys/kernel/debug"
 SYSFSPATH = "/sys/class/virtio-ports/"
 
 
-class virtio_guest():
-
+class VirtioGuest:
+    """
+    Test tools of virtio_ports.
+    """
     LOOP_NONE = 0
     LOOP_POLL = 1
     LOOP_SELECT = 2
@@ -125,7 +113,7 @@ class virtio_guest():
         print "PASS: Init and check virtioconsole files in system."
 
 
-    class switch(Thread):
+    class Switch(Thread):
         """
         Thread that sends data between ports.
         """
@@ -137,7 +125,7 @@ class virtio_guest():
             @param method: Method of read/write access.
             @param cachesize: Block to receive and send.
             """
-            Thread.__init__(self)
+            Thread.__init__(self, name="Switch")
 
             self.in_files = in_files
             self.out_files = out_files
@@ -211,15 +199,15 @@ class virtio_guest():
 
 
         def run(self):
-            if (self.method == virtio_guest.LOOP_POLL):
+            if (self.method == VirtioGuest.LOOP_POLL):
                 self._poll_mode()
-            elif (self.method == virtio_guest.LOOP_SELECT):
+            elif (self.method == VirtioGuest.LOOP_SELECT):
                 self._select_mode()
             else:
                 self._none_mode()
 
 
-    class sender(Thread):
+    class Sender(Thread):
         """
         Creates a thread which sends random blocks of data to dst port.
         """
@@ -228,7 +216,7 @@ class virtio_guest():
             @param port: Destination port
             @param length: Length of the random data block
             """
-            Thread.__init__(self)
+            Thread.__init__(self, name="Sender")
             self.port = port
             self.exit_thread = event
             self.data = array.array('L')
@@ -296,7 +284,20 @@ class virtio_guest():
         if (mask[0][1] & expected) == expected:
             print "PASS: Events: " + str
         else:
-            print "FAIL: Events: " + str
+            estr = ""
+            if (expected & select.POLLIN):
+                estr += "IN "
+            if (expected & select.POLLPRI):
+                estr += "PRI IN "
+            if (expected & select.POLLOUT):
+                estr += "OUT "
+            if (expected & select.POLLERR):
+                estr += "ERR "
+            if (expected & select.POLLHUP):
+                estr += "HUP "
+            if (expected & select.POLLMSG):
+                estr += "MSG "
+            print "FAIL: Events: " + str + "  Expected: " + estr
 
 
     def blocking(self, port, mode=False):
@@ -306,8 +307,7 @@ class virtio_guest():
         @param port: port to set mode
         @param mode: False to set nonblock mode, True for block mode
         """
-        path = self.ports[port]["path"]
-        fd = self.files[path]
+        fd = self._open([port])[0]
 
         try:
             fl = fcntl.fcntl(fd, fcntl.F_GETFL)
@@ -336,24 +336,28 @@ class virtio_guest():
             if path in self.files.keys():
                 descriptor = self.files[path]
                 del self.files[path]
-        try:
-            os.close(descriptor)
-        except Exception as inst:
-            print "FAIL: Closing the file: " + str(inst)
-            return
+            if descriptor != None:
+                try:
+                    os.close(descriptor)
+                except Exception as inst:
+                    print "FAIL: Closing the file: " + str(inst)
+                    return
         print "PASS: Close"
 
 
-    def open(self, in_files):
+    def open(self, in_file):
         """
         Direct open devices.
 
-        @param in_files: Array of files.
+        @param in_file: Array of files.
         @return: Array of descriptors.
         """
-        name = self.ports[in_files]["path"]
+        name = self.ports[in_file]["path"]
         try:
             self.files[name] = os.open(name, os.O_RDWR)
+            if (self.ports[in_file]["is_console"] == "yes"):
+                print os.system("stty -F %s raw -echo" % (name))
+                print os.system("stty -F %s -a" % (name))
             print "PASS: Open all filles correctly."
         except Exception as inst:
             print "%s\nFAIL: Failed open file %s" % (str(inst), name)
@@ -374,7 +378,7 @@ class virtio_guest():
         in_f = self._open(in_files)
         out_f = self._open(out_files)
 
-        s = self.switch(in_f, out_f, self.exit_thread, cachesize, mode)
+        s = self.Switch(in_f, out_f, self.exit_thread, cachesize, mode)
         s.start()
         self.threads.append(s)
         print "PASS: Start switch"
@@ -412,7 +416,7 @@ class virtio_guest():
         self.ports = self._get_port_status()
         in_f = self._open([port])
 
-        self.threads.append(self.sender(in_f[0], self.exit_thread, length))
+        self.threads.append(self.Sender(in_f[0], self.exit_thread, length))
         print "PASS: Sender prepare"
 
 
@@ -484,6 +488,28 @@ class virtio_guest():
                    (length, len(recvs)))
 
 
+    def clean_port(self, port, buffer=1024):
+        in_f = self._open([port])
+        ret = select.select([in_f[0]], [], [], 1.0)
+        buf = ""
+        if ret[0]:
+            buf = os.read(in_f[0], buffer)
+        print ("PASS: Rest in socket: " + buf)
+
+
+def is_alive():
+    """
+    Check is only main thread is alive and if guest react.
+    """
+    if threading.activeCount() == 1:
+        print ("PASS: Guest is ok no thread alive")
+    else:
+        threads = ""
+        for thread in threading.enumerate():
+            threads += thread.name + ", "
+        print ("FAIL: On guest run thread. Active thread:" + threads)
+
+
 def compile():
     """
     Compile virtio_guest.py to speed up.
@@ -501,12 +527,19 @@ def main():
     if (len(sys.argv) > 1) and (sys.argv[1] == "-c"):
         compile()
 
-    virt = virtio_guest()
+    virt = VirtioGuest()
     print "PASS: Start"
 
     while True:
         str = raw_input()
-        exec str
+        try:
+            exec str
+        except:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print "On Guest exception from: \n" + "".join(
+                                    traceback.format_exception(exc_type,
+                                                               exc_value,
+                                                               exc_traceback))
 
 
 if __name__ == "__main__":
