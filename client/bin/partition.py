@@ -185,7 +185,7 @@ def get_mount_info(partition_list):
     mount_info = set()
     for p in partition_list:
         try:
-            uuid = utils.system_output('blkid -s UUID -o value %s' % p.device)
+            uuid = utils.system_output('blkid -p -s UUID -o value %s' % p.device)
         except error.CmdError:
             # fall back to using the partition
             uuid = p.device
