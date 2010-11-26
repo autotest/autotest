@@ -537,6 +537,17 @@ variants:
         filesize = 512
         nic_mode = tap
 
+    - nic_bonding:
+        type = nic_bonding
+        nics += ' nic2 nic3 nic4'
+        image_snapshot = yes
+        serial_login = yes
+        test_timeout = 1000
+        filesize = 4000
+        transfer_timeout = 1000
+        transfer_type = remote
+        kill_vm = yes
+
     - physical_resources_check: install setup unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
