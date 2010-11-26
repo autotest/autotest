@@ -1,7 +1,6 @@
 #!/usr/bin/python -u
 
-import base64, sys
-
+import sys
 import common
 from autotest_lib.cli import atest
 
