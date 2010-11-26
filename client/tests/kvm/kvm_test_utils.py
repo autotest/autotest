@@ -21,7 +21,7 @@ More specifically:
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, re, commands, signal
+import time, os, logging, re, commands, signal, threading
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 import kvm_utils, kvm_vm, kvm_subprocess, scan_results
@@ -562,6 +562,53 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
             e_msg = ("Tests %s failed during control file execution" %
                      " ".join(bad_results))
         raise error.TestFail(e_msg)
+
+
+class BackgroundTest(object):
+    """
+    This class would run a test in background through a dedicated thread.
+    """
+
+    def __init__(self, func, params):
+        """
+        Initialize the object and set a few attributes.
+        """
+        self.thread = threading.Thread(target=self.launch,
+                                       args=(func, params))
+        self.exception = None
+
+
+    def launch(self, func, params):
+        """
+        Catch and record the exception.
+        """
+        try:
+            func(*params)
+        except Exception, e:
+            self.exception = e
+
+
+    def start(self):
+        """
+        Run func(params) in a dedicated thread
+        """
+        self.thread.start()
+
+
+    def join(self):
+        """
+        Wait for the join of thread and raise its exception if any.
+        """
+        self.thread.join()
+        if self.exception:
+            raise self.exception
+
+
+    def is_alive(self):
+        """
+        Check whether the test is still alive.
+        """
+        return self.thread.is_alive()
 
 
 def get_loss_ratio(output):
