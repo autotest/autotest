@@ -152,6 +152,9 @@ variants:
             - with_reboot:
                 iterations = 1
                 type = migration_with_reboot
+            - with_file_transfer:
+                iterations = 1
+                type = migration_with_file_transfer
 
     - boot_savevm: install setup unattended_install.cdrom
         type = boot_savevm
@@ -1570,6 +1573,10 @@ variants:
             migration_bg_command = start ping -t localhost
             migration_bg_check_command = tasklist | find /I "ping.exe"
             migration_bg_kill_command = taskkill /IM ping.exe /F
+        migrate_with_file_transfer:
+            guest_path = C:\
+            rtl8139:
+                file_size = 10
         stress_boot:
             alive_test_cmd = systeminfo
         timedrift:
