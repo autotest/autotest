@@ -548,19 +548,32 @@ def run_virtio_console(test, params, env):
         tmp_dir = tempfile.mkdtemp(prefix="virtio-console-", dir="/tmp/")
         if not params.get('extra_params'):
             params['extra_params'] = ''
-        params['extra_params'] += " -device virtio-serial"
 
-        for i in  range(0, no_console):
+        for i in range(0, no_console):
+            # Spread consoles between multiple PCI devices (2 per a dev)
+            if not i % 2:
+                pci = "virtio-serial-pci%d" % (i / 2)
+                params['extra_params'] += (" -device virtio-serial-pci,id="
+                                           + pci)
+                pci += ".0"
             params['extra_params'] += (" -chardev socket,path=%s/%d,id=vc%d,"
                                        "server,nowait" % (tmp_dir, i, i))
             params['extra_params'] += (" -device virtconsole,chardev=vc%d,"
-                                      "name=console-%d,id=c%d" % (i, i, i))
+                                      "name=console-%d,id=c%d,bus=%s"
+                                      % (i, i, i, pci))
 
         for i in  range(no_console, no_console + no_serialport):
+            # Spread seroal ports between multiple PCI devices (2 per a dev)
+            if not i % 2:
+                pci = "virtio-serial-pci%d" % (i / 2)
+                params['extra_params'] += (" -device virtio-serial-pci,id="
+                                           + pci)
+                pci += ".0"
             params['extra_params'] += (" -chardev socket,path=%s/%d,id=vs%d,"
                                        "server,nowait" % (tmp_dir, i, i))
             params['extra_params'] += (" -device virtserialport,chardev=vs%d,"
-                                       "name=serialport-%d,id=p%d" % (i, i, i))
+                                       "name=serialport-%d,id=p%d,bus=%s"
+                                       % (i, i, i, pci))
 
         logging.debug("Booting first guest %s", params.get("main_vm"))
         kvm_preprocessing.preprocess_vm(test, params, env,
