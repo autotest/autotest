@@ -147,6 +147,11 @@ variants:
             - mig_cancel:
                 migration_protocol = "tcp"
                 mig_cancel = True
+        variants:
+            - @default:
+            - with_reboot:
+                iterations = 1
+                type = migration_with_reboot
 
     - boot_savevm: install setup unattended_install.cdrom
         type = boot_savevm
