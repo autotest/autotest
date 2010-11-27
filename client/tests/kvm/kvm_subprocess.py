@@ -292,12 +292,12 @@ def run_bg(command, termination_func=None, output_func=None, output_prefix="",
     @param timeout: Time duration (in seconds) to wait for the subprocess to
             terminate before returning
 
-    @return: A kvm_tail object.
+    @return: A Tail object.
     """
-    process = kvm_tail(command=command,
-                       termination_func=termination_func,
-                       output_func=output_func,
-                       output_prefix=output_prefix)
+    process = Tail(command=command,
+                   termination_func=termination_func,
+                   output_func=output_func,
+                   output_prefix=output_prefix)
 
     end_time = time.time() + timeout
     while time.time() < end_time and process.is_alive():
@@ -338,7 +338,7 @@ def run_fg(command, output_func=None, output_prefix="", timeout=1.0):
     return (status, output)
 
 
-class kvm_spawn:
+class Spawn:
     """
     This class is used for spawning and controlling a child process.
 
@@ -350,7 +350,7 @@ class kvm_spawn:
     The text file can be accessed at any time using get_output().
     In addition, the server opens as many pipes as requested by the client and
     writes the output to them.
-    The pipes are requested and accessed by classes derived from kvm_spawn.
+    The pipes are requested and accessed by classes derived from Spawn.
     These pipes are referred to as "readers".
     The server also receives input from the client and sends it to the child
     process.
@@ -634,7 +634,7 @@ _thread_kill_requested = False
 
 def kill_tail_threads():
     """
-    Kill all kvm_tail threads.
+    Kill all Tail threads.
 
     After calling this function no new threads should be started.
     """
@@ -646,12 +646,12 @@ def kill_tail_threads():
     _thread_kill_requested = False
 
 
-class kvm_tail(kvm_spawn):
+class Tail(Spawn):
     """
     This class runs a child process in the background and sends its output in
     real time, line-by-line, to a callback function.
 
-    See kvm_spawn's docstring.
+    See Spawn's docstring.
 
     This class uses a single pipe reader to read data in real time from the
     child process and report it to a given callback function.
@@ -692,10 +692,10 @@ class kvm_tail(kvm_spawn):
         """
         # Add a reader and a close hook
         self._add_reader("tail")
-        self._add_close_hook(kvm_tail._join_thread)
+        self._add_close_hook(Tail._join_thread)
 
         # Init the superclass
-        kvm_spawn.__init__(self, command, id, auto_close, echo, linesep)
+        Spawn.__init__(self, command, id, auto_close, echo, linesep)
 
         # Remember some attributes
         self.termination_func = termination_func
@@ -711,11 +711,11 @@ class kvm_tail(kvm_spawn):
 
 
     def __getinitargs__(self):
-        return kvm_spawn.__getinitargs__(self) + (self.termination_func,
-                                                  self.termination_params,
-                                                  self.output_func,
-                                                  self.output_params,
-                                                  self.output_prefix)
+        return Spawn.__getinitargs__(self) + (self.termination_func,
+                                              self.termination_params,
+                                              self.output_func,
+                                              self.output_params,
+                                              self.output_prefix)
 
 
     def set_termination_func(self, termination_func):
@@ -847,12 +847,12 @@ class kvm_tail(kvm_spawn):
             t.join()
 
 
-class kvm_expect(kvm_tail):
+class Expect(Tail):
     """
     This class runs a child process in the background and provides expect-like
     services.
 
-    It also provides all of kvm_tail's functionality.
+    It also provides all of Tail's functionality.
     """
 
     def __init__(self, command=None, id=None, auto_close=True, echo=False,
@@ -888,13 +888,13 @@ class kvm_expect(kvm_tail):
         self._add_reader("expect")
 
         # Init the superclass
-        kvm_tail.__init__(self, command, id, auto_close, echo, linesep,
-                          termination_func, termination_params,
-                          output_func, output_params, output_prefix)
+        Tail.__init__(self, command, id, auto_close, echo, linesep,
+                      termination_func, termination_params,
+                      output_func, output_params, output_prefix)
 
 
     def __getinitargs__(self):
-        return kvm_tail.__getinitargs__(self)
+        return Tail.__getinitargs__(self)
 
 
     def read_nonblocking(self, timeout=None):
@@ -1061,12 +1061,12 @@ class kvm_expect(kvm_tail):
                                               print_func)
 
 
-class kvm_shell_session(kvm_expect):
+class ShellSession(Expect):
     """
     This class runs a child process in the background.  It it suited for
     processes that provide an interactive shell, such as SSH and Telnet.
 
-    It provides all services of kvm_expect and kvm_tail.  In addition, it
+    It provides all services of Expect and Tail.  In addition, it
     provides command running services, and a utility function to test the
     process for responsiveness.
     """
@@ -1106,9 +1106,9 @@ class kvm_shell_session(kvm_expect):
                 cmd_status_output() and friends).
         """
         # Init the superclass
-        kvm_expect.__init__(self, command, id, auto_close, echo, linesep,
-                            termination_func, termination_params,
-                            output_func, output_params, output_prefix)
+        Expect.__init__(self, command, id, auto_close, echo, linesep,
+                        termination_func, termination_params,
+                        output_func, output_params, output_prefix)
 
         # Remember some attributes
         self.prompt = prompt
@@ -1116,8 +1116,8 @@ class kvm_shell_session(kvm_expect):
 
 
     def __getinitargs__(self):
-        return kvm_expect.__getinitargs__(self) + (self.prompt,
-                                                   self.status_test_command)
+        return Expect.__getinitargs__(self) + (self.prompt,
+                                               self.status_test_command)
 
 
     def set_prompt(self, prompt):
