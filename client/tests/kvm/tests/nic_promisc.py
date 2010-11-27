@@ -50,7 +50,7 @@ def run_nic_promisc(test, params, env):
                                "ip link set %s promisc off; sleep 0.01" %
                                (ethname, ethname))
             while True:
-                self.session.get_command_output(set_promisc_cmd)
+                self.session.cmd_output(set_promisc_cmd)
                 if self.termination_event.isSet():
                     break
 
@@ -95,14 +95,14 @@ def run_nic_promisc(test, params, env):
             logging.info("Clean temporary files")
             cmd = "rm -f %s" % filename
             utils.run(cmd)
-            session.get_command_output(cmd)
+            session.cmd_output(cmd)
 
     finally:
         logging.info("Stopping the promisc thread")
         termination_event.set()
         promisc_thread.join(10)
         logging.info("Restore the %s to the nonpromisc mode", ethname)
-        session.get_command_output("ip link set %s promisc off" % ethname)
+        session.cmd_output("ip link set %s promisc off" % ethname)
         session.close()
 
     if success_counter != 2 * len(file_size):

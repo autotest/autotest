@@ -1103,7 +1103,7 @@ class kvm_shell_session(kvm_expect):
         @param prompt: Regular expression describing the shell's prompt line.
         @param status_test_command: Command to be used for getting the last
                 exit status of commands run inside the shell (used by
-                get_command_status_output() and friends).
+                cmd_status_output() and friends).
         """
         # Init the superclass
         kvm_expect.__init__(self, command, id, auto_close, echo, linesep,
@@ -1193,8 +1193,8 @@ class kvm_shell_session(kvm_expect):
         return o
 
 
-    def get_command_output(self, cmd, timeout=30.0, internal_timeout=None,
-                           print_func=None):
+    def cmd_output(self, cmd, timeout=30.0, internal_timeout=None,
+                   print_func=None):
         """
         Send a command and return its output.
 
@@ -1237,8 +1237,8 @@ class kvm_shell_session(kvm_expect):
         return remove_last_nonempty_line(remove_command_echo(o, cmd))
 
 
-    def get_command_status_output(self, cmd, timeout=30.0,
-                                  internal_timeout=None, print_func=None):
+    def cmd_status_output(self, cmd, timeout=30.0, internal_timeout=None,
+                          print_func=None):
         """
         Send a command and return its exit status and output.
 
@@ -1257,11 +1257,10 @@ class kvm_shell_session(kvm_expect):
         @raise ShellStatusError: Raised if the exit status cannot be obtained
         @raise ShellError: Raised if an unknown error occurs
         """
-        o = self.get_command_output(cmd, timeout, internal_timeout, print_func)
+        o = self.cmd_output(cmd, timeout, internal_timeout, print_func)
         try:
             # Send the 'echo $?' (or equivalent) command to get the exit status
-            s = self.get_command_output(self.status_test_command, 10,
-                                        internal_timeout)
+            s = self.cmd_output(self.status_test_command, 10, internal_timeout)
         except ShellError:
             raise ShellStatusError(cmd, o)
 
@@ -1273,8 +1272,8 @@ class kvm_shell_session(kvm_expect):
             raise ShellStatusError(cmd, o)
 
 
-    def get_command_status(self, cmd, timeout=30.0, internal_timeout=None,
-                           print_func=None):
+    def cmd_status(self, cmd, timeout=30.0, internal_timeout=None,
+                   print_func=None):
         """
         Send a command and return its exit status.
 
@@ -1292,8 +1291,8 @@ class kvm_shell_session(kvm_expect):
         @raise ShellStatusError: Raised if the exit status cannot be obtained
         @raise ShellError: Raised if an unknown error occurs
         """
-        s, o = self.get_command_status_output(cmd, timeout, internal_timeout,
-                                              print_func)
+        s, o = self.cmd_status_output(cmd, timeout, internal_timeout,
+                                      print_func)
         return s
 
 
@@ -1319,8 +1318,8 @@ class kvm_shell_session(kvm_expect):
         @raise ShellError: Raised if an unknown error occurs
         @raise ShellCmdError: Raised if the exit status is nonzero
         """
-        s, o = self.get_command_status_output(cmd, timeout, internal_timeout,
-                                              print_func)
+        s, o = self.cmd_status_output(cmd, timeout, internal_timeout,
+                                      print_func)
         if s != 0:
             raise ShellCmdError(cmd, s, o)
         return o

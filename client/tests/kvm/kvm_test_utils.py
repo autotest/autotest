@@ -264,7 +264,7 @@ def stop_windows_service(session, service, timeout=120):
     """
     end_time = time.time() + timeout
     while time.time() < end_time:
-        o = session.get_command_output("sc stop %s" % service, timeout=60)
+        o = session.cmd_output("sc stop %s" % service, timeout=60)
         # FAILED 1060 means the service isn't installed.
         # FAILED 1062 means the service hasn't been started.
         if re.search(r"\bFAILED (1060|1062)\b", o, re.I):
@@ -286,7 +286,7 @@ def start_windows_service(session, service, timeout=120):
     """
     end_time = time.time() + timeout
     while time.time() < end_time:
-        o = session.get_command_output("sc start %s" % service, timeout=60)
+        o = session.cmd_output("sc start %s" % service, timeout=60)
         # FAILED 1060 means the service isn't installed.
         if re.search(r"\bFAILED 1060\b", o, re.I):
             raise error.TestError("Could not start service '%s' "
@@ -318,7 +318,7 @@ def get_time(session, time_command, time_filter_re, time_format):
     """
     if len(re.findall("ntpdate|w32tm", time_command)) == 0:
         host_time = time.time()
-        s = session.get_command_output(time_command)
+        s = session.cmd_output(time_command)
 
         try:
             s = re.findall(time_filter_re, s)[0]
@@ -410,7 +410,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
         copy = False
         local_hash = utils.hash_file(local_path)
         basename = os.path.basename(local_path)
-        output = session.get_command_output("md5sum %s" % remote_path)
+        output = session.cmd_output("md5sum %s" % remote_path)
         if "such file" in output:
             remote_hash = "0"
         elif output:
@@ -463,7 +463,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
         Get the status of the tests that were executed on the host and close
         the session where autotest was being executed.
         """
-        output = session.get_command_output("cat results/*/status")
+        output = session.cmd_output("cat results/*/status")
         try:
             results = scan_results.parse_results(output)
             # Report test results
@@ -521,8 +521,8 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
     try:
         try:
             logging.info("---------------- Test output ----------------")
-            session.get_command_output("bin/autotest control", timeout=timeout,
-                                       print_func=logging.info)
+            session.cmd_output("bin/autotest control", timeout=timeout,
+                               print_func=logging.info)
         finally:
             logging.info("------------- End of test output ------------")
     except kvm_subprocess.ShellTimeoutError:
@@ -647,8 +647,8 @@ def raw_ping(command, timeout, session, output_func):
         return status, output
     else:
         try:
-            output = session.get_command_output(command, timeout=timeout,
-                                                print_func=output_func)
+            output = session.cmd_output(command, timeout=timeout,
+                                        print_func=output_func)
         except kvm_subprocess.ShellTimeoutError:
             # Send ctrl+c (SIGINT) through ssh session
             session.send("\003")
@@ -730,7 +730,7 @@ def get_linux_ifname(session, mac_address):
     @mac_address: the macaddress of nic
     """
 
-    output = session.get_command_output("ifconfig -a")
+    output = session.cmd_output("ifconfig -a")
 
     try:
         ethname = re.findall("(\w+)\s+Link.*%s" % mac_address, output,

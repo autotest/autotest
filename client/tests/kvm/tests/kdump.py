@@ -34,7 +34,7 @@ def run_kdump(test, params, env):
         @param vcpu: vcpu which is used to trigger a crash
         """
         session = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2)
-        session.get_command_output("rm -rf /var/crash/*")
+        session.cmd_output("rm -rf /var/crash/*")
 
         logging.info("Triggering crash on vcpu %d ...", vcpu)
         crash_cmd = "taskset -c %d echo c > /proc/sysrq-trigger" % vcpu
@@ -51,7 +51,7 @@ def run_kdump(test, params, env):
         session.cmd("ls -R /var/crash | grep vmcore")
         logging.info("Found vmcore.")
 
-        session.get_command_output("rm -rf /var/crash/*")
+        session.cmd_output("rm -rf /var/crash/*")
 
     try:
         logging.info("Checking the existence of crash kernel...")
@@ -59,7 +59,7 @@ def run_kdump(test, params, env):
             session.cmd(crash_kernel_prob_cmd)
         except:
             logging.info("Crash kernel is not loaded. Trying to load it")
-            session.get_command_status_output(kernel_param_cmd)
+            session.cmd(kernel_param_cmd)
             session = kvm_test_utils.reboot(vm, session, timeout=timeout)
 
         logging.info("Enabling kdump service...")

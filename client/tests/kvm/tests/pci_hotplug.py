@@ -32,7 +32,7 @@ def run_pci_hotplug(test, params, env):
     info_pci_ref = vm.monitor.info("pci")
 
     # Get output of command as reference
-    reference = session.get_command_output(params.get("reference_cmd"))
+    reference = session.cmd_output(params.get("reference_cmd"))
 
     tested_model = params.get("pci_model")
     test_type = params.get("pci_type")
@@ -130,7 +130,7 @@ def run_pci_hotplug(test, params, env):
 
         # Define a helper function to compare the output
         def new_shown():
-            o = session.get_command_output(params.get("reference_cmd"))
+            o = session.cmd_output(params.get("reference_cmd"))
             return o != reference
 
         secs = int(params.get("wait_secs_for_hook_up"))
@@ -141,7 +141,7 @@ def run_pci_hotplug(test, params, env):
 
         # Define a helper function to catch PCI device string
         def find_pci():
-            o = session.get_command_output(params.get("find_pci_cmd"))
+            o = session.cmd_output(params.get("find_pci_cmd"))
             return params.get("match_string") in o
 
         if not kvm_utils.wait_for(find_pci, 30, 3, 3):

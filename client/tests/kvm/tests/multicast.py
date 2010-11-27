@@ -56,8 +56,8 @@ def run_multicast(test, params, env):
     mcast_path = os.path.join(test.bindir, "scripts/join_mcast.py")
     if not vm.copy_files_to(mcast_path, "/tmp"):
         raise error.TestError("Fail to copy %s to guest" % mcast_path)
-    output = session.get_command_output("python /tmp/join_mcast.py %d %s %d" %
-                                        (mgroup_count, prefix, suffix))
+    output = session.cmd_output("python /tmp/join_mcast.py %d %s %d" %
+                                (mgroup_count, prefix, suffix))
 
     # if success to join multicast, the process will be paused, and return PID.
     try:
@@ -86,6 +86,6 @@ def run_multicast(test, params, env):
                                      (s, o))
 
     finally:
-        logging.debug(session.get_command_output("ipmaddr show"))
-        session.get_command_output("kill -s SIGCONT %s" % pid)
+        logging.debug(session.cmd_output("ipmaddr show"))
+        session.cmd_output("kill -s SIGCONT %s" % pid)
         session.close()

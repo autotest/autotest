@@ -58,8 +58,7 @@ def run_guest_test(test, params, env):
             session.cmd(rsc_cmd, timeout=test_timeout)
             logging.info("Download resource finished.")
         else:
-            session.get_command_output("del %s" % dst_rsc_path,
-                                       internal_timeout=0)
+            session.cmd_output("del %s" % dst_rsc_path, internal_timeout=0)
             script_path = kvm_utils.get_path(test.bindir, script)
             vm.copy_files_to(script_path, dst_rsc_path, timeout=60)
 

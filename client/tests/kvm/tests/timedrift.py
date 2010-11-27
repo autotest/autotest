@@ -146,7 +146,7 @@ def run_timedrift(test, params, env):
             restore_cpu_affinity(prev_affinity)
             # Stop the guest load
             if guest_load_stop_command:
-                session.get_command_output(guest_load_stop_command)
+                session.cmd_output(guest_load_stop_command)
             # Close all load shell sessions
             for load_session in guest_load_sessions:
                 load_session.close()
