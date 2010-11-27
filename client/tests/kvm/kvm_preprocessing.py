@@ -204,7 +204,7 @@ def preprocess(test, params, env):
     if "tcpdump" not in env and params.get("run_tcpdump", "yes") == "yes":
         cmd = "%s -npvi any 'dst port 68'" % kvm_utils.find_command("tcpdump")
         logging.debug("Starting tcpdump (%s)...", cmd)
-        env["tcpdump"] = kvm_subprocess.kvm_tail(
+        env["tcpdump"] = kvm_subprocess.Tail(
             command=cmd,
             output_func=_update_address_cache,
             output_params=(env["address_cache"],))

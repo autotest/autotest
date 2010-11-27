@@ -442,7 +442,7 @@ def _remote_login(session, username, password, prompt, timeout=10):
 
     @brief: Log into a remote host (guest) using SSH or Telnet.
 
-    @param session: A kvm_expect or kvm_shell_session instance to operate on
+    @param session: An Expect or ShellSession instance to operate on
     @param username: The username to send in reply to a login prompt
     @param password: The password to send in reply to a password prompt
     @param prompt: The shell prompt that indicates a successful login
@@ -514,7 +514,7 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
 
     @brief: Transfer files using SCP, given a command line.
 
-    @param session: A kvm_expect or kvm_shell_session instance to operate on
+    @param session: An Expect or ShellSession instance to operate on
     @param password: The password to send in reply to a password prompt.
     @param transfer_timeout: The time duration (in seconds) to wait for the
             transfer to complete.
@@ -575,7 +575,7 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
             each step of the login procedure (i.e. the "Are you sure" prompt
             or the password prompt)
 
-    @return: kvm_shell_session object on success and None on failure.
+    @return: ShellSession object on success and None on failure.
     """
     if client == "ssh":
         cmd = ("ssh -o UserKnownHostsFile=/dev/null "
@@ -590,8 +590,7 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
         return
 
     logging.debug("Trying to login with command '%s'" % cmd)
-    session = kvm_subprocess.kvm_shell_session(cmd, linesep=linesep,
-                                               prompt=prompt)
+    session = kvm_subprocess.ShellSession(cmd, linesep=linesep, prompt=prompt)
     if _remote_login(session, username, password, prompt, timeout):
         if log_filename:
             session.set_output_func(log_line)
@@ -630,9 +629,9 @@ def remote_scp(command, password, log_filename=None, transfer_timeout=600,
         output_func = None
         output_params = ()
 
-    session = kvm_subprocess.kvm_expect(command,
-                                        output_func=output_func,
-                                        output_params=output_params)
+    session = kvm_subprocess.Expect(command,
+                                    output_func=output_func,
+                                    output_params=output_params)
     try:
         return _remote_scp(session, password, transfer_timeout, login_timeout)
     finally:
