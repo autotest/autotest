@@ -50,6 +50,7 @@ def run_whql_submission(test, params, env):
     server_session = kvm_utils.remote_login("nc", server_address,
                                             server_shell_port, "", "",
                                             session.prompt, session.linesep)
+    server_session.set_status_test_command(session.status_test_command)
 
     # Get the computer names of the server and client
     cmd = "echo %computername%"
@@ -58,7 +59,7 @@ def run_whql_submission(test, params, env):
     session.close()
 
     # Run the automation program on the server
-    server_session.get_command_output("cd %s" % server_studio_path)
+    server_session.cmd("cd %s" % server_studio_path)
     cmd = "%s %s %s %s %s %s" % (os.path.basename(dsso_test_binary),
                                  server_name,
                                  client_name,
@@ -78,8 +79,8 @@ def run_whql_submission(test, params, env):
             if errors:
                 raise error.TestError(errors[0])
             else:
-                raise error.TestError("Error running automation program: could "
-                                      "not find '%s' prompt" % prompt)
+                raise error.TestError("Error running automation program: "
+                                      "could not find '%s' prompt" % prompt)
 
     # Tell the automation program which device to test
     find_prompt("Device to test:")
@@ -108,10 +109,15 @@ def run_whql_submission(test, params, env):
     server_session.sendline()
 
     # Wait for the automation program to terminate
-    m, o = server_session.read_up_to_prompt(print_func=logging.info,
-                                            timeout=test_timeout + 300)
-    # (test_timeout + 300 is used here because the automation program is
-    # supposed to terminate cleanly on its own when test_timeout expires)
+    try:
+        o = server_session.read_up_to_prompt(print_func=logging.info,
+                                             timeout=test_timeout + 300)
+        # (test_timeout + 300 is used here because the automation program is
+        # supposed to terminate cleanly on its own when test_timeout expires)
+        done = True
+    except kvm_subprocess.ExpectError, e:
+        o = e.output
+        done = False
     server_session.close()
 
     # Look for test results in the automation program's output
@@ -167,7 +173,7 @@ def run_whql_submission(test, params, env):
     logging.info("(see logs and HTML reports in %s)" % test.debugdir)
 
     # Kill the VM and fail if the automation program did not terminate on time
-    if not m:
+    if not done:
         vm.destroy()
         raise error.TestFail("The automation program did not terminate "
                              "on time")

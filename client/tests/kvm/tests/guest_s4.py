@@ -16,11 +16,7 @@ def run_guest_s4(test, params, env):
     session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
 
     logging.info("Checking whether guest OS supports suspend to disk (S4)...")
-    s, o = session.get_command_status_output(params.get("check_s4_support_cmd"))
-    if "not enough space" in o:
-        raise error.TestError("Check S4 support failed: %s" % o)
-    elif s != 0:
-        raise error.TestNAError("Guest OS does not support S4")
+    session.cmd(params.get("check_s4_support_cmd"))
 
     logging.info("Waiting until all guest OS services are fully started...")
     time.sleep(float(params.get("services_up_timeout", 30)))
@@ -36,9 +32,7 @@ def run_guest_s4(test, params, env):
 
     # Make sure the background program is running as expected
     check_s4_cmd = params.get("check_s4_cmd")
-    if session2.get_command_status(check_s4_cmd) != 0:
-        raise error.TestError("Failed to launch '%s' as a background process" %
-                              test_s4_cmd)
+    session2.cmd(check_s4_cmd)
     logging.info("Launched background command in guest: %s" % test_s4_cmd)
 
     # Suspend to disk
@@ -68,9 +62,7 @@ def run_guest_s4(test, params, env):
 
     # Check whether the test command is still alive
     logging.info("Checking if background command is still alive...")
-    if session2.get_command_status(check_s4_cmd) != 0:
-        raise error.TestFail("Background command '%s' stopped running. S4 "
-                             "failed." % test_s4_cmd)
+    session2.cmd(check_s4_cmd)
 
     logging.info("VM resumed successfuly after suspend to disk")
     session2.get_command_output(params.get("kill_test_s4_cmd"))

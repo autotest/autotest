@@ -1,7 +1,7 @@
 import logging, os, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_test_utils
+import kvm_test_utils, kvm_subprocess
 
 
 def run_multicast(test, params, env):
@@ -23,10 +23,10 @@ def run_multicast(test, params, env):
                                   timeout=int(params.get("login_timeout", 360)))
 
     def run_guest(cmd):
-        s, o = session.get_command_status_output(cmd)
-        if s:
-            logging.warning('Command %s executed in guest returned exit code '
-                            '%s, output: %s', cmd, s, o.strip())
+        try:
+            session.cmd(cmd)
+        except kvm_subprocess.ShellError, e:
+            logging.warn(e)
 
     def run_host_guest(cmd):
         run_guest(cmd)

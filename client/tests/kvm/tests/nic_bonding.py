@@ -37,10 +37,7 @@ def run_nic_bonding(test, params, env):
     script_path = kvm_utils.get_path(test.bindir, "scripts/bonding_setup.py")
     vm.copy_files_to(script_path, "/tmp/bonding_setup.py")
     cmd = "python /tmp/bonding_setup.py %s" % vm.get_mac_address()
-    s, o = session_serial.get_command_status_output(cmd)
-    if s != 0:
-        logging.debug(o)
-        raise error.TestFail("Fail to setup bonding")
+    session_serial.cmd(cmd)
 
     termination_event = threading.Event()
     t = threading.Thread(target=control_link_loop,

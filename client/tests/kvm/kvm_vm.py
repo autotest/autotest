@@ -1212,11 +1212,7 @@ class VM:
         if not session:
             return None
         try:
-            cmd = self.params.get("cpu_chk_cmd")
-            s, count = session.get_command_status_output(cmd)
-            if s == 0:
-                return int(count)
-            return None
+            return int(session.cmd(self.params.get("cpu_chk_cmd")))
         finally:
             session.close()
 
@@ -1234,9 +1230,7 @@ class VM:
         try:
             if not cmd:
                 cmd = self.params.get("mem_chk_cmd")
-            s, mem_str = session.get_command_status_output(cmd)
-            if s != 0:
-                return None
+            mem_str = session.cmd(cmd)
             mem = re.findall("([0-9]+)", mem_str)
             mem_size = 0
             for m in mem:

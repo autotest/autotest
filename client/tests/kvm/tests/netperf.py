@@ -1,7 +1,7 @@
 import logging, commands, os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_test_utils
+import kvm_test_utils, kvm_subprocess
 
 def run_netperf(test, params, env):
     """
@@ -32,14 +32,13 @@ def run_netperf(test, params, env):
         if not vm.copy_files_to(os.path.join(netperf_dir, i), "/tmp"):
             raise error.TestError("Could not copy file %s to guest" % i)
 
-    if session.get_command_status(firewall_flush):
+    try:
+        session.cmd(firewall_flush):
+    except kvm_subprocess.ShellError:
         logging.warning("Could not flush firewall rules on guest")
 
-    if session.get_command_status(setup_cmd % "/tmp", timeout=200):
-        raise error.TestFail("Fail to setup netperf on guest")
-
-    if session.get_command_status(params.get("netserver_cmd") % "/tmp"):
-        raise error.TestFail("Fail to start netperf server on guest")
+    session.cmd(setup_cmd % "/tmp", timeout=200)
+    session.cmd(params.get("netserver_cmd") % "/tmp")
 
     try:
         logging.info("Setup and run netperf client on host")

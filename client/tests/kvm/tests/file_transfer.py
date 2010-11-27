@@ -80,10 +80,7 @@ def run_file_transfer(test, params, env):
     finally:
         logging.info('Cleaning temp file on guest')
         clean_cmd += " %s" % guest_path
-        s, o = session.get_command_status_output(clean_cmd)
-        if s:
-            logging.warning("Failed to clean remote file %s, output:%s",
-                            guest_path, o)
+        session.cmd(clean_cmd)
         logging.info('Cleaning temp files on host')
         try:
             os.remove('%s/a.out' % dir_name)

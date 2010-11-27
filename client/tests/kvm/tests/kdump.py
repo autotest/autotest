@@ -34,7 +34,7 @@ def run_kdump(test, params, env):
         @param vcpu: vcpu which is used to trigger a crash
         """
         session = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2)
-        session.get_command_status("rm -rf /var/crash/*")
+        session.get_command_output("rm -rf /var/crash/*")
 
         logging.info("Triggering crash on vcpu %d ...", vcpu)
         crash_cmd = "taskset -c %d echo c > /proc/sysrq-trigger" % vcpu
@@ -48,31 +48,23 @@ def run_kdump(test, params, env):
         session = kvm_test_utils.wait_for_login(vm, 0, crash_timeout, 0, 2)
 
         logging.info("Probing vmcore file...")
-        s = session.get_command_status("ls -R /var/crash | grep vmcore")
-        if s != 0:
-            raise error.TestFail("Could not find the generated vmcore file")
-        else:
-            logging.info("Found vmcore.")
+        session.cmd("ls -R /var/crash | grep vmcore")
+        logging.info("Found vmcore.")
 
-        session.get_command_status("rm -rf /var/crash/*")
+        session.get_command_output("rm -rf /var/crash/*")
 
     try:
         logging.info("Checking the existence of crash kernel...")
-        s = session.get_command_status(crash_kernel_prob_cmd)
-        if s != 0:
+        try:
+            session.cmd(crash_kernel_prob_cmd)
+        except:
             logging.info("Crash kernel is not loaded. Trying to load it")
-            # We need to setup the kernel params
-            s, o = session.get_command_status_output(kernel_param_cmd)
-            if s != 0:
-                raise error.TestFail("Could not add crashkernel params to"
-                                     "kernel")
-            session = kvm_test_utils.reboot(vm, session, timeout=timeout);
+            session.get_command_status_output(kernel_param_cmd)
+            session = kvm_test_utils.reboot(vm, session, timeout=timeout)
 
         logging.info("Enabling kdump service...")
         # the initrd may be rebuilt here so we need to wait a little more
-        s, o = session.get_command_status_output(kdump_enable_cmd, timeout=120)
-        if s != 0:
-            raise error.TestFail("Could not enable kdump service: %s" % o)
+        session.cmd(kdump_enable_cmd, timeout=120)
 
         nvcpu = int(params.get("smp", 1))
         for i in range (nvcpu):
