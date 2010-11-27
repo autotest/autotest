@@ -9,6 +9,7 @@ running through autotest.
 
 __author__ = 'cranger@google.com (Colby Ranger)'
 
+import platform
 import common
 from autotest_lib.client.common_lib import barrier
 
@@ -16,7 +17,7 @@ from autotest_lib.client.common_lib import barrier
 _RUNTEST_PATTERN = ("job.run_test('profiler_sync', timeout_sync=%r,\n"
                     "             timeout_start=%r, timeout_stop=%r,\n"
                     "             hostid='%s', masterid='%s', all_ids=%r)")
-_PROF_MASTER = "PROF_MASTER"
+_PROF_MASTER = platform.node()
 _PORT = 11920
 
 
