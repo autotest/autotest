@@ -421,7 +421,7 @@ def run_virtio_console(test, params, env):
                        "echo -n 'FAIL: Compile virtio_guest failed'")
         (match, data) = vm[1].read_until_last_line_matches(["PASS:", "FAIL:"],
                                                            timeout)
-        if match == 1 or match is None:
+        if match != 0:
             raise error.TestFail("Command console_switch.py on guest %s failed."
                                  "\nreturn code: %s\n output:\n%s" %
                                  (vm[0].name, match, data))
@@ -431,7 +431,7 @@ def run_virtio_console(test, params, env):
                        "echo -n 'FAIL: virtio_guest failed'")
         (match, data) = vm[1].read_until_last_line_matches(["PASS:", "FAIL:"],
                                                            timeout)
-        if match == 1 or match is None:
+        if match != 0:
             raise error.TestFail("Command console_switch.py on guest %s failed."
                                  "\nreturn code: %s\n output:\n%s" %
                                  (vm[0].name, match, data))

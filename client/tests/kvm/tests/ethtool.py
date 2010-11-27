@@ -1,7 +1,7 @@
 import logging, commands, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_test_utils, kvm_utils
+import kvm_test_utils, kvm_utils, kvm_subprocess
 
 def run_ethtool(test, params, env):
     """
@@ -32,7 +32,7 @@ def run_ethtool(test, params, env):
             'gro': 'generic.*receive.*offload',
             'lro': 'large.*receive.*offload',
             }
-        s, o = session.get_command_status_output("ethtool -k %s" % ethname)
+        o = session.cmd("ethtool -k %s" % ethname)
         try:
             return re.findall("%s: (.*)" % feature_pattern.get(type), o)[0]
         except IndexError:
@@ -51,7 +51,11 @@ def run_ethtool(test, params, env):
             return False
         cmd = "ethtool -K %s %s %s" % (ethname, type, status)
         if ethtool_get(type) != status:
-            return session.get_command_status(cmd) == 0
+            try:
+                session.cmd(cmd)
+                return True
+            except:
+                return False
         if ethtool_get(type) != status:
             logging.error("Fail to set %s %s" % (type, status))
             return False
@@ -92,13 +96,13 @@ def run_ethtool(test, params, env):
         @param src: Source host of transfer file
         @return: Tuple (status, error msg/tcpdump result)
         """
-        session2.get_command_status("rm -rf %s" % filename)
-        dd_cmd = "dd if=/dev/urandom of=%s bs=1M count=%s" % (filename,
-                                                   params.get("filesize"))
+        session2.get_command_output("rm -rf %s" % filename)
+        dd_cmd = ("dd if=/dev/urandom of=%s bs=1M count=%s" %
+                  (filename, params.get("filesize")))
         logging.info("Creat file in source host, cmd: %s" % dd_cmd)
         tcpdump_cmd = "tcpdump -lep -s 0 tcp -vv port ssh"
         if src == "guest":
-            s = session.get_command_status(dd_cmd, timeout=360)
+            session.get_command_output(dd_cmd, timeout=360)
             tcpdump_cmd += " and src %s" % guest_ip
             copy_files_fun = vm.copy_files_from
         else:
@@ -123,10 +127,10 @@ def run_ethtool(test, params, env):
         if not copy_files_fun(filename, filename):
             return (False, "Child process transfer file failed")
         logging.info("Transfer file completed")
-        if session.get_command_status("killall tcpdump") != 0:
-            return (False, "Could not kill all tcpdump process")
-        s, tcpdump_string = session2.read_up_to_prompt(timeout=60)
-        if not s:
+        session.cmd("killall tcpdump")
+        try:
+            tcpdump_string = session2.read_up_to_prompt(timeout=60)
+        except kvm_subprocess.ExpectError:
             return (False, "Fail to read tcpdump's output")
 
         if not compare_md5sum(filename):
@@ -173,8 +177,7 @@ def run_ethtool(test, params, env):
     session = kvm_test_utils.wait_for_login(vm,
                   timeout=int(params.get("login_timeout", 360)))
     # Let's just error the test if we identify that there's no ethtool installed
-    if session.get_command_status("ethtool -h"):
-        raise error.TestError("Command ethtool not installed on guest")
+    session.cmd("ethtool -h")
     session2 = kvm_test_utils.wait_for_login(vm,
                   timeout=int(params.get("login_timeout", 360)))
     mtu = 1514

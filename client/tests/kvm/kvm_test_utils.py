@@ -318,10 +318,7 @@ def get_time(session, time_command, time_filter_re, time_format):
     """
     if len(re.findall("ntpdate|w32tm", time_command)) == 0:
         host_time = time.time()
-        session.sendline(time_command)
-        (match, s) = session.read_up_to_prompt()
-        if not match:
-            raise error.TestError("Could not get guest time")
+        s = session.get_command_output(time_command)
 
         try:
             s = re.findall(time_filter_re, s)[0]
@@ -335,9 +332,7 @@ def get_time(session, time_command, time_filter_re, time_format):
 
         guest_time = time.mktime(time.strptime(s, time_format))
     else:
-        s , o = session.get_command_status_output(time_command)
-        if s != 0:
-            raise error.TestError("Could not get guest time")
+        o = session.cmd(time_command)
         if re.match('ntpdate', time_command):
             offset = re.findall('offset (.*) sec',o)[0]
             host_main, host_mantissa = re.findall(time_filter_re, o)[0]
@@ -447,10 +442,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
         basename = os.path.basename(remote_path)
         logging.info("Extracting %s...", basename)
         e_cmd = "tar xjvf %s -C %s" % (remote_path, dest_dir)
-        s, o = session.get_command_status_output(e_cmd, timeout=120)
-        if s != 0:
-            logging.error("Uncompress output:\n%s", o)
-            raise error.TestFail("Failed to extract %s on guest" % basename)
+        session.cmd(e_cmd, timeout=120)
 
 
     def get_results():
@@ -520,26 +512,32 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
     # Run the test
     logging.info("Running autotest control file %s on guest, timeout %ss",
                  os.path.basename(control_path), timeout)
-    session.get_command_output("cd %s" % autotest_path)
-    session.get_command_output("rm -f control.state")
-    session.get_command_output("rm -rf results/*")
-    logging.info("---------------- Test output ----------------")
-    status = session.get_command_status("bin/autotest control",
-                                        timeout=timeout,
-                                        print_func=logging.info)
-    logging.info("------------- End of test output ------------")
-    if status is None:
-        if not vm.is_alive():
+    session.cmd("cd %s" % autotest_path)
+    try:
+        session.cmd("rm -f control.state")
+        session.cmd("rm -rf results/*")
+    except kvm_subprocess.ShellError:
+        pass
+    try:
+        try:
+            logging.info("---------------- Test output ----------------")
+            session.get_command_output("bin/autotest control", timeout=timeout,
+                                       print_func=logging.info)
+        finally:
+            logging.info("------------- End of test output ------------")
+    except kvm_subprocess.ShellTimeoutError:
+        if vm.is_alive():
+            get_results()
+            get_results_summary()
+            raise error.TestError("Timeout elapsed while waiting for job to "
+                                  "complete")
+        else:
             raise error.TestError("Autotest job on guest failed "
                                   "(VM terminated during job)")
-        if not session.is_alive():
-            get_results()
-            raise error.TestError("Autotest job on guest failed "
-                                  "(Remote session terminated during job)")
+    except kvm_subprocess.ShellProcessTerminatedError:
         get_results()
-        get_results_summary()
-        raise error.TestError("Timeout elapsed while waiting for job to "
-                              "complete")
+        raise error.TestError("Autotest job on guest failed "
+                              "(Remote session terminated during job)")
 
     results = get_results_summary()
     get_results()
@@ -648,21 +646,24 @@ def raw_ping(command, timeout, session, output_func):
         process.close()
         return status, output
     else:
-        session.sendline(command)
-        status, output = session.read_up_to_prompt(timeout=timeout,
-                                                   print_func=output_func)
-        if not status:
+        try:
+            output = session.get_command_output(command, timeout=timeout,
+                                                print_func=output_func)
+        except kvm_subprocess.ShellTimeoutError:
             # Send ctrl+c (SIGINT) through ssh session
             session.send("\003")
-            status, output2 = session.read_up_to_prompt(print_func=output_func)
-            output += output2
-            if not status:
+            try:
+                output2 = session.read_up_to_prompt(print_func=output_func)
+                output += output2
+            except kvm_subprocess.ExpectTimeoutError, e:
+                output += e.output
                 # We also need to use this session to query the return value
                 session.send("\003")
 
         session.sendline(session.status_test_command)
-        s2, o2 = session.read_up_to_prompt()
-        if not s2:
+        try:
+            o2 = session.read_up_to_prompt()
+        except kvm_subprocess.ExpectError:
             status = -1
         else:
             try:

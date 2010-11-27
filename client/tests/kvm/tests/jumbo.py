@@ -40,11 +40,7 @@ def run_jumbo(test, params, env):
 
         logging.info("Changing the MTU of guest ...")
         guest_mtu_cmd = "ifconfig %s mtu %s" % (ethname , mtu)
-        s, o = session.get_command_status_output(guest_mtu_cmd)
-        if s != 0:
-            logging.error(o)
-            raise error.TestError("Fail to set the MTU of guest NIC: %s" %
-                                  ethname)
+        session.cmd(guest_mtu_cmd)
 
         logging.info("Chaning the MTU of host tap ...")
         host_mtu_cmd = "ifconfig %s mtu %s" % (ifname, mtu)

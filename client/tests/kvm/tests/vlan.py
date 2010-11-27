@@ -1,6 +1,6 @@
 import logging, time, re
 from autotest_lib.client.common_lib import error
-import kvm_test_utils, kvm_utils
+import kvm_test_utils, kvm_utils, kvm_subprocess
 
 def run_vlan(test, params, env):
     """
@@ -35,18 +35,15 @@ def run_vlan(test, params, env):
     vm.append(kvm_test_utils.get_living_vm(env, "vm2"))
 
     def add_vlan(session, id, iface="eth0"):
-        if session.get_command_status("vconfig add %s %s" % (iface, id)) != 0:
-            raise error.TestError("Fail to add %s.%s" % (iface, id))
+        session.cmd("vconfig add %s %s" % (iface, id))
 
     def set_ip_vlan(session, id, ip, iface="eth0"):
         iface = "%s.%s" % (iface, id)
-        if session.get_command_status("ifconfig %s %s" % (iface, ip)) != 0:
-            raise error.TestError("Fail to configure ip for %s" % iface)
+        session.cmd("ifconfig %s %s" % (iface, ip))
 
     def set_arp_ignore(session, iface="eth0"):
         ignore_cmd = "echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore"
-        if session.get_command_status(ignore_cmd) != 0:
-            raise error.TestError("Fail to set arp_ignore of %s" % session)
+        session.cmd(ignore_cmd)
 
     def rem_vlan(session, id, iface="eth0"):
         rem_vlan_cmd = "if [[ -e /proc/net/vlan/%s ]];then vconfig rem %s;fi"
@@ -65,11 +62,10 @@ def run_vlan(test, params, env):
         time.sleep(2)
         #send file from src to dst
         send_cmd = send_cmd % (vlan_ip[dst], str(nc_port), "file")
-        if session[src].get_command_status(send_cmd, timeout = 60) != 0:
-            raise error.TestFail ("Fail to send file"
-                                    " from vm%s to vm%s" % (src+1, dst+1))
-        s, o = session[dst].read_up_to_prompt(timeout=60)
-        if s != True:
+        session[src].cmd(send_cmd, timeout=60)
+        try:
+            session[dst].read_up_to_prompt(timeout=60)
+        except kvm_subprocess.ExpectError:
             raise error.TestFail ("Fail to receive file"
                                     " from vm%s to vm%s" % (src+1, dst+1))
         #check MD5 message digest of receive file in dst
@@ -81,7 +77,7 @@ def run_vlan(test, params, env):
             logging.info("digest_origin is  %s" % digest_origin[src])
             logging.info("digest_receive is %s" % digest_receive)
             raise error.TestFail("File transfered differ from origin")
-        session[dst].get_command_status("rm -f receive")
+        session[dst].get_command_output("rm -f receive")
 
     for i in range(2):
         session.append(kvm_test_utils.wait_for_login(vm[i],
@@ -97,22 +93,16 @@ def run_vlan(test, params, env):
 
         #produce sized file in vm
         dd_cmd = "dd if=/dev/urandom of=file bs=1024k count=%s"
-        if session[i].get_command_status(dd_cmd % file_size) != 0:
-            raise error.TestFail("File producing failed")
+        session[i].cmd(dd_cmd % file_size)
         #record MD5 message digest of file
-        s, output =session[i].get_command_status_output("md5sum file",
-                                                        timeout=60)
-        if s != 0:
-            raise error.TestFail("File MD5_checking failed" )
+        output = session[i].cmd("md5sum file", timeout=60)
         digest_origin.append(re.findall(r'(\w+)', output)[0])
 
         #stop firewall in vm
-        session[i].get_command_status("/etc/init.d/iptables stop")
+        session[i].get_command_output("/etc/init.d/iptables stop")
 
         #load 8021q module for vconfig
-        load_8021q_cmd = "modprobe 8021q"
-        if session[i].get_command_status(load_8021q_cmd) != 0:
-            raise error.TestError("Fail to load 8021q module on VM%s" % i)
+        session[i].cmd("modprobe 8021q")
 
     try:
         for i in range(2):

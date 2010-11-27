@@ -33,13 +33,11 @@ def run_mac_change(test, params, env):
     logging.info("Changing MAC address to %s", new_mac)
     change_cmd = ("ifconfig %s down && ifconfig %s hw ether %s && "
                   "ifconfig %s up" % (interface, interface, new_mac, interface))
-    if session_serial.get_command_status(change_cmd) != 0:
-        raise error.TestFail("Fail to send mac_change command")
+    session_serial.cmd(change_cmd)
 
     # Verify whether MAC address was changed to the new one
     logging.info("Verifying the new mac address")
-    if session_serial.get_command_status("ifconfig | grep -i %s" % new_mac) != 0:
-        raise error.TestFail("Fail to change MAC address")
+    session_serial.cmd("ifconfig | grep -i %s" % new_mac)
 
     # Restart `dhclient' to regain IP for new mac address
     logging.info("Restart the network to gain new IP")

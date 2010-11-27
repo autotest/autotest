@@ -26,8 +26,7 @@ def run_pci_hotplug(test, params, env):
     # Modprobe the module if specified in config file
     module = params.get("modprobe_module")
     if module:
-        if session.get_command_status("modprobe %s" % module):
-            raise error.TestError("Modprobe module '%s' failed" % module)
+        session.cmd("modprobe %s" % module)
 
     # Get output of command 'info pci' as reference
     info_pci_ref = vm.monitor.info("pci")
@@ -152,10 +151,11 @@ def run_pci_hotplug(test, params, env):
                                   params.get("find_pci_cmd")))
 
         # Test the newly added device
-        s, o = session.get_command_status_output(params.get("pci_test_cmd"))
-        if s != 0:
+        try:
+            session.cmd(params.get("pci_test_cmd"))
+        except kvm_subprocess.ShellError, e:
             raise error.TestFail("Check for %s device failed after PCI "
-                                 "hotplug. Output: %r" % (test_type, o))
+                                 "hotplug. Output: %r" % (test_type, e.output))
 
         session.close()
 

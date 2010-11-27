@@ -42,9 +42,7 @@ def run_migration(test, params, env):
 
     try:
         check_command = params.get("migration_bg_check_command", "")
-        if session2.get_command_status(check_command, timeout=30) != 0:
-            raise error.TestError("Could not start background process '%s'" %
-                                  background_command)
+        session2.cmd(check_command, timeout=30)
         session2.close()
 
         # Migrate the VM
@@ -59,9 +57,7 @@ def run_migration(test, params, env):
         logging.info("Logged in after migration")
 
         # Make sure the background process is still running
-        if session2.get_command_status(check_command, timeout=30) != 0:
-            raise error.TestFail("Could not find running background process "
-                                 "after migration: '%s'" % background_command)
+        session2.cmd(check_command, timeout=30)
 
         # Get the output of migration_test_command
         output = session2.get_command_output(test_command)
