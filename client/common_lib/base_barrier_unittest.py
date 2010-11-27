@@ -5,7 +5,7 @@ __author__ = """Ashwin Ganti (aganti@google.com)"""
 import os, sys, socket, errno, unittest, threading
 from time import time, sleep
 import common
-from autotest_lib.client.common_lib import error, barrier
+from autotest_lib.client.common_lib import error, barrier, base_barrier
 from autotest_lib.client.common_lib.test_utils import mock
 
 
@@ -46,15 +46,14 @@ class barrier_test(unittest.TestCase):
 
 
     def test_get_host_from_id(self):
-        b = barrier.barrier('127.0.0.1#', 'testgethost', 100)
-
-        hostname = b._get_host_from_id('my_host')
+        hostname = base_barrier.get_host_from_id('my_host')
         self.assertEqual(hostname, 'my_host')
 
-        hostname = b._get_host_from_id('my_host#')
+        hostname = base_barrier.get_host_from_id('my_host#')
         self.assertEqual(hostname, 'my_host')
 
-        self.assertRaises(error.BarrierError, b._get_host_from_id, '#my_host')
+        self.assertRaises(error.BarrierError,
+                          base_barrier.get_host_from_id, '#my_host')
 
 
     def test_update_timeout(self):
