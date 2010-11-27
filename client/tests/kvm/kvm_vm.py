@@ -732,7 +732,7 @@ class VM:
 
             # Establish a session with the serial console -- requires a version
             # of netcat that supports -U
-            self.serial_console = kvm_subprocess.kvm_shell_session(
+            self.serial_console = kvm_subprocess.ShellSession(
                 "nc -U %s" % self.get_serial_console_filename(),
                 auto_close=False,
                 output_func=kvm_utils.log_line,
@@ -1039,7 +1039,7 @@ class VM:
         @param nic_index: The index of the NIC to connect to.
         @param timeout: Time (seconds) before giving up logging into the
                 guest.
-        @return: kvm_spawn object on success and None on failure.
+        @return: ShellSession object on success and None on failure.
         """
         username = self.params.get("username", "")
         password = self.params.get("password", "")
@@ -1138,7 +1138,7 @@ class VM:
         password prompt or a shell prompt) -- fail.
 
         @param timeout: Time (seconds) before giving up logging into the guest.
-        @return: kvm_spawn object on success and None on failure.
+        @return: ShellSession object on success and None on failure.
         """
         username = self.params.get("username", "")
         password = self.params.get("password", "")
