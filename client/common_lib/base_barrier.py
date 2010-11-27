@@ -5,6 +5,16 @@ from autotest_lib.client.common_lib import error
 # default barrier port
 _DEFAULT_PORT = 11922
 
+def get_host_from_id(hostid):
+    # Remove any trailing local identifier following a #.
+    # This allows multiple members per host which is particularly
+    # helpful in testing.
+    if not hostid.startswith('#'):
+        return hostid.split('#')[0]
+    else:
+        raise error.BarrierError(
+            "Invalid Host id: Host Address should be specified")
+
 
 class BarrierAbortError(error.BarrierError):
     """Special BarrierError raised when an explicit abort is requested."""
@@ -157,17 +167,6 @@ class barrier(object):
 
         # Clients who have checked in and are waiting (if we are a master).
         self._waiting = {}  # Maps from hostname -> (client, addr) tuples.
-
-
-    def _get_host_from_id(self, hostid):
-        # Remove any trailing local identifier following a #.
-        # This allows multiple members per host which is particularly
-        # helpful in testing.
-        if not hostid.startswith('#'):
-            return hostid.split('#')[0]
-        else:
-            raise error.BarrierError(
-                    "Invalid Host id: Host Address should be specified")
 
 
     def _update_timeout(self, timeout):
@@ -397,14 +396,14 @@ class barrier(object):
                 remote.settimeout(30)
                 if is_master:
                     # Connect to all slaves.
-                    host = self._get_host_from_id(self._members[self._seen])
+                    host = get_host_from_id(self._members[self._seen])
                     logging.info("calling slave: %s", host)
                     connection = (remote, (host, self._port))
                     remote.connect(connection[1])
                     self._master_welcome(connection)
                 else:
                     # Just connect to the master.
-                    host = self._get_host_from_id(self._masterid)
+                    host = get_host_from_id(self._masterid)
                     logging.info("calling master")
                     connection = (remote, (host, self._port))
                     remote.connect(connection[1])

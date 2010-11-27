@@ -22,13 +22,39 @@ host_objs = [hosts.create_host(machine) for machine in machines]
 host_at_objs = [autotest.Autotest(host) for host in host_objs]
 
 client_control_template = """
-import logging, platform, traceback
+import logging, platform, socket, traceback
 try:
     client_hostnames = %r
-    logging.info('creating barrier')
+    master_hostname = client_hostnames[0]
+    client_hostname = client_hostnames[1]
+
+    logging.info('Testing hostname only barrier')
     barrier = job.barrier(platform.node(), 'barriertest_2client', 120)
     logging.info('rendezvous-ing')
-    barrier.rendezvous(client_hostnames[0], *client_hostnames[1:])
+    barrier.rendezvous(master_hostname, client_hostname)
+    logging.info('done.')
+
+    logging.info('Testing local identifier barrier')
+    barrier = job.barrier(platform.node() + '#id0', 'barriertest_2client', 120)
+    logging.info('rendezvous-ing')
+    barrier.rendezvous(master_hostname + '#id0',
+                       client_hostname + '#id0')
+    logging.info('done.')
+
+    logging.info('Testing IP@ barrier')
+    barrier = job.barrier(socket.gethostbyname(platform.node()),
+                          'barriertest_2client', 120)
+    logging.info('rendezvous-ing')
+    barrier.rendezvous(socket.gethostbyname(master_hostname),
+                       socket.gethostbyname(client_hostname))
+    logging.info('done.')
+
+    logging.info('Testing IP@ barrier with ids')
+    barrier = job.barrier(socket.gethostbyname(platform.node()) + '#42',
+                          'barriertest_2client', 120)
+    logging.info('rendezvous-ing')
+    barrier.rendezvous(socket.gethostbyname(master_hostname) + '#42',
+                       socket.gethostbyname(client_hostname) + '#42')
     logging.info('done.')
 except:
     traceback.print_exc()
