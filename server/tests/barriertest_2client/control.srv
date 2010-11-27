@@ -11,17 +11,14 @@ A functional test of autotest's Barrier mechanisms for synchronizing
 events between two clients without the help of the server.
 """
 
-from autotest_lib.client.common_lib import barrier, error
-from autotest_lib.server import autotest, hosts, subcommand
+from autotest_lib.server import utils
 
-assert len(machines) > 1, "gimme at least two machines!"
-if len(machines) > 2:
-    machines = machines[:2]
+def run(pair):
+    logging.info('Running on %s and %s', pair[0], pair[1])
+    host_objs = [hosts.create_host(machine) for machine in pair]
+    host_at_objs = [autotest.Autotest(host) for host in host_objs]
 
-host_objs = [hosts.create_host(machine) for machine in machines]
-host_at_objs = [autotest.Autotest(host) for host in host_objs]
-
-client_control_template = """
+    client_control_template = """
 import logging, platform, socket, traceback
 try:
     client_hostnames = %r
@@ -60,11 +57,22 @@ except:
     traceback.print_exc()
     raise
 """
-client_controls = [client_control_template % (machines,) for host in host_objs]
+    client_controls = [client_control_template % (pair,) for host in host_objs]
 
-subcommand_list = []
-for host, host_at, control in zip(host_objs, host_at_objs, client_controls):
-    subcommand_list.append(subcommand.subcommand(
-            host_at.run, (control, host.hostname)))
+    subcommand_list = []
+    for host, host_at, control in zip(host_objs, host_at_objs, client_controls):
+        subcommand_list.append(subcommand(host_at.run,
+                                          (control, host.hostname)))
 
-subcommand.parallel(subcommand_list)
+    parallel(subcommand_list)
+
+
+# grab the pairs (and failures)
+(pairs, failures) = utils.form_ntuples_from_machines(machines, 2)
+
+# log the failures
+for failure in failures:
+    job.record("FAIL", failure[0], "barrier_2client", failure[1])
+
+# now run through each pair and run
+job.parallel_simple(run, pairs, log=False)
