@@ -33,11 +33,10 @@ def run_iofuzz(test, params, env):
         logging.debug("outb(0x%x, 0x%x)", port, data)
         outb_cmd = ("echo -e '\\%s' | dd of=/dev/port seek=%d bs=1 count=1" %
                     (oct(data), port))
-        s, o = session.get_command_status_output(outb_cmd)
-        if s is None:
-            logging.debug("Command did not return")
-        if s != 0:
-            logging.debug("Command returned status %s", s)
+        try:
+            session.cmd(outb_cmd)
+        except kvm_subprocess.ShellError, e:
+            logging.debug(e)
 
 
     def inb(session, port):
@@ -49,11 +48,10 @@ def run_iofuzz(test, params, env):
         """
         logging.debug("inb(0x%x)", port)
         inb_cmd = "dd if=/dev/port seek=%d of=/dev/null bs=1 count=1" % port
-        s, o = session.get_command_status_output(inb_cmd)
-        if s is None:
-            logging.debug("Command did not return")
-        if s != 0:
-            logging.debug("Command returned status %s", s)
+        try:
+            session.cmd(inb_cmd)
+        except kvm_subprocess.ShellError, e:
+            logging.debug(e)
 
 
     def fuzz(session, inst_list):

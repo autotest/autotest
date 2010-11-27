@@ -33,12 +33,7 @@ def run_clock_getres(test, params, env):
     session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
     if not vm.copy_files_to(test_clock, base_dir):
         raise error.TestError("Failed to copy %s to VM" % t_name)
-    s, o = session.get_command_status_output(os.path.join(base_dir, t_name))
-    if s:
-        raise error.TestFail("Execution of %s failed: %s" % (t_name, o))
-    else:
-        logging.info("PASS: Guest reported an appropriate clock source "
-                     "resolution")
-    s, o = session.get_command_status_output("dmesg")
+    session.cmd(os.path.join(base_dir, t_name))
+    logging.info("PASS: Guest reported appropriate clock resolution")
     logging.info("guest's dmesg:")
-    logging.info(o)
+    session.get_command_output("dmesg")

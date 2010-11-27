@@ -50,6 +50,7 @@ def run_whql_client_install(test, params, env):
     server_session = kvm_utils.remote_login("nc", server_address,
                                             server_shell_port, "", "",
                                             session.prompt, session.linesep)
+    server_session.set_status_test_command(session.status_test_command)
 
     # Get server and client information
     cmd = "echo %computername%"
@@ -67,10 +68,10 @@ def run_whql_client_install(test, params, env):
         server_dns_suffix = ""
 
     # Delete the client machine from the server's data store (if it's there)
-    server_session.get_command_output("cd %s" % server_studio_path)
+    server_session.cmd("cd %s" % server_studio_path)
     cmd = "%s %s %s" % (os.path.basename(dsso_delete_machine_binary),
                         server_name, client_name)
-    server_session.get_command_output(cmd, print_func=logging.info)
+    server_session.cmd(cmd, print_func=logging.info)
     server_session.close()
 
     # Rename the client machine
@@ -78,21 +79,18 @@ def run_whql_client_install(test, params, env):
     logging.info("Renaming client machine to '%s'" % client_name)
     cmd = ('wmic computersystem where name="%%computername%%" rename name="%s"'
            % client_name)
-    if session.get_command_status(cmd, timeout=600) != 0:
-        raise error.TestError("Could not rename the client machine")
+    session.cmd(cmd, timeout=600)
 
     # Join the server's workgroup
     logging.info("Joining workgroup '%s'" % server_workgroup)
     cmd = ('wmic computersystem where name="%%computername%%" call '
            'joindomainorworkgroup name="%s"' % server_workgroup)
-    if session.get_command_status(cmd, timeout=600) != 0:
-        raise error.TestError("Could not change the client's workgroup")
+    session.cmd(cmd, timeout=600)
 
     # Set the client machine's DNS suffix
     logging.info("Setting DNS suffix to '%s'" % server_dns_suffix)
     cmd = 'reg add %s /v Domain /d "%s" /f' % (regkey, server_dns_suffix)
-    if session.get_command_status(cmd, timeout=300) != 0:
-        raise error.TestError("Could not set the client's DNS suffix")
+    session.cmd(cmd, timeout=300)
 
     # Reboot
     session = kvm_test_utils.reboot(vm, session)
@@ -103,9 +101,11 @@ def run_whql_client_install(test, params, env):
                                          server_password)
     end_time = time.time() + 120
     while time.time() < end_time:
-        s = session.get_command_status(cmd)
-        if s == 0:
+        try:
+            session.cmd(cmd)
             break
+        except:
+            pass
         time.sleep(5)
     else:
         raise error.TestError("Could not access server share from client "
@@ -114,7 +114,5 @@ def run_whql_client_install(test, params, env):
     # Install
     logging.info("Installing DTM client (timeout=%ds)", install_timeout)
     install_cmd = r"cmd /c \\%s\%s" % (server_name, install_cmd.lstrip("\\"))
-    if session.get_command_status(install_cmd, timeout=install_timeout) != 0:
-        raise error.TestError("Client installation failed")
-
+    session.cmd(install_cmd, timeout=install_timeout)
     session.close()

@@ -456,48 +456,52 @@ def _remote_login(session, username, password, prompt, timeout=10):
     login_prompt_count = 0
 
     while True:
-        (match, text) = session.read_until_last_line_matches(
+        try:
+            match, text = session.read_until_last_line_matches(
                 [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"[Ll]ogin:\s*$",
                  r"[Cc]onnection.*closed", r"[Cc]onnection.*refused",
                  r"[Pp]lease wait", prompt],
-                 timeout=timeout, internal_timeout=0.5)
-        if match == 0:  # "Are you sure you want to continue connecting"
-            logging.debug("Got 'Are you sure...'; sending 'yes'")
-            session.sendline("yes")
-            continue
-        elif match == 1:  # "password:"
-            if password_prompt_count == 0:
-                logging.debug("Got password prompt; sending '%s'" % password)
-                session.sendline(password)
-                password_prompt_count += 1
+                timeout=timeout, internal_timeout=0.5)
+            if match == 0:  # "Are you sure you want to continue connecting"
+                logging.debug("Got 'Are you sure...'; sending 'yes'")
+                session.sendline("yes")
                 continue
-            else:
-                logging.debug("Got password prompt again")
+            elif match == 1:  # "password:"
+                if password_prompt_count == 0:
+                    logging.debug("Got password prompt; sending '%s'" % password)
+                    session.sendline(password)
+                    password_prompt_count += 1
+                    continue
+                else:
+                    logging.debug("Got password prompt again")
+                    return False
+            elif match == 2:  # "login:"
+                if login_prompt_count == 0:
+                    logging.debug("Got username prompt; sending '%s'" % username)
+                    session.sendline(username)
+                    login_prompt_count += 1
+                    continue
+                else:
+                    logging.debug("Got username prompt again")
+                    return False
+            elif match == 3:  # "Connection closed"
+                logging.debug("Got 'Connection closed'")
                 return False
-        elif match == 2:  # "login:"
-            if login_prompt_count == 0:
-                logging.debug("Got username prompt; sending '%s'" % username)
-                session.sendline(username)
-                login_prompt_count += 1
+            elif match == 4:  # "Connection refused"
+                logging.debug("Got 'Connection refused'")
+                return False
+            elif match == 5:  # "Please wait"
+                logging.debug("Got 'Please wait'")
+                timeout = 30
                 continue
-            else:
-                logging.debug("Got username prompt again")
-                return False
-        elif match == 3:  # "Connection closed"
-            logging.debug("Got 'Connection closed'")
+            elif match == 6:  # prompt
+                logging.debug("Got shell prompt -- logged in")
+                return True
+        except kvm_subprocess.ExpectTimeoutError, e:
+            logging.debug("Timeout elapsed (output so far: %r)" % e.output)
             return False
-        elif match == 4:  # "Connection refused"
-            logging.debug("Got 'Connection refused'")
-            return False
-        elif match == 5:  # "Please wait"
-            logging.debug("Got 'Please wait'")
-            timeout = 30
-            continue
-        elif match == 6:  # prompt
-            logging.debug("Got shell prompt -- logged in")
-            return session
-        else:  # match == None
-            logging.debug("Timeout elapsed or process terminated")
+        except kvm_subprocess.ExpectProcessTerminatedError, e:
+            logging.debug("Process terminated (output so far: %r)" % e.output)
             return False
 
 
@@ -524,34 +528,33 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
     timeout = login_timeout
 
     while True:
-        (match, text) = session.read_until_last_line_matches(
+        try:
+            match, text = session.read_until_last_line_matches(
                 [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"lost connection"],
                 timeout=timeout, internal_timeout=0.5)
-        if match == 0:  # "Are you sure you want to continue connecting"
-            logging.debug("Got 'Are you sure...'; sending 'yes'")
-            session.sendline("yes")
-            continue
-        elif match == 1:  # "password:"
-            if password_prompt_count == 0:
-                logging.debug("Got password prompt; sending '%s'" % password)
-                session.sendline(password)
-                password_prompt_count += 1
-                timeout = transfer_timeout
+            if match == 0:  # "Are you sure you want to continue connecting"
+                logging.debug("Got 'Are you sure...'; sending 'yes'")
+                session.sendline("yes")
                 continue
-            else:
-                logging.debug("Got password prompt again")
+            elif match == 1:  # "password:"
+                if password_prompt_count == 0:
+                    logging.debug("Got password prompt; sending '%s'" % password)
+                    session.sendline(password)
+                    password_prompt_count += 1
+                    timeout = transfer_timeout
+                    continue
+                else:
+                    logging.debug("Got password prompt again")
+                    return False
+            elif match == 2:  # "lost connection"
+                logging.debug("Got 'lost connection'")
                 return False
-        elif match == 2:  # "lost connection"
-            logging.debug("Got 'lost connection'")
+        except kvm_subprocess.ExpectTimeoutError, e:
+            logging.debug("Timeout expired")
             return False
-        else:  # match == None
-            if session.is_alive():
-                logging.debug("Timeout expired")
-                return False
-            else:
-                status = session.get_status()
-                logging.debug("SCP process terminated with status %s", status)
-                return status == 0
+        except kvm_subprocess.ExpectProcessTerminatedError, e:
+            logging.debug("SCP process terminated with status %s", e.status)
+            return e.status == 0
 
 
 def remote_login(client, host, port, username, password, prompt, linesep="\n",

@@ -29,7 +29,7 @@ def run_ksm_overcommit(test, params, env):
         session.sendline("python /tmp/allocator.py")
         (match, data) = session.read_until_last_line_matches(["PASS:", "FAIL:"],
                                                              timeout)
-        if match == 1 or match is None:
+        if match != 0:
             raise error.TestFail("Command allocator.py on guest %s failed.\n"
                                  "return code: %s\n output:\n%s" %
                                  (vm.name, match, data))
@@ -52,7 +52,7 @@ def run_ksm_overcommit(test, params, env):
         session.sendline(command)
         (match, data) = session.read_until_last_line_matches(["PASS:","FAIL:"],
                                                              timeout)
-        if match == 1 or match is None:
+        if match != 0:
             raise error.TestFail("Failed to execute '%s' on allocator.py, "
                                  "vm: %s, output:\n%s" %
                                  (command, vm.name, data))
@@ -80,9 +80,7 @@ def run_ksm_overcommit(test, params, env):
             vm = lvms[lsessions.index(session)]
 
             logging.debug("Turning off swap on vm %s" % vm.name)
-            ret = session.get_command_status("swapoff -a", timeout=300)
-            if ret is None or ret:
-                raise error.TestFail("Failed to swapoff on VM %s" % vm.name)
+            session.cmd("swapoff -a", timeout=300)
 
             # Start the allocator
             _start_allocator(vm, session, 60 * perf_ratio)
@@ -232,7 +230,7 @@ def run_ksm_overcommit(test, params, env):
                            (mem / 200 * 50 * perf_ratio))
         logging.debug(kvm_test_utils.get_memory_info([lvms[last_vm]]))
 
-        (status, data) = lsessions[i].get_command_status_output("die()", 20)
+        lsessions[i].get_command_output("die()", 20)
         lvms[last_vm].destroy(gracefully = False)
         logging.info("Phase 3b: PASS")
 
@@ -253,9 +251,7 @@ def run_ksm_overcommit(test, params, env):
                 raise error.TestFail("Could not log into guest %s" %
                                      vm.name)
 
-        ret = session.get_command_status("swapoff -a", timeout=300)
-        if ret != 0:
-            raise error.TestFail("Failed to turn off swap on %s" % vm.name)
+        session.cmd("swapoff -a", timeout=300)
 
         for i in range(0, max_alloc):
             # Start the allocator
@@ -360,7 +356,7 @@ def run_ksm_overcommit(test, params, env):
 
         logging.debug("Cleaning up...")
         for i in range(0, max_alloc):
-            lsessions[i].get_command_status_output("die()", 20)
+            lsessions[i].get_command_output("die()", 20)
         session.close()
         vm.destroy(gracefully = False)
 
