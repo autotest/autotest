@@ -1323,3 +1323,28 @@ class ShellSession(Expect):
         if s != 0:
             raise ShellCmdError(cmd, s, o)
         return o
+
+
+    def get_command_output(self, cmd, timeout=30.0, internal_timeout=None,
+                           print_func=None):
+        """
+        Alias for cmd_output() for backward compatibility.
+        """
+        return self.cmd_output(cmd, timeout, internal_timeout, print_func)
+
+
+    def get_command_status_output(self, cmd, timeout=30.0,
+                                  internal_timeout=None, print_func=None):
+        """
+        Alias for cmd_status_output() for backward compatibility.
+        """
+        return self.cmd_status_output(cmd, timeout, internal_timeout,
+                                      print_func)
+
+
+    def get_command_status(self, cmd, timeout=30.0, internal_timeout=None,
+                           print_func=None):
+        """
+        Alias for cmd_status() for backward compatibility.
+        """
+        return self.cmd_status(cmd, timeout, internal_timeout, print_func)
