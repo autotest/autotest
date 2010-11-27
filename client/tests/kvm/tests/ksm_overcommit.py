@@ -27,12 +27,13 @@ def run_ksm_overcommit(test, params, env):
         """
         logging.debug("Starting allocator.py on guest %s", vm.name)
         session.sendline("python /tmp/allocator.py")
-        (match, data) = session.read_until_last_line_matches(["PASS:", "FAIL:"],
-                                                             timeout)
-        if match != 0:
-            raise error.TestFail("Command allocator.py on guest %s failed.\n"
-                                 "return code: %s\n output:\n%s" %
-                                 (vm.name, match, data))
+        try:
+            (match, data) = session.read_until_last_line_matches(
+                                                            ["PASS:", "FAIL:"],
+                                                            timeout)
+        except kvm_subprocess.ExpectProcessTerminatedError, e:
+            raise error.TestFail("Command allocator.py on vm '%s' failed: %s" %
+                                 (vm.name, str(e)))
 
 
     def _execute_allocator(command, vm, session, timeout):
@@ -50,12 +51,14 @@ def run_ksm_overcommit(test, params, env):
         logging.debug("Executing '%s' on allocator.py loop, vm: %s, timeout: %s",
                       command, vm.name, timeout)
         session.sendline(command)
-        (match, data) = session.read_until_last_line_matches(["PASS:","FAIL:"],
+        try:
+            (match, data) = session.read_until_last_line_matches(
+                                                             ["PASS:","FAIL:"],
                                                              timeout)
-        if match != 0:
-            raise error.TestFail("Failed to execute '%s' on allocator.py, "
-                                 "vm: %s, output:\n%s" %
-                                 (command, vm.name, data))
+        except kvm_subprocess.ExpectProcessTerminatedError, e:
+            e_str = ("Failed to execute command '%s' on allocator.py, "
+                     "vm '%s': %s" % (command, vm.name, str(e)))
+            raise error.TestFail(e_str)
         return (match, data)
 
 
