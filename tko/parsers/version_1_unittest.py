@@ -220,8 +220,8 @@ class iteration_parse_line_into_dicts(unittest.TestCase):
 
 
     def test_perf_entry(self):
-        result = self.parse_line("perf-val{perf}=173")
-        self.assertEqual(({}, {"perf-val": 173}), result)
+        result = self.parse_line("perf-val{perf}=-173")
+        self.assertEqual(({}, {"perf-val": -173}), result)
 
 
     def test_attr_entry(self):
@@ -230,8 +230,8 @@ class iteration_parse_line_into_dicts(unittest.TestCase):
 
 
     def test_untagged_is_perf(self):
-        result = self.parse_line("untagged=678.5")
-        self.assertEqual(({}, {"untagged": 678.5}), result)
+        result = self.parse_line("untagged=-678.5e5")
+        self.assertEqual(({}, {"untagged": -678.5e5}), result)
 
 
     def test_invalid_tag_ignored(self):
@@ -240,12 +240,12 @@ class iteration_parse_line_into_dicts(unittest.TestCase):
 
 
     def test_non_numeric_perf_ignored(self):
-        result = self.parse_line("perf-val{perf}=NaN")
+        result = self.parse_line("perf-val{perf}=FooBar")
         self.assertEqual(({}, {}), result)
 
 
     def test_non_numeric_untagged_ignored(self):
-        result = self.parse_line("untagged=NaN")
+        result = self.parse_line("untagged=FooBar")
         self.assertEqual(({}, {}), result)
 
 
