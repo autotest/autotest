@@ -98,7 +98,7 @@ def run_iofuzz(test, params, env):
         r = random.SystemRandom()
 
         logging.info("Enumerate guest devices through /proc/ioports")
-        ioports = session.get_command_output("cat /proc/ioports")
+        ioports = session.cmd_output("cat /proc/ioports")
         logging.debug(ioports)
         devices = re.findall("(\w+)-(\w+)\ : (.*)", ioports)
 

@@ -71,7 +71,7 @@ def run_nicdriver_unload(test, params, env):
             try:
                 session_serial.cmd(unload_load_cmd, timeout=120)
             except:
-                session.get_command_output("rm -rf /tmp/Thread-*")
+                session.cmd_output("rm -rf /tmp/Thread-*")
                 raise
             pid, s = os.waitpid(pid, os.WNOHANG)
             status = os.WEXITSTATUS(s)
@@ -103,5 +103,5 @@ def run_nicdriver_unload(test, params, env):
             raise error.TestFail("Test nic function after load/unload fail")
 
     finally:
-        session.get_command_output("rm -rf /tmp/Thread-*")
+        session.cmd_output("rm -rf /tmp/Thread-*")
         session.close()

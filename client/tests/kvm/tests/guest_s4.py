@@ -65,6 +65,6 @@ def run_guest_s4(test, params, env):
     session2.cmd(check_s4_cmd)
 
     logging.info("VM resumed successfuly after suspend to disk")
-    session2.get_command_output(params.get("kill_test_s4_cmd"))
+    session2.cmd_output(params.get("kill_test_s4_cmd"))
     session.close()
     session2.close()

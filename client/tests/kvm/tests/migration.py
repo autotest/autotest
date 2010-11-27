@@ -29,7 +29,7 @@ def run_migration(test, params, env):
 
     # Get the output of migration_test_command
     test_command = params.get("migration_test_command")
-    reference_output = session.get_command_output(test_command)
+    reference_output = session.cmd_output(test_command)
 
     # Start some process in the background (and leave the session open)
     background_command = params.get("migration_bg_command", "")
@@ -60,7 +60,7 @@ def run_migration(test, params, env):
         session2.cmd(check_command, timeout=30)
 
         # Get the output of migration_test_command
-        output = session2.get_command_output(test_command)
+        output = session2.cmd_output(test_command)
 
         # Compare output to reference output
         if output != reference_output:
@@ -77,8 +77,7 @@ def run_migration(test, params, env):
     finally:
         # Kill the background process
         if session2 and session2.is_alive():
-            session2.get_command_output(params.get("migration_bg_kill_command",
-                                                   ""))
+            session2.cmd_output(params.get("migration_bg_kill_command", ""))
 
     session2.close()
     session.close()

@@ -54,8 +54,8 @@ def run_whql_submission(test, params, env):
 
     # Get the computer names of the server and client
     cmd = "echo %computername%"
-    server_name = server_session.get_command_output(cmd).strip()
-    client_name = session.get_command_output(cmd).strip()
+    server_name = server_session.cmd_output(cmd).strip()
+    client_name = session.cmd_output(cmd).strip()
     session.close()
 
     # Run the automation program on the server

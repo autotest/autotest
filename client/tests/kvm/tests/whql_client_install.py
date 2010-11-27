@@ -54,14 +54,14 @@ def run_whql_client_install(test, params, env):
 
     # Get server and client information
     cmd = "echo %computername%"
-    server_name = server_session.get_command_output(cmd).strip()
-    client_name = session.get_command_output(cmd).strip()
+    server_name = server_session.cmd_output(cmd).strip()
+    client_name = session.cmd_output(cmd).strip()
     cmd = "wmic computersystem get domain"
-    server_workgroup = server_session.get_command_output(cmd).strip()
+    server_workgroup = server_session.cmd_output(cmd).strip()
     server_workgroup = server_workgroup.splitlines()[-1]
     regkey = r"HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters"
     cmd = "reg query %s /v Domain" % regkey
-    o = server_session.get_command_output(cmd).strip().splitlines()[-1]
+    o = server_session.cmd_output(cmd).strip().splitlines()[-1]
     try:
         server_dns_suffix = o.split(None, 2)[2]
     except IndexError:

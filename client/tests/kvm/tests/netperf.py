@@ -26,7 +26,7 @@ def run_netperf(test, params, env):
     result_file = os.path.join(test.resultsdir, "output_%s" % test.iteration)
 
     firewall_flush = "iptables -F"
-    session.get_command_output(firewall_flush)
+    session.cmd_output(firewall_flush)
 
     for i in params.get("netperf_files").split():
         if not vm.copy_files_to(os.path.join(netperf_dir, i), "/tmp"):
@@ -65,5 +65,5 @@ def run_netperf(test, params, env):
                                  ", ".join(list_fail))
 
     finally:
-        session.get_command_output("killall netserver")
+        session.cmd_output("killall netserver")
         session.close()
