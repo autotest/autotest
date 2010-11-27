@@ -135,7 +135,7 @@ def run_physical_resources_check(test, params, env):
     def verify_device(expect, name, verify_cmd):
         f_fail = 0
         if verify_cmd:
-            actual = session.get_command_output(verify_cmd)
+            actual = session.cmd_output(verify_cmd)
             if not string.upper(expect) in actual:
                 f_fail += 1
                 logging.error("%s mismatch:")

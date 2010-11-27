@@ -20,7 +20,7 @@ def run_ioquit(test, params, env):
     try:
         bg_cmd = params.get("background_cmd")
         logging.info("Add IO workload for guest OS.")
-        session.get_command_output(bg_cmd, timeout=60)
+        session.cmd_output(bg_cmd, timeout=60)
         check_cmd = params.get("check_cmd")
         session2.cmd(check_cmd, timeout=60)
 

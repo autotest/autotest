@@ -36,4 +36,4 @@ def run_clock_getres(test, params, env):
     session.cmd(os.path.join(base_dir, t_name))
     logging.info("PASS: Guest reported appropriate clock resolution")
     logging.info("guest's dmesg:")
-    session.get_command_output("dmesg")
+    session.cmd_output("dmesg")

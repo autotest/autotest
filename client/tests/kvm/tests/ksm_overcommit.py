@@ -230,7 +230,7 @@ def run_ksm_overcommit(test, params, env):
                            (mem / 200 * 50 * perf_ratio))
         logging.debug(kvm_test_utils.get_memory_info([lvms[last_vm]]))
 
-        lsessions[i].get_command_output("die()", 20)
+        lsessions[i].cmd_output("die()", 20)
         lvms[last_vm].destroy(gracefully = False)
         logging.info("Phase 3b: PASS")
 
@@ -356,7 +356,7 @@ def run_ksm_overcommit(test, params, env):
 
         logging.debug("Cleaning up...")
         for i in range(0, max_alloc):
-            lsessions[i].get_command_output("die()", 20)
+            lsessions[i].cmd_output("die()", 20)
         session.close()
         vm.destroy(gracefully = False)
 

@@ -78,7 +78,7 @@ def run_ethtool(test, params, env):
         logging.info("Compare md5sum of the files on guest and host")
         host_result = utils.hash_file(name, method="md5")
         try:
-            o = session.get_command_output("md5sum %s" % name)
+            o = session.cmd_output("md5sum %s" % name)
             guest_result = re.findall("\w+", o)[0]
         except IndexError:
             logging.error("Could not get file md5sum in guest")
@@ -96,13 +96,13 @@ def run_ethtool(test, params, env):
         @param src: Source host of transfer file
         @return: Tuple (status, error msg/tcpdump result)
         """
-        session2.get_command_output("rm -rf %s" % filename)
+        session2.cmd_output("rm -rf %s" % filename)
         dd_cmd = ("dd if=/dev/urandom of=%s bs=1M count=%s" %
                   (filename, params.get("filesize")))
         logging.info("Creat file in source host, cmd: %s" % dd_cmd)
         tcpdump_cmd = "tcpdump -lep -s 0 tcp -vv port ssh"
         if src == "guest":
-            session.get_command_output(dd_cmd, timeout=360)
+            session.cmd_output(dd_cmd, timeout=360)
             tcpdump_cmd += " and src %s" % guest_ip
             copy_files_fun = vm.copy_files_from
         else:
@@ -119,8 +119,8 @@ def run_ethtool(test, params, env):
             tcpdump_cmd += " and not port %s" % i
         logging.debug("Listen by command: %s" % tcpdump_cmd)
         session2.sendline(tcpdump_cmd)
-        if not kvm_utils.wait_for(lambda: session.get_command_status(
-                                           "pgrep tcpdump") == 0, 30):
+        if not kvm_utils.wait_for(
+                           lambda:session.cmd_status("pgrep tcpdump") == 0, 30):
             return (False, "Tcpdump process wasn't launched")
 
         logging.info("Start to transfer file")

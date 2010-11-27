@@ -48,8 +48,7 @@ def run_vlan(test, params, env):
     def rem_vlan(session, id, iface="eth0"):
         rem_vlan_cmd = "if [[ -e /proc/net/vlan/%s ]];then vconfig rem %s;fi"
         iface = "%s.%s" % (iface, id)
-        s = session.get_command_status(rem_vlan_cmd % (iface, iface))
-        return s
+        return session.cmd_status(rem_vlan_cmd % (iface, iface))
 
     def nc_transfer(src, dst):
         nc_port = kvm_utils.find_free_port(1025, 5334, vm_ip[dst])
@@ -69,7 +68,7 @@ def run_vlan(test, params, env):
             raise error.TestFail ("Fail to receive file"
                                     " from vm%s to vm%s" % (src+1, dst+1))
         #check MD5 message digest of receive file in dst
-        output = session[dst].get_command_output("md5sum receive").strip()
+        output = session[dst].cmd_output("md5sum receive").strip()
         digest_receive = re.findall(r'(\w+)', output)[0]
         if digest_receive == digest_origin[src]:
             logging.info("file succeed received in vm %s" % vlan_ip[dst])
@@ -77,7 +76,7 @@ def run_vlan(test, params, env):
             logging.info("digest_origin is  %s" % digest_origin[src])
             logging.info("digest_receive is %s" % digest_receive)
             raise error.TestFail("File transfered differ from origin")
-        session[dst].get_command_output("rm -f receive")
+        session[dst].cmd_output("rm -f receive")
 
     for i in range(2):
         session.append(kvm_test_utils.wait_for_login(vm[i],
@@ -99,7 +98,7 @@ def run_vlan(test, params, env):
         digest_origin.append(re.findall(r'(\w+)', output)[0])
 
         #stop firewall in vm
-        session[i].get_command_output("/etc/init.d/iptables stop")
+        session[i].cmd_output("/etc/init.d/iptables stop")
 
         #load 8021q module for vconfig
         session[i].cmd("modprobe 8021q")

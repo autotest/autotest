@@ -21,7 +21,7 @@ def run_linux_s3(test, params, env):
     logging.info("Waiting for a while for X to start")
     time.sleep(10)
 
-    src_tty = session.get_command_output("fgconsole").strip()
+    src_tty = session.cmd_output("fgconsole").strip()
     logging.info("Current virtual terminal is %s" % src_tty)
     if src_tty not in map(str, range(1,10)):
         raise error.TestFail("Got a strange current vt (%s)" % src_tty)
