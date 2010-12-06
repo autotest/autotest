@@ -886,14 +886,14 @@ def run_virtio_console(test, params, env):
 
             test.do_test(topen, [vm, send_pt] , True)
             test.do_test(tclose, [vm, send_pt], True)
-            test.do_test(tmulti_open, [vm, send_pt], True)
+            test.do_test(tmulti_open, [vm, send_pt])
             test.do_test(tpooling, [vm, send_pt])
             test.do_test(tsigio, [vm, send_pt])
             test.do_test(tlseek, [vm, send_pt])
             test.do_test(trw_host_offline, [vm, send_pt])
             test.do_test(trw_nonblocking_mode, [vm, send_pt])
             test.do_test(trw_blocking_mode, [vm, send_pt])
-            test.do_test(tbasic_loopback, [vm, send_pt, recv_pt], data)
+            test.do_test(tbasic_loopback, [vm, send_pt, recv_pt, data], True)
 
 
 
