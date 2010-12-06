@@ -675,6 +675,62 @@ def run_virtio_console(test, params, env):
         on_guest("virt.poll('%s', %s)" % (port.name, select.POLLOUT), vm,
                  2)
 
+
+    def tsigio(vm, port):
+        """
+        Test try sigio function.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param port: Port used in test.
+        """
+        if port.is_open:
+            port.close()
+
+        # Enable sigio on specific port
+        on_guest("virt.async('%s', True, 0)" %
+                 (port.name) , vm, 2)
+        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
+
+        #Test sigio when port open
+        on_guest("virt.set_pool_want_return('%s', select.POLLOUT)" %
+                 (port.name), vm, 2)
+        port.open()
+        match = _on_guest("virt.get_sigio_poll_return('%s')" %
+                          (port.name) , vm, 2)[0]
+        if match == 1:
+            raise error.TestFail("Problem with HUP on console port.")
+
+        #Test sigio when port receive data
+        on_guest("virt.set_pool_want_return('%s', select.POLLOUT |"
+                 " select.POLLIN)" % (port.name), vm, 2)
+        port.sock.sendall("0123456789")
+        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
+
+        #Test sigio port close event
+        on_guest("virt.set_pool_want_return('%s', select.POLLHUP |"
+                 " select.POLLIN)" % (port.name), vm, 2)
+        port.close()
+        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
+
+        #Test sigio port open event and persistence of written data on port.
+        on_guest("virt.set_pool_want_return('%s', select.POLLOUT |"
+                 " select.POLLIN)" % (port.name), vm, 2)
+        port.open()
+        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
+
+        #Test event when erase data.
+        on_guest("virt.clean_port('%s')" % (port.name), vm, 2)
+        port.close()
+        on_guest("virt.set_pool_want_return('%s', select.POLLOUT)"
+                 % (port.name), vm, 2)
+        port.open()
+        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
+
+        # Disable sigio on specific port
+        on_guest("virt.async('%s', False, 0)" %
+                 (port.name) , vm, 2)
+
+
     def tlseek(vm, port):
         """
         Tests the correct handling of lseek (expected fail)
@@ -832,6 +888,7 @@ def run_virtio_console(test, params, env):
             test.do_test(tclose, [vm, send_pt], True)
             test.do_test(tmulti_open, [vm, send_pt], True)
             test.do_test(tpooling, [vm, send_pt])
+            test.do_test(tsigio, [vm, send_pt])
             test.do_test(tlseek, [vm, send_pt])
             test.do_test(trw_host_offline, [vm, send_pt])
             test.do_test(trw_nonblocking_mode, [vm, send_pt])
@@ -1075,6 +1132,7 @@ def run_virtio_console(test, params, env):
         match, tmp = _on_guest("is_alive()", vm, 10)
         if (match == None) or (match != 0):
             logging.error("Python died/is stucked/have remaining threads")
+            logging.debug(tmp)
             vm[1].close()
             vm[1] = kvm_test_utils.wait_for_login(vm[0], 0,
                                          float(params.get("boot_timeout", 240)),
@@ -1088,18 +1146,33 @@ def run_virtio_console(test, params, env):
                 raise error.TestFail("Python is really stucked - "
                                      "can't kill -9 it")
 
-            on_guest("rmmod -f virtio_console && echo -n PASS: rmmod "
-                     "|| echo -n FAIL: rmmod", vm, 10)
-            on_guest("modprobe virtio_console "
-                     "&& echo -n PASS: modprobe || echo -n FAIL: modprobe",
-                     vm, 10)
+            #on_guest("rmmod -f virtio_console && echo -n PASS: rmmod "
+            #         "|| echo -n FAIL: rmmod", vm, 10)
+            #on_guest("modprobe virtio_console "
+            #         "&& echo -n PASS: modprobe || echo -n FAIL: modprobe",
+            #         vm, 10)
 
             init_guest(vm, consoles)
             (match, data) = _on_guest("virt.clean_port('%s'),1024" %
                                       consoles[0][0].name, vm, 2)
             if (match == None) or (match != 0):
-                raise error.TestFail("Virtio-console driver is irreparably"
-                                     " blocked. Every comd end with sig KILL.")
+                logging.error(data)
+                logging.error("Virtio-console driver is irreparably"
+                              " blocked. Every comd end with sig KILL."
+                              "Try reboot vm for continue in testing.")
+                vm[1] = kvm_test_utils.reboot(vm[0], vm[1], "system_reset")
+                init_guest(vm, consoles)
+                (match, data) = _on_guest("virt.clean_port('%s'),1024" %
+                                      consoles[0][0].name, vm, 2)
+
+                if (match == None) or (match != 0):
+                    raise error.TestFail("Virtio-console driver is irreparably"
+                                         " blocked. Every comd end with sig"
+                                         " KILL. Neither the restart did not"
+                                         " help.")
+            else:
+                on_guest("virt.close('%s'),1024" % consoles[0][0].name, vm, 2)
+
 
         for ctype in consoles:
             for port in ctype:
@@ -1109,6 +1182,7 @@ def run_virtio_console(test, params, env):
                 on_guest("virt.clean_port('%s'),1024" % port.name, vm, 2)
                 if not openned:
                     port.close()
+                    on_guest("virt.close('%s'),1024" % port.name, vm, 2)
 
 
     # INITIALIZE
