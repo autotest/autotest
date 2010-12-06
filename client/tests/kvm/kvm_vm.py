@@ -24,6 +24,8 @@ def get_image_filename(params, root_dir):
     """
     image_name = params.get("image_name", "image")
     image_format = params.get("image_format", "qcow2")
+    if params.get("image_raw_device") == "yes":
+        return image_name
     image_filename = "%s.%s" % (image_name, image_format)
     image_filename = kvm_utils.get_path(root_dir, image_filename)
     return image_filename
