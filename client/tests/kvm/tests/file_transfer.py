@@ -30,7 +30,11 @@ def run_file_transfer(test, params, env):
     tmp_dir = params.get("tmp_dir", "/tmp/")
     clean_cmd = params.get("clean_cmd", "rm -f")
     filesize = int(params.get("filesize", 4000))
-    cmd = "dd if=/dev/urandom of=%s/a.out bs=1M count=%d" % (dir_name, filesize)
+    count = int(filesize / 10)
+    if count == 0:
+        count = 1
+    cmd = "dd if=/dev/zero of=%s/a.out bs=10M count=%d" % (dir_name,
+                                                           count)
     guest_path = tmp_dir + "b.out"
 
     try:
