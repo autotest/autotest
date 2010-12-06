@@ -675,6 +675,16 @@ def run_virtio_console(test, params, env):
         on_guest("virt.poll('%s', %s)" % (port.name, select.POLLOUT), vm,
                  2)
 
+    def tlseek(vm, port):
+        """
+        Tests the correct handling of lseek (expected fail)
+
+        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param port: Port used in test.
+        """
+        # The virt.lseek returns PASS when the seek fails
+        on_guest("virt.lseek('%s', 0, 0)" % (port.name), vm, 2)
+
 
     def trw_host_offline(vm, port):
         """
@@ -822,6 +832,7 @@ def run_virtio_console(test, params, env):
             test.do_test(tclose, [vm, send_pt], True)
             test.do_test(tmulti_open, [vm, send_pt], True)
             test.do_test(tpooling, [vm, send_pt])
+            test.do_test(tlseek, [vm, send_pt])
             test.do_test(trw_host_offline, [vm, send_pt])
             test.do_test(trw_nonblocking_mode, [vm, send_pt])
             test.do_test(trw_blocking_mode, [vm, send_pt])
