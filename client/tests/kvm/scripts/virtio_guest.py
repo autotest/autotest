@@ -10,7 +10,7 @@ Auxiliary script used to send data between ports on guests.
 import threading
 from threading import Thread
 import os, time, select, re, random, sys, array
-import fcntl, array, subprocess, traceback
+import fcntl, array, subprocess, traceback, signal
 
 DEBUGPATH = "/sys/kernel/debug"
 SYSFSPATH = "/sys/class/virtio-ports/"
@@ -29,6 +29,8 @@ class VirtioGuest:
         self.exit_thread = threading.Event()
         self.threads = []
         self.ports = {}
+        self.poll_fds = {}
+        self.catch_signal = None
 
 
     def _readfile(self, name):
@@ -253,6 +255,28 @@ class VirtioGuest:
                     raise inst
         return f
 
+    @staticmethod
+    def pollmask_to_str(mask):
+        """
+        Conver pool mast to string
+
+        @param mask: poll return mask
+        """
+        str = ""
+        if (mask & select.POLLIN):
+            str += "IN "
+        if (mask & select.POLLPRI):
+            str += "PRI IN "
+        if (mask & select.POLLOUT):
+            str += "OUT "
+        if (mask & select.POLLERR):
+            str += "ERR "
+        if (mask & select.POLLHUP):
+            str += "HUP "
+        if (mask & select.POLLMSG):
+            str += "MSG "
+        return str
+
 
     def poll(self, port, expected, timeout=500):
         """
@@ -267,37 +291,12 @@ class VirtioGuest:
 
         mask = p.poll(timeout)
 
-        str = ""
-        if (mask[0][1] & select.POLLIN):
-            str += "IN "
-        if (mask[0][1] & select.POLLPRI):
-            str += "PRI IN "
-        if (mask[0][1] & select.POLLOUT):
-            str += "OUT "
-        if (mask[0][1] & select.POLLERR):
-            str += "ERR "
-        if (mask[0][1] & select.POLLHUP):
-            str += "HUP "
-        if (mask[0][1] & select.POLLMSG):
-            str += "MSG "
-
+        maskstr = VirtioGuest.pollmask_to_str(mask[0][1])
         if (mask[0][1] & expected) == expected:
-            print "PASS: Events: " + str
+            print "PASS: Events: " + maskstr
         else:
-            estr = ""
-            if (expected & select.POLLIN):
-                estr += "IN "
-            if (expected & select.POLLPRI):
-                estr += "PRI IN "
-            if (expected & select.POLLOUT):
-                estr += "OUT "
-            if (expected & select.POLLERR):
-                estr += "ERR "
-            if (expected & select.POLLHUP):
-                estr += "HUP "
-            if (expected & select.POLLMSG):
-                estr += "MSG "
-            print "FAIL: Events: " + str + "  Expected: " + estr
+            emaskstr = VirtioGuest.pollmask_to_str(expected)
+            print "FAIL: Events: " + maskstr + "  Expected: " + emaskstr
 
 
     def lseek(self, port, pos, how):
@@ -347,6 +346,104 @@ class VirtioGuest:
             print "PASS: set to blocking mode"
         else:
             print "PASS: set to nonblocking mode"
+
+
+    def __call__(self, sig, frame):
+        """
+        Call function. Used for signal handle.
+        """
+        if (sig == signal.SIGIO):
+            self.sigio_handler(sig, frame)
+
+
+    def sigio_handler(self, sig, frame):
+        """
+        Handler for sigio operation.
+
+        @param sig: signal which call handler.
+        @param frame: frame of caller
+        """
+        if self.poll_fds:
+            p = select.poll()
+            map(p.register, self.poll_fds.keys())
+
+            masks = p.poll(10)
+            print masks
+            for mask in masks:
+                self.poll_fds[mask[0]][1] |= mask[1]
+
+
+    def get_sigio_poll_return(self, port):
+        """
+        Return PASS, FAIL and poll walue in string format.
+
+        @param port: Port to check poll information.
+        """
+        fd = self._open([port])[0]
+
+        maskstr = VirtioGuest.pollmask_to_str(self.poll_fds[fd][1])
+        if (self.poll_fds[fd][0] ^ self.poll_fds[fd][1]):
+            emaskstr = VirtioGuest.pollmask_to_str(self.poll_fds[fd][0])
+            print "FAIL: Events: " + maskstr + "  Expected: " + emaskstr
+        else:
+            print "PASS: Events: " + maskstr
+        self.poll_fds[fd][1] = 0
+
+
+    def set_pool_want_return(self, port, poll_value):
+        """
+        Set value to static variable.
+
+        @param port: Port which should be set excepted mask
+        @param poll_value: Value to check sigio signal.
+        """
+        fd = self._open([port])[0]
+        self.poll_fds[fd] = [poll_value, 0]
+        print "PASS: Events: " + VirtioGuest.pollmask_to_str(poll_value)
+
+
+    def catching_signal(self):
+        """
+        return: True if should set catch signal, False if ignore signal and
+                none when configuration is not changed.
+        """
+        ret = self.catch_signal
+        self.catch_signal = None
+        return ret
+
+
+    def async(self, port, mode=True, exp_val = 0):
+        """
+        Set port function mode async/sync.
+
+        @param port: port which should be pooled.
+        @param mode: False to set sync mode, True for sync mode.
+        @param exp_val: Value which should be pooled.
+        """
+        fd = self._open([port])[0]
+
+        try:
+            fcntl.fcntl(fd, fcntl.F_SETOWN, os.getpid())
+            fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+            if mode:
+                fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_ASYNC)
+                self.poll_fds[fd] = [exp_val, 0]
+                self.catch_signal = True
+                os.kill(os.getpid(), signal.SIGCONT)
+            else:
+                del self.poll_fds[fd]
+                fcntl.fcntl(fd, fcntl.F_SETFL, fl & ~os.O_ASYNC)
+                self.catch_signal = False
+                os.kill(os.getpid(), signal.SIGCONT)
+
+        except Exception, inst:
+            print "FAIL: Setting (a)sync mode: " + str(inst)
+            return
+
+        if mode:
+            print "PASS: Set to async mode"
+        else:
+            print "PASS: Set to sync mode"
 
 
     def close(self, file):
@@ -526,7 +623,7 @@ def is_alive():
     """
     Check is only main thread is alive and if guest react.
     """
-    if threading.activeCount() == 1:
+    if threading.activeCount() == 2:
         print ("PASS: Guest is ok no thread alive")
     else:
         threads = ""
@@ -542,17 +639,13 @@ def compile():
     import py_compile
     py_compile.compile(sys.path[0] + "/virtio_guest.py")
     print "PASS: compile"
-    exit(0)
+    sys.exit()
 
 
-def main():
+def worker(virt):
     """
-    Main (infinite) loop of virtio_guest.
+    Worker thread (infinite) loop of virtio_guest.
     """
-    if (len(sys.argv) > 1) and (sys.argv[1] == "-c"):
-        compile()
-
-    virt = VirtioGuest()
     print "PASS: Start"
 
     while True:
@@ -562,9 +655,34 @@ def main():
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             print "On Guest exception from: \n" + "".join(
-                                    traceback.format_exception(exc_type,
-                                                               exc_value,
-                                                               exc_traceback))
+                            traceback.format_exception(exc_type,
+                                                       exc_value,
+                                                       exc_traceback))
+    sys.exit(0)
+
+
+def sigcont_handler(sig, frame):
+    pass
+
+
+def main():
+    """
+    Main function with infinite loop to catch signal from system.
+    """
+    if (len(sys.argv) > 1) and (sys.argv[1] == "-c"):
+        compile()
+
+    virt = VirtioGuest()
+    slave = Thread(target=worker, args=(virt, ))
+    slave.start()
+    signal.signal(signal.SIGCONT, sigcont_handler)
+    while True:
+        signal.pause()
+        catch = virt.catching_signal()
+        if catch:
+            signal.signal(signal.SIGIO, virt)
+        elif catch == False:
+            signal.signal(signal.SIGIO, signal.SIG_DFL)
 
 
 if __name__ == "__main__":
