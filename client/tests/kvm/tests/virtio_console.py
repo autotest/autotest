@@ -468,9 +468,13 @@ def run_virtio_console(test, params, env):
         logging.debug("Executing '%s' on virtio_guest.py loop, vm: %s," +
                       "timeout: %s", command, vm[0].name, timeout)
         vm[1].sendline(command)
-        (match, data) = vm[1].read_until_last_line_matches(["PASS:",
-                                                    "FAIL:[Failed to execute]"],
-                                                    timeout)
+        try:
+            (match, data) = vm[1].read_until_last_line_matches(["PASS:",
+                                                                "FAIL:"],
+                                                               timeout)
+        except (kvm_subprocess.ExpectTimeoutError):
+            match = None
+            data = None
         return (match, data)
 
 
