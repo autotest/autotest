@@ -300,6 +300,29 @@ class VirtioGuest:
             print "FAIL: Events: " + str + "  Expected: " + estr
 
 
+    def lseek(self, port, pos, how):
+        """
+        Use lseek on the device. The device is unseekable so PASS is returned
+        when lseek command fails and vice versa.
+
+        @param port: Name of the port
+        @param pos: Offset
+        @param how: Relativ offset os.SEEK_{SET,CUR,END}
+        """
+        fd = self._open([port])[0]
+
+        try:
+            os.lseek(fd, pos, how)
+        except Exception, inst:
+            if inst.errno == 29:
+                print "PASS: the lseek failed as expected"
+            else:
+                print inst
+                print "FAIL: unknown error"
+        else:
+            print "FAIL: the lseek unexpectedly passed"
+
+
     def blocking(self, port, mode=False):
         """
         Set port function mode blocking/nonblocking
