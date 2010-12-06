@@ -48,15 +48,18 @@ def run_netperf(test, params, env):
         result.write("Netperf test results\n")
 
         for i in params.get("protocols").split():
-            cmd = params.get("netperf_cmd") % (netperf_dir, i, guest_ip)
-            logging.info("Netperf: protocol %s", i)
-            try:
-                netperf_output = utils.system_output(cmd,
-                                                     retain_output=True)
-                result.write("%s\n" % netperf_output)
-            except:
-                logging.error("Test of protocol %s failed", i)
-                list_fail.append(i)
+            packet_size = params.get("packet_size", "1500")
+            for size in packet_size.split():
+                cmd = params.get("netperf_cmd") % (netperf_dir, i,
+                                                   guest_ip, size)
+                logging.info("Netperf: protocol %s", i)
+                try:
+                    netperf_output = utils.system_output(cmd,
+                                                         retain_output=True)
+                    result.write("%s\n" % netperf_output)
+                except:
+                    logging.error("Test of protocol %s failed", i)
+                    list_fail.append(i)
 
         result.close()
 
