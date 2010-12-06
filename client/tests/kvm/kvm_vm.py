@@ -1254,3 +1254,14 @@ class VM:
         """
         cmd = self.params.get("mem_chk_cur_cmd")
         return self.get_memory_size(cmd)
+
+
+    def save_to_file(self, path):
+        """
+        Save the state of virtual machine to a file through migrate to
+        exec
+        """
+        # Make sure we only get one iteration
+        self.monitor.cmd("migrate_set_speed 1000g")
+        self.monitor.cmd("migrate_set_downtime 100000000")
+        self.monitor.migrate('"exec:cat>%s"' % path)
