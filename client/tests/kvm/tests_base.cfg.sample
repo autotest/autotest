@@ -694,6 +694,13 @@ variants:
         # command to probe the crash kernel
         # crash_kernel_prob_cmd = "grep -q 1 /sys/kernel/kexec_crash_loaded"
 
+    - vmstop:
+        type = vmstop
+        # the path used to store the saved vm state
+        # save_path = /tmp
+        # clean the state file?
+        clean_save = yes
+
     # system_powerdown, system_reset and shutdown *must* be the last ones
     # defined (in this order), since the effect of such tests can leave
     # the VM on a bad state.
@@ -1605,7 +1612,6 @@ variants:
                 time_command = "echo TIME: %date% %time%"
                 time_filter_re = "(?<=TIME: \w\w\w ).{19}(?=\.\d\d)"
                 time_format = "%m/%d/%Y %H:%M:%S"
-
         guest_s4:
             check_s4_support_cmd = powercfg /hibernate on
             test_s4_cmd = start ping -t localhost
@@ -1627,11 +1633,13 @@ variants:
             find_pci_cmd = wmic diskdrive list brief
             pci_test_cmd = echo select disk 1 > dt && echo online >> dt && echo detail disk >> dt && echo exit >> dt && diskpart /s dt
         physical_resources_check:
-            catch_uuid_cmd = 
-
+            catch_uuid_cmd =
         file_transfer:
             tmp_dir = C:\
             clean_cmd = del
+        vmstop:
+            guest_path = C:\
+
         variants:
             - Win2000:
                 no reboot whql
