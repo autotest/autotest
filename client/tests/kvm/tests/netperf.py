@@ -33,7 +33,7 @@ def run_netperf(test, params, env):
             raise error.TestError("Could not copy file %s to guest" % i)
 
     try:
-        session.cmd(firewall_flush):
+        session.cmd(firewall_flush)
     except kvm_subprocess.ShellError:
         logging.warning("Could not flush firewall rules on guest")
 
