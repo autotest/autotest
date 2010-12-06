@@ -534,10 +534,11 @@ variants:
         type = netperf
         nic_mode = tap
         netperf_files = netperf-2.4.5.tar.bz2 wait_before_data.patch
+        packet_size = 1500
         setup_cmd = "cd %s && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure && make"
         netserver_cmd =  %s/netperf-2.4.5/src/netserver
         # test time is 60 seconds, set the buffer size to 1 for more hardware interrupt
-        netperf_cmd = %s/netperf-2.4.5/src/netperf -t %s -H %s -l 60 -- -m 1
+        netperf_cmd = %s/netperf-2.4.5/src/netperf -t %s -H %s -l 60 -- -m %s
         protocols = "TCP_STREAM TCP_MAERTS TCP_RR TCP_CRR UDP_RR TCP_SENDFILE UDP_STREAM"
 
     - ethtool: install setup unattended_install.cdrom
