@@ -26,6 +26,7 @@ def run_migration(test, params, env):
     mig_timeout = float(params.get("mig_timeout", "3600"))
     mig_protocol = params.get("migration_protocol", "tcp")
     mig_cancel = bool(params.get("mig_cancel"))
+    offline = params.get("offline", "no") == "yes"
 
     # Get the output of migration_test_command
     test_command = params.get("migration_test_command")
@@ -47,7 +48,7 @@ def run_migration(test, params, env):
 
         # Migrate the VM
         dest_vm = kvm_test_utils.migrate(vm, env,mig_timeout, mig_protocol,
-                                         mig_cancel)
+                                         mig_cancel, offline)
 
         # Log into the guest again
         logging.info("Logging into guest after migration...")
