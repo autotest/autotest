@@ -133,7 +133,8 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
 
 
 def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
-            mig_cancel=False, offline=False):
+            mig_cancel=False, offline=False, stable_check=False,
+            clean=False, save_path=None):
     """
     Migrate a VM locally and re-register it in the environment.
 
@@ -182,6 +183,10 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                                  "to finish")
 
     dest_vm = vm.clone()
+    if stable_check:
+        # Pause the dest vm after creation
+        dest_vm.params['extra_params'] = (dest_vm.params.get('extra_params','')
+                                          + ' -S')
 
     if not dest_vm.create(migration_mode=mig_protocol, mac_source=vm):
         raise error.TestError("Could not create dest VM")
@@ -210,11 +215,34 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
             return vm
         else:
             wait_for_migration()
+            if stable_check:
+                save_path = None or "/tmp"
+                save1 = os.path.join(save_path, "src")
+                save2 = os.path.join(save_path, "dst")
+
+                vm.save_to_file(save1)
+                dest_vm.save_to_file(save2)
+
+                # Fail if we see deltas
+                md5_save1 = utils.hash_file(save1)
+                md5_save2 = utils.hash_file(save2)
+                if md5_save1 != md5_save2:
+                    raise error.TestFail("Mismatch of VM state before "
+                                         "and after migration")
+
             if offline:
                 dest_vm.monitor.cmd("cont")
     except:
         dest_vm.destroy()
         raise
+
+    finally:
+        if stable_check and clean:
+            logging.debug("Cleaning the state files")
+            if os.path.isfile(save1):
+                os.remove(save1)
+            if os.path.isfile(save2):
+                os.remove(save2)
 
     # Report migration status
     if mig_succeeded():
