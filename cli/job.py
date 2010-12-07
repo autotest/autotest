@@ -602,6 +602,12 @@ class job_clone(job_create_or_clone):
         for field in ('name', 'created_on', 'id', 'owner'):
             del clone_info['job'][field]
 
+        # Also remove parameterized_job field, as the feature still is
+        # incomplete, this tool does not attempt to support it for now,
+        # it uses a different API function and it breaks create_job()
+        if clone_info['job'].has_key('parameterized_job'):
+            del clone_info['job']['parameterized_job']
+
         # Keyword args cannot be unicode strings
         self.data.update((str(key), val)
                          for key, val in clone_info['job'].iteritems())
