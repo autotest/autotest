@@ -183,52 +183,31 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
 
     dest_vm = vm.clone()
 
-    if mig_protocol == "exec":
-        # Exec is a little different from other migrate methods - first we
-        # ask the monitor the migration, then the vm state is dumped to a
-        # compressed file, then we start the dest vm with -incoming pointing
-        # to it
-        try:
-            exec_file = "/tmp/exec-%s.gz" % kvm_utils.generate_random_string(8)
-            exec_cmd = "gzip -c -d %s" % exec_file
-            uri = '"exec:gzip -c > %s"' % exec_file
-            vm.monitor.cmd("stop")
-            vm.monitor.migrate(uri)
+    if not dest_vm.create(migration_mode=mig_protocol, mac_source=vm):
+        raise error.TestError("Could not create dest VM")
+    try:
+        if mig_protocol == "tcp":
+            uri = "tcp:localhost:%d" % dest_vm.migration_port
+        elif mig_protocol == "unix":
+            uri = "unix:%s" % dest_vm.migration_file
+        elif mig_protocol == "exec":
+            uri = '"exec:nc localhost %s"' % dest_vm.migration_port
+        vm.monitor.migrate(uri)
+
+        if mig_cancel:
+            time.sleep(2)
+            vm.monitor.cmd("migrate_cancel")
+            if not kvm_utils.wait_for(mig_cancelled, 60, 2, 2,
+                                      "Waiting for migration "
+                                      "cancellation"):
+                raise error.TestFail("Failed to cancel migration")
+            dest_vm.destroy(gracefully=False)
+            return vm
+        else:
             wait_for_migration()
-
-            if not dest_vm.create(migration_mode=mig_protocol,
-                                  migration_exec_cmd=exec_cmd, mac_source=vm):
-                raise error.TestError("Could not create dest VM")
-        finally:
-            logging.debug("Removing migration file %s", exec_file)
-            try:
-                os.remove(exec_file)
-            except OSError:
-                pass
-    else:
-        if not dest_vm.create(migration_mode=mig_protocol, mac_source=vm):
-            raise error.TestError("Could not create dest VM")
-        try:
-            if mig_protocol == "tcp":
-                uri = "tcp:localhost:%d" % dest_vm.migration_port
-            elif mig_protocol == "unix":
-                uri = "unix:%s" % dest_vm.migration_file
-            vm.monitor.migrate(uri)
-
-            if mig_cancel:
-                time.sleep(2)
-                vm.monitor.cmd("migrate_cancel")
-                if not kvm_utils.wait_for(mig_cancelled, 60, 2, 2,
-                                          "Waiting for migration "
-                                          "cancellation"):
-                    raise error.TestFail("Failed to cancel migration")
-                dest_vm.destroy(gracefully=False)
-                return vm
-            else:
-                wait_for_migration()
-        except:
-            dest_vm.destroy()
-            raise
+    except:
+        dest_vm.destroy()
+        raise
 
     # Report migration status
     if mig_succeeded():
