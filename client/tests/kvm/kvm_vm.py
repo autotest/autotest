@@ -507,7 +507,7 @@ class VM:
 
 
     def create(self, name=None, params=None, root_dir=None, timeout=5.0,
-               migration_mode=None, migration_exec_cmd=None, mac_source=None):
+               migration_mode=None, mac_source=None):
         """
         Start the VM by running a qemu command.
         All parameters are optional. If name, params or root_dir are not
@@ -661,7 +661,9 @@ class VM:
                 self.migration_file = "/tmp/migration-unix-%s" % self.instance
                 qemu_command += " -incoming unix:%s" % self.migration_file
             elif migration_mode == "exec":
-                qemu_command += ' -incoming "exec:%s"' % migration_exec_cmd
+                self.migration_port = kvm_utils.find_free_port(5200, 6000)
+                qemu_command += (' -incoming "exec:nc -l %s"' %
+                                 self.migration_port)
 
             logging.debug("Running qemu command:\n%s", qemu_command)
             self.process = kvm_subprocess.run_bg(qemu_command, None,
