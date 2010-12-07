@@ -133,7 +133,7 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
 
 
 def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
-            mig_cancel=False):
+            mig_cancel=False, offline=False):
     """
     Migrate a VM locally and re-register it in the environment.
 
@@ -192,6 +192,9 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
             uri = "unix:%s" % dest_vm.migration_file
         elif mig_protocol == "exec":
             uri = '"exec:nc localhost %s"' % dest_vm.migration_port
+
+        if offline:
+            vm.monitor.cmd("stop")
         vm.monitor.migrate(uri)
 
         if mig_cancel:
@@ -201,10 +204,14 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                                       "Waiting for migration "
                                       "cancellation"):
                 raise error.TestFail("Failed to cancel migration")
+            if offline:
+                vm.monitor.cmd("cont")
             dest_vm.destroy(gracefully=False)
             return vm
         else:
             wait_for_migration()
+            if offline:
+                dest_vm.monitor.cmd("cont")
     except:
         dest_vm.destroy()
         raise
