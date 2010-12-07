@@ -137,6 +137,9 @@ variants:
         iterations = 2
         used_mem = 1024
         mig_timeout = 3600
+        # you can uncomment the following line to enable the state
+        # check
+        # vmstate_check = yes
         variants:
             - tcp:
                 migration_protocol = "tcp"
