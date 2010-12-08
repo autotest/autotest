@@ -620,7 +620,7 @@ class BackgroundTest(object):
         """
         Check whether the test is still alive.
         """
-        return self.thread.is_alive()
+        return self.thread.isAlive()
 
 
 def get_loss_ratio(output):
