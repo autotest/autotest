@@ -714,6 +714,20 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
+
+        def add_boot(help, boot_order, boot_once, boot_menu):
+            cmd = "-boot "
+            pattern = "boot \[order=drives\]\[,once=drives\]\[,menu=on\|off\]"
+            if has_option(help, "boot \[a\|c\|d\|n\]"):
+                cmd += "%s" % boot_once
+            elif has_option(help, pattern):
+                cmd += ("order=%s,once=%s,menu=%s " %
+                        (boot_order, boot_once, boot_menu))
+            else:
+                cmd = ""
+            return cmd
+
+
         def add_machine_type(help, machine_type):
             if has_option(help, "machine") or has_option(help, "M"):
                 return " -M %s" % machine_type
@@ -1114,6 +1128,13 @@ class VM(virt_vm.BaseVM):
                 qemu_cmd += add_pcidevice(help, pci_id)
 
         qemu_cmd += add_rtc(help)
+
+        if has_option(help, "boot"):
+            boot_order = params.get("boot_order", "cdn")
+            boot_once = params.get("boot_once", "c")
+            boot_menu = params.get("boot_menu", "off")
+            qemu_cmd += " %s " % add_boot(help, boot_order, boot_once,
+                                          boot_menu)
 
         p9_export_dir = params.get("9p_export_dir")
         if p9_export_dir:

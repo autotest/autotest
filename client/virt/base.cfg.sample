@@ -106,6 +106,12 @@ screendump_delay = 5
 # Encode video from vm screenshots
 encode_video_files = yes
 
+# Set boot order
+boot_order = cdn
+# Use the first hard disk for boot device once
+boot_once = c
+# Enable/Disable boot menu
+boot_menu = off
 
 
 #### SPICE related options valid if display == spice,
