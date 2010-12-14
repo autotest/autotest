@@ -191,50 +191,51 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
     if not dest_vm.create(migration_mode=mig_protocol, mac_source=vm):
         raise error.TestError("Could not create dest VM")
     try:
-        if mig_protocol == "tcp":
-            uri = "tcp:localhost:%d" % dest_vm.migration_port
-        elif mig_protocol == "unix":
-            uri = "unix:%s" % dest_vm.migration_file
-        elif mig_protocol == "exec":
-            uri = '"exec:nc localhost %s"' % dest_vm.migration_port
-
-        if offline:
-            vm.monitor.cmd("stop")
-        vm.monitor.migrate(uri)
-
-        if mig_cancel:
-            time.sleep(2)
-            vm.monitor.cmd("migrate_cancel")
-            if not kvm_utils.wait_for(mig_cancelled, 60, 2, 2,
-                                      "Waiting for migration "
-                                      "cancellation"):
-                raise error.TestFail("Failed to cancel migration")
-            if offline:
-                vm.monitor.cmd("cont")
-            dest_vm.destroy(gracefully=False)
-            return vm
-        else:
-            wait_for_migration()
-            if stable_check:
-                save_path = None or "/tmp"
-                save1 = os.path.join(save_path, "src")
-                save2 = os.path.join(save_path, "dst")
-
-                vm.save_to_file(save1)
-                dest_vm.save_to_file(save2)
-
-                # Fail if we see deltas
-                md5_save1 = utils.hash_file(save1)
-                md5_save2 = utils.hash_file(save2)
-                if md5_save1 != md5_save2:
-                    raise error.TestFail("Mismatch of VM state before "
-                                         "and after migration")
+        try:
+            if mig_protocol == "tcp":
+                uri = "tcp:localhost:%d" % dest_vm.migration_port
+            elif mig_protocol == "unix":
+                uri = "unix:%s" % dest_vm.migration_file
+            elif mig_protocol == "exec":
+                uri = '"exec:nc localhost %s"' % dest_vm.migration_port
 
             if offline:
-                dest_vm.monitor.cmd("cont")
-    except:
-        dest_vm.destroy()
-        raise
+                vm.monitor.cmd("stop")
+            vm.monitor.migrate(uri)
+
+            if mig_cancel:
+                time.sleep(2)
+                vm.monitor.cmd("migrate_cancel")
+                if not kvm_utils.wait_for(mig_cancelled, 60, 2, 2,
+                                          "Waiting for migration "
+                                          "cancellation"):
+                    raise error.TestFail("Failed to cancel migration")
+                if offline:
+                    vm.monitor.cmd("cont")
+                dest_vm.destroy(gracefully=False)
+                return vm
+            else:
+                wait_for_migration()
+                if stable_check:
+                    save_path = None or "/tmp"
+                    save1 = os.path.join(save_path, "src")
+                    save2 = os.path.join(save_path, "dst")
+
+                    vm.save_to_file(save1)
+                    dest_vm.save_to_file(save2)
+
+                    # Fail if we see deltas
+                    md5_save1 = utils.hash_file(save1)
+                    md5_save2 = utils.hash_file(save2)
+                    if md5_save1 != md5_save2:
+                        raise error.TestFail("Mismatch of VM state before "
+                                             "and after migration")
+
+                if offline:
+                    dest_vm.monitor.cmd("cont")
+        except:
+            dest_vm.destroy()
+            raise
 
     finally:
         if stable_check and clean:
