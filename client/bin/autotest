@@ -56,6 +56,11 @@ parser.add_option('--client_test_setup', dest='client_test_setup',
                   type='string', default=None, action='store',
                   help='a comma seperated list of client tests to prebuild on '
                        'the server. Use all to prebuild all of them.')
+
+parser.add_option('--tap', dest='tap_report', action='store_true',
+                  default=None, help='Output TAP (Test anything '
+                  'protocol) reports')
+
 def usage():
     parser.print_help()
     sys.exit(1)
