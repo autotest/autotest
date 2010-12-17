@@ -1349,7 +1349,7 @@ class KojiDownloader(object):
                              "provide an appropriate tag or build name.")
 
         if not build:
-            builds = self.session.listTagged(tag, latest=True,
+            builds = self.session.listTagged(tag, latest=True, inherit=True,
                                              package=src_package)
             if not builds:
                 raise ValueError("Tag %s has no builds of %s" % (tag,
