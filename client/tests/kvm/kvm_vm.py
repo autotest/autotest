@@ -601,11 +601,17 @@ class VM:
             # Generate or copy MAC addresses for all NICs
             num_nics = len(kvm_utils.get_sub_dict_names(params, "nics"))
             for vlan in range(num_nics):
-                mac = mac_source and mac_source.get_mac_address(vlan)
-                if mac:
+                nic_name = kvm_utils.get_sub_dict_names(params, "nics")[vlan]
+                nic_params = kvm_utils.get_sub_dict(params, nic_name)
+                if nic_params.get("nic_mac", None):
+                    mac = nic_params.get("nic_mac")
                     kvm_utils.set_mac_address(self.instance, vlan, mac)
                 else:
-                    kvm_utils.generate_mac_address(self.instance, vlan)
+                    mac = mac_source and mac_source.get_mac_address(vlan)
+                    if mac:
+                        kvm_utils.set_mac_address(self.instance, vlan, mac)
+                    else:
+                        kvm_utils.generate_mac_address(self.instance, vlan)
 
             # Assign a PCI assignable device
             self.pci_assignable = None
