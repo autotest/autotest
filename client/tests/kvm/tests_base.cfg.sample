@@ -159,6 +159,19 @@ variants:
                 iterations = 1
                 type = migration_with_file_transfer
 
+    - migrate_multi_host:      install setup unattended_install.cdrom
+        type = migration_multi_host
+        migration_test_command = help
+        migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+        migration_bg_check_command = pgrep tcpdump
+        migration_bg_kill_command = pkill tcpdump
+        kill_vm_on_error = yes
+        iterations = 2
+        used_mem = 1024
+        mig_timeout = 3600
+        comm_port = 13234
+        regain_ip_cmd = dhclient
+
     - boot_savevm: install setup unattended_install.cdrom
         type = boot_savevm
         savevm_delay = 0.3
