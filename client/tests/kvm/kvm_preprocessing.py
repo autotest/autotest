@@ -60,6 +60,8 @@ def preprocess_vm(test, params, env, name):
 
     start_vm = False
 
+    migration_mode = params.get("migration_mode", None)
+
     if params.get("restart_vm") == "yes":
         logging.debug("'restart_vm' specified; (re)starting VM...")
         start_vm = True
@@ -72,11 +74,19 @@ def preprocess_vm(test, params, env, name):
             logging.debug("VM's qemu command differs from requested one; "
                           "restarting it...")
             start_vm = True
+    elif migration_mode is not None:
+        logging.debug("Starting VM on migration incoming mode...")
+        start_vm = True
 
     if start_vm:
-        # Start the VM (or restart it if it's already up)
-        if not vm.create(name, params, test.bindir):
-            raise error.TestError("Could not start VM")
+        if migration_mode is not None:
+            if not vm.create(name, params, test.bindir,
+                             migration_mode=migration_mode):
+                raise error.TestError("Could not start VM for migration")
+        else:
+            # Start the VM (or restart it if it's already up)
+            if not vm.create(name, params, test.bindir):
+                raise error.TestError("Could not start VM")
     else:
         # Don't start the VM, just update its params
         vm.params = params
