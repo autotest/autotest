@@ -134,7 +134,7 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
 
 def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
             mig_cancel=False, offline=False, stable_check=False,
-            clean=False, save_path=None):
+            clean=False, save_path=None, dest_host='localhost', mig_port=None):
     """
     Migrate a VM locally and re-register it in the environment.
 
@@ -144,7 +144,10 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
     @param mig_timeout: timeout value for migration.
     @param mig_protocol: migration protocol
     @param mig_cancel: Test migrate_cancel or not when protocol is tcp.
-    @return: The post-migration VM.
+    @param dest_host: Destination host (defaults to 'localhost').
+    @param mig_port: Port that will be used for migration.
+    @return: The post-migration VM, in case of same host migration, True in
+            case of multi-host migration.
     """
     def mig_finished():
         o = vm.monitor.info("migrate")
@@ -182,18 +185,25 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
             raise error.TestFail("Timeout expired while waiting for migration "
                                  "to finish")
 
-    dest_vm = vm.clone()
-    if stable_check:
+    if dest_host == 'localhost':
+        dest_vm = vm.clone()
+
+    if (dest_host == 'localhost') and stable_check:
         # Pause the dest vm after creation
         dest_vm.params['extra_params'] = (dest_vm.params.get('extra_params','')
                                           + ' -S')
 
-    if not dest_vm.create(migration_mode=mig_protocol, mac_source=vm):
-        raise error.TestError("Could not create dest VM")
+    if dest_host == 'localhost':
+        if not dest_vm.create(migration_mode=mig_protocol, mac_source=vm):
+            raise error.TestError("Could not create dest VM")
+
     try:
         try:
             if mig_protocol == "tcp":
-                uri = "tcp:localhost:%d" % dest_vm.migration_port
+                if dest_host == 'localhost':
+                    uri = "tcp:localhost:%d" % dest_vm.migration_port
+                else:
+                    uri = 'tcp:%s:%d' % (dest_host, mig_port)
             elif mig_protocol == "unix":
                 uri = "unix:%s" % dest_vm.migration_file
             elif mig_protocol == "exec":
@@ -212,11 +222,12 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                     raise error.TestFail("Failed to cancel migration")
                 if offline:
                     vm.monitor.cmd("cont")
-                dest_vm.destroy(gracefully=False)
+                if dest_host == 'localhost':
+                    dest_vm.destroy(gracefully=False)
                 return vm
             else:
                 wait_for_migration()
-                if stable_check:
+                if (dest_host == 'localhost') and stable_check:
                     save_path = None or "/tmp"
                     save1 = os.path.join(save_path, "src")
                     save2 = os.path.join(save_path, "dst")
@@ -231,14 +242,15 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                         raise error.TestFail("Mismatch of VM state before "
                                              "and after migration")
 
-                if offline:
+                if (dest_host == 'localhost') and offline:
                     dest_vm.monitor.cmd("cont")
         except:
-            dest_vm.destroy()
+            if dest_host == 'localhost':
+                dest_vm.destroy()
             raise
 
     finally:
-        if stable_check and clean:
+        if (dest_host == 'localhost') and stable_check and clean:
             logging.debug("Cleaning the state files")
             if os.path.isfile(save1):
                 os.remove(save1)
@@ -253,19 +265,23 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
     else:
         raise error.TestFail("Migration ended with unknown status")
 
-    if "paused" in dest_vm.monitor.info("status"):
-        logging.debug("Destination VM is paused, resuming it...")
-        dest_vm.monitor.cmd("cont")
+    if dest_host == 'localhost':
+        if "paused" in dest_vm.monitor.info("status"):
+            logging.debug("Destination VM is paused, resuming it...")
+            dest_vm.monitor.cmd("cont")
 
     # Kill the source VM
     vm.destroy(gracefully=False)
 
     # Replace the source VM with the new cloned VM
-    if env is not None:
+    if (dest_host == 'localhost') and (env is not None):
         kvm_utils.env_register_vm(env, vm.name, dest_vm)
 
     # Return the new cloned VM
-    return dest_vm
+    if dest_host == 'localhost':
+        return dest_vm
+    else:
+        return vm
 
 
 def stop_windows_service(session, service, timeout=120):
