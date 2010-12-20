@@ -748,7 +748,7 @@ variants:
         # such as sndbuf, as an example, you can uncomment the
         # following lines to enable the vhost support ( only available
         # for tap )
-        #netdev_extra_params = vhost=on,
+        #netdev_extra_params = "vhost=on"
         jumbo:
             mtu = 65520
         ethtool:
