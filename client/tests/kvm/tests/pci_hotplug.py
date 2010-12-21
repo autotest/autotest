@@ -105,8 +105,12 @@ def run_pci_hotplug(test, params, env):
     # Define a helper function to delete the device
     def pci_del(ignore_failure=False):
         if cmd_type == "pci_add":
-            slot_id = "0" + add_output.split(",")[2].split()[1]
-            cmd = "pci_del pci_addr=%s" % slot_id
+            result_domain, bus, slot, function = add_output.split(',')
+            domain = int(result_domain.split()[2])
+            bus = int(bus.split()[1])
+            slot = int(slot.split()[1])
+            pci_addr = "%x:%x:%x" % (domain, bus, slot)
+            cmd = "pci_del pci_addr=%s" % pci_addr
         elif cmd_type == "device_add":
             cmd = "device_del %s" % id
         # This should be replaced by a proper monitor method call
