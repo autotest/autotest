@@ -1,0 +1,52 @@
+#!/bin/sh
+#
+# Port control script for Digital Loggers Inc. Web Power Switch II and III
+#
+# Written by: Grant Likely <grant.likely@secretlab.ca>
+# Copyright 2010 Secret Lab Technologies Ltd.
+#
+# Usage: dli-pscontrol.sh <admin:passwd@host> <port> {on|off|cycle}
+#
+# <port> is in the range 1..8.
+# 'cycle' will turn a port off and on with a 1 second delay.
+#
+# The Web Power Switch uses a simple http request protocol for controlling
+# the port state.  The action simply gets encoded into the url in the form:
+#
+#   http://<user>:<passwd>@<host[:port]>/outlet?<port-number>={ON|OFF|CCW}
+#
+# ON and OFF are self explanatory.
+# CCW means cycle power, but only has effect when the port is already on.
+#
+# The protocol is simple enough that wget is sufficient to control ports.
+
+baseurl="http://${1}"
+porturl="${baseurl}/outlet?${2}"
+
+wget_cmd="wget --auth-no-challenge -O /dev/null"
+
+port_set() {
+	${wget_cmd} "${porturl}=${1}" > /dev/null 2>&1
+}
+
+case "$3" in
+  on)
+	port_set ON
+	;;
+  off)
+	port_set OFF
+	;;
+  cycle)
+	# The CCW command *could* be used here, but the command has no
+	# effect if the port is in the OFF state.
+	port_set OFF
+	sleep 1s
+	port_set ON
+	;;
+  *)
+	echo "Usage: $0 <admin:passwd@host> <port> {on|off|cycle}"
+	exit 1;
+	;;
+esac
+
+exit 0
