@@ -1597,7 +1597,7 @@ variants:
             migration_bg_command = start ping -t localhost
             migration_bg_check_command = tasklist | find /I "ping.exe"
             migration_bg_kill_command = taskkill /IM ping.exe /F
-        migrate_with_file_transfer:
+        migrate.with_file_transfer:
             guest_path = C:\
             rtl8139:
                 file_size = 10
