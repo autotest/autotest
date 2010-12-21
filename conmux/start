@@ -1,4 +1,4 @@
-#! /bin/sh
+#!/bin/bash
 #
 # start -- start up configured conmux servers on this host.
 #
