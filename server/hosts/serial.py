@@ -165,6 +165,7 @@ class SerialHost(SiteHost):
                     # Run on num_attempts=1 or last retry
                     try:
                         self.wait_for_restart(timeout,
+                                              old_boot_id=old_boot_id,
                                               **wait_for_restart_kwargs)
                     except error.AutoservShutdownError:
                         logging.warning(warning_msg, num_attempts, num_attempts)
