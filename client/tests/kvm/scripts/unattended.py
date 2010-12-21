@@ -488,12 +488,12 @@ class UnattendedInstall(object):
         try:
             kernel_fetch_cmd = ("cp %s/%s/%s %s" %
                                 (self.nfs_mount, self.boot_path,
-                                 self.kernel, self.image_path))
+                                os.path.basename(self.kernel), self.image_path))
             run(kernel_fetch_cmd, info=("Could not copy the vmlinuz from %s" %
                                         self.nfs_mount))
             initrd_fetch_cmd = ("cp %s/%s/%s %s" %
                                 (self.nfs_mount, self.boot_path,
-                                 self.initrd, self.image_path))
+                                os.path.basename(self.initrd), self.image_path))
             run(initrd_fetch_cmd, info=("Could not copy the initrd.img from "
                                         "%s" % self.nfs_mount))
         finally:
