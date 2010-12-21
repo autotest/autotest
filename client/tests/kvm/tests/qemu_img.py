@@ -1,6 +1,6 @@
-import re, os, logging, commands
+import re, os, logging, commands, string
 from autotest_lib.client.common_lib import utils, error
-import kvm_vm, kvm_utils
+import kvm_vm, kvm_utils, kvm_test_utils, kvm_preprocessing
 
 
 def run_qemu_img(test, params, env):
@@ -243,10 +243,124 @@ def run_qemu_img(test, params, env):
     def commit_test(cmd):
         """
         Subcommand 'qemu-img commit' test.
+        1) Create a backing file of the qemu harddisk specified by image_name.
+        2) Start a VM using the backing file as its harddisk.
+        3) Touch a file "commit_testfile" in the backing_file, and shutdown the
+           VM.
+        4) Make sure touching the file does not affect the original harddisk.
+        5) Commit the change to the original harddisk by executing
+           "qemu-img commit" command.
+        6) Start the VM using the original harddisk.
+        7) Check if the file "commit_testfile" exists.
 
         @param cmd: qemu-img base command.
         """
-        pass
+        cmd += " commit"
+
+        logging.info("Commit testing started!")
+        image_name = params.get("image_name", "image")
+        image_format = params.get("image_format", "qcow2")
+        backing_file_name = "%s_bak" % (image_name)
+
+        try:
+            # Remove the existing backing file
+            backing_file = "%s.%s" % (backing_file_name, image_format)
+            if os.path.isfile(backing_file):
+                os.remove(backing_file)
+
+            # Create the new backing file
+            create_cmd = "qemu-img create -b %s.%s -f %s %s.%s" % (image_name,
+                                                                  image_format,
+                                                                  image_format,
+                                                             backing_file_name,
+                                                                  image_format)
+            try:
+                utils.system(create_cmd)
+            except error.CmdError, e:
+                raise error.TestFail("Could not create a backing file!")
+            logging.info("backing_file created!")
+
+            # Set the qemu harddisk to the backing file
+            logging.info("Original image_name is: %s", params.get('image_name'))
+            params['image_name'] = backing_file_name
+            logging.info("Param image_name changed to: %s",
+                         params.get('image_name'))
+
+            # Start a new VM, using backing file as its harddisk
+            vm_name = params.get('main_vm')
+            kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
+            vm = kvm_utils.env_get_vm(env, vm_name)
+            vm.create()
+            timeout = int(params.get("login_timeout", 360))
+            session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+
+            # Do some changes to the backing_file harddisk
+            try:
+                output = session.cmd("touch /commit_testfile")
+                logging.info("Output of touch /commit_testfile: %s", output)
+                output = session.cmd("ls / | grep commit_testfile")
+                logging.info("Output of ls / | grep commit_testfile: %s",
+                             output)
+            except Exception, e:
+                raise error.TestFail("Could not create commit_testfile in the "
+                                     "backing file %s", e)
+            vm.destroy()
+
+            # Make sure there is no effect on the original harddisk
+            # First, set the harddisk back to the original one
+            logging.info("Current image_name is: %s", params.get('image_name'))
+            params['image_name'] = image_name
+            logging.info("Param image_name reverted to: %s",
+                         params.get('image_name'))
+
+            # Second, Start a new VM, using image_name as its harddisk
+            # Here, the commit_testfile should not exist
+            vm_name = params.get('main_vm')
+            kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
+            vm = kvm_utils.env_get_vm(env, vm_name)
+            vm.create()
+            timeout = int(params.get("login_timeout", 360))
+            session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+            try:
+                output = session.cmd("[ ! -e /commit_testfile ] && echo $?")
+                logging.info("Output of [ ! -e /commit_testfile ] && echo $?: "
+                             "%s", output)
+            except:
+                output = session.cmd("rm -f /commit_testfile")
+                raise error.TestFail("The commit_testfile exists on the "
+                                     "original file")
+            vm.destroy()
+
+            # Excecute the commit command
+            logging.info("Commiting image")
+            cmitcmd = "%s -f %s %s.%s" % (cmd, image_format, backing_file_name,
+                                          image_format)
+            try:
+                utils.system(cmitcmd)
+            except error.CmdError, e:
+                raise error.TestFail("Could not commit the backing file")
+
+            # Start a new VM, using image_name as its harddisk
+            vm_name = params.get('main_vm')
+            kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
+            vm = kvm_utils.env_get_vm(env, vm_name)
+            vm.create()
+            timeout = int(params.get("login_timeout", 360))
+            session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+            try:
+                output = session.cmd("[ -e /commit_testfile ] && echo $?")
+                logging.info("Output of [ -e /commit_testfile ] && echo $?: %s",
+                             output)
+                session.cmd("rm -f /commit_testfile")
+            except:
+                raise error.TestFail("Could not find commit_testfile after a "
+                                     "commit")
+            vm.destroy()
+
+        finally:
+            # Remove the backing file
+            if os.path.isfile(backing_file):
+                os.remove(backing_file)
 
 
     def _rebase(cmd, img_name, base_img, backing_fmt, mode="unsafe"):
