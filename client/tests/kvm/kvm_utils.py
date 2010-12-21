@@ -5,7 +5,7 @@ KVM test utility functions.
 """
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
-import fcntl, shelve, ConfigParser
+import fcntl, shelve, ConfigParser, rss_file_transfer
 from autotest_lib.client.bin import utils, os_dep
 from autotest_lib.client.common_lib import error, logging_config
 import kvm_subprocess
@@ -638,10 +638,74 @@ def remote_scp(command, password, log_filename=None, transfer_timeout=600,
         session.close()
 
 
+def copy_files_to(address, client, username, password, port, local_path,
+                  remote_path, log_filename=None, timeout=600):
+    """
+    Decide the transfer cleint and copy file to a remote host (guest).
+
+    @param client: Type of transfer client
+    @param username: Username (if required)
+    @param password: Password (if requried)
+    @param local_path: Path on the local machine where we are copying from
+    @param remote_path: Path on the remote machine where we are copying to
+    @param address: Address of remote host(guest)
+    @param log_filename: If specified, log all output to this file
+    @param timeout: The time duration (in seconds) to wait for the transfer to
+    complete.
+
+    @return: True on success and False on failure.
+    """
+
+    if not address or not port:
+        logging.debug("IP address or port unavailable")
+        return None
+
+    if client == "scp":
+        return scp_to_remote(address, port, username, password, local_path,
+                             remote_path, log_filename, timeout)
+    elif client == "rss":
+        c = rss_file_transfer.FileUploadClient(address, port)
+        c.upload(local_path, remote_path, timeout)
+        c.close()
+        return True
+
+
+def copy_files_from(address, client, username, password, port, local_path,
+                  remote_path, log_filename=None, timeout=600):
+    """
+    Decide the transfer cleint and copy file from a remote host (guest).
+
+    @param client: Type of transfer client
+    @param username: Username (if required)
+    @param password: Password (if requried)
+    @param local_path: Path on the local machine where we are copying from
+    @param remote_path: Path on the remote machine where we are copying to
+    @param address: Address of remote host(guest)
+    @param log_filename: If specified, log all output to this file
+    @param timeout: The time duration (in seconds) to wait for the transfer to
+    complete.
+
+    @return: True on success and False on failure.
+    """
+
+    if not address or not port:
+        logging.debug("IP address or port unavailable")
+        return None
+
+    if client == "scp":
+        return scp_from_remote(address, port, username, password, remote_path,
+                             local_path, log_filename, timeout)
+    elif client == "rss":
+        c = rss_file_transfer.FileDownloadClient(address, port)
+        c.download(remote_path, local_path, timeout)
+        c.close()
+        return True
+
+
 def scp_to_remote(host, port, username, password, local_path, remote_path,
                   log_filename=None, timeout=600):
     """
-    Copy files to a remote host (guest).
+    Copy files to a remote host (guest) through scp.
 
     @param host: Hostname or IP address
     @param username: Username (if required)
