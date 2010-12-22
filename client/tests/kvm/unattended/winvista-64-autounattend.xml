@@ -165,7 +165,7 @@
 					<Order>7</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c ping 10.0.2.2 -n 20 &#38;&#38; A:\finish.exe</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c A:\finish.exe</CommandLine>
 					<Order>8</Order>
 				</SynchronousCommand>
 			</FirstLogonCommands>
