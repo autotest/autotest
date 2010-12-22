@@ -31,6 +31,7 @@ class VirtioGuest:
         self.ports = {}
         self.poll_fds = {}
         self.catch_signal = None
+        self.use_config = threading.Event()
 
 
     def _readfile(self, name):
@@ -367,7 +368,7 @@ class VirtioGuest:
             p = select.poll()
             map(p.register, self.poll_fds.keys())
 
-            masks = p.poll(10)
+            masks = p.poll(1)
             print masks
             for mask in masks:
                 self.poll_fds[mask[0]][1] |= mask[1]
@@ -425,16 +426,19 @@ class VirtioGuest:
         try:
             fcntl.fcntl(fd, fcntl.F_SETOWN, os.getpid())
             fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+
+            self.use_config.clear()
             if mode:
                 fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_ASYNC)
                 self.poll_fds[fd] = [exp_val, 0]
                 self.catch_signal = True
-                os.kill(os.getpid(), signal.SIGCONT)
             else:
                 del self.poll_fds[fd]
                 fcntl.fcntl(fd, fcntl.F_SETFL, fl & ~os.O_ASYNC)
                 self.catch_signal = False
-                os.kill(os.getpid(), signal.SIGCONT)
+
+            os.kill(os.getpid(), signal.SIGUSR1)
+            self.use_config.wait()
 
         except Exception, inst:
             print "FAIL: Setting (a)sync mode: " + str(inst)
@@ -479,7 +483,6 @@ class VirtioGuest:
             self.files[name] = os.open(name, os.O_RDWR)
             if (self.ports[in_file]["is_console"] == "yes"):
                 print os.system("stty -F %s raw -echo" % (name))
-                print os.system("stty -F %s -a" % (name))
             print "PASS: Open all filles correctly."
         except Exception, inst:
             print "%s\nFAIL: Failed open file %s" % (str(inst), name)
@@ -661,7 +664,7 @@ def worker(virt):
     sys.exit(0)
 
 
-def sigcont_handler(sig, frame):
+def sigusr_handler(sig, frame):
     pass
 
 
@@ -675,7 +678,7 @@ def main():
     virt = VirtioGuest()
     slave = Thread(target=worker, args=(virt, ))
     slave.start()
-    signal.signal(signal.SIGCONT, sigcont_handler)
+    signal.signal(signal.SIGUSR1, sigusr_handler)
     while True:
         signal.pause()
         catch = virt.catching_signal()
@@ -683,6 +686,8 @@ def main():
             signal.signal(signal.SIGIO, virt)
         elif catch == False:
             signal.signal(signal.SIGIO, signal.SIG_DFL)
+        if (catch != None):
+            virt.use_config.set()
 
 
 if __name__ == "__main__":
