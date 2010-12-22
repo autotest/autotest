@@ -64,18 +64,20 @@ def run_virtio_console(test, params, env):
             @param function: Object of function.
             @param args: List of arguments of function.
             @param fatal: If true exception is forwarded to main test.
+            @param cleanup: If true call cleanup function after crash of test.
             @return: Return what returned executed subtest.
             @raise TestError: If collapse of test is fatal raise forward
                         exception from subtest.
             """
             if args == None:
                 args = []
+            res = [None, function.func_name, args]
             try:
                 logging.debug("Start test %s." % function.func_name)
                 ret = function(*args)
-                logging.info(self.result_to_string((True, function.func_name,
-                                                    args)))
-                self.result.append((True, function.func_name, args))
+                res[0] = True
+                logging.info(self.result_to_string(res))
+                self.result.append(res)
                 self.passed += 1
                 return ret
             except:
@@ -90,9 +92,9 @@ def run_virtio_console(test, params, env):
                 # Clean up environment after subTest crash
                 if cleanup:
                     self.cleanup_func(*self.cleanup_args)
-                logging.info(self.result_to_string((False, function.func_name,
-                                                    args)))
-                self.result.append((False, function.func_name, args))
+                res[0] = False
+                logging.info(self.result_to_string(res))
+                self.result.append(res)
                 self.failed += 1
                 if fatal:
                     raise
@@ -143,24 +145,42 @@ def run_virtio_console(test, params, env):
             return ("Subtest (%s): --> %s") % (result[1], status)
 
 
+        def headline(self, msg):
+            """
+            Add headline to result output.
+
+            @param msg: Test of headline
+            """
+            self.result.append([msg])
+
+
+        def _gen_res(self, format_func):
+            """
+            Format result with foramting function
+
+            @param format_func: Func for formating result.
+            """
+            result = ""
+            for res in self.result:
+                if (len(res) == 3):
+                    result += format_func(res) + "\n"
+                else:
+                    result += res[0] + "\n"
+            return result
+
+
         def get_full_text_result(self):
             """
             @return string with text form of result
             """
-            result = ""
-            for res in self.result:
-                result += self.result_to_string_debug(res) + "\n"
-            return result
+            return self._gen_res(lambda str: self.result_to_string_debug(str))
 
 
         def get_text_result(self):
             """
             @return string with text form of result
             """
-            result = ""
-            for res in self.result:
-                result += self.result_to_string(res) + "\n"
-            return result
+            return self._gen_res(lambda str: self.result_to_string(str))
 
 
     class Port(object):
@@ -416,21 +436,22 @@ def run_virtio_console(test, params, env):
                 started properly.
         """
         logging.debug("compile virtio_guest.py on guest %s", vm[0].name)
-        vm[1].sendline("python -OO /tmp/virtio_guest.py -c &&"
+
+        (match, data) = _on_guest("python -OO /tmp/virtio_guest.py -c &&"
                        "echo -n 'PASS: Compile virtio_guest finished' ||"
-                       "echo -n 'FAIL: Compile virtio_guest failed'")
-        (match, data) = vm[1].read_until_last_line_matches(["PASS:", "FAIL:"],
-                                                           timeout)
+                       "echo -n 'FAIL: Compile virtio_guest failed'",
+                        vm, timeout)
+
         if match != 0:
             raise error.TestFail("Command console_switch.py on guest %s failed."
                                  "\nreturn code: %s\n output:\n%s" %
                                  (vm[0].name, match, data))
         logging.debug("Starting virtio_guest.py on guest %s", vm[0].name)
-        vm[1].sendline("python /tmp/virtio_guest.pyo &&"
+        vm[1].sendline()
+        (match, data) = _on_guest("python /tmp/virtio_guest.pyo &&"
                        "echo -n 'PASS: virtio_guest finished' ||"
-                       "echo -n 'FAIL: virtio_guest failed'")
-        (match, data) = vm[1].read_until_last_line_matches(["PASS:", "FAIL:"],
-                                                           timeout)
+                       "echo -n 'FAIL: virtio_guest failed'",
+                       vm, timeout)
         if match != 0:
             raise error.TestFail("Command console_switch.py on guest %s failed."
                                  "\nreturn code: %s\n output:\n%s" %
@@ -472,9 +493,9 @@ def run_virtio_console(test, params, env):
             (match, data) = vm[1].read_until_last_line_matches(["PASS:",
                                                                 "FAIL:"],
                                                                timeout)
-        except (kvm_subprocess.ExpectTimeoutError):
+        except (kvm_subprocess.ExpectError):
             match = None
-            data = None
+            data = "Timeout."
         return (match, data)
 
 
@@ -620,15 +641,19 @@ def run_virtio_console(test, params, env):
         """
         on_guest("virt.close('%s')" % (port.name), vm, 2)
         on_guest("virt.open('%s')" % (port.name), vm, 2)
-        match = _on_guest("virt.open('%s')" % (port.name), vm, 2)[0]
+        (match, data) = _on_guest("virt.open('%s')" % (port.name), vm, 2)
         # Console is permitted to open the device multiple times
-        if match != 0 and port.port_type == "yes":
-            raise error.TestFail("Unexpected fail of openning the console"
-                                 " device for the 2nd time.")
-        # Serial port is forbidden to open the device multiple times
-        elif match != 1 and port.port_type == "no":
-            raise error.TestFail("Unexpetded pass of oppening the serialport"
-                                 " device for the 2nd time.")
+        if port.port_type == "yes": #is console?
+            if match != 0: #Multiopen not pass
+                raise error.TestFail("Unexpected fail of opening the console"
+                                     " device for the 2nd time.\n%s" % data)
+        else:
+            if match != 1: #Multiopen not fail:
+                raise error.TestFail("Unexpetded pass of opening the"
+                                     " serialport device for the 2nd time.")
+            elif not "[Errno 24]" in data:
+                raise error.TestFail("Multiple opening fail but with another"
+                                     " exception %s" % data)
         port.open()
 
     def tclose(vm, port):
@@ -688,7 +713,7 @@ def run_virtio_console(test, params, env):
 
         # Enable sigio on specific port
         on_guest("virt.async('%s', True, 0)" %
-                 (port.name) , vm, 2)
+                 (port.name) , vm, 5)
         on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
 
         #Test sigio when port open
@@ -728,7 +753,7 @@ def run_virtio_console(test, params, env):
 
         # Disable sigio on specific port
         on_guest("virt.async('%s', False, 0)" %
-                 (port.name) , vm, 2)
+                 (port.name) , vm, 5)
 
 
     def tlseek(vm, port):
@@ -752,17 +777,7 @@ def run_virtio_console(test, params, env):
         if port.is_open:
             port.close()
 
-        # Read should pass
-        # FIXME: Console doesn't support polling (POLLHUP without host shoots
-        # the guest OS)
-        if port.port_type != "yes":
-            on_guest("virt.recv('%s', 0, 1024, False)" % port.name, vm, 2)
-        else: # Skip this test on virtio-console port
-            raise error.TestFail("This test is unable to run with virtio"
-                                 " console. Please see the in_code FIXME"
-                                 " note for more info.\n"
-                                 "Skipping this round.")
-        # Write should timed-out
+        on_guest("virt.recv('%s', 0, 1024, False)" % port.name, vm, 2)
         match, tmp = _on_guest("virt.send('%s', 10, False)"
                                 % port.name, vm, 2)
         if match != None:
@@ -859,44 +874,6 @@ def run_virtio_console(test, params, env):
         _guest_exit_threads(vm, [send_port], [recv_port])
 
 
-    def test_smoke(test, vm, consoles, params):
-        """
-        Virtio console smoke test.
-
-        Tests the basic functionalities (poll, read/write with and without
-        connected host, etc.
-
-        @param vm: Target virtual machine [vm, session, tmp_dir].
-        @param consoles: Field of virtio ports with the minimum of 2 items.
-        @param params: Test parameters '$console_type:$data;...'
-        """
-        # PREPARE
-        for param in params.split(';'):
-            if not param:
-                continue
-            logging.info("test_smoke: params: %s", param)
-            param = param.split(':')
-            if len(param) > 1:
-                data = param[1]
-            else:
-                data = "Smoke test data"
-            param = (param[0] == 'serialport')
-            send_pt = consoles[param][0]
-            recv_pt = consoles[param][1]
-
-            test.do_test(topen, [vm, send_pt] , True)
-            test.do_test(tclose, [vm, send_pt], True)
-            test.do_test(tmulti_open, [vm, send_pt])
-            test.do_test(tpooling, [vm, send_pt])
-            test.do_test(tsigio, [vm, send_pt])
-            test.do_test(tlseek, [vm, send_pt])
-            test.do_test(trw_host_offline, [vm, send_pt])
-            test.do_test(trw_nonblocking_mode, [vm, send_pt])
-            test.do_test(trw_blocking_mode, [vm, send_pt])
-            test.do_test(tbasic_loopback, [vm, send_pt, recv_pt, data], True)
-
-
-
     def tloopback(vm, consoles, params):
         """
         Virtio console loopback test.
@@ -916,7 +893,7 @@ def run_virtio_console(test, params, env):
         for param in params.split(';'):
             if not param:
                 continue
-            logging.info("test_loopback: params: %s", param)
+            logging.info("test_loopback: params: %s" % (param))
             param = param.split(':')
             idx_serialport = 0
             idx_console = 0
@@ -1021,7 +998,7 @@ def run_virtio_console(test, params, env):
         for param in params.split(';'):
             if not param:
                 continue
-            logging.info("test_perf: params: %s", param)
+            logging.info("test_perf: params: %s" % (param))
             param = param.split(':')
             duration = 60.0
             if len(param) > 1:
@@ -1128,61 +1105,110 @@ def run_virtio_console(test, params, env):
         @param consoles: Consoles which should be clean.
         """
         # Check if python is still alive
-        print "CLEANED"
+        print "CLEANING"
         match, tmp = _on_guest("is_alive()", vm, 10)
         if (match == None) or (match != 0):
             logging.error("Python died/is stucked/have remaining threads")
             logging.debug(tmp)
             vm[1].close()
-            vm[1] = kvm_test_utils.wait_for_login(vm[0], 0,
-                                         float(params.get("boot_timeout", 240)),
-                                         0, 2)
-            (match, data) = _on_guest("killall -9 python "
-                                      "&& echo -n PASS: python killed"
-                                      "|| echo -n PASS: python was death",
-                                      vm, 30)
-            if (match == None):
-                # killall -9 command didn't finished - python stucked
-                raise error.TestFail("Python is really stucked - "
-                                     "can't kill -9 it")
+            try:
+                vm[1] = kvm_test_utils.wait_for_login(vm[0], 0,
+                                        float(params.get("boot_timeout", 5)),
+                                        0, 2)
+                on_guest("killall -9 python "
+                         "&& echo -n PASS: python killed"
+                         "|| echo -n PASS: python was death",
+                         vm, 10)
 
-            #on_guest("rmmod -f virtio_console && echo -n PASS: rmmod "
-            #         "|| echo -n FAIL: rmmod", vm, 10)
-            #on_guest("modprobe virtio_console "
-            #         "&& echo -n PASS: modprobe || echo -n FAIL: modprobe",
-            #         vm, 10)
+                init_guest(vm, consoles)
+                on_guest("virt.clean_port('%s'),1024" % consoles[0][0].name,
+                         vm, 2)
+                on_guest("virt.close('%s'),1024" %
+                         consoles[0][0].name, vm, 2)
 
-            init_guest(vm, consoles)
-            (match, data) = _on_guest("virt.clean_port('%s'),1024" %
-                                      consoles[0][0].name, vm, 2)
-            if (match == None) or (match != 0):
-                logging.error(data)
+            except (error.TestFail, kvm_subprocess.ExpectError,
+                    Exception), inst:
+                logging.error(inst)
                 logging.error("Virtio-console driver is irreparably"
                               " blocked. Every comd end with sig KILL."
                               "Try reboot vm for continue in testing.")
                 vm[1] = kvm_test_utils.reboot(vm[0], vm[1], "system_reset")
                 init_guest(vm, consoles)
-                (match, data) = _on_guest("virt.clean_port('%s'),1024" %
-                                      consoles[0][0].name, vm, 2)
+                match = _on_guest("virt.clean_port('%s'),1024" %
+                                      consoles[0][0].name, vm, 2)[0]
 
                 if (match == None) or (match != 0):
-                    raise error.TestFail("Virtio-console driver is irreparably"
-                                         " blocked. Every comd end with sig"
-                                         " KILL. Neither the restart did not"
-                                         " help.")
-            else:
-                on_guest("virt.close('%s'),1024" % consoles[0][0].name, vm, 2)
-
+                    raise error.TestFail("Virtio-console driver is irrepar"
+                                         "ably blocked. Every comd end"
+                                         " with sig KILL. Neither the "
+                                         "restart did not help.")
 
         for ctype in consoles:
             for port in ctype:
                 openned = port.is_open
                 port.clean_port()
                 #on_guest("virt.blocking('%s', True)" % port.name, vm, 2)
-                on_guest("virt.clean_port('%s'),1024" % port.name, vm, 2)
+                on_guest("virt.clean_port('%s'),1024" % port.name, vm, 5)
                 if not openned:
                     port.close()
                     on_guest("virt.close('%s'),1024" % port.name, vm, 2)
+
+
+    def test_smoke(test, vm, consoles, params):
+        """
+        Virtio console smoke test.
+
+        Tests the basic functionalities (poll, read/write with and without
+        connected host, etc.
+
+        @param test: Main test object.
+        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param consoles: Field of virtio ports with the minimum of 2 items.
+        @param params: Test parameters '$console_type:$data;...'
+        """
+        # PREPARE
+        for param in params.split(';'):
+            if not param:
+                continue
+            headline = "test_smoke: params: %s" % (param)
+            logging.info(headline)
+            param = param.split(':')
+            if len(param) > 1:
+                data = param[1]
+            else:
+                data = "Smoke test data"
+            param = (param[0] == 'serialport')
+            send_pt = consoles[param][0]
+            recv_pt = consoles[param][1]
+            test.headline(headline)
+            test.do_test(topen, [vm, send_pt], True)
+            test.do_test(tclose, [vm, send_pt], True)
+            test.do_test(tmulti_open, [vm, send_pt])
+            test.do_test(tpooling, [vm, send_pt])
+            test.do_test(tsigio, [vm, send_pt])
+            test.do_test(tlseek, [vm, send_pt])
+            test.do_test(trw_host_offline, [vm, send_pt])
+            test.do_test(trw_nonblocking_mode, [vm, send_pt])
+            test.do_test(trw_blocking_mode, [vm, send_pt])
+            test.do_test(tbasic_loopback, [vm, send_pt, recv_pt, data], True)
+
+
+    def test_multiport(test, vm, consoles, params):
+        """
+        This is group of test which test virtio_console in maximal load and
+        with multiple ports.
+
+        @param test: Main test object.
+        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param consoles: Field of virtio ports with the minimum of 2 items.
+        @param params: Test parameters '$console_type:$data;...'
+        """
+        test.headline("test_multiport:")
+        #Test Loopback
+        test.do_test(tloopback, [vm, consoles, params[0]])
+
+        #Test Performance
+        test.do_test(tperf, [vm, consoles, params[1]])
 
 
     # INITIALIZE
@@ -1223,23 +1249,20 @@ def run_virtio_console(test, params, env):
 
     # ACTUAL TESTING
     # Defines all available consoles; tests udev and sysfs
-    init_guest(vm, consoles)
 
     test = SubTest()
-    test.set_cleanup_func(clean_ports, [vm, consoles])
-    #Test Smoke
-    test_smoke(test, vm, consoles, tsmoke_params)
+    try:
+        init_guest(vm, consoles)
 
-    #Test Loopback
-    test.do_test(tloopback, [vm, consoles, tloopback_params])
+        test.set_cleanup_func(clean_ports, [vm, consoles])
+        #Test Smoke
+        test_smoke(test, vm, consoles, tsmoke_params)
 
-    #Test Performance
-    test.do_test(tperf, [vm, consoles, tperf_params])
-
-    logging.info(("Summary: %d tests passed  %d test failed :\n" %
-                  (test.passed, test.failed)) + test.get_text_result())
-    logging.debug(("Summary: %d tests passed  %d test failed :\n" %
-                   (test.passed, test.failed)) + test.get_full_text_result())
+        #Test multiport functionality and performance.
+        test_multiport(test, vm, consoles, [tloopback_params, tperf_params])
+    finally:
+        logging.info(("Summary: %d tests passed  %d test failed :\n" %
+                      (test.passed, test.failed)) + test.get_text_result())
 
     if test.is_failed():
         raise error.TestFail("Virtio_console test FAILED.")
