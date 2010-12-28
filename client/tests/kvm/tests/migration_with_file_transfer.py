@@ -18,15 +18,6 @@ def run_migration_with_file_transfer(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-
-    def transfer_test(address, client, username, password, port, local_path,
-                      remote_path, log_filename, timeout):
-        # kvm_utils.copy_files_to does not raise exception, so we need a wrapper
-        # in order to make it to be used by BackgroundTest.
-        if not kvm_utils.copy_files_to(address, client, username, password,
-                      port, local_path, remote_path, log_filename, timeout):
-            raise error.TestError("Fail to do the file transfer!")
-
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout = int(params.get("login_timeout", 360))
     session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
@@ -47,29 +38,26 @@ def run_migration_with_file_transfer(test, params, env):
     file_size = params.get("file_size", "1000")
     transfer_timeout = int(params.get("transfer_timeout", "240"))
 
-    bg = None
-
     try:
         utils.run("dd if=/dev/zero of=/tmp/file bs=1M count=%s" % file_size)
 
         # Transfer file from host to guest in the backgroud
-        bg = kvm_test_utils.BackgroundTest(transfer_test,
-                                           (address, client, username, password,
-                                            port, "/tmp/file", guest_path,
-                                            log_filename, transfer_timeout))
+        bg = kvm_utils.Thread(kvm_utils.copy_files_to,
+                              (address, client, username, password, port,
+                               "/tmp/file", guest_path, log_filename,
+                               transfer_timeout))
         bg.start()
+        try:
+            while bg.is_alive():
+                logging.info("File transfer not ended, starting a round of "
+                             "migration...")
+                vm = kvm_test_utils.migrate(vm, env, mig_timeout, mig_protocol)
+        finally:
+            # bg.join() returns the value returned by copy_files_to()
+            if not bg.join():
+                raise error.TestFail("File transfer failed")
 
-        while bg.is_alive():
-            logging.info("File transfer is not ended, start a round of"
-                         "migration ...")
-
-            # Migrate the VM
-            dest_vm = kvm_test_utils.migrate(vm, env, mig_timeout,
-                                             mig_protocol, False)
-
-            vm = dest_vm
     finally:
-        if bg: bg.join()
         session.close()
-        if os.path.isfile("/tmp/zero"):
-            os.remove("/tmp/zero")
+        if os.path.isfile("/tmp/file"):
+            os.remove("/tmp/file")
