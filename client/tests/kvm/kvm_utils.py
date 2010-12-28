@@ -1046,7 +1046,7 @@ def get_vendor_from_pci_id(pci_id):
 
 class Thread(threading.Thread):
     """
-    Runs a test in the background thread.
+    Run a function in a background thread.
     """
     def __init__(self, target, args=(), kwargs={}):
         """
@@ -1100,6 +1100,28 @@ class Thread(threading.Thread):
             # so we can't delete these)
             self._e = None
             self._retval = None
+
+
+def parallel(targets):
+    """
+    Run multiple functions in parallel.
+
+    @param targets: A sequence of tuples or functions.  If it's a sequence of
+            tuples, each tuple will be interpreted as (target, args, kwargs) or
+            (target, args) or (target,) depending on its length.  If it's a
+            sequence of functions, the functions will be called without
+            arguments.
+    @return: A list of the values returned by the functions called.
+    """
+    threads = []
+    for target in targets:
+        if isinstance(target, tuple) or isinstance(target, list):
+            t = Thread(*target)
+        else:
+            t = Thread(target)
+        threads.append(t)
+        t.start()
+    return [t.join() for t in threads]
 
 
 class KvmLoggingConfig(logging_config.LoggingConfig):
