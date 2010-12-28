@@ -5,7 +5,7 @@ KVM test utility functions.
 """
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
-import fcntl, shelve, ConfigParser, rss_file_transfer
+import fcntl, shelve, ConfigParser, rss_file_transfer, threading, sys
 from autotest_lib.client.bin import utils, os_dep
 from autotest_lib.client.common_lib import error, logging_config
 import kvm_subprocess
@@ -1042,6 +1042,64 @@ def get_vendor_from_pci_id(pci_id):
     """
     cmd = "lspci -n | awk '/%s/ {print $3}'" % pci_id
     return re.sub(":", " ", commands.getoutput(cmd))
+
+
+class Thread(threading.Thread):
+    """
+    Runs a test in the background thread.
+    """
+    def __init__(self, target, args=(), kwargs={}):
+        """
+        Initialize the instance.
+
+        @param target: Function to run in the thread.
+        @param args: Arguments to pass to target.
+        @param kwargs: Keyword arguments to pass to target.
+        """
+        threading.Thread.__init__(self)
+        self._target = target
+        self._args = args
+        self._kwargs = kwargs
+
+
+    def run(self):
+        """
+        Run target (passed to the constructor).  No point in calling this
+        function directly.  Call start() to make this function run in a new
+        thread.
+        """
+        self._e = None
+        self._retval = None
+        try:
+            try:
+                self._retval = self._target(*self._args, **self._kwargs)
+            except:
+                self._e = sys.exc_info()
+                raise
+        finally:
+            # Avoid circular references (start() may be called only once so
+            # it's OK to delete these)
+            del self._target, self._args, self._kwargs
+
+
+    def join(self, timeout=None):
+        """
+        Join the thread.  If target raised an exception, re-raise it.
+        Otherwise, return the value returned by target.
+
+        @param timeout: Timeout value to pass to threading.Thread.join().
+        """
+        threading.Thread.join(self, timeout)
+        try:
+            if self._e:
+                raise self._e[0], self._e[1], self._e[2]
+            else:
+                return self._retval
+        finally:
+            # Avoid circular references (join() may be called multiple times
+            # so we can't delete these)
+            self._e = None
+            self._retval = None
 
 
 class KvmLoggingConfig(logging_config.LoggingConfig):
