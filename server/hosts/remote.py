@@ -27,7 +27,7 @@ class RemoteHost(base_classes.Host):
     LAST_BOOT_TAG = object()
     DEFAULT_HALT_TIMEOUT = 2 * 60
 
-    VAR_LOG_MESSAGES_COPY_PATH = "/var/log/messages.autotest_start"
+    VAR_LOG_MESSAGES_COPY_PATH = "/var/tmp/messages.autotest_start"
 
     def _initialize(self, hostname, autodir=None, *args, **dargs):
         super(RemoteHost, self)._initialize(*args, **dargs)
