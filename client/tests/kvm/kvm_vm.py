@@ -551,38 +551,40 @@ class VM:
         params = self.params
         root_dir = self.root_dir
 
-        # Verify the md5sum of the ISO image
-        iso = params.get("cdrom")
-        if iso:
-            iso = kvm_utils.get_path(root_dir, iso)
-            if not os.path.exists(iso):
-                logging.error("ISO file not found: %s" % iso)
-                return False
-            compare = False
-            if params.get("md5sum_1m"):
-                logging.debug("Comparing expected MD5 sum with MD5 sum of "
-                              "first MB of ISO file...")
-                actual_hash = utils.hash_file(iso, 1048576, method="md5")
-                expected_hash = params.get("md5sum_1m")
-                compare = True
-            elif params.get("md5sum"):
-                logging.debug("Comparing expected MD5 sum with MD5 sum of ISO "
-                              "file...")
-                actual_hash = utils.hash_file(iso, method="md5")
-                expected_hash = params.get("md5sum")
-                compare = True
-            elif params.get("sha1sum"):
-                logging.debug("Comparing expected SHA1 sum with SHA1 sum of "
-                              "ISO file...")
-                actual_hash = utils.hash_file(iso, method="sha1")
-                expected_hash = params.get("sha1sum")
-                compare = True
-            if compare:
-                if actual_hash == expected_hash:
-                    logging.debug("Hashes match")
-                else:
-                    logging.error("Actual hash differs from expected one")
+        # Verify the md5sum of the ISO images
+        for cdrom in kvm_utils.get_sub_dict_names(params, "cdroms"):
+            cdrom_params = kvm_utils.get_sub_dict(params, cdrom)
+            iso = cdrom_params.get("cdrom")
+            if iso:
+                iso = kvm_utils.get_path(root_dir, iso)
+                if not os.path.exists(iso):
+                    logging.error("ISO file not found: %s" % iso)
                     return False
+                compare = False
+                if cdrom_params.get("md5sum_1m"):
+                    logging.debug("Comparing expected MD5 sum with MD5 sum of "
+                                  "first MB of ISO file...")
+                    actual_hash = utils.hash_file(iso, 1048576, method="md5")
+                    expected_hash = cdrom_params.get("md5sum_1m")
+                    compare = True
+                elif cdrom_params.get("md5sum"):
+                    logging.debug("Comparing expected MD5 sum with MD5 sum of "
+                                  "ISO file...")
+                    actual_hash = utils.hash_file(iso, method="md5")
+                    expected_hash = cdrom_params.get("md5sum")
+                    compare = True
+                elif cdrom_params.get("sha1sum"):
+                    logging.debug("Comparing expected SHA1 sum with SHA1 sum "
+                                  "of ISO file...")
+                    actual_hash = utils.hash_file(iso, method="sha1")
+                    expected_hash = cdrom_params.get("sha1sum")
+                    compare = True
+                if compare:
+                    if actual_hash == expected_hash:
+                        logging.debug("Hashes match")
+                    else:
+                        logging.error("Actual hash differs from expected one")
+                        return False
 
         # Make sure the following code is not executed by more than one thread
         # at the same time
