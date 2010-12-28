@@ -940,7 +940,7 @@ class Expect(Tail):
 
 
     def read_until_output_matches(self, patterns, filter=lambda x: x,
-                                  timeout=30.0, internal_timeout=None,
+                                  timeout=60, internal_timeout=None,
                                   print_func=None):
         """
         Read using read_nonblocking until a match is found using match_patterns,
@@ -997,7 +997,7 @@ class Expect(Tail):
             raise ExpectError(patterns, o)
 
 
-    def read_until_last_word_matches(self, patterns, timeout=30.0,
+    def read_until_last_word_matches(self, patterns, timeout=60,
                                      internal_timeout=None, print_func=None):
         """
         Read using read_nonblocking until the last word of the output matches
@@ -1026,7 +1026,7 @@ class Expect(Tail):
                                               print_func)
 
 
-    def read_until_last_line_matches(self, patterns, timeout=30.0,
+    def read_until_last_line_matches(self, patterns, timeout=60,
                                      internal_timeout=None, print_func=None):
         """
         Read using read_nonblocking until the last non-empty line of the output
@@ -1166,7 +1166,7 @@ class ShellSession(Expect):
         return False
 
 
-    def read_up_to_prompt(self, timeout=30.0, internal_timeout=None,
+    def read_up_to_prompt(self, timeout=60, internal_timeout=None,
                           print_func=None):
         """
         Read using read_nonblocking until the last non-empty line of the output
@@ -1193,7 +1193,7 @@ class ShellSession(Expect):
         return o
 
 
-    def cmd_output(self, cmd, timeout=30.0, internal_timeout=None,
+    def cmd_output(self, cmd, timeout=60, internal_timeout=None,
                    print_func=None):
         """
         Send a command and return its output.
@@ -1237,7 +1237,7 @@ class ShellSession(Expect):
         return remove_last_nonempty_line(remove_command_echo(o, cmd))
 
 
-    def cmd_status_output(self, cmd, timeout=30.0, internal_timeout=None,
+    def cmd_status_output(self, cmd, timeout=60, internal_timeout=None,
                           print_func=None):
         """
         Send a command and return its exit status and output.
@@ -1272,7 +1272,7 @@ class ShellSession(Expect):
             raise ShellStatusError(cmd, o)
 
 
-    def cmd_status(self, cmd, timeout=30.0, internal_timeout=None,
+    def cmd_status(self, cmd, timeout=60, internal_timeout=None,
                    print_func=None):
         """
         Send a command and return its exit status.
@@ -1296,7 +1296,7 @@ class ShellSession(Expect):
         return s
 
 
-    def cmd(self, cmd, timeout=30.0, internal_timeout=None, print_func=None):
+    def cmd(self, cmd, timeout=60, internal_timeout=None, print_func=None):
         """
         Send a command and return its output. If the command's exit status is
         nonzero, raise an exception.
@@ -1325,7 +1325,7 @@ class ShellSession(Expect):
         return o
 
 
-    def get_command_output(self, cmd, timeout=30.0, internal_timeout=None,
+    def get_command_output(self, cmd, timeout=60, internal_timeout=None,
                            print_func=None):
         """
         Alias for cmd_output() for backward compatibility.
@@ -1333,8 +1333,8 @@ class ShellSession(Expect):
         return self.cmd_output(cmd, timeout, internal_timeout, print_func)
 
 
-    def get_command_status_output(self, cmd, timeout=30.0,
-                                  internal_timeout=None, print_func=None):
+    def get_command_status_output(self, cmd, timeout=60, internal_timeout=None,
+                                  print_func=None):
         """
         Alias for cmd_status_output() for backward compatibility.
         """
@@ -1342,7 +1342,7 @@ class ShellSession(Expect):
                                       print_func)
 
 
-    def get_command_status(self, cmd, timeout=30.0, internal_timeout=None,
+    def get_command_status(self, cmd, timeout=60, internal_timeout=None,
                            print_func=None):
         """
         Alias for cmd_status() for backward compatibility.
