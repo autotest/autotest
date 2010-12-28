@@ -2,10 +2,7 @@ from autotest_lib.server import crashcollect
 
 
 def crashdumps(machine):
-    hostname, user, passwd, port = parse_machine(machine, ssh_user,
-                                                 ssh_port, ssh_pass)
-    host = hosts.create_host(hostname, user=user, port=port, initialize=False,
-                             password=passwd, auto_monitor=False)
+    host = hosts.create_host(machine, initialize=False, auto_monitor=False)
     crashcollect.get_crashdumps(host, test_start_time)
 
 
