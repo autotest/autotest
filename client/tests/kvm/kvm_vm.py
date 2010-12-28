@@ -97,7 +97,7 @@ class VM:
     This class handles all basic VM operations.
     """
 
-    def __init__(self, name, params, root_dir, address_cache):
+    def __init__(self, name, params, root_dir, address_cache, state=None):
         """
         Initialize the object and set a few attributes.
 
@@ -106,30 +106,35 @@ class VM:
                 (see method make_qemu_command for a full description)
         @param root_dir: Base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
+        @param state: If provided, use this as self.__dict__
         """
-        self.process = None
-        self.serial_console = None
-        self.redirs = {}
-        self.vnc_port = 5900
-        self.monitors = []
-        self.pci_assignable = None
-        self.netdev_id = []
-        self.uuid = None
+        if state:
+            self.__dict__ = state
+        else:
+            self.process = None
+            self.serial_console = None
+            self.redirs = {}
+            self.vnc_port = 5900
+            self.monitors = []
+            self.pci_assignable = None
+            self.netdev_id = []
+            self.uuid = None
+
+            # Find a unique identifier for this VM
+            while True:
+                self.instance = (time.strftime("%Y%m%d-%H%M%S-") +
+                                 kvm_utils.generate_random_string(4))
+                if not glob.glob("/tmp/*%s" % self.instance):
+                    break
 
         self.name = name
         self.params = params
         self.root_dir = root_dir
         self.address_cache = address_cache
 
-        # Find a unique identifier for this VM
-        while True:
-            self.instance = (time.strftime("%Y%m%d-%H%M%S-") +
-                             kvm_utils.generate_random_string(4))
-            if not glob.glob("/tmp/*%s" % self.instance):
-                break
 
-
-    def clone(self, name=None, params=None, root_dir=None, address_cache=None):
+    def clone(self, name=None, params=None, root_dir=None, address_cache=None,
+              copy_state=False):
         """
         Return a clone of the VM object with optionally modified parameters.
         The clone is initially not alive and needs to be started using create().
@@ -140,6 +145,8 @@ class VM:
         @param params: Optional new VM creation parameters
         @param root_dir: Optional new base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
+        @param copy_state: If True, copy the original VM's state to the clone.
+                Mainly useful for make_qemu_command().
         """
         if name is None:
             name = self.name
@@ -149,7 +156,11 @@ class VM:
             root_dir = self.root_dir
         if address_cache is None:
             address_cache = self.address_cache
-        return VM(name, params, root_dir, address_cache)
+        if copy_state:
+            state = self.__dict__.copy()
+        else:
+            state = None
+        return VM(name, params, root_dir, address_cache, state)
 
 
     def make_qemu_command(self, name=None, params=None, root_dir=None):
@@ -350,6 +361,9 @@ class VM:
         if params is None: params = self.params
         if root_dir is None: root_dir = self.root_dir
 
+        # Clone this VM using the new params
+        vm = self.clone(name, params, root_dir, copy_state=True)
+
         qemu_binary = kvm_utils.get_path(root_dir, params.get("qemu_binary",
                                                               "qemu"))
         # Get the output of 'qemu -help' (log a message in case this call never
@@ -369,14 +383,14 @@ class VM:
         # Add monitors
         for monitor_name in kvm_utils.get_sub_dict_names(params, "monitors"):
             monitor_params = kvm_utils.get_sub_dict(params, monitor_name)
-            monitor_filename = self.get_monitor_filename(monitor_name)
+            monitor_filename = vm.get_monitor_filename(monitor_name)
             if monitor_params.get("monitor_type") == "qmp":
                 qemu_cmd += add_qmp_monitor(help, monitor_filename)
             else:
                 qemu_cmd += add_human_monitor(help, monitor_filename)
 
         # Add serial console redirection
-        qemu_cmd += add_serial(help, self.get_serial_console_filename())
+        qemu_cmd += add_serial(help, vm.get_serial_console_filename())
 
         for image_name in kvm_utils.get_sub_dict_names(params, "images"):
             image_params = kvm_utils.get_sub_dict(params, image_name)
@@ -396,18 +410,18 @@ class VM:
         for redir_name in kvm_utils.get_sub_dict_names(params, "redirs"):
             redir_params = kvm_utils.get_sub_dict(params, redir_name)
             guest_port = int(redir_params.get("guest_port"))
-            host_port = self.redirs.get(guest_port)
+            host_port = vm.redirs.get(guest_port)
             redirs += [(host_port, guest_port)]
 
         vlan = 0
         for nic_name in kvm_utils.get_sub_dict_names(params, "nics"):
             nic_params = kvm_utils.get_sub_dict(params, nic_name)
             try:
-                netdev_id = self.netdev_id[vlan]
+                netdev_id = vm.netdev_id[vlan]
             except IndexError:
                 netdev_id = None
             # Handle the '-net nic' part
-            mac = self.get_mac_address(vlan)
+            mac = vm.get_mac_address(vlan)
             qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac,
                                 netdev_id, nic_params.get("nic_extra_params"))
             # Handle the '-net tap' or '-net user' part
@@ -421,7 +435,7 @@ class VM:
             if tftp:
                 tftp = kvm_utils.get_path(root_dir, tftp)
             qemu_cmd += add_net(help, vlan, nic_params.get("nic_mode", "user"),
-                                self.get_ifname(vlan),
+                                vm.get_ifname(vlan),
                                 script, downscript, tftp,
                                 nic_params.get("bootp"), redirs, netdev_id,
                                 nic_params.get("netdev_extra_params"))
@@ -478,27 +492,27 @@ class VM:
             qemu_cmd += add_tcp_redir(help, host_port, guest_port)
 
         if params.get("display") == "vnc":
-            qemu_cmd += add_vnc(help, self.vnc_port)
+            qemu_cmd += add_vnc(help, vm.vnc_port)
         elif params.get("display") == "sdl":
             qemu_cmd += add_sdl(help)
         elif params.get("display") == "nographic":
             qemu_cmd += add_nographic(help)
 
         if params.get("uuid") == "random":
-            qemu_cmd += add_uuid(help, self.uuid)
+            qemu_cmd += add_uuid(help, vm.uuid)
         elif params.get("uuid"):
             qemu_cmd += add_uuid(help, params.get("uuid"))
 
         if params.get("testdev") == "yes":
-            qemu_cmd += add_testdev(help, self.get_testlog_filename())
+            qemu_cmd += add_testdev(help, vm.get_testlog_filename())
 
         if params.get("disable_hpet") == "yes":
             qemu_cmd += add_no_hpet(help)
 
         # If the PCI assignment step went OK, add each one of the PCI assigned
         # devices to the qemu command line.
-        if self.pci_assignable:
-            for pci_id in self.pa_pci_ids:
+        if vm.pci_assignable:
+            for pci_id in vm.pa_pci_ids:
                 qemu_cmd += add_pcidevice(help, pci_id)
 
         extra_params = params.get("extra_params")
