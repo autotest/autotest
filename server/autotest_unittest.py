@@ -256,6 +256,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.get_autodir.expect_call().and_return(None)
         self._expect_failed_run('test -x /some/path/bin/autotest')
         self.host.run.expect_call('test -x /another/path/bin/autotest')
+        self.host.run.expect_call('test -w /another/path')
 
         autodir = autotest.Autotest.get_installed_autodir(self.host)
         self.assertEquals(autodir, '/another/path')
@@ -268,6 +269,7 @@ class TestBaseAutotest(unittest.TestCase):
         self._expect_failed_run('test -x /another/path/bin/autotest')
         self._expect_failed_run('mkdir -p /some/path')
         self.host.run.expect_call('mkdir -p /another/path')
+        self.host.run.expect_call('test -w /another/path')
 
         install_dir = autotest.Autotest.get_install_dir(self.host)
         self.assertEquals(install_dir, '/another/path')
