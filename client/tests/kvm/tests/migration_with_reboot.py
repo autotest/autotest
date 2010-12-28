@@ -19,7 +19,6 @@ def run_migration_with_reboot(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-
     def reboot_test(client, session, address, reboot_command, port, username,
                     password, prompt, linesep, log_filename, timeout):
         """
@@ -67,24 +66,20 @@ def run_migration_with_reboot(test, params, env):
     mig_timeout = float(params.get("mig_timeout", "3600"))
     mig_protocol = params.get("migration_protocol", "tcp")
     mig_cancel = bool(params.get("mig_cancel"))
-    bg = None
 
     try:
-        # reboot the VM in background
-        bg = kvm_test_utils.BackgroundTest(reboot_test,
-                                           (client, session, address,
+        # Reboot the VM in the background
+        bg = kvm_utils.Thread(reboot_test, (client, session, address,
                                             reboot_command, port, username,
                                             password, prompt, linesep,
                                             log_filename, timeout))
         bg.start()
 
-        while bg.is_alive():
-            # Migrate the VM
-            dest_vm = kvm_test_utils.migrate(vm, env, mig_timeout, mig_protocol,
-                                             False)
-            vm = dest_vm
+        try:
+            while bg.is_alive():
+                vm = kvm_test_utils.migrate(vm, env, mig_timeout, mig_protocol)
+        finally:
+            bg.join()
 
     finally:
-        if bg:
-            bg.join()
         session.close()
