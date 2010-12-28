@@ -1,5 +1,6 @@
 import logging, time, os
 from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.bin import utils as client_utils
 import kvm_subprocess, kvm_test_utils, kvm_utils
 
 
@@ -35,15 +36,16 @@ def run_migration_with_file_transfer(test, params, env):
                     (vm.name, address,
                      kvm_utils.generate_random_string(4)))
     host_path = "/tmp/file-%s" % kvm_utils.generate_random_string(6)
+    host_path_returned = "%s-returned" % host_path
     guest_path = params.get("guest_path", "/tmp/file")
-    file_size = params.get("file_size", "1000")
+    file_size = params.get("file_size", "500")
     transfer_timeout = int(params.get("transfer_timeout", "240"))
 
     try:
-        utils.run("dd if=/dev/zero of=%s bs=1M count=%s" % (host_path,
-                                                            file_size))
+        utils.run("dd if=/dev/urandom of=%s bs=1M count=%s" % (host_path,
+                                                               file_size))
 
-        # Transfer file from host to guest in the backgroud
+        logging.info("Transferring file from host to guest")
         bg = kvm_utils.Thread(kvm_utils.copy_files_to,
                               (address, client, username, password, port,
                                host_path, guest_path, log_filename,
@@ -57,9 +59,34 @@ def run_migration_with_file_transfer(test, params, env):
         finally:
             # bg.join() returns the value returned by copy_files_to()
             if not bg.join():
-                raise error.TestFail("File transfer failed")
+                raise error.TestFail("File transfer from host to guest failed")
+
+        logging.info("Transferring file back from guest to host")
+        bg = kvm_utils.Thread(kvm_utils.copy_files_from,
+                              (address, client, username, password, port,
+                               host_path_returned, guest_path, log_filename,
+                               transfer_timeout))
+        bg.start()
+        try:
+            while bg.is_alive():
+                logging.info("File transfer not ended, starting a round of "
+                             "migration...")
+                vm = kvm_test_utils.migrate(vm, env, mig_timeout, mig_protocol)
+        finally:
+            if not bg.join():
+                raise error.TestFail("File transfer from guest to host failed")
+
+        # Make sure the returned file is indentical to the original one
+        orig_hash = client_utils.hash_file(host_path)
+        returned_hash = client_utils.hash_file(host_path_returned)
+        if orig_hash != returned_hash:
+            raise error.TestFail("Returned file hash (%s) differs from "
+                                 "original one (%s)" % (returned_hash,
+                                                        orig_hash))
 
     finally:
         session.close()
         if os.path.isfile(host_path):
             os.remove(host_path)
+        if os.path.isfile(host_path_returned):
+            os.remove(host_path_returned)
