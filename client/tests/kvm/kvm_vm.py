@@ -402,11 +402,14 @@ class VM:
         vlan = 0
         for nic_name in kvm_utils.get_sub_dict_names(params, "nics"):
             nic_params = kvm_utils.get_sub_dict(params, nic_name)
+            try:
+                netdev_id = self.netdev_id[vlan]
+            except IndexError:
+                netdev_id = None
             # Handle the '-net nic' part
             mac = self.get_mac_address(vlan)
             qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac,
-                                self.netdev_id[vlan],
-                                nic_params.get("nic_extra_params"))
+                                netdev_id, nic_params.get("nic_extra_params"))
             # Handle the '-net tap' or '-net user' part
             script = nic_params.get("nic_script")
             downscript = nic_params.get("nic_downscript")
@@ -420,8 +423,7 @@ class VM:
             qemu_cmd += add_net(help, vlan, nic_params.get("nic_mode", "user"),
                                 self.get_ifname(vlan),
                                 script, downscript, tftp,
-                                nic_params.get("bootp"), redirs,
-                                self.netdev_id[vlan],
+                                nic_params.get("bootp"), redirs, netdev_id,
                                 nic_params.get("netdev_extra_params"))
             # Proceed to next NIC
             vlan += 1
