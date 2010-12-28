@@ -26,15 +26,6 @@ class FollowFilesLaunchError(Error):
     """Error occurred launching followfiles remotely."""
 
 
-def run_cmd_on_host(hostname, cmd, stdin, stdout, stderr):
-    base_cmd = abstract_ssh.make_ssh_command()
-    full_cmd = "%s %s \"%s\"" % (base_cmd, hostname,
-                                 server_utils.sh_escape(cmd))
-
-    return subprocess.Popen(full_cmd, stdin=stdin, stdout=stdout,
-                            stderr=stderr, shell=True)
-
-
 def list_remote_pythons(host):
     """List out installed pythons on host."""
     result = host.run('ls /usr/bin/python[0-9]*')
@@ -72,25 +63,24 @@ def launch_remote_followfiles(host, lastlines_dirpath, follow_paths):
             raise FollowFilesLaunchError('No supported Python on host.')
 
     remote_monitordir = copy_monitordir(host)
-    remote_script_path = os.path.join(
-        remote_monitordir, 'followfiles.py')
+    remote_script_path = os.path.join(remote_monitordir, 'followfiles.py')
 
     followfiles_cmd = '%s %s --lastlines_dirpath=%s %s' % (
         supported_python, remote_script_path,
         lastlines_dirpath, ' '.join(follow_paths))
 
-    devnull_r = open(os.devnull, 'r')
-    devnull_w = open(os.devnull, 'w')
-    remote_followfiles_proc = run_cmd_on_host(
-        host.hostname, followfiles_cmd, stdout=subprocess.PIPE,
-        stdin=devnull_r, stderr=devnull_w)
+    remote_ff_proc = subprocess.Popen(host._make_ssh_cmd(followfiles_cmd),
+                                      stdin=open(os.devnull, 'r'),
+                                      stdout=subprocess.PIPE, shell=True)
+
+
     # Give it enough time to crash if it's going to (it shouldn't).
     time.sleep(5)
-    doa = remote_followfiles_proc.poll()
+    doa = remote_ff_proc.poll()
     if doa:
         raise FollowFilesLaunchError('ssh command crashed.')
 
-    return remote_followfiles_proc
+    return remote_ff_proc
 
 
 def resolve_patterns_path(patterns_path):
