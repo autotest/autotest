@@ -34,17 +34,19 @@ def run_migration_with_file_transfer(test, params, env):
     log_filename = ("migration-transfer-%s-to-%s-%s.log" %
                     (vm.name, address,
                      kvm_utils.generate_random_string(4)))
-    guest_path = params.get("guest_path", "/tmp")
+    host_path = "/tmp/file-%s" % kvm_utils.generate_random_string(6)
+    guest_path = params.get("guest_path", "/tmp/file")
     file_size = params.get("file_size", "1000")
     transfer_timeout = int(params.get("transfer_timeout", "240"))
 
     try:
-        utils.run("dd if=/dev/zero of=/tmp/file bs=1M count=%s" % file_size)
+        utils.run("dd if=/dev/zero of=%s bs=1M count=%s" % (host_path,
+                                                            file_size))
 
         # Transfer file from host to guest in the backgroud
         bg = kvm_utils.Thread(kvm_utils.copy_files_to,
                               (address, client, username, password, port,
-                               "/tmp/file", guest_path, log_filename,
+                               host_path, guest_path, log_filename,
                                transfer_timeout))
         bg.start()
         try:
@@ -59,5 +61,5 @@ def run_migration_with_file_transfer(test, params, env):
 
     finally:
         session.close()
-        if os.path.isfile("/tmp/file"):
-            os.remove("/tmp/file")
+        if os.path.isfile(host_path):
+            os.remove(host_path)
