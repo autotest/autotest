@@ -76,6 +76,7 @@ class BaseAutotest(installable_object.InstallableObject):
             try:
                 autotest_binary = os.path.join(path, 'bin', 'autotest')
                 host.run('test -x %s' % utils.sh_escape(autotest_binary))
+                host.run('test -w %s' % utils.sh_escape(path))
                 logging.debug('Found existing autodir at %s', path)
                 return path
             except error.AutoservRunError:
@@ -109,6 +110,7 @@ class BaseAutotest(installable_object.InstallableObject):
         for path in client_autodir_paths:
             try:
                 host.run('mkdir -p %s' % utils.sh_escape(path))
+                host.run('test -w %s' % utils.sh_escape(path))
                 return path
             except error.AutoservRunError:
                 logging.debug('Failed to create %s', path)
