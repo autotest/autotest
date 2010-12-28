@@ -26,5 +26,37 @@ class UtilsTest(unittest.TestCase):
         self.assertEquals(self.failures, failures)
 
 
+    # parse_machine() test cases
+    def test_parse_machine_good(self):
+        '''test that parse_machine() is outputting the correct data'''
+        gooddata = (('host',                ('host', 'root', '', 22)),
+                    ('host:21',             ('host', 'root', '', 21)),
+                    ('user@host',           ('host', 'user', '', 22)),
+                    ('user:pass@host',      ('host', 'user', 'pass', 22)),
+                    ('user:pass@host:1234', ('host', 'user', 'pass', 1234)),
+                   )
+        for machine, result in gooddata:
+            self.assertEquals(utils.parse_machine(machine), result)
+
+
+    def test_parse_machine_override(self):
+        '''Test that parse_machine() defaults can be overridden'''
+        self.assertEquals(utils.parse_machine('host', 'bob', 'foo', 1234),
+                          ('host', 'bob', 'foo', 1234))
+
+
+    def test_parse_machine_bad(self):
+        '''test that bad data passed to parse_machine() will raise an exception'''
+        baddata = (('host:port', ValueError),   # pass a non-integer string for port
+                   ('host:22:33', ValueError),  # pass two ports
+                   (':22', ValueError),         # neglect to pass a hostname #1
+                   ('user@', ValueError),       # neglect to pass a hostname #2
+                   ('user@:22', ValueError),    # neglect to pass a hostname #3
+                   (':pass@host', ValueError),  # neglect to pass a username
+                  )
+        for machine, exception in baddata:
+            self.assertRaises(exception, utils.parse_machine, machine)
+
+
 if __name__ == "__main__":
     unittest.main()
