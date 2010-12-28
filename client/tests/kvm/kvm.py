@@ -41,7 +41,6 @@ class kvm(test.test):
                      "messages.")
         env_filename = os.path.join(self.bindir, params.get("env", "env"))
         env = kvm_utils.load_env(env_filename, self.env_version)
-        logging.debug("Contents of environment: %s", env)
 
         test_passed = False
 
@@ -97,7 +96,6 @@ class kvm(test.test):
                                       "postprocessing: %s", e)
                 finally:
                     kvm_utils.dump_env(env, env_filename)
-                    logging.debug("Contents of environment: %s", env)
 
         except Exception, e:
             if params.get("abort_on_error") != "yes":
