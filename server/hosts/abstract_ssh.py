@@ -115,6 +115,17 @@ class AbstractSSHHost(SiteHost):
                           " ".join(sources), dest)
 
 
+    def _make_ssh_cmd(self, cmd):
+        """
+        Create a base ssh command string for the host which can be used
+        to run commands directly on the machine
+        """
+        base_cmd = make_ssh_command(user=self.user, port=self.port,
+                                    opts=self.master_ssh_option,
+                                    hosts_file=self.known_hosts_fd)
+
+        return '%s %s "%s"' % (base_cmd, self.hostname, utils.sh_escape(cmd))
+
     def _make_scp_cmd(self, sources, dest):
         """
         Given a list of source paths and a destination path, produces the
