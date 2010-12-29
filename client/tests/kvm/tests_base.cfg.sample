@@ -383,6 +383,8 @@ variants:
                 # Common DeviceData data
                 dd_data_filter   = FilterIfNoInf
                 dd_data_virt     = True
+                # Exclude jobs that have '(Manual)' in their names
+                job_filter = ^((?!\(Manual\)).)*$
                 variants:
                     - keyboard:
                         # test_device is a regular expression that should match a device's
