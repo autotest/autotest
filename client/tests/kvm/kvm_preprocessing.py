@@ -183,13 +183,11 @@ def process(test, params, env, image_func, vm_func):
     @param vm_func: A function to call for each VM.
     """
     # Get list of VMs specified for this test
-    vm_names = kvm_utils.get_sub_dict_names(params, "vms")
-    for vm_name in vm_names:
-        vm_params = kvm_utils.get_sub_dict(params, vm_name)
+    for vm_name in params.objects("vms"):
+        vm_params = params.object_params(vm_name)
         # Get list of images specified for this VM
-        image_names = kvm_utils.get_sub_dict_names(vm_params, "images")
-        for image_name in image_names:
-            image_params = kvm_utils.get_sub_dict(vm_params, image_name)
+        for image_name in vm_params.objects("images"):
+            image_params = vm_params.object_params(image_name)
             # Call image_func for each image
             image_func(test, image_params)
         # Call vm_func for each vm
@@ -226,7 +224,7 @@ def preprocess(test, params, env):
                 env["tcpdump"].get_output()))
 
     # Destroy and remove VMs that are no longer needed in the environment
-    requested_vms = kvm_utils.get_sub_dict_names(params, "vms")
+    requested_vms = params.objects("vms")
     for key in env.keys():
         vm = env[key]
         if not kvm_utils.is_vm(vm):
@@ -372,7 +370,7 @@ def postprocess_on_error(test, params, env):
     @param params: A dict containing all VM and image parameters.
     @param env: The environment (a dict-like object).
     """
-    params.update(kvm_utils.get_sub_dict(params, "on_error"))
+    params.update(params.object_params("on_error"))
 
 
 def _update_address_cache(address_cache, line):
