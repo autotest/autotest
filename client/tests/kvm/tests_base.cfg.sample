@@ -390,7 +390,7 @@ variants:
                 restart_vm = yes
                 cdroms =
                 test_timeout = 3600
-                device_data = cat0 cat1 cat2 cat3 logoarch logoos whqlos whqlqual prog desc filter virt
+                device_data = cat0 cat1 cat2 cat3 prog desc virt filter logoarch logoos whqlos whqlqual
                 descriptors = desc1 desc2 desc3
                 # DeviceData names
                 dd_name_cat0     = Category
