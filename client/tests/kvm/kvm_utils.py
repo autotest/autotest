@@ -27,39 +27,13 @@ def _unlock_file(f):
     f.close()
 
 
-def dump_env(obj, filename):
+def is_vm(obj):
     """
-    Dump KVM test environment to a file.
+    Tests whether a given object is a VM object.
 
-    @param filename: Path to a file where the environment will be dumped to.
+    @param obj: Python object.
     """
-    file = open(filename, "w")
-    cPickle.dump(obj, file)
-    file.close()
-
-
-def load_env(filename, version):
-    """
-    Load KVM test environment from an env file.
-    If the version recorded in the file is lower than version, return an empty
-    env.  If some other error occurs during unpickling, return an empty env.
-
-    @param filename: Path to an env file.
-    """
-    default = {"version": version}
-    try:
-        file = open(filename, "r")
-        env = cPickle.load(file)
-        file.close()
-        if env.get("version", 0) < version:
-            logging.warn("Incompatible env file found. Not using it.")
-            return default
-        return env
-    # Almost any exception can be raised during unpickling, so let's catch
-    # them all
-    except Exception, e:
-        logging.warn(e)
-        return default
+    return obj.__class__.__name__ == "VM"
 
 
 class Env(UserDict.IterableUserDict):
@@ -324,60 +298,6 @@ def verify_ip_address_ownership(ip, macs, timeout=10.0):
     o = commands.getoutput("%s -f -c 3 -I %s %s" %
                            (find_command("arping"), dev, ip))
     return bool(regex.search(o))
-
-
-# Functions for working with the environment (a dict-like object)
-
-def is_vm(obj):
-    """
-    Tests whether a given object is a VM object.
-
-    @param obj: Python object (pretty much everything on python).
-    """
-    return obj.__class__.__name__ == "VM"
-
-
-def env_get_all_vms(env):
-    """
-    Return a list of all VM objects on a given environment.
-
-    @param env: Dictionary with environment items.
-    """
-    vms = []
-    for obj in env.values():
-        if is_vm(obj):
-            vms.append(obj)
-    return vms
-
-
-def env_get_vm(env, name):
-    """
-    Return a VM object by its name.
-
-    @param name: VM name.
-    """
-    return env.get("vm__%s" % name)
-
-
-def env_register_vm(env, name, vm):
-    """
-    Register a given VM in a given env.
-
-    @param env: Environment where we will register the VM.
-    @param name: VM name.
-    @param vm: VM object.
-    """
-    env["vm__%s" % name] = vm
-
-
-def env_unregister_vm(env, name):
-    """
-    Remove a given VM from a given env.
-
-    @param env: Environment where we will un-register the VM.
-    @param name: VM name.
-    """
-    del env["vm__%s" % name]
 
 
 # Utility functions for dealing with external processes
