@@ -121,6 +121,24 @@ class Env(UserDict.IterableUserDict):
         del self["vm__%s" % name]
 
 
+    def register_installer(self, installer):
+        """
+        Register a installer that was just run
+
+        The installer will be available for other tests, so that
+        information about the installed KVM modules and qemu-kvm can be used by
+        them.
+        """
+        self['last_installer'] = installer
+
+
+    def previous_installer(self):
+        """
+        Return the last installer that was registered
+        """
+        return self.get('last_installer')
+
+
 class Params(UserDict.IterableUserDict):
     """
     A dict-like object passed to every test.
