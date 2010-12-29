@@ -36,8 +36,8 @@ def run_unittest(test, params, env):
                               unittest_cfg)
     logging.debug('Unit test list: %s' % test_list)
 
-    if params.get('test_list', None):
-        test_list = kvm_utils.get_sub_dict_names(params, 'test_list')
+    if params.get('test_list'):
+        test_list = params.get('test_list').split()
         logging.info('Original test list overriden by user')
         logging.info('User defined unit test list: %s' % test_list)
 

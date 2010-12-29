@@ -21,7 +21,7 @@ def run_whql_submission(test, params, env):
     # Log into all client VMs
     vms = []
     sessions = []
-    for vm_name in kvm_utils.get_sub_dict_names(params, "vms"):
+    for vm_name in params.objects("vms"):
         vms.append(kvm_test_utils.get_living_vm(env, vm_name))
         sessions.append(kvm_test_utils.wait_for_login(vms[-1], 0, 240))
 
@@ -122,8 +122,8 @@ def run_whql_submission(test, params, env):
 
     # Set submission DeviceData
     find_prompt("DeviceData name:")
-    for dd in kvm_utils.get_sub_dict_names(params, "device_data"):
-        dd_params = kvm_utils.get_sub_dict(params, dd)
+    for dd in params.objects("device_data"):
+        dd_params = params.object_params(dd)
         if dd_params.get("dd_name") and dd_params.get("dd_data"):
             server_session.sendline(dd_params.get("dd_name"))
             server_session.sendline(dd_params.get("dd_data"))
@@ -131,29 +131,29 @@ def run_whql_submission(test, params, env):
 
     # Set submission descriptors
     find_prompt("Descriptor path:")
-    for desc in kvm_utils.get_sub_dict_names(params, "descriptors"):
-        desc_params = kvm_utils.get_sub_dict(params, desc)
+    for desc in params.objects("descriptors"):
+        desc_params = params.object_params(desc)
         if desc_params.get("desc_path"):
             server_session.sendline(desc_params.get("desc_path"))
     server_session.sendline()
 
     # Set machine dimensions for each client machine
-    for vm_name in kvm_utils.get_sub_dict_names(params, "vms"):
-        vm_params = kvm_utils.get_sub_dict(params, vm_name)
+    for vm_name in params.objects("vms"):
+        vm_params = params.object_params(vm_name)
         find_prompt(r"Dimension name\b.*:")
-        for dp in kvm_utils.get_sub_dict_names(vm_params, "dimensions"):
-            dp_params = kvm_utils.get_sub_dict(vm_params, dp)
+        for dp in vm_params.objects("dimensions"):
+            dp_params = vm_params.object_params(dp)
             if dp_params.get("dim_name") and dp_params.get("dim_value"):
                 server_session.sendline(dp_params.get("dim_name"))
                 server_session.sendline(dp_params.get("dim_value"))
         server_session.sendline()
 
     # Set extra parameters for tests that require them (e.g. NDISTest)
-    for vm_name in kvm_utils.get_sub_dict_names(params, "vms"):
-        vm_params = kvm_utils.get_sub_dict(params, vm_name)
+    for vm_name in params.objects("vms"):
+        vm_params = params.object_params(vm_name)
         find_prompt(r"Parameter name\b.*:")
-        for dp in kvm_utils.get_sub_dict_names(vm_params, "device_params"):
-            dp_params = kvm_utils.get_sub_dict(vm_params, dp)
+        for dp in vm_params.objects("device_params"):
+            dp_params = vm_params.object_params(dp)
             if dp_params.get("dp_name") and dp_params.get("dp_regex"):
                 server_session.sendline(dp_params.get("dp_name"))
                 server_session.sendline(dp_params.get("dp_regex"))

@@ -51,7 +51,7 @@ def run_pci_hotplug(test, params, env):
         if test_type == "nic":
             pci_add_cmd = "pci_add pci_addr=auto nic model=%s" % tested_model
         elif test_type == "block":
-            image_params = kvm_utils.get_sub_dict(params, "stg")
+            image_params = params.object_params("stg")
             image_filename = kvm_vm.get_image_filename(image_params,
                                                        test.bindir)
             pci_add_cmd = ("pci_add pci_addr=auto storage file=%s,if=%s" %
@@ -73,7 +73,7 @@ def run_pci_hotplug(test, params, env):
             pci_add_cmd = "device_add id=%s,driver=%s" % (id, tested_model)
 
         elif test_type == "block":
-            image_params = kvm_utils.get_sub_dict(params, "stg")
+            image_params = params.object_params("stg")
             image_filename = kvm_vm.get_image_filename(image_params,
                                                        test.bindir)
             if tested_model == "virtio":
