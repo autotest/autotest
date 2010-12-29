@@ -857,6 +857,15 @@ variants:
             mtu = 65520
         ethtool:
             supported_features = "tx sg tso gso"
+        whql.submission.device.net:
+            test_device = VirtIO Ethernet Adapter$
+            # Device selection for the NDISTest client machine
+            dp_regex_testdev = VirtIO Ethernet Adapter$
+            dp_regex_clientmsgdev = VirtIO Ethernet Adapter #2$
+            dp_regex_clientsupportdev = VirtIO Ethernet Adapter #3$
+            # Device selection for the NDISTest server machine
+            dp_regex_servermsgdev = VirtIO Ethernet Adapter$
+            dp_regex_serversupportdev = VirtIO Ethernet Adapter #2$
 
 # Guests
 variants:
