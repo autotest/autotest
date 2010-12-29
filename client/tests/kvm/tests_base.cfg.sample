@@ -63,6 +63,9 @@ profilers = kvm_stat
 login_timeout = 360
 image_raw_device = no
 
+# NFS directory of guests' images
+images_good = 0.0.0.0:/autotest/images_good
+
 # Tests
 variants:
     - install:
@@ -74,6 +77,12 @@ variants:
         kill_vm = yes
         kill_vm_timeout = 60
         kill_vm_timeout_on_error = 0
+
+    - image_copy:
+        type = image_copy
+        vms = ''
+        parallel = no
+        profilers =
 
     - setup:        install
         type = steps
