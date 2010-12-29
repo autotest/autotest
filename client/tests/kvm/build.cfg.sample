@@ -16,7 +16,7 @@ variants:
         save_results = no
         variants:
             - release:
-                mode = release
+                install_mode = release
                 ## Install from a kvm release. You can optionally specify
                 ## a release tag. If you omit it, the build test will get
                 ## the latest release tag available at that moment.
@@ -27,7 +27,7 @@ variants:
                 # files can be copied from there to your source based install
                 # path_to_rom_images = /usr/share/kvm
             - snapshot:
-                mode = snapshot
+                install_mode = snapshot
                 ## Install from a kvm snapshot location. You can optionally
                 ## specify a snapshot date. If you omit it, the test will get
                 ## yesterday's snapshot.
@@ -37,21 +37,21 @@ variants:
                 # files can be copied from there to your source based install
                 # path_to_rom_images = /usr/share/kvm
             - localtar:
-                mode = localtar
+                install_mode = localtar
                 ## Install from tarball located on the host's filesystem.
                 tarball = /tmp/kvm-84.tar.gz
                 # In some cases, you might want to provide a ROM dir, so ROM
                 # files can be copied from there to your source based install
                 # path_to_rom_images = /usr/share/kvm
             - localsrc:
-                mode = localsrc
+                install_mode = localsrc
                 ## Install from tarball located on the host's filesystem.
                 srcdir = /tmp/kvm-84
                 # In some cases, you might want to provide a ROM dir, so ROM
                 # files can be copied from there to your source based install
                 # path_to_rom_images = /usr/share/kvm
             - git:
-                mode = git
+                install_mode = git
                 ## Install KVM from git repositories.
                 ## If you provide only "git_repo" and "user_git_repo", the
                 ## build test will assume it will perform all build from the
@@ -80,7 +80,7 @@ variants:
                 # files can be copied from there to your source based install
                 # path_to_rom_images = /usr/share/kvm
             - yum:
-                mode = yum
+                install_mode = yum
                 src_pkg = qemu
                 ## Name of the rpms we need installed
                 pkg_list = ['qemu-kvm', 'qemu-kvm-tools', 'qemu-system-x86', 'qemu-common', 'qemu-img']
@@ -89,7 +89,7 @@ variants:
                 ## List of RPMs that will be installed
                 pkg_path_list = ['http://foo.com/rpm1', 'http://foo.com/rpm2']
             - koji:
-                mode = koji
+                install_mode = koji
                 ## Install KVM from koji (Fedora build server)
                 ## It is possible to install packages right from Koji if you
                 ## provide a release tag or a build.
