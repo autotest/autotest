@@ -381,8 +381,8 @@ class VM:
         # Add the VM's name
         qemu_cmd += add_name(help, name)
         # Add monitors
-        for monitor_name in kvm_utils.get_sub_dict_names(params, "monitors"):
-            monitor_params = kvm_utils.get_sub_dict(params, monitor_name)
+        for monitor_name in params.objects("monitors"):
+            monitor_params = params.object_params(monitor_name)
             monitor_filename = vm.get_monitor_filename(monitor_name)
             if monitor_params.get("monitor_type") == "qmp":
                 qemu_cmd += add_qmp_monitor(help, monitor_filename)
@@ -392,8 +392,8 @@ class VM:
         # Add serial console redirection
         qemu_cmd += add_serial(help, vm.get_serial_console_filename())
 
-        for image_name in kvm_utils.get_sub_dict_names(params, "images"):
-            image_params = kvm_utils.get_sub_dict(params, image_name)
+        for image_name in params.objects("images"):
+            image_params = params.object_params(image_name)
             if image_params.get("boot_drive") == "no":
                 continue
             qemu_cmd += add_drive(help,
@@ -407,15 +407,15 @@ class VM:
                                   image_params.get("image_boot") == "yes")
 
         redirs = []
-        for redir_name in kvm_utils.get_sub_dict_names(params, "redirs"):
-            redir_params = kvm_utils.get_sub_dict(params, redir_name)
+        for redir_name in params.objects("redirs"):
+            redir_params = params.object_params(redir_name)
             guest_port = int(redir_params.get("guest_port"))
             host_port = vm.redirs.get(guest_port)
             redirs += [(host_port, guest_port)]
 
         vlan = 0
-        for nic_name in kvm_utils.get_sub_dict_names(params, "nics"):
-            nic_params = kvm_utils.get_sub_dict(params, nic_name)
+        for nic_name in params.objects("nics"):
+            nic_params = params.object_params(nic_name)
             try:
                 netdev_id = vm.netdev_id[vlan]
             except IndexError:
@@ -450,9 +450,8 @@ class VM:
         if smp:
             qemu_cmd += add_smp(help, smp)
 
-        cdroms = kvm_utils.get_sub_dict_names(params, "cdroms")
-        for cdrom in cdroms:
-            cdrom_params = kvm_utils.get_sub_dict(params, cdrom)
+        for cdrom in params.objects("cdroms"):
+            cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
             if iso:
                 qemu_cmd += add_cdrom(help, kvm_utils.get_path(root_dir, iso),
@@ -552,8 +551,8 @@ class VM:
         root_dir = self.root_dir
 
         # Verify the md5sum of the ISO images
-        for cdrom in kvm_utils.get_sub_dict_names(params, "cdroms"):
-            cdrom_params = kvm_utils.get_sub_dict(params, cdrom)
+        for cdrom in params.objects("cdroms"):
+            cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
             if iso:
                 iso = kvm_utils.get_path(root_dir, iso)
@@ -593,17 +592,17 @@ class VM:
 
         try:
             # Handle port redirections
-            redir_names = kvm_utils.get_sub_dict_names(params, "redirs")
+            redir_names = params.objects("redirs")
             host_ports = kvm_utils.find_free_ports(5000, 6000, len(redir_names))
             self.redirs = {}
             for i in range(len(redir_names)):
-                redir_params = kvm_utils.get_sub_dict(params, redir_names[i])
+                redir_params = params.object_params(redir_names[i])
                 guest_port = int(redir_params.get("guest_port"))
                 self.redirs[guest_port] = host_ports[i]
 
             # Generate netdev IDs for all NICs
             self.netdev_id = []
-            for nic in kvm_utils.get_sub_dict_names(params, "nics"):
+            for nic in params.objects("nics"):
                 self.netdev_id.append(kvm_utils.generate_random_id())
 
             # Find available VNC port, if needed
@@ -617,10 +616,10 @@ class VM:
                 f.close()
 
             # Generate or copy MAC addresses for all NICs
-            num_nics = len(kvm_utils.get_sub_dict_names(params, "nics"))
+            num_nics = len(params.objects("nics"))
             for vlan in range(num_nics):
-                nic_name = kvm_utils.get_sub_dict_names(params, "nics")[vlan]
-                nic_params = kvm_utils.get_sub_dict(params, nic_name)
+                nic_name = params.objects("nics")[vlan]
+                nic_params = params.object_params(nic_name)
                 if nic_params.get("nic_mac", None):
                     mac = nic_params.get("nic_mac")
                     kvm_utils.set_mac_address(self.instance, vlan, mac)
@@ -705,9 +704,8 @@ class VM:
 
             # Establish monitor connections
             self.monitors = []
-            for monitor_name in kvm_utils.get_sub_dict_names(params,
-                                                             "monitors"):
-                monitor_params = kvm_utils.get_sub_dict(params, monitor_name)
+            for monitor_name in params.objects("monitors"):
+                monitor_params = params.object_params(monitor_name)
                 # Wait for monitor connection to succeed
                 end_time = time.time() + timeout
                 while time.time() < end_time:
@@ -853,7 +851,7 @@ class VM:
                     os.unlink(self.migration_file)
                 except OSError:
                     pass
-            num_nics = len(kvm_utils.get_sub_dict_names(self.params, "nics"))
+            num_nics = len(self.params.objects("nics"))
             for vlan in range(num_nics):
                 self.free_mac_address(vlan)
 
@@ -912,7 +910,7 @@ class VM:
         params).
         """
         return [self.get_monitor_filename(m) for m in
-                kvm_utils.get_sub_dict_names(self.params, "monitors")]
+                self.params.objects("monitors")]
 
 
     def get_serial_console_filename(self):
@@ -938,9 +936,9 @@ class VM:
 
         @param index: Index of the NIC whose address is requested.
         """
-        nics = kvm_utils.get_sub_dict_names(self.params, "nics")
+        nics = self.params.objects("nics")
         nic_name = nics[index]
-        nic_params = kvm_utils.get_sub_dict(self.params, nic_name)
+        nic_params = self.params.object_params(nic_name)
         if nic_params.get("nic_mode") == "tap":
             mac = self.get_mac_address(index)
             if not mac:
@@ -973,8 +971,8 @@ class VM:
         @return: If port redirection is used, return the host port redirected
                 to guest port port. Otherwise return port.
         """
-        nic_name = kvm_utils.get_sub_dict_names(self.params, "nics")[nic_index]
-        nic_params = kvm_utils.get_sub_dict(self.params, nic_name)
+        nic_name = self.params.objects("nics")[nic_index]
+        nic_params = self.params.object_params(nic_name)
         if nic_params.get("nic_mode") == "tap":
             return port
         else:
@@ -990,9 +988,9 @@ class VM:
 
         @param nic_index: Index of the NIC
         """
-        nics = kvm_utils.get_sub_dict_names(self.params, "nics")
+        nics = self.params.objects("nics")
         nic_name = nics[nic_index]
-        nic_params = kvm_utils.get_sub_dict(self.params, nic_name)
+        nic_params = self.params.object_params(nic_name)
         if nic_params.get("nic_ifname"):
             return nic_params.get("nic_ifname")
         else:

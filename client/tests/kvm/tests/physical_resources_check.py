@@ -51,7 +51,7 @@ def run_physical_resources_check(test, params, env):
     # Define a function for checking number of hard drivers & NICs
     def check_num(devices, info_cmd, check_str):
         f_fail = 0
-        expected_num = kvm_utils.get_sub_dict_names(params, devices).__len__()
+        expected_num = params.objects(devices).__len__()
         try:
             o = vm.monitor.info(info_cmd)
         except kvm_monitor.MonitorError, e:
@@ -78,9 +78,9 @@ def run_physical_resources_check(test, params, env):
     # Define a function for checking hard drives & NICs' model
     def chk_fmt_model(device, fmt_model, info_cmd, str):
         f_fail = 0
-        devices = kvm_utils.get_sub_dict_names(params, device)
+        devices = params.objects(device)
         for chk_device in devices:
-            expected = kvm_utils.get_sub_dict(params, chk_device).get(fmt_model)
+            expected = params.object_params(chk_device).get(fmt_model)
             if not expected:
                 expected = "rtl8139"
             try:
@@ -123,7 +123,7 @@ def run_physical_resources_check(test, params, env):
     found_mac_addresses = re.findall("macaddr=(\S+)", o)
     logging.debug("Found MAC adresses: %s" % found_mac_addresses)
 
-    num_nics = len(kvm_utils.get_sub_dict_names(params, "nics"))
+    num_nics = len(params.objects("nics"))
     for nic_index in range(num_nics):
         mac = vm.get_mac_address(nic_index)
         if not string.lower(mac) in found_mac_addresses:
