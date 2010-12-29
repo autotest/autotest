@@ -445,7 +445,7 @@ def check_kvm_source_dir(source_dir):
     os.chdir(source_dir)
     has_qemu_dir = os.path.isdir('qemu')
     has_kvm_dir = os.path.isdir('kvm')
-    if has_qemu_dir and not has_kvm_dir:
+    if has_qemu_dir:
         logging.debug("qemu directory detected, source dir layout 1")
         return 1
     if has_kvm_dir and not has_qemu_dir:
