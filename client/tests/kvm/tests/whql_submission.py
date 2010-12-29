@@ -42,6 +42,11 @@ def run_whql_submission(test, params, env):
     for svc in wtt_services.split():
         kvm_test_utils.start_windows_service(session, svc)
 
+    # Run whql_pre_command
+    if params.get("whql_pre_command"):
+        session.cmd(params.get("whql_pre_command"),
+                    int(params.get("whql_pre_command_timeout", 600)))
+
     # Copy dsso_test_binary to the server
     rss_file_transfer.upload(server_address, server_file_transfer_port,
                              dsso_test_binary, server_studio_path, timeout=60)
