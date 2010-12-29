@@ -351,7 +351,21 @@ variants:
         dsso_delete_machine_binary = deps/whql_delete_machine_15.exe
         wtt_services = wttsvc
         variants:
-            - client_install:
+            - support_vm_install:
+                # The support VM is identical to the tested VM in every way
+                # except for the image name which ends with '-supportvm'.
+                type = unattended_install
+                pre_command += " scripts/unattended.py;"
+                extra_params += " -boot d"
+                force_create_image = yes
+                kill_vm = yes
+                nic_mode = user
+                redirs += " unattended_install"
+                guest_port_unattended_install = 12323
+                medium = cdrom
+                kernel =
+                initrd = 
+            - client_install:    support_vm_install
                 type = whql_client_install
                 # The username and password are required for accessing the DTM client
                 # installer binary shared by the server
@@ -361,7 +375,10 @@ variants:
                 # (the final cmd will be something like \\servername\DTMInstall\...)
                 install_cmd = \DTMInstall\Client\Setup.exe /passive
                 install_timeout = 3600
-            - submission:    client_install
+                variants:
+                    - @original:
+                    - support_vm:
+            - submission:    client_install support_vm_install
                 type = whql_submission
                 extra_params += " -snapshot"
                 restart_vm = yes
@@ -412,6 +429,36 @@ variants:
                                 dd_data_cat2 = System Fundamentals\Dynamic Partitioning
                                 dd_data_prog = InputKbd
                                 dd_data_desc = Input > Keyboard
+                            - net:
+                                # Add a support machine and extra NICs
+                                vms += " supportvm"
+                                nics += " nic2 nic3"
+                                test_device = RTL8139.*NIC$
+                                test_timeout = 86400
+                                dd_data_cat0 = Network\LAN (Ethernet)
+                                dd_data_cat1 = Device Fundamentals
+                                dd_data_cat2 = System Fundamentals\Dynamic Partitioning
+                                dd_data_prog = NetLan
+                                dd_data_desc = Network > LAN (Ethernet)
+                                # Machine dimensions
+                                dimensions = testrole
+                                dim_name_testrole = NetDevice\TestRole
+                                dim_value_testrole_vm1 = NdistestLanClient
+                                dim_value_testrole_supportvm = NdistestLanServer
+                                # Device selection for the NDISTest client machine
+                                device_params_vm1 = testdev clientmsgdev clientsupportdev
+                                dp_name_testdev = NdistestLanClientTestDevice
+                                dp_regex_testdev = RTL8139.*NIC$
+                                dp_name_clientmsgdev = NdistestLanClientMessageDevice
+                                dp_regex_clientmsgdev = RTL8139.*NIC #2$
+                                dp_name_clientsupportdev = NdistestLanClientSupportDevice0
+                                dp_regex_clientsupportdev = RTL8139.*NIC #3$
+                                # Device selection for the NDISTest server machine
+                                device_params_supportvm = servermsgdev serversupportdev
+                                dp_name_servermsgdev = NdistestLanServerMessageDevice
+                                dp_regex_servermsgdev = RTL8139.*NIC$
+                                dp_name_serversupportdev = NdistestLanServerSupportDevice0
+                                dp_regex_serversupportdev = RTL8139.*NIC #2$
                             - hdd:
                                 # Run the tests on a non-system drive
                                 # (match device names that contain 'QEMU HARDDISK' and do not contain '[C]')
@@ -1610,7 +1657,7 @@ variants:
         mem_chk_cmd = wmic memphysical
         mem_chk_cur_cmd = wmic memphysical
 
-        unattended_install:
+        unattended_install.cdrom|whql.support_vm_install:
             timeout = 7200
             finish_program = deps/finish.exe
             cdroms += " winutils"
@@ -1722,7 +1769,7 @@ variants:
                             steps = WinXP-32.steps
                         setup:
                             steps = WinXP-32-rss.steps
-                        unattended_install.cdrom:
+                        unattended_install.cdrom|whql.support_vm_install:
                             cdrom_cd1 = isos/windows/WindowsXP-sp2-vlk.iso
                             md5sum_cd1 = 743450644b1d9fe97b3cf379e22dceb0
                             md5sum_1m_cd1 = b473bf75af2d1269fec8958cf0202bfd
@@ -1742,6 +1789,8 @@ variants:
                             dd_data_whqlos = Windows XP
                             device:
                                 dd_data_whqlqual = Basic
+                            device.net:
+                                image_name_supportvm = winXP-32-supportvm
 
                     - 64:
                         image_name += -64
@@ -1753,7 +1802,7 @@ variants:
                             steps = WinXP-64.steps
                         setup:
                             steps = WinXP-64-rss.steps
-                        unattended_install.cdrom:
+                        unattended_install.cdrom|whql.support_vm_install:
                             cdrom_cd1 = isos/windows/WindowsXP-64.iso
                             md5sum_cd1 = 8d3f007ec9c2060cec8a50ee7d7dc512
                             md5sum_1m_cd1 = e812363ff427effc512b7801ee70e513
@@ -1773,6 +1822,8 @@ variants:
                             dd_data_whqlos = Windows XP x64
                             device:
                                 dd_data_whqlqual = Basic
+                            device.net:
+                                image_name_supportvm = winXP-64-supportvm
 
             - Win2003:
                 image_name = win2003
@@ -1789,7 +1840,7 @@ variants:
                             steps = Win2003-32.steps
                         setup:
                             steps = Win2003-32-rss.steps
-                        unattended_install.cdrom:
+                        unattended_install.cdrom|whql.support_vm_install:
                             cdrom_cd1 = isos/windows/Windows2003_r2_VLK.iso
                             md5sum_cd1 = 03e921e9b4214773c21a39f5c3f42ef7
                             md5sum_1m_cd1 = 37c2fdec15ac4ec16aa10fdfdb338aa3
@@ -1808,6 +1859,8 @@ variants:
                             dd_data_whqlos = Windows Server 2003
                             device:
                                 dd_data_whqlqual = Basic
+                            device.net:
+                                image_name_supportvm = win2003-32-supportvm
 
                     - 64:
                         image_name += -64
@@ -1819,7 +1872,7 @@ variants:
                             steps = Win2003-64.steps
                         setup:
                             steps = Win2003-64-rss.steps
-                        unattended_install.cdrom:
+                        unattended_install.cdrom|whql.support_vm_install:
                             cdrom_cd1 = isos/windows/Windows2003-x64.iso
                             md5sum_cd1 = 5703f87c9fd77d28c05ffadd3354dbbd
                             md5sum_1m_cd1 = 439393c384116aa09e08a0ad047dcea8
@@ -1838,6 +1891,8 @@ variants:
                             dd_data_whqlos = Windows Server 2003 x64
                             device:
                                 dd_data_whqlqual = Basic
+                            device.net:
+                                image_name_supportvm = win2003-64-supportvm
 
             - WinVista:
                 image_name = winvista
@@ -1865,7 +1920,7 @@ variants:
                                     steps = Win-Vista-32.steps
                                 setup:
                                     steps = WinVista-32-rss.steps
-                                unattended_install.cdrom:
+                                unattended_install.cdrom|whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/WindowsVista-32.iso
                                     md5sum_cd1 = 1008f323d5170c8e614e52ccb85c0491
                                     md5sum_1m_cd1 = c724e9695da483bc0fd59e426eaefc72
@@ -1877,10 +1932,12 @@ variants:
                                     virtio_storage_path = 'F:\viostor\w7\x86'
                                     virtio_network_path = 'F:\NetKVM\w7\x86'
                                     #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
+                                whql.submission.device.net:
+                                    image_name_supportvm = winvista-sp1-32-supportvm
 
                             - sp2:
                                 image_name += -sp2-32
-                                unattended_install.cdrom:
+                                unattended_install.cdrom|whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/en_windows_vista_with_sp2_x86_dvd_342266.iso
                                     md5sum_cd1 = 19ca90a425667812977bab6f4ce24175
                                     md5sum_1m_cd1 = 89c15020e0e6125be19acf7a2e5dc614
@@ -1894,6 +1951,8 @@ variants:
                                     virtio_storage_path = 'F:\viostor\w7\x86'
                                     virtio_network_path = 'F:\NetKVM\w7\x86'
                                     #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
+                                whql.submission.device.net:
+                                    image_name_supportvm = winvista-sp2-32-supportvm
 
                     - 64:
                         whql.submission:
@@ -1912,7 +1971,7 @@ variants:
                                     steps = Win-Vista-64.steps
                                 setup:
                                     steps = WinVista-64-rss.steps
-                                unattended_install.cdrom:
+                                unattended_install.cdrom|whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/WindowsVista-64.iso
                                     md5sum_cd1 = 11e2010d857fffc47813295e6be6d58d
                                     md5sum_1m_cd1 = 0947bcd5390546139e25f25217d6f165
@@ -1924,9 +1983,12 @@ variants:
                                     virtio_storage_path = 'F:\viostor\w7\amd64'
                                     virtio_network_path = 'F:\NetKVM\w7\amd64'
                                     #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
+                                whql.submission.device.net:
+                                    image_name_supportvm = winvista-sp1-64-supportvm
+
                             - sp2:
                                 image_name += -sp2-64
-                                unattended_install.cdrom:
+                                unattended_install.cdrom|whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/en_windows_vista_sp2_x64_dvd_342267.iso
                                     md5sum_cd1 = a1c024d7abaf34bac3368e88efbc2574
                                     md5sum_1m_cd1 = 3d84911a80f3df71d1026f7adedc2181
@@ -1940,6 +2002,8 @@ variants:
                                     virtio_storage_path = 'F:\viostor\w7\amd64'
                                     virtio_network_path = 'F:\NetKVM\w7\amd64'
                                     #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
+                                whql.submission.device.net:
+                                    image_name_supportvm = winvista-sp2-64-supportvm
 
             - Win2008:
                 no whql
@@ -1960,7 +2024,7 @@ variants:
                                     steps = Win2008-32.steps
                                 setup:
                                     steps = Win2008-32-rss.steps
-                                unattended_install.cdrom:
+                                unattended_install.cdrom|whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/Windows2008-x86.iso
                                     md5sum=0bfca49f0164de0a8eba236ced47007d
                                     md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
@@ -1975,7 +2039,7 @@ variants:
 
                             - sp2:
                                 image_name += -sp2-32
-                                unattended_install.cdrom:
+                                unattended_install.cdrom|whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x86_dvd_342333.iso
                                     md5sum_cd1 = b9201aeb6eef04a3c573d036a8780bdf
                                     md5sum_1m_cd1 = b7a9d42e55ea1e85105a3a6ad4da8e04
@@ -2004,7 +2068,7 @@ variants:
                                     passwd = 1q2w3eP
                                 setup:
                                     steps = Win2008-64-rss.steps
-                                unattended_install.cdrom:
+                                unattended_install.cdrom|whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/Windows2008-x64.iso
                                     md5sum=27c58cdb3d620f28c36333a5552f271c
                                     md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
@@ -2019,7 +2083,7 @@ variants:
 
                             - sp2:
                                 image_name += -sp2-64
-                                unattended_install.cdrom:
+                                unattended_install.cdrom|whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x64_dvd_342336.iso
                                     md5sum_cd1 = e94943ef484035b3288d8db69599a6b5
                                     md5sum_1m_cd1 = ee55506823d0efffb5532ddd88a8e47b
@@ -2036,7 +2100,7 @@ variants:
 
                             - r2:
                                 image_name += -r2-64
-                                unattended_install.cdrom:
+                                unattended_install.cdrom|whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/en_windows_server_2008_r2_standard_enterprise_datacenter_and_web_x64_dvd_x15-59754.iso
                                     md5sum_cd1 = 0207ef392c60efdda92071b0559ca0f9
                                     md5sum_1m_cd1 = a5a22ce25008bd7109f6d830d627e3ed
@@ -2064,7 +2128,7 @@ variants:
                 variants:
                     - 32:
                         image_name += -32
-                        unattended_install.cdrom:
+                        unattended_install.cdrom|whql.support_vm_install:
                             cdrom_cd1 = isos/windows/en_windows_7_ultimate_x86_dvd_x15-65921.iso
                             md5sum_cd1 = d0b8b407e8a3d4b75ee9c10147266b89
                             md5sum_1m_cd1 = 2b0c2c22b1ae95065db08686bf83af93
@@ -2084,6 +2148,8 @@ variants:
                             dd_data_whqlos = Windows 7 Client
                             device:
                                 dd_data_whqlqual = Logo
+                            device.net:
+                                image_name_supportvm = win7-32-supportvm
 
                     - 64:
                         image_name += -64
@@ -2095,7 +2161,7 @@ variants:
                             steps = Win7-64.steps
                         setup:
                             steps = Win7-64-rss.steps
-                        unattended_install.cdrom:
+                        unattended_install.cdrom|whql.support_vm_install:
                             cdrom_cd1 = isos/windows/en_windows_7_ultimate_x64_dvd_x15-65922.iso
                             md5sum_cd1 = f43d22e4fb07bf617d573acd8785c028
                             md5sum_1m_cd1 = b44d8cf99dbed2a5cb02765db8dfd48f
@@ -2115,6 +2181,8 @@ variants:
                             dd_data_whqlos = Windows 7 Client x64
                             device:
                                 dd_data_whqlqual = Logo
+                            device.net:
+                                image_name_supportvm = win7-64-supportvm
 
 
     # Unix/BSD section
@@ -2171,6 +2239,10 @@ variants:
                 steps = memtest86+.steps
                 cdrom_cd1 = isos/misc/memtest86+-2.01.iso
                 md5sum_cd1 = 9fae22f2666369968a76ef59e9a81ced
+
+
+whql.support_vm_install|whql.client_install.support_vm:
+    image_name += -supportvm
 
 
 variants:
