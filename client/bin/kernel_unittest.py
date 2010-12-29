@@ -425,13 +425,17 @@ class TestKernel(unittest.TestCase):
     def test_extraversion(self):
         self.construct_kernel()
         tag = "tag"
+        # setup
+        self.god.stub_function(self.kernel, "config")
 
         # record
         os.chdir.expect_call(self.build_dir)
-        extraversion_sub = r's/^EXTRAVERSION =\s*\(.*\)/EXTRAVERSION = '
-        p = extraversion_sub + '\\1-%s/' % tag
-        utils.system.expect_call('mv Makefile Makefile.old')
-        utils.system.expect_call('sed "%s" < Makefile.old > Makefile' % p)
+        extraversion_sub = r's/^CONFIG_LOCALVERSION=\s*"\(.*\)"/CONFIG_LOCALVERSION='
+        cfg = self.build_dir + '/.config'
+        p = extraversion_sub + '"\\1-%s"/' % tag
+        utils.system.expect_call('mv %s %s.old' % (cfg, cfg))
+        utils.system.expect_call("sed '%s' < %s.old > %s" % (p, cfg, cfg))
+        self.kernel.config.expect_call(make='oldconfig')
 
         # run and check
         self.kernel.extraversion(tag)
