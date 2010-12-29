@@ -375,6 +375,12 @@ variants:
                 # (the final cmd will be something like \\servername\DTMInstall\...)
                 install_cmd = \DTMInstall\Client\Setup.exe /passive
                 install_timeout = 3600
+                # The test will setup auto logon on the client machine using the
+                # following username and password:
+                client_username = DTMLLUAdminUser
+                client_password = Testpassword,1
+                # (These are created by the DTM client installer and should probably not
+                # be changed.)
                 variants:
                     - @original:
                     - support_vm:

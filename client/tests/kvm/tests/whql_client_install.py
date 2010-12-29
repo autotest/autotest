@@ -13,6 +13,9 @@ def run_whql_client_install(test, params, env):
     5) Move the client machine into the server's workgroup
     6) Reboot the client machine
     7) Install the DTM client software
+    8) Setup auto logon for the user created by the installation
+       (normally DTMLLUAdminUser)
+    9) Reboot again
 
     @param test: kvm test object
     @param params: Dictionary with the test parameters
@@ -29,6 +32,8 @@ def run_whql_client_install(test, params, env):
                                     "Microsoft Driver Test Manager\\Studio")
     server_username = params.get("server_username")
     server_password = params.get("server_password")
+    client_username = params.get("client_username")
+    client_password = params.get("client_password")
     dsso_delete_machine_binary = params.get("dsso_delete_machine_binary",
                                             "deps/whql_delete_machine_15.exe")
     dsso_delete_machine_binary = kvm_utils.get_path(test.bindir,
@@ -115,4 +120,16 @@ def run_whql_client_install(test, params, env):
     logging.info("Installing DTM client (timeout=%ds)", install_timeout)
     install_cmd = r"cmd /c \\%s\%s" % (server_name, install_cmd.lstrip("\\"))
     session.cmd(install_cmd, timeout=install_timeout)
+
+    # Setup auto logon
+    logging.info("Setting up auto logon for user '%s'", client_username)
+    cmd = ('reg add '
+           '"HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\winlogon" '
+           '/v "%s" /d "%s" /t REG_SZ /f')
+    session.cmd(cmd % ("AutoAdminLogon", "1"))
+    session.cmd(cmd % ("DefaultUserName", client_username))
+    session.cmd(cmd % ("DefaultPassword", client_password))
+
+    # Reboot one more time
+    session = kvm_test_utils.reboot(vm, session)
     session.close()
