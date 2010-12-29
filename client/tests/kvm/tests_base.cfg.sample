@@ -347,11 +347,12 @@ variants:
         server_shell_port = 10022
         server_file_transfer_port = 10023
         server_studio_path = %programfiles%\Microsoft Driver Test Manager\Studio
+        dsso_test_binary = deps/whql_submission_15.exe
+        dsso_delete_machine_binary = deps/whql_delete_machine_15.exe
         wtt_services = wttsvc
         variants:
             - client_install:
                 type = whql_client_install
-                dsso_delete_machine_binary = deps/whql_delete_machine_15.exe
                 # The username and password are required for accessing the DTM client
                 # installer binary shared by the server
                 server_username = administrator
@@ -363,7 +364,7 @@ variants:
             - submission:    client_install
                 type = whql_submission
                 extra_params += " -snapshot"
-                dsso_test_binary = deps/whql_submission_15.exe
+                restart_vm = yes
                 test_timeout = 3600
                 device_data = cat0 cat1 cat2 cat3 logoarch logoos whqlos whqlqual prog desc filter virt
                 descriptors = desc1 desc2 desc3
