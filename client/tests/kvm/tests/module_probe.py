@@ -6,7 +6,7 @@ def run_module_probe(test, params, env):
     """
     load/unload kvm modules several times.
 
-    Packet Loss Test:
+    Module load/unload Test:
     1) check host cpu module
     2) get module info
     3) unload modules if they exist, else load them
@@ -35,11 +35,13 @@ def run_module_probe(test, params, env):
         arch = "kvm_amd"
 
     #Check whether ksm module exist
+    mod_str = ""
     if os.path.exists("/sys/module/ksm"):
-        mod_list = ["ksm", arch, "kvm"]
-    else:
-        mod_list = [arch, "kvm"]
+        mod_str = "ksm,"
+    mod_str += "%s, kvm" % arch
 
+    mod_str = params.get("mod_list", mod_str)
+    mod_list = re.split(",", mod_str)
     logging.debug(mod_list)
     load_count = int(params.get("load_count", 100))
 
