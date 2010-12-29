@@ -544,7 +544,7 @@ def run_ksm_overcommit(test, params, env):
 
     # Creating the first guest
     kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
-    lvms.append(kvm_utils.env_get_vm(env, vm_name))
+    lvms.append(env.get_vm(vm_name))
     if not lvms[0]:
         raise error.TestError("VM object not found in environment")
     if not lvms[0].is_alive():
@@ -575,7 +575,7 @@ def run_ksm_overcommit(test, params, env):
 
         # Last VM is later used to run more allocators simultaneously
         lvms.append(lvms[0].clone(vm_name, params))
-        kvm_utils.env_register_vm(env, vm_name, lvms[i])
+        env.register_vm(vm_name, lvms[i])
         params['vms'] += " " + vm_name
 
         logging.debug("Booting guest %s" % lvms[i].name)

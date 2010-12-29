@@ -289,7 +289,7 @@ def run_qemu_img(test, params, env):
             # Start a new VM, using backing file as its harddisk
             vm_name = params.get('main_vm')
             kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
-            vm = kvm_utils.env_get_vm(env, vm_name)
+            vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
             session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
@@ -317,7 +317,7 @@ def run_qemu_img(test, params, env):
             # Here, the commit_testfile should not exist
             vm_name = params.get('main_vm')
             kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
-            vm = kvm_utils.env_get_vm(env, vm_name)
+            vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
             session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
@@ -343,7 +343,7 @@ def run_qemu_img(test, params, env):
             # Start a new VM, using image_name as its harddisk
             vm_name = params.get('main_vm')
             kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
-            vm = kvm_utils.env_get_vm(env, vm_name)
+            vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
             session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
