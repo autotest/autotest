@@ -388,6 +388,7 @@ variants:
                 type = whql_submission
                 extra_params += " -snapshot"
                 restart_vm = yes
+                cdroms =
                 test_timeout = 3600
                 device_data = cat0 cat1 cat2 cat3 logoarch logoos whqlos whqlqual prog desc filter virt
                 descriptors = desc1 desc2 desc3
