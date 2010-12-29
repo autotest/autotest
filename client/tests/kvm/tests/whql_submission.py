@@ -76,12 +76,12 @@ def run_whql_submission(test, params, env):
             session.close()
 
     # Run the automation program on the server
+    pool_name = "%s_pool" % client_names[0]
+    submission_name = "%s_%s" % (client_names[0],
+                                 params.get("submission_name"))
     cmd = "%s %s %s %s %s %s" % (os.path.basename(dsso_test_binary),
-                                 server_name,
-                                 "%s_pool" % client_names[0],
-                                 "%s_submission" % client_names[0],
-                                 test_timeout,
-                                 " ".join(client_names))
+                                 server_name, pool_name, submission_name,
+                                 test_timeout, " ".join(client_names))
     server_session.sendline(cmd)
 
     # Helper function: wait for a given prompt and raise an exception if an
