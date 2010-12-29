@@ -753,6 +753,9 @@ variants:
         # You can specify your own module list, though it is not needed usually.
         # mod_list = kvm
         load_count = 100
+        vms = ''
+        profilers = ''
+        take_regular_screendumps = no
 
     - ioquit:
         type = ioquit
