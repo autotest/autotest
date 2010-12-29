@@ -21,9 +21,12 @@ class kvm(test.test):
             (Online doc - Getting started with KVM testing)
     """
     version = 1
-    env_version = 0
+    env_version = 1
 
     def run_once(self, params):
+        # Convert params to a Params object
+        params = kvm_utils.Params(params)
+
         # Report the parameters we've received and write them as keyvals
         logging.debug("Test parameters:")
         keys = params.keys()
