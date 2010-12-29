@@ -337,7 +337,7 @@ variants:
         iozone_cmd = "D:\IOzone\iozone.exe -a"
         iozone_timeout = 3600
 
-    - @whql:         install setup unattended_install.cdrom
+    - whql:         install setup unattended_install.cdrom
         nic_mode = tap
         # Replace this with the address of an installed DTM server
         server_address = 10.20.30.40
@@ -349,7 +349,7 @@ variants:
         server_studio_path = %programfiles%\Microsoft Driver Test Manager\Studio
         wtt_services = wttsvc
         variants:
-            - whql_client_install:
+            - client_install:
                 type = whql_client_install
                 dsso_delete_machine_binary = deps/whql_delete_machine_15.exe
                 # The username and password are required for accessing the DTM client
@@ -360,7 +360,7 @@ variants:
                 # (the final cmd will be something like \\servername\DTMInstall\...)
                 install_cmd = \DTMInstall\Client\Setup.exe /passive
                 install_timeout = 3600
-            - whql_submission:    whql_client_install
+            - submission:    client_install
                 type = whql_submission
                 extra_params += " -snapshot"
                 dsso_test_binary = deps/whql_submission_15.exe
@@ -1718,7 +1718,7 @@ variants:
                             virtio_oemsetup_id = WXP32
                             virtio_network_path = 'F:\NetKVM\xp\x86'
                             #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
-                        whql_submission:
+                        whql.submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows XP
                             desc_path_desc2 = $\WDK\Logo Type\Systems Logo\Windows XP
                             dd_data_logoarch = X86
@@ -1748,7 +1748,7 @@ variants:
                             virtio_oemsetup_id = WNET64
                             virtio_network_path = 'F:\NetKVM\xp\amd64'
                             #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
-                        whql_submission:
+                        whql.submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows XP
                             desc_path_desc2 = $\WDK\Logo Type\Systems Logo\Windows XP
                             dd_data_logoarch = AMD64
@@ -1783,7 +1783,7 @@ variants:
                             virtio_oemsetup_id = WNET32
                             virtio_network_path = 'F:\NetKVM\2k3\x86'
                             #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
-                        whql_submission:
+                        whql.submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows Server 2003
                             dd_data_logoarch = X86
                             dd_data_logoos = Windows Server 2003
@@ -1813,7 +1813,7 @@ variants:
                             virtio_network_path = 'F:\NetKVM\2k3\amd64'
                             #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
 
-                        whql_submission:
+                        whql.submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows Server 2003
                             dd_data_logoarch = AMD64
                             dd_data_logoos = Windows Server 2003
@@ -1823,14 +1823,14 @@ variants:
             - WinVista:
                 image_name = winvista
                 image_size = 20G
-                whql_submission:
+                whql.submission:
                     desc_path_desc1 = $\WDK\Logo Type\Device Logo\Vista Client\Device Premium
                     desc_path_desc2 = $\WDK\Logo Type\Device Logo\Vista Client\Device Standard
                     desc_path_desc3 = $\WDK\Logo Type\Device Logo\Vista Client
 
                 variants:
                     - 32:
-                        whql_submission:
+                        whql.submission:
                             dd_data_logoarch = X86
                             dd_data_logoos = Windows Vista
                             dd_data_whqlos = Windows Vista Client
@@ -1876,7 +1876,7 @@ variants:
                                     #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
 
                     - 64:
-                        whql_submission:
+                        whql.submission:
                             dd_data_logoarch = AMD64
                             dd_data_logoos = Windows Vista
                             dd_data_whqlos = Windows Vista Client x64
@@ -2033,7 +2033,7 @@ variants:
             - Win7:
                 image_name = win7
                 image_size = 20G
-                whql_submission:
+                whql.submission:
                     desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows 7 Client\Logo
                     desc_path_desc2 = $\WDK\Logo Type\Device Logo\Windows 7 Client
                     device_data += " adq"
@@ -2057,7 +2057,7 @@ variants:
                             virtio_storage_path = 'F:\viostor\w7\x86'
                             virtio_network_path = 'F:\NetKVM\w7\x86'
                             #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
-                        whql_submission:
+                        whql.submission:
                             dd_data_logoarch = X86
                             dd_data_logoos = Windows 7
                             dd_data_whqlos = Windows 7 Client
@@ -2087,7 +2087,7 @@ variants:
                             virtio_storage_path = 'F:\viostor\w7\amd64'
                             virtio_network_path = 'F:\NetKVM\w7\amd64'
                             #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
-                        whql_submission:
+                        whql.submission:
                             dd_data_logoarch = AMD64
                             dd_data_logoos = Windows 7
                             dd_data_whqlos = Windows 7 Client x64
