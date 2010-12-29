@@ -1536,3 +1536,58 @@ class KojiDownloader(object):
                 rpm_paths.append(r)
 
         return rpm_paths
+
+
+def umount(src, mount_point, type):
+    """
+    Umount the src mounted in mount_point.
+
+    @src: mount source
+    @mount_point: mount point
+    @type: file system type
+    """
+
+    mount_string = "%s %s %s" % (src, mount_point, type)
+    if mount_string in file("/etc/mtab").read():
+        umount_cmd = "umount %s" % mount_point
+        try:
+            utils.system(umount_cmd)
+            return True
+        except error.CmdError:
+            return False
+    else:
+        logging.debug("%s is not mounted under %s" % (src, mount_point))
+        return True
+
+
+def mount(src, mount_point, type, perm="rw"):
+    """
+    Mount the src into mount_point of the host.
+
+    @src: mount source
+    @mount_point: mount point
+    @type: file system type
+    @perm: mount premission
+    """
+    umount(src, mount_point, type)
+    mount_string = "%s %s %s %s" % (src, mount_point, type, perm)
+
+    if mount_string in file("/etc/mtab").read():
+        logging.debug("%s is already mounted in %s with %s" %
+                      (src, mount_point, perm))
+        return True
+
+    mount_cmd = "mount -t %s %s %s -o %s" % (type, src, mount_point, perm)
+    try:
+        utils.system(mount_cmd)
+    except error.CmdError:
+        return False
+
+    logging.debug("Verify the mount through /etc/mtab")
+    if mount_string in file("/etc/mtab").read():
+        logging.debug("%s is successfully mounted" % src)
+        return True
+    else:
+        logging.error("Can't find mounted NFS share - /etc/mtab contents \n%s" %
+                      file("/etc/mtab").read())
+        return False
