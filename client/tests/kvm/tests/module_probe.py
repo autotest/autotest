@@ -1,55 +1,57 @@
 import re, commands, logging, os
-from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils
+from autotest_lib.client.common_lib import error, utils
+import kvm_subprocess, kvm_test_utils, kvm_utils, installer
+
 
 def run_module_probe(test, params, env):
     """
-    load/unload kvm modules several times.
+    load/unload KVM modules several times.
 
-    Module load/unload Test:
-    1) check host cpu module
-    2) get module info
-    3) unload modules if they exist, else load them
+    The test can run in two modes:
 
-    @param test: Kvm test object
-    @param params: Dictionary with the test parameters
-    @param env: Dictionary with test environment.
+    - based on previous 'build' test: in case KVM modules were installed by a
+      'build' test, we used the modules installed by the previous test.
+
+    - based on own params: if no previous 'build' test was run,
+      we assume a pre-installed KVM module. Some parameters that
+      work for the 'build' can be used, then, such as 'extra_modules'.
     """
 
-    def module_probe(name_list, arg=""):
-        for name in name_list:
-            cmd = "modprobe %s %s" % (arg, name)
-            logging.debug(cmd)
-            s, o = commands.getstatusoutput(cmd)
-            if s != 0:
-                logging.error("Failed to load/unload modules %s" % o)
-                return False
-        return True
+    installer_object = env.previous_installer()
+    if installer_object is None:
+        installer_object = installer.PreInstalledKvm()
+        installer_object.set_install_params(test, params)
 
-    #Check host cpu module
-    flags = file("/proc/cpuinfo").read()
-    arch_check = re.findall("%s\s" % "vmx", flags)
-    if arch_check:
-        arch = "kvm_intel"
+    logging.debug('installer object: %r', installer_object)
+
+    mod_str = params.get("mod_list")
+    if mod_str:
+        mod_list = re.split("[, ]", mod_str)
+        logging.debug("mod list will be: %r", mod_list)
     else:
-        arch = "kvm_amd"
+        mod_list = installer_object.full_module_list()
+        logging.debug("mod list from installer: %r", mod_list)
 
-    #Check whether ksm module exist
-    mod_str = ""
-    if os.path.exists("/sys/module/ksm"):
-        mod_str = "ksm,"
-    mod_str += "%s, kvm" % arch
+    # unload the modules before starting:
+    installer_object._unload_modules(mod_list)
 
-    mod_str = params.get("mod_list", mod_str)
-    mod_list = re.split(",", mod_str)
-    logging.debug(mod_list)
     load_count = int(params.get("load_count", 100))
-
     try:
         for i in range(load_count):
-            if not module_probe(mod_list):
-                raise error.TestFail("Failed to load module %s" % mod_list)
-            if not module_probe(mod_list, "-r"):
-                raise error.TestFail("Failed to remove module %s" % mod_list)
+            try:
+                installer_object.load_modules(mod_list)
+            except Exception,e:
+               raise error.TestFail("Failed to load modules [%r]: %s" %
+                                    (installer_object.full_module_list, e))
+
+            # unload using rmmod directly because utils.unload_module() (used by
+            # installer) does too much (runs lsmod, checks for dependencies),
+            # and we want to run the loop as fast as possible.
+            for mod in reversed(mod_list):
+                r = utils.system("rmmod %s" % (mod), ignore_status=True)
+                if r <> 0:
+                   raise error.TestFail("Failed to unload module %s. "
+                                        "exit status: %d" % (mod, r))
     finally:
-        module_probe(mod_list)
+        installer_object.load_modules()
+
