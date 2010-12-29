@@ -62,41 +62,6 @@ def load_env(filename, version):
         return default
 
 
-def get_sub_dict(dict, name):
-    """
-    Return a "sub-dict" corresponding to a specific object.
-
-    Operate on a copy of dict: for each key that ends with the suffix
-    "_" + name, strip the suffix from the key, and set the value of
-    the stripped key to that of the key. Return the resulting dict.
-
-    @param name: Suffix of the key we want to set the value.
-    """
-    suffix = "_" + name
-    new_dict = dict.copy()
-    for key in dict.keys():
-        if key.endswith(suffix):
-            new_key = key.split(suffix)[0]
-            new_dict[new_key] = dict[key]
-    return new_dict
-
-
-def get_sub_dict_names(dict, keyword):
-    """
-    Return a list of "sub-dict" names that may be extracted with get_sub_dict.
-
-    This function may be modified to change the behavior of all functions that
-    deal with multiple objects defined in dicts (e.g. VMs, images, NICs).
-
-    @param keyword: A key in dict (e.g. "vms", "images", "nics").
-    """
-    names = dict.get(keyword)
-    if names:
-        return names.split()
-    else:
-        return []
-
-
 class Params(UserDict.IterableUserDict):
     """
     A dict-like object passed to every test.
