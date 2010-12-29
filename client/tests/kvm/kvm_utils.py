@@ -62,6 +62,91 @@ def load_env(filename, version):
         return default
 
 
+class Env(UserDict.IterableUserDict):
+    """
+    A dict-like object containing global objects used by tests.
+    """
+    def __init__(self, filename=None, version=0):
+        """
+        Create an empty Env object or load an existing one from a file.
+
+        If the version recorded in the file is lower than version, or if some
+        error occurs during unpickling, or if filename is not supplied,
+        create an empty Env object.
+
+        @param filename: Path to an env file.
+        @param version: Required env version (int).
+        """
+        UserDict.IterableUserDict.__init__(self)
+        empty = {"version": version}
+        if filename:
+            self._filename = filename
+            try:
+                f = open(filename, "r")
+                env = cPickle.load(f)
+                f.close()
+                if env.get("version", 0) >= version:
+                    self.data = env
+                else:
+                    logging.warn("Incompatible env file found. Not using it.")
+                    self.data = empty
+            # Almost any exception can be raised during unpickling, so let's
+            # catch them all
+            except Exception, e:
+                logging.warn(e)
+                self.data = empty
+        else:
+            self.data = empty
+
+
+    def save(self, filename=None):
+        """
+        Pickle the contents of the Env object into a file.
+
+        @param filename: Filename to pickle the dict into.  If not supplied,
+                use the filename from which the dict was loaded.
+        """
+        filename = filename or self._filename
+        f = open(filename, "w")
+        cPickle.dump(self.data, f)
+        f.close()
+
+
+    def get_all_vms(self):
+        """
+        Return a list of all VM objects in this Env object.
+        """
+        return [o for o in self.values() if is_vm(o)]
+
+
+    def get_vm(self, name):
+        """
+        Return a VM object by its name.
+
+        @param name: VM name.
+        """
+        return self.get("vm__%s" % name)
+
+
+    def register_vm(self, name, vm):
+        """
+        Register a VM in this Env object.
+
+        @param name: VM name.
+        @param vm: VM object.
+        """
+        self["vm__%s" % name] = vm
+
+
+    def unregister_vm(self, name):
+        """
+        Remove a given VM.
+
+        @param name: VM name.
+        """
+        del self["vm__%s" % name]
+
+
 class Params(UserDict.IterableUserDict):
     """
     A dict-like object passed to every test.
