@@ -25,6 +25,13 @@ def run_whql_submission(test, params, env):
         vms.append(kvm_test_utils.get_living_vm(env, vm_name))
         sessions.append(kvm_test_utils.wait_for_login(vms[-1], 0, 240))
 
+    # Make sure all NICs of all client VMs are up
+    for vm in vms:
+        nics = kvm_utils.get_sub_dict_names(vm.params, "nics")
+        for nic_index in range(len(nics)):
+            s = kvm_test_utils.wait_for_login(vm, nic_index, 600)
+            s.close()
+
     # Collect parameters
     server_address = params.get("server_address")
     server_shell_port = int(params.get("server_shell_port"))
@@ -67,6 +74,13 @@ def run_whql_submission(test, params, env):
     # Reboot the client machines
     sessions = kvm_utils.parallel((kvm_test_utils.reboot, (vm, session))
                                   for vm, session in zip(vms, sessions))
+
+    # Check the NICs again
+    for vm in vms:
+        nics = kvm_utils.get_sub_dict_names(vm.params, "nics")
+        for nic_index in range(len(nics)):
+            s = kvm_test_utils.wait_for_login(vm, nic_index, 600)
+            s.close()
 
     # Run whql_pre_command and close the sessions
     if params.get("whql_pre_command"):
