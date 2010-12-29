@@ -74,13 +74,13 @@ class scheduler:
             # The scheduler wants this worker to free its used resources
             elif cmd[0] == "cleanup":
                 env_filename = os.path.join(self.bindir, self_dict["env"])
-                env = kvm_utils.load_env(env_filename, {})
+                env = kvm_utils.Env(env_filename)
                 for obj in env.values():
                     if isinstance(obj, kvm_vm.VM):
                         obj.destroy()
                     elif isinstance(obj, kvm_subprocess.Spawn):
                         obj.close()
-                kvm_utils.dump_env(env, env_filename)
+                env.save()
                 w.write("cleanup_done\n")
                 w.write("ready\n")
 
