@@ -748,6 +748,12 @@ variants:
             - vmexit:
                 case = vmexit
 
+    - module_probe:
+        type = module_probe
+        # You can specify your own module list, though it is not needed usually.
+        # mod_list = kvm
+        load_count = 100
+
     - ioquit:
         type = ioquit
         background_cmd = "for i in 1 2 3 4; do (nohup dd if=/dev/urandom of=/tmp/file bs=102400 count=10000000 &) done"
