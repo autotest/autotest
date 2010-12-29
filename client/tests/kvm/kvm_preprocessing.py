@@ -50,13 +50,13 @@ def preprocess_vm(test, params, env, name):
     @param name: The name of the VM object.
     """
     logging.debug("Preprocessing VM '%s'..." % name)
-    vm = kvm_utils.env_get_vm(env, name)
+    vm = env.get_vm(name)
     if vm:
         logging.debug("VM object found in environment")
     else:
         logging.debug("VM object does not exist; creating it")
         vm = kvm_vm.VM(name, params, test.bindir, env.get("address_cache"))
-        kvm_utils.env_register_vm(env, name, vm)
+        env.register_vm(name, vm)
 
     start_vm = False
 
@@ -122,7 +122,7 @@ def postprocess_vm(test, params, env, name):
     @param name: The name of the VM object.
     """
     logging.debug("Postprocessing VM '%s'..." % name)
-    vm = kvm_utils.env_get_vm(env, name)
+    vm = env.get_vm(name)
     if vm:
         logging.debug("VM object found in environment")
     else:
@@ -338,7 +338,7 @@ def postprocess(test, params, env):
     if params.get("kill_unresponsive_vms") == "yes":
         logging.debug("'kill_unresponsive_vms' specified; killing all VMs "
                       "that fail to respond to a remote login request...")
-        for vm in kvm_utils.env_get_all_vms(env):
+        for vm in env.get_all_vms():
             if vm.is_alive():
                 session = vm.remote_login()
                 if session:
@@ -350,7 +350,7 @@ def postprocess(test, params, env):
     kvm_subprocess.kill_tail_threads()
 
     # Terminate tcpdump if no VMs are alive
-    living_vms = [vm for vm in kvm_utils.env_get_all_vms(env) if vm.is_alive()]
+    living_vms = [vm for vm in env.get_all_vms() if vm.is_alive()]
     if not living_vms and "tcpdump" in env:
         env["tcpdump"].close()
         del env["tcpdump"]
@@ -408,7 +408,7 @@ def _take_screendumps(test, params, env):
     cache = {}
 
     while True:
-        for vm in kvm_utils.env_get_all_vms(env):
+        for vm in env.get_all_vms():
             if not vm.is_alive():
                 continue
             try:

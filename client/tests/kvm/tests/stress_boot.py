@@ -36,7 +36,7 @@ def run_stress_boot(tests, params, env):
             vm_name = "vm" + str(num)
             vm_params = vm.get_params().copy()
             curr_vm = vm.clone(vm_name, vm_params)
-            kvm_utils.env_register_vm(env, vm_name, curr_vm)
+            env.register_vm(vm_name, curr_vm)
             logging.info("Booting guest #%d" % num)
             kvm_preprocessing.preprocess_vm(tests, vm_params, env, vm_name)
             params['vms'] += " " + vm_name
