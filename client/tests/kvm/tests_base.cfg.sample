@@ -386,55 +386,68 @@ variants:
                 # Exclude jobs that have '(Manual)' in their names
                 job_filter = ^((?!\(Manual\)).)*$
                 variants:
-                    - keyboard:
-                        # test_device is a regular expression that should match a device's
-                        # name as it appears in device manager.  The first device that matches
-                        # is used.
-                        test_device = keyboard
-                        # Set timeout to 10 hours
-                        test_timeout = 36000
-                        dd_data_cat0 = Input\Keyboard
-                        dd_data_cat1 = Device Fundamentals
-                        dd_data_cat2 = System Fundamentals\Dynamic Partitioning
-                        dd_data_prog = InputKbd
-                        dd_data_desc = Input > Keyboard
-                    - hdd:
-                        # Run the tests on a non-system drive
-                        # (match devices that contain 'QEMU HARDDISK' and do not contain '[C]')
-                        test_device = ^(?=.*?\bQEMU HARDDISK\b)((?!\[C\]).)*$
-                        device_data += " ex0 ex1 ex2 ex3"
-                        dd_data_cat0 = Storage\Device Class\Disk\Disk
-                        dd_data_cat1 = Storage\Device Class\Disk\Fixed
-                        dd_data_cat2 = Storage\Device Class\Disk\Bus\ATA
-                        dd_data_cat3 = Device Fundamentals
-                        dd_data_prog = StorHDD
-                        dd_data_desc = Storage > Hard Disk Drive (HDD)
-                        dd_name_ex0 = Storage_bus_type
-                        dd_data_ex0 = ATA/ATAPI
-                        dd_name_ex1 = Hybrid_HDD_Support
-                        dd_data_ex1 = 0
-                        dd_name_ex2 = Non_Rotating_Media
-                        dd_data_ex2 = 0
-                        dd_name_ex3 = Secure_Storage
-                        dd_data_ex3 = 0
-                        # Add a 2nd disk which will become D:
-                        images += " tmp"
-                        image_name_tmp = tmp
-                        image_size_tmp = 4G
-                        force_create_image_tmp = yes
-                        # Run diskpart to partition the 2nd disk
-                        whql_pre_command = "echo select disk=1 > dp.txt && "
-                        whql_pre_command += "echo create partition primary >> dp.txt && "
-                        whql_pre_command += "echo assign letter=d >> dp.txt && "
-                        whql_pre_command += "diskpart /s dp.txt & "
-                        whql_pre_command += "format d: /fs:ntfs /q /y"
+                    - unclassified:
+                        dd_data_cat0 = Device Fundamentals
+                        dd_data_cat1 = System Fundamentals\Dynamic Partitioning
+                        dd_data_prog = Unclassified
+                        dd_data_desc = Unclassified
+                        dd_data_whqlqual = Unclassified Signature
                         variants:
-                            - full:
-                                # Yes, 100 hours, this is not a mistake
-                                test_timeout = 360000
-                            - syscache_test:
-                                job_filter = syscache test
-                                test_timeout = 7200
+                            - tablet:
+                                extra_params += " -usbdevice tablet"
+                                test_device = HID-compliant mouse
+                                test_timeout = 36000
+                    - device:
+                        variants:
+                            - keyboard:
+                                # test_device is a regular expression that should match a device's
+                                # name as it appears in device manager.  The first device that matches
+                                # is used.
+                                test_device = keyboard
+                                # Set timeout to 10 hours
+                                test_timeout = 36000
+                                dd_data_cat0 = Input\Keyboard
+                                dd_data_cat1 = Device Fundamentals
+                                dd_data_cat2 = System Fundamentals\Dynamic Partitioning
+                                dd_data_prog = InputKbd
+                                dd_data_desc = Input > Keyboard
+                            - hdd:
+                                # Run the tests on a non-system drive
+                                # (match device names that contain 'QEMU HARDDISK' and do not contain '[C]')
+                                test_device = ^(?=.*?\bQEMU HARDDISK\b)((?!\[C\]).)*$
+                                device_data += " ex0 ex1 ex2 ex3"
+                                dd_data_cat0 = Storage\Device Class\Disk\Disk
+                                dd_data_cat1 = Storage\Device Class\Disk\Fixed
+                                dd_data_cat2 = Storage\Device Class\Disk\Bus\ATA
+                                dd_data_cat3 = Device Fundamentals
+                                dd_data_prog = StorHDD
+                                dd_data_desc = Storage > Hard Disk Drive (HDD)
+                                dd_name_ex0 = Storage_bus_type
+                                dd_data_ex0 = ATA/ATAPI
+                                dd_name_ex1 = Hybrid_HDD_Support
+                                dd_data_ex1 = 0
+                                dd_name_ex2 = Non_Rotating_Media
+                                dd_data_ex2 = 0
+                                dd_name_ex3 = Secure_Storage
+                                dd_data_ex3 = 0
+                                # Add a 2nd disk which will become D:
+                                images += " tmp"
+                                image_name_tmp = tmp
+                                image_size_tmp = 4G
+                                force_create_image_tmp = yes
+                                # Run diskpart to partition the 2nd disk
+                                whql_pre_command = "echo select disk=1 > dp.txt && "
+                                whql_pre_command += "echo create partition primary >> dp.txt && "
+                                whql_pre_command += "echo assign letter=d >> dp.txt && "
+                                whql_pre_command += "diskpart /s dp.txt & "
+                                whql_pre_command += "format d: /fs:ntfs /q /y"
+                                variants:
+                                    - full:
+                                        # Yes, 100 hours, this is not a mistake
+                                        test_timeout = 360000
+                                    - syscache_test:
+                                        job_filter = syscache test
+                                        test_timeout = 7200
 
     - guest_s4:     install setup unattended_install.cdrom
         type = guest_s4
@@ -1726,7 +1739,8 @@ variants:
                             dd_data_logoarch = X86
                             dd_data_logoos = Windows XP
                             dd_data_whqlos = Windows XP
-                            dd_data_whqlqual = Basic
+                            device:
+                                dd_data_whqlqual = Basic
 
                     - 64:
                         image_name += -64
@@ -1756,7 +1770,8 @@ variants:
                             dd_data_logoarch = AMD64
                             dd_data_logoos = Windows XP 64-Bit Edition Version 2003
                             dd_data_whqlos = Windows XP x64
-                            dd_data_whqlqual = Basic
+                            device:
+                                dd_data_whqlqual = Basic
 
             - Win2003:
                 image_name = win2003
@@ -1790,7 +1805,8 @@ variants:
                             dd_data_logoarch = X86
                             dd_data_logoos = Windows Server 2003
                             dd_data_whqlos = Windows Server 2003
-                            dd_data_whqlqual = Basic
+                            device:
+                                dd_data_whqlqual = Basic
 
                     - 64:
                         image_name += -64
@@ -1814,13 +1830,13 @@ variants:
                             virtio_oemsetup_id = WNET64
                             virtio_network_path = 'F:\NetKVM\2k3\amd64'
                             #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
-
                         whql.submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows Server 2003
                             dd_data_logoarch = AMD64
                             dd_data_logoos = Windows Server 2003
                             dd_data_whqlos = Windows Server 2003 x64
-                            dd_data_whqlqual = Basic
+                            device:
+                                dd_data_whqlqual = Basic
 
             - WinVista:
                 image_name = winvista
@@ -1836,7 +1852,8 @@ variants:
                             dd_data_logoarch = X86
                             dd_data_logoos = Windows Vista
                             dd_data_whqlos = Windows Vista Client
-                            dd_data_whqlqual = Premium
+                            device:
+                                dd_data_whqlqual = Premium
                         variants:
                             - sp1:
                                 image_name += -sp1-32
@@ -1882,7 +1899,8 @@ variants:
                             dd_data_logoarch = AMD64
                             dd_data_logoos = Windows Vista
                             dd_data_whqlos = Windows Vista Client x64
-                            dd_data_whqlqual = Premium
+                            device:
+                                dd_data_whqlqual = Premium
                         variants:
                             - sp1:
                                 image_name += -sp1-64
@@ -2063,7 +2081,8 @@ variants:
                             dd_data_logoarch = X86
                             dd_data_logoos = Windows 7
                             dd_data_whqlos = Windows 7 Client
-                            dd_data_whqlqual = Logo
+                            device:
+                                dd_data_whqlqual = Logo
 
                     - 64:
                         image_name += -64
@@ -2093,7 +2112,8 @@ variants:
                             dd_data_logoarch = AMD64
                             dd_data_logoos = Windows 7
                             dd_data_whqlos = Windows 7 Client x64
-                            dd_data_whqlqual = Logo
+                            device:
+                                dd_data_whqlqual = Logo
 
 
     # Unix/BSD section
