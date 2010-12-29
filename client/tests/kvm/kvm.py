@@ -43,7 +43,7 @@ class kvm(test.test):
         logging.info("Unpickling env. You may see some harmless error "
                      "messages.")
         env_filename = os.path.join(self.bindir, params.get("env", "env"))
-        env = kvm_utils.load_env(env_filename, self.env_version)
+        env = kvm_utils.Env(env_filename, self.env_version)
 
         test_passed = False
 
@@ -68,13 +68,13 @@ class kvm(test.test):
                     try:
                         kvm_preprocessing.preprocess(self, params, env)
                     finally:
-                        kvm_utils.dump_env(env, env_filename)
+                        env.save()
                     # Run the test function
                     run_func = getattr(test_module, "run_%s" % t_type)
                     try:
                         run_func(self, params, env)
                     finally:
-                        kvm_utils.dump_env(env, env_filename)
+                        env.save()
                     test_passed = True
 
                 except Exception, e:
@@ -84,7 +84,7 @@ class kvm(test.test):
                         kvm_preprocessing.postprocess_on_error(
                             self, params, env)
                     finally:
-                        kvm_utils.dump_env(env, env_filename)
+                        env.save()
                     raise
 
             finally:
@@ -98,7 +98,7 @@ class kvm(test.test):
                         logging.error("Exception raised during "
                                       "postprocessing: %s", e)
                 finally:
-                    kvm_utils.dump_env(env, env_filename)
+                    env.save()
 
         except Exception, e:
             if params.get("abort_on_error") != "yes":
