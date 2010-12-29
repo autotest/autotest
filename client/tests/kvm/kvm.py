@@ -105,7 +105,7 @@ class kvm(test.test):
                 raise
             # Abort on error
             logging.info("Aborting job (%s)", e)
-            for vm in kvm_utils.env_get_all_vms(env):
+            for vm in env.get_all_vms():
                 if vm.is_dead():
                     continue
                 logging.info("VM '%s' is alive.", vm.name)

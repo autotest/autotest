@@ -88,7 +88,7 @@ def run_unittest(test, params, env):
             try:
                 vm_name = params.get('main_vm')
                 kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
-                vm = kvm_utils.env_get_vm(env, vm_name)
+                vm = env.get_vm(vm_name)
                 vm.create()
                 vm.monitor.cmd("cont")
                 logging.info("Waiting for unittest %s to complete, timeout %s, "

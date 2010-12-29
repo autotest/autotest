@@ -181,7 +181,7 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
 
 
 def run_steps(test, params, env):
-    vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params.get("main_vm"))
     if not vm:
         raise error.TestError("VM object not found in environment")
     if not vm.is_alive():

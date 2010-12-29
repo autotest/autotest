@@ -35,7 +35,7 @@ def get_living_vm(env, vm_name):
     @param vm_name: Name of the desired VM object.
     @return: A VM object.
     """
-    vm = kvm_utils.env_get_vm(env, vm_name)
+    vm = env.get_vm(vm_name)
     if not vm:
         raise error.TestError("VM '%s' not found in environment" % vm_name)
     if not vm.is_alive():
@@ -275,7 +275,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
 
     # Replace the source VM with the new cloned VM
     if (dest_host == 'localhost') and (env is not None):
-        kvm_utils.env_register_vm(env, vm.name, dest_vm)
+        env.register_vm(vm.name, dest_vm)
 
     # Return the new cloned VM
     if dest_host == 'localhost':

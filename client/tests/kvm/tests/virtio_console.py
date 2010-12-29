@@ -604,7 +604,7 @@ def run_virtio_console(test, params, env):
         kvm_preprocessing.preprocess_vm(test, params, env,
                                         params.get("main_vm"))
 
-        vm = kvm_utils.env_get_vm(env, params.get("main_vm"))
+        vm = env.get_vm(params.get("main_vm"))
 
         session = kvm_test_utils.wait_for_login(vm, 0,
                                          float(params.get("boot_timeout", 240)),
