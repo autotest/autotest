@@ -397,7 +397,9 @@ variants:
                         dd_data_prog = InputKbd
                         dd_data_desc = Input > Keyboard
                     - hdd:
-                        test_device = qemu harddisk
+                        # Run the tests on a non-system drive
+                        # (match devices that contain 'QEMU HARDDISK' and do not contain '[C]')
+                        test_device = ^(?=.*?\bQEMU HARDDISK\b)((?!\[C\]).)*$
                         device_data += " ex0 ex1 ex2 ex3"
                         dd_data_cat0 = Storage\Device Class\Disk\Disk
                         dd_data_cat1 = Storage\Device Class\Disk\Fixed
@@ -413,6 +415,17 @@ variants:
                         dd_data_ex2 = 0
                         dd_name_ex3 = Secure_Storage
                         dd_data_ex3 = 0
+                        # Add a 2nd disk which will become D:
+                        images += " tmp"
+                        image_name_tmp = tmp
+                        image_size_tmp = 4G
+                        force_create_image_tmp = yes
+                        # Run diskpart to partition the 2nd disk
+                        whql_pre_command = "echo select disk=1 > dp.txt && "
+                        whql_pre_command += "echo create partition primary >> dp.txt && "
+                        whql_pre_command += "echo assign letter=d >> dp.txt && "
+                        whql_pre_command += "diskpart /s dp.txt & "
+                        whql_pre_command += "format d: /fs:ntfs /q /y"
                         variants:
                             - full:
                                 # Yes, 100 hours, this is not a mistake
