@@ -565,7 +565,7 @@ variants:
                 match_string = "Virtio block device"
             - block_scsi:
                 pci_model = scsi
-                match_string = "SCSI"
+                match_string = "LSI Logic"
         variants:
             - fmt_qcow2:
                 image_format_stg = qcow2

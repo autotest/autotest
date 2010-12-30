@@ -57,6 +57,9 @@ def run_pci_hotplug(test, params, env):
     else:
         raise error.TestError("Unknow version of qemu")
 
+    # Probe qemu for a list of supported devices
+    devices_support = vm.monitor.cmd("%s ?" % cmd_type)
+
     if cmd_type == "pci_add":
         if test_type == "nic":
             pci_add_cmd = "pci_add pci_addr=auto nic model=%s" % tested_model
@@ -86,11 +89,23 @@ def run_pci_hotplug(test, params, env):
             image_params = params.object_params("stg")
             image_filename = kvm_vm.get_image_filename(image_params,
                                                        test.bindir)
+            controller_model = None
             if tested_model == "virtio":
                 tested_model = "virtio-blk-pci"
 
             if tested_model == "scsi":
                 tested_model = "scsi-disk"
+                controller_model = "lsi53c895a"
+                if len(re.findall(controller_model, devices_support)) == 0:
+                    raise error.TestError("scsi controller device (%s) not "
+                                          "supported by qemu" %
+                                          controller_model)
+
+            if controller_model is not None:
+                controller_id = "controller-" + id
+                controller_add_cmd = ("device_add %s,id=%s" %
+                                      (controller_model, controller_id))
+                controller_output = vm.monitor.cmd(controller_add_cmd)
 
             if drive_cmd_type == "drive_add":
                 driver_add_cmd = ("drive_add auto file=%s,if=none,id=%s,format=%s" %
@@ -105,7 +120,6 @@ def run_pci_hotplug(test, params, env):
             driver_output = vm.monitor.cmd(driver_add_cmd)
 
         # Check if the device is support in qemu
-        devices_support = vm.monitor.cmd("%s ?" % cmd_type)
         if len(re.findall(tested_model, devices_support)) > 0:
             add_output = vm.monitor.cmd(pci_add_cmd)
         else:
