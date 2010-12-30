@@ -6,10 +6,13 @@ import common
 # do a basic check to see if pylint is even installed
 try:
     import pylint
+    from pylint.__pkginfo__ import version as pylint_version
 except ImportError:
     print "Unable to import pylint, it may need to be installed"
     sys.exit(1)
 
+major, minor, release = pylint_version.split('.')
+pylint_version = float("%s.%s" % (major, minor))
 pylintrc_path = os.path.expanduser('~/.pylintrc')
 if not os.path.exists(pylintrc_path):
     open(pylintrc_path, 'w').close()
@@ -54,10 +57,13 @@ blacklist = ['/contrib/*', '/frontend/afe/management.py']
 # * common_lib.enum.Enum objects
 # * DB model objects (scheduler models are the worst, but Django models also
 #   generate some errors)
-pylint_base_opts = ['--disable-msg-cat=warning,refactor,convention',
-                    '--disable-msg=E1101,E1103',
-                    '--reports=no',
-                    '--include-ids=y']
+if pylint_version >= 0.21:
+    pylint_base_opts = ['--disable=W,R,C,E1101,E1103']
+else:
+    pylint_base_opts = ['--disable-msg-cat=warning,refactor,convention',
+                        '--disable-msg=E1101,E1103']
+pylint_base_opts += ['--reports=no',
+                     '--include-ids=y']
 
 file_list = sys.argv[1:]
 if '--' in file_list:
