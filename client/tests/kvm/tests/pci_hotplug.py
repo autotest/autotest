@@ -47,6 +47,16 @@ def run_pci_hotplug(test, params, env):
     else:
         raise error.TestError("Unknow version of qemu")
 
+    # Determine syntax of drive hotplug
+    # __com.redhat_drive_add == qemu-kvm-0.12 on RHEL 6
+    if len(re.findall("\n__com.redhat_drive_add", cmd_output)) > 0:
+        drive_cmd_type = "__com.redhat_drive_add"
+    # drive_add == qemu-kvm-0.13 onwards
+    elif len(re.findall("\ndrive_add", cmd_output)) > 0:
+        drive_cmd_type = "drive_add"
+    else:
+        raise error.TestError("Unknow version of qemu")
+
     if cmd_type == "pci_add":
         if test_type == "nic":
             pci_add_cmd = "pci_add pci_addr=auto nic model=%s" % tested_model
@@ -82,9 +92,14 @@ def run_pci_hotplug(test, params, env):
             if tested_model == "scsi":
                 tested_model = "scsi-disk"
 
-            driver_add_cmd = (" __com.redhat_drive_add "
-                              "file=%s,format=%s,id=%s" %
-                              (image_filename, image_format, driver_id))
+            if drive_cmd_type == "drive_add":
+                driver_add_cmd = ("drive_add auto file=%s,if=none,id=%s,format=%s" %
+                                  (image_filename, driver_id, image_format))
+            elif drive_cmd_type == "__com.redhat_drive_add":
+                driver_add_cmd = ("__com.redhat_drive_add "
+                                  "file=%s,format=%s,id=%s" %
+                                  (image_filename, image_format, driver_id))
+
             pci_add_cmd = ("device_add id=%s,driver=%s,drive=%s" %
                            (id, tested_model, driver_id))
             driver_output = vm.monitor.cmd(driver_add_cmd)
