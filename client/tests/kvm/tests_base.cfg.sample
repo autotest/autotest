@@ -678,6 +678,14 @@ variants:
         transfer_type = remote
         kill_vm = yes
 
+    - set_link:
+        type = set_link
+        test_timeout = 1000
+        filesize = 4000
+        transfer_timeout = 1000
+        transfer_type = remote
+        kill_vm =yes
+
     - physical_resources_check: install setup unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
