@@ -528,7 +528,6 @@ variants:
         relogin_timeout = 240
 
     - nic_hotplug:  install setup unattended_install.cdrom
-        type = pci_hotplug
         pci_type = nic
         reference_cmd = lspci
         find_pci_cmd = 'lspci | tail -n1'
@@ -544,6 +543,12 @@ variants:
             - nic_e1000:
                 pci_model = e1000
                 match_string = "Gigabit Ethernet Controller"
+        variants:
+            - default:
+                type = pci_hotplug
+            - additional:
+                type = nic_hotplug
+
 
     - block_hotplug: install setup unattended_install.cdrom
         type = pci_hotplug
