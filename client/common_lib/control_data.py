@@ -19,6 +19,7 @@ class ControlData(object):
         self.experimental = False
         self.run_verify = True
         self.sync_count = 1
+        self.test_parameters = set()
 
         diff = REQUIRED_VARS - set(vars)
         if len(diff) > 0:
@@ -133,6 +134,10 @@ class ControlData(object):
 
     def set_test_type(self, val):
         self._set_option('test_type', val, ['client', 'server'])
+
+
+    def set_test_parameters(self, val):
+        self._set_set('test_parameters', val)
 
 
 def _extract_const(n):
