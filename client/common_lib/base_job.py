@@ -599,7 +599,10 @@ class status_logger(object):
         self.global_filename = global_filename
         self.subdir_filename = subdir_filename
         self._record_hook = record_hook
-        self._tap_writer = tap_writer
+        if tap_writer is None:
+            self._tap_writer = TAPReport(None)
+        else:
+            self._tap_writer = tap_writer
 
 
     def render_entry(self, log_entry):
@@ -683,7 +686,7 @@ class TAPReport(object):
     }
 
 
-    def __init__(self, enable, resultdir, global_filename='status'):
+    def __init__(self, enable, resultdir=None, global_filename='status'):
         """
         @param enable: Set self.do_tap_report to trigger TAP reporting.
         @param resultdir: Path where the TAP report files will be written.
@@ -691,7 +694,8 @@ class TAPReport(object):
                 will be appended.
         """
         self.do_tap_report = enable
-        self.resultdir = os.path.abspath(resultdir)
+        if resultdir is not None:
+            self.resultdir = os.path.abspath(resultdir)
         self._reports_container = {}
         self._keyval_container = {} # {'path1': [entries],}
         self.global_filename = global_filename
@@ -990,7 +994,10 @@ class base_job(object):
         self._state = self._job_state()
 
         # initialize tap reporting
-        self._tap = self._tap_init(dargs['options'].tap_report)
+        if dargs.has_key('options'):
+            self._tap = self._tap_init(dargs['options'].tap_report)
+        else:
+            self._tap = self._tap_init(False)
 
     @classmethod
     def _find_base_directories(cls):
@@ -1154,7 +1161,7 @@ class base_job(object):
     def _tap_init(self, enable):
         """Initialize TAP reporting
         """
-        return TAPReport(enable, self.resultdir)
+        return TAPReport(enable, resultdir=self.resultdir)
 
 
     def record(self, status_code, subdir, operation, status='',
