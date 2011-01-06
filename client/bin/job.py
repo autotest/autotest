@@ -162,9 +162,9 @@ class base_client_job(base_job.base_job):
             self._cleanup_results_dir()
 
         logging_manager.configure_logging(
-                client_logging_config.ClientLoggingConfig(),
-                results_dir=self.resultdir,
-                verbose=options.verbose)
+            client_logging_config.ClientLoggingConfig(),
+            results_dir=self.resultdir,
+            verbose=options.verbose)
         logging.info('Writing results to %s', self.resultdir)
 
         # init_group_level needs the state
@@ -190,8 +190,8 @@ class base_client_job(base_job.base_job):
             # send the entry to stdout, if it's enabled
             logging.info(rendered_entry)
         self._logger = base_job.status_logger(
-            self, status_indenter(self), record_hook=client_job_record_hook)
-
+            self, status_indenter(self), record_hook=client_job_record_hook,
+            tap_writer=self._tap)
 
     def _post_record_init(self, control, options, drop_caches,
                           extra_copy_cmdline):
@@ -664,7 +664,6 @@ class base_client_job(base_job.base_job):
         partition_list = partition_lib.get_partition_list(self,
                                                           exclude_swap=False)
         mount_info = partition_lib.get_mount_info(partition_list)
-
         old_mount_info = self._state.get('client', 'mount_info')
         if mount_info != old_mount_info:
             new_entries = mount_info - old_mount_info
@@ -870,7 +869,12 @@ class base_client_job(base_job.base_job):
 
 
     def complete(self, status):
-        """Clean up and exit"""
+        """Write pending TAP reports, clean up, and exit"""
+        # write out TAP reports
+        if self._tap.do_tap_report:
+            self._tap.write()
+            self._tap._write_tap_archive()
+
         # We are about to exit 'complete' so clean up the control file.
         dest = os.path.join(self.resultdir, os.path.basename(self._state_file))
         shutil.move(self._state_file, dest)
