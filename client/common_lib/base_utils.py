@@ -293,7 +293,7 @@ def read_keyval(path):
     return keyval
 
 
-def write_keyval(path, dictionary, type_tag=None):
+def write_keyval(path, dictionary, type_tag=None, tap_report=None):
     """
     Write a key-value pair format file out to a file. This uses append
     mode to open the file, so existing text will not be overwritten or
@@ -303,6 +303,10 @@ def write_keyval(path, dictionary, type_tag=None):
     characters (or dashes+underscores). However, if type-tag is not
     null then the keys must also have "{type_tag}" as a suffix. At
     the moment the only valid values of type_tag are "attr" and "perf".
+
+    @param path: full path of the file to be written
+    @param dictionary: the items to write
+    @param type_tag: see text above
     """
     if os.path.isdir(path):
         path = os.path.join(path, 'keyval')
@@ -323,6 +327,9 @@ def write_keyval(path, dictionary, type_tag=None):
     finally:
         keyval.close()
 
+    # same for tap
+    if tap_report.do_tap_report:
+        tap_report.record_keyval(path, dictionary, type_tag=type_tag)
 
 class FileFieldMonitor(object):
     """
