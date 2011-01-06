@@ -86,13 +86,11 @@ def run_autoserv(pid_file_manager, results, parser):
 
     # can't be both a client and a server side test
     if client and server:
-        print "Can not specify a test as both server and client!"
-        sys.exit(1)
+        parser.parser.error("Can not specify a test as both server and client!")
 
     if len(parser.args) < 1 and not (verify or repair or cleanup
                                      or collect_crashinfo):
-        print parser.parser.print_help()
-        sys.exit(1)
+        parser.parser.error("Missing argument: control file")
 
     # We have a control file unless it's just a verify/repair/cleanup job
     if len(parser.args) > 0:
@@ -113,15 +111,13 @@ def run_autoserv(pid_file_manager, results, parser):
     if machines:
         for machine in machines:
             if not machine or re.search('\s', machine):
-                print "Invalid machine %s" % str(machine)
-                sys.exit(1)
+                parser.parser.error("Invalid machine: %s" % str(machine))
         machines = list(set(machines))
         machines.sort()
 
     if group_name and len(machines) < 2:
-        print ("-G %r may only be supplied with more than one machine."
+        parser.parser.error("-G %r may only be supplied with more than one machine."
                % group_name)
-        sys.exit(1)
 
     kwargs = {'group_name': group_name, 'tag': execution_tag}
     if control_filename:
