@@ -1,6 +1,6 @@
 import os, copy, logging, errno, fcntl, time, re, weakref, traceback
+import tarfile
 import cPickle as pickle
-
 from autotest_lib.client.common_lib import autotemp, error, log
 
 
@@ -575,7 +575,8 @@ class status_logger(object):
     @property subdir_filename: The filename to write subdir-level logs to.
     """
     def __init__(self, job, indenter, global_filename='status',
-                 subdir_filename='status', record_hook=None):
+                 subdir_filename='status', record_hook=None,
+                 tap_writer=None):
         """Construct a logger instance.
 
         @param job: A reference to the job object this is logging for. Only a
@@ -590,12 +591,15 @@ class status_logger(object):
         @param record_hook: An optional function to be called before an entry
             is logged. The function should expect a single parameter, a
             copy of the status_log_entry object.
+        @param tap_writer: An instance of the class TAPReport for addionally
+            writing TAP files
         """
         self._jobref = weakref.ref(job)
         self._indenter = indenter
         self.global_filename = global_filename
         self.subdir_filename = subdir_filename
         self._record_hook = record_hook
+        self._tap_writer = tap_writer
 
 
     def render_entry(self, log_entry):
@@ -648,11 +652,196 @@ class status_logger(object):
             finally:
                 fileobj.close()
 
+        # write to TAPRecord instance
+        if log_entry.is_end() and self._tap_writer.do_tap_report:
+            self._tap_writer.record(log_entry, self._indenter.indent, log_files)
+
         # adjust the indentation if this was a START or END entry
         if log_entry.is_start():
             self._indenter.increment()
         elif log_entry.is_end():
             self._indenter.decrement()
+
+
+class TAPReport(object):
+    """
+    Deal with TAP reporting for the Autotest client.
+    """
+
+    job_statuses = {
+        "TEST_NA": False,
+        "ABORT": False,
+        "ERROR": False,
+        "FAIL": False,
+        "WARN": False,
+        "GOOD": True,
+        "START": True,
+        "END GOOD": True,
+        "ALERT": False,
+        "RUNNING": False,
+        "NOSTATUS": False
+    }
+
+
+    def __init__(self, enable, resultdir, global_filename='status'):
+        """
+        @param enable: Set self.do_tap_report to trigger TAP reporting.
+        @param resultdir: Path where the TAP report files will be written.
+        @param global_filename: File name of the status files .tap extensions
+                will be appended.
+        """
+        self.do_tap_report = enable
+        self.resultdir = os.path.abspath(resultdir)
+        self._reports_container = {}
+        self._keyval_container = {} # {'path1': [entries],}
+        self.global_filename = global_filename
+
+
+    @classmethod
+    def tap_ok(self, success, counter, message):
+        """
+        return a TAP message string.
+
+        @param success: True for positive message string.
+        @param counter: number of TAP line in plan.
+        @param message: additional message to report in TAP line.
+        """
+        if success:
+            message = "ok %s - %s" % (counter, message)
+        else:
+            message = "not ok %s - %s" % (counter, message)
+        return message
+
+
+    def record(self, log_entry, indent, log_files):
+        """
+        Append a job-level status event to self._reports_container. All
+        events will be written to TAP log files at the end of the test run.
+        Otherwise, it's impossilble to determine the TAP plan.
+
+        @param log_entry: A string status code describing the type of status
+                entry being recorded. It must pass log.is_valid_status to be
+                considered valid.
+        @param indent: Level of the log_entry to determine the operation if
+                log_entry.operation is not given.
+        @param log_files: List of full path of files the TAP report will be
+                written to at the end of the test.
+        """
+        for log_file in log_files:
+            log_file_path = os.path.dirname(log_file)
+            key = log_file_path.split(self.resultdir, 1)[1].strip(os.sep)
+            if not key:
+                key = 'root'
+
+            if not self._reports_container.has_key(key):
+                self._reports_container[key] = []
+
+            if log_entry.operation:
+                operation = log_entry.operation
+            elif indent == 1:
+                operation = "job"
+            else:
+                operation = "unknown"
+            entry = self.tap_ok(
+                self.job_statuses.get(log_entry.status_code, False),
+                len(self._reports_container[key]) + 1, operation + "\n"
+            )
+            self._reports_container[key].append(entry)
+
+
+    def record_keyval(self, path, dictionary, type_tag=None):
+        """
+        Append a key-value pairs of dictionary to self._keyval_container in
+        TAP format. Once finished write out the keyval.tap file to the file
+        system.
+
+        If type_tag is None, then the key must be composed of alphanumeric
+        characters (or dashes + underscores). However, if type-tag is not
+        null then the keys must also have "{type_tag}" as a suffix. At
+        the moment the only valid values of type_tag are "attr" and "perf".
+
+        @param path: The full path of the keyval.tap file to be created
+        @param dictionary: The keys and values.
+        @param type_tag: The type of the values
+        """
+        self._keyval_container.setdefault(path, [0, []])
+        self._keyval_container[path][0] += 1
+
+        if type_tag is None:
+            key_regex = re.compile(r'^[-\.\w]+$')
+        else:
+            if type_tag not in ('attr', 'perf'):
+                raise ValueError('Invalid type tag: %s' % type_tag)
+            escaped_tag = re.escape(type_tag)
+            key_regex = re.compile(r'^[-\.\w]+\{%s\}$' % escaped_tag)
+        self._keyval_container[path][1].extend([
+            self.tap_ok(True, self._keyval_container[path][0], "results"),
+            "\n  ---\n",
+        ])
+        try:
+            for key in sorted(dictionary.keys()):
+                if not key_regex.search(key):
+                    raise ValueError('Invalid key: %s' % key)
+                self._keyval_container[path][1].append(
+                    '  %s: %s\n' % (key.replace('{', '_').rstrip('}'),
+                                    dictionary[key])
+                )
+        finally:
+            self._keyval_container[path][1].append("  ...\n")
+        self._write_keyval()
+
+
+    def _write_reports(self):
+        """
+        Write TAP reports to file.
+        """
+        for key in self._reports_container.keys():
+            sub_dir = '' if key == 'root' else key
+            tap_fh = open(os.sep.join(
+                [self.resultdir, sub_dir, self.global_filename]
+            ) + ".tap", 'w')
+            tap_fh.write('1..' + str(len(self._reports_container[key])) + '\n')
+            tap_fh.writelines(self._reports_container[key])
+            tap_fh.close()
+
+
+    def _write_keyval(self):
+        """
+        Write the self._keyval_container key values to a file.
+        """
+        for path in self._keyval_container.keys():
+            tap_fh = open(path + ".tap", 'w')
+            tap_fh.write('1..' + str(self._keyval_container[path][0]) + '\n')
+            tap_fh.writelines(self._keyval_container[path][1])
+            tap_fh.close()
+
+
+    def write(self):
+        """
+        Write the TAP reports to files.
+        """
+        self._write_reports()
+
+
+    def _write_tap_archive(self):
+        """
+        Write a tar archive containing all the TAP files and
+        a meta.yml containing the file names.
+        """
+        os.chdir(self.resultdir)
+        tap_files = []
+        for rel_path, d, files in os.walk('.'):
+            tap_files.extend(["/".join(
+                [rel_path, f]) for f in files if f.endswith('.tap')])
+        meta_yaml = open('meta.yml', 'w')
+        meta_yaml.write('file_order:\n')
+        tap_tar = tarfile.open(self.resultdir + '/tap.tar.gz', 'w:gz')
+        for f in tap_files:
+            meta_yaml.write("  - " + f.lstrip('./') + "\n")
+            tap_tar.add(f)
+        meta_yaml.close()
+        tap_tar.add('meta.yml')
+        tap_tar.close()
 
 
 class base_job(object):
@@ -800,6 +989,8 @@ class base_job(object):
         # initialize all the job state
         self._state = self._job_state()
 
+        # initialize tap reporting
+        self._tap = self._tap_init(dargs['options'].tap_report)
 
     @classmethod
     def _find_base_directories(cls):
@@ -959,6 +1150,11 @@ class base_job(object):
             logging.exception('%s directory creation failed with %s',
                               subdir, e)
             raise error.TestError('%s directory creation failed' % subdir)
+
+    def _tap_init(self, enable):
+        """Initialize TAP reporting
+        """
+        return TAPReport(enable, self.resultdir)
 
 
     def record(self, status_code, subdir, operation, status='',
