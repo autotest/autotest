@@ -241,6 +241,12 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
 
         _log_or_execute(repr(new_test), new_test.save)
         add_label_dependencies(new_test)
+        
+        # save TestParameter
+        for para_name in data.test_parameters:
+          test_parameter = models.TestParameter.objects.get_or_create(
+              test=new_test, name=para_name)[0]
+          test_parameter.save()
 
 
 def _set_attributes_clean(test, data):
