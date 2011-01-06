@@ -13,7 +13,7 @@ class base_autoserv_parser(object):
     """
     def __init__(self):
         self.args = sys.argv[1:]
-        self.parser = optparse.OptionParser()
+        self.parser = optparse.OptionParser(usage="%prog [options] [control-file]")
         self.setup_options()
 
         # parse an empty list of arguments in order to set self.options
