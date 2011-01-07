@@ -47,15 +47,13 @@ class barrier_test(unittest.TestCase):
 
 
     def test_get_host_from_id(self):
-        b = barrier.barrier('127.0.0.1#', 'testgethost', 100)
-
-        hostname = b._get_host_from_id('my_host')
+        hostname = barrier.get_host_from_id('my_host')
         self.assertEqual(hostname, 'my_host')
 
-        hostname = b._get_host_from_id('my_host#')
+        hostname = barrier.get_host_from_id('my_host#')
         self.assertEqual(hostname, 'my_host')
 
-        self.assertRaises(error.BarrierError, b._get_host_from_id, '#my_host')
+        self.assertRaises(error.BarrierError, barrier.get_host_from_id, '#my_host')
 
 
     def test_update_timeout(self):
