@@ -245,7 +245,7 @@ def matrix_to_string(matrix, header=None):
         for column in header:
             lengths.append(len(column))
     for row in matrix:
-        for i, column in zip(range(len(row)), row):
+        for i, column in enumerate(row):
             cl = len(column)
             try:
                 ml = lengths[i]
