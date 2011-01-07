@@ -24,6 +24,8 @@ def find_command(cmd):
 
     @param cmd: Command to be found.
     """
+    if os.path.exists(cmd):
+        return cmd
     for dir in ["/usr/local/sbin", "/usr/local/bin",
                 "/usr/sbin", "/usr/bin", "/sbin", "/bin"]:
         file = os.path.join(dir, cmd)
@@ -119,9 +121,8 @@ class FloppyDisk(Disk):
     """
     def __init__(self, path):
         print "Creating floppy unattended image %s" % path
-        try:
-            qemu_img_binary = os.environ['KVM_TEST_qemu_img_binary']
-        except KeyError:
+        qemu_img_binary = os.environ['KVM_TEST_qemu_img_binary']
+        if not os.path.isabs(qemu_img_binary):
             qemu_img_binary = os.path.join(KVM_TEST_DIR, qemu_img_binary)
         if not os.path.exists(qemu_img_binary):
             raise SetupError('The qemu-img binary that is supposed to be used '
