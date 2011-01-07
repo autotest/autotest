@@ -16,6 +16,8 @@ parser.add_option("--debug", action="store_true", dest="debug", default=False,
 parser.add_option("--skip-tests", dest="skip_tests",  default=[],
                   help="A space separated list of tests to skip")
 
+parser.set_defaults(module_list=None)
+
 
 REQUIRES_DJANGO = set((
         'monitor_db_unittest.py',
@@ -103,15 +105,9 @@ def run_test(mod_names, options):
             raise TestFailure(msg)
 
 
-def find_and_run_tests(start, options):
-    """
-    Find and run Python unittest suites below the given directory.  Only look
-    in subdirectories of start that are actual importable Python modules.
-
-    @param start: The absolute directory to look for tests under.
-    @param options: optparse options.
-    """
+def scan_for_modules(start, options):
     modules = []
+
     skip_tests = set()
     if options.skip_tests:
         skip_tests.update(options.skip_tests.split())
@@ -142,6 +138,22 @@ def find_and_run_tests(start, options):
                 modules.append(['autotest_lib'] + names)
                 if options.debug:
                     print 'testing', path_no_py
+    return modules
+
+def find_and_run_tests(start, options):
+    """
+    Find and run Python unittest suites below the given directory.  Only look
+    in subdirectories of start that are actual importable Python modules.
+
+    @param start: The absolute directory to look for tests under.
+    @param options: optparse options.
+    """
+    if options.module_list:
+        modules = []
+        for m in options.module_list:
+            modules.append(m.split('.'))
+    else:
+        modules = scan_for_modules(start, options)
 
     if options.debug:
         print 'Number of test modules found:', len(modules)
@@ -170,9 +182,7 @@ def find_and_run_tests(start, options):
 def main():
     options, args = parser.parse_args()
     if args:
-        parser.error('Unexpected argument(s): %s' % args)
-        parser.print_help()
-        sys.exit(1)
+        options.module_list = args
 
     # Strip the arguments off the command line, so that the unit tests do not
     # see them.
