@@ -18,7 +18,7 @@ class job_test_case(unittest.TestCase):
     job_class = job.base_client_job
 
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_with(job.base_client_job, '_get_environ_autodir',
                            classmethod(lambda cls: '/adir'))
         self.job = self.job_class.__new__(self.job_class)
@@ -110,7 +110,7 @@ class first_line_comparator(mock.argument_comparator):
 class test_base_job(unittest.TestCase):
     def setUp(self):
         # make god
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
 
         # need to set some environ variables
         self.autodir = "autodir"
