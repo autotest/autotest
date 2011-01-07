@@ -328,7 +328,7 @@ def write_keyval(path, dictionary, type_tag=None, tap_report=None):
         keyval.close()
 
     # same for tap
-    if tap_report.do_tap_report:
+    if tap_report is not None and tap_report.do_tap_report:
         tap_report.record_keyval(path, dictionary, type_tag=type_tag)
 
 class FileFieldMonitor(object):
