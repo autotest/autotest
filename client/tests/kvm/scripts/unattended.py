@@ -145,6 +145,7 @@ class FloppyDisk(Disk):
             run(m_cmd, info='Could not mount floppy image')
         except:
             cleanup(self.mount)
+            raise
 
 
     def _copy_virtio_drivers(self, virtio_floppy):
