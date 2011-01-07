@@ -104,11 +104,11 @@ def run_ethtool(test, params, env):
         if src == "guest":
             session.cmd_output(dd_cmd, timeout=360)
             tcpdump_cmd += " and src %s" % guest_ip
-            copy_files_fun = vm.copy_files_from
+            copy_files_from = vm.copy_files_from
         else:
             s, o = commands.getstatusoutput(dd_cmd)
             tcpdump_cmd += " and dst %s" % guest_ip
-            copy_files_fun = vm.copy_files_to
+            copy_files_from = vm.copy_files_to
         if s != 0:
             return (False, "Fail to create file by dd, cmd: %s" % dd_cmd)
 
@@ -124,7 +124,7 @@ def run_ethtool(test, params, env):
             return (False, "Tcpdump process wasn't launched")
 
         logging.info("Start to transfer file")
-        if not copy_files_fun(filename, filename):
+        if not copy_files_from(filename, filename)
             return (False, "Child process transfer file failed")
         logging.info("Transfer file completed")
         session.cmd("killall tcpdump")
