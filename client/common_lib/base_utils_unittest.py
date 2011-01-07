@@ -9,7 +9,7 @@ from autotest_lib.client.common_lib.test_utils import mock
 
 class test_read_one_line(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(base_utils, "open")
 
 
@@ -92,7 +92,7 @@ class test_read_one_line(unittest.TestCase):
 
 class test_write_one_line(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(base_utils, "open")
 
 
@@ -130,7 +130,7 @@ class test_write_one_line(unittest.TestCase):
 
 class test_open_write_close(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(base_utils, "open")
 
 
@@ -149,7 +149,7 @@ class test_open_write_close(unittest.TestCase):
 
 class test_read_keyval(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(base_utils, "open")
         self.god.stub_function(os.path, "isdir")
         self.god.stub_function(os.path, "exists")
@@ -247,7 +247,7 @@ class test_read_keyval(unittest.TestCase):
 
 class test_write_keyval(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(base_utils, "open")
         self.god.stub_function(os.path, "isdir")
 
@@ -268,8 +268,7 @@ class test_write_keyval(unittest.TestCase):
             expected_filename = filename
         test_file = StringIO.StringIO()
         self.god.stub_function(test_file, "close")
-        base_utils.open.expect_call(expected_filename,
-                                    "a").and_return(test_file)
+        base_utils.open.expect_call(expected_filename, "a").and_return(test_file)
         test_file.close.expect_call()
         if type_tag is None:
             base_utils.write_keyval(filename, dictionary)
@@ -356,7 +355,7 @@ class test_is_url(unittest.TestCase):
 
 class test_urlopen(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
 
 
     def tearDown(self):
@@ -413,7 +412,7 @@ class test_urlopen(unittest.TestCase):
 
 class test_urlretrieve(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
 
 
     def tearDown(self):
@@ -541,19 +540,16 @@ class test_merge_trees(unittest.TestCase):
 
 class test_get_relative_path(unittest.TestCase):
     def test_not_absolute(self):
-        self.assertRaises(AssertionError,
-                          base_utils.get_relative_path, "a", "b")
+        self.assertRaises(AssertionError, base_utils.get_relative_path, "a", "b")
 
     def test_same_dir(self):
         self.assertEqual(base_utils.get_relative_path("/a/b/c", "/a/b"), "c")
 
     def test_forward_dir(self):
-        self.assertEqual(base_utils.get_relative_path("/a/b/c/d", "/a/b"),
-                         "c/d")
+        self.assertEqual(base_utils.get_relative_path("/a/b/c/d", "/a/b"), "c/d")
 
     def test_previous_dir(self):
-        self.assertEqual(base_utils.get_relative_path("/a/b", "/a/b/c/d"),
-                         "../..")
+        self.assertEqual(base_utils.get_relative_path("/a/b", "/a/b/c/d"), "../..")
 
     def test_parallel_dir(self):
         self.assertEqual(base_utils.get_relative_path("/a/c/d", "/a/b/c/d"),
@@ -637,7 +633,7 @@ class test_run(unittest.TestCase):
     API without assuming implementation details.
     """
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(base_utils.logging, 'warn')
         self.god.stub_function(base_utils.logging, 'debug')
 
@@ -671,8 +667,7 @@ class test_run(unittest.TestCase):
 
     def test_ignore_status(self):
         cmd = 'echo error >&2 && exit 11'
-        self.__check_result(base_utils.run(cmd, ignore_status=True,
-                                           verbose=False),
+        self.__check_result(base_utils.run(cmd, ignore_status=True, verbose=False),
                             cmd, exit_status=11, stderr='error\n')
 
 
@@ -680,8 +675,7 @@ class test_run(unittest.TestCase):
         # we expect a logging.warn() message, don't care about the contents
         base_utils.logging.warn.expect_any_call()
         try:
-            base_utils.run('echo -n output && sleep 10',
-                           timeout=1, verbose=False)
+            base_utils.run('echo -n output && sleep 10', timeout=1, verbose=False)
         except base_utils.error.CmdError, err:
             self.assertEquals(err.result_obj.stdout, 'output')
 
@@ -771,8 +765,8 @@ class test_args_to_dict(unittest.TestCase):
         logger.setLevel(logging.ERROR)
 
         try:
-            result = base_utils.args_to_dict(['ab-c:DeF', '--SyS=DEf', 'a*=b',
-                                              'a*b', ':VAL', '=VVV', 'WORD'])
+            result = base_utils.args_to_dict(['ab-c:DeF', '--SyS=DEf', 'a*=b', 'a*b',
+                                         ':VAL', '=VVV', 'WORD'])
             self.assertEqual({}, result)
         finally:
             # Restore level.
@@ -794,6 +788,7 @@ class test_get_random_port(unittest.TestCase):
             self.assert_(s.getsockname())
             s = self.do_bind(p, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             self.assert_(s.getsockname())
+
 
 if __name__ == "__main__":
     unittest.main()
