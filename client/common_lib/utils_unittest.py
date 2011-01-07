@@ -9,7 +9,7 @@ from autotest_lib.client.common_lib.test_utils import mock
 
 class test_read_one_line(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(utils, "open")
 
 
@@ -92,7 +92,7 @@ class test_read_one_line(unittest.TestCase):
 
 class test_write_one_line(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(utils, "open")
 
 
@@ -130,7 +130,7 @@ class test_write_one_line(unittest.TestCase):
 
 class test_open_write_close(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(utils, "open")
 
 
@@ -149,7 +149,7 @@ class test_open_write_close(unittest.TestCase):
 
 class test_read_keyval(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(utils, "open")
         self.god.stub_function(os.path, "isdir")
         self.god.stub_function(os.path, "exists")
@@ -247,7 +247,7 @@ class test_read_keyval(unittest.TestCase):
 
 class test_write_keyval(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(utils, "open")
         self.god.stub_function(os.path, "isdir")
 
@@ -355,7 +355,7 @@ class test_is_url(unittest.TestCase):
 
 class test_urlopen(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
 
 
     def tearDown(self):
@@ -412,7 +412,7 @@ class test_urlopen(unittest.TestCase):
 
 class test_urlretrieve(unittest.TestCase):
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
 
 
     def tearDown(self):
@@ -633,7 +633,7 @@ class test_run(unittest.TestCase):
     API without assuming implementation details.
     """
     def setUp(self):
-        self.god = mock.mock_god()
+        self.god = mock.mock_god(ut=self)
         self.god.stub_function(utils.logging, 'warn')
         self.god.stub_function(utils.logging, 'debug')
 
