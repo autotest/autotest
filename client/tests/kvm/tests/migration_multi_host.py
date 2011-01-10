@@ -67,8 +67,7 @@ def run_migration_multi_host(test, params, env):
         c_socket.close()
 
         logging.info("Start migrating now...")
-        kvm_test_utils.migrate(vm=vm, dest_host=dsthost, mig_port=mig_port,
-                               env=env)
+        vm.migrate(dest_host=dsthost, remote_port=mig_port)
 
         # Wait up to 30 seconds for dest to reach this point
         test.job.barrier(srchost, 'mig_finished', 30).rendezvous(srchost,
