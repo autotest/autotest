@@ -48,7 +48,7 @@ def run_timedrift_with_migration(test, params, env):
             # Run current iteration
             logging.info("Migrating: iteration %d of %d..." %
                          (i + 1, migration_iterations))
-            vm = kvm_test_utils.migrate(vm, env)
+            vm.migrate()
             # Log in
             logging.info("Logging in after migration...")
             session = vm.wait_for_login(timeout=30)
