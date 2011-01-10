@@ -856,6 +856,7 @@ class VM:
                             monitor = kvm_monitor.HumanMonitor(
                                 monitor_name,
                                 self.get_monitor_filename(monitor_name))
+                        monitor.verify_responsive()
                         break
                     except kvm_monitor.MonitorError, e:
                         logging.warn(e)
@@ -998,15 +999,25 @@ class VM:
             return self.monitors[0]
 
 
+    def verify_alive(self):
+        """
+        Make sure the VM is alive and that the main monitor is responsive.
+
+        @raise VMDeadError: If the VM is dead
+        @raise: Various monitor exceptions if the monitor is unresponsive
+        """
+        if self.is_dead():
+            raise VMDeadError("VM is dead")
+        if self.monitors:
+            self.monitor.verify_responsive()
+
+
     def is_alive(self):
         """
         Return True if the VM is alive and its monitor is responsive.
         """
-        # Check if the process is running
-        if self.is_dead():
-            return False
-        # Try sending a monitor command
-        return bool(self.monitor) and self.monitor.is_responsive()
+        return not self.is_dead() and (not self.monitors or
+                                       self.monitor.is_responsive())
 
 
     def is_dead(self):
