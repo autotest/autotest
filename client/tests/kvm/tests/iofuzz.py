@@ -79,7 +79,7 @@ def run_iofuzz(test, params, env):
                 if vm.process.is_alive():
                     logging.debug("VM is alive, try to re-login")
                     try:
-                        session = kvm_test_utils.wait_for_login(vm, 0, 10, 0, 2)
+                        session = vm.wait_for_login(timeout=10)
                     except:
                         logging.debug("Could not re-login, reboot the guest")
                         session = kvm_test_utils.reboot(vm, session,
@@ -91,7 +91,7 @@ def run_iofuzz(test, params, env):
 
     login_timeout = float(params.get("login_timeout", 240))
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm, 0, login_timeout, 0, 2)
+    session = vm.wait_for_login(timeout=login_timeout)
 
     try:
         ports = {}

@@ -13,7 +13,7 @@ def run_linux_s3(test, params, env):
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout = int(params.get("login_timeout", 360))
-    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+    session = vm.wait_for_login(timeout=timeout)
 
     logging.info("Checking that VM supports S3")
     session.cmd("grep -q mem /sys/power/state")

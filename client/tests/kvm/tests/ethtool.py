@@ -176,12 +176,10 @@ def run_ethtool(test, params, env):
 
 
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm,
-                  timeout=int(params.get("login_timeout", 360)))
+    session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
     # Let's just error the test if we identify that there's no ethtool installed
     session.cmd("ethtool -h")
-    session2 = kvm_test_utils.wait_for_login(vm,
-                  timeout=int(params.get("login_timeout", 360)))
+    session2 = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
     mtu = 1514
     feature_status = {}
     filename = "/tmp/ethtool.dd"

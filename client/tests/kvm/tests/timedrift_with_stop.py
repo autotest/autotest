@@ -22,7 +22,7 @@ def run_timedrift_with_stop(test, params, env):
     login_timeout = int(params.get("login_timeout", 360))
     sleep_time = int(params.get("sleep_time", 30))
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm, timeout=login_timeout)
+    session = vm.wait_for_login(timeout=login_timeout)
 
     # Collect test parameters:
     # Command to run to get the current time

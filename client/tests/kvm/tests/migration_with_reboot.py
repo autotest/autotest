@@ -38,23 +38,15 @@ def run_migration_with_reboot(test, params, env):
         # Try logging into the guest until timeout expires
         logging.info("Guest is down. Waiting for it to go up again, timeout "
                      "%ds", timeout)
-        session = None
-        end_time = time.time() + timeout
-        while time.time() < end_time:
-            try:
-                session = kvm_utils.remote_login(client, address, port,
-                                                 username, password, prompt,
-                                                 linesep, log_filename)
-            except kvm_utils.LoginError, e:
-                logging.debug(e)
-        if not session:
-            raise error.TestFail("Could not log into guest after reboot")
+        session = kvm_utils.wait_for_login(client, address, port, username,
+                                           password, prompt, linesep,
+                                           log_filename, timeout)
         logging.info("Guest is up again")
         session.close()
 
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout = int(params.get("login_timeout", 360))
-    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+    session = vm.wait_for_login(timeout=timeout)
 
     # params of reboot
     username = vm.params.get("username", "")

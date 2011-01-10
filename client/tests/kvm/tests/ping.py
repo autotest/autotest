@@ -18,9 +18,8 @@ def run_ping(test, params, env):
     @param params: Dictionary with the test parameters.
     @param env: Dictionary with test environment.
     """
-
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm)
+    session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
 
     counts = params.get("ping_counts", 100)
     flood_minutes = float(params.get("flood_minutes", 10))

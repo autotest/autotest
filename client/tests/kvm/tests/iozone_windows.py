@@ -19,7 +19,7 @@ def run_iozone_windows(test, params, env):
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout = int(params.get("login_timeout", 360))
-    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+    session = vm.wait_for_login(timeout=timeout)
     results_path = os.path.join(test.resultsdir,
                                 'raw_output_%s' % test.iteration)
     analysisdir = os.path.join(test.resultsdir, 'analysis_%s' % test.iteration)

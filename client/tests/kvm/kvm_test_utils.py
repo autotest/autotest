@@ -138,9 +138,7 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
     # Try logging into the guest until timeout expires
     logging.info("Guest is down. Waiting for it to go up again, timeout %ds",
                  timeout)
-    # Temporary hack
-    time.sleep(timeout)
-    session = vm.remote_login(nic_index=nic_index)
+    session = vm.wait_for_login(nic_index, timeout=timeout)
     logging.info("Guest is up again")
     return session
 

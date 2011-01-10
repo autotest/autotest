@@ -606,9 +606,7 @@ def run_virtio_console(test, params, env):
 
         vm = env.get_vm(params.get("main_vm"))
 
-        session = kvm_test_utils.wait_for_login(vm, 0,
-                                         float(params.get("boot_timeout", 240)),
-                                         0, 2)
+        session = vm.wait_for_login(timeout=float(params.get("boot_timeout", 240)))
 
         # connect the sockets
         for i in range(0, no_console):
@@ -1112,9 +1110,7 @@ def run_virtio_console(test, params, env):
             logging.debug(tmp)
             vm[1].close()
             try:
-                vm[1] = kvm_test_utils.wait_for_login(vm[0], 0,
-                                        float(params.get("boot_timeout", 5)),
-                                        0, 2)
+                vm[1] = vm[0].wait_for_login(timeout=float(params.get("boot_timeout", 240)))
                 on_guest("killall -9 python "
                          "&& echo -n PASS: python killed"
                          "|| echo -n PASS: python was death",
