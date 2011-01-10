@@ -381,7 +381,8 @@ def run_qmp_basic(test, params, env):
             check_error_resp(resp, "CommandNotFound", { "name": cmd })
 
 
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
 
     # Run all suites
     greeting_suite(vm.monitor)

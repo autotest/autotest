@@ -28,7 +28,8 @@ def run_clock_getres(test, params, env):
     if not os.path.isfile(test_clock):
         raise error.TestError("Could not find %s" % t_name)
 
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
     timeout = int(params.get("login_timeout", 360))
     session = vm.wait_for_login(timeout=timeout)
     vm.copy_files_to(test_clock, base_dir)

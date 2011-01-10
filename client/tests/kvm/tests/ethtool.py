@@ -175,7 +175,8 @@ def run_ethtool(test, params, env):
         return True
 
 
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
     session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
     # Let's just error the test if we identify that there's no ethtool installed
     session.cmd("ethtool -h")

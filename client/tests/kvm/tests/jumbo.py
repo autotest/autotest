@@ -22,7 +22,8 @@ def run_jumbo(test, params, env):
     @param params: Dictionary with the test parameters.
     @param env: Dictionary with test environment.
     """
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
     session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
     mtu = params.get("mtu", "1500")
     flood_time = params.get("flood_time", "300")
