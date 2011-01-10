@@ -18,7 +18,6 @@ def run_vlan(test, params, env):
     @param params: Dictionary with the test parameters.
     @param env: Dictionary with test environment.
     """
-
     vm = []
     session = []
     ifname = []
@@ -79,8 +78,8 @@ def run_vlan(test, params, env):
         session[dst].cmd_output("rm -f receive")
 
     for i in range(2):
-        session.append(kvm_test_utils.wait_for_login(vm[i],
-                       timeout=int(params.get("login_timeout", 360))))
+        session.append(vm[i].wait_for_login(
+            timeout=int(params.get("login_timeout", 360))))
         if not session[i] :
             raise error.TestError("Could not log into guest(vm%d)" % i)
         logging.info("Logged in")
@@ -135,8 +134,7 @@ def run_vlan(test, params, env):
                 # we must use a dedicated session becuase the kvm_subprocess
                 # does not have the other method to interrupt the process in
                 # the guest rather than close the session.
-                session_flood = kvm_test_utils.wait_for_login(vm[src],
-                                                              timeout = 60)
+                session_flood = vm[src].wait_for_login(timeout=60)
                 kvm_test_utils.ping(vlan_ip[dst], flood=True,
                                    interface=ifname[src],
                                    session=session_flood, timeout=10)

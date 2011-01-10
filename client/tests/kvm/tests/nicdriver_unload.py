@@ -19,9 +19,8 @@ def run_nicdriver_unload(test, params, env):
     """
     timeout = int(params.get("login_timeout", 360))
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
-    session_serial = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2,
-                                                   serial=True)
+    session = vm.wait_for_login(timeout=timeout)
+    session_serial = vm.wait_for_serial_login(timeout=timeout)
 
     ethname = kvm_test_utils.get_linux_ifname(session, vm.get_mac_address(0))
     sys_path = "/sys/class/net/%s/device/driver" % (ethname)

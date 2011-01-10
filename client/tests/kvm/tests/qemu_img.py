@@ -292,7 +292,7 @@ def run_qemu_img(test, params, env):
             vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
-            session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+            session = vm.wait_for_login(timeout=timeout)
 
             # Do some changes to the backing_file harddisk
             try:
@@ -320,7 +320,7 @@ def run_qemu_img(test, params, env):
             vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
-            session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+            session = vm.wait_for_login(timeout=timeout)
             try:
                 output = session.cmd("[ ! -e /commit_testfile ] && echo $?")
                 logging.info("Output of [ ! -e /commit_testfile ] && echo $?: "
@@ -346,7 +346,7 @@ def run_qemu_img(test, params, env):
             vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
-            session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+            session = vm.wait_for_login(timeout=timeout)
             try:
                 output = session.cmd("[ -e /commit_testfile ] && echo $?")
                 logging.info("Output of [ -e /commit_testfile ] && echo $?: %s",

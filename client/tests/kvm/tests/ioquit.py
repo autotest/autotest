@@ -11,12 +11,10 @@ def run_ioquit(test, params, env):
     @param params: Dictionary with the test parameters.
     @param env: Dictionary with test environment.
     """
-
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm,
-                  timeout=int(params.get("login_timeout", 360)))
-    session2 = kvm_test_utils.wait_for_login(vm,
-                  timeout=int(params.get("login_timeout", 360)))
+    login_timeout = int(params.get("login_timeout", 360))
+    session = vm.wait_for_login(timeout=login_timeout)
+    session2 = vm.wait_for_login(timeout=login_timeout)
     try:
         bg_cmd = params.get("background_cmd")
         logging.info("Add IO workload for guest OS.")

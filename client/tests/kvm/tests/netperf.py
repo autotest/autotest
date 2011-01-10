@@ -18,7 +18,7 @@ def run_netperf(test, params, env):
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     login_timeout = int(params.get("login_timeout", 360))
-    session = kvm_test_utils.wait_for_login(vm, timeout=login_timeout)
+    session = vm.wait_for_login(timeout=login_timeout)
 
     netperf_dir = os.path.join(os.environ['AUTODIR'], "tests/netperf2")
     setup_cmd = params.get("setup_cmd")

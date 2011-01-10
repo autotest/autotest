@@ -20,7 +20,7 @@ def run_vmstop(test, params, env):
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout = float(params.get("login_timeout", 240))
-    session = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2)
+    session = vm.wait_for_login(timeout=timeout)
 
     save_path = params.get("save_path", "/tmp")
     clean_save = params.get("clean_save") == "yes"

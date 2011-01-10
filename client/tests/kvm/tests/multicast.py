@@ -19,8 +19,7 @@ def run_multicast(test, params, env):
     @param env: Dictionary with test environment.
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session = kvm_test_utils.wait_for_login(vm,
-                                  timeout=int(params.get("login_timeout", 360)))
+    session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
 
     def run_guest(cmd):
         try:

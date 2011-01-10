@@ -17,7 +17,7 @@ def run_kdump(test, params, env):
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout = float(params.get("login_timeout", 240))
     crash_timeout = float(params.get("crash_timeout", 360))
-    session = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2)
+    session = vm.wait_for_login(timeout=timeout)
     def_kernel_param_cmd = ("grubby --update-kernel=`grubby --default-kernel`"
                             " --args=crashkernel=128M")
     kernel_param_cmd = params.get("kernel_param_cmd", def_kernel_param_cmd)
@@ -33,7 +33,7 @@ def run_kdump(test, params, env):
 
         @param vcpu: vcpu which is used to trigger a crash
         """
-        session = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2)
+        session = vm.wait_for_login(timeout=timeout)
         session.cmd_output("rm -rf /var/crash/*")
 
         logging.info("Triggering crash on vcpu %d ...", vcpu)
@@ -45,7 +45,7 @@ def run_kdump(test, params, env):
             raise error.TestFail("Could not trigger crash on vcpu %d" % vcpu)
 
         logging.info("Waiting for kernel crash dump to complete")
-        session = kvm_test_utils.wait_for_login(vm, 0, crash_timeout, 0, 2)
+        session = vm.wait_for_login(timeout=crash_timeout)
 
         logging.info("Probing vmcore file...")
         session.cmd("ls -R /var/crash | grep vmcore")

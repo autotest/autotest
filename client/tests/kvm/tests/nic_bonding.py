@@ -32,8 +32,7 @@ def run_nic_bonding(test, params, env):
 
     timeout = int(params.get("login_timeout", 1200))
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session_serial = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2,
-                                                   serial=True)
+    session_serial = vm.wait_for_serial_login(timeout=timeout)
     script_path = kvm_utils.get_path(test.bindir, "scripts/bonding_setup.py")
     vm.copy_files_to(script_path, "/tmp/bonding_setup.py")
     cmd = "python /tmp/bonding_setup.py %s" % vm.get_mac_address()
