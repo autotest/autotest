@@ -21,21 +21,12 @@ def run_migration_with_file_transfer(test, params, env):
     """
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
-    timeout = int(params.get("login_timeout", 360))
-    session = vm.wait_for_login(timeout=timeout)
+    login_timeout = int(params.get("login_timeout", 360))
+    session = vm.wait_for_login(timeout=login_timeout)
 
     mig_timeout = float(params.get("mig_timeout", "3600"))
     mig_protocol = params.get("migration_protocol", "tcp")
 
-    # params of transfer test
-    username = vm.params.get("username", "")
-    password = vm.params.get("password", "")
-    client = vm.params.get("file_transfer_client")
-    address = vm.get_address(0)
-    port = vm.get_port(int(params.get("file_transfer_port")))
-    log_filename = ("migration-transfer-%s-to-%s-%s.log" %
-                    (vm.name, address,
-                     kvm_utils.generate_random_string(4)))
     host_path = "/tmp/file-%s" % kvm_utils.generate_random_string(6)
     host_path_returned = "%s-returned" % host_path
     guest_path = params.get("guest_path", "/tmp/file")
@@ -46,33 +37,26 @@ def run_migration_with_file_transfer(test, params, env):
         utils.run("dd if=/dev/urandom of=%s bs=1M count=%s" % (host_path,
                                                                file_size))
 
+        def run_and_migrate(bg):
+            bg.start()
+            try:
+                while bg.is_alive():
+                    logging.info("File transfer not ended, starting a round of "
+                                 "migration...")
+                    vm.migrate(mig_timeout, mig_protocol)
+            finally:
+                bg.join()
+
         logging.info("Transferring file from host to guest")
-        bg = kvm_utils.Thread(kvm_utils.copy_files_to,
-                              (address, client, username, password, port,
-                               host_path, guest_path, log_filename,
-                               transfer_timeout))
-        bg.start()
-        try:
-            while bg.is_alive():
-                logging.info("File transfer not ended, starting a round of "
-                             "migration...")
-                vm = kvm_test_utils.migrate(vm, env, mig_timeout, mig_protocol)
-        finally:
-            bg.join()
+        bg = kvm_utils.Thread(vm.copy_files_to,
+                              (host_path, guest_path, 0, transfer_timeout))
+        run_and_migrate(bg)
 
         logging.info("Transferring file back from guest to host")
-        bg = kvm_utils.Thread(kvm_utils.copy_files_from,
-                              (address, client, username, password, port,
-                               host_path_returned, guest_path, log_filename,
+        bg = kvm_utils.Thread(vm.copy_files_from,
+                              (guest_path, host_path_returned, 0,
                                transfer_timeout))
-        bg.start()
-        try:
-            while bg.is_alive():
-                logging.info("File transfer not ended, starting a round of "
-                             "migration...")
-                vm = kvm_test_utils.migrate(vm, env, mig_timeout, mig_protocol)
-        finally:
-            bg.join()
+        run_and_migrate(bg)
 
         # Make sure the returned file is indentical to the original one
         orig_hash = client_utils.hash_file(host_path)
@@ -81,7 +65,6 @@ def run_migration_with_file_transfer(test, params, env):
             raise error.TestFail("Returned file hash (%s) differs from "
                                  "original one (%s)" % (returned_hash,
                                                         orig_hash))
-
     finally:
         session.close()
         if os.path.isfile(host_path):
