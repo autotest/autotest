@@ -634,6 +634,35 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     return session
 
 
+def wait_for_login(client, host, port, username, password, prompt, linesep="\n",
+                   log_filename=None, timeout=240, internal_timeout=10):
+    """
+    Make multiple attempts to log into a remote host (guest) until one succeeds
+    or timeout expires.
+
+    @param timeout: Total time duration to wait for a successful login
+    @param internal_timeout: The maximal time duration (in seconds) to wait for
+            each step of the login procedure (e.g. the "Are you sure" prompt
+            or the password prompt)
+    @see: remote_login()
+    @raise: Whatever remote_login() raises
+    @return: A ShellSession object.
+    """
+    logging.debug("Attempting to log into %s:%s using %s (timeout %ds)" %
+                  (host, port, client, timeout))
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        try:
+            return remote_login(client, host, port, username, password, prompt,
+                                linesep, log_filename, internal_timeout)
+        except LoginError, e:
+            logging.debug(e)
+        time.sleep(2)
+    # Timeout expired; try one more time but don't catch exceptions
+    return remote_login(client, host, port, username, password, prompt,
+                        linesep, log_filename, internal_timeout)
+
+
 def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
     """
     Transfer file(s) to a remote host (guest) using SCP.  Wait for questions

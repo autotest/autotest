@@ -1091,6 +1091,28 @@ class VM:
         return session
 
 
+    def wait_for_login(self, nic_index=0, timeout=240, internal_timeout=10):
+        """
+        Make multiple attempts to log into the guest via SSH/Telnet/Netcat.
+
+        @param nic_index: The index of the NIC to connect to.
+        @param timeout: Time (seconds) to keep trying to log in.
+        @param internal_timeout: Timeout to pass to remote_login().
+        @return: A ShellSession object.
+        """
+        logging.debug("Attempting to log into '%s' (timeout %ds)" % (self.name,
+                                                                     timeout))
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            try:
+                return self.remote_login(nic_index, internal_timeout)
+            except kvm_utils.LoginError, e:
+                logging.debug(e)
+            time.sleep(2)
+        # Timeout expired; try one more time but don't catch exceptions
+        return self.remote_login(nic_index, internal_timeout)
+
+
     def copy_files_to(self, local_path, remote_path, nic_index=0, timeout=600):
         """
         Transfer files to the remote host(guest).
@@ -1160,6 +1182,27 @@ class VM:
         kvm_utils._remote_login(self.serial_console, username, password,
                                 prompt, timeout)
         return self.serial_console
+
+
+    def wait_for_serial_login(self, timeout=240, internal_timeout=10):
+        """
+        Make multiple attempts to log into the guest via serial console.
+
+        @param timeout: Time (seconds) to keep trying to log in.
+        @param internal_timeout: Timeout to pass to serial_login().
+        @return: A ShellSession object.
+        """
+        logging.debug("Attempting to log into '%s' via serial console "
+                      "(timeout %ds)" % (self.name, timeout))
+        end_time = time.time() + timeout
+        while time.time() < end_time:
+            try:
+                return self.serial_login(internal_timeout)
+            except kvm_utils.LoginError, e:
+                logging.debug(e)
+            time.sleep(2)
+        # Timeout expired; try one more time but don't catch exceptions
+        return self.serial_login(internal_timeout)
 
 
     def send_key(self, keystr):
