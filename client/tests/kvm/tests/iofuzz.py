@@ -90,7 +90,8 @@ def run_iofuzz(test, params, env):
 
 
     login_timeout = float(params.get("login_timeout", 240))
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
     session = vm.wait_for_login(timeout=login_timeout)
 
     try:

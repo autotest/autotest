@@ -30,8 +30,10 @@ def run_vlan(test, params, env):
     maximal = int(params.get("maximal"))
     file_size = params.get("file_size")
 
-    vm.append(kvm_test_utils.get_living_vm(env, params.get("main_vm")))
-    vm.append(kvm_test_utils.get_living_vm(env, "vm2"))
+    vm.append(env.get_vm(params["main_vm"]))
+    vm.append(env.get_vm("vm2"))
+    for vm_ in vm:
+        vm_.verify_alive()
 
     def add_vlan(session, id, iface="eth0"):
         session.cmd("vconfig add %s %s" % (iface, id))

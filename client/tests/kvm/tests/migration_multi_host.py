@@ -37,7 +37,8 @@ def run_migration_multi_host(test, params, env):
         else:
             return o.get("status") == "running"
 
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
     login_timeout = int(params.get("login_timeout", 360))
     role = params.get("role")
     srchost = params.get("srchost")

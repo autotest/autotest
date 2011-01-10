@@ -23,7 +23,8 @@ def run_whql_submission(test, params, env):
     vms = []
     sessions = []
     for vm_name in params.objects("vms"):
-        vms.append(kvm_test_utils.get_living_vm(env, vm_name))
+        vms.append(env.get_vm(vm_name))
+        vms[-1].verify_alive()
         sessions.append(vms[-1].wait_for_login(timeout=login_timeout))
 
     # Make sure all NICs of all client VMs are up

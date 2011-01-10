@@ -19,7 +19,8 @@ def run_guest_test(test, params, env):
     login_timeout = int(params.get("login_timeout", 360))
     reboot = params.get("reboot", "no")
 
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
     if params.get("serial_login") == "yes":
         session = vm.wait_for_serial_login(timeout=login_timeout)
     else:

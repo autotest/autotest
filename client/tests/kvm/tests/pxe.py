@@ -15,7 +15,8 @@ def run_pxe(test, params, env):
     @param params: Dictionary with the test parameters.
     @param env: Dictionary with test environment.
     """
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
     timeout = int(params.get("pxe_timeout", 60))
 
     logging.info("Try to boot from PXE")
