@@ -50,7 +50,7 @@ def run_boot_savevm(test, params, env):
         if (time.time() > login_expire):
             login_expire = time.time() + savevm_login_delay
             logging.info("Logging in after loadvm...")
-            session = vm.remote_login()
+            session = vm.login()
             logging.info("Logged in to guest!")
             break
 

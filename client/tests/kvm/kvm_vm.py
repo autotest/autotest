@@ -795,7 +795,7 @@ class VM:
                 # Try to destroy with shell command
                 logging.debug("Trying to shutdown VM with shell command...")
                 try:
-                    session = self.remote_login()
+                    session = self.login()
                 except kvm_utils.LoginError, e:
                     logging.debug(e)
                 else:
@@ -1059,7 +1059,7 @@ class VM:
         return shm * 4.0 / 1024
 
 
-    def remote_login(self, nic_index=0, timeout=10):
+    def login(self, nic_index=0, timeout=10):
         """
         Log into the guest via SSH/Telnet/Netcat.
         If timeout expires while waiting for output from the guest (e.g. a
@@ -1091,13 +1091,20 @@ class VM:
         return session
 
 
+    def remote_login(self, nic_index=0, timeout=10):
+        """
+        Alias for login() for backward compatibility.
+        """
+        return self.login(nic_index, timeout)
+
+
     def wait_for_login(self, nic_index=0, timeout=240, internal_timeout=10):
         """
         Make multiple attempts to log into the guest via SSH/Telnet/Netcat.
 
         @param nic_index: The index of the NIC to connect to.
         @param timeout: Time (seconds) to keep trying to log in.
-        @param internal_timeout: Timeout to pass to remote_login().
+        @param internal_timeout: Timeout to pass to login().
         @return: A ShellSession object.
         """
         logging.debug("Attempting to log into '%s' (timeout %ds)" % (self.name,
@@ -1105,12 +1112,12 @@ class VM:
         end_time = time.time() + timeout
         while time.time() < end_time:
             try:
-                return self.remote_login(nic_index, internal_timeout)
+                return self.login(nic_index, internal_timeout)
             except kvm_utils.LoginError, e:
                 logging.debug(e)
             time.sleep(2)
         # Timeout expired; try one more time but don't catch exceptions
-        return self.remote_login(nic_index, internal_timeout)
+        return self.login(nic_index, internal_timeout)
 
 
     def copy_files_to(self, local_path, remote_path, nic_index=0, timeout=600):
@@ -1253,7 +1260,7 @@ class VM:
         """
         Get the cpu count of the VM.
         """
-        session = self.remote_login()
+        session = self.login()
         try:
             return int(session.cmd(self.params.get("cpu_chk_cmd")))
         finally:
@@ -1267,7 +1274,7 @@ class VM:
         @param check_cmd: Command used to check memory. If not provided,
                 self.params.get("mem_chk_cmd") will be used.
         """
-        session = self.remote_login()
+        session = self.login()
         try:
             if not cmd:
                 cmd = self.params.get("mem_chk_cmd")
