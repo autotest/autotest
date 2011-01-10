@@ -53,6 +53,7 @@ def run_physical_resources_check(test, params, env):
     def check_num(devices, info_cmd, check_str):
         f_fail = 0
         expected_num = params.objects(devices).__len__()
+        o = ""
         try:
             o = vm.monitor.info(info_cmd)
         except kvm_monitor.MonitorError, e:
@@ -84,6 +85,7 @@ def run_physical_resources_check(test, params, env):
             expected = params.object_params(chk_device).get(fmt_model)
             if not expected:
                 expected = "rtl8139"
+            o = ""
             try:
                 o = vm.monitor.info(info_cmd)
             except kvm_monitor.MonitorError, e:
@@ -115,6 +117,7 @@ def run_physical_resources_check(test, params, env):
     n_fail += f_fail
 
     logging.info("Network card MAC check")
+    o = ""
     try:
         o = vm.monitor.info("network")
     except kvm_monitor.MonitorError, e:
