@@ -49,10 +49,13 @@ class kernbench(test.test):
             self.threads = self.job.cpu_count()*2
 
         self.kernel = self.__init_tree(version)
-        logfile = os.path.join(self.debugdir, 'build_log')
-
         logging.info("Warmup run ...")
-        self.kernel.build_timed(self.threads, output=logfile)      # warmup run
+        logfile = os.path.join(self.debugdir, 'build_log')
+        try:
+            self.kernel.build_timed(self.threads, output=logfile)  # warmup run
+        finally:
+            if os.path.exists(logfile):
+                utils.system("gzip -9 '%s'" % logfile, ignore_status=True)
 
 
     def run_once(self):
