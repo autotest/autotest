@@ -45,24 +45,20 @@ def run_file_transfer(test, params, env):
             logging.info("Transfering file host -> guest, timeout: %ss",
                          transfer_timeout)
             t_begin = time.time()
-            success = vm.copy_files_to("%s/a.out" % dir_name, guest_path,
-                                       timeout=transfer_timeout)
+            vm.copy_files_to("%s/a.out" % dir_name, guest_path,
+                             timeout=transfer_timeout)
             t_end = time.time()
             throughput = filesize / (t_end - t_begin)
-            if not success:
-                raise error.TestFail("Fail to transfer file from host to guest")
             logging.info("File transfer host -> guest succeed, "
                          "estimated throughput: %.2fMB/s", throughput)
 
             logging.info("Transfering file guest -> host, timeout: %ss",
                          transfer_timeout)
             t_begin = time.time()
-            success = vm.copy_files_from(guest_path, "%s/c.out" % dir_name,
-                                         timeout=transfer_timeout)
+            vm.copy_files_from(guest_path, "%s/c.out" % dir_name,
+                               timeout=transfer_timeout)
             t_end = time.time()
             throughput = filesize / (t_end - t_begin)
-            if not success:
-                raise error.TestFail("Fail to transfer file from guest to host")
             logging.info("File transfer guest -> host succeed, "
                          "estimated throughput: %.2fMB/s", throughput)
         else:

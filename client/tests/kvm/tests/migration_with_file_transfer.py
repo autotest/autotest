@@ -57,9 +57,7 @@ def run_migration_with_file_transfer(test, params, env):
                              "migration...")
                 vm = kvm_test_utils.migrate(vm, env, mig_timeout, mig_protocol)
         finally:
-            # bg.join() returns the value returned by copy_files_to()
-            if not bg.join():
-                raise error.TestFail("File transfer from host to guest failed")
+            bg.join()
 
         logging.info("Transferring file back from guest to host")
         bg = kvm_utils.Thread(kvm_utils.copy_files_from,
@@ -73,8 +71,7 @@ def run_migration_with_file_transfer(test, params, env):
                              "migration...")
                 vm = kvm_test_utils.migrate(vm, env, mig_timeout, mig_protocol)
         finally:
-            if not bg.join():
-                raise error.TestFail("File transfer from guest to host failed")
+            bg.join()
 
         # Make sure the returned file is indentical to the original one
         orig_hash = client_utils.hash_file(host_path)

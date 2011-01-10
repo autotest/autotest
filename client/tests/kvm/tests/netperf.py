@@ -29,8 +29,7 @@ def run_netperf(test, params, env):
     session.cmd_output(firewall_flush)
 
     for i in params.get("netperf_files").split():
-        if not vm.copy_files_to(os.path.join(netperf_dir, i), "/tmp"):
-            raise error.TestError("Could not copy file %s to guest" % i)
+        vm.copy_files_to(os.path.join(netperf_dir, i), "/tmp")
 
     try:
         session.cmd(firewall_flush)

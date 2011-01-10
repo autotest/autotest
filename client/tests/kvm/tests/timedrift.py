@@ -88,8 +88,6 @@ def run_timedrift(test, params, env):
             logging.info("Starting load on guest...")
             for i in range(guest_load_instances):
                 load_session = vm.remote_login()
-                if not load_session:
-                    raise error.TestFail("Could not log into guest")
                 # Set output func to None to stop it from being called so we
                 # can change the callback function and the parameters it takes
                 # with no problems

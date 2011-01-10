@@ -249,10 +249,9 @@ def run_ksm_overcommit(test, params, env):
         session = lsessions[0]
         vm = lvms[0]
         for i in range(1, max_alloc):
-            lsessions.append(kvm_utils.wait_for(vm.remote_login, 360, 0, 2))
-            if not lsessions[i]:
-                raise error.TestFail("Could not log into guest %s" %
-                                     vm.name)
+            # Temporary hack
+            time.sleep(360)
+            lsessions.append(vm.remote_login())
 
         session.cmd("swapoff -a", timeout=300)
 
@@ -553,9 +552,9 @@ def run_ksm_overcommit(test, params, env):
 
     logging.debug("Booting first guest %s", lvms[0].name)
 
-    lsessions.append(kvm_utils.wait_for(lvms[0].remote_login, 360, 0, 2))
-    if not lsessions[0]:
-        raise error.TestFail("Could not log into first guest")
+    # Temporary hack
+    time.sleep(360)
+    lsessions.append(lvms[0].remote_login())
     # Associate vm PID
     try:
         tmp = open(params.get('pid_' + vm_name), 'r')
@@ -585,10 +584,9 @@ def run_ksm_overcommit(test, params, env):
             raise error.TestError("VM %s seems to be dead; Test requires a"
                                   "living VM" % lvms[i].name)
 
-        lsessions.append(kvm_utils.wait_for(lvms[i].remote_login, 360, 0, 2))
-        if not lsessions[i]:
-            raise error.TestFail("Could not log into guest %s" %
-                                 lvms[i].name)
+        # Temporary hack
+        time.sleep(360)
+        lsessions.append(lvms[i].remote_login())
         try:
             tmp = open(params.get('pid_' + vm_name), 'r')
             params['pid_' + vm_name] = int(tmp.readline())
@@ -606,8 +604,7 @@ def run_ksm_overcommit(test, params, env):
     vksmd_src = os.path.join(pwd, "scripts/allocator.py")
     dst_dir = "/tmp"
     for vm in lvms:
-        if not vm.copy_files_to(vksmd_src, dst_dir):
-            raise error.TestFail("copy_files_to failed %s" % vm.name)
+        vm.copy_files_to(vksmd_src, dst_dir)
     logging.info("Phase 0: PASS")
 
     if params['ksm_mode'] == "parallel":

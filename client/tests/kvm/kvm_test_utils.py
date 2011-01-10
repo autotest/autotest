@@ -55,18 +55,32 @@ def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2, serial=None):
             (ssh, rss) one.
     @return: A shell session object.
     """
-    type = 'remote'
+    end_time = time.time() + timeout
+    session = None
     if serial:
         type = 'serial'
         logging.info("Trying to log into guest %s using serial connection,"
                      " timeout %ds", vm.name, timeout)
-        session = kvm_utils.wait_for(lambda: vm.serial_login(), timeout,
-                                     start, step)
+        time.sleep(start)
+        while time.time() < end_time:
+            try:
+                session = vm.serial_login()
+                break
+            except kvm_utils.LoginError, e:
+                logging.debug(e)
+            time.sleep(step)
     else:
+        type = 'remote'
         logging.info("Trying to log into guest %s using remote connection,"
                      " timeout %ds", vm.name, timeout)
-        session = kvm_utils.wait_for(lambda: vm.remote_login(
-                  nic_index=nic_index), timeout, start, step)
+        time.sleep(start)
+        while time.time() < end_time:
+            try:
+                session = vm.remote_login(nic_index=nic_index)
+                break
+            except kvm_utils.LoginError, e:
+                logging.debug(e)
+            time.sleep(step)
     if not session:
         raise error.TestFail("Could not log into guest %s using %s connection" %
                              (vm.name, type))
@@ -124,10 +138,9 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
     # Try logging into the guest until timeout expires
     logging.info("Guest is down. Waiting for it to go up again, timeout %ds",
                  timeout)
-    session = kvm_utils.wait_for(lambda: vm.remote_login(nic_index=nic_index),
-                                 timeout, 0, 2)
-    if not session:
-        raise error.TestFail("Could not log into guest after reboot")
+    # Temporary hack
+    time.sleep(timeout)
+    session = vm.remote_login(nic_index=nic_index)
     logging.info("Guest is up again")
     return session
 
@@ -438,7 +451,6 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
         @param local_path: Local path.
         @param remote_path: Remote path.
         """
-        copy = False
         local_hash = utils.hash_file(local_path)
         basename = os.path.basename(local_path)
         output = session.cmd_output("md5sum %s" % remote_path)
@@ -452,14 +464,9 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
             # Let's be a little more lenient here and see if it wasn't a
             # temporary problem
             remote_hash = "0"
-
         if remote_hash != local_hash:
             logging.debug("Copying %s to guest", basename)
-            copy = True
-
-        if copy:
-            if not vm.copy_files_to(local_path, remote_path):
-                raise error.TestFail("Could not copy %s to guest" % local_path)
+            vm.copy_files_to(local_path, remote_path)
 
 
     def extract(vm, remote_path, dest_dir="."):
@@ -484,9 +491,8 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
         guest_results_dir = os.path.join(outputdir, "guest_autotest_results")
         if not os.path.exists(guest_results_dir):
             os.mkdir(guest_results_dir)
-        if not vm.copy_files_from("%s/results/default/*" % autotest_path,
-                                  guest_results_dir):
-            logging.error("Could not copy autotest results from guest")
+        vm.copy_files_from("%s/results/default/*" % autotest_path,
+                           guest_results_dir)
 
 
     def get_results_summary():
@@ -536,9 +542,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
     # Extract autotest.tar.bz2
     extract(vm, compressed_autotest_path, "/")
 
-    if not vm.copy_files_to(control_path,
-                            os.path.join(autotest_path, 'control')):
-        raise error.TestFail("Could not copy the test control file to guest")
+    vm.copy_files_to(control_path, os.path.join(autotest_path, 'control'))
 
     # Run the test
     logging.info("Running autotest control file %s on guest, timeout %ss",

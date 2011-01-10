@@ -1244,8 +1244,7 @@ def run_virtio_console(test, params, env):
     pwd = os.path.join(os.environ['AUTODIR'], 'tests/kvm')
     vksmd_src = os.path.join(pwd, "scripts/virtio_guest.py")
     dst_dir = "/tmp"
-    if not vm[0].copy_files_to(vksmd_src, dst_dir):
-        raise error.TestFail("copy_files_to failed %s" % vm[0].name)
+    vm[0].copy_files_to(vksmd_src, dst_dir)
 
     # ACTUAL TESTING
     # Defines all available consoles; tests udev and sysfs

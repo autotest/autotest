@@ -50,12 +50,9 @@ def run_boot_savevm(test, params, env):
         if (time.time() > login_expire):
             login_expire = time.time() + savevm_login_delay
             logging.info("Logging in after loadvm...")
-            session = kvm_utils.wait_for(vm.remote_login, 1, 0, 1)
-            if not session:
-                logging.info("Failed to login")
-            else:
-                logging.info("Logged in to guest!")
-                break
+            session = vm.remote_login()
+            logging.info("Logged in to guest!")
+            break
 
     if (time.time() > end_time):
         raise error.TestFail("fail: timeout")

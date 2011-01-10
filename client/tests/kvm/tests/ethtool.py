@@ -124,8 +124,10 @@ def run_ethtool(test, params, env):
             return (False, "Tcpdump process wasn't launched")
 
         logging.info("Start to transfer file")
-        if not copy_files_from(filename, filename)
-            return (False, "Child process transfer file failed")
+        try:
+            copy_files_from(filename, filename)
+        except kvm_utils.SCPError, e:
+            return (False, "File transfer failed (%s)" % e)
         logging.info("Transfer file completed")
         session.cmd("killall tcpdump")
         try:
