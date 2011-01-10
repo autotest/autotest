@@ -40,7 +40,7 @@ def run_migration_with_file_transfer(test, params, env):
         def run_and_migrate(bg):
             bg.start()
             try:
-                while bg.is_alive():
+                while bg.isAlive():
                     logging.info("File transfer not ended, starting a round of "
                                  "migration...")
                     vm.migrate(mig_timeout, mig_protocol)
