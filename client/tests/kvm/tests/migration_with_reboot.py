@@ -33,7 +33,7 @@ def run_migration_with_reboot(test, params, env):
         bg = kvm_utils.Thread(kvm_test_utils.reboot, (vm, session))
         bg.start()
         try:
-            while bg.is_alive():
+            while bg.isAlive():
                 vm.migrate(mig_timeout, mig_protocol, mig_cancel_delay)
         finally:
             session = bg.join()
