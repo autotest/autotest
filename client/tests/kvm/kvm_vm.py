@@ -1348,6 +1348,148 @@ class VM:
         return self.serial_login(internal_timeout)
 
 
+    def migrate(self, timeout=3600, protocol="tcp", cancel_delay=None,
+                offline=False, stable_check=False, clean=True,
+                save_path="/tmp", dest_host="localhost", remote_port=None):
+        """
+        Migrate the VM.
+
+        If the migration is local, the VM object's state is switched with that
+        of the destination VM.  Otherwise, the state is switched with that of
+        a dead VM (returned by self.clone()).
+
+        @param timeout: Time to wait for migration to complete.
+        @param protocol: Migration protocol ('tcp', 'unix' or 'exec').
+        @param cancel_delay: If provided, specifies a time duration after which
+                migration will be canceled.  Used for testing migrate_cancel.
+        @param offline: If True, pause the source VM before migration.
+        @param stable_check: If True, compare the VM's state after migration to
+                its state before migration and raise an exception if they
+                differ.
+        @param clean: If True, delete the saved state files (relevant only if
+                stable_check is also True).
+        @save_path: The path for state files.
+        @param dest_host: Destination host (defaults to 'localhost').
+        @param remote_port: Port to use for remote migration.
+        """
+        def mig_finished():
+            o = self.monitor.info("migrate")
+            if isinstance(o, str):
+                return "status: active" not in o
+            else:
+                return o.get("status") != "active"
+
+        def mig_succeeded():
+            o = self.monitor.info("migrate")
+            if isinstance(o, str):
+                return "status: completed" in o
+            else:
+                return o.get("status") == "completed"
+
+        def mig_failed():
+            o = self.monitor.info("migrate")
+            if isinstance(o, str):
+                return "status: failed" in o
+            else:
+                return o.get("status") == "failed"
+
+        def mig_cancelled():
+            o = self.monitor.info("migrate")
+            if isinstance(o, str):
+                return ("Migration status: cancelled" in o or
+                        "Migration status: canceled" in o)
+            else:
+                return (o.get("status") == "cancelled" or
+                        o.get("status") == "canceled")
+
+        def wait_for_migration():
+            if not kvm_utils.wait_for(mig_finished, timeout, 2, 2,
+                                      "Waiting for migration to finish..."):
+                raise VMMigrateTimeoutError("Timeout expired while waiting "
+                                            "for migration to finish")
+
+        local = dest_host == "localhost"
+
+        clone = self.clone()
+        if local:
+            if stable_check:
+                # Pause the dest vm after creation
+                extra_params = clone.params.get("extra_params", "") + " -S"
+                clone.params["extra_params"] = extra_params
+            clone.create(migration_mode=protocol, mac_source=self)
+
+        try:
+            if protocol == "tcp":
+                if local:
+                    uri = "tcp:localhost:%d" % clone.migration_port
+                else:
+                    uri = "tcp:%s:%d" % (dest_host, remote_port)
+            elif protocol == "unix":
+                uri = "unix:%s" % clone.migration_file
+            elif protocol == "exec":
+                uri = '"exec:nc localhost %s"' % clone.migration_port
+
+            if offline:
+                self.monitor.cmd("stop")
+
+            self.monitor.migrate(uri)
+
+            if cancel_delay:
+                time.sleep(cancel_delay)
+                self.monitor.cmd("migrate_cancel")
+                if not kvm_utils.wait_for(mig_cancelled, 60, 2, 2,
+                                          "Waiting for migration "
+                                          "cancellation"):
+                    raise VMMigrateCancelError("Cannot cancel migration")
+                return
+
+            wait_for_migration()
+
+            # Report migration status
+            if mig_succeeded():
+                logging.info("Migration completed successfully")
+            elif mig_failed():
+                raise VMMigrateFailedError("Migration failed")
+            else:
+                raise VMMigrateFailedError("Migration ended with unknown "
+                                           "status")
+
+            # Switch self <-> clone
+            temp = self.clone(copy_state=True)
+            self.__dict__ = clone.__dict__
+            clone = temp
+
+            # From now on, clone is the source VM that will soon be destroyed
+            # and self is the destination VM that will remain alive.  If this
+            # is remote migration, self is a dead VM object.
+
+            if local and stable_check:
+                try:
+                    save1 = os.path.join(save_path, "src-" + clone.instance)
+                    save2 = os.path.join(save_path, "dst-" + self.instance)
+                    clone.save_to_file(save1)
+                    self.save_to_file(save2)
+                    # Fail if we see deltas
+                    md5_save1 = utils.hash_file(save1)
+                    md5_save2 = utils.hash_file(save2)
+                    if md5_save1 != md5_save2:
+                        raise VMMigrateStateMismatchError(md5_save1,
+                                                          md5_save2)
+                finally:
+                    if clean:
+                        if os.path.isfile(save1):
+                            os.remove(save1)
+                        if os.path.isfile(save2):
+                            os.remove(save2)
+
+        finally:
+            # If we're doing remote migration and it's completed successfully,
+            # self points to a dead VM object
+            if self.is_alive():
+                self.monitor.cmd("cont")
+            clone.destroy(gracefully=False)
+
+
     def send_key(self, keystr):
         """
         Send a key event to the VM.
