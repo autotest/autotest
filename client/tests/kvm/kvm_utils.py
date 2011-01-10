@@ -826,16 +826,16 @@ def copy_files_to(address, client, username, password, port, local_path,
         c.close()
 
 
-def copy_files_from(address, client, username, password, port, local_path,
-                    remote_path, log_filename=None, timeout=600):
+def copy_files_from(address, client, username, password, port, remote_path,
+                    local_path, log_filename=None, timeout=600):
     """
     Copy files from a remote host (guest) using the selected client.
 
     @param client: Type of transfer client
     @param username: Username (if required)
     @param password: Password (if requried)
-    @param local_path: Path on the local machine where we are copying from
-    @param remote_path: Path on the remote machine where we are copying to
+    @param remote_path: Path on the remote machine where we are copying from
+    @param local_path: Path on the local machine where we are copying to
     @param address: Address of remote host(guest)
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer to
