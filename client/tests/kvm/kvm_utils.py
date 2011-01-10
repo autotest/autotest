@@ -455,8 +455,72 @@ def check_kvm_source_dir(source_dir):
         raise error.TestError("Unknown source dir layout, cannot proceed.")
 
 
-# The following are functions used for SSH, SCP and Telnet communication with
-# guests.
+# Functions and classes used for logging into guests and transferring files
+
+class LoginError(Exception):
+    pass
+
+
+class LoginAuthenticationError(LoginError):
+    pass
+
+
+class LoginTimeoutError(LoginError):
+    def __init__(self, output):
+        LoginError.__init__(self, output)
+        self.output = output
+
+    def __str__(self):
+        return "Timeout expired (output so far: %r)" % self.output
+
+
+class LoginProcessTerminatedError(LoginError):
+    def __init__(self, status, output):
+        LoginError.__init__(self, status, output)
+        self.status = status
+        self.output = output
+
+    def __str__(self):
+        return ("Client process terminated (status: %s, output: %r)" %
+                (self.status, self.output))
+
+
+class LoginBadClientError(LoginError):
+    def __init__(self, client):
+        LoginError.__init__(self, client)
+        self.client = client
+
+    def __str__(self):
+        return "Unknown remote shell client: %r" % self.client
+
+
+class SCPError(Exception):
+    pass
+
+
+class SCPAuthenticationError(SCPError):
+    pass
+
+
+class SCPTransferTimeoutError(SCPError):
+    def __init__(self, output):
+        SCPError.__init__(self, output)
+        self.output = output
+
+    def __str__(self):
+        return "Transfer timeout expired (output so far: %r)" % self.output
+
+
+class SCPTransferFailedError(SCPError):
+    def __init__(self, status, output):
+        SCPError.__init__(self, status, output)
+        self.status = status
+        self.output = output
+
+    def __str__(self):
+        return "SCP transfer failed (status: %s, output: %r)" % (self.status,
+                                                                 self.output)
+
 
 def _remote_login(session, username, password, prompt, timeout=10):
     """
