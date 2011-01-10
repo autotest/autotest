@@ -80,13 +80,10 @@ def preprocess_vm(test, params, env, name):
 
     if start_vm:
         if migration_mode is not None:
-            if not vm.create(name, params, test.bindir,
-                             migration_mode=migration_mode):
-                raise error.TestError("Could not start VM for migration")
+            vm.create(name, params, test.bindir, migration_mode=migration_mode)
         else:
             # Start the VM (or restart it if it's already up)
-            if not vm.create(name, params, test.bindir):
-                raise error.TestError("Could not start VM")
+            vm.create(name, params, test.bindir)
     else:
         # Don't start the VM, just update its params
         vm.params = params
@@ -343,7 +340,7 @@ def postprocess(test, params, env):
                 try:
                     session = vm.login()
                     session.close()
-                except kvm_utils.LoginError:
+                except (kvm_utils.LoginError, kvm_vm.VMError):
                     vm.destroy(gracefully=False)
 
     # Kill all kvm_subprocess tail threads

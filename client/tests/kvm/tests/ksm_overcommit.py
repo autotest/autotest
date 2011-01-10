@@ -574,8 +574,7 @@ def run_ksm_overcommit(test, params, env):
         params['vms'] += " " + vm_name
 
         logging.debug("Booting guest %s" % lvms[i].name)
-        if not lvms[i].create():
-            raise error.TestFail("Cannot create VM %s" % lvms[i].name)
+        lvms[i].create()
         if not lvms[i].is_alive():
             raise error.TestError("VM %s seems to be dead; Test requires a"
                                   "living VM" % lvms[i].name)
