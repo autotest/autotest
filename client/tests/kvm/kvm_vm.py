@@ -1256,12 +1256,12 @@ class VM:
         return self.login(nic_index, internal_timeout)
 
 
-    def copy_files_to(self, local_path, remote_path, nic_index=0, timeout=600):
+    def copy_files_to(self, host_path, guest_path, nic_index=0, timeout=600):
         """
         Transfer files to the remote host(guest).
 
-        @param local_path: Host path
-        @param remote_path: Guest path
+        @param host_path: Host path
+        @param guest_path: Guest path
         @param nic_index: The index of the NIC to connect to.
         @param timeout: Time (seconds) before giving up on doing the remote
                 copy.
@@ -1275,15 +1275,15 @@ class VM:
                         (self.name, address,
                         kvm_utils.generate_random_string(4)))
         kvm_utils.copy_files_to(address, client, username, password, port,
-                                local_path, remote_path, log_filename, timeout)
+                                host_path, guest_path, log_filename, timeout)
 
 
-    def copy_files_from(self, remote_path, local_path, nic_index=0, timeout=600):
+    def copy_files_from(self, guest_path, host_path, nic_index=0, timeout=600):
         """
         Transfer files from the guest.
 
-        @param local_path: Guest path
-        @param remote_path: Host path
+        @param host_path: Guest path
+        @param guest_path: Host path
         @param nic_index: The index of the NIC to connect to.
         @param timeout: Time (seconds) before giving up on doing the remote
                 copy.
@@ -1297,8 +1297,7 @@ class VM:
                         (self.name, address,
                         kvm_utils.generate_random_string(4)))
         kvm_utils.copy_files_from(address, client, username, password, port,
-                                  remote_path, local_path, log_filename,
-                                  timeout)
+                                  guest_path, host_path, log_filename, timeout)
 
 
     def serial_login(self, timeout=10):
