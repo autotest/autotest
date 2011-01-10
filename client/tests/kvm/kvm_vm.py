@@ -1297,7 +1297,7 @@ class VM:
                         (self.name, address,
                         kvm_utils.generate_random_string(4)))
         kvm_utils.copy_files_from(address, client, username, password, port,
-                                  local_path, remote_path, log_filename,
+                                  remote_path, local_path, log_filename,
                                   timeout)
 
 
