@@ -29,7 +29,7 @@ def run_whql_submission(test, params, env):
 
     # Make sure all NICs of all client VMs are up
     for vm in vms:
-        nics = kvm_utils.get_sub_dict_names(vm.params, "nics")
+        nics = vm.params.objects("nics")
         for nic_index in range(len(nics)):
             s = vm.wait_for_login(nic_index, 600)
             s.close()
@@ -79,7 +79,7 @@ def run_whql_submission(test, params, env):
 
     # Check the NICs again
     for vm in vms:
-        nics = kvm_utils.get_sub_dict_names(vm.params, "nics")
+        nics = vm.params.objects("nics")
         for nic_index in range(len(nics)):
             s = vm.wait_for_login(nic_index, 600)
             s.close()
