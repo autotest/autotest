@@ -49,8 +49,7 @@ def run_guest_s4(test, params, env):
 
     # Start vm, and check whether the program is still running
     logging.info("Resuming suspended VM...")
-    if not vm.create():
-        raise error.TestError("Failed to start VM after suspend to disk")
+    vm.create()
 
     # Log into the resumed VM
     relogin_timeout = int(params.get("relogin_timeout", 240))

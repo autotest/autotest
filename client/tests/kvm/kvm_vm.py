@@ -672,6 +672,16 @@ class VM:
                 (e.g. 'gzip -c -d filename') if migration_mode is 'exec'
         @param mac_source: A VM object from which to copy MAC addresses. If not
                 specified, new addresses will be generated.
+
+        @raise VMCreateError: If qemu terminates unexpectedly
+        @raise VMKVMInitError: If KVM initialization fails
+        @raise VMHugePageError: If hugepage initialization fails
+        @raise VMImageMissingError: If a CD image is missing
+        @raise VMHashMismatchError: If a CD image hash has doesn't match the
+                expected hash
+        @raise VMBadPATypeError: If an unsupported PCI assignment type is
+                requested
+        @raise VMPAError: If no PCI assignable devices could be assigned
         """
         self.destroy()
 
@@ -692,8 +702,7 @@ class VM:
             if iso:
                 iso = kvm_utils.get_path(root_dir, iso)
                 if not os.path.exists(iso):
-                    logging.error("ISO file not found: %s" % iso)
-                    return False
+                    raise VMImageMissingError(iso)
                 compare = False
                 if cdrom_params.get("md5sum_1m"):
                     logging.debug("Comparing expected MD5 sum with MD5 sum of "
@@ -717,8 +726,7 @@ class VM:
                     if actual_hash == expected_hash:
                         logging.debug("Hashes match")
                     else:
-                        logging.error("Actual hash differs from expected one")
-                        return False
+                        raise VMHashMismatchError(actual_hash, expected_hash)
 
         # Make sure the following code is not executed by more than one thread
         # at the same time
@@ -768,7 +776,7 @@ class VM:
             # Assign a PCI assignable device
             self.pci_assignable = None
             pa_type = params.get("pci_assignable")
-            if pa_type in ["vf", "pf", "mixed"]:
+            if pa_type and pa_type != "no":
                 pa_devices_requested = params.get("devices_requested")
 
                 # Virtual Functions (VF) assignable devices
@@ -792,6 +800,8 @@ class VM:
                         driver_option=params.get("driver_option"),
                         names=params.get("device_names"),
                         devices_requested=pa_devices_requested)
+                else:
+                    raise VMBadPATypeError(pa_type)
 
                 self.pa_pci_ids = self.pci_assignable.request_devs()
 
@@ -799,14 +809,7 @@ class VM:
                     logging.debug("Successfuly assigned devices: %s",
                                   self.pa_pci_ids)
                 else:
-                    logging.error("No PCI assignable devices were assigned "
-                                  "and 'pci_assignable' is defined to %s "
-                                  "on your config file. Aborting VM creation.",
-                                  pa_type)
-                    return False
-
-            elif pa_type and pa_type != "no":
-                logging.warn("Unsupported pci_assignable type: %s", pa_type)
+                    raise VMPAError(pa_type)
 
             # Make qemu command
             qemu_command = self.make_qemu_command()
@@ -829,13 +832,11 @@ class VM:
 
             # Make sure the process was started successfully
             if not self.process.is_alive():
-                logging.error("VM could not be created; "
-                              "qemu command failed:\n%s" % qemu_command)
-                logging.error("Status: %s" % self.process.get_status())
-                logging.error("Output:" + kvm_utils.format_str_for_message(
-                    self.process.get_output()))
+                e = VMCreateError(qemu_command,
+                                  self.process.get_status(),
+                                  self.process.get_output())
                 self.destroy()
-                return False
+                raise e
 
             # Establish monitor connections
             self.monitors = []
@@ -855,17 +856,13 @@ class VM:
                             monitor = kvm_monitor.HumanMonitor(
                                 monitor_name,
                                 self.get_monitor_filename(monitor_name))
+                        break
                     except kvm_monitor.MonitorError, e:
                         logging.warn(e)
-                    else:
-                        if monitor.is_responsive():
-                            break
-                    time.sleep(1)
+                        time.sleep(1)
                 else:
-                    logging.error("Could not connect to monitor '%s'" %
-                                  monitor_name)
                     self.destroy()
-                    return False
+                    raise e
                 # Add this monitor to the list
                 self.monitors += [monitor]
 
@@ -874,20 +871,14 @@ class VM:
             output = self.process.get_output()
 
             if re.search("Could not initialize KVM", output, re.IGNORECASE):
-                logging.error("Could not initialize KVM; "
-                              "qemu command:\n%s" % qemu_command)
-                logging.error("Output:" + kvm_utils.format_str_for_message(
-                              self.process.get_output()))
+                e = VMKVMInitError(qemu_command, self.process.get_output())
                 self.destroy()
-                return False
+                raise e
 
             if "alloc_mem_area" in output:
-                logging.error("Could not allocate hugepage memory; "
-                              "qemu command:\n%s" % qemu_command)
-                logging.error("Output:" + kvm_utils.format_str_for_message(
-                              self.process.get_output()))
+                e = VMHugePageError(qemu_command, self.process.get_output())
                 self.destroy()
-                return False
+                raise e
 
             logging.debug("VM appears to be alive with PID %s", self.get_pid())
 
@@ -898,8 +889,6 @@ class VM:
                 auto_close=False,
                 output_func=kvm_utils.log_line,
                 output_params=("serial-%s.log" % name,))
-
-            return True
 
         finally:
             fcntl.lockf(lockfile, fcntl.LOCK_UN)
@@ -931,7 +920,7 @@ class VM:
                 logging.debug("Trying to shutdown VM with shell command...")
                 try:
                     session = self.login()
-                except kvm_utils.LoginError, e:
+                except (kvm_utils.LoginError, VMError), e:
                     logging.debug(e)
                 else:
                     try:
@@ -1073,28 +1062,26 @@ class VM:
         address of its own).  Otherwise return the NIC's IP address.
 
         @param index: Index of the NIC whose address is requested.
+        @raise VMMACAddressMissingError: If no MAC address is defined for the
+                requested NIC
+        @raise VMIPAddressMissingError: If no IP address is found for the the
+                NIC's MAC address
+        @raise VMAddressVerificationError: If the MAC-IP address mapping cannot
+                be verified (using arping)
         """
         nics = self.params.objects("nics")
         nic_name = nics[index]
         nic_params = self.params.object_params(nic_name)
         if nic_params.get("nic_mode") == "tap":
-            mac = self.get_mac_address(index)
-            if not mac:
-                logging.debug("MAC address unavailable")
-                return None
-            mac = mac.lower()
+            mac = self.get_mac_address(index).lower()
             # Get the IP address from the cache
             ip = self.address_cache.get(mac)
             if not ip:
-                logging.debug("Could not find IP address for MAC address: %s" %
-                              mac)
-                return None
+                raise VMIPAddressMissingError(mac)
             # Make sure the IP address is assigned to this guest
             macs = [self.get_mac_address(i) for i in range(len(nics))]
             if not kvm_utils.verify_ip_address_ownership(ip, macs):
-                logging.debug("Could not verify MAC-IP address mapping: "
-                              "%s ---> %s" % (mac, ip))
-                return None
+                raise VMAddressVerificationError(mac, ip)
             return ip
         else:
             return "localhost"
@@ -1108,16 +1095,18 @@ class VM:
         @param nic_index: Index of the NIC.
         @return: If port redirection is used, return the host port redirected
                 to guest port port. Otherwise return port.
+        @raise VMPortNotRedirectedError: If an unredirected port is requested
+                in user mode
         """
         nic_name = self.params.objects("nics")[nic_index]
         nic_params = self.params.object_params(nic_name)
         if nic_params.get("nic_mode") == "tap":
             return port
         else:
-            if not self.redirs.has_key(port):
-                logging.warn("Warning: guest port %s requested but not "
-                             "redirected" % port)
-            return self.redirs.get(port)
+            try:
+                return self.redirs[port]
+            except KeyError:
+                raise VMPortNotRedirectedError(port)
 
 
     def get_ifname(self, nic_index=0):
@@ -1140,8 +1129,13 @@ class VM:
         Return the MAC address of a NIC.
 
         @param nic_index: Index of the NIC
+        @raise VMMACAddressMissingError: If no MAC address is defined for the
+                requested NIC
         """
-        return kvm_utils.get_mac_address(self.instance, nic_index)
+        mac = kvm_utils.get_mac_address(self.instance, nic_index)
+        if not mac:
+            raise VMMACAddressMissingError(nic_index)
+        return mac
 
 
     def free_mac_address(self, nic_index=0):
@@ -1214,10 +1208,6 @@ class VM:
         port = self.get_port(int(self.params.get("shell_port")))
         log_filename = ("session-%s-%s.log" %
                         (self.name, kvm_utils.generate_random_string(4)))
-
-        if not address or not port:
-            raise kvm_utils.LoginError("IP address or port unavailable")
-
         session = kvm_utils.remote_login(client, address, port, username,
                                          password, prompt, linesep,
                                          log_filename, timeout)
@@ -1248,7 +1238,7 @@ class VM:
         while time.time() < end_time:
             try:
                 return self.login(nic_index, internal_timeout)
-            except kvm_utils.LoginError, e:
+            except (kvm_utils.LoginError, VMError), e:
                 logging.debug(e)
             time.sleep(2)
         # Timeout expired; try one more time but don't catch exceptions
