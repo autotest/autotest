@@ -631,6 +631,7 @@ def raw_ping(command, timeout, session, output_func):
         process.close()
         return status, output
     else:
+        output = ""
         try:
             output = session.cmd_output(command, timeout=timeout,
                                         print_func=output_func)
