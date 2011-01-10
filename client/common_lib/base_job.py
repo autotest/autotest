@@ -800,7 +800,10 @@ class TAPReport(object):
         Write TAP reports to file.
         """
         for key in self._reports_container.keys():
-            sub_dir = '' if key == 'root' else key
+            if key == 'root':
+                sub_dir = ''
+            else:
+                sub_dir = key
             tap_fh = open(os.sep.join(
                 [self.resultdir, sub_dir, self.global_filename]
             ) + ".tap", 'w')
