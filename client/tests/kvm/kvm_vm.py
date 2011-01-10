@@ -203,19 +203,8 @@ def create_image(params, root_dir):
     size = params.get("image_size", "10G")
     qemu_img_cmd += " %s" % size
 
-    try:
-        utils.system(qemu_img_cmd)
-    except error.CmdError, e:
-        logging.error("Could not create image; qemu-img command failed:\n%s",
-                      str(e))
-        return None
-
-    if not os.path.exists(image_filename):
-        logging.error("Image could not be created for some reason; "
-                      "qemu-img command:\n%s" % qemu_img_cmd)
-        return None
-
-    logging.info("Image created in %s" % image_filename)
+    utils.system(qemu_img_cmd)
+    logging.info("Image created in %r" % image_filename)
     return image_filename
 
 
