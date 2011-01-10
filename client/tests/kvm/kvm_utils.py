@@ -593,6 +593,49 @@ def _remote_login(session, username, password, prompt, timeout=10):
             return False
 
 
+def remote_login(client, host, port, username, password, prompt, linesep="\n",
+                 log_filename=None, timeout=10):
+    """
+    Log into a remote host (guest) using SSH/Telnet/Netcat.
+
+    @param client: The client to use ('ssh', 'telnet' or 'nc')
+    @param host: Hostname or IP address
+    @param port: Port to connect to
+    @param username: Username (if required)
+    @param password: Password (if required)
+    @param prompt: Shell prompt (regular expression)
+    @param linesep: The line separator to use when sending lines
+            (e.g. '\\n' or '\\r\\n')
+    @param log_filename: If specified, log all output to this file
+    @param timeout: The maximal time duration (in seconds) to wait for
+            each step of the login procedure (i.e. the "Are you sure" prompt
+            or the password prompt)
+
+    @return: ShellSession object on success and None on failure.
+    """
+    if client == "ssh":
+        cmd = ("ssh -o UserKnownHostsFile=/dev/null "
+               "-o PreferredAuthentications=password -p %s %s@%s" %
+               (port, username, host))
+    elif client == "telnet":
+        cmd = "telnet -l %s %s %s" % (username, host, port)
+    elif client == "nc":
+        cmd = "nc %s %s" % (host, port)
+    else:
+        logging.error("Unknown remote shell client: %s" % client)
+        return
+
+    logging.debug("Trying to login with command '%s'" % cmd)
+    session = kvm_subprocess.ShellSession(cmd, linesep=linesep, prompt=prompt)
+    if _remote_login(session, username, password, prompt, timeout):
+        if log_filename:
+            session.set_output_func(log_line)
+            session.set_output_params((log_filename,))
+        return session
+    else:
+        session.close()
+
+
 def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
     """
     Transfer file(s) to a remote host (guest) using SCP.  Wait for questions
@@ -645,49 +688,6 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
             return e.status == 0
 
 
-def remote_login(client, host, port, username, password, prompt, linesep="\n",
-                 log_filename=None, timeout=10):
-    """
-    Log into a remote host (guest) using SSH/Telnet/Netcat.
-
-    @param client: The client to use ('ssh', 'telnet' or 'nc')
-    @param host: Hostname or IP address
-    @param port: Port to connect to
-    @param username: Username (if required)
-    @param password: Password (if required)
-    @param prompt: Shell prompt (regular expression)
-    @param linesep: The line separator to use when sending lines
-            (e.g. '\\n' or '\\r\\n')
-    @param log_filename: If specified, log all output to this file
-    @param timeout: The maximal time duration (in seconds) to wait for
-            each step of the login procedure (i.e. the "Are you sure" prompt
-            or the password prompt)
-
-    @return: ShellSession object on success and None on failure.
-    """
-    if client == "ssh":
-        cmd = ("ssh -o UserKnownHostsFile=/dev/null "
-               "-o PreferredAuthentications=password -p %s %s@%s" %
-               (port, username, host))
-    elif client == "telnet":
-        cmd = "telnet -l %s %s %s" % (username, host, port)
-    elif client == "nc":
-        cmd = "nc %s %s" % (host, port)
-    else:
-        logging.error("Unknown remote shell client: %s" % client)
-        return
-
-    logging.debug("Trying to login with command '%s'" % cmd)
-    session = kvm_subprocess.ShellSession(cmd, linesep=linesep, prompt=prompt)
-    if _remote_login(session, username, password, prompt, timeout):
-        if log_filename:
-            session.set_output_func(log_line)
-            session.set_output_params((log_filename,))
-        return session
-    else:
-        session.close()
-
-
 def remote_scp(command, password, log_filename=None, transfer_timeout=600,
                login_timeout=10):
     """
@@ -724,70 +724,6 @@ def remote_scp(command, password, log_filename=None, transfer_timeout=600,
         return _remote_scp(session, password, transfer_timeout, login_timeout)
     finally:
         session.close()
-
-
-def copy_files_to(address, client, username, password, port, local_path,
-                  remote_path, log_filename=None, timeout=600):
-    """
-    Decide the transfer cleint and copy file to a remote host (guest).
-
-    @param client: Type of transfer client
-    @param username: Username (if required)
-    @param password: Password (if requried)
-    @param local_path: Path on the local machine where we are copying from
-    @param remote_path: Path on the remote machine where we are copying to
-    @param address: Address of remote host(guest)
-    @param log_filename: If specified, log all output to this file
-    @param timeout: The time duration (in seconds) to wait for the transfer to
-    complete.
-
-    @return: True on success and False on failure.
-    """
-
-    if not address or not port:
-        logging.debug("IP address or port unavailable")
-        return None
-
-    if client == "scp":
-        return scp_to_remote(address, port, username, password, local_path,
-                             remote_path, log_filename, timeout)
-    elif client == "rss":
-        c = rss_file_transfer.FileUploadClient(address, port)
-        c.upload(local_path, remote_path, timeout)
-        c.close()
-        return True
-
-
-def copy_files_from(address, client, username, password, port, local_path,
-                  remote_path, log_filename=None, timeout=600):
-    """
-    Decide the transfer cleint and copy file from a remote host (guest).
-
-    @param client: Type of transfer client
-    @param username: Username (if required)
-    @param password: Password (if requried)
-    @param local_path: Path on the local machine where we are copying from
-    @param remote_path: Path on the remote machine where we are copying to
-    @param address: Address of remote host(guest)
-    @param log_filename: If specified, log all output to this file
-    @param timeout: The time duration (in seconds) to wait for the transfer to
-    complete.
-
-    @return: True on success and False on failure.
-    """
-
-    if not address or not port:
-        logging.debug("IP address or port unavailable")
-        return None
-
-    if client == "scp":
-        return scp_from_remote(address, port, username, password, remote_path,
-                             local_path, log_filename, timeout)
-    elif client == "rss":
-        c = rss_file_transfer.FileDownloadClient(address, port)
-        c.download(remote_path, local_path, timeout)
-        c.close()
-        return True
 
 
 def scp_to_remote(host, port, username, password, local_path, remote_path,
@@ -832,6 +768,70 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
                "-o PreferredAuthentications=password -r -P %s %s@%s:%s %s" %
                (port, username, host, remote_path, local_path))
     return remote_scp(command, password, log_filename, timeout)
+
+
+def copy_files_to(address, client, username, password, port, local_path,
+                  remote_path, log_filename=None, timeout=600):
+    """
+    Copy files to a remote host (guest) using the selected client.
+
+    @param client: Type of transfer client
+    @param username: Username (if required)
+    @param password: Password (if requried)
+    @param local_path: Path on the local machine where we are copying from
+    @param remote_path: Path on the remote machine where we are copying to
+    @param address: Address of remote host(guest)
+    @param log_filename: If specified, log all output to this file
+    @param timeout: The time duration (in seconds) to wait for the transfer to
+    complete.
+
+    @return: True on success and False on failure.
+    """
+
+    if not address or not port:
+        logging.debug("IP address or port unavailable")
+        return None
+
+    if client == "scp":
+        return scp_to_remote(address, port, username, password, local_path,
+                             remote_path, log_filename, timeout)
+    elif client == "rss":
+        c = rss_file_transfer.FileUploadClient(address, port)
+        c.upload(local_path, remote_path, timeout)
+        c.close()
+        return True
+
+
+def copy_files_from(address, client, username, password, port, local_path,
+                    remote_path, log_filename=None, timeout=600):
+    """
+    Copy files from a remote host (guest) using the selected client.
+
+    @param client: Type of transfer client
+    @param username: Username (if required)
+    @param password: Password (if requried)
+    @param local_path: Path on the local machine where we are copying from
+    @param remote_path: Path on the remote machine where we are copying to
+    @param address: Address of remote host(guest)
+    @param log_filename: If specified, log all output to this file
+    @param timeout: The time duration (in seconds) to wait for the transfer to
+    complete.
+
+    @return: True on success and False on failure.
+    """
+
+    if not address or not port:
+        logging.debug("IP address or port unavailable")
+        return None
+
+    if client == "scp":
+        return scp_from_remote(address, port, username, password, remote_path,
+                             local_path, log_filename, timeout)
+    elif client == "rss":
+        c = rss_file_transfer.FileDownloadClient(address, port)
+        c.download(remote_path, local_path, timeout)
+        c.close()
+        return True
 
 
 # The following are utility functions related to ports.
