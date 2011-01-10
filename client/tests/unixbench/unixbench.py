@@ -34,7 +34,15 @@ class unixbench(test.test):
                     % ((stepsecs,)*5)
 
         os.chdir(self.srcdir)
-        utils.system(vars + ' ./Run ' + args)
+        try:
+            utils.system(vars + ' ./Run ' + args)
+        finally:
+            times_path = os.path.join(self.resultsdir, 'times')
+            # The 'times' file can be needlessly huge as it contains warnings
+            # and error messages printed out by small benchmarks that are
+            # run in a loop.  It can easily compress 100x in such cases.
+            if os.path.exists(times_path):
+                utils.system("gzip -9 '%s'" % (times_path,), ignore_status=True)
 
         report_path = os.path.join(self.resultsdir, 'report')
         self.report_data = open(report_path).readlines()[9:]
