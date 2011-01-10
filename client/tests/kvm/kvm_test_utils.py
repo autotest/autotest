@@ -78,7 +78,7 @@ def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2, serial=None):
             try:
                 session = vm.login(nic_index=nic_index)
                 break
-            except kvm_utils.LoginError, e:
+            except (kvm_utils.LoginError, kvm_vm.VMError), e:
                 logging.debug(e)
             time.sleep(step)
     if not session:
@@ -205,8 +205,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                                           + ' -S')
 
     if dest_host == 'localhost':
-        if not dest_vm.create(migration_mode=mig_protocol, mac_source=vm):
-            raise error.TestError("Could not create dest VM")
+        dest_vm.create(migration_mode=mig_protocol, mac_source=vm)
 
     try:
         try:
