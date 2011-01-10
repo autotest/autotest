@@ -13,7 +13,7 @@ def run_guest_s4(test, params, env):
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout = int(params.get("login_timeout", 360))
-    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+    session = vm.wait_for_login(timeout=timeout)
 
     logging.info("Checking whether guest OS supports suspend to disk (S4)...")
     session.cmd(params.get("check_s4_support_cmd"))
@@ -28,7 +28,7 @@ def run_guest_s4(test, params, env):
     time.sleep(5)
 
     # Get the second session to start S4
-    session2 = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+    session2 = vm.wait_for_login(timeout=timeout)
 
     # Make sure the background program is running as expected
     check_s4_cmd = params.get("check_s4_cmd")
@@ -55,12 +55,7 @@ def run_guest_s4(test, params, env):
     # Log into the resumed VM
     relogin_timeout = int(params.get("relogin_timeout", 240))
     logging.info("Logging into resumed VM, timeout %s", relogin_timeout)
-    # Temporary hack
-    time.sleep(relogin_timeout)
-    session2 = vm.remote_login()
-    if not session2:
-        raise error.TestFail("Could not log into VM after resuming from "
-                             "suspend to disk")
+    session2 = vm.wait_for_login(timeout=relogin_timeout)
 
     # Check whether the test command is still alive
     logging.info("Checking if background command is still alive...")

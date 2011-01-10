@@ -249,9 +249,7 @@ def run_ksm_overcommit(test, params, env):
         session = lsessions[0]
         vm = lvms[0]
         for i in range(1, max_alloc):
-            # Temporary hack
-            time.sleep(360)
-            lsessions.append(vm.remote_login())
+            lsessions.append(vm.wait_for_login(timeout=360))
 
         session.cmd("swapoff -a", timeout=300)
 
@@ -552,9 +550,7 @@ def run_ksm_overcommit(test, params, env):
 
     logging.debug("Booting first guest %s", lvms[0].name)
 
-    # Temporary hack
-    time.sleep(360)
-    lsessions.append(lvms[0].remote_login())
+    lsessions.append(lvms[0].wait_for_login(timeout=360))
     # Associate vm PID
     try:
         tmp = open(params.get('pid_' + vm_name), 'r')
@@ -584,9 +580,7 @@ def run_ksm_overcommit(test, params, env):
             raise error.TestError("VM %s seems to be dead; Test requires a"
                                   "living VM" % lvms[i].name)
 
-        # Temporary hack
-        time.sleep(360)
-        lsessions.append(lvms[i].remote_login())
+        lsessions.append(lvms[i].wait_for_login(timeout=360))
         try:
             tmp = open(params.get('pid_' + vm_name), 'r')
             params['pid_' + vm_name] = int(tmp.readline())

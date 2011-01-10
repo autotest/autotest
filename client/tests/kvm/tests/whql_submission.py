@@ -19,17 +19,18 @@ def run_whql_submission(test, params, env):
     @param env: Dictionary with test environment.
     """
     # Log into all client VMs
+    login_timeout = int(params.get("login_timeout", 360))
     vms = []
     sessions = []
     for vm_name in params.objects("vms"):
         vms.append(kvm_test_utils.get_living_vm(env, vm_name))
-        sessions.append(kvm_test_utils.wait_for_login(vms[-1], 0, 240))
+        sessions.append(vms[-1].wait_for_login(timeout=login_timeout))
 
     # Make sure all NICs of all client VMs are up
     for vm in vms:
         nics = kvm_utils.get_sub_dict_names(vm.params, "nics")
         for nic_index in range(len(nics)):
-            s = kvm_test_utils.wait_for_login(vm, nic_index, 600)
+            s = vm.wait_for_login(nic_index, 600)
             s.close()
 
     # Collect parameters
@@ -79,7 +80,7 @@ def run_whql_submission(test, params, env):
     for vm in vms:
         nics = kvm_utils.get_sub_dict_names(vm.params, "nics")
         for nic_index in range(len(nics)):
-            s = kvm_test_utils.wait_for_login(vm, nic_index, 600)
+            s = vm.wait_for_login(nic_index, 600)
             s.close()
 
     # Run whql_pre_command and close the sessions

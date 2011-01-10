@@ -19,7 +19,7 @@ def run_timedrift_with_migration(test, params, env):
     """
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout = int(params.get("login_timeout", 360))
-    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
+    session = vm.wait_for_login(timeout=timeout)
 
     # Collect test parameters:
     # Command to run to get the current time
@@ -50,9 +50,7 @@ def run_timedrift_with_migration(test, params, env):
             vm = kvm_test_utils.migrate(vm, env)
             # Log in
             logging.info("Logging in after migration...")
-            # Temporary hack
-            time.sleep(30)
-            session = vm.remote_login()
+            session = vm.wait_for_login(timeout=30)
             logging.info("Logged in after migration")
             # Get time after current iteration
             (ht1_, gt1_) = kvm_test_utils.get_time(session, time_command,

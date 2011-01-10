@@ -15,12 +15,11 @@ def run_mac_change(test, params, env):
     @param params: Dictionary with the test parameters.
     @param env: Dictionary with test environment.
     """
-    timeout = int(params.get("login_timeout", 360))
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
-    session_serial = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2,
-                                                   serial=True)
+    timeout = int(params.get("login_timeout", 360))
+    session_serial = vm.wait_for_serial_login(timeout=timeout)
     # This session will be used to assess whether the IP change worked
-    session = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2)
+    session = vm.wait_for_login(timeout=timeout)
     old_mac = vm.get_mac_address(0)
     while True:
         vm.free_mac_address(0)
@@ -53,8 +52,7 @@ def run_mac_change(test, params, env):
 
     # Re-log into guest and check if session is responsive
     logging.info("Re-log into the guest")
-    session = kvm_test_utils.wait_for_login(vm,
-              timeout=int(params.get("login_timeout", 360)))
+    session = vm.wait_for_login(timeout=timeout)
     if not session.is_responsive():
         raise error.TestFail("The new session is not responsive.")
 

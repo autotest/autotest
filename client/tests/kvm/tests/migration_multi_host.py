@@ -47,7 +47,7 @@ def run_migration_multi_host(test, params, env):
     comm_port = int(params.get("comm_port", 12324))
     regain_ip_cmd = params.get("regain_ip_cmd", "dhclient")
     if role == 'source':
-        session = kvm_test_utils.wait_for_login(vm, timeout=login_timeout)
+        session = vm.wait_for_login(timeout=login_timeout)
 
         # Listen on a port to get the migration port received from
         # dest machine
@@ -100,9 +100,9 @@ def run_migration_multi_host(test, params, env):
 
         # Log into the guest again
         logging.info("Logging into migrated guest after migration...")
-        session_serial = kvm_test_utils.wait_for_login(vm, timeout=login_timeout, serial=True)
+        session_serial = vm.wait_for_serial_login(timeout=login_timeout)
         session_serial.cmd(regain_ip_cmd)
-        session = kvm_test_utils.wait_for_login(vm, timeout=login_timeout)
+        session = vm.wait_for_login(timeout=login_timeout)
 
     else:
         raise error.TestError('Invalid role specified')

@@ -20,9 +20,7 @@ def run_file_transfer(test, params, env):
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout=int(params.get("login_timeout", 360))
 
-    session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
-    if not session:
-        raise error.TestFail("Could not log into guest '%s'" % vm.name)
+    session = vm.wait_for_login(timeout=timeout)
 
     dir_name = test.tmpdir
     transfer_timeout = int(params.get("transfer_timeout"))
