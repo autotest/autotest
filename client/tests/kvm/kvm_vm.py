@@ -11,6 +11,152 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 
 
+class VMError(Exception):
+    pass
+
+
+class VMCreateError(VMError):
+    def __init__(self, cmd, status, output):
+        VMError.__init__(self, cmd, status, output)
+        self.cmd = cmd
+        self.status = status
+        self.output = output
+
+    def __str__(self):
+        return ("VM creation command failed: %r (status: %s, output: %r)" %
+                (self.cmd, self.status, self.output))
+
+
+class VMHashMismatchError(VMError):
+    def __init__(self, actual, expected):
+        VMError.__init__(self, actual, expected)
+        self.actual_hash = actual
+        self.expected_hash = expected
+
+    def __str__(self):
+        return ("CD image hash (%s) differs from expected one (%s)" %
+                (self.actual_hash, self.expected_hash))
+
+
+class VMImageMissingError(VMError):
+    def __init__(self, filename):
+        VMError.__init__(self, filename)
+        self.filename = filename
+
+    def __str__(self):
+        return "CD image file not found: %r" % self.filename
+
+
+class VMBadPATypeError(VMError):
+    def __init__(self, pa_type):
+        VMError.__init__(self, pa_type)
+        self.pa_type = pa_type
+
+    def __str__(self):
+        return "Unsupported PCI assignable type: %r" % self.pa_type
+
+
+class VMPAError(VMError):
+    def __init__(self, pa_type):
+        VMError.__init__(self, pa_type)
+        self.pa_type = pa_type
+
+    def __str__(self):
+        return ("No PCI assignable devices could be assigned "
+                "(pci_assignable=%r)" % self.pa_type)
+
+
+class VMPostCreateError(VMError):
+    def __init__(self, cmd, output):
+        VMError.__init__(self, cmd, output)
+        self.cmd = cmd
+        self.output = output
+
+
+class VMHugePageError(VMPostCreateError):
+    def __str__(self):
+        return ("Cannot allocate hugepage memory (command: %r, output: %r)" %
+                (self.cmd, self.output))
+
+
+class VMKVMInitError(VMPostCreateError):
+    def __str__(self):
+        return ("Cannot initialize KVM (command: %r, output: %r)" %
+                (self.cmd, self.output))
+
+
+class VMDeadError(VMError):
+    pass
+
+
+class VMAddressError(VMError):
+    pass
+
+
+class VMPortNotRedirectedError(VMAddressError):
+    def __init__(self, port):
+        VMAddressError.__init__(self, port)
+        self.port = port
+
+    def __str__(self):
+        return "Port not redirected: %s" % self.port
+
+
+class VMAddressVerificationError(VMAddressError):
+    def __init__(self, mac, ip):
+        VMAddressError.__init__(self, mac, ip)
+        self.mac = mac
+        self.ip = ip
+
+    def __str__(self):
+        return "Cannot verify MAC-IP address mapping: %s ---> %s" % (self.mac,
+                                                                     self.ip)
+
+
+class VMMACAddressMissingError(VMAddressError):
+    def __init__(self, nic_index):
+        VMAddressError.__init__(self, nic_index)
+        self.nic_index = nic_index
+
+    def __str__(self):
+        return "No MAC address defined for NIC #%s" % self.nic_index
+
+
+class VMIPAddressMissingError(VMAddressError):
+    def __init__(self, mac):
+        VMAddressError.__init__(self, mac)
+        self.mac = mac
+
+    def __str__(self):
+        return "Cannot find IP address for MAC address %s" % self.mac
+
+
+class VMMigrateError(VMError):
+    pass
+
+
+class VMMigrateTimeoutError(VMMigrateError):
+    pass
+
+
+class VMMigrateCancelError(VMMigrateError):
+    pass
+
+
+class VMMigrateFailedError(VMMigrateError):
+    pass
+
+
+class VMMigrateStateMismatchError(VMMigrateError):
+    def __init__(self, src_hash, dst_hash):
+        self.src_hash = src_hash
+        self.dst_hash = dst_hash
+
+    def __str__(self):
+        return ("Mismatch of VM state before and after migration (%s != %s)" %
+                (self.src_hash, self.dst_hash))
+
+
 def get_image_filename(params, root_dir):
     """
     Generate an image path from params and root_dir.
