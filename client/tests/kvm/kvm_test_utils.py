@@ -76,7 +76,7 @@ def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2, serial=None):
         time.sleep(start)
         while time.time() < end_time:
             try:
-                session = vm.remote_login(nic_index=nic_index)
+                session = vm.login(nic_index=nic_index)
                 break
             except kvm_utils.LoginError, e:
                 logging.debug(e)

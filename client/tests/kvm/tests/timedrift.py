@@ -87,7 +87,7 @@ def run_timedrift(test, params, env):
             # Open shell sessions with the guest
             logging.info("Starting load on guest...")
             for i in range(guest_load_instances):
-                load_session = vm.remote_login()
+                load_session = vm.login()
                 # Set output func to None to stop it from being called so we
                 # can change the callback function and the parameters it takes
                 # with no problems
