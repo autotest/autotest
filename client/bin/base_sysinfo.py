@@ -79,11 +79,12 @@ class logfile(loggable):
 
 
 class command(loggable):
-    def __init__(self, cmd, logf=None, log_in_keyval=False):
+    def __init__(self, cmd, logf=None, log_in_keyval=False, compress_log=False):
         if not logf:
             logf = cmd.replace(" ", "_")
         super(command, self).__init__(logf, log_in_keyval)
         self.cmd = cmd
+        self._compress_log = compress_log
 
 
     def __repr__(self):
@@ -112,16 +113,21 @@ class command(loggable):
 
 
     def run(self, logdir):
-        stdin = open(os.devnull, "r")
-        stdout = open(os.path.join(logdir, self.logf), "w")
-        stderr = open(os.devnull, "w")
         env = os.environ.copy()
         if "PATH" not in env:
             env["PATH"] = "/usr/bin:/bin"
-        subprocess.call(self.cmd, stdin=stdin, stdout=stdout, stderr=stderr,
-                        shell=True, env=env)
-        for f in (stdin, stdout, stderr):
-            f.close()
+        logf_path = os.path.join(logdir, self.logf)
+        stdin = open(os.devnull, "r")
+        stderr = open(os.devnull, "w")
+        stdout = open(logf_path, "w")
+        try:
+            subprocess.call(self.cmd, stdin=stdin, stdout=stdout, stderr=stderr,
+                            shell=True, env=env)
+        finally:
+            for f in (stdin, stdout, stderr):
+                f.close()
+            if self._compress_log and os.path.exists(logf_path):
+                utils.system('gzip -9 "%s"' % logf_path, ignore_status=True)
 
 
 class base_sysinfo(object):
@@ -162,7 +168,11 @@ class base_sysinfo(object):
 
         # add in a couple of extra files and commands we want to grab
         self.test_loggables.add(command("df -mP", logf="df"))
-        self.test_loggables.add(command("dmesg -c", logf="dmesg"))
+        # We compress the dmesg because it can get large when kernels are
+        # configured with a large buffer and some tests trigger OOMs or
+        # other large "spam" that fill it up...
+        self.test_loggables.add(command("dmesg -c", logf="dmesg",
+                                        compress_log=True))
         self.boot_loggables.add(logfile("/proc/cmdline",
                                              log_in_keyval=True))
         # log /proc/mounts but with custom filename since we already
