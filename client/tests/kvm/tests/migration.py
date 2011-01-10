@@ -53,9 +53,9 @@ def run_migration(test, params, env):
 
         # Log into the guest again
         logging.info("Logging into guest after migration...")
-        session2 = kvm_utils.wait_for(dest_vm.remote_login, 30, 0, 2)
-        if not session2:
-            raise error.TestFail("Could not log into guest after migration")
+        # Temporary hack
+        time.sleep(30)
+        session2 = dest_vm.remote_login()
         logging.info("Logged in after migration")
 
         # Make sure the background process is still running

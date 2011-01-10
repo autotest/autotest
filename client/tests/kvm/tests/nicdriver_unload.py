@@ -33,11 +33,8 @@ def run_nicdriver_unload(test, params, env):
         def run(self):
             remote_file = '/tmp/' + self.getName()
             file_list.append(remote_file)
-            ret = vm.copy_files_to(file_name, remote_file, timeout=scp_timeout)
-            if ret:
-                logging.debug("File %s was transfered successfuly", remote_file)
-            else:
-                logging.debug("Failed to transfer file %s", remote_file)
+            vm.copy_files_to(file_name, remote_file, timeout=scp_timeout)
+            logging.debug("File %s was transfered successfuly", remote_file)
 
     def compare(origin_file, receive_file):
         check_sum1 = utils.hash_file(origin_file, method="md5")
@@ -97,8 +94,7 @@ def run_nicdriver_unload(test, params, env):
                 raise error.TestFail("Fail to compare (guest) file %s" % f)
 
         logging.info("Test nic function after load/unload")
-        if not vm.copy_files_to(file_name, file_name):
-            raise error.TestFail("Fail to copy file from host to guest")
+        vm.copy_files_to(file_name, file_name)
         if not compare(file_name, file_name):
             raise error.TestFail("Test nic function after load/unload fail")
 

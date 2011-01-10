@@ -54,8 +54,7 @@ def run_multicast(test, params, env):
     suffix = int(re.findall("\d+", mcast)[-1])
     # copy python script to guest for joining guest to multicast groups
     mcast_path = os.path.join(test.bindir, "scripts/join_mcast.py")
-    if not vm.copy_files_to(mcast_path, "/tmp"):
-        raise error.TestError("Fail to copy %s to guest" % mcast_path)
+    vm.copy_files_to(mcast_path, "/tmp")
     output = session.cmd_output("python /tmp/join_mcast.py %d %s %d" %
                                 (mgroup_count, prefix, suffix))
 

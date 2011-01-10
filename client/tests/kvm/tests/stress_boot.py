@@ -22,9 +22,7 @@ def run_stress_boot(tests, params, env):
     logging.info("Waiting for first guest to be up...")
 
     login_timeout = float(params.get("login_timeout", 240))
-    session = kvm_utils.wait_for(vm.remote_login, login_timeout, 0, 2)
-    if not session:
-        raise error.TestFail("Could not log into first guest")
+    session = kvm_test_utils.wait_for_login(vm, timeout=login_timeout)
 
     num = 2
     sessions = [session]
@@ -41,13 +39,10 @@ def run_stress_boot(tests, params, env):
             kvm_preprocessing.preprocess_vm(tests, vm_params, env, vm_name)
             params['vms'] += " " + vm_name
 
-            curr_vm_session = kvm_utils.wait_for(curr_vm.remote_login,
-                                                 login_timeout, 0, 2)
-            if not curr_vm_session:
-                raise error.TestFail("Could not log into guest #%d" % num)
-
+            # Temporary hack
+            time.sleep(login_timeout)
+            sessions.append(curr_vm.remote_login())
             logging.info("Guest #%d boots up successfully" % num)
-            sessions.append(curr_vm_session)
 
             # check whether all previous shell sessions are responsive
             for i, se in enumerate(sessions):

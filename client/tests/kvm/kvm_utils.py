@@ -537,8 +537,10 @@ def _remote_login(session, username, password, prompt, timeout=10):
     @param timeout: The maximal time duration (in seconds) to wait for each
             step of the login procedure (i.e. the "Are you sure" prompt, the
             password prompt, the shell prompt, etc)
-
-    @return: True on success and False otherwise.
+    @raise LoginTimeoutError: If timeout expires
+    @raise LoginAuthenticationError: If authentication fails
+    @raise LoginProcessTerminatedError: If the client terminates during login
+    @raise LoginError: If some other error occurs
     """
     password_prompt_count = 0
     login_prompt_count = 0
@@ -561,8 +563,7 @@ def _remote_login(session, username, password, prompt, timeout=10):
                     password_prompt_count += 1
                     continue
                 else:
-                    logging.debug("Got password prompt again")
-                    return False
+                    raise LoginAuthenticationError("Got password prompt twice")
             elif match == 2:  # "login:"
                 if login_prompt_count == 0:
                     logging.debug("Got username prompt; sending '%s'" % username)
@@ -570,27 +571,22 @@ def _remote_login(session, username, password, prompt, timeout=10):
                     login_prompt_count += 1
                     continue
                 else:
-                    logging.debug("Got username prompt again")
-                    return False
+                    raise LoginAuthenticationError("Got username prompt twice")
             elif match == 3:  # "Connection closed"
-                logging.debug("Got 'Connection closed'")
-                return False
+                raise LoginError("Client said 'connection closed'")
             elif match == 4:  # "Connection refused"
-                logging.debug("Got 'Connection refused'")
-                return False
+                raise LoginError("Client said 'connection refused'")
             elif match == 5:  # "Please wait"
                 logging.debug("Got 'Please wait'")
                 timeout = 30
                 continue
             elif match == 6:  # prompt
                 logging.debug("Got shell prompt -- logged in")
-                return True
+                break
         except kvm_subprocess.ExpectTimeoutError, e:
-            logging.debug("Timeout elapsed (output so far: %r)" % e.output)
-            return False
+            raise LoginTimeoutError(e.output)
         except kvm_subprocess.ExpectProcessTerminatedError, e:
-            logging.debug("Process terminated (output so far: %r)" % e.output)
-            return False
+            raise LoginProcessTerminatedError(e.status, e.output)
 
 
 def remote_login(client, host, port, username, password, prompt, linesep="\n",
@@ -610,8 +606,9 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     @param timeout: The maximal time duration (in seconds) to wait for
             each step of the login procedure (i.e. the "Are you sure" prompt
             or the password prompt)
-
-    @return: ShellSession object on success and None on failure.
+    @raise LoginBadClientError: If an unknown client is requested
+    @raise: Whatever _remote_login() raises
+    @return: A ShellSession object.
     """
     if client == "ssh":
         cmd = ("ssh -o UserKnownHostsFile=/dev/null "
@@ -622,18 +619,19 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     elif client == "nc":
         cmd = "nc %s %s" % (host, port)
     else:
-        logging.error("Unknown remote shell client: %s" % client)
-        return
+        raise LoginBadClientError(client)
 
     logging.debug("Trying to login with command '%s'" % cmd)
     session = kvm_subprocess.ShellSession(cmd, linesep=linesep, prompt=prompt)
-    if _remote_login(session, username, password, prompt, timeout):
-        if log_filename:
-            session.set_output_func(log_line)
-            session.set_output_params((log_filename,))
-        return session
-    else:
+    try:
+        _remote_login(session, username, password, prompt, timeout)
+    except:
         session.close()
+        raise
+    if log_filename:
+        session.set_output_func(log_line)
+        session.set_output_params((log_filename,))
+    return session
 
 
 def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
@@ -652,11 +650,15 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
     @param login_timeout: The maximal time duration (in seconds) to wait for
             each step of the login procedure (i.e. the "Are you sure" prompt or
             the password prompt)
-
-    @return: True if the transfer succeeds and False on failure.
+    @raise SCPAuthenticationError: If authentication fails
+    @raise SCPTransferTimeoutError: If the transfer fails to complete in time
+    @raise SCPTransferFailedError: If the process terminates with a nonzero
+            exit code
+    @raise SCPError: If some other error occurs
     """
     password_prompt_count = 0
     timeout = login_timeout
+    authentication_done = False
 
     while True:
         try:
@@ -673,19 +675,24 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
                     session.sendline(password)
                     password_prompt_count += 1
                     timeout = transfer_timeout
+                    authentication_done = True
                     continue
                 else:
-                    logging.debug("Got password prompt again")
-                    return False
+                    raise SCPAuthenticationError("Got password prompt twice")
             elif match == 2:  # "lost connection"
-                logging.debug("Got 'lost connection'")
-                return False
+                raise SCPError("SCP client said 'lost connection'")
         except kvm_subprocess.ExpectTimeoutError, e:
-            logging.debug("Timeout expired")
-            return False
+            if authentication_done:
+                raise SCPTransferTimeoutError(e.output)
+            else:
+                raise SCPAuthenticationError("Authentication timeout expired "
+                                             "(output so far: %r)" % e.output)
         except kvm_subprocess.ExpectProcessTerminatedError, e:
-            logging.debug("SCP process terminated with status %s", e.status)
-            return e.status == 0
+            if e.status == 0:
+                logging.debug("SCP process terminated with status 0")
+                break
+            else:
+                raise SCPTransferFailedError(e.status, e.output)
 
 
 def remote_scp(command, password, log_filename=None, transfer_timeout=600,
@@ -704,24 +711,21 @@ def remote_scp(command, password, log_filename=None, transfer_timeout=600,
     @param login_timeout: The maximal time duration (in seconds) to wait for
             each step of the login procedure (i.e. the "Are you sure" prompt
             or the password prompt)
-
-    @return: True if the transfer succeeds and False on failure.
+    @raise: Whatever _remote_scp() raises
     """
     logging.debug("Trying to SCP with command '%s', timeout %ss",
                   command, transfer_timeout)
-
     if log_filename:
         output_func = log_line
         output_params = (log_filename,)
     else:
         output_func = None
         output_params = ()
-
     session = kvm_subprocess.Expect(command,
                                     output_func=output_func,
                                     output_params=output_params)
     try:
-        return _remote_scp(session, password, transfer_timeout, login_timeout)
+        _remote_scp(session, password, transfer_timeout, login_timeout)
     finally:
         session.close()
 
@@ -739,13 +743,12 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
-
-    @return: True on success and False on failure.
+    @raise: Whatever remote_scp() raises
     """
     command = ("scp -v -o UserKnownHostsFile=/dev/null "
                "-o PreferredAuthentications=password -r -P %s %s %s@%s:%s" %
                (port, local_path, username, host, remote_path))
-    return remote_scp(command, password, log_filename, timeout)
+    remote_scp(command, password, log_filename, timeout)
 
 
 def scp_from_remote(host, port, username, password, remote_path, local_path,
@@ -761,13 +764,12 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
-
-    @return: True on success and False on failure.
+    @raise: Whatever remote_scp() raises
     """
     command = ("scp -v -o UserKnownHostsFile=/dev/null "
                "-o PreferredAuthentications=password -r -P %s %s@%s:%s %s" %
                (port, username, host, remote_path, local_path))
-    return remote_scp(command, password, log_filename, timeout)
+    remote_scp(command, password, log_filename, timeout)
 
 
 def copy_files_to(address, client, username, password, port, local_path,
@@ -784,22 +786,15 @@ def copy_files_to(address, client, username, password, port, local_path,
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer to
     complete.
-
-    @return: True on success and False on failure.
+    @raise: Whatever remote_scp() raises
     """
-
-    if not address or not port:
-        logging.debug("IP address or port unavailable")
-        return None
-
     if client == "scp":
-        return scp_to_remote(address, port, username, password, local_path,
-                             remote_path, log_filename, timeout)
+        scp_to_remote(address, port, username, password, local_path,
+                      remote_path, log_filename, timeout)
     elif client == "rss":
         c = rss_file_transfer.FileUploadClient(address, port)
         c.upload(local_path, remote_path, timeout)
         c.close()
-        return True
 
 
 def copy_files_from(address, client, username, password, port, local_path,
@@ -816,22 +811,15 @@ def copy_files_from(address, client, username, password, port, local_path,
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer to
     complete.
-
-    @return: True on success and False on failure.
+    @raise: Whatever remote_scp() raises
     """
-
-    if not address or not port:
-        logging.debug("IP address or port unavailable")
-        return None
-
     if client == "scp":
-        return scp_from_remote(address, port, username, password, remote_path,
-                             local_path, log_filename, timeout)
+        scp_from_remote(address, port, username, password, remote_path,
+                        local_path, log_filename, timeout)
     elif client == "rss":
         c = rss_file_transfer.FileDownloadClient(address, port)
         c.download(remote_path, local_path, timeout)
         c.close()
-        return True
 
 
 # The following are utility functions related to ports.

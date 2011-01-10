@@ -70,8 +70,10 @@ def run_nic_promisc(test, params, env):
             utils.run(dd_cmd % (filename, int(size)))
 
             logging.info("Transfer file from host to guest")
-            if not vm.copy_files_to(filename, filename):
-                logging.error("File transfer failed")
+            try:
+                vm.copy_files_to(filename, filename)
+            except kvm_utils.SCPError, e:
+                logging.error("File transfer failed (%s)", e)
                 continue
             if not compare(filename):
                 logging.error("Compare file failed")
@@ -83,8 +85,10 @@ def run_nic_promisc(test, params, env):
             session.cmd(dd_cmd % (filename, int(size)), timeout=100)
 
             logging.info("Transfer file from guest to host")
-            if not vm.copy_files_from(filename, filename):
-                logging.error("File transfer failed")
+            try:
+                vm.copy_files_from(filename, filename)
+            except kvm_utils.SCPError, e:
+                logging.error("File transfer failed (%s)", e)
                 continue
             if not compare(filename):
                 logging.error("Compare file failed")
