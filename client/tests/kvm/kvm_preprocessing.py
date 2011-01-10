@@ -341,7 +341,7 @@ def postprocess(test, params, env):
         for vm in env.get_all_vms():
             if vm.is_alive():
                 try:
-                    session = vm.remote_login()
+                    session = vm.login()
                     session.close()
                 except kvm_utils.LoginError:
                     vm.destroy(gracefully=False)
