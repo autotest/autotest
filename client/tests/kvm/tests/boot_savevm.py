@@ -13,7 +13,8 @@ def run_boot_savevm(test, params, env):
     @param params: Dictionary with the test parameters
     @param env: Dictionary with test environment.
     """
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
     savevm_delay = float(params.get("savevm_delay"))
     savevm_login_delay = float(params.get("savevm_login_delay"))
     logging.info("savevm_delay = %f" % savevm_delay)

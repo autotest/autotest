@@ -17,7 +17,8 @@ def run_stress_boot(tests, params, env):
     @param env:    Dictionary with test environment.
     """
     # boot the first vm
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
 
     logging.info("Waiting for first guest to be up...")
 

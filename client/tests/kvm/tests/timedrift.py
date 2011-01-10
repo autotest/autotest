@@ -52,7 +52,8 @@ def run_timedrift(test, params, env):
         for tid, mask in prev_masks.items():
             commands.getoutput("taskset -p %s %s" % (mask, tid))
 
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
     timeout = int(params.get("login_timeout", 360))
     session = vm.wait_for_login(timeout=timeout)
 

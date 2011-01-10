@@ -14,7 +14,8 @@ def run_unattended_install(test, params, env):
     @param env: Dictionary with test environment.
     """
     buf = 1024
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = env.get_vm(params["main_vm"])
+    vm.verify_alive()
 
     port = vm.get_port(int(params.get("guest_port_unattended_install")))
     if params.get("post_install_delay"):
