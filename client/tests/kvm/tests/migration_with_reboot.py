@@ -19,65 +19,23 @@ def run_migration_with_reboot(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    def reboot_test(client, session, address, reboot_command, port, username,
-                    password, prompt, linesep, log_filename, timeout):
-        """
-        A version of reboot test which is safe to be called in the background as
-        it doesn't need a VM object.
-        """
-        # Send a reboot command to the guest's shell
-        session.sendline(reboot_command)
-        logging.info("Reboot command sent. Waiting for guest to go down...")
-
-        # Wait for the session to become unresponsive and close it
-        if not kvm_utils.wait_for(lambda: not session.is_responsive(timeout=30),
-                                  120, 0, 1):
-            raise error.TestFail("Guest refuses to go down")
-        session.close()
-
-        # Try logging into the guest until timeout expires
-        logging.info("Guest is down. Waiting for it to go up again, timeout "
-                     "%ds", timeout)
-        session = kvm_utils.wait_for_login(client, address, port, username,
-                                           password, prompt, linesep,
-                                           log_filename, timeout)
-        logging.info("Guest is up again")
-        session.close()
-
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
-    timeout = int(params.get("login_timeout", 360))
-    session = vm.wait_for_login(timeout=timeout)
-
-    # params of reboot
-    username = vm.params.get("username", "")
-    password = vm.params.get("password", "")
-    prompt = vm.params.get("shell_prompt", "[\#\$]")
-    linesep = eval("'%s'" % vm.params.get("shell_linesep", r"\n"))
-    client = vm.params.get("shell_client")
-    address = vm.get_address(0)
-    port = vm.get_port(int(params.get("shell_port")))
-    log_filename = ("migration-reboot-%s-%s.log" %
-                    (vm.name, kvm_utils.generate_random_string(4)))
-    reboot_command = vm.params.get("reboot_command")
+    login_timeout = int(params.get("login_timeout", 360))
+    session = vm.wait_for_login(timeout=login_timeout)
 
     mig_timeout = float(params.get("mig_timeout", "3600"))
     mig_protocol = params.get("migration_protocol", "tcp")
-    mig_cancel = bool(params.get("mig_cancel"))
+    mig_cancel_delay = int(params.get("mig_cancel") == "yes") * 2
 
     try:
         # Reboot the VM in the background
-        bg = kvm_utils.Thread(reboot_test, (client, session, address,
-                                            reboot_command, port, username,
-                                            password, prompt, linesep,
-                                            log_filename, timeout))
+        bg = kvm_utils.Thread(kvm_test_utils.reboot, (vm, session))
         bg.start()
-
         try:
             while bg.is_alive():
-                vm = kvm_test_utils.migrate(vm, env, mig_timeout, mig_protocol)
+                vm.migrate(mig_timeout, mig_protocol, mig_cancel_delay)
         finally:
-            bg.join()
-
+            session = bg.join()
     finally:
         session.close()
