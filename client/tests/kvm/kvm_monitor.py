@@ -128,6 +128,17 @@ class Monitor:
         return s
 
 
+    def is_responsive(self):
+        """
+        Return True iff the monitor is responsive.
+        """
+        try:
+            self.verify_responsive()
+            return True
+        except MonitorError:
+            return False
+
+
 class HumanMonitor(Monitor):
     """
     Wraps "human monitor" commands.
@@ -248,17 +259,11 @@ class HumanMonitor(Monitor):
             self._lock.release()
 
 
-    def is_responsive(self):
+    def verify_responsive(self):
         """
         Make sure the monitor is responsive by sending a command.
-
-        @return: True if responsive, False otherwise
         """
-        try:
-            self.cmd("info status")
-            return True
-        except MonitorError:
-            return False
+        self.cmd("info status")
 
 
     # Command wrappers
@@ -615,17 +620,11 @@ class QMPMonitor(Monitor):
         return self.cmd_obj(self._build_cmd(cmd, args, id), timeout)
 
 
-    def is_responsive(self):
+    def verify_responsive(self):
         """
         Make sure the monitor is responsive by sending a command.
-
-        @return: True if responsive, False otherwise
         """
-        try:
-            self.cmd("query-status")
-            return True
-        except MonitorError:
-            return False
+        self.cmd("query-status")
 
 
     def get_events(self):
