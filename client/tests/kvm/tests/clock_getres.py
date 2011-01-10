@@ -31,8 +31,7 @@ def run_clock_getres(test, params, env):
     vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout = int(params.get("login_timeout", 360))
     session = kvm_test_utils.wait_for_login(vm, timeout=timeout)
-    if not vm.copy_files_to(test_clock, base_dir):
-        raise error.TestError("Failed to copy %s to VM" % t_name)
+    vm.copy_files_to(test_clock, base_dir)
     session.cmd(os.path.join(base_dir, t_name))
     logging.info("PASS: Guest reported appropriate clock resolution")
     logging.info("guest's dmesg:")

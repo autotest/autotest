@@ -794,8 +794,11 @@ class VM:
             if gracefully and self.params.get("shutdown_command"):
                 # Try to destroy with shell command
                 logging.debug("Trying to shutdown VM with shell command...")
-                session = self.remote_login()
-                if session:
+                try:
+                    session = self.remote_login()
+                except kvm_utils.LoginError, e:
+                    logging.debug(e)
+                else:
                     try:
                         # Send the shutdown command
                         session.sendline(self.params.get("shutdown_command"))
@@ -1065,7 +1068,7 @@ class VM:
         @param nic_index: The index of the NIC to connect to.
         @param timeout: Time (seconds) before giving up logging into the
                 guest.
-        @return: ShellSession object on success and None on failure.
+        @return: A ShellSession object.
         """
         username = self.params.get("username", "")
         password = self.params.get("password", "")
@@ -1078,16 +1081,13 @@ class VM:
                         (self.name, kvm_utils.generate_random_string(4)))
 
         if not address or not port:
-            logging.debug("IP address or port unavailable")
-            return None
+            raise kvm_utils.LoginError("IP address or port unavailable")
 
         session = kvm_utils.remote_login(client, address, port, username,
                                          password, prompt, linesep,
                                          log_filename, timeout)
-
-        if session:
-            session.set_status_test_command(self.params.get("status_test_"
-                                                            "command", ""))
+        session.set_status_test_command(self.params.get("status_test_command",
+                                                        ""))
         return session
 
 
@@ -1106,13 +1106,11 @@ class VM:
         client = self.params.get("file_transfer_client")
         address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("file_transfer_port")))
-
         log_filename = ("transfer-%s-to-%s-%s.log" %
                         (self.name, address,
                         kvm_utils.generate_random_string(4)))
-        return kvm_utils.copy_files_to(address, client, username, password,
-                                       port, local_path, remote_path,
-                                       log_filename, timeout)
+        kvm_utils.copy_files_to(address, client, username, password, port,
+                                local_path, remote_path, log_filename, timeout)
 
 
     def copy_files_from(self, remote_path, local_path, nic_index=0, timeout=600):
@@ -1130,12 +1128,12 @@ class VM:
         client = self.params.get("file_transfer_client")
         address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("file_transfer_port")))
-
         log_filename = ("transfer-%s-from-%s-%s.log" %
                         (self.name, address,
                         kvm_utils.generate_random_string(4)))
-        return kvm_utils.copy_files_from(address, client, username, password,
-                        port, local_path, remote_path, log_filename, timeout)
+        kvm_utils.copy_files_from(address, client, username, password, port,
+                                  local_path, remote_path, log_filename,
+                                  timeout)
 
 
     def serial_login(self, timeout=10):
@@ -1153,18 +1151,15 @@ class VM:
         linesep = eval("'%s'" % self.params.get("shell_linesep", r"\n"))
         status_test_command = self.params.get("status_test_command", "")
 
-        if self.serial_console:
-            self.serial_console.set_linesep(linesep)
-            self.serial_console.set_status_test_command(status_test_command)
-        else:
-            return None
+        self.serial_console.set_linesep(linesep)
+        self.serial_console.set_status_test_command(status_test_command)
 
-        # Make sure we get a login prompt
+        # Try to get a login prompt
         self.serial_console.sendline()
 
-        if kvm_utils._remote_login(self.serial_console, username, password,
-                                   prompt, timeout):
-            return self.serial_console
+        kvm_utils._remote_login(self.serial_console, username, password,
+                                prompt, timeout)
+        return self.serial_console
 
 
     def send_key(self, keystr):
@@ -1216,8 +1211,6 @@ class VM:
         Get the cpu count of the VM.
         """
         session = self.remote_login()
-        if not session:
-            return None
         try:
             return int(session.cmd(self.params.get("cpu_chk_cmd")))
         finally:
@@ -1232,8 +1225,6 @@ class VM:
                 self.params.get("mem_chk_cmd") will be used.
         """
         session = self.remote_login()
-        if not session:
-            return None
         try:
             if not cmd:
                 cmd = self.params.get("mem_chk_cmd")

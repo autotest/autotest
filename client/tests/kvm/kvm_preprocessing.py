@@ -340,10 +340,10 @@ def postprocess(test, params, env):
                       "that fail to respond to a remote login request...")
         for vm in env.get_all_vms():
             if vm.is_alive():
-                session = vm.remote_login()
-                if session:
+                try:
+                    session = vm.remote_login()
                     session.close()
-                else:
+                except kvm_utils.LoginError:
                     vm.destroy(gracefully=False)
 
     # Kill all kvm_subprocess tail threads

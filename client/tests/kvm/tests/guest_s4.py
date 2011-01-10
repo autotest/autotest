@@ -55,7 +55,9 @@ def run_guest_s4(test, params, env):
     # Log into the resumed VM
     relogin_timeout = int(params.get("relogin_timeout", 240))
     logging.info("Logging into resumed VM, timeout %s", relogin_timeout)
-    session2 = kvm_utils.wait_for(vm.remote_login, relogin_timeout, 0, 2)
+    # Temporary hack
+    time.sleep(relogin_timeout)
+    session2 = vm.remote_login()
     if not session2:
         raise error.TestFail("Could not log into VM after resuming from "
                              "suspend to disk")
