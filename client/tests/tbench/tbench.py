@@ -32,7 +32,9 @@ class tbench(test.test):
             client = self.srcdir + '/client.txt'
             args = '-c ' + client + ' ' + '%s' % args
             cmd = os.path.join(self.srcdir, "tbench") + " " + args
-            self.results = utils.system_output(cmd, retain_output=True)
+            # Standard output is verbose and merely makes our debug logs huge
+            # so we don't retain it.  It gets parsed for the results.
+            self.results = utils.run(cmd, stderr_tee=utils.TEE_TO_LOGS).stdout
             os.kill(pid, signal.SIGTERM)    # clean up the server
         else:                           # child
             server = self.srcdir + '/tbench_srv'
