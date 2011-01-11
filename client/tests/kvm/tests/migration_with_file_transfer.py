@@ -4,6 +4,7 @@ from autotest_lib.client.bin import utils as client_utils
 import kvm_subprocess, kvm_test_utils, kvm_utils
 
 
+@error.context_aware
 def run_migration_with_file_transfer(test, params, env):
     """
     KVM migration test:
@@ -47,24 +48,29 @@ def run_migration_with_file_transfer(test, params, env):
             finally:
                 bg.join()
 
-        logging.info("Transferring file from host to guest")
+        error.context("transferring file to guest while migrating",
+                      logging.info)
         bg = kvm_utils.Thread(vm.copy_files_to,
                               (host_path, guest_path, 0, transfer_timeout))
         run_and_migrate(bg)
 
-        logging.info("Transferring file back from guest to host")
+        error.context("transferring file back to host while migrating",
+                      logging.info)
         bg = kvm_utils.Thread(vm.copy_files_from,
                               (guest_path, host_path_returned, 0,
                                transfer_timeout))
         run_and_migrate(bg)
 
-        # Make sure the returned file is indentical to the original one
+        # Make sure the returned file is identical to the original one
+        error.context("comparing hashes", logging.info)
         orig_hash = client_utils.hash_file(host_path)
         returned_hash = client_utils.hash_file(host_path_returned)
         if orig_hash != returned_hash:
             raise error.TestFail("Returned file hash (%s) differs from "
                                  "original one (%s)" % (returned_hash,
                                                         orig_hash))
+        error.context()
+
     finally:
         session.close()
         if os.path.isfile(host_path):
