@@ -297,7 +297,7 @@ class config:
                 # (inside an exception or inside subvariants)
                 if restricted:
                     e_msg = "Using variants in this context is not allowed"
-                    raise error.AutotestError(e_msg)
+                    cr.raise_error(e_msg)
                 if self.debug and not restricted:
                     _debug_print(indented_line,
                                  "Entering variants block (%d dicts in "
