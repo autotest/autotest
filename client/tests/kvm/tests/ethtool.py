@@ -1,4 +1,4 @@
-import logging, commands, re
+import logging, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 import kvm_test_utils, kvm_utils, kvm_subprocess
@@ -99,18 +99,23 @@ def run_ethtool(test, params, env):
         session2.cmd_output("rm -rf %s" % filename)
         dd_cmd = ("dd if=/dev/urandom of=%s bs=1M count=%s" %
                   (filename, params.get("filesize")))
-        logging.info("Creat file in source host, cmd: %s" % dd_cmd)
+        failure = (False, "Failed to create file using dd, cmd: %s" % dd_cmd)
+        logging.info("Creating file in source host, cmd: %s" % dd_cmd)
         tcpdump_cmd = "tcpdump -lep -s 0 tcp -vv port ssh"
         if src == "guest":
-            session.cmd_output(dd_cmd, timeout=360)
             tcpdump_cmd += " and src %s" % guest_ip
             copy_files_from = vm.copy_files_from
+            try:
+                session.cmd_output(dd_cmd, timeout=360)
+            except kvm_subprocess.ShellCmdError, e:
+                return failure
         else:
-            s, o = commands.getstatusoutput(dd_cmd)
             tcpdump_cmd += " and dst %s" % guest_ip
             copy_files_from = vm.copy_files_to
-        if s != 0:
-            return (False, "Fail to create file by dd, cmd: %s" % dd_cmd)
+            try:
+                utils.system(dd_cmd)
+            except error.CmdError, e:
+                return failure
 
         # only capture the new tcp port after offload setup
         original_tcp_ports = re.findall("tcp.*:(\d+).*%s" % guest_ip,
