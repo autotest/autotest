@@ -682,15 +682,18 @@ if __name__ == "__main__":
     options, args = parser.parse_args()
     debug = options.debug
     if args:
-        filename = args[0]
+        filenames = args
     else:
-        filename = os.path.join(os.path.dirname(sys.argv[0]), "tests.cfg")
+        filenames = [os.path.join(os.path.dirname(sys.argv[0]), "tests.cfg")]
 
     # Here we configure the stand alone program to use the autotest
     # logging system.
     logging_manager.configure_logging(kvm_utils.KvmLoggingConfig(),
                                       verbose=debug)
-    dicts = config(filename, debug=debug).get_generator()
+    cfg = config(debug=debug)
+    for fn in filenames:
+        cfg.parse_file(fn)
+    dicts = cfg.get_generator()
     for i, dict in enumerate(dicts):
         logging.info("Dictionary #%d:", i)
         keys = dict.keys()
