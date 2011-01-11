@@ -1357,6 +1357,7 @@ class VM:
         return self.serial_login(internal_timeout)
 
 
+    @error.context_aware
     def migrate(self, timeout=3600, protocol="tcp", cancel_delay=None,
                 offline=False, stable_check=False, clean=True,
                 save_path="/tmp", dest_host="localhost", remote_port=None):
@@ -1381,6 +1382,8 @@ class VM:
         @param dest_host: Destination host (defaults to 'localhost').
         @param remote_port: Port to use for remote migration.
         """
+        error.base_context("migrating '%s'" % self.name)
+
         def mig_finished():
             o = self.monitor.info("migrate")
             if isinstance(o, str):
@@ -1421,11 +1424,13 @@ class VM:
 
         clone = self.clone()
         if local:
+            error.context("creating destination VM")
             if stable_check:
                 # Pause the dest vm after creation
                 extra_params = clone.params.get("extra_params", "") + " -S"
                 clone.params["extra_params"] = extra_params
             clone.create(migration_mode=protocol, mac_source=self)
+            error.context()
 
         try:
             if protocol == "tcp":
