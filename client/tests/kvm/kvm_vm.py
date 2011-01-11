@@ -656,6 +656,7 @@ class VM:
         return qemu_cmd
 
 
+    @error.context_aware
     def create(self, name=None, params=None, root_dir=None, timeout=5.0,
                migration_mode=None, mac_source=None):
         """
@@ -683,6 +684,7 @@ class VM:
                 requested
         @raise VMPAError: If no PCI assignable devices could be assigned
         """
+        error.context("creating '%s'" % self.name)
         self.destroy()
 
         if name is not None:
