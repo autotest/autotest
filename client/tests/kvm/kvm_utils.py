@@ -1197,6 +1197,11 @@ class Thread(threading.Thread):
         threading.Thread.join(self, timeout)
         try:
             if self._e:
+                # Because the exception was raised in another thread, we need
+                # to explicitly insert the current context into it
+                s = error.exception_context(self._e[1])
+                s = error.join_contexts(error.get_context(), s)
+                error.set_exception_context(self._e[1], s)
                 raise self._e[0], self._e[1], self._e[2]
             else:
                 return self._retval
