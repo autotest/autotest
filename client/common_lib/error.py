@@ -133,7 +133,6 @@ class CmdError(TestError):
         self.result_obj = result_obj
         self.additional_text = additional_text
 
-
     def __str__(self):
         if self.result_obj.exit_status is None:
             msg = "Command <%s> failed and is not responding to signals"
