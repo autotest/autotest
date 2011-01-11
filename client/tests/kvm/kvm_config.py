@@ -548,7 +548,8 @@ class configreader:
         self.filename = filename
         self.line_index = 0
         self.lines = []
-        for line in str.splitlines():
+        self.real_number = []
+        for num, line in enumerate(str.splitlines()):
             line = line.rstrip().expandtabs()
             stripped_line = line.strip()
             indent = len(line) - len(stripped_line)
@@ -557,6 +558,7 @@ class configreader:
                 or stripped_line.startswith("//")):
                 continue
             self.lines.append((line, stripped_line, indent))
+            self.real_number.append(num + 1)
 
 
     def get_next_line(self):
@@ -588,6 +590,18 @@ class configreader:
         Set the current line index.
         """
         self.line_index = index
+
+    def raise_error(self, msg):
+        """Raise an error related to the last line returned by get_next_line()
+        """
+        if self.line_index == 0: # nothing was read. shouldn't happen, but...
+            line_id = 'BEGIN'
+        elif self.line_index >= len(self.lines): # past EOF
+            line_id = 'EOF'
+        else:
+            # line_index is the _next_ line. get the previous one
+            line_id = str(self.real_number[self.line_index-1])
+        raise error.AutotestError("%s:%s: %s" % (self.filename, line_id, msg))
 
 
 # Array structure:
