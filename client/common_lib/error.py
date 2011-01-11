@@ -168,7 +168,8 @@ class JobComplete(SystemExit):
 
 class AutotestError(Exception):
     """The parent of all errors deliberatly thrown within the client code."""
-    pass
+    def __str__(self):
+        return Exception.__str__(self) + _context_message(self)
 
 
 class JobError(AutotestError):
@@ -190,6 +191,8 @@ class UnhandledJobError(JobError):
             msg = "Unhandled %s: %s"
             msg %= (self.unhandled_exception.__class__.__name__,
                     self.unhandled_exception)
+            if not isinstance(self.unhandled_exception, AutotestError):
+                msg += _context_message(self.unhandled_exception)
             msg += "\n" + self.traceback
             return msg
 
@@ -236,6 +239,8 @@ class UnhandledTestError(TestError):
             msg = "Unhandled %s: %s"
             msg %= (self.unhandled_exception.__class__.__name__,
                     self.unhandled_exception)
+            if not isinstance(self.unhandled_exception, AutotestError):
+                msg += _context_message(self.unhandled_exception)
             msg += "\n" + self.traceback
             return msg
 
@@ -254,6 +259,8 @@ class UnhandledTestFail(TestFail):
             msg = "Unhandled %s: %s"
             msg %= (self.unhandled_exception.__class__.__name__,
                     self.unhandled_exception)
+            if not isinstance(self.unhandled_exception, AutotestError):
+                msg += _context_message(self.unhandled_exception)
             msg += "\n" + self.traceback
             return msg
 
@@ -278,6 +285,7 @@ class CmdError(TestError):
 
         if self.additional_text:
             msg += ", " + self.additional_text
+        msg += _context_message(self)
         msg += '\n' + repr(self.result_obj)
         return msg
 
