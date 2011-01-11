@@ -1199,6 +1199,7 @@ class VM:
         return shm * 4.0 / 1024
 
 
+    @error.context_aware
     def login(self, nic_index=0, timeout=10):
         """
         Log into the guest via SSH/Telnet/Netcat.
@@ -1210,6 +1211,7 @@ class VM:
                 guest.
         @return: A ShellSession object.
         """
+        error.context("logging into '%s'" % self.name)
         username = self.params.get("username", "")
         password = self.params.get("password", "")
         prompt = self.params.get("shell_prompt", "[\#\$]")
@@ -1256,6 +1258,7 @@ class VM:
         return self.login(nic_index, internal_timeout)
 
 
+    @error.context_aware
     def copy_files_to(self, host_path, guest_path, nic_index=0, timeout=600):
         """
         Transfer files to the remote host(guest).
@@ -1266,6 +1269,7 @@ class VM:
         @param timeout: Time (seconds) before giving up on doing the remote
                 copy.
         """
+        error.context("sending file(s) to '%s'" % self.name)
         username = self.params.get("username", "")
         password = self.params.get("password", "")
         client = self.params.get("file_transfer_client")
@@ -1278,6 +1282,7 @@ class VM:
                                 host_path, guest_path, log_filename, timeout)
 
 
+    @error.context_aware
     def copy_files_from(self, guest_path, host_path, nic_index=0, timeout=600):
         """
         Transfer files from the guest.
@@ -1288,6 +1293,7 @@ class VM:
         @param timeout: Time (seconds) before giving up on doing the remote
                 copy.
         """
+        error.context("receiving file(s) from '%s'" % self.name)
         username = self.params.get("username", "")
         password = self.params.get("password", "")
         client = self.params.get("file_transfer_client")
@@ -1300,6 +1306,7 @@ class VM:
                                   guest_path, host_path, log_filename, timeout)
 
 
+    @error.context_aware
     def serial_login(self, timeout=10):
         """
         Log into the guest via the serial console.
@@ -1309,6 +1316,7 @@ class VM:
         @param timeout: Time (seconds) before giving up logging into the guest.
         @return: ShellSession object on success and None on failure.
         """
+        error.context("logging into '%s' via serial console" % self.name)
         username = self.params.get("username", "")
         password = self.params.get("password", "")
         prompt = self.params.get("shell_prompt", "[\#\$]")
