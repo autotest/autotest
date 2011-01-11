@@ -429,7 +429,7 @@ def get_memory_info(lvms):
     return meminfo
 
 
-def run_autotest(vm, session, control_path, timeout, outputdir):
+def run_autotest(vm, session, control_path, timeout, outputdir, params):
     """
     Run an autotest control file inside a guest (linux only utility).
 
@@ -439,6 +439,9 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
     @param timeout: Timeout under which the autotest control file must complete.
     @param outputdir: Path on host where we should copy the guest autotest
             results to.
+
+    The following params is used by the migration
+    @param params: Test params used in the migration test
     """
     def copy_if_hash_differs(vm, local_path, remote_path):
         """
@@ -515,6 +518,11 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
         raise error.TestError("Invalid path to autotest control file: %s" %
                               control_path)
 
+    migrate_background = params.get("migrate_background") == "yes"
+    if migrate_background:
+        mig_timeout = float(params.get("mig_timeout", "3600"))
+        mig_protocol = params.get("migration_protocol", "tcp")
+
     compressed_autotest_path = "/tmp/autotest.tar.bz2"
 
     # To avoid problems, let's make the test use the current AUTODIR
@@ -551,12 +559,31 @@ def run_autotest(vm, session, control_path, timeout, outputdir):
     except kvm_subprocess.ShellError:
         pass
     try:
+        bg = None
         try:
             logging.info("---------------- Test output ----------------")
-            session.cmd_output("bin/autotest control", timeout=timeout,
-                               print_func=logging.info)
+            if migrate_background:
+                mig_timeout = float(params.get("mig_timeout", "3600"))
+                mig_protocol = params.get("migration_protocol", "tcp")
+
+                bg = kvm_utils.Thread(session.cmd_output,
+                                      kwargs={'cmd': "bin/autotest control",
+                                              'timeout': timeout,
+                                              'print_func': logging.info})
+
+                bg.start()
+
+                while bg.is_alive():
+                    logging.info("Tests is not ended, start a round of"
+                                 "migration ...")
+                    vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
+            else:
+                session.cmd_output("bin/autotest control", timeout=timeout,
+                                   print_func=logging.info)
         finally:
             logging.info("------------- End of test output ------------")
+            if migrate_background and bg:
+                bg.join()
     except kvm_subprocess.ShellTimeoutError:
         if vm.is_alive():
             get_results()

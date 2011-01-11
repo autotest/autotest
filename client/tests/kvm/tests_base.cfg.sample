@@ -170,6 +170,17 @@ variants:
             - with_file_transfer:
                 iterations = 1
                 type = migration_with_file_transfer
+            - with_autotest:
+                type = autotest
+                migrate_background = yes
+                test_timeout = 1800
+                variants:
+                    - dbench:
+                        test_control_file = dbench.control
+                    - stress:
+                        test_control_file = stress.control
+                    - monotonic_time:
+                        test_control_file = monotonic_time.control
 
     - migrate_multi_host:      install setup unattended_install.cdrom
         type = migration_multi_host
