@@ -41,8 +41,8 @@ def run_module_probe(test, params, env):
             try:
                 installer_object.load_modules(mod_list)
             except Exception,e:
-               raise error.TestFail("Failed to load modules [%r]: %s" %
-                                    (installer_object.full_module_list, e))
+                raise error.TestFail("Failed to load modules [%r]: %s" %
+                                     (installer_object.full_module_list, e))
 
             # unload using rmmod directly because utils.unload_module() (used by
             # installer) does too much (runs lsmod, checks for dependencies),
@@ -50,8 +50,7 @@ def run_module_probe(test, params, env):
             for mod in reversed(mod_list):
                 r = utils.system("rmmod %s" % (mod), ignore_status=True)
                 if r <> 0:
-                   raise error.TestFail("Failed to unload module %s. "
-                                        "exit status: %d" % (mod, r))
+                    raise error.TestFail("Failed to unload module %s. "
+                                         "exit status: %d" % (mod, r))
     finally:
         installer_object.load_modules()
-
