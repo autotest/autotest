@@ -1,4 +1,4 @@
-import kvm_test_utils
+import kvm_test_utils, kvm_monitor
 from autotest_lib.client.common_lib import error
 
 def run_qmp_basic(test, params, env):
@@ -384,13 +384,22 @@ def run_qmp_basic(test, params, env):
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
 
+    # Look for the first qmp monitor available, otherwise, fail the test
+    qmp_monitor = None
+    for m in vm.monitors:
+        if isinstance(m, kvm_monitor.QMPMonitor):
+            qmp_monitor = m
+
+    if qmp_monitor is None:
+        raise error.TestError('Could not find a QMP monitor, aborting test')
+
     # Run all suites
-    greeting_suite(vm.monitor)
-    input_object_suite(vm.monitor)
-    argument_checker_suite(vm.monitor)
-    unknown_commands_suite(vm.monitor)
-    json_parsing_errors_suite(vm.monitor)
+    greeting_suite(qmp_monitor)
+    input_object_suite(qmp_monitor)
+    argument_checker_suite(qmp_monitor)
+    unknown_commands_suite(qmp_monitor)
+    json_parsing_errors_suite(qmp_monitor)
 
     # check if QMP is still alive
-    if not vm.monitor.is_responsive():
-        raise error.TestFail('QEMU is not alive after QMP testing')
+    if not qmp_monitor.is_responsive():
+        raise error.TestFail('QMP monitor is not responsive after testing')
