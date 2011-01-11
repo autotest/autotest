@@ -48,7 +48,7 @@ class config:
             raise IOError("File %s not found" % filename)
         self.filename = filename
         str = open(filename).read()
-        self.list = self.parse(configreader(str), self.list)
+        self.list = self.parse(configreader(filename, str), self.list)
 
 
     def parse_string(self, str):
@@ -57,7 +57,7 @@ class config:
 
         @param str: String to parse.
         """
-        self.list = self.parse(configreader(str), self.list)
+        self.list = self.parse(configreader('<string>', str), self.list)
 
 
     def fork_and_parse(self, filename=None, str=None):
@@ -342,7 +342,7 @@ class config:
                                             words[1])
                     if os.path.exists(filename):
                         str = open(filename).read()
-                        list = self.parse(configreader(str), list, restricted)
+                        list = self.parse(configreader(filename, str), list, restricted)
                         if self.debug and not restricted:
                             _debug_print("", "Leaving file %s" % words[1])
                     else:
@@ -539,12 +539,13 @@ class configreader:
     whose readline() and/or seek() methods seem to be slow.
     """
 
-    def __init__(self, str):
+    def __init__(self, filename, str):
         """
         Initialize the reader.
 
         @param str: The string to parse.
         """
+        self.filename = filename
         self.line_index = 0
         self.lines = []
         for line in str.splitlines():
