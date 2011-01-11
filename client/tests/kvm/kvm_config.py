@@ -695,8 +695,8 @@ if __name__ == "__main__":
         cfg.parse_file(fn)
     dicts = cfg.get_generator()
     for i, dict in enumerate(dicts):
-        logging.info("Dictionary #%d:", i)
+        print "Dictionary #%d:" % (i)
         keys = dict.keys()
         keys.sort()
         for key in keys:
-            logging.info("    %s = %s", key, dict[key])
+            print "    %s = %s" % (key, dict[key])
