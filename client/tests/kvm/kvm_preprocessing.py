@@ -187,6 +187,7 @@ def process(test, params, env, image_func, vm_func):
         vm_func(test, vm_params, env, vm_name)
 
 
+@error.context_aware
 def preprocess(test, params, env):
     """
     Preprocess all VMs and images according to the instructions in params.
@@ -196,6 +197,8 @@ def preprocess(test, params, env):
     @param params: A dict containing all VM and image parameters.
     @param env: The environment (a dict-like object).
     """
+    error.context("preprocessing")
+
     # Start tcpdump if it isn't already running
     if "address_cache" not in env:
         env["address_cache"] = {}
@@ -274,6 +277,7 @@ def preprocess(test, params, env):
         _screendump_thread.start()
 
 
+@error.context_aware
 def postprocess(test, params, env):
     """
     Postprocess all VMs and images according to the instructions in params.
@@ -282,6 +286,8 @@ def postprocess(test, params, env):
     @param params: Dict containing all VM and image parameters.
     @param env: The environment (a dict-like object).
     """
+    error.context("postprocessing")
+
     # Postprocess all VMs and images
     process(test, params, env, postprocess_image, postprocess_vm)
 
