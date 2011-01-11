@@ -1186,13 +1186,13 @@ def runjob(control, drop_caches, options):
         sys.exit(1)
 
     except error.JobError, instance:
-        logging.error("JOB ERROR: " + instance.args[0])
+        logging.error("JOB ERROR: " + str(instance))
         if myjob:
             command = None
             if len(instance.args) > 1:
                 command = instance.args[1]
-                myjob.record('ABORT', None, command, instance.args[0])
-            myjob.record('END ABORT', None, None, instance.args[0])
+                myjob.record('ABORT', None, command, str(instance))
+            myjob.record('END ABORT', None, None, str(instance))
             assert myjob._record_indent == 0
             myjob.complete(1)
         else:
