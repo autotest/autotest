@@ -32,7 +32,6 @@ class config:
         self.object_cache = []
         self.object_cache_indices = {}
         self.regex_cache = {}
-        self.filename = filename
         self.debug = debug
         if filename:
             self.parse_file(filename)
@@ -46,7 +45,6 @@ class config:
         """
         if not os.path.exists(filename):
             raise IOError("File %s not found" % filename)
-        self.filename = filename
         str = open(filename).read()
         self.list = self.parse(configreader(filename, str), self.list)
 
@@ -57,7 +55,7 @@ class config:
 
         @param str: String to parse.
         """
-        self.list = self.parse(configreader('<string>', str), self.list)
+        self.list = self.parse(configreader('<string>', str, real_file=False), self.list)
 
 
     def fork_and_parse(self, filename=None, str=None):
@@ -337,20 +335,21 @@ class config:
                     continue
                 if self.debug and not restricted:
                     _debug_print(indented_line, "Entering file %s" % words[1])
-                if self.filename:
-                    filename = os.path.join(os.path.dirname(self.filename),
-                                            words[1])
-                    if os.path.exists(filename):
-                        str = open(filename).read()
-                        list = self.parse(configreader(filename, str), list, restricted)
-                        if self.debug and not restricted:
-                            _debug_print("", "Leaving file %s" % words[1])
-                    else:
-                        logging.warning("Cannot include %s -- file not found",
-                                        filename)
-                else:
-                    logging.warning("Cannot include %s because no file is "
-                                    "currently open", words[1])
+
+                cur_filename = cr.real_filename()
+                if cur_filename is None:
+                    cr.raise_error("'include' is valid only when parsing a file")
+
+                filename = os.path.join(os.path.dirname(cur_filename),
+                                        words[1])
+                if not os.path.exists(filename):
+                    cr.raise_error("Cannot include %s -- file not found" % (filename))
+
+                str = open(filename).read()
+                list = self.parse(configreader(filename, str), list, restricted)
+                if self.debug and not restricted:
+                    _debug_print("", "Leaving file %s" % words[1])
+
                 continue
 
             # Parse multi-line exceptions
@@ -539,13 +538,16 @@ class configreader:
     whose readline() and/or seek() methods seem to be slow.
     """
 
-    def __init__(self, filename, str):
+    def __init__(self, filename, str, real_file=True):
         """
         Initialize the reader.
 
+        @param filename: the filename we're parsing
         @param str: The string to parse.
+        @param real_file: Indicates if filename represents a real file. Defaults to True.
         """
         self.filename = filename
+        self.is_real_file = real_file
         self.line_index = 0
         self.lines = []
         self.real_number = []
@@ -560,6 +562,14 @@ class configreader:
             self.lines.append((line, stripped_line, indent))
             self.real_number.append(num + 1)
 
+
+    def real_filename(self):
+        """Returns the filename we're reading, in case it is a real file
+
+        @returns the filename we are parsing, or None in case we're not parsing a real file
+        """
+        if self.is_real_file:
+            return self.filename
 
     def get_next_line(self):
         """
