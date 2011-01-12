@@ -181,21 +181,18 @@ class JobError(AutotestError):
 class UnhandledJobError(JobError):
     """Indicates an unhandled error in a job."""
     def __init__(self, unhandled_exception):
-        JobError.__init__(self, unhandled_exception)
-        self.unhandled_exception = unhandled_exception
-        self.traceback = traceback.format_exc()
-
-    def __str__(self):
-        if isinstance(self.unhandled_exception, JobError):
-            return JobError.__str__(self.unhandled_exception)
+        if isinstance(unhandled_exception, JobError):
+            JobError.__init__(self, *unhandled_exception.args)
+        elif isinstance(unhandled_exception, str):
+            JobError.__init__(self, unhandled_exception)
         else:
             msg = "Unhandled %s: %s"
-            msg %= (self.unhandled_exception.__class__.__name__,
-                    self.unhandled_exception)
-            if not isinstance(self.unhandled_exception, AutotestError):
-                msg += _context_message(self.unhandled_exception)
-            msg += "\n" + self.traceback
-            return msg
+            msg %= (unhandled_exception.__class__.__name__,
+                    unhandled_exception)
+            if not isinstance(unhandled_exception, AutotestError):
+                msg += _context_message(unhandled_exception)
+            msg += "\n" + traceback.format_exc()
+            JobError.__init__(self, msg)
 
 
 class TestBaseException(AutotestError):
@@ -229,41 +226,35 @@ class TestWarn(TestBaseException):
 class UnhandledTestError(TestError):
     """Indicates an unhandled error in a test."""
     def __init__(self, unhandled_exception):
-        TestError.__init__(self, unhandled_exception)
-        self.unhandled_exception = unhandled_exception
-        self.traceback = traceback.format_exc()
-
-    def __str__(self):
-        if isinstance(self.unhandled_exception, TestError):
-            return TestError.__str__(self.unhandled_exception)
+        if isinstance(unhandled_exception, TestError):
+            TestError.__init__(self, *unhandled_exception.args)
+        elif isinstance(unhandled_exception, str):
+            TestError.__init__(self, unhandled_exception)
         else:
             msg = "Unhandled %s: %s"
-            msg %= (self.unhandled_exception.__class__.__name__,
-                    self.unhandled_exception)
-            if not isinstance(self.unhandled_exception, AutotestError):
-                msg += _context_message(self.unhandled_exception)
-            msg += "\n" + self.traceback
-            return msg
+            msg %= (unhandled_exception.__class__.__name__,
+                    unhandled_exception)
+            if not isinstance(unhandled_exception, AutotestError):
+                msg += _context_message(unhandled_exception)
+            msg += "\n" + traceback.format_exc()
+            TestError.__init__(self, msg)
 
 
 class UnhandledTestFail(TestFail):
     """Indicates an unhandled fail in a test."""
     def __init__(self, unhandled_exception):
-        TestFail.__init__(self, unhandled_exception)
-        self.unhandled_exception = unhandled_exception
-        self.traceback = traceback.format_exc()
-
-    def __str__(self):
-        if isinstance(self.unhandled_exception, TestFail):
-            return TestFail.__str__(self.unhandled_exception)
+        if isinstance(unhandled_exception, TestFail):
+            TestFail.__init__(self, *unhandled_exception.args)
+        elif isinstance(unhandled_exception, str):
+            TestFail.__init__(self, unhandled_exception)
         else:
             msg = "Unhandled %s: %s"
-            msg %= (self.unhandled_exception.__class__.__name__,
-                    self.unhandled_exception)
-            if not isinstance(self.unhandled_exception, AutotestError):
-                msg += _context_message(self.unhandled_exception)
-            msg += "\n" + self.traceback
-            return msg
+            msg %= (unhandled_exception.__class__.__name__,
+                    unhandled_exception)
+            if not isinstance(unhandled_exception, AutotestError):
+                msg += _context_message(unhandled_exception)
+            msg += "\n" + traceback.format_exc()
+            TestFail.__init__(self, msg)
 
 
 class CmdError(TestError):
