@@ -27,6 +27,7 @@ def run_migration_with_file_transfer(test, params, env):
 
     mig_timeout = float(params.get("mig_timeout", "3600"))
     mig_protocol = params.get("migration_protocol", "tcp")
+    mig_cancel_delay = int(params.get("mig_cancel") == "yes") * 2
 
     host_path = "/tmp/file-%s" % kvm_utils.generate_random_string(6)
     host_path_returned = "%s-returned" % host_path
@@ -44,7 +45,7 @@ def run_migration_with_file_transfer(test, params, env):
                 while bg.isAlive():
                     logging.info("File transfer not ended, starting a round of "
                                  "migration...")
-                    vm.migrate(mig_timeout, mig_protocol)
+                    vm.migrate(mig_timeout, mig_protocol, mig_cancel_delay)
             finally:
                 bg.join()
 
