@@ -161,7 +161,7 @@ variants:
                 migration_protocol = "exec"
             - mig_cancel:
                 migration_protocol = "tcp"
-                mig_cancel = True
+                mig_cancel = yes
         variants:
             - @default:
             - with_reboot:
