@@ -94,6 +94,7 @@ def base_context(s="", log=None):
     @param log: A logging function to pass the context message to.  If None, no
             function will be called.
     """
+    ctx.contexts[-1] = ""
     ctx.contexts[-2] = s
     if s and log:
         log("Context: %s" % get_context())
