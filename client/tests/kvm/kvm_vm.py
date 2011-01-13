@@ -1416,7 +1416,7 @@ class VM:
 
         def wait_for_migration():
             if not kvm_utils.wait_for(mig_finished, timeout, 2, 2,
-                                      "Waiting for migration to finish..."):
+                                      "Waiting for migration to complete"):
                 raise VMMigrateTimeoutError("Timeout expired while waiting "
                                             "for migration to finish")
 
@@ -1446,6 +1446,7 @@ class VM:
             if offline:
                 self.monitor.cmd("stop")
 
+            logging.info("Migrating to %s" % uri)
             self.monitor.migrate(uri)
 
             if cancel_delay:
@@ -1487,8 +1488,7 @@ class VM:
                     md5_save1 = utils.hash_file(save1)
                     md5_save2 = utils.hash_file(save2)
                     if md5_save1 != md5_save2:
-                        raise VMMigrateStateMismatchError(md5_save1,
-                                                          md5_save2)
+                        raise VMMigrateStateMismatchError(md5_save1, md5_save2)
                 finally:
                     if clean:
                         if os.path.isfile(save1):
