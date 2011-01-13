@@ -458,7 +458,13 @@ def check_kvm_source_dir(source_dir):
 # Functions and classes used for logging into guests and transferring files
 
 class LoginError(Exception):
-    pass
+    def __init__(self, msg, output):
+        Exception.__init__(self, msg, output)
+        self.msg = msg
+        self.output = output
+
+    def __str__(self):
+        return "%s    (output: %r)" % (self.msg, self.output)
 
 
 class LoginAuthenticationError(LoginError):
@@ -467,27 +473,22 @@ class LoginAuthenticationError(LoginError):
 
 class LoginTimeoutError(LoginError):
     def __init__(self, output):
-        LoginError.__init__(self, output)
-        self.output = output
-
-    def __str__(self):
-        return "Timeout expired (output so far: %r)" % self.output
+        LoginError.__init__(self, "Login timeout expired", output)
 
 
 class LoginProcessTerminatedError(LoginError):
     def __init__(self, status, output):
-        LoginError.__init__(self, status, output)
+        LoginError.__init__(self, None, output)
         self.status = status
-        self.output = output
 
     def __str__(self):
-        return ("Client process terminated (status: %s, output: %r)" %
+        return ("Client process terminated    (status: %s,    output: %r)" %
                 (self.status, self.output))
 
 
 class LoginBadClientError(LoginError):
     def __init__(self, client):
-        LoginError.__init__(self, client)
+        LoginError.__init__(self, None, None)
         self.client = client
 
     def __str__(self):
@@ -495,31 +496,38 @@ class LoginBadClientError(LoginError):
 
 
 class SCPError(Exception):
-    pass
+    def __init__(self, msg, output):
+        Exception.__init__(self, msg, output)
+        self.msg = msg
+        self.output = output
+
+    def __str__(self):
+        return "%s    (output: %r)" % (self.msg, self.output)
 
 
 class SCPAuthenticationError(SCPError):
     pass
 
 
+class SCPAuthenticationTimeoutError(SCPAuthenticationError):
+    def __init__(self, output):
+        SCPAuthenticationError.__init__(self, "Authentication timeout expired",
+                                        output)
+
+
 class SCPTransferTimeoutError(SCPError):
     def __init__(self, output):
-        SCPError.__init__(self, output)
-        self.output = output
-
-    def __str__(self):
-        return "Transfer timeout expired (output so far: %r)" % self.output
+        SCPError.__init__(self, "Transfer timeout expired", output)
 
 
 class SCPTransferFailedError(SCPError):
     def __init__(self, status, output):
-        SCPError.__init__(self, status, output)
+        SCPError.__init__(self, None, output)
         self.status = status
-        self.output = output
 
     def __str__(self):
-        return "SCP transfer failed (status: %s, output: %r)" % (self.status,
-                                                                 self.output)
+        return ("SCP transfer failed    (status: %s,    output: %r)" %
+                (self.status, self.output))
 
 
 def _remote_login(session, username, password, prompt, timeout=10):
@@ -563,7 +571,8 @@ def _remote_login(session, username, password, prompt, timeout=10):
                     password_prompt_count += 1
                     continue
                 else:
-                    raise LoginAuthenticationError("Got password prompt twice")
+                    raise LoginAuthenticationError("Got password prompt twice",
+                                                   text)
             elif match == 2:  # "login:"
                 if login_prompt_count == 0:
                     logging.debug("Got username prompt; sending '%s'" % username)
@@ -571,11 +580,12 @@ def _remote_login(session, username, password, prompt, timeout=10):
                     login_prompt_count += 1
                     continue
                 else:
-                    raise LoginAuthenticationError("Got username prompt twice")
+                    raise LoginAuthenticationError("Got username prompt twice",
+                                                   text)
             elif match == 3:  # "Connection closed"
-                raise LoginError("Client said 'connection closed'")
+                raise LoginError("Client said 'connection closed'", text)
             elif match == 4:  # "Connection refused"
-                raise LoginError("Client said 'connection refused'")
+                raise LoginError("Client said 'connection refused'", text)
             elif match == 5:  # "Please wait"
                 logging.debug("Got 'Please wait'")
                 timeout = 30
@@ -707,15 +717,15 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
                     authentication_done = True
                     continue
                 else:
-                    raise SCPAuthenticationError("Got password prompt twice")
+                    raise SCPAuthenticationError("Got password prompt twice",
+                                                 text)
             elif match == 2:  # "lost connection"
-                raise SCPError("SCP client said 'lost connection'")
+                raise SCPError("SCP client said 'lost connection'", text)
         except kvm_subprocess.ExpectTimeoutError, e:
             if authentication_done:
                 raise SCPTransferTimeoutError(e.output)
             else:
-                raise SCPAuthenticationError("Authentication timeout expired "
-                                             "(output so far: %r)" % e.output)
+                raise SCPAuthenticationTimeoutError(e.output)
         except kvm_subprocess.ExpectProcessTerminatedError, e:
             if e.status == 0:
                 logging.debug("SCP process terminated with status 0")
