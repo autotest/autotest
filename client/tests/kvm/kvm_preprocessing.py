@@ -51,9 +51,7 @@ def preprocess_vm(test, params, env, name):
     """
     logging.debug("Preprocessing VM '%s'..." % name)
     vm = env.get_vm(name)
-    if vm:
-        logging.debug("VM object found in environment")
-    else:
+    if not vm:
         logging.debug("VM object does not exist; creating it")
         vm = kvm_vm.VM(name, params, test.bindir, env.get("address_cache"))
         env.register_vm(name, vm)
@@ -116,10 +114,7 @@ def postprocess_vm(test, params, env, name):
     """
     logging.debug("Postprocessing VM '%s'..." % name)
     vm = env.get_vm(name)
-    if vm:
-        logging.debug("VM object found in environment")
-    else:
-        logging.debug("VM object does not exist in environment")
+    if not vm:
         return
 
     scrdump_filename = os.path.join(test.debugdir, "post_%s.ppm" % name)
