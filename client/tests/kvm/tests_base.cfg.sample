@@ -1699,7 +1699,9 @@ variants:
 
     # Windows section
     - @Windows:
-        no autotest linux_s3 vlan ioquit unattended_install.(url|nfs|remote_ks) jumbo nicdriver_unload nic_promisc multicast mac_change ethtool
+        no autotest linux_s3 vlan ioquit unattended_install.(url|nfs|remote_ks)
+        no jumbo nicdriver_unload nic_promisc multicast mac_change ethtool clock_getres
+
         shutdown_command = shutdown /s /f /t 0
         reboot_command = shutdown /r /f /t 0
         status_test_command = echo %errorlevel%
