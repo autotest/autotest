@@ -119,9 +119,9 @@ class Monitor:
         while self._data_available():
             try:
                 data = self._socket.recv(1024)
-            except socket.error, (errno, msg):
+            except socket.error, e:
                 raise MonitorSocketError("Could not receive data from monitor "
-                                         "(%s)" % msg)
+                                         "(%s)" % e)
             if not data:
                 break
             s += data
@@ -212,9 +212,9 @@ class HumanMonitor(Monitor):
         try:
             try:
                 self._socket.sendall(cmd + "\n")
-            except socket.error, (errno, msg):
-                raise MonitorSocketError("Could not send monitor command '%s' "
-                                         "(%s)" % (cmd, msg))
+            except socket.error, e:
+                raise MonitorSocketError("Could not send monitor command %r "
+                                         "(%s)" % (cmd, e))
 
         finally:
             self._lock.release()
@@ -484,9 +484,9 @@ class QMPMonitor(Monitor):
         """
         try:
             self._socket.sendall(data)
-        except socket.error, (errno, msg):
+        except socket.error, e:
             raise MonitorSocketError("Could not send data: %r (%s)" %
-                                     (data, msg))
+                                     (data, e))
 
 
     def _get_response(self, id=None, timeout=20):
