@@ -22,7 +22,13 @@ class MonitorConnectError(MonitorError):
 
 
 class MonitorSocketError(MonitorError):
-    pass
+    def __init__(self, msg, e):
+        Exception.__init__(self, msg, e)
+        self.msg = msg
+        self.e = e
+
+    def __str__(self):
+        return "%s    (%s)" % (self.msg, self.e)
 
 
 class MonitorLockError(MonitorError):
@@ -120,8 +126,8 @@ class Monitor:
             try:
                 data = self._socket.recv(1024)
             except socket.error, e:
-                raise MonitorSocketError("Could not receive data from monitor "
-                                         "(%s)" % e)
+                raise MonitorSocketError("Could not receive data from monitor",
+                                         e)
             if not data:
                 break
             s += data
@@ -213,8 +219,8 @@ class HumanMonitor(Monitor):
             try:
                 self._socket.sendall(cmd + "\n")
             except socket.error, e:
-                raise MonitorSocketError("Could not send monitor command %r "
-                                         "(%s)" % (cmd, e))
+                raise MonitorSocketError("Could not send monitor command %r" %
+                                         cmd, e)
 
         finally:
             self._lock.release()
@@ -485,8 +491,7 @@ class QMPMonitor(Monitor):
         try:
             self._socket.sendall(data)
         except socket.error, e:
-            raise MonitorSocketError("Could not send data: %r (%s)" %
-                                     (data, e))
+            raise MonitorSocketError("Could not send data: %r" % data, e)
 
 
     def _get_response(self, id=None, timeout=20):
