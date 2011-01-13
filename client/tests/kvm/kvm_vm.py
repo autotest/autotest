@@ -157,6 +157,10 @@ class VMMigrateStateMismatchError(VMMigrateError):
                 (self.src_hash, self.dst_hash))
 
 
+class VMRebootError(VMError):
+    pass
+
+
 def get_image_filename(params, root_dir):
     """
     Generate an image path from params and root_dir.
@@ -1501,6 +1505,56 @@ class VM:
             if self.is_alive():
                 self.monitor.cmd("cont")
             clone.destroy(gracefully=False)
+
+
+    @error.context_aware
+    def reboot(self, session=None, method="shell", nic_index=0, timeout=240):
+        """
+        Reboot the VM and wait for it to come back up by trying to log in until
+        timeout expires.
+
+        @param session: A shell session object or None.
+        @param method: Reboot method.  Can be "shell" (send a shell reboot
+                command) or "system_reset" (send a system_reset monitor command).
+        @param nic_index: Index of NIC to access in the VM, when logging in
+                after rebooting.
+        @param timeout: Time to wait for login to succeed (after rebooting).
+        @return: A new shell session object.
+        """
+        error.base_context("rebooting '%s'" % self.name, logging.info)
+        error.context("before reboot")
+        session = session or self.login()
+        error.context()
+
+        if method == "shell":
+            session.sendline(self.params.get("reboot_command"))
+        elif method == "system_reset":
+            # Clear the event list of all QMP monitors
+            qmp_monitors = [m for m in self.monitors if m.protocol == "qmp"]
+            for m in qmp_monitors:
+                m.clear_events()
+            # Send a system_reset monitor command
+            self.monitor.cmd("system_reset")
+            # Look for RESET QMP events
+            time.sleep(1)
+            for m in qmp_monitors:
+                if m.get_event("RESET"):
+                    logging.info("RESET QMP event received")
+                else:
+                    raise VMRebootError("RESET QMP event not received after "
+                                        "system_reset (monitor '%s')" % m.name)
+        else:
+            raise VMRebootError("Unknown reboot method: %s" % method)
+
+        error.context("waiting for guest to go down", logging.info)
+        if not kvm_utils.wait_for(lambda:
+                                  not session.is_responsive(timeout=30),
+                                  120, 0, 1):
+            raise VMRebootError("Guest refuses to go down")
+        session.close()
+
+        error.context("logging in after reboot", logging.info)
+        return self.wait_for_login(nic_index, timeout=timeout)
 
 
     def send_key(self, keystr):
