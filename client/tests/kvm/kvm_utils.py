@@ -574,14 +574,17 @@ def _remote_login(session, username, password, prompt, timeout=10):
                     raise LoginAuthenticationError("Got password prompt twice",
                                                    text)
             elif match == 2:  # "login:"
-                if login_prompt_count == 0:
+                if login_prompt_count == 0 and password_prompt_count == 0:
                     logging.debug("Got username prompt; sending '%s'" % username)
                     session.sendline(username)
                     login_prompt_count += 1
                     continue
                 else:
-                    raise LoginAuthenticationError("Got username prompt twice",
-                                                   text)
+                    if login_prompt_count > 0:
+                        msg = "Got username prompt twice"
+                    else:
+                        msg = "Got username prompt after password prompt"
+                    raise LoginAuthenticationError(msg, text)
             elif match == 3:  # "Connection closed"
                 raise LoginError("Client said 'connection closed'", text)
             elif match == 4:  # "Connection refused"
