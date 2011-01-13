@@ -1744,8 +1744,6 @@ variants:
             migration_bg_kill_command = taskkill /IM ping.exe /F
         migrate.with_file_transfer:
             guest_path = C:\tmpfile
-            rtl8139:
-                file_size = 10
         stress_boot:
             alive_test_cmd = systeminfo
         timedrift:
