@@ -1499,6 +1499,11 @@ class VM:
             # and self is the destination VM that will remain alive.  If this
             # is remote migration, self is a dead VM object.
 
+            error.context("after migration")
+            if local:
+                time.sleep(1)
+                self.verify_alive()
+
             if local and stable_check:
                 try:
                     save1 = os.path.join(save_path, "src-" + clone.instance)
