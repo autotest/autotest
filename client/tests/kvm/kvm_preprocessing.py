@@ -336,7 +336,8 @@ def postprocess(test, params, env):
                 try:
                     session = vm.login()
                     session.close()
-                except (kvm_utils.LoginError, kvm_vm.VMError):
+                except (kvm_utils.LoginError, kvm_vm.VMError), e:
+                    logging.warn(e)
                     vm.destroy(gracefully=False)
 
     # Kill all kvm_subprocess tail threads
