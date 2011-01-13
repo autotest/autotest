@@ -28,7 +28,7 @@ def run_guest_test(test, params, env):
 
     if reboot == "yes":
         logging.debug("Rebooting guest before test ...")
-        session = kvm_test_utils.reboot(vm, session, timeout=login_timeout)
+        session = vm.reboot(session, timeout=login_timeout)
 
     try:
         logging.info("Starting script...")
@@ -74,7 +74,7 @@ def run_guest_test(test, params, env):
 
         if reboot == "yes":
             logging.debug("Rebooting guest after test ...")
-            session = kvm_test_utils.reboot(vm, session, timeout=login_timeout)
+            session = vm.reboot(session, timeout=login_timeout)
 
         logging.debug("guest test PASSED.")
     finally:

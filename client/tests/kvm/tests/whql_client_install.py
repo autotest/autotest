@@ -99,7 +99,7 @@ def run_whql_client_install(test, params, env):
     session.cmd(cmd, timeout=300)
 
     # Reboot
-    session = kvm_test_utils.reboot(vm, session)
+    session = vm.reboot(session)
 
     # Access shared resources on the server machine
     logging.info("Attempting to access remote share on server")
@@ -132,5 +132,5 @@ def run_whql_client_install(test, params, env):
     session.cmd(cmd % ("DefaultPassword", client_password))
 
     # Reboot one more time
-    session = kvm_test_utils.reboot(vm, session)
+    session = vm.reboot(session)
     session.close()
