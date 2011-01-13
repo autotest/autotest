@@ -27,7 +27,21 @@ RSS_DONE            = 9
 
 
 class FileTransferError(Exception):
-    pass
+    def __init__(self, msg, e=None, filename=None):
+        Exception.__init__(self, msg, e, filename)
+        self.msg = msg
+        self.e = e
+        self.filename = filename
+
+    def __str__(self):
+        s = self.msg
+        if self.e and self.filename:
+            s += "    (error: %s,    filename: %s)" % (self.e, self.filename)
+        elif self.e:
+            s += "    (%s)" % self.e
+        elif self.filename:
+            s += "    (filename: %s)" % self.filename
+        return s
 
 
 class FileTransferConnectError(FileTransferError):
@@ -42,12 +56,19 @@ class FileTransferProtocolError(FileTransferError):
     pass
 
 
-class FileTransferSendError(FileTransferError):
+class FileTransferSocketError(FileTransferError):
     pass
 
 
 class FileTransferServerError(FileTransferError):
-    pass
+    def __init__(self, errmsg):
+        FileTransferError.__init__(self, None, errmsg)
+
+    def __str__(self):
+        s = "Server said: %r" % self.e
+        if self.filename:
+            s += "    (filename: %s)" % self.filename
+        return s
 
 
 class FileTransferNotFoundError(FileTransferError):
@@ -67,15 +88,14 @@ class FileTransferClient(object):
         @param port: The server's port
         @param timeout: Time duration to wait for connection to succeed
         @raise FileTransferConnectError: Raised if the connection fails
-        @raise FileTransferProtocolError: Raised if an incorrect magic number
-                is received
         """
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._socket.settimeout(timeout)
         try:
             self._socket.connect((address, port))
-        except socket.error:
-            raise FileTransferConnectError("Could not connect to server")
+        except socket.error, e:
+            raise FileTransferConnectError("Cannot connect to server at "
+                                           "%s:%s" % (address, port), e)
         try:
             if self._receive_msg(timeout) != RSS_MAGIC:
                 raise FileTransferConnectError("Received wrong magic number")
@@ -99,8 +119,8 @@ class FileTransferClient(object):
     def _send(self, str):
         try:
             self._socket.sendall(str)
-        except socket.error:
-            raise FileTransferSendError("Could not send data to server")
+        except socket.error, e:
+            raise FileTransferSocketError("Could not send data to server", e)
 
 
     def _receive(self, size, timeout=10):
@@ -113,9 +133,9 @@ class FileTransferClient(object):
             except socket.timeout:
                 raise FileTransferTimeoutError("Timeout expired while "
                                                "receiving data from server")
-            except socket.error:
-                raise FileTransferProtocolError("Error receiving data from "
-                                                "server")
+            except socket.error, e:
+                raise FileTransferSocketError("Error receiving data from "
+                                              "server", e)
             if not data:
                 raise FileTransferProtocolError("Connection closed "
                                                 "unexpectedly")
@@ -140,7 +160,11 @@ class FileTransferClient(object):
             end_time = time.time() + timeout
             while time.time() < end_time:
                 data = f.read(CHUNKSIZE)
-                self._send_packet(data)
+                try:
+                    self._send_packet(data)
+                except FileTransferError, e:
+                    e.filename = filename
+                    raise
                 if len(data) < CHUNKSIZE:
                     break
             else:
@@ -157,13 +181,9 @@ class FileTransferClient(object):
             while True:
                 try:
                     data = self._receive_packet(end_time - time.time())
-                except FileTransferTimeoutError:
-                    raise FileTransferTimeoutError("Timeout expired while "
-                                                   "receiving file %s" %
-                                                   filename)
-                except FileTransferProtocolError:
-                    raise FileTransferProtocolError("Error receiving file %s" %
-                                                    filename)
+                except FileTransferError, e:
+                    e.filename = filename
+                    raise
                 f.write(data)
                 if len(data) < CHUNKSIZE:
                     break
@@ -191,7 +211,7 @@ class FileTransferClient(object):
             raise e[0], e[1], e[2]
         if msg == RSS_ERROR:
             errmsg = self._receive_packet()
-            raise FileTransferServerError("Server said: %s" % errmsg)
+            raise FileTransferServerError(errmsg)
         raise e[0], e[1], e[2]
 
 
@@ -210,7 +230,7 @@ class FileUploadClient(FileTransferClient):
         @raise FileTransferConnectError: Raised if the connection fails
         @raise FileTransferProtocolError: Raised if an incorrect magic number
                 is received
-        @raise FileTransferSendError: Raised if the RSS_UPLOAD message cannot
+        @raise FileTransferSocketError: Raised if the RSS_UPLOAD message cannot
                 be sent to the server
         """
         super(FileUploadClient, self).__init__(address, port, timeout)
@@ -282,7 +302,7 @@ class FileUploadClient(FileTransferClient):
                     return
                 elif msg == RSS_ERROR:
                     errmsg = self._receive_packet()
-                    raise FileTransferServerError("Server said: %s" % errmsg)
+                    raise FileTransferServerError(errmsg)
                 else:
                     # Neither RSS_OK nor RSS_ERROR found
                     raise FileTransferProtocolError("Received unexpected msg")
@@ -385,7 +405,7 @@ class FileDownloadClient(FileTransferClient):
                 elif msg == RSS_ERROR:
                     # Receive error message and abort
                     errmsg = self._receive_packet()
-                    raise FileTransferServerError("Server said: %s" % errmsg)
+                    raise FileTransferServerError(errmsg)
                 else:
                     # Unexpected msg
                     raise FileTransferProtocolError("Received unexpected msg")
