@@ -80,7 +80,7 @@ class FileTransferClient(object):
     Connect to a RSS (remote shell server) and transfer files.
     """
 
-    def __init__(self, address, port, timeout=10):
+    def __init__(self, address, port, timeout=20):
         """
         Connect to a server.
 
@@ -116,86 +116,94 @@ class FileTransferClient(object):
         self._socket.close()
 
 
-    def _send(self, str):
+    def _send(self, str, timeout=60):
         try:
+            if timeout <= 0:
+                raise socket.timeout
+            self._socket.settimeout(timeout)
             self._socket.sendall(str)
+        except socket.timeout:
+            raise FileTransferTimeoutError("Timeout expired while sending "
+                                           "data to server")
         except socket.error, e:
             raise FileTransferSocketError("Could not send data to server", e)
 
 
-    def _receive(self, size, timeout=10):
+    def _receive(self, size, timeout=60):
         strs = []
         end_time = time.time() + timeout
-        while size > 0:
-            try:
-                self._socket.settimeout(max(0.0001, end_time - time.time()))
+        try:
+            while size > 0:
+                timeout = end_time - time.time()
+                if timeout <= 0:
+                    raise socket.timeout
+                self._socket.settimeout(timeout)
                 data = self._socket.recv(size)
-            except socket.timeout:
-                raise FileTransferTimeoutError("Timeout expired while "
-                                               "receiving data from server")
-            except socket.error, e:
-                raise FileTransferSocketError("Error receiving data from "
-                                              "server", e)
-            if not data:
-                raise FileTransferProtocolError("Connection closed "
-                                                "unexpectedly")
-            strs.append(data)
-            size -= len(data)
+                if not data:
+                    raise FileTransferProtocolError("Connection closed "
+                                                    "unexpectedly while "
+                                                    "receiving data from "
+                                                    "server")
+                strs.append(data)
+                size -= len(data)
+        except socket.timeout:
+            raise FileTransferTimeoutError("Timeout expired while receiving "
+                                           "data from server")
+        except socket.error, e:
+            raise FileTransferSocketError("Error receiving data from server",
+                                          e)
         return "".join(strs)
 
 
-    def _send_packet(self, str):
+    def _send_packet(self, str, timeout=60):
         self._send(struct.pack("=I", len(str)))
-        self._send(str)
+        self._send(str, timeout)
 
 
-    def _receive_packet(self, timeout=10):
+    def _receive_packet(self, timeout=60):
         size = struct.unpack("=I", self._receive(4))[0]
         return self._receive(size, timeout)
 
 
-    def _send_file_chunks(self, filename, timeout=30):
+    def _send_file_chunks(self, filename, timeout=60):
         f = open(filename, "rb")
         try:
-            end_time = time.time() + timeout
-            while time.time() < end_time:
-                data = f.read(CHUNKSIZE)
-                try:
-                    self._send_packet(data)
-                except FileTransferError, e:
-                    e.filename = filename
-                    raise
-                if len(data) < CHUNKSIZE:
-                    break
-            else:
-                raise FileTransferTimeoutError("Timeout expired while sending "
-                                               "file %s" % filename)
+            try:
+                end_time = time.time() + timeout
+                while True:
+                    data = f.read(CHUNKSIZE)
+                    self._send_packet(data, end_time - time.time())
+                    if len(data) < CHUNKSIZE:
+                        break
+            except FileTransferError, e:
+                e.filename = filename
+                raise
         finally:
             f.close()
 
 
-    def _receive_file_chunks(self, filename, timeout=30):
+    def _receive_file_chunks(self, filename, timeout=60):
         f = open(filename, "wb")
         try:
-            end_time = time.time() + timeout
-            while True:
-                try:
+            try:
+                end_time = time.time() + timeout
+                while True:
                     data = self._receive_packet(end_time - time.time())
-                except FileTransferError, e:
-                    e.filename = filename
-                    raise
-                f.write(data)
-                if len(data) < CHUNKSIZE:
-                    break
+                    f.write(data)
+                    if len(data) < CHUNKSIZE:
+                        break
+            except FileTransferError, e:
+                e.filename = filename
+                raise
         finally:
             f.close()
 
 
-    def _send_msg(self, msg, timeout=10):
+    def _send_msg(self, msg, timeout=60):
         self._send(struct.pack("=I", msg))
 
 
-    def _receive_msg(self, timeout=10):
+    def _receive_msg(self, timeout=60):
         s = self._receive(4, timeout)
         return struct.unpack("=I", s)[0]
 
@@ -220,7 +228,7 @@ class FileUploadClient(FileTransferClient):
     Connect to a RSS (remote shell server) and upload files or directory trees.
     """
 
-    def __init__(self, address, port, timeout=10):
+    def __init__(self, address, port, timeout=20):
         """
         Connect to a server.
 
@@ -241,7 +249,7 @@ class FileUploadClient(FileTransferClient):
         if os.path.isfile(path):
             self._send_msg(RSS_CREATE_FILE)
             self._send_packet(os.path.basename(path))
-            self._send_file_chunks(path, max(0, end_time - time.time()))
+            self._send_file_chunks(path, end_time - time.time())
         elif os.path.isdir(path):
             self._send_msg(RSS_CREATE_DIR)
             self._send_packet(os.path.basename(path))
@@ -297,7 +305,7 @@ class FileUploadClient(FileTransferClient):
                                                     "directories" %
                                                     src_pattern)
                 # Look for RSS_OK or RSS_ERROR
-                msg = self._receive_msg(max(0, end_time - time.time()))
+                msg = self._receive_msg(end_time - time.time())
                 if msg == RSS_OK:
                     return
                 elif msg == RSS_ERROR:
@@ -317,7 +325,7 @@ class FileDownloadClient(FileTransferClient):
     Connect to a RSS (remote shell server) and download files or directory trees.
     """
 
-    def __init__(self, address, port, timeout=10):
+    def __init__(self, address, port, timeout=20):
         """
         Connect to a server.
 
@@ -378,8 +386,7 @@ class FileDownloadClient(FileTransferClient):
                     filename = self._receive_packet()
                     if os.path.isdir(dst_path):
                         dst_path = os.path.join(dst_path, filename)
-                    self._receive_file_chunks(
-                            dst_path, max(0, end_time - time.time()))
+                    self._receive_file_chunks(dst_path, end_time - time.time())
                     dst_path = os.path.dirname(dst_path)
                     file_count += 1
                 elif msg == RSS_CREATE_DIR:
@@ -416,7 +423,7 @@ class FileDownloadClient(FileTransferClient):
 
 
 def upload(address, port, src_pattern, dst_path, timeout=60,
-           connect_timeout=10):
+           connect_timeout=20):
     """
     Connect to server and upload files.
 
@@ -428,7 +435,7 @@ def upload(address, port, src_pattern, dst_path, timeout=60,
 
 
 def download(address, port, src_pattern, dst_path, timeout=60,
-             connect_timeout=10):
+             connect_timeout=20):
     """
     Connect to server and upload files.
 
