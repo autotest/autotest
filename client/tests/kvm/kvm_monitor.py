@@ -45,8 +45,8 @@ class QMPCmdError(MonitorError):
         self.data = data
 
     def __str__(self):
-        return ("QMP command %r failed (arguments: %r, error message: %r)" %
-                (self.cmd, self.qmp_args, self.data))
+        return ("QMP command %r failed    (arguments: %r,    "
+                "error message: %r)" % (self.cmd, self.qmp_args, self.data))
 
 
 class Monitor:

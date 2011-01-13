@@ -23,8 +23,8 @@ class VMCreateError(VMError):
         self.output = output
 
     def __str__(self):
-        return ("VM creation command failed: %r (status: %s, output: %r)" %
-                (self.cmd, self.status, self.output))
+        return ("VM creation command failed:    %r    (status: %s,    "
+                "output: %r)" % (self.cmd, self.status, self.output))
 
 
 class VMHashMismatchError(VMError):
@@ -75,13 +75,13 @@ class VMPostCreateError(VMError):
 
 class VMHugePageError(VMPostCreateError):
     def __str__(self):
-        return ("Cannot allocate hugepage memory (command: %r, output: %r)" %
-                (self.cmd, self.output))
+        return ("Cannot allocate hugepage memory    (command: %r,    "
+                "output: %r)" % (self.cmd, self.output))
 
 
 class VMKVMInitError(VMPostCreateError):
     def __str__(self):
-        return ("Cannot initialize KVM (command: %r, output: %r)" %
+        return ("Cannot initialize KVM    (command: %r,    output: %r)" %
                 (self.cmd, self.output))
 
 
@@ -109,8 +109,8 @@ class VMAddressVerificationError(VMAddressError):
         self.ip = ip
 
     def __str__(self):
-        return "Cannot verify MAC-IP address mapping: %s ---> %s" % (self.mac,
-                                                                     self.ip)
+        return ("Cannot verify MAC-IP address mapping using arping: "
+                "%s ---> %s" % (self.mac, self.ip))
 
 
 class VMMACAddressMissingError(VMAddressError):

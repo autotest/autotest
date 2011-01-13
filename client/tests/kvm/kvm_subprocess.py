@@ -202,13 +202,13 @@ class ExpectError(Exception):
             return "patterns %r" % self.patterns
 
     def __str__(self):
-        return ("Unknown error occurred while looking for %s (output: %r)" %
+        return ("Unknown error occurred while looking for %s    (output: %r)" %
                 (self._pattern_str(), self.output))
 
 
 class ExpectTimeoutError(ExpectError):
     def __str__(self):
-        return ("Timeout expired while looking for %s (output: %r)" %
+        return ("Timeout expired while looking for %s    (output: %r)" %
                 (self._pattern_str(), self.output))
 
 
@@ -218,8 +218,9 @@ class ExpectProcessTerminatedError(ExpectError):
         self.status = status
 
     def __str__(self):
-        return ("Process terminated while looking for %s (status: %s, output: "
-                "%r)" % (self._pattern_str(), self.status, self.output))
+        return ("Process terminated while looking for %s    "
+                "(status: %s,    output: %r)" % (self._pattern_str(),
+                                                 self.status, self.output))
 
 
 class ShellError(Exception):
@@ -229,14 +230,14 @@ class ShellError(Exception):
         self.output = output
 
     def __str__(self):
-        return ("Could not execute shell command %r (output: %r)" %
+        return ("Could not execute shell command %r    (output: %r)" %
                 (self.cmd, self.output))
 
 
 class ShellTimeoutError(ShellError):
     def __str__(self):
-        return ("Timeout expired while waiting for shell command %r to "
-                "complete (output: %r)" % (self.cmd, self.output))
+        return ("Timeout expired while waiting for shell command to "
+                "complete: %r    (output: %r)" % (self.cmd, self.output))
 
 
 class ShellProcessTerminatedError(ShellError):
@@ -247,8 +248,8 @@ class ShellProcessTerminatedError(ShellError):
         self.status = status
 
     def __str__(self):
-        return ("Shell process terminated while waiting for command %r to "
-                "complete (status: %s, output: %r)" %
+        return ("Shell process terminated while waiting for command to "
+                "complete: %r    (status: %s,    output: %r)" %
                 (self.cmd, self.status, self.output))
 
 
@@ -260,14 +261,14 @@ class ShellCmdError(ShellError):
         self.status = status
 
     def __str__(self):
-        return ("Shell command %r failed with status %d (output: %r)" %
+        return ("Shell command failed: %r    (status: %s,    output: %r)" %
                 (self.cmd, self.status, self.output))
 
 
 class ShellStatusError(ShellError):
     # Raised when the command's exit status cannot be obtained
     def __str__(self):
-        return ("Could not get exit status of command %r (output: %r)" %
+        return ("Could not get exit status of command: %r    (output: %r)" %
                 (self.cmd, self.output))
 
 
