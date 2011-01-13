@@ -149,6 +149,7 @@ class VMMigrateFailedError(VMMigrateError):
 
 class VMMigrateStateMismatchError(VMMigrateError):
     def __init__(self, src_hash, dst_hash):
+        VMMigrateError.__init__(self, src_hash, dst_hash)
         self.src_hash = src_hash
         self.dst_hash = dst_hash
 
