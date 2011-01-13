@@ -913,7 +913,6 @@ class VM:
         try:
             # Is it already dead?
             if self.is_dead():
-                logging.debug("VM is already down")
                 return
 
             logging.debug("Destroying VM with PID %s...", self.get_pid())
@@ -932,7 +931,7 @@ class VM:
                         logging.debug("Shutdown command sent; waiting for VM "
                                       "to go down...")
                         if kvm_utils.wait_for(self.is_dead, 60, 1, 1):
-                            logging.debug("VM is down, freeing mac address.")
+                            logging.debug("VM is down")
                             return
                     finally:
                         session.close()
