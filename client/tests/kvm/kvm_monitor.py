@@ -314,7 +314,6 @@ class HumanMonitor(Monitor):
         @param wait: If true, wait for completion
         @return: The command's output
         """
-        logging.debug("Migrating to: %s" % uri)
         cmd = "migrate"
         if not wait:
             cmd += " -d"
