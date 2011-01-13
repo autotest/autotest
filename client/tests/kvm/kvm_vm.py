@@ -833,9 +833,9 @@ class VM:
                 qemu_command += (' -incoming "exec:nc -l %s"' %
                                  self.migration_port)
 
-            logging.debug("Running qemu command:\n%s", qemu_command)
+            logging.info("Running qemu command:\n%s", qemu_command)
             self.process = kvm_subprocess.run_bg(qemu_command, None,
-                                                 logging.debug, "(qemu) ")
+                                                 logging.info, "(qemu) ")
 
             # Make sure the process was started successfully
             if not self.process.is_alive():
