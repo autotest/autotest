@@ -690,7 +690,7 @@ class VM:
         @raise VMPAError: If no PCI assignable devices could be assigned
         """
         error.context("creating '%s'" % self.name)
-        self.destroy()
+        self.destroy(free_mac_addresses=False)
 
         if name is not None:
             self.name = name
@@ -903,7 +903,7 @@ class VM:
             lockfile.close()
 
 
-    def destroy(self, gracefully=True):
+    def destroy(self, gracefully=True, free_mac_addresses=True):
         """
         Destroy the VM.
 
@@ -911,9 +911,11 @@ class VM:
         command.  Then, attempt to destroy the VM via the monitor with a 'quit'
         command.  If that fails, send SIGKILL to the qemu process.
 
-        @param gracefully: Whether an attempt will be made to end the VM
+        @param gracefully: If True, an attempt will be made to end the VM
                 using a shell command before trying to end the qemu process
                 with a 'quit' or a kill signal.
+        @param free_mac_addresses: If True, the MAC addresses used by the VM
+                will be freed.
         """
         try:
             # Is it already dead?
@@ -985,9 +987,10 @@ class VM:
                     os.unlink(self.migration_file)
                 except OSError:
                     pass
-            num_nics = len(self.params.objects("nics"))
-            for vlan in range(num_nics):
-                self.free_mac_address(vlan)
+            if free_mac_addresses:
+                num_nics = len(self.params.objects("nics"))
+                for vlan in range(num_nics):
+                    self.free_mac_address(vlan)
 
 
     @property
