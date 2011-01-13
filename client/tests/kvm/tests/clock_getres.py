@@ -35,5 +35,4 @@ def run_clock_getres(test, params, env):
     vm.copy_files_to(test_clock, base_dir)
     session.cmd(os.path.join(base_dir, t_name))
     logging.info("PASS: Guest reported appropriate clock resolution")
-    logging.info("guest's dmesg:")
-    session.cmd_output("dmesg")
+    logging.info("Guest's dmesg:\n%s" % session.cmd_output("dmesg").strip())
