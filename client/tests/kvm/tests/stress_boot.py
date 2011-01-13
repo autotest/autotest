@@ -3,7 +3,8 @@ from autotest_lib.client.common_lib import error
 import kvm_subprocess, kvm_test_utils, kvm_utils, kvm_preprocessing
 
 
-def run_stress_boot(tests, params, env):
+@error.context_aware
+def run_stress_boot(test, params, env):
     """
     Boots VMs until one of them becomes unresponsive, and records the maximum
     number of VMs successfully started:
@@ -16,47 +17,37 @@ def run_stress_boot(tests, params, env):
     @param params: Dictionary with the test parameters
     @param env:    Dictionary with test environment.
     """
-    # boot the first vm
+    error.base_context("waiting for the first guest to be up", logging.info)
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
-
-    logging.info("Waiting for first guest to be up...")
-
     login_timeout = float(params.get("login_timeout", 240))
     session = vm.wait_for_login(timeout=login_timeout)
 
     num = 2
     sessions = [session]
 
-    # boot the VMs
-    while num <= int(params.get("max_vms")):
-        try:
-            # clone vm according to the first one
-            vm_name = "vm" + str(num)
-            vm_params = vm.get_params().copy()
+    # Boot the VMs
+    try:
+        while num <= int(params.get("max_vms")):
+            # Clone vm according to the first one
+            error.base_context("booting guest #%d" % num, logging.info)
+            vm_name = "vm%d" % num
+            vm_params = vm.params.copy()
             curr_vm = vm.clone(vm_name, vm_params)
             env.register_vm(vm_name, curr_vm)
-            logging.info("Booting guest #%d" % num)
-            kvm_preprocessing.preprocess_vm(tests, vm_params, env, vm_name)
-            params['vms'] += " " + vm_name
+            kvm_preprocessing.preprocess_vm(test, vm_params, env, vm_name)
+            params["vms"] += " " + vm_name
 
             sessions.append(curr_vm.wait_for_login(timeout=login_timeout))
-            logging.info("Guest #%d boots up successfully" % num)
+            logging.info("Guest #%d booted up successfully" % num)
 
-            # check whether all previous shell sessions are responsive
+            # Check whether all previous shell sessions are responsive
             for i, se in enumerate(sessions):
-                try:
-                    se.cmd(params.get("alive_test_cmd"))
-                except kvm_subprocess.ShellError:
-                    raise error.TestFail("Session #%d is not responsive" % i)
+                error.context("checking responsiveness of guest #%d" % (i + 1),
+                              logging.debug)
+                se.cmd(params.get("alive_test_cmd"))
             num += 1
-
-        except (error.TestFail, OSError):
-            for se in sessions:
-                se.close()
-            logging.info("Total number booted: %d" % (num - 1))
-            raise
-    else:
+    finally:
         for se in sessions:
             se.close()
         logging.info("Total number booted: %d" % (num -1))
