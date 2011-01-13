@@ -1206,22 +1206,24 @@ class Thread(threading.Thread):
             del self._target, self._args, self._kwargs
 
 
-    def join(self, timeout=None):
+    def join(self, timeout=None, suppress_exception=False):
         """
         Join the thread.  If target raised an exception, re-raise it.
         Otherwise, return the value returned by target.
 
         @param timeout: Timeout value to pass to threading.Thread.join().
+        @param suppress_exception: If True, don't re-raise the exception.
         """
         threading.Thread.join(self, timeout)
         try:
             if self._e:
-                # Because the exception was raised in another thread, we need
-                # to explicitly insert the current context into it
-                s = error.exception_context(self._e[1])
-                s = error.join_contexts(error.get_context(), s)
-                error.set_exception_context(self._e[1], s)
-                raise self._e[0], self._e[1], self._e[2]
+                if not suppress_exception:
+                    # Because the exception was raised in another thread, we
+                    # need to explicitly insert the current context into it
+                    s = error.exception_context(self._e[1])
+                    s = error.join_contexts(error.get_context(), s)
+                    error.set_exception_context(self._e[1], s)
+                    raise self._e[0], self._e[1], self._e[2]
             else:
                 return self._retval
         finally:
