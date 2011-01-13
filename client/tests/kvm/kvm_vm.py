@@ -1265,13 +1265,15 @@ class VM:
 
 
     @error.context_aware
-    def copy_files_to(self, host_path, guest_path, nic_index=0, timeout=600):
+    def copy_files_to(self, host_path, guest_path, nic_index=0, verbose=False,
+                      timeout=600):
         """
         Transfer files to the remote host(guest).
 
         @param host_path: Host path
         @param guest_path: Guest path
         @param nic_index: The index of the NIC to connect to.
+        @param verbose: If True, log some stats using logging.debug (RSS only)
         @param timeout: Time (seconds) before giving up on doing the remote
                 copy.
         """
@@ -1285,17 +1287,20 @@ class VM:
                         (self.name, address,
                         kvm_utils.generate_random_string(4)))
         kvm_utils.copy_files_to(address, client, username, password, port,
-                                host_path, guest_path, log_filename, timeout)
+                                host_path, guest_path, log_filename, verbose,
+                                timeout)
 
 
     @error.context_aware
-    def copy_files_from(self, guest_path, host_path, nic_index=0, timeout=600):
+    def copy_files_from(self, guest_path, host_path, nic_index=0,
+                        verbose=False, timeout=600):
         """
         Transfer files from the guest.
 
         @param host_path: Guest path
         @param guest_path: Host path
         @param nic_index: The index of the NIC to connect to.
+        @param verbose: If True, log some stats using logging.debug (RSS only)
         @param timeout: Time (seconds) before giving up on doing the remote
                 copy.
         """
@@ -1309,7 +1314,8 @@ class VM:
                         (self.name, address,
                         kvm_utils.generate_random_string(4)))
         kvm_utils.copy_files_from(address, client, username, password, port,
-                                  guest_path, host_path, log_filename, timeout)
+                                  guest_path, host_path, log_filename,
+                                  verbose, timeout)
 
 
     @error.context_aware
