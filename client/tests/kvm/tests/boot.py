@@ -20,15 +20,9 @@ def run_boot(test, params, env):
     timeout = float(params.get("login_timeout", 240))
     session = vm.wait_for_login(timeout=timeout)
 
-    try:
-        if not params.get("reboot_method"):
-            return
+    if params.get("reboot_method"):
+        if params["reboot_method"] == "system_reset":
+            time.sleep(int(params.get("sleep_before_reset", 10)))
+        session = vm.reboot(session, params["reboot_method"], 0, timeout)
 
-        # Reboot the VM
-        session = kvm_test_utils.reboot(vm, session,
-                                    params.get("reboot_method"),
-                                    float(params.get("sleep_before_reset", 10)),
-                                    0, timeout)
-
-    finally:
-        session.close()
+    session.close()

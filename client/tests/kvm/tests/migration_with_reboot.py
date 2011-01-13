@@ -30,7 +30,7 @@ def run_migration_with_reboot(test, params, env):
 
     try:
         # Reboot the VM in the background
-        bg = kvm_utils.Thread(kvm_test_utils.reboot, (vm, session))
+        bg = kvm_utils.Thread(vm.reboot, (session,))
         bg.start()
         try:
             while bg.isAlive():

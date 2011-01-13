@@ -74,7 +74,7 @@ def run_whql_submission(test, params, env):
         server_session.cmd(cmd, print_func=logging.debug)
 
     # Reboot the client machines
-    sessions = kvm_utils.parallel((kvm_test_utils.reboot, (vm, session))
+    sessions = kvm_utils.parallel((vm.reboot, (session,))
                                   for vm, session in zip(vms, sessions))
 
     # Check the NICs again

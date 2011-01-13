@@ -1128,7 +1128,7 @@ def run_virtio_console(test, params, env):
                 logging.error("Virtio-console driver is irreparably"
                               " blocked. Every comd end with sig KILL."
                               "Try reboot vm for continue in testing.")
-                vm[1] = kvm_test_utils.reboot(vm[0], vm[1], "system_reset")
+                vm[1] = vm[0].reboot(vm[1], "system_reset")
                 init_guest(vm, consoles)
                 match = _on_guest("virt.clean_port('%s'),1024" %
                                       consoles[0][0].name, vm, 2)[0]

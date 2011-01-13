@@ -82,8 +82,7 @@ def run_iofuzz(test, params, env):
                         session = vm.wait_for_login(timeout=10)
                     except:
                         logging.debug("Could not re-login, reboot the guest")
-                        session = kvm_test_utils.reboot(vm, session,
-                                                        method = "system_reset")
+                        session = vm.reboot(method="system_reset")
                 else:
                     raise error.TestFail("VM has quit abnormally during %s",
                                          (op, operand))

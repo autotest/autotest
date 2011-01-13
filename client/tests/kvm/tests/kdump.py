@@ -61,7 +61,7 @@ def run_kdump(test, params, env):
         except:
             logging.info("Crash kernel is not loaded. Trying to load it")
             session.cmd(kernel_param_cmd)
-            session = kvm_test_utils.reboot(vm, session, timeout=timeout)
+            session = vm.reboot(session, timeout=timeout)
 
         logging.info("Enabling kdump service...")
         # the initrd may be rebuilt here so we need to wait a little more
