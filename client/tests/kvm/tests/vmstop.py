@@ -70,7 +70,10 @@ def run_vmstop(test, params, env):
             if md5_save1 != md5_save2:
                 raise error.TestFail("The produced state files differ")
         finally:
-            bg.join()
+            try:
+                bg.join()
+            except:
+                pass
 
     finally:
         session.close()
