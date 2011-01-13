@@ -815,7 +815,7 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
 
 
 def copy_files_to(address, client, username, password, port, local_path,
-                  remote_path, log_filename=None, timeout=600):
+                  remote_path, log_filename=None, verbose=False, timeout=600):
     """
     Copy files to a remote host (guest) using the selected client.
 
@@ -825,22 +825,25 @@ def copy_files_to(address, client, username, password, port, local_path,
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
     @param address: Address of remote host(guest)
-    @param log_filename: If specified, log all output to this file
+    @param log_filename: If specified, log all output to this file (SCP only)
+    @param verbose: If True, log some stats using logging.debug (RSS only)
     @param timeout: The time duration (in seconds) to wait for the transfer to
-    complete.
+            complete.
     @raise: Whatever remote_scp() raises
     """
     if client == "scp":
         scp_to_remote(address, port, username, password, local_path,
                       remote_path, log_filename, timeout)
     elif client == "rss":
-        c = rss_file_transfer.FileUploadClient(address, port)
+        log_func = None
+        if verbose: log_func = logging.debug
+        c = rss_file_transfer.FileUploadClient(address, port, log_func)
         c.upload(local_path, remote_path, timeout)
         c.close()
 
 
 def copy_files_from(address, client, username, password, port, remote_path,
-                    local_path, log_filename=None, timeout=600):
+                    local_path, log_filename=None, verbose=False, timeout=600):
     """
     Copy files from a remote host (guest) using the selected client.
 
@@ -850,7 +853,8 @@ def copy_files_from(address, client, username, password, port, remote_path,
     @param remote_path: Path on the remote machine where we are copying from
     @param local_path: Path on the local machine where we are copying to
     @param address: Address of remote host(guest)
-    @param log_filename: If specified, log all output to this file
+    @param log_filename: If specified, log all output to this file (SCP only)
+    @param verbose: If True, log some stats using logging.debug (RSS only)
     @param timeout: The time duration (in seconds) to wait for the transfer to
     complete.
     @raise: Whatever remote_scp() raises
@@ -859,7 +863,9 @@ def copy_files_from(address, client, username, password, port, remote_path,
         scp_from_remote(address, port, username, password, remote_path,
                         local_path, log_filename, timeout)
     elif client == "rss":
-        c = rss_file_transfer.FileDownloadClient(address, port)
+        log_func = None
+        if verbose: log_func = logging.debug
+        c = rss_file_transfer.FileDownloadClient(address, port, log_func)
         c.download(remote_path, local_path, timeout)
         c.close()
 

@@ -80,12 +80,14 @@ class FileTransferClient(object):
     Connect to a RSS (remote shell server) and transfer files.
     """
 
-    def __init__(self, address, port, timeout=20):
+    def __init__(self, address, port, log_func=None, timeout=20):
         """
         Connect to a server.
 
         @param address: The server's address
         @param port: The server's port
+        @param log_func: If provided, transfer stats will be passed to this
+                function during the transfer
         @param timeout: Time duration to wait for connection to succeed
         @raise FileTransferConnectError: Raised if the connection fails
         """
@@ -103,6 +105,10 @@ class FileTransferClient(object):
             raise FileTransferConnectError("Timeout expired while waiting to "
                                            "receive magic number")
         self._send(struct.pack("=i", CHUNKSIZE))
+        self._log_func = log_func
+        self._last_time = time.time()
+        self._last_transferred = 0
+        self.transferred = 0
 
 
     def __del__(self):
@@ -155,17 +161,37 @@ class FileTransferClient(object):
         return "".join(strs)
 
 
+    def _report_stats(self, str):
+        if self._log_func:
+            dt = time.time() - self._last_time
+            if dt >= 1:
+                transferred = self.transferred / 1048576.
+                speed = (self.transferred - self._last_transferred) / dt
+                speed /= 1048576.
+                self._log_func("%s %.3f MB (%.3f MB/sec)" %
+                               (str, transferred, speed))
+                self._last_time = time.time()
+                self._last_transferred = self.transferred
+
+
     def _send_packet(self, str, timeout=60):
         self._send(struct.pack("=I", len(str)))
         self._send(str, timeout)
+        self.transferred += len(str) + 4
+        self._report_stats("Sent")
 
 
     def _receive_packet(self, timeout=60):
         size = struct.unpack("=I", self._receive(4))[0]
-        return self._receive(size, timeout)
+        str = self._receive(size, timeout)
+        self.transferred += len(str) + 4
+        self._report_stats("Received")
+        return str
 
 
     def _send_file_chunks(self, filename, timeout=60):
+        if self._log_func:
+            self._log_func("Sending file %s" % filename)
         f = open(filename, "rb")
         try:
             try:
@@ -183,6 +209,8 @@ class FileTransferClient(object):
 
 
     def _receive_file_chunks(self, filename, timeout=60):
+        if self._log_func:
+            self._log_func("Receiving file %s" % filename)
         f = open(filename, "wb")
         try:
             try:
@@ -228,12 +256,14 @@ class FileUploadClient(FileTransferClient):
     Connect to a RSS (remote shell server) and upload files or directory trees.
     """
 
-    def __init__(self, address, port, timeout=20):
+    def __init__(self, address, port, log_func=None, timeout=20):
         """
         Connect to a server.
 
         @param address: The server's address
         @param port: The server's port
+        @param log_func: If provided, transfer stats will be passed to this
+                function during the transfer
         @param timeout: Time duration to wait for connection to succeed
         @raise FileTransferConnectError: Raised if the connection fails
         @raise FileTransferProtocolError: Raised if an incorrect magic number
@@ -241,7 +271,7 @@ class FileUploadClient(FileTransferClient):
         @raise FileTransferSocketError: Raised if the RSS_UPLOAD message cannot
                 be sent to the server
         """
-        super(FileUploadClient, self).__init__(address, port, timeout)
+        super(FileUploadClient, self).__init__(address, port, log_func, timeout)
         self._send_msg(RSS_UPLOAD)
 
 
@@ -325,12 +355,14 @@ class FileDownloadClient(FileTransferClient):
     Connect to a RSS (remote shell server) and download files or directory trees.
     """
 
-    def __init__(self, address, port, timeout=20):
+    def __init__(self, address, port, log_func=None, timeout=20):
         """
         Connect to a server.
 
         @param address: The server's address
         @param port: The server's port
+        @param log_func: If provided, transfer stats will be passed to this
+                function during the transfer
         @param timeout: Time duration to wait for connection to succeed
         @raise FileTransferConnectError: Raised if the connection fails
         @raise FileTransferProtocolError: Raised if an incorrect magic number
@@ -338,7 +370,7 @@ class FileDownloadClient(FileTransferClient):
         @raise FileTransferSendError: Raised if the RSS_UPLOAD message cannot
                 be sent to the server
         """
-        super(FileDownloadClient, self).__init__(address, port, timeout)
+        super(FileDownloadClient, self).__init__(address, port, log_func, timeout)
         self._send_msg(RSS_DOWNLOAD)
 
 
@@ -422,26 +454,26 @@ class FileDownloadClient(FileTransferClient):
             raise
 
 
-def upload(address, port, src_pattern, dst_path, timeout=60,
+def upload(address, port, src_pattern, dst_path, log_func=None, timeout=60,
            connect_timeout=20):
     """
     Connect to server and upload files.
 
     @see: FileUploadClient
     """
-    client = FileUploadClient(address, port, connect_timeout)
+    client = FileUploadClient(address, port, log_func, connect_timeout)
     client.upload(src_pattern, dst_path, timeout)
     client.close()
 
 
-def download(address, port, src_pattern, dst_path, timeout=60,
+def download(address, port, src_pattern, dst_path, log_func=None, timeout=60,
              connect_timeout=20):
     """
     Connect to server and upload files.
 
     @see: FileDownloadClient
     """
-    client = FileDownloadClient(address, port, connect_timeout)
+    client = FileDownloadClient(address, port, log_func, connect_timeout)
     client.download(src_pattern, dst_path, timeout)
     client.close()
 
@@ -457,6 +489,9 @@ def main():
     parser.add_option("-u", "--upload",
                       action="store_true", dest="upload",
                       help="upload files to server")
+    parser.add_option("-v", "--verbose",
+                      action="store_true", dest="verbose",
+                      help="be verbose")
     parser.add_option("-t", "--timeout",
                       type="int", dest="timeout", default=3600,
                       help="transfer timeout")
@@ -468,10 +503,16 @@ def main():
     address, port, src_pattern, dst_path = args
     port = int(port)
 
+    logger = None
+    if options.verbose:
+        def p(s):
+            print s
+        logger = p
+
     if options.download:
-        download(address, port, src_pattern, dst_path, options.timeout)
+        download(address, port, src_pattern, dst_path, logger, options.timeout)
     elif options.upload:
-        upload(address, port, src_pattern, dst_path, options.timeout)
+        upload(address, port, src_pattern, dst_path, logger, options.timeout)
 
 
 if __name__ == "__main__":
