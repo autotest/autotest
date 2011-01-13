@@ -86,7 +86,14 @@ class VMKVMInitError(VMPostCreateError):
 
 
 class VMDeadError(VMError):
-    pass
+    def __init__(self, status, output):
+        VMError.__init__(self, status, output)
+        self.status = status
+        self.output = output
+
+    def __str__(self):
+        return ("VM process is dead    (status: %s,    output: %r)" %
+                (self.status, self.output))
 
 
 class VMAddressError(VMError):
@@ -1016,7 +1023,8 @@ class VM:
         @raise: Various monitor exceptions if the monitor is unresponsive
         """
         if self.is_dead():
-            raise VMDeadError("VM is dead")
+            raise VMDeadError(self.process.get_status(),
+                              self.process.get_output())
         if self.monitors:
             self.monitor.verify_responsive()
 
