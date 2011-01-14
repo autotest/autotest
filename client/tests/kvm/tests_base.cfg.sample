@@ -591,6 +591,20 @@ variants:
             - fmt_raw:
                 image_format_stg = raw
 
+    - enospc:
+        type = enospc
+        images += " stg"
+        drive_werror = stop
+        drive_cache = none
+        image_name_stg = enospc
+        image_format_stg = qcow2
+        image_boot_stg = no
+        image_snapshot_stg = no
+        background_cmd = "nohup dd if=/dev/zero of=%s bs=1024 &"
+        pre_command += " scripts/enospc-pre.py;"
+        post_command += " scripts/enospc-post.py;"
+        kill_vm = yes
+
     - qmp_basic: install setup unattended_install.cdrom
         type = qmp_basic
 
