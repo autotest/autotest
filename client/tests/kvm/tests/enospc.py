@@ -1,4 +1,4 @@
-import logging, commands, time, os
+import logging, commands, time, os, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 import kvm_test_utils
@@ -28,7 +28,8 @@ def run_enospc(test, params, env):
     if drive_format == "virtio":
         devname = "/dev/vdb"
     elif drive_format == "ide":
-        devname = "/dev/hdb"
+        output = session_serial.cmd_output("dir /dev")
+        devname = "/dev/" + re.findall("([sh]db)\s", output)[0]
     elif drive_format == "scsi":
         devname = "/dev/sdb"
     cmd = params.get("background_cmd")
