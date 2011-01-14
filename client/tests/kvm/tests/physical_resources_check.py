@@ -20,7 +20,7 @@ def run_physical_resources_check(test, params, env):
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
     timeout = int(params.get("login_timeout", 360))
-    session = vm.wait_for_serial_login(timeout=timeout)
+    session = vm.wait_for_login(timeout=timeout)
 
     logging.info("Starting physical resources check test")
     logging.info("Values assigned to VM are the values we expect "
