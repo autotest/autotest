@@ -53,6 +53,20 @@ str = """
 """
 tests_cfg = kvm_config.config()
 tests_cfg_path = os.path.join(kvm_test_dir, "tests.cfg")
+
+if args:
+    # We get test parameters from command line
+    for arg in args:
+        try:
+            (key, value) = re.findall("(.*)=(.*)", arg)[0]
+            if key == "only":
+                str += "only %s\n" % value
+            elif key == "no":
+                str += "no %s\n" % value
+            else:
+                str += "%s = %s\n" % (key, value)
+        except IndexError:
+            pass
 tests_cfg.fork_and_parse(tests_cfg_path, str)
 
 # Run the tests
