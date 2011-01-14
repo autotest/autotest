@@ -3,7 +3,7 @@
 Simple script to setup unattended installs on KVM guests.
 """
 # -*- coding: utf-8 -*-
-import os, sys, shutil, tempfile, re, ConfigParser, glob, inspect
+import os, sys, shutil, tempfile, re, ConfigParser, glob, inspect, commands
 import common
 
 
@@ -47,11 +47,15 @@ def run(cmd, info=None):
     print "Running '%s'" % cmd
     cmd_name = cmd.split(' ')[0]
     find_command(cmd_name)
-    if os.system(cmd):
-        e_msg = 'Command failed: %s' % cmd
+    status, output = commands.getstatusoutput(cmd)
+    if status:
+        e_msg = ('Command %s failed.\nStatus:%s\nOutput:%s' %
+                 (cmd, status, output))
         if info is not None:
-            e_msg += '. %s' % info
+            e_msg += '\nAdditional Info:%s' % info
         raise SetupError(e_msg)
+
+    return (status, output.strip())
 
 
 def cleanup(dir):
