@@ -72,4 +72,6 @@
    Command0="cmd /c KVM_TEST_VIRTIO_NETWORK_INSTALLER"
    Command1="cmd /c E:\setuprss.bat"
    Command2="cmd /c netsh interface ip set address local dhcp"
-   Command3="cmd /c A:\finish.exe"
+   Command3="cmd /c sc config tlntsvr start= auto"
+   Command4="cmd /c net start telnet"
+   Command5="cmd /c A:\finish.exe"
