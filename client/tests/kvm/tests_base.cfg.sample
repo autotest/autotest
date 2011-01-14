@@ -242,6 +242,9 @@ variants:
                 test_control_file = hwclock.control
             - rtc:
                 test_control_file = rtc.control
+            - iozone:
+                test_control_file = iozone.control
+
 
     - linux_s3:     install setup unattended_install.cdrom
         type = linux_s3
