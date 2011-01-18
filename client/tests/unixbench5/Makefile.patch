@@ -1,0 +1,11 @@
+--- Makefile.bak       2011-01-14 10:45:12.000000000 -0800
++++ Makefile   2011-01-14 10:46:54.000000000 -0800
+@@ -52,7 +52,7 @@
+ # COMPILER CONFIGURATION: Set "CC" to the name of the compiler to use
+ # to build the binary benchmarks.  You should also set "$cCompiler" in the
+ # Run script to the name of the compiler you want to test.
+-CC=gcc
++CC?=gcc
+
+ # OPTIMISATION SETTINGS:
+

@@ -1,0 +1,26 @@
+NAME = 'Unix Bench 5'
+AUTHOR = 'adrianbg@google.com'
+TIME = 'MEDIUM'
+PURPOSE = 'Measure system level performance.'
+CRITERIA = 'This test is a benchmark.'
+TEST_CLASS = 'Kernel'
+TEST_CATEGORY = 'Benchmark'
+TEST_TYPE = 'client'
+DOC = """
+This test measure system wide performance by running the following tests:
+  - Dhrystone - focuses on string handling.
+  - Whetstone - measure floating point operations.
+  - Execl Throughput - measure the number of execl calls per second.
+  - File Copy
+  - Pipe throughput
+  - Pipe-based context switching
+  - Process creation - number of times a process can fork and reap
+  - Shell Scripts - number of times a process can start and reap a script
+  - System Call Overhead - estimates the cost of entering and leaving the
+    kernel.
+
+For more information visit:
+http://code.google.com/p/byte-unixbench/
+"""
+
+job.run_test('unixbench5')
