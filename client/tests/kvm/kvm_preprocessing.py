@@ -93,11 +93,12 @@ def preprocess_vm(test, params, env, name):
 def postprocess_image(test, params):
     """
     Postprocess a single QEMU image according to the instructions in params.
-    Currently this function just removes an image if requested.
 
     @param test: An Autotest test object.
     @param params: A dict containing image postprocessing parameters.
     """
+    if params.get("check_image") == "yes":
+        kvm_vm.check_image(params, test.bindir)
     if params.get("remove_image") == "yes":
         kvm_vm.remove_image(params, test.bindir)
 

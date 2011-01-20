@@ -47,6 +47,15 @@ class VMImageMissingError(VMError):
         return "CD image file not found: %r" % self.filename
 
 
+class VMImageCheckError(VMError):
+    def __init__(self, filename):
+        VMError.__init__(self, filename)
+        self.filename = filename
+
+    def __str__(self):
+        return "Errors found on image: %r" % self.filename
+
+
 class VMBadPATypeError(VMError):
     def __init__(self, pa_type):
         VMError.__init__(self, pa_type)
@@ -237,6 +246,57 @@ def remove_image(params, root_dir):
         os.unlink(image_filename)
     else:
         logging.debug("Image file %s not found")
+
+
+def check_image(params, root_dir):
+    """
+    Check an image using qemu-img.
+
+    @param params: Dictionary containing the test parameters.
+    @param root_dir: Base directory for relative filenames.
+
+    @note: params should contain:
+           image_name -- the name of the image file, without extension
+           image_format -- the format of the image (qcow2, raw etc)
+
+    @raise VMImageCheckError: In case qemu-img check fails on the image.
+    """
+    image_filename = get_image_filename(params, root_dir)
+    logging.debug("Checking image file %s..." % image_filename)
+    qemu_img_cmd = kvm_utils.get_path(root_dir,
+                                      params.get("qemu_img_binary", "qemu-img"))
+    image_is_qcow2 = params.get("image_format") == 'qcow2'
+    if os.path.exists(image_filename) and image_is_qcow2:
+        # Verifying if qemu-img supports 'check'
+        q_result = utils.run(qemu_img_cmd, ignore_status=True)
+        q_output = q_result.stdout
+        check_img = True
+        if not "check" in q_output:
+            logging.error("qemu-img does not support 'check', "
+                          "skipping check...")
+            check_img = False
+        if not "info" in q_output:
+            logging.error("qemu-img does not support 'info', "
+                          "skipping check...")
+            check_img = False
+        if check_img:
+            try:
+                utils.system("%s info %s" % (qemu_img_cmd, image_filename))
+            except error.CmdError:
+                logging.error("Error getting info from image %s",
+                              image_filename)
+            try:
+                utils.system("%s check %s" % (qemu_img_cmd, image_filename))
+            except error.CmdError:
+                raise VMImageCheckError(image_filename)
+
+    else:
+        if not os.path.exists(image_filename):
+            logging.debug("Image file %s not found, skipping check...",
+                          image_filename)
+        elif not image_is_qcow2:
+            logging.debug("Image file %s not qcow2, skipping check...",
+                          image_filename)
 
 
 class VM:
