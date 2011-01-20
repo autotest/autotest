@@ -806,7 +806,7 @@ variants:
 
     - ioquit:
         type = ioquit
-        background_cmd = "for i in 1 2 3 4; do (nohup dd if=/dev/urandom of=/tmp/file bs=102400 count=10000000 &) done"
+        background_cmd = "for i in 1 2 3 4; do (dd if=/dev/urandom of=/tmp/file bs=102400 count=10000000 &); done"
         check_cmd = ps -a |grep dd
         login_timeout = 360
 
