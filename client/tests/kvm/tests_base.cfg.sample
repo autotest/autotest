@@ -855,6 +855,10 @@ variants:
     - clock_getres: install setup unattended_install.cdrom
         type = clock_getres
 
+    - yum_update:    install setup unattended_install.cdrom
+        type = yum_update
+        shell_prompt = "Is this ok"
+
     - kdump: unattended_install.cdrom
         type = kdump
         # time waited for the completion of crash dump
