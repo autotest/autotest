@@ -2364,11 +2364,7 @@ kdump:
 variants:
     - @qcow2:
         image_format = qcow2
-        post_command += " python scripts/check_image.py;"
-        post_command_timeout = 600
-        post_command_noncritical = yes
-        ioquit:
-            post_command_noncritical = no
+        check_image = yes
     - vmdk:
         no ioquit
         only Fedora Ubuntu Windows
