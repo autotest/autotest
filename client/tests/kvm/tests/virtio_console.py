@@ -90,12 +90,16 @@ def run_virtio_console(test, params, env):
                                                         exc_type, exc_value,
                                                         exc_traceback.tb_next)))
                 # Clean up environment after subTest crash
-                if cleanup:
-                    self.cleanup_func(*self.cleanup_args)
                 res[0] = False
                 logging.info(self.result_to_string(res))
                 self.result.append(res)
                 self.failed += 1
+
+                if cleanup:
+                    try:
+                        self.cleanup_func(*self.cleanup_args)
+                    except:
+                        error.TestFail("Cleanup function crash too.")
                 if fatal:
                     raise
 
@@ -475,6 +479,32 @@ def run_virtio_console(test, params, env):
         on_guest("virt.init(%s)" % (conss), vm, 10)
 
 
+    def _search_kernel_crashlog(vm, timeout = 2):
+        """
+        Find kernel crash message.
+
+        @param vm: Informations about the guest.
+        @param timeout: Timeout used to verify expected output.
+
+        @return: Kernel crash log or None.
+        """
+        data = vm[3].read_nonblocking()
+        match = re.search("^BUG:", data, re.MULTILINE)
+        if match == None:
+            return None
+
+        match = re.search(r"^BUG:.*^---\[ end trace .* \]---",
+                  data, re.DOTALL |re.MULTILINE)
+        if match == None:
+            data += vm[3].read_until_last_line_matches(
+                                            ["---\[ end trace .* \]---"],timeout)
+
+        match = re.search(r"(^BUG:.*^---\[ end trace .* \]---)",
+                  data, re.DOTALL |re.MULTILINE)
+        return match.group(0)
+
+
+
     def _on_guest(command, vm, timeout=2):
         """
         Execute given command inside the script's main loop, indicating the vm
@@ -493,9 +523,16 @@ def run_virtio_console(test, params, env):
             (match, data) = vm[1].read_until_last_line_matches(["PASS:",
                                                                 "FAIL:"],
                                                                timeout)
+
         except (kvm_subprocess.ExpectError):
             match = None
             data = "Timeout."
+
+        kcrash_data = _search_kernel_crashlog(vm)
+        if (kcrash_data != None):
+            logging.error(kcrash_data)
+            vm[4] = True
+
         return (match, data)
 
 
@@ -565,7 +602,7 @@ def run_virtio_console(test, params, env):
         @param no_console: Number of desired virtconsoles.
         @param no_serialport: Number of desired virtserialports.
         @return: Tuple with (guest information, consoles information)
-                guest informations = [vm, session, tmp_dir]
+                guest informations = [vm, session, tmp_dir, kcrash]
                 consoles informations = [consoles[], serialports[]]
         """
         consoles = []
@@ -608,6 +645,10 @@ def run_virtio_console(test, params, env):
 
         session = vm.wait_for_login(timeout=float(params.get("boot_timeout", 240)))
 
+        sserial = kvm_test_utils.wait_for_login(vm, 0,
+                                         float(params.get("boot_timeout", 240)),
+                                         0, 2, serial=True)
+
         # connect the sockets
         for i in range(0, no_console):
             consoles.append(Port(None ,"console-%d" % i,
@@ -616,17 +657,19 @@ def run_virtio_console(test, params, env):
             serialports.append(Port(None ,"serialport-%d" % i,
                                     "no", "%s/%d" % (tmp_dir, i)))
 
-        return [vm, session, tmp_dir], [consoles, serialports]
+        kcrash = False
+
+        return [vm, session, tmp_dir, sserial, kcrash], [consoles, serialports]
 
 
     def topen(vm, port):
         """
         Open virtioconsole port.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port identifier.
         """
-        on_guest("virt.open('%s')" % (port.name), vm, 2)
+        on_guest("virt.open('%s')" % (port.name), vm, 10)
         port.open()
 
 
@@ -634,12 +677,12 @@ def run_virtio_console(test, params, env):
         """
         Multiopen virtioconsole port.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port identifier.
         """
-        on_guest("virt.close('%s')" % (port.name), vm, 2)
-        on_guest("virt.open('%s')" % (port.name), vm, 2)
-        (match, data) = _on_guest("virt.open('%s')" % (port.name), vm, 2)
+        on_guest("virt.close('%s')" % (port.name), vm, 10)
+        on_guest("virt.open('%s')" % (port.name), vm, 10)
+        (match, data) = _on_guest("virt.open('%s')" % (port.name), vm, 10)
         # Console is permitted to open the device multiple times
         if port.port_type == "yes": #is console?
             if match != 0: #Multiopen not pass
@@ -658,10 +701,10 @@ def run_virtio_console(test, params, env):
         """
         Close socket.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port to open.
         """
-        on_guest("virt.close('%s')" % (port.name), vm, 2)
+        on_guest("virt.close('%s')" % (port.name), vm, 10)
         port.close()
 
 
@@ -669,7 +712,7 @@ def run_virtio_console(test, params, env):
         """
         Test try pooling function.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port used in test.
         """
         # Poll (OUT)
@@ -679,16 +722,16 @@ def run_virtio_console(test, params, env):
         # Poll (IN, OUT)
         port.sock.sendall("test")
         for test in [select.POLLIN, select.POLLOUT]:
-            on_guest("virt.poll('%s', %s)" % (port.name, test), vm, 2)
+            on_guest("virt.poll('%s', %s)" % (port.name, test), vm, 10)
 
         # Poll (IN HUP)
         # I store the socket informations and close the socket
         port.close()
         for test in [select.POLLIN, select.POLLHUP]:
-            on_guest("virt.poll('%s', %s)" % (port.name, test), vm, 2)
+            on_guest("virt.poll('%s', %s)" % (port.name, test), vm, 10)
 
         # Poll (HUP)
-        on_guest("virt.recv('%s', 4, 1024, False)" % (port.name), vm, 2)
+        on_guest("virt.recv('%s', 4, 1024, False)" % (port.name), vm, 10)
         on_guest("virt.poll('%s', %s)" % (port.name, select.POLLHUP), vm,
                  2)
 
@@ -703,7 +746,7 @@ def run_virtio_console(test, params, env):
         """
         Test try sigio function.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port used in test.
         """
         if port.is_open:
@@ -711,73 +754,73 @@ def run_virtio_console(test, params, env):
 
         # Enable sigio on specific port
         on_guest("virt.async('%s', True, 0)" %
-                 (port.name) , vm, 5)
-        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
+                 (port.name) , vm, 10)
+        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 10)
 
         #Test sigio when port open
         on_guest("virt.set_pool_want_return('%s', select.POLLOUT)" %
-                 (port.name), vm, 2)
+                 (port.name), vm, 10)
         port.open()
         match = _on_guest("virt.get_sigio_poll_return('%s')" %
-                          (port.name) , vm, 2)[0]
+                          (port.name) , vm, 10)[0]
         if match == 1:
             raise error.TestFail("Problem with HUP on console port.")
 
         #Test sigio when port receive data
         on_guest("virt.set_pool_want_return('%s', select.POLLOUT |"
-                 " select.POLLIN)" % (port.name), vm, 2)
+                 " select.POLLIN)" % (port.name), vm, 10)
         port.sock.sendall("0123456789")
-        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
+        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 10)
 
         #Test sigio port close event
         on_guest("virt.set_pool_want_return('%s', select.POLLHUP |"
-                 " select.POLLIN)" % (port.name), vm, 2)
+                 " select.POLLIN)" % (port.name), vm, 10)
         port.close()
-        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
+        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 10)
 
         #Test sigio port open event and persistence of written data on port.
         on_guest("virt.set_pool_want_return('%s', select.POLLOUT |"
-                 " select.POLLIN)" % (port.name), vm, 2)
+                 " select.POLLIN)" % (port.name), vm, 10)
         port.open()
-        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
+        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 10)
 
         #Test event when erase data.
-        on_guest("virt.clean_port('%s')" % (port.name), vm, 2)
+        on_guest("virt.clean_port('%s')" % (port.name), vm, 10)
         port.close()
         on_guest("virt.set_pool_want_return('%s', select.POLLOUT)"
-                 % (port.name), vm, 2)
+                 % (port.name), vm, 10)
         port.open()
-        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 2)
+        on_guest("virt.get_sigio_poll_return('%s')" % (port.name) , vm, 10)
 
         # Disable sigio on specific port
         on_guest("virt.async('%s', False, 0)" %
-                 (port.name) , vm, 5)
+                 (port.name) , vm, 10)
 
 
     def tlseek(vm, port):
         """
         Tests the correct handling of lseek (expected fail)
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port used in test.
         """
         # The virt.lseek returns PASS when the seek fails
-        on_guest("virt.lseek('%s', 0, 0)" % (port.name), vm, 2)
+        on_guest("virt.lseek('%s', 0, 0)" % (port.name), vm, 10)
 
 
     def trw_host_offline(vm, port):
         """
         Guest read/write from host when host is disconnected.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port used in test.
         """
         if port.is_open:
             port.close()
 
-        on_guest("virt.recv('%s', 0, 1024, False)" % port.name, vm, 2)
+        on_guest("virt.recv('%s', 0, 1024, False)" % port.name, vm, 10)
         match, tmp = _on_guest("virt.send('%s', 10, False)"
-                                % port.name, vm, 2)
+                                % port.name, vm, 10)
         if match != None:
             raise error.TestFail("Write on guest while host disconnected "
                                  "didn't timed out.\nOutput:\n%s"
@@ -788,23 +831,23 @@ def run_virtio_console(test, params, env):
         if (port.sock.recv(1024) < 10):
             raise error.TestFail("Didn't received data from guest")
         # Now the _on_guest("virt.send('%s'... command should be finished
-        on_guest("print 'PASS: nothing'", vm, 2)
+        on_guest("print 'PASS: nothing'", vm, 10)
 
 
     def trw_blocking_mode(vm, port):
         """
         Guest read\write data in blocking mode.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port used in test.
         """
         # Blocking mode
         if not port.is_open:
             port.open()
-        on_guest("virt.blocking('%s', True)" % port.name, vm, 2)
+        on_guest("virt.blocking('%s', True)" % port.name, vm, 10)
         # Recv should timed out
         match, tmp = _on_guest("virt.recv('%s', 10, 1024, False)" %
-                               port.name, vm, 2)
+                               port.name, vm, 10)
         if match == 0:
             raise error.TestFail("Received data even when non were sent\n"
                                  "Data:\n%s" % tmp)
@@ -813,23 +856,23 @@ def run_virtio_console(test, params, env):
                                  (match, tmp))
         port.sock.sendall("1234567890")
         # Now guest received the data end escaped from the recv()
-        on_guest("print 'PASS: nothing'", vm, 2)
+        on_guest("print 'PASS: nothing'", vm, 10)
 
 
     def trw_nonblocking_mode(vm, port):
         """
         Guest read\write data in nonblocking mode.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port used in test.
         """
         # Non-blocking mode
         if not port.is_open:
             port.open()
-        on_guest("virt.blocking('%s', False)" % port.name, vm, 2)
+        on_guest("virt.blocking('%s', False)" % port.name, vm, 10)
         # Recv should return FAIL with 0 received data
         match, tmp = _on_guest("virt.recv('%s', 10, 1024, False)" %
-                              port.name, vm, 2)
+                              port.name, vm, 10)
         if match == 0:
             raise error.TestFail("Received data even when non were sent\n"
                                  "Data:\n%s" % tmp)
@@ -840,14 +883,14 @@ def run_virtio_console(test, params, env):
             raise error.TestFail("Unexpected fail\nMatch: %s\nData:\n%s" %
                                  (match, tmp))
         port.sock.sendall("1234567890")
-        on_guest("virt.recv('%s', 10, 1024, False)" % port.name, vm, 2)
+        on_guest("virt.recv('%s', 10, 1024, False)" % port.name, vm, 10)
 
 
     def tbasic_loopback(vm, send_port, recv_port, data="Smoke test data"):
         """
         Easy loop back test with loop over only two port.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port used in test.
         """
         if not send_port.is_open:
@@ -855,7 +898,7 @@ def run_virtio_console(test, params, env):
         if not recv_port.is_open:
             recv_port.open()
         on_guest("virt.loopback(['%s'], ['%s'], 1024, virt.LOOP_NONE)" %
-                     (send_port.name, recv_port.name), vm, 2)
+                     (send_port.name, recv_port.name), vm, 10)
         send_port.sock.sendall(data)
         tmp = ""
         i = 0
@@ -874,13 +917,13 @@ def run_virtio_console(test, params, env):
 
     def tloopback(vm, consoles, params):
         """
-        Virtio console loopback test.
+        Virtio console loopback subtest.
 
         Creates loopback on the vm machine between send_pt and recv_pts
         ports and sends length amount of data through this connection.
         It validates the correctness of the data sent.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Field of virtio ports with the minimum of 2 items.
         @param params: test parameters, multiple recievers allowed.
             '$source_console_type@buffer_length:
@@ -945,7 +988,7 @@ def run_virtio_console(test, params, env):
             for recv_pt in recv_pts[1:]:
                 tmp += ", '%s'" % (recv_pt.name)
             on_guest("virt.loopback(['%s'], [%s], %d, virt.LOOP_POLL)"
-                     % (send_pt.name, tmp, buf_len[-1]), vm, 2)
+                     % (send_pt.name, tmp, buf_len[-1]), vm, 10)
 
             exit_event = threading.Event()
 
@@ -988,7 +1031,7 @@ def run_virtio_console(test, params, env):
         from host to guest and than back. It provides informations about
         computer utilisation and statistic informations about the troughput.
 
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Field of virtio ports with the minimum of 2 items.
         @param params: test parameters:
                 '$console_type@$buffer_length:$test_duration;...'
@@ -1024,7 +1067,7 @@ def run_virtio_console(test, params, env):
 
             # HOST -> GUEST
             on_guest('virt.loopback(["%s"], [], %d, virt.LOOP_NONE)' %
-                     (port.name, buf_len), vm, 2)
+                     (port.name, buf_len), vm, 10)
             thread = ThSend(port.sock, data, exit_event)
             stats = array.array('f', [])
             loads = utils.SystemLoad([(os.getpid(), 'autotest'),
@@ -1043,7 +1086,7 @@ def run_virtio_console(test, params, env):
 
             # Let the guest read-out all the remaining data
             while not _on_guest("virt.poll('%s', %s)" %
-                                (port.name, select.POLLIN), vm, 2)[0]:
+                                (port.name, select.POLLIN), vm, 10)[0]:
                 time.sleep(1)
 
             _guest_exit_threads(vm, [port], [])
@@ -1068,7 +1111,7 @@ def run_virtio_console(test, params, env):
             thread = ThRecv(port.sock, exit_event, buf_len)
             thread.start()
             loads.start()
-            on_guest("virt.send_loop()", vm, 2)
+            on_guest("virt.send_loop()", vm, 10)
             _time = time.time()
             for i in range(100):
                 stats.append(thread.idx)
@@ -1076,7 +1119,7 @@ def run_virtio_console(test, params, env):
             _time = time.time() - _time - duration
             logging.info("\n" + loads.get_cpu_status_string()[:-1])
             logging.info("\n" + loads.get_mem_status_string()[:-1])
-            on_guest("virt.exit_threads()", vm, 2)
+            on_guest("virt.exit_threads()", vm, 10)
             exit_event.set()
             thread.join()
             if (_time > slice): # Deviation is higher than 1 slice
@@ -1093,6 +1136,24 @@ def run_virtio_console(test, params, env):
             del exit_event
 
 
+    def _clean_ports(vm, consoles):
+        """
+        Read all data all port from both side of port.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be clean.
+        """
+        for ctype in consoles:
+            for port in ctype:
+                openned = port.is_open
+                port.clean_port()
+                #on_guest("virt.blocking('%s', True)" % port.name, vm, 10)
+                on_guest("virt.clean_port('%s'),1024" % port.name, vm, 10)
+                if not openned:
+                    port.close()
+                    on_guest("virt.close('%s'),1024" % port.name, vm, 10)
+
+
     def clean_ports(vm, consoles):
         """
         Clean state of all ports and set port to default state.
@@ -1100,27 +1161,29 @@ def run_virtio_console(test, params, env):
            No data on port or in port buffer.
            Read mode = blocking.
 
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Consoles which should be clean.
         """
         # Check if python is still alive
         print "CLEANING"
         match, tmp = _on_guest("is_alive()", vm, 10)
         if (match == None) or (match != 0):
-            logging.error("Python died/is stucked/have remaining threads")
+            logging.error("Python died/is stuck/has remaining threads")
             logging.debug(tmp)
-            vm[1].close()
             try:
+                if vm[4] == True:
+                    raise error.TestFail("Kernel crash.")
+                match, tmp = _on_guest("guest_exit()", vm, 10)
+                if (match == None) or (match == 0):
+                    vm[1].close()
                 vm[1] = vm[0].wait_for_login(timeout=float(params.get("boot_timeout", 240)))
                 on_guest("killall -9 python "
                          "&& echo -n PASS: python killed"
-                         "|| echo -n PASS: python was death",
+                         "|| echo -n PASS: python died",
                          vm, 10)
 
                 init_guest(vm, consoles)
-                on_guest("virt.clean_port('%s'),1024" % consoles[0][0].name,
-                         vm, 2)
-                on_guest("virt.close('%s'),1024" %
-                         consoles[0][0].name, vm, 2)
+                _clean_ports(vm, consoles)
 
             except (error.TestFail, kvm_subprocess.ExpectError,
                     Exception), inst:
@@ -1131,23 +1194,14 @@ def run_virtio_console(test, params, env):
                 vm[1] = vm[0].reboot(vm[1], "system_reset")
                 init_guest(vm, consoles)
                 match = _on_guest("virt.clean_port('%s'),1024" %
-                                      consoles[0][0].name, vm, 2)[0]
+                                      consoles[0][0].name, vm, 10)[0]
 
                 if (match == None) or (match != 0):
                     raise error.TestFail("Virtio-console driver is irrepar"
                                          "ably blocked. Every comd end"
                                          " with sig KILL. Neither the "
                                          "restart did not help.")
-
-        for ctype in consoles:
-            for port in ctype:
-                openned = port.is_open
-                port.clean_port()
-                #on_guest("virt.blocking('%s', True)" % port.name, vm, 2)
-                on_guest("virt.clean_port('%s'),1024" % port.name, vm, 5)
-                if not openned:
-                    port.close()
-                    on_guest("virt.close('%s'),1024" % port.name, vm, 2)
+                _clean_ports(vm, consoles)
 
 
     def test_smoke(test, vm, consoles, params):
@@ -1158,7 +1212,7 @@ def run_virtio_console(test, params, env):
         connected host, etc.
 
         @param test: Main test object.
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Field of virtio ports with the minimum of 2 items.
         @param params: Test parameters '$console_type:$data;...'
         """
@@ -1195,7 +1249,7 @@ def run_virtio_console(test, params, env):
         with multiple ports.
 
         @param test: Main test object.
-        @param vm: Target virtual machine [vm, session, tmp_dir].
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Field of virtio ports with the minimum of 2 items.
         @param params: Test parameters '$console_type:$data;...'
         """
