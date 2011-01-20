@@ -611,6 +611,9 @@ variants:
     - qmp_basic: install setup unattended_install.cdrom
         type = qmp_basic
 
+    - qmp_basic_rhel6: install setup unattended_install.cdrom
+        type = qmp_basic_rhel6
+
     - vlan:  install setup unattended_install.cdrom
         type = vlan
         # subnet should not be used by host
