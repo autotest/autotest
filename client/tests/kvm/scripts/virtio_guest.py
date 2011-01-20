@@ -10,11 +10,12 @@ Auxiliary script used to send data between ports on guests.
 import threading
 from threading import Thread
 import os, time, select, re, random, sys, array
-import fcntl, array, subprocess, traceback, signal
+import fcntl, subprocess, traceback, signal
 
 DEBUGPATH = "/sys/kernel/debug"
 SYSFSPATH = "/sys/class/virtio-ports/"
 
+exiting = False
 
 class VirtioGuest:
     """
@@ -70,32 +71,42 @@ class VirtioGuest:
         else:
             viop_names = os.listdir('%s/virtio-ports' % (DEBUGPATH))
             for name in viop_names:
-                f = open("%s/virtio-ports/%s" % (DEBUGPATH, name), 'r')
+                open_db_file = "%s/virtio-ports/%s" % (DEBUGPATH, name)
+                f = open(open_db_file, 'r')
                 port = {}
+                file = []
                 for line in iter(f):
-                    m = re.match("(\S+): (\S+)", line)
-                    port[m.group(1)] = m.group(2)
+                    file.append(line)
+                try:
+                    for line in file:
+                        m = re.match("(\S+): (\S+)", line)
+                        port[m.group(1)] = m.group(2)
 
-                if (port['is_console'] == "yes"):
-                    port["path"] = "/dev/hvc%s" % (port["console_vtermno"])
-                    # Console works like a serialport
-                else:
-                    port["path"] = "/dev/%s" % name
+                    if (port['is_console'] == "yes"):
+                        port["path"] = "/dev/hvc%s" % (port["console_vtermno"])
+                        # Console works like a serialport
+                    else:
+                        port["path"] = "/dev/%s" % name
 
-                if (not os.path.exists(port['path'])):
-                    print "FAIL: %s not exist" % port['path']
+                    if (not os.path.exists(port['path'])):
+                        print "FAIL: %s not exist" % port['path']
 
-                sysfspath = SYSFSPATH + name
-                if (not os.path.isdir(sysfspath)):
-                    print "FAIL: %s not exist" % (sysfspath)
+                    sysfspath = SYSFSPATH + name
+                    if (not os.path.isdir(sysfspath)):
+                        print "FAIL: %s not exist" % (sysfspath)
 
-                info_name = sysfspath + "/name"
-                port_name = self._readfile(info_name).strip()
-                if (port_name != port["name"]):
-                    print ("FAIL: Port info not match \n%s - %s\n%s - %s" %
-                           (info_name , port_name,
-                            "%s/virtio-ports/%s" % (DEBUGPATH, name),
-                            port["name"]))
+                    info_name = sysfspath + "/name"
+                    port_name = self._readfile(info_name).strip()
+                    if (port_name != port["name"]):
+                        print ("FAIL: Port info not match \n%s - %s\n%s - %s" %
+                               (info_name , port_name,
+                                "%s/virtio-ports/%s" % (DEBUGPATH, name),
+                                port["name"]))
+                except AttributeError:
+                    print ("In file " + open_db_file +
+                           " are bad data\n"+ "".join(file).strip())
+                    print ("FAIL: Fail file data.")
+                    return
 
                 ports[port['name']] = port
                 f.close()
@@ -109,6 +120,8 @@ class VirtioGuest:
         """
         self.ports = self._get_port_status()
 
+        if self.ports == None:
+            return
         for item in in_files:
             if (item[1] != self.ports[item[0]]["is_console"]):
                 print self.ports
@@ -619,7 +632,7 @@ class VirtioGuest:
         buf = ""
         if ret[0]:
             buf = os.read(in_f[0], buffer)
-        print ("PASS: Rest in socket: " + buf)
+        print ("PASS: Rest in socket: ") + str(buf[10])
 
 
 def is_alive():
@@ -645,13 +658,20 @@ def compile():
     sys.exit()
 
 
+def guest_exit():
+    global exiting
+    exiting = True
+    os.kill(os.getpid(), signal.SIGUSR1)
+
+
 def worker(virt):
     """
     Worker thread (infinite) loop of virtio_guest.
     """
+    global exiting
     print "PASS: Start"
 
-    while True:
+    while not exiting:
         str = raw_input()
         try:
             exec str
@@ -661,7 +681,6 @@ def worker(virt):
                             traceback.format_exception(exc_type,
                                                        exc_value,
                                                        exc_traceback))
-    sys.exit(0)
 
 
 def sigusr_handler(sig, frame):
@@ -675,11 +694,12 @@ def main():
     if (len(sys.argv) > 1) and (sys.argv[1] == "-c"):
         compile()
 
+    global exiting
     virt = VirtioGuest()
     slave = Thread(target=worker, args=(virt, ))
     slave.start()
     signal.signal(signal.SIGUSR1, sigusr_handler)
-    while True:
+    while not exiting:
         signal.pause()
         catch = virt.catching_signal()
         if catch:
@@ -688,6 +708,7 @@ def main():
             signal.signal(signal.SIGIO, signal.SIG_DFL)
         if (catch != None):
             virt.use_config.set()
+    print "PASS: guest_exit"
 
 
 if __name__ == "__main__":
