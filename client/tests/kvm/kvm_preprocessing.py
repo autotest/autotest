@@ -254,6 +254,10 @@ def preprocess(test, params, env):
     logging.debug("KVM userspace version: %s" % kvm_userspace_version)
     test.write_test_keyval({"kvm_userspace_version": kvm_userspace_version})
 
+    if params.get("setup_hugepages") == "yes":
+        h = kvm_utils.HugePageConfig(params)
+        h.setup()
+
     # Execute any pre_commands
     if params.get("pre_command"):
         process_command(test, params, env, params.get("pre_command"),
@@ -349,6 +353,10 @@ def postprocess(test, params, env):
     if not living_vms and "tcpdump" in env:
         env["tcpdump"].close()
         del env["tcpdump"]
+
+    if params.get("setup_hugepages") == "yes":
+        h = kvm_utils.HugePageConfig(params)
+        h.cleanup()
 
     # Execute any post_commands
     if params.get("post_command"):
