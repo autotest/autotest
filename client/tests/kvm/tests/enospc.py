@@ -1,7 +1,7 @@
 import logging, commands, time, os, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_test_utils
+import kvm_test_utils, kvm_vm
 
 
 def run_enospc(test, params, env):
@@ -46,11 +46,12 @@ def run_enospc(test, params, env):
         if "paused" in status:
             pause_n += 1
             logging.info("Checking all images in use by the VM")
-            script_path = os.path.join(test.bindir, "scripts/check_image.py")
-            try:
-                cmd_result = utils.run('python %s' % script_path)
-            except error.CmdError, e:
-                logging.debug(e.result_obj.stdout)
+            for image_name in vm.params.objects("images"):
+                image_params = vm.params.object_params(image_name)
+                try:
+                    kvm_vm.check_image(image_params, test.bindir)
+                except kvm_vm.VMError, e:
+                    logging.error(e)
             logging.info("Guest paused, extending Logical Volume size")
             try:
                 cmd_result = utils.run("lvextend -L +200M /dev/vgtest/lvtest")
