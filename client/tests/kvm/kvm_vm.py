@@ -1739,3 +1739,6 @@ class VM:
         self.monitor.cmd("migrate_set_speed 1000g")
         self.monitor.cmd("migrate_set_downtime 100000000")
         self.monitor.migrate('"exec:cat>%s"' % path)
+        # Restore the speed and downtime of migration
+        self.monitor.cmd("migrate_set_speed %d" % (32<<20))
+        self.monitor.cmd("migrate_set_downtime 0.03")
