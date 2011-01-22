@@ -433,15 +433,15 @@ def run_virtio_console(test, params, env):
 
     def _init_guest(vm, timeout=2):
         """
-        Execute virtio_guest.py on guest, wait until it is initialized.
+        Execute virtio_console_guest.py on guest, wait until it is initialized.
 
         @param vm: Informations about the guest.
         @param timeout: Timeout that will be used to verify if the script
                 started properly.
         """
-        logging.debug("compile virtio_guest.py on guest %s", vm[0].name)
+        logging.debug("compile virtio_console_guest.py on guest %s", vm[0].name)
 
-        (match, data) = _on_guest("python -OO /tmp/virtio_guest.py -c &&"
+        (match, data) = _on_guest("python -OO /tmp/virtio_console_guest.py -c &&"
                        "echo -n 'PASS: Compile virtio_guest finished' ||"
                        "echo -n 'FAIL: Compile virtio_guest failed'",
                         vm, timeout)
@@ -450,9 +450,9 @@ def run_virtio_console(test, params, env):
             raise error.TestFail("Command console_switch.py on guest %s failed."
                                  "\nreturn code: %s\n output:\n%s" %
                                  (vm[0].name, match, data))
-        logging.debug("Starting virtio_guest.py on guest %s", vm[0].name)
+        logging.debug("Starting virtio_console_guest.py on guest %s", vm[0].name)
         vm[1].sendline()
-        (match, data) = _on_guest("python /tmp/virtio_guest.pyo &&"
+        (match, data) = _on_guest("python /tmp/virtio_console_guest.pyo &&"
                        "echo -n 'PASS: virtio_guest finished' ||"
                        "echo -n 'FAIL: virtio_guest failed'",
                        vm, timeout)
@@ -466,7 +466,7 @@ def run_virtio_console(test, params, env):
 
     def init_guest(vm, consoles):
         """
-        Prepares guest, executes virtio_guest.py and initialize for testing
+        Prepares guest, executes virtio_console_guest.py and initialize for testing
 
         @param vm: Informations about the guest.
         @param consoles: Informations about consoles
@@ -516,7 +516,7 @@ def run_virtio_console(test, params, env):
 
         @return: Tuple (match index, data)
         """
-        logging.debug("Executing '%s' on virtio_guest.py loop, vm: %s," +
+        logging.debug("Executing '%s' on virtio_console_guest.py loop, vm: %s," +
                       "timeout: %s", command, vm[0].name, timeout)
         vm[1].sendline(command)
         try:
@@ -550,7 +550,7 @@ def run_virtio_console(test, params, env):
         """
         match, data = _on_guest(command, vm, timeout)
         if match == 1 or match is None:
-            raise error.TestFail("Failed to execute '%s' on virtio_guest.py, "
+            raise error.TestFail("Failed to execute '%s' on virtio_console_guest.py, "
                                  "vm: %s, output:\n%s" %
                                  (command, vm[0].name, data))
 
@@ -1290,9 +1290,9 @@ def run_virtio_console(test, params, env):
 
     vm, consoles = _vm_create(no_consoles, no_serialports)
 
-    # Copy allocator.py into guests
+    # Copy virtio_console_guest.py into guests
     pwd = os.path.join(os.environ['AUTODIR'], 'tests/kvm')
-    vksmd_src = os.path.join(pwd, "scripts/virtio_guest.py")
+    vksmd_src = os.path.join(pwd, "scripts/virtio_console_guest.py")
     dst_dir = "/tmp"
     vm[0].copy_files_to(vksmd_src, dst_dir)
 

@@ -650,10 +650,10 @@ def is_alive():
 
 def compile():
     """
-    Compile virtio_guest.py to speed up.
+    Compile virtio_console_guest.py to speed up.
     """
     import py_compile
-    py_compile.compile(sys.path[0] + "/virtio_guest.py")
+    py_compile.compile(sys.path[0] + "/virtio_console_guest.py")
     print "PASS: compile"
     sys.exit()
 
