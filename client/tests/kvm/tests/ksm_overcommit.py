@@ -18,28 +18,29 @@ def run_ksm_overcommit(test, params, env):
 
     def _start_allocator(vm, session, timeout):
         """
-        Execute allocator.py on a guest, wait until it is initialized.
+        Execute ksm_overcommit_guest.py on a guest, wait until it is initialized.
 
         @param vm: VM object.
         @param session: Remote session to a VM object.
-        @param timeout: Timeout that will be used to verify if allocator.py
-                started properly.
+        @param timeout: Timeout that will be used to verify if
+                ksm_overcommit_guest.py started properly.
         """
-        logging.debug("Starting allocator.py on guest %s", vm.name)
-        session.sendline("python /tmp/allocator.py")
+        logging.debug("Starting ksm_overcommit_guest.py on guest %s", vm.name)
+        session.sendline("python /tmp/ksm_overcommit_guest.py")
         try:
             (match, data) = session.read_until_last_line_matches(
                                                             ["PASS:", "FAIL:"],
                                                             timeout)
         except kvm_subprocess.ExpectProcessTerminatedError, e:
-            raise error.TestFail("Command allocator.py on vm '%s' failed: %s" %
-                                 (vm.name, str(e)))
+            e_msg = ("Command ksm_overcommit_guest.py on vm '%s' failed: %s" %
+                     (vm.name, str(e)))
+            raise error.TestFail(e_msg)
 
 
     def _execute_allocator(command, vm, session, timeout):
         """
-        Execute a given command on allocator.py main loop, indicating the vm
-        the command was executed on.
+        Execute a given command on ksm_overcommit_guest.py main loop,
+        indicating the vm the command was executed on.
 
         @param command: Command that will be executed.
         @param vm: VM object.
@@ -48,17 +49,18 @@ def run_ksm_overcommit(test, params, env):
 
         @return: Tuple (match index, data)
         """
-        logging.debug("Executing '%s' on allocator.py loop, vm: %s, timeout: %s",
-                      command, vm.name, timeout)
+        logging.debug("Executing '%s' on ksm_overcommit_guest.py loop, "
+                      "vm: %s, timeout: %s", command, vm.name, timeout)
         session.sendline(command)
         try:
             (match, data) = session.read_until_last_line_matches(
                                                              ["PASS:","FAIL:"],
                                                              timeout)
         except kvm_subprocess.ExpectProcessTerminatedError, e:
-            e_str = ("Failed to execute command '%s' on allocator.py, "
-                     "vm '%s': %s" % (command, vm.name, str(e)))
-            raise error.TestFail(e_str)
+            e_msg = ("Failed to execute command '%s' on "
+                     "ksm_overcommit_guest.py, vm '%s': %s" %
+                     (command, vm.name, str(e)))
+            raise error.TestFail(e_msg)
         return (match, data)
 
 
@@ -98,7 +100,7 @@ def run_ksm_overcommit(test, params, env):
             a_cmd = "mem.value_fill(%d)" % skeys[0]
             _execute_allocator(a_cmd, vm, lsessions[i], 120 * perf_ratio)
 
-            # Let allocator.py do its job
+            # Let ksm_overcommit_guest.py do its job
             # (until shared mem reaches expected value)
             shm = 0
             j = 0
@@ -168,7 +170,7 @@ def run_ksm_overcommit(test, params, env):
             vm = lvms[i]
             session = lsessions[i]
             a_cmd = "mem.static_random_fill()"
-            logging.debug("Executing %s on allocator.py loop, vm: %s",
+            logging.debug("Executing %s on ksm_overcommit_guest.py loop, vm: %s",
                           a_cmd, vm.name)
             session.sendline(a_cmd)
 
@@ -271,7 +273,7 @@ def run_ksm_overcommit(test, params, env):
             a_cmd = "mem.value_fill(%d)" % (skeys[0])
             _execute_allocator(a_cmd, vm, lsessions[i], 90 * perf_ratio)
 
-        # Wait until allocator.py merges the pages (3 * ksm_size / 3)
+        # Wait until ksm_overcommit_guest.py merges the pages (3 * ksm_size / 3)
         shm = 0
         i = 0
         logging.debug("Target shared memory size: %s", ksm_size)
@@ -592,9 +594,9 @@ def run_ksm_overcommit(test, params, env):
     time.sleep(vmsc * 2 * perf_ratio)
     logging.debug(kvm_test_utils.get_memory_info(lvms))
 
-    # Copy allocator.py into guests
+    # Copy ksm_overcommit_guest.py into guests
     pwd = os.path.join(os.environ['AUTODIR'],'tests/kvm')
-    vksmd_src = os.path.join(pwd, "scripts/allocator.py")
+    vksmd_src = os.path.join(pwd, "scripts/ksm_overcommit_guest.py")
     dst_dir = "/tmp"
     for vm in lvms:
         vm.copy_files_to(vksmd_src, dst_dir)
