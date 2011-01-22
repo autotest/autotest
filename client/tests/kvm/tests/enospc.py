@@ -24,6 +24,10 @@ def run_enospc(test, params, env):
     login_timeout = int(params.get("login_timeout", 360))
     session_serial = vm.wait_for_serial_login(timeout=login_timeout)
 
+    vgtest_name = params.get("vgtest_name")
+    lvtest_name = params.get("lvtest_name")
+    logical_volume = "/dev/%s/%s" % (vgtest_name, lvtest_name)
+
     drive_format = params.get("drive_format")
     if drive_format == "virtio":
         devname = "/dev/vdb"
@@ -54,7 +58,7 @@ def run_enospc(test, params, env):
                     logging.error(e)
             logging.info("Guest paused, extending Logical Volume size")
             try:
-                cmd_result = utils.run("lvextend -L +200M /dev/vgtest/lvtest")
+                cmd_result = utils.run("lvextend -L +200M %s" % logical_volume)
             except error.CmdError, e:
                 logging.debug(e.result_obj.stdout)
             vm.monitor.cmd("cont")
