@@ -601,9 +601,10 @@ variants:
         image_format_stg = qcow2
         image_boot_stg = no
         image_snapshot_stg = no
+        check_image_stg = no
+        vgtest_name = vg_kvm_test_enospc
+        lvtest_name = lv_kvm_test_enospc
         background_cmd = "nohup dd if=/dev/zero of=%s bs=1024 &"
-        pre_command += " scripts/enospc-pre.py;"
-        post_command += " scripts/enospc-post.py;"
         kill_vm = yes
 
     - qmp_basic: install setup unattended_install.cdrom
