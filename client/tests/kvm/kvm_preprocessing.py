@@ -255,7 +255,7 @@ def preprocess(test, params, env):
     test.write_test_keyval({"kvm_userspace_version": kvm_userspace_version})
 
     if params.get("setup_hugepages") == "yes":
-        h = kvm_utils.HugePageConfig(params)
+        h = test_setup.HugePageConfig(params)
         h.setup()
 
     if params.get("type") == "unattended_install":
