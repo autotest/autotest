@@ -103,7 +103,7 @@ variants:
         initrd = initrd.img
         nic_mode = tap
         # uncomment the following line to test the migration in parallel
-        # migrate_with_background = yes
+        # migrate_background = yes
 
         variants:
             # Install guest from cdrom 
