@@ -1,7 +1,7 @@
 import sys, os, time, commands, re, logging, signal, glob, threading, shutil
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
-import kvm_vm, kvm_utils, kvm_subprocess, kvm_monitor, ppm_utils
+import kvm_vm, kvm_utils, kvm_subprocess, kvm_monitor, ppm_utils, test_setup
 try:
     import PIL.Image
 except ImportError:
@@ -257,6 +257,10 @@ def preprocess(test, params, env):
     if params.get("setup_hugepages") == "yes":
         h = kvm_utils.HugePageConfig(params)
         h.setup()
+
+    if params.get("type") == "unattended_install":
+        u = test_setup.UnattendedInstallConfig(test, params)
+        u.setup()
 
     # Execute any pre_commands
     if params.get("pre_command"):
