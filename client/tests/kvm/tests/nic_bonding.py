@@ -8,7 +8,7 @@ def run_nic_bonding(test, params, env):
     Nic bonding test in guest.
 
     1) Start guest with four nic models.
-    2) Setup bond0 in guest by script bonding_setup.py.
+    2) Setup bond0 in guest by script nic_bonding_guest.py.
     3) Execute file transfer test between guest and host.
     4) Repeatedly put down/up interfaces by set_link
     5) Execute file transfer test between guest and host.
@@ -34,9 +34,9 @@ def run_nic_bonding(test, params, env):
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
     session_serial = vm.wait_for_serial_login(timeout=timeout)
-    script_path = kvm_utils.get_path(test.bindir, "scripts/bonding_setup.py")
-    vm.copy_files_to(script_path, "/tmp/bonding_setup.py")
-    cmd = "python /tmp/bonding_setup.py %s" % vm.get_mac_address()
+    script_path = kvm_utils.get_path(test.bindir, "scripts/nic_bonding_guest.py")
+    vm.copy_files_to(script_path, "/tmp/nic_bonding_guest.py")
+    cmd = "python /tmp/nic_bonding_guest.py %s" % vm.get_mac_address()
     session_serial.cmd(cmd)
 
     termination_event = threading.Event()
