@@ -17,14 +17,22 @@ pygtk.require('2.0')
 def corner_and_size_clipped(startpoint, endpoint, limits):
     c0 = startpoint[:]
     c1 = endpoint[:]
-    if c0[0] < 0: c0[0] = 0
-    if c0[1] < 0: c0[1] = 0
-    if c1[0] < 0: c1[0] = 0
-    if c1[1] < 0: c1[1] = 0
-    if c0[0] > limits[0] - 1: c0[0] = limits[0] - 1
-    if c0[1] > limits[1] - 1: c0[1] = limits[1] - 1
-    if c1[0] > limits[0] - 1: c1[0] = limits[0] - 1
-    if c1[1] > limits[1] - 1: c1[1] = limits[1] - 1
+    if c0[0] < 0:
+        c0[0] = 0
+    if c0[1] < 0:
+        c0[1] = 0
+    if c1[0] < 0:
+        c1[0] = 0
+    if c1[1] < 0:
+        c1[1] = 0
+    if c0[0] > limits[0] - 1:
+        c0[0] = limits[0] - 1
+    if c0[1] > limits[1] - 1:
+        c0[1] = limits[1] - 1
+    if c1[0] > limits[0] - 1:
+        c1[0] = limits[0] - 1
+    if c1[1] > limits[1] - 1:
+        c1[1] = limits[1] - 1
     return ([min(c0[0], c1[0]),
              min(c0[1], c1[1])],
             [abs(c1[0] - c0[0]) + 1,
@@ -88,9 +96,12 @@ def key_event_to_qemu_string(event):
     else:
         return ""
 
-    if event.state & gtk.gdk.CONTROL_MASK: str = "ctrl-" + str
-    if event.state & gtk.gdk.MOD1_MASK: str = "alt-" + str
-    if event.state & gtk.gdk.SHIFT_MASK: str = "shift-" + str
+    if event.state & gtk.gdk.CONTROL_MASK:
+        str = "ctrl-" + str
+    if event.state & gtk.gdk.MOD1_MASK:
+        str = "alt-" + str
+    if event.state & gtk.gdk.SHIFT_MASK:
+        str = "shift-" + str
 
     return str
 
@@ -259,7 +270,7 @@ class StepMakerWindow:
         box.pack_start(frame)
         frame.show()
 
-        self.text_buffer = gtk.TextBuffer() ;
+        self.text_buffer = gtk.TextBuffer()
         self.entry_keys = gtk.TextView(self.text_buffer)
         self.entry_keys.set_wrap_mode(gtk.WRAP_WORD)
         self.entry_keys.connect("key-press-event", self.event_key_press)

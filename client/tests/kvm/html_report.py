@@ -11,7 +11,7 @@ import os, sys, re, getopt, time, datetime, commands
 import common
 
 
-format_css="""
+format_css = """
 html,body {
     padding:0;
     color:#222;
@@ -180,7 +180,7 @@ font-size: 13px;}
 """
 
 
-table_js="""
+table_js = """
 /**
  * Copyright (c)2005-2007 Matt Kruse (javascripttoolbox.com)
  *
@@ -1380,11 +1380,11 @@ function processList(ul) {
 ##  input and create a single html formatted result page.      ##
 #################################################################
 
-stimelist=[]
+stimelist = []
 
 
 def make_html_file(metadata, results, tag, host, output_file_name, dirname):
-    html_prefix="""
+    html_prefix = """
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
@@ -1405,7 +1405,7 @@ return true;
 </script>
 </head>
 <body>
-"""%(format_css, table_js, maketree_js)
+""" % (format_css, table_js, maketree_js)
 
 
     if output_file_name:
@@ -1427,13 +1427,13 @@ return true;
     total_failed = 0
     total_passed = 0
     for res in results:
-        total_executed+=1
+        total_executed += 1
         if res['status'] == 'GOOD':
-            total_passed+=1
+            total_passed += 1
         else:
-            total_failed+=1
+            total_failed += 1
     stat_str = 'No test cases executed'
-    if total_executed>0:
+    if total_executed > 0:
         failed_perct = int(float(total_failed)/float(total_executed)*100)
         stat_str = ('From %d tests executed, %d have passed (%d%% failures)' %
                     (total_executed, total_passed, failed_perct))
@@ -1486,15 +1486,15 @@ id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alterna
         if res['log']:
             #chop all '\n' from log text (to prevent html errors)
             rx1 = re.compile('(\s+)')
-            log_text = rx1.sub(' ',res['log'])
+            log_text = rx1.sub(' ', res['log'])
 
             # allow only a-zA-Z0-9_ in html title name
             # (due to bug in MS-explorer)
             rx2 = re.compile('([^a-zA-Z_0-9])')
-            updated_tag = rx2.sub('_',res['title'])
+            updated_tag = rx2.sub('_', res['title'])
 
-            html_body_text = '<html><head><title>%s</title></head><body>%s</body></html>'%(str(updated_tag),log_text)
-            print >> output, '<td align=\"left\"><A HREF=\"#\" onClick=\"popup(\'%s\',\'%s\')\">Info</A></td>'%(str(updated_tag),str(html_body_text))
+            html_body_text = '<html><head><title>%s</title></head><body>%s</body></html>' % (str(updated_tag), log_text)
+            print >> output, '<td align=\"left\"><A HREF=\"#\" onClick=\"popup(\'%s\',\'%s\')\">Info</A></td>' % (str(updated_tag), str(html_body_text))
         else:
             print >> output, '<td align=\"left\"></td>'
         # print execution time
@@ -1514,7 +1514,7 @@ id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alterna
     print >> output, '</p>'
 
     print >> output, '<ul class="mktree" id="meta_tree">'
-    counter=0
+    counter = 0
     keys = metadata.keys()
     keys.sort()
     for key in keys:
@@ -1528,7 +1528,7 @@ id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alterna
         output.close()
 
 
-def parse_result(dirname,line):
+def parse_result(dirname, line):
     parts = line.split()
     if len(parts) < 4:
         return None
@@ -1560,7 +1560,7 @@ def parse_result(dirname,line):
         result['title'] = str(tag)
         result['status'] = parts[1]
         if result['status'] != 'GOOD':
-            result['log'] = get_exec_log(dirname,tag)
+            result['log'] = get_exec_log(dirname, tag)
         if len(stimelist)>0:
             pair = parts[4].split('=')
             etime = int(pair[1])
@@ -1572,10 +1572,10 @@ def parse_result(dirname,line):
 
 
 def get_exec_log(resdir, tag):
-    stdout_file = os.path.join(resdir,tag) + '/debug/stdout'
-    stderr_file = os.path.join(resdir,tag) + '/debug/stderr'
-    status_file = os.path.join(resdir,tag) + '/status'
-    dmesg_file = os.path.join(resdir,tag) + '/sysinfo/dmesg'
+    stdout_file = os.path.join(resdir, tag) + '/debug/stdout'
+    stderr_file = os.path.join(resdir, tag) + '/debug/stderr'
+    status_file = os.path.join(resdir, tag) + '/status'
+    dmesg_file = os.path.join(resdir, tag) + '/sysinfo/dmesg'
     log = ''
     log += '<br><b>STDERR:</b><br>'
     log += get_info_file(stderr_file)
@@ -1589,20 +1589,20 @@ def get_exec_log(resdir, tag):
 
 
 def get_info_file(filename):
-    data=''
+    data = ''
     errors = re.compile(r"\b(error|fail|failed)\b", re.IGNORECASE)
     if os.path.isfile(filename):
         f = open('%s' % filename, "r")
-        lines=f.readlines()
+        lines = f.readlines()
         f.close()
         rx = re.compile('(\'|\")')
         for line in lines:
-            new_line = rx.sub('',line)
+            new_line = rx.sub('', line)
             errors_found = errors.findall(new_line)
-            if len(errors_found)>0:
-                data += '<font color=red>%s</font><br>'%str(new_line)
+            if len(errors_found) > 0:
+                data += '<font color=red>%s</font><br>' % str(new_line)
             else:
-                data += '%s<br>'%str(new_line)
+                data += '%s<br>' % str(new_line)
         if not data:
             data = 'No Information Found.<br>'
     else:
@@ -1687,12 +1687,12 @@ def main(argv):
             status_file_name = dirname + '/status'
             sysinfo_dir = dirname + '/sysinfo'
             host = get_info_file('%s/hostname' % sysinfo_dir)
-            rx=re.compile('^\s+[END|START].*$')
+            rx = re.compile('^\s+[END|START].*$')
             # create the results set dict
-            results_data=[]
+            results_data = []
             if os.path.exists(status_file_name):
                 f = open(status_file_name, "r")
-                lines=f.readlines()
+                lines = f.readlines()
                 f.close()
                 for line in lines:
                     if rx.match(line):

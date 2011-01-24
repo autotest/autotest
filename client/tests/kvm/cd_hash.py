@@ -8,7 +8,7 @@ Program that calculates several hashes for a given CD image.
 import os, sys, optparse, logging
 import common
 import kvm_utils
-from autotest_lib.client.common_lib import logging_config, logging_manager
+from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.client.bin import utils
 
 

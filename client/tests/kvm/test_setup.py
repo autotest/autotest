@@ -1,7 +1,7 @@
 """
 Library to perform pre/post test setup for KVM autotest.
 """
-import os, sys, shutil, tempfile, re, ConfigParser, glob, inspect, commands
+import os, shutil, tempfile, re, ConfigParser, glob, inspect
 import logging, time
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils

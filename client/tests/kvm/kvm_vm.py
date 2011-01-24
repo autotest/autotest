@@ -5,8 +5,8 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, socket, os, logging, fcntl, re, commands, shelve, glob
-import kvm_utils, kvm_subprocess, kvm_monitor, rss_file_transfer
+import time, os, logging, fcntl, re, commands, glob
+import kvm_utils, kvm_subprocess, kvm_monitor
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 
@@ -225,7 +225,7 @@ def create_image(params, root_dir):
     qemu_img_cmd += " %s" % size
 
     utils.system(qemu_img_cmd)
-    logging.info("Image created in %r" % image_filename)
+    logging.info("Image created in %r", image_filename)
     return image_filename
 
 
@@ -241,7 +241,7 @@ def remove_image(params, root_dir):
            image_format -- the format of the image (qcow2, raw etc)
     """
     image_filename = get_image_filename(params, root_dir)
-    logging.debug("Removing image file %s..." % image_filename)
+    logging.debug("Removing image file %s...", image_filename)
     if os.path.exists(image_filename):
         os.unlink(image_filename)
     else:
@@ -262,7 +262,7 @@ def check_image(params, root_dir):
     @raise VMImageCheckError: In case qemu-img check fails on the image.
     """
     image_filename = get_image_filename(params, root_dir)
-    logging.debug("Checking image file %s..." % image_filename)
+    logging.debug("Checking image file %s...", image_filename)
     qemu_img_cmd = kvm_utils.get_path(root_dir,
                                       params.get("qemu_img_binary", "qemu-img"))
     image_is_qcow2 = params.get("image_format") == 'qcow2'
@@ -445,13 +445,20 @@ class VM:
         def add_drive(help, filename, index=None, format=None, cache=None,
                       werror=None, serial=None, snapshot=False, boot=False):
             cmd = " -drive file='%s'" % filename
-            if index is not None: cmd += ",index=%s" % index
-            if format: cmd += ",if=%s" % format
-            if cache: cmd += ",cache=%s" % cache
-            if werror: cmd += ",werror=%s" % werror
-            if serial: cmd += ",serial='%s'" % serial
-            if snapshot: cmd += ",snapshot=on"
-            if boot: cmd += ",boot=on"
+            if index is not None:
+                cmd += ",index=%s" % index
+            if format:
+                cmd += ",if=%s" % format
+            if cache:
+                cmd += ",cache=%s" % cache
+            if werror:
+                cmd += ",werror=%s" % werror
+            if serial:
+                cmd += ",serial='%s'" % serial
+            if snapshot:
+                cmd += ",snapshot=on"
+            if boot:
+                cmd += ",boot=on"
             return cmd
 
         def add_nic(help, vlan, model=None, mac=None, netdev_id=None,
@@ -564,9 +571,12 @@ class VM:
 
         # End of command line option wrappers
 
-        if name is None: name = self.name
-        if params is None: params = self.params
-        if root_dir is None: root_dir = self.root_dir
+        if name is None:
+            name = self.name
+        if params is None:
+            params = self.params
+        if root_dir is None:
+            root_dir = self.root_dir
 
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
@@ -1032,7 +1042,7 @@ class VM:
                 logging.debug("VM is down")
                 return
 
-            logging.error("Process %s is a zombie!" % self.process.get_pid())
+            logging.error("Process %s is a zombie!", self.process.get_pid())
 
         finally:
             self.monitors = []
@@ -1322,8 +1332,8 @@ class VM:
         @param internal_timeout: Timeout to pass to login().
         @return: A ShellSession object.
         """
-        logging.debug("Attempting to log into '%s' (timeout %ds)" % (self.name,
-                                                                     timeout))
+        logging.debug("Attempting to log into '%s' (timeout %ds)", self.name,
+                      timeout)
         end_time = time.time() + timeout
         while time.time() < end_time:
             try:
@@ -1426,7 +1436,7 @@ class VM:
         @return: A ShellSession object.
         """
         logging.debug("Attempting to log into '%s' via serial console "
-                      "(timeout %ds)" % (self.name, timeout))
+                      "(timeout %ds)", self.name, timeout)
         end_time = time.time() + timeout
         while time.time() < end_time:
             try:
@@ -1527,7 +1537,7 @@ class VM:
             if offline:
                 self.monitor.cmd("stop")
 
-            logging.info("Migrating to %s" % uri)
+            logging.info("Migrating to %s", uri)
             self.monitor.migrate(uri)
 
             if cancel_delay:
