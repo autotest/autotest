@@ -1,7 +1,7 @@
 import logging, time, os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_subprocess, kvm_test_utils, kvm_utils
+import kvm_utils
 
 
 def run_vmstop(test, params, env):

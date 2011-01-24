@@ -1,5 +1,7 @@
-import kvm_test_utils, kvm_monitor
+import logging
 from autotest_lib.client.common_lib import error
+import kvm_monitor
+
 
 def run_qmp_basic_rhel6(test, params, env):
     """
@@ -196,24 +198,24 @@ def run_qmp_basic_rhel6(test, params, env):
         Check that QMP's "id" key is correctly handled.
         """
         # The "id" key must be echoed back in error responses
-        id = "kvm-autotest"
-        resp = monitor.cmd_qmp("eject", { "foobar": True }, id=id)
+        id_key = "kvm-autotest"
+        resp = monitor.cmd_qmp("eject", { "foobar": True }, id=id_key)
         check_error_resp(resp)
-        check_str_key(resp, "id", id)
+        check_str_key(resp, "id", id_key)
 
         # The "id" key must be echoed back in success responses
-        resp = monitor.cmd_qmp("query-status", id=id)
+        resp = monitor.cmd_qmp("query-status", id=id_key)
         check_success_resp(resp)
-        check_str_key(resp, "id", id)
+        check_str_key(resp, "id", id_key)
 
         # The "id" key can be any json-object
-        for id in [ True, 1234, "string again!", [1, [], {}, True, "foo"],
+        for id_key in [ True, 1234, "string again!", [1, [], {}, True, "foo"],
                     { "key": {} } ]:
-            resp = monitor.cmd_qmp("query-status", id=id)
+            resp = monitor.cmd_qmp("query-status", id=id_key)
             check_success_resp(resp)
-            if resp["id"] != id:
+            if resp["id"] != id_key:
                 raise error.TestFail("expected id '%s' but got '%s'" %
-                                     (str(id), str(resp["id"])))
+                                     (str(id_key), str(resp["id"])))
 
 
     def test_invalid_arg_key(monitor):
@@ -284,11 +286,11 @@ def run_qmp_basic_rhel6(test, params, env):
         resp = monitor.cmd_obj({ "arguments": {}, "execute": "query-version" })
         check_success_resp(resp)
 
-        id = "1234foo"
-        resp = monitor.cmd_obj({ "id": id, "execute": "query-version",
+        id_key = "1234foo"
+        resp = monitor.cmd_obj({ "id": id_key, "execute": "query-version",
                                  "arguments": {} })
         check_success_resp(resp)
-        check_str_key(resp, "id", id)
+        check_str_key(resp, "id", id_key)
 
         # TODO: would be good to test simple argument usage, but we don't have
         # a read-only command that accepts arguments.
@@ -347,7 +349,8 @@ def run_qmp_basic_rhel6(test, params, env):
         # is to skip its checking and pass arguments through. Check this
         # works by providing invalid options to device_add and expecting
         # an error message from qdev
-        resp = monitor.cmd_qmp("device_add", { "driver": "e1000","foo": "bar" })
+        resp = monitor.cmd_qmp("device_add", {"driver": "e1000",
+                                              "foo": "bar" })
         check_error_resp(resp, "PropertyNotFound",
                                {"device": "e1000", "property": "foo"})
 

@@ -1,6 +1,5 @@
 import os, logging
-from autotest_lib.client.common_lib import error
-import kvm_utils, kvm_test_utils
+import kvm_utils
 
 
 def run_guest_test(test, params, env):
@@ -56,7 +55,7 @@ def run_guest_test(test, params, env):
             logging.debug("Clean directory succeeded.")
 
             # then download the resource.
-            rsc_cmd = "cd %s && %s %s" %(dst_rsc_dir, download_cmd, rsc_server)
+            rsc_cmd = "cd %s && %s %s" % (dst_rsc_dir, download_cmd, rsc_server)
             session.cmd(rsc_cmd, timeout=test_timeout)
             logging.info("Download resource finished.")
         else:

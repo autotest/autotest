@@ -32,7 +32,7 @@ def run_set_link(test, params, env):
     if ratio != 0:
         raise error.TestFail("Loss ratio is %s, output: %s" % (ratio, o))
 
-    logging.info("Executing 'set link %s off'" % linkname)
+    logging.info("Executing 'set link %s off'", linkname)
     vm.monitor.cmd("set_link %s off" % linkname)
     logging.info(vm.monitor.info("network"))
     logging.info("Pinging guest from host")
@@ -45,7 +45,7 @@ def run_set_link(test, params, env):
         raise error.TestFail("Loss ratio is not 100%%,"
                              "Loss ratio is %s" % ratio)
 
-    logging.info("Executing 'set link %s on'" % linkname)
+    logging.info("Executing 'set link %s on'", linkname)
     vm.monitor.cmd("set_link %s on" % linkname)
     logging.info(vm.monitor.info("network"))
     logging.info("Pinging guest from host")

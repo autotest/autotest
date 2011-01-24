@@ -1,6 +1,6 @@
-import logging, time, os, re
+import logging, time, os
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils, rss_file_transfer
+import kvm_test_utils, kvm_utils, rss_file_transfer
 
 
 def run_whql_client_install(test, params, env):
@@ -82,19 +82,19 @@ def run_whql_client_install(test, params, env):
 
     # Rename the client machine
     client_name = "autotest_%s" % kvm_utils.generate_random_string(4)
-    logging.info("Renaming client machine to '%s'" % client_name)
+    logging.info("Renaming client machine to '%s'", client_name)
     cmd = ('wmic computersystem where name="%%computername%%" rename name="%s"'
            % client_name)
     session.cmd(cmd, timeout=600)
 
     # Join the server's workgroup
-    logging.info("Joining workgroup '%s'" % server_workgroup)
+    logging.info("Joining workgroup '%s'", server_workgroup)
     cmd = ('wmic computersystem where name="%%computername%%" call '
            'joindomainorworkgroup name="%s"' % server_workgroup)
     session.cmd(cmd, timeout=600)
 
     # Set the client machine's DNS suffix
-    logging.info("Setting DNS suffix to '%s'" % server_dns_suffix)
+    logging.info("Setting DNS suffix to '%s'", server_dns_suffix)
     cmd = 'reg add %s /v Domain /d "%s" /f' % (regkey, server_dns_suffix)
     session.cmd(cmd, timeout=300)
 

@@ -1,6 +1,6 @@
-import logging, time, re, random
+import logging, re, random
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils
+import kvm_subprocess
 
 
 def run_iofuzz(test, params, env):
@@ -69,7 +69,7 @@ def run_iofuzz(test, params, env):
         for (op, operand) in inst_list:
             if op == "read":
                 inb(session, operand[0])
-            elif op =="write":
+            elif op == "write":
                 outb(session, operand[0], operand[1])
             else:
                 raise error.TestError("Unknown command %s" % op)

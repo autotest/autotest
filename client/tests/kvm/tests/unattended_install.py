@@ -1,6 +1,6 @@
 import logging, time, socket, re
 from autotest_lib.client.common_lib import error
-import kvm_utils, kvm_test_utils, kvm_vm
+import kvm_vm
 
 
 @error.context_aware

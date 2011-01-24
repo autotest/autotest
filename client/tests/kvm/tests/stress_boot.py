@@ -1,6 +1,6 @@
-import logging, time
+import logging
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils, kvm_preprocessing
+import kvm_preprocessing
 
 
 @error.context_aware
@@ -39,7 +39,7 @@ def run_stress_boot(test, params, env):
             params["vms"] += " " + vm_name
 
             sessions.append(curr_vm.wait_for_login(timeout=login_timeout))
-            logging.info("Guest #%d booted up successfully" % num)
+            logging.info("Guest #%d booted up successfully", num)
 
             # Check whether all previous shell sessions are responsive
             for i, se in enumerate(sessions):

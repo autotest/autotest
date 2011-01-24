@@ -1,6 +1,6 @@
-import logging, time, os, shutil, glob, ConfigParser
+import logging, os, shutil, glob, ConfigParser
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils, kvm_preprocessing
+import kvm_utils, kvm_preprocessing
 
 
 def run_unittest(test, params, env):
@@ -34,12 +34,12 @@ def run_unittest(test, params, env):
     if not test_list:
         raise error.TestError("No tests listed on config file %s" %
                               unittest_cfg)
-    logging.debug('Unit test list: %s' % test_list)
+    logging.debug('Unit test list: %s', test_list)
 
     if params.get('test_list'):
         test_list = params.get('test_list').split()
         logging.info('Original test list overriden by user')
-        logging.info('User defined unit test list: %s' % test_list)
+        logging.info('User defined unit test list: %s', test_list)
 
     nfail = 0
     tests_failed = []
@@ -51,23 +51,23 @@ def run_unittest(test, params, env):
     for t in test_list:
         logging.info('Running %s', t)
 
-        file = None
+        flat_file = None
         if parser.has_option(t, 'file'):
-            file = parser.get(t, 'file')
+            flat_file = parser.get(t, 'file')
 
-        if file is None:
+        if flat_file is None:
             nfail += 1
             tests_failed.append(t)
             logging.error('Unittest config file %s has section %s but no '
-                          'mandatory option file' % (unittest_cfg, t))
+                          'mandatory option file', unittest_cfg, t)
             continue
 
-        if file not in unittest_list:
+        if flat_file not in unittest_list:
             nfail += 1
             tests_failed.append(t)
             logging.error('Unittest file %s referenced in config file %s but '
-                          'was not find under the unittest dir' %
-                          (file, unittest_cfg))
+                          'was not find under the unittest dir', flat_file,
+                          unittest_cfg)
             continue
 
         smp = None
@@ -81,7 +81,7 @@ def run_unittest(test, params, env):
             params['extra_params'] += ' %s' % extra_params
 
         vm_name = params.get("main_vm")
-        params['kernel'] = os.path.join(unittest_dir, file)
+        params['kernel'] = os.path.join(unittest_dir, flat_file)
         testlog_path = os.path.join(test.debugdir, "%s.log" % t)
 
         try:
@@ -111,7 +111,7 @@ def run_unittest(test, params, env):
                 shutil.copy(vm.get_testlog_filename(), testlog_path)
                 logging.info("Unit test log collected and available under %s",
                              testlog_path)
-            except NameError, IOError:
+            except (NameError, IOError):
                 logging.error("Not possible to collect logs")
 
         # Restore the extra params so other tests can run normally

@@ -3,6 +3,7 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 import kvm_test_utils, kvm_utils
 
+
 def run_jumbo(test, params, env):
     """
     Test the RX jumbo frame function of vnics:
@@ -88,7 +89,7 @@ def run_jumbo(test, params, env):
         def size_increase_ping(step=random.randrange(90, 110)):
             logging.info("Size increase ping")
             for size in range(0, max_icmp_pkt_size + 1, step):
-                logging.info("Ping %s with size %s" % (ip, size))
+                logging.info("Ping %s with size %s", ip, size)
                 s, o = kvm_test_utils.ping(ip, 1, interface=ifname,
                                            packetsize=size,
                                            hint="do", timeout=1)

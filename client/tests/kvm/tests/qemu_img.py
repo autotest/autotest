@@ -1,6 +1,6 @@
-import re, os, logging, commands, string
+import re, os, logging, commands
 from autotest_lib.client.common_lib import utils, error
-import kvm_vm, kvm_utils, kvm_test_utils, kvm_preprocessing
+import kvm_vm, kvm_utils, kvm_preprocessing
 
 
 def run_qemu_img(test, params, env):
@@ -162,13 +162,13 @@ def run_qemu_img(test, params, env):
             os.remove(output_filename)
 
 
-    def _info(cmd, img, string=None, fmt=None):
+    def _info(cmd, img, sub_info=None, fmt=None):
         """
         Simple wrapper of 'qemu-img info'.
 
         @param cmd: qemu-img base command.
         @param img: image file
-        @param string: sub info, say 'backing file'
+        @param sub_info: sub info, say 'backing file'
         @param fmt: image format
         """
         cmd += " info"
@@ -182,11 +182,11 @@ def run_qemu_img(test, params, env):
             logging.error("Get info of image '%s' failed: %s", img, str(e))
             return None
 
-        if not string:
+        if not sub_info:
             return output
 
-        string += ": (.*)"
-        matches = re.findall(string, output)
+        sub_info += ": (.*)"
+        matches = re.findall(sub_info, output)
         if matches:
             return matches[0]
         return None
@@ -223,7 +223,7 @@ def run_qemu_img(test, params, env):
             if s != 0:
                 raise error.TestFail("Create snapshot failed via command: %s;"
                                      "Output is: %s" % (crtcmd, o))
-            logging.info("Created snapshot '%s' in '%s'" % (sn_name,image_name))
+            logging.info("Created snapshot '%s' in '%s'", sn_name, image_name)
         listcmd = cmd
         listcmd += " -l %s" % image_name
         s, o = commands.getstatusoutput(listcmd)
@@ -377,7 +377,7 @@ def run_qemu_img(test, params, env):
         if mode == "unsafe":
             cmd += " -u"
         cmd += " -b %s -F %s %s" % (base_img, backing_fmt, img_name)
-        logging.info("Trying to rebase '%s' to '%s'..." % (img_name, base_img))
+        logging.info("Trying to rebase '%s' to '%s'...", img_name, base_img)
         s, o = commands.getstatusoutput(cmd)
         if s != 0:
             raise error.TestError("Failed to rebase '%s' to '%s': %s" %

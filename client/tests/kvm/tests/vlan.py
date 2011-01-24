@@ -2,6 +2,7 @@ import logging, time, re
 from autotest_lib.client.common_lib import error
 import kvm_test_utils, kvm_utils, kvm_subprocess
 
+
 def run_vlan(test, params, env):
     """
     Test 802.1Q vlan of NIC, config it by vconfig command.
@@ -35,20 +36,20 @@ def run_vlan(test, params, env):
     for vm_ in vm:
         vm_.verify_alive()
 
-    def add_vlan(session, id, iface="eth0"):
-        session.cmd("vconfig add %s %s" % (iface, id))
+    def add_vlan(session, v_id, iface="eth0"):
+        session.cmd("vconfig add %s %s" % (iface, v_id))
 
-    def set_ip_vlan(session, id, ip, iface="eth0"):
-        iface = "%s.%s" % (iface, id)
+    def set_ip_vlan(session, v_id, ip, iface="eth0"):
+        iface = "%s.%s" % (iface, v_id)
         session.cmd("ifconfig %s %s" % (iface, ip))
 
     def set_arp_ignore(session, iface="eth0"):
         ignore_cmd = "echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore"
         session.cmd(ignore_cmd)
 
-    def rem_vlan(session, id, iface="eth0"):
+    def rem_vlan(session, v_id, iface="eth0"):
         rem_vlan_cmd = "if [[ -e /proc/net/vlan/%s ]];then vconfig rem %s;fi"
-        iface = "%s.%s" % (iface, id)
+        iface = "%s.%s" % (iface, v_id)
         return session.cmd_status(rem_vlan_cmd % (iface, iface))
 
     def nc_transfer(src, dst):
@@ -72,10 +73,10 @@ def run_vlan(test, params, env):
         output = session[dst].cmd_output("md5sum receive").strip()
         digest_receive = re.findall(r'(\w+)', output)[0]
         if digest_receive == digest_origin[src]:
-            logging.info("file succeed received in vm %s" % vlan_ip[dst])
+            logging.info("file succeed received in vm %s", vlan_ip[dst])
         else:
-            logging.info("digest_origin is  %s" % digest_origin[src])
-            logging.info("digest_receive is %s" % digest_receive)
+            logging.info("digest_origin is  %s", digest_origin[src])
+            logging.info("digest_receive is %s", digest_receive)
             raise error.TestFail("File transfered differ from origin")
         session[dst].cmd_output("rm -f receive")
 
@@ -113,7 +114,7 @@ def run_vlan(test, params, env):
             set_arp_ignore(session[i], ifname[i])
 
         for vlan in range(1, vlan_num+1):
-            logging.info("Test for vlan %s" % vlan)
+            logging.info("Test for vlan %s", vlan)
 
             logging.info("Ping between vlans")
             interface = ifname[0] + '.' + str(vlan)
@@ -142,8 +143,8 @@ def run_vlan(test, params, env):
                                    session=session_flood, timeout=10)
                 session_flood.close()
 
-            flood_ping(0,1)
-            flood_ping(1,0)
+            flood_ping(0, 1)
+            flood_ping(1, 0)
 
             logging.info("Transfering data through nc")
             nc_transfer(0, 1)
@@ -153,7 +154,7 @@ def run_vlan(test, params, env):
         for vlan in range(1, vlan_num+1):
             rem_vlan(session[0], vlan, ifname[0])
             rem_vlan(session[1], vlan, ifname[1])
-            logging.info("rem vlan: %s" % vlan)
+            logging.info("rem vlan: %s", vlan)
 
     # Plumb/unplumb maximal unber of vlan interfaces
     i = 1
