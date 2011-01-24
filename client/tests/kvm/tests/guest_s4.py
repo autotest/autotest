@@ -1,6 +1,6 @@
 import logging, time
 from autotest_lib.client.common_lib import error
-import kvm_test_utils, kvm_utils
+import kvm_utils
 
 
 @error.context_aware
@@ -38,7 +38,7 @@ def run_guest_s4(test, params, env):
     error.context("making sure background program is running")
     check_s4_cmd = params.get("check_s4_cmd")
     session2.cmd(check_s4_cmd)
-    logging.info("Launched background command in guest: %s" % test_s4_cmd)
+    logging.info("Launched background command in guest: %s", test_s4_cmd)
     error.context()
     error.base_context()
 

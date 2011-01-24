@@ -1,5 +1,6 @@
 import installer
 
+
 def run_build(test, params, env):
     """
     Installs KVM using the selected install mode. Most install methods will
@@ -17,7 +18,7 @@ def run_build(test, params, env):
         installer_object.set_install_params(test, params)
         installer_object.install()
         env.register_installer(installer_object)
-    except Exception,e:
+    except Exception, e:
         # if the build/install fails, don't allow other tests
         # to get a installer.
         msg = "KVM install failed: %s" % (e)

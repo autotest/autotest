@@ -1,7 +1,8 @@
 import logging, threading, os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_utils, kvm_test_utils
+import kvm_test_utils
+
 
 def run_nicdriver_unload(test, params, env):
     """

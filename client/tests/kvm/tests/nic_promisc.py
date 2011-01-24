@@ -3,6 +3,7 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 import kvm_utils, kvm_test_utils
 
+
 def run_nic_promisc(test, params, env):
     """
     Test nic driver in promisc mode:
@@ -66,7 +67,7 @@ def run_nic_promisc(test, params, env):
     success_counter = 0
     try:
         for size in file_size:
-            logging.info("Create %s bytes file on host" % size)
+            logging.info("Create %s bytes file on host", size)
             utils.run(dd_cmd % (filename, int(size)))
 
             logging.info("Transfer file from host to guest")
@@ -81,7 +82,7 @@ def run_nic_promisc(test, params, env):
             else:
                 success_counter += 1
 
-            logging.info("Create %s bytes file on guest" % size)
+            logging.info("Create %s bytes file on guest", size)
             session.cmd(dd_cmd % (filename, int(size)), timeout=100)
 
             logging.info("Transfer file from guest to host")

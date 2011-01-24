@@ -1,6 +1,5 @@
 import logging, time
 from autotest_lib.client.common_lib import error
-import kvm_test_utils
 
 
 def run_linux_s3(test, params, env):
@@ -23,8 +22,8 @@ def run_linux_s3(test, params, env):
     time.sleep(10)
 
     src_tty = session.cmd_output("fgconsole").strip()
-    logging.info("Current virtual terminal is %s" % src_tty)
-    if src_tty not in map(str, range(1,10)):
+    logging.info("Current virtual terminal is %s", src_tty)
+    if src_tty not in map(str, range(1, 10)):
         raise error.TestFail("Got a strange current vt (%s)" % src_tty)
 
     dst_tty = "1"

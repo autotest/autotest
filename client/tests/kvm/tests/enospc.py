@@ -1,7 +1,7 @@
-import logging, commands, time, os, re
+import logging, time, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_test_utils, kvm_vm
+import kvm_vm
 
 
 def run_enospc(test, params, env):
@@ -58,7 +58,7 @@ def run_enospc(test, params, env):
                     logging.error(e)
             logging.info("Guest paused, extending Logical Volume size")
             try:
-                cmd_result = utils.run("lvextend -L +200M %s" % logical_volume)
+                utils.run("lvextend -L +200M %s" % logical_volume)
             except error.CmdError, e:
                 logging.debug(e.result_obj.stdout)
             vm.monitor.cmd("cont")
@@ -71,4 +71,4 @@ def run_enospc(test, params, env):
         logging.info("Guest paused %s times from %s iterations",
                      pause_n, iterations)
 
-    logging.info("Final %s" % vm.monitor.cmd("info status"))
+    logging.info("Final %s", vm.monitor.cmd("info status"))

@@ -1,7 +1,5 @@
-import os, logging
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-import kvm_subprocess, kvm_utils, kvm_test_utils
+import os
+import kvm_test_utils
 
 
 def run_autotest(test, params, env):
@@ -19,7 +17,6 @@ def run_autotest(test, params, env):
 
     # Collect test parameters
     timeout = int(params.get("test_timeout", 300))
-    migrate = params.get("migrate" , "no") == "yes"
     control_path = os.path.join(test.bindir, "autotest_control",
                                 params.get("test_control_file"))
     outputdir = test.outputdir

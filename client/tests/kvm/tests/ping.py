@@ -34,7 +34,8 @@ def run_ping(test, params, env):
         for i, nic in enumerate(nics):
             ip = vm.get_address(i)
             if not ip:
-                logging.error("Could not get the ip of nic index %d", i)
+                logging.error("Could not get the ip of nic index %d: %s",
+                              i, nic)
                 continue
 
             for size in packet_size:

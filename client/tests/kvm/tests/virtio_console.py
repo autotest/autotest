@@ -8,9 +8,9 @@ import threading, time, traceback
 from collections import deque
 from threading import Thread
 
-import kvm_subprocess, kvm_test_utils, kvm_utils, kvm_preprocessing
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
+import kvm_subprocess, kvm_test_utils, kvm_preprocessing
 
 
 def run_virtio_console(test, params, env):
@@ -73,7 +73,7 @@ def run_virtio_console(test, params, env):
                 args = []
             res = [None, function.func_name, args]
             try:
-                logging.debug("Start test %s." % function.func_name)
+                logging.debug("Start test %s.", function.func_name)
                 ret = function(*args)
                 res[0] = True
                 logging.info(self.result_to_string(res))
@@ -371,16 +371,16 @@ def run_virtio_console(test, params, env):
         """
         Random data receiver/checker thread.
         """
-        def __init__(self, port, buffer, event, blocklen=1024):
+        def __init__(self, port, buf, event, blocklen=1024):
             """
             @param port: Source port.
-            @param buffer: Control data buffer (FIFO).
+            @param buf: Control data buffer (FIFO).
             @param length: Amount of data we want to receive.
             @param blocklen: Block length.
             """
             Thread.__init__(self)
             self.port = port
-            self.buffer = buffer
+            self.buffer = buf
             self.exitevent = event
             self.blocklen = blocklen
             self.idx = 0
@@ -466,10 +466,10 @@ def run_virtio_console(test, params, env):
 
     def init_guest(vm, consoles):
         """
-        Prepares guest, executes virtio_console_guest.py and initialize for testing
+        Prepares guest, executes virtio_console_guest.py and initializes test.
 
         @param vm: Informations about the guest.
-        @param consoles: Informations about consoles
+        @param consoles: Informations about consoles.
         """
         conss = []
         for mode in consoles:
@@ -934,7 +934,7 @@ def run_virtio_console(test, params, env):
         for param in params.split(';'):
             if not param:
                 continue
-            logging.info("test_loopback: params: %s" % (param))
+            logging.info("test_loopback: params: %s", param)
             param = param.split(':')
             idx_serialport = 0
             idx_console = 0
@@ -1039,7 +1039,7 @@ def run_virtio_console(test, params, env):
         for param in params.split(';'):
             if not param:
                 continue
-            logging.info("test_perf: params: %s" % (param))
+            logging.info("test_perf: params: %s", param)
             param = param.split(':')
             duration = 60.0
             if len(param) > 1:
@@ -1063,7 +1063,7 @@ def run_virtio_console(test, params, env):
                 data += "%c" % random.randrange(255)
 
             exit_event = threading.Event()
-            slice = float(duration) / 100
+            time_slice = float(duration) / 100
 
             # HOST -> GUEST
             on_guest('virt.loopback(["%s"], [], %d, virt.LOOP_NONE)' %
@@ -1077,7 +1077,7 @@ def run_virtio_console(test, params, env):
             thread.start()
             for i in range(100):
                 stats.append(thread.idx)
-                time.sleep(slice)
+                time.sleep(time_slice)
             _time = time.time() - _time - duration
             logging.info("\n" + loads.get_cpu_status_string()[:-1])
             logging.info("\n" + loads.get_mem_status_string()[:-1])
@@ -1091,12 +1091,12 @@ def run_virtio_console(test, params, env):
 
             _guest_exit_threads(vm, [port], [])
 
-            if (_time > slice):
+            if (_time > time_slice):
                 logging.error(
-                "Test ran %fs longer which is more than one slice", _time)
+                "Test ran %fs longer which is more than one time slice", _time)
             else:
                 logging.debug("Test ran %fs longer", _time)
-            stats = process_stats(stats[1:], slice * 1048576)
+            stats = process_stats(stats[1:], time_slice * 1048576)
             logging.debug("Stats = %s", stats)
             logging.info("Host -> Guest [MB/s] (min/med/max) = %.3f/%.3f/%.3f",
                         stats[0], stats[len(stats) / 2], stats[-1])
@@ -1115,19 +1115,19 @@ def run_virtio_console(test, params, env):
             _time = time.time()
             for i in range(100):
                 stats.append(thread.idx)
-                time.sleep(slice)
+                time.sleep(time_slice)
             _time = time.time() - _time - duration
             logging.info("\n" + loads.get_cpu_status_string()[:-1])
             logging.info("\n" + loads.get_mem_status_string()[:-1])
             on_guest("virt.exit_threads()", vm, 10)
             exit_event.set()
             thread.join()
-            if (_time > slice): # Deviation is higher than 1 slice
+            if (_time > time_slice): # Deviation is higher than 1 time_slice
                 logging.error(
-                "Test ran %fs longer which is more than one slice", _time)
+                "Test ran %fs longer which is more than one time slice", _time)
             else:
-                logging.debug("Test ran %fs longer" % _time)
-            stats = process_stats(stats[1:], slice * 1048576)
+                logging.debug("Test ran %fs longer", _time)
+            stats = process_stats(stats[1:], time_slice * 1048576)
             logging.debug("Stats = %s", stats)
             logging.info("Guest -> Host [MB/s] (min/med/max) = %.3f/%.3f/%.3f",
                          stats[0], stats[len(stats) / 2], stats[-1])

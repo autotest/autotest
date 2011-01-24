@@ -1,6 +1,7 @@
-import re, string, logging, random, time
+import re, logging, random, time
 from autotest_lib.client.common_lib import error
-import kvm_test_utils, kvm_utils, kvm_monitor
+import kvm_monitor
+
 
 def run_balloon_check(test, params, env):
     """

@@ -1,6 +1,7 @@
 import logging, time
 from autotest_lib.client.common_lib import error
-import kvm_test_utils, kvm_utils, kvm_monitor
+import kvm_monitor
+
 
 def run_boot_savevm(test, params, env):
     """
@@ -17,7 +18,7 @@ def run_boot_savevm(test, params, env):
     vm.verify_alive()
     savevm_delay = float(params.get("savevm_delay"))
     savevm_login_delay = float(params.get("savevm_login_delay"))
-    logging.info("savevm_delay = %f" % savevm_delay)
+    logging.info("savevm_delay = %f", savevm_delay)
     login_expire = time.time() + savevm_login_delay
     end_time = time.time() + float(params.get("savevm_timeout"))
 

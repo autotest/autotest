@@ -1,7 +1,8 @@
-import logging, commands, os
+import logging, os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_test_utils, kvm_subprocess
+import kvm_subprocess
+
 
 def run_netperf(test, params, env):
     """

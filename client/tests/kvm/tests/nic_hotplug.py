@@ -1,6 +1,6 @@
-import logging, os, commands, re, time
+import logging
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils, kvm_vm
+import kvm_test_utils, kvm_utils
 
 
 def run_nic_hotplug(test, params, env):
@@ -39,7 +39,7 @@ def run_nic_hotplug(test, params, env):
         netdev_extra_params = params.get("netdev_extra_params")
         if netdev_extra_params:
             attach_cmd += ",%s" % netdev_extra_params
-        logging.info("Adding netdev through %s" % attach_cmd)
+        logging.info("Adding netdev through %s", attach_cmd)
         vm.monitor.cmd(attach_cmd)
 
         network = vm.monitor.info("network")
@@ -49,13 +49,13 @@ def run_nic_hotplug(test, params, env):
         else:
             return netdev_id
 
-    def netdev_del(vm, id):
-        vm.monitor.cmd("netdev_del %s" % id)
+    def netdev_del(vm, n_id):
+        vm.monitor.cmd("netdev_del %s" % n_id)
 
         network = vm.monitor.info("network")
-        if id in network:
+        if n_id in network:
             logging.error(network)
-            raise error.TestError("Fail to remove netdev %s" % id)
+            raise error.TestError("Fail to remove netdev %s" % n_id)
 
     def nic_add(vm, model, netdev_id, mac):
         """
@@ -66,23 +66,24 @@ def run_nic_hotplug(test, params, env):
         @netdev_id: id of netdev
         @mac: Mac address of new nic
         """
-        id = kvm_utils.generate_random_id()
-        if model=="virtio": model="virtio-net-pci"
+        nic_id = kvm_utils.generate_random_id()
+        if model == "virtio":
+            model = "virtio-net-pci"
         device_add_cmd = "device_add %s,netdev=%s,mac=%s,id=%s" % (model,
                                                                    netdev_id,
-                                                                   mac, id)
-        logging.info("Adding nic through %s" % device_add_cmd)
+                                                                   mac, nic_id)
+        logging.info("Adding nic through %s", device_add_cmd)
         vm.monitor.cmd(device_add_cmd)
 
         qdev = vm.monitor.info("qtree")
         if id not in qdev:
             logging.error(qdev)
             raise error.TestFail("Device %s was not plugged into qdev"
-                                 "tree" % id)
+                                 "tree" % nic_id)
         else:
-            return id
+            return nic_id
 
-    def nic_del(vm, id, wait=True):
+    def nic_del(vm, nic_id, wait=True):
         """
         Remove the nic from pci tree.
 
@@ -90,17 +91,17 @@ def run_nic_hotplug(test, params, env):
         @id: the nic id
         @wait: Whether need to wait for the guest to unplug the device
         """
-        nic_del_cmd = "device_del %s" % id
+        nic_del_cmd = "device_del %s" % nic_id
         vm.monitor.cmd(nic_del_cmd)
         if wait:
             logging.info("waiting for the guest to finish the unplug")
-            if not kvm_utils.wait_for(lambda: id not in
+            if not kvm_utils.wait_for(lambda: nic_id not in
                                       vm.monitor.info("qtree"),
                                       guest_delay, 5 ,1):
                 logging.error(vm.monitor.info("qtree"))
                 raise error.TestError("Device is not unplugged by "
                                       "guest, please check whether the "
-                                      "hotplug module was loaded in guest");
+                                      "hotplug module was loaded in guest")
 
     logging.info("Attach a virtio nic to vm")
     mac = kvm_utils.generate_mac_address(vm.instance, 1)
@@ -125,7 +126,7 @@ def run_nic_hotplug(test, params, env):
         if not kvm_utils.verify_ip_address_ownership(ip, mac):
             raise error.TestFail("Could not verify the ip address of new nic")
         else:
-            logging.info("Got the ip address of new nic: %s" % ip)
+            logging.info("Got the ip address of new nic: %s", ip)
 
         logging.info("Ping test the new nic ...")
         s, o = kvm_test_utils.ping(ip, 100)
@@ -135,7 +136,7 @@ def run_nic_hotplug(test, params, env):
 
         logging.info("Detaching a virtio nic from vm")
         nic_del(vm, device_id)
-        netdev_del(vm,netdev_id)
+        netdev_del(vm, netdev_id)
 
     finally:
         vm.free_mac_address(1)

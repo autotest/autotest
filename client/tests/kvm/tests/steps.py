@@ -4,9 +4,9 @@ Utilities to perform automatic guest installation using step files.
 @copyright: Red Hat 2008-2009
 """
 
-import os, time, re, shutil, logging
-from autotest_lib.client.common_lib import utils, error
-import kvm_utils, ppm_utils, kvm_subprocess, kvm_monitor
+import os, time, shutil, logging
+from autotest_lib.client.common_lib import error
+import kvm_utils, ppm_utils, kvm_monitor
 try:
     import PIL.Image
 except ImportError:
@@ -97,7 +97,7 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
         # Make sure image is valid
         if not ppm_utils.image_verify_ppm_file(scrdump_filename):
             logging.warn("Got invalid screendump: dimensions: %dx%d, "
-                         "data size: %d" % (w, h, len(data)))
+                         "data size: %d", w, h, len(data))
             continue
 
         # Compute md5sum of whole image
@@ -231,7 +231,7 @@ def run_steps(test, params, env):
             vm.send_key(words[1])
         elif words[0] == "var":
             if not handle_var(vm, params, words[1]):
-                logging.error("Variable not defined: %s" % words[1])
+                logging.error("Variable not defined: %s", words[1])
         elif words[0] == "barrier_2":
             if current_screendump:
                 scrdump_filename = os.path.join(

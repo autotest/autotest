@@ -1,7 +1,4 @@
-import logging, time
-import threading
-from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_utils, kvm_test_utils
+import kvm_utils
 
 
 def run_migration_with_reboot(test, params, env):
