@@ -9,7 +9,7 @@ import logging, re, os, sys, optparse, array, traceback, cPickle
 import common
 import kvm_utils
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import logging_config, logging_manager
+from autotest_lib.client.common_lib import logging_manager
 
 
 class config:

@@ -86,7 +86,7 @@ def main(resfiles):
 
 
 if __name__ == "__main__":
-    import sys, os, glob
+    import sys, glob
 
     resfiles = glob.glob("../../results/default/status*")
     if len(sys.argv) > 1:

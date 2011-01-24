@@ -1,6 +1,6 @@
-import time, os, sys, urllib, re, signal, logging, datetime, glob, ConfigParser
+import os, logging, datetime, glob
 import shutil
-from autotest_lib.client.bin import utils, test, os_dep
+from autotest_lib.client.bin import utils, os_dep
 from autotest_lib.client.common_lib import error
 import kvm_utils
 
@@ -41,7 +41,7 @@ def cpu_vendor():
     vendor = "intel"
     if os.system("grep vmx /proc/cpuinfo 1>/dev/null") != 0:
         vendor = "amd"
-    logging.debug("Detected CPU vendor as '%s'" %(vendor))
+    logging.debug("Detected CPU vendor as '%s'", vendor)
     return vendor
 
 

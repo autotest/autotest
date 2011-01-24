@@ -5,10 +5,10 @@ Program to help setup kvm test environment
 @copyright: Red Hat 2010
 """
 
-import os, sys, optparse, logging, shutil
+import os, sys, logging, shutil
 import common, kvm_utils
 from autotest_lib.client.common_lib import logging_manager
-from autotest_lib.client.bin import utils, os_dep
+from autotest_lib.client.bin import utils
 
 
 def check_iso(url, destination, hash):

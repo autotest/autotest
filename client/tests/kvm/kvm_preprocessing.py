@@ -1,5 +1,5 @@
-import sys, os, time, commands, re, logging, signal, glob, threading, shutil
-from autotest_lib.client.bin import test, utils
+import os, time, commands, re, logging, glob, threading, shutil
+from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
 import kvm_vm, kvm_utils, kvm_subprocess, kvm_monitor, ppm_utils, test_setup
 try:
