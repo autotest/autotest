@@ -9,8 +9,8 @@ Auxiliary script used to send data between ports on guests.
 """
 import threading
 from threading import Thread
-import os, time, select, re, random, sys, array
-import fcntl, subprocess, traceback, signal
+import os, select, re, random, sys, array
+import fcntl, traceback, signal
 
 DEBUGPATH = "/sys/kernel/debug"
 SYSFSPATH = "/sys/class/virtio-ports/"

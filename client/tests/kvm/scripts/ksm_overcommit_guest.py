@@ -8,7 +8,7 @@ Auxiliary script used to allocate memory on guests.
 """
 
 
-import os, array, sys, struct, random, copy, inspect, tempfile, datetime, math
+import os, array, sys, random, copy, tempfile, datetime, math
 
 PAGE_SIZE = 4096 # machine page size
 
