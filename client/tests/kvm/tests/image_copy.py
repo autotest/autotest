@@ -1,4 +1,4 @@
-import os, logging, commands
+import os, logging
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 import kvm_utils
@@ -27,7 +27,6 @@ def run_image_copy(test, params, env):
                               mount_dest_dir)
 
     src = params.get('images_good')
-    mnt_cmd = 'mount %s %s -o ro' % (src, mount_dest_dir)
     image = '%s.%s' % (os.path.split(params['image_name'])[1],
                        params['image_format'])
     src_path = os.path.join(mount_dest_dir, image)
@@ -42,5 +41,5 @@ def run_image_copy(test, params, env):
     if not os.path.exists(src_path):
         raise error.TestError('Could not find %s in NFS share' % src_path)
 
-    logging.debug('Copying image %s...' % image)
+    logging.debug('Copying image %s...', image)
     utils.system(cmd)

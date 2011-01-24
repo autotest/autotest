@@ -1,6 +1,6 @@
-import logging, time, commands, re
+import logging, time, commands
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils
+import kvm_subprocess, kvm_test_utils
 
 
 def run_timedrift(test, params, env):
@@ -122,7 +122,7 @@ def run_timedrift(test, params, env):
                 set_cpu_affinity(pid, cpu_mask)
 
             # Sleep for a while (during load)
-            logging.info("Sleeping for %s seconds..." % load_duration)
+            logging.info("Sleeping for %s seconds...", load_duration)
             time.sleep(load_duration)
 
             # Get time delta after load
@@ -135,9 +135,9 @@ def run_timedrift(test, params, env):
             host_delta = ht1 - ht0
             guest_delta = gt1 - gt0
             drift = 100.0 * (host_delta - guest_delta) / host_delta
-            logging.info("Host duration: %.2f" % host_delta)
-            logging.info("Guest duration: %.2f" % guest_delta)
-            logging.info("Drift: %.2f%%" % drift)
+            logging.info("Host duration: %.2f", host_delta)
+            logging.info("Guest duration: %.2f", guest_delta)
+            logging.info("Drift: %.2f%%", drift)
 
         finally:
             logging.info("Cleaning up...")
@@ -153,7 +153,7 @@ def run_timedrift(test, params, env):
                 load_session.close()
 
         # Sleep again (rest)
-        logging.info("Sleeping for %s seconds..." % rest_duration)
+        logging.info("Sleeping for %s seconds...", rest_duration)
         time.sleep(rest_duration)
 
         # Get time after rest
@@ -169,9 +169,9 @@ def run_timedrift(test, params, env):
     host_delta_total = ht2 - ht0
     guest_delta_total = gt2 - gt0
     drift_total = 100.0 * (host_delta_total - guest_delta_total) / host_delta
-    logging.info("Total host duration including rest: %.2f" % host_delta_total)
-    logging.info("Total guest duration including rest: %.2f" % guest_delta_total)
-    logging.info("Total drift after rest: %.2f%%" % drift_total)
+    logging.info("Total host duration including rest: %.2f", host_delta_total)
+    logging.info("Total guest duration including rest: %.2f", guest_delta_total)
+    logging.info("Total drift after rest: %.2f%%", drift_total)
 
     # Fail the test if necessary
     if abs(drift) > drift_threshold:

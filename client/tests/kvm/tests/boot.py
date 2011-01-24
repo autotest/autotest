@@ -1,6 +1,4 @@
-import logging, time
-from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils
+import time
 
 
 def run_boot(test, params, env):

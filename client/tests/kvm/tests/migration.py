@@ -1,6 +1,6 @@
 import logging, time
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils
+import kvm_utils
 
 
 def run_migration(test, params, env):
@@ -66,7 +66,7 @@ def run_migration(test, params, env):
         if output != reference_output:
             logging.info("Command output before migration differs from "
                          "command output after migration")
-            logging.info("Command: %s" % test_command)
+            logging.info("Command: %s", test_command)
             logging.info("Output before:" +
                          kvm_utils.format_str_for_message(reference_output))
             logging.info("Output after:" +

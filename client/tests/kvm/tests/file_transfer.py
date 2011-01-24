@@ -1,7 +1,7 @@
-import logging, commands, re, time, os
+import logging, time, os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_utils, kvm_test_utils
+
 
 def run_file_transfer(test, params, env):
     """
@@ -19,9 +19,9 @@ def run_file_transfer(test, params, env):
     """
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
-    timeout=int(params.get("login_timeout", 360))
+    login_timeout = int(params.get("login_timeout", 360))
 
-    session = vm.wait_for_login(timeout=timeout)
+    session = vm.wait_for_login(timeout=login_timeout)
 
     dir_name = test.tmpdir
     transfer_timeout = int(params.get("transfer_timeout"))

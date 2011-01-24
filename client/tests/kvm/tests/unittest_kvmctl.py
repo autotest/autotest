@@ -21,7 +21,7 @@ def run_unittest_kvmctl(test, params, env):
     cmd = "./kvmctl test/x86/bootstrap test/x86/%s.flat" % case
     try:
         results = utils.system_output(cmd)
-    except error.CmdError, e:
+    except error.CmdError:
         raise error.TestFail("Unit test %s failed" % case)
 
     result_file = os.path.join(test.resultsdir, case)

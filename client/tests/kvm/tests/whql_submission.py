@@ -1,6 +1,6 @@
-import logging, time, os, re
+import logging, os, re
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils, rss_file_transfer
+import kvm_subprocess, kvm_utils, rss_file_transfer
 
 
 def run_whql_submission(test, params, env):
@@ -249,7 +249,7 @@ def run_whql_submission(test, params, env):
                                          r["pass"], r["fail"], r["notrun"],
                                          r["notapplicable"]))
         f.close()
-        logging.info("(see logs and HTML reports in %s)" % test.debugdir)
+        logging.info("(see logs and HTML reports in %s)", test.debugdir)
 
     # Kill the client VMs and fail if the automation program did not terminate
     # on time

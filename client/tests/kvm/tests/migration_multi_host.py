@@ -1,6 +1,5 @@
-import logging, time, socket
+import logging, socket
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils
 
 
 def run_migration_multi_host(test, params, env):
@@ -57,10 +56,10 @@ def run_migration_multi_host(test, params, env):
         s_socket.listen(1)
 
         # Wait 30 seconds for source and dest to reach this point
-        test.job.barrier(srchost,'socket_started', 30).rendezvous(srchost,
-                                                                  dsthost)
+        test.job.barrier(srchost, 'socket_started', 30).rendezvous(srchost,
+                                                                   dsthost)
 
-        c_socket, addr = s_socket.accept()
+        c_socket = s_socket.accept()[0]
         mig_port = int(c_socket.recv(6))
         logging.info("Received from destination the migration port %s",
                      mig_port)

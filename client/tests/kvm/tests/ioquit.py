@@ -1,6 +1,4 @@
 import logging, time, random
-from autotest_lib.client.common_lib import error
-import kvm_test_utils
 
 
 def run_ioquit(test, params, env):
@@ -24,7 +22,7 @@ def run_ioquit(test, params, env):
         session2.cmd(check_cmd, timeout=60)
 
         logging.info("Sleep for a while")
-        time.sleep(random.randrange(30,100))
+        time.sleep(random.randrange(30, 100))
         session2.cmd(check_cmd, timeout=60)
         logging.info("Kill the virtual machine")
         vm.process.close()

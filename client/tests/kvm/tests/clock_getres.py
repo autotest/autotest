@@ -1,7 +1,6 @@
-import logging, time, os
+import logging, os
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import utils
-import kvm_test_utils, kvm_utils
+from autotest_lib.client.bin import utils
 
 
 def run_clock_getres(test, params, env):
@@ -35,4 +34,4 @@ def run_clock_getres(test, params, env):
     vm.copy_files_to(test_clock, base_dir)
     session.cmd(os.path.join(base_dir, t_name))
     logging.info("PASS: Guest reported appropriate clock resolution")
-    logging.info("Guest's dmesg:\n%s" % session.cmd_output("dmesg").strip())
+    logging.info("Guest's dmesg:\n%s", session.cmd_output("dmesg").strip())

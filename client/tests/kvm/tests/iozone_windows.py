@@ -1,8 +1,6 @@
-import logging, time, os
-from autotest_lib.client.common_lib import error
+import logging, os
 from autotest_lib.client.bin import utils
 from autotest_lib.client.tests.iozone import postprocessing
-import kvm_subprocess, kvm_test_utils, kvm_utils
 
 
 def run_iozone_windows(test, params, env):

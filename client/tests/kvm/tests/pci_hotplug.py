@@ -1,6 +1,6 @@
-import logging, os, commands, re
+import re
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils, kvm_vm
+import kvm_subprocess, kvm_utils, kvm_vm
 
 
 def run_pci_hotplug(test, params, env):
@@ -80,11 +80,12 @@ def run_pci_hotplug(test, params, env):
 
     elif cmd_type == "device_add":
         driver_id = test_type + "-" + kvm_utils.generate_random_id()
-        id = test_type + "-" + kvm_utils.generate_random_id()
+        device_id = test_type + "-" + kvm_utils.generate_random_id()
         if test_type == "nic":
             if tested_model == "virtio":
                 tested_model = "virtio-net-pci"
-            pci_add_cmd = "device_add id=%s,driver=%s" % (id, tested_model)
+            pci_add_cmd = "device_add id=%s,driver=%s" % (device_id,
+                                                          tested_model)
 
         elif test_type == "block":
             image_params = params.object_params("stg")
@@ -103,13 +104,14 @@ def run_pci_hotplug(test, params, env):
                                           controller_model)
 
             if controller_model is not None:
-                controller_id = "controller-" + id
+                controller_id = "controller-" + device_id
                 controller_add_cmd = ("device_add %s,id=%s" %
                                       (controller_model, controller_id))
-                controller_output = vm.monitor.cmd(controller_add_cmd)
+                vm.monitor.cmd(controller_add_cmd)
 
             if drive_cmd_type == "drive_add":
-                driver_add_cmd = ("drive_add auto file=%s,if=none,id=%s,format=%s" %
+                driver_add_cmd = ("drive_add auto "
+                                  "file=%s,if=none,id=%s,format=%s" %
                                   (image_filename, driver_id, image_format))
             elif drive_cmd_type == "__com.redhat_drive_add":
                 driver_add_cmd = ("__com.redhat_drive_add "
@@ -117,8 +119,8 @@ def run_pci_hotplug(test, params, env):
                                   (image_filename, image_format, driver_id))
 
             pci_add_cmd = ("device_add id=%s,driver=%s,drive=%s" %
-                           (id, tested_model, driver_id))
-            driver_output = vm.monitor.cmd(driver_add_cmd)
+                           (device_id, tested_model, driver_id))
+            vm.monitor.cmd(driver_add_cmd)
 
         # Check if the device is support in qemu
         if len(re.findall(tested_model, devices_support)) > 0:
@@ -142,7 +144,7 @@ def run_pci_hotplug(test, params, env):
             pci_addr = "%x:%x:%x" % (domain, bus, slot)
             cmd = "pci_del pci_addr=%s" % pci_addr
         elif cmd_type == "device_add":
-            cmd = "device_del %s" % id
+            cmd = "device_del %s" % device_id
         # This should be replaced by a proper monitor method call
         vm.monitor.cmd(cmd)
 

@@ -1,6 +1,6 @@
-import logging, time
+import logging
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils, kvm_utils
+import kvm_utils
 
 
 def run_kdump(test, params, env):
