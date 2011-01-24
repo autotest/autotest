@@ -21,7 +21,7 @@ More specifically:
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, re, commands, signal, threading
+import time, os, logging, re, signal
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 import kvm_utils, kvm_vm, kvm_subprocess, scan_results
@@ -364,21 +364,21 @@ def get_time(session, time_command, time_filter_re, time_format):
         try:
             s = re.findall(time_filter_re, s)[0]
         except IndexError:
-            logging.debug("The time string from guest is:\n%s" % s)
+            logging.debug("The time string from guest is:\n%s", s)
             raise error.TestError("The time string from guest is unexpected.")
         except Exception, e:
-            logging.debug("(time_filter_re, time_string): (%s, %s)" %
-                           (time_filter_re, s))
+            logging.debug("(time_filter_re, time_string): (%s, %s)",
+                          time_filter_re, s)
             raise e
 
         guest_time = time.mktime(time.strptime(s, time_format))
     else:
         o = session.cmd(time_command)
         if re.match('ntpdate', time_command):
-            offset = re.findall('offset (.*) sec',o)[0]
+            offset = re.findall('offset (.*) sec', o)[0]
             host_main, host_mantissa = re.findall(time_filter_re, o)[0]
-            host_time = time.mktime(time.strptime(host_main, time_format)) \
-                        + float("0.%s" % host_mantissa)
+            host_time = (time.mktime(time.strptime(host_main, time_format)) +
+                         float("0.%s" % host_mantissa))
             guest_time = host_time + float(offset)
         else:
             guest_time =  re.findall(time_filter_re, o)[0]

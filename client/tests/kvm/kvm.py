@@ -1,4 +1,4 @@
-import sys, os, time, logging, imp
+import os, logging, imp
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
 import kvm_utils, kvm_preprocessing

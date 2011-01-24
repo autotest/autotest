@@ -427,8 +427,7 @@ def get_git_branch(repository, branch, srcdir, commit=None, lbranch=None):
     except error.CmdError:
         desc = "no tag found"
 
-    logging.info("Commit hash for %s is %s (%s)" % (repository, h.strip(),
-                                                    desc))
+    logging.info("Commit hash for %s is %s (%s)", repository, h.strip(), desc)
     return srcdir
 
 
@@ -566,7 +565,7 @@ def _remote_login(session, username, password, prompt, timeout=10):
                 continue
             elif match == 1:  # "password:"
                 if password_prompt_count == 0:
-                    logging.debug("Got password prompt; sending '%s'" % password)
+                    logging.debug("Got password prompt; sending '%s'", password)
                     session.sendline(password)
                     password_prompt_count += 1
                     continue
@@ -575,7 +574,7 @@ def _remote_login(session, username, password, prompt, timeout=10):
                                                    text)
             elif match == 2:  # "login:"
                 if login_prompt_count == 0 and password_prompt_count == 0:
-                    logging.debug("Got username prompt; sending '%s'" % username)
+                    logging.debug("Got username prompt; sending '%s'", username)
                     session.sendline(username)
                     login_prompt_count += 1
                     continue
@@ -634,7 +633,7 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     else:
         raise LoginBadClientError(client)
 
-    logging.debug("Trying to login with command '%s'" % cmd)
+    logging.debug("Trying to login with command '%s'", cmd)
     session = kvm_subprocess.ShellSession(cmd, linesep=linesep, prompt=prompt)
     try:
         _remote_login(session, username, password, prompt, timeout)
@@ -661,8 +660,8 @@ def wait_for_login(client, host, port, username, password, prompt, linesep="\n",
     @raise: Whatever remote_login() raises
     @return: A ShellSession object.
     """
-    logging.debug("Attempting to log into %s:%s using %s (timeout %ds)" %
-                  (host, port, client, timeout))
+    logging.debug("Attempting to log into %s:%s using %s (timeout %ds)",
+                  host, port, client, timeout)
     end_time = time.time() + timeout
     while time.time() < end_time:
         try:
@@ -713,7 +712,7 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
                 continue
             elif match == 1:  # "password:"
                 if password_prompt_count == 0:
-                    logging.debug("Got password prompt; sending '%s'" % password)
+                    logging.debug("Got password prompt; sending '%s'", password)
                     session.sendline(password)
                     password_prompt_count += 1
                     timeout = transfer_timeout
@@ -836,7 +835,8 @@ def copy_files_to(address, client, username, password, port, local_path,
                       remote_path, log_filename, timeout)
     elif client == "rss":
         log_func = None
-        if verbose: log_func = logging.debug
+        if verbose:
+            log_func = logging.debug
         c = rss_file_transfer.FileUploadClient(address, port, log_func)
         c.upload(local_path, remote_path, timeout)
         c.close()
@@ -864,7 +864,8 @@ def copy_files_from(address, client, username, password, port, remote_path,
                         local_path, log_filename, timeout)
     elif client == "rss":
         log_func = None
-        if verbose: log_func = logging.debug
+        if verbose:
+            log_func = logging.debug
         c = rss_file_transfer.FileDownloadClient(address, port, log_func)
         c.download(remote_path, local_path, timeout)
         c.close()
@@ -1056,7 +1057,7 @@ def wait_for(func, timeout, first=0.0, step=1.0, text=None):
 
     while time.time() < end_time:
         if text:
-            logging.debug("%s (%f secs)" % (text, time.time() - start_time))
+            logging.debug("%s (%f secs)", text, (time.time() - start_time))
 
         output = func()
         if output:
@@ -1453,8 +1454,8 @@ class PciAssignable(object):
         # Re-probe driver with proper number of VFs
         if re_probe:
             cmd = "modprobe %s %s" % (self.driver, self.driver_option)
-            logging.info("Loading the driver '%s' with option '%s'" %
-                                   (self.driver, self.driver_option))
+            logging.info("Loading the driver '%s' with option '%s'",
+                         self.driver, self.driver_option)
             s, o = commands.getstatusoutput(cmd)
             if s:
                 return False
@@ -1482,8 +1483,8 @@ class PciAssignable(object):
             if not full_id:
                 continue
             drv_path = os.path.join(base_dir, "devices/%s/driver" % full_id)
-            dev_prev_driver= os.path.realpath(os.path.join(drv_path,
-                                              os.readlink(drv_path)))
+            dev_prev_driver = os.path.realpath(os.path.join(drv_path,
+                                               os.readlink(drv_path)))
             self.dev_drivers[pci_id] = dev_prev_driver
 
             # Judge whether the device driver has been binded to stub
@@ -1687,7 +1688,7 @@ def umount(src, mount_point, type):
         except error.CmdError:
             return False
     else:
-        logging.debug("%s is not mounted under %s" % (src, mount_point))
+        logging.debug("%s is not mounted under %s", src, mount_point)
         return True
 
 
@@ -1704,8 +1705,8 @@ def mount(src, mount_point, type, perm="rw"):
     mount_string = "%s %s %s %s" % (src, mount_point, type, perm)
 
     if mount_string in file("/etc/mtab").read():
-        logging.debug("%s is already mounted in %s with %s" %
-                      (src, mount_point, perm))
+        logging.debug("%s is already mounted in %s with %s",
+                      src, mount_point, perm)
         return True
 
     mount_cmd = "mount -t %s %s %s -o %s" % (type, src, mount_point, perm)
@@ -1716,9 +1717,9 @@ def mount(src, mount_point, type, perm="rw"):
 
     logging.debug("Verify the mount through /etc/mtab")
     if mount_string in file("/etc/mtab").read():
-        logging.debug("%s is successfully mounted" % src)
+        logging.debug("%s is successfully mounted", src)
         return True
     else:
-        logging.error("Can't find mounted NFS share - /etc/mtab contents \n%s" %
+        logging.error("Can't find mounted NFS share - /etc/mtab contents \n%s",
                       file("/etc/mtab").read())
         return False
