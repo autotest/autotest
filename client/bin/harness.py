@@ -5,7 +5,7 @@ The interface between the client and the server when hosted.
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-import os, sys
+import os, sys, logging
 import common
 
 class harness(object):
@@ -85,6 +85,8 @@ class harness(object):
 def select(which, job):
     if not which:
         which = 'standalone'
+
+    logging.debug('Selected harness: %s' % which)
 
     harness_name = 'harness_%s' % which
     harness_module = common.setup_modules.import_module(harness_name,
