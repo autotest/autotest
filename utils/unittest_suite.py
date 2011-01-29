@@ -66,6 +66,11 @@ LONG_RUNTIME = set((
     'logging_manager_test.py',
     ))
 
+# This particular KVM autotest test is not a unittest
+SKIP = set((
+    'guest_test.py',
+    ))
+
 LONG_TESTS = (REQUIRES_DJANGO |
               REQUIRES_MYSQLDB |
               REQUIRES_GWT |
@@ -108,7 +113,7 @@ def run_test(mod_names, options):
 def scan_for_modules(start, options):
     modules = []
 
-    skip_tests = set()
+    skip_tests = SKIP
     if options.skip_tests:
         skip_tests.update(options.skip_tests.split())
 
