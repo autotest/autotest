@@ -260,7 +260,7 @@ class SchedulerError(Exception):
     """Raised by HostScheduler when an inconsistent state occurs."""
 
 
-class HostScheduler(metahost_scheduler.HostSchedulingUtility):
+class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
     """Handles the logic for choosing when to run jobs and on which hosts.
 
     This class makes several queries to the database on each tick, building up
@@ -661,6 +661,15 @@ class HostScheduler(metahost_scheduler.HostSchedulingUtility):
             return host_list
 
         return []
+
+
+site_host_scheduler = utils.import_site_class(__file__,
+                                  "autotest_lib.scheduler.site_host_scheduler",
+                                  "site_host_scheduler", BaseHostScheduler)
+
+
+class HostScheduler(site_host_scheduler):
+    pass
 
 
 class Dispatcher(object):
