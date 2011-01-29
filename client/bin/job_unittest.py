@@ -694,5 +694,18 @@ class test_base_job(unittest.TestCase):
         self.god.check_playback()
 
 
+    def test_parse_args(self):
+        test_set = {"a='foo bar baz' b='moo apt'":
+                    ["a='foo bar baz'", "b='moo apt'"],
+                    "a='foo bar baz' only=gah":
+                    ["a='foo bar baz'", "only=gah"],
+                    "a='b c d' no=argh":
+                    ["a='b c d'", "no=argh"]}
+        for t in test_set:
+            parsed_args = job.base_client_job._parse_args(t)
+            expected_args = test_set[t]
+            self.assertEqual(parsed_args, expected_args)
+
+
 if __name__ == "__main__":
     unittest.main()
