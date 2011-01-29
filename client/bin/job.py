@@ -174,7 +174,20 @@ class base_client_job(base_job.base_job):
         self._next_step_index = 0
         self._load_state()
 
-        self.harness = harness.select(options.harness, self)
+        # harness is chosen by following rules:
+        # 1. explicitly specified via command line
+        # 2. harness stored in state file (if continuing job '-c')
+        # 3. default harness
+        selected_harness = None
+        if options.harness:
+            selected_harness = options.harness
+            self._state.set('client', 'harness', selected_harness)
+        else:
+            stored_harness = self._state.get('client', 'harness', None)
+            if stored_harness:
+                selected_harness = stored_harness
+
+        self.harness = harness.select(selected_harness, self)
 
         # set up the status logger
         def client_job_record_hook(entry):
