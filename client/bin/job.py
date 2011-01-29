@@ -582,6 +582,7 @@ class base_client_job(base_job.base_job):
 
         try:
             self.record('START', subdir, testname)
+            self._state.set('client', 'unexpected_reboot', (subdir, testname))
             result = function(*args, **dargs)
             self.record('END GOOD', subdir, testname)
             return result
@@ -600,6 +601,8 @@ class base_client_job(base_job.base_job):
             err_msg = str(e) + '\n' + traceback.format_exc()
             self.record('END ERROR', subdir, testname, err_msg)
             raise
+        finally:
+            self._state.discard('client', 'unexpected_reboot')
 
 
     def run_group(self, function, tag=None, **dargs):
@@ -1047,6 +1050,14 @@ class base_client_job(base_job.base_job):
         if not self._is_continuation:
             if 'step_init' in global_control_vars:
                 self.next_step(global_control_vars['step_init'])
+        else:
+            # if last job failed due to unexpected reboot, record it as fail
+            # so harness gets called
+            last_job = self._state.get('client', 'unexpected_reboot', None)
+            if last_job:
+                subdir, testname = last_job
+                self.record('FAIL', subdir, testname, 'unexpected reboot')
+                self.record('END FAIL', subdir, testname)
 
         # Iterate through the steps.  If we reboot, we'll simply
         # continue iterating on the next step.
