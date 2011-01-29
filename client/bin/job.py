@@ -135,6 +135,11 @@ class base_client_job(base_job.base_job):
         return autodir, clientdir, None
 
 
+    @classmethod
+    def _parse_args(cls, args):
+        return re.findall("[^\s]*?['|\"].*?['|\"]|[^\s]+", args)
+
+
     def _find_resultdir(self, options):
         """
         Determine the directory for storing results. On a client this is
@@ -243,7 +248,7 @@ class base_client_job(base_job.base_job):
 
         self.args = []
         if options.args:
-            self.args = options.args.split()
+            self.args = self._parse_args(options.args)
 
         if options.user:
             self.user = options.user
