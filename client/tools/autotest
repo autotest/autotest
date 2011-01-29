@@ -2,14 +2,18 @@
 import sys,os
 
 autodir = None
-try:
-    autodir = os.path.dirname(os.path.realpath('/etc/autotest.conf'))
-except:
-    pass
+autotest_conf = os.path.realpath('/etc/autotest.conf')
+
+if os.path.isfile(autotest_conf):
+    autodir = os.path.dirname(autotest_conf)
 if not autodir:
     for path in ['/usr/local/autotest', '/home/autotest']:
-        if os.path.exists(os.path.join(path, '/bin/autotest')):
+        if os.path.exists(os.path.join(path, 'bin/autotest')):
             autodir = path
+
+if not autodir:
+    print "Autotest home dir NOT FOUND"
+    sys.exit()
 
 autotest = os.path.join(autodir, 'bin/autotest')
 control = os.path.join(autodir, 'control')
