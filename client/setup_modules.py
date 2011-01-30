@@ -2,12 +2,16 @@ __author__ = "jadmanski@google.com (John Admanski)"
 
 import os, sys
 
-# This must run on Python versions less than 2.4.
-dirname = os.path.dirname(sys.modules[__name__].__file__)
-common_dir = os.path.abspath(os.path.join(dirname, "common_lib"))
-sys.path.insert(0, common_dir)
-import check_version
-sys.path.pop(0)
+try:
+    import autotest.client.common_lib.check_python_version as check_version
+except ImportError:
+    # This must run on Python versions less than 2.4.
+    dirname = os.path.dirname(sys.modules[__name__].__file__)
+    common_dir = os.path.abspath(os.path.join(dirname, "common_lib"))
+    sys.path.insert(0, common_dir)
+    import check_version
+    sys.path.pop(0)
+
 check_version.check_python_version()
 
 import new, glob, traceback
