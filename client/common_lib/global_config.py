@@ -16,17 +16,26 @@ class ConfigError(error.AutotestError):
 class ConfigValueError(ConfigError):
     pass
 
-
+global_config_filename = 'global_config.ini'
+shadow_config_filename = 'shadow_config.ini'
 
 common_lib_dir = os.path.dirname(sys.modules[__name__].__file__)
 client_dir = os.path.dirname(common_lib_dir)
 root_dir = os.path.dirname(client_dir)
+system_wide_dir = '/etc/autotest'
+
+# Check if the config files are in the system wide directory
+global_config_path_system_wide = os.path.join(system_wide_dir,
+                                              global_config_filename)
+shadow_config_path_system_wide = os.path.join(system_wide_dir,
+                                              shadow_config_filename)
+config_in_system_wide = os.path.exists(global_config_path_system_wide)
 
 # Check if the config files are at autotest's root dir
 # This will happen if client is executing inside a full autotest tree, or if
 # other entry points are being executed
-global_config_path_root = os.path.join(root_dir, 'global_config.ini')
-shadow_config_path_root = os.path.join(root_dir, 'shadow_config.ini')
+global_config_path_root = os.path.join(root_dir, global_config_filename)
+shadow_config_path_root = os.path.join(root_dir, shadow_config_filename)
 config_in_root = (os.path.exists(global_config_path_root) and
                   os.path.exists(shadow_config_path_root))
 
@@ -35,7 +44,11 @@ config_in_root = (os.path.exists(global_config_path_root) and
 global_config_path_client = os.path.join(client_dir, 'global_config.ini')
 config_in_client = os.path.exists(global_config_path_client)
 
-if config_in_root:
+if config_in_system_wide:
+    DEFAULT_CONFIG_FILE = global_config_path_system_wide
+    DEFAULT_SHADOW_FILE = shadow_config_path_system_wide
+    RUNNING_STAND_ALONE_CLIENT = False
+elif config_in_root:
     DEFAULT_CONFIG_FILE = global_config_path_root
     DEFAULT_SHADOW_FILE = shadow_config_path_root
     RUNNING_STAND_ALONE_CLIENT = False
