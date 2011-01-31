@@ -9,7 +9,9 @@ try:
     import hashlib
 except ImportError:
     import md5, sha
-from autotest_lib.client.common_lib import error, logging_manager
+from autotest_lib.client.common_lib import error, logging_manager, global_config
+
+GLOBAL_CONFIG = global_config.global_config
 
 def deprecated(func):
     """This is a decorator which can be used to mark functions as deprecated.
@@ -1593,9 +1595,16 @@ def import_site_function(path, module, funcname, dummy, modulefile=None):
 
 
 def _get_pid_path(program_name):
-    my_path = os.path.dirname(__file__)
-    return os.path.abspath(os.path.join(my_path, "..", "..",
-                                        "%s.pid" % program_name))
+    pid_files_dir = GLOBAL_CONFIG.get_config_value("SERVER", 'pid_files_dir',
+                                                   default="")
+    if not pid_files_dir:
+        base_dir = os.path.dirname(__file__)
+        pid_path = os.path.abspath(os.path.join(base_dir, "..", "..",
+                                                "%s.pid" % program_name))
+    else:
+        pid_path = os.path.join(pid_files_dir, "%s.pid" % program_name)
+
+    return pid_path
 
 
 def write_pid(program_name):
