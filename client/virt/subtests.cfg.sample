@@ -1696,7 +1696,12 @@ variants:
 
     - physical_resources_check: install setup image_copy unattended_install.cdrom
         type = physical_resources_check
+        default_cpu_model = "qemu64"
+        cpu_model_vendor = "AuthenticAMD"
+        # The following config parameters are only for Linux guest, thay might
+        # be changed in guest-os.cfg file for different guest os type.
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
+        cpu_vendor_id_chk_cmd = "cat /proc/cpuinfo | grep 'vendor_id'"
 
     - ksm_overcommit: install setup image_copy unattended_install.cdrom
         only Linux

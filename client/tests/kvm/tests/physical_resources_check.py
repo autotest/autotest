@@ -111,6 +111,19 @@ def run_physical_resources_check(test, params, env):
         n_fail.append(fail_log)
         logging.error(fail_log)
 
+    # Check the cpu vendor_id
+    expected_vendor_id = params.get("cpu_model_vendor")
+    cpu_vendor_id_chk_cmd = params.get("cpu_vendor_id_chk_cmd")
+    if expected_vendor_id and cpu_vendor_id_chk_cmd:
+        output = session.cmd_output(cpu_vendor_id_chk_cmd)
+
+        if not expected_vendor_id in output:
+            fail_log = "CPU vendor id check failed.\n"
+            fail_log += "    Assigned to VM: '%s'\n" % expected_vendor_id
+            fail_log += "    Reported by OS: '%s'" % output
+            n_fail.append(fail_log)
+            logging.error(fail_log)
+
     # Check memory size
     logging.info("Memory size check")
     expected_mem = int(params.get("mem"))
