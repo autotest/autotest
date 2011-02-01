@@ -1446,6 +1446,7 @@ variants:
             pci_test_cmd = echo select disk 1 > dt && echo online >> dt && echo detail disk >> dt && echo exit >> dt && diskpart /s dt
         physical_resources_check:
             catch_uuid_cmd =
+            cpu_vendor_id_chk_cmd = "wmic cpu get Manufacturer | more +1"
         file_transfer:
             tmp_dir = C:\
             clean_cmd = del
