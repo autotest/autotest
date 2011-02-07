@@ -299,7 +299,7 @@ class job_create_or_clone(action_common.atest_create, job):
         return (hosts, meta_hosts)
 
 
-    def parse(self):
+    def parse(self, parse_info=[]):
         host_info = topic_common.item_parse_info(attribute_name='hosts',
                                                  inline_option='machine',
                                                  filename_option='mlist')
@@ -310,9 +310,9 @@ class job_create_or_clone(action_common.atest_create, job):
         label_info = topic_common.item_parse_info(attribute_name='labels',
                                                   inline_option='labels')
 
-        options, leftover = super(job_create_or_clone,
-                                  self).parse([host_info, job_info, oth_info,
-                                               label_info], req_items='jobname')
+        options, leftover = super(job_create_or_clone, self).parse(
+                [host_info, job_info, oth_info, label_info] + parse_info,
+                req_items='jobname')
         self.data = {}
         if len(self.jobname) > 1:
             self.invalid_syntax('Too many arguments specified, only expected '
@@ -440,7 +440,10 @@ class job_create(job_create_or_clone):
 
 
     def parse(self):
-        options, leftover = super(job_create, self).parse()
+        deps_info = topic_common.item_parse_info(attribute_name='dependencies',
+                                                 inline_option='dependencies')
+        options, leftover = super(job_create, self).parse(
+                parse_info=[deps_info])
 
         if (len(self.hosts) == 0 and not self.one_time_hosts
             and not options.labels and not options.atomic_group):
@@ -499,9 +502,7 @@ class job_create(job_create_or_clone):
         if options.atomic_group:
             self.data['atomic_group_name'] = options.atomic_group
 
-        deps = options.dependencies.split(',')
-        deps = [dep.strip() for dep in deps if dep.strip()]
-        self.data['dependencies'] = deps
+        self.data['dependencies'] = self.dependencies
 
         if options.synch_count:
             self.data['synch_count'] = options.synch_count
