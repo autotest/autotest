@@ -831,6 +831,19 @@ class job_create_unittest(cli_mock.cli_unittest):
         file_temp.clean()
 
 
+    def test_execute_create_job_with_control_and_comma_dependencies(self):
+        data = self.data.copy()
+        data['dependencies'] = ['dep2,False', 'dep1,True']
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-f', file_temp.name,
+                           'test_job0', '-m', 'host0', '-d',
+                           'dep1\,True, dep2\,False ', '--ignore_site_file'],
+                     rpcs=[('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
+        file_temp.clean()
+
+
     def test_execute_create_job_with_synch_count(self):
         data = self.data.copy()
         data['synch_count'] = 2
@@ -857,6 +870,24 @@ class job_create_unittest(cli_mock.cli_unittest):
                              'synch_count' : 1,
                              'is_server' : False,
                              'dependencies' : ['dep3']}),
+                           ('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
+
+
+    def test_execute_create_job_with_test_and_comma_dependencies(self):
+        data = self.data.copy()
+        data['dependencies'] = ['dep1,True', 'dep2,False', 'dep3,123']
+        self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
+                           'test_job0', '-m', 'host0', '-d',
+                           'dep1\,True dep2\,False ', '--ignore_site_file'],
+                     rpcs=[('generate_control_file',
+                            {'tests': ['sleeptest']},
+                            True,
+                            {'control_file' : self.ctrl_file,
+                             'synch_count' : 1,
+                             'is_server' : False,
+                             'dependencies' : ['dep3,123']}),
                            ('create_job', data, True, 42)],
                      out_words_ok=['test_job0', 'Created'],
                      out_words_no=['Uploading', 'Done'])
