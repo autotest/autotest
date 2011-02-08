@@ -2350,7 +2350,6 @@ variants:
         drive_format=scsi
     - virtio_blk:
         drive_format=virtio
-        image_boot=yes
 
 
 virtio_net|virtio_blk|e1000|balloon_check:
