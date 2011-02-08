@@ -138,6 +138,16 @@ class VirtioGuest:
         return ports
 
 
+    def check_zero_sym(self):
+        """
+        Check if port /dev/vport0p0 was created.
+        """
+        if os.path.exists("/dev/vport0p0"):
+            print "PASS: Port exist."
+        else:
+            print "FAIL: Device /dev/vport0p0 not exist."
+
+
     def init(self, in_files):
         """
         Init and check port properties.

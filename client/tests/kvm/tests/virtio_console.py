@@ -712,6 +712,15 @@ def run_virtio_console(test, params, env):
         port.open()
 
 
+    def tcheck_zero_sym(vm):
+        """
+        Check if port /dev/vport0p0 was created.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        """
+        on_guest("virt.check_zero_sym()", vm, 10)
+
+
     def tmulti_open(vm, port):
         """
         Multiopen virtioconsole port.
@@ -873,6 +882,107 @@ def run_virtio_console(test, params, env):
         on_guest("print 'PASS: nothing'", vm, 10)
 
 
+    def trw_host_offline_big_data(vm, port):
+        """
+        Guest read/write from host when host is disconnected.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param port: Port used in test.
+        """
+        if port.is_open:
+            port.close()
+
+        port.clean_port()
+        port.close()
+        on_guest("virt.clean_port('%s'),1024" % port.name, vm, 10)
+        match, tmp = _on_guest("virt.send('%s', (1024**3)*3, True, "
+                               "is_static=True)" % port.name, vm, 30)
+        if match != None:
+            raise error.TestFail("Write on guest while host disconnected "
+                                 "didn't timed out.\nOutput:\n%s"
+                                 % tmp)
+
+        time.sleep(20)
+
+        port.open()
+
+        rlen = 0
+        while rlen < (1024**3*3):
+            ret = select.select([port.sock], [], [], 10.0)
+            if (ret[0] != []):
+                rlen += len(port.sock.recv(((4096))))
+            elif rlen != (1024**3*3):
+                raise error.TestFail("Not all data are received."
+                                     "Only %d from %d" % (rlen, 1024**3*3))
+        on_guest("print 'PASS: nothing'", vm, 10)
+
+
+    def trw_notconnect_guest(vm, port, consoles):
+        """
+        Host send data to guest port and guest not read any data from port.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param port: Port used in test.
+        """
+        vm[0].destroy(gracefully = False)
+        (vm[0], vm[1], vm[3]) = _restore_vm()
+        if not port.is_open:
+            port.open()
+        else:
+            port.close()
+            port.open()
+
+        port.sock.settimeout(20.0)
+
+        loads = utils.SystemLoad([(os.getpid(), 'autotest'),
+                                  (vm[0].get_pid(), 'VM'), 0])
+        loads.start()
+
+        try:
+            sended1 = 0
+            for i in range(1000000):
+                sended1 += port.sock.send("a")
+        except (socket.timeout):
+            logging.info("Send data to closed port timeouted.")
+
+        logging.info("Sendes bytes to client: %d" % (sended1))
+        logging.info("\n" + loads.get_cpu_status_string()[:-1])
+
+        on_guest('echo -n "PASS:"', vm, 10)
+
+
+        logging.info("Open and then close port %s." % (port.name))
+        init_guest(vm, consoles)
+        #Test of live and open and close port again.
+        _clean_ports(vm, consoles)
+        on_guest("virt.close('%s')" % (port.name), vm, 10)
+
+        #With serialport it makes another behavior
+        on_guest("guest_exit()", vm, 10)
+        port.sock.settimeout(20.0)
+
+        loads.start()
+        try:
+            sended2 = 0
+            for i in range(40000):
+                sended2 = port.sock.send("a")
+        except (socket.timeout):
+            logging.info("Send data to closed port timeouted.")
+
+        logging.info("Sendes bytes to client: %d" % (sended2))
+        logging.info("\n" + loads.get_cpu_status_string()[:-1])
+        loads.stop()
+        if (sended1 != sended2):
+            logging.warning("Inconsis behavior first send %d and sec send %d" %
+                            (sended1, sended2))
+
+        port.sock.settimeout(None)
+        (vm[0], vm[1], vm[3]) = _restore_vm()
+
+        init_guest(vm, consoles)
+        _clean_ports(vm, consoles)
+
+
     def trw_blocking_mode(vm, port):
         """
         Guest read\write data in blocking mode.
@@ -952,6 +1062,134 @@ def run_virtio_console(test, params, env):
             raise error.TestFail("Incorrect data: '%s' != '%s'",
                                  data, tmp)
         _guest_exit_threads(vm, [send_port], [recv_port])
+
+
+    def trmmod(vm, consoles):
+        """
+        Remove and again install modules of virtio_console.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be close before rmmod.
+        """
+        on_guest("guest_exit()", vm, 5)
+
+        on_guest("rmmod -f virtio_console && echo -n PASS: rmmod "
+                 "|| echo -n FAIL: rmmod", vm, 10)
+        on_guest("modprobe virtio_console "
+                 "&& echo -n PASS: modprobe || echo -n FAIL: modprobe",
+                 vm, 10)
+
+        init_guest(vm, consoles)
+        try:
+            cname = consoles[0][0].name
+        except (IndexError):
+            cname = consoles[1][0].name
+        on_guest("virt.clean_port('%s'),1024" % cname, vm, 2)
+
+
+    def tmax_serail_ports(vm, consoles):
+        """
+        Test maximim count of ports in guest machine.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be close before rmmod.
+        """
+        logging.debug("Count of serial ports: 30")
+        vm[0].destroy(gracefully = False)
+        (vm, consoles) = _vm_create(0, 30, False)
+        try:
+            init_guest(vm, consoles)
+        except error.TestFail as ints:
+            logging.info("Count of serial ports: 30")
+            raise ints
+        clean_reload_vm(vm, consoles, expected=True)
+
+
+    def tmax_console_ports(vm, consoles):
+        """
+        Test maximim count of ports in guest machine.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be close before rmmod.
+        """
+        logging.debug("Count of console ports: 30")
+        vm[0].destroy(gracefully = False)
+        (vm, consoles) = _vm_create(30, 0, False)
+        try:
+            init_guest(vm, consoles)
+        except error.TestFail as ints:
+            logging.info("Count of console ports: 30")
+            raise ints
+        clean_reload_vm(vm, consoles, expected=True)
+
+
+    def tmax_mix_serial_conosle_port(vm, consoles):
+        """
+        Test maximim count of ports in guest machine.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be close before rmmod.
+        """
+        logging.debug("Count of ports (serial+console): 30")
+        vm[0].destroy(gracefully = False)
+        (vm, consoles) = _vm_create(15, 15, False)
+        try:
+            init_guest(vm, consoles)
+        except error.TestFail as ints:
+            logging.info("Count of ports (serial+console): 30")
+            raise ints
+        clean_reload_vm(vm, consoles, expected=True)
+
+
+    def tshutdown(vm, consoles):
+        """
+        Try to gently shutdown the machine. Virtio_console shouldn't block this.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be close before rmmod.
+        """
+        ports = []
+        for console in consoles[0]:
+            ports.append(console)
+        for console in consoles[1]:
+            ports.append(console)
+        for port in ports:
+            port.open()
+        # If more than one, send data on the other ports
+        for port in ports[1:]:
+            on_guest("virt.close('%s')" % (port.name), vm, 2)
+            on_guest("virt.open('%s')" % (port.name), vm, 2)
+            try:
+                os.system("dd if=/dev/random of='%s' bs=4096 &>/dev/null &"
+                          % port.path)
+            except:
+                pass
+        # Just start sending, it won't finish anyway...
+        _on_guest("virt.send('%s', 1024**3, True, is_static=True)"
+                  % ports[0].name, vm, 1)
+
+        # Let the computer transfer some bytes :-)
+        time.sleep(2)
+
+        # Power off the computer
+        vm[0].destroy(gracefully=True)
+        clean_reload_vm(vm, consoles, expected=True)
+
+
+    def tmigrate_offline(vm, consoles):
+        """
+        Let the machine migrate. Virtio_concoles should survive this.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be close before rmmod.
+        """
+        # Migrate
+        vm[1].close()
+        dest_vm = kvm_test_utils.migrate(vm[0], env, 3600, "exec", 0, 0)
+        vm[1] = kvm_utils.wait_for(dest_vm.remote_login, 30, 0, 2)
+        if not vm[1]:
+            raise error.TestFail("Could not log into guest after migration")
+        logging.info("Logged in after migration")
 
 
     def tloopback(vm, consoles, params):
@@ -1302,17 +1540,23 @@ def run_virtio_console(test, params, env):
             param = (param[0] == 'serialport')
             send_pt = consoles[param][0]
             recv_pt = consoles[param][1]
-            test.headline(headline)
-            test.do_test(topen, [vm, send_pt], True)
-            test.do_test(tclose, [vm, send_pt], True)
-            test.do_test(tmulti_open, [vm, send_pt])
-            test.do_test(tpooling, [vm, send_pt])
-            test.do_test(tsigio, [vm, send_pt])
-            test.do_test(tlseek, [vm, send_pt])
-            test.do_test(trw_host_offline, [vm, send_pt])
-            test.do_test(trw_nonblocking_mode, [vm, send_pt])
-            test.do_test(trw_blocking_mode, [vm, send_pt])
-            test.do_test(tbasic_loopback, [vm, send_pt, recv_pt, data], True)
+            subtest.headline(headline)
+            subtest.do_test(tcheck_zero_sym, [vm], cleanup=False)
+            subtest.do_test(topen, [vm, send_pt], True)
+            subtest.do_test(tclose, [vm, send_pt], True)
+            subtest.do_test(tmulti_open, [vm, send_pt])
+            subtest.do_test(tpooling, [vm, send_pt])
+            subtest.do_test(tsigio, [vm, send_pt])
+            subtest.do_test(tlseek, [vm, send_pt])
+            subtest.do_test(trw_host_offline, [vm, send_pt])
+            subtest.do_test(trw_host_offline_big_data, [vm, send_pt],
+                            cleanup=False)
+            subtest.do_test(trw_notconnect_guest,
+                            [vm, send_pt, consoles])
+            subtest.do_test(trw_nonblocking_mode, [vm, send_pt])
+            subtest.do_test(trw_blocking_mode, [vm, send_pt])
+            subtest.do_test(tbasic_loopback, [vm, send_pt, recv_pt, data],
+                            True)
 
 
     def test_multiport(test, vm, consoles, params):
@@ -1342,6 +1586,13 @@ def run_virtio_console(test, params, env):
         @param consoles: Field of virtio ports with the minimum of 2 items.
         """
         subtest.headline("test_destructive:")
+        #Test rmmod
+        subtest.do_test(trmmod,[vm, consoles])
+        subtest.do_test(tmax_serail_ports, [vm, consoles])
+        subtest.do_test(tmax_console_ports, [vm, consoles])
+        subtest.do_test(tmax_mix_serial_conosle_port, [vm, consoles])
+        subtest.do_test(tshutdown, [vm, consoles])
+        subtest.do_test(tmigrate_offline, [vm, consoles])
 
 
     # INITIALIZE
