@@ -9,11 +9,12 @@ Auxiliary script used to send data between ports on guests.
 """
 import threading
 from threading import Thread
-import os, select, re, random, sys, array
-import fcntl, traceback, signal
+import os, time, select, re, random, sys, array
+import fcntl, subprocess, traceback, signal
 
 DEBUGPATH = "/sys/kernel/debug"
 SYSFSPATH = "/sys/class/virtio-ports/"
+DEVPATH = "/dev/virtio-ports/"
 
 exiting = False
 
@@ -53,10 +54,11 @@ class VirtioGuest:
         return out
 
 
-    def _get_port_status(self):
+    def _get_port_status(self, in_files=None):
         """
         Get info about ports from kernel debugfs.
 
+        @param in_files: Array of input files.
         @return: Ports dictionary of port properties
         """
         ports = {}
@@ -70,6 +72,23 @@ class VirtioGuest:
             print not_present_msg
         else:
             viop_names = os.listdir('%s/virtio-ports' % (DEBUGPATH))
+            if (in_files != None):
+                dev_names = os.listdir('/dev')
+                rep = re.compile(r"vport[0-9]p[0-9]+")
+                dev_names = filter(lambda x: rep.match(x) != None, dev_names)
+                if len(dev_names) != len(in_files):
+                    print ("FAIL: Not all ports are sucesfully inicailized"+
+                           " in /dev "+
+                           "only %d from %d." % (len(dev_names),
+                                                 len(in_files)))
+                    return
+
+                if len(viop_names) != len(in_files):
+                    print ("FAIL: No all ports  are sucesfully inicailized "
+                           "in debugfs only %d from %d." % (len(viop_names),
+                                                            len(in_files)))
+                    return
+
             for name in viop_names:
                 open_db_file = "%s/virtio-ports/%s" % (DEBUGPATH, name)
                 f = open(open_db_file, 'r')
@@ -102,9 +121,14 @@ class VirtioGuest:
                                (info_name , port_name,
                                 "%s/virtio-ports/%s" % (DEBUGPATH, name),
                                 port["name"]))
+                    dev_ppath = DEVPATH + port_name
+                    if not (os.path.exists(dev_ppath)):
+                        print ("FAIL: Symlink " + dev_ppath + " not exist.")
+                    if not (os.path.realpath(dev_ppath) != "/dev/name"):
+                        print ("FAIL: Sumlink " + dev_ppath + " not correct.")
                 except AttributeError:
                     print ("In file " + open_db_file +
-                           " are bad data\n"+ "".join(file).strip())
+                           " are incorrect data\n" + "".join(file).strip())
                     print ("FAIL: Fail file data.")
                     return
 
@@ -118,7 +142,7 @@ class VirtioGuest:
         """
         Init and check port properties.
         """
-        self.ports = self._get_port_status()
+        self.ports = self._get_port_status(in_files)
 
         if self.ports == None:
             return
@@ -126,6 +150,8 @@ class VirtioGuest:
             if (item[1] != self.ports[item[0]]["is_console"]):
                 print self.ports
                 print "FAIL: Host console is not like console on guest side\n"
+                return
+
         print "PASS: Init and check virtioconsole files in system."
 
 
@@ -426,7 +452,7 @@ class VirtioGuest:
         return ret
 
 
-    def async(self, port, mode=True, exp_val = 0):
+    def async(self, port, mode=True, exp_val=0):
         """
         Set port function mode async/sync.
 
@@ -566,7 +592,7 @@ class VirtioGuest:
         print "PASS: Sender start"
 
 
-    def send(self, port, length=1, mode=True):
+    def send(self, port, length=1, mode=True, is_static=False):
         """
         Send a data of some length
 
@@ -577,14 +603,18 @@ class VirtioGuest:
         in_f = self._open([port])
 
         data = ""
-        while len(data) < length:
-            data += "%c" % random.randrange(255)
-        try:
-            writes = os.write(in_f[0], data)
-        except Exception, inst:
-            print inst
-        if not writes:
-            writes = 0
+        writes = 0
+
+        if not is_static:
+            while len(data) < length:
+                data += "%c" % random.randrange(255)
+            try:
+                writes = os.write(in_f[0], data)
+            except Exception, inst:
+                print inst
+        else:
+            while len(data) < 4096:
+                data += "%c" % random.randrange(255)
         if mode:
             while (writes < length):
                 try:
@@ -632,7 +662,7 @@ class VirtioGuest:
         buf = ""
         if ret[0]:
             buf = os.read(in_f[0], buffer)
-        print ("PASS: Rest in socket: ") + str(buf[10])
+        print ("PASS: Rest in socket: ") + str(buf[:10])
 
 
 def is_alive():
@@ -681,6 +711,7 @@ def worker(virt):
                             traceback.format_exception(exc_type,
                                                        exc_value,
                                                        exc_traceback))
+            print "FAIL: Guest command exception."
 
 
 def sigusr_handler(sig, frame):
