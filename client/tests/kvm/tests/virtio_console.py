@@ -10,7 +10,8 @@ from threading import Thread
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_subprocess, kvm_test_utils, kvm_preprocessing
+import kvm_subprocess, kvm_test_utils, kvm_utils
+import kvm_preprocessing, kvm_monitor
 
 
 def run_virtio_console(test, params, env):
@@ -57,6 +58,15 @@ def run_virtio_console(test, params, env):
             self.cleanup_args = args
 
 
+        def get_cleanup_func(self):
+            """
+            Returns the tupple of cleanup_func and clenaup_args
+
+            @return: Tupple of self.cleanup_func and self.cleanup_args
+            """
+            return (self.cleanup_func, self.cleanup_args)
+
+
         def do_test(self, function, args=None, fatal=False, cleanup=True):
             """
             Execute subtest function.
@@ -73,7 +83,7 @@ def run_virtio_console(test, params, env):
                 args = []
             res = [None, function.func_name, args]
             try:
-                logging.debug("Start test %s.", function.func_name)
+                logging.info("Start test %s." % function.func_name)
                 ret = function(*args)
                 res[0] = True
                 logging.info(self.result_to_string(res))
@@ -371,16 +381,16 @@ def run_virtio_console(test, params, env):
         """
         Random data receiver/checker thread.
         """
-        def __init__(self, port, buf, event, blocklen=1024):
+        def __init__(self, port, buffer, event, blocklen=1024):
             """
             @param port: Source port.
-            @param buf: Control data buffer (FIFO).
+            @param buffer: Control data buffer (FIFO).
             @param length: Amount of data we want to receive.
             @param blocklen: Block length.
             """
             Thread.__init__(self)
             self.port = port
-            self.buffer = buf
+            self.buffer = buffer
             self.exitevent = event
             self.blocklen = blocklen
             self.idx = 0
@@ -439,26 +449,28 @@ def run_virtio_console(test, params, env):
         @param timeout: Timeout that will be used to verify if the script
                 started properly.
         """
-        logging.debug("compile virtio_console_guest.py on guest %s", vm[0].name)
+        logging.debug("compile virtio_console_guest.py on guest %s",
+                      vm[0].name)
 
-        (match, data) = _on_guest("python -OO /tmp/virtio_console_guest.py -c &&"
-                       "echo -n 'PASS: Compile virtio_guest finished' ||"
+        (match, data) = _on_guest("python -OO /tmp/virtio_console_guest.py -c"
+                       "&& echo -n 'PASS: Compile virtio_guest finished' ||"
                        "echo -n 'FAIL: Compile virtio_guest failed'",
                         vm, timeout)
 
         if match != 0:
-            raise error.TestFail("Command console_switch.py on guest %s failed."
-                                 "\nreturn code: %s\n output:\n%s" %
+            raise error.TestFail("Command console_switch.py on guest %s "
+                                 "failed.\nreturn code: %s\n output:\n%s" %
                                  (vm[0].name, match, data))
-        logging.debug("Starting virtio_console_guest.py on guest %s", vm[0].name)
+        logging.debug("Starting virtio_console_guest.py on guest %s",
+                      vm[0].name)
         vm[1].sendline()
         (match, data) = _on_guest("python /tmp/virtio_console_guest.pyo &&"
                        "echo -n 'PASS: virtio_guest finished' ||"
                        "echo -n 'FAIL: virtio_guest failed'",
                        vm, timeout)
         if match != 0:
-            raise error.TestFail("Command console_switch.py on guest %s failed."
-                                 "\nreturn code: %s\n output:\n%s" %
+            raise error.TestFail("Command console_switch.py on guest %s "
+                                 "failed.\nreturn code: %s\n output:\n%s" %
                                  (vm[0].name, match, data))
         # Let the system rest
         time.sleep(2)
@@ -479,27 +491,27 @@ def run_virtio_console(test, params, env):
         on_guest("virt.init(%s)" % (conss), vm, 10)
 
 
-    def _search_kernel_crashlog(vm, timeout = 2):
+    def _search_kernel_crashlog(vm_port, timeout=2):
         """
         Find kernel crash message.
 
-        @param vm: Informations about the guest.
+        @param vm_port : Guest output port.
         @param timeout: Timeout used to verify expected output.
 
         @return: Kernel crash log or None.
         """
-        data = vm[3].read_nonblocking()
-        match = re.search("^BUG:", data, re.MULTILINE)
+        data = vm_port.read_nonblocking()
+        match = re.search("BUG:", data, re.MULTILINE)
         if match == None:
             return None
 
-        match = re.search(r"^BUG:.*^---\[ end trace .* \]---",
+        match = re.search(r"BUG:.*---\[ end trace .* \]---",
                   data, re.DOTALL |re.MULTILINE)
         if match == None:
-            data += vm[3].read_until_last_line_matches(
-                                            ["---\[ end trace .* \]---"],timeout)
+            data += vm_port.read_until_last_line_matches(
+                                ["---\[ end trace .* \]---"],timeout)
 
-        match = re.search(r"(^BUG:.*^---\[ end trace .* \]---)",
+        match = re.search(r"(BUG:.*---\[ end trace .* \]---)",
                   data, re.DOTALL |re.MULTILINE)
         return match.group(0)
 
@@ -514,10 +526,10 @@ def run_virtio_console(test, params, env):
         @param vm: Informations about the guest.
         @param timeout: Timeout used to verify expected output.
 
-        @return: Tuple (match index, data)
+        @return: Tuple (match index, data, kernel_crash)
         """
-        logging.debug("Executing '%s' on virtio_console_guest.py loop, vm: %s," +
-                      "timeout: %s", command, vm[0].name, timeout)
+        logging.debug("Executing '%s' on virtio_console_guest.py loop," +
+                      " vm: %s, timeout: %s", command, vm[0].name, timeout)
         vm[1].sendline(command)
         try:
             (match, data) = vm[1].read_until_last_line_matches(["PASS:",
@@ -528,7 +540,7 @@ def run_virtio_console(test, params, env):
             match = None
             data = "Timeout."
 
-        kcrash_data = _search_kernel_crashlog(vm)
+        kcrash_data = _search_kernel_crashlog(vm[3])
         if (kcrash_data != None):
             logging.error(kcrash_data)
             vm[4] = True
@@ -550,7 +562,8 @@ def run_virtio_console(test, params, env):
         """
         match, data = _on_guest(command, vm, timeout)
         if match == 1 or match is None:
-            raise error.TestFail("Failed to execute '%s' on virtio_console_guest.py, "
+            raise error.TestFail("Failed to execute '%s' on"
+                                 " virtio_console_guest.py, "
                                  "vm: %s, output:\n%s" %
                                  (command, vm[0].name, data))
 
@@ -587,7 +600,7 @@ def run_virtio_console(test, params, env):
         on_guest("print 'PASS: nothing'", vm, 10)
 
 
-    def _vm_create(no_console=3, no_serialport=3):
+    def _vm_create(no_console=3, no_serialport=3, spread=True):
         """
         Creates the VM and connects the specified number of consoles and serial
         ports.
@@ -608,12 +621,17 @@ def run_virtio_console(test, params, env):
         consoles = []
         serialports = []
         tmp_dir = tempfile.mkdtemp(prefix="virtio-console-", dir="/tmp/")
-        if not params.get('extra_params'):
-            params['extra_params'] = ''
+        #if not params.get('extra_params'):
+        params['extra_params'] = ''
 
+        if not spread:
+            pci = "virtio-serial-pci0"
+            params['extra_params'] += (" -device virtio-serial-pci,id="
+                                           + pci)
+            pci += ".0"
         for i in range(0, no_console):
             # Spread consoles between multiple PCI devices (2 per a dev)
-            if not i % 2:
+            if not i % 2 and spread:
                 pci = "virtio-serial-pci%d" % (i / 2)
                 params['extra_params'] += (" -device virtio-serial-pci,id="
                                            + pci)
@@ -626,7 +644,7 @@ def run_virtio_console(test, params, env):
 
         for i in  range(no_console, no_console + no_serialport):
             # Spread seroal ports between multiple PCI devices (2 per a dev)
-            if not i % 2:
+            if not i % 2  and spread:
                 pci = "virtio-serial-pci%d" % (i / 2)
                 params['extra_params'] += (" -device virtio-serial-pci,id="
                                            + pci)
@@ -637,17 +655,7 @@ def run_virtio_console(test, params, env):
                                        "name=serialport-%d,id=p%d,bus=%s"
                                        % (i, i, i, pci))
 
-        logging.debug("Booting first guest %s", params.get("main_vm"))
-        kvm_preprocessing.preprocess_vm(test, params, env,
-                                        params.get("main_vm"))
-
-        vm = env.get_vm(params.get("main_vm"))
-
-        session = vm.wait_for_login(timeout=float(params.get("boot_timeout", 240)))
-
-        sserial = kvm_test_utils.wait_for_login(vm, 0,
-                                         float(params.get("boot_timeout", 240)),
-                                         0, 2, serial=True)
+        (vm, session, sserial) = _restore_vm()
 
         # connect the sockets
         for i in range(0, no_console):
@@ -660,6 +668,37 @@ def run_virtio_console(test, params, env):
         kcrash = False
 
         return [vm, session, tmp_dir, sserial, kcrash], [consoles, serialports]
+
+
+    def _restore_vm():
+        """
+        Restore old virtual machine when VM is destroied.
+        """
+        logging.debug("Booting guest %s", params.get("main_vm"))
+        kvm_preprocessing.preprocess_vm(test, params, env,
+                                        params.get("main_vm"))
+
+        vm = env.get_vm(params.get("main_vm"))
+
+        kernel_bug = None
+        try:
+            session = kvm_test_utils.wait_for_login(vm, 0,
+                                    float(params.get("boot_timeout", 100)),
+                                    0, 2)
+        except (error.TestFail):
+            kernel_bug = _search_kernel_crashlog(vm.serial_console, 10)
+            if kernel_bug != None:
+                logging.error(kernel_bug)
+            raise
+
+        kernel_bug = _search_kernel_crashlog(vm.serial_console, 10)
+        if kernel_bug != None:
+            logging.error(kernel_bug)
+
+        sserial = kvm_test_utils.wait_for_login(vm, 0,
+                                         float(params.get("boot_timeout", 20)),
+                                         0, 2, serial=True)
+        return [vm, session, sserial]
 
 
     def topen(vm, port):
@@ -819,8 +858,8 @@ def run_virtio_console(test, params, env):
             port.close()
 
         on_guest("virt.recv('%s', 0, 1024, False)" % port.name, vm, 10)
-        match, tmp = _on_guest("virt.send('%s', 10, False)"
-                                % port.name, vm, 10)
+        match, tmp = _on_guest("virt.send('%s', 10, True)" % port.name,
+                                                             vm, 10)
         if match != None:
             raise error.TestFail("Write on guest while host disconnected "
                                  "didn't timed out.\nOutput:\n%s"
@@ -1168,7 +1207,7 @@ def run_virtio_console(test, params, env):
         print "CLEANING"
         match, tmp = _on_guest("is_alive()", vm, 10)
         if (match == None) or (match != 0):
-            logging.error("Python died/is stuck/has remaining threads")
+            logging.error("Python died/is stucked/have remaining threads")
             logging.debug(tmp)
             try:
                 if vm[4] == True:
@@ -1176,10 +1215,12 @@ def run_virtio_console(test, params, env):
                 match, tmp = _on_guest("guest_exit()", vm, 10)
                 if (match == None) or (match == 0):
                     vm[1].close()
-                vm[1] = vm[0].wait_for_login(timeout=float(params.get("boot_timeout", 240)))
+                    vm[1] = kvm_test_utils.wait_for_login(vm[0], 0,
+                                        float(params.get("boot_timeout", 5)),
+                                        0, 10)
                 on_guest("killall -9 python "
                          "&& echo -n PASS: python killed"
-                         "|| echo -n PASS: python died",
+                         "|| echo -n PASS: python was death",
                          vm, 10)
 
                 init_guest(vm, consoles)
@@ -1191,10 +1232,22 @@ def run_virtio_console(test, params, env):
                 logging.error("Virtio-console driver is irreparably"
                               " blocked. Every comd end with sig KILL."
                               "Try reboot vm for continue in testing.")
-                vm[1] = vm[0].reboot(vm[1], "system_reset")
+                try:
+                    vm[1] = kvm_test_utils.reboot(vm[0], vm[1], "system_reset")
+                except (kvm_monitor.MonitorProtocolError):
+                    logging.error("Qemu is blocked. Monitor"
+                                  " no longer communicate.")
+                    vm[0].destroy(gracefully = False)
+                    os.system("kill -9 %d" % (vm[0].get_pid()))
+                    (vm[0], vm[1], vm[3]) = _restore_vm()
                 init_guest(vm, consoles)
+                cname = ""
+                try:
+                    cname = consoles[0][0].name
+                except (IndexError):
+                    cname = consoles[1][0].name
                 match = _on_guest("virt.clean_port('%s'),1024" %
-                                      consoles[0][0].name, vm, 10)[0]
+                                  cname, vm, 10)[0]
 
                 if (match == None) or (match != 0):
                     raise error.TestFail("Virtio-console driver is irrepar"
@@ -1202,6 +1255,25 @@ def run_virtio_console(test, params, env):
                                          " with sig KILL. Neither the "
                                          "restart did not help.")
                 _clean_ports(vm, consoles)
+
+
+    def clean_reload_vm(vm, consoles, expected=False):
+        """
+        Reloads and boots the damaged vm
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be clean.
+        """
+        if not expected:
+            print "Scheduled vm reboot"
+        else:
+            print "SCHWARZENEGGER is CLEANING"
+        vm[0].destroy(gracefully=False)
+        shutil.rmtree(vm[2])    # Remove virtio sockets tmp directory
+        (_vm, _consoles) = _vm_create(len(consoles[0]), len(consoles[1]))
+        consoles[:] = _consoles[:]
+        vm[:] = _vm[:]
+        init_guest(vm, consoles)
 
 
     def test_smoke(test, vm, consoles, params):
@@ -1253,12 +1325,23 @@ def run_virtio_console(test, params, env):
         @param consoles: Field of virtio ports with the minimum of 2 items.
         @param params: Test parameters '$console_type:$data;...'
         """
-        test.headline("test_multiport:")
+        subtest.headline("test_multiport:")
         #Test Loopback
-        test.do_test(tloopback, [vm, consoles, params[0]])
+        subtest.do_test(tloopback, [vm, consoles, params[0]])
 
         #Test Performance
-        test.do_test(tperf, [vm, consoles, params[1]])
+        subtest.do_test(tperf, [vm, consoles, params[1]])
+
+
+    def test_destructive(test, vm, consoles):
+        """
+        This is group of test is destructive.
+
+        @param test: Main test object.
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Field of virtio ports with the minimum of 2 items.
+        """
+        subtest.headline("test_destructive:")
 
 
     # INITIALIZE
@@ -1294,26 +1377,35 @@ def run_virtio_console(test, params, env):
     pwd = os.path.join(os.environ['AUTODIR'], 'tests/kvm')
     vksmd_src = os.path.join(pwd, "scripts/virtio_console_guest.py")
     dst_dir = "/tmp"
+
     vm[0].copy_files_to(vksmd_src, dst_dir)
 
     # ACTUAL TESTING
     # Defines all available consoles; tests udev and sysfs
 
-    test = SubTest()
+    subtest = SubTest()
     try:
         init_guest(vm, consoles)
 
-        test.set_cleanup_func(clean_ports, [vm, consoles])
+        subtest.set_cleanup_func(clean_ports, [vm, consoles])
         #Test Smoke
-        test_smoke(test, vm, consoles, tsmoke_params)
+        test_smoke(subtest, vm, consoles, tsmoke_params)
 
         #Test multiport functionality and performance.
-        test_multiport(test, vm, consoles, [tloopback_params, tperf_params])
+        test_multiport(subtest, vm, consoles, [tloopback_params, tperf_params])
+
+        #Test destructive test.
+        # Uses stronger clean up function
+        (_cleanup_func, _cleanup_args) = subtest.get_cleanup_func()
+        subtest.set_cleanup_func(clean_reload_vm, [vm, consoles])
+        test_destructive(subtest, vm, consoles)
+        subtest.set_cleanup_func(_cleanup_func, _cleanup_args)
     finally:
         logging.info(("Summary: %d tests passed  %d test failed :\n" %
-                      (test.passed, test.failed)) + test.get_text_result())
+                      (subtest.passed, subtest.failed)) +
+                      subtest.get_text_result())
 
-    if test.is_failed():
+    if subtest.is_failed():
         raise error.TestFail("Virtio_console test FAILED.")
 
 
