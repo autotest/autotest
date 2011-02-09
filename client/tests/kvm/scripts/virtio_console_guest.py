@@ -9,8 +9,8 @@ Auxiliary script used to send data between ports on guests.
 """
 import threading
 from threading import Thread
-import os, time, select, re, random, sys, array
-import fcntl, subprocess, traceback, signal
+import os, select, re, random, sys, array
+import fcntl, traceback, signal
 
 DEBUGPATH = "/sys/kernel/debug"
 SYSFSPATH = "/sys/class/virtio-ports/"
@@ -63,7 +63,7 @@ class VirtioGuest:
         """
         ports = {}
         not_present_msg = "FAIL: There's no virtio-ports dir in debugfs"
-        if (not os.path.ismount(DEBUGPATH)):
+        if not os.path.ismount(DEBUGPATH):
             os.system('mount -t debugfs none %s' % (DEBUGPATH))
         try:
             if not os.path.isdir('%s/virtio-ports' % (DEBUGPATH)):
@@ -72,21 +72,20 @@ class VirtioGuest:
             print not_present_msg
         else:
             viop_names = os.listdir('%s/virtio-ports' % (DEBUGPATH))
-            if (in_files != None):
+            if in_files is not None:
                 dev_names = os.listdir('/dev')
                 rep = re.compile(r"vport[0-9]p[0-9]+")
-                dev_names = filter(lambda x: rep.match(x) != None, dev_names)
+                dev_names = filter(lambda x: rep.match(x) is not None, dev_names)
                 if len(dev_names) != len(in_files):
-                    print ("FAIL: Not all ports are sucesfully inicailized"+
-                           " in /dev "+
-                           "only %d from %d." % (len(dev_names),
-                                                 len(in_files)))
+                    print ("FAIL: Not all ports were successfully initialized "
+                           "in /dev, only %d from %d." % (len(dev_names),
+                                                          len(in_files)))
                     return
 
                 if len(viop_names) != len(in_files):
-                    print ("FAIL: No all ports  are sucesfully inicailized "
-                           "in debugfs only %d from %d." % (len(viop_names),
-                                                            len(in_files)))
+                    print ("FAIL: Not all ports were successfuly initialized "
+                           "in debugfs, only %d from %d." % (len(viop_names),
+                                                             len(in_files)))
                     return
 
             for name in viop_names:
@@ -101,35 +100,36 @@ class VirtioGuest:
                         m = re.match("(\S+): (\S+)", line)
                         port[m.group(1)] = m.group(2)
 
-                    if (port['is_console'] == "yes"):
+                    if port['is_console'] == "yes":
                         port["path"] = "/dev/hvc%s" % (port["console_vtermno"])
                         # Console works like a serialport
                     else:
                         port["path"] = "/dev/%s" % name
 
-                    if (not os.path.exists(port['path'])):
+                    if not os.path.exists(port['path']):
                         print "FAIL: %s not exist" % port['path']
 
                     sysfspath = SYSFSPATH + name
-                    if (not os.path.isdir(sysfspath)):
+                    if not os.path.isdir(sysfspath):
                         print "FAIL: %s not exist" % (sysfspath)
 
                     info_name = sysfspath + "/name"
                     port_name = self._readfile(info_name).strip()
-                    if (port_name != port["name"]):
-                        print ("FAIL: Port info not match \n%s - %s\n%s - %s" %
+                    if port_name != port["name"]:
+                        print ("FAIL: Port info does not match "
+                               "\n%s - %s\n%s - %s" %
                                (info_name , port_name,
                                 "%s/virtio-ports/%s" % (DEBUGPATH, name),
                                 port["name"]))
                     dev_ppath = DEVPATH + port_name
-                    if not (os.path.exists(dev_ppath)):
-                        print ("FAIL: Symlink " + dev_ppath + " not exist.")
-                    if not (os.path.realpath(dev_ppath) != "/dev/name"):
-                        print ("FAIL: Sumlink " + dev_ppath + " not correct.")
+                    if not os.path.exists(dev_ppath):
+                        print "FAIL: Symlink %s does not exist." % dev_ppath
+                    if not os.path.realpath(dev_ppath) != "/dev/name":
+                        print "FAIL: Symlink %s is not correct." % dev_ppath
                 except AttributeError:
-                    print ("In file " + open_db_file +
-                           " are incorrect data\n" + "".join(file).strip())
-                    print ("FAIL: Fail file data.")
+                    print ("Bad data on file %s:\n%s. " %
+                           (open_db_file, "".join(file).strip()))
+                    print "FAIL: Bad data on file %s." % open_db_file
                     return
 
                 ports[port['name']] = port
@@ -142,10 +142,11 @@ class VirtioGuest:
         """
         Check if port /dev/vport0p0 was created.
         """
-        if os.path.exists("/dev/vport0p0"):
-            print "PASS: Port exist."
+        symlink = "/dev/vport0p0"
+        if os.path.exists(symlink):
+            print "PASS: Symlink %s exists." % symlink
         else:
-            print "FAIL: Device /dev/vport0p0 not exist."
+            print "FAIL: Symlink %s does not exist." % symlink
 
 
     def init(self, in_files):
@@ -154,7 +155,7 @@ class VirtioGuest:
         """
         self.ports = self._get_port_status(in_files)
 
-        if self.ports == None:
+        if self.ports is None:
             return
         for item in in_files:
             if (item[1] != self.ports[item[0]]["is_console"]):
@@ -507,11 +508,11 @@ class VirtioGuest:
         """
         descriptor = None
         path = self.ports[file]["path"]
-        if path != None:
+        if path is not None:
             if path in self.files.keys():
                 descriptor = self.files[path]
                 del self.files[path]
-            if descriptor != None:
+            if descriptor is not None:
                 try:
                     os.close(descriptor)
                 except Exception, inst:
@@ -745,9 +746,9 @@ def main():
         catch = virt.catching_signal()
         if catch:
             signal.signal(signal.SIGIO, virt)
-        elif catch == False:
+        elif catch is False:
             signal.signal(signal.SIGIO, signal.SIG_DFL)
-        if (catch != None):
+        if catch is not None:
             virt.use_config.set()
     print "PASS: guest_exit"
 
