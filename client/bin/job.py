@@ -179,20 +179,10 @@ class base_client_job(base_job.base_job):
         self._next_step_index = 0
         self._load_state()
 
-        # harness is chosen by following rules:
-        # 1. explicitly specified via command line
-        # 2. harness stored in state file (if continuing job '-c')
-        # 3. default harness
-        selected_harness = None
-        if options.harness:
-            selected_harness = options.harness
-            self._state.set('client', 'harness', selected_harness)
-        else:
-            stored_harness = self._state.get('client', 'harness', None)
-            if stored_harness:
-                selected_harness = stored_harness
+        _harness = self.handle_persistent_option(options, 'harness')
+        _harness_args = self.handle_persistent_option(options, 'harness_args')
 
-        self.harness = harness.select(selected_harness, self, options.harness_args)
+        self.harness = harness.select(_harness, self, _harness_args)
 
         # set up the status logger
         def client_job_record_hook(entry):
@@ -923,6 +913,29 @@ class base_client_job(base_job.base_job):
         if not has_steps:
             logging.info('Initializing the state engine')
             self._state.set('client', 'steps', [])
+
+
+    def handle_persistent_option(self, options, option_name):
+        """
+        Select option from command line or persistent state.
+        Store selected option to allow standalone client to continue
+        after reboot with previously selected options.
+        Priority:
+        1. explicitly specified via command line
+        2. stored in state file (if continuing job '-c')
+        3. default == None
+        """
+        option = None
+        cmd_line_option = getattr(options, option_name)
+        if cmd_line_option:
+            option = cmd_line_option
+            self._state.set('client', option_name, option)
+        else:
+            stored_option = self._state.get('client', option_name, None)
+            if stored_option:
+                option = stored_option
+        logging.debug('Persistent option %s now set to %s', option_name, option)
+        return option
 
 
     def __create_step_tuple(self, fn, args, dargs):
