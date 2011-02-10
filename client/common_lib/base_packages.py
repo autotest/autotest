@@ -50,13 +50,15 @@ def repo_run_command(repo, cmd, ignore_status=False):
 
 
 def check_diskspace(repo, min_free=None):
+    # Note: 1 GB = 10**9 bytes (SI unit).
     if not min_free:
         min_free = global_config.global_config.get_config_value('PACKAGES',
                                                           'minimum_free_space',
                                                           type=int)
     try:
-        df = repo_run_command(repo, 'df -mP . | tail -1').stdout.split()
-        free_space_gb = int(df[3])/1000.0
+        df = repo_run_command(repo,
+                              'df -PB %d . | tail -1' % 10**9).stdout.split()
+        free_space_gb = int(df[3])
     except Exception, e:
         raise error.RepoUnknownError('Unknown Repo Error: %s' % e)
     if free_space_gb < min_free:
