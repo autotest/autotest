@@ -601,24 +601,25 @@ class base_client_job(base_job.base_job):
         try:
             self.record('START', subdir, testname)
             self._state.set('client', 'unexpected_reboot', (subdir, testname))
-            result = function(*args, **dargs)
-            self.record('END GOOD', subdir, testname)
-            return result
-        except error.TestBaseException, e:
-            self.record('END %s' % e.exit_status, subdir, testname)
-            raise
-        except error.JobError, e:
-            self.record('END ABORT', subdir, testname)
-            raise
-        except Exception, e:
-            # This should only ever happen due to a bug in the given
-            # function's code.  The common case of being called by
-            # run_test() will never reach this.  If a control file called
-            # run_group() itself, bugs in its function will be caught
-            # here.
-            err_msg = str(e) + '\n' + traceback.format_exc()
-            self.record('END ERROR', subdir, testname, err_msg)
-            raise
+            try:
+                result = function(*args, **dargs)
+                self.record('END GOOD', subdir, testname)
+                return result
+            except error.TestBaseException, e:
+                self.record('END %s' % e.exit_status, subdir, testname)
+                raise
+            except error.JobError, e:
+                self.record('END ABORT', subdir, testname)
+                raise
+            except Exception, e:
+                # This should only ever happen due to a bug in the given
+                # function's code.  The common case of being called by
+                # run_test() will never reach this.  If a control file called
+                # run_group() itself, bugs in its function will be caught
+                # here.
+                err_msg = str(e) + '\n' + traceback.format_exc()
+                self.record('END ERROR', subdir, testname, err_msg)
+                raise
         finally:
             self._state.discard('client', 'unexpected_reboot')
 
