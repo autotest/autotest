@@ -192,7 +192,7 @@ class base_client_job(base_job.base_job):
             if stored_harness:
                 selected_harness = stored_harness
 
-        self.harness = harness.select(selected_harness, self)
+        self.harness = harness.select(selected_harness, self, options.harness_args)
 
         # set up the status logger
         def client_job_record_hook(entry):
@@ -388,8 +388,8 @@ class base_client_job(base_job.base_job):
         self.control = os.path.abspath(control)
 
 
-    def harness_select(self, which):
-        self.harness = harness.select(which, self)
+    def harness_select(self, which, harness_args):
+        self.harness = harness.select(which, self, harness_args)
 
 
     def config_set(self, name, value):

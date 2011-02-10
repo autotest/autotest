@@ -35,6 +35,9 @@ parser.add_option("-t", "--tag", dest="tag", type="string", default="default",
 parser.add_option("-H", "--harness", dest="harness", type="string", default='',
                         help="set the harness type")
 
+parser.add_option("-P", "--harness_args", dest="harness_args", type="string", default='',
+                        help="arguments delivered to harness")
+
 parser.add_option("-U", "--user", dest="user", type="string",
                         default='', help="set the job username")
 
