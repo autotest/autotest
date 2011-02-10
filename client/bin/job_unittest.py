@@ -82,6 +82,7 @@ class test_init_minimal_options(abstract_test_init, job_test_case):
             verbose = False
             cont = False
             harness = 'stub'
+            harness_args = None
             hostname = None
             user = None
             log = False
@@ -181,7 +182,8 @@ class test_base_job(unittest.TestCase):
         my_harness = self.god.create_mock_class(harness.harness,
                                                 'my_harness')
         harness.select.expect_call(None,
-                                   self.job).and_return(my_harness)
+                                   self.job,
+                                   None).and_return(my_harness)
 
         return resultdir, my_harness
 
@@ -237,6 +239,7 @@ class test_base_job(unittest.TestCase):
         options.tag = self.jobtag
         options.cont = cont
         options.harness = None
+        options.harness_args = None
         options.log = False
         options.verbose = False
         options.hostname = 'localhost'
@@ -277,6 +280,7 @@ class test_base_job(unittest.TestCase):
         options.tag = self.jobtag
         options.cont = False
         options.harness = None
+        options.harness_args = None
         options.log = False
         options.verbose = False
         options.hostname = 'localhost'
@@ -322,10 +326,12 @@ class test_base_job(unittest.TestCase):
 
         # record
         which = "which"
-        harness.select.expect_call(which, self.job).and_return(None)
+        harness_args = ''
+        harness.select.expect_call(which, self.job, 
+                                   harness_args).and_return(None)
 
         # run and test
-        self.job.harness_select(which)
+        self.job.harness_select(which, harness_args)
         self.god.check_playback()
 
 

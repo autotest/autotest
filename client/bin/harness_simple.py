@@ -15,7 +15,7 @@ class harness_simple(harness.harness):
                     The job object for this job
     """
 
-    def __init__(self, job):
+    def __init__(self, job, harness_args):
         """
                 job
                         The job object for this job

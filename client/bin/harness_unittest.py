@@ -18,8 +18,9 @@ class harness_unittest(unittest.TestCase):
         job = object()
         self.god.stub_class(harness_standalone, "harness_standalone")
 
-        harness_standalone.harness_standalone.expect_new(job)
-        harness.select(None, job)
+        harness_args = ''
+        harness_standalone.harness_standalone.expect_new(job, harness_args)
+        harness.select(None, job, harness_args)
         self.god.check_playback()
 
 
@@ -27,8 +28,9 @@ class harness_unittest(unittest.TestCase):
         job = object()
         self.god.stub_class(harness_standalone, "harness_standalone")
 
-        harness_standalone.harness_standalone.expect_new(job)
-        harness.select('standalone', job)
+        harness_args = ''
+        harness_standalone.harness_standalone.expect_new(job, harness_args)
+        harness.select('standalone', job, harness_args)
         self.god.check_playback()
 
 
@@ -36,8 +38,9 @@ class harness_unittest(unittest.TestCase):
         job = object()
         self.god.stub_class(harness_ABAT, "harness_ABAT")
 
-        harness_ABAT.harness_ABAT.expect_new(job)
-        harness.select('ABAT', job)
+        harness_args = ''
+        harness_ABAT.harness_ABAT.expect_new(job, harness_args)
+        harness.select('ABAT', job, harness_args)
         self.god.check_playback()
 
 
