@@ -363,7 +363,7 @@ def postprocess(test, params, env):
         del env["tcpdump"]
 
     if params.get("setup_hugepages") == "yes":
-        h = kvm_utils.HugePageConfig(params)
+        h = test_setup.HugePageConfig(params)
         h.cleanup()
 
     if params.get("type") == "enospc":
