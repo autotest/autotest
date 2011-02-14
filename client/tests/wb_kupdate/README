@@ -1,0 +1,9 @@
+Description:
+------------
+This tests checks the wb_kupdate code path by writting data to a sparse file
+mounted on a loop back device formated with a user specified filesystem,
+and waiting a maximum of 'max_flush_time' for writeback to flush the dirty
+datat from the cache to disk.
+
+At the end of the test a keyval is generated which states per iteration the time
+taken to write the user specified amount of data to disk.
