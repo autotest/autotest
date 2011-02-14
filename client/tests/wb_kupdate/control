@@ -1,0 +1,44 @@
+AUTHOR = "Akshay Lal <akshaylal@google.com>"
+NAME = "wb_kupdate"
+TEST_CATEGORY = "Functional"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+TIME = 'MEDIUM'
+DOC='''
+This tests checks the wb_kupdate code path by writting data to a sparse file
+and waiting at max of `max_flush_time` for the file to be flushed from the
+cache to disk.
+'''
+
+import os
+# Required Parameters:
+# --------------------
+mount_point='/export/wb_kupdate' # Absolute path.
+file_count=5                     # The number of files to write.
+write_size=1                     # In MB.
+
+# Optional Parameters:
+# --------------------
+max_flush_time=1                # In minutes.
+file_system='ext4'              # mkfs.<file_system> must already exist on
+                                # the machine. To avoid device initialization
+                                # set to None.
+remove_previous=False           # Boolean.
+sparse_file=os.path.join(       # Absolute path to the sparse file.
+        job.tmpdir,
+        'sparse_file')
+old_cleanup=False               # Remove a previously created mount_point if it
+                                # exits and not mounted.
+
+# Beginning execution of the xfstests:
+# ------------------------------------
+job.run_test('wb_kupdate',
+             mount_point=mount_point,
+             file_count=int(file_count),
+             write_size=int(write_size),
+             max_flush_time=int(max_flush_time),
+             file_system=file_system,
+             remove_previous=remove_previous,
+             sparse_file=sparse_file,
+             old_cleanup=old_cleanup,
+             tag='wb_kupdate_execution')
