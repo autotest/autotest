@@ -245,6 +245,13 @@ def get_os_vendor():
         return 'Unknown'
 
 
+def get_cc():
+    try:
+        return os.environ['CC']
+    except KeyError:
+        return 'gcc'
+
+
 def get_vmlinux():
     """Return the full path to vmlinux
 
