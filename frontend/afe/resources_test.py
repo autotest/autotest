@@ -2,6 +2,14 @@
 
 import common
 import unittest
+
+# This has to be done very early.
+from autotest_lib.client.common_lib import global_config
+global_config.global_config.override_config_value(
+    'HOSTS', 'default_protection',
+    'NO_PROTECTION')
+from autotest_lib.client.common_lib import host_protections
+
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend import setup_test_environment
 from django.test import client
