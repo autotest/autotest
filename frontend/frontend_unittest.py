@@ -14,6 +14,8 @@ class FrontendTest(unittest.TestCase):
         setup_test_environment.set_up()
         global_config.global_config.override_config_value(
                 'AUTOTEST_WEB', 'parameterized_jobs', 'False')
+        global_config.global_config.override_config_value(
+                'SERVER', 'rpc_logging', 'False')
 
 
     def tearDown(self):

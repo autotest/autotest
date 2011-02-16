@@ -68,6 +68,9 @@ class FrontendTestMixin(object):
         setup_test_environment.set_up()
         global_config.global_config.override_config_value(
                 'AUTOTEST_WEB', 'parameterized_jobs', 'False')
+        global_config.global_config.override_config_value(
+                'SERVER', 'rpc_logging', 'False')
+
         if fill_data:
             self._fill_in_test_data()
 
