@@ -10,7 +10,7 @@ class linus_stress(test.test):
         os.chdir(self.bindir)
         utils.system('cp linus_stress.c src/')
         os.chdir(self.srcdir)
-        utils.system('cc linus_stress.c -D_POSIX_C_SOURCE=200112 -o linus_stress')
+        utils.system(utils.get_cc() + ' linus_stress.c -D_POSIX_C_SOURCE=200112 -o linus_stress')
 
 
     def initialize(self):

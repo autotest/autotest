@@ -21,7 +21,7 @@ class rmaptest(test.test):
 
     def setup(self):
         os.chdir(self.srcdir)
-        utils.system('gcc -Wall -o rmaptest rmap-test.c')
+        utils.system(utils.get_cc() + ' -Wall -o rmaptest rmap-test.c')
 
 
     def execute(self, args = ''):

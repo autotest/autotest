@@ -30,8 +30,10 @@ class lmbench(test.test):
         os.chdir(self.srcdir)
         p1 = 'patch -p1 < ../0001-Fix-build-issues-with-lmbench.patch'
         p2 = 'patch -p1 < ../0002-Changing-shebangs-on-lmbench-scripts.patch'
+        p3 = 'patch -p1 < ../0003-makefile.patch'
         utils.system(p1)
         utils.system(p2)
+        utils.system(p3)
 
         # build lmbench
         utils.make()
