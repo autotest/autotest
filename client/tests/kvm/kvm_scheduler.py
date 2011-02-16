@@ -63,7 +63,6 @@ class scheduler:
                 test_index = int(cmd[1])
                 test = self.tests[test_index].copy()
                 test.update(self_dict)
-                test = kvm_utils.get_sub_pool(test, index, self.num_workers)
                 test_iterations = int(test.get("iterations", 1))
                 status = run_test_func("kvm", params=test,
                                        tag=test.get("shortname"),
@@ -129,7 +128,7 @@ class scheduler:
                     # If the test failed, mark all dependent tests as "failed" too
                     if not status:
                         for i, other_test in enumerate(self.tests):
-                            for dep in other_test.get("depend", []):
+                            for dep in other_test.get("dep", []):
                                 if dep in test["name"]:
                                     test_status[i] = "fail"
 
@@ -154,7 +153,7 @@ class scheduler:
                         continue
                     # Make sure the test's dependencies are satisfied
                     dependencies_satisfied = True
-                    for dep in test["depend"]:
+                    for dep in test["dep"]:
                         dependencies = [j for j, t in enumerate(self.tests)
                                         if dep in t["name"]]
                         bad_status_deps = [j for j in dependencies
@@ -200,14 +199,14 @@ class scheduler:
                     used_mem[worker] = test_used_mem
                     # Assign all related tests to this worker
                     for j, other_test in enumerate(self.tests):
-                        for other_dep in other_test["depend"]:
+                        for other_dep in other_test["dep"]:
                             # All tests that depend on this test
                             if other_dep in test["name"]:
                                 test_worker[j] = worker
                                 break
                             # ... and all tests that share a dependency
                             # with this test
-                            for dep in test["depend"]:
+                            for dep in test["dep"]:
                                 if dep in other_dep or other_dep in dep:
                                     test_worker[j] = worker
                                     break

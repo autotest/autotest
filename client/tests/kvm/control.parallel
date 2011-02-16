@@ -163,16 +163,15 @@ import kvm_config
 str = """
 # This string will be parsed after tests.cfg.  Make any desired changes to the
 # test configuration here.  For example:
-#install|setup: timeout_multiplier = 3
-#only fc8_quick
+#install, setup: timeout_multiplier = 3
 #display = sdl
 """
-cfg = kvm_config.config()
-filename = os.path.join(pwd, "tests.cfg")
-cfg.fork_and_parse(filename, str)
 
-tests = cfg.get_list()
+parser = kvm_config.Parser()
+parser.parse_file(os.path.join(pwd, "tests.cfg"))
+parser.parse_string(str)
 
+tests = list(parser.get_dicts())
 
 # -------------
 # Run the tests
@@ -191,7 +190,6 @@ num_workers = total_cpus
 s = kvm_scheduler.scheduler(tests, num_workers, total_cpus, total_mem, pwd)
 job.parallel([s.scheduler],
              *[(s.worker, i, job.run_test) for i in range(num_workers)])
-
 
 # create the html report in result dir
 reporter = os.path.join(pwd, 'make_html_report.py')

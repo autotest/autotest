@@ -1,18 +1,171 @@
 #!/usr/bin/python
 """
-KVM configuration file utility functions.
+KVM test configuration file parser
 
-@copyright: Red Hat 2008-2010
+@copyright: Red Hat 2008-2011
 """
 
-import logging, re, os, sys, optparse, array, traceback, cPickle
-import common
-import kvm_utils
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import logging_manager
+import re, os, sys, optparse, collections, string
 
 
-class config:
+# Filter syntax:
+# , means OR
+# .. means AND
+# . means IMMEDIATELY-FOLLOWED-BY
+
+# Example:
+# qcow2..Fedora.14, RHEL.6..raw..boot, smp2..qcow2..migrate..ide
+# means match all dicts whose names have:
+# (qcow2 AND (Fedora IMMEDIATELY-FOLLOWED-BY 14)) OR
+# ((RHEL IMMEDIATELY-FOLLOWED-BY 6) AND raw AND boot) OR
+# (smp2 AND qcow2 AND migrate AND ide)
+
+# Note:
+# 'qcow2..Fedora.14' is equivalent to 'Fedora.14..qcow2'.
+# 'qcow2..Fedora.14' is not equivalent to 'qcow2..14.Fedora'.
+# 'ide, scsi' is equivalent to 'scsi, ide'.
+
+# Filters can be used in 3 ways:
+# only <filter>
+# no <filter>
+# <filter>:
+# The last one starts a conditional block.
+
+
+class ParserError:
+    def __init__(self, msg, line=None, filename=None, linenum=None):
+        self.msg = msg
+        self.line = line
+        self.filename = filename
+        self.linenum = linenum
+
+    def __str__(self):
+        if self.line:
+            return "%s: %r (%s:%s)" % (self.msg, self.line,
+                                       self.filename, self.linenum)
+        else:
+            return "%s (%s:%s)" % (self.msg, self.filename, self.linenum)
+
+
+num_failed_cases = 5
+
+
+class Node(object):
+    def __init__(self):
+        self.name = []
+        self.dep = []
+        self.content = []
+        self.children = []
+        self.labels = set()
+        self.append_to_shortname = False
+        self.failed_cases = collections.deque()
+
+
+def _match_adjacent(block, ctx, ctx_set):
+    # TODO: explain what this function does
+    if block[0] not in ctx_set:
+        return 0
+    if len(block) == 1:
+        return 1
+    if block[1] not in ctx_set:
+        return int(ctx[-1] == block[0])
+    k = 0
+    i = ctx.index(block[0])
+    while i < len(ctx):
+        if k > 0 and ctx[i] != block[k]:
+            i -= k - 1
+            k = 0
+        if ctx[i] == block[k]:
+            k += 1
+            if k >= len(block):
+                break
+            if block[k] not in ctx_set:
+                break
+        i += 1
+    return k
+
+
+def _might_match_adjacent(block, ctx, ctx_set, descendant_labels):
+    matched = _match_adjacent(block, ctx, ctx_set)
+    for elem in block[matched:]:
+        if elem not in descendant_labels:
+            return False
+    return True
+
+
+# Filter must inherit from object (otherwise type() won't work)
+class Filter(object):
+    def __init__(self, s):
+        self.filter = []
+        for char in s:
+            if not (char.isalnum() or char.isspace() or char in ".,_-"):
+                raise ParserError("Illegal characters in filter")
+        for word in s.replace(",", " ").split():
+            word = [block.split(".") for block in word.split("..")]
+            for block in word:
+                for elem in block:
+                    if not elem:
+                        raise ParserError("Syntax error")
+            self.filter += [word]
+
+
+    def match(self, ctx, ctx_set):
+        for word in self.filter:
+            for block in word:
+                if _match_adjacent(block, ctx, ctx_set) != len(block):
+                    break
+            else:
+                return True
+        return False
+
+
+    def might_match(self, ctx, ctx_set, descendant_labels):
+        for word in self.filter:
+            for block in word:
+                if not _might_match_adjacent(block, ctx, ctx_set,
+                                             descendant_labels):
+                    break
+            else:
+                return True
+        return False
+
+
+class NoOnlyFilter(Filter):
+    def __init__(self, line):
+        Filter.__init__(self, line.split(None, 1)[1])
+        self.line = line
+
+
+class OnlyFilter(NoOnlyFilter):
+    def might_pass(self, failed_ctx, failed_ctx_set, ctx, ctx_set,
+                   descendant_labels):
+        for word in self.filter:
+            for block in word:
+                if (_match_adjacent(block, ctx, ctx_set) >
+                    _match_adjacent(block, failed_ctx, failed_ctx_set)):
+                    return self.might_match(ctx, ctx_set, descendant_labels)
+        return False
+
+
+class NoFilter(NoOnlyFilter):
+    def might_pass(self, failed_ctx, failed_ctx_set, ctx, ctx_set,
+                   descendant_labels):
+        for word in self.filter:
+            for block in word:
+                if (_match_adjacent(block, ctx, ctx_set) <
+                    _match_adjacent(block, failed_ctx, failed_ctx_set)):
+                    return not self.match(ctx, ctx_set)
+        return False
+
+
+class Condition(NoFilter):
+    def __init__(self, line):
+        Filter.__init__(self, line.rstrip(":"))
+        self.line = line
+        self.content = []
+
+
+class Parser(object):
     """
     Parse an input file or string that follows the KVM Test Config File format
     and generate a list of dicts that will be later used as configuration
@@ -21,17 +174,14 @@ class config:
     @see: http://www.linux-kvm.org/page/KVM-Autotest/Test_Config_File
     """
 
-    def __init__(self, filename=None, debug=True):
+    def __init__(self, filename=None, debug=False):
         """
-        Initialize the list and optionally parse a file.
+        Initialize the parser and optionally parse a file.
 
-        @param filename: Path of the file that will be taken.
+        @param filename: Path of the file to parse.
         @param debug: Whether to turn on debugging output.
         """
-        self.list = [array.array("H", [4, 4, 4, 4])]
-        self.object_cache = []
-        self.object_cache_indices = {}
-        self.regex_cache = {}
+        self.node = Node()
         self.debug = debug
         if filename:
             self.parse_file(filename)
@@ -39,689 +189,477 @@ class config:
 
     def parse_file(self, filename):
         """
-        Parse file.  If it doesn't exist, raise an IOError.
+        Parse a file.
 
         @param filename: Path of the configuration file.
         """
-        if not os.path.exists(filename):
-            raise IOError("File %s not found" % filename)
-        str = open(filename).read()
-        self.list = self.parse(configreader(filename, str), self.list)
+        self.node = self._parse(FileReader(filename), self.node)
 
 
-    def parse_string(self, str):
+    def parse_string(self, s):
         """
         Parse a string.
 
-        @param str: String to parse.
+        @param s: String to parse.
         """
-        self.list = self.parse(configreader('<string>', str, real_file=False), self.list)
+        self.node = self._parse(StrReader(s), self.node)
 
 
-    def fork_and_parse(self, filename=None, str=None):
-        """
-        Parse a file and/or a string in a separate process to save memory.
-
-        Python likes to keep memory to itself even after the objects occupying
-        it have been destroyed.  If during a call to parse_file() or
-        parse_string() a lot of memory is used, it can only be freed by
-        terminating the process.  This function works around the problem by
-        doing the parsing in a forked process and then terminating it, freeing
-        any unneeded memory.
-
-        Note: if an exception is raised during parsing, its information will be
-        printed, and the resulting list will be empty.  The exception will not
-        be raised in the process calling this function.
-
-        @param filename: Path of file to parse (optional).
-        @param str: String to parse (optional).
-        """
-        r, w = os.pipe()
-        r, w = os.fdopen(r, "r"), os.fdopen(w, "w")
-        pid = os.fork()
-        if not pid:
-            # Child process
-            r.close()
-            try:
-                if filename:
-                    self.parse_file(filename)
-                if str:
-                    self.parse_string(str)
-            except:
-                traceback.print_exc()
-                self.list = []
-            # Convert the arrays to strings before pickling because at least
-            # some Python versions can't pickle/unpickle arrays
-            l = [a.tostring() for a in self.list]
-            cPickle.dump((l, self.object_cache), w, -1)
-            w.close()
-            os._exit(0)
-        else:
-            # Parent process
-            w.close()
-            (l, self.object_cache) = cPickle.load(r)
-            r.close()
-            os.waitpid(pid, 0)
-            self.list = []
-            for s in l:
-                a = array.array("H")
-                a.fromstring(s)
-                self.list.append(a)
-
-
-    def get_generator(self):
+    def get_dicts(self, node=None, ctx=[], content=[], shortname=[], dep=[]):
         """
         Generate dictionaries from the code parsed so far.  This should
-        probably be called after parsing something.
+        be called after parsing something.
 
         @return: A dict generator.
         """
-        for a in self.list:
-            name, shortname, depend, content = _array_get_all(a,
-                                                              self.object_cache)
-            dict = {"name": name, "shortname": shortname, "depend": depend}
-            self._apply_content_to_dict(dict, content)
-            yield dict
-
-
-    def get_list(self):
-        """
-        Generate a list of dictionaries from the code parsed so far.
-        This should probably be called after parsing something.
-
-        @return: A list of dicts.
-        """
-        return list(self.get_generator())
-
-
-    def count(self, filter=".*"):
-        """
-        Return the number of dictionaries whose names match filter.
-
-        @param filter: A regular expression string.
-        """
-        exp = self._get_filter_regex(filter)
-        count = 0
-        for a in self.list:
-            name = _array_get_name(a, self.object_cache)
-            if exp.search(name):
-                count += 1
-        return count
-
-
-    def parse_variants(self, cr, list, subvariants=False, prev_indent=-1):
-        """
-        Read and parse lines from a configreader object until a line with an
-        indent level lower than or equal to prev_indent is encountered.
-
-        @brief: Parse a 'variants' or 'subvariants' block from a configreader
-            object.
-        @param cr: configreader object to be parsed.
-        @param list: List of arrays to operate on.
-        @param subvariants: If True, parse in 'subvariants' mode;
-            otherwise parse in 'variants' mode.
-        @param prev_indent: The indent level of the "parent" block.
-        @return: The resulting list of arrays.
-        """
-        new_list = []
-
-        while True:
-            pos = cr.tell()
-            (indented_line, line, indent) = cr.get_next_line()
-            if indent <= prev_indent:
-                cr.seek(pos)
-                break
-
-            # Get name and dependencies
-            (name, depend) = map(str.strip, line.lstrip("- ").split(":"))
-
-            # See if name should be added to the 'shortname' field
-            add_to_shortname = not name.startswith("@")
-            name = name.lstrip("@")
-
-            # Store name and dependencies in cache and get their indices
-            n = self._store_str(name)
-            d = self._store_str(depend)
-
-            # Make a copy of list
-            temp_list = [a[:] for a in list]
-
-            if subvariants:
-                # If we're parsing 'subvariants', first modify the list
-                if add_to_shortname:
-                    for a in temp_list:
-                        _array_append_to_name_shortname_depend(a, n, d)
-                else:
-                    for a in temp_list:
-                        _array_append_to_name_depend(a, n, d)
-                temp_list = self.parse(cr, temp_list, restricted=True,
-                                       prev_indent=indent)
-            else:
-                # If we're parsing 'variants', parse before modifying the list
-                if self.debug:
-                    _debug_print(indented_line,
-                                 "Entering variant '%s' "
-                                 "(variant inherits %d dicts)" %
-                                 (name, len(list)))
-                temp_list = self.parse(cr, temp_list, restricted=False,
-                                       prev_indent=indent)
-                if add_to_shortname:
-                    for a in temp_list:
-                        _array_prepend_to_name_shortname_depend(a, n, d)
-                else:
-                    for a in temp_list:
-                        _array_prepend_to_name_depend(a, n, d)
-
-            new_list += temp_list
-
-        return new_list
-
-
-    def parse(self, cr, list, restricted=False, prev_indent=-1):
-        """
-        Read and parse lines from a configreader object until a line with an
-        indent level lower than or equal to prev_indent is encountered.
-
-        @brief: Parse a configreader object.
-        @param cr: A configreader object.
-        @param list: A list of arrays to operate on (list is modified in
-            place and should not be used after the call).
-        @param restricted: If True, operate in restricted mode
-            (prohibit 'variants').
-        @param prev_indent: The indent level of the "parent" block.
-        @return: The resulting list of arrays.
-        @note: List is destroyed and should not be used after the call.
-            Only the returned list should be used.
-        """
-        current_block = ""
-
-        while True:
-            pos = cr.tell()
-            (indented_line, line, indent) = cr.get_next_line()
-            if indent <= prev_indent:
-                cr.seek(pos)
-                self._append_content_to_arrays(list, current_block)
-                break
-
-            len_list = len(list)
-
-            # Parse assignment operators (keep lines in temporary buffer)
-            if "=" in line:
-                if self.debug and not restricted:
-                    _debug_print(indented_line,
-                                 "Parsing operator (%d dicts in current "
-                                 "context)" % len_list)
-                current_block += line + "\n"
-                continue
-
-            # Flush the temporary buffer
-            self._append_content_to_arrays(list, current_block)
-            current_block = ""
-
-            words = line.split()
-
-            # Parse 'no' and 'only' statements
-            if words[0] == "no" or words[0] == "only":
-                if len(words) <= 1:
+        def process_content(content, failed_filters):
+            # 1. Check that the filters in content are OK with the current
+            #    context (ctx).
+            # 2. Move the parts of content that are still relevant into
+            #    new_content and unpack conditional blocks if appropriate.
+            #    For example, if an 'only' statement fully matches ctx, it
+            #    becomes irrelevant and is not appended to new_content.
+            #    If a conditional block fully matches, its contents are
+            #    unpacked into new_content.
+            # 3. Move failed filters into failed_filters, so that next time we
+            #    reach this node or one of its ancestors, we'll check those
+            #    filters first.
+            for t in content:
+                filename, linenum, obj = t
+                if type(obj) is str:
+                    new_content.append(t)
                     continue
-                filters = map(self._get_filter_regex, words[1:])
-                filtered_list = []
-                if words[0] == "no":
-                    for a in list:
-                        name = _array_get_name(a, self.object_cache)
-                        for filter in filters:
-                            if filter.search(name):
-                                break
-                        else:
-                            filtered_list.append(a)
-                if words[0] == "only":
-                    for a in list:
-                        name = _array_get_name(a, self.object_cache)
-                        for filter in filters:
-                            if filter.search(name):
-                                filtered_list.append(a)
-                                break
-                list = filtered_list
-                if self.debug and not restricted:
-                    _debug_print(indented_line,
-                                 "Parsing no/only (%d dicts in current "
-                                 "context, %d remain)" %
-                                 (len_list, len(list)))
-                continue
+                elif type(obj) is OnlyFilter:
+                    if not obj.might_match(ctx, ctx_set, labels):
+                        self._debug("    filter did not pass: %r (%s:%s)",
+                                    obj.line, filename, linenum)
+                        failed_filters.append(t)
+                        return False
+                    elif obj.match(ctx, ctx_set):
+                        continue
+                elif type(obj) is NoFilter:
+                    if obj.match(ctx, ctx_set):
+                        self._debug("    filter did not pass: %r (%s:%s)",
+                                    obj.line, filename, linenum)
+                        failed_filters.append(t)
+                        return False
+                    elif not obj.might_match(ctx, ctx_set, labels):
+                        continue
+                elif type(obj) is Condition:
+                    if obj.match(ctx, ctx_set):
+                        self._debug("    conditional block matches: %r (%s:%s)",
+                                    obj.line, filename, linenum)
+                        # Check and unpack the content inside this Condition
+                        # object (note: the failed filters should go into
+                        # new_internal_filters because we don't expect them to
+                        # come from outside this node, even if the Condition
+                        # itself was external)
+                        if not process_content(obj.content,
+                                               new_internal_filters):
+                            failed_filters.append(t)
+                            return False
+                        continue
+                    elif not obj.might_match(ctx, ctx_set, labels):
+                        continue
+                new_content.append(t)
+            return True
+
+        def might_pass(failed_ctx,
+                       failed_ctx_set,
+                       failed_external_filters,
+                       failed_internal_filters):
+            for t in failed_external_filters:
+                if t not in content:
+                    return True
+                filename, linenum, filter = t
+                if filter.might_pass(failed_ctx, failed_ctx_set, ctx, ctx_set,
+                                     labels):
+                    return True
+            for t in failed_internal_filters:
+                filename, linenum, filter = t
+                if filter.might_pass(failed_ctx, failed_ctx_set, ctx, ctx_set,
+                                     labels):
+                    return True
+            return False
+
+        def add_failed_case():
+            node.failed_cases.appendleft((ctx, ctx_set,
+                                          new_external_filters,
+                                          new_internal_filters))
+            if len(node.failed_cases) > num_failed_cases:
+                node.failed_cases.pop()
+
+        node = node or self.node
+        # Update dep
+        for d in node.dep:
+            dep = dep + [".".join(ctx + [d])]
+        # Update ctx
+        ctx = ctx + node.name
+        ctx_set = set(ctx)
+        labels = node.labels
+        # Get the current name
+        name = ".".join(ctx)
+        if node.name:
+            self._debug("checking out %r", name)
+        # Check previously failed filters
+        for i, failed_case in enumerate(node.failed_cases):
+            if not might_pass(*failed_case):
+                self._debug("    this subtree has failed before")
+                del node.failed_cases[i]
+                node.failed_cases.appendleft(failed_case)
+                return
+        # Check content and unpack it into new_content
+        new_content = []
+        new_external_filters = []
+        new_internal_filters = []
+        if (not process_content(node.content, new_internal_filters) or
+            not process_content(content, new_external_filters)):
+            add_failed_case()
+            return
+        # Update shortname
+        if node.append_to_shortname:
+            shortname = shortname + node.name
+        # Recurse into children
+        count = 0
+        for n in node.children:
+            for d in self.get_dicts(n, ctx, new_content, shortname, dep):
+                count += 1
+                yield d
+        # Reached leaf?
+        if not node.children:
+            self._debug("    reached leaf, returning it")
+            d = {"name": name, "dep": dep, "shortname": ".".join(shortname)}
+            for filename, linenum, op in new_content:
+                op.apply_to_dict(d, ctx, ctx_set)
+            yield d
+        # If this node did not produce any dicts, remember the failed filters
+        # of its descendants
+        elif not count:
+            new_external_filters = []
+            new_internal_filters = []
+            for n in node.children:
+                (failed_ctx,
+                 failed_ctx_set,
+                 failed_external_filters,
+                 failed_internal_filters) = n.failed_cases[0]
+                for obj in failed_internal_filters:
+                    if obj not in new_internal_filters:
+                        new_internal_filters.append(obj)
+                for obj in failed_external_filters:
+                    if obj in content:
+                        if obj not in new_external_filters:
+                            new_external_filters.append(obj)
+                    else:
+                        if obj not in new_internal_filters:
+                            new_internal_filters.append(obj)
+            add_failed_case()
+
+
+    def _debug(self, s, *args):
+        if self.debug:
+            s = "DEBUG: %s" % s
+            print s % args
+
+
+    def _warn(self, s, *args):
+        s = "WARNING: %s" % s
+        print s % args
+
+
+    def _parse_variants(self, cr, node, prev_indent=-1):
+        """
+        Read and parse lines from a FileReader object until a line with an
+        indent level lower than or equal to prev_indent is encountered.
+
+        @param cr: A FileReader/StrReader object.
+        @param node: A node to operate on.
+        @param prev_indent: The indent level of the "parent" block.
+        @return: A node object.
+        """
+        node4 = Node()
+
+        while True:
+            line, indent, linenum = cr.get_next_line(prev_indent)
+            if not line:
+                break
+
+            name, dep = map(str.strip, line.lstrip("- ").split(":", 1))
+            for char in name:
+                if not (char.isalnum() or char in "@._-"):
+                    raise ParserError("Illegal characters in variant name",
+                                      line, cr.filename, linenum)
+            for char in dep:
+                if not (char.isalnum() or char.isspace() or char in ".,_-"):
+                    raise ParserError("Illegal characters in dependencies",
+                                      line, cr.filename, linenum)
+
+            node2 = Node()
+            node2.children = [node]
+            node2.labels = node.labels
+
+            node3 = self._parse(cr, node2, prev_indent=indent)
+            node3.name = name.lstrip("@").split(".")
+            node3.dep = dep.replace(",", " ").split()
+            node3.append_to_shortname = not name.startswith("@")
+
+            node4.children += [node3]
+            node4.labels.update(node3.labels)
+            node4.labels.update(node3.name)
+
+        return node4
+
+
+    def _parse(self, cr, node, prev_indent=-1):
+        """
+        Read and parse lines from a StrReader object until a line with an
+        indent level lower than or equal to prev_indent is encountered.
+
+        @param cr: A FileReader/StrReader object.
+        @param node: A Node or a Condition object to operate on.
+        @param prev_indent: The indent level of the "parent" block.
+        @return: A node object.
+        """
+        while True:
+            line, indent, linenum = cr.get_next_line(prev_indent)
+            if not line:
+                break
+
+            words = line.split(None, 1)
 
             # Parse 'variants'
             if line == "variants:":
-                # 'variants' not allowed in restricted mode
-                # (inside an exception or inside subvariants)
-                if restricted:
-                    e_msg = "Using variants in this context is not allowed"
-                    cr.raise_error(e_msg)
-                if self.debug and not restricted:
-                    _debug_print(indented_line,
-                                 "Entering variants block (%d dicts in "
-                                 "current context)" % len_list)
-                list = self.parse_variants(cr, list, subvariants=False,
-                                           prev_indent=indent)
-                continue
-
-            # Parse 'subvariants' (the block is parsed for each dict
-            # separately)
-            if line == "subvariants:":
-                if self.debug and not restricted:
-                    _debug_print(indented_line,
-                                 "Entering subvariants block (%d dicts in "
-                                 "current context)" % len_list)
-                new_list = []
-                # Remember current position
-                pos = cr.tell()
-                # Read the lines in any case
-                self.parse_variants(cr, [], subvariants=True,
-                                    prev_indent=indent)
-                # Iterate over the list...
-                for index in xrange(len(list)):
-                    # Revert to initial position in this 'subvariants' block
-                    cr.seek(pos)
-                    # Everything inside 'subvariants' should be parsed in
-                    # restricted mode
-                    new_list += self.parse_variants(cr, list[index:index+1],
-                                                    subvariants=True,
-                                                    prev_indent=indent)
-                list = new_list
+                # 'variants' is not allowed inside a conditional block
+                if isinstance(node, Condition):
+                    raise ParserError("'variants' is not allowed inside a "
+                                      "conditional block",
+                                      None, cr.filename, linenum)
+                node = self._parse_variants(cr, node, prev_indent=indent)
                 continue
 
             # Parse 'include' statements
             if words[0] == "include":
-                if len(words) <= 1:
+                if len(words) < 2:
+                    raise ParserError("Syntax error: missing parameter",
+                                      line, cr.filename, linenum)
+                if not isinstance(cr, FileReader):
+                    raise ParserError("Cannot include because no file is "
+                                      "currently open",
+                                      line, cr.filename, linenum)
+                filename = os.path.join(os.path.dirname(cr.filename), words[1])
+                if not os.path.isfile(filename):
+                    self._warn("%r (%s:%s): file doesn't exist or is not a "
+                               "regular file", line, cr.filename, linenum)
                     continue
-                if self.debug and not restricted:
-                    _debug_print(indented_line, "Entering file %s" % words[1])
-
-                cur_filename = cr.real_filename()
-                if cur_filename is None:
-                    cr.raise_error("'include' is valid only when parsing a file")
-
-                filename = os.path.join(os.path.dirname(cur_filename),
-                                        words[1])
-                if not os.path.exists(filename):
-                    cr.raise_error("Cannot include %s -- file not found" % (filename))
-
-                str = open(filename).read()
-                list = self.parse(configreader(filename, str), list, restricted)
-                if self.debug and not restricted:
-                    _debug_print("", "Leaving file %s" % words[1])
-
+                node = self._parse(FileReader(filename), node)
                 continue
 
-            # Parse multi-line exceptions
-            # (the block is parsed for each dict separately)
+            # Parse 'only' and 'no' filters
+            if words[0] in ("only", "no"):
+                if len(words) < 2:
+                    raise ParserError("Syntax error: missing parameter",
+                                      line, cr.filename, linenum)
+                try:
+                    if words[0] == "only":
+                        f = OnlyFilter(line)
+                    elif words[0] == "no":
+                        f = NoFilter(line)
+                except ParserError, e:
+                    e.line = line
+                    e.filename = cr.filename
+                    e.linenum = linenum
+                    raise
+                node.content += [(cr.filename, linenum, f)]
+                continue
+
+            # Parse conditional blocks
             if line.endswith(":"):
-                if self.debug and not restricted:
-                    _debug_print(indented_line,
-                                 "Entering multi-line exception block "
-                                 "(%d dicts in current context outside "
-                                 "exception)" % len_list)
-                line = line[:-1]
-                new_list = []
-                # Remember current position
-                pos = cr.tell()
-                # Read the lines in any case
-                self.parse(cr, [], restricted=True, prev_indent=indent)
-                # Iterate over the list...
-                exp = self._get_filter_regex(line)
-                for index in xrange(len(list)):
-                    name = _array_get_name(list[index], self.object_cache)
-                    if exp.search(name):
-                        # Revert to initial position in this exception block
-                        cr.seek(pos)
-                        # Everything inside an exception should be parsed in
-                        # restricted mode
-                        new_list += self.parse(cr, list[index:index+1],
-                                               restricted=True,
-                                               prev_indent=indent)
-                    else:
-                        new_list.append(list[index])
-                list = new_list
+                try:
+                    cond = Condition(line)
+                except ParserError, e:
+                    e.line = line
+                    e.filename = cr.filename
+                    e.linenum = linenum
+                    raise
+                self._parse(cr, cond, prev_indent=indent)
+                node.content += [(cr.filename, linenum, cond)]
                 continue
 
-        return list
+            # Parse regular operators
+            try:
+                op = Op(line)
+            except ParserError, e:
+                e.line = line
+                e.filename = cr.filename
+                e.linenum = linenum
+                raise
+            node.content += [(cr.filename, linenum, op)]
 
-
-    def _get_filter_regex(self, filter):
-        """
-        Return a regex object corresponding to a given filter string.
-
-        All regular expressions given to the parser are passed through this
-        function first.  Its purpose is to make them more specific and better
-        suited to match dictionary names: it forces simple expressions to match
-        only between dots or at the beginning or end of a string.  For example,
-        the filter 'foo' will match 'foo.bar' but not 'foobar'.
-        """
-        try:
-            return self.regex_cache[filter]
-        except KeyError:
-            exp = re.compile(r"(\.|^)(%s)(\.|$)" % filter)
-            self.regex_cache[filter] = exp
-            return exp
-
-
-    def _store_str(self, str):
-        """
-        Store str in the internal object cache, if it isn't already there, and
-        return its identifying index.
-
-        @param str: String to store.
-        @return: The index of str in the object cache.
-        """
-        try:
-            return self.object_cache_indices[str]
-        except KeyError:
-            self.object_cache.append(str)
-            index = len(self.object_cache) - 1
-            self.object_cache_indices[str] = index
-            return index
-
-
-    def _append_content_to_arrays(self, list, content):
-        """
-        Append content (config code containing assignment operations) to a list
-        of arrays.
-
-        @param list: List of arrays to operate on.
-        @param content: String containing assignment operations.
-        """
-        if content:
-            str_index = self._store_str(content)
-            for a in list:
-                _array_append_to_content(a, str_index)
-
-
-    def _apply_content_to_dict(self, dict, content):
-        """
-        Apply the operations in content (config code containing assignment
-        operations) to a dict.
-
-        @param dict: Dictionary to operate on.  Must have 'name' key.
-        @param content: String containing assignment operations.
-        """
-        for line in content.splitlines():
-            op_found = None
-            op_pos = len(line)
-            for op in ops:
-                pos = line.find(op)
-                if pos >= 0 and pos < op_pos:
-                    op_found = op
-                    op_pos = pos
-            if not op_found:
-                continue
-            (left, value) = map(str.strip, line.split(op_found, 1))
-            if value and ((value[0] == '"' and value[-1] == '"') or
-                          (value[0] == "'" and value[-1] == "'")):
-                value = value[1:-1]
-            filters_and_key = map(str.strip, left.split(":"))
-            filters = filters_and_key[:-1]
-            key = filters_and_key[-1]
-            for filter in filters:
-                exp = self._get_filter_regex(filter)
-                if not exp.search(dict["name"]):
-                    break
-            else:
-                ops[op_found](dict, key, value)
+        return node
 
 
 # Assignment operators
 
-def _op_set(dict, key, value):
-    dict[key] = value
+_reserved_keys = set(("name", "shortname", "dep"))
 
 
-def _op_append(dict, key, value):
-    dict[key] = dict.get(key, "") + value
+def _op_set(d, key, value):
+    if key not in _reserved_keys:
+        d[key] = value
 
 
-def _op_prepend(dict, key, value):
-    dict[key] = value + dict.get(key, "")
+def _op_append(d, key, value):
+    if key not in _reserved_keys:
+        d[key] = d.get(key, "") + value
 
 
-def _op_regex_set(dict, exp, value):
-    exp = re.compile("^(%s)$" % exp)
-    for key in dict:
-        if exp.match(key):
-            dict[key] = value
+def _op_prepend(d, key, value):
+    if key not in _reserved_keys:
+        d[key] = value + d.get(key, "")
 
 
-def _op_regex_append(dict, exp, value):
-    exp = re.compile("^(%s)$" % exp)
-    for key in dict:
-        if exp.match(key):
-            dict[key] += value
+def _op_regex_set(d, exp, value):
+    exp = re.compile("%s$" % exp)
+    for key in d:
+        if key not in _reserved_keys and exp.match(key):
+            d[key] = value
 
 
-def _op_regex_prepend(dict, exp, value):
-    exp = re.compile("^(%s)$" % exp)
-    for key in dict:
-        if exp.match(key):
-            dict[key] = value + dict[key]
+def _op_regex_append(d, exp, value):
+    exp = re.compile("%s$" % exp)
+    for key in d:
+        if key not in _reserved_keys and exp.match(key):
+            d[key] += value
 
 
-ops = {
-    "=": _op_set,
-    "+=": _op_append,
-    "<=": _op_prepend,
-    "?=": _op_regex_set,
-    "?+=": _op_regex_append,
-    "?<=": _op_regex_prepend,
-}
+def _op_regex_prepend(d, exp, value):
+    exp = re.compile("%s$" % exp)
+    for key in d:
+        if key not in _reserved_keys and exp.match(key):
+            d[key] = value + d[key]
 
 
-# Misc functions
+def _op_regex_del(d, empty, exp):
+    exp = re.compile("%s$" % exp)
+    for key in d.keys():
+        if key not in _reserved_keys and exp.match(key):
+            del d[key]
 
-def _debug_print(str1, str2=""):
+
+_ops = {"=": (r"\=", _op_set),
+        "+=": (r"\+\=", _op_append),
+        "<=": (r"\<\=", _op_prepend),
+        "?=": (r"\?\=", _op_regex_set),
+        "?+=": (r"\?\+\=", _op_regex_append),
+        "?<=": (r"\?\<\=", _op_regex_prepend),
+        "del": (r"^del\b", _op_regex_del)}
+
+_ops_exp = re.compile("|".join([op[0] for op in _ops.values()]))
+
+
+class Op(object):
+    def __init__(self, line):
+        m = re.search(_ops_exp, line)
+        if not m:
+            raise ParserError("Syntax error: missing operator")
+        left = line[:m.start()].strip()
+        value = line[m.end():].strip()
+        if value and ((value[0] == '"' and value[-1] == '"') or
+                      (value[0] == "'" and value[-1] == "'")):
+            value = value[1:-1]
+        filters_and_key = map(str.strip, left.split(":"))
+        self.filters = [Filter(f) for f in filters_and_key[:-1]]
+        self.key = filters_and_key[-1]
+        self.value = value
+        self.func = _ops[m.group()][1]
+
+
+    def apply_to_dict(self, d, ctx, ctx_set):
+        for f in self.filters:
+            if not f.match(ctx, ctx_set):
+                return
+        self.func(d, self.key, self.value)
+
+
+# StrReader and FileReader
+
+class StrReader(object):
     """
-    Nicely print two strings and an arrow.
-
-    @param str1: First string.
-    @param str2: Second string.
+    Preprocess an input string for easy reading.
     """
-    if str2:
-        str = "%-50s ---> %s" % (str1, str2)
-    else:
-        str = str1
-    logging.debug(str)
-
-
-# configreader
-
-class configreader:
-    """
-    Preprocess an input string and provide file-like services.
-    This is intended as a replacement for the file and StringIO classes,
-    whose readline() and/or seek() methods seem to be slow.
-    """
-
-    def __init__(self, filename, str, real_file=True):
+    def __init__(self, s):
         """
         Initialize the reader.
 
-        @param filename: the filename we're parsing
-        @param str: The string to parse.
-        @param real_file: Indicates if filename represents a real file. Defaults to True.
+        @param s: The string to parse.
         """
-        self.filename = filename
-        self.is_real_file = real_file
-        self.line_index = 0
-        self.lines = []
-        self.real_number = []
-        for num, line in enumerate(str.splitlines()):
+        self.filename = "<string>"
+        self._lines = []
+        self._line_index = 0
+        for linenum, line in enumerate(s.splitlines()):
             line = line.rstrip().expandtabs()
-            stripped_line = line.strip()
+            stripped_line = line.lstrip()
             indent = len(line) - len(stripped_line)
             if (not stripped_line
                 or stripped_line.startswith("#")
                 or stripped_line.startswith("//")):
                 continue
-            self.lines.append((line, stripped_line, indent))
-            self.real_number.append(num + 1)
+            self._lines.append((stripped_line, indent, linenum + 1))
 
 
-    def real_filename(self):
-        """Returns the filename we're reading, in case it is a real file
-
-        @returns the filename we are parsing, or None in case we're not parsing a real file
+    def get_next_line(self, prev_indent):
         """
-        if self.is_real_file:
-            return self.filename
+        Get the next non-empty, non-comment line in the string, whose
+        indentation level is higher than prev_indent.
 
-    def get_next_line(self):
+        @param prev_indent: The indentation level of the previous block.
+        @return: (line, indent, linenum), where indent is the line's
+            indentation level.  If no line is available, (None, -1, -1) is
+            returned.
         """
-        Get the next non-empty, non-comment line in the string.
-
-        @param file: File like object.
-        @return: (line, stripped_line, indent), where indent is the line's
-            indent level or -1 if no line is available.
-        """
-        try:
-            if self.line_index < len(self.lines):
-                return self.lines[self.line_index]
-            else:
-                return (None, None, -1)
-        finally:
-            self.line_index += 1
+        if self._line_index >= len(self._lines):
+            return None, -1, -1
+        line, indent, linenum = self._lines[self._line_index]
+        if indent <= prev_indent:
+            return None, -1, -1
+        self._line_index += 1
+        return line, indent, linenum
 
 
-    def tell(self):
-        """
-        Return the current line index.
-        """
-        return self.line_index
-
-
-    def seek(self, index):
-        """
-        Set the current line index.
-        """
-        self.line_index = index
-
-    def raise_error(self, msg):
-        """Raise an error related to the last line returned by get_next_line()
-        """
-        if self.line_index == 0: # nothing was read. shouldn't happen, but...
-            line_id = 'BEGIN'
-        elif self.line_index >= len(self.lines): # past EOF
-            line_id = 'EOF'
-        else:
-            # line_index is the _next_ line. get the previous one
-            line_id = str(self.real_number[self.line_index-1])
-        raise error.AutotestError("%s:%s: %s" % (self.filename, line_id, msg))
-
-
-# Array structure:
-# ----------------
-# The first 4 elements contain the indices of the 4 segments.
-# a[0] -- Index of beginning of 'name' segment (always 4).
-# a[1] -- Index of beginning of 'shortname' segment.
-# a[2] -- Index of beginning of 'depend' segment.
-# a[3] -- Index of beginning of 'content' segment.
-# The next elements in the array comprise the aforementioned segments:
-# The 'name' segment begins with a[a[0]] and ends with a[a[1]-1].
-# The 'shortname' segment begins with a[a[1]] and ends with a[a[2]-1].
-# The 'depend' segment begins with a[a[2]] and ends with a[a[3]-1].
-# The 'content' segment begins with a[a[3]] and ends at the end of the array.
-
-# The following functions append/prepend to various segments of an array.
-
-def _array_append_to_name_shortname_depend(a, name, depend):
-    a.insert(a[1], name)
-    a.insert(a[2] + 1, name)
-    a.insert(a[3] + 2, depend)
-    a[1] += 1
-    a[2] += 2
-    a[3] += 3
-
-
-def _array_prepend_to_name_shortname_depend(a, name, depend):
-    a[1] += 1
-    a[2] += 2
-    a[3] += 3
-    a.insert(a[0], name)
-    a.insert(a[1], name)
-    a.insert(a[2], depend)
-
-
-def _array_append_to_name_depend(a, name, depend):
-    a.insert(a[1], name)
-    a.insert(a[3] + 1, depend)
-    a[1] += 1
-    a[2] += 1
-    a[3] += 2
-
-
-def _array_prepend_to_name_depend(a, name, depend):
-    a[1] += 1
-    a[2] += 1
-    a[3] += 2
-    a.insert(a[0], name)
-    a.insert(a[2], depend)
-
-
-def _array_append_to_content(a, content):
-    a.append(content)
-
-
-def _array_get_name(a, object_cache):
+class FileReader(StrReader):
     """
-    Return the name of a dictionary represented by a given array.
-
-    @param a: Array representing a dictionary.
-    @param object_cache: A list of strings referenced by elements in the array.
+    Preprocess an input file for easy reading.
     """
-    return ".".join([object_cache[i] for i in a[a[0]:a[1]]])
+    def __init__(self, filename):
+        """
+        Initialize the reader.
 
-
-def _array_get_all(a, object_cache):
-    """
-    Return a 4-tuple containing all the data stored in a given array, in a
-    format that is easy to turn into an actual dictionary.
-
-    @param a: Array representing a dictionary.
-    @param object_cache: A list of strings referenced by elements in the array.
-    @return: A 4-tuple: (name, shortname, depend, content), in which all
-        members are strings except depend which is a list of strings.
-    """
-    name = ".".join([object_cache[i] for i in a[a[0]:a[1]]])
-    shortname = ".".join([object_cache[i] for i in a[a[1]:a[2]]])
-    content = "".join([object_cache[i] for i in a[a[3]:]])
-    depend = []
-    prefix = ""
-    for n, d in zip(a[a[0]:a[1]], a[a[2]:a[3]]):
-        for dep in object_cache[d].split():
-            depend.append(prefix + dep)
-        prefix += object_cache[n] + "."
-    return name, shortname, depend, content
+        @parse filename: The name of the input file.
+        """
+        StrReader.__init__(self, open(filename).read())
+        self.filename = filename
 
 
 if __name__ == "__main__":
-    parser = optparse.OptionParser("usage: %prog [options] [filename]")
-    parser.add_option('--verbose', dest="debug", action='store_true',
-                      help='include debug messages in console output')
+    parser = optparse.OptionParser("usage: %prog [options] <filename>")
+    parser.add_option("-v", "--verbose", dest="debug", action="store_true",
+                      help="include debug messages in console output")
+    parser.add_option("-f", "--fullname", dest="fullname", action="store_true",
+                      help="show full dict names instead of short names")
+    parser.add_option("-c", "--contents", dest="contents", action="store_true",
+                      help="show dict contents")
 
     options, args = parser.parse_args()
-    debug = options.debug
-    if args:
-        filenames = args
-    else:
-        filenames = [os.path.join(os.path.dirname(sys.argv[0]), "tests.cfg")]
+    if not args:
+        parser.error("filename required")
 
-    # Here we configure the stand alone program to use the autotest
-    # logging system.
-    logging_manager.configure_logging(kvm_utils.KvmLoggingConfig(),
-                                      verbose=debug)
-    cfg = config(debug=debug)
-    for fn in filenames:
-        cfg.parse_file(fn)
-    dicts = cfg.get_generator()
-    for i, dict in enumerate(dicts):
-        print "Dictionary #%d:" % (i)
-        keys = dict.keys()
-        keys.sort()
-        for key in keys:
-            print "    %s = %s" % (key, dict[key])
+    c = Parser(args[0], debug=options.debug)
+    for i, d in enumerate(c.get_dicts()):
+        if options.fullname:
+            print "dict %4d:  %s" % (i + 1, d["name"])
+        else:
+            print "dict %4d:  %s" % (i + 1, d["shortname"])
+        if options.contents:
+            keys = d.keys()
+            keys.sort()
+            for key in keys:
+                print "    %s = %s" % (key, d[key])

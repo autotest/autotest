@@ -35,13 +35,11 @@ str = """
 # build configuration here.  For example:
 #release_tag = 84
 """
-build_cfg = kvm_config.config()
-# As the base test config is quite large, in order to save memory, we use the
-# fork_and_parse() method, that creates another parser process and destroys it
-# at the end of the parsing, so the memory spent can be given back to the OS.
-build_cfg_path = os.path.join(kvm_test_dir, "build.cfg")
-build_cfg.fork_and_parse(build_cfg_path, str)
-if not kvm_utils.run_tests(build_cfg.get_generator(), job):
+
+parser = kvm_config.Parser()
+parser.parse_file(os.path.join(kvm_test_dir, "build.cfg"))
+parser.parse_string(str)
+if not kvm_utils.run_tests(parser.get_dicts(), job):
     logging.error("KVM build step failed, exiting.")
     sys.exit(1)
 
@@ -49,10 +47,11 @@ str = """
 # This string will be parsed after tests.cfg.  Make any desired changes to the
 # test configuration here.  For example:
 #display = sdl
-#install|setup: timeout_multiplier = 3
+#install, setup: timeout_multiplier = 3
 """
-tests_cfg = kvm_config.config()
-tests_cfg_path = os.path.join(kvm_test_dir, "tests.cfg")
+
+parser = kvm_config.Parser()
+parser.parse_file(os.path.join(kvm_test_dir, "tests.cfg"))
 
 if args:
     # We get test parameters from command line
@@ -67,11 +66,12 @@ if args:
                 str += "%s = %s\n" % (key, value)
         except IndexError:
             pass
-tests_cfg.fork_and_parse(tests_cfg_path, str)
+parser.parse_string(str)
 
-# Run the tests
-kvm_utils.run_tests(tests_cfg.get_generator(), job)
+logging.info("Selected tests:")
+for i, d in enumerate(parser.get_dicts()):
+    logging.info("Test %4d:  %s" % (i + 1, d["shortname"]))
+kvm_utils.run_tests(parser.get_dicts(), job)
 
 # Generate a nice HTML report inside the job's results dir
 kvm_utils.create_report(kvm_test_dir, job.resultdir)
-
