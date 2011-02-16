@@ -16,6 +16,7 @@ class fsstress(test.test):
 
         os.chdir(self.srcdir)
         utils.system('patch -p1 < ../fsstress-ltp.patch')
+        utils.system('patch -p1 < ../makefile.patch')
         utils.make('fsstress')
 
 
