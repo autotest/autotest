@@ -1722,8 +1722,8 @@ variants:
 
     # Windows section
     - @Windows:
-        no autotest linux_s3 vlan ioquit unattended_install.(url|nfs|remote_ks)
-        no jumbo nicdriver_unload nic_promisc multicast mac_change ethtool clock_getres
+        no autotest, linux_s3, vlan, ioquit, unattended_install.url, unattended_install.nfs, unattended_install.remote_ks
+        no jumbo, nicdriver_unload, nic_promisc, multicast, mac_change, ethtool, clock_getres
 
         shutdown_command = shutdown /s /f /t 0
         reboot_command = shutdown /r /f /t 0
@@ -1747,7 +1747,7 @@ variants:
         mem_chk_cmd = wmic memphysical
         mem_chk_cur_cmd = wmic memphysical
 
-        unattended_install.cdrom|whql.support_vm_install:
+        unattended_install.cdrom, whql.support_vm_install:
             timeout = 7200
             finish_program = deps/finish.exe
             cdroms += " winutils"
@@ -1857,7 +1857,7 @@ variants:
                             steps = WinXP-32.steps
                         setup:
                             steps = WinXP-32-rss.steps
-                        unattended_install.cdrom|whql.support_vm_install:
+                        unattended_install.cdrom, whql.support_vm_install:
                             cdrom_cd1 = isos/windows/WindowsXP-sp2-vlk.iso
                             md5sum_cd1 = 743450644b1d9fe97b3cf379e22dceb0
                             md5sum_1m_cd1 = b473bf75af2d1269fec8958cf0202bfd
@@ -1890,7 +1890,7 @@ variants:
                             steps = WinXP-64.steps
                         setup:
                             steps = WinXP-64-rss.steps
-                        unattended_install.cdrom|whql.support_vm_install:
+                        unattended_install.cdrom, whql.support_vm_install:
                             cdrom_cd1 = isos/windows/WindowsXP-64.iso
                             md5sum_cd1 = 8d3f007ec9c2060cec8a50ee7d7dc512
                             md5sum_1m_cd1 = e812363ff427effc512b7801ee70e513
@@ -1928,7 +1928,7 @@ variants:
                             steps = Win2003-32.steps
                         setup:
                             steps = Win2003-32-rss.steps
-                        unattended_install.cdrom|whql.support_vm_install:
+                        unattended_install.cdrom, whql.support_vm_install:
                             cdrom_cd1 = isos/windows/Windows2003_r2_VLK.iso
                             md5sum_cd1 = 03e921e9b4214773c21a39f5c3f42ef7
                             md5sum_1m_cd1 = 37c2fdec15ac4ec16aa10fdfdb338aa3
@@ -1960,7 +1960,7 @@ variants:
                             steps = Win2003-64.steps
                         setup:
                             steps = Win2003-64-rss.steps
-                        unattended_install.cdrom|whql.support_vm_install:
+                        unattended_install.cdrom, whql.support_vm_install:
                             cdrom_cd1 = isos/windows/Windows2003-x64.iso
                             md5sum_cd1 = 5703f87c9fd77d28c05ffadd3354dbbd
                             md5sum_1m_cd1 = 439393c384116aa09e08a0ad047dcea8
@@ -2008,7 +2008,7 @@ variants:
                                     steps = Win-Vista-32.steps
                                 setup:
                                     steps = WinVista-32-rss.steps
-                                unattended_install.cdrom|whql.support_vm_install:
+                                unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/WindowsVista-32.iso
                                     md5sum_cd1 = 1008f323d5170c8e614e52ccb85c0491
                                     md5sum_1m_cd1 = c724e9695da483bc0fd59e426eaefc72
@@ -2025,7 +2025,7 @@ variants:
 
                             - sp2:
                                 image_name += -sp2-32
-                                unattended_install.cdrom|whql.support_vm_install:
+                                unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/en_windows_vista_with_sp2_x86_dvd_342266.iso
                                     md5sum_cd1 = 19ca90a425667812977bab6f4ce24175
                                     md5sum_1m_cd1 = 89c15020e0e6125be19acf7a2e5dc614
@@ -2059,7 +2059,7 @@ variants:
                                     steps = Win-Vista-64.steps
                                 setup:
                                     steps = WinVista-64-rss.steps
-                                unattended_install.cdrom|whql.support_vm_install:
+                                unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/WindowsVista-64.iso
                                     md5sum_cd1 = 11e2010d857fffc47813295e6be6d58d
                                     md5sum_1m_cd1 = 0947bcd5390546139e25f25217d6f165
@@ -2076,7 +2076,7 @@ variants:
 
                             - sp2:
                                 image_name += -sp2-64
-                                unattended_install.cdrom|whql.support_vm_install:
+                                unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/en_windows_vista_sp2_x64_dvd_342267.iso
                                     md5sum_cd1 = a1c024d7abaf34bac3368e88efbc2574
                                     md5sum_1m_cd1 = 3d84911a80f3df71d1026f7adedc2181
@@ -2112,7 +2112,7 @@ variants:
                                     steps = Win2008-32.steps
                                 setup:
                                     steps = Win2008-32-rss.steps
-                                unattended_install.cdrom|whql.support_vm_install:
+                                unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/Windows2008-x86.iso
                                     md5sum=0bfca49f0164de0a8eba236ced47007d
                                     md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
@@ -2127,7 +2127,7 @@ variants:
 
                             - sp2:
                                 image_name += -sp2-32
-                                unattended_install.cdrom|whql.support_vm_install:
+                                unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x86_dvd_342333.iso
                                     md5sum_cd1 = b9201aeb6eef04a3c573d036a8780bdf
                                     md5sum_1m_cd1 = b7a9d42e55ea1e85105a3a6ad4da8e04
@@ -2156,7 +2156,7 @@ variants:
                                     passwd = 1q2w3eP
                                 setup:
                                     steps = Win2008-64-rss.steps
-                                unattended_install.cdrom|whql.support_vm_install:
+                                unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/Windows2008-x64.iso
                                     md5sum=27c58cdb3d620f28c36333a5552f271c
                                     md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
@@ -2171,7 +2171,7 @@ variants:
 
                             - sp2:
                                 image_name += -sp2-64
-                                unattended_install.cdrom|whql.support_vm_install:
+                                unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/en_windows_server_2008_datacenter_enterprise_standard_sp2_x64_dvd_342336.iso
                                     md5sum_cd1 = e94943ef484035b3288d8db69599a6b5
                                     md5sum_1m_cd1 = ee55506823d0efffb5532ddd88a8e47b
@@ -2188,7 +2188,7 @@ variants:
 
                             - r2:
                                 image_name += -r2-64
-                                unattended_install.cdrom|whql.support_vm_install:
+                                unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/en_windows_server_2008_r2_standard_enterprise_datacenter_and_web_x64_dvd_x15-59754.iso
                                     md5sum_cd1 = 0207ef392c60efdda92071b0559ca0f9
                                     md5sum_1m_cd1 = a5a22ce25008bd7109f6d830d627e3ed
@@ -2216,7 +2216,7 @@ variants:
                 variants:
                     - 32:
                         image_name += -32
-                        unattended_install.cdrom|whql.support_vm_install:
+                        unattended_install.cdrom, whql.support_vm_install:
                             cdrom_cd1 = isos/windows/en_windows_7_ultimate_x86_dvd_x15-65921.iso
                             md5sum_cd1 = d0b8b407e8a3d4b75ee9c10147266b89
                             md5sum_1m_cd1 = 2b0c2c22b1ae95065db08686bf83af93
@@ -2249,7 +2249,7 @@ variants:
                             steps = Win7-64.steps
                         setup:
                             steps = Win7-64-rss.steps
-                        unattended_install.cdrom|whql.support_vm_install:
+                        unattended_install.cdrom, whql.support_vm_install:
                             cdrom_cd1 = isos/windows/en_windows_7_ultimate_x64_dvd_x15-65922.iso
                             md5sum_cd1 = f43d22e4fb07bf617d573acd8785c028
                             md5sum_1m_cd1 = b44d8cf99dbed2a5cb02765db8dfd48f
@@ -2329,7 +2329,7 @@ variants:
                 md5sum_cd1 = 9fae22f2666369968a76ef59e9a81ced
 
 
-whql.support_vm_install|whql.client_install.support_vm:
+whql.support_vm_install, whql.client_install.support_vm:
     image_name += -supportvm
 
 
@@ -2352,7 +2352,7 @@ variants:
         drive_format=virtio
 
 
-virtio_net|virtio_blk|e1000|balloon_check:
+virtio_net, virtio_blk, e1000, balloon_check:
     only Fedora.11 Fedora.12 Fedora.13 Fedora.14 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
     # only WinXP Win2003 Win2008 WinVista Win7 Fedora.11 Fedora.12 Fedora.13 Fedora.14 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
 
@@ -2365,15 +2365,9 @@ variants:
         check_image = yes
     - vmdk:
         no ioquit
-        only Fedora Ubuntu Windows
-        only smp2
-        only rtl8139
         image_format = vmdk
     - raw:
         no ioquit
-        only Fedora Ubuntu Windows
-        only smp2
-        only rtl8139
         image_format = raw
 
 

@@ -1101,7 +1101,7 @@ def run_tests(test_list, job):
         if dict.get("skip") == "yes":
             continue
         dependencies_satisfied = True
-        for dep in dict.get("depend"):
+        for dep in dict.get("dep"):
             for test_name in status_dict.keys():
                 if not dep in test_name:
                     continue
