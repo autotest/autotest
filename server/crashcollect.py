@@ -46,8 +46,8 @@ def wait_for_machine_to_recover(host, hours_to_wait=4.0):
         logging.info("%s already up, collecting crash info", host.hostname)
         return True
 
-    logging.info("Waiting four hours for %s to come up (%s)",
-                 host.hostname, current_time)
+    logging.info("Waiting %s hours for %s to come up (%s)",
+                 hours_to_wait, host.hostname, current_time)
     if not host.wait_up(timeout=hours_to_wait * 3600):
         logging.warning("%s down, unable to collect crash info",
                         host.hostname)
