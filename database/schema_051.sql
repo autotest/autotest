@@ -1277,7 +1277,7 @@ SET character_set_client = @saved_cs_client;
 /*!50001 DROP TABLE `tko_perf_view`*/;
 /*!50001 DROP VIEW IF EXISTS `tko_perf_view`*/;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`%(username)s`@`localhost` SQL SECURITY DEFINER */
+/*!50013 DEFINER=CURRENT_USER SQL SECURITY DEFINER */
 /*!50001 VIEW `tko_perf_view` AS select `tko_tests`.`test_idx` AS `test_idx`,`tko_tests`.`job_idx` AS `job_idx`,`tko_tests`.`test` AS `test`,`tko_tests`.`subdir` AS `subdir`,`tko_tests`.`kernel_idx` AS `kernel_idx`,`tko_tests`.`status` AS `status`,`tko_tests`.`reason` AS `reason`,`tko_tests`.`machine_idx` AS `machine_idx`,`tko_tests`.`started_time` AS `test_started_time`,`tko_tests`.`finished_time` AS `test_finished_time`,`tko_jobs`.`tag` AS `job_tag`,`tko_jobs`.`label` AS `job_label`,`tko_jobs`.`username` AS `job_username`,`tko_jobs`.`queued_time` AS `job_queued_time`,`tko_jobs`.`started_time` AS `job_started_time`,`tko_jobs`.`finished_time` AS `job_finished_time`,`tko_machines`.`hostname` AS `machine_hostname`,`tko_machines`.`machine_group` AS `machine_group`,`tko_machines`.`owner` AS `machine_owner`,`tko_kernels`.`kernel_hash` AS `kernel_hash`,`tko_kernels`.`base` AS `kernel_base`,`tko_kernels`.`printable` AS `kernel_printable`,`tko_status`.`word` AS `status_word`,`tko_iteration_result`.`iteration` AS `iteration`,`tko_iteration_result`.`attribute` AS `iteration_key`,`tko_iteration_result`.`value` AS `iteration_value` from (((((`tko_tests` join `tko_jobs` on((`tko_jobs`.`job_idx` = `tko_tests`.`job_idx`))) join `tko_machines` on((`tko_machines`.`machine_idx` = `tko_jobs`.`machine_idx`))) join `tko_kernels` on((`tko_kernels`.`kernel_idx` = `tko_tests`.`kernel_idx`))) join `tko_status` on((`tko_status`.`status_idx` = `tko_tests`.`status`))) join `tko_iteration_result` on((`tko_iteration_result`.`test_idx` = `tko_tests`.`test_idx`))) */;
 
 --
@@ -1287,7 +1287,7 @@ SET character_set_client = @saved_cs_client;
 /*!50001 DROP TABLE `tko_perf_view_2`*/;
 /*!50001 DROP VIEW IF EXISTS `tko_perf_view_2`*/;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`%(username)s`@`localhost` SQL SECURITY DEFINER */
+/*!50013 DEFINER=CURRENT_USER SQL SECURITY DEFINER */
 /*!50001 VIEW `tko_perf_view_2` AS select `tko_tests`.`test_idx` AS `test_idx`,`tko_tests`.`job_idx` AS `job_idx`,`tko_tests`.`test` AS `test_name`,`tko_tests`.`subdir` AS `subdir`,`tko_tests`.`kernel_idx` AS `kernel_idx`,`tko_tests`.`status` AS `status_idx`,`tko_tests`.`reason` AS `reason`,`tko_tests`.`machine_idx` AS `machine_idx`,`tko_tests`.`started_time` AS `test_started_time`,`tko_tests`.`finished_time` AS `test_finished_time`,`tko_jobs`.`tag` AS `job_tag`,`tko_jobs`.`label` AS `job_name`,`tko_jobs`.`username` AS `job_owner`,`tko_jobs`.`queued_time` AS `job_queued_time`,`tko_jobs`.`started_time` AS `job_started_time`,`tko_jobs`.`finished_time` AS `job_finished_time`,`tko_machines`.`hostname` AS `hostname`,`tko_machines`.`machine_group` AS `platform`,`tko_machines`.`owner` AS `machine_owner`,`tko_kernels`.`kernel_hash` AS `kernel_hash`,`tko_kernels`.`base` AS `kernel_base`,`tko_kernels`.`printable` AS `kernel`,`tko_status`.`word` AS `status`,`tko_iteration_result`.`iteration` AS `iteration`,`tko_iteration_result`.`attribute` AS `iteration_key`,`tko_iteration_result`.`value` AS `iteration_value` from (((((`tko_tests` left join `tko_jobs` on((`tko_jobs`.`job_idx` = `tko_tests`.`job_idx`))) left join `tko_machines` on((`tko_machines`.`machine_idx` = `tko_jobs`.`machine_idx`))) left join `tko_kernels` on((`tko_kernels`.`kernel_idx` = `tko_tests`.`kernel_idx`))) left join `tko_status` on((`tko_status`.`status_idx` = `tko_tests`.`status`))) left join `tko_iteration_result` on((`tko_iteration_result`.`test_idx` = `tko_tests`.`test_idx`))) */;
 
 --
@@ -1297,7 +1297,7 @@ SET character_set_client = @saved_cs_client;
 /*!50001 DROP TABLE `tko_test_view`*/;
 /*!50001 DROP VIEW IF EXISTS `tko_test_view`*/;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`%(username)s`@`localhost` SQL SECURITY DEFINER */
+/*!50013 DEFINER=CURRENT_USER SQL SECURITY DEFINER */
 /*!50001 VIEW `tko_test_view` AS select `tko_tests`.`test_idx` AS `test_idx`,`tko_tests`.`job_idx` AS `job_idx`,`tko_tests`.`test` AS `test`,`tko_tests`.`subdir` AS `subdir`,`tko_tests`.`kernel_idx` AS `kernel_idx`,`tko_tests`.`status` AS `status`,`tko_tests`.`reason` AS `reason`,`tko_tests`.`machine_idx` AS `machine_idx`,`tko_tests`.`started_time` AS `test_started_time`,`tko_tests`.`finished_time` AS `test_finished_time`,`tko_jobs`.`tag` AS `job_tag`,`tko_jobs`.`label` AS `job_label`,`tko_jobs`.`username` AS `job_username`,`tko_jobs`.`queued_time` AS `job_queued_time`,`tko_jobs`.`started_time` AS `job_started_time`,`tko_jobs`.`finished_time` AS `job_finished_time`,`tko_machines`.`hostname` AS `machine_hostname`,`tko_machines`.`machine_group` AS `machine_group`,`tko_machines`.`owner` AS `machine_owner`,`tko_kernels`.`kernel_hash` AS `kernel_hash`,`tko_kernels`.`base` AS `kernel_base`,`tko_kernels`.`printable` AS `kernel_printable`,`tko_status`.`word` AS `status_word` from ((((`tko_tests` join `tko_jobs` on((`tko_jobs`.`job_idx` = `tko_tests`.`job_idx`))) join `tko_machines` on((`tko_machines`.`machine_idx` = `tko_jobs`.`machine_idx`))) join `tko_kernels` on((`tko_kernels`.`kernel_idx` = `tko_tests`.`kernel_idx`))) join `tko_status` on((`tko_status`.`status_idx` = `tko_tests`.`status`))) */;
 
 --
@@ -1307,7 +1307,7 @@ SET character_set_client = @saved_cs_client;
 /*!50001 DROP TABLE `tko_test_view_2`*/;
 /*!50001 DROP VIEW IF EXISTS `tko_test_view_2`*/;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`%(username)s`@`localhost` SQL SECURITY DEFINER */
+/*!50013 DEFINER=CURRENT_USER SQL SECURITY DEFINER */
 /*!50001 VIEW `tko_test_view_2` AS select `tko_tests`.`test_idx` AS `test_idx`,`tko_tests`.`job_idx` AS `job_idx`,`tko_tests`.`test` AS `test_name`,`tko_tests`.`subdir` AS `subdir`,`tko_tests`.`kernel_idx` AS `kernel_idx`,`tko_tests`.`status` AS `status_idx`,`tko_tests`.`reason` AS `reason`,`tko_tests`.`machine_idx` AS `machine_idx`,`tko_tests`.`started_time` AS `test_started_time`,`tko_tests`.`finished_time` AS `test_finished_time`,`tko_jobs`.`tag` AS `job_tag`,`tko_jobs`.`label` AS `job_name`,`tko_jobs`.`username` AS `job_owner`,`tko_jobs`.`queued_time` AS `job_queued_time`,`tko_jobs`.`started_time` AS `job_started_time`,`tko_jobs`.`finished_time` AS `job_finished_time`,`tko_jobs`.`afe_job_id` AS `afe_job_id`,`tko_machines`.`hostname` AS `hostname`,`tko_machines`.`machine_group` AS `platform`,`tko_machines`.`owner` AS `machine_owner`,`tko_kernels`.`kernel_hash` AS `kernel_hash`,`tko_kernels`.`base` AS `kernel_base`,`tko_kernels`.`printable` AS `kernel`,`tko_status`.`word` AS `status` from ((((`tko_tests` join `tko_jobs` on((`tko_jobs`.`job_idx` = `tko_tests`.`job_idx`))) join `tko_machines` on((`tko_machines`.`machine_idx` = `tko_jobs`.`machine_idx`))) join `tko_kernels` on((`tko_kernels`.`kernel_idx` = `tko_tests`.`kernel_idx`))) join `tko_status` on((`tko_status`.`status_idx` = `tko_tests`.`status`))) */;
 
 --
@@ -1317,7 +1317,7 @@ SET character_set_client = @saved_cs_client;
 /*!50001 DROP TABLE `tko_test_view_outer_joins`*/;
 /*!50001 DROP VIEW IF EXISTS `tko_test_view_outer_joins`*/;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`%(username)s`@`localhost` SQL SECURITY DEFINER */
+/*!50013 DEFINER=CURRENT_USER SQL SECURITY DEFINER */
 /*!50001 VIEW `tko_test_view_outer_joins` AS select `tko_tests`.`test_idx` AS `test_idx`,`tko_tests`.`job_idx` AS `job_idx`,`tko_tests`.`test` AS `test_name`,`tko_tests`.`subdir` AS `subdir`,`tko_tests`.`kernel_idx` AS `kernel_idx`,`tko_tests`.`status` AS `status_idx`,`tko_tests`.`reason` AS `reason`,`tko_tests`.`machine_idx` AS `machine_idx`,`tko_tests`.`started_time` AS `test_started_time`,`tko_tests`.`finished_time` AS `test_finished_time`,`tko_jobs`.`tag` AS `job_tag`,`tko_jobs`.`label` AS `job_name`,`tko_jobs`.`username` AS `job_owner`,`tko_jobs`.`queued_time` AS `job_queued_time`,`tko_jobs`.`started_time` AS `job_started_time`,`tko_jobs`.`finished_time` AS `job_finished_time`,`tko_machines`.`hostname` AS `hostname`,`tko_machines`.`machine_group` AS `platform`,`tko_machines`.`owner` AS `machine_owner`,`tko_kernels`.`kernel_hash` AS `kernel_hash`,`tko_kernels`.`base` AS `kernel_base`,`tko_kernels`.`printable` AS `kernel`,`tko_status`.`word` AS `status` from ((((`tko_tests` left join `tko_jobs` on((`tko_jobs`.`job_idx` = `tko_tests`.`job_idx`))) left join `tko_machines` on((`tko_machines`.`machine_idx` = `tko_jobs`.`machine_idx`))) left join `tko_kernels` on((`tko_kernels`.`kernel_idx` = `tko_tests`.`kernel_idx`))) left join `tko_status` on((`tko_status`.`status_idx` = `tko_tests`.`status`))) */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
