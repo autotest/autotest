@@ -6,11 +6,14 @@ class memory_api(test.test):
     version = 1
 
     def setup(self):
-        utils.system("gcc %s -o %s" %
-                      (os.path.join(self.bindir, "memory_api.c"),
+        os.mkdir(self.tmpdir)
+        utils.system("%s %s -o %s" %
+                      (utils.get_cc(),
+                       os.path.join(self.bindir, "memory_api.c"),
                        os.path.join(self.tmpdir, "memory_api")))
-        utils.system("gcc %s -o %s" %
-                      (os.path.join(self.bindir, "mremaps.c"),
+        utils.system("%s %s -o %s" %
+                      (utils.get_cc(),
+                       os.path.join(self.bindir, "mremaps.c"),
                        os.path.join(self.tmpdir, "mremaps")))
 
 

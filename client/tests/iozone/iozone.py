@@ -34,6 +34,7 @@ class iozone(test.test):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(os.path.join(self.srcdir, 'src/current'))
+        utils.system('patch -p3 < ../../../makefile.patch')
 
         arch = utils.get_current_kernel_arch()
         if (arch == 'ppc'):
