@@ -18,10 +18,9 @@ include cdkeys.cfg
 image_name(_.*)? ?<= /tmp/kvm_autotest_root/images/
 cdrom(_.*)? ?<= /tmp/kvm_autotest_root/
 floppy ?<= /tmp/kvm_autotest_root/
-Linux:
-    unattended_install:
-        kernel ?<= /tmp/kvm_autotest_root/
-        initrd ?<= /tmp/kvm_autotest_root/
+Linux..unattended_install:
+    kernel ?<= /tmp/kvm_autotest_root/
+    initrd ?<= /tmp/kvm_autotest_root/
 
 # Here are the test sets variants. The variant 'qemu_kvm_windows_quick' is
 # fully commented, the following ones have comments only on noteworthy points
@@ -49,7 +48,7 @@ variants:
         # Operating system choice
         only Win7.64
         # Subtest choice. You can modify that line to add more subtests
-        only unattended_install.cdrom boot shutdown
+        only unattended_install.cdrom, boot, shutdown
 
     # Runs qemu, f14 64 bit guest OS, install, boot, shutdown
     - @qemu_f14_quick:
@@ -65,7 +64,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Fedora.14.64
-        only unattended_install.cdrom boot shutdown
+        only unattended_install.cdrom, boot, shutdown
         # qemu needs -enable-kvm on the cmdline
         extra_params += ' -enable-kvm'
 
@@ -81,7 +80,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Fedora.14.64
-        only unattended_install.cdrom boot shutdown
+        only unattended_install.cdrom, boot, shutdown
 
 # You may provide information about the DTM server for WHQL tests here:
 #whql:
