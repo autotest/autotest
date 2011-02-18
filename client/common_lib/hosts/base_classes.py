@@ -228,11 +228,22 @@ class Host(object):
 
 
     def check_diskspace(self, path, gb):
-        # Note: 1 GB = 10**9 bytes (SI unit).
+        """Raises an error if path does not have at least gb GB free.
+
+        @param path The path to check for free disk space.
+        @param gb A floating point number to compare with a granularity
+            of 1 MB.
+
+        1000 based SI units are used.
+
+        @raises AutoservDiskFullHostError if path has less than gb GB free.
+        """
+        one_mb = 10**6  # Bytes (SI unit).
+        mb_per_gb = 1000.0
         logging.info('Checking for >= %s GB of space under %s on machine %s',
                      gb, path, self.hostname)
-        df = self.run('df -PB %d %s | tail -1' % (10**9, path)).stdout.split()
-        free_space_gb = int(df[3])
+        df = self.run('df -PB %d %s | tail -1' % (one_mb, path)).stdout.split()
+        free_space_gb = int(df[3])/mb_per_gb
         if free_space_gb < gb:
             raise error.AutoservDiskFullHostError(path, gb, free_space_gb)
         else:
