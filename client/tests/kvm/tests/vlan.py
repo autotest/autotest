@@ -156,7 +156,7 @@ def run_vlan(test, params, env):
             rem_vlan(session[1], vlan, ifname[1])
             logging.info("rem vlan: %s", vlan)
 
-    # Plumb/unplumb maximal unber of vlan interfaces
+    # Plumb/unplumb maximal number of vlan interfaces
     i = 1
     s = 0
     try:
