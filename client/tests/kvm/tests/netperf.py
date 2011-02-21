@@ -1,4 +1,4 @@
-import logging, os
+import logging, os, signal
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 import kvm_subprocess
@@ -20,7 +20,7 @@ def run_netperf(test, params, env):
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
     login_timeout = int(params.get("login_timeout", 360))
-    session = vm.wait_for_login(timeout=login_timeout)
+    session_serial = vm.wait_for_serial_login(timeout=login_timeout)
 
     netperf_dir = os.path.join(os.environ['AUTODIR'], "tests/netperf2")
     setup_cmd = params.get("setup_cmd")
@@ -28,18 +28,33 @@ def run_netperf(test, params, env):
     result_file = os.path.join(test.resultsdir, "output_%s" % test.iteration)
 
     firewall_flush = "iptables -F"
-    session.cmd_output(firewall_flush)
+    session_serial.cmd_output(firewall_flush)
+    try:
+        utils.run("iptables -F")
+    except:
+        pass
 
     for i in params.get("netperf_files").split():
         vm.copy_files_to(os.path.join(netperf_dir, i), "/tmp")
 
     try:
-        session.cmd(firewall_flush)
+        session_serial.cmd(firewall_flush)
     except kvm_subprocess.ShellError:
         logging.warning("Could not flush firewall rules on guest")
 
-    session.cmd(setup_cmd % "/tmp", timeout=200)
-    session.cmd(params.get("netserver_cmd") % "/tmp")
+    session_serial.cmd(setup_cmd % "/tmp", timeout=200)
+    session_serial.cmd(params.get("netserver_cmd") % "/tmp")
+
+    tcpdump = env.get("tcpdump")
+    pid = None
+    if tcpdump:
+        # Stop the background tcpdump process
+        try:
+            pid = int(utils.system_output("pidof tcpdump"))
+            logging.debug("Stopping the background tcpdump")
+            os.kill(pid, signal.SIGSTOP)
+        except:
+            pass
 
     try:
         logging.info("Setup and run netperf client on host")
@@ -69,5 +84,8 @@ def run_netperf(test, params, env):
                                  ", ".join(list_fail))
 
     finally:
-        session.cmd_output("killall netserver")
-        session.close()
+        session_serial.cmd_output("killall netserver")
+        if tcpdump and pid:
+            logging.debug("Resuming the background tcpdump")
+            logging.info("pid is %s" % pid)
+            os.kill(pid, signal.SIGCONT)
