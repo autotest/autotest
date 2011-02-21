@@ -191,7 +191,11 @@ def run_ethtool(test, params, env):
     filename = "/tmp/ethtool.dd"
     guest_ip = vm.get_address()
     ethname = kvm_test_utils.get_linux_ifname(session, vm.get_mac_address(0))
-    supported_features = params.get("supported_features").split()
+    supported_features = params.get("supported_features")
+    if supported_features:
+        supported_features = supported_features.split()
+    else:
+        supported_features = []
     test_matrix = {
         # type:(callback,    (dependence), (exclude)
         "tx":  (tx_callback, (), ()),
