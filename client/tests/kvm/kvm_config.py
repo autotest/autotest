@@ -441,11 +441,10 @@ class Parser(object):
                 if len(words) < 2:
                     raise ParserError("Syntax error: missing parameter",
                                       line, cr.filename, linenum)
-                if not isinstance(cr, FileReader):
-                    raise ParserError("Cannot include because no file is "
-                                      "currently open",
-                                      line, cr.filename, linenum)
-                filename = os.path.join(os.path.dirname(cr.filename), words[1])
+                filename = os.path.expanduser(words[1])
+                if isinstance(cr, FileReader) and not os.path.isabs(filename):
+                    filename = os.path.join(os.path.dirname(cr.filename),
+                                            filename)
                 if not os.path.isfile(filename):
                     self._warn("%r (%s:%s): file doesn't exist or is not a "
                                "regular file", line, cr.filename, linenum)
