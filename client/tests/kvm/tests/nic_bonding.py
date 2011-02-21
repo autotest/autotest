@@ -52,4 +52,3 @@ def run_nic_bonding(test, params, env):
     finally:
         termination_event.set()
         t.join(10)
-        session_serial.close()
