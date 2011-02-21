@@ -607,8 +607,7 @@ class StrReader(object):
 
     def get_next_line(self, prev_indent):
         """
-        Get the next non-empty, non-comment line in the string, whose
-        indentation level is higher than prev_indent.
+        Get the next line in the current block.
 
         @param prev_indent: The indentation level of the previous block.
         @return: (line, indent, linenum), where indent is the line's
