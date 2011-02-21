@@ -25,6 +25,7 @@ def run_nic_hotplug(test, params, env):
     guest_delay = int(params.get("guest_delay", 20))
     session_serial = kvm_test_utils.wait_for_login(vm, timeout=timeout,
                                                    serial=True)
+    romfile = params.get("romfile")
 
     # Modprobe the module if specified in config file
     module = params.get("modprobe_module")
@@ -57,7 +58,7 @@ def run_nic_hotplug(test, params, env):
             logging.error(network)
             raise error.TestError("Fail to remove netdev %s" % n_id)
 
-    def nic_add(vm, model, netdev_id, mac):
+    def nic_add(vm, model, netdev_id, mac, rom=None):
         """
         Add a nic to virtual machine
 
@@ -65,6 +66,7 @@ def run_nic_hotplug(test, params, env):
         @model: nic model
         @netdev_id: id of netdev
         @mac: Mac address of new nic
+        @rom: Rom file
         """
         nic_id = kvm_utils.generate_random_id()
         if model == "virtio":
@@ -72,6 +74,8 @@ def run_nic_hotplug(test, params, env):
         device_add_cmd = "device_add %s,netdev=%s,mac=%s,id=%s" % (model,
                                                                    netdev_id,
                                                                    mac, nic_id)
+        if rom:
+            device_add_cmd += ",romfile=%s" % rom
         logging.info("Adding nic through %s", device_add_cmd)
         vm.monitor.cmd(device_add_cmd)
 
@@ -108,7 +112,7 @@ def run_nic_hotplug(test, params, env):
     if not mac:
         mac = "00:00:02:00:00:02"
     netdev_id = netdev_add(vm)
-    device_id = nic_add(vm, "virtio", netdev_id, mac)
+    device_id = nic_add(vm, "virtio", netdev_id, mac, romfile)
 
     if "Win" not in params.get("guest_name", ""):
         session_serial.sendline("dhclient %s &" %
