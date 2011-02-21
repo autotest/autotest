@@ -325,6 +325,7 @@ class VM:
             self.monitors = []
             self.pci_assignable = None
             self.netdev_id = []
+            self.device_id = []
             self.uuid = None
 
             # Find a unique identifier for this VM
@@ -461,7 +462,7 @@ class VM:
                 cmd += ",boot=on"
             return cmd
 
-        def add_nic(help, vlan, model=None, mac=None, netdev_id=None,
+        def add_nic(help, vlan, model=None, mac=None, device_id=None, netdev_id=None,
                     nic_extra_params=None):
             if has_option(help, "netdev"):
                 netdev_vlan_str = ",netdev=%s" % netdev_id
@@ -483,6 +484,8 @@ class VM:
                     cmd += ",model=%s" % model
                 if mac:
                     cmd += ",macaddr='%s'" % mac
+            if device_id:
+                cmd += ",id='%s'" % device_id
             return cmd
 
         def add_net(help, vlan, mode, ifname=None, script=None,
@@ -635,13 +638,15 @@ class VM:
             nic_params = params.object_params(nic_name)
             try:
                 netdev_id = vm.netdev_id[vlan]
+                device_id = vm.device_id[vlan]
             except IndexError:
                 netdev_id = None
-            # Handle the '-net nic' part
+                device_id = None
+            # Handle the '-net nic' or '-device ' part
             mac = vm.get_mac_address(vlan)
             qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac,
-                                netdev_id, nic_params.get("nic_extra_params"))
-            # Handle the '-net tap' or '-net user' part
+                                device_id, netdev_id, nic_params.get("nic_extra_params"))
+            # Handle the '-net tap' or '-net user' or '-netdev' part
             script = nic_params.get("nic_script")
             downscript = nic_params.get("nic_downscript")
             tftp = nic_params.get("tftp")
@@ -827,10 +832,12 @@ class VM:
                 guest_port = int(redir_params.get("guest_port"))
                 self.redirs[guest_port] = host_ports[i]
 
-            # Generate netdev IDs for all NICs
+            # Generate netdev/device IDs for all NICs
             self.netdev_id = []
+            self.device_id = []
             for nic in params.objects("nics"):
                 self.netdev_id.append(kvm_utils.generate_random_id())
+                self.device_id.append(kvm_utils.generate_random_id())
 
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
