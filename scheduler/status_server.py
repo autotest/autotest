@@ -10,6 +10,7 @@ _HEADER = """
 <body>
 Actions:<br>
 <a href="?reparse_config=1">Reparse global config values</a><br>
+<a href="?restart_scheduler=1">Restart the scheduler</a><br>
 <br>
 """
 
@@ -74,6 +75,9 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             scheduler_config.config.read_config()
             self.server._drone_manager.refresh_drone_configs()
             self._write_line('Reparsed config!')
+        elif 'restart_scheduler' in arguments:
+            self.server._shutdown_scheduler = True
+            self._write_line('Posted the shutdown request')
         self._write_line()
 
 
@@ -97,6 +101,7 @@ class StatusServer(BaseHTTPServer.HTTPServer):
                                            StatusServerRequestHandler)
         self._shutting_down = False
         self._drone_manager = drone_manager.instance()
+        self._shutdown_scheduler = False
 
         # ensure the listening socket is not inherited by child processes
         old_flags = fcntl.fcntl(self.fileno(), fcntl.F_GETFD)
