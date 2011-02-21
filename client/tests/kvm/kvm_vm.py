@@ -1207,6 +1207,20 @@ class VM:
                 raise VMPortNotRedirectedError(port)
 
 
+    def get_peer(self, netid):
+        """
+        Return the peer of netdev or network deivce.
+
+        @param netid: id of netdev or device
+        @return: id of the peer device otherwise None
+        """
+        network_info = self.monitor.info("network")
+        try:
+            return re.findall("%s:.*peer=(.*)" % netid, network_info)[0]
+        except IndexError:
+            return None
+
+
     def get_ifname(self, nic_index=0):
         """
         Return the ifname of a tap device associated with a NIC.
