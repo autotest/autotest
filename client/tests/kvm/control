@@ -39,7 +39,7 @@ str = """
 parser = kvm_config.Parser()
 parser.parse_file(os.path.join(kvm_test_dir, "build.cfg"))
 parser.parse_string(str)
-if not kvm_utils.run_tests(parser.get_dicts(), job):
+if not kvm_utils.run_tests(parser, job):
     logging.error("KVM build step failed, exiting.")
     sys.exit(1)
 
@@ -68,10 +68,7 @@ if args:
             pass
 parser.parse_string(str)
 
-logging.info("Selected tests:")
-for i, d in enumerate(parser.get_dicts()):
-    logging.info("Test %4d:  %s" % (i + 1, d["shortname"]))
-kvm_utils.run_tests(parser.get_dicts(), job)
+kvm_utils.run_tests(parser, job)
 
 # Generate a nice HTML report inside the job's results dir
 kvm_utils.create_report(kvm_test_dir, job.resultdir)
