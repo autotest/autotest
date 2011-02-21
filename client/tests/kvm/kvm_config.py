@@ -640,7 +640,9 @@ class FileReader(StrReader):
 
 
 if __name__ == "__main__":
-    parser = optparse.OptionParser("usage: %prog [options] <filename>")
+    parser = optparse.OptionParser('usage: %prog [options] filename '
+                                   '[extra code] ...\n\nExample:\n\n    '
+                                   '%prog tests.cfg "only my_set" "no qcow2"')
     parser.add_option("-v", "--verbose", dest="debug", action="store_true",
                       help="include debug messages in console output")
     parser.add_option("-f", "--fullname", dest="fullname", action="store_true",
@@ -653,6 +655,9 @@ if __name__ == "__main__":
         parser.error("filename required")
 
     c = Parser(args[0], debug=options.debug)
+    for s in args[1:]:
+        c.parse_string(s)
+
     for i, d in enumerate(c.get_dicts()):
         if options.fullname:
             print "dict %4d:  %s" % (i + 1, d["name"])
