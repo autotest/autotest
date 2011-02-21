@@ -1,0 +1,8 @@
+--- ext3-tools/Makefile.orig	2011-02-07 15:52:18.000000000 -0800
++++ ext3-tools/Makefile	2011-02-07 15:52:23.000000000 -0800
+@@ -1,5 +1,5 @@
+ 
+-CC	=	gcc
++CC	?=	gcc
+ CFLAGS	+= 	-O -Wall -g -DAIO
+ CXXFLAGS+=	-O -Wall -g
