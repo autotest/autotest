@@ -21,40 +21,34 @@ def run_set_link(test, params, env):
     timeout = float(params.get("login_timeout", 360))
     session = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2)
 
-    ip = vm.get_address(0)
-    linkname = vm.netdev_id[0]
+    def set_link_test(linkid):
+        """
+        Issue set_link commands and test its function
 
-    logging.info("Pinging guest from host")
-    s, o = kvm_test_utils.ping(ip, count=10, timeout=20)
-    if s != 0:
-        raise error.TestFail("Ping failed, status: %s, output: %s" % (s, o))
-    ratio = kvm_test_utils.get_loss_ratio(o)
-    if ratio != 0:
-        raise error.TestFail("Loss ratio is %s, output: %s" % (ratio, o))
+        @param linkid: id of netdev or devices to be tested
+        """
+        ip = vm.get_address(0)
 
-    logging.info("Executing 'set link %s off'", linkname)
-    vm.monitor.cmd("set_link %s off" % linkname)
-    logging.info(vm.monitor.info("network"))
-    logging.info("Pinging guest from host")
-    s, o = kvm_test_utils.ping(ip, count=10, timeout=20)
-    if s == 0:
-        raise error.TestFail("Ping unexpectedly succeeded, status: %s,"
-                             "output: %s" % (s, o))
-    ratio = kvm_test_utils.get_loss_ratio(o)
-    if ratio != 100:
-        raise error.TestFail("Loss ratio is not 100%%,"
-                             "Loss ratio is %s" % ratio)
+        vm.monitor.cmd("set_link %s down" % linkid)
+        s, o = kvm_test_utils.ping(ip, count=10, timeout=20)
+        if kvm_test_utils.get_loss_ratio(o) != 100:
+            raise error.TestFail("Still can ping the %s after down %s" %
+                                 (ip, linkid))
 
-    logging.info("Executing 'set link %s on'", linkname)
-    vm.monitor.cmd("set_link %s on" % linkname)
-    logging.info(vm.monitor.info("network"))
-    logging.info("Pinging guest from host")
-    s, o = kvm_test_utils.ping(ip, count=10, timeout=20)
-    if s != 0:
-        raise error.TestFail("Ping failed, status: %s, output: %s" % (s, o))
-    ratio = kvm_test_utils.get_loss_ratio(o)
-    if ratio != 0:
-        raise error.TestFail("Loss ratio is %s, output: %s" % (ratio, o))
+        vm.monitor.cmd("set_link %s up" % linkid)
+        s, o = kvm_test_utils.ping(ip, count=10, timeout=20)
+        # we use 100% here as the notification of link status changed may be
+        # delayed in guest driver
+        if kvm_test_utils.get_loss_ratio(o) == 100:
+            raise error.TestFail("Packet loss during ping %s after up %s" %
+                                 (ip, linkid))
+
+    netdev_id = vm.netdev_id[0]
+    device_id = vm.get_peer(netdev_id)
+    logging.info("Issue set_link commands for netdevs")
+    set_link_test(netdev_id)
+    logging.info("Issue set_link commands for network devics")
+    set_link_test(device_id)
 
     file_transfer.run_file_transfer(test, params, env)
     session.close()
