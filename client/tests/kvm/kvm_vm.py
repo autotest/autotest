@@ -641,9 +641,11 @@ class VM:
                 device_id = vm.device_id[vlan]
             except IndexError:
                 netdev_id = None
-                device_id = None
-            # Handle the '-net nic' or '-device ' part
-            mac = vm.get_mac_address(vlan)
+            # Handle the '-net nic' part
+            try:
+                mac = vm.get_mac_address(vlan)
+            except VMAddressError:
+                mac = None
             qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac,
                                 device_id, netdev_id, nic_params.get("nic_extra_params"))
             # Handle the '-net tap' or '-net user' or '-netdev' part
