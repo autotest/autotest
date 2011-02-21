@@ -11,10 +11,10 @@ def run_migration_with_file_transfer(test, params, env):
     1) Get a live VM and clone it.
     2) Verify that the source VM supports migration.  If it does, proceed with
             the test.
-    3) Reboot the VM
-    4) Send a migration command to the source VM and wait until it's finished.
-    5) Kill off the source VM.
-    6) Log into the destination VM after the migration is finished.
+    3) Transfer file from host to guest.
+    4) Repeatedly migrate VM and wait until transfer's finished.
+    5) Transfer file from guest back to host.
+    6) Repeatedly migrate VM and wait until transfer's finished.
 
     @param test: kvm test object.
     @param params: Dictionary with test parameters.
