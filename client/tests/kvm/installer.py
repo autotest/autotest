@@ -231,6 +231,42 @@ class BaseInstaller(object):
         self._full_module_list = list(self._module_list())
 
 
+    def install_unittests(self):
+        userspace_srcdir = os.path.join(self.srcdir, "kvm_userspace")
+        test_repo = self.params.get("test_git_repo")
+        test_branch = self.params.get("test_branch", "master")
+        test_commit = self.params.get("test_commit", None)
+        test_lbranch = self.params.get("test_lbranch", "master")
+
+        if test_repo:
+            test_srcdir = os.path.join(self.srcdir, "kvm-unit-tests")
+            kvm_utils.get_git_branch(test_repo, test_branch, test_srcdir,
+                                     test_commit, test_lbranch)
+            unittest_cfg = os.path.join(test_srcdir, 'x86',
+                                        'unittests.cfg')
+            self.test_srcdir = test_srcdir
+        else:
+            unittest_cfg = os.path.join(userspace_srcdir, 'kvm', 'test', 'x86',
+                                        'unittests.cfg')
+        self.unittest_cfg = None
+        if os.path.isfile(unittest_cfg):
+            self.unittest_cfg = unittest_cfg
+        else:
+            if test_repo:
+                logging.error("No unittest config file %s found, skipping "
+                              "unittest build", self.unittest_cfg)
+
+        self.unittest_prefix = None
+        if self.unittest_cfg:
+            logging.info("Building and installing unittests")
+            os.chdir(os.path.dirname(os.path.dirname(self.unittest_cfg)))
+            utils.system('./configure --prefix=%s' % self.prefix)
+            utils.system('make')
+            utils.system('make install')
+            self.unittest_prefix = os.path.join(self.prefix, 'share', 'qemu',
+                                                'tests')
+
+
     def full_module_list(self):
         """Return the module list used by the installer
 
@@ -341,11 +377,13 @@ class YumInstaller(BaseInstaller):
 
 
     def install(self):
+        self.install_unittests()
         self._clean_previous_installs()
         self._get_packages()
         self._install_packages()
         create_symlinks(test_bindir=self.test_bindir,
-                        bin_list=self.qemu_bin_paths)
+                        bin_list=self.qemu_bin_paths,
+                        unittest=self.unittest_prefix)
         self.reload_modules_if_needed()
         if self.save_results:
             save_build(self.srcdir, self.results_dir)
@@ -386,8 +424,10 @@ class KojiInstaller(YumInstaller):
         super(KojiInstaller, self)._clean_previous_installs()
         self._get_packages()
         super(KojiInstaller, self)._install_packages()
+        self.install_unittests()
         create_symlinks(test_bindir=self.test_bindir,
-                        bin_list=self.qemu_bin_paths)
+                        bin_list=self.qemu_bin_paths,
+                        unittest=self.unittest_prefix)
         self.reload_modules_if_needed()
         if self.save_results:
             save_build(self.srcdir, self.results_dir)
@@ -532,7 +572,10 @@ class SourceDirInstaller(BaseInstaller):
             utils.system("make install")
         if self.path_to_roms:
             install_roms(self.path_to_roms, self.prefix)
-        create_symlinks(self.test_bindir, self.prefix)
+        self.install_unittests()
+        create_symlinks(test_bindir=self.test_bindir,
+                        prefix=self.prefix,
+                        unittest=self.unittest_prefix)
 
 
     def _load_modules(self, mod_list):
@@ -564,22 +607,18 @@ class GitInstaller(SourceDirInstaller):
         kernel_repo = params.get("git_repo")
         user_repo = params.get("user_git_repo")
         kmod_repo = params.get("kmod_repo")
-        test_repo = params.get("test_git_repo")
 
         kernel_branch = params.get("kernel_branch", "master")
         user_branch = params.get("user_branch", "master")
         kmod_branch = params.get("kmod_branch", "master")
-        test_branch = params.get("test_branch", "master")
 
         kernel_lbranch = params.get("kernel_lbranch", "master")
         user_lbranch = params.get("user_lbranch", "master")
         kmod_lbranch = params.get("kmod_lbranch", "master")
-        test_lbranch = params.get("test_lbranch", "master")
 
         kernel_commit = params.get("kernel_commit", None)
         user_commit = params.get("user_commit", None)
         kmod_commit = params.get("kmod_commit", None)
-        test_commit = params.get("test_commit", None)
 
         kernel_patches = eval(params.get("kernel_patches", "[]"))
         user_patches = eval(params.get("user_patches", "[]"))
@@ -601,21 +640,6 @@ class GitInstaller(SourceDirInstaller):
                 utils.get_file(patch, os.path.join(self.userspace_srcdir,
                                                    os.path.basename(patch)))
                 utils.system('patch -p1 %s' % os.path.basename(patch))
-
-        if test_repo:
-            test_srcdir = os.path.join(self.srcdir, "kvm-unit-tests")
-            kvm_utils.get_git_branch(test_repo, test_branch, test_srcdir,
-                                     test_commit, test_lbranch)
-            unittest_cfg = os.path.join(test_srcdir, 'x86',
-                                        'unittests.cfg')
-            self.test_srcdir = test_srcdir
-        else:
-            unittest_cfg = os.path.join(userspace_srcdir, 'kvm', 'test', 'x86',
-                                        'unittests.cfg')
-
-        self.unittest_cfg = None
-        if os.path.isfile(unittest_cfg):
-            self.unittest_cfg = unittest_cfg
 
         if kernel_repo:
             kernel_srcdir = os.path.join(self.srcdir, "kvm")
@@ -683,15 +707,6 @@ class GitInstaller(SourceDirInstaller):
         utils.system('make clean')
         utils.system('make -j %s' % make_jobs)
 
-        self.unittest_prefix = None
-        if self.unittest_cfg:
-            os.chdir(os.path.dirname(os.path.dirname(self.unittest_cfg)))
-            utils.system('./configure --prefix=%s' % self.prefix)
-            utils.system('make')
-            utils.system('make install')
-            self.unittest_prefix = os.path.join(self.prefix, 'share', 'qemu',
-                                                'tests')
-
 
     def _install(self):
         if self.kernel_srcdir:
@@ -716,6 +731,7 @@ class GitInstaller(SourceDirInstaller):
 
         if self.path_to_roms:
             install_roms(self.path_to_roms, self.prefix)
+        self.install_unittests()
         create_symlinks(test_bindir=self.test_bindir, prefix=self.prefix,
                         bin_list=None,
                         unittest=self.unittest_prefix)
