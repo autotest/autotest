@@ -632,6 +632,7 @@ variants:
         type = ping
         counts = 100
         flood_minutes = 10
+        nics += ' nic2'
 
     - jumbo: install setup unattended_install.cdrom
         type = jumbo
