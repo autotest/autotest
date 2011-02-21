@@ -856,15 +856,12 @@ class VM:
             for vlan in range(num_nics):
                 nic_name = params.objects("nics")[vlan]
                 nic_params = params.object_params(nic_name)
-                if nic_params.get("nic_mac", None):
-                    mac = nic_params.get("nic_mac")
+                mac = (nic_params.get("nic_mac") or
+                       mac_source and mac_source.get_mac_address(vlan))
+                if mac:
                     kvm_utils.set_mac_address(self.instance, vlan, mac)
                 else:
-                    mac = mac_source and mac_source.get_mac_address(vlan)
-                    if mac:
-                        kvm_utils.set_mac_address(self.instance, vlan, mac)
-                    else:
-                        kvm_utils.generate_mac_address(self.instance, vlan)
+                    kvm_utils.generate_mac_address(self.instance, vlan)
 
             # Assign a PCI assignable device
             self.pci_assignable = None
@@ -1253,7 +1250,10 @@ class VM:
         @raise VMMACAddressMissingError: If no MAC address is defined for the
                 requested NIC
         """
-        mac = kvm_utils.get_mac_address(self.instance, nic_index)
+        nic_name = self.params.objects("nics")[nic_index]
+        nic_params = self.params.object_params(nic_name)
+        mac = (nic_params.get("nic_mac") or
+               kvm_utils.get_mac_address(self.instance, nic_index))
         if not mac:
             raise VMMACAddressMissingError(nic_index)
         return mac
