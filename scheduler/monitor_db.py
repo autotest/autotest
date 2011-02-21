@@ -159,7 +159,7 @@ def main_without_exception_handling():
         dispatcher = Dispatcher()
         dispatcher.initialize(recover_hosts=options.recover_hosts)
 
-        while not _shutdown:
+        while not _shutdown and not server._shutdown_scheduler:
             dispatcher.tick()
             time.sleep(scheduler_config.config.tick_pause_sec)
     except:
