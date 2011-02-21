@@ -5,7 +5,7 @@ KVM test configuration file parser
 @copyright: Red Hat 2008-2011
 """
 
-import re, os, sys, optparse, collections, string
+import re, os, sys, optparse, collections
 
 
 # Filter syntax:
