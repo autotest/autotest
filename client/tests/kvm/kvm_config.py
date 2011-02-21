@@ -137,6 +137,14 @@ class NoOnlyFilter(Filter):
 
 
 class OnlyFilter(NoOnlyFilter):
+    def is_irrelevant(self, ctx, ctx_set, descendant_labels):
+        return self.match(ctx, ctx_set)
+
+
+    def requires_action(self, ctx, ctx_set, descendant_labels):
+        return not self.might_match(ctx, ctx_set, descendant_labels)
+
+
     def might_pass(self, failed_ctx, failed_ctx_set, ctx, ctx_set,
                    descendant_labels):
         for word in self.filter:
@@ -148,6 +156,14 @@ class OnlyFilter(NoOnlyFilter):
 
 
 class NoFilter(NoOnlyFilter):
+    def is_irrelevant(self, ctx, ctx_set, descendant_labels):
+        return not self.might_match(ctx, ctx_set, descendant_labels)
+
+
+    def requires_action(self, ctx, ctx_set, descendant_labels):
+        return self.match(ctx, ctx_set)
+
+
     def might_pass(self, failed_ctx, failed_ctx_set, ctx, ctx_set,
                    descendant_labels):
         for word in self.filter:
@@ -161,6 +177,13 @@ class NoFilter(NoOnlyFilter):
 class Condition(NoFilter):
     def __init__(self, line):
         Filter.__init__(self, line.rstrip(":"))
+        self.line = line
+        self.content = []
+
+
+class NegativeCondition(OnlyFilter):
+    def __init__(self, line):
+        Filter.__init__(self, line.lstrip("!").rstrip(":"))
         self.line = line
         self.content = []
 
@@ -229,24 +252,15 @@ class Parser(object):
                 if type(obj) is Op:
                     new_content.append(t)
                     continue
-                elif type(obj) is OnlyFilter:
-                    if not obj.might_match(ctx, ctx_set, labels):
+                # obj is an OnlyFilter/NoFilter/Condition/NegativeCondition
+                if obj.requires_action(ctx, ctx_set, labels):
+                    # This filter requires action now
+                    if type(obj) is OnlyFilter or type(obj) is NoFilter:
                         self._debug("    filter did not pass: %r (%s:%s)",
                                     obj.line, filename, linenum)
                         failed_filters.append(t)
                         return False
-                    elif obj.match(ctx, ctx_set):
-                        continue
-                elif type(obj) is NoFilter:
-                    if obj.match(ctx, ctx_set):
-                        self._debug("    filter did not pass: %r (%s:%s)",
-                                    obj.line, filename, linenum)
-                        failed_filters.append(t)
-                        return False
-                    elif not obj.might_match(ctx, ctx_set, labels):
-                        continue
-                elif type(obj) is Condition:
-                    if obj.match(ctx, ctx_set):
+                    else:
                         self._debug("    conditional block matches: %r (%s:%s)",
                                     obj.line, filename, linenum)
                         # Check and unpack the content inside this Condition
@@ -259,9 +273,12 @@ class Parser(object):
                             failed_filters.append(t)
                             return False
                         continue
-                    elif not obj.might_match(ctx, ctx_set, labels):
-                        continue
-                new_content.append(t)
+                elif obj.is_irrelevant(ctx, ctx_set, labels):
+                    # This filter is no longer relevant and can be removed
+                    continue
+                else:
+                    # Keep the filter and check it again later
+                    new_content.append(t)
             return True
 
         def might_pass(failed_ctx,
@@ -429,7 +446,8 @@ class Parser(object):
             # Parse 'variants'
             if line == "variants:":
                 # 'variants' is not allowed inside a conditional block
-                if isinstance(node, Condition):
+                if (isinstance(node, Condition) or
+                    isinstance(node, NegativeCondition)):
                     raise ParserError("'variants' is not allowed inside a "
                                       "conditional block",
                                       None, cr.filename, linenum)
@@ -481,7 +499,10 @@ class Parser(object):
                     cr.set_next_line(line[index:], indent, linenum)
                     line = line[:index]
                     try:
-                        cond = Condition(line)
+                        if line.startswith("!"):
+                            cond = NegativeCondition(line)
+                        else:
+                            cond = Condition(line)
                     except ParserError, e:
                         e.line = line
                         e.filename = cr.filename
