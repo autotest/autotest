@@ -654,7 +654,9 @@ variants:
 
     - nic_promisc:  install setup unattended_install.cdrom
         type = nic_promisc
-        file_size = 1, 1460, 65000, 100000000
+        filesize = 400
+        transfer_timeout = 100
+        transfer_type = remote
 
     - multicast: install setup unattended_install.cdrom
         type = multicast
