@@ -1696,6 +1696,10 @@ variants:
 
                     - 6.0.i386:
                         no setup
+                        nic_hotplug:
+                            modprobe_module =
+                        block_hotplug:
+                            modprobe_module =
                         image_name = rhel6-32
                         unattended_install:
                             unattended_file = unattended/RHEL-6-series.ks
@@ -1711,6 +1715,10 @@ variants:
 
                     - 6.0.x86_64:
                         no setup
+                        nic_hotplug:
+                            modprobe_module =
+                        block_hotplug:
+                            modprobe_module =
                         image_name = rhel6-64
                         unattended_install:
                             unattended_file = unattended/RHEL-6-series.ks
