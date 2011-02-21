@@ -50,7 +50,7 @@ def run(pair):
         raise error.JobError("Config file %s was not found", cfg_file)
 
     # Get test set (dictionary list) from the configuration file
-    cfg = kvm_config.config()
+    parser = kvm_config.Parser()
     test_variants = """
 image_name(_.*)? ?<= /tmp/kvm_autotest_root/images/
 cdrom(_.*)? ?<= /tmp/kvm_autotest_root/
@@ -67,13 +67,14 @@ only virtio_blk
 only smp2
 only no_pci_assignable
 only smallpages
-only Fedora.13.64
+only Fedora.14.64
 only migrate_multi_host
 nic_mode = tap
 nic_mac_nic1 = %s
 """ % (generate_mac_address())
-    cfg.fork_and_parse(cfg_file, test_variants)
-    test_dicts = cfg.get_list()
+    parser.parse_file(cfg_file)
+    parser.parse_string(test_variants)
+    test_dicts = parser.get_dicts()
 
     source_control_file = dest_control_file = """
 kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests/kvm')
