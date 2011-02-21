@@ -226,7 +226,7 @@ class Parser(object):
             #    filters first.
             for t in content:
                 filename, linenum, obj = t
-                if type(obj) is str:
+                if type(obj) is Op:
                     new_content.append(t)
                     continue
                 elif type(obj) is OnlyFilter:
