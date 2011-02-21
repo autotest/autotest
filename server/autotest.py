@@ -1001,7 +1001,7 @@ class client_logger(object):
         """Injects a WARN message into the current status logging stream."""
         timestamp = int(time.time())
         if self.job.warning_manager.is_valid(timestamp, warning_type):
-            self.job.record('WARN', None, None, {}, msg)
+            self.job.record('WARN', None, None, msg)
 
 
     def write(self, data):
