@@ -647,10 +647,10 @@ variants:
     - nicdriver_unload:  install setup unattended_install.cdrom
         type = nicdriver_unload
         nic_mode = tap
-        file_size = 100
-        connect_time = 4
-        scp_timeout = 300
-        thread_num = 10
+        filesize = 100
+        transfer_timeout = 100
+        transfer_type = remote
+        sessions_num = 10
 
     - nic_promisc:  install setup unattended_install.cdrom
         type = nic_promisc
