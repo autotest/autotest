@@ -710,6 +710,8 @@ variants:
         transfer_timeout = 1000
         transfer_type = remote
         kill_vm = yes
+        # you can specify the parameters of bonding module here
+        # bonding_params = "mode=active-backup"
 
     - set_link:
         type = set_link
