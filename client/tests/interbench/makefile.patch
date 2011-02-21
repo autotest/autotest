@@ -1,0 +1,8 @@
+--- interbench-0.30/Makefile.orig	2011-02-07 19:56:51.000000000 -0800
++++ interbench-0.30/Makefile	2011-02-07 19:57:15.000000000 -0800
+@@ -1,4 +1,4 @@
+-CC=gcc
++CC ?= gcc
+ CFLAGS=-W -Wall -g -O2 -s -pipe
+ LDFLAGS=-lrt -lm
+ 

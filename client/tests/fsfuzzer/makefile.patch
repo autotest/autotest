@@ -1,0 +1,11 @@
+--- fsfuzzer-0.6/Makefile.orig	2011-02-07 19:48:48.000000000 -0800
++++ fsfuzzer-0.6/Makefile	2011-02-07 19:48:57.000000000 -0800
+@@ -15,7 +15,7 @@
+ CFLAGS=-g -W -Wall -Wundef
+ LIBS=
+ all:
+-	gcc $(CFLAGS) mangle.c -o mangle $(LIBS)
++	$(CC) $(CFLAGS) mangle.c -o mangle $(LIBS)
+ 
+ clean:
+ 	rm -f mangle *.o
