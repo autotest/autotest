@@ -908,6 +908,7 @@ variants:
 variants:
     - @rtl8139:
         nic_model = rtl8139
+        no ethtool
         jumbo:
             mtu = 1500
     - e1000:
