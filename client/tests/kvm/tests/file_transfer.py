@@ -1,7 +1,7 @@
 import logging, time, os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-
+import kvm_utils
 
 def run_file_transfer(test, params, env):
     """
@@ -32,9 +32,13 @@ def run_file_transfer(test, params, env):
     count = int(filesize / 10)
     if count == 0:
         count = 1
-    cmd = "dd if=/dev/zero of=%s/a.out bs=10M count=%d" % (dir_name,
-                                                           count)
-    guest_path = tmp_dir + "b.out"
+
+    host_path = os.path.join(dir_name, "tmp-%s" %
+                             kvm_utils.generate_random_string(8))
+    host_path2 = host_path + ".2"
+    cmd = "dd if=/dev/zero of=%s bs=10M count=%d" % (host_path, count)
+    guest_path = (tmp_dir + "file_transfer-%s" %
+                  kvm_utils.generate_random_string(8))
 
     try:
         logging.info("Creating %dMB file on host", filesize)
@@ -44,8 +48,7 @@ def run_file_transfer(test, params, env):
             logging.info("Transfering file host -> guest, timeout: %ss",
                          transfer_timeout)
             t_begin = time.time()
-            vm.copy_files_to("%s/a.out" % dir_name, guest_path,
-                             timeout=transfer_timeout)
+            vm.copy_files_to(host_path, guest_path, timeout=transfer_timeout)
             t_end = time.time()
             throughput = filesize / (t_end - t_begin)
             logging.info("File transfer host -> guest succeed, "
@@ -54,8 +57,7 @@ def run_file_transfer(test, params, env):
             logging.info("Transfering file guest -> host, timeout: %ss",
                          transfer_timeout)
             t_begin = time.time()
-            vm.copy_files_from(guest_path, "%s/c.out" % dir_name,
-                               timeout=transfer_timeout)
+            vm.copy_files_from(guest_path, host_path2, timeout=transfer_timeout)
             t_end = time.time()
             throughput = filesize / (t_end - t_begin)
             logging.info("File transfer guest -> host succeed, "
@@ -64,26 +66,18 @@ def run_file_transfer(test, params, env):
             raise error.TestError("Unknown test file transfer mode %s" %
                                   transfer_type)
 
-        for f in ['a.out', 'c.out']:
-            p = os.path.join(dir_name, f)
-            size = os.path.getsize(p)
-            logging.debug('Size of %s: %sB', f, size)
-
-        md5_orig = utils.hash_file("%s/a.out" % dir_name, method="md5")
-        md5_new = utils.hash_file("%s/c.out" % dir_name, method="md5")
-
-        if md5_orig != md5_new:
+        if (utils.hash_file(host_path, method="md5") !=
+            utils.hash_file(host_path2, method="md5")):
             raise error.TestFail("File changed after transfer host -> guest "
                                  "and guest -> host")
 
     finally:
         logging.info('Cleaning temp file on guest')
-        clean_cmd += " %s" % guest_path
-        session.cmd(clean_cmd)
+        session.cmd("rm -rf %s" % guest_path)
         logging.info('Cleaning temp files on host')
         try:
-            os.remove('%s/a.out' % dir_name)
-            os.remove('%s/c.out' % dir_name)
+            os.remove(host_path)
+            os.remove(host_path2)
         except OSError:
             pass
         session.close()
