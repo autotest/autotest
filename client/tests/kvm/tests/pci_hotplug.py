@@ -130,7 +130,7 @@ def run_pci_hotplug(test, params, env):
                                   (cmd_type, tested_model))
         after_add = vm.monitor.info("pci")
 
-        if not id in after_add:
+        if not device_id in after_add:
             raise error.TestFail("Add device failed. Monitor command is: %s"
                                  ". Output: %r" % (pci_add_cmd, add_output))
 
