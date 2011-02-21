@@ -330,7 +330,7 @@ class Parser(object):
             self._debug("    reached leaf, returning it")
             d = {"name": name, "dep": dep, "shortname": ".".join(shortname)}
             for filename, linenum, op in new_content:
-                op.apply_to_dict(d, ctx, ctx_set)
+                op.apply_to_dict(d)
             yield d
         # If this node did not produce any dicts, remember the failed filters
         # of its descendants
@@ -470,28 +470,31 @@ class Parser(object):
                 node.content += [(cr.filename, linenum, f)]
                 continue
 
+            # Look for operators
+            op_match = _ops_exp.search(line)
+
             # Parse conditional blocks
-            if line.endswith(":"):
-                try:
-                    cond = Condition(line)
-                except ParserError, e:
-                    e.line = line
-                    e.filename = cr.filename
-                    e.linenum = linenum
-                    raise
-                self._parse(cr, cond, prev_indent=indent)
-                node.content += [(cr.filename, linenum, cond)]
-                continue
+            if ":" in line:
+                index = line.index(":")
+                if not op_match or index < op_match.start():
+                    index += 1
+                    cr.set_next_line(line[index:], indent, linenum)
+                    line = line[:index]
+                    try:
+                        cond = Condition(line)
+                    except ParserError, e:
+                        e.line = line
+                        e.filename = cr.filename
+                        e.linenum = linenum
+                        raise
+                    self._parse(cr, cond, prev_indent=indent)
+                    node.content += [(cr.filename, linenum, cond)]
+                    continue
 
             # Parse regular operators
-            try:
-                op = Op(line)
-            except ParserError, e:
-                e.line = line
-                e.filename = cr.filename
-                e.linenum = linenum
-                raise
-            node.content += [(cr.filename, linenum, op)]
+            if not op_match:
+                raise ParserError("Syntax error", line, cr.filename, linenum)
+            node.content += [(cr.filename, linenum, Op(line, op_match))]
 
         return node
 
@@ -556,26 +559,17 @@ _ops_exp = re.compile("|".join([op[0] for op in _ops.values()]))
 
 
 class Op(object):
-    def __init__(self, line):
-        m = re.search(_ops_exp, line)
-        if not m:
-            raise ParserError("Syntax error: missing operator")
-        left = line[:m.start()].strip()
-        value = line[m.end():].strip()
-        if value and ((value[0] == '"' and value[-1] == '"') or
-                      (value[0] == "'" and value[-1] == "'")):
-            value = value[1:-1]
-        filters_and_key = map(str.strip, left.split(":"))
-        self.filters = [Filter(f) for f in filters_and_key[:-1]]
-        self.key = filters_and_key[-1]
-        self.value = value
+    def __init__(self, line, m):
         self.func = _ops[m.group()][1]
+        self.key = line[:m.start()].strip()
+        value = line[m.end():].strip()
+        if value and (value[0] == value[-1] == '"' or
+                      value[0] == value[-1] == "'"):
+            value = value[1:-1]
+        self.value = value
 
 
-    def apply_to_dict(self, d, ctx, ctx_set):
-        for f in self.filters:
-            if not f.match(ctx, ctx_set):
-                return
+    def apply_to_dict(self, d):
         self.func(d, self.key, self.value)
 
 
@@ -594,6 +588,7 @@ class StrReader(object):
         self.filename = "<string>"
         self._lines = []
         self._line_index = 0
+        self._stored_line = None
         for linenum, line in enumerate(s.splitlines()):
             line = line.rstrip().expandtabs()
             stripped_line = line.lstrip()
@@ -614,6 +609,10 @@ class StrReader(object):
             indentation level.  If no line is available, (None, -1, -1) is
             returned.
         """
+        if self._stored_line:
+            ret = self._stored_line
+            self._stored_line = None
+            return ret
         if self._line_index >= len(self._lines):
             return None, -1, -1
         line, indent, linenum = self._lines[self._line_index]
@@ -621,6 +620,16 @@ class StrReader(object):
             return None, -1, -1
         self._line_index += 1
         return line, indent, linenum
+
+
+    def set_next_line(self, line, indent, linenum):
+        """
+        Make the next call to get_next_line() return the given line instead of
+        the real next line.
+        """
+        line = line.strip()
+        if line:
+            self._stored_line = line, indent, linenum
 
 
 class FileReader(StrReader):
