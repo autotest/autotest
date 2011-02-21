@@ -1,6 +1,6 @@
 import logging, time, threading
 from autotest_lib.client.tests.kvm.tests import file_transfer
-import kvm_utils
+import kvm_utils, kvm_test_utils
 
 
 def run_nic_bonding(test, params, env):
@@ -17,38 +17,48 @@ def run_nic_bonding(test, params, env):
     @param params: Dictionary with the test parameters.
     @param env: Dictionary with test environment.
     """
-    def control_link_loop(vm, termination_event):
-        logging.info("Repeatedly put down/up interfaces by set_link")
-        while True:
-            for i in range(len(params.get("nics").split())):
-                linkname = "%s.%s" % (params.get("nic_model"), i)
-                cmd = "set_link %s down" % linkname
-                vm.monitor.cmd(cmd)
-                time.sleep(1)
-                cmd = "set_link %s up" % linkname
-                vm.monitor.cmd(cmd)
-            if termination_event.isSet():
-                break
-
     timeout = int(params.get("login_timeout", 1200))
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
     session_serial = vm.wait_for_serial_login(timeout=timeout)
-    script_path = kvm_utils.get_path(test.bindir,
-                                     "scripts/nic_bonding_guest.py")
-    vm.copy_files_to(script_path, "/tmp/nic_bonding_guest.py")
-    cmd = "python /tmp/nic_bonding_guest.py %s" % vm.get_mac_address()
-    session_serial.cmd(cmd)
 
-    termination_event = threading.Event()
-    t = threading.Thread(target=control_link_loop,
-                         args=(vm, termination_event))
+    # get params of bonding
+    modprobe_cmd = "modprobe bonding"
+    bonding_params = params.get("bonding_params")
+    if bonding_params:
+        modprobe_cmd += " %s" % bonding_params
+    session_serial.cmd(modprobe_cmd)
+
+    session_serial.cmd("ifconfig bond0 up")
+    ifnames = [kvm_test_utils.get_linux_ifname(session_serial,
+                                               vm.get_mac_address(vlan))
+               for vlan, nic in enumerate(params.get("nics").split())]
+    setup_cmd = "ifenslave bond0 " + " ".join(ifnames)
+    session_serial.cmd(setup_cmd)
+    session_serial.cmd("dhclient bond0")
+
     try:
-        logging.info("Do some basic test before testing high availability")
+        logging.info("Test file transfering:")
         file_transfer.run_file_transfer(test, params, env)
-        t.start()
-        logging.info("Do file transfer testing")
-        file_transfer.run_file_transfer(test, params, env)
+
+        logging.info("Failover test with file transfer")
+        transfer_thread = kvm_utils.Thread(file_transfer.run_file_transfer,
+                                           (test, params, env))
+        try:
+            transfer_thread.start()
+            while transfer_thread.isAlive():
+                for vlan, nic in enumerate(params.get("nics").split()):
+                    device_id = vm.get_peer(vm.netdev_id[vlan])
+                    vm.monitor.cmd("set_link %s down" % device_id)
+                    time.sleep(1)
+                    vm.monitor.cmd("set_link %s up" % device_id)
+        except:
+            transfer_thread.join(suppress_exception=True)
+            raise
+        else:
+            transfer_thread.join()
     finally:
-        termination_event.set()
-        t.join(10)
+        session_serial.sendline("ifenslave -d bond0 " + " ".join(ifnames))
+        session_serial.sendline("kill -9 `pgrep dhclient`")
+
+
