@@ -227,7 +227,8 @@ class UnattendedInstallConfig(object):
                       'unattended_file', 'medium', 'url', 'kernel', 'initrd',
                       'nfs_server', 'nfs_dir', 'install_virtio', 'floppy',
                       'cdrom_unattended', 'boot_path', 'extra_params',
-                      'qemu_img_binary']
+                      'qemu_img_binary', 'cdkey', 'virtio_storage_path',
+                      'virtio_network_path', 'virtio_network_installer_path']
 
         for a in attributes:
             setattr(self, a, params.get(a, ''))
@@ -278,10 +279,9 @@ class UnattendedInstallConfig(object):
         error.context('Reading answer file %s' % self.unattended_file)
         unattended_contents = open(self.unattended_file).read()
         dummy_cdkey_re = r'\bKVM_TEST_CDKEY\b'
-        real_cdkey = os.environ.get('KVM_TEST_cdkey')
         if re.search(dummy_cdkey_re, unattended_contents):
-            if real_cdkey:
-                unattended_contents = re.sub(dummy_cdkey_re, real_cdkey,
+            if self.cdkey:
+                unattended_contents = re.sub(dummy_cdkey_re, self.cdkey,
                                              unattended_contents)
             else:
                 print ("WARNING: 'cdkey' required but not specified for "
@@ -301,7 +301,7 @@ class UnattendedInstallConfig(object):
         unattended_contents = re.sub(dummy_medium_re, content,
                                      unattended_contents)
 
-        def replace_virtio_key(contents, dummy_re, env):
+        def replace_virtio_key(contents, dummy_re, attribute_name):
             """
             Replace a virtio dummy string with contents.
 
@@ -313,7 +313,7 @@ class UnattendedInstallConfig(object):
             @param env: Name of the environment variable.
             """
             dummy_path = "C:"
-            driver = os.environ.get(env, '')
+            driver = getattr(self, attribute_name, '')
 
             if re.search(dummy_re, contents):
                 if self.install_virtio == "yes":
@@ -332,15 +332,17 @@ class UnattendedInstallConfig(object):
             return contents
 
         vdict = {r'\bKVM_TEST_STORAGE_DRIVER_PATH\b':
-                 'KVM_TEST_virtio_storage_path',
+                 'virtio_storage_path',
                  r'\bKVM_TEST_NETWORK_DRIVER_PATH\b':
-                 'KVM_TEST_virtio_network_path',
+                 'virtio_network_path',
                  r'\bKVM_TEST_VIRTIO_NETWORK_INSTALLER\b':
-                 'KVM_TEST_virtio_network_installer_path'}
+                 'virtio_network_installer_path'}
 
         for vkey in vdict:
-            unattended_contents = replace_virtio_key(unattended_contents,
-                                                     vkey, vdict[vkey])
+            unattended_contents = replace_virtio_key(
+                                                   contents=unattended_contents,
+                                                   dummy_re=vkey,
+                                                   attribute_name=vdict[vkey])
 
         logging.debug("Unattended install contents:")
         for line in unattended_contents.splitlines():
