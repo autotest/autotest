@@ -68,6 +68,7 @@ class Disk(object):
 
 
     def copy_to(self, src):
+        logging.debug("Copying %s to disk image mount", src)
         dst = os.path.join(self.mount, os.path.basename(src))
         if os.path.isdir(src):
             shutil.copytree(src, dst)
@@ -227,8 +228,7 @@ class UnattendedInstallConfig(object):
                       'unattended_file', 'medium', 'url', 'kernel', 'initrd',
                       'nfs_server', 'nfs_dir', 'install_virtio', 'floppy',
                       'cdrom_unattended', 'boot_path', 'extra_params',
-                      'qemu_img_binary', 'cdkey', 'virtio_storage_path',
-                      'virtio_network_path', 'virtio_network_installer_path']
+                      'qemu_img_binary', 'cdkey', 'finish_program']
 
         for a in attributes:
             setattr(self, a, params.get(a, ''))
@@ -244,6 +244,9 @@ class UnattendedInstallConfig(object):
 
         if getattr(self, 'unattended_file'):
             self.unattended_file = os.path.join(root_dir, self.unattended_file)
+
+        if getattr(self, 'finish_program'):
+            self.finish_program = os.path.join(root_dir, self.finish_program)
 
         if getattr(self, 'qemu_img_binary'):
             if not os.path.isfile(getattr(self, 'qemu_img_binary')):
