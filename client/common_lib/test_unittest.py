@@ -64,10 +64,32 @@ class Test_base_test_execute(TestTestCase):
         self.test.drop_caches_between_iterations.expect_call()
         before_hook.expect_call(self.test)
         self.test.run_once.expect_call(1, 2, arg='val')
-        after_hook.expect_call(self.test)
         self.test.postprocess_iteration.expect_call()
         self.test.analyze_perf_constraints.expect_call([])
+        after_hook.expect_call(self.test)
         self.test._call_run_once([], False, None, (1, 2), {'arg': 'val'})
+        self.god.check_playback()
+
+
+    def test_call_run_once_with_exception(self):
+        # setup
+        self.god.stub_function(self.test, 'drop_caches_between_iterations')
+        self.god.stub_function(self.test, 'run_once')
+        before_hook = self.god.create_mock_function('before_hook')
+        after_hook = self.god.create_mock_function('after_hook')
+        self.test.register_before_iteration_hook(before_hook)
+        self.test.register_after_iteration_hook(after_hook)
+        error = Exception('fail')
+
+        # tests the test._call_run_once implementation
+        self.test.drop_caches_between_iterations.expect_call()
+        before_hook.expect_call(self.test)
+        self.test.run_once.expect_call(1, 2, arg='val').and_raises(error)
+        after_hook.expect_call(self.test)
+        try:
+            self.test._call_run_once([], False, None, (1, 2), {'arg': 'val'})
+        except:
+            pass
         self.god.check_playback()
 
 
