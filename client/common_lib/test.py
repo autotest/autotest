@@ -198,22 +198,25 @@ class base_test(object):
         for hook in self.before_iteration_hooks:
             hook(self)
 
-        if profile_only:
-            if not self.job.profilers.present():
-                self.job.record('WARN', None, None, 'No profilers have been '
-                                'added but profile_only is set - nothing '
-                                'will be run')
-            self.run_once_profiling(postprocess_profiled_run, *args, **dargs)
-        else:
-            self.before_run_once()
-            self.run_once(*args, **dargs)
-            self.after_run_once()
+        try:
+            if profile_only:
+                if not self.job.profilers.present():
+                    self.job.record('WARN', None, None,
+                                    'No profilers have been added but '
+                                    'profile_only is set - nothing '
+                                    'will be run')
+                self.run_once_profiling(postprocess_profiled_run,
+                                        *args, **dargs)
+            else:
+                self.before_run_once()
+                self.run_once(*args, **dargs)
+                self.after_run_once()
 
-        for hook in self.after_iteration_hooks:
-            hook(self)
-
-        self.postprocess_iteration()
-        self.analyze_perf_constraints(constraints)
+            self.postprocess_iteration()
+            self.analyze_perf_constraints(constraints)
+        finally:
+            for hook in self.after_iteration_hooks:
+                hook(self)
 
 
     def execute(self, iterations=None, test_length=None, profile_only=None,
