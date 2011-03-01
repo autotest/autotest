@@ -113,15 +113,18 @@ variants:
                 redirs += " unattended_install"
             # Install guest from http/ftp url
             - url:
+                only Linux
                 medium = url
                 url = REPLACE_THIS_WITH_TREE_URL
             # Install guest from nfs nfs_server:nfs_dir
             - nfs:
+                only Linux
                 medium = nfs
                 nfs_server = REPLACE_THIS_WITH_NFS_SERVER
                 nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
             # Install guest with a remote kickstart
             - remote_ks:
+                only Linux
                 medium = url
                 extra_params = " --append ks=REPLACE_THIS_WITH_URL_OF_KS"
                 url = REPLACE_THIS_WITH_TREE_URL
@@ -170,6 +173,7 @@ variants:
                 iterations = 1
                 type = migration_with_file_transfer
             - with_autotest:
+                only Linux
                 type = autotest
                 migrate_background = yes
                 test_timeout = 1800
@@ -204,6 +208,7 @@ variants:
         kill_vm = yes
 
     - autotest:     install setup unattended_install.cdrom
+        only Linux
         type = autotest
         test_timeout = 1800
         variants:
@@ -246,6 +251,7 @@ variants:
 
 
     - linux_s3:     install setup unattended_install.cdrom
+        only Linux
         type = linux_s3
 
     - timedrift:    install setup unattended_install.cdrom
@@ -329,6 +335,7 @@ variants:
         used_mem = 2560
 
     - guest_test:       install setup unattended_install.cdrom
+        only Windows
         type = guest_test
         login_timeout = 360
         test_timeout = 600
@@ -358,11 +365,13 @@ variants:
                         dst_rsc_path = "C:\powershell\stub\stub.ps1"
 
     - iozone_windows: unattended_install.cdrom
+        only Windows
         type = iozone_windows
         iozone_cmd = "D:\IOzone\iozone.exe -a"
         iozone_timeout = 3600
 
     - whql:         install setup unattended_install.cdrom
+        only Windows
         nic_mode = tap
         # Replace this with the address of an installed DTM server
         server_address = 10.20.30.40
@@ -614,6 +623,7 @@ variants:
         type = qmp_basic_rhel6
 
     - vlan:  install setup unattended_install.cdrom
+        only Linux
         type = vlan
         # subnet should not be used by host
         subnet = "192.168"
@@ -635,6 +645,7 @@ variants:
         nics += ' nic2'
 
     - jumbo: install setup unattended_install.cdrom
+        only Linux
         type = jumbo
 
     - file_transfer: install setup unattended_install.cdrom
@@ -646,6 +657,7 @@ variants:
                 transfer_type = remote
 
     - nicdriver_unload:  install setup unattended_install.cdrom
+        only Linux
         type = nicdriver_unload
         nic_mode = tap
         filesize = 100
@@ -654,12 +666,14 @@ variants:
         sessions_num = 10
 
     - nic_promisc:  install setup unattended_install.cdrom
+        only Linux
         type = nic_promisc
         filesize = 400
         transfer_timeout = 100
         transfer_type = remote
 
     - multicast: install setup unattended_install.cdrom
+        only Linux
         type = multicast
         nic_mode = tap
         mcast = 225.0.0.1
@@ -680,10 +694,12 @@ variants:
         pxe_timeout = 60
 
     - mac_change: install setup unattended_install.cdrom
+        only Linux
         type = mac_change
         kill_vm = yes
 
     - netperf: install setup unattended_install.cdrom
+        only Linux
         type = netperf
         nic_mode = tap
         netperf_files = netperf-2.4.5.tar.bz2 wait_before_data.patch
@@ -699,11 +715,13 @@ variants:
                 protocols = "TCP_RR TCP_CRR UDP_RR"
 
     - ethtool: install setup unattended_install.cdrom
+        only Linux
         type = ethtool
         filesize = 512
         nic_mode = tap
 
     - nic_bonding:
+        only Linux
         type = nic_bonding
         nics += ' nic2 nic3 nic4'
         image_snapshot = yes
@@ -729,6 +747,7 @@ variants:
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
 
     - ksm_overcommit:
+        only Linux
         # Don't preprocess any vms as we need to change its params
         vms = ''
         image_snapshot = yes
@@ -751,9 +770,11 @@ variants:
                 ksm_mode = "parallel"
 
     - iofuzz:
+        only Linux
         type = iofuzz
 
     - virtio_console:
+        only Linux
         vms = ''
         type = virtio_console
         # smoke params - $console_type:data_string
@@ -809,6 +830,7 @@ variants:
         take_regular_screendumps = no
 
     - ioquit:
+        only Linux
         type = ioquit
         background_cmd = "for i in 1 2 3 4; do (dd if=/dev/urandom of=/tmp/file bs=102400 count=10000000 &); done"
         check_cmd = ps -a |grep dd
@@ -857,13 +879,16 @@ variants:
                 image_name_snapshot2 = sn2
 
     - clock_getres: install setup unattended_install.cdrom
+        only Linux
         type = clock_getres
 
     - yum_update:    install setup unattended_install.cdrom
+        only Fedora, RHEL
         type = yum_update
         shell_prompt = "Is this ok"
 
     - kdump: unattended_install.cdrom
+        only Linux
         type = kdump
         # time waited for the completion of crash dump
         # crash_timeout = 360
@@ -945,7 +970,6 @@ variants:
 variants:
     # Linux section
     - @Linux:
-        no autoit iozone_windows whql
         shutdown_command = shutdown -h now
         reboot_command = shutdown -r now
         status_test_command = echo $?
@@ -1736,9 +1760,6 @@ variants:
 
     # Windows section
     - @Windows:
-        no autotest, linux_s3, vlan, ioquit, unattended_install.url, unattended_install.nfs, unattended_install.remote_ks
-        no jumbo, nicdriver_unload, nic_promisc, multicast, mac_change, ethtool, clock_getres
-
         shutdown_command = shutdown /s /f /t 0
         reboot_command = shutdown /r /f /t 0
         status_test_command = echo %errorlevel%
