@@ -28,25 +28,34 @@ def parse_ssh_path(repo):
             "Incorrect SSH path in global_config: %s" % repo)
 
 
-def repo_run_command(repo, cmd, ignore_status=False):
+def repo_run_command(repo, cmd, ignore_status=False, cd=True):
     """Run a command relative to the repos path"""
     repo = repo.strip()
     run_cmd = None
+    cd_str = ''
     if repo.startswith('ssh://'):
         username = None
         hostline, remote_path = parse_ssh_path(repo)
+        if cd:
+            cd_str = 'cd %s && ' % remote_path
         if '@' in hostline:
             username, host = hostline.split('@')
-            run_cmd = 'ssh %s@%s "cd %s && %s"' % (username, host,
-                                                   remote_path, cmd)
+            run_cmd = 'ssh %s@%s "%s%s"' % (username, host, cd_str, cmd)
         else:
-            run_cmd = 'ssh %s "cd %s && %s"' % (host, remote_path, cmd)
+            run_cmd = 'ssh %s "%s%s"' % (host, cd_str, cmd)
 
     else:
-        run_cmd = "cd %s && %s" % (repo, cmd)
+        if cd:
+            cd_str = 'cd %s && ' % repo
+        run_cmd = "%s%s" % (cd_str, cmd)
 
     if run_cmd:
         return utils.run(run_cmd, ignore_status=ignore_status)
+
+
+def create_directory(repo):
+    _, remote_path = parse_ssh_path(repo)
+    repo_run_command(repo, 'mkdir -p %s' % remote_path, cd=False)
 
 
 def check_diskspace(repo, min_free=None):
@@ -272,6 +281,7 @@ class BasePackageManager(object):
         if not repo.startswith('/') and not repo.startswith('ssh:'):
             return
         try:
+            create_directory(repo)
             check_diskspace(repo)
             check_write(repo)
         except (error.RepoWriteError, error.RepoUnknownError,
