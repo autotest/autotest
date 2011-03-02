@@ -9,7 +9,7 @@ from autotest_lib.client.common_lib.test_utils import unittest
 from autotest_lib.database import database_connection
 from autotest_lib.frontend.afe import models
 from autotest_lib.scheduler import monitor_db, drone_manager, email_manager
-from autotest_lib.scheduler import scheduler_config, gc_stats
+from autotest_lib.scheduler import scheduler_config, gc_stats, host_scheduler
 from autotest_lib.scheduler import monitor_db_functional_test
 from autotest_lib.scheduler import scheduler_models
 
@@ -1298,7 +1298,7 @@ class JobSchedulingTest(BaseSchedulerTest):
                 dummy_test_agent)
 
         # Attempted to schedule on a host that already has an agent.
-        self.assertRaises(monitor_db.SchedulerError,
+        self.assertRaises(host_scheduler.SchedulerError,
                           self._dispatcher._schedule_running_host_queue_entries)
 
 
