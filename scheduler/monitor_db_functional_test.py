@@ -7,8 +7,8 @@ from autotest_lib.database import database_connection
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import frontend_test_utils, models
 from autotest_lib.frontend.afe import model_attributes
-from autotest_lib.scheduler import drone_manager, email_manager, monitor_db
-from autotest_lib.scheduler import scheduler_models
+from autotest_lib.scheduler import drone_manager, email_manager, host_scheduler
+from autotest_lib.scheduler import monitor_db, scheduler_models
 
 # translations necessary for scheduler queries to work with SQLite
 _re_translator = database_connection.TranslatingDatabase.make_regexp_translator
@@ -731,7 +731,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
                 is_complete=True,
                 requested_by=models.User.current_user())
 
-        self.assertRaises(monitor_db.SchedulerError, self._initialize_test)
+        self.assertRaises(host_scheduler.SchedulerError, self._initialize_test)
 
 
     def _test_recover_verifying_hqe_helper(self, task, pidfile_type):
