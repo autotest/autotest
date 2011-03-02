@@ -251,7 +251,13 @@ class status_line(object):
     def parse_line(cls, line):
         if not status_line.is_status_line(line):
             return None
-        indent, line = re.search(r"^(\t*)(.*)$", line).groups()
+        match = re.search(r"^(\t*)(.*)$", line)
+        if not match:
+            # A more useful error message than:
+            #  AttributeError: 'NoneType' object has no attribute 'groups'
+            # to help us debug WTF happens on occasion here.
+            raise RuntimeError("line %r could not be parsed." % line)
+        indent, line = match.groups()
         indent = len(indent)
 
         # split the line into the fixed and optional fields
