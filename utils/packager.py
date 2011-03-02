@@ -71,7 +71,7 @@ def parse_args():
 
 
 # Method to upload or remove package depending on the flag passed to it.
-def process_packages(pkgmgr, pkg_type, pkg_names, src_dir, repo_url,
+def process_packages(pkgmgr, pkg_type, pkg_names, src_dir,
                     remove=False):
     exclude_string = ' .'
     names = [p.strip() for p in pkg_names.split(',')]
@@ -101,12 +101,12 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir, repo_url,
                     raise error.RepoDiskFullError(msg)
                 tarball_path = pkgmgr.tar_package(pkg_name, pkg_dir,
                                                   temp_dir, exclude_string)
-                pkgmgr.upload_pkg(tarball_path, repo_url, update_checksum=True)
+                pkgmgr.upload_pkg(tarball_path, update_checksum=True)
             finally:
                 # remove the temporary directory
                 shutil.rmtree(temp_dir)
         else:
-            pkgmgr.remove_pkg(pkg_name, repo_url, remove_checksum=True)
+            pkgmgr.remove_pkg(pkg_name, remove_checksum=True)
         print "Done."
 
 
@@ -137,7 +137,7 @@ def tar_packages(pkgmgr, pkg_type, pkg_names, src_dir, temp_dir):
     return tarballs
 
 
-def process_all_packages(pkgmgr, client_dir, upload_paths, remove=False):
+def process_all_packages(pkgmgr, client_dir, remove=False):
     """Process a full upload of packages as a directory upload."""
     test_dir = os.path.join(client_dir, "tests")
     site_test_dir = os.path.join(client_dir, "site_tests")
@@ -180,22 +180,16 @@ def process_all_packages(pkgmgr, client_dir, upload_paths, remove=False):
         os.chdir(temp_dir)
         client_utils.system('md5sum * > packages.checksum')
         os.chdir(cwd)
-        for path in upload_paths:
-            print "Uploading to: " + path
-            pkgmgr.upload_pkg(temp_dir, path)
+        pkgmgr.upload_pkg(temp_dir)
         client_utils.run('rm -rf ' + temp_dir)
     else:
-        for repo_url in upload_paths:
-            process_packages(pkgmgr, 'test', tests, client_dir, repo_url,
-                             remove=remove)
-            process_packages(pkgmgr, 'test', site_tests, client_dir, repo_url,
-                             remove=remove)
-            process_packages(pkgmgr, 'client', 'autotest', client_dir, repo_url,
-                             remove=remove)
-            process_packages(pkgmgr, 'dep', deps, dep_dir, repo_url,
-                             remove=remove)
-            process_packages(pkgmgr, 'profiler', profilers, prof_dir, repo_url,
-                             remove=remove)
+        process_packages(pkgmgr, 'test', tests, client_dir,remove=remove)
+        process_packages(pkgmgr, 'test', site_tests, client_dir, remove=remove)
+        process_packages(pkgmgr, 'client', 'autotest', client_dir,
+                         remove=remove)
+        process_packages(pkgmgr, 'dep', deps, dep_dir, remove=remove)
+        process_packages(pkgmgr, 'profiler', profilers, prof_dir,
+                         remove=remove)
 
 
 # Get the list of sub directories present in a directory
@@ -236,10 +230,6 @@ def main():
     if len(upload_paths) == 0:
         return
 
-    pkgmgr = packages.PackageManager(autotest_dir, repo_urls=repo_urls,
-                                     upload_paths=upload_paths,
-                                     run_function_dargs={'timeout':600})
-
     client_dir = os.path.join(autotest_dir, "client")
 
     # Bail out if the client directory does not exist
@@ -262,35 +252,39 @@ def main():
         # we should not be getting here
         assert(False)
 
+    if options.repo:
+        upload_path_list = [options.repo]
+    else:
+        upload_path_list = upload_paths
+
+    pkgmgr = packages.PackageManager(autotest_dir, repo_urls=repo_urls,
+                                     upload_paths=upload_path_list,
+                                     run_function_dargs={'timeout':600})
+
     if options.all:
-        if options.repo:
-            upload_path_list = [options.repo]
-        else:
-            upload_path_list = upload_paths
-        process_all_packages(pkgmgr, client_dir, upload_path_list,
-                             remove=remove_flag)
+        process_all_packages(pkgmgr, client_dir, remove=remove_flag)
 
     if options.client:
         process_packages(pkgmgr, 'client', 'autotest', client_dir,
-                         options.repo, remove=remove_flag)
+                         remove=remove_flag)
 
     if options.dep:
         process_packages(pkgmgr, 'dep', options.dep, dep_dir,
-                         options.repo, remove=remove_flag)
+                         remove=remove_flag)
 
     if options.test:
         process_packages(pkgmgr, 'test', options.test, client_dir,
-                         options.repo, remove=remove_flag)
+                         remove=remove_flag)
 
     if options.prof:
         process_packages(pkgmgr, 'profiler', options.prof, prof_dir,
-                         options.repo, remove=remove_flag)
+                         remove=remove_flag)
 
     if options.file:
         if remove_flag:
-            pkgmgr.remove_pkg(options.file, options.repo, remove_checksum=True)
+            pkgmgr.remove_pkg(options.file, remove_checksum=True)
         else:
-            pkgmgr.upload_pkg(options.file, options.repo, update_checksum=True)
+            pkgmgr.upload_pkg(options.file, update_checksum=True)
 
 
 if __name__ == "__main__":
