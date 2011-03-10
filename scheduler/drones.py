@@ -122,6 +122,12 @@ class _RemoteDrone(_AbstractDrone):
         self._autotest_install_dir = AUTOTEST_INSTALL_DIR
 
 
+    @property
+    def _drone_utility_path(self):
+        return os.path.join(self._autotest_install_dir,
+                            'scheduler', 'drone_utility.py')
+
+
     def set_autotest_install_dir(self, path):
         self._autotest_install_dir = path
 
@@ -133,11 +139,9 @@ class _RemoteDrone(_AbstractDrone):
 
     def _execute_calls_impl(self, calls):
         logging.info("Running drone_utility on %s", self.hostname)
-        drone_utility_path = os.path.join(self._autotest_install_dir,
-                                          'scheduler', 'drone_utility.py')
-        result = self._host.run('python %s' % drone_utility_path,
-                                stdin=cPickle.dumps(calls), connect_timeout=300)
-
+        result = self._host.run('python %s' % self._drone_utility_path,
+                                stdin=cPickle.dumps(calls), stdout_tee=None,
+                                connect_timeout=300)
         try:
             return cPickle.loads(result.stdout)
         except Exception: # cPickle.loads can throw all kinds of exceptions
