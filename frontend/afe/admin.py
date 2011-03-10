@@ -57,7 +57,11 @@ class LabelForm(ModelWithInvalidForm):
 
 
 class LabelAdmin(SiteAdmin):
-    list_display = ('name', 'kernel_config')
+    list_display = ('name', 'atomic_group', 'kernel_config')
+    # Avoid a bug with the admin interface showing a select box pointed at an
+    # AtomicGroup when this field is intentionally NULL such that editing a
+    # label via the admin UI unintentionally sets an atomicgroup.
+    raw_id_fields = ('atomic_group',)
 
     form = LabelForm
 
