@@ -83,7 +83,7 @@ def run_virtio_console(test, params, env):
                 args = []
             res = [None, function.func_name, args]
             try:
-                logging.info("Start test %s." % function.func_name)
+                logging.info("Starting test %s" % function.func_name)
                 ret = function(*args)
                 res[0] = True
                 logging.info(self.result_to_string(res))
@@ -109,7 +109,7 @@ def run_virtio_console(test, params, env):
                     try:
                         self.cleanup_func(*self.cleanup_args)
                     except:
-                        error.TestFail("Cleanup function crash too.")
+                        error.TestFail("Cleanup function crashed as well")
                 if fatal:
                     raise
 
@@ -170,7 +170,7 @@ def run_virtio_console(test, params, env):
 
         def _gen_res(self, format_func):
             """
-            Format result with foramting function
+            Format result with formatting function
 
             @param format_func: Func for formating result.
             """
@@ -266,11 +266,12 @@ def run_virtio_console(test, params, env):
         """
         Random data sender thread.
         """
-        def __init__(self, port, data, event):
+        def __init__(self, port, data, event, quiet=False):
             """
             @param port: Destination port.
             @param data: The data intend to be send in a loop.
             @param event: Exit event.
+            @param quiet: If true don't raise event when crash.
             """
             Thread.__init__(self)
             self.port = port
@@ -282,14 +283,20 @@ def run_virtio_console(test, params, env):
             self.data = data
             self.exitevent = event
             self.idx = 0
+            self.quiet = quiet
 
 
         def run(self):
             logging.debug("ThSend %s: run", self.getName())
-            while not self.exitevent.isSet():
-                self.idx += self.port.send(self.data)
-            logging.debug("ThSend %s: exit(%d)", self.getName(),
-                          self.idx)
+            try:
+                while not self.exitevent.isSet():
+                    self.idx += self.port.send(self.data)
+                logging.debug("ThSend %s: exit(%d)", self.getName(),
+                              self.idx)
+            except Exception as ints:
+                if not self.quiet:
+                    raise ints
+                logging.debug(ints)
 
 
     class ThSendCheck(Thread):
@@ -344,7 +351,7 @@ def run_virtio_console(test, params, env):
             logging.debug("ThSendCheck %s: exit(%d)", self.getName(),
                           self.idx)
             if too_much_data:
-                logging.error("ThSendCheck: workaround the 'too_much_data'"
+                logging.error("ThSendCheck: working around the 'too_much_data'"
                               "bug")
 
 
@@ -352,11 +359,12 @@ def run_virtio_console(test, params, env):
         """
         Recieves data and throws it away.
         """
-        def __init__(self, port, event, blocklen=1024):
+        def __init__(self, port, event, blocklen=1024, quiet=False):
             """
             @param port: Data source port.
             @param event: Exit event.
             @param blocklen: Block length.
+            @param quiet: If true don't raise event when crash.
             """
             Thread.__init__(self)
             self.port = port
@@ -365,16 +373,24 @@ def run_virtio_console(test, params, env):
             self.exitevent = event
             self.blocklen = blocklen
             self.idx = 0
+            self.quiet = quiet
+
+
         def run(self):
             logging.debug("ThRecv %s: run", self.getName())
-            while not self.exitevent.isSet():
-                # TODO: Workaround, it didn't work with select :-/
-                try:
-                    self.idx += len(self.port.recv(self.blocklen))
-                except socket.timeout:
-                    pass
-            self.port.settimeout(self._port_timeout)
-            logging.debug("ThRecv %s: exit(%d)", self.getName(), self.idx)
+            try:
+                while not self.exitevent.isSet():
+                    # TODO: Workaround, it didn't work with select :-/
+                    try:
+                        self.idx += len(self.port.recv(self.blocklen))
+                    except socket.timeout:
+                        pass
+                self.port.settimeout(self._port_timeout)
+                logging.debug("ThRecv %s: exit(%d)", self.getName(), self.idx)
+            except Exception as ints:
+                if not self.quiet:
+                    raise ints
+                logging.debug(ints)
 
 
     class ThRecvCheck(Thread):
@@ -427,7 +443,7 @@ def run_virtio_console(test, params, env):
 
     def process_stats(stats, scale=1.0):
         """
-        Process and print the statistic.
+        Process and print the stats.
 
         @param stats: List of measured data.
         """
@@ -621,7 +637,7 @@ def run_virtio_console(test, params, env):
         consoles = []
         serialports = []
         tmp_dir = tempfile.mkdtemp(prefix="virtio-console-", dir="/tmp/")
-        params['extra_params'] = ''
+        params['extra_params'] = standard_extra_params
 
         if not spread:
             pci = "virtio-serial-pci0"
@@ -638,7 +654,7 @@ def run_virtio_console(test, params, env):
             params['extra_params'] += (" -chardev socket,path=%s/%d,id=vc%d,"
                                        "server,nowait" % (tmp_dir, i, i))
             params['extra_params'] += (" -device virtconsole,chardev=vc%d,"
-                                      "name=console-%d,id=c%d,bus=%s"
+                                      "name=console-%d,id=console-%d,bus=%s"
                                       % (i, i, i, pci))
 
         for i in  range(no_console, no_console + no_serialport):
@@ -651,8 +667,8 @@ def run_virtio_console(test, params, env):
             params['extra_params'] += (" -chardev socket,path=%s/%d,id=vs%d,"
                                        "server,nowait" % (tmp_dir, i, i))
             params['extra_params'] += (" -device virtserialport,chardev=vs%d,"
-                                       "name=serialport-%d,id=p%d,bus=%s"
-                                       % (i, i, i, pci))
+                                       "name=serialport-%d,id=serialport-%d,"
+                                       "bus=%s" % (i, i, i, pci))
 
         (vm, session, sserial) = _restore_vm()
 
@@ -744,6 +760,7 @@ def run_virtio_console(test, params, env):
                                      " exception %s" % data)
         port.open()
 
+
     def tclose(vm, port):
         """
         Close socket.
@@ -755,7 +772,7 @@ def run_virtio_console(test, params, env):
         port.close()
 
 
-    def tpooling(vm, port):
+    def tpolling(vm, port):
         """
         Test try pooling function.
 
@@ -1190,6 +1207,181 @@ def run_virtio_console(test, params, env):
         logging.info("Logged in after migration")
 
 
+    def _virtio_dev_create(vm, ports_name, pciid, id, console="no"):
+        """
+        Add virtio serialport device.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param ports_name: Structure of ports.
+        @param pciid: Id of virtio-serial-pci device.
+        @param id: Id of port.
+        @param console: if "yes" inicialize console.
+        """
+        port = "serialport-"
+        port_type = "virtserialport"
+        if console == "yes":
+            port = "console-"
+            port_type = "virtconsole"
+        port += "%d%d" % (pciid, id)
+        ret = vm[0].monitors[0].cmd("device_add %s,"
+                                    "bus=virtio-serial-pci%d.0,"
+                                    "id=%s,"
+                                    "name=%s"
+                                    % (port_type, pciid, port, port))
+        ports_name.append([ port, console])
+        if ret != "":
+            logging.error(ret)
+
+
+    def _virtio_dev_del(vm, ports_name, pciid, id):
+        """
+        Del virtio serialport device.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param ports_name: Structure of ports.
+        @param pciid: Id of virtio-serial-pci device.
+        @param id: Id of port.
+        """
+        port = filter(lambda x: x[0].endswith("-%d%d" % (pciid, id)),
+                      ports_name)
+        ret = vm[0].monitors[0].cmd("device_del %s"
+                                        % (port[0][0]))
+        ports_name.remove(port[0])
+        if ret != "":
+            logging.error(ret)
+
+
+    def thotplug(vm, consoles, console="no", timeout=1):
+        """
+        Try hotplug function of virtio-consoles ports.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles.
+        @param console: If "yes" inicialize console.
+        @param timeout: Timeout between hotplug operations.
+        """
+        logging.info("Timeout between hotplug operations t=%fs" % timeout)
+        _reset_vm(vm, consoles, 1, 1)
+        ports_name = []
+        ports_name.append(['serialport-1','no'])
+        ports_name.append(['console-0','yes'])
+
+        logging.info("Test correct initialization of hotplug ports")
+        for id in range(1,5): #count of pci device
+            ret = vm[0].monitors[0].cmd("device_add virtio-serial-pci,"
+                                        "id=virtio-serial-pci%d" % (id))
+            if ret != "":
+                logging.error(ret)
+            for i in range(id*5+5): #max port 30
+                _virtio_dev_create(vm, ports_name, id, i, console)
+                time.sleep(timeout)
+
+        # Test correct initialization of hotplug ports
+        time.sleep(10) # Timeout for port initialization
+        _init_guest(vm, 10)
+        on_guest('virt.init(%s)' % (ports_name), vm, 10)
+
+        logging.info("Delete ports when ports are used")
+        # Delete ports when ports are used.
+        if not consoles[0][0].is_open:
+            consoles[0][0].open()
+        if not consoles[1][0].is_open:
+            consoles[1][0].open()
+        on_guest("virt.loopback(['%s'], ['%s'], 1024,"
+                 "virt.LOOP_POLL)" % (consoles[0][0].name,
+                                      consoles[1][0].name), vm, 10)
+        exit_event = threading.Event()
+        send = ThSend(consoles[0][0].sock, "Data", exit_event, quiet = True)
+        recv = ThRecv(consoles[1][0].sock, exit_event, quiet = True)
+        send.start()
+        time.sleep(2)
+        recv.start()
+
+        # Try to delete ports under load
+        ret = vm[0].monitors[0].cmd("device_del serialport-1")
+        ret += vm[0].monitors[0].cmd("device_del console-0")
+        ports_name.remove(['serialport-1','no'])
+        ports_name.remove(['console-0','yes'])
+        if ret != "":
+            logging.error(ret)
+
+        exit_event.set()
+        send.join()
+        recv.join()
+        on_guest("virt.exit_threads()", vm, 10)
+        on_guest('guest_exit()', vm, 10)
+
+        logging.info("Trying to add maximum count of ports to one pci device")
+        # Try to add ports
+        for i in range(30): # max port 30
+            _virtio_dev_create(vm, ports_name, 0, i, console)
+            time.sleep(timeout)
+        _init_guest(vm, 10)
+        time.sleep(10)
+        on_guest('virt.init(%s)' % (ports_name), vm, 20)
+        on_guest('guest_exit()', vm, 10)
+
+        logging.info("Trying delete and add again part of ports")
+        # Try to delete ports
+        for i in range(25): # max port 30
+            _virtio_dev_del(vm, ports_name, 0, i)
+            time.sleep(timeout)
+        _init_guest(vm, 10)
+        on_guest('virt.init(%s)' % (ports_name), vm, 10)
+        on_guest('guest_exit()', vm, 10)
+
+        # Try to add ports
+        for i in range(5): # max port 30
+            _virtio_dev_create(vm, ports_name, 0, i, console)
+            time.sleep(timeout)
+        _init_guest(vm, 10)
+        on_guest('virt.init(%s)' % (ports_name), vm, 10)
+        on_guest('guest_exit()', vm, 10)
+
+        logging.info("Trying to add and delete one port 100 times")
+        # Try 100 times add and delete one port.
+        for i in range(100):
+            _virtio_dev_del(vm, ports_name, 0, 0)
+            time.sleep(timeout)
+            _virtio_dev_create(vm, ports_name, 0, 0, console)
+            time.sleep(timeout)
+        _init_guest(vm, 10)
+        on_guest('virt.init(%s)' % (ports_name), vm, 10)
+        on_guest('guest_exit()', vm, 10)
+
+
+    def thotplug_no_timeout(vm, consoles, console="no"):
+        """
+        Start hotplug test without any timeout.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be close before rmmod.
+        @param console: If "yes" inicialize console.
+        """
+        thotplug(vm, consoles, console, 0)
+
+
+    def thotplug_virtio_pci(vm, consoles):
+        """
+        Test hotplug of virtio-serial-pci.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be close before rmmod.
+        """
+        vm[0].destroy(gracefully = False)
+        (vm, consoles) = _vm_create(1, 1, False)
+        id = 1
+        ret = vm[0].monitors[0].cmd("device_add virtio-serial-pci,"
+                                    "id=virtio-serial-pci%d" % (id))
+        time.sleep(10)
+        ret += vm[0].monitors[0].cmd("device_del virtio-serial-pci%d" % (id))
+        time.sleep(10)
+        ret += vm[0].monitors[0].cmd("device_add virtio-serial-pci,"
+                                    "id=virtio-serial-pci%d" % (id))
+        if ret != "":
+            logging.error(ret)
+
+
     def tloopback(vm, consoles, params):
         """
         Virtio console loopback subtest.
@@ -1446,6 +1638,11 @@ def run_virtio_console(test, params, env):
             logging.error("Python died/is stucked/have remaining threads")
             logging.debug(tmp)
             try:
+                kernel_bug = _search_kernel_crashlog(vm[0].serial_console, 10)
+                if kernel_bug is not None:
+                    logging.error(kernel_bug)
+                    raise error.TestFail("Kernel crash.")
+
                 if vm[4] == True:
                     raise error.TestFail("Kernel crash.")
                 match, tmp = _on_guest("guest_exit()", vm, 10)
@@ -1456,7 +1653,7 @@ def run_virtio_console(test, params, env):
                                         0, 10)
                 on_guest("killall -9 python "
                          "&& echo -n PASS: python killed"
-                         "|| echo -n PASS: python was death",
+                         "|| echo -n PASS: python was already dead",
                          vm, 10)
 
                 init_guest(vm, consoles)
@@ -1467,12 +1664,12 @@ def run_virtio_console(test, params, env):
                 logging.error(inst)
                 logging.error("Virtio-console driver is irreparably"
                               " blocked. Every comd end with sig KILL."
-                              "Try reboot vm for continue in testing.")
+                              "Trying to reboot vm to continue testing...")
                 try:
                     vm[1] = kvm_test_utils.reboot(vm[0], vm[1], "system_reset")
                 except (kvm_monitor.MonitorProtocolError):
-                    logging.error("Qemu is blocked. Monitor"
-                                  " no longer communicate.")
+                    logging.error("Qemu is blocked. Monitor no longer "
+                                  "communicates.")
                     vm[0].destroy(gracefully = False)
                     os.system("kill -9 %d" % (vm[0].get_pid()))
                     (vm[0], vm[1], vm[3]) = _restore_vm()
@@ -1486,11 +1683,26 @@ def run_virtio_console(test, params, env):
                                   cname, vm, 10)[0]
 
                 if (match is None) or (match != 0):
-                    raise error.TestFail("Virtio-console driver is irrepar"
-                                         "ably blocked. Every comd end"
-                                         " with sig KILL. Neither the "
-                                         "restart did not help.")
+                    raise error.TestFail("Virtio-console driver is irreparably "
+                                         "blocked. Every comd ended with sig "
+                                         "KILL. The restart didn't help.")
                 _clean_ports(vm, consoles)
+
+
+    def _reset_vm(vm, consoles, no_console=1, no_serialport=1):
+        """
+        Destroy and reload vm.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Consoles which should be close and than renew.
+        @param no_console: Number of desired virtconsoles.
+        @param no_serialport: Number of desired virtserialports.
+        """
+        vm[0].destroy(gracefully=False)
+        shutil.rmtree(vm[2])    # Remove virtio sockets tmp directory
+        (_vm, _consoles) = _vm_create(no_console, no_serialport)
+        consoles[:] = _consoles[:]
+        vm[:] = _vm[:]
 
 
     def clean_reload_vm(vm, consoles, expected=False):
@@ -1504,15 +1716,11 @@ def run_virtio_console(test, params, env):
             print "Scheduled vm reboot"
         else:
             print "SCHWARZENEGGER is CLEANING"
-        vm[0].destroy(gracefully=False)
-        shutil.rmtree(vm[2])    # Remove virtio sockets tmp directory
-        (_vm, _consoles) = _vm_create(len(consoles[0]), len(consoles[1]))
-        consoles[:] = _consoles[:]
-        vm[:] = _vm[:]
+        _reset_vm(vm, consoles, len(consoles[0]), len(consoles[1]))
         init_guest(vm, consoles)
 
 
-    def test_smoke(test, vm, consoles, params):
+    def test_smoke(test, vm, consoles, params, global_params):
         """
         Virtio console smoke test.
 
@@ -1523,41 +1731,43 @@ def run_virtio_console(test, params, env):
         @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Field of virtio ports with the minimum of 2 items.
         @param params: Test parameters '$console_type:$data;...'
+        @param global_params: Params defined by tests_base.conf.
         """
         # PREPARE
-        for param in params.split(';'):
-            if not param:
-                continue
-            headline = "test_smoke: params: %s" % (param)
-            logging.info(headline)
-            param = param.split(':')
-            if len(param) > 1:
-                data = param[1]
-            else:
-                data = "Smoke test data"
-            param = (param[0] == 'serialport')
-            send_pt = consoles[param][0]
-            recv_pt = consoles[param][1]
-            subtest.headline(headline)
-            subtest.do_test(tcheck_zero_sym, [vm], cleanup=False)
-            subtest.do_test(topen, [vm, send_pt], True)
-            subtest.do_test(tclose, [vm, send_pt], True)
-            subtest.do_test(tmulti_open, [vm, send_pt])
-            subtest.do_test(tpooling, [vm, send_pt])
-            subtest.do_test(tsigio, [vm, send_pt])
-            subtest.do_test(tlseek, [vm, send_pt])
-            subtest.do_test(trw_host_offline, [vm, send_pt])
-            subtest.do_test(trw_host_offline_big_data, [vm, send_pt],
-                            cleanup=False)
-            subtest.do_test(trw_notconnect_guest,
-                            [vm, send_pt, consoles])
-            subtest.do_test(trw_nonblocking_mode, [vm, send_pt])
-            subtest.do_test(trw_blocking_mode, [vm, send_pt])
-            subtest.do_test(tbasic_loopback, [vm, send_pt, recv_pt, data],
-                            True)
+        if (global_params.get('smoke_test') == "yes"):
+            for param in params.split(';'):
+                if not param:
+                    continue
+                headline = "test_smoke: params: %s" % (param)
+                logging.info(headline)
+                param = param.split(':')
+                if len(param) > 1:
+                    data = param[1]
+                else:
+                    data = "Smoke test data"
+                param = (param[0] == 'serialport')
+                send_pt = consoles[param][0]
+                recv_pt = consoles[param][1]
+                subtest.headline(headline)
+                subtest.do_test(tcheck_zero_sym, [vm], cleanup=False)
+                subtest.do_test(topen, [vm, send_pt], True)
+                subtest.do_test(tclose, [vm, send_pt], True)
+                subtest.do_test(tmulti_open, [vm, send_pt])
+                subtest.do_test(tpolling, [vm, send_pt])
+                subtest.do_test(tsigio, [vm, send_pt])
+                subtest.do_test(tlseek, [vm, send_pt])
+                subtest.do_test(trw_host_offline, [vm, send_pt])
+                subtest.do_test(trw_host_offline_big_data, [vm, send_pt],
+                                cleanup=False)
+                subtest.do_test(trw_notconnect_guest,
+                                [vm, send_pt, consoles])
+                subtest.do_test(trw_nonblocking_mode, [vm, send_pt])
+                subtest.do_test(trw_blocking_mode, [vm, send_pt])
+                subtest.do_test(tbasic_loopback, [vm, send_pt, recv_pt, data],
+                                True)
 
 
-    def test_multiport(test, vm, consoles, params):
+    def test_multiport(test, vm, consoles, params, global_params):
         """
         This is group of test which test virtio_console in maximal load and
         with multiple ports.
@@ -1566,34 +1776,59 @@ def run_virtio_console(test, params, env):
         @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Field of virtio ports with the minimum of 2 items.
         @param params: Test parameters '$console_type:$data;...'
+        @param global_params: Params defined by tests_base.conf.
         """
         subtest.headline("test_multiport:")
         # Test Loopback
-        subtest.do_test(tloopback, [vm, consoles, params[0]])
+        if (global_params.get('loopback_test') == "yes"):
+            subtest.do_test(tloopback, [vm, consoles, params[0]])
 
         # Test Performance
-        subtest.do_test(tperf, [vm, consoles, params[1]])
+        if (global_params.get('perf_test') == "yes"):
+            subtest.do_test(tperf, [vm, consoles, params[1]])
 
 
-    def test_destructive(test, vm, consoles):
+    def test_destructive(test, vm, consoles, global_params):
         """
-        This is group of test is destructive.
+        This is group of tests is destructive.
 
         @param test: Main test object.
         @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Field of virtio ports with the minimum of 2 items.
+        @param global_params: Params defined by tests_base.conf.
         """
         subtest.headline("test_destructive:")
-        # Test rmmod
-        subtest.do_test(trmmod, [vm, consoles])
-        subtest.do_test(tmax_serial_ports, [vm, consoles])
-        subtest.do_test(tmax_console_ports, [vm, consoles])
-        subtest.do_test(tmax_mix_serial_conosle_port, [vm, consoles])
-        subtest.do_test(tshutdown, [vm, consoles])
-        subtest.do_test(tmigrate_offline, [vm, consoles])
+        # Uses stronger clean up function
+        (_cleanup_func, _cleanup_args) = subtest.get_cleanup_func()
+        subtest.set_cleanup_func(clean_reload_vm, [vm, consoles])
+
+        if (global_params.get('rmmod_test') == "yes"):
+            subtest.do_test(trmmod,[vm, consoles])
+        if (global_params.get('max_ports_test') == "yes"):
+            subtest.do_test(tmax_serial_ports, [vm, consoles])
+            subtest.do_test(tmax_console_ports, [vm, consoles])
+            subtest.do_test(tmax_mix_serial_conosle_port, [vm, consoles])
+        if (global_params.get('shutdown_test') == "yes"):
+            subtest.do_test(tshutdown, [vm, consoles])
+        if (global_params.get('migrate_test') == "yes"):
+            subtest.do_test(tmigrate_offline, [vm, consoles])
+        if (global_params.get('hotplug_serial_test') == "yes"):
+            subtest.do_test(thotplug, [vm, consoles])
+            subtest.do_test(thotplug_no_timeout, [vm, consoles])
+        if (global_params.get('hotplug_console_test') == "yes"):
+            subtest.do_test(thotplug, [vm, consoles, "yes"])
+            subtest.do_test(thotplug_no_timeout, [vm, consoles, "yes"])
+        if (global_params.get('hotplug_pci_test') == "yes"):
+            subtest.do_test(thotplug_virtio_pci, [vm, consoles])
+
+        subtest.set_cleanup_func(_cleanup_func, _cleanup_args)
 
 
     # INITIALIZE
+    if "extra_params" in params:
+        standard_extra_params = params['extra_params']
+    else:
+        standard_extra_params = ""
 
     tsmoke_params = params.get('virtio_console_smoke', '')
     tloopback_params = params.get('virtio_console_loopback', '')
@@ -1638,24 +1873,22 @@ def run_virtio_console(test, params, env):
 
         subtest.set_cleanup_func(clean_ports, [vm, consoles])
         # Test Smoke
-        test_smoke(subtest, vm, consoles, tsmoke_params)
+        test_smoke(subtest, vm, consoles, tsmoke_params, params)
 
         # Test multiport functionality and performance.
-        test_multiport(subtest, vm, consoles, [tloopback_params, tperf_params])
+        test_multiport(subtest, vm, consoles, [tloopback_params, tperf_params],
+                       params)
 
-        # Test destructive test.
-        # Uses stronger clean up function
-        (_cleanup_func, _cleanup_args) = subtest.get_cleanup_func()
-        subtest.set_cleanup_func(clean_reload_vm, [vm, consoles])
-        test_destructive(subtest, vm, consoles)
-        subtest.set_cleanup_func(_cleanup_func, _cleanup_args)
+        #Test destructive test.
+        test_destructive(subtest, vm, consoles, params)
     finally:
         logging.info(("Summary: %d tests passed  %d test failed :\n" %
                       (subtest.passed, subtest.failed)) +
                       subtest.get_text_result())
 
     if subtest.is_failed():
-        raise error.TestFail("Virtio_console test FAILED.")
+        raise error.TestFail("%d out of %d virtio console tests failed" %
+                             (subtest.passed, subtest.failed))
 
 
     # CLEANUP
