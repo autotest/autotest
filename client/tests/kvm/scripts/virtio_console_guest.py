@@ -547,6 +547,7 @@ class VirtioGuest:
         @param in_files: Array of input files.
         @param out_files: Array of output files.
         @param cachesize: Cachesize.
+        @param mode: Mode of switch.
         """
         self.ports = self._get_port_status()
 
@@ -573,7 +574,7 @@ class VirtioGuest:
         for desc in self.files.itervalues():
             os.close(desc)
         self.files.clear()
-        print "PASS: All threads finished."
+        print "PASS: All threads finished"
 
 
     def die(self):
