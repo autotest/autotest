@@ -40,6 +40,10 @@ shell_port = 22
 display = vnc
 drive_index_cd1 = 1
 
+qxl = on
+qxl_dev_nr = 1
+spice = disable-ticketing
+
 # Monitor params
 monitor_type = human
 

@@ -335,6 +335,7 @@ class VM:
                 if not glob.glob("/tmp/*%s" % self.instance):
                     break
 
+        self.spice_port = 8000
         self.name = name
         self.params = params
         self.root_dir = root_dir
@@ -553,6 +554,26 @@ class VM:
         def add_pcidevice(help, host):
             return " -pcidevice host='%s'" % host
 
+        def add_spice(help, port, param):
+            if has_option(help,"spice"):
+                return " -spice port=%s,%s" % (port, param)
+            else:
+                return ""
+
+        def add_qxl_vga(help, qxl, vga, qxl_dev_nr=None):
+            str = ""
+            if has_option(help, "qxl"):
+                if qxl and qxl_dev_nr is not None:
+                    str += " -qxl %s" % qxl_dev_nr
+                if has_option(help, "vga") and vga and vga != "qxl":
+                    str += " -vga %s" % vga
+            elif has_option(help, "vga"):
+                if qxl:
+                    str += " -vga qxl"
+                elif vga:
+                    str += " -vga %s" % vga
+            return str
+
         def add_kernel(help, filename):
             return " -kernel '%s'" % filename
 
@@ -720,6 +741,19 @@ class VM:
             qemu_cmd += add_sdl(help)
         elif params.get("display") == "nographic":
             qemu_cmd += add_nographic(help)
+        elif params.get("display") == "spice":
+            qemu_cmd += add_spice(help, self.spice_port, params.get("spice"))
+
+        qxl = ""
+        vga = ""
+        if params.get("qxl"):
+            qxl = params.get("qxl")
+        if params.get("vga"):
+            vga = params.get("vga")
+        if qxl or vga:
+            if params.get("display") == "spice":
+                qxl_dev_nr = params.get("qxl_dev_nr", None)
+                qemu_cmd += add_qxl_vga(help, qxl, vga, qxl_dev_nr)
 
         if params.get("uuid") == "random":
             qemu_cmd += add_uuid(help, vm.uuid)
@@ -844,6 +878,10 @@ class VM:
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
                 self.vnc_port = kvm_utils.find_free_port(5900, 6100)
+
+            # Find available spice port
+            if params.get("spice"):
+                self.spice_port = kvm_utils.find_free_port(8000, 8100)
 
             # Find random UUID if specified 'uuid = random' in config file
             if params.get("uuid") == "random":
