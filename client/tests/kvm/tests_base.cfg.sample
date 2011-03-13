@@ -1025,6 +1025,9 @@ variants:
         file_transfer:
             tmp_dir = /tmp/
             clean_cmd = rm -f
+        nicdriver_unload:
+            readlink_command = readlink -e
+            sys_path = "/sys/class/net/%s/device/driver"
 
         variants:
             - Fedora:
@@ -1618,6 +1621,9 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-4.8-i386-DVD.iso
                             md5sum_cd1 = b024f0af5079539d3ef51f71fed0b194
                             md5sum_1m_cd1 = 969c197402b9058f28a278c1f807d15b
+                        nicdriver_unload:
+                            readlink_command = readlink -f
+                            sys_path = "/sys/class/net/%s/driver"
 
 
                     - 4.8.x86_64:
@@ -1633,6 +1639,9 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-4.8-x86_64-DVD.iso
                             md5sum_cd1 = 696bc877b0200cc942626673fcc3fc09
                             md5sum_1m_cd1 = b11ac0ef7fd345ad712966972db63886
+                        nicdriver_unload:
+                            readlink_command = readlink -f
+                            sys_path = "/sys/class/net/%s/driver"
 
 
                     - 5.3.i386:
