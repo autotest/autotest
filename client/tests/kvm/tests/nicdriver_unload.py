@@ -26,9 +26,16 @@ def run_nicdriver_unload(test, params, env):
 
     ethname = kvm_test_utils.get_linux_ifname(session_serial,
                                               vm.get_mac_address(0))
-    sys_path = "/sys/class/net/%s/device/driver" % (ethname)
-    driver = os.path.basename(session_serial.cmd("readlink -e %s" %
-                                                 sys_path).strip())
+
+    # get ethernet driver from '/sys' directory.
+    # ethtool can do the same thing and doesn't care about os type.
+    # if we make sure all guests have ethtool, we can make a change here.
+    sys_path = params.get("sys_path") % (ethname)
+
+    # readlink in RHEL4.8 doesn't have '-e' param, should use '-f' in RHEL4.8.
+    readlink_cmd = params.get("readlink_command", "readlink -e")
+    driver = os.path.basename(session_serial.cmd("%s %s" % (readlink_cmd,
+                                                 sys_path)).strip())
     logging.info("driver is %s", driver)
 
     try:
@@ -53,4 +60,3 @@ def run_nicdriver_unload(test, params, env):
     else:
         for thread in threads:
             thread.join()
-
