@@ -12,26 +12,21 @@ def run_clock_getres(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    t_name = "test_clock_getres"
-    base_dir = "/tmp"
+    source_name = "test_clock_getres/test_clock_getres.c"
+    source_name = os.path.join(test.bindir, "deps", source_name)
+    dest_name = "/tmp/test_clock_getres.c"
+    bin_name = "/tmp/test_clock_getres"
 
-    deps_dir = os.path.join(test.bindir, "deps", t_name)
-    os.chdir(deps_dir)
-    try:
-        utils.system("make clean")
-        utils.system("make")
-    except:
-        raise error.TestError("Failed to compile %s" % t_name)
-
-    test_clock = os.path.join(deps_dir, t_name)
-    if not os.path.isfile(test_clock):
-        raise error.TestError("Could not find %s" % t_name)
+    if not os.path.isfile(source_name):
+        raise error.TestError("Could not find %s" % source_name)
 
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
     timeout = int(params.get("login_timeout", 360))
     session = vm.wait_for_login(timeout=timeout)
-    vm.copy_files_to(test_clock, base_dir)
-    session.cmd(os.path.join(base_dir, t_name))
+
+    vm.copy_files_to(source_name, dest_name)
+    session.cmd("gcc -lrt -o %s %s" % (bin_name, dest_name))
+    session.cmd(bin_name)
     logging.info("PASS: Guest reported appropriate clock resolution")
     logging.info("Guest's dmesg:\n%s", session.cmd_output("dmesg").strip())
