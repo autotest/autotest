@@ -675,7 +675,7 @@ def wait_for_login(client, host, port, username, password, prompt, linesep="\n",
                         linesep, log_filename, internal_timeout)
 
 
-def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
+def _remote_scp(session, password_list, transfer_timeout=600, login_timeout=10):
     """
     Transfer file(s) to a remote host (guest) using SCP.  Wait for questions
     and provide answers.  If login_timeout expires while waiting for output
@@ -685,7 +685,7 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
     @brief: Transfer files using SCP, given a command line.
 
     @param session: An Expect or ShellSession instance to operate on
-    @param password: The password to send in reply to a password prompt.
+    @param password_list: Password list to send in reply to the password prompt
     @param transfer_timeout: The time duration (in seconds) to wait for the
             transfer to complete.
     @param login_timeout: The maximal time duration (in seconds) to wait for
@@ -701,6 +701,8 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
     timeout = login_timeout
     authentication_done = False
 
+    scp_type = len(password_list)
+
     while True:
         try:
             match, text = session.read_until_last_line_matches(
@@ -712,8 +714,18 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
                 continue
             elif match == 1:  # "password:"
                 if password_prompt_count == 0:
-                    logging.debug("Got password prompt; sending '%s'", password)
-                    session.sendline(password)
+                    logging.debug("Got password prompt; sending '%s'" %
+                                   password_list[password_prompt_count])
+                    session.sendline(password_list[password_prompt_count])
+                    password_prompt_count += 1
+                    timeout = transfer_timeout
+                    if scp_type == 1:
+                        authentication_done = True
+                    continue
+                elif password_prompt_count == 1 and scp_type == 2:
+                    logging.debug("Got password prompt; sending '%s'" %
+                                   password_list[password_prompt_count])
+                    session.sendline(password_list[password_prompt_count])
                     password_prompt_count += 1
                     timeout = transfer_timeout
                     authentication_done = True
@@ -736,7 +748,7 @@ def _remote_scp(session, password, transfer_timeout=600, login_timeout=10):
                 raise SCPTransferFailedError(e.status, e.output)
 
 
-def remote_scp(command, password, log_filename=None, transfer_timeout=600,
+def remote_scp(command, password_list, log_filename=None, transfer_timeout=600,
                login_timeout=10):
     """
     Transfer file(s) to a remote host (guest) using SCP.
@@ -745,7 +757,7 @@ def remote_scp(command, password, log_filename=None, transfer_timeout=600,
 
     @param command: The command to execute
         (e.g. "scp -r foobar root@localhost:/tmp/").
-    @param password: The password to send in reply to a password prompt.
+    @param password_list: Password list to send in reply to a password prompt.
     @param log_filename: If specified, log all output to this file
     @param transfer_timeout: The time duration (in seconds) to wait for the
             transfer to complete.
@@ -766,7 +778,7 @@ def remote_scp(command, password, log_filename=None, transfer_timeout=600,
                                     output_func=output_func,
                                     output_params=output_params)
     try:
-        _remote_scp(session, password, transfer_timeout, login_timeout)
+        _remote_scp(session, password_list, transfer_timeout, login_timeout)
     finally:
         session.close()
 
@@ -789,7 +801,10 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
     command = ("scp -v -o UserKnownHostsFile=/dev/null "
                "-o PreferredAuthentications=password -r -P %s %s %s@%s:%s" %
                (port, local_path, username, host, remote_path))
-    remote_scp(command, password, log_filename, timeout)
+    password_list = []
+    password_list.append(password)
+    return remote_scp(command, password_list, log_filename, timeout)
+
 
 
 def scp_from_remote(host, port, username, password, remote_path, local_path,
@@ -810,7 +825,34 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
     command = ("scp -v -o UserKnownHostsFile=/dev/null "
                "-o PreferredAuthentications=password -r -P %s %s@%s:%s %s" %
                (port, username, host, remote_path, local_path))
-    remote_scp(command, password, log_filename, timeout)
+    password_list = []
+    password_list.append(password)
+    remote_scp(command, password_list, log_filename, timeout)
+
+
+def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
+                        s_path, d_path, log_filename=None, timeout=600):
+    """
+    Copy files from a remote host (guest) to another remote host (guest).
+
+    @param src/dst: Hostname or IP address of src and dst
+    @param s_name/d_name: Username (if required)
+    @param s_passwd/d_passwd: Password (if required)
+    @param s_path/d_path: Path on the remote machine where we are copying
+                         from/to
+    @param log_filename: If specified, log all output to this file
+    @param timeout: The time duration (in seconds) to wait for the transfer
+            to complete.
+
+    @return: True on success and False on failure.
+    """
+    command = ("scp -v -o UserKnownHostsFile=/dev/null -o "
+               "PreferredAuthentications=password -r -P %s %s@%s:%s %s@%s:%s" %
+               (port, s_name, src, s_path, d_name, dst, d_path))
+    password_list = []
+    password_list.append(s_passwd)
+    password_list.append(d_passwd)
+    return remote_scp(command, password_list, log_filename, timeout)
 
 
 def copy_files_to(address, client, username, password, port, local_path,
