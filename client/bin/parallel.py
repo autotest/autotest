@@ -2,7 +2,7 @@
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-import sys, logging, os, pickle, traceback, gc
+import sys, logging, os, pickle, traceback, gc, time
 from autotest_lib.client.common_lib import error, utils
 
 def fork_start(tmp, l):
@@ -76,6 +76,33 @@ def fork_waitfor(tmp, pid):
     if status:
         raise error.TestError("Test subprocess failed rc=%d" % (status))
 
+def fork_waitfor_timed(tmp, pid, timeout):
+    """
+    Waits for pid until it terminates or timeout expires.
+    If timeout expires, test subprocess is killed.
+    """
+    timer_expired = True
+    poll_time = 2
+    time_passed = 0
+    while time_passed < timeout:
+        time.sleep(poll_time)
+        (child_pid, status) = os.waitpid(pid, os.WNOHANG)
+        if (child_pid, status) == (0, 0):
+            time_passed = time_passed + poll_time
+        else:
+            timer_expired = False
+            break
+
+    if timer_expired:
+        logging.info('Timer expired (%d sec.), nuking pid %d', timeout, pid)
+        utils.nuke_pid(pid)
+        (child_pid, status) = os.waitpid(pid, 0)
+        raise error.TestError("Test timeout expired, rc=%d" % (status))
+    else:
+        _check_for_subprocess_exception(tmp, pid)
+
+    if status:
+        raise error.TestError("Test subprocess failed rc=%d" % (status))
 
 def fork_nuke_subprocess(tmp, pid):
     utils.nuke_pid(pid)
