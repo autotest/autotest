@@ -193,7 +193,8 @@ class base_client_job(base_job.base_job):
             message = '\n'.join([entry.message] + entry.extra_message_lines)
             rendered_entry = self._logger.render_entry(entry)
             self.harness.test_status_detail(entry.status_code, entry.subdir,
-                                            entry.operation, message, msg_tag)
+                                            entry.operation, message, msg_tag,
+                                            entry.fields)
             self.harness.test_status(rendered_entry, msg_tag)
             # send the entry to stdout, if it's enabled
             logging.info(rendered_entry)
@@ -573,7 +574,7 @@ class base_client_job(base_job.base_job):
                 self.record('GOOD', subdir, testname, 'completed successfully')
 
         try:
-            self._rungroup(subdir, testname, group_func)
+            self._rungroup(subdir, testname, group_func, timeout)
             return True
         except error.TestBaseException:
             return False
@@ -584,7 +585,7 @@ class base_client_job(base_job.base_job):
         # UnhandledTestError that is caught above.
 
 
-    def _rungroup(self, subdir, testname, function, *args, **dargs):
+    def _rungroup(self, subdir, testname, function, timeout, *args, **dargs):
         """\
         subdir:
                 name of the group
@@ -599,7 +600,13 @@ class base_client_job(base_job.base_job):
         """
 
         try:
-            self.record('START', subdir, testname)
+            optional_fields = None
+            if timeout:
+                optional_fields = {}
+                optional_fields['timeout'] = timeout
+            self.record('START', subdir, testname,
+                        optional_fields=optional_fields)
+
             self._state.set('client', 'unexpected_reboot', (subdir, testname))
             try:
                 result = function(*args, **dargs)
@@ -643,7 +650,7 @@ class base_client_job(base_job.base_job):
 
         try:
             return self._rungroup(subdir=None, testname=name,
-                                  function=function, **dargs)
+                                  function=function, timeout=None, **dargs)
         except (SystemExit, error.TestBaseException):
             raise
         # If there was a different exception, turn it into a TestError.

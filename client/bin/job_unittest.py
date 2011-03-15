@@ -504,7 +504,8 @@ class test_base_job(unittest.TestCase):
         self.job.pkgmgr.get_package_name.expect_call(
             testname, 'test').and_return(("", testname))
         os.path.exists.expect_call(outputdir).and_return(False)
-        self.job.record.expect_call("START", testname, testname)
+        self.job.record.expect_call("START", testname, testname,
+                                    optional_fields=None)
         self.job._runtest.expect_call(testname, "", None, (), {}).and_raises(
             unhandled_error)
         self.job.record.expect_call("ERROR", testname, testname,
@@ -538,7 +539,8 @@ class test_base_job(unittest.TestCase):
         self.job.pkgmgr.get_package_name.expect_call(
             testname, 'test').and_return(("", testname))
         os.path.exists.expect_call(outputdir).and_return(False)
-        self.job.record.expect_call("START", testname, testname)
+        self.job.record.expect_call("START", testname, testname,
+                                    optional_fields=None)
         self.job._runtest.expect_call(testname, "", None, (), {}).and_raises(
             unhandled_error)
         self.job.record.expect_call("ERROR", testname, testname, reason)
@@ -727,20 +729,25 @@ class test_base_job(unittest.TestCase):
         #unhandled_error = error.UnhandledTestError(real_error)
 
         # set up the recording
-        testname = "sleeptest"
+        testname = "test"
         outputdir = os.path.join(self.job.resultdir, testname)
         self.job.pkgmgr.get_package_name.expect_call(
             testname, 'test').and_return(("", testname))
         os.path.exists.expect_call(outputdir).and_return(False)
-        self.job.record.expect_call("START", testname, testname)
-        self.job._runtest.expect_call(testname, "", 60, (), {})
-        self.job.record.expect_call("GOOD", testname, testname, 'completed successfully')
+        timeout = 60
+        optional_fields = {}
+        optional_fields['timeout'] = timeout
+        self.job.record.expect_call("START", testname, testname,
+                                    optional_fields=optional_fields)
+        self.job._runtest.expect_call(testname, "", timeout, (), {})
+        self.job.record.expect_call("GOOD", testname, testname,
+                                    "completed successfully")
         self.job.record.expect_call("END GOOD", testname, testname)
         self.job.harness.run_test_complete.expect_call()
         utils.drop_caches.expect_call()
 
         # run and check
-        self.job.run_test(testname, timeout=60)
+        self.job.run_test(testname, timeout=timeout)
         self.god.check_playback()
 
 
