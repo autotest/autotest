@@ -469,6 +469,8 @@ class status_log_entry(object):
         else:
             self.fields = fields.copy()
         for key, value in self.fields.iteritems():
+            if type(value) is int:
+                value = str(value)
             if self.BAD_CHAR_REGEX.search(key + value):
                 raise ValueError('Invalid character in %r=%r field'
                                  % (key, value))

@@ -77,7 +77,8 @@ class harness(object):
         pass
 
 
-    def test_status_detail(self, code, subdir, operation, status, tag):
+    def test_status_detail(self, code, subdir, operation, status, tag,
+                           optional_fields):
         """A test within this job is completing (detail)"""
         pass
 
