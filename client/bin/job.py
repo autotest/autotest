@@ -515,11 +515,17 @@ class base_client_job(base_job.base_job):
                 logging.info('Dependency %s successfuly built', dep)
 
 
-    def _runtest(self, url, tag, args, dargs):
+    def _runtest(self, url, tag, timeout, args, dargs):
         try:
             l = lambda : test.runtest(self, url, tag, args, dargs)
             pid = parallel.fork_start(self.resultdir, l)
-            parallel.fork_waitfor(self.resultdir, pid)
+
+            if timeout:
+                logging.debug('Waiting for pid %d for %d seconds', pid, timeout)
+                parallel.fork_waitfor_timed(self.resultdir, pid, timeout)
+            else:
+                parallel.fork_waitfor(self.resultdir, pid)
+
         except error.TestBaseException:
             # These are already classified with an error type (exit_status)
             raise
@@ -549,12 +555,16 @@ class base_client_job(base_job.base_job):
         testname, subdir, tag = self._build_tagged_test_name(testname, dargs)
         outputdir = self._make_test_outputdir(subdir)
 
+        timeout = dargs.pop('timeout', None)
+        if timeout:
+            logging.debug('Test has timeout: %d sec.', timeout)
+
         def log_warning(reason):
             self.record("WARN", subdir, testname, reason)
         @disk_usage_monitor.watch(log_warning, "/", self._max_disk_usage_rate)
         def group_func():
             try:
-                self._runtest(url, tag, args, dargs)
+                self._runtest(url, tag, timeout, args, dargs)
             except error.TestBaseException, detail:
                 # The error is already classified, record it properly.
                 self.record(detail.exit_status, subdir, testname, str(detail))
