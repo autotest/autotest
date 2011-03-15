@@ -705,6 +705,7 @@ variants:
     - netperf: install setup unattended_install.cdrom
         only Linux
         type = netperf
+        nics += ' nic2 nic3 nic4'
         nic_mode = tap
         netperf_files = netperf-2.4.5.tar.bz2 wait_before_data.patch
         packet_size = 1500
