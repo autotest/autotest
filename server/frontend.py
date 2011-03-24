@@ -287,8 +287,7 @@ class AFE(RpcClient):
         else:
             kernel_info = None
         control_file = self.generate_control_file(
-                tests=tests, kernel=kernel_info, use_container=use_container,
-                do_push_packages=True)
+                tests=tests, kernel=kernel_info, use_container=use_container)
         if control_file.is_server:
             dargs['control_type'] = 'Server'
         else:

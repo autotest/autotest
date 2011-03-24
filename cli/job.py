@@ -459,7 +459,6 @@ class job_create(job_create_or_clone):
         if options.kernel:
             self.ctrl_file_data['kernel'] = self._get_kernel_data(
                     options.kernel, options.kernel_cmdline)
-            self.ctrl_file_data['do_push_packages'] = True
         if options.control_file:
             try:
                 control_file_f = open(options.control_file)
