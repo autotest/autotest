@@ -105,6 +105,15 @@ class VMDeadError(VMError):
                 (self.status, self.output))
 
 
+class VMDeadKernelCrashError(VMError):
+    def __init__(self, kernel_crash):
+        VMError.__init__(self, kernel_crash)
+        self.kernel_crash = kernel_crash
+
+    def __str__(self):
+        return ("VM is dead due to a kernel crash:\n%s" % self.kernel_crash)
+
+
 class VMAddressError(VMError):
     pass
 
@@ -1156,6 +1165,20 @@ class VM:
         Return True if the qemu process is dead.
         """
         return not self.process or not self.process.is_alive()
+
+
+    def verify_kernel_crash(self):
+        """
+        Find kernel crash message on the VM serial console.
+
+        @raise: VMDeadKernelCrashError, in case a kernel crash message was
+                found.
+        """
+        data = self.serial_console.get_output()
+        match = re.search(r"BUG:.*---\[ end trace .* \]---", data,
+                          re.DOTALL|re.MULTILINE)
+        if match is not None:
+            raise VMDeadKernelCrashError(match.group(0))
 
 
     def get_params(self):
