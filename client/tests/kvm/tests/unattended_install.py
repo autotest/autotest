@@ -16,6 +16,7 @@ def run_unattended_install(test, params, env):
     """
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
+    vm.verify_kernel_crash()
 
     install_timeout = int(params.get("timeout", 3000))
     post_install_delay = int(params.get("post_install_delay", 0))
