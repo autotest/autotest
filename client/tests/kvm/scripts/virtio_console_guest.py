@@ -9,8 +9,8 @@ Auxiliary script used to send data between ports on guests.
 """
 import threading
 from threading import Thread
-import os, select, re, random, sys, array
-import fcntl, traceback, signal
+import os, select, re, random, sys, array, stat
+import fcntl, traceback, signal, time
 
 DEBUGPATH = "/sys/kernel/debug"
 SYSFSPATH = "/sys/class/virtio-ports/"
@@ -703,7 +703,6 @@ def compile():
 def guest_exit():
     global exiting
     exiting = True
-    os.kill(os.getpid(), signal.SIGUSR1)
 
 
 def worker(virt):
@@ -711,23 +710,166 @@ def worker(virt):
     Worker thread (infinite) loop of virtio_guest.
     """
     global exiting
-    print "PASS: Start"
-
+    print "PASS: Daemon start."
+    p = select.poll()
+    p.register(sys.stdin.fileno())
     while not exiting:
-        str = raw_input()
-        try:
-            exec str
-        except:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            print "On Guest exception from: \n" + "".join(
-                            traceback.format_exception(exc_type,
-                                                       exc_value,
-                                                       exc_traceback))
-            print "FAIL: Guest command exception."
+        d = p.poll()
+        if (d[0][1] == select.POLLIN):
+            str = raw_input()
+            try:
+                exec str
+            except:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                print "On Guest exception from: \n" + "".join(
+                                traceback.format_exception(exc_type,
+                                                           exc_value,
+                                                           exc_traceback))
+                print "FAIL: Guest command exception."
+        elif (d[0][1] & select.POLLHUP):
+            time.sleep(0.5)
 
 
 def sigusr_handler(sig, frame):
     pass
+
+
+class Daemon:
+    """
+    Daemonize guest
+    """
+    def __init__(self, stdin, stdout, stderr):
+        """
+        Init daemon.
+
+        @param stdin: path to stdin file.
+        @param stdout: path to stdout file.
+        @param stderr: path to stderr file.
+        """
+        self.stdin = stdin
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+    @staticmethod
+    def is_file_open(path):
+        """
+        Determine process which open file.
+
+        @param path: Path to file.
+        @return [[pid,mode], ... ].
+        """
+        opens = []
+        pids = os.listdir('/proc')
+        for pid in sorted(pids):
+            try:
+                int(pid)
+            except ValueError:
+                continue
+            fd_dir = os.path.join('/proc', pid, 'fd')
+            try:
+                for file in os.listdir(fd_dir):
+                    try:
+                        p = os.path.join(fd_dir, file)
+                        link = os.readlink(os.path.join(fd_dir, file))
+                        if link == path:
+                            mode = os.lstat(p).st_mode
+                            opens.append([pid, mode])
+                    except OSError:
+                        continue
+            except OSError, e:
+                if e.errno == 2:
+                    continue
+                raise
+        return opens
+
+
+    def daemonize(self):
+        """
+        Run guest as a daemon.
+        """
+        try:
+            pid = os.fork()
+            if pid > 0:
+                return False
+        except OSError, e:
+            sys.stderr.write("Daemonize failed: %s\n" % (e))
+            sys.exit(1)
+
+        os.chdir("/")
+        os.setsid()
+        os.umask(0)
+
+        try:
+            pid = os.fork()
+            if pid > 0:
+                sys.exit(0)
+        except OSError, e:
+            sys.stderr.write("Daemonize failed: %s\n" % (e))
+            sys.exit(1)
+
+        sys.stdout.flush()
+        sys.stderr.flush()
+        si = file(self.stdin,'r')
+        so = file(self.stdout,'w')
+        se = file(self.stderr,'w')
+
+        os.dup2(si.fileno(), sys.stdin.fileno())
+        os.dup2(so.fileno(), sys.stdout.fileno())
+        os.dup2(se.fileno(), sys.stderr.fileno())
+
+        sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+        sys.stderr = os.fdopen(sys.stderr.fileno(), 'w', 0)
+        return True
+
+
+    def start(self):
+        """
+        Start the daemon
+
+        @return: PID of daemon.
+        """
+        # Check for a pidfile to see if the daemon already runs
+        openers = self.is_file_open(self.stdout)
+        rundaemon = False
+        if len(openers) > 0:
+            for i in openers:
+                if i[1] & stat.S_IWUSR:
+                    rundaemon = True
+                    openers.remove(i)
+            if len(openers) > 0:
+                for i in openers:
+                    os.kill(int(i[0]), 9)
+        time.sleep(0.3)
+
+        # Start the daemon
+        if not rundaemon:
+            if self.daemonize():
+                self.run()
+
+
+    def run(self):
+        """
+        Run guest main thread
+        """
+        global exiting
+        virt = VirtioGuest()
+        slave = Thread(target=worker, args=(virt, ))
+        slave.start()
+        signal.signal(signal.SIGUSR1, sigusr_handler)
+        signal.signal(signal.SIGALRM, sigusr_handler)
+        while not exiting:
+            signal.alarm(1)
+            signal.pause()
+            catch = virt.catching_signal()
+            if catch:
+                signal.signal(signal.SIGIO, virt)
+            elif catch is False:
+                signal.signal(signal.SIGIO, signal.SIG_DFL)
+            if catch is not None:
+                virt.use_config.set()
+        print "PASS: guest_exit"
+        sys.exit(0)
 
 
 def main():
@@ -736,23 +878,52 @@ def main():
     """
     if (len(sys.argv) > 1) and (sys.argv[1] == "-c"):
         compile()
+    stdin = "/tmp/guest_daemon_pi"
+    stdout = "/tmp/guest_daemon_po"
+    stderr = "/tmp/guest_daemon_pe"
 
-    global exiting
-    virt = VirtioGuest()
-    slave = Thread(target=worker, args=(virt, ))
-    slave.start()
-    signal.signal(signal.SIGUSR1, sigusr_handler)
-    while not exiting:
-        signal.pause()
-        catch = virt.catching_signal()
-        if catch:
-            signal.signal(signal.SIGIO, virt)
-        elif catch is False:
-            signal.signal(signal.SIGIO, signal.SIG_DFL)
-        if catch is not None:
-            virt.use_config.set()
-    print "PASS: guest_exit"
+    for f in [stdin, stdout, stderr]:
+        try:
+            os.mkfifo(f)
+        except OSError, e:
+            if e.errno == 17:
+                pass
 
+    daemon = Daemon(stdin,
+                    stdout,
+                    stderr)
+    daemon.start()
+
+    d_stdin = os.open(stdin, os.O_WRONLY)
+    d_stdout = os.open(stdout, os.O_RDONLY)
+    d_stderr = os.open(stderr, os.O_RDONLY)
+
+    s_stdin = sys.stdin.fileno()
+    s_stdout = sys.stdout.fileno()
+    s_stderr = sys.stderr.fileno()
+
+    pid = filter(lambda x: x[0] != str(os.getpid()),
+                 daemon.is_file_open(stdout))[0][0]
+
+    print "PASS: Start"
+
+    while 1:
+        ret = select.select([d_stderr,
+                             d_stdout,
+                             s_stdin],
+                            [], [], 1.0)
+        if s_stdin in ret[0]:
+            os.write(d_stdin,os.read(s_stdin, 1))
+        if d_stdout in ret[0]:
+            os.write(s_stdout,os.read(d_stdout, 1024))
+        if d_stderr in ret[0]:
+            os.write(s_stderr,os.read(d_stderr, 1024))
+        if not os.path.exists("/proc/" + pid):
+            sys.exit(0)
+
+    os.close(d_stdin)
+    os.close(d_stdout)
+    os.close(d_stderr)
 
 if __name__ == "__main__":
     main()
