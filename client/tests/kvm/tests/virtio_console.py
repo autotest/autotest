@@ -227,9 +227,19 @@ def run_virtio_console(test, params, env):
             """
             Open port on host side.
             """
-            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.sock.connect(self.path)
-            self.is_open = True
+            attempt = 11
+            while attempt > 0:
+                try:
+                    self.sock = socket.socket(socket.AF_UNIX,
+                                              socket.SOCK_STREAM)
+                    self.sock.connect(self.path)
+                    self.sock.setsockopt(1,socket.SO_SNDBUF, 2048)
+                    self.is_open = True
+                    return
+                except Exception, inst:
+                    attempt -= 1
+                    time.sleep(1)
+            raise error.TestFail("Can't open the %s sock" % self.name)
 
 
         def clean_port(self):
@@ -333,7 +343,7 @@ def run_virtio_console(test, params, env):
                     while not self.exitevent.isSet() and len(queue) > 1048576:
                         too_much_data = True
                         time.sleep(0.1)
-                ret = select.select([], [self.port], [], 1.0)
+                ret = select.select([], [self.port.sock], [], 1.0)
                 if ret[1]:
                     # Generate blocklen of random data add them to the FIFO
                     # and send them over virtio_console
@@ -345,7 +355,26 @@ def run_virtio_console(test, params, env):
                             queue.append(ch)
                     target = self.idx + self.blocklen
                     while not self.exitevent.isSet() and self.idx < target:
-                        idx = self.port.send(buf)
+                        try:
+                            idx = self.port.sock.send(buf)
+                        except Exception, inst:
+                            # Broken pipe
+                            if inst.errno == 32:
+                                logging.debug("ThSendCheck %s: Broken pipe "
+                                              "(migration?), reconnecting",
+                                              self.getName())
+                                attempt = 10
+                                while (attempt > 1
+                                       and not self.exitevent.isSet()):
+                                    self.port.is_open = False
+                                    self.port.open()
+                                    try:
+                                        idx = self.port.sock.send(buf)
+                                    except:
+                                        attempt += 1
+                                        time.sleep(10)
+                                    else:
+                                        attempt = 0
                         buf = buf[idx:]
                         self.idx += idx
             logging.debug("ThSendCheck %s: exit(%d)", self.getName(),
@@ -397,12 +426,13 @@ def run_virtio_console(test, params, env):
         """
         Random data receiver/checker thread.
         """
-        def __init__(self, port, buffer, event, blocklen=1024):
+        def __init__(self, port, buffer, event, blocklen=1024, sendlen=0):
             """
             @param port: Source port.
             @param buffer: Control data buffer (FIFO).
             @param length: Amount of data we want to receive.
             @param blocklen: Block length.
+            @param sendlen: Block length of the send function (on guest)
             """
             Thread.__init__(self)
             self.port = port
@@ -410,33 +440,85 @@ def run_virtio_console(test, params, env):
             self.exitevent = event
             self.blocklen = blocklen
             self.idx = 0
+            self.sendlen = sendlen + 1  # >=
 
 
         def run(self):
             logging.debug("ThRecvCheck %s: run", self.getName())
+            attempt = 10
+            sendidx = -1
+            minsendidx = self.sendlen
             while not self.exitevent.isSet():
-                ret = select.select([self.port], [], [], 1.0)
+                ret = select.select([self.port.sock], [], [], 1.0)
                 if ret[0] and (not self.exitevent.isSet()):
-                    buf = self.port.recv(self.blocklen)
+                    buf = self.port.sock.recv(self.blocklen)
                     if buf:
                         # Compare the received data with the control data
                         for ch in buf:
                             ch_ = self.buffer.popleft()
-                            if not ch == ch_:
-                                self.exitevent.set()
-                                logging.error("Failed to recv %dth character",
-                                              self.idx)
-                                logging.error("%s != %s", repr(ch), repr(ch_))
-                                logging.error("Recv = %s", repr(buf))
-                                # sender might change the buffer :-(
-                                time.sleep(1)
-                                ch_ = ""
-                                for buf in self.buffer:
-                                    ch_ += buf
-                                logging.error("Queue = %s", repr(ch_))
-                                raise error.TestFail("ThRecvCheck: incorrect "
-                                                     "data")
-                        self.idx += len(buf)
+                            if ch == ch_:
+                                self.idx += 1
+                            else:
+                                # TODO BUG: data from the socket on host can
+                                # be lost during migration
+                                while ch != ch_:
+                                    if sendidx > 0:
+                                        sendidx -= 1
+                                        ch_ = self.buffer.popleft()
+                                    else:
+                                        self.exitevent.set()
+                                        logging.error("ThRecvCheck %s: "
+                                                      "Failed to recv %dth "
+                                                      "character",
+                                                      self.getName(), self.idx)
+                                        logging.error("ThRecvCheck %s: "
+                                                      "%s != %s",
+                                                      self.getName(),
+                                                      repr(ch), repr(ch_))
+                                        logging.error("ThRecvCheck %s: "
+                                                      "Recv = %s",
+                                                      self.getName(), repr(buf))
+                                        # sender might change the buffer :-(
+                                        time.sleep(1)
+                                        ch_ = ""
+                                        for buf in self.buffer:
+                                            ch_ += buf
+                                            ch_ += ' '
+                                        logging.error("ThRecvCheck %s: "
+                                                      "Queue = %s",
+                                                      self.getName(), repr(ch_))
+                                        logging.info("ThRecvCheck %s: "
+                                                    "MaxSendIDX = %d",
+                                                    self.getName(),
+                                                    (self.sendlen - sendidx))
+                                        raise error.TestFail("ThRecvCheck %s: "
+                                                             "incorrect data",
+                                                             self.getName())
+                        attempt = 10
+                    else:   # ! buf
+                        # Broken socket
+                        if attempt > 0:
+                            attempt -= 1
+                            logging.debug("ThRecvCheck %s: Broken pipe "
+                                          "(migration?), reconnecting. ",
+                                          self.getName())
+                            # TODO BUG: data from the socket on host can be lost
+                            if sendidx >= 0:
+                                minsendidx = min(minsendidx, sendidx)
+                                logging.debug("ThRecvCheck %s: Previous data "
+                                              "loss was %d.",
+                                              self.getName(),
+                                              (self.sendlen - sendidx))
+                            sendidx = self.sendlen
+                            self.port.is_open = False
+                            self.port.open()
+            if sendidx >= 0:
+                minsendidx = min(minsendidx, sendidx)
+            if (self.sendlen - minsendidx):
+                logging.error("ThRecvCheck %s: Data loss occured during socket"
+                              "reconnection. Maximal loss was %d per one "
+                              "migration.", self.getName(),
+                              (self.sendlen - minsendidx))
             logging.debug("ThRecvCheck %s: exit(%d)", self.getName(),
                           self.idx)
 
@@ -457,7 +539,7 @@ def run_virtio_console(test, params, env):
         return stats
 
 
-    def _init_guest(vm, timeout=2):
+    def _init_guest(vm, timeout=10):
         """
         Execute virtio_console_guest.py on guest, wait until it is initialized.
 
@@ -552,9 +634,9 @@ def run_virtio_console(test, params, env):
                                                                 "FAIL:"],
                                                                timeout)
 
-        except (kvm_subprocess.ExpectError):
+        except (kvm_subprocess.ExpectError), e:
             match = None
-            data = "Timeout."
+            data = "Cmd process timeout. Data in console: " + e.output
 
         kcrash_data = _search_kernel_crashlog(vm[3])
         if kcrash_data is not None:
@@ -774,7 +856,7 @@ def run_virtio_console(test, params, env):
 
     def tpolling(vm, port):
         """
-        Test try pooling function.
+        Test try polling function.
 
         @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port used in test.
@@ -895,7 +977,7 @@ def run_virtio_console(test, params, env):
         if (port.sock.recv(1024) < 10):
             raise error.TestFail("Didn't received data from guest")
         # Now the _on_guest("virt.send('%s'... command should be finished
-        on_guest("print 'PASS: nothing'", vm, 10)
+        on_guest("print('PASS: nothing')", vm, 10)
 
 
     def trw_host_offline_big_data(vm, port):
@@ -930,7 +1012,7 @@ def run_virtio_console(test, params, env):
             elif rlen != (1024**3*3):
                 raise error.TestFail("Not all data was received,"
                                      "only %d from %d" % (rlen, 1024**3*3))
-        on_guest("print 'PASS: nothing'", vm, 10)
+        on_guest("print('PASS: nothing')", vm, 10)
 
 
     def trw_notconnect_guest(vm, port, consoles):
@@ -1013,14 +1095,14 @@ def run_virtio_console(test, params, env):
         match, tmp = _on_guest("virt.recv('%s', 10, 1024, False)" %
                                port.name, vm, 10)
         if match == 0:
-            raise error.TestFail("Received data even when non were sent\n"
+            raise error.TestFail("Received data even when none was sent\n"
                                  "Data:\n%s" % tmp)
         elif match is not None:
             raise error.TestFail("Unexpected fail\nMatch: %s\nData:\n%s" %
                                  (match, tmp))
         port.sock.sendall("1234567890")
         # Now guest received the data end escaped from the recv()
-        on_guest("print 'PASS: nothing'", vm, 10)
+        on_guest("print('PASS: nothing')", vm, 10)
 
 
     def trw_nonblocking_mode(vm, port):
@@ -1038,7 +1120,7 @@ def run_virtio_console(test, params, env):
         match, tmp = _on_guest("virt.recv('%s', 10, 1024, False)" %
                               port.name, vm, 10)
         if match == 0:
-            raise error.TestFail("Received data even when non were sent\n"
+            raise error.TestFail("Received data even when none was sent\n"
                                  "Data:\n%s" % tmp)
         elif match is None:
             raise error.TestFail("Timed out, probably in blocking mode\n"
@@ -1052,7 +1134,7 @@ def run_virtio_console(test, params, env):
 
     def tbasic_loopback(vm, send_port, recv_port, data="Smoke test data"):
         """
-        Easy loop back test with loop over only two port.
+        Easy loop back test with loop over only two ports.
 
         @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param port: Port used in test.
@@ -1081,7 +1163,7 @@ def run_virtio_console(test, params, env):
 
     def trmmod(vm, consoles):
         """
-        Remove and again install modules of virtio_console.
+        Remove and load virtio_console kernel modules.
 
         @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Consoles which should be close before rmmod.
@@ -1191,20 +1273,194 @@ def run_virtio_console(test, params, env):
         clean_reload_vm(vm, consoles, expected=True)
 
 
-    def tmigrate_offline(vm, consoles):
+    def __tmigrate(vm, consoles, parms, offline=True):
         """
-        Let the machine migrate. Virtio_consoles should survive this.
+        An actual migration test. It creates loopback on guest from first port
+        to all remaining ports. Than it sends and validates the data.
+        During this it tries to migrate the vm n-times.
 
         @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
-        @param consoles: Consoles which should be close before rmmod.
+        @param consoles: Field of virtio ports with the minimum of 2 items.
+        @param parms: [media, no_migration, send-, recv-, loopback-buffer_len]
         """
-        # Migrate
-        vm[1].close()
-        dest_vm = kvm_test_utils.migrate(vm[0], env, 3600, "exec", 0, 0)
-        vm[1] = kvm_utils.wait_for(dest_vm.remote_login, 30, 0, 2)
-        if not vm[1]:
-            raise error.TestFail("Could not log into guest after migration")
-        logging.info("Logged in after migration")
+        # PREPARE
+        send_pt = consoles[parms[0]][0]
+        recv_pts = consoles[parms[0]][1:]
+        # TODO BUG: sendlen = max allowed data to be lost per one migration
+        # TODO BUG: using SMP the data loss is upto 4 buffers
+        # 2048 = char. dev. socket size, parms[2] = host->guest send buffer size
+        sendlen = 2*2*max(2048, parms[2])
+        if not offline: # TODO BUG: online migration causes more loses
+            # TODO: Online migration lose n*buffer. n depends on the console
+            # troughput. FIX or analyse it's cause.
+            sendlen = 1000 * sendlen
+        for p in recv_pts:
+            if not p.is_open:
+                p.open()
+
+        if not send_pt.is_open:
+            send_pt.open()
+
+        threads = []
+        queues = []
+        verified = []
+        for i in range(0, len(recv_pts)):
+            queues.append(deque())
+            verified.append(0)
+
+        tmp = "'%s'" % recv_pts[0].name
+        for recv_pt in recv_pts[1:]:
+            tmp += ", '%s'" % (recv_pt.name)
+        on_guest("virt.loopback(['%s'], [%s], %d, virt.LOOP_POLL)"
+                 % (send_pt.name, tmp, parms[4]), vm, 10)
+
+        exit_event = threading.Event()
+
+        # TEST
+        thread = ThSendCheck(send_pt, exit_event, queues,
+                             parms[2])
+        thread.start()
+        threads.append(thread)
+
+        for i in range(len(recv_pts)):
+            thread = ThRecvCheck(recv_pts[i], queues[i], exit_event,
+                                 parms[3], sendlen=sendlen)
+            thread.start()
+            threads.append(thread)
+
+        i=0
+        while i < 6:
+            tmp = "%d data sent; " % threads[0].idx
+            for thread in threads[1:]:
+                tmp += "%d, " % thread.idx
+            logging.debug("test_loopback: %s data received and verified",
+                         tmp[:-2])
+            i+=1
+            time.sleep(2)
+
+
+        for j in range(parms[1]):
+            vm[0] = kvm_test_utils.migrate(vm[0], env, 3600, "exec", 0,
+                                             offline)
+            if not vm[1]:
+                raise error.TestFail("Could not log into guest after migration")
+            vm[1] = kvm_test_utils.wait_for_login(vm[0], 0,
+                                        float(params.get("boot_timeout", 100)),
+                                        0, 2)
+            # OS is sometime a bit dizzy. DL=30
+            _init_guest(vm, 30)
+
+            i=0
+            while i < 6:
+                tmp = "%d data sent; " % threads[0].idx
+                for thread in threads[1:]:
+                    tmp += "%d, " % thread.idx
+                logging.debug("test_loopback: %s data received and verified",
+                             tmp[:-2])
+                i+=1
+                time.sleep(2)
+            if not threads[0].is_alive():
+                if exit_event.isSet():
+                    raise error.TestFail("Exit event emited, check the log for"
+                                         "send/recv thread failure.")
+                else:
+                    raise error.TestFail("Send thread died unexpectedly in "
+                                         "migration %d", (j+1))
+            for i in range(0, len(recv_pts)):
+                if not threads[i+1].is_alive():
+                    raise error.TestFail("Recv thread %d died unexpectedly in "
+                                         "migration %d", i, (j+1))
+                if verified[i] == threads[i+1].idx:
+                    raise error.TestFail("No new data in %d console were "
+                                         "transfered after migration %d"
+                                         , i, (j+1))
+                verified[i] = threads[i+1].idx
+            logging.info("%d out of %d migration(s) passed" % ((j+1), parms[1]))
+            # TODO detect recv-thread failure and throw out whole test
+
+        # FINISH
+        exit_event.set()
+        # Send thread might fail to exit when the guest stucks
+        i = 30
+        while threads[0].is_alive():
+            if i <= 0:
+                raise error.TestFail("Send thread did not finish")
+            time.sleep(1)
+            i -= 1
+        tmp = "%d data sent; " % threads[0].idx
+        for thread in threads[1:]:
+            thread.join()
+            tmp += "%d, " % thread.idx
+        logging.info("test_loopback: %s data received and verified during %d "
+                     "migrations", tmp[:-2], parms[1])
+
+        # CLEANUP
+        _guest_exit_threads(vm, [send_pt], recv_pts)
+        del exit_event
+        del threads[:]
+
+
+    def _tmigrate(vm, consoles, parms, offline):
+        """
+        Wrapper which parses the params for __migrate test.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Field of virtio ports with the minimum of 2 items.
+        @param parms: test parameters, multiple recievers allowed.
+            '[{serialport,console}]:$no_migrations:send_buf_len:recv_buf_len:
+             loopback_buf_len;...'
+        """
+        for param in parms.split(';'):
+            if not param:
+                continue
+            if offline:
+                logging.info("test_migrate_offline: params: %s", param)
+            else:
+                logging.info("test_migrate_online: params: %s", param)
+            param = param.split(':')
+            media = 1
+            if param[0].isalpha():
+                if param[0] == "console":
+                    param[0] = 0
+                else:
+                    param[0] = 1
+            else:
+                param = [0] + param
+            for i in range(1,5):
+                if not param[i].isdigit():
+                    param[i] = 1
+                else:
+                    param[i] = int(param[i])
+
+            __tmigrate(vm, consoles, param, offline=offline)
+
+
+    def tmigrate_offline(vm, consoles, parms):
+        """
+        Tests whether the virtio-{console,port} are able to survive the offline
+        migration.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Field of virtio ports with the minimum of 2 items.
+        @param parms: test parameters, multiple recievers allowed.
+            '[{serialport,console}]:$no_migrations:send_buf_len:recv_buf_len:
+             loopback_buf_len;...'
+        """
+        _tmigrate(vm, consoles, parms, offline=True)
+
+
+    def tmigrate_online(vm, consoles, parms):
+        """
+        Tests whether the virtio-{console,port} are able to survive the online
+        migration.
+
+        @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
+        @param consoles: Field of virtio ports with the minimum of 2 items.
+        @param parms: test parameters, multiple recievers allowed.
+            '[{serialport,console}]:$no_migrations:send_buf_len:recv_buf_len:
+             loopback_buf_len;...'
+        """
+        _tmigrate(vm, consoles, parms, offline=False)
 
 
     def _virtio_dev_create(vm, ports_name, pciid, id, console="no"):
@@ -1460,13 +1716,13 @@ def run_virtio_console(test, params, env):
             exit_event = threading.Event()
 
             # TEST
-            thread = ThSendCheck(send_pt.sock, exit_event, queues,
+            thread = ThSendCheck(send_pt, exit_event, queues,
                                    buf_len[0])
             thread.start()
             threads.append(thread)
 
             for i in range(len(recv_pts)):
-                thread = ThRecvCheck(recv_pts[i].sock, queues[i], exit_event,
+                thread = ThRecvCheck(recv_pts[i], queues[i], exit_event,
                                        buf_len[i + 1])
                 thread.start()
                 threads.append(thread)
@@ -1605,7 +1861,7 @@ def run_virtio_console(test, params, env):
 
     def _clean_ports(vm, consoles):
         """
-        Read all data all port from both side of port.
+        Read all data from all ports, in both sides of each port.
 
         @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Consoles which should be clean.
@@ -1614,7 +1870,6 @@ def run_virtio_console(test, params, env):
             for port in ctype:
                 openned = port.is_open
                 port.clean_port()
-                #on_guest("virt.blocking('%s', True)" % port.name, vm, 10)
                 on_guest("virt.clean_port('%s'),1024" % port.name, vm, 10)
                 if not openned:
                     port.close()
@@ -1632,7 +1887,7 @@ def run_virtio_console(test, params, env):
         @param consoles: Consoles which should be clean.
         """
         # Check if python is still alive
-        print "CLEANING"
+        logging.info("CLEANING")
         match, tmp = _on_guest("is_alive()", vm, 10)
         if (match is None) or (match != 0):
             logging.error("Python died/is stucked/have remaining threads")
@@ -1666,10 +1921,11 @@ def run_virtio_console(test, params, env):
                               " blocked. Every comd end with sig KILL."
                               "Trying to reboot vm to continue testing...")
                 try:
-                    vm[1] = kvm_test_utils.reboot(vm[0], vm[1], "system_reset")
+                    vm[0].destroy(gracefully = True)
+                    (vm[0], vm[1], vm[3]) = _restore_vm()
                 except (kvm_monitor.MonitorProtocolError):
                     logging.error("Qemu is blocked. Monitor no longer "
-                                  "communicates.")
+                                  "communicates")
                     vm[0].destroy(gracefully = False)
                     os.system("kill -9 %d" % (vm[0].get_pid()))
                     (vm[0], vm[1], vm[3]) = _restore_vm()
@@ -1685,7 +1941,7 @@ def run_virtio_console(test, params, env):
                 if (match is None) or (match != 0):
                     raise error.TestFail("Virtio-console driver is irreparably "
                                          "blocked. Every comd ended with sig "
-                                         "KILL. The restart didn't help.")
+                                         "KILL. The restart didn't help")
                 _clean_ports(vm, consoles)
 
 
@@ -1712,10 +1968,10 @@ def run_virtio_console(test, params, env):
         @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Consoles which should be clean.
         """
-        if not expected:
-            print "Scheduled vm reboot"
+        if expected:
+            logging.info("Scheduled vm reboot")
         else:
-            print "SCHWARZENEGGER is CLEANING"
+            logging.info("SCHWARZENEGGER is CLEANING")
         _reset_vm(vm, consoles, len(consoles[0]), len(consoles[1]))
         init_guest(vm, consoles)
 
@@ -1788,14 +2044,15 @@ def run_virtio_console(test, params, env):
             subtest.do_test(tperf, [vm, consoles, params[1]])
 
 
-    def test_destructive(test, vm, consoles, global_params):
+    def test_destructive(test, vm, consoles, global_params, params):
         """
-        This is group of tests is destructive.
+        This is group of tests which might be destructive.
 
         @param test: Main test object.
         @param vm: Target virtual machine [vm, session, tmp_dir, ser_session].
         @param consoles: Field of virtio ports with the minimum of 2 items.
         @param global_params: Params defined by tests_base.conf.
+        @param params: Dictionary of subtest params from tests_base.conf.
         """
         subtest.headline("test_destructive:")
         # Uses stronger clean up function
@@ -1810,8 +2067,12 @@ def run_virtio_console(test, params, env):
             subtest.do_test(tmax_mix_serial_conosle_port, [vm, consoles])
         if (global_params.get('shutdown_test') == "yes"):
             subtest.do_test(tshutdown, [vm, consoles])
-        if (global_params.get('migrate_test') == "yes"):
-            subtest.do_test(tmigrate_offline, [vm, consoles])
+        if (global_params.get('migrate_offline_test') == "yes"):
+            subtest.do_test(tmigrate_offline,
+                            [vm, consoles, params['tmigrate_offline_params']])
+        if (global_params.get('migrate_online_test') == "yes"):
+            subtest.do_test(tmigrate_online,
+                            [vm, consoles, params['tmigrate_online_params']])
         if (global_params.get('hotplug_serial_test') == "yes"):
             subtest.do_test(thotplug, [vm, consoles])
             subtest.do_test(thotplug_no_timeout, [vm, consoles])
@@ -1833,9 +2094,16 @@ def run_virtio_console(test, params, env):
     tsmoke_params = params.get('virtio_console_smoke', '')
     tloopback_params = params.get('virtio_console_loopback', '')
     tperf_params = params.get('virtio_console_perf', '')
+    tmigrate_offline_params = params.get('virtio_console_migration_offline', '')
+    tmigrate_online_params = params.get('virtio_console_migration_online', '')
 
-    no_serialports = 0
-    no_consoles = 0
+    # destructive params
+    tdestructive_params = {}
+    tdestructive_params['tmigrate_offline_params'] = tmigrate_offline_params
+    tdestructive_params['tmigrate_online_params'] = tmigrate_online_params
+
+    no_serialports = int(params.get('virtio_console_no_serialports', 0))
+    no_consoles = int(params.get('virtio_console_no_consoles', 0))
     # consoles required for Smoke test
     if tsmoke_params.count('serialport'):
         no_serialports = max(2, no_serialports)
@@ -1850,6 +2118,15 @@ def run_virtio_console(test, params, env):
         no_serialports = max(1, no_serialports)
     if tperf_params.count('console'):
         no_consoles = max(1, no_consoles)
+    # consoles required for Migration offline test
+    if tmigrate_offline_params.count('serial'):
+        no_serialports = max(2, no_serialports)
+    if tmigrate_offline_params.count('console'):
+        no_consoles = max(2, no_consoles)
+    if tmigrate_online_params.count('serial'):
+        no_serialports = max(2, no_serialports)
+    if tmigrate_online_params.count('console'):
+        no_consoles = max(2, no_consoles)
 
     if no_serialports + no_consoles == 0:
         raise error.TestFail("No tests defined, probably incorrect "
@@ -1880,7 +2157,7 @@ def run_virtio_console(test, params, env):
                        params)
 
         #Test destructive test.
-        test_destructive(subtest, vm, consoles, params)
+        test_destructive(subtest, vm, consoles, params, tdestructive_params)
     finally:
         logging.info(("Summary: %d tests passed  %d test failed :\n" %
                       (subtest.passed, subtest.failed)) +
@@ -1888,7 +2165,7 @@ def run_virtio_console(test, params, env):
 
     if subtest.is_failed():
         raise error.TestFail("%d out of %d virtio console tests failed" %
-                             (subtest.passed, subtest.failed))
+                             (subtest.failed, (subtest.passed+subtest.failed)))
 
 
     # CLEANUP
