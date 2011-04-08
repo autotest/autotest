@@ -392,7 +392,9 @@ class YumInstaller(BaseInstaller):
 class KojiInstaller(YumInstaller):
     """
     Class that handles installing KVM from the fedora build service, koji.
-    It uses yum to install and remove packages.
+
+    It uses yum to install and remove packages. Packages are specified
+    according to the syntax defined in the PkgSpec class.
     """
     load_stock_modules = True
     def set_install_params(self, test, params):
@@ -403,27 +405,37 @@ class KojiInstaller(YumInstaller):
         @param params: Dictionary with test arguments
         """
         super(KojiInstaller, self).set_install_params(test, params)
-        default_koji_cmd = '/usr/bin/koji'
-        default_src_pkg = 'qemu'
-        self.src_pkg = params.get("src_pkg", default_src_pkg)
         self.tag = params.get("koji_tag", None)
-        self.build = params.get("koji_build", None)
-        self.koji_cmd = params.get("koji_cmd", default_koji_cmd)
+        self.koji_cmd = params.get("koji_cmd", None)
+        if self.tag is not None:
+            kvm_utils.set_default_koji_tag(self.tag)
+        self.koji_pkgs = eval(params.get("koji_pkgs", "[]"))
 
 
     def _get_packages(self):
         """
         Downloads the specific arch RPMs for the specific build name.
         """
-        downloader = kvm_utils.KojiDownloader(cmd=self.koji_cmd)
-        downloader.get(src_package=self.src_pkg, tag=self.tag,
-                            build=self.build, dst_dir=self.srcdir)
+        koji_client = kvm_utils.KojiClient(cmd=self.koji_cmd)
+        for pkg_text in self.koji_pkgs:
+            pkg = kvm_utils.KojiPkgSpec(pkg_text)
+            if pkg.is_valid():
+                koji_client.get_pkgs(pkg, dst_dir=self.srcdir)
+            else:
+                logging.error('Package specification (%s) is invalid: %s', pkg,
+                              pkg.describe_invalid())
+
+
+    def _clean_previous_installs(self):
+        kill_qemu_processes()
+        removable_packages = " ".join(self._get_rpm_names())
+        utils.system("yum -y remove %s" % removable_packages)
 
 
     def install(self):
-        super(KojiInstaller, self)._clean_previous_installs()
+        self._clean_previous_installs()
         self._get_packages()
-        super(KojiInstaller, self)._install_packages()
+        self._install_packages()
         self.install_unittests()
         create_symlinks(test_bindir=self.test_bindir,
                         bin_list=self.qemu_bin_paths,
@@ -431,6 +443,35 @@ class KojiInstaller(YumInstaller):
         self.reload_modules_if_needed()
         if self.save_results:
             save_build(self.srcdir, self.results_dir)
+
+
+    def _get_rpm_names(self):
+        all_rpm_names = []
+        koji_client = kvm_utils.KojiClient(cmd=self.koji_cmd)
+        for pkg_text in self.koji_pkgs:
+            pkg = kvm_utils.KojiPkgSpec(pkg_text)
+            rpm_names = koji_client.get_pkg_rpm_names(pkg)
+            all_rpm_names += rpm_names
+        return all_rpm_names
+
+
+    def _get_rpm_file_names(self):
+        all_rpm_file_names = []
+        koji_client = kvm_utils.KojiClient(cmd=self.koji_cmd)
+        for pkg_text in self.koji_pkgs:
+            pkg = kvm_utils.KojiPkgSpec(pkg_text)
+            rpm_file_names = koji_client.get_pkg_rpm_file_names(pkg)
+            all_rpm_file_names += rpm_file_names
+        return all_rpm_file_names
+
+
+    def _install_packages(self):
+        """
+        Install all downloaded packages.
+        """
+        os.chdir(self.srcdir)
+        rpm_file_names = " ".join(self._get_rpm_file_names())
+        utils.system("yum --nogpgcheck -y localinstall %s" % rpm_file_names)
 
 
 class SourceDirInstaller(BaseInstaller):
