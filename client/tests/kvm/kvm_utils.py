@@ -2223,3 +2223,73 @@ def mount(src, mount_point, type, perm="rw"):
         logging.error("Can't find mounted NFS share - /etc/mtab contents \n%s",
                       file("/etc/mtab").read())
         return False
+
+
+def install_host_kernel(job, params):
+    """
+    Install a host kernel, given the appropriate params.
+
+    @param job: Job object.
+    @param params: Dict with host kernel install params.
+    """
+    install_type = params.get('host_kernel_install_type')
+
+    rpm_url = params.get('host_kernel_rpm_url')
+
+    koji_cmd = params.get('host_kernel_koji_cmd')
+    koji_build = params.get('host_kernel_koji_build')
+    koji_tag = params.get('host_kernel_koji_tag')
+
+    git_repo = params.get('host_kernel_git_repo')
+    git_branch = params.get('host_kernel_git_branch')
+    git_commit = params.get('host_kernel_git_commit')
+    patch_list = params.get('host_kernel_patch_list')
+    if patch_list:
+        patch_list = patch_list.split()
+    kernel_config = params.get('host_kernel_config')
+
+    if install_type == 'rpm':
+        logging.info('Installing host kernel through rpm')
+        dst = os.path.join("/tmp", os.path.basename(rpm_url))
+        k = utils.get_file(rpm_url, dst)
+        host_kernel = job.kernel(k)
+        host_kernel.install(install_vmlinux=False)
+        host_kernel.boot()
+
+    elif install_type in ['koji', 'brew']:
+        k_deps = KojiPkgSpec(tag=koji_tag, package='kernel',
+                             subpackages=['kernel-devel', 'kernel-firmware'])
+        k = KojiPkgSpec(tag=koji_tag, package='kernel',
+                        subpackages=['kernel'])
+
+        c = KojiClient(koji_cmd)
+        logging.info('Fetching kernel dependencies (-devel, -firmware)')
+        c.get_pkgs(k_deps, job.tmpdir)
+        logging.info('Installing kernel dependencies (-devel, -firmware) '
+                     'through %s', install_type)
+        k_deps_rpm_file_names = [os.path.join(job.tmpdir, rpm_file_name) for
+                                 rpm_file_name in c.get_pkg_rpm_file_names(k_deps)]
+        utils.run('rpm -U --force %s' % " ".join(k_deps_rpm_file_names))
+
+        c.get_pkgs(k, job.tmpdir)
+        k_rpm = os.path.join(job.tmpdir,
+                             c.get_pkg_rpm_file_names(k)[0])
+        host_kernel = job.kernel(k_rpm)
+        host_kernel.install(install_vmlinux=False)
+        host_kernel.boot()
+
+    elif install_type == 'git':
+        logging.info('Chose to install host kernel through git, proceeding')
+        repodir = os.path.join("/tmp", 'kernel_src')
+        r = get_git_branch(git_repo, git_branch, repodir, git_commit)
+        host_kernel = job.kernel(r)
+        if patch_list:
+            host_kernel.patch(patch_list)
+        host_kernel.config(kernel_config)
+        host_kernel.build()
+        host_kernel.install()
+        host_kernel.boot()
+
+    else:
+        logging.info('Chose %s, using the current kernel for the host',
+                     install_type)
