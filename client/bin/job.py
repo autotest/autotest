@@ -539,10 +539,9 @@ class base_client_job(base_job.base_job):
             raise error.UnhandledTestError(e)
 
 
-    @_run_test_complete_on_exit
-    def run_test(self, url, *args, **dargs):
+    def _run_test_base(self, url, *args, **dargs):
         """
-        Summon a test object and run it.
+        Prepares arguments and run functions to run_test and run_test_detail.
 
         @param url A url that identifies the test to run.
         @param tag An optional keyword argument that will be added to the
@@ -550,7 +549,11 @@ class base_client_job(base_job.base_job):
         @param subdir_tag An optional keyword argument that will be added
             to the subdir name.
 
-        @returns True if the test passes, False otherwise.
+        @returns:
+                subdir: Test subdirectory
+                testname: Test name
+                group_func: Actual test run function
+                timeout: Test timeout
         """
         group, testname = self.pkgmgr.get_package_name(url, 'test')
         testname, subdir, tag = self._build_tagged_test_name(testname, dargs)
@@ -573,6 +576,25 @@ class base_client_job(base_job.base_job):
             else:
                 self.record('GOOD', subdir, testname, 'completed successfully')
 
+        return (subdir, testname, group_func, timeout)
+
+
+    @_run_test_complete_on_exit
+    def run_test(self, url, *args, **dargs):
+        """
+        Summon a test object and run it.
+
+        @param url A url that identifies the test to run.
+        @param tag An optional keyword argument that will be added to the
+            test and subdir name.
+        @param subdir_tag An optional keyword argument that will be added
+            to the subdir name.
+
+        @returns True if the test passes, False otherwise.
+        """
+        (subdir, testname, group_func, timeout) = self._run_test_base(url,
+                                                                      *args,
+                                                                      **dargs)
         try:
             self._rungroup(subdir, testname, group_func, timeout)
             return True
@@ -583,6 +605,30 @@ class base_client_job(base_job.base_job):
         # NOTE: The only exception possible from the control file here
         # is error.JobError as _runtest() turns all others into an
         # UnhandledTestError that is caught above.
+
+
+    @_run_test_complete_on_exit
+    def run_test_detail(self, url, *args, **dargs):
+        """
+        Summon a test object and run it, returning test status.
+
+        @param url A url that identifies the test to run.
+        @param tag An optional keyword argument that will be added to the
+            test and subdir name.
+        @param subdir_tag An optional keyword argument that will be added
+            to the subdir name.
+
+        @returns Test status
+        @see: client/common_lib/error.py, exit_status
+        """
+        (subdir, testname, group_func, timeout) = self._run_test_base(url,
+                                                                      *args,
+                                                                      **dargs)
+        try:
+            self._rungroup(subdir, testname, group_func, timeout)
+            return 'GOOD'
+        except error.TestBaseException, detail:
+            return detail.exit_status
 
 
     def _rungroup(self, subdir, testname, function, timeout, *args, **dargs):
