@@ -74,8 +74,8 @@ variants:
         qemu_binary = /usr/bin/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
         only qcow2
-        only virtio_net
-        only virtio_blk
+        only rtl8139
+        only ide
         only smp2
         only no_pci_assignable
         only smallpages
