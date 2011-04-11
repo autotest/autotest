@@ -194,7 +194,6 @@ def preprocess(test, params, env):
     @param env: The environment (a dict-like object).
     """
     error.context("preprocessing")
-
     # Start tcpdump if it isn't already running
     if "address_cache" not in env:
         env["address_cache"] = {}

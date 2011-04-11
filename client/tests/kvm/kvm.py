@@ -27,6 +27,11 @@ class kvm(test.test):
         # Convert params to a Params object
         params = kvm_utils.Params(params)
 
+        # If a dependency test prior to this test has failed, let's fail
+        # it right away as TestNA.
+        if params.get("dependency_failed") == 'yes':
+            raise error.TestNAError("Test dependency failed")
+
         # Report the parameters we've received and write them as keyvals
         logging.debug("Test parameters:")
         keys = params.keys()
