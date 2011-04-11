@@ -122,7 +122,7 @@ class FloppyDisk(Disk):
 
         pwd = os.getcwd()
         try:
-            m_cmd = 'mount -o loop %s %s' % (virtio_floppy, virtio_mount)
+            m_cmd = 'mount -o loop,ro %s %s' % (virtio_floppy, virtio_mount)
             utils.run(m_cmd)
             os.chdir(virtio_mount)
             path_list = glob.glob('*')
