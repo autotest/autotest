@@ -1,11 +1,9 @@
 """
 Library to perform pre/post test setup for KVM autotest.
 """
-import os, shutil, tempfile, re, ConfigParser, glob, inspect
-import logging, time
+import os, logging
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_utils
 
 
 class HugePageConfig(object):
