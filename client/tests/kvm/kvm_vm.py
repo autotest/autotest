@@ -1678,6 +1678,7 @@ class VM:
             if local:
                 time.sleep(1)
                 self.verify_alive()
+                self.verify_kernel_crash()
 
             if local and stable_check:
                 try:
