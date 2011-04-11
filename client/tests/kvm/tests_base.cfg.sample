@@ -610,6 +610,7 @@ variants:
 
     - enospc:
         type = enospc
+        start_vm = no
         images += " stg"
         drive_werror = stop
         drive_cache = none
