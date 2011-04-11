@@ -21,6 +21,7 @@ skipx
 @ base
 @ development-libs
 @ development-tools
+ntpdate
 
 %post --interpreter /usr/bin/python
 import socket, os

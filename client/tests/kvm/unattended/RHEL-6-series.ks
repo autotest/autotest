@@ -25,6 +25,7 @@ reboot
 @debugging-tools
 @network-tools
 NetworkManager
+ntpdate
 
 %post --interpreter /usr/bin/python
 import socket, os
