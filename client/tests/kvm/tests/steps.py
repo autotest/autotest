@@ -86,7 +86,7 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
 
         # Request screendump
         try:
-            vm.monitor.screendump(scrdump_filename)
+            vm.monitor.screendump(scrdump_filename, debug=False)
         except kvm_monitor.MonitorError, e:
             logging.warn(e)
             continue
