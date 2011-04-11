@@ -257,10 +257,6 @@ def preprocess(test, params, env):
         h = test_setup.HugePageConfig(params)
         h.setup()
 
-    if params.get("type") == "unattended_install":
-        u = test_setup.UnattendedInstallConfig(test, params)
-        u.setup()
-
     # Execute any pre_commands
     if params.get("pre_command"):
         process_command(test, params, env, params.get("pre_command"),
