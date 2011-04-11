@@ -1150,34 +1150,38 @@ def run_tests(parser, job):
             for test_name in status_dict.keys():
                 if not dep in test_name:
                     continue
-                if not status_dict[test_name]:
+                # So the only really non-fatal state is WARN,
+                # All the others make it not safe to proceed with dependency
+                # execution
+                if status_dict[test_name] not in ['GOOD', 'WARN']:
                     dependencies_satisfied = False
                     break
+        test_iterations = int(dict.get("iterations", 1))
+        test_tag = dict.get("shortname")
+
         if dependencies_satisfied:
-            test_iterations = int(dict.get("iterations", 1))
-            test_tag = dict.get("shortname")
             # Setting up profilers during test execution.
             profilers = dict.get("profilers", "").split()
             for profiler in profilers:
                 job.profilers.add(profiler)
-
             # We need only one execution, profiled, hence we're passing
             # the profile_only parameter to job.run_test().
-            current_status = job.run_test("kvm", params=dict, tag=test_tag,
-                                          iterations=test_iterations,
-                                          profile_only= bool(profilers) or None)
-
+            profile_only = bool(profilers) or None
+            current_status = job.run_test_detail("kvm", params=dict,
+                                                 tag=test_tag,
+                                                 iterations=test_iterations,
+                                                 profile_only=profile_only)
             for profiler in profilers:
                 job.profilers.delete(profiler)
-
-            if not current_status:
-                failed = True
         else:
             # We will force the test to fail as TestNA during preprocessing
             dict['dependency_failed'] = 'yes'
-            current_status = job.run_test("kvm", params=dict, tag=test_tag,
-                                          iterations=test_iterations,
-                                          profile_only= bool(profilers) or None)
+            current_status = job.run_test_detail("kvm", params=dict,
+                                                 tag=test_tag,
+                                                 iterations=test_iterations)
+
+        if not current_status:
+            failed = True
         status_dict[dict.get("name")] = current_status
 
     return not failed
