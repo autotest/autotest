@@ -16,7 +16,6 @@ def run_unattended_install(test, params, env):
     """
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
-    vm.verify_kernel_crash()
 
     install_timeout = int(params.get("timeout", 3000))
     post_install_delay = int(params.get("post_install_delay", 0))
@@ -34,6 +33,7 @@ def run_unattended_install(test, params, env):
     start_time = time.time()
     while (time.time() - start_time) < install_timeout:
         vm.verify_alive()
+        vm.verify_kernel_crash()
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             client.connect((vm.get_address(), port))
