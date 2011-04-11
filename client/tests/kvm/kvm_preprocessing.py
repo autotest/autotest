@@ -261,10 +261,6 @@ def preprocess(test, params, env):
         u = test_setup.UnattendedInstallConfig(test, params)
         u.setup()
 
-    if params.get("type") == "enospc":
-        e = test_setup.EnospcConfig(test, params)
-        e.setup()
-
     # Execute any pre_commands
     if params.get("pre_command"):
         process_command(test, params, env, params.get("pre_command"),
@@ -364,10 +360,6 @@ def postprocess(test, params, env):
     if params.get("setup_hugepages") == "yes":
         h = test_setup.HugePageConfig(params)
         h.cleanup()
-
-    if params.get("type") == "enospc":
-        e = test_setup.EnospcConfig(test, params)
-        e.cleanup()
 
     # Execute any post_commands
     if params.get("post_command"):
