@@ -172,12 +172,17 @@ class FloppyDisk(Disk):
 
         Win2008, Vista and 7 require people to point out the path to the drivers
         on the unattended file, so we just need to copy the drivers to the
-        driver floppy disk.
+        driver floppy disk. If we provide a path inside a CDROM with the drivers,
+        then there is no need to use a floppy at all.
         Process:
 
         1) Copy the virtio drivers on the virtio floppy to the install floppy
+            (if there is one)
         """
-        self._copy_virtio_drivers(virtio_floppy)
+        if os.path.isfile(virtio_floppy):
+            self._copy_virtio_drivers(virtio_floppy)
+        else:
+            logging.debug("No virtio floppy present, not needed for this OS anyway")
 
 
 class CdromDisk(Disk):
