@@ -5,6 +5,7 @@ import os, shutil, tempfile, re, ConfigParser, glob, inspect
 import logging, time
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
+import kvm_utils
 
 
 @error.context_aware
@@ -40,19 +41,6 @@ def clean_old_image(image):
             utils.run('fuser -k %s' % image, ignore_status=True)
             utils.run('umount %s' % image)
         os.remove(image)
-
-
-def display_attributes(instance):
-    """
-    Inspects a given class instance attributes and displays them, convenient
-    for debugging.
-    """
-    logging.debug("Attributes set:")
-    for member in inspect.getmembers(instance):
-        name, value = member
-        attribute = getattr(instance, name)
-        if not (name.startswith("__") or callable(attribute) or not value):
-            logging.debug("    %s: %s", name, value)
 
 
 class Disk(object):
@@ -495,7 +483,7 @@ class UnattendedInstallConfig(object):
         Uses an appropriate strategy according to each install model.
         """
         logging.info("Starting unattended install setup")
-        display_attributes(self)
+        kvm_utils.display_attributes(self)
 
         if self.unattended_file and (self.floppy or self.cdrom_unattended):
             self.setup_boot_disk()
@@ -645,7 +633,7 @@ class EnospcConfig(object):
     def setup(self):
         logging.debug("Starting enospc setup")
         error.context("performing enospc setup")
-        display_attributes(self)
+        kvm_utils.display_attributes(self)
         # Double check if there aren't any leftovers
         self.cleanup()
         try:

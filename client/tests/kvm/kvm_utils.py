@@ -6,6 +6,7 @@ KVM test utility functions.
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
 import fcntl, shelve, ConfigParser, rss_file_transfer, threading, sys, UserDict
+import inspect
 from autotest_lib.client.bin import utils, os_dep
 from autotest_lib.client.common_lib import error, logging_config
 import kvm_subprocess
@@ -1197,6 +1198,19 @@ def create_report(report_dir, results_dir):
     reporter = os.path.join(report_dir, 'html_report.py')
     html_file = os.path.join(results_dir, 'results.html')
     os.system('%s -r %s -f %s -R' % (reporter, results_dir, html_file))
+
+
+def display_attributes(instance):
+    """
+    Inspects a given class instance attributes and displays them, convenient
+    for debugging.
+    """
+    logging.debug("Attributes set:")
+    for member in inspect.getmembers(instance):
+        name, value = member
+        attribute = getattr(instance, name)
+        if not (name.startswith("__") or callable(attribute) or not value):
+            logging.debug("    %s: %s", name, value)
 
 
 def get_full_pci_id(pci_id):
