@@ -5,7 +5,7 @@ The default interface as required for the standalone reboot helper.
 
 __author__ = """Copyright Andy Whitcroft 2007"""
 
-from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib import utils, error
 import os, harness, shutil, logging
 
 class harness_standalone(harness.harness):
@@ -32,11 +32,14 @@ class harness_standalone(harness.harness):
 
         logging.info('Symlinking init scripts')
         rc = os.path.join(self.autodir, 'tools/autotest')
-        # see if system supports event.d versus inittab
-        if os.path.exists('/etc/event.d'):
+        # see if system supports event.d versus systemd versus inittab
+        supports_eventd = os.path.exists('/etc/event.d')
+        supports_systemd = os.path.exists('/etc/systemd')
+        supports_inittab = os.path.exists('/etc/inittab')
+        if supports_eventd or supports_systemd:
             # NB: assuming current runlevel is default
             initdefault = utils.system_output('/sbin/runlevel').split()[1]
-        elif os.path.exists('/etc/inittab'):
+        elif supports_inittab:
             initdefault = utils.system_output('grep :initdefault: /etc/inittab')
             initdefault = initdefault.split(':')[1]
         else:
