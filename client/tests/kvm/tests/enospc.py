@@ -54,7 +54,7 @@ def run_enospc(test, params, env):
                 image_params = vm.params.object_params(image_name)
                 try:
                     kvm_vm.check_image(image_params, test.bindir)
-                except kvm_vm.VMError, e:
+                except (kvm_vm.VMError, error.TestWarn), e:
                     logging.error(e)
             logging.info("Guest paused, extending Logical Volume size")
             try:
