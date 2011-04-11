@@ -84,8 +84,8 @@ def run_iofuzz(test, params, env):
                         logging.debug("Could not re-login, reboot the guest")
                         session = vm.reboot(method="system_reset")
                 else:
-                    raise error.TestFail("VM has quit abnormally during %s",
-                                         (op, operand))
+                    raise error.TestFail("VM has quit abnormally during "
+                                         "%s: %s" % (op, operand))
 
 
     login_timeout = float(params.get("login_timeout", 240))
