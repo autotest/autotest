@@ -1173,7 +1173,11 @@ def run_tests(parser, job):
             if not current_status:
                 failed = True
         else:
-            current_status = False
+            # We will force the test to fail as TestNA during preprocessing
+            dict['dependency_failed'] = 'yes'
+            current_status = job.run_test("kvm", params=dict, tag=test_tag,
+                                          iterations=test_iterations,
+                                          profile_only= bool(profilers) or None)
         status_dict[dict.get("name")] = current_status
 
     return not failed
