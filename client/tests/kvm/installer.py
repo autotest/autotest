@@ -680,7 +680,7 @@ class GitInstaller(SourceDirInstaller):
             for patch in user_patches:
                 utils.get_file(patch, os.path.join(self.userspace_srcdir,
                                                    os.path.basename(patch)))
-                utils.system('patch -p1 %s' % os.path.basename(patch))
+                utils.system('patch -p1 < %s' % os.path.basename(patch))
 
         if kernel_repo:
             kernel_srcdir = os.path.join(self.srcdir, "kvm")
@@ -692,7 +692,7 @@ class GitInstaller(SourceDirInstaller):
                 for patch in kernel_patches:
                     utils.get_file(patch, os.path.join(self.userspace_srcdir,
                                                        os.path.basename(patch)))
-                    utils.system('patch -p1 %s' % os.path.basename(patch))
+                    utils.system('patch -p1 < %s' % os.path.basename(patch))
         else:
             self.kernel_srcdir = None
 
@@ -706,7 +706,7 @@ class GitInstaller(SourceDirInstaller):
                 for patch in kmod_patches:
                     utils.get_file(patch, os.path.join(self.userspace_srcdir,
                                                        os.path.basename(patch)))
-                    utils.system('patch -p1 %s' % os.path.basename(patch))
+                    utils.system('patch -p1 < %s' % os.path.basename(patch))
         else:
             self.kmod_srcdir = None
 
