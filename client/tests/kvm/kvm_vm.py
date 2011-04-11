@@ -294,10 +294,31 @@ def check_image(params, root_dir):
             except error.CmdError:
                 logging.error("Error getting info from image %s",
                               image_filename)
-            try:
-                utils.system("%s check %s" % (qemu_img_cmd, image_filename))
-            except error.CmdError:
+
+            cmd_result = utils.run("%s check %s" %
+                                   (qemu_img_cmd, image_filename),
+                                   ignore_status=True)
+            # Error check, large chances of a non-fatal problem.
+            # There are chances that bad data was skipped though
+            if cmd_result.exit_status == 1:
+                for e_line in cmd_result.stdout.splitlines():
+                    logging.error("[stdout] %s", e_line)
+                for e_line in cmd_result.stderr.splitlines():
+                    logging.error("[stderr] %s", e_line)
+                raise error.TestWarn("qemu-img check error. Some bad data in "
+                                     "the image may have gone unnoticed")
+            # Exit status 2 is data corruption for sure, so fail the test
+            elif cmd_result.exit_status == 2:
+                for e_line in cmd_result.stdout.splitlines():
+                    logging.error("[stdout] %s", e_line)
+                for e_line in cmd_result.stderr.splitlines():
+                    logging.error("[stderr] %s", e_line)
                 raise VMImageCheckError(image_filename)
+            # Leaked clusters, they are known to be harmless to data integrity
+            elif cmd_result.exit_status == 3:
+                raise error.TestWarn("Leaked clusters were noticed during "
+                                     "image check. No data integrity problem "
+                                     "was found though.")
 
     else:
         if not os.path.exists(image_filename):
