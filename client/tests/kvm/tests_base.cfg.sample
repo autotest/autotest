@@ -1539,6 +1539,7 @@ variants:
                     modprobe_module = acpiphp
                 block_hotplug:
                     modprobe_module = acpiphp
+                    no block_scsi
                 unattended_install:
                     boot_path = images/pxeboot
                     # You have to use ks=floppy if you want to use floppies to
