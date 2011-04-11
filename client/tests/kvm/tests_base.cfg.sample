@@ -252,7 +252,10 @@ variants:
                 test_control_file = rtc.control
             - iozone:
                 test_control_file = iozone.control
-
+            - flail:
+                test_control_file = flail.control
+            - systemtap:
+                test_control_file = systemtap.control
 
     - linux_s3:     install setup unattended_install.cdrom
         only Linux

@@ -1,0 +1,14 @@
+AUTHOR = """
+Anton Blanchard <anton@samba.org>
+"""
+NAME = "Systemtap test suite"
+TEST_TYPE = "client"
+TEST_CLASS = "General"
+TEST_CATEGORY = "Functional"
+TIME = "MEDIUM"
+DOC = """\
+This test runs the systemtap testsuite. You will need a kernel with debug
+symbols, or a matching debuginfo package from your distro.
+"""
+
+job.run_test(url='systemtap', local=False)

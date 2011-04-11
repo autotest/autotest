@@ -1,0 +1,17 @@
+AUTHOR = "Pradeep Kumar Surisetty <psuriset@linux.vnet.ibm.com>"
+NAME = "flail"
+TEST_CATEGORY = "Stress"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+TIME = 'MEDIUM'
+EXPERIMENTAL = "True"
+
+DOC='''
+flail is a  systemcall fuzzer tool. This test simply runs flail.
+Fuzzing is slang for fault injection . It runs all system calls
+for that kernel version with random args.
+The goal is to find bugs in software without reading code or
+designing detailed test cases.
+'''
+
+job.run_test('flail')
