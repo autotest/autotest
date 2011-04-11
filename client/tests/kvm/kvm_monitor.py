@@ -228,18 +228,22 @@ class HumanMonitor(Monitor):
 
     # Public methods
 
-    def cmd(self, command, timeout=20):
+    def cmd(self, command, timeout=20, debug=True):
         """
         Send command to the monitor.
 
         @param command: Command to send to the monitor
         @param timeout: Time duration to wait for the (qemu) prompt to return
+        @param debug: Whether to print the commands being sent and responses
         @return: Output received from the monitor
         @raise MonitorLockError: Raised if the lock cannot be acquired
         @raise MonitorSocketError: Raised if a socket error occurs
         @raise MonitorProtocolError: Raised if the (qemu) prompt cannot be
                 found after sending the command
         """
+        if debug:
+            logging.debug("(monitor %s) Sending command '%s'",
+                          self.name, command)
         if not self._acquire_lock(20):
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "monitor command '%s'" % command)
@@ -255,6 +259,12 @@ class HumanMonitor(Monitor):
             o = "\n".join(o.splitlines()[1:])
             # Report success/failure
             if s:
+                if debug and o:
+                    logging.debug("(monitor %s) "
+                                  "Response to '%s'", self.name,
+                                  command)
+                    for l in o.splitlines():
+                        logging.debug("(monitor %s)    %s", self.name, l)
                 return o
             else:
                 msg = ("Could not find (qemu) prompt after command '%s'. "
@@ -514,7 +524,7 @@ class QMPMonitor(Monitor):
 
     # Public methods
 
-    def cmd(self, cmd, args=None, timeout=20):
+    def cmd(self, cmd, args=None, timeout=20, debug=True):
         """
         Send a QMP monitor command and return the response.
 
@@ -532,6 +542,9 @@ class QMPMonitor(Monitor):
                 (the exception's args are (cmd, args, data) where data is the
                 error data)
         """
+        if debug:
+            logging.debug("(monitor %s) Sending command '%s'",
+                          self.name, cmd)
         if not self._acquire_lock(20):
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "QMP command '%s'" % cmd)
@@ -550,6 +563,12 @@ class QMPMonitor(Monitor):
                                            "response with an incorrect id"
                                            % cmd)
             if "return" in r:
+                if debug and r["return"]:
+                    logging.debug("(monitor %s) "
+                                  "Response to '%s'", self.name, cmd)
+                    o = str(r["return"])
+                    for l in o.splitlines():
+                        logging.debug("(monitor %s)    %s", self.name, l)
                 return r["return"]
             if "error" in r:
                 raise QMPCmdError(cmd, args, r["error"])
