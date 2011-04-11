@@ -756,7 +756,7 @@ variants:
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
 
-    - ksm_overcommit:
+    - ksm_overcommit: install setup unattended_install.cdrom
         only Linux
         # Don't preprocess any vms as we need to change its params
         vms = ''
