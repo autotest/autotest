@@ -176,7 +176,7 @@ class HumanMonitor(Monitor):
                                            "Output so far: %r" % o)
 
             # Save the output of 'help' for future use
-            self._help_str = self.cmd("help")
+            self._help_str = self.cmd("help", debug=False)
 
         except MonitorError, e:
             if suppress_exceptions:
@@ -279,7 +279,7 @@ class HumanMonitor(Monitor):
         """
         Make sure the monitor is responsive by sending a command.
         """
-        self.cmd("info status")
+        self.cmd("info status", debug=False)
 
 
     # Command wrappers
@@ -310,14 +310,14 @@ class HumanMonitor(Monitor):
         return self.info(what)
 
 
-    def screendump(self, filename):
+    def screendump(self, filename, debug=True):
         """
         Request a screendump.
 
         @param filename: Location for the screendump
         @return: The command's output
         """
-        return self.cmd("screendump %s" % filename)
+        return self.cmd(command="screendump %s" % filename, debug=debug)
 
 
     def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):
@@ -647,7 +647,7 @@ class QMPMonitor(Monitor):
         """
         Make sure the monitor is responsive by sending a command.
         """
-        self.cmd("query-status")
+        self.cmd(cmd="query-status", debug=False)
 
 
     def get_events(self):
@@ -725,7 +725,7 @@ class QMPMonitor(Monitor):
         return self.info(what)
 
 
-    def screendump(self, filename):
+    def screendump(self, filename, debug=True):
         """
         Request a screendump.
 
@@ -733,7 +733,7 @@ class QMPMonitor(Monitor):
         @return: The response to the command
         """
         args = {"filename": filename}
-        return self.cmd("screendump", args)
+        return self.cmd(cmd="screendump", args=args, debug=debug)
 
 
     def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):

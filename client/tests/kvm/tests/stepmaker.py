@@ -138,7 +138,7 @@ class StepMaker(stepeditor.StepMakerWindow):
             os.unlink(self.screendump_filename)
 
         try:
-            self.vm.monitor.screendump(self.screendump_filename)
+            self.vm.monitor.screendump(self.screendump_filename, debug=False)
         except kvm_monitor.MonitorError, e:
             logging.warn(e)
         else:
@@ -292,7 +292,7 @@ class StepMaker(stepeditor.StepMakerWindow):
             os.unlink(self.screendump_filename)
 
         try:
-            self.vm.monitor.screendump(self.screendump_filename)
+            self.vm.monitor.screendump(self.screendump_filename, debug=False)
         except kvm_monitor.MonitorError, e:
             logging.warn(e)
         else:
