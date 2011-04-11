@@ -97,6 +97,7 @@ variants:
 
     - unattended_install:
         type = unattended_install
+        start_vm = no
         kill_vm = yes
         kill_vm_gracefully = yes
         kill_vm_on_error = yes
