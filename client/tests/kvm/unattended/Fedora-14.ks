@@ -20,6 +20,7 @@ autopart
 @base
 @development-libs
 @development-tools
+ntpdate
 %end
 
 %post --interpreter /usr/bin/python
