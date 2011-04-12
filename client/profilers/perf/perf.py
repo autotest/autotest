@@ -13,8 +13,11 @@ from autotest_lib.client.bin import profiler, os_dep, utils
 class perf(profiler.profiler):
     version = 1
 
-    def initialize(self, events="cycles,instructions"):
-        self.events = events
+    def initialize(self, events=["cycles","instructions"]):
+        if type(events) == str:
+            self.events = [events]
+        else:
+            self.events = events
         self.perf_bin = os_dep.command('perf')
         perf_help = utils.run('%s report help' % self.perf_bin,
                               ignore_status=True).stderr
@@ -31,8 +34,10 @@ class perf(profiler.profiler):
 
     def start(self, test):
         self.logfile = os.path.join(test.profdir, "perf")
-        cmd = ("%s record -a -o %s -e %s" %
-               (self.perf_bin, self.logfile, self.events))
+        cmd = ("%s record -a -o %s" %
+               (self.perf_bin, self.logfile))
+        for event in self.events:
+            cmd += " -e %s" % event
         self._process = subprocess.Popen(cmd, shell=True,
                                          stderr=subprocess.STDOUT)
 
