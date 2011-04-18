@@ -119,6 +119,14 @@ class BaseAutotest(installable_object.InstallableObject):
                 ', '.join(client_autodir_paths))
 
 
+    def get_fetch_location(self):
+        c = global_config.global_config
+        repos = c.get_config_value("PACKAGES", 'fetch_location', type=list,
+                                   default=[])
+        repos.reverse()
+        return repos
+
+
     def install(self, host=None, autodir=None):
         self._install(host=host, autodir=autodir)
 
@@ -133,10 +141,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
     def _install_using_packaging(self, host, autodir):
-        c = global_config.global_config
-        repos = c.get_config_value("PACKAGES", 'fetch_location', type=list,
-                                   default=[])
-        repos.reverse()
+        repos = self.get_fetch_location()
         if not repos:
             raise error.PackageInstallError("No repos to install an "
                                             "autotest client from")
@@ -361,9 +366,7 @@ class BaseAutotest(installable_object.InstallableObject):
         # If the packaging system is being used, add the repository list.
         repos = None
         try:
-            c = global_config.global_config
-            repos = c.get_config_value("PACKAGES", 'fetch_location', type=list)
-            repos.reverse()  # high priority packages should be added last
+            repos = self.get_fetch_location()
             pkgmgr = packages.PackageManager('autotest', hostname=host.hostname,
                                              repo_urls=repos)
             prologue_lines.append('job.add_repository(%s)\n' % repos)
