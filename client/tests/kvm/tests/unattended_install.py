@@ -558,7 +558,9 @@ def run_unattended_install(test, params, env):
     logging.info("Guest reported successful installation after %d s (%d min)",
                  time_elapsed, time_elapsed/60)
 
-    if post_install_delay:
-        logging.debug("Post install delay specified, waiting %s s...",
-                      post_install_delay)
-        time.sleep(post_install_delay)
+    if params.get("shutdown_cleanly", "yes") == "yes":
+        shutdown_cleanly_timeout = int(params.get("shutdown_cleanly_timeout",
+                                                  120))
+        logging.info("Wait for guest to shudown cleanly...")
+        if kvm_utils.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
+            logging.info("Guest managed to shutdown cleanly")

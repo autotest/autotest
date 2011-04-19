@@ -15,7 +15,7 @@ bootloader --location=mbr --append="console=tty0 console=ttyS0,115200"
 zerombr
 clearpart --all --initlabel
 autopart
-reboot
+poweroff
 
 %packages
 @base

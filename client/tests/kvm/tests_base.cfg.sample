@@ -101,6 +101,8 @@ variants:
         kill_vm = yes
         kill_vm_gracefully = yes
         kill_vm_on_error = yes
+        shutdown_cleanly = yes
+        shutdown_cleanly_timeout = 120
         force_create_image = yes
         extra_params += " -boot d"
         guest_port_unattended_install = 12323
@@ -1294,7 +1296,6 @@ variants:
                     # hold your autoyast file
                     extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
                     #extra_params += " --append 'autoyast=cdrom console=ttyS0,115200 console=tty0'"
-                    post_install_delay = 10
 
                 variants:
                     - 11.0.32:
@@ -1434,7 +1435,6 @@ variants:
                     # hold your autoyast file
                     extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
                     #extra_params += " --append 'autoyast=cdrom console=ttyS0,115200 console=tty0'"
-                    post_install_delay = 10
                     kernel = linux
                     initrd = initrd
 
@@ -1563,6 +1563,8 @@ variants:
                             cdrom_unattended = images/rhel39-32/ks.iso
                             kernel = images/rhel39-32/vmlinuz
                             initrd = images/rhel39-32/initrd.img
+                            # 3.X anaconda does not support 'poweroff' on ks
+                            shutdown_cleanly = no
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-3.9-i386-DVD.iso
                             md5sum_cd1 = ddd11a1cb104119039b0fa05df6d52b8
@@ -1583,6 +1585,8 @@ variants:
                             cdrom_unattended = images/rhel39-64/ks.iso
                             kernel = images/rhel39-64/vmlinuz
                             initrd = images/rhel39-64/initrd.img
+                            # 3.X anaconda does not support 'poweroff' on ks
+                            shutdown_cleanly = no
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-3.9-x86_64-DVD.iso
                             md5sum_cd1 = bf4635e4a4bd3b43838e72bc8c329d55
