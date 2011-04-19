@@ -376,7 +376,7 @@ class UnattendedInstallConfig(object):
                 # SUSE autoyast install
                 dest_fname = "autoinst.xml"
                 if self.cdrom_unattended:
-                    boot_disk = CdromDisk(self.cdrom_unattended)
+                    boot_disk = CdromDisk(self.cdrom_unattended, self.tmpdir)
                 elif self.floppy:
                     boot_disk = FloppyDisk(self.floppy, self.qemu_img_binary,
                                            self.tmpdir)
