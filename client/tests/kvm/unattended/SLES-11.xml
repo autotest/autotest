@@ -92,6 +92,7 @@
     <ask-list config:type="list"/>
     <mode>
       <confirm config:type="boolean">false</confirm>
+      <halt config:type="boolean">true</halt>
     </mode>
     <mouse>
       <id>none</id>
@@ -542,17 +543,7 @@
         <source><![CDATA[dhclient eth0
 chkconfig sshd on
 sed -i -e 's/\(PasswordAuthentication\s\)no/\1yes/g'  /etc/ssh/sshd_config
-cat <<EOF>server
-#!/usr/bin/python
-import socket, os
-server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('',12323))
-server.listen(1)
-(client, addr) = server.accept()
-client.send("done")
-client.close()
-EOF
-python server
+service sshd restart
 ]]></source>
       </script>
     </init-scripts>

@@ -526,15 +526,23 @@ def run_unattended_install(test, params, env):
 
     start_time = time.time()
     while (time.time() - start_time) < install_timeout:
-        vm.verify_alive()
-        vm.verify_kernel_crash()
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            client.connect((vm.get_address(), port))
-            if client.recv(1024) == "done":
+            vm.verify_alive()
+        except kvm_vm.VMDeadError, e:
+            if params.get("wait_no_ack", "no") == "yes":
                 break
-        except (socket.error, kvm_vm.VMAddressError):
-            pass
+            else:
+                raise e
+        vm.verify_kernel_crash()
+        if params.get("wait_no_ack", "no") == "no":
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            try:
+                client.connect((vm.get_address(), port))
+                if client.recv(1024) == "done":
+                    break
+            except (socket.error, kvm_vm.VMAddressError):
+                pass
+
         if migrate_background:
             # Drop the params which may break the migration
             # Better method is to use dnsmasq to do the
@@ -549,7 +557,8 @@ def run_unattended_install(test, params, env):
             vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
         else:
             time.sleep(1)
-        client.close()
+        if params.get("wait_no_ack", "no") == "no":
+            client.close()
     else:
         raise error.TestFail("Timeout elapsed while waiting for install to "
                              "finish")
