@@ -1296,6 +1296,7 @@ variants:
                     # hold your autoyast file
                     extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
                     #extra_params += " --append 'autoyast=cdrom console=ttyS0,115200 console=tty0'"
+                    wait_no_ack = yes
 
                 variants:
                     - 11.0.32:
@@ -1437,6 +1438,7 @@ variants:
                     #extra_params += " --append 'autoyast=cdrom console=ttyS0,115200 console=tty0'"
                     kernel = linux
                     initrd = initrd
+                    wait_no_ack = yes
 
                 variants:
                     - 11.0.32:
