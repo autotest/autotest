@@ -205,7 +205,7 @@ class TestBaseAutotest(unittest.TestCase):
 
         c = autotest.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
-            'fetch_location', type=list).and_return(['repo'])
+            'fetch_location', type=list, default=[]).and_return(['repo'])
         pkgmgr = packages.PackageManager.expect_new('autotest',
                                                      repo_urls=['repo'],
                                                      hostname='hostname')
