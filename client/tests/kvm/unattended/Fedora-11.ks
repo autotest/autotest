@@ -12,6 +12,7 @@ timezone --utc America/New_York
 firstboot --disable
 bootloader --location=mbr --append="console=tty0 console=ttyS0,115200"
 zerombr
+poweroff
 
 clearpart --all --initlabel
 autopart
