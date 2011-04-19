@@ -1294,8 +1294,8 @@ variants:
                 unattended_install:
                     # You have to use autoyast=floppy if you want to use floppies to
                     # hold your autoyast file
-                    extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
-                    #extra_params += " --append 'autoyast=cdrom console=ttyS0,115200 console=tty0'"
+                    #extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
+                    extra_params += " --append 'autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0'"
                     wait_no_ack = yes
 
                 variants:
@@ -1308,8 +1308,8 @@ variants:
                             md5sum_1m_cd1 = c720b30557af758e69de450409516369
                         unattended_install:
                             unattended_file = unattended/OpenSUSE-11.xml
-                            floppy = images/opensuse-11-0-32/autoyast.vfd
-                            #cdrom_unattended = images/opensuse-11-0-32/autoyast.iso
+                            #floppy = images/opensuse-11-0-32/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-0-32/autoyast.iso
                             kernel = images/opensuse-11-0-32/linux
                             initrd = images/opensuse-11-0-32/initrd
                             boot_path = boot/i386/loader
@@ -1323,8 +1323,8 @@ variants:
                         image_name = openSUSE-11.0-64
                         unattended_install:
                             unattended_file = unattended/OpenSUSE-11.xml
-                            floppy = images/opensuse-11-0-64/autoyast.vfd
-                            #cdrom_unattended = images/opensuse-11-0-64/autoyast.iso
+                            #floppy = images/opensuse-11-0-64/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-0-64/autoyast.iso
                             kernel = images/opensuse-11-0-64/linux
                             initrd = images/opensuse-11-0-64/initrd
                             boot_path = boot/x86_64/loader
@@ -1342,8 +1342,8 @@ variants:
                             md5sum_1m_cd1 = b70217417468389083429f81ba7ce2bd
                         unattended_install:
                             unattended_file = unattended/OpenSUSE-11.xml
-                            floppy = images/opensuse-11-1-32/autoyast.vfd
-                            #cdrom_unattended = images/opensuse-11-1-32/autoyast.iso
+                            #floppy = images/opensuse-11-1-32/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-1-32/autoyast.iso
                             kernel = images/opensuse-11-1-32/linux
                             initrd = images/opensuse-11-1-32/initrd
                             boot_path = boot/i386/loader
@@ -1361,8 +1361,8 @@ variants:
                             md5sum_1m_cd1 = 768ca32503ef92c28f2d144f2a87e4d0
                         unattended_install:
                             unattended_file = unattended/OpenSUSE-11.xml
-                            floppy = images/opensuse-11-1-64/autoyast.vfd
-                            #cdrom_unattended = images/opensuse-11-1-64/autoyast.iso
+                            #floppy = images/opensuse-11-1-64/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-1-64/autoyast.iso
                             kernel = images/opensuse-11-1-64/linux
                             initrd = images/opensuse-11-1-64/initrd
                             boot_path = boot/x86_64/loader
@@ -1376,8 +1376,8 @@ variants:
                         image_name = openSUSE-11.2-32
                         unattended_install:
                             unattended_file = unattended/OpenSUSE-11.xml
-                            floppy = images/opensuse-11-2-32/autoyast.vfd
-                            #cdrom_unattended = images/opensuse-11-2-32/autoyast.iso
+                            #floppy = images/opensuse-11-2-32/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-2-32/autoyast.iso
                             kernel = images/opensuse-11-2-32/linux
                             initrd = images/opensuse-11-2-32/initrd
                             boot_path = boot/i386/loader
@@ -1391,8 +1391,8 @@ variants:
                         image_name = openSUSE-11.2-64
                         unattended_install:
                             unattended_file = unattended/OpenSUSE-11.xml
-                            floppy = images/opensuse11-2-64/autoyast.vfd
-                            #cdrom_unattended = images/opensuse11-2-64/autoyast.iso
+                            #floppy = images/opensuse11-2-64/autoyast.vfd
+                            cdrom_unattended = images/opensuse11-2-64/autoyast.iso
                             kernel = images/opensuse-11-2-64/linux
                             initrd = images/opensuse-11-2-64/initrd
                             boot_path = boot/x86_64/loader
@@ -1405,8 +1405,8 @@ variants:
                         image_name = openSUSE-11.3-32
                         unattended_install:
                             unattended_file = unattended/OpenSUSE-11.xml
-                            floppy = images/opensuse-11-3-32/autoyast.vfd
-                            #cdrom_unattended = images/opensuse-11-3-32/autoyast.iso
+                            #floppy = images/opensuse-11-3-32/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-3-32/autoyast.iso
                             kernel = images/opensuse-11-3-32/linux
                             initrd = images/opensuse-11-3-32/initrd
                             boot_path = boot/i386/loader
@@ -1419,8 +1419,8 @@ variants:
                         image_name = openSUSE-11.3-64
                         unattended_install:
                             unattended_file = unattended/OpenSUSE-11.xml
-                            floppy = images/opensuse-11-3-64/autoyast.vfd
-                            #cdrom_unattended = images/opensuse-11-3-64/autoyast.iso
+                            #floppy = images/opensuse-11-3-64/autoyast.vfd
+                            cdrom_unattended = images/opensuse-11-3-64/autoyast.iso
                             kernel = images/opensuse-11-3-64/linux
                             initrd = images/opensuse-11-3-64/initrd
                             boot_path = boot/x86_64/loader
@@ -1434,8 +1434,8 @@ variants:
                 unattended_install:
                     # You have to use autoyast=floppy if you want to use floppies to
                     # hold your autoyast file
-                    extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
-                    #extra_params += " --append 'autoyast=cdrom console=ttyS0,115200 console=tty0'"
+                    #extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
+                    extra_params += " --append 'autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0'"
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
@@ -1445,8 +1445,8 @@ variants:
                         image_name = sles11-32
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
-                            floppy = images/sles-11-0-32/autoyast.vfd
-                            #cdrom_unattended = images/sles-11-0-32/autoyast.iso
+                            #floppy = images/sles-11-0-32/autoyast.vfd
+                            cdrom_unattended = images/sles-11-0-32/autoyast.iso
                             kernel = images/sles-11-0-32/linux
                             initrd = images/sles-11-0-32/initrd
                             boot_path = boot/i386/loader
@@ -1463,8 +1463,8 @@ variants:
                         md5sum_1m_cd1 = 00000951cab7c32e332362fc424c1054
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
-                            floppy = images/sles-11-0-64/autoyast.vfd
-                            #cdrom_unattended = images/sles-11-0-64/autoyast.iso
+                            #floppy = images/sles-11-0-64/autoyast.vfd
+                            cdrom_unattended = images/sles-11-0-64/autoyast.iso
                             kernel = images/sles-11-0-64/linux
                             initrd = images/sles-11-0-64/initrd
                             boot_path = boot/x86_64/loader
@@ -1478,8 +1478,8 @@ variants:
                         image_name = sles11sp1-32
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
-                            floppy = images/sles-11-1-32/autoyast.vfd
-                            #cdrom_unattended = images/sles-11-1-32/autoyast.iso
+                            #floppy = images/sles-11-1-32/autoyast.vfd
+                            cdrom_unattended = images/sles-11-1-32/autoyast.iso
                             kernel = images/sles-11-1-32/linux
                             initrd = images/sles-11-1-32/initrd
                             boot_path = boot/i386/loader
@@ -1492,8 +1492,8 @@ variants:
                         image_name = sles11sp1-64
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
-                            floppy = images/sles-11-1-64/autoyast.vfd
-                            #cdrom_unattended = images/sles-11-1-64/autoyast.iso
+                            #floppy = images/sles-11-1-64/autoyast.vfd
+                            cdrom_unattended = images/sles-11-1-64/autoyast.iso
                             kernel = images/sles-11-1-64/linux
                             initrd = images/sles-11-1-64/initrd
                             boot_path = boot/x86_64/loader
