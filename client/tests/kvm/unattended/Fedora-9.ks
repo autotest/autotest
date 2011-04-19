@@ -16,6 +16,7 @@ zerombr
 clearpart --all --initlabel
 autopart
 reboot
+poweroff
 
 %packages
 @base
