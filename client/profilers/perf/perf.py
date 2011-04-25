@@ -25,7 +25,7 @@ class perf(profiler.profiler):
         for line in perf_help.split('\n'):
             a = "sort by key(s):"
             if a in line:
-                line = line.strip(a)
+                line = line.replace(a, "")
                 self.sort_keys = [k.rstrip(",") for k in line.split() if
                                   k.rstrip(",") != 'dso']
         if not self.sort_keys:
