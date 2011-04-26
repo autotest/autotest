@@ -36,6 +36,8 @@ class perf(profiler.profiler):
         self.logfile = os.path.join(test.profdir, "perf")
         cmd = ("exec %s record -a -o %s" %
                (self.perf_bin, self.logfile))
+        if "parent" in self.sort_keys:
+            cmd += " -g"
         for event in self.events:
             cmd += " -e %s" % event
         self._process = subprocess.Popen(cmd, shell=True,
