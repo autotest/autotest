@@ -34,7 +34,7 @@ class perf(profiler.profiler):
 
     def start(self, test):
         self.logfile = os.path.join(test.profdir, "perf")
-        cmd = ("%s record -a -o %s" %
+        cmd = ("exec %s record -a -o %s" %
                (self.perf_bin, self.logfile))
         for event in self.events:
             cmd += " -e %s" % event
