@@ -13,11 +13,12 @@ from autotest_lib.client.bin import profiler, os_dep, utils
 class perf(profiler.profiler):
     version = 1
 
-    def initialize(self, events=["cycles","instructions"]):
+    def initialize(self, events=["cycles","instructions"], trace=False):
         if type(events) == str:
             self.events = [events]
         else:
             self.events = events
+        self.trace = trace
         self.perf_bin = os_dep.command('perf')
         perf_help = utils.run('%s report help' % self.perf_bin,
                               ignore_status=True).stderr
@@ -38,6 +39,8 @@ class perf(profiler.profiler):
                (self.perf_bin, self.logfile))
         if "parent" in self.sort_keys:
             cmd += " -g"
+        if self.trace:
+            cmd += " -R"
         for event in self.events:
             cmd += " -e %s" % event
         self._process = subprocess.Popen(cmd, shell=True,
@@ -59,6 +62,16 @@ class perf(profiler.profiler):
             p = subprocess.Popen(cmd, shell=True, stdout=outfile,
                                  stderr=subprocess.STDOUT)
             p.wait()
+
+        if self.trace:
+            tracefile = os.path.join(test.profdir, 'trace')
+            cmd = ("%s trace -i %s" % (self.perf_bin, self.logfile,))
+
+            outfile = open(tracefile, 'w')
+            p = subprocess.Popen(cmd, shell=True, stdout=outfile,
+                                 stderr=subprocess.STDOUT)
+            p.wait()
+
         # The raw detailed perf output is HUGE.  We cannot store it by default.
         perf_log_size = os.stat(self.logfile)[stat.ST_SIZE]
         logging.info('Removing %s after generating reports (saving %s bytes).',
