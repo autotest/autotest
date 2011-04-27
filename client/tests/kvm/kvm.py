@@ -59,11 +59,19 @@ class kvm(test.test):
                     # test type
                     t_type = params.get("type")
                     # Verify if we have the correspondent source file for it
-                    subtest_dir = os.path.join(self.bindir, "tests")
-                    module_path = os.path.join(subtest_dir, "%s.py" % t_type)
-                    if not os.path.isfile(module_path):
-                        raise error.TestError("No %s.py test file found" %
-                                              t_type)
+                    virt_dir = os.path.dirname(virt_utils.__file__)
+                    subtest_dir_virt = os.path.join(virt_dir, "tests")
+                    subtest_dir_kvm = os.path.join(self.bindir, "tests")
+                    subtest_dir = None
+                    for d in [subtest_dir_kvm, subtest_dir_virt]:
+                        module_path = os.path.join(d, "%s.py" % t_type)
+                        if os.path.isfile(module_path):
+                            subtest_dir = d
+                            break
+                    if subtest_dir is None:
+                        raise error.TestError("Could not find test file %s.py "
+                                              "on either %s or %s directory" %
+                                              subtest_dir_kvm, subtest_dir_virt)
                     # Load the test module
                     f, p, d = imp.find_module(t_type, [subtest_dir])
                     test_module = imp.load_module(t_type, f, p, d)
