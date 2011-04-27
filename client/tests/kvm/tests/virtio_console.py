@@ -10,8 +10,8 @@ from threading import Thread
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_subprocess, kvm_test_utils, kvm_utils
-import kvm_preprocessing, kvm_monitor
+from autotest_lib.client.virt import virt_utils, virt_test_utils, kvm_monitor
+from autotest_lib.client.virt import virt_env_process, aexpect
 
 
 def run_virtio_console(test, params, env):
@@ -303,7 +303,7 @@ def run_virtio_console(test, params, env):
                     self.idx += self.port.send(self.data)
                 logging.debug("ThSend %s: exit(%d)", self.getName(),
                               self.idx)
-            except Exception as ints:
+            except Exception, ints:
                 if not self.quiet:
                     raise ints
                 logging.debug(ints)
@@ -416,7 +416,7 @@ def run_virtio_console(test, params, env):
                         pass
                 self.port.settimeout(self._port_timeout)
                 logging.debug("ThRecv %s: exit(%d)", self.getName(), self.idx)
-            except Exception as ints:
+            except Exception, ints:
                 if not self.quiet:
                     raise ints
                 logging.debug(ints)
@@ -634,7 +634,7 @@ def run_virtio_console(test, params, env):
                                                                 "FAIL:"],
                                                                timeout)
 
-        except (kvm_subprocess.ExpectError), e:
+        except aexpect.ExpectError, e:
             match = None
             data = "Cmd process timeout. Data in console: " + e.output
 
@@ -772,14 +772,14 @@ def run_virtio_console(test, params, env):
         Restore old virtual machine when VM is destroyed.
         """
         logging.debug("Booting guest %s", params.get("main_vm"))
-        kvm_preprocessing.preprocess_vm(test, params, env,
+        virt_env_process.preprocess_vm(test, params, env,
                                         params.get("main_vm"))
 
         vm = env.get_vm(params.get("main_vm"))
 
         kernel_bug = None
         try:
-            session = kvm_test_utils.wait_for_login(vm, 0,
+            session = virt_test_utils.wait_for_login(vm, 0,
                                     float(params.get("boot_timeout", 100)),
                                     0, 2)
         except (error.TestFail):
@@ -792,7 +792,7 @@ def run_virtio_console(test, params, env):
         if kernel_bug is not None:
             logging.error(kernel_bug)
 
-        sserial = kvm_test_utils.wait_for_login(vm, 0,
+        sserial = virt_test_utils.wait_for_login(vm, 0,
                                          float(params.get("boot_timeout", 20)),
                                          0, 2, serial=True)
         return [vm, session, sserial]
@@ -1196,7 +1196,7 @@ def run_virtio_console(test, params, env):
         (vm, consoles) = _vm_create(0, 30, False)
         try:
             init_guest(vm, consoles)
-        except error.TestFail as ints:
+        except error.TestFail, ints:
             logging.info("Count of serial ports: 30")
             raise ints
         clean_reload_vm(vm, consoles, expected=True)
@@ -1214,7 +1214,7 @@ def run_virtio_console(test, params, env):
         (vm, consoles) = _vm_create(30, 0, False)
         try:
             init_guest(vm, consoles)
-        except error.TestFail as ints:
+        except error.TestFail, ints:
             logging.info("Count of console ports: 30")
             raise ints
         clean_reload_vm(vm, consoles, expected=True)
@@ -1232,7 +1232,7 @@ def run_virtio_console(test, params, env):
         (vm, consoles) = _vm_create(15, 15, False)
         try:
             init_guest(vm, consoles)
-        except error.TestFail as ints:
+        except error.TestFail, ints:
             logging.info("Count of ports (serial+console): 30")
             raise ints
         clean_reload_vm(vm, consoles, expected=True)
@@ -1340,11 +1340,11 @@ def run_virtio_console(test, params, env):
 
 
         for j in range(parms[1]):
-            vm[0] = kvm_test_utils.migrate(vm[0], env, 3600, "exec", 0,
+            vm[0] = virt_test_utils.migrate(vm[0], env, 3600, "exec", 0,
                                              offline)
             if not vm[1]:
                 raise error.TestFail("Could not log into guest after migration")
-            vm[1] = kvm_test_utils.wait_for_login(vm[0], 0,
+            vm[1] = virt_test_utils.wait_for_login(vm[0], 0,
                                         float(params.get("boot_timeout", 100)),
                                         0, 2)
             # OS is sometime a bit dizzy. DL=30
@@ -1903,7 +1903,7 @@ def run_virtio_console(test, params, env):
                 match, tmp = _on_guest("guest_exit()", vm, 10)
                 if (match is None) or (match == 0):
                     vm[1].close()
-                    vm[1] = kvm_test_utils.wait_for_login(vm[0], 0,
+                    vm[1] = virt_test_utils.wait_for_login(vm[0], 0,
                                         float(params.get("boot_timeout", 5)),
                                         0, 10)
                 on_guest("killall -9 python "
@@ -1914,7 +1914,7 @@ def run_virtio_console(test, params, env):
                 init_guest(vm, consoles)
                 _clean_ports(vm, consoles)
 
-            except (error.TestFail, kvm_subprocess.ExpectError,
+            except (error.TestFail, aexpect.ExpectError,
                     Exception), inst:
                 logging.error(inst)
                 logging.error("Virtio-console driver is irreparably"

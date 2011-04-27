@@ -6,7 +6,8 @@ Utilities to perform automatic guest installation using step files.
 
 import os, time, shutil, logging
 from autotest_lib.client.common_lib import error
-import kvm_utils, ppm_utils, kvm_monitor
+from autotest_lib.client.virt import virt_utils, ppm_utils, kvm_monitor
+
 try:
     import PIL.Image
 except ImportError:
@@ -191,7 +192,7 @@ def run_steps(test, params, env):
     steps_filename = params.get("steps")
     if not steps_filename:
         raise error.TestError("Steps filename not specified")
-    steps_filename = kvm_utils.get_path(test.bindir, steps_filename)
+    steps_filename = virt_utils.get_path(test.bindir, steps_filename)
     if not os.path.exists(steps_filename):
         raise error.TestError("Steps file not found: %s" % steps_filename)
 

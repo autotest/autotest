@@ -1,6 +1,6 @@
 import re
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_utils, kvm_vm
+from autotest_lib.client.virt import virt_utils, virt_vm, aexpect
 
 
 def run_pci_hotplug(test, params, env):
@@ -66,7 +66,7 @@ def run_pci_hotplug(test, params, env):
             pci_add_cmd = "pci_add pci_addr=auto nic model=%s" % tested_model
         elif test_type == "block":
             image_params = params.object_params("stg")
-            image_filename = kvm_vm.get_image_filename(image_params,
+            image_filename = virt_vm.get_image_filename(image_params,
                                                        test.bindir)
             pci_add_cmd = ("pci_add pci_addr=auto storage file=%s,if=%s" %
                            (image_filename, tested_model))
@@ -79,8 +79,8 @@ def run_pci_hotplug(test, params, env):
         after_add = vm.monitor.info("pci")
 
     elif cmd_type == "device_add":
-        driver_id = test_type + "-" + kvm_utils.generate_random_id()
-        device_id = test_type + "-" + kvm_utils.generate_random_id()
+        driver_id = test_type + "-" + virt_utils.generate_random_id()
+        device_id = test_type + "-" + virt_utils.generate_random_id()
         if test_type == "nic":
             if tested_model == "virtio":
                 tested_model = "virtio-net-pci"
@@ -89,7 +89,7 @@ def run_pci_hotplug(test, params, env):
 
         elif test_type == "block":
             image_params = params.object_params("stg")
-            image_filename = kvm_vm.get_image_filename(image_params,
+            image_filename = virt_vm.get_image_filename(image_params,
                                                        test.bindir)
             controller_model = None
             if tested_model == "virtio":
@@ -152,7 +152,7 @@ def run_pci_hotplug(test, params, env):
             after_del = vm.monitor.info("pci")
             return after_del != after_add
 
-        if (not kvm_utils.wait_for(device_removed, 10, 0, 1)
+        if (not virt_utils.wait_for(device_removed, 10, 0, 1)
             and not ignore_failure):
             raise error.TestFail("Failed to hot remove PCI device: %s. "
                                  "Monitor command: %s" %
@@ -170,7 +170,7 @@ def run_pci_hotplug(test, params, env):
             return o != reference
 
         secs = int(params.get("wait_secs_for_hook_up"))
-        if not kvm_utils.wait_for(new_shown, 30, secs, 3):
+        if not virt_utils.wait_for(new_shown, 30, secs, 3):
             raise error.TestFail("No new device shown in output of command "
                                  "executed inside the guest: %s" %
                                  params.get("reference_cmd"))
@@ -180,7 +180,7 @@ def run_pci_hotplug(test, params, env):
             o = session.cmd_output(params.get("find_pci_cmd"))
             return params.get("match_string") in o
 
-        if not kvm_utils.wait_for(find_pci, 30, 3, 3):
+        if not virt_utils.wait_for(find_pci, 30, 3, 3):
             raise error.TestFail("PCI %s %s device not found in guest. "
                                  "Command was: %s" %
                                  (tested_model, test_type,
@@ -189,7 +189,7 @@ def run_pci_hotplug(test, params, env):
         # Test the newly added device
         try:
             session.cmd(params.get("pci_test_cmd"))
-        except kvm_subprocess.ShellError, e:
+        except aexpect.ShellError, e:
             raise error.TestFail("Check for %s device failed after PCI "
                                  "hotplug. Output: %r" % (test_type, e.output))
 

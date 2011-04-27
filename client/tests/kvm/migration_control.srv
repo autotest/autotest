@@ -12,6 +12,7 @@ so there's a distinction between the migration roles ('dest' or 'source').
 
 import sys, os, commands, glob, shutil, logging, random
 from autotest_lib.server import utils
+from autotest_lib.client.common_lib import cartesian_config
 
 # Specify the directory of autotest before you start this test
 AUTOTEST_DIR = '/usr/local/autotest'
@@ -19,11 +20,8 @@ AUTOTEST_DIR = '/usr/local/autotest'
 # Specify the root directory that on client machines
 rootdir = '/tmp/kvm_autotest_root'
 
-# Make possible to import the KVM test APIs
 KVM_DIR = os.path.join(AUTOTEST_DIR, 'client/tests/kvm')
-sys.path.append(KVM_DIR)
 
-import common, kvm_config
 
 def generate_mac_address():
     r = random.SystemRandom()
@@ -50,7 +48,7 @@ def run(pair):
         raise error.JobError("Config file %s was not found", cfg_file)
 
     # Get test set (dictionary list) from the configuration file
-    parser = kvm_config.Parser()
+    parser = cartesian_config.Parser()
     test_variants = """
 image_name(_.*)? ?<= /tmp/kvm_autotest_root/images/
 cdrom(_.*)? ?<= /tmp/kvm_autotest_root/
@@ -99,8 +97,10 @@ sys.path.append(kvm_test_dir)\n
         for key in keys:
             logging.debug("    %s = %s", key, params[key])
 
-        source_control_file += "job.run_test('kvm', tag='%s', params=%s)" % (source_params['shortname'], source_params)
-        dest_control_file += "job.run_test('kvm', tag='%s', params=%s)" % (dest_params['shortname'], dest_params)
+        source_control_file += ("job.run_test('kvm', tag='%s', params=%s)" %
+                                (source_params['shortname'], source_params))
+        dest_control_file += ("job.run_test('kvm', tag='%s', params=%s)" %
+                              (dest_params['shortname'], dest_params))
 
         logging.info('Source control file:\n%s', source_control_file)
         logging.info('Destination control file:\n%s', dest_control_file)

@@ -1,6 +1,6 @@
 import logging
 from autotest_lib.client.common_lib import error
-import kvm_utils, kvm_test_utils
+from autotest_lib.client.virt import virt_utils, virt_test_utils
 
 
 def run_mac_change(test, params, env):
@@ -24,11 +24,11 @@ def run_mac_change(test, params, env):
     old_mac = vm.get_mac_address(0)
     while True:
         vm.free_mac_address(0)
-        new_mac = kvm_utils.generate_mac_address(vm.instance, 0)
+        new_mac = virt_utils.generate_mac_address(vm.instance, 0)
         if old_mac != new_mac:
             break
     logging.info("The initial MAC address is %s", old_mac)
-    interface = kvm_test_utils.get_linux_ifname(session_serial, old_mac)
+    interface = virt_test_utils.get_linux_ifname(session_serial, old_mac)
     # Start change MAC address
     logging.info("Changing MAC address to %s", new_mac)
     change_cmd = ("ifconfig %s down && ifconfig %s hw ether %s && "
@@ -45,7 +45,7 @@ def run_mac_change(test, params, env):
     session_serial.sendline(dhclient_cmd)
 
     # Re-log into the guest after changing mac address
-    if kvm_utils.wait_for(session.is_responsive, 120, 20, 3):
+    if virt_utils.wait_for(session.is_responsive, 120, 20, 3):
         # Just warning when failed to see the session become dead,
         # because there is a little chance the ip does not change.
         logging.warn("The session is still responsive, settings may fail.")

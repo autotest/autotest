@@ -1,7 +1,8 @@
 import logging, time, os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_utils
+from autotest_lib.client.virt import virt_utils
+
 
 def run_file_transfer(test, params, env):
     """
@@ -34,11 +35,11 @@ def run_file_transfer(test, params, env):
         count = 1
 
     host_path = os.path.join(dir_name, "tmp-%s" %
-                             kvm_utils.generate_random_string(8))
+                             virt_utils.generate_random_string(8))
     host_path2 = host_path + ".2"
     cmd = "dd if=/dev/zero of=%s bs=10M count=%d" % (host_path, count)
     guest_path = (tmp_dir + "file_transfer-%s" %
-                  kvm_utils.generate_random_string(8))
+                  virt_utils.generate_random_string(8))
 
     try:
         logging.info("Creating %dMB file on host", filesize)

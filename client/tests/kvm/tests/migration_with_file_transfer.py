@@ -1,7 +1,7 @@
 import logging, time, os
 from autotest_lib.client.common_lib import utils, error
 from autotest_lib.client.bin import utils as client_utils
-import kvm_utils
+from autotest_lib.client.virt import virt_utils
 
 
 @error.context_aware
@@ -29,7 +29,7 @@ def run_migration_with_file_transfer(test, params, env):
     mig_protocol = params.get("migration_protocol", "tcp")
     mig_cancel_delay = int(params.get("mig_cancel") == "yes") * 2
 
-    host_path = "/tmp/file-%s" % kvm_utils.generate_random_string(6)
+    host_path = "/tmp/file-%s" % virt_utils.generate_random_string(6)
     host_path_returned = "%s-returned" % host_path
     guest_path = params.get("guest_path", "/tmp/file")
     file_size = params.get("file_size", "500")
@@ -56,13 +56,13 @@ def run_migration_with_file_transfer(test, params, env):
 
         error.context("transferring file to guest while migrating",
                       logging.info)
-        bg = kvm_utils.Thread(vm.copy_files_to, (host_path, guest_path),
+        bg = virt_utils.Thread(vm.copy_files_to, (host_path, guest_path),
                               dict(verbose=True, timeout=transfer_timeout))
         run_and_migrate(bg)
 
         error.context("transferring file back to host while migrating",
                       logging.info)
-        bg = kvm_utils.Thread(vm.copy_files_from,
+        bg = virt_utils.Thread(vm.copy_files_from,
                               (guest_path, host_path_returned),
                               dict(verbose=True, timeout=transfer_timeout))
         run_and_migrate(bg)

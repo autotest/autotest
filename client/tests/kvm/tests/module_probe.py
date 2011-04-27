@@ -1,6 +1,6 @@
 import re, commands, logging, os
 from autotest_lib.client.common_lib import error, utils
-import kvm_subprocess, kvm_test_utils, kvm_utils, installer
+from autotest_lib.client.virt import kvm_installer
 
 
 def run_module_probe(test, params, env):
@@ -19,7 +19,7 @@ def run_module_probe(test, params, env):
 
     installer_object = env.previous_installer()
     if installer_object is None:
-        installer_object = installer.PreInstalledKvm()
+        installer_object = kvm_installer.PreInstalledKvm()
         installer_object.set_install_params(test, params)
 
     logging.debug('installer object: %r', installer_object)

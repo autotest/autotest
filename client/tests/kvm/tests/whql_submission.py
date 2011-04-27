@@ -1,6 +1,6 @@
 import logging, os, re
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_utils, rss_file_transfer
+from autotest_lib.client.virt import virt_utils, rss_client, aexpect
 
 
 def run_whql_submission(test, params, env):
@@ -42,20 +42,20 @@ def run_whql_submission(test, params, env):
                                     "Microsoft Driver Test Manager\\Studio")
     dsso_test_binary = params.get("dsso_test_binary",
                                   "deps/whql_submission_15.exe")
-    dsso_test_binary = kvm_utils.get_path(test.bindir, dsso_test_binary)
+    dsso_test_binary = virt_utils.get_path(test.bindir, dsso_test_binary)
     dsso_delete_machine_binary = params.get("dsso_delete_machine_binary",
                                             "deps/whql_delete_machine_15.exe")
-    dsso_delete_machine_binary = kvm_utils.get_path(test.bindir,
+    dsso_delete_machine_binary = virt_utils.get_path(test.bindir,
                                                     dsso_delete_machine_binary)
     test_timeout = float(params.get("test_timeout", 600))
 
     # Copy dsso binaries to the server
     for filename in dsso_test_binary, dsso_delete_machine_binary:
-        rss_file_transfer.upload(server_address, server_file_transfer_port,
+        rss_client.upload(server_address, server_file_transfer_port,
                                  filename, server_studio_path, timeout=60)
 
     # Open a shell session with the server
-    server_session = kvm_utils.remote_login("nc", server_address,
+    server_session = virt_utils.remote_login("nc", server_address,
                                             server_shell_port, "", "",
                                             sessions[0].prompt,
                                             sessions[0].linesep)
@@ -74,7 +74,7 @@ def run_whql_submission(test, params, env):
         server_session.cmd(cmd, print_func=logging.debug)
 
     # Reboot the client machines
-    sessions = kvm_utils.parallel((vm.reboot, (session,))
+    sessions = virt_utils.parallel((vm.reboot, (session,))
                                   for vm, session in zip(vms, sessions))
 
     # Check the NICs again
@@ -171,7 +171,7 @@ def run_whql_submission(test, params, env):
         # (test_timeout + 300 is used here because the automation program is
         # supposed to terminate cleanly on its own when test_timeout expires)
         done = True
-    except kvm_subprocess.ExpectError, e:
+    except aexpect.ExpectError, e:
         o = e.output
         done = False
     server_session.close()
@@ -188,17 +188,17 @@ def run_whql_submission(test, params, env):
     for i, r in enumerate(results):
         if "report" in r:
             try:
-                rss_file_transfer.download(server_address,
+                rss_client.download(server_address,
                                            server_file_transfer_port,
                                            r["report"], test.debugdir)
-            except rss_file_transfer.FileTransferNotFoundError:
+            except rss_client.FileTransferNotFoundError:
                 pass
         if "logs" in r:
             try:
-                rss_file_transfer.download(server_address,
+                rss_client.download(server_address,
                                            server_file_transfer_port,
                                            r["logs"], test.debugdir)
-            except rss_file_transfer.FileTransferNotFoundError:
+            except rss_client.FileTransferNotFoundError:
                 pass
             else:
                 try:
@@ -254,7 +254,7 @@ def run_whql_submission(test, params, env):
     # Kill the client VMs and fail if the automation program did not terminate
     # on time
     if not done:
-        kvm_utils.parallel(vm.destroy for vm in vms)
+        virt_utils.parallel(vm.destroy for vm in vms)
         raise error.TestFail("The automation program did not terminate "
                              "on time")
 

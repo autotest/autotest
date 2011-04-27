@@ -2,7 +2,7 @@ import logging, threading, os, time
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.tests.kvm.tests import file_transfer
-import kvm_test_utils, kvm_utils
+from autotest_lib.client.virt import virt_test_utils, virt_utils
 
 
 def run_nicdriver_unload(test, params, env):
@@ -24,8 +24,8 @@ def run_nicdriver_unload(test, params, env):
     vm.verify_alive()
     session_serial = vm.wait_for_serial_login(timeout=timeout)
 
-    ethname = kvm_test_utils.get_linux_ifname(session_serial,
-                                              vm.get_mac_address(0))
+    ethname = virt_test_utils.get_linux_ifname(session_serial,
+                                               vm.get_mac_address(0))
 
     # get ethernet driver from '/sys' directory.
     # ethtool can do the same thing and doesn't care about os type.
@@ -36,12 +36,13 @@ def run_nicdriver_unload(test, params, env):
     readlink_cmd = params.get("readlink_command", "readlink -e")
     driver = os.path.basename(session_serial.cmd("%s %s" % (readlink_cmd,
                                                  sys_path)).strip())
+
     logging.info("driver is %s", driver)
 
     try:
         threads = []
         for t in range(int(params.get("sessions_num", "10"))):
-            thread = kvm_utils.Thread(file_transfer.run_file_transfer,
+            thread = virt_utils.Thread(file_transfer.run_file_transfer,
                                       (test, params, env))
             thread.start()
             threads.append(thread)

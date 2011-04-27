@@ -1,6 +1,6 @@
 import logging
 from autotest_lib.client.common_lib import error
-import kvm_preprocessing
+from autotest_lib.client.virt import virt_env_process
 
 
 @error.context_aware
@@ -35,7 +35,7 @@ def run_stress_boot(test, params, env):
             vm_params = vm.params.copy()
             curr_vm = vm.clone(vm_name, vm_params)
             env.register_vm(vm_name, curr_vm)
-            kvm_preprocessing.preprocess_vm(test, vm_params, env, vm_name)
+            virt_env_process.preprocess_vm(test, vm_params, env, vm_name)
             params["vms"] += " " + vm_name
 
             sessions.append(curr_vm.wait_for_login(timeout=login_timeout))

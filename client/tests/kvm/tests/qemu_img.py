@@ -1,6 +1,6 @@
 import re, os, logging, commands
 from autotest_lib.client.common_lib import utils, error
-import kvm_vm, kvm_utils, kvm_preprocessing
+from autotest_lib.client.virt import virt_vm, virt_utils, virt_env_process
 
 
 def run_qemu_img(test, params, env):
@@ -13,12 +13,12 @@ def run_qemu_img(test, params, env):
     @param params: Dictionary with the test parameters
     @param env: Dictionary with test environment.
     """
-    cmd = kvm_utils.get_path(test.bindir, params.get("qemu_img_binary"))
+    cmd = virt_utils.get_path(test.bindir, params.get("qemu_img_binary"))
     if not os.path.exists(cmd):
         raise error.TestError("Binary of 'qemu-img' not found")
     image_format = params.get("image_format")
     image_size = params.get("image_size", "10G")
-    image_name = kvm_vm.get_image_filename(params, test.bindir)
+    image_name = virt_vm.get_image_filename(params, test.bindir)
 
 
     def _check(cmd, img):
@@ -49,7 +49,7 @@ def run_qemu_img(test, params, env):
 
         @param cmd: qemu-img base command.
         """
-        test_image = kvm_utils.get_path(test.bindir,
+        test_image = virt_utils.get_path(test.bindir,
                                         params.get("image_name_dd"))
         print "test_image = %s" % test_image
         create_image_cmd = params.get("create_image_cmd")
@@ -105,7 +105,7 @@ def run_qemu_img(test, params, env):
         @param cmd: qemu-img base command.
         """
         image_large = params.get("image_name_large")
-        img = kvm_utils.get_path(test.bindir, image_large)
+        img = virt_utils.get_path(test.bindir, image_large)
         img += '.' + image_format
         _create(cmd, img_name=img, fmt=image_format,
                img_size=params.get("image_size_large"))
@@ -288,7 +288,7 @@ def run_qemu_img(test, params, env):
 
             # Start a new VM, using backing file as its harddisk
             vm_name = params.get('main_vm')
-            kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
+            virt_env_process.preprocess_vm(test, params, env, vm_name)
             vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
@@ -316,7 +316,7 @@ def run_qemu_img(test, params, env):
             # Second, Start a new VM, using image_name as its harddisk
             # Here, the commit_testfile should not exist
             vm_name = params.get('main_vm')
-            kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
+            virt_env_process.preprocess_vm(test, params, env, vm_name)
             vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
@@ -342,7 +342,7 @@ def run_qemu_img(test, params, env):
 
             # Start a new VM, using image_name as its harddisk
             vm_name = params.get('main_vm')
-            kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
+            virt_env_process.preprocess_vm(test, params, env, vm_name)
             vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
@@ -401,13 +401,13 @@ def run_qemu_img(test, params, env):
                                     " support 'rebase' subcommand")
         sn_fmt = params.get("snapshot_format", "qcow2")
         sn1 = params.get("image_name_snapshot1")
-        sn1 = kvm_utils.get_path(test.bindir, sn1) + ".%s" % sn_fmt
-        base_img = kvm_vm.get_image_filename(params, test.bindir)
+        sn1 = virt_utils.get_path(test.bindir, sn1) + ".%s" % sn_fmt
+        base_img = virt_vm.get_image_filename(params, test.bindir)
         _create(cmd, sn1, sn_fmt, base_img=base_img, base_img_fmt=image_format)
 
         # Create snapshot2 based on snapshot1
         sn2 = params.get("image_name_snapshot2")
-        sn2 = kvm_utils.get_path(test.bindir, sn2) + ".%s" % sn_fmt
+        sn2 = virt_utils.get_path(test.bindir, sn2) + ".%s" % sn_fmt
         _create(cmd, sn2, sn_fmt, base_img=sn1, base_img_fmt=sn_fmt)
 
         rebase_mode = params.get("rebase_mode")
