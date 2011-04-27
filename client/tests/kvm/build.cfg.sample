@@ -7,6 +7,8 @@
 #    KVM test dir.
 # 2) The appropriate KVM modules are already loaded on your machine.
 
+vm_type = kvm
+
 variants:
     - build:
         type = build
