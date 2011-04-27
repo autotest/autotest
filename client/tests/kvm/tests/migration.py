@@ -1,6 +1,6 @@
 import logging, time
 from autotest_lib.client.common_lib import error
-import kvm_utils
+from autotest_lib.client.virt import virt_utils
 
 
 def run_migration(test, params, env):
@@ -68,9 +68,9 @@ def run_migration(test, params, env):
                          "command output after migration")
             logging.info("Command: %s", test_command)
             logging.info("Output before:" +
-                         kvm_utils.format_str_for_message(reference_output))
+                         virt_utils.format_str_for_message(reference_output))
             logging.info("Output after:" +
-                         kvm_utils.format_str_for_message(output))
+                         virt_utils.format_str_for_message(output))
             raise error.TestFail("Command '%s' produced different output "
                                  "before and after migration" % test_command)
 

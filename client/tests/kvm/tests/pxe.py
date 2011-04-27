@@ -1,7 +1,6 @@
 import logging
 from autotest_lib.client.common_lib import error
-import kvm_subprocess
-
+from autotest_lib.client.virt import aexpect
 
 def run_pxe(test, params, env):
     """
@@ -20,7 +19,7 @@ def run_pxe(test, params, env):
     timeout = int(params.get("pxe_timeout", 60))
 
     logging.info("Try to boot from PXE")
-    output = kvm_subprocess.run_fg("tcpdump -nli %s" % vm.get_ifname(),
+    output = aexpect.run_fg("tcpdump -nli %s" % vm.get_ifname(),
                                    logging.debug, "(pxe capture) ", timeout)[1]
 
     logging.info("Analyzing the tcpdump result...")

@@ -1,7 +1,8 @@
 import logging, time, random, math, os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_subprocess, kvm_test_utils, kvm_utils, kvm_preprocessing
+from autotest_lib.client.virt import virt_utils, virt_test_utils, aexpect
+from autotest_lib.client.virt import virt_env_process
 
 
 def run_ksm_overcommit(test, params, env):
@@ -29,7 +30,7 @@ def run_ksm_overcommit(test, params, env):
         session.sendline("python /tmp/ksm_overcommit_guest.py")
         try:
             session.read_until_last_line_matches(["PASS:", "FAIL:"], timeout)
-        except kvm_subprocess.ExpectProcessTerminatedError, e:
+        except aexpect.ExpectProcessTerminatedError, e:
             e_msg = ("Command ksm_overcommit_guest.py on vm '%s' failed: %s" %
                      (vm.name, str(e)))
             raise error.TestFail(e_msg)
@@ -54,7 +55,7 @@ def run_ksm_overcommit(test, params, env):
             (match, data) = session.read_until_last_line_matches(
                                                              ["PASS:","FAIL:"],
                                                              timeout)
-        except kvm_subprocess.ExpectProcessTerminatedError, e:
+        except aexpect.ExpectProcessTerminatedError, e:
             e_msg = ("Failed to execute command '%s' on "
                      "ksm_overcommit_guest.py, vm '%s': %s" %
                      (command, vm.name, str(e)))
@@ -107,7 +108,7 @@ def run_ksm_overcommit(test, params, env):
             while ((new_ksm and (shm < (ksm_size*(i+1)))) or
                     (not new_ksm and (shm < (ksm_size)))):
                 if j > 64:
-                    logging.debug(kvm_test_utils.get_memory_info(lvms))
+                    logging.debug(virt_test_utils.get_memory_info(lvms))
                     raise error.TestError("SHM didn't merge the memory until "
                                           "the DL on guest: %s" % vm.name)
                 st = ksm_size / 200 * perf_ratio
@@ -126,7 +127,7 @@ def run_ksm_overcommit(test, params, env):
         logging.debug("Waiting %ds before proceeding...", rt)
         time.sleep(rt)
 
-        logging.debug(kvm_test_utils.get_memory_info(lvms))
+        logging.debug(virt_test_utils.get_memory_info(lvms))
         logging.info("Phase 1: PASS")
 
 
@@ -145,7 +146,7 @@ def run_ksm_overcommit(test, params, env):
         out = int(r_msg.split()[4])
         logging.debug("Performance: %dMB * 1000 / %dms = %dMB/s", ksm_size, out,
                      (ksm_size * 1000 / out))
-        logging.debug(kvm_test_utils.get_memory_info(lvms))
+        logging.debug(virt_test_utils.get_memory_info(lvms))
         logging.debug("Phase 2: PASS")
 
 
@@ -223,7 +224,7 @@ def run_ksm_overcommit(test, params, env):
         for i in range(last_vm + 1, vmsc):
             lsessions[i].close()
             if i == (vmsc - 1):
-                logging.debug(kvm_test_utils.get_memory_info([lvms[i]]))
+                logging.debug(virt_test_utils.get_memory_info([lvms[i]]))
             logging.debug("Destroying guest %s", lvms[i].name)
             lvms[i].destroy(gracefully = False)
 
@@ -231,7 +232,7 @@ def run_ksm_overcommit(test, params, env):
         a_cmd = "mem.static_random_verify()"
         _execute_allocator(a_cmd, lvms[last_vm], lsessions[last_vm],
                            (mem / 200 * 50 * perf_ratio))
-        logging.debug(kvm_test_utils.get_memory_info([lvms[last_vm]]))
+        logging.debug(virt_test_utils.get_memory_info([lvms[last_vm]]))
 
         lsessions[i].cmd_output("die()", 20)
         lvms[last_vm].destroy(gracefully = False)
@@ -277,7 +278,7 @@ def run_ksm_overcommit(test, params, env):
         logging.debug("Target shared memory size: %s", ksm_size)
         while (shm < ksm_size):
             if i > 64:
-                logging.debug(kvm_test_utils.get_memory_info(lvms))
+                logging.debug(virt_test_utils.get_memory_info(lvms))
                 raise error.TestError("SHM didn't merge the memory until DL")
             wt = ksm_size / 200 * perf_ratio
             logging.debug("Waiting %ds before proceed...", wt)
@@ -289,7 +290,7 @@ def run_ksm_overcommit(test, params, env):
             logging.debug("Shared meminfo after attempt %s: %s", i, shm)
             i += 1
 
-        logging.debug(kvm_test_utils.get_memory_info([vm]))
+        logging.debug(virt_test_utils.get_memory_info([vm]))
         logging.info("Phase 2a: PASS")
 
         logging.info("Phase 2b: Simultaneous spliting")
@@ -305,7 +306,7 @@ def run_ksm_overcommit(test, params, env):
             logging.debug("Performance: %dMB * 1000 / %dms = %dMB/s",
                           (ksm_size / max_alloc), out,
                           (ksm_size * 1000 / out / max_alloc))
-        logging.debug(kvm_test_utils.get_memory_info([vm]))
+        logging.debug(virt_test_utils.get_memory_info([vm]))
         logging.info("Phase 2b: PASS")
 
         logging.info("Phase 2c: Simultaneous verification")
@@ -321,7 +322,7 @@ def run_ksm_overcommit(test, params, env):
             a_cmd = "mem.value_fill(%d)" % skeys[0]
             data = _execute_allocator(a_cmd, vm, lsessions[i],
                                       120 * perf_ratio)[1]
-        logging.debug(kvm_test_utils.get_memory_info([vm]))
+        logging.debug(virt_test_utils.get_memory_info([vm]))
         logging.info("Phase 2d: PASS")
 
         logging.info("Phase 2e: Simultaneous verification")
@@ -343,7 +344,7 @@ def run_ksm_overcommit(test, params, env):
                          ksm_size/max_alloc, out,
                          (ksm_size * 1000 / out / max_alloc))
 
-        logging.debug(kvm_test_utils.get_memory_info([vm]))
+        logging.debug(virt_test_utils.get_memory_info([vm]))
         logging.info("Phase 2f: PASS")
 
         logging.info("Phase 2g: Simultaneous verification last 96B")
@@ -351,7 +352,7 @@ def run_ksm_overcommit(test, params, env):
             a_cmd = "mem.static_random_verify(96)"
             (match, data) = _execute_allocator(a_cmd, vm, lsessions[i],
                                                (mem / 200 * 50 * perf_ratio))
-        logging.debug(kvm_test_utils.get_memory_info([vm]))
+        logging.debug(virt_test_utils.get_memory_info([vm]))
         logging.info("Phase 2g: PASS")
 
         logging.debug("Cleaning up...")
@@ -528,7 +529,7 @@ def run_ksm_overcommit(test, params, env):
     params['mem'] = mem
     params['vms'] = vm_name
     # Associate pidfile name
-    params['pid_' + vm_name] = kvm_utils.generate_tmp_file_name(vm_name,
+    params['pid_' + vm_name] = virt_utils.generate_tmp_file_name(vm_name,
                                                                 'pid')
     if not params.get('extra_params'):
         params['extra_params'] = ' '
@@ -542,7 +543,7 @@ def run_ksm_overcommit(test, params, env):
     logging.debug("Memory used by allocator on guests = %dM", ksm_size)
 
     # Creating the first guest
-    kvm_preprocessing.preprocess_vm(test, params, env, vm_name)
+    virt_env_process.preprocess_vm(test, params, env, vm_name)
     lvms.append(env.get_vm(vm_name))
     if not lvms[0]:
         raise error.TestError("VM object not found in environment")
@@ -563,7 +564,7 @@ def run_ksm_overcommit(test, params, env):
     # Creating other guest systems
     for i in range(1, vmsc):
         vm_name = "vm" + str(i + 1)
-        params['pid_' + vm_name] = kvm_utils.generate_tmp_file_name(vm_name,
+        params['pid_' + vm_name] = virt_utils.generate_tmp_file_name(vm_name,
                                                                     'pid')
         params['extra_params_' + vm_name] = params.get('extra_params')
         params['extra_params_' + vm_name] += (" -pidfile %s" %
@@ -592,7 +593,7 @@ def run_ksm_overcommit(test, params, env):
     st = vmsc * 2 * perf_ratio
     logging.debug("Waiting %ds before proceed", st)
     time.sleep(vmsc * 2 * perf_ratio)
-    logging.debug(kvm_test_utils.get_memory_info(lvms))
+    logging.debug(virt_test_utils.get_memory_info(lvms))
 
     # Copy ksm_overcommit_guest.py into guests
     pwd = os.path.join(os.environ['AUTODIR'],'tests/kvm')

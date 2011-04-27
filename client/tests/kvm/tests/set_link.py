@@ -1,7 +1,7 @@
 import logging
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.tests.kvm.tests import file_transfer
-import kvm_test_utils
+from autotest_lib.client.virt import virt_test_utils
 
 
 def run_set_link(test, params, env):
@@ -17,9 +17,9 @@ def run_set_link(test, params, env):
     @param params: Dictionary with the test parameters
     @param env: Dictionary with test environment.
     """
-    vm = kvm_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = virt_test_utils.get_living_vm(env, params.get("main_vm"))
     timeout = float(params.get("login_timeout", 360))
-    session = kvm_test_utils.wait_for_login(vm, 0, timeout, 0, 2)
+    session = virt_test_utils.wait_for_login(vm, 0, timeout, 0, 2)
 
     def set_link_test(linkid):
         """
@@ -30,16 +30,16 @@ def run_set_link(test, params, env):
         ip = vm.get_address(0)
 
         vm.monitor.cmd("set_link %s down" % linkid)
-        s, o = kvm_test_utils.ping(ip, count=10, timeout=20)
-        if kvm_test_utils.get_loss_ratio(o) != 100:
+        s, o = virt_test_utils.ping(ip, count=10, timeout=20)
+        if virt_test_utils.get_loss_ratio(o) != 100:
             raise error.TestFail("Still can ping the %s after down %s" %
                                  (ip, linkid))
 
         vm.monitor.cmd("set_link %s up" % linkid)
-        s, o = kvm_test_utils.ping(ip, count=10, timeout=20)
+        s, o = virt_test_utils.ping(ip, count=10, timeout=20)
         # we use 100% here as the notification of link status changed may be
         # delayed in guest driver
-        if kvm_test_utils.get_loss_ratio(o) == 100:
+        if virt_test_utils.get_loss_ratio(o) == 100:
             raise error.TestFail("Packet loss during ping %s after up %s" %
                                  (ip, linkid))
 

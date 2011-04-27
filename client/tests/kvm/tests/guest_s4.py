@@ -1,6 +1,6 @@
 import logging, time
 from autotest_lib.client.common_lib import error
-import kvm_utils
+from autotest_lib.client.virt import virt_utils
 
 
 @error.context_aware
@@ -49,7 +49,7 @@ def run_guest_s4(test, params, env):
     # Make sure the VM goes down
     error.base_context("after S4")
     suspend_timeout = 240 + int(params.get("smp")) * 60
-    if not kvm_utils.wait_for(vm.is_dead, suspend_timeout, 2, 2):
+    if not virt_utils.wait_for(vm.is_dead, suspend_timeout, 2, 2):
         raise error.TestFail("VM refuses to go down. Suspend failed.")
     logging.info("VM suspended successfully. Sleeping for a while before "
                  "resuming it.")

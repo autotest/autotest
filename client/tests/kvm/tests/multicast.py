@@ -1,7 +1,7 @@
 import logging, os, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_test_utils, kvm_subprocess
+from autotest_lib.client.virt import virt_test_utils, aexpect
 
 
 def run_multicast(test, params, env):
@@ -25,7 +25,7 @@ def run_multicast(test, params, env):
     def run_guest(cmd):
         try:
             session.cmd(cmd)
-        except kvm_subprocess.ShellError, e:
+        except aexpect.ShellError, e:
             logging.warn(e)
 
     def run_host_guest(cmd):
@@ -70,16 +70,16 @@ def run_multicast(test, params, env):
             mcast = "%s.%d" % (prefix, new_suffix)
 
             logging.info("Initial ping test, mcast: %s", mcast)
-            s, o = kvm_test_utils.ping(mcast, 10, interface=ifname, timeout=20)
+            s, o = virt_test_utils.ping(mcast, 10, interface=ifname, timeout=20)
             if s != 0:
                 raise error.TestFail(" Ping return non-zero value %s" % o)
 
             logging.info("Flood ping test, mcast: %s", mcast)
-            kvm_test_utils.ping(mcast, None, interface=ifname, flood=True,
+            virt_test_utils.ping(mcast, None, interface=ifname, flood=True,
                                 output_func=None, timeout=flood_minutes*60)
 
             logging.info("Final ping test, mcast: %s", mcast)
-            s, o = kvm_test_utils.ping(mcast, 10, interface=ifname, timeout=20)
+            s, o = virt_test_utils.ping(mcast, 10, interface=ifname, timeout=20)
             if s != 0:
                 raise error.TestFail("Ping failed, status: %s, output: %s" %
                                      (s, o))

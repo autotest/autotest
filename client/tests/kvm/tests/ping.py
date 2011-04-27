@@ -1,6 +1,6 @@
 import logging
 from autotest_lib.client.common_lib import error
-import kvm_test_utils
+from autotest_lib.client.virt import virt_test_utils
 
 
 def run_ping(test, params, env):
@@ -40,11 +40,11 @@ def run_ping(test, params, env):
 
             for size in packet_size:
                 logging.info("Ping with packet size %s", size)
-                status, output = kvm_test_utils.ping(ip, 10,
+                status, output = virt_test_utils.ping(ip, 10,
                                                      packetsize=size,
                                                      timeout=20)
                 if strict_check:
-                    ratio = kvm_test_utils.get_loss_ratio(output)
+                    ratio = virt_test_utils.get_loss_ratio(output)
                     if ratio != 0:
                         raise error.TestFail("Loss ratio is %s for packet size"
                                              " %s" % (ratio, size))
@@ -54,14 +54,14 @@ def run_ping(test, params, env):
                                              " output: %s" % (status, output))
 
             logging.info("Flood ping test")
-            kvm_test_utils.ping(ip, None, flood=True, output_func=None,
+            virt_test_utils.ping(ip, None, flood=True, output_func=None,
                                 timeout=flood_minutes * 60)
 
             logging.info("Final ping test")
-            status, output = kvm_test_utils.ping(ip, counts,
+            status, output = virt_test_utils.ping(ip, counts,
                                                  timeout=float(counts) * 1.5)
             if strict_check:
-                ratio = kvm_test_utils.get_loss_ratio(output)
+                ratio = virt_test_utils.get_loss_ratio(output)
                 if ratio != 0:
                     raise error.TestFail("Ping failed, status: %s,"
                                          " output: %s" % (status, output))

@@ -14,15 +14,13 @@ Runs the unittests available for a given KVM build.
 """
 
 import sys, os, logging
-# Add the KVM tests dir to the python path
-kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests/kvm')
-sys.path.append(kvm_test_dir)
-# Now we can import modules inside the KVM tests dir
-import kvm_utils, kvm_config
+from autotest_lib.client.common_lib import cartesian_config
+from autotest_lib.client.virt import virt_utils
 
-tests_cfg = kvm_config.config()
+parser = cartesian_config.Parser()
+kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests/kvm')
 tests_cfg_path = os.path.join(kvm_test_dir, "unittests.cfg")
-tests_cfg.fork_and_parse(tests_cfg_path)
+parser.parse_file(tests_cfg_path)
 
 # Run the tests
-kvm_utils.run_tests(tests_cfg.get_generator(), job)
+virt_utils.run_tests(parser, job)

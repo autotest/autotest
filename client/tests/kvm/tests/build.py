@@ -1,4 +1,4 @@
-import installer
+from autotest_lib.client.virt import kvm_installer
 
 
 def run_build(test, params, env):
@@ -14,7 +14,7 @@ def run_build(test, params, env):
     params["srcdir"] = srcdir
 
     try:
-        installer_object = installer.make_installer(params)
+        installer_object = kvm_installer.make_installer(params)
         installer_object.set_install_params(test, params)
         installer_object.install()
         env.register_installer(installer_object)
@@ -22,5 +22,5 @@ def run_build(test, params, env):
         # if the build/install fails, don't allow other tests
         # to get a installer.
         msg = "KVM install failed: %s" % (e)
-        env.register_installer(installer.FailedInstaller(msg))
+        env.register_installer(kvm_installer.FailedInstaller(msg))
         raise

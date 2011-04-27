@@ -1,6 +1,6 @@
 import logging
 from autotest_lib.client.common_lib import error
-import kvm_utils
+from autotest_lib.client.virt import virt_utils
 
 
 def run_kdump(test, params, env):
@@ -41,7 +41,7 @@ def run_kdump(test, params, env):
         crash_cmd = "taskset -c %d echo c > /proc/sysrq-trigger" % vcpu
         session.sendline(crash_cmd)
 
-        if not kvm_utils.wait_for(lambda: not session.is_responsive(), 240, 0,
+        if not virt_utils.wait_for(lambda: not session.is_responsive(), 240, 0,
                                   1):
             raise error.TestFail("Could not trigger crash on vcpu %d" % vcpu)
 
