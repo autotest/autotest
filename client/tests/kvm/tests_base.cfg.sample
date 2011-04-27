@@ -2,6 +2,7 @@
 #
 # Define the objects we'll be using
 vms = vm1
+vm_type = kvm
 images = image1
 cdroms = cd1
 nics = nic1
