@@ -1,7 +1,7 @@
 import os, logging, imp
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
-import kvm_utils, kvm_preprocessing
+from autotest_lib.client.virt import virt_utils, virt_env_process
 
 
 class kvm(test.test):
@@ -25,7 +25,7 @@ class kvm(test.test):
 
     def run_once(self, params):
         # Convert params to a Params object
-        params = kvm_utils.Params(params)
+        params = virt_utils.Params(params)
 
         # If a dependency test prior to this test has failed, let's fail
         # it right away as TestNA.
@@ -42,13 +42,13 @@ class kvm(test.test):
 
         # Set the log file dir for the logging mechanism used by kvm_subprocess
         # (this must be done before unpickling env)
-        kvm_utils.set_log_file_dir(self.debugdir)
+        virt_utils.set_log_file_dir(self.debugdir)
 
         # Open the environment file
         logging.info("Unpickling env. You may see some harmless error "
                      "messages.")
         env_filename = os.path.join(self.bindir, params.get("env", "env"))
-        env = kvm_utils.Env(env_filename, self.env_version)
+        env = virt_utils.Env(env_filename, self.env_version)
 
         test_passed = False
 
@@ -71,7 +71,7 @@ class kvm(test.test):
 
                     # Preprocess
                     try:
-                        kvm_preprocessing.preprocess(self, params, env)
+                        virt_env_process.preprocess(self, params, env)
                     finally:
                         env.save()
                     # Run the test function
@@ -86,7 +86,7 @@ class kvm(test.test):
                     logging.error("Test failed: %s: %s",
                                   e.__class__.__name__, e)
                     try:
-                        kvm_preprocessing.postprocess_on_error(
+                        virt_env_process.postprocess_on_error(
                             self, params, env)
                     finally:
                         env.save()
@@ -96,7 +96,7 @@ class kvm(test.test):
                 # Postprocess
                 try:
                     try:
-                        kvm_preprocessing.postprocess(self, params, env)
+                        virt_env_process.postprocess(self, params, env)
                     except Exception, e:
                         if test_passed:
                             raise

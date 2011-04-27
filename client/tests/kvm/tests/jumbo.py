@@ -1,7 +1,7 @@
 import logging, commands, random
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_test_utils, kvm_utils
+from autotest_lib.client.virt import virt_utils, virt_test_utils
 
 
 def run_jumbo(test, params, env):
@@ -37,7 +37,7 @@ def run_jumbo(test, params, env):
 
     try:
         # Environment preparation
-        ethname = kvm_test_utils.get_linux_ifname(session, vm.get_mac_address(0))
+        ethname = virt_test_utils.get_linux_ifname(session, vm.get_mac_address(0))
 
         logging.info("Changing the MTU of guest ...")
         guest_mtu_cmd = "ifconfig %s mtu %s" % (ethname , mtu)
@@ -52,36 +52,36 @@ def run_jumbo(test, params, env):
         utils.run(arp_add_cmd)
 
         def is_mtu_ok():
-            s, o = kvm_test_utils.ping(ip, 1, interface=ifname,
+            s, o = virt_test_utils.ping(ip, 1, interface=ifname,
                                        packetsize=max_icmp_pkt_size,
                                        hint="do", timeout=2)
             return s == 0
 
         def verify_mtu():
             logging.info("Verify the path MTU")
-            s, o = kvm_test_utils.ping(ip, 10, interface=ifname,
+            s, o = virt_test_utils.ping(ip, 10, interface=ifname,
                                        packetsize=max_icmp_pkt_size,
                                        hint="do", timeout=15)
             if s != 0 :
                 logging.error(o)
                 raise error.TestFail("Path MTU is not as expected")
-            if kvm_test_utils.get_loss_ratio(o) != 0:
+            if virt_test_utils.get_loss_ratio(o) != 0:
                 logging.error(o)
                 raise error.TestFail("Packet loss ratio during MTU "
                                      "verification is not zero")
 
         def flood_ping():
             logging.info("Flood with large frames")
-            kvm_test_utils.ping(ip, interface=ifname,
+            virt_test_utils.ping(ip, interface=ifname,
                                 packetsize=max_icmp_pkt_size,
                                 flood=True, timeout=float(flood_time))
 
         def large_frame_ping(count=100):
             logging.info("Large frame ping")
-            s, o = kvm_test_utils.ping(ip, count, interface=ifname,
+            s, o = virt_test_utils.ping(ip, count, interface=ifname,
                                        packetsize=max_icmp_pkt_size,
                                        timeout=float(count) * 2)
-            ratio = kvm_test_utils.get_loss_ratio(o)
+            ratio = virt_test_utils.get_loss_ratio(o)
             if ratio != 0:
                 raise error.TestFail("Loss ratio of large frame ping is %s" %
                                      ratio)
@@ -90,23 +90,23 @@ def run_jumbo(test, params, env):
             logging.info("Size increase ping")
             for size in range(0, max_icmp_pkt_size + 1, step):
                 logging.info("Ping %s with size %s", ip, size)
-                s, o = kvm_test_utils.ping(ip, 1, interface=ifname,
+                s, o = virt_test_utils.ping(ip, 1, interface=ifname,
                                            packetsize=size,
                                            hint="do", timeout=1)
                 if s != 0:
-                    s, o = kvm_test_utils.ping(ip, 10, interface=ifname,
+                    s, o = virt_test_utils.ping(ip, 10, interface=ifname,
                                                packetsize=size,
                                                adaptive=True, hint="do",
                                                timeout=20)
 
-                    if kvm_test_utils.get_loss_ratio(o) > int(params.get(
+                    if virt_test_utils.get_loss_ratio(o) > int(params.get(
                                                       "fail_ratio", 50)):
                         raise error.TestFail("Ping loss ratio is greater "
                                              "than 50% for size %s" % size)
 
         logging.info("Waiting for the MTU to be OK")
         wait_mtu_ok = 10
-        if not kvm_utils.wait_for(is_mtu_ok, wait_mtu_ok, 0, 1):
+        if not virt_utils.wait_for(is_mtu_ok, wait_mtu_ok, 0, 1):
             logging.debug(commands.getoutput("ifconfig -a"))
             raise error.TestError("MTU is not as expected even after %s "
                                   "seconds" % wait_mtu_ok)

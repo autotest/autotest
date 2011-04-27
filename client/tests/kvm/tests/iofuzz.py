@@ -1,6 +1,6 @@
 import logging, re, random
 from autotest_lib.client.common_lib import error
-import kvm_subprocess
+from autotest_lib.client.virt import aexpect
 
 
 def run_iofuzz(test, params, env):
@@ -35,7 +35,7 @@ def run_iofuzz(test, params, env):
                     (oct(data), port))
         try:
             session.cmd(outb_cmd)
-        except kvm_subprocess.ShellError, e:
+        except aexpect.ShellError, e:
             logging.debug(e)
 
 
@@ -50,7 +50,7 @@ def run_iofuzz(test, params, env):
         inb_cmd = "dd if=/dev/port seek=%d of=/dev/null bs=1 count=1" % port
         try:
             session.cmd(inb_cmd)
-        except kvm_subprocess.ShellError, e:
+        except aexpect.ShellError, e:
             logging.debug(e)
 
 

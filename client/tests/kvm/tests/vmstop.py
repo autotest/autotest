@@ -1,7 +1,7 @@
 import logging, time, os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_utils
+from autotest_lib.client.virt import virt_utils
 
 
 def run_vmstop(test, params, env):
@@ -35,8 +35,8 @@ def run_vmstop(test, params, env):
         utils.run("dd if=/dev/zero of=/tmp/file bs=1M count=%s" % file_size)
         # Transfer file from host to guest, we didn't expect the finish of
         # transfer, we just let it to be a kind of stress in guest.
-        bg = kvm_utils.Thread(vm.copy_files_to, ("/tmp/file", guest_path),
-                              dict(verbose=True, timeout=60))
+        bg = virt_utils.Thread(vm.copy_files_to, ("/tmp/file", guest_path),
+                               dict(verbose=True, timeout=60))
         logging.info("Start the background transfer")
         bg.start()
 

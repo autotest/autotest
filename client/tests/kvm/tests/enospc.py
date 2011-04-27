@@ -1,7 +1,7 @@
 import logging, time, re, os
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_vm, kvm_utils
+from autotest_lib.client.virt import virt_vm, virt_utils
 
 
 class EnospcConfig(object):
@@ -36,7 +36,7 @@ class EnospcConfig(object):
     def setup(self):
         logging.debug("Starting enospc setup")
         error.context("performing enospc setup")
-        kvm_utils.display_attributes(self)
+        virt_utils.display_attributes(self)
         # Double check if there aren't any leftovers
         self.cleanup()
         try:
@@ -147,8 +147,8 @@ def run_enospc(test, params, env):
             for image_name in vm.params.objects("images"):
                 image_params = vm.params.object_params(image_name)
                 try:
-                    kvm_vm.check_image(image_params, test.bindir)
-                except (kvm_vm.VMError, error.TestWarn), e:
+                    virt_vm.check_image(image_params, test.bindir)
+                except (virt_vm.VMError, error.TestWarn), e:
                     logging.error(e)
             logging.info("Guest paused, extending Logical Volume size")
             try:

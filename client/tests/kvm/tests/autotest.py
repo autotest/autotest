@@ -1,5 +1,5 @@
 import os
-import kvm_test_utils
+from autotest_lib.client.virt import virt_test_utils
 
 
 def run_autotest(test, params, env):
@@ -21,5 +21,5 @@ def run_autotest(test, params, env):
                                 params.get("test_control_file"))
     outputdir = test.outputdir
 
-    kvm_test_utils.run_autotest(vm, session, control_path, timeout, outputdir,
-                                params)
+    virt_test_utils.run_autotest(vm, session, control_path, timeout, outputdir,
+                                 params)

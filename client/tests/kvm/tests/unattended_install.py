@@ -1,7 +1,7 @@
 import logging, time, socket, re, os, shutil, tempfile, glob, ConfigParser
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_vm, kvm_utils
+from autotest_lib.client.virt import virt_vm, virt_utils
 
 
 @error.context_aware
@@ -479,7 +479,7 @@ class UnattendedInstallConfig(object):
         Uses an appropriate strategy according to each install model.
         """
         logging.info("Starting unattended install setup")
-        kvm_utils.display_attributes(self)
+        virt_utils.display_attributes(self)
 
         if self.unattended_file and (self.floppy or self.cdrom_unattended):
             self.setup_boot_disk()
@@ -528,7 +528,7 @@ def run_unattended_install(test, params, env):
     while (time.time() - start_time) < install_timeout:
         try:
             vm.verify_alive()
-        except kvm_vm.VMDeadError, e:
+        except virt_vm.VMDeadError, e:
             if params.get("wait_no_ack", "no") == "yes":
                 break
             else:
@@ -540,7 +540,7 @@ def run_unattended_install(test, params, env):
                 client.connect((vm.get_address(), port))
                 if client.recv(1024) == "done":
                     break
-            except (socket.error, kvm_vm.VMAddressError):
+            except (socket.error, virt_vm.VMAddressError):
                 pass
 
         if migrate_background:
@@ -571,5 +571,5 @@ def run_unattended_install(test, params, env):
         shutdown_cleanly_timeout = int(params.get("shutdown_cleanly_timeout",
                                                   120))
         logging.info("Wait for guest to shudown cleanly...")
-        if kvm_utils.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
+        if virt_utils.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
             logging.info("Guest managed to shutdown cleanly")

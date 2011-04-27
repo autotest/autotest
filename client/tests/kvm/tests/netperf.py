@@ -1,8 +1,7 @@
 import logging, os, signal
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_subprocess, kvm_utils
-
+from autotest_lib.client.virt import aexpect, virt_utils
 
 def run_netperf(test, params, env):
     """
@@ -40,7 +39,7 @@ def run_netperf(test, params, env):
 
     try:
         session_serial.cmd(firewall_flush)
-    except kvm_subprocess.ShellError:
+    except aexpect.ShellError:
         logging.warning("Could not flush firewall rules on guest")
 
     session_serial.cmd(setup_cmd % "/tmp", timeout=200)
@@ -92,7 +91,7 @@ def run_netperf(test, params, env):
         bg = []
         nic_num = len(params.get("nics").split())
         for i in range(nic_num):
-            bg.append(kvm_utils.Thread(netperf, (i,)))
+            bg.append(virt_utils.Thread(netperf, (i,)))
             bg[i].start()
 
         completed = False

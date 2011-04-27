@@ -10,11 +10,12 @@ Step file creator/editor.
 import pygtk, gtk, gobject, time, os, commands, logging
 import common
 from autotest_lib.client.common_lib import error
-import kvm_utils, ppm_utils, stepeditor, kvm_monitor
+from autotest_lib.client.virt import virt_utils, ppm_utils, virt_step_editor
+from autotest_lib.client.virt import kvm_monitor
 pygtk.require('2.0')
 
 
-class StepMaker(stepeditor.StepMakerWindow):
+class StepMaker(virt_step_editor.StepMakerWindow):
     """
     Application used to create a step file. It will grab your input to the
     virtual machine and record it on a 'step file', that can be played
@@ -22,7 +23,7 @@ class StepMaker(stepeditor.StepMakerWindow):
     """
     # Constructor
     def __init__(self, vm, steps_filename, tempdir, params):
-        stepeditor.StepMakerWindow.__init__(self)
+        virt_step_editor.StepMakerWindow.__init__(self)
 
         self.vm = vm
         self.steps_filename = steps_filename
@@ -87,7 +88,7 @@ class StepMaker(stepeditor.StepMakerWindow):
         self.vm.monitor.cmd("cont")
         self.steps_file.close()
         self.vars_file.close()
-        stepeditor.StepMakerWindow.destroy(self, widget)
+        virt_step_editor.StepMakerWindow.destroy(self, widget)
 
 
     # Utilities
@@ -347,7 +348,7 @@ def run_stepmaker(test, params, env):
     steps_filename = params.get("steps")
     if not steps_filename:
         raise error.TestError("Steps filename not specified")
-    steps_filename = kvm_utils.get_path(test.bindir, steps_filename)
+    steps_filename = virt_utils.get_path(test.bindir, steps_filename)
     if os.path.exists(steps_filename):
         raise error.TestError("Steps file %s already exists" % steps_filename)
 

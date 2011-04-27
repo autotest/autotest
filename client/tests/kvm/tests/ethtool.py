@@ -1,7 +1,7 @@
 import logging, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_test_utils, kvm_utils, kvm_subprocess
+from autotest_lib.client.virt import virt_test_utils, virt_utils, aexpect
 
 
 def run_ethtool(test, params, env):
@@ -107,7 +107,7 @@ def run_ethtool(test, params, env):
             copy_files_from = vm.copy_files_from
             try:
                 session.cmd_output(dd_cmd, timeout=360)
-            except kvm_subprocess.ShellCmdError, e:
+            except aexpect.ShellCmdError, e:
                 return failure
         else:
             tcpdump_cmd += " and dst %s" % guest_ip
@@ -124,20 +124,20 @@ def run_ethtool(test, params, env):
             tcpdump_cmd += " and not port %s" % i
         logging.debug("Listen using command: %s", tcpdump_cmd)
         session2.sendline(tcpdump_cmd)
-        if not kvm_utils.wait_for(
+        if not virt_utils.wait_for(
                            lambda:session.cmd_status("pgrep tcpdump") == 0, 30):
             return (False, "Tcpdump process wasn't launched")
 
         logging.info("Start to transfer file")
         try:
             copy_files_from(filename, filename)
-        except kvm_utils.SCPError, e:
+        except virt_utils.SCPError, e:
             return (False, "File transfer failed (%s)" % e)
         logging.info("Transfer file completed")
         session.cmd("killall tcpdump")
         try:
             tcpdump_string = session2.read_up_to_prompt(timeout=60)
-        except kvm_subprocess.ExpectError:
+        except aexpect.ExpectError:
             return (False, "Fail to read tcpdump's output")
 
         if not compare_md5sum(filename):
@@ -190,7 +190,7 @@ def run_ethtool(test, params, env):
     feature_status = {}
     filename = "/tmp/ethtool.dd"
     guest_ip = vm.get_address()
-    ethname = kvm_test_utils.get_linux_ifname(session, vm.get_mac_address(0))
+    ethname = virt_test_utils.get_linux_ifname(session, vm.get_mac_address(0))
     supported_features = params.get("supported_features")
     if supported_features:
         supported_features = supported_features.split()

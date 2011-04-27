@@ -1,6 +1,6 @@
 import logging, time, commands
 from autotest_lib.client.common_lib import error
-import kvm_subprocess, kvm_test_utils
+from autotest_lib.client.virt import virt_test_utils, aexpect
 
 
 def run_timedrift(test, params, env):
@@ -100,7 +100,7 @@ def run_timedrift(test, params, env):
 
             # Get time before load
             # (ht stands for host time, gt stands for guest time)
-            (ht0, gt0) = kvm_test_utils.get_time(session,
+            (ht0, gt0) = virt_test_utils.get_time(session,
                                                  time_command,
                                                  time_filter_re,
                                                  time_format)
@@ -113,10 +113,10 @@ def run_timedrift(test, params, env):
             logging.info("Starting load on host...")
             for i in range(host_load_instances):
                 host_load_sessions.append(
-                    kvm_subprocess.run_bg(host_load_command,
-                                          output_func=logging.debug,
-                                          output_prefix="(host load %d) " % i,
-                                          timeout=0.5))
+                    aexpect.run_bg(host_load_command,
+                                   output_func=logging.debug,
+                                   output_prefix="(host load %d) " % i,
+                                   timeout=0.5))
                 # Set the CPU affinity of the load process
                 pid = host_load_sessions[-1].get_pid()
                 set_cpu_affinity(pid, cpu_mask)
@@ -126,7 +126,7 @@ def run_timedrift(test, params, env):
             time.sleep(load_duration)
 
             # Get time delta after load
-            (ht1, gt1) = kvm_test_utils.get_time(session,
+            (ht1, gt1) = virt_test_utils.get_time(session,
                                                  time_command,
                                                  time_filter_re,
                                                  time_format)
@@ -157,7 +157,7 @@ def run_timedrift(test, params, env):
         time.sleep(rest_duration)
 
         # Get time after rest
-        (ht2, gt2) = kvm_test_utils.get_time(session,
+        (ht2, gt2) = virt_test_utils.get_time(session,
                                              time_command,
                                              time_filter_re,
                                              time_format)

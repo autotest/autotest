@@ -1,6 +1,6 @@
 import logging, time
 from autotest_lib.client.common_lib import error
-import kvm_test_utils
+from autotest_lib.client.virt import virt_test_utils
 
 
 def run_timedrift_with_stop(test, params, env):
@@ -40,13 +40,13 @@ def run_timedrift_with_stop(test, params, env):
     try:
         # Get initial time
         # (ht stands for host time, gt stands for guest time)
-        (ht0, gt0) = kvm_test_utils.get_time(session, time_command,
+        (ht0, gt0) = virt_test_utils.get_time(session, time_command,
                                              time_filter_re, time_format)
 
         # Stop the guest
         for i in range(stop_iterations):
             # Get time before current iteration
-            (ht0_, gt0_) = kvm_test_utils.get_time(session, time_command,
+            (ht0_, gt0_) = virt_test_utils.get_time(session, time_command,
                                                    time_filter_re, time_format)
             # Run current iteration
             logging.info("Stop %s second: iteration %d of %d...",
@@ -61,7 +61,7 @@ def run_timedrift_with_stop(test, params, env):
             time.sleep(sleep_time)
 
             # Get time after current iteration
-            (ht1_, gt1_) = kvm_test_utils.get_time(session, time_command,
+            (ht1_, gt1_) = virt_test_utils.get_time(session, time_command,
                                                    time_filter_re, time_format)
             # Report iteration results
             host_delta = ht1_ - ht0_
@@ -79,7 +79,7 @@ def run_timedrift_with_stop(test, params, env):
                                      "%.2f seconds" % (i + 1, drift))
 
         # Get final time
-        (ht1, gt1) = kvm_test_utils.get_time(session, time_command,
+        (ht1, gt1) = virt_test_utils.get_time(session, time_command,
                                              time_filter_re, time_format)
 
     finally:

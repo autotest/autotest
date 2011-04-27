@@ -1,7 +1,7 @@
 import os, logging
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-import kvm_utils
+from autotest_lib.client.virt import virt_utils
 
 
 def run_image_copy(test, params, env):
@@ -33,7 +33,7 @@ def run_image_copy(test, params, env):
     dst_path = '%s.%s' % (params['image_name'], params['image_format'])
     cmd = 'cp %s %s' % (src_path, dst_path)
 
-    if not kvm_utils.mount(src, mount_dest_dir, 'nfs', 'ro'):
+    if not virt_utils.mount(src, mount_dest_dir, 'nfs', 'ro'):
         raise error.TestError('Could not mount NFS share %s to %s' %
                               (src, mount_dest_dir))
 

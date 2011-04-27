@@ -6,9 +6,10 @@ Program to help setup kvm test environment
 """
 
 import os, sys, logging, shutil
-import common, kvm_utils
+import common
 from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.client.bin import utils
+from autotest_lib.client.virt import virt_utils
 
 
 def check_iso(url, destination, hash):
@@ -40,7 +41,7 @@ def check_iso(url, destination, hash):
 
 
 if __name__ == "__main__":
-    logging_manager.configure_logging(kvm_utils.KvmLoggingConfig(),
+    logging_manager.configure_logging(virt_utils.VirtLoggingConfig(),
                                       verbose=True)
     logging.info("KVM test config helper")
 

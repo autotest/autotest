@@ -1,6 +1,6 @@
 import logging, time, threading
 from autotest_lib.client.tests.kvm.tests import file_transfer
-import kvm_utils, kvm_test_utils
+from autotest_lib.client.virt import virt_test_utils, virt_utils
 
 
 def run_nic_bonding(test, params, env):
@@ -30,7 +30,7 @@ def run_nic_bonding(test, params, env):
     session_serial.cmd(modprobe_cmd)
 
     session_serial.cmd("ifconfig bond0 up")
-    ifnames = [kvm_test_utils.get_linux_ifname(session_serial,
+    ifnames = [virt_test_utils.get_linux_ifname(session_serial,
                                                vm.get_mac_address(vlan))
                for vlan, nic in enumerate(params.get("nics").split())]
     setup_cmd = "ifenslave bond0 " + " ".join(ifnames)
@@ -42,7 +42,7 @@ def run_nic_bonding(test, params, env):
         file_transfer.run_file_transfer(test, params, env)
 
         logging.info("Failover test with file transfer")
-        transfer_thread = kvm_utils.Thread(file_transfer.run_file_transfer,
+        transfer_thread = virt_utils.Thread(file_transfer.run_file_transfer,
                                            (test, params, env))
         try:
             transfer_thread.start()
@@ -60,5 +60,3 @@ def run_nic_bonding(test, params, env):
     finally:
         session_serial.sendline("ifenslave -d bond0 " + " ".join(ifnames))
         session_serial.sendline("kill -9 `pgrep dhclient`")
-
-
