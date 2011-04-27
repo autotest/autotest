@@ -2,6 +2,7 @@
 #
 # Define the objects we'll be using
 vms = vm1
+vm_type = kvm
 
 # Choose the main VM
 main_vm = vm1
