@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Utility classes and functions to handle Virtual Machine creation using qemu.
 
