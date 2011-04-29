@@ -557,7 +557,7 @@ def _remote_login(session, username, password, prompt, timeout=10):
             match, text = session.read_until_last_line_matches(
                 [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"[Ll]ogin:\s*$",
                  r"[Cc]onnection.*closed", r"[Cc]onnection.*refused",
-                 r"[Pp]lease wait", prompt],
+                 r"[Pp]lease wait", r"[Ww]arning", prompt],
                 timeout=timeout, internal_timeout=0.5)
             if match == 0:  # "Are you sure you want to continue connecting"
                 logging.debug("Got 'Are you sure...'; sending 'yes'")
@@ -592,7 +592,10 @@ def _remote_login(session, username, password, prompt, timeout=10):
                 logging.debug("Got 'Please wait'")
                 timeout = 30
                 continue
-            elif match == 6:  # prompt
+            elif match == 6:  # "Warning added RSA"
+                logging.debug("Got 'Warning added RSA to known host list")
+                continue
+            elif match == 7:  # prompt
                 logging.debug("Got shell prompt -- logged in")
                 break
         except aexpect.ExpectTimeoutError, e:
