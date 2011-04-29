@@ -67,6 +67,3 @@ if args:
 parser.parse_string(str)
 
 virt_utils.run_tests(parser, job)
-
-# Generate a nice HTML report inside the job's results dir
-virt_utils.create_report(kvm_test_dir, job.resultdir)
