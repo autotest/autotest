@@ -17,6 +17,7 @@ from autotest_lib.client.common_lib import base_job
 from autotest_lib.client.common_lib import error, barrier, log, logging_manager
 from autotest_lib.client.common_lib import base_packages, packages
 from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.tools import html_report
 
 
 LAST_BOOT_TAG = object()
@@ -949,6 +950,9 @@ class base_client_job(base_job.base_job):
         if self._tap.do_tap_report:
             self._tap.write()
             self._tap._write_tap_archive()
+
+        # write out a job HTML report
+        html_report.create_report(self.resultdir)
 
         # We are about to exit 'complete' so clean up the control file.
         dest = os.path.join(self.resultdir, os.path.basename(self._state_file))
