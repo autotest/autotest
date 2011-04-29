@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-Script used to parse the test results and generate an HTML report.
+Module used to parse the autotest job results and generate an HTML report.
 
 @copyright: (c)2005-2007 Matt Kruse (javascripttoolbox.com)
 @copyright: Red Hat 2008-2009
@@ -27,7 +27,6 @@ body {
     text-decoration:none;
     font:bold 2em/2em Arial, Helvetica, sans-serif;
     text-transform:none;
-    text-shadow: 2px 2px 2px #555;
     text-align: left;
     color:#555555;
     border-bottom: 1px solid #555555;
@@ -37,7 +36,6 @@ body {
         text-decoration:none;
         font:bold 16px Arial, Helvetica, sans-serif;
         text-transform:uppercase;
-        text-shadow: 2px 2px 2px #555;
         text-align: left;
         color:#555555;
     margin-bottom:0;
@@ -1374,21 +1372,27 @@ function processList(ul) {
 }
 """
 
-
-#################################################################
-##  This script gets kvm autotest results directory path as an ##
-##  input and create a single html formatted result page.      ##
-#################################################################
-
 stimelist = []
 
 
 def make_html_file(metadata, results, tag, host, output_file_name, dirname):
+    """
+    Create HTML file contents for the job report, to stdout or filesystem.
+
+    @param metadata: Dictionary with Job metadata (tests, exec time, etc).
+    @param results: List with testcase results.
+    @param tag: Job tag.
+    @param host: Client hostname.
+    @param output_file_name: Output file name. If empty string, prints to
+            stdout.
+    @param dirname: Prefix for HTML links. If empty string, the HTML links
+            will be relative to the results dir.
+    """
     html_prefix = """
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 <head>
-<title>KVM Autotest Results</title>
+<title>Autotest job execution results</title>
 <style type="text/css">
 %s
 </style>
@@ -1407,14 +1411,13 @@ return true;
 <body>
 """ % (format_css, table_js, maketree_js)
 
-
     if output_file_name:
         output = open(output_file_name, "w")
     else:   #if no output file defined, print html file to console
         output = sys.stdout
     # create html page
     print >> output, html_prefix
-    print >> output, '<h2 id=\"page_title\">KVM Autotest Execution Report</h2>'
+    print >> output, '<h2 id=\"page_title\">Autotest job execution report</h2>'
 
     # formating date and time to print
     t = datetime.datetime.now()
@@ -1438,7 +1441,7 @@ return true;
         stat_str = ('From %d tests executed, %d have passed (%d%% failures)' %
                     (total_executed, total_passed, failed_perct))
 
-    kvm_ver_str = metadata['kvmver']
+    kvm_ver_str = metadata.get('kvmver', None)
 
     print >> output, '<table class="stats2">'
     print >> output, '<tr><td>HOST</td><td>:</td><td>%s</td></tr>' % host
@@ -1446,9 +1449,9 @@ return true;
     print >> output, '<tr><td>DATE</td><td>:</td><td>%s</td></tr>' % now.ctime()
     print >> output, '<tr><td>STATS</td><td>:</td><td>%s</td></tr>'% stat_str
     print >> output, '<tr><td></td><td></td><td></td></tr>'
-    print >> output, '<tr><td>KVM VERSION</td><td>:</td><td>%s</td></tr>' % kvm_ver_str
+    if kvm_ver_str is not None:
+        print >> output, '<tr><td>KVM VERSION</td><td>:</td><td>%s</td></tr>' % kvm_ver_str
     print >> output, '</table>'
-
 
     ## print test results
     print >> output, '<br>'
@@ -1529,6 +1532,12 @@ id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alterna
 
 
 def parse_result(dirname, line):
+    """
+    Parse job status log line.
+
+    @param dirname: Job results dir
+    @param line: Status log line.
+    """
     parts = line.split()
     if len(parts) < 4:
         return None
@@ -1556,7 +1565,7 @@ def parse_result(dirname, line):
         # assign actual values
         rx = re.compile('^(\w+)\.(.*)$')
         m1 = rx.findall(parts[3])
-        result['testcase'] = m1[0][1]
+        result['testcase'] = str(tag)
         result['title'] = str(tag)
         result['status'] = parts[1]
         if result['status'] != 'GOOD':
@@ -1572,10 +1581,16 @@ def parse_result(dirname, line):
 
 
 def get_exec_log(resdir, tag):
-    stdout_file = os.path.join(resdir, tag) + '/debug/stdout'
-    stderr_file = os.path.join(resdir, tag) + '/debug/stderr'
-    status_file = os.path.join(resdir, tag) + '/status'
-    dmesg_file = os.path.join(resdir, tag) + '/sysinfo/dmesg'
+    """
+    Get job execution summary.
+
+    @param resdir: Job results dir.
+    @param tag: Job tag.
+    """
+    stdout_file = os.path.join(resdir, tag, 'debug', 'stdout')
+    stderr_file = os.path.join(resdir, tag, 'debug', 'stderr')
+    status_file = os.path.join(resdir, tag, 'status')
+    dmesg_file = os.path.join(resdir, tag, 'sysinfo', 'dmesg')
     log = ''
     log += '<br><b>STDERR:</b><br>'
     log += get_info_file(stderr_file)
@@ -1589,6 +1604,13 @@ def get_exec_log(resdir, tag):
 
 
 def get_info_file(filename):
+    """
+    Gets the contents of an autotest info file.
+
+    It also and highlights the file contents with possible problems.
+
+    @param filename: Info file path.
+    """
     data = ''
     errors = re.compile(r"\b(error|fail|failed)\b", re.IGNORECASE)
     if os.path.isfile(filename):
@@ -1610,8 +1632,10 @@ def get_info_file(filename):
     return data
 
 
-
 def usage():
+    """
+    Print stand alone program usage.
+    """
     print 'usage:',
     print 'make_html_report.py -r <result_directory> [-f output_file] [-R]'
     print '(e.g. make_html_reporter.py -r '\
@@ -1626,6 +1650,9 @@ def get_keyval_value(result_dir, key):
     """
     Return the value of the first appearance of key in any keyval file in
     result_dir. If no appropriate line is found, return 'Unknown'.
+
+    @param result_dir: Path that holds the keyval files.
+    @param key: Specific key we're retrieving.
     """
     keyval_pattern = os.path.join(result_dir, "kvm.*", "keyval")
     keyval_lines = commands.getoutput(r"grep -h '\b%s\b.*=' %s"
@@ -1643,15 +1670,69 @@ def get_kvm_version(result_dir):
     """
     Return an HTML string describing the KVM version.
 
-        @param result_dir: An Autotest job result dir
+    @param result_dir: An Autotest job result dir.
     """
     kvm_version = get_keyval_value(result_dir, "kvm_version")
     kvm_userspace_version = get_keyval_value(result_dir,
                                              "kvm_userspace_version")
+    if kvm_version == "Unknown" or kvm_userspace_version == "Unknown":
+        return None
     return "Kernel: %s<br>Userspace: %s" % (kvm_version, kvm_userspace_version)
 
 
+def create_report(dirname, html_path='', output_file_name=None):
+    """
+    Create an HTML report with info about an autotest client job.
+
+    If no relative path (html_path) or output file name provided, an HTML
+    file in the toplevel job results dir called 'job_report.html' will be
+    created, with relative links.
+
+    @param html_path: Prefix for the HTML links. Useful to specify absolute
+            in the report (not wanted most of the time).
+    @param output_file_name: Path to the report file.
+    """
+    res_dir = os.path.abspath(dirname)
+    tag = res_dir
+    status_file_name = os.path.join(dirname, 'status')
+    sysinfo_dir = os.path.join(dirname, 'sysinfo')
+    host = get_info_file(os.path.join(sysinfo_dir, 'hostname'))
+    rx = re.compile('^\s+[END|START].*$')
+    # create the results set dict
+    results_data = []
+    if os.path.exists(status_file_name):
+        f = open(status_file_name, "r")
+        lines = f.readlines()
+        f.close()
+        for line in lines:
+            if rx.match(line):
+                result_dict = parse_result(dirname, line)
+                if result_dict:
+                    results_data.append(result_dict)
+    # create the meta info dict
+    metalist = {
+                'uname': get_info_file(os.path.join(sysinfo_dir, 'uname')),
+                'cpuinfo':get_info_file(os.path.join(sysinfo_dir, 'cpuinfo')),
+                'meminfo':get_info_file(os.path.join(sysinfo_dir, 'meminfo')),
+                'df':get_info_file(os.path.join(sysinfo_dir, 'df')),
+                'modules':get_info_file(os.path.join(sysinfo_dir, 'modules')),
+                'gcc':get_info_file(os.path.join(sysinfo_dir, 'gcc_--version')),
+                'dmidecode':get_info_file(os.path.join(sysinfo_dir, 'dmidecode')),
+                'dmesg':get_info_file(os.path.join(sysinfo_dir, 'dmesg')),
+    }
+    if get_kvm_version(dirname) is not None:
+        metalist['kvm_ver'] = get_kvm_version(dirname)
+
+    if output_file_name is None:
+        output_file_name = os.path.join(dirname, 'job_report.html')
+    make_html_file(metalist, results_data, tag, host, output_file_name,
+                   html_path)
+
+
 def main(argv):
+    """
+    Parses the arguments and executes the stand alone program.
+    """
     dirname = None
     output_file_name = None
     relative_path = False
@@ -1682,38 +1763,7 @@ def main(argv):
     if dirname:
         if os.path.isdir(dirname): # TBD: replace it with a validation of
                                    # autotest result dir
-            res_dir = os.path.abspath(dirname)
-            tag = res_dir
-            status_file_name = dirname + '/status'
-            sysinfo_dir = dirname + '/sysinfo'
-            host = get_info_file('%s/hostname' % sysinfo_dir)
-            rx = re.compile('^\s+[END|START].*$')
-            # create the results set dict
-            results_data = []
-            if os.path.exists(status_file_name):
-                f = open(status_file_name, "r")
-                lines = f.readlines()
-                f.close()
-                for line in lines:
-                    if rx.match(line):
-                        result_dict = parse_result(dirname, line)
-                        if result_dict:
-                            results_data.append(result_dict)
-            # create the meta info dict
-            metalist = {
-                        'uname': get_info_file('%s/uname' % sysinfo_dir),
-                        'cpuinfo':get_info_file('%s/cpuinfo' % sysinfo_dir),
-                        'meminfo':get_info_file('%s/meminfo' % sysinfo_dir),
-                        'df':get_info_file('%s/df' % sysinfo_dir),
-                        'modules':get_info_file('%s/modules' % sysinfo_dir),
-                        'gcc':get_info_file('%s/gcc_--version' % sysinfo_dir),
-                        'dmidecode':get_info_file('%s/dmidecode' % sysinfo_dir),
-                        'dmesg':get_info_file('%s/dmesg' % sysinfo_dir),
-                        'kvmver':get_kvm_version(dirname)
-            }
-
-            make_html_file(metalist, results_data, tag, host, output_file_name,
-                           html_path)
+            create_report(dirname, html_path, output_file_name)
             sys.exit(0)
         else:
             print 'Invalid result directory <%s>' % dirname
