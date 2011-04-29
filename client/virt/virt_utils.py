@@ -1187,18 +1187,6 @@ def run_tests(parser, job):
     return not failed
 
 
-def create_report(report_dir, results_dir):
-    """
-    Creates a neatly arranged HTML results report in the results dir.
-
-    @param report_dir: Directory where the report script is located.
-    @param results_dir: Directory where the results will be output.
-    """
-    reporter = os.path.join(report_dir, 'html_report.py')
-    html_file = os.path.join(results_dir, 'results.html')
-    os.system('%s -r %s -f %s -R' % (reporter, results_dir, html_file))
-
-
 def display_attributes(instance):
     """
     Inspects a given class instance attributes and displays them, convenient
