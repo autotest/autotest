@@ -1,0 +1,19 @@
+AUTHOR = """
+Manas Kumar Nayak (maknayak@in.ibm.com) (original code)
+Lucas Meneghel Rodrigues (lucasmr@br.ibm.com) (rewrite)
+Cao, Chen <kcao@redhat.com> (use ctcs2 and port it to 64)
+Lucas Meneghel Rodrigues (lmr@redhat.com) (use ctcs new source repo)
+"""
+NAME = "CTCS"
+TEST_TYPE = "CLIENT"
+TEST_CLASS = "HARDWARE"
+TEST_CATEGORY = "BENCHMARK"
+TIME = "MEDIUM"
+DOC = """
+Executes CTCS for a period of time specified. You can also provide a cerberus
+test control file of your own, trough the parameter tcf_contents.
+
+see https://github.com/autotest/ctcs
+"""
+
+job.run_test(url='ctcs', length='1h', tc_opt='-k -C -a')
