@@ -952,7 +952,10 @@ class base_client_job(base_job.base_job):
             self._tap._write_tap_archive()
 
         # write out a job HTML report
-        html_report.create_report(self.resultdir)
+        try:
+            html_report.create_report(self.resultdir)
+        except Exception, e:
+            logging.error("Error writing job HTML report: %s", e)
 
         # We are about to exit 'complete' so clean up the control file.
         dest = os.path.join(self.resultdir, os.path.basename(self._state_file))
