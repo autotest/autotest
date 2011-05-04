@@ -1572,10 +1572,13 @@ def parse_result(dirname, line):
             result['log'] = get_exec_log(dirname, tag)
         if len(stimelist)>0:
             pair = parts[4].split('=')
-            etime = int(pair[1])
-            stime = stimelist.pop()
-            total_exec_time_sec = etime - stime
-            result['exec_time_sec'] = total_exec_time_sec
+            try:
+                etime = int(pair[1])
+                stime = stimelist.pop()
+                total_exec_time_sec = etime - stime
+                result['exec_time_sec'] = total_exec_time_sec
+            except ValueError:
+                result['exec_time_sec'] = "Unknown"
         return result
     return None
 
