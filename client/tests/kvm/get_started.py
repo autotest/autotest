@@ -23,21 +23,43 @@ def check_iso(url, destination, hash):
     @param destination: Directory in local disk where we'd like the iso to be.
     @param hash: SHA1 hash for the ISO image.
     """
-    logging.info("Verifying iso %s", os.path.basename(url))
+    file_ok = False
     if not destination:
         os.makedirs(destination)
     iso_path = os.path.join(destination, os.path.basename(url))
-    if not os.path.isfile(iso_path) or (
-                            utils.hash_file(iso_path, method="sha1") != hash):
-        logging.warning("%s not found or corrupted", iso_path)
-        logging.warning("Would you like to download it? (y/n)")
-        iso_download = raw_input()
-        if iso_download == 'y':
-            utils.unmap_url_cache(destination, url, hash, method="sha1")
+    if not os.path.isfile(iso_path):
+        logging.warning("File %s not found", iso_path)
+        logging.warning("Expected SHA1 sum: %s", hash)
+        answer = utils.ask("Would you like to download it from %s?" % url)
+        if answer == 'y':
+            try:
+                utils.unmap_url_cache(destination, url, hash, method="sha1")
+                file_ok = True
+            except EnvironmentError, e:
+                logging.error(e)
         else:
-            logging.warning("Missing file %s. Please download it", iso_path)
+            logging.warning("Missing file %s", iso_path)
+            logging.warning("Please download it or put an exsiting copy on the "
+                            "appropriate location")
+            return
     else:
-        logging.debug("%s present, with proper checksum", iso_path)
+        logging.info("Found %s", iso_path)
+        logging.info("Expected SHA1 sum: %s", hash)
+        answer = utils.ask("Would you like to check %s? It might take a while" %
+                           iso_path)
+        if answer == 'y':
+            try:
+                utils.unmap_url_cache(destination, url, hash, method="sha1")
+                file_ok = True
+            except EnvironmentError, e:
+                logging.error(e)
+        else:
+            logging.info("File %s present, but chose to not verify it",
+                         iso_path)
+            return
+
+    if file_ok:
+        logging.info("%s present, with proper checksum", iso_path)
 
 
 if __name__ == "__main__":
@@ -45,6 +67,7 @@ if __name__ == "__main__":
                                       verbose=True)
     logging.info("KVM test config helper")
 
+    logging.info("")
     logging.info("1 - Verifying directories (check if the directory structure "
                  "expected by the default test config is there)")
     base_dir = "/tmp/kvm_autotest_root"
@@ -57,14 +80,14 @@ if __name__ == "__main__":
         else:
             logging.debug("Dir %s exists, not creating" %
                           sub_dir_path)
-    logging.info("Do you want to setup NFS mounts for some of those "
-                 "dirs? (y/n)")
-    setup_nfs = raw_input()
-    if setup_nfs == 'y':
+    answer = utils.ask("Do you want to setup NFS mounts for some of those "
+                       "dirs?")
+    if answer == 'y':
         logging.info("Exiting the script so you can setup the NFS mounts. "
                      "When you are done, re-run this script.")
         sys.exit(0)
 
+    logging.info("")
     logging.info("2 - Creating config files from samples (copy the default "
                  "config samples to actual config files)")
     kvm_test_dir = os.path.dirname(sys.modules[__name__].__file__)
@@ -80,6 +103,7 @@ if __name__ == "__main__":
         else:
             logging.debug("Config file %s exists, not touching" % dst_file)
 
+    logging.info("")
     logging.info("3 - Verifying iso (make sure we have the OS ISO needed for "
                  "the default test set)")
 
@@ -89,8 +113,10 @@ if __name__ == "__main__":
                        iso_name)
     hash = "38a4078011bac74493db7ecc53c9d9fbc96dbbd5"
     destination = os.path.join(base_dir, 'isos', 'linux')
+    path = os.path.join(destination, iso_name)
     check_iso(url, destination, hash)
 
+    logging.info("")
     logging.info("4 - Verifying winutils.iso (make sure we have the utility "
                  "ISO needed for Windows testing)")
 
@@ -100,8 +126,10 @@ if __name__ == "__main__":
     url = "http://people.redhat.com/mrodrigu/kvm/winutils.iso"
     hash = "02930224756510e383c44c49bffb760e35d6f892"
     destination = os.path.join(base_dir, 'isos', 'windows')
+    path = os.path.join(destination, iso_name)
     check_iso(url, destination, hash)
 
+    logging.info("")
     logging.info("5 - Checking if qemu is installed (certify qemu and qemu-kvm "
                  "are in the place the default config expects)")
     qemu_default_paths = ['/usr/bin/qemu-kvm', '/usr/bin/qemu-img']
@@ -111,7 +139,10 @@ if __name__ == "__main__":
                             qemu_path)
         else:
             logging.debug("%s present", qemu_path)
+    logging.info("If you wish to change qemu-kvm to qemu or other binary path, "
+                 "you will have to modify tests.cfg")
 
+    logging.info("")
     logging.info("6 - Checking for the KVM module (make sure kvm is loaded "
                  "to accelerate qemu-kvm)")
     if not utils.module_is_loaded("kvm"):
@@ -119,6 +150,7 @@ if __name__ == "__main__":
     else:
         logging.debug("KVM module loaded")
 
+    logging.info("")
     logging.info("7 - Verify needed packages to get started")
     logging.info("Please take a look at the online documentation "
                  "http://www.linux-kvm.org/page/KVM-Autotest/Client_Install "
@@ -127,6 +159,8 @@ if __name__ == "__main__":
     client_dir = os.path.abspath(os.path.join(kvm_test_dir, "..", ".."))
     autotest_bin = os.path.join(client_dir, 'bin', 'autotest')
     control_file = os.path.join(kvm_test_dir, 'control')
+
+    logging.info("")
     logging.info("When you are done fixing eventual warnings found, "
                  "you can run the kvm test using the command line AS ROOT:")
     logging.info("%s --verbose %s", autotest_bin, control_file)
