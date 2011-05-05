@@ -1715,3 +1715,17 @@ def get_unused_port():
         # Check if this port is unused on the other protocol.
         if port and try_bind(port, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
             return port
+
+
+def ask(question, auto=False):
+    """
+    Raw input with a prompt that emulates logging.
+
+    @param question: Question to be asked
+    @param auto: Whether to return "y" instead of asking the question
+    """
+    if auto:
+        logging.info("%s (y/n) y" % question)
+        return "y"
+    return raw_input("%s INFO | %s (y/n) " %
+                     (time.strftime("%H:%M:%S", time.localtime()), question))
