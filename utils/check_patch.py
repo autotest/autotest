@@ -32,20 +32,6 @@ class CheckPatchLoggingConfig(logging_config.LoggingConfig):
                                                                verbose=verbose)
 
 
-def ask(question, auto=False):
-    """
-    Raw input with a prompt that emulates logging.
-
-    @param question: Question to be asked
-    @param auto: Whether to return "y" instead of asking the question
-    """
-    if auto:
-        logging.info("%s (y/n) y" % question)
-        return "y"
-    return raw_input("%s INFO | %s (y/n) " %
-                     (time.strftime("%H:%M:%S", time.localtime()), question))
-
-
 class VCS(object):
     """
     Abstraction layer to the version control system.
@@ -307,8 +293,8 @@ class FileChecker(object):
             self._check_unittest()
         if self.corrective_actions:
             for action in self.corrective_actions:
-                answer = ask("Would you like to execute %s?" % action,
-                             auto=self.confirm)
+                answer = utils.ask("Would you like to execute %s?" % action,
+                                   auto=self.confirm)
                 if answer == "y":
                     rc = utils.system(action, ignore_status=True)
                     if rc != 0:
@@ -334,7 +320,7 @@ class PatchChecker(object):
         if changed_files_before:
             logging.error("Repository has changed files prior to patch "
                           "application. ")
-            answer = ask("Would you like to revert them?", auto=self.confirm)
+            answer = utils.ask("Would you like to revert them?", auto=self.confirm)
             if answer == "n":
                 logging.error("Not safe to proceed without reverting files.")
                 sys.exit(1)
@@ -382,7 +368,7 @@ class PatchChecker(object):
             for untracked_file in add_to_vcs:
                 logging.info(untracked_file)
             logging.info("Might need to be added to VCS")
-            answer = ask("Would you like to add them to VCS ?")
+            answer = utils.ask("Would you like to add them to VCS ?")
             if answer == "y":
                 for untracked_file in add_to_vcs:
                     self.vcs.add_untracked_file(untracked_file)
