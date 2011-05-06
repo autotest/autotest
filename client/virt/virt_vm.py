@@ -373,7 +373,7 @@ class BaseVM(object):
     def __init__(self, name, params):
         self.name = name
         self.params = params
-        
+
         #
         # Assuming all low-level hypervisors will have a serial (like) console
         # connection to the guest. libvirt also supports serial (like) consoles
@@ -826,4 +826,3 @@ class BaseVM(object):
         a restart.
         """
         raise NotImplementedError
-
