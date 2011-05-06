@@ -5,6 +5,7 @@ Function tracer profiler for autotest.
 """
 import logging, os, signal, time
 from autotest_lib.client.bin import profiler, utils
+from autotest_lib.client.common_lib import error
 
 
 class ftrace(profiler.profiler):
