@@ -143,7 +143,7 @@ class Resource(object):
             logging.debug('Response verification failed, clearing headers and '
                           'trying again:\n%s', response_body)
             _clear_request_headers(uri)
-            headers, response_body = _http.request(
+            headers, response_body = self._http.request(
                 full_uri, method, body=entity_body,
                 headers=_get_request_headers(uri))
 
