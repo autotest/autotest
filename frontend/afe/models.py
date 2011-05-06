@@ -561,7 +561,7 @@ class TestParameter(dbmodels.Model):
         unique_together = ('test', 'name')
 
     def __unicode__(self):
-        return u'%s (%s)' % (self.name, test.name)
+        return u'%s (%s)' % (self.name, self.test.name)
 
 
 class Profiler(dbmodels.Model, model_logic.ModelExtensions):
