@@ -65,7 +65,7 @@ class perf(profiler.profiler):
 
         if self.trace:
             tracefile = os.path.join(test.profdir, 'trace')
-            cmd = ("%s trace -i %s" % (self.perf_bin, self.logfile,))
+            cmd = ("%s script -i %s" % (self.perf_bin, self.logfile,))
 
             outfile = open(tracefile, 'w')
             p = subprocess.Popen(cmd, shell=True, stdout=outfile,
