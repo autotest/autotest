@@ -88,5 +88,6 @@ _tests_map = {
 
 # now register some trigger actions otherwise nothing will be done for the new
 # kernel versions
-trigger_module.trigger.add_action(trigger_module.map_action(_tests_map, 'kerntest-%s'))
-trigger_module.trigger.add_action(trigger_module.email_action('test@test.com'))
+trigger = trigger_module.trigger()
+trigger.add_action(trigger_module.map_action(_tests_map, 'kerntest-%s'))
+trigger.add_action(trigger_module.email_action('test@test.com'))
