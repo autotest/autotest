@@ -1,6 +1,6 @@
 import logging
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.tests.kvm.tests import file_transfer
+from autotest_lib.client.virt.tests import file_transfer
 from autotest_lib.client.virt import virt_test_utils
 
 
