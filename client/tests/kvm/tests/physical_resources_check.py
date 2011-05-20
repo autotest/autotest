@@ -1,6 +1,6 @@
 import re, string, logging
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import kvm_monitor
+from autotest_lib.client.virt import kvm_monitor, virt_vm
 
 
 def run_physical_resources_check(test, params, env):
@@ -28,6 +28,9 @@ def run_physical_resources_check(test, params, env):
     # Define a failure counter, as we want to check all physical
     # resources to know which checks passed and which ones failed
     n_fail = 0
+
+    # We will check HDs with the image name
+    image_name = virt_vm.get_image_filename(params, test.bindir)
 
     # Check cpu count
     logging.info("CPU count check")
@@ -70,7 +73,7 @@ def run_physical_resources_check(test, params, env):
         return expected_num, f_fail
 
     logging.info("Hard drive count check")
-    n_fail += check_num("images", "block", "type=hd")[1]
+    n_fail += check_num("images", "block", image_name)[1]
 
     logging.info("NIC count check")
     n_fail += check_num("nics", "network", "model=")[1]
@@ -111,7 +114,8 @@ def run_physical_resources_check(test, params, env):
     n_fail += f_fail
 
     logging.info("Drive format check")
-    f_fail = chk_fmt_model("images", "drive_format", "block", "(.*)\: type=hd")
+    f_fail = chk_fmt_model("images", "drive_format",
+                           "block", "(.*)\: .*%s" % image_name)
     n_fail += f_fail
 
     logging.info("Network card MAC check")
