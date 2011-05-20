@@ -22,6 +22,7 @@ autopart
 @development-libs
 @development-tools
 ntpdate
+dmidecode
 %end
 
 %post --interpreter /usr/bin/python
