@@ -101,7 +101,7 @@ def run_physical_resources_check(test, params, env):
 
             if not found:
                 f_fail += 1
-                logging.error("%s model mismatch:")
+                logging.error("%s model mismatch:", device)
                 logging.error("    Assigned to VM: %s", expected)
                 logging.error("    Reported by OS: %s", device_found)
         return f_fail
@@ -140,7 +140,7 @@ def run_physical_resources_check(test, params, env):
             actual = session.cmd_output(verify_cmd)
             if not string.upper(expect) in actual:
                 f_fail += 1
-                logging.error("%s mismatch:")
+                logging.error("%s mismatch:", name)
                 logging.error("    Assigned to VM: %s", string.upper(expect))
                 logging.error("    Reported by OS: %s", actual)
         return f_fail
