@@ -185,6 +185,8 @@ class VMMigrateStateMismatchError(VMMigrateError):
 class VMRebootError(VMError):
     pass
 
+class VMStatusError(VMError):
+    pass
 
 def get_image_filename(params, root_dir):
     """
