@@ -962,6 +962,13 @@ variants:
         sleep_before_reset = 20
         kill_vm_on_error = yes
 
+    - system_reset_bootable:
+        type = system_reset_bootable
+        interval = 1
+        reset_times = 20
+        wait_time_for_reset = 120
+        kill_vm_on_error = yes
+
     - shutdown:     install setup unattended_install.cdrom
         type = shutdown
         shutdown_method = shell
