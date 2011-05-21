@@ -261,6 +261,10 @@ variants:
             - systemtap:
                 test_control_file = systemtap.control
 
+    - stop_continue:
+        type = stop_continue
+        kill_vm_on_error = yes
+
     - linux_s3:     install setup unattended_install.cdrom
         only Linux
         type = linux_s3
