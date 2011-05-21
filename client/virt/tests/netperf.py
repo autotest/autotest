@@ -45,14 +45,11 @@ def run_netperf(test, params, env):
     session_serial.cmd(setup_cmd % "/tmp", timeout=200)
     session_serial.cmd(params.get("netserver_cmd") % "/tmp")
 
-    tcpdump = env.get("tcpdump")
-    pid = None
-    if tcpdump:
+    if "tcpdump" in env and env["tcpdump"].is_alive():
         # Stop the background tcpdump process
         try:
-            pid = int(utils.system_output("pidof tcpdump"))
             logging.debug("Stopping the background tcpdump")
-            os.kill(pid, signal.SIGSTOP)
+            env["tcpdump"].close()
         except:
             pass
 
@@ -101,11 +98,9 @@ def run_netperf(test, params, env):
                 if b.is_alive():
                     completed = False
     finally:
-        for b in bg:
-            if b:
-                b.join()
-        session_serial.cmd_output("killall netserver")
-        if tcpdump and pid:
-            logging.debug("Resuming the background tcpdump")
-            logging.info("pid is %s" % pid)
-            os.kill(pid, signal.SIGCONT)
+        try:
+            for b in bg:
+                if b:
+                    b.join()
+        finally:
+            session_serial.cmd_output("killall netserver")
