@@ -82,6 +82,15 @@ class VM(virt_vm.BaseVM):
         return not self.process or not self.process.is_alive()
 
 
+    def verify_status(self, status):
+        """
+        Check VM status
+
+        @param status: Optional VM status, 'running' or 'paused'
+        @raise VMStatusError: If the VM status is not same as parameter
+        """
+        if not self.monitor.verify_status(status):
+            raise virt_vm.VMStatusError("VM status is unexpected")
 
 
     def clone(self, name=None, params=None, root_dir=None, address_cache=None,
