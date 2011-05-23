@@ -895,7 +895,7 @@ class Job(DBObject):
                 ORDER BY t.reason
                 """ % self.id)
 
-        failed_rows = [r for r in rows if not 'GOOD' in r]
+        failed_rows = [r for r in rows if not r[1] == 'GOOD']
 
         n_test_jobs = _find_test_jobs(rows)
         n_test_jobs_failed = _find_test_jobs(failed_rows)
