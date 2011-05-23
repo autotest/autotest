@@ -218,6 +218,7 @@ def create_image(params, root_dir):
     @note: params should contain:
            image_name -- the name of the image file, without extension
            image_format -- the format of the image (qcow2, raw etc)
+           image_cluster_size (optional) -- the cluster size for the image
            image_size -- the requested size of the image (a string
            qemu-img can understand, such as '10G')
     """
@@ -227,6 +228,10 @@ def create_image(params, root_dir):
 
     format = params.get("image_format", "qcow2")
     qemu_img_cmd += " -f %s" % format
+
+    image_cluster_size = params.get("image_cluster_size", None)
+    if image_cluster_size is not None:
+        qemu_img_cmd += " -o cluster_size=%s" % image_cluster_size
 
     image_filename = get_image_filename(params, root_dir)
     qemu_img_cmd += " %s" % image_filename
