@@ -870,6 +870,15 @@ variants:
         profilers = ''
         take_regular_screendumps = no
 
+    - fillup_disk:
+        only Linux
+        only qcow2
+        type = fillup_disk
+        fillup_timeout = 120
+        fillup_size = 200
+        fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1 oflag=direct"
+        kill_vm = yes
+
     - ioquit:
         only Linux
         type = ioquit
@@ -1652,6 +1661,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-4.7-i386-DVD.iso
                             md5sum_cd1 = ee5092653732a88ddbaf8eef2484c500
                             md5sum_1m_cd1 = 127081cbed825d7232331a2083975528
+                        fillup_disk:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
 
                     - 4.7.x86_64:
                         no setup autotest
@@ -1671,6 +1682,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-4.7-x86_64-DVD.iso
                             md5sum_cd1 = ea9dae16dd86f7d94092d0e672333292
                             md5sum_1m_cd1 = 58fa63eaee68e269f4cb1d2edf479792
+                        fillup_disk:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
 
                     - 4.8.i386:
                         no setup autotest
@@ -1688,6 +1701,8 @@ variants:
                         nicdriver_unload:
                             readlink_command = readlink -f
                             sys_path = "/sys/class/net/%s/driver"
+                        fillup_disk:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
 
 
                     - 4.8.x86_64:
@@ -1706,6 +1721,8 @@ variants:
                         nicdriver_unload:
                             readlink_command = readlink -f
                             sys_path = "/sys/class/net/%s/driver"
+                        fillup_disk:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
 
 
                     - 5.3.i386:
