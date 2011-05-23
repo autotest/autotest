@@ -879,6 +879,46 @@ variants:
         fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1 oflag=direct"
         kill_vm = yes
 
+    - lvm:
+        only Linux
+        images += ' stg1 stg2'
+        image_name_stg1 = storage_4k
+        image_cluster_size_stg1 = 4096
+        image_size_stg1 = 1G
+        image_format_stg1 = qcow2
+        image_name_stg2 = storage_64k
+        image_cluster_size_stg2 = 65536
+        image_size_stg2 = 1G
+        image_format_stg2 = qcow2
+        guest_testdir = /mnt
+        disks = "/dev/sdb /dev/sdc"
+        kill_vm = no
+        post_command_noncritical = no
+        variants:
+            lvm_create:
+                type = lvm
+                force_create_image_stg1 = yes
+                force_create_image_stg2 = yes
+                clean = no
+            lvm_fill: lvm_create
+                type = fillup_disk
+                force_create_image_stg1 = no
+                force_create_image_stg2 = no
+                guest_testdir = /mnt/kvm_test_lvm
+                fillup_timeout = 120
+                fillup_size = 20
+                fillup_cmd = "dd if=/dev/zero of=%s/fillup.%d bs=%dM count=1 oflag=direct"
+            lvm_ioquit: lvm_create
+                type = ioquit
+                force_create_image_stg1 = no
+                force_create_image_stg2 = no
+                kill_vm = yes
+                background_cmd = "for i in 1 2 3 4; do (dd if=/dev/urandom of=/mnt/kvm_test_lvm/file bs=102400 count=10000000 &); done"
+                check_cmd = pgrep dd
+                clean = yes
+                remove_image_stg1 = yes
+                remove_image_stg2 = yes
+
     - ioquit:
         only Linux
         type = ioquit
@@ -1663,6 +1703,8 @@ variants:
                             md5sum_1m_cd1 = 127081cbed825d7232331a2083975528
                         fillup_disk:
                             fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+                        lvm.lvm_fill:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
 
                     - 4.7.x86_64:
                         no setup autotest
@@ -1684,6 +1726,8 @@ variants:
                             md5sum_1m_cd1 = 58fa63eaee68e269f4cb1d2edf479792
                         fillup_disk:
                             fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+                        lvm.lvm_fill:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
 
                     - 4.8.i386:
                         no setup autotest
@@ -1702,6 +1746,8 @@ variants:
                             readlink_command = readlink -f
                             sys_path = "/sys/class/net/%s/driver"
                         fillup_disk:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+                        lvm.lvm_fill:
                             fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
 
 
@@ -1722,6 +1768,8 @@ variants:
                             readlink_command = readlink -f
                             sys_path = "/sys/class/net/%s/driver"
                         fillup_disk:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+                        lvm.lvm_fill:
                             fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
 
 
