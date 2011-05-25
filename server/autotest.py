@@ -115,7 +115,7 @@ class BaseAutotest(installable_object.InstallableObject):
             except error.AutoservRunError:
                 logging.debug('Failed to create %s', path)
         raise error.AutoservInstallError(
-                'Unable to find a place to install Autotest; tried %s',
+                'Unable to find a place to install Autotest; tried %s' %
                 ', '.join(client_autodir_paths))
 
 
@@ -241,8 +241,8 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # if that fails try to install using svn
         if utils.run('which svn').exit_status:
-            raise error.AutoservError('svn not found on target machine: %s'
-                                                                   % host.name)
+            raise error.AutoservError('svn not found on target machine: %s' %
+                                      host.name)
         try:
             host.run('svn checkout %s %s' % (AUTOTEST_SVN, autodir))
         except error.AutoservRunError, e:
