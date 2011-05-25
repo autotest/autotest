@@ -55,7 +55,7 @@ if args:
     # We get test parameters from command line
     for arg in args:
         try:
-            (key, value) = re.findall("(.*)=(.*)", arg)[0]
+            (key, value) = re.findall("^(\w+)=(.*)", arg)[0]
             if key == "only":
                 str += "only %s\n" % value
             elif key == "no":
