@@ -2544,7 +2544,9 @@ variants:
         drive_format=scsi
     - virtio_blk:
         drive_format=virtio
-
+        # Some older qemu might need image_boot=yes for virtio images to work.
+        # Please uncomment the below if that is the case.
+        #image_boot=yes
 
 virtio_net, virtio_blk, e1000, balloon_check:
     only Fedora.11 Fedora.12 Fedora.13 Fedora.14 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
