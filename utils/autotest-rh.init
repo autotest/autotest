@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+# autotestd       Start up the autotest scheduler daemon
+#
+# Copyright 2009 Red Hat, Inc.
+#
+# This software may be freely redistributed under the terms of the GNU
+# general public license.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+# chkconfig: - 65 25
+# description: Autotest is a framework for fully automated testing.
+# processname: monitor_db.py
+# pidfile: /var/run/autotest/monitor_db_babysitter.pid
+#
+### BEGIN INIT INFO
+# Provides: autotest
+# Required-Start: $syslog $local_fs
+# Required-Stop: $syslog $local_fs
+# Default-Stop: 0 1 6
+# Short-Description: Start the autotest scheduler daemon
+# Description: Autotest is a framework for fully automated testing.
+### END INIT INFO
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+# pull in sysconfig settings
+[ -f /etc/sysconfig/autotest ] && . /etc/sysconfig/autotest
+
+PROG="autotest"
+BECOME_USER=$PROG
+LOCKFILE=/var/lock/subsys/$PROG
+
+# Autotest paths
+AUTOTEST_DIR="/usr/local/$PROG"
+BABYSITTER="$AUTOTEST_DIR/scheduler/monitor_db_babysitter"
+SCHEDULER="$AUTOTEST_DIR/scheduler/monitor_db.py"
+
+# Scheduler options
+OPTIONS="--background"
+
+# Where to locate PID files
+PID_PATH="$AUTOTEST_DIR" # "/var/run/$PROG"
+BABYSITTER_PIDFILE="$PID_PATH/monitor_db_babysitter.pid"
+SCHEDULER_PIDFILE="$PID_PATH/monitor_db.pid"
+
+# Assume pass
+RETVAL=0
+
+start()
+{
+    [ -f $BABYSITTER ] || exit 5
+
+    echo -n $"Starting $PROG: "
+    daemon --user $BECOME_USER --check $PROG $BABYSITTER $OPTIONS
+    RETVAL=$?
+    echo
+    [ "$RETVAL" = 0 ] && touch $LOCKFILE
+    return $RETVAL
+}
+
+stop()
+{
+    echo -n $"Stopping $PROG: "
+
+    killproc $BABYSITTER
+
+    RETVAL=$?
+    echo
+    if [ "$RETVAL" = 0 ]; then
+         rm -f $LOCKFILE
+         rm -f $BABYSITTER_PIDFILE
+         rm -f $SCHEDULER_PIDFILE
+    fi
+    return $RETVAL
+}
+
+reload()
+{
+    echo -n $"Reloading $PROG: "
+    killproc -p $BABYSITTER_PIDFILE $PROG -HUP
+    RETVAL=$?
+    echo
+    return $RETVAL
+}
+
+restart() {
+    stop
+    start
+}
+
+force_reload() {
+    restart
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    reload)
+        reload
+        ;;
+    condrestart|try-restart)
+        if [ -f $LOCKFILE ] ; then
+            if [ "$RETVAL" = 0 ] ; then
+                stop
+                # avoid race
+                sleep 3
+                start
+            else
+                RETVAL=6
+            fi
+        fi
+        ;;
+    status)
+        # status -p $PIDFILE $PROG
+        status $BABYSITTER
+        status $SCHEDULER
+        RETVAL=$?
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart|reload|condrestart|try-restart|status}"
+        RETVAL=2
+esac
+exit $RETVAL
