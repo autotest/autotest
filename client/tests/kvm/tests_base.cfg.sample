@@ -337,6 +337,11 @@ variants:
         extra_params += " -balloon virtio"
         iterations = 5
 
+    - watchdog:   install setup unattended_install.cdrom
+        type = watchdog
+        extra_params += " -watchdog i6300esb -watchdog-action reset"
+        relogin_timeout = 240
+
     - stress_boot:  install setup unattended_install.cdrom
         type = stress_boot
         max_vms = 5    
@@ -2545,7 +2550,7 @@ virtio_net, virtio_blk, e1000, balloon_check:
     only Fedora.11 Fedora.12 Fedora.13 Fedora.14 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
     # only WinXP Win2003 Win2008 WinVista Win7 Fedora.11 Fedora.12 Fedora.13 Fedora.14 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
 
-kdump:
+kdump, watchdog:
     only RHEL.5 RHEL.6
 
 variants:
