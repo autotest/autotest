@@ -1,0 +1,10 @@
+[Unit]
+Description=Autotest scheduler
+
+[Service]
+ExecStart=/usr/local/autotest/scheduler/monitor_db_babysitter
+User=autotest
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
