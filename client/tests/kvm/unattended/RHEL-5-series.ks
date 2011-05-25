@@ -22,7 +22,6 @@ poweroff
 @development-libs
 @development-tools
 kexec-tools
-ntpdate
 watchdog
 
 %post --interpreter /usr/bin/python
