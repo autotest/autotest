@@ -32,6 +32,10 @@ def run_migration(test, params, env):
                 funcs.append(f)
         return funcs
 
+    def mig_set_speed():
+        mig_speed = params.get("mig_speed", "1G")
+        return vm.monitor.migrate_set_speed(mig_speed)
+
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
     timeout = int(params.get("login_timeout", 360))
