@@ -1,0 +1,1 @@
+AddHandler cgi-script .cgi

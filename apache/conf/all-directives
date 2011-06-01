@@ -2,6 +2,7 @@
 # This does not include stuff like proxy-directives and some of the files here
 # include other directive files.
 
+Include "/usr/local/autotest/apache/conf/cgi-directives"
 Include "/usr/local/autotest/apache/conf/gwt-directives"
 Include "/usr/local/autotest/apache/conf/django-directives"
 Include "/usr/local/autotest/apache/conf/afe-directives"
