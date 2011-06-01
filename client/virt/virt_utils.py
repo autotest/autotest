@@ -1796,9 +1796,13 @@ class KojiClient(object):
         @returns: True or False
         '''
         valid = True
-        if not self.is_pkg_spec_build_valid(pkg):
-            valid = False
-        if not self.is_pkg_spec_tag_valid(pkg):
+        if pkg.build:
+            if not self.is_pkg_spec_build_valid(pkg):
+                valid = False
+        elif pkg.tag:
+            if not self.is_pkg_spec_tag_valid(pkg):
+                valid = False
+        else:
             valid = False
         return valid
 
