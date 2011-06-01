@@ -1117,6 +1117,7 @@ class base_job(object):
         tag_parts = []
 
         # build up the parts of the tag used for the test name
+        master_testpath = dargs.get('master_testpath', "")
         base_tag = dargs.pop('tag', None)
         if base_tag:
             tag_parts.append(str(base_tag))
@@ -1132,6 +1133,7 @@ class base_job(object):
         if subdir_tag:
             tag_parts.append(subdir_tag)
         subdir = '.'.join([testname] + tag_parts)
+        subdir = os.path.join(master_testpath, subdir)
         tag = '.'.join(tag_parts)
 
         return full_testname, subdir, tag
