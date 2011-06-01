@@ -5,7 +5,25 @@
     ERROR__DJANGO_REQUIRES_THE_PREFORK_MPM
 </IfModule>
 
-Alias /media "/usr/local/autotest/site-packages/django/contrib/admin/media"
+#
+# Try to serve admin media files, no matter where django is actually installed
+# Covers python versions 2.4 through 2.7 and also django installed by utils/build_externals.py
+#
+RewriteEngine On
+RewriteCond /usr/local/autotest/site-packages/django/contrib/admin/media -d
+RewriteRule /media(.*) /usr/local/autotest/site-packages/django/contrib/admin/media$1
+
+RewriteCond /usr/lib/python2.4/site-packages/django/contrib/admin/media -d
+RewriteRule /media(.*) /usr/lib/python2.4/site-packages/django/contrib/admin/media$1
+
+RewriteCond /usr/lib/python2.5/site-packages/django/contrib/admin/media -d
+RewriteRule /media(.*) /usr/lib/python2.5/site-packages/django/contrib/admin/media$1
+
+RewriteCond /usr/lib/python2.6/site-packages/django/contrib/admin/media -d
+RewriteRule /media(.*) /usr/lib/python2.6/site-packages/django/contrib/admin/media$1
+
+RewriteCond /usr/lib/python2.7/site-packages/django/contrib/admin/media -d
+RewriteRule /media(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/media$1
 
 <Location ~ "/(afe|new_tko|planner)/server">
     SetHandler python-program
