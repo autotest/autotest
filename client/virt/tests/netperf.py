@@ -95,7 +95,7 @@ def run_netperf(test, params, env):
         while not completed:
             completed = True
             for b in bg:
-                if b.is_alive():
+                if b.isAlive():
                     completed = False
     finally:
         try:
