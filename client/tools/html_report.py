@@ -1372,7 +1372,7 @@ function processList(ul) {
 }
 """
 
-stimelist = []
+
 
 
 def make_html_file(metadata, results, tag, host, output_file_name, dirname):
@@ -1430,11 +1430,12 @@ return true;
     total_failed = 0
     total_passed = 0
     for res in results:
-        total_executed += 1
-        if res['status'] == 'GOOD':
-            total_passed += 1
-        else:
-            total_failed += 1
+        if results[res][2] != None:
+            total_executed += 1
+            if results[res][2]['status'] == 'GOOD':
+                total_passed += 1
+            else:
+                total_failed += 1
     stat_str = 'No test cases executed'
     if total_executed > 0:
         failed_perct = int(float(total_failed)/float(total_executed)*100)
@@ -1471,39 +1472,46 @@ id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alterna
 <tbody>
 """
     print >> output, result_table_prefix
-    for res in results:
-        print >> output, '<tr>'
-        print >> output, '<td align="left">%s</td>' % res['time']
-        print >> output, '<td align="left">%s</td>' % res['testcase']
-        if res['status'] == 'GOOD':
-            print >> output, '<td align=\"left\"><b><font color="#00CC00">PASS</font></b></td>'
-        elif res['status'] == 'FAIL':
-            print >> output, '<td align=\"left\"><b><font color="red">FAIL</font></b></td>'
-        elif res['status'] == 'ERROR':
-            print >> output, '<td align=\"left\"><b><font color="red">ERROR!</font></b></td>'
-        else:
-            print >> output, '<td align=\"left\">%s</td>' % res['status']
-        # print exec time (seconds)
-        print >> output, '<td align="left">%s</td>' % res['exec_time_sec']
-        # print log only if test failed..
-        if res['log']:
-            #chop all '\n' from log text (to prevent html errors)
-            rx1 = re.compile('(\s+)')
-            log_text = rx1.sub(' ', res['log'])
+    def print_result(result, indent):
+        while result != []:
+            r = result.pop(0)
+            print r
+            res = results[r][2]
+            print >> output, '<tr>'
+            print >> output, '<td align="left">%s</td>' % res['time']
+            print >> output, '<td align="left" style="padding-left:%dpx">%s</td>' % (indent * 20, res['title'])
+            if res['status'] == 'GOOD':
+                print >> output, '<td align=\"left\"><b><font color="#00CC00">PASS</font></b></td>'
+            elif res['status'] == 'FAIL':
+                print >> output, '<td align=\"left\"><b><font color="red">FAIL</font></b></td>'
+            elif res['status'] == 'ERROR':
+                print >> output, '<td align=\"left\"><b><font color="red">ERROR!</font></b></td>'
+            else:
+                print >> output, '<td align=\"left\">%s</td>' % res['status']
+            # print exec time (seconds)
+            print >> output, '<td align="left">%s</td>' % res['exec_time_sec']
+            # print log only if test failed..
+            if res['log']:
+                #chop all '\n' from log text (to prevent html errors)
+                rx1 = re.compile('(\s+)')
+                log_text = rx1.sub(' ', res['log'])
 
-            # allow only a-zA-Z0-9_ in html title name
-            # (due to bug in MS-explorer)
-            rx2 = re.compile('([^a-zA-Z_0-9])')
-            updated_tag = rx2.sub('_', res['title'])
+                # allow only a-zA-Z0-9_ in html title name
+                # (due to bug in MS-explorer)
+                rx2 = re.compile('([^a-zA-Z_0-9])')
+                updated_tag = rx2.sub('_', res['title'])
 
-            html_body_text = '<html><head><title>%s</title></head><body>%s</body></html>' % (str(updated_tag), log_text)
-            print >> output, '<td align=\"left\"><A HREF=\"#\" onClick=\"popup(\'%s\',\'%s\')\">Info</A></td>' % (str(updated_tag), str(html_body_text))
-        else:
-            print >> output, '<td align=\"left\"></td>'
-        # print execution time
-        print >> output, '<td align="left"><A HREF=\"%s\">Debug</A></td>' % os.path.join(dirname, res['title'], "debug")
+                html_body_text = '<html><head><title>%s</title></head><body>%s</body></html>' % (str(updated_tag), log_text)
+                print >> output, '<td align=\"left\"><A HREF=\"#\" onClick=\"popup(\'%s\',\'%s\')\">Info</A></td>' % (str(updated_tag), str(html_body_text))
+            else:
+                print >> output, '<td align=\"left\"></td>'
+            # print execution time
+            print >> output, '<td align="left"><A HREF=\"%s\">Debug</A></td>' % os.path.join(dirname, res['subdir'], "debug")
 
-        print >> output, '</tr>'
+            print >> output, '</tr>'
+            print_result(results[r][1], indent + 1)
+
+    print_result(results[""][1], 0)
     print >> output, "</tbody></table>"
 
 
@@ -1531,21 +1539,27 @@ id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alterna
         output.close()
 
 
-def parse_result(dirname, line):
+def parse_result(dirname, line, results_data):
     """
     Parse job status log line.
 
     @param dirname: Job results dir
     @param line: Status log line.
+    @param results_data: Dictionary with for results.
     """
     parts = line.split()
     if len(parts) < 4:
         return None
-    global stimelist
+    global tests
     if parts[0] == 'START':
         pair = parts[3].split('=')
         stime = int(pair[1])
-        stimelist.append(stime)
+        results_data[parts[1]] = [stime, [], None]
+        try:
+            parent_test = re.findall(r".*/", parts[1])[0][:-1]
+            results_data[parent_test][1].append(parts[1])
+        except IndexError:
+            results_data[""][1].append(parts[1])
 
     elif (parts[0] == 'END'):
         result = {}
@@ -1562,24 +1576,25 @@ def parse_result(dirname, line):
         result['exec_time_sec'] = 'na'
         tag = parts[3]
 
+        result['subdir'] = parts[2]
         # assign actual values
         rx = re.compile('^(\w+)\.(.*)$')
         m1 = rx.findall(parts[3])
-        result['testcase'] = str(tag)
+        if len(m1):
+            result['testcase'] = m1[0][1]
+        else:
+            result['testcase'] = parts[3]
         result['title'] = str(tag)
         result['status'] = parts[1]
         if result['status'] != 'GOOD':
             result['log'] = get_exec_log(dirname, tag)
-        if len(stimelist)>0:
+        if len(results_data)>0:
             pair = parts[4].split('=')
-            try:
-                etime = int(pair[1])
-                stime = stimelist.pop()
-                total_exec_time_sec = etime - stime
-                result['exec_time_sec'] = total_exec_time_sec
-            except ValueError:
-                result['exec_time_sec'] = "Unknown"
-        return result
+            etime = int(pair[1])
+            stime = results_data[parts[2]][0]
+            total_exec_time_sec = etime - stime
+            result['exec_time_sec'] = total_exec_time_sec
+        results_data[parts[2]][2] = result
     return None
 
 
@@ -1702,16 +1717,15 @@ def create_report(dirname, html_path='', output_file_name=None):
     host = get_info_file(os.path.join(sysinfo_dir, 'hostname'))
     rx = re.compile('^\s+[END|START].*$')
     # create the results set dict
-    results_data = []
+    results_data = {}
+    results_data[""] = [0, [], None]
     if os.path.exists(status_file_name):
         f = open(status_file_name, "r")
         lines = f.readlines()
         f.close()
         for line in lines:
             if rx.match(line):
-                result_dict = parse_result(dirname, line)
-                if result_dict:
-                    results_data.append(result_dict)
+                parse_result(dirname, line, results_data)
     # create the meta info dict
     metalist = {
                 'uname': get_info_file(os.path.join(sysinfo_dir, 'uname')),
