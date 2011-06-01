@@ -5,6 +5,7 @@ This library is to release in the public repository.
 
 import commands, os, re, socket, sys, time, struct
 from autotest_lib.client.common_lib import error
+from autotest_lib.client.bin import utils as client_utils
 import utils
 
 TIMEOUT = 10 # Used for socket timeout and barrier timeout
@@ -25,6 +26,22 @@ class network_utils(object):
 
     def list(self):
         utils.system('/sbin/ifconfig -a')
+
+
+    def get_ip_local(self, query_ip, netmask="24"):
+        """
+        Get ip address in local system which can communicate with query_ip.
+
+        @param query_ip: IP of client which wants to communicate with
+                autotest machine.
+        @return: IP address which can communicate with query_ip
+        """
+        ip = client_utils.system_output("ip addr show to %s/%s" %
+                                        (query_ip, netmask))
+        ip = re.search(r"inet ([0-9.]*)/",ip)
+        if ip is None:
+            return ip
+        return ip.group(1)
 
 
     def disable_ip_local_loopback(self, ignore_status=False):
