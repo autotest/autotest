@@ -1,4 +1,4 @@
-from django.db import connection as django_connection
+from django import db as django_db
 from django.conf import settings
 from django.core import signals
 
@@ -44,14 +44,14 @@ class ReadOnlyConnection(object):
 
 
     def _save_django_state(self):
-        self._old_connection = django_connection.connection
+        self._old_connection = django_db.connection.connection
         self._old_host = settings.DATABASE_HOST
         self._old_username = settings.DATABASE_USER
         self._old_password = settings.DATABASE_PASSWORD
 
 
     def _restore_django_state(self):
-        django_connection.connection = self._old_connection
+        django_db.connection.connection = self._old_connection
         settings.DATABASE_HOST = self._old_host
         settings.DATABASE_USER = self._old_username
         settings.DATABASE_PASSWORD = self._old_password
@@ -61,25 +61,25 @@ class ReadOnlyConnection(object):
         settings.DATABASE_HOST = settings.DATABASE_READONLY_HOST
         settings.DATABASE_USER = settings.DATABASE_READONLY_USER
         settings.DATABASE_PASSWORD = settings.DATABASE_READONLY_PASSWORD
-        django_connection.connection = None
+        reload(django_db)
         # cursor() causes a new connection to be created
-        cursor = django_connection.cursor()
-        assert django_connection.connection is not None
-        return django_connection.connection
+        cursor = django_db.connection.cursor()
+        assert django_db.connection.connection is not None
+        return django_db.connection.connection
 
 
     def set_django_connection(self):
-        assert (django_connection.connection != self._connection or
+        assert (django_db.connection.connection != self._connection or
                 self._connection is None)
         self._open_connection()
-        self._old_connection = django_connection.connection
-        django_connection.connection = self._connection
+        self._old_connection = django_db.connection.connection
+        django_db.connection.connection = self._connection
 
 
     def unset_django_connection(self):
         assert self._connection is not None
-        assert django_connection.connection == self._connection
-        django_connection.connection = self._old_connection
+        assert django_db.connection.connection == self._connection
+        django_db.connection.connection = self._old_connection
 
 
     def cursor(self):
@@ -89,7 +89,7 @@ class ReadOnlyConnection(object):
 
     def close(self):
         if self._connection is not None:
-            assert django_connection != self._connection
+            assert django_db.connection.connection != self._connection
             self._connection.close()
             self._connection = None
 
@@ -115,7 +115,7 @@ class DummyReadOnlyConnection(object):
 
 
     def cursor(self):
-        return django_connection.cursor()
+        return django_db.connection.cursor()
 
 
     def close(self):
