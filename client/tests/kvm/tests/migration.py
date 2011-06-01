@@ -1,4 +1,4 @@
-import logging, time
+import logging, time, types
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.virt import virt_utils
 
@@ -19,6 +19,19 @@ def run_migration(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
+    def get_functions(func_names, locals_dict):
+        """
+        Find sub function(s) in this function with the given name(s).
+        """
+        if not func_names:
+            return []
+        funcs = []
+        for f in func_names.split():
+            f = locals_dict.get(f)
+            if isinstance(f, types.FunctionType):
+                funcs.append(f)
+        return funcs
+
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
     timeout = int(params.get("login_timeout", 360))
@@ -48,8 +61,18 @@ def run_migration(test, params, env):
         session2.cmd(check_command, timeout=30)
         session2.close()
 
+        # run some functions before migrate start.
+        pre_migrate = get_functions(params.get("pre_migrate"), locals())
+        for func in pre_migrate:
+            func()
+
         # Migrate the VM
         vm.migrate(mig_timeout, mig_protocol, mig_cancel_delay, offline, check)
+
+        # run some functions after migrate finish.
+        post_migrate = get_functions(params.get("post_migrate"), locals())
+        for func in post_migrate:
+            func()
 
         # Log into the guest again
         logging.info("Logging into guest after migration...")
