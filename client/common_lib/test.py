@@ -465,6 +465,24 @@ class base_test(object):
                 self.job.enable_warnings("NETWORK")
 
 
+    def runsubtest(self, url, *args, **dargs):
+        """
+        Execute another autotest test from inside the current test's scope.
+
+        @param test: Parent test.
+        @param url: Url of new test.
+        @param tag: Tag added to test name.
+        @param args: Args for subtest.
+        @param dargs: Dictionary with args for subtest.
+        @iterations: Number of subtest iterations.
+        @profile_only: If true execute one profiled run.
+        """
+        dargs["profile_only"] = dargs.get("profile_only", False)
+        test_basepath = self.outputdir[len(self.job.resultdir + "/"):]
+        self.job.run_test(url, master_testpath=test_basepath,
+                          *args, **dargs)
+
+
 def _get_nonstar_args(func):
     """Extract all the (normal) function parameter names.
 
@@ -658,7 +676,8 @@ def runtest(job, url, tag, args, dargs,
         if not bindir:
             raise error.TestError(testname + ': test does not exist')
 
-    outputdir = os.path.join(job.resultdir, testname)
+    subdir = os.path.join(dargs.pop('master_testpath', ""), testname)
+    outputdir = os.path.join(job.resultdir, subdir)
     if tag:
         outputdir += '.' + tag
 

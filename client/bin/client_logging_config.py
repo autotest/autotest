@@ -12,8 +12,9 @@ class ClientLoggingConfig(logging_config.LoggingConfig):
 
 
     def configure_logging(self, results_dir=None, verbose=False):
-        super(ClientLoggingConfig, self).configure_logging(use_console=True,
-                                                           verbose=verbose)
+        super(ClientLoggingConfig, self).configure_logging(
+                                                  use_console=self.use_console,
+                                                  verbose=verbose)
 
         if results_dir:
             log_dir = os.path.join(results_dir, 'debug')
