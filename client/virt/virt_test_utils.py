@@ -380,7 +380,7 @@ def get_time(session, time_command, time_filter_re, time_format):
             host_main, host_mantissa = re.findall(time_filter_re, o)[0]
             host_time = (time.mktime(time.strptime(host_main, time_format)) +
                          float("0.%s" % host_mantissa))
-            guest_time = host_time + float(offset)
+            guest_time = host_time - float(offset)
         else:
             guest_time =  re.findall(time_filter_re, o)[0]
             offset = re.findall("o:(.*)s", o)[0]
@@ -392,7 +392,7 @@ def get_time(session, time_command, time_filter_re, time_format):
             else:
                 guest_time = guest_time[:-3]
             guest_time = time.mktime(time.strptime(guest_time, time_format))
-            host_time = guest_time - float(offset)
+            host_time = guest_time + float(offset)
 
     return (host_time, guest_time)
 
