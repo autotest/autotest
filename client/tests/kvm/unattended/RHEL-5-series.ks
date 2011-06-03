@@ -23,6 +23,7 @@ poweroff
 @development-tools
 kexec-tools
 watchdog
+ntp
 
 %post --interpreter /usr/bin/python
 import socket, os
