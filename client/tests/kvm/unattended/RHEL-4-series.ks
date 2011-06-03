@@ -21,7 +21,7 @@ poweroff
 @ base
 @ development-libs
 @ development-tools
-ntpdate
+ntp
 
 %post --interpreter /usr/bin/python
 import socket, os
