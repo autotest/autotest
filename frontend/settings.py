@@ -15,7 +15,8 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-DATABASE_ENGINE = 'mysql'      # 'postgresql_psycopg2', 'postgresql',
+DATABASE_ENGINE = 'autotest_lib.frontend.db.backends.afe'
+                               # 'postgresql_psycopg2', 'postgresql',
                                # 'mysql', 'sqlite3' or 'ado_mssql'.
 DATABASE_PORT = ''             # Set to empty string for default.
                                # Not used with sqlite3.
