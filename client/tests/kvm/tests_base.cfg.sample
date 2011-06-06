@@ -933,6 +933,47 @@ variants:
         background_cmd = "for i in 1 2 3 4; do (dd if=/dev/urandom of=/tmp/file bs=102400 count=10000000 &); done"
         check_cmd = ps -a |grep dd
         login_timeout = 360
+    - multi_disk:
+        type = multi_disk
+        force_create_image = yes
+        force_create_image_image1 = no
+        remove_image = yes
+        remove_image_image1 = no
+        cmd_timeout = 1000
+        block_list = C: D: vda vda1 vda2 hda hda1 hda2 sda sda1 sda2
+        variants:
+            - signal_repeat:
+                images += " stg"
+                image_format_stg = qcow2
+                image_name_stg = storage
+                image_size_stg = 1G
+                n_repeat = 10
+            - max_disk:
+                only virtio_blk
+                images += " stg stg2 stg3 stg4 stg5 stg6 stg7 stg8 stg9 stg10 stg11 stg12 stg13 stg14 stg15 stg16 stg17 stg18 stg19 stg20 stg21 stg22 stg23"
+                image_name_stg = storage
+                image_name_stg2 = storage2
+                image_name_stg3 = storage3
+                image_name_stg4 = storage4
+                image_name_stg5 = storage5
+                image_name_stg6 = storage6
+                image_name_stg7 = storage7
+                image_name_stg8 = storage8
+                image_name_stg9 = storage9
+                image_name_stg10 = storage10
+                image_name_stg11 = storage11
+                image_name_stg12 = storage12
+                image_name_stg13 = storage13
+                image_name_stg14 = storage14
+                image_name_stg15 = storage15
+                image_name_stg16 = storage16
+                image_name_stg17 = storage17
+                image_name_stg18 = storage18
+                image_name_stg19 = storage19
+                image_name_stg20 = storage20
+                image_name_stg21 = storage21
+                image_name_stg22 = storage22
+                image_name_stg23 = storage23
 
     - qemu_img:
         type = qemu_img
@@ -1117,6 +1158,28 @@ variants:
         nicdriver_unload:
             readlink_command = readlink -e
             sys_path = "/sys/class/net/%s/device/driver"
+        multi_disk:
+            show_mount_cmd = mount|gawk '/mnt/{print $1}'
+            clean_cmd = "\rm -rf /mnt/*"
+            cmd_list = "copy_to_command copy_from_command"
+            file_system = "ext3 ext2"
+            mount_command = mkdir /mnt/%s && mount /dev/%s /mnt/%s
+            umount_command = umount /dev/%s && rmdir /mnt/%s
+            list_volume_command = cd /dev && \ls [vhs]d?
+            re_str = "[vhs]d[a-z]"
+            format_command = echo y | mkfs -t %s /dev/%s
+            copy_to_command = \cp -rf /bin/ls /mnt/%s
+            copy_from_command = \cp -rf /mnt/%s/ls /tmp/ls
+            compare_command = cd /bin && md5sum ls > /tmp/ls.md5 && cd /tmp && md5sum -c ls.md5
+            check_result_key_word = OK
+            max_disk:
+                 images += " stg24 stg25 stg26 stg27"
+                 image_name_stg24 = storage24
+                 image_name_stg25 = storage25
+                 image_name_stg26 = storage26
+                 image_name_stg27 = storage27
+                 list_volume_command = cd /dev && \ls vd*
+                 re_str = "[vhs]d[a-z][^0-9]"
 
         variants:
             - Fedora:
@@ -1647,7 +1710,7 @@ variants:
 
                 variants:
                     - 3.9.i386:
-                        no setup autotest linux_s3 guest_s4 shutdown
+                        no setup autotest linux_s3 guest_s4 shutdown multi_disk
                         image_name = rhel3-32
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         install:
@@ -1669,7 +1732,7 @@ variants:
                             md5sum_1m_cd1 = 5f10c9417c7b8372b3456c1b5f3f9ed0
 
                     - 3.9.x86_64:
-                        no setup autotest linux_s3 guest_s4 shutdown
+                        no setup autotest linux_s3 guest_s4 shutdown multi_disk
                         image_name = rhel3-64
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         install:
@@ -2087,6 +2150,24 @@ variants:
             clean_cmd = del
         vmstop:
             guest_path = C:\
+        multi_disk:
+            block_list += " E:"
+            shell_port = 23
+            shell_client = telnet
+            post_cmd = del c:\cmd.exe
+            file_system = "ntfs fat32"
+            cmd_list = "copy_to_command copy_from_command"
+            list_volume_command = wmic volume get driveletter
+            re_str = "([A-Z]:)"
+            format_command = format /fs:%s %s /q /y
+            copy_to_command = copy C:\WINDOWS\system32\cmd.exe %s /y
+            copy_from_command = copy %s\cmd.exe c:\ /y
+            compare_command = fc /b c:\windows\system32\cmd.exe c:\cmd.exe
+            check_result_key_word = no difference
+            signal_repeat:
+                pre_cmd = del diskpart.script && (echo select disk 1 >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
+            max_disk:
+                pre_cmd = del diskpart.script && (for /L %i in (1 1 23) do echo select disk %i >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
 
         variants:
             - Win2000:
@@ -2143,6 +2224,9 @@ variants:
                                 dd_data_whqlqual = Basic
                             device.net:
                                 image_name_supportvm = winXP-32-supportvm
+                        multi_disk:
+                            list_volume_command = fsutil fsinfo drives
+
 
                     - 64:
                         image_name += -64
@@ -2176,6 +2260,9 @@ variants:
                                 dd_data_whqlqual = Basic
                             device.net:
                                 image_name_supportvm = winXP-64-supportvm
+                        multi_disk:
+                            list_volume_command = fsutil fsinfo drives
+
 
             - Win2003:
                 image_name = win2003
