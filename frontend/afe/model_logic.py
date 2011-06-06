@@ -124,21 +124,6 @@ class ExtendedManager(dbmodels.Manager):
             self._custom_joins.append(join_dict)
 
 
-        def get_from_clause(self):
-            from_, params = (super(ExtendedManager.CustomQuery, self)
-                             .get_from_clause())
-
-            for join_dict in self._custom_joins:
-                from_.append('%s %s AS %s ON (%s)'
-                             % (join_dict['join_type'],
-                                _quote_name(join_dict['table']),
-                                _quote_name(join_dict['alias']),
-                                join_dict['condition']))
-                params.extend(join_dict['condition_values'])
-
-            return from_, params
-
-
         @classmethod
         def convert_query(self, query_set):
             """
