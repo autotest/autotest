@@ -552,10 +552,10 @@ class MySQLdbPackage(ExternalPackage):
 
 
 class DjangoPackage(ExternalPackage):
-    version = '1.1.1'
+    version = '1.3'
     local_filename = 'Django-%s.tar.gz' % version
     urls = ('http://www.djangoproject.com/download/%s/tarball/' % version,)
-    hex_sum = '441c54f0e90730bf4a55432b64519169b1e6ef20'
+    hex_sum = 'f8814d5e1412bb932318db5130260da5bf053ff7'
 
     _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
@@ -680,10 +680,10 @@ class Httplib2Package(ExternalPackage):
 class GwtPackage(ExternalPackage):
     """Fetch and extract a local copy of GWT used to build the frontend."""
 
-    version = '2.0.3'
+    version = '2.3.0'
     local_filename = 'gwt-%s.zip' % version
     urls = ('http://google-web-toolkit.googlecode.com/files/' + local_filename,)
-    hex_sum = '1dabd25a02b9299f6fa84c51c97210a3373a663e'
+    hex_sum = 'd51fce9166e6b31349659ffca89baf93e39bc84b'
     name = 'gwt'
     about_filename = 'about.txt'
     module_name = None  # Not a Python module.
@@ -724,12 +724,12 @@ class GwtPackage(ExternalPackage):
 # This requires GWT to already be installed, so it must be declared after
 # GwtPackage
 class GwtIncubatorPackage(ExternalPackage):
-    version = '20100204-r1747'
+    version = '20101117-r1766'
     local_filename = 'gwt-incubator-%s.jar' % version
     symlink_name = 'gwt-incubator.jar'
     urls = ('http://google-web-toolkit-incubator.googlecode.com/files/'
             + local_filename,)
-    hex_sum = '0c9495634f0627d0b4de0d78a50a3aefebf67f8c'
+    hex_sum = '3aa16d4c7c00edad4719092669d820a34e10ef0a'
     module_name = None  # Not a Python module
 
 
