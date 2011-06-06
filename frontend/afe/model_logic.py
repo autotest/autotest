@@ -694,7 +694,7 @@ class ModelExtensions(object):
         return data
 
 
-    def validate_unique(self):
+    def _validate_unique(self):
         """\
         Validate that unique fields are unique.  Django manipulators do
         this too, but they're a huge pain to use manually.  Trust me.
@@ -755,7 +755,7 @@ class ModelExtensions(object):
 
     def do_validate(self):
         errors = self._validate()
-        unique_errors = self.validate_unique()
+        unique_errors = self._validate_unique()
         for field_name, error in unique_errors.iteritems():
             errors.setdefault(field_name, error)
         if errors:
