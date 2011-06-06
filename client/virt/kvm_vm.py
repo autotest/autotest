@@ -188,11 +188,23 @@ class VM(virt_vm.BaseVM):
         def add_smp(help, smp):
             return " -smp %s" % smp
 
-        def add_cdrom(help, filename, index=None):
+        def add_cdrom(help, filename, index=None, format=None):
             if has_option(help, "drive"):
+                name = None;
+                dev = "";
+                if format == "ahci":
+                    name = "ahci%s" % index
+                    dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
+                    format = "none"
+                    index = None
                 cmd = " -drive file='%s',media=cdrom" % filename
-                if index is not None: cmd += ",index=%s" % index
-                return cmd
+                if index is not None:
+                    cmd += ",index=%s" % index
+                if format:
+                    cmd += ",if=%s" % format
+                if name:
+                    cmd += ",id=%s" % name
+                return cmd + dev
             else:
                 return " -cdrom '%s'" % filename
 
@@ -469,9 +481,13 @@ class VM(virt_vm.BaseVM):
         for cdrom in params.objects("cdroms"):
             cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
+            if cdrom_params.get("cd_format") == "ahci" and not have_ahci:
+                qemu_cmd += " -device ahci,id=ahci"
+                have_ahci = True
             if iso:
                 qemu_cmd += add_cdrom(help, virt_utils.get_path(root_dir, iso),
-                                      cdrom_params.get("drive_index"))
+                                      cdrom_params.get("drive_index"),
+                                      cdrom_params.get("cd_format"))
 
         # We may want to add {floppy_otps} parameter for -fda
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
