@@ -56,12 +56,17 @@ class NetError(Exception):
 
 
 class TAPModuleError(NetError):
-    def __init__(self, devname):
+    def __init__(self, devname, action="open", details=None):
         NetError.__init__(self, devname)
         self.devname = devname
+        self.details = details
 
     def __str__(self):
-        return "Can't open %s" % self.devname
+        e_msg = "Can't %s %s" % (self.action, self.devname)
+        if self.details is not None:
+            e_msg += " : %s" % self.details
+        return e_msg
+
 
 class TAPNotExistError(NetError):
     def __init__(self, ifname):
