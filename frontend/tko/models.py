@@ -24,7 +24,9 @@ class TempManager(model_logic.ExtendedManager):
 
 
     def _get_group_query_sql(self, query, group_by):
-        sql, params = query.query.as_sql()
+        compiler = query.query.get_compiler(using=query.db)
+        sql, params = compiler.as_sql()
+
 
         # insert GROUP BY clause into query
         group_fields = self._get_field_names(group_by, query.query.extra_select)
@@ -79,7 +81,8 @@ class TempManager(model_logic.ExtendedManager):
         group_fields = self._get_field_names(group_by, query.query.extra_select)
         query = query.order_by() # this can mess up the query and isn't needed
 
-        sql, params = query.query.as_sql()
+        compiler = query.query.get_compiler(using=query.db)
+        sql, params = compiler.as_sql()
         from_ = sql[sql.find(' FROM'):]
         return ('SELECT DISTINCT %s %s' % (','.join(group_fields),
                                                   from_),
