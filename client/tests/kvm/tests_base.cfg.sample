@@ -57,10 +57,13 @@ redirs = remote_shell
 guest_port_remote_shell = 22
 
 # NIC parameters
-nic_mode = user
-#nic_mode = tap
-nic_script = scripts/qemu-ifup
-#nic_script = scripts/qemu-ifup-ipv6
+#nic_mode = user
+nic_mode = tap
+bridge = private
+# You can set bridge to
+# be a specific bridge
+# name, such as 'virbr0'
+#bridge = virbr0
 run_tcpdump = yes
 
 # Misc
@@ -117,7 +120,6 @@ variants:
             # Install guest from cdrom 
             - cdrom:
                 medium = cdrom
-                nic_mode = user
                 redirs += " unattended_install"
             # Install guest from http/ftp url
             - url:
