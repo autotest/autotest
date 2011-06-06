@@ -198,6 +198,13 @@ class VM(virt_vm.BaseVM):
 
         def add_drive(help, filename, index=None, format=None, cache=None,
                       werror=None, serial=None, snapshot=False, boot=False):
+            name = None;
+            dev = "";
+            if format == "ahci":
+                name = "ahci%s" % index
+                dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
+                format = "none"
+                index = None
             cmd = " -drive file='%s'" % filename
             if index is not None:
                 cmd += ",index=%s" % index
@@ -213,7 +220,9 @@ class VM(virt_vm.BaseVM):
                 cmd += ",snapshot=on"
             if boot:
                 cmd += ",boot=on"
-            return cmd
+            if name:
+                cmd += ",id=%s" % name
+            return cmd + dev
 
         def add_nic(help, vlan, model=None, mac=None, device_id=None, netdev_id=None,
                     nic_extra_params=None):
@@ -352,6 +361,8 @@ class VM(virt_vm.BaseVM):
         if root_dir is None:
             root_dir = self.root_dir
 
+        have_ahci = False
+
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
 
@@ -391,6 +402,9 @@ class VM(virt_vm.BaseVM):
             image_params = params.object_params(image_name)
             if image_params.get("boot_drive") == "no":
                 continue
+            if image_params.get("drive_format") == "ahci" and not have_ahci:
+                qemu_cmd += " -device ahci,id=ahci"
+                have_ahci = True
             qemu_cmd += add_drive(help,
                              virt_vm.get_image_filename(image_params, root_dir),
                                   image_params.get("drive_index"),
