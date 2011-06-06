@@ -223,6 +223,12 @@ class VM(virt_vm.BaseVM):
                 dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
                 format = "none"
                 index = None
+            if format == "usb2":
+                name = "usb2.%s" % index
+                dev += " -device usb-storage,bus=ehci.0,drive=%s" % name
+                dev += ",port=%d" % (int(index) + 1)
+                format = "none"
+                index = None
             cmd = " -drive file='%s'" % filename
             if index is not None:
                 cmd += ",index=%s" % index
@@ -424,6 +430,9 @@ class VM(virt_vm.BaseVM):
             if image_params.get("drive_format") == "ahci" and not have_ahci:
                 qemu_cmd += " -device ahci,id=ahci"
                 have_ahci = True
+            if image_params.get("drive_format") == "usb2" and not have_usb2:
+                qemu_cmd += " -device usb-ehci,id=ehci"
+                have_usb2 = True
             qemu_cmd += add_drive(help,
                              virt_vm.get_image_filename(image_params, root_dir),
                                   image_params.get("drive_index"),
