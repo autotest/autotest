@@ -196,6 +196,11 @@ def preprocess(test, params, env):
     @param env: The environment (a dict-like object).
     """
     error.context("preprocessing")
+
+    if params.get("bridge") == "private":
+        brcfg = virt_test_setup.PrivateBridgeConfig(params)
+        brcfg.setup()
+
     # Start tcpdump if it isn't already running
     if "address_cache" not in env:
         env["address_cache"] = {}
@@ -364,6 +369,10 @@ def postprocess(test, params, env):
         process_command(test, params, env, params.get("post_command"),
                         int(params.get("post_command_timeout", "600")),
                         params.get("post_command_noncritical") == "yes")
+
+    if params.get("bridge") == "private":
+        brcfg = virt_test_setup.PrivateBridgeConfig()
+        brcfg.cleanup()
 
 
 def postprocess_on_error(test, params, env):
