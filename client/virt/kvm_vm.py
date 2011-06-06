@@ -197,6 +197,12 @@ class VM(virt_vm.BaseVM):
                     dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
                     format = "none"
                     index = None
+                if format == "usb2":
+                    name = "usb2.%s" % index
+                    dev += " -device usb-storage,bus=ehci.0,drive=%s" % name
+                    dev += ",port=%d" % (int(index) + 1)
+                    format = "none"
+                    index = None
                 cmd = " -drive file='%s',media=cdrom" % filename
                 if index is not None:
                     cmd += ",index=%s" % index
@@ -374,6 +380,7 @@ class VM(virt_vm.BaseVM):
             root_dir = self.root_dir
 
         have_ahci = False
+        have_usb2 = False
 
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
@@ -484,6 +491,9 @@ class VM(virt_vm.BaseVM):
             if cdrom_params.get("cd_format") == "ahci" and not have_ahci:
                 qemu_cmd += " -device ahci,id=ahci"
                 have_ahci = True
+            if cdrom_params.get("cd_format") == "usb2" and not have_usb2:
+                qemu_cmd += " -device usb-ehci,id=ehci"
+                have_usb2 = True
             if iso:
                 qemu_cmd += add_cdrom(help, virt_utils.get_path(root_dir, iso),
                                       cdrom_params.get("drive_index"),
