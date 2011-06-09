@@ -95,6 +95,7 @@ class LoggingConfig(object):
     def _clear_all_handlers(self):
         for handler in list(self.logger.handlers):
             self.logger.removeHandler(handler)
+            handler.close()
 
 
     def configure_logging(self, use_console=True, verbose=False):
