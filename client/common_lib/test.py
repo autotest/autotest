@@ -479,8 +479,8 @@ class base_test(object):
         """
         dargs["profile_only"] = dargs.get("profile_only", False)
         test_basepath = self.outputdir[len(self.job.resultdir + "/"):]
-        self.job.run_test(url, master_testpath=test_basepath,
-                          *args, **dargs)
+        return self.job.run_test(url, master_testpath=test_basepath,
+                                 *args, **dargs)
 
 
 def _get_nonstar_args(func):
