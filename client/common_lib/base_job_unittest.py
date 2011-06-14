@@ -1334,6 +1334,26 @@ class test_job_tags(unittest.TestCase):
         self.assertEqual(expected, actual)
 
 
+    def test_subtest_with_master_test_path_and_subdir(self):
+        self.assertEqual(
+            ('test9', 'subtestdir/test9.subdirtag', 'subdirtag'),
+            self.job._build_tagged_test_name('test9',
+                                             {'master_testpath': 'subtestdir',
+                                              'subdir_tag': 'subdirtag'}))
+
+
+    def test_subtest_all_tag_components_together_subdir(self):
+        self.job.use_sequence_number = True
+        self.job.automatic_test_tag = 'auto'
+        expected = ('test10.tag._01_.auto',
+                    'subtestdir/test10.tag._01_.auto.subdir',
+                    'tag._01_.auto.subdir')
+        actual = self.job._build_tagged_test_name(
+            'test10', {'tag': 'tag', 'subdir_tag': 'subdir',
+                       'master_testpath': 'subtestdir'})
+        self.assertEqual(expected, actual)
+
+
 class test_make_outputdir(unittest.TestCase):
     def setUp(self):
         self.resultdir = tempfile.mkdtemp(suffix='unittest')
