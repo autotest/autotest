@@ -71,7 +71,8 @@ class kvm(test.test):
                     if subtest_dir is None:
                         raise error.TestError("Could not find test file %s.py "
                                               "on either %s or %s directory" %
-                                              subtest_dir_kvm, subtest_dir_virt)
+                                              (t_type, subtest_dir_kvm,
+                                              subtest_dir_virt))
                     # Load the test module
                     f, p, d = imp.find_module(t_type, [subtest_dir])
                     test_module = imp.load_module(t_type, f, p, d)
