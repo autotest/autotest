@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Please keep this code python 2.4 compatible and stand alone.
 
 import logging, os, shutil, sys, tempfile, time, urllib2
@@ -720,35 +718,3 @@ class GwtPackage(ExternalPackage):
         os.rename(extracted_dir, target_dir)
         return True
 
-
-# This requires GWT to already be installed, so it must be declared after
-# GwtPackage
-class GwtIncubatorPackage(ExternalPackage):
-    version = '20101117-r1766'
-    local_filename = 'gwt-incubator-%s.jar' % version
-    symlink_name = 'gwt-incubator.jar'
-    urls = ('http://google-web-toolkit-incubator.googlecode.com/files/'
-            + local_filename,)
-    hex_sum = '3aa16d4c7c00edad4719092669d820a34e10ef0a'
-    module_name = None  # Not a Python module
-
-
-    def is_needed(self, install_dir):
-        gwt_dir = os.path.join(install_dir, GwtPackage.name)
-        return not os.path.exists(os.path.join(gwt_dir, self.local_filename))
-
-
-    def _build_and_install(self, install_dir):
-        dest = os.path.join(install_dir, GwtPackage.name, self.local_filename)
-        shutil.copyfile(self.verified_package, dest)
-
-        symlink_path = os.path.join(
-                install_dir, GwtPackage.name, self.symlink_name)
-        if os.path.exists(symlink_path):
-            os.remove(symlink_path)
-        os.symlink(dest, symlink_path)
-        return True
-
-
-if __name__ == '__main__':
-    sys.exit(main())
