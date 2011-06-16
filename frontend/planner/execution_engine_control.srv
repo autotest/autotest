@@ -1,7 +1,0 @@
-from autotest_lib.frontend.planner import execution_engine
-
-engine = execution_engine.ExecutionEngine(plan_id=%(plan_id)d,
-                                          server='%(server)s',
-                                          label_name='%(label_name)s',
-                                          owner='%(owner)s')
-engine.start()
