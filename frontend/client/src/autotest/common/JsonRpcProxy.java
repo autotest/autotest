@@ -16,7 +16,6 @@ import java.util.Set;
 public abstract class JsonRpcProxy {
     public static final String AFE_BASE_URL = "/afe/server/";
     public static final String TKO_BASE_URL = "/new_tko/server/";
-    public static final String PLANNER_BASE_URL = "/planner/server/";
     private static final String RPC_URL_SUFFIX = "rpc/";
     private static final String JSON_RPC_URL_SUFFIX = "jsonp_rpc/";
 

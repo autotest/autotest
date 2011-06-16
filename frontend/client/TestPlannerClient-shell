@@ -1,4 +1,0 @@
-#!/bin/sh
-APPDIR=`dirname $0`;
-GWTDIR=`$APPDIR/gwt_dir`;
-java  -cp "$APPDIR/src:$APPDIR/bin:$GWTDIR/gwt-user.jar:$GWTDIR/gwt-dev-linux.jar:$GWTDIR/gwt-incubator.jar" com.google.gwt.dev.HostedMode -ea -startupUrl http://localhost:8000/afe/server/autotest.TestPlannerClient/TestPlannerClient.html "$@" autotest.TestPlannerClient
