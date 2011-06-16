@@ -25,7 +25,7 @@ RewriteRule /media(.*) /usr/lib/python2.6/site-packages/django/contrib/admin/med
 RewriteCond /usr/lib/python2.7/site-packages/django/contrib/admin/media -d
 RewriteRule /media(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/media$1
 
-<Location ~ "/(afe|new_tko|planner)/server">
+<Location ~ "/(afe|new_tko)/server">
     SetHandler python-program
     PythonHandler django.core.handlers.modpython
     SetEnv DJANGO_SETTINGS_MODULE frontend.settings
