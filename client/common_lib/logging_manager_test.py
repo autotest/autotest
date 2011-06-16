@@ -258,8 +258,8 @@ class MonkeyPatchTestCase(unittest.TestCase):
 
     def check_filename(self, filename, expected=None):
         if expected is None:
-            expected = self.expected_filename
-        self.assertEquals(expected, os.path.split(filename)[1])
+            expected = [self.expected_filename]
+        self.assertIn(os.path.split(filename)[1], expected)
 
 
     def _0_test_find_caller(self):
@@ -280,7 +280,9 @@ class MonkeyPatchTestCase(unittest.TestCase):
     def _0_test_non_reported_find_caller(self):
         finder = logging_manager._logging_manager_aware_logger__find_caller
         filename, lineno, caller_name = finder(logging_manager.logger)
-        self.check_filename(filename, expected='unittest.py')
+        # Python 2.4 unittest implementation will call the unittest method in
+        # file 'unittest.py', and Python >= 2.6 does the same in 'case.py'
+        self.check_filename(filename, expected=['unittest.py', 'case.py'])
 
 
     def _1_test_non_reported_find_caller(self):
