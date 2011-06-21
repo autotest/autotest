@@ -7,13 +7,8 @@ from autotest_lib.client.common_lib import base_job, log, error, autotemp
 from autotest_lib.client.common_lib import global_config, packages
 from autotest_lib.client.common_lib import utils as client_utils
 
-AUTOTEST_SVN  = 'svn://test.kernel.org/autotest/trunk/client'
+AUTOTEST_SVN = 'svn://test.kernel.org/autotest/trunk/client'
 AUTOTEST_HTTP = 'http://test.kernel.org/svn/autotest/trunk/client'
-
-# Timeouts for powering down and up respectively
-HALT_TIME = 300
-BOOT_TIME = 1800
-CRASH_RECOVERY_TIME = 9000
 
 
 get_value = global_config.global_config.get_config_value
@@ -37,7 +32,7 @@ class BaseAutotest(installable_object.InstallableObject):
     implement the unimplemented methods in parent classes.
     """
 
-    def __init__(self, host = None):
+    def __init__(self, host=None):
         self.host = host
         self.got = False
         self.installed = False
@@ -223,7 +218,7 @@ class BaseAutotest(installable_object.InstallableObject):
             except (error.PackageInstallError, error.AutoservRunError,
                     global_config.ConfigError), e:
                 logging.info("Could not install autotest using the packaging "
-                             "system: %s. Trying other methods",  e)
+                             "system: %s. Trying other methods", e)
 
         # try to install from file or directory
         if self.source_material:
@@ -272,7 +267,7 @@ class BaseAutotest(installable_object.InstallableObject):
         self.installed = False
 
 
-    def get(self, location = None):
+    def get(self, location=None):
         if not location:
             location = os.path.join(self.serverdir, '../client')
             location = os.path.abspath(location)
@@ -290,7 +285,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
     def run(self, control_file, results_dir='.', host=None, timeout=None,
             tag=None, parallel_flag=False, background=False,
-            client_disconnect_timeout=1800):
+            client_disconnect_timeout=None):
         """
         Run an autotest job on the remote machine.
 
@@ -307,13 +302,17 @@ class BaseAutotest(installable_object.InstallableObject):
                 a background job; the code calling run will be responsible
                 for monitoring the client and collecting the results.
         @param client_disconnect_timeout: Seconds to wait for the remote host
-                to come back after a reboot.  [default: 30 minutes]
+                to come back after a reboot. Defaults to the host setting for
+                DEFAULT_REBOOT_TIMEOUT.
 
         @raises AutotestRunError: If there is a problem executing
                 the control file.
         """
         host = self._get_host_and_setup(host)
         results_dir = os.path.abspath(results_dir)
+
+        if client_disconnect_timeout is None:
+            client_disconnect_timeout = host.DEFAULT_REBOOT_TIMEOUT
 
         if tag:
             results_dir = os.path.join(results_dir, tag)
@@ -700,12 +699,13 @@ class _BaseRun(object):
     def _wait_for_reboot(self, old_boot_id):
         logging.info("Client is rebooting")
         logging.info("Waiting for client to halt")
-        if not self.host.wait_down(HALT_TIME, old_boot_id=old_boot_id):
+        if not self.host.wait_down(self.host.WAIT_DOWN_REBOOT_TIMEOUT,
+                                   old_boot_id=old_boot_id):
             err = "%s failed to shutdown after %d"
-            err %= (self.host.hostname, HALT_TIME)
+            err %= (self.host.hostname, self.host.WAIT_DOWN_REBOOT_TIMEOUT)
             raise error.AutotestRunError(err)
         logging.info("Client down, waiting for restart")
-        if not self.host.wait_up(BOOT_TIME):
+        if not self.host.wait_up(self.host.DEFAULT_REBOOT_TIMEOUT):
             # since reboot failed
             # hardreset the machine once if possible
             # before failing this control file
@@ -719,7 +719,8 @@ class _BaseRun(object):
                 warning %= self.host.hostname
                 logging.warning(warning)
             raise error.AutotestRunError("%s failed to boot after %ds" %
-                                         (self.host.hostname, BOOT_TIME))
+                                         (self.host.hostname,
+                                          self.host.DEFAULT_REBOOT_TIMEOUT))
         self.host.reboot_followup()
 
 
@@ -765,7 +766,7 @@ class _BaseRun(object):
                 self.log_unexpected_abort(logger)
 
                 # give the client machine a chance to recover from a crash
-                self.host.wait_up(CRASH_RECOVERY_TIME)
+                self.host.wait_up(self.host.HOURS_TO_WAIT_FOR_RECOVERY * 3600)
                 msg = ("Aborting - unexpected final status message from "
                        "client on %s: %s\n") % (self.host.hostname, last)
                 raise error.AutotestRunError(msg)
