@@ -246,7 +246,7 @@ def matrix_to_string(matrix, header=None):
             lengths.append(len(column))
     for row in matrix:
         for i, column in enumerate(row):
-            column = str(column)
+            column = unicode(column).encode("utf-8")
             cl = len(column)
             try:
                 ml = lengths[i]
