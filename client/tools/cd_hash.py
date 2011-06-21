@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser = optparse.OptionParser("usage: %prog [options] [filenames]")
     options, args = parser.parse_args()
 
-    logging_manager.configure_logging(virt_utils.KvmLoggingConfig())
+    logging_manager.configure_logging(virt_utils.VirtLoggingConfig())
 
     if args:
         filenames = args
