@@ -10,8 +10,8 @@ enable_master_ssh = get_value('AUTOSERV', 'enable_master_ssh', type=bool,
                               default=False)
 
 
-def make_ssh_command(user="root", port=22, opts='', hosts_file='/dev/null',
-                     connect_timeout=30, alive_interval=300):
+def _make_ssh_cmd_default(user="root", port=22, opts='', hosts_file='/dev/null',
+                          connect_timeout=30, alive_interval=300):
     base_command = ("/usr/bin/ssh -a -x %s -o StrictHostKeyChecking=no "
                     "-o UserKnownHostsFile=%s -o BatchMode=yes "
                     "-o ConnectTimeout=%d -o ServerAliveInterval=%d "
@@ -20,6 +20,11 @@ def make_ssh_command(user="root", port=22, opts='', hosts_file='/dev/null',
     assert connect_timeout > 0 # can't disable the timeout
     return base_command % (opts, hosts_file, connect_timeout,
                            alive_interval, user, port)
+
+
+make_ssh_command = utils.import_site_function(
+    __file__, "autotest_lib.server.hosts.site_host", "make_ssh_command",
+    _make_ssh_cmd_default)
 
 
 # import site specific Host class
