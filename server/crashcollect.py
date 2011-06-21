@@ -1,5 +1,6 @@
 import os, time, pickle, logging, shutil
 
+from autotest_lib.client.common_lib import global_config
 from autotest_lib.server import utils
 
 
@@ -33,7 +34,12 @@ def get_crashinfo(host, test_start_time):
         collect_uncollected_logs(host)
 
 
-def wait_for_machine_to_recover(host, hours_to_wait=4.0):
+# Load default for number of hours to wait before giving up on crash collection.
+HOURS_TO_WAIT = global_config.global_config.get_config_value(
+    'SERVER', 'crash_collection_hours_to_wait', type=float, default=4.0)
+
+
+def wait_for_machine_to_recover(host, hours_to_wait=HOURS_TO_WAIT):
     """Wait for a machine (possibly down) to become accessible again.
 
     @param host: A RemoteHost instance to wait on
