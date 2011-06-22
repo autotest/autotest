@@ -80,13 +80,6 @@ if __name__ == "__main__":
         else:
             logging.debug("Dir %s exists, not creating" %
                           sub_dir_path)
-    answer = utils.ask("Do you want to setup NFS mounts for some of those "
-                       "dirs?")
-    if answer == 'y':
-        logging.info("Exiting the script so you can setup the NFS mounts. "
-                     "When you are done, re-run this script.")
-        sys.exit(0)
-
     logging.info("")
     logging.info("2 - Creating config files from samples (copy the default "
                  "config samples to actual config files)")
