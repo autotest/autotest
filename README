@@ -1,4 +1,5 @@
-= Autotest: Fully automated tests under the linux platform =
+Autotest: Fully automated tests under the linux platform
+--------------------------------------------------------
 
 Autotest is a framework for fully automated testing. It is designed primarily to
 test the Linux kernel, though it is useful for many other functions such as
@@ -39,13 +40,17 @@ test results
 * Autotest command line interface: Alternatively, users also can use the
 autotest CLI, written in python
 
-== Getting started with autotest client ==
+
+Getting started with autotest client
+------------------------------------
 
 For the impatient:
 
 http://autotest.kernel.org/wiki/QuickStart
 
-== Check out the main project documentation source ==
+
+Check out the main project documentation source
+-----------------------------------------------
 
 You can find plenty of information on the autotest wiki
 
@@ -59,15 +64,21 @@ Links to an online view of the version control system
 
 http://autotest.kernel.org/browser
 
-== Grabbing the latest source ==
+
+Grabbing the latest source
+--------------------------
 
 http://autotest.kernel.org/wiki/DownloadSource
 
-== Hacking and submitting patches ==
+
+Hacking and submitting patches
+------------------------------
 
 http://autotest.kernel.org/wiki/SubmissionChecklist
 
-== Downloading stable versions ==
+
+Downloading stable versions
+---------------------------
 
 http://autotest.kernel.org/wiki/Download
 
