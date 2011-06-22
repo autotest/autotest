@@ -8,7 +8,7 @@ import common
 # django.conf.settings.LazySettings is buggy and requires us to get something
 # from it before we set stuff on it.
 getattr(settings, 'DATABASE_ENGINE')
-settings.DATABASE_ENGINE = 'sqlite3'
+settings.DATABASE_ENGINE = 'autotest_lib.frontend.db.backends.afe_sqlite'
 settings.DATABASE_NAME = ':memory:'
 
 from django.db import connection
