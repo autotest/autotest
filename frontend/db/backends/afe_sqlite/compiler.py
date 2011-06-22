@@ -30,4 +30,3 @@ class SQLAggregateCompiler(compiler.SQLAggregateCompiler, SQLCompiler):
 
 class SQLDateCompiler(compiler.SQLDateCompiler, SQLCompiler):
     pass
-

@@ -717,4 +717,3 @@ class GwtPackage(ExternalPackage):
             shutil.rmtree(target_dir)
         os.rename(extracted_dir, target_dir)
         return True
-

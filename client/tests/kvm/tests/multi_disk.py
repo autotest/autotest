@@ -109,4 +109,3 @@ def run_multi_disk(test, params, env):
             cmd = params.get("post_cmd")
             session.cmd(cmd)
         session.close()
-
