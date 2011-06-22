@@ -12,7 +12,15 @@ _GLOBAL_CONFIG_NAMES = {
 
 def _copy_exceptions(source, destination):
     for exception_name in _DB_EXCEPTIONS:
-        setattr(destination, exception_name, getattr(source, exception_name))
+        try:
+            setattr(destination, exception_name,
+                    getattr(source, exception_name))
+        except AttributeError:
+            # Under the django backend:
+            # Django 1.3 does not have OperationalError and ProgrammingError.
+            # Let's just mock these classes with the base DatabaseError.
+            setattr(destination, exception_name,
+                    getattr(source, 'DatabaseError'))
 
 
 class _GenericBackend(object):
@@ -102,7 +110,8 @@ class _SqliteBackend(_GenericBackend):
 class _DjangoBackend(_GenericBackend):
     def __init__(self):
         from django.db import backend, connection, transaction
-        super(_DjangoBackend, self).__init__(backend.Database)
+        import django.db as django_db
+        super(_DjangoBackend, self).__init__(django_db)
         self._django_connection = connection
         self._django_transaction = transaction
 
