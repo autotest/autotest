@@ -148,7 +148,7 @@ class ExtendedManager(dbmodels.Manager):
             self._values = values
 
 
-        def as_sql(self, qn=None):
+        def as_sql(self, qn=None, connection=None):
             return self._clause, self._values
 
 
@@ -222,11 +222,13 @@ class ExtendedManager(dbmodels.Manager):
         info['lhs_column'] = field.rel.get_related_field().column
         rhs_where = join_to_query.query.where
         rhs_where.relabel_aliases({rhs_table: alias})
-        initial_clause, values = rhs_where.as_sql()
-        all_clauses = (initial_clause,) + join_to_query.query.extra_where
-        info['where_clause'] = ' AND '.join('(%s)' % clause
-                                            for clause in all_clauses)
-        values += join_to_query.query.extra_params
+        compiler = join_to_query.query.get_compiler(using=join_to_query.db)
+        initial_clause, values = compiler.as_sql()
+        all_clauses = (initial_clause,)
+        if hasattr(join_to_query.query, 'extra_where'):
+            all_clauses += join_to_query.query.extra_where
+        info['where_clause'] = (
+                    ' AND '.join('(%s)' % clause for clause in all_clauses))
         info['values'] = values
         return info
 
@@ -349,7 +351,8 @@ class ExtendedManager(dbmodels.Manager):
 
 
     def _custom_select_query(self, query_set, selects):
-        sql, params = query_set.query.as_sql()
+        compiler = query_set.query.get_compiler(using=query_set.db)
+        sql, params = compiler.as_sql()
         from_ = sql[sql.find(' FROM'):]
 
         if query_set.query.distinct:
@@ -1057,6 +1060,7 @@ class ModelWithInvalid(ModelExtensions):
 
 
     def delete(self):
+        self.invalid = self.invalid
         assert not self.invalid
         self.invalid = True
         self.save()
@@ -1093,7 +1097,7 @@ class ModelWithAttributes(object):
         is a dict of args to pass to attribute_model.objects.get() to get an
         instance of the given attribute on this object.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
     def set_attribute(self, attribute, value):
