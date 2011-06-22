@@ -2527,4 +2527,3 @@ def if_set_macaddress(ifname, mac):
         logging.info(e)
         raise HwAddrSetError(ifname, mac)
     ctrl_sock.close()
-
