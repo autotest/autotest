@@ -109,7 +109,10 @@ class ExternalPackage(object):
         self.installed_version = self._get_installed_version_from_module(module)
         logging.info('imported %s version %s.', self.module_name,
                      self.installed_version)
-        return self.version > self.installed_version
+        if hasattr(self, 'minimum_version'):
+            return self.minimum_version > self.installed_version
+        else:
+            return self.version > self.installed_version
 
 
     def _get_installed_version_from_module(self, module):
@@ -476,6 +479,9 @@ class SetuptoolsPackage(ExternalPackage):
     # For all known setuptools releases a string compare works for the
     # version string.  Hopefully they never release a 0.10.  (Their own
     # version comparison code would break if they did.)
+    # Any system with setuptools > 0.6 is fine. If none installed, then
+    # try to install the latest found on the upstream.
+    minimum_version = '0.6'
     version = '0.6c11'
     urls = ('http://pypi.python.org/packages/source/s/setuptools/'
             'setuptools-%s.tar.gz' % (version,),)
