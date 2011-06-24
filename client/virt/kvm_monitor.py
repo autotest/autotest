@@ -82,11 +82,7 @@ class Monitor:
     def __del__(self):
         # Automatically close the connection when the instance is garbage
         # collected
-        try:
-            self._socket.shutdown(socket.SHUT_RDWR)
-        except socket.error:
-            pass
-        self._socket.close()
+        self._close_sock()
 
 
     # The following two functions are defined to make sure the state is set
@@ -105,6 +101,13 @@ class Monitor:
         # constructor upon unpickling
         return self.name, self.filename, True
 
+
+    def _close_sock(self):
+        try:
+            self._socket.shutdown(socket.SHUT_RDWR)
+        except socket.error:
+            pass
+        self._socket.close()
 
     def _acquire_lock(self, timeout=20):
         end_time = time.time() + timeout
@@ -171,6 +174,7 @@ class HumanMonitor(Monitor):
             # Find the initial (qemu) prompt
             s, o = self._read_up_to_qemu_prompt(20)
             if not s:
+                self._close_sock()
                 raise MonitorProtocolError("Could not find (qemu) prompt "
                                            "after connecting to monitor. "
                                            "Output so far: %r" % o)
@@ -179,6 +183,7 @@ class HumanMonitor(Monitor):
             self._help_str = self.cmd("help", debug=False)
 
         except MonitorError, e:
+            self._close_sock()
             if suppress_exceptions:
                 logging.warn(e)
             else:
@@ -427,6 +432,7 @@ class QMPMonitor(Monitor):
             try:
                 json
             except NameError:
+                self._close_sock()
                 raise MonitorNotSupportedError("QMP requires the json module "
                                                "(Python 2.6 and up)")
 
@@ -441,12 +447,14 @@ class QMPMonitor(Monitor):
                     break
                 time.sleep(0.1)
             else:
+                self._close_sock()
                 raise MonitorProtocolError("No QMP greeting message received")
 
             # Issue qmp_capabilities
             self.cmd("qmp_capabilities")
 
         except MonitorError, e:
+            self._close_sock()
             if suppress_exceptions:
                 logging.warn(e)
             else:
