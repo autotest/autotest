@@ -251,7 +251,7 @@ class status_line(object):
     def parse_line(cls, line):
         if not status_line.is_status_line(line):
             return None
-        match = re.search(r"^(\t*)(.*)$", line)
+        match = re.search(r"^(\t*)(.*)$", line, flags=re.DOTALL)
         if not match:
             # A more useful error message than:
             #  AttributeError: 'NoneType' object has no attribute 'groups'
@@ -261,15 +261,23 @@ class status_line(object):
         indent = len(indent)
 
         # split the line into the fixed and optional fields
-        parts = line.split("\t")
-        status, subdir, testname = parts[0:3]
-        reason = parts[-1]
-        optional_parts = parts[3:-1]
+        parts = line.rstrip("\n").split("\t")
 
-        # all the optional parts should be of the form "key=value"
-        assert sum('=' not in part for part in optional_parts) == 0
-        optional_fields = dict(part.split("=", 1)
-                               for part in optional_parts)
+        part_index = 3
+        status, subdir, testname = parts[0:part_index]
+
+        # all optional parts should be of the form "key=value". once we've found
+        # a non-matching part, treat it and the rest of the parts as the reason.
+        optional_fields = {}
+        while part_index < len(parts):
+            kv = parts[part_index].split('=', 1)
+            if len(kv) < 2:
+                break
+
+            optional_fields[kv[0]] = kv[1]
+            part_index += 1
+
+        reason = "\t".join(parts[part_index:])
 
         # build up a new status_line and return it
         return cls(indent, status, subdir, testname, reason,
