@@ -230,6 +230,20 @@ class test_status_line(unittest.TestCase):
                                "field2": "val2"})
 
 
+    def test_parse_line_handles_embedded_new_lines(self):
+        input_data = ("\tEND FAIL\t----\ttest\tfield1=val1\tStatus\nwith\n"
+                      "embedded\nnew lines\n")
+
+        line = version_0.status_line.parse_line(input_data)
+        self.assertEquals(line.indent, 1)
+        self.assertEquals(line.type, "END")
+        self.assertEquals(line.status, "FAIL")
+        self.assertEquals(line.subdir, None)
+        self.assertEquals(line.testname, "test")
+        self.assertEquals(line.reason, "Status\nwith\nembedded\nnew lines")
+        self.assertEquals(line.optional_fields, {"field1": "val1"})
+
+
     def test_parse_line_fails_on_untabbed_lines(self):
         input_data = "   GOOD\trandom\tfields\tof text"
         line = version_0.status_line.parse_line(input_data)
@@ -259,11 +273,19 @@ class test_status_line(unittest.TestCase):
         self.assertEquals(line.optional_fields, {})
 
 
-    def test_parse_line_fails_on_bad_optional_fields(self):
-        input_data = "GOOD\tfield1\tfield2\tfield3\tfield4"
-        self.assertRaises(AssertionError,
-                          version_0.status_line.parse_line,
-                          input_data)
+    def test_parse_line_handles_tabs_in_reason(self):
+        input_data = ("\tEND FAIL\t----\ttest\tfield1=val1\tfield2=val2\tReason"
+                      " with\ta\tcouple\ttabs")
+
+        line = version_0.status_line.parse_line(input_data)
+        self.assertEquals(line.indent, 1)
+        self.assertEquals(line.type, "END")
+        self.assertEquals(line.status, "FAIL")
+        self.assertEquals(line.subdir, None)
+        self.assertEquals(line.testname, "test")
+        self.assertEquals(line.reason, "Reason with\ta\tcouple\ttabs")
+        self.assertEquals(line.optional_fields, {"field1": "val1",
+                                                 "field2": "val2"})
 
 
 if __name__ == "__main__":
