@@ -136,13 +136,6 @@ class test_status_line(unittest.TestCase):
         self.assertEquals(line.optional_fields, {})
 
 
-    def test_parse_line_fails_on_bad_optional_fields(self):
-        input_data = "GOOD\tfield1\tfield2\tfield3\tfield4"
-        self.assertRaises(AssertionError,
-                          version_1.status_line.parse_line,
-                          input_data)
-
-
     def test_good_reboot_passes_success_test(self):
         line = version_1.status_line(0, "NOSTATUS", None, "reboot",
                                      "reboot success", {})
