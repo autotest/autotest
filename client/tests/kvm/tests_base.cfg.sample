@@ -1047,6 +1047,21 @@ variants:
         # clean the state file?
         clean_save = yes
 
+    - trans_hugepage: install setup unattended_install.cdrom
+        thp_test_config = ""
+        kill_vm = yes
+        login_timeout = 360
+        variants:
+            - base:
+                type = trans_hugepage
+                dd_timeout = 900
+            - defrag:
+                type = trans_hugepage_defrag
+            - swapping:
+                type = trans_hugepage_swapping
+                dd_timeout = 900
+                check_cmd_timeout = 900
+
     # system_powerdown, system_reset and shutdown *must* be the last ones
     # defined (in this order), since the effect of such tests can leave
     # the VM on a bad state.
