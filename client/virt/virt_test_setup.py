@@ -1,9 +1,193 @@
 """
 Library to perform pre/post test setup for KVM autotest.
 """
-import os, logging
+import os, logging, time, re, sre, random
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
+
+
+class THPError(Exception):
+    """
+    Base exception for Transparent Hugepage setup.
+    """
+    pass
+
+
+class THPNotSupportedError(THPError):
+    """
+    Thrown when host does not support tansparent hugepages.
+    """
+    pass
+
+
+class THPWriteConfigError(THPError):
+    """
+    Thrown when host does not support tansparent hugepages.
+    """
+    pass
+
+
+class THPKhugepagedError(THPError):
+    """
+    Thrown when khugepaged is not behaving as expected.
+    """
+    pass
+
+
+class TransparentHugePageConfig(object):
+    def __init__(self, test, params):
+        """
+        Find paths for transparent hugepages and kugepaged configuration. Also,
+        back up original host configuration so it can be restored during
+        cleanup.
+        """
+        self.params = params
+
+        RH_THP_PATH = "/sys/kernel/mm/redhat_transparent_hugepage"
+        UPSTREAM_THP_PATH = "/sys/kernel/mm/transparent_hugepage"
+        if os.path.isdir(RH_THP_PATH):
+            self.thp_path = RH_THP_PATH
+        elif os.path.isdir(UPSTREAM_THP_PATH):
+            self.thp_path = UPSTREAM_THP_PATH
+        else:
+            raise THPNotSupportedError("System doesn't support transparent "
+                                       "hugepages")
+
+        tmp_list = []
+        test_cfg = {}
+        test_config = self.params.get("test_config", None)
+        if test_config is not None:
+            tmp_list = re.split(';', test_config)
+        while len(tmp_list) > 0:
+            tmp_cfg = tmp_list.pop()
+            test_cfg[re.split(":", tmp_cfg)[0]] = sre.split(":", tmp_cfg)[1]
+        # Save host current config, so we can restore it during cleanup
+        # We will only save the writeable part of the config files
+        original_config = {}
+        # List of files that contain string config values
+        self.file_list_str = []
+        # List of files that contain integer config values
+        self.file_list_num = []
+        for f in os.walk(self.thp_path):
+            base_dir = f[0]
+            if f[2]:
+                for name in f[2]:
+                    f_dir = os.path.join(base_dir, name)
+                    parameter = file(f_dir, 'r').read()
+                    try:
+                        # Verify if the path in question is writable
+                        f = open(f_dir, 'w')
+                        f.close()
+                        if re.findall("\[(.*)\]", parameter):
+                            original_config[f_dir] = re.findall("\[(.*)\]",
+                                                           parameter)[0]
+                            self.file_list_str.append(f_dir)
+                        else:
+                            original_config[f_dir] = int(parameter)
+                            self.file_list_num.append(f_dir)
+                    except IOError:
+                        pass
+
+        self.test_config = test_cfg
+        self.original_config = original_config
+
+
+    def set_env(self):
+        """
+        Applies test configuration on the host.
+        """
+        if self.test_config:
+            for path in self.test_config.keys():
+                file(path, 'w').write(self.test_config[path])
+
+
+    def value_listed(self, value):
+        """
+        Get a parameters list from a string
+        """
+        value_list = []
+        for i in re.split("\[|\]|\n+|\s+", value):
+            if i:
+                value_list.append(i)
+        return value_list
+
+
+    def khugepaged_test(self):
+        """
+        Start, stop and frequency change test for khugepaged.
+        """
+        def check_status_with_value(action_list, file_name):
+            """
+            Check the status of khugepaged when set value to specify file.
+            """
+            for (a, r) in action_list:
+                open(file_name, "w").write(a)
+                time.sleep(5)
+                try:
+                    utils.run('pgrep khugepaged')
+                    if r != 0:
+                        raise THPKhugepagedError("Khugepaged still alive when"
+                                                 "transparent huge page is "
+                                                 "disabled")
+                except error.CmdError:
+                    if r == 0:
+                        raise THPKhugepagedError("Khugepaged could not be set to"
+                                                 "status %s" % a)
+
+
+        for file_path in self.file_list_str:
+            action_list = []
+            if re.findall("enabled", file_path):
+                # Start and stop test for khugepaged
+                value_list = self.value_listed(open(file_path,"r").read())
+                for i in value_list:
+                    if re.match("n", i, re.I):
+                        action_stop = (i, 256)
+                for i in value_list:
+                    if re.match("[^n]", i, re.I):
+                        action = (i, 0)
+                        action_list += [action_stop, action, action_stop]
+                action_list += [action]
+
+                check_status_with_value(action_list, file_path)
+            else:
+                value_list = self.value_listed(open(file_path,"r").read())
+                for i in value_list:
+                    action = (i, 0)
+                    action_list.append(action)
+                check_status_with_value(action_list, file_path)
+
+        for file_path in self.file_list_num:
+            action_list = []
+            value = int(open(file_path, "r").read())
+            if value != 0 and value != 1:
+                new_value = random.random()
+                action_list.append((str(int(value * new_value)),0))
+                action_list.append((str(int(value * ( new_value + 1))),0))
+            else:
+                action_list.append(("0", 0))
+                action_list.append(("1", 0))
+
+            check_status_with_value(action_list, file_path)
+
+
+    def setup(self):
+        """
+        Configure host for testing. Also, check that khugepaged is working as
+        expected.
+        """
+        self.set_env()
+        self.khugepaged_test()
+
+
+    def cleanup(self):
+        """:
+        Restore the host's original configuration after test
+        """
+        for path in self.original_config:
+            p_file = open(path, 'w')
+            p_file.write(str(self.original_config[path]))
+            p_file.close()
 
 
 class HugePageConfig(object):
