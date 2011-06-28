@@ -655,6 +655,20 @@ class GitInstaller(SourceDirInstaller):
                              'make sync LINUX=%s' % self.kernel.srcdir,
                              'make']
 
+        self.spice_protocol = GitRepo(installer=self, prefix='spice_protocol',
+            srcdir='spice-protocol',
+            build_steps= ['./autogen.sh',
+                          './configure --prefix=%s' % self.prefix,
+                          'make clean',
+                          'make -j %s' % (make_jobs),
+                          'make install'])
+
+        self.spice = GitRepo(installer=self, prefix='spice', srcdir='spice',
+            build_steps= ['PKG_CONFIG_PATH="%s/lib/pkgconfig:%s/share/pkgconfig" CXXFLAGS=-Wl,--add-needed ./autogen.sh --prefix=%s' % (self.prefix, self.prefix, self.prefix),
+                          'make clean',
+                          'make -j %s' % (make_jobs),
+                          'make install'])
+
         self.userspace = GitRepo(installer=self, prefix='user',
             repo_param='user_git_repo', srcdir='kvm_userspace')
 
@@ -674,8 +688,7 @@ class GitInstaller(SourceDirInstaller):
             logging.error(message)
             raise error.TestError(message)
 
-        for repo in [self.userspace, self.kernel, self.kmod,
-                     self.spice_protocol, self.spice]:
+        for repo in [self.userspace, self.kernel, self.kmod, self.spice_protocol, self.spice]:
             if not repo.repo:
                 continue
             repo.fetch_and_patch()
@@ -688,6 +701,13 @@ class GitInstaller(SourceDirInstaller):
             logging.info('Building KVM modules')
             self.kernel.build()
 
+        if self.spice_protocol.repo:
+            logging.info('Building Spice-protocol')
+            self.spice_protocol.build()
+
+        if self.spice.repo:
+            logging.info('Building Spice')
+            self.spice.build()
 
         logging.info('Building KVM userspace code')
         self.userspace.build()
