@@ -73,11 +73,21 @@ variants:
                 # user_lbranch = user_lbranch_name
                 # user_commit = user_commit_name
                 # user_patches = ['http://foo.com/patch1', 'http://foo.com/patch2']
+                ## This is how you pass extra params to the userspace configure script
+                # extra_configure_options = '--enable-spice --disable-werror'
                 # kmod_repo = git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git
                 # kmod_branch = kmod_branch_name
                 # kmod_lbranch = kmod_lbranch_name
                 # kmod_commit = kmod_commit_name
                 # kmod_patches = ['http://foo.com/patch1', 'http://foo.com/patch2']
+                # spice_repo = git://anongit.freedesktop.org/spice/spice
+                # spice_branch = master
+                # spice_lbranch = master
+                # spice_patches = []
+                # spice_protocol_repo = git://anongit.freedesktop.org/spice/spice-protocol
+                # spice_protocol_branch = master
+                # spice_protocol_lbranch = master
+                # spice_protocol_patches = []
                 # In some cases, you might want to provide a ROM dir, so ROM
                 # files can be copied from there to your source based install
                 # path_to_rom_images = /usr/share/kvm
