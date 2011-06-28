@@ -1421,6 +1421,31 @@ variants:
                             md5sum_cd1 = f2ebf941dc45f99ee3e8a457c9544552
                             md5sum_1m_cd1 = df029f9cffbc3517937a91124a1e0c3a
 
+                    - 15.32:
+                        image_name = f15-32
+                        unattended_install:
+                            unattended_file = unattended/Fedora-15.ks
+                            #floppy = images/f15-32/ks.vfd
+                            cdrom_unattended = images/f15-32/ks.iso
+                            kernel = images/f15-32/vmlinuz
+                            initrd = images/f15-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/Fedora-15-i386-DVD.iso
+                            md5sum_cd1 = 9a91492ac84dde9ceff0cb346a079487
+                            md5sum_1m_cd1 = 82a6005e8b7740628c6e53eef92f6bc1
+
+                    - 15.64:
+                        image_name = f15-64
+                        unattended_install:
+                            unattended_file = unattended/Fedora-15.ks
+                            #floppy = images/f15-64/ks.vfd
+                            cdrom_unattended = images/f15-64/ks.iso
+                            kernel = images/f15-64/vmlinuz
+                            initrd = images/f15-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/Fedora-15-x86_64-DVD.iso
+                            md5sum_cd1 = c122a2a4f478da4a3d2d12396e84244e
+                            md5sum_1m_cd1 = c02f37e293bbc85be02a7c850a61273a
 
 
             - DSL-4.2.5:
