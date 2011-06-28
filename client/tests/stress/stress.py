@@ -11,14 +11,14 @@ class stress(test.test):
     In order to verify at a glance the options supported by the program stress,
     check out the options summary located at the stress example control file.
     """
-    version = 1
+    version = 2
 
     def initialize(self):
         self.job.require_gcc()
 
 
-    # http://weather.ou.edu/~apw/projects/stress/stress-1.0.0.tar.gz
-    def setup(self, tarball = 'stress-1.0.0.tar.gz'):
+    # http://weather.ou.edu/~apw/projects/stress/stress-1.0.4.tar.gz
+    def setup(self, tarball = 'stress-1.0.4.tar.gz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
