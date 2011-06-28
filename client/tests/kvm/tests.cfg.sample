@@ -50,8 +50,8 @@ variants:
         # Subtest choice. You can modify that line to add more subtests
         only unattended_install.cdrom, boot, shutdown
 
-    # Runs qemu, f14 64 bit guest OS, install, boot, shutdown
-    - @qemu_f14_quick:
+    # Runs qemu, f15 64 bit guest OS, install, boot, shutdown
+    - @qemu_f15_quick:
         # We want qemu for this run
         qemu_binary = /usr/bin/qemu
         qemu_img_binary = /usr/bin/qemu-img
@@ -63,13 +63,13 @@ variants:
         only up
         only no_pci_assignable
         only smallpages
-        only Fedora.14.64
+        only Fedora.15.64
         only unattended_install.cdrom, boot, shutdown
         # qemu needs -enable-kvm on the cmdline
         extra_params += ' -enable-kvm'
 
-    # Runs qemu-kvm, f14 64 bit guest OS, install, boot, shutdown
-    - @qemu_kvm_f14_quick:
+    # Runs qemu-kvm, f15 64 bit guest OS, install, boot, shutdown
+    - @qemu_kvm_f15_quick:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
@@ -79,7 +79,7 @@ variants:
         only smp2
         only no_pci_assignable
         only smallpages
-        only Fedora.14.64
+        only Fedora.15.64
         only unattended_install.cdrom, boot, shutdown
 
 # You may provide information about the DTM server for WHQL tests here:
@@ -96,4 +96,4 @@ variants:
 #kill_unresponsive_vms.* ?= no
 
 # Choose your test list from the testsets defined
-only qemu_kvm_f14_quick
+only qemu_kvm_f15_quick
