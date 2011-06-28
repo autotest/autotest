@@ -403,6 +403,11 @@ class VM(virt_vm.BaseVM):
         # Set the X11 display parameter if requested
         if params.get("x11_display"):
             qemu_cmd += "DISPLAY=%s " % params.get("x11_display")
+        # Update LD_LIBRARY_PATH for built libraries (libspice-server)
+        library_path = os.path.join(self.root_dir, 'build', 'lib')
+        if os.path.isdir(library_path):
+            library_path = os.path.abspath(library_path)
+            qemu_cmd += "LD_LIBRARY_PATH=%s " % library_path
         # Add the qemu binary
         qemu_cmd += qemu_binary
         # Add the VM's name
