@@ -43,6 +43,10 @@ def _get_requested_path():
 
 def find_repository_host(job_path):
     """Find the machine holding the given logs and return a URL to the logs"""
+    site_repo_info = site_find_repository_host(job_path)
+    if site_repo_info is not None:
+        return site_repo_info
+
     config = global_config.global_config
     drones = config.get_config_value('SCHEDULER', 'drones')
     results_host = config.get_config_value('SCHEDULER', 'results_host')
@@ -63,22 +67,18 @@ def find_repository_host(job_path):
         http_path = 'http://%s%s' % (drone, job_path)
         try:
             utils.urlopen(http_path)
-            return drone
+            return 'http', utils.normalize_hostname(drone), job_path
         except urllib2.URLError:
             pass
 
-    return site_find_repository_host(log_path)
 
-
-def get_full_url(host, path):
-    if host:
-        if ':' in host:
-            host, port = host.split(':')
-            prefix = 'http://%s:%s' % (utils.normalize_hostname(host), port)
-        else:
-            prefix = 'http://%s' % utils.normalize_hostname(host)
+def get_full_url(info, log_path):
+    if info is not None:
+        protocol, host, path = info
+        prefix = '%s://%s' % (protocol, host)
     else:
         prefix = ''
+        path = log_path
 
     if _is_json_request:
         return '%s/tko/jsonp_fetcher.cgi?%s' % (prefix,
@@ -88,6 +88,6 @@ def get_full_url(host, path):
 
 
 log_path = _get_requested_path()
-host = find_repository_host(log_path)
+info = find_repository_host(log_path)
 site_retrieve_logs(log_path)
-print _PAGE % get_full_url(host, log_path)
+print _PAGE % get_full_url(info, log_path)
