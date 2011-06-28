@@ -86,18 +86,18 @@ variants:
         kill_vm_timeout = 60
         kill_vm_timeout_on_error = 0
 
-    - image_copy:
-        type = image_copy
-        vms = ''
-        parallel = no
-        profilers =
-
-    - setup:        install
+    - setup: install
         type = steps
         fail_if_stuck_for = 300
         stuck_detection_history = 2
         kill_vm_on_error = yes
         keep_screendump_history = yes
+
+    - image_copy:
+        type = image_copy
+        vms = ''
+        parallel = no
+        profilers =
 
     - unattended_install:
         type = unattended_install
@@ -139,19 +139,85 @@ variants:
                 extra_params = " --append ks=REPLACE_THIS_WITH_URL_OF_KS"
                 url = REPLACE_THIS_WITH_TREE_URL
 
-    - boot:         install setup unattended_install.cdrom
+    - qemu_img:
+        type = qemu_img
+        vms = ''
+        profilers = ''
+        take_regular_screendumps = no
+        variants:
+            - check:
+                subcommand = check
+                image_name_dd = dd_created_image
+                force_create_image_dd = no
+                remove_image_dd = yes
+                create_image_cmd = "dd if=/dev/zero of=%s bs=1G count=1"
+                # Test the convertion from 'dd_image_name' to specified format
+                supported_image_formats = qcow2 raw
+            - create:
+                subcommand = create
+                images += " large"
+                force_create_image_large = yes
+                image_size_large = 1G
+                image_name_large = create_large_image
+                remove_image_large = yes
+            - convert:
+                subcommand = convert
+                variants:
+                    - to_qcow2:
+                        dest_image_format = qcow2
+                        compressed = no
+                        encrypted = no
+                    - to_raw:
+                        dest_image_format = raw
+            - snapshot:
+                subcommand = snapshot
+            - info:
+                subcommand = info
+            - rebase:
+                subcommand = rebase
+                rebase_mode = unsafe
+                image_name_snapshot1 = sn1
+                image_name_snapshot2 = sn2
+            # Commit is the only subtest that does need an installed guest
+            - commit:  install setup image_copy unattended_install.cdrom
+                subcommand = commit
+
+    - pxe:
+        type = pxe
+        images = pxe
+        image_name_pxe = pxe-test
+        image_size_pxe = 1G
+        force_create_image_pxe = yes
+        remove_image_pxe = yes
+        extra_params += ' -boot n'
+        kill_vm_on_error = yes
+        network = bridge
+        restart_vm = yes
+        pxe_timeout = 60
+
+    - module_probe:
+        type = module_probe
+        # You can specify your own module list, though it is not needed usually.
+        # mod_list = kvm
+        load_count = 100
+        vms = ''
+        profilers = ''
+        take_regular_screendumps = no
+
+# Tests that do need installed guests to run
+    - boot: install setup image_copy unattended_install.cdrom
         type = boot
         restart_vm = yes
         kill_vm_on_error = yes
         login_timeout = 240
 
-    - reboot:       install setup unattended_install.cdrom
+    - reboot: install setup image_copy unattended_install.cdrom
         type = boot
         reboot_method = shell
         kill_vm_on_error = yes
         login_timeout = 240
 
-    - migrate:      install setup unattended_install.cdrom
+    - migrate: install setup image_copy unattended_install.cdrom
         type = migration
         migration_test_command = help
         migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
@@ -198,7 +264,7 @@ variants:
                     - monotonic_time:
                         test_control_file = monotonic_time.control
 
-    - migrate_multi_host:      install setup unattended_install.cdrom
+    - migrate_multi_host: install setup image_copy unattended_install.cdrom
         type = migration_multi_host
         migration_test_command = help
         migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
@@ -211,7 +277,7 @@ variants:
         comm_port = 13234
         regain_ip_cmd = dhclient
 
-    - boot_savevm: install setup unattended_install.cdrom
+    - boot_savevm: install setup image_copy unattended_install.cdrom
         type = boot_savevm
         savevm_delay = 0.3
         savevm_login_delay = 120
@@ -220,7 +286,7 @@ variants:
         kill_vm_gracefully = yes
         kill_vm = yes
 
-    - autotest:     install setup unattended_install.cdrom
+    - autotest: install setup image_copy unattended_install.cdrom
         only Linux
         type = autotest
         test_timeout = 1800
@@ -266,15 +332,15 @@ variants:
             - systemtap:
                 test_control_file = systemtap.control
 
-    - stop_continue:
+    - stop_continue: install setup image_copy unattended_install.cdrom
         type = stop_continue
         kill_vm_on_error = yes
 
-    - linux_s3:     install setup unattended_install.cdrom
+    - linux_s3: install setup image_copy unattended_install.cdrom
         only Linux
         type = linux_s3
 
-    - timedrift:    install setup unattended_install.cdrom
+    - timedrift: install setup image_copy unattended_install.cdrom
         variants:
             - ntp:
                 variants:
@@ -337,17 +403,17 @@ variants:
                         drift_threshold = 10
                         drift_threshold_single = 3
 
-    - balloon_check:  install setup unattended_install.cdrom
+    - balloon_check: install setup image_copy unattended_install.cdrom
         type = balloon_check
         extra_params += " -balloon virtio"
         iterations = 5
 
-    - watchdog:   install setup unattended_install.cdrom
+    - watchdog: install setup image_copy unattended_install.cdrom
         type = watchdog
         extra_params += " -watchdog i6300esb -watchdog-action reset"
         relogin_timeout = 240
 
-    - stress_boot:  install setup unattended_install.cdrom
+    - stress_boot: install setup image_copy unattended_install.cdrom
         type = stress_boot
         max_vms = 5    
         alive_test_cmd = uname -a
@@ -359,7 +425,7 @@ variants:
         used_cpus = 5
         used_mem = 2560
 
-    - guest_test:       install setup unattended_install.cdrom
+    - guest_test: install setup image_copy unattended_install.cdrom
         only Windows
         type = guest_test
         login_timeout = 360
@@ -389,13 +455,13 @@ variants:
                         dst_rsc_dir = "C:\"
                         dst_rsc_path = "C:\powershell\stub\stub.ps1"
 
-    - iozone_windows: unattended_install.cdrom
+    - iozone_windows: install setup image_copy unattended_install.cdrom
         only Windows
         type = iozone_windows
         iozone_cmd = "D:\IOzone\iozone.exe -a"
         iozone_timeout = 3600
 
-    - whql:         install setup unattended_install.cdrom
+    - whql: install setup image_copy unattended_install.cdrom
         only Windows
         nic_mode = tap
         # Replace this with the address of an installed DTM server
@@ -566,7 +632,7 @@ variants:
                                         job_filter = syscache test
                                         test_timeout = 7200
 
-    - guest_s4:     install setup unattended_install.cdrom
+    - guest_s4: install setup image_copy unattended_install.cdrom
         type = guest_s4
         check_s4_support_cmd = grep -q disk /sys/power/state
         test_s4_cmd = "cd /tmp; nohup tcpdump -q -t ip host localhost"
@@ -576,7 +642,7 @@ variants:
         services_up_timeout = 30
         relogin_timeout = 240
 
-    - nic_hotplug:  install setup unattended_install.cdrom
+    - nic_hotplug: install setup image_copy unattended_install.cdrom
         pci_type = nic
         reference_cmd = lspci
         find_pci_cmd = 'lspci | tail -n1'
@@ -599,7 +665,7 @@ variants:
                 type = nic_hotplug
 
 
-    - block_hotplug: install setup unattended_install.cdrom
+    - block_hotplug: install setup image_copy unattended_install.cdrom
         type = pci_hotplug
         pci_type = block
         reference_cmd = lspci
@@ -626,7 +692,7 @@ variants:
             - fmt_raw:
                 image_format_stg = raw
 
-    - enospc:
+    - enospc: install setup image_copy unattended_install.cdrom
         type = enospc
         start_vm = no
         images += " stg"
@@ -642,13 +708,13 @@ variants:
         background_cmd = "nohup dd if=/dev/zero of=%s bs=1024 &"
         kill_vm = yes
 
-    - qmp_basic: install setup unattended_install.cdrom
+    - qmp_basic: install setup image_copy unattended_install.cdrom
         type = qmp_basic
 
-    - qmp_basic_rhel6: install setup unattended_install.cdrom
+    - qmp_basic_rhel6: install setup image_copy unattended_install.cdrom
         type = qmp_basic_rhel6
 
-    - vlan:  install setup unattended_install.cdrom
+    - vlan: install setup image_copy unattended_install.cdrom
         only Linux
         type = vlan
         # subnet should not be used by host
@@ -664,17 +730,17 @@ variants:
         kill_vm_vm2 = yes
         kill_vm_gracefully_vm2 = no
 
-    - ping: install setup unattended_install.cdrom
+    - ping: install setup image_copy unattended_install.cdrom
         type = ping
         counts = 100
         flood_minutes = 10
         nics += ' nic2'
 
-    - jumbo: install setup unattended_install.cdrom
+    - jumbo: install setup image_copy unattended_install.cdrom
         only Linux
         type = jumbo
 
-    - file_transfer: install setup unattended_install.cdrom
+    - file_transfer: install setup image_copy unattended_install.cdrom
         type = file_transfer
         filesize = 4000
         transfer_timeout = 1000
@@ -682,7 +748,7 @@ variants:
             - remote:
                 transfer_type = remote
 
-    - nicdriver_unload:  install setup unattended_install.cdrom
+    - nicdriver_unload: install setup image_copy unattended_install.cdrom
         only Linux
         type = nicdriver_unload
         nic_mode = tap
@@ -691,14 +757,14 @@ variants:
         transfer_type = remote
         sessions_num = 10
 
-    - nic_promisc:  install setup unattended_install.cdrom
+    - nic_promisc: install setup image_copy unattended_install.cdrom
         only Linux
         type = nic_promisc
         filesize = 400
         transfer_timeout = 100
         transfer_type = remote
 
-    - multicast: install setup unattended_install.cdrom
+    - multicast: install setup image_copy unattended_install.cdrom
         only Linux
         type = multicast
         nic_mode = tap
@@ -706,25 +772,12 @@ variants:
         mgroup_count = 20
         flood_minutes = 1
 
-    - pxe:
-        type = pxe
-        images = pxe
-        image_name_pxe = pxe-test
-        image_size_pxe = 1G
-        force_create_image_pxe = yes
-        remove_image_pxe = yes
-        extra_params += ' -boot n'
-        kill_vm_on_error = yes
-        network = bridge
-        restart_vm = yes
-        pxe_timeout = 60
-
-    - mac_change: install setup unattended_install.cdrom
+    - mac_change: install setup image_copy unattended_install.cdrom
         only Linux
         type = mac_change
         kill_vm = yes
 
-    - netperf: install setup unattended_install.cdrom
+    - netperf: install setup image_copy unattended_install.cdrom
         only Linux
         type = netperf
         nics += ' nic2 nic3 nic4'
@@ -741,13 +794,13 @@ variants:
                 netperf_cmd = %s/netperf-2.4.5/src/netperf -t %s -H %s -l 60 -- -r %s
                 protocols = "TCP_RR TCP_CRR UDP_RR"
 
-    - ethtool: install setup unattended_install.cdrom
+    - ethtool: install setup image_copy unattended_install.cdrom
         only Linux
         type = ethtool
         filesize = 512
         nic_mode = tap
 
-    - nic_bonding:
+    - nic_bonding: install setup image_copy unattended_install.cdrom
         only Linux
         type = nic_bonding
         nics += ' nic2 nic3 nic4'
@@ -761,7 +814,7 @@ variants:
         # you can specify the parameters of bonding module here
         # bonding_params = "mode=active-backup"
 
-    - set_link:
+    - set_link: install setup image_copy unattended_install.cdrom
         type = set_link
         test_timeout = 1000
         filesize = 4000
@@ -769,11 +822,11 @@ variants:
         transfer_type = remote
         kill_vm =yes
 
-    - physical_resources_check: install setup unattended_install.cdrom
+    - physical_resources_check: install setup image_copy unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
 
-    - ksm_overcommit: install setup unattended_install.cdrom
+    - ksm_overcommit: install setup image_copy unattended_install.cdrom
         only Linux
         # Don't preprocess any vms as we need to change its params
         vms = ''
@@ -796,11 +849,11 @@ variants:
             - ksm_parallel:
                 ksm_mode = "parallel"
 
-    - iofuzz:
+    - iofuzz: install setup image_copy unattended_install.cdrom
         only Linux
         type = iofuzz
 
-    - virtio_console:
+    - virtio_console: install setup image_copy unattended_install.cdrom
         only Linux
         vms = ''
         type = virtio_console
@@ -871,16 +924,7 @@ variants:
             - vmexit:
                 case = vmexit
 
-    - module_probe:
-        type = module_probe
-        # You can specify your own module list, though it is not needed usually.
-        # mod_list = kvm
-        load_count = 100
-        vms = ''
-        profilers = ''
-        take_regular_screendumps = no
-
-    - fillup_disk:
+    - fillup_disk: install setup image_copy unattended_install.cdrom
         only Linux
         only qcow2
         type = fillup_disk
@@ -889,7 +933,7 @@ variants:
         fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1 oflag=direct"
         kill_vm = yes
 
-    - lvm:
+    - lvm: install setup image_copy unattended_install.cdrom
         only Linux
         images += ' stg1 stg2'
         image_name_stg1 = storage_4k
@@ -929,13 +973,14 @@ variants:
                 remove_image_stg1 = yes
                 remove_image_stg2 = yes
 
-    - ioquit:
+    - ioquit: install setup image_copy unattended_install.cdrom
         only Linux
         type = ioquit
         background_cmd = "for i in 1 2 3 4; do (dd if=/dev/urandom of=/tmp/file bs=102400 count=10000000 &); done"
         check_cmd = ps -a |grep dd
         login_timeout = 360
-    - multi_disk:
+
+    - multi_disk: install setup image_copy unattended_install.cdrom
         type = multi_disk
         force_create_image = yes
         force_create_image_image1 = no
@@ -977,58 +1022,16 @@ variants:
                 image_name_stg22 = storage22
                 image_name_stg23 = storage23
 
-    - qemu_img:
-        type = qemu_img
-        vms = ''
-        profilers = ''
-        take_regular_screendumps = no
-        variants:
-            - check:
-                subcommand = check
-                image_name_dd = dd_created_image
-                force_create_image_dd = no
-                remove_image_dd = yes
-                create_image_cmd = "dd if=/dev/zero of=%s bs=1G count=1"
-                # Test the convertion from 'dd_image_name' to specified format
-                supported_image_formats = qcow2 raw
-            - create:
-                subcommand = create
-                images += " large"
-                force_create_image_large = yes
-                image_size_large = 1G
-                image_name_large = create_large_image
-                remove_image_large = yes
-            - convert:
-                subcommand = convert
-                variants:
-                    - to_qcow2:
-                        dest_image_format = qcow2
-                        compressed = no
-                        encrypted = no
-                    - to_raw:
-                        dest_image_format = raw
-            - snapshot:
-                subcommand = snapshot
-            - commit:
-                subcommand = commit
-            - info:
-                subcommand = info
-            - rebase:
-                subcommand = rebase
-                rebase_mode = unsafe
-                image_name_snapshot1 = sn1
-                image_name_snapshot2 = sn2
-
-    - clock_getres: install setup unattended_install.cdrom
+    - clock_getres: install setup image_copy unattended_install.cdrom
         only Linux
         type = clock_getres
 
-    - yum_update:    install setup unattended_install.cdrom
+    - yum_update: install setup image_copy unattended_install.cdrom
         only Fedora, RHEL
         type = yum_update
         shell_prompt = "Is this ok"
 
-    - kdump: unattended_install.cdrom
+    - kdump: install setup image_copy unattended_install.cdrom
         only Linux
         type = kdump
         # time waited for the completion of crash dump
@@ -1040,14 +1043,14 @@ variants:
         # command to probe the crash kernel
         # crash_kernel_prob_cmd = "grep -q 1 /sys/kernel/kexec_crash_loaded"
 
-    - vmstop:
+    - vmstop: install setup image_copy unattended_install.cdrom
         type = vmstop
         # the path used to store the saved vm state
         # save_path = /tmp
         # clean the state file?
         clean_save = yes
 
-    - trans_hugepage: install setup unattended_install.cdrom
+    - trans_hugepage: install setup image_copy unattended_install.cdrom
         thp_test_config = ""
         kill_vm = yes
         login_timeout = 360
@@ -1065,26 +1068,26 @@ variants:
     # system_powerdown, system_reset and shutdown *must* be the last ones
     # defined (in this order), since the effect of such tests can leave
     # the VM on a bad state.
-    - system_powerdown: install setup unattended_install.cdrom
+    - system_powerdown: install setup image_copy unattended_install.cdrom
         type = shutdown
         shutdown_method = system_powerdown
         sleep_before_powerdown = 20
         kill_vm = yes
 
-    - system_reset: install setup unattended_install.cdrom
+    - system_reset: install setup image_copy unattended_install.cdrom
         type = boot
         reboot_method = system_reset
         sleep_before_reset = 20
         kill_vm_on_error = yes
 
-    - system_reset_bootable:
+    - system_reset_bootable: install setup image_copy unattended_install.cdrom
         type = system_reset_bootable
         interval = 1
         reset_times = 20
         wait_time_for_reset = 120
         kill_vm_on_error = yes
 
-    - shutdown:     install setup unattended_install.cdrom
+    - shutdown: install setup image_copy unattended_install.cdrom
         type = shutdown
         shutdown_method = shell
         kill_vm = yes
