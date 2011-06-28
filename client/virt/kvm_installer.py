@@ -598,6 +598,39 @@ class SourceDirInstaller(BaseInstaller):
         if self.save_results:
             virt_installer.save_build(self.srcdir, self.results_dir)
 
+class GitRepo(object):
+    def __init__(self, installer, prefix,
+            srcdir, build_steps=[], repo_param=None):
+        params = installer.params
+        self.installer = installer
+        self.repo = params.get(repo_param or (prefix + '_repo'))
+        self.branch = params.get(prefix + '_branch', 'master')
+        self.lbranch = params.get(prefix + '_lbranch', 'master')
+        self.commit = params.get(prefix + '_commit', None)
+        # The config system yields strings, which have to be evalued
+        self.patches = eval(params.get(prefix + '_patches', "[]"))
+        self.build_steps = build_steps
+        self.srcdir = os.path.join(self.installer.srcdir, srcdir)
+
+
+    def fetch_and_patch(self):
+        if not self.repo:
+            return
+        virt_utils.get_git_branch(self.repo, self.branch, self.srcdir,
+                                 self.commit, self.lbranch)
+        os.chdir(self.srcdir)
+        for patch in self.patches:
+            utils.get_file(patch, os.path.join(self.srcdir,
+                                               os.path.basename(patch)))
+            utils.system('patch -p1 < %s' % os.path.basename(patch))
+
+
+    def build(self):
+        os.chdir(self.srcdir)
+        for step in self.build_steps:
+            logging.info(step)
+            utils.run(step)
+
 
 class GitInstaller(SourceDirInstaller):
     def _pull_code(self):
@@ -605,120 +638,70 @@ class GitInstaller(SourceDirInstaller):
         Retrieves code from git repositories.
         """
         params = self.params
+        make_jobs = utils.count_cpus()
+        cfg = 'PKG_CONFIG_PATH="%s/lib/pkgconfig:%s/share/pkgconfig" ./configure' % (
+            self.prefix, self.prefix)
 
-        kernel_repo = params.get("git_repo")
-        user_repo = params.get("user_git_repo")
-        kmod_repo = params.get("kmod_repo")
+        self.kernel = GitRepo(installer=self, prefix='kernel',
+            repo_param='git_repo', srcdir='kvm')
+        self.kmod = GitRepo(installer=self, prefix='kmod', srcdir="kvm_kmod")
+        if params.get('kernel_git_repo'):
+            cfg += ' --kerneldir=%s' % self.host_kernel_srcdir
+            self.kernel.build_steps = [cfg,
+                            'make clean',
+                            'make -C kernel LINUX=%s sync' % self.kernel.srcdir]
+            self.kmod.build_steps=[cfg,
+                             'make clean',
+                             'make sync LINUX=%s' % self.kernel.srcdir,
+                             'make']
 
-        kernel_branch = params.get("kernel_branch", "master")
-        user_branch = params.get("user_branch", "master")
-        kmod_branch = params.get("kmod_branch", "master")
+        self.userspace = GitRepo(installer=self, prefix='user',
+            repo_param='user_git_repo', srcdir='kvm_userspace')
 
-        kernel_lbranch = params.get("kernel_lbranch", "master")
-        user_lbranch = params.get("user_lbranch", "master")
-        kmod_lbranch = params.get("kmod_lbranch", "master")
-
-        kernel_commit = params.get("kernel_commit", None)
-        user_commit = params.get("user_commit", None)
-        kmod_commit = params.get("kmod_commit", None)
-
-        kernel_patches = eval(params.get("kernel_patches", "[]"))
-        user_patches = eval(params.get("user_patches", "[]"))
-        kmod_patches = eval(params.get("user_patches", "[]"))
-
-        if not user_repo:
-            message = "KVM user git repository path not specified"
-            logging.error(message)
-            raise error.TestError(message)
-
-        userspace_srcdir = os.path.join(self.srcdir, "kvm_userspace")
-        virt_utils.get_git_branch(user_repo, user_branch, userspace_srcdir,
-                                 user_commit, user_lbranch)
-        self.userspace_srcdir = userspace_srcdir
-
-        if user_patches:
-            os.chdir(self.userspace_srcdir)
-            for patch in user_patches:
-                utils.get_file(patch, os.path.join(self.userspace_srcdir,
-                                                   os.path.basename(patch)))
-                utils.system('patch -p1 < %s' % os.path.basename(patch))
-
-        if kernel_repo:
-            kernel_srcdir = os.path.join(self.srcdir, "kvm")
-            virt_utils.get_git_branch(kernel_repo, kernel_branch, kernel_srcdir,
-                                     kernel_commit, kernel_lbranch)
-            self.kernel_srcdir = kernel_srcdir
-            if kernel_patches:
-                os.chdir(self.kernel_srcdir)
-                for patch in kernel_patches:
-                    utils.get_file(patch, os.path.join(self.userspace_srcdir,
-                                                       os.path.basename(patch)))
-                    utils.system('patch -p1 < %s' % os.path.basename(patch))
-        else:
-            self.kernel_srcdir = None
-
-        if kmod_repo:
-            kmod_srcdir = os.path.join (self.srcdir, "kvm_kmod")
-            virt_utils.get_git_branch(kmod_repo, kmod_branch, kmod_srcdir,
-                                     kmod_commit, kmod_lbranch)
-            self.kmod_srcdir = kmod_srcdir
-            if kmod_patches:
-                os.chdir(self.kmod_srcdir)
-                for patch in kmod_patches:
-                    utils.get_file(patch, os.path.join(self.userspace_srcdir,
-                                                       os.path.basename(patch)))
-                    utils.system('patch -p1 < %s' % os.path.basename(patch))
-        else:
-            self.kmod_srcdir = None
-
-        p = os.path.join(self.userspace_srcdir, 'configure')
+        p = os.path.join(self.userspace.srcdir, 'configure')
         self.configure_options = virt_installer.check_configure_options(p)
 
-
-    def _build(self):
-        make_jobs = utils.count_cpus()
-        cfg = './configure'
-        if self.kmod_srcdir:
-            logging.info('Building KVM modules')
-            os.chdir(self.kmod_srcdir)
-            module_build_steps = [cfg,
-                                  'make clean',
-                                  'make sync LINUX=%s' % self.kernel_srcdir,
-                                  'make']
-        elif self.kernel_srcdir:
-            logging.info('Building KVM modules')
-            os.chdir(self.userspace_srcdir)
-            cfg += ' --kerneldir=%s' % self.host_kernel_srcdir
-            module_build_steps = [cfg,
-                            'make clean',
-                            'make -C kernel LINUX=%s sync' % self.kernel_srcdir]
-        else:
-            module_build_steps = []
-
-        for step in module_build_steps:
-            utils.run(step)
-
-        logging.info('Building KVM userspace code')
-        os.chdir(self.userspace_srcdir)
-        cfg += ' --prefix=%s' % self.prefix
+        cfg = cfg + ' --prefix=%s' % self.prefix
         if "--disable-strip" in self.configure_options:
             cfg += ' --disable-strip'
         if self.extra_configure_options:
             cfg += ' %s' % self.extra_configure_options
-        utils.system(cfg)
-        utils.system('make clean')
-        utils.system('make -j %s' % make_jobs)
+
+        self.userspace.build_steps=[cfg, 'make clean', 'make -j %s' % make_jobs]
+
+        if not self.userspace.repo:
+            message = "KVM user git repository path not specified"
+            logging.error(message)
+            raise error.TestError(message)
+
+        for repo in [self.userspace, self.kernel, self.kmod,
+                     self.spice_protocol, self.spice]:
+            if not repo.repo:
+                continue
+            repo.fetch_and_patch()
+
+    def _build(self):
+        if self.kmod.repo:
+            logging.info('Building KVM modules')
+            self.kmod.build()
+        elif self.kernel.repo:
+            logging.info('Building KVM modules')
+            self.kernel.build()
+
+
+        logging.info('Building KVM userspace code')
+        self.userspace.build()
 
 
     def _install(self):
-        if self.kernel_srcdir:
-            os.chdir(self.userspace_srcdir)
+        if self.kernel:
+            os.chdir(self.userspace.srcdir)
             # the kernel module install with --prefix doesn't work, and DESTDIR
             # wouldn't work for the userspace stuff, so we clear WANT_MODULE:
             utils.system('make install WANT_MODULE=')
             # and install the old-style-kmod modules manually:
-            self._install_kmods_old_userspace(self.userspace_srcdir)
-        elif self.kmod_srcdir:
+            self._install_kmods_old_userspace(self.userspace.srcdir)
+        elif self.kmod:
             # if we have a kmod repository, it is easier:
             # 1) install userspace:
             os.chdir(self.userspace_srcdir)
@@ -728,7 +711,7 @@ class GitInstaller(SourceDirInstaller):
         else:
             # if we don't have kmod sources, we just install
             # userspace:
-            os.chdir(self.userspace_srcdir)
+            os.chdir(self.userspace.srcdir)
             utils.system('make install')
 
         if self.path_to_roms:
