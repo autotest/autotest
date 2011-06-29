@@ -17,27 +17,6 @@ variants:
         # Save the results of this build on test.resultsdir?
         save_results = no
         variants:
-            - release:
-                install_mode = release
-                ## Install from a kvm release. You can optionally specify
-                ## a release tag. If you omit it, the build test will get
-                ## the latest release tag available at that moment.
-                # release_tag = 84
-                release_dir = http://downloads.sourceforge.net/project/kvm/
-                release_listing = http://sourceforge.net/projects/kvm/files/
-                # In some cases, you might want to provide a ROM dir, so ROM
-                # files can be copied from there to your source based install
-                # path_to_rom_images = /usr/share/kvm
-            - snapshot:
-                install_mode = snapshot
-                ## Install from a kvm snapshot location. You can optionally
-                ## specify a snapshot date. If you omit it, the test will get
-                ## yesterday's snapshot.
-                # snapshot_date = 20090712
-                snapshot_dir = http://foo.org/kvm-snapshots/
-                # In some cases, you might want to provide a ROM dir, so ROM
-                # files can be copied from there to your source based install
-                # path_to_rom_images = /usr/share/kvm
             - localtar:
                 install_mode = localtar
                 ## Install from tarball located on the host's filesystem.

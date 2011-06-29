@@ -464,35 +464,6 @@ class SourceDirInstaller(BaseInstaller):
             else:
                 shutil.copytree(srcdir, self.srcdir)
 
-        if self.install_mode == 'release':
-            release_tag = params.get("release_tag")
-            release_dir = params.get("release_dir")
-            release_listing = params.get("release_listing")
-            logging.info("Installing KVM from release tarball")
-            if not release_tag:
-                release_tag = virt_utils.get_latest_kvm_release_tag(
-                                                                release_listing)
-            tarball = os.path.join(release_dir, 'kvm', release_tag,
-                                   "kvm-%s.tar.gz" % release_tag)
-            logging.info("Retrieving release kvm-%s" % release_tag)
-            tarball = utils.unmap_url("/", tarball, "/tmp")
-
-        elif self.install_mode == 'snapshot':
-            logging.info("Installing KVM from snapshot")
-            snapshot_dir = params.get("snapshot_dir")
-            if not snapshot_dir:
-                raise error.TestError("Snapshot dir not provided")
-            snapshot_date = params.get("snapshot_date")
-            if not snapshot_date:
-                # Take yesterday's snapshot
-                d = (datetime.date.today() -
-                     datetime.timedelta(1)).strftime("%Y%m%d")
-            else:
-                d = snapshot_date
-            tarball = os.path.join(snapshot_dir, "kvm-snapshot-%s.tar.gz" % d)
-            logging.info("Retrieving kvm-snapshot-%s" % d)
-            tarball = utils.unmap_url("/", tarball, "/tmp")
-
         elif self.install_mode == 'localtar':
             tarball = params.get("tarball")
             if not tarball:
@@ -501,11 +472,9 @@ class SourceDirInstaller(BaseInstaller):
             logging.info("Installing KVM from a local tarball")
             logging.info("Using tarball %s")
             tarball = utils.unmap_url("/", params.get("tarball"), "/tmp")
-
-        if self.install_mode in ['release', 'snapshot', 'localtar']:
             utils.extract_tarball_to_dir(tarball, self.srcdir)
 
-        if self.install_mode in ['release', 'snapshot', 'localtar', 'srcdir']:
+        if self.install_mode in ['localtar', 'srcdir']:
             self.repo_type = virt_utils.check_kvm_source_dir(self.srcdir)
             p = os.path.join(self.srcdir, 'configure')
             self.configure_options = virt_installer.check_configure_options(p)
@@ -776,8 +745,6 @@ class FailedInstaller:
 installer_classes = {
     'localsrc': SourceDirInstaller,
     'localtar': SourceDirInstaller,
-    'release': SourceDirInstaller,
-    'snapshot': SourceDirInstaller,
     'git': GitInstaller,
     'yum': YumInstaller,
     'koji': KojiInstaller,

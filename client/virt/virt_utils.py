@@ -466,29 +466,6 @@ def kill_process_tree(pid, sig=signal.SIGKILL):
     safe_kill(pid, signal.SIGCONT)
 
 
-def get_latest_kvm_release_tag(release_listing):
-    """
-    Fetches the latest release tag for KVM.
-
-    @param release_listing: URL that contains a list of the Source Forge
-            KVM project files.
-    """
-    try:
-        release_page = utils.urlopen(release_listing)
-        data = release_page.read()
-        release_page.close()
-        rx = re.compile("kvm-(\d+).tar.gz", re.IGNORECASE)
-        matches = rx.findall(data)
-        # In all regexp matches to something that looks like a release tag,
-        # get the largest integer. That will be our latest release tag.
-        latest_tag = max(int(x) for x in matches)
-        return str(latest_tag)
-    except Exception, e:
-        message = "Could not fetch latest KVM release tag: %s" % str(e)
-        logging.error(message)
-        raise error.TestError(message)
-
-
 def get_git_branch(repository, branch, srcdir, commit=None, lbranch=None):
     """
     Retrieves a given git code repository.
