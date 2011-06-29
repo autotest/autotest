@@ -186,7 +186,6 @@ class base_test(object):
 
     def drop_caches_between_iterations(self):
         if self.job.drop_caches_between_iterations:
-            print "Dropping caches between iterations"
             utils.drop_caches()
 
 
@@ -258,38 +257,38 @@ class base_test(object):
         # If the user called this test in an odd way (specified both iterations
         # and test_length), let's warn them.
         if iterations and test_length:
-            logging.info('Iterations parameter ignored (timed execution).')
+            logging.debug('Iterations parameter ignored (timed execution)')
         if test_length:
             test_start = _get_time()
             time_elapsed = 0
             timed_counter = 0
-            logging.info('Test started. Minimum test length: %d s',
-                               test_length)
+            logging.debug('Test started. Specified %d s as the minimum test '
+                          'length', test_length)
             while time_elapsed < test_length:
                 timed_counter = timed_counter + 1
                 if time_elapsed == 0:
-                    logging.info('Executing iteration %d', timed_counter)
+                    logging.debug('Executing iteration %d', timed_counter)
                 elif time_elapsed > 0:
-                    logging.info(
-                            'Executing iteration %d, time_elapsed %d s',
-                            timed_counter, time_elapsed)
+                    logging.debug('Executing iteration %d, time_elapsed %d s',
+                                  timed_counter, time_elapsed)
                 self._call_run_once(constraints, profile_only,
                                     postprocess_profiled_run, args, dargs)
                 test_iteration_finish = _get_time()
                 time_elapsed = test_iteration_finish - test_start
-            logging.info('Test finished after %d iterations',
-                               timed_counter)
-            logging.info('Time elapsed: %d s', time_elapsed)
+            logging.debug('Test finished after %d iterations, '
+                          'time elapsed: %d s', timed_counter, time_elapsed)
         else:
             if iterations is None:
                 iterations = 1
-            logging.info('Test started. Number of iterations: %d', iterations)
-            for self.iteration in xrange(1, iterations+1):
-                logging.info('Executing iteration %d of %d', self.iteration,
-                                                             iterations)
+            if iterations > 1:
+                logging.debug('Test started. Specified %d iterations',
+                              iterations)
+            for self.iteration in xrange(1, iterations + 1):
+                if iterations > 1:
+                    logging.debug('Executing iteration %d of %d',
+                                  self.iteration, iterations)
                 self._call_run_once(constraints, profile_only,
                                     postprocess_profiled_run, args, dargs)
-            logging.info('Test finished after %d iterations.', iterations)
 
         if not profile_only:
             self.iteration += 1
@@ -309,7 +308,7 @@ class base_test(object):
 
             self.before_run_once()
             profilers.start(self)
-            print 'Profilers present. Profiling run started'
+            logging.debug('Profilers present. Profiling run started')
 
             try:
                 self.run_once(*args, **dargs)
@@ -431,9 +430,10 @@ class base_test(object):
                         if run_cleanup:
                             _cherry_pick_call(self.cleanup, *args, **dargs)
                     except Exception:
-                        print 'Ignoring exception during cleanup() phase:'
+                        logging.error('Ignoring exception during cleanup() phase:')
                         traceback.print_exc()
-                        print 'Now raising the earlier %s error' % exc_info[0]
+                        logging.error('Now raising the earlier %s error',
+                                      exc_info[0])
                     self.crash_handler_report()
                 finally:
                     self.job.logging.restore()
@@ -591,7 +591,7 @@ def _installtest(job, url):
         f = file(os.path.join(group_dir, '__init__.py'), 'w+')
         f.close()
 
-    print name + ": installing test url=" + url
+    logging.debug("%s: installing test url=%s", name, url)
     tarball = os.path.basename(url)
     tarball_path = os.path.join(group_dir, tarball)
     test_dir = os.path.join(group_dir, name)
