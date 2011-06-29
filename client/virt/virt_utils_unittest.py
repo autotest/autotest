@@ -43,5 +43,26 @@ class virt_utils_test(unittest.TestCase):
         self.assertEqual(vendor, 'unknown')
 
 
+    def test_get_archive_tarball_name(self):
+        tarball_name = virt_utils.get_archive_tarball_name('/tmp',
+                                                           'tmp-archive',
+                                                           'bz2')
+        self.assertEqual(tarball_name, 'tmp-archive.tar.bz2')
+
+
+    def test_get_archive_tarball_name_absolute(self):
+        tarball_name = virt_utils.get_archive_tarball_name('/tmp',
+                                                           '/var/tmp/tmp',
+                                                           'bz2')
+        self.assertEqual(tarball_name, '/var/tmp/tmp.tar.bz2')
+
+
+    def test_get_archive_tarball_name_from_dir(self):
+        tarball_name = virt_utils.get_archive_tarball_name('/tmp',
+                                                           None,
+                                                           'bz2')
+        self.assertEqual(tarball_name, 'tmp.tar.bz2')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -347,7 +347,7 @@ class YumInstaller(BaseInstaller):
                         unittest=self.unittest_prefix)
         self.reload_modules_if_needed()
         if self.save_results:
-            virt_installer.save_build(self.srcdir, self.results_dir)
+            virt_utils.archive_as_tarball(self.srcdir, self.results_dir)
 
 
 class KojiInstaller(YumInstaller):
@@ -403,7 +403,7 @@ class KojiInstaller(YumInstaller):
                         unittest=self.unittest_prefix)
         self.reload_modules_if_needed()
         if self.save_results:
-            virt_installer.save_build(self.srcdir, self.results_dir)
+            virt_utils.archive_as_tarball(self.srcdir, self.results_dir)
 
 
     def _get_rpm_names(self):
@@ -565,7 +565,7 @@ class SourceDirInstaller(BaseInstaller):
         self._install()
         self.reload_modules_if_needed()
         if self.save_results:
-            virt_installer.save_build(self.srcdir, self.results_dir)
+            virt_utils.archive_as_tarball(self.srcdir, self.results_dir)
 
 class GitRepo(object):
     def __init__(self, installer, prefix,
@@ -717,7 +717,7 @@ class GitInstaller(SourceDirInstaller):
         self._install()
         self.reload_modules_if_needed()
         if self.save_results:
-            virt_installer.save_build(self.srcdir, self.results_dir)
+            virt_utils.archive_as_tarball(self.srcdir, self.results_dir)
 
 
 class PreInstalledKvm(BaseInstaller):
