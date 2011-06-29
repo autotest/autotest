@@ -21,12 +21,3 @@ def check_configure_options(script_path):
             option_list.append(option)
 
     return option_list
-
-
-def save_build(build_dir, dest_dir):
-    logging.debug('Saving the result of the build on %s', dest_dir)
-    base_name = os.path.basename(build_dir)
-    tarball_name = base_name + '.tar.bz2'
-    os.chdir(os.path.dirname(build_dir))
-    utils.system('tar -cjf %s %s' % (tarball_name, base_name))
-    shutil.move(tarball_name, os.path.join(dest_dir, tarball_name))

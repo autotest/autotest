@@ -5,7 +5,7 @@ KVM test utility functions.
 """
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
-import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect
+import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect, tarfile
 import struct
 from autotest_lib.client.bin import utils, os_dep
 from autotest_lib.client.common_lib import error, logging_config
@@ -1328,6 +1328,68 @@ def get_cpu_vendor(cpu_flags=[], verbose=True):
     if verbose:
         logging.debug("Detected CPU vendor as '%s'", vendor)
     return vendor
+
+
+def get_archive_tarball_name(source_dir, tarball_name, compression):
+    '''
+    Get the name for a tarball file, based on source, name and compression
+    '''
+    if tarball_name is None:
+        tarball_name = os.path.basename(source_dir)
+
+    if not tarball_name.endswith('.tar'):
+        tarball_name = '%s.tar' % tarball_name
+
+    if compression and not tarball_name.endswith('.%s' % compression):
+        tarball_name = '%s.%s' % (tarball_name, compression)
+
+    return tarball_name
+
+
+def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
+                       compression='bz2', verbose=True):
+    '''
+    Saves the given source directory to the given destination as a tarball
+
+    If the name of the archive is omitted, it will be taken from the
+    source_dir. If it is an absolute path, dest_dir will be ignored. But,
+    if both the destination directory and tarball anem is given, and the
+    latter is not an absolute path, they will be combined.
+
+    For archiving directory '/tmp' in '/net/server/backup' as file
+    'tmp.tar.bz2', simply use:
+
+    >>> virt_utils.archive_as_tarball('/tmp', '/net/server/backup')
+
+    To save the file it with a different name, say 'host1-tmp.tar.bz2'
+    and save it under '/net/server/backup', use:
+
+    >>> virt_utils.archive_as_tarball('/tmp', '/net/server/backup',
+                                      'host1-tmp')
+
+    To save with gzip compression instead (resulting in the file
+    '/net/server/backup/host1-tmp.tar.gz'), use:
+
+    >>> virt_utils.archive_as_tarball('/tmp', '/net/server/backup',
+                                      'host1-tmp', 'gz')
+    '''
+    tarball_name = get_archive_tarball_name(source_dir,
+                                            tarball_name,
+                                            compression)
+    if not os.path.isabs(tarball_name):
+        tarball_path = os.path.join(dest_dir, tarball_name)
+    else:
+        tarball_path = tarball_name
+
+    if verbose:
+        logging.debug('Archiving %s as %s' % (source_dir,
+                                              tarball_path))
+
+    os.chdir(os.path.dirname(source_dir))
+    tarball = tarfile.TarFile(name=tarball_path, mode='w')
+    tarball = tarball.open(name=tarball_path, mode='w:%s' % compression)
+    tarball.add(os.path.basename(source_dir))
+    tarball.close()
 
 
 class Thread(threading.Thread):
