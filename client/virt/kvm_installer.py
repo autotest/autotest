@@ -161,7 +161,7 @@ class BaseInstaller(object):
         self.extra_modules = eval(params.get("extra_modules",
                                              default_extra_modules))
 
-        self.cpu_vendor = virt_installer.cpu_vendor()
+        self.cpu_vendor = virt_utils.get_cpu_vendor()
 
         self.srcdir = test.srcdir
         if not os.path.isdir(self.srcdir):
