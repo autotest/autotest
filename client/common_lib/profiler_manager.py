@@ -99,7 +99,6 @@ class profiler_manager(object):
             iter_path = os.path.join(test.profdir, name)
             os.system('mkdir -p %s' % iter_path)
             self.created_dirs.append(name)
-            print self.created_dirs
             for file in os.listdir(test.profdir):
                 if file in self.created_dirs:
                     continue

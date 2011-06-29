@@ -1475,7 +1475,6 @@ id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alterna
     def print_result(result, indent):
         while result != []:
             r = result.pop(0)
-            print r
             res = results[r][2]
             print >> output, '<tr>'
             print >> output, '<td align="left">%s</td>' % res['time']
