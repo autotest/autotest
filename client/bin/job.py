@@ -45,7 +45,6 @@ def _run_test_complete_on_exit(f):
             if self._logger.global_filename == 'status':
                 self.harness.run_test_complete()
                 if self.drop_caches:
-                    logging.debug("Dropping caches")
                     utils.drop_caches()
     wrapped.__name__ = f.__name__
     wrapped.__doc__ = f.__doc__
@@ -276,7 +275,6 @@ class base_client_job(base_job.base_job):
                                             type=bool, default=True))
         self.drop_caches = drop_caches
         if self.drop_caches:
-            logging.debug("Dropping caches")
             utils.drop_caches()
 
 
@@ -981,7 +979,7 @@ class base_client_job(base_job.base_job):
                                'this is a continuation')
 
         if not has_steps:
-            logging.info('Initializing the state engine')
+            logging.debug('Initializing the state engine')
             self._state.set('client', 'steps', [])
 
 

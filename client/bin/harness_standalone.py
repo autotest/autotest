@@ -30,7 +30,7 @@ class harness_standalone(harness.harness):
             shutil.copyfile(src, dest)
             job.control_set(dest)
 
-        logging.info('Symlinking init scripts')
+        logging.debug("Symlinking init scripts")
         rc = os.path.join(self.autodir, 'tools/autotest')
         # see if system supports event.d versus systemd versus inittab
         supports_eventd = os.path.exists('/etc/event.d')
@@ -46,7 +46,13 @@ class harness_standalone(harness.harness):
             initdefault = '2'
 
         try:
-            utils.system('ln -sf %s /etc/init.d/autotest' % rc)
-            utils.system('ln -sf %s /etc/rc%s.d/S99autotest' % (rc,initdefault))
-        except:
-            logging.warning("Linking init scripts failed")
+            service = '/etc/init.d/autotest'
+            service_link = '/etc/rc%s.d/S99autotest' % initdefault
+            if os.path.islink(service):
+                os.remove(service)
+            if os.path.islink(service_link):
+                os.remove(service_link)
+            os.symlink(rc, service)
+            os.symlink(rc, service_link)
+        except Exception, e:
+            logging.error("Symlink init scripts failed with %s", e)
