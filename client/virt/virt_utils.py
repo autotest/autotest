@@ -1322,6 +1322,37 @@ def get_vendor_from_pci_id(pci_id):
     return re.sub(":", " ", commands.getoutput(cmd))
 
 
+def get_cpu_flags():
+    """
+    Returns a list of the CPU flags
+    """
+    flags_re = re.compile(r'^flags\s*:(.*)')
+    for line in open('/proc/cpuinfo').readlines():
+        match = flags_re.match(line)
+        if match:
+            return match.groups()[0].split()
+    return []
+
+
+def get_cpu_vendor(cpu_flags=[], verbose=True):
+    """
+    Returns the name of the CPU vendor, either intel, amd or unknown
+    """
+    if not cpu_flags:
+        cpu_flags = get_cpu_flags()
+
+    if 'vmx' in cpu_flags:
+        vendor = 'intel'
+    elif 'svm' in cpu_flags:
+        vendor = 'amd'
+    else:
+        vendor = 'unknown'
+
+    if verbose:
+        logging.debug("Detected CPU vendor as '%s'", vendor)
+    return vendor
+
+
 class Thread(threading.Thread):
     """
     Run a function in a background thread.

@@ -23,14 +23,6 @@ def check_configure_options(script_path):
     return option_list
 
 
-def cpu_vendor():
-    vendor = "intel"
-    if os.system("grep vmx /proc/cpuinfo 1>/dev/null") != 0:
-        vendor = "amd"
-    logging.debug("Detected CPU vendor as '%s'", vendor)
-    return vendor
-
-
 def save_build(build_dir, dest_dir):
     logging.debug('Saving the result of the build on %s', dest_dir)
     base_name = os.path.basename(build_dir)
