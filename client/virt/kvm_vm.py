@@ -393,9 +393,6 @@ class VM(virt_vm.BaseVM):
 
         qemu_binary = virt_utils.get_path(root_dir, params.get("qemu_binary",
                                                               "qemu"))
-        # Get the output of 'qemu -help' (log a message in case this call never
-        # returns or causes some other kind of trouble)
-        logging.debug("Getting output of 'qemu -help'")
         help = commands.getoutput("%s -help" % qemu_binary)
 
         # Start constructing the qemu command
@@ -877,11 +874,11 @@ class VM(virt_vm.BaseVM):
             if self.is_dead():
                 return
 
-            logging.debug("Destroying VM with PID %s...", self.get_pid())
+            logging.debug("Destroying VM with PID %s", self.get_pid())
 
             if gracefully and self.params.get("shutdown_command"):
                 # Try to destroy with shell command
-                logging.debug("Trying to shutdown VM with shell command...")
+                logging.debug("Trying to shutdown VM with shell command")
                 try:
                     session = self.login()
                 except (virt_utils.LoginError, virt_vm.VMError), e:
@@ -891,7 +888,7 @@ class VM(virt_vm.BaseVM):
                         # Send the shutdown command
                         session.sendline(self.params.get("shutdown_command"))
                         logging.debug("Shutdown command sent; waiting for VM "
-                                      "to go down...")
+                                      "to go down")
                         if virt_utils.wait_for(self.is_dead, 60, 1, 1):
                             logging.debug("VM is down")
                             return
@@ -900,7 +897,7 @@ class VM(virt_vm.BaseVM):
 
             if self.monitor:
                 # Try to destroy with a monitor command
-                logging.debug("Trying to kill VM with monitor command...")
+                logging.debug("Trying to kill VM with monitor command")
                 try:
                     self.monitor.quit()
                 except kvm_monitor.MonitorError, e:
@@ -912,8 +909,8 @@ class VM(virt_vm.BaseVM):
                         return
 
             # If the VM isn't dead yet...
-            logging.debug("Cannot quit normally; sending a kill to close the "
-                          "deal...")
+            logging.debug("Cannot quit normally, sending a kill to close the "
+                          "deal")
             virt_utils.kill_process_tree(self.process.get_pid(), 9)
             # Wait for the VM to be really dead
             if virt_utils.wait_for(self.is_dead, 5, 0.5, 0.5):

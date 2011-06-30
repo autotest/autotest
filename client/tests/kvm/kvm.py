@@ -45,8 +45,6 @@ class kvm(test.test):
         virt_utils.set_log_file_dir(self.debugdir)
 
         # Open the environment file
-        logging.info("Unpickling env. You may see some harmless error "
-                     "messages.")
         env_filename = os.path.join(self.bindir, params.get("env", "env"))
         env = virt_utils.Env(env_filename, self.env_version)
 

@@ -107,7 +107,7 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
     if method == "shell":
         # Send a reboot command to the guest's shell
         session.sendline(vm.get_params().get("reboot_command"))
-        logging.info("Reboot command sent. Waiting for guest to go down...")
+        logging.info("Reboot command sent. Waiting for guest to go down")
     elif method == "system_reset":
         # Sleep for a while before sending the command
         time.sleep(sleep_before_reset)
@@ -118,7 +118,7 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
         # Send a system_reset monitor command
         vm.monitor.cmd("system_reset")
         logging.info("Monitor command system_reset sent. Waiting for guest to "
-                     "go down...")
+                     "go down")
         # Look for RESET QMP events
         time.sleep(1)
         for m in monitors:
@@ -193,7 +193,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
 
     def wait_for_migration():
         if not virt_utils.wait_for(mig_finished, mig_timeout, 2, 2,
-                                  "Waiting for migration to finish..."):
+                                  "Waiting for migration to finish"):
             raise error.TestFail("Timeout expired while waiting for migration "
                                  "to finish")
 
@@ -278,7 +278,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
 
     if dest_host == 'localhost':
         if "paused" in dest_vm.monitor.info("status"):
-            logging.debug("Destination VM is paused, resuming it...")
+            logging.debug("Destination VM is paused, resuming it")
             dest_vm.monitor.cmd("cont")
 
     # Kill the source VM
@@ -479,7 +479,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
         @param dest_dir: Destination dir for the contents
         """
         basename = os.path.basename(remote_path)
-        logging.info("Extracting %s...", basename)
+        logging.debug("Extracting %s on VM %s", basename, vm.name)
         e_cmd = "tar xjvf %s -C %s" % (remote_path, dest_dir)
         session.cmd(e_cmd, timeout=120)
 
@@ -488,7 +488,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
         """
         Copy autotest results present on the guest back to the host.
         """
-        logging.info("Trying to copy autotest results from guest")
+        logging.debug("Trying to copy autotest results from guest")
         guest_results_dir = os.path.join(outputdir, "guest_autotest_results")
         if not os.path.exists(guest_results_dir):
             os.mkdir(guest_results_dir)
@@ -576,7 +576,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
 
                 while bg.is_alive():
                     logging.info("Tests is not ended, start a round of"
-                                 "migration ...")
+                                 "migration")
                     vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
             else:
                 session.cmd_output("bin/autotest control", timeout=timeout,
