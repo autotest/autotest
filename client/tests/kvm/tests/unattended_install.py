@@ -570,6 +570,6 @@ def run_unattended_install(test, params, env):
     if params.get("shutdown_cleanly", "yes") == "yes":
         shutdown_cleanly_timeout = int(params.get("shutdown_cleanly_timeout",
                                                   120))
-        logging.info("Wait for guest to shudown cleanly...")
+        logging.info("Wait for guest to shutdown cleanly")
         if virt_utils.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
             logging.info("Guest managed to shutdown cleanly")

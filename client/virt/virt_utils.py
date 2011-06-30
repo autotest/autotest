@@ -296,15 +296,12 @@ def _generate_mac_address_prefix(mac_pool):
     """
     if "prefix" in mac_pool:
         prefix = mac_pool["prefix"]
-        logging.debug("Used previously generated MAC address prefix for this "
-                      "host: %s", prefix)
     else:
         r = random.SystemRandom()
         prefix = "9a:%02x:%02x:%02x:" % (r.randint(0x00, 0xff),
                                          r.randint(0x00, 0xff),
                                          r.randint(0x00, 0xff))
         mac_pool["prefix"] = prefix
-        logging.debug("Generated MAC address prefix for this host: %s", prefix)
     return prefix
 
 
@@ -334,7 +331,6 @@ def generate_mac_address(vm_instance, nic_index):
             if mac in mac_pool.values():
                 continue
             mac_pool[key] = mac
-            logging.debug("Generated MAC address for NIC %s: %s", key, mac)
     _close_mac_pool(mac_pool, lock_file)
     return mac
 
@@ -349,7 +345,6 @@ def free_mac_address(vm_instance, nic_index):
     mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_EX)
     key = "%s:%s" % (vm_instance, nic_index)
     if key in mac_pool:
-        logging.debug("Freeing MAC address for NIC %s: %s", key, mac_pool[key])
         del mac_pool[key]
     _close_mac_pool(mac_pool, lock_file)
 
@@ -631,12 +626,12 @@ def _remote_login(session, username, password, prompt, timeout=10):
                  r"[Pp]lease wait", r"[Ww]arning", prompt],
                 timeout=timeout, internal_timeout=0.5)
             if match == 0:  # "Are you sure you want to continue connecting"
-                logging.debug("Got 'Are you sure...'; sending 'yes'")
+                logging.debug("Got 'Are you sure...', sending 'yes'")
                 session.sendline("yes")
                 continue
             elif match == 1:  # "password:"
                 if password_prompt_count == 0:
-                    logging.debug("Got password prompt; sending '%s'", password)
+                    logging.debug("Got password prompt, sending '%s'", password)
                     session.sendline(password)
                     password_prompt_count += 1
                     continue
@@ -783,12 +778,12 @@ def _remote_scp(session, password_list, transfer_timeout=600, login_timeout=10):
                 [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"lost connection"],
                 timeout=timeout, internal_timeout=0.5)
             if match == 0:  # "Are you sure you want to continue connecting"
-                logging.debug("Got 'Are you sure...'; sending 'yes'")
+                logging.debug("Got 'Are you sure...', sending 'yes'")
                 session.sendline("yes")
                 continue
             elif match == 1:  # "password:"
                 if password_prompt_count == 0:
-                    logging.debug("Got password prompt; sending '%s'" %
+                    logging.debug("Got password prompt, sending '%s'" %
                                    password_list[password_prompt_count])
                     session.sendline(password_list[password_prompt_count])
                     password_prompt_count += 1
@@ -797,7 +792,7 @@ def _remote_scp(session, password_list, transfer_timeout=600, login_timeout=10):
                         authentication_done = True
                     continue
                 elif password_prompt_count == 1 and scp_type == 2:
-                    logging.debug("Got password prompt; sending '%s'" %
+                    logging.debug("Got password prompt, sending '%s'" %
                                    password_list[password_prompt_count])
                     session.sendline(password_list[password_prompt_count])
                     password_prompt_count += 1
@@ -1181,7 +1176,6 @@ def wait_for(func, timeout, first=0.0, step=1.0, text=None):
 
         time.sleep(step)
 
-    logging.debug("Timeout elapsed")
     return None
 
 
