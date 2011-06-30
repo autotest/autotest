@@ -240,7 +240,6 @@ def create_image(params, root_dir):
     qemu_img_cmd += " %s" % size
 
     utils.system(qemu_img_cmd)
-    logging.info("Image created in %r", image_filename)
     return image_filename
 
 
@@ -256,7 +255,7 @@ def remove_image(params, root_dir):
            image_format -- the format of the image (qcow2, raw etc)
     """
     image_filename = get_image_filename(params, root_dir)
-    logging.debug("Removing image file %s...", image_filename)
+    logging.debug("Removing image file %s", image_filename)
     if os.path.exists(image_filename):
         os.unlink(image_filename)
     else:
@@ -279,7 +278,7 @@ def check_image(params, root_dir):
     vm_type = params.get("vm_type")
     if vm_type == 'kvm':
         image_filename = get_image_filename(params, root_dir)
-        logging.debug("Checking image file %s...", image_filename)
+        logging.debug("Checking image file %s", image_filename)
         qemu_img_cmd = virt_utils.get_path(root_dir,
                                       params.get("qemu_img_binary", "qemu-img"))
         image_is_qcow2 = params.get("image_format") == 'qcow2'
@@ -290,11 +289,11 @@ def check_image(params, root_dir):
             check_img = True
             if not "check" in q_output:
                 logging.error("qemu-img does not support 'check', "
-                              "skipping check...")
+                              "skipping check")
                 check_img = False
             if not "info" in q_output:
                 logging.error("qemu-img does not support 'info', "
-                              "skipping check...")
+                              "skipping check")
                 check_img = False
             if check_img:
                 try:
@@ -331,10 +330,10 @@ def check_image(params, root_dir):
 
         else:
             if not os.path.exists(image_filename):
-                logging.debug("Image file %s not found, skipping check...",
+                logging.debug("Image file %s not found, skipping check",
                               image_filename)
             elif not image_is_qcow2:
-                logging.debug("Image file %s not qcow2, skipping check...",
+                logging.debug("Image file %s not qcow2, skipping check",
                               image_filename)
 
 

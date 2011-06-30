@@ -352,14 +352,14 @@ class PrivateBridgeConfig(object):
 
 
     def _start_dhcp_server(self):
-        utils.system("service dnsmasq stop")
-        utils.system("dnsmasq --strict-order --bind-interfaces "
-                     "--listen-address %s.1 --dhcp-range %s.2,%s.254 "
-                     "--dhcp-lease-max=253 "
-                     "--dhcp-no-override "
-                     "--pid-file=/tmp/dnsmasq.pid "
-                     "--log-facility=/tmp/dnsmasq.log" %
-                     (self.subnet, self.subnet, self.subnet))
+        utils.run("service dnsmasq stop")
+        utils.run("dnsmasq --strict-order --bind-interfaces "
+                  "--listen-address %s.1 --dhcp-range %s.2,%s.254 "
+                  "--dhcp-lease-max=253 "
+                  "--dhcp-no-override "
+                  "--pid-file=/tmp/dnsmasq.pid "
+                  "--log-facility=/tmp/dnsmasq.log" %
+                  (self.subnet, self.subnet, self.subnet))
         self.dhcp_server_pid = None
         try:
             self.dhcp_server_pid = int(open('/tmp/dnsmasq.pid', 'r').read())
@@ -378,7 +378,7 @@ class PrivateBridgeConfig(object):
     def setup(self):
         brctl_output = utils.system_output("brctl show")
         if self.brname not in brctl_output:
-            logging.info("Configuring KVM test private bridge %s", self.brname)
+            logging.debug("Configuring KVM test private bridge %s", self.brname)
             try:
                 self._add_bridge()
             except:
