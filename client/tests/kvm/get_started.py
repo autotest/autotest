@@ -156,6 +156,8 @@ if __name__ == "__main__":
     logging.info("")
     logging.info("When you are done fixing eventual warnings found, "
                  "you can run the kvm test using the command line AS ROOT:")
-    logging.info("%s --verbose %s", autotest_bin, control_file)
+    logging.info("%s %s", autotest_bin, control_file)
+    logging.info("Autotest prints the results dir, so you can look at DEBUG "
+                 "logs if something went wrong")
     logging.info("You can also edit the test config files (see output of "
                  "step 2 for a list)")
