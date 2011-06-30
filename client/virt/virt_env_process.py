@@ -64,7 +64,7 @@ def preprocess_vm(test, params, env, name):
         logging.debug("Param 'restart_vm' specified, (re)starting VM")
         start_vm = True
     elif params.get("migration_mode"):
-        logging.debug("Param 'migration_mode specified, starting VM in "
+        logging.debug("Param 'migration_mode' specified, starting VM in "
                       "incoming migration mode")
         start_vm = True
     elif params.get("start_vm") == "yes":
