@@ -2502,16 +2502,16 @@ variants:
                                 install:
                                     cdrom_cd1 = isos/windows/Windows2008-x86.iso
                                     #en_windows_server_2008_datacenter_enterprise_standard_x86_dvd_X14-26710.iso
-                                    md5sum=0bfca49f0164de0a8eba236ced47007d
-                                    md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
+                                    md5sum_cd1 = 0bfca49f0164de0a8eba236ced47007d
+                                    md5sum_1m_cd1 = 07d7f5006393f74dc76e6e2e943e2440
                                     sha1sum_cd1 = 6ca018ff96f1e9b2b310a36546b6fded99a421e6
                                     steps = Win2008-32.steps
                                 setup:
                                     steps = Win2008-32-rss.steps
                                 unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/Windows2008-x86.iso
-                                    md5sum=0bfca49f0164de0a8eba236ced47007d
-                                    md5sum_1m=07d7f5006393f74dc76e6e2e943e2440
+                                    md5sum_cd1 = 0bfca49f0164de0a8eba236ced47007d
+                                    md5sum_1m_cd1 = 07d7f5006393f74dc76e6e2e943e2440
                                     unattended_file = unattended/win2008-32-autounattend.xml
                                     floppy = images/win2008-sp1-32/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
@@ -2546,16 +2546,16 @@ variants:
                                     steps = Win2008-64.steps
                                     cdrom_cd1 = isos/windows/Windows2008-x64.iso
                                     #en_windows_server_2008_datacenter_enterprise_standard_x64_dvd_X14-26714.iso
-                                    md5sum=27c58cdb3d620f28c36333a5552f271c
-                                    md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
+                                    md5sum_cd1 = 27c58cdb3d620f28c36333a5552f271c
+                                    md5sum_1m_cd1 = efdcc11d485a1ef9afa739cb8e0ca766
                                     sha1sum_cd1 = bd000374709f67e9358814db6ec8f0ddaaa16f70
                                     passwd = 1q2w3eP
                                 setup:
                                     steps = Win2008-64-rss.steps
                                 unattended_install.cdrom, whql.support_vm_install:
                                     cdrom_cd1 = isos/windows/Windows2008-x64.iso
-                                    md5sum=27c58cdb3d620f28c36333a5552f271c
-                                    md5sum_1m=efdcc11d485a1ef9afa739cb8e0ca766
+                                    md5sum_cd1 = 27c58cdb3d620f28c36333a5552f271c
+                                    md5sum_1m_cd1 = efdcc11d485a1ef9afa739cb8e0ca766
                                     unattended_file = unattended/win2008-64-autounattend.xml
                                     floppy = images/win2008-sp1-64/answer.vfd
                                     # Uncomment virtio_network_installer_path line if
@@ -2639,8 +2639,8 @@ variants:
                         image_name += -64
                         install:
                             cdrom_cd1 = isos/windows/en_windows_7_ultimate_x64_dvd_x15-65922.iso
-                            md5sum=f43d22e4fb07bf617d573acd8785c028
-                            md5sum_1m=b44d8cf99dbed2a5cb02765db8dfd48f
+                            md5sum_cd1 = f43d22e4fb07bf617d573acd8785c028
+                            md5sum_1m_cd1 = b44d8cf99dbed2a5cb02765db8dfd48f
                             passwd = 1q2w3eP
                             steps = Win7-64.steps
                         setup:
@@ -2682,8 +2682,8 @@ variants:
                 image_size = 4G
                 steps = NetBSD-1.6.2.steps
                 cdrom_cd1 = isos/bsd/netbsd-1.6.2-i386.iso
-                md5sum=72eb680300f77d529bfbc880ba8208f3
-                md5sum_1m=f1a9e1e825c90adfb1be35c6177bd9ac
+                md5sum_cd1 = 72eb680300f77d529bfbc880ba8208f3
+                md5sum_1m_cd1 = f1a9e1e825c90adfb1be35c6177bd9ac
 
             - OpenBSD-4.1:
                 image_name = OpenBSD-4.1
