@@ -1,4 +1,5 @@
 import logging, time, socket, re, os, shutil, tempfile, glob, ConfigParser
+import xml.dom.minidom
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.virt import virt_vm, virt_utils
@@ -47,8 +48,8 @@ class Disk(object):
         self.path = None
 
 
-    def setup_answer_file(self, filename, contents):
-        utils.open_write_close(os.path.join(self.mount, filename), contents)
+    def get_answer_file_path(self, filename):
+        return os.path.join(self.mount, filename)
 
 
     def copy_to(self, src):
@@ -258,8 +259,7 @@ class UnattendedInstallConfig(object):
         self.image_path = os.path.dirname(self.kernel)
 
 
-    @error.context_aware
-    def render_answer_file(self):
+    def answer_kickstart(self, answer_path):
         """
         Replace KVM_TEST_CDKEY (in the unattended file) with the cdkey
         provided for this test and replace the KVM_TEST_MEDIUM with
@@ -267,17 +267,12 @@ class UnattendedInstallConfig(object):
 
         @return: Answer file contents
         """
-        error.base_context('Rendering final answer file')
-        error.context('Reading answer file %s' % self.unattended_file)
-        unattended_contents = open(self.unattended_file).read()
+        contents = open(self.unattended_file).read()
+
         dummy_cdkey_re = r'\bKVM_TEST_CDKEY\b'
-        if re.search(dummy_cdkey_re, unattended_contents):
+        if re.search(dummy_cdkey_re, contents):
             if self.cdkey:
-                unattended_contents = re.sub(dummy_cdkey_re, self.cdkey,
-                                             unattended_contents)
-            else:
-                print ("WARNING: 'cdkey' required but not specified for "
-                       "this unattended installation")
+                contents = re.sub(dummy_cdkey_re, self.cdkey, contents)
 
         dummy_medium_re = r'\bKVM_TEST_MEDIUM\b'
         if self.medium == "cdrom":
@@ -290,67 +285,135 @@ class UnattendedInstallConfig(object):
         else:
             raise ValueError("Unexpected installation medium %s" % self.url)
 
-        unattended_contents = re.sub(dummy_medium_re, content,
-                                     unattended_contents)
-
-        def replace_virtio_key(contents, dummy_re, attribute_name):
-            """
-            Replace a virtio dummy string with contents.
-
-            If install_virtio is not set, replace it with a dummy string.
-
-            @param contents: Contents of the unattended file
-            @param dummy_re: Regular expression used to search on the.
-                    unattended file contents.
-            @param env: Name of the environment variable.
-            """
-            dummy_path = "C:"
-            driver = getattr(self, attribute_name, '')
-
-            if re.search(dummy_re, contents):
-                if self.install_virtio == "yes":
-                    if driver.endswith("msi"):
-                        driver = 'msiexec /passive /package ' + driver
-                    else:
-                        try:
-                            # Let's escape windows style paths properly
-                            drive, path = driver.split(":")
-                            driver = drive + ":" + re.escape(path)
-                        except:
-                            pass
-                    contents = re.sub(dummy_re, driver, contents)
-                else:
-                    contents = re.sub(dummy_re, dummy_path, contents)
-            return contents
-
-        vdict = {r'\bKVM_TEST_STORAGE_DRIVER_PATH\b':
-                 'virtio_storage_path',
-                 r'\bKVM_TEST_NETWORK_DRIVER_PATH\b':
-                 'virtio_network_path',
-                 r'\bKVM_TEST_VIRTIO_NETWORK_INSTALLER\b':
-                 'virtio_network_installer_path'}
-
-        for vkey in vdict:
-            unattended_contents = replace_virtio_key(
-                                                   contents=unattended_contents,
-                                                   dummy_re=vkey,
-                                                   attribute_name=vdict[vkey])
+        contents = re.sub(dummy_medium_re, content, contents)
 
         logging.debug("Unattended install contents:")
-        for line in unattended_contents.splitlines():
+        for line in contents.splitlines():
             logging.debug(line)
-        return unattended_contents
+
+        utils.open_write_close(answer_path, contents)
+
+
+    def answer_windows_ini(self, answer_path):
+        parser = ConfigParser.ConfigParser()
+        parser.read(self.unattended_file)
+        # First, replacing the CDKEY
+        if self.cdkey:
+            parser.set('UserData', 'ProductKey', self.cdkey)
+        else:
+            logging.error("Param 'cdkey' required but not specified for "
+                          "this unattended installation")
+
+        # Now, replacing the virtio network driver path, under double quotes
+        if self.install_virtio == 'yes':
+            parser.set('Unattended', 'OemPnPDriversPath',
+                       '"%s"' % self.virtio_nework_path)
+        else:
+            parser.remove_option('Unattended', 'OemPnPDriversPath')
+
+        # Last, replace the virtio installer command
+        if self.install_virtio == 'yes':
+            driver = self.virtio_network_installer_path
+        else:
+            driver = 'dir'
+
+        dummy_re = 'KVM_TEST_VIRTIO_NETWORK_INSTALLER'
+        installer = parser.get('GuiRunOnce', 'Command0')
+        if dummy_re in installer:
+            installer = re.sub(dummy_re, driver, installer)
+        parser.set('GuiRunOnce', 'Command0', installer)
+
+        # Now, writing the in memory config state to the unattended file
+        fp = open(answer_path, 'w')
+        parser.write(fp)
+
+        # Let's read it so we can debug print the contents
+        fp = open(answer_path, 'r')
+        contents = fp.read()
+        logging.debug("Unattended install contents:")
+        for line in contents.splitlines():
+            logging.debug(line)
+        fp.close()
+
+
+    def answer_windows_xml(self, answer_path):
+        doc = xml.dom.minidom.parse(self.unattended_file)
+
+        if self.cdkey:
+            # First, replacing the CDKEY
+            product_key = doc.getElementsByTagName('ProductKey')[0]
+            key = product_key.getElementsByTagName('Key')[0]
+            key_text = key.childNodes[0]
+            assert key_text.nodeType == doc.TEXT_NODE
+            key_text.data = self.cdkey
+        else:
+            logging.error("Param 'cdkey' required but not specified for "
+                          "this unattended installation")
+
+        # Now, replacing the virtio driver paths or removing the entire
+        # component PnpCustomizationsWinPE Element Node
+        if self.install_virtio == 'yes':
+            paths = doc.getElementsByTagName("Path")
+            values = [self.virtio_storage_path, self.virtio_nework_path]
+            for path, value in zip(paths, values):
+                path_text = path.childNodes[0]
+                assert key_text.nodeType == doc.TEXT_NODE
+                path_text.data = value
+        else:
+            settings = doc.getElementsByTagName("settings")
+            for s in settings:
+                for c in s.getElementsByTagName("component"):
+                    if (c.getAttribute('name') ==
+                        "Microsoft-Windows-PnpCustomizationsWinPE"):
+                        s.removeChild(c)
+
+        # Last but not least important, replacing the virtio installer command
+        command_lines = doc.getElementsByTagName("CommandLine")
+        for command_line in command_lines:
+            command_line_text = command_line.childNodes[0]
+            assert command_line_text.nodeType == doc.TEXT_NODE
+            dummy_re = 'KVM_TEST_VIRTIO_NETWORK_INSTALLER'
+            if self.install_virtio == 'yes':
+                driver = self.virtio_network_installer_path
+            else:
+                driver = 'dir'
+            if driver.endswith("msi"):
+                driver = 'msiexec /passive /package ' + driver
+            if dummy_re in command_line_text.data:
+                t = command_line_text.data
+                t = re.sub(dummy_re, driver, t)
+                command_line_text.data = t
+
+        contents = doc.toxml()
+        logging.debug("Unattended install contents:")
+        for line in contents.splitlines():
+            logging.debug(line)
+
+        fp = open(answer_path, 'w')
+        doc.writexml(fp)
+
+
+    def answer_suse_xml(self, answer_path):
+        # There's nothing to replace on SUSE files to date. Yay!
+        doc = xml.dom.minidom.parse(self.unattended_file)
+
+        contents = doc.toxml()
+        logging.debug("Unattended install contents:")
+        for line in contents.splitlines():
+            logging.debug(line)
+
+        fp = open(answer_path, 'w')
+        doc.writexml(fp)
 
 
     def setup_boot_disk(self):
-        answer_contents = self.render_answer_file()
-
         if self.unattended_file.endswith('.sif'):
             dest_fname = 'winnt.sif'
             setup_file = 'winnt.bat'
             boot_disk = FloppyDisk(self.floppy, self.qemu_img_binary,
                                    self.tmpdir)
-            boot_disk.setup_answer_file(dest_fname, answer_contents)
+            answer_path = boot_disk.get_answer_file_path(dest_fname)
+            self.answer_windows_ini(answer_path)
             setup_file_path = os.path.join(self.unattended_dir, setup_file)
             boot_disk.copy_to(setup_file_path)
             if self.install_virtio == "yes":
@@ -369,7 +432,8 @@ class UnattendedInstallConfig(object):
             else:
                 raise ValueError("Neither cdrom_unattended nor floppy set "
                                  "on the config file, please verify")
-            boot_disk.setup_answer_file(dest_fname, answer_contents)
+            answer_path = boot_disk.get_answer_file_path(dest_fname)
+            self.answer_kickstart(answer_path)
 
         elif self.unattended_file.endswith('.xml'):
             if "autoyast" in self.extra_params:
@@ -383,14 +447,17 @@ class UnattendedInstallConfig(object):
                 else:
                     raise ValueError("Neither cdrom_unattended nor floppy set "
                                      "on the config file, please verify")
-                boot_disk.setup_answer_file(dest_fname, answer_contents)
+                answer_path = boot_disk.get_answer_file_path(dest_fname)
+                self.answer_suse_xml(answer_path)
 
             else:
                 # Windows unattended install
                 dest_fname = "autounattend.xml"
                 boot_disk = FloppyDisk(self.floppy, self.qemu_img_binary,
                                        self.tmpdir)
-                boot_disk.setup_answer_file(dest_fname, answer_contents)
+                answer_path = boot_disk.get_answer_file_path(dest_fname)
+                self.answer_windows_xml(answer_path)
+
                 if self.install_virtio == "yes":
                     boot_disk.setup_virtio_win2008(self.virtio_floppy)
                 boot_disk.copy_to(self.finish_program)
