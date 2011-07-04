@@ -1,0 +1,74 @@
+About this:
+-----------
+
+This module contains extensions to `atest` that proved to be useful
+when doing virtualization testing of multiple KVM versions, on multiple
+operating system versions (Fedora, RHEL5, RHEL6).
+
+It uses a simple templating mechanism, to inject extra configuration into
+the server control file, that will then end up on the cartesian config
+file parsing. These options can be set directly with the command line
+options `--extra-cartesian-config` or indirectly with other command line
+options such as `--koji-tag` and `--koji-pkg`.
+
+Some options, such as the koji ones, will trigger local validation, that
+is, errors such as specifying invalid packages will be caught right away,
+and the job won't be submitted. This is to prevent a typo from triggering
+a job that will fail and waste developer time.
+
+
+Instalation:
+------------
+
+1) copy the site_job.py file to <autotest_root>/cli/,
+usually /usr/local/autotest/cli.
+
+2) validate it is working by running:
+
+  # <autotest_root>/cli/atest job create --help
+
+The output should include the added options:
+
+...
+  -T, --template        Control file is actually a template
+  --extra-cartesian-config=EXTRA_CARTESIAN_CONFIG
+                        Add extra configuration to the cartesian config file
+  --timestamp           Add a timestamp to the name of the job
+  --koji-arch=KOJI_ARCH
+                        Default architecture for packages that will be fetched
+                        from koji build. This will be combined with
+                        "noarch".This option is used to help to validate
+                        packages from the job submitting machine.
+  --koji-tag=KOJI_TAG   Sets a default koji tag for koji packages specified
+                        with --koji-pkg
+  --koji-pkg=KOJI_PKG   Packages to add to host installation based on koji
+                        build. This options may be specified multiple times.
+
+
+Usage Examples:
+---------------
+
+These examples actually depend on local cartersian configuration, that is,
+they might not work out of the box in your autotest installation. Please
+use them only as a reference and adapt the examples to your scenario:
+
+1) To run a test of the upstream qemu git repo:
+
+  # <autotest_root>/cli/atest job create -s -m "yourmail@yourdomain.org" \
+    -f "<autotest_root>/contrib/virt/control.template" -T --timestamp \
+    --extra-cartesian-config='only qemu-git..sanity' "Upstream qemu.git sanity"
+
+2) To run a test with specific packages built on koji:
+
+  # <autotest_root>/cli/atest job create -s -m "yourmail@yourdomain.org" \
+    -f "<autotest_root>/contrib/virt/control.template" -T --timestamp \
+    --koji-tag=f15 --koji-pkg=':qemu-kvm:qemu-kvm,qemu-img,qemu-kvm-tools' \
+    --koji-pkg='seabios' --koji-pkg='vgabios' --koji-pkg=':gpxe:gpxe-roms-qemu' \
+    --koji-pkg=':spice-server:spice-server' \
+    --extra-cartersian-config='only f15-koji..sanity' "Fedora 15 Koji Sanity"
+
+
+Contribute by (who to bug):
+---------------------------
+Cleber Rosa (crosa@redhat.com)
+Lucas Meneghel Rodrigues (lmr@redhat.com)
