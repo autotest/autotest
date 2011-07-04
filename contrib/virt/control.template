@@ -1,0 +1,47 @@
+import logging, os, sys, fcntl
+kvm_test_dir = "/usr/local/autotest/client/tests/kvm"
+from autotest_lib.client.common_lib import cartesian_config
+
+def get_control(params, custom_cfg):
+    control = '''
+import sys, os, logging
+os.environ['LANG'] = 'en_US.UTF-8'
+kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'kvm')
+sys.path.append(kvm_test_dir)
+from autotest_lib.client.common_lib import cartesian_config
+from autotest_lib.client.virt import virt_utils
+
+kernel_install_params = %s
+custom_cfg = %s
+
+def step_init():
+    job.next_step([step_test])
+    virt_utils.install_host_kernel(job, kernel_install_params)
+
+def step_test():
+    parser = cartesian_config.Parser()
+    parser.parse_file(os.path.join(kvm_test_dir, "redhat.cfg"))
+    for line in custom_cfg:
+        parser.parse_string(line)
+    virt_utils.run_tests(parser, job)
+''' % (params, custom_cfg)
+    return control
+
+def run(machine):
+    parser = cartesian_config.Parser()
+    parser.parse_file(os.path.join(kvm_test_dir, "redhat.cfg"))
+    custom_cfg = $custom_job_cfg
+    for line in custom_cfg:
+        parser.parse_string(line)
+    generator = parser.get_dicts()
+    params = generator.next()
+    host = hosts.create_host(machine)
+    profile = params.get('host_install_profile')
+    timeout = int(params.get('host_install_timeout', 3600))
+    if profile:
+        host.install(profile=profile, timeout=timeout)
+    at = autotest.Autotest(host)
+    control = get_control(params, custom_cfg)
+    at.run(control)
+
+job.parallel_simple(run, machines)
