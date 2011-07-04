@@ -34,19 +34,8 @@ variants:
             - git:
                 install_mode = git
                 ## Install KVM from git repositories.
-                ## If you provide only "git_repo" and "user_git_repo", the
-                ## build test will assume it will perform all build from the
-                ## userspace dir, building modules trough 
-                ## make -C kernel LINUX=%s sync. As of today (07-13-2009)
-                ## upstream needs 3 git repos:
-                ## * git_repo (linux sources)
-                ## * user_git_repo (qemu sources)
-                ## * kmod_repo" to build KVM userspace + kernel modules.
-                # git_repo = git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git
-                # kernel_branch = kernel_branch_name
-                # kernel_lbranch = kernel_lbranch_name
-                # kernel_commit = kernel_commit_name
-                # kernel_patches = ['http://foo.com/patch1', 'http://foo.com/patch2']
+                ## This now only concerns the userspace component, and it assumes
+                ## the kernel modules are shipped with the linux kernel.
                 user_git_repo = git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git
                 # user_branch = user_branch_name
                 # user_lbranch = user_lbranch_name
@@ -54,11 +43,6 @@ variants:
                 # user_patches = ['http://foo.com/patch1', 'http://foo.com/patch2']
                 ## This is how you pass extra params to the userspace configure script
                 # extra_configure_options = '--enable-spice --disable-werror'
-                # kmod_repo = git://git.kernel.org/pub/scm/virt/kvm/kvm-kmod.git
-                # kmod_branch = kmod_branch_name
-                # kmod_lbranch = kmod_lbranch_name
-                # kmod_commit = kmod_commit_name
-                # kmod_patches = ['http://foo.com/patch1', 'http://foo.com/patch2']
                 # spice_repo = git://anongit.freedesktop.org/spice/spice
                 # spice_branch = master
                 # spice_lbranch = master
