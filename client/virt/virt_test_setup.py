@@ -308,21 +308,38 @@ class PrivateBridgeConfig(object):
             self.subnet = params.get("priv_subnet", '192.168.58')
             self.ip_version = params.get("bridge_ip_version", "ipv4")
             self.dhcp_server_pid = None
-            self.iptables_rules = [
-            "INPUT 1 -i %s -p udp -m udp --dport 53 -j ACCEPT" % self.brname,
-            "INPUT 2 -i %s -p tcp -m tcp --dport 53 -j ACCEPT" % self.brname,
-            "INPUT 3 -i %s -p udp -m udp --dport 67 -j ACCEPT" % self.brname,
-            "INPUT 4 -i %s -p tcp -m tcp --dport 67 -j ACCEPT" % self.brname,
-            "INPUT 5 -i %s -p tcp -m tcp --dport 12323 -j ACCEPT" % self.brname,
-            "FORWARD 1 -m physdev --physdev-is-bridged -j ACCEPT",
-            "FORWARD 2 -d %s.0/24 -o %s -m state --state RELATED,ESTABLISHED "
-            "-j ACCEPT" % (self.subnet, self.brname),
-            "FORWARD 3 -s %s.0/24 -i %s -j ACCEPT" % (self.subnet, self.brname),
-            "FORWARD 4 -i %s -o %s -j ACCEPT" % (self.brname, self.brname),
-            ("FORWARD 5 -o %s -j REJECT --reject-with icmp-port-unreachable" %
-             self.brname),
-            ("FORWARD 6 -i %s -j REJECT --reject-with icmp-port-unreachable" %
-             self.brname)]
+            ports = params.get("priv_bridge_ports", '53 67').split()
+            s_port = params.get("guest_port_remote_shell", "10022")
+            if s_port not in ports:
+                ports.append(s_port)
+            ft_port = params.get("guest_port_file_transfer", "10023")
+            if ft_port not in ports:
+                ports.append(ft_port)
+            u_port = params.get("guest_port_unattended_install", "13323")
+            if u_port not in ports:
+                ports.append(u_port)
+            self.iptables_rules = self._assemble_iptables_rules(ports)
+
+
+    def _assemble_iptables_rules(self, port_list):
+        rules = []
+        index = 0
+        for port in port_list:
+            index += 1
+            rules.append("INPUT %s -i %s -p tcp -m tcp --dport %s -j ACCEPT" %
+                         (index, self.brname, port))
+            index += 1
+            rules.append("INPUT %s -i %s -p udp -m udp --dport %s -j ACCEPT" %
+                         (index, self.brname, port))
+        rules.append("FORWARD 1 -m physdev --physdev-is-bridged -j ACCEPT")
+        rules.append("FORWARD 2 -d %s.0/24 -o %s -m state "
+                     "--state RELATED,ESTABLISHED -j ACCEPT" %
+                     (self.subnet, self.brname))
+        rules.append("FORWARD 3 -s %s.0/24 -i %s -j ACCEPT" %
+                     (self.subnet, self.brname))
+        rules.append("FORWARD 4 -i %s -o %s -j ACCEPT" %
+                     (self.brname, self.brname))
+        return rules
 
 
     def _add_bridge(self):
