@@ -15,68 +15,6 @@ def kill_qemu_processes():
         utils.system("fuser -k /dev/kvm", ignore_status=True)
 
 
-def _unload_kvm_modules(mod_list):
-    logging.info("Unloading previously loaded KVM modules")
-    for module in reversed(mod_list):
-        utils.unload_module(module)
-
-
-def _load_kvm_modules(mod_list, module_dir=None, load_stock=False):
-    """
-    Just load the KVM modules, without killing Qemu or unloading previous
-    modules.
-
-    Load modules present on any sub directory of module_dir. Function will walk
-    through module_dir until it finds the modules.
-
-    @param module_dir: Directory where the KVM modules are located.
-    @param load_stock: Whether we are going to load system kernel modules.
-    @param extra_modules: List of extra modules to load.
-    """
-    if module_dir:
-        logging.info("Loading the built KVM modules...")
-        kvm_module_path = None
-        kvm_vendor_module_path = None
-        abort = False
-
-        list_modules = ['%s.ko' % (m) for m in mod_list]
-
-        list_module_paths = []
-        for folder, subdirs, files in os.walk(module_dir):
-            for module in list_modules:
-                if module in files:
-                    module_path = os.path.join(folder, module)
-                    list_module_paths.append(module_path)
-
-        # We might need to arrange the modules in the correct order
-        # to avoid module load problems
-        list_modules_load = []
-        for module in list_modules:
-            for module_path in list_module_paths:
-                if os.path.basename(module_path) == module:
-                    list_modules_load.append(module_path)
-
-        if len(list_module_paths) != len(list_modules):
-            logging.error("KVM modules not found. If you don't want to use the "
-                          "modules built by this test, make sure the option "
-                          "load_modules: 'no' is marked on the test control "
-                          "file.")
-            raise error.TestError("The modules %s were requested to be loaded, "
-                                  "but the only modules found were %s" %
-                                  (list_modules, list_module_paths))
-
-        for module_path in list_modules_load:
-            try:
-                utils.system("insmod %s" % module_path)
-            except Exception, e:
-                raise error.TestFail("Failed to load KVM modules: %s" % e)
-
-    if load_stock:
-        logging.info("Loading current system KVM modules...")
-        for module in mod_list:
-            utils.system("modprobe %s" % module)
-
-
 def create_symlinks(test_bindir, prefix=None, bin_list=None, unittest=None):
     """
     Create symbolic links for the appropriate qemu and qemu-img commands on
@@ -143,8 +81,6 @@ class KvmNotInstalled(KvmInstallException):
 
 
 class BaseInstaller(object):
-    # default value for load_stock argument
-    load_stock_modules = True
     def __init__(self, mode=None):
         self.install_mode = mode
         self._full_module_list = None
@@ -254,7 +190,9 @@ class BaseInstaller(object):
 
         May be overridden by subclasses.
         """
-        _load_kvm_modules(mod_list, load_stock=self.load_stock_modules)
+        logging.info("Loading KVM modules")
+        for module in mod_list:
+            utils.system("modprobe %s" % module)
 
 
     def load_modules(self, mod_list=None):
@@ -269,7 +207,9 @@ class BaseInstaller(object):
         """
         if mod_list is None:
             mod_list = self.full_module_list()
-        _unload_kvm_modules(mod_list)
+        logging.info("Unloading previously loaded KVM modules")
+        for module in reversed(mod_list):
+            utils.unload_module(module)
 
 
     def unload_modules(self, mod_list=None):
@@ -297,7 +237,6 @@ class YumInstaller(BaseInstaller):
     """
     Class that uses yum to install and remove packages.
     """
-    load_stock_modules = True
     def set_install_params(self, test, params):
         super(YumInstaller, self).set_install_params(test, params)
         # Checking if all required dependencies are available
@@ -357,7 +296,6 @@ class KojiInstaller(YumInstaller):
     It uses yum to install and remove packages. Packages are specified
     according to the syntax defined in the PkgSpec class.
     """
-    load_stock_modules = True
     def set_install_params(self, test, params):
         """
         Gets parameters and initializes the package downloader.
@@ -450,8 +388,6 @@ class SourceDirInstaller(BaseInstaller):
         super(SourceDirInstaller, self).set_install_params(test, params)
 
         self.mod_install_dir = os.path.join(self.prefix, 'modules')
-        self.installed_kmods = False  # it will be set to True in case we
-                                      # installed our own modules
 
         srcdir = params.get("srcdir", None)
         self.path_to_roms = params.get("path_to_rom_images", None)
@@ -494,51 +430,11 @@ class SourceDirInstaller(BaseInstaller):
             utils.system(step)
 
 
-    def _install_kmods_old_userspace(self, userspace_path):
-        """
-        Run the module install command.
-
-        This is for the "old userspace" code, that contained a 'kernel' subdirectory
-        with the kmod build code.
-
-        The code would be much simpler if we could specify the module install
-        path as parameter to the toplevel Makefile. As we can't do that and
-        the module install code doesn't use --prefix, we have to call
-        'make -C kernel install' directly, setting the module directory
-        parameters.
-
-        If the userspace tree doens't have a 'kernel' subdirectory, the
-        module install step will be skipped.
-
-        @param userspace_path: the path the kvm-userspace directory
-        """
-        kdir = os.path.join(userspace_path, 'kernel')
-        if os.path.isdir(kdir):
-            os.chdir(kdir)
-            # INSTALLDIR is the target dir for the modules
-            # ORIGMODDIR is the dir where the old modules will be removed. we
-            #            don't want to mess with the system modules, so set it
-            #            to a non-existing directory
-            utils.system('make install INSTALLDIR=%s ORIGMODDIR=/tmp/no-old-modules' % (self.mod_install_dir))
-            self.installed_kmods = True
-
-
-    def _install_kmods(self, kmod_path):
-        """Run the module install command for the kmod-kvm repository
-
-        @param kmod_path: the path to the kmod-kvm.git working copy
-        """
-        os.chdir(kmod_path)
-        utils.system('make modules_install DESTDIR=%s' % (self.mod_install_dir))
-        self.installed_kmods = True
-
-
     def _install(self):
         os.chdir(self.srcdir)
         logging.info("Installing KVM userspace")
         if self.repo_type == 1:
             utils.system("make -C qemu install")
-            self._install_kmods_old_userspace(self.srcdir)
         elif self.repo_type == 2:
             utils.system("make install")
         if self.path_to_roms:
@@ -547,17 +443,6 @@ class SourceDirInstaller(BaseInstaller):
         create_symlinks(test_bindir=self.test_bindir,
                         prefix=self.prefix,
                         unittest=self.unittest_prefix)
-
-
-    def _load_modules(self, mod_list):
-        # load the installed KVM modules in case we installed them
-        # ourselves. Otherwise, just load the system modules.
-        if self.installed_kmods:
-            logging.info("Loading installed KVM modules")
-            _load_kvm_modules(mod_list, module_dir=self.mod_install_dir)
-        else:
-            logging.info("Loading stock KVM modules")
-            _load_kvm_modules(mod_list, load_stock=True)
 
 
     def install(self):
@@ -611,19 +496,6 @@ class GitInstaller(SourceDirInstaller):
         cfg = 'PKG_CONFIG_PATH="%s/lib/pkgconfig:%s/share/pkgconfig" ./configure' % (
             self.prefix, self.prefix)
 
-        self.kernel = GitRepo(installer=self, prefix='kernel',
-            repo_param='git_repo', srcdir='kvm')
-        self.kmod = GitRepo(installer=self, prefix='kmod', srcdir="kvm_kmod")
-        if params.get('kernel_git_repo'):
-            cfg += ' --kerneldir=%s' % self.host_kernel_srcdir
-            self.kernel.build_steps = [cfg,
-                            'make clean',
-                            'make -C kernel LINUX=%s sync' % self.kernel.srcdir]
-            self.kmod.build_steps=[cfg,
-                             'make clean',
-                             'make sync LINUX=%s' % self.kernel.srcdir,
-                             'make']
-
         self.spice_protocol = GitRepo(installer=self, prefix='spice_protocol',
             srcdir='spice-protocol',
             build_steps= ['./autogen.sh',
@@ -657,19 +529,12 @@ class GitInstaller(SourceDirInstaller):
             logging.error(message)
             raise error.TestError(message)
 
-        for repo in [self.userspace, self.kernel, self.kmod, self.spice_protocol, self.spice]:
+        for repo in [self.userspace, self.spice_protocol, self.spice]:
             if not repo.repo:
                 continue
             repo.fetch_and_patch()
 
     def _build(self):
-        if self.kmod.repo:
-            logging.info('Building KVM modules')
-            self.kmod.build()
-        elif self.kernel.repo:
-            logging.info('Building KVM modules')
-            self.kernel.build()
-
         if self.spice_protocol.repo:
             logging.info('Building Spice-protocol')
             self.spice_protocol.build()
@@ -683,25 +548,8 @@ class GitInstaller(SourceDirInstaller):
 
 
     def _install(self):
-        if self.kernel:
-            os.chdir(self.userspace.srcdir)
-            # the kernel module install with --prefix doesn't work, and DESTDIR
-            # wouldn't work for the userspace stuff, so we clear WANT_MODULE:
-            utils.system('make install WANT_MODULE=')
-            # and install the old-style-kmod modules manually:
-            self._install_kmods_old_userspace(self.userspace.srcdir)
-        elif self.kmod:
-            # if we have a kmod repository, it is easier:
-            # 1) install userspace:
-            os.chdir(self.userspace_srcdir)
-            utils.system('make install')
-            # 2) install kmod:
-            self._install_kmods(self.kmod_srcdir)
-        else:
-            # if we don't have kmod sources, we just install
-            # userspace:
-            os.chdir(self.userspace.srcdir)
-            utils.system('make install')
+        os.chdir(self.userspace.srcdir)
+        utils.system('make install')
 
         if self.path_to_roms:
             install_roms(self.path_to_roms, self.prefix)
@@ -721,8 +569,6 @@ class GitInstaller(SourceDirInstaller):
 
 
 class PreInstalledKvm(BaseInstaller):
-    # load_modules() will use the stock modules:
-    load_stock_modules = True
     def install(self):
         logging.info("Expecting KVM to be already installed. Doing nothing")
 
