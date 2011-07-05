@@ -354,7 +354,7 @@ class UnattendedInstallConfig(object):
         # component PnpCustomizationsWinPE Element Node
         if self.install_virtio == 'yes':
             paths = doc.getElementsByTagName("Path")
-            values = [self.virtio_storage_path, self.virtio_nework_path]
+            values = [self.virtio_storage_path, self.virtio_network_path]
             for path, value in zip(paths, values):
                 path_text = path.childNodes[0]
                 assert key_text.nodeType == doc.TEXT_NODE
@@ -373,7 +373,8 @@ class UnattendedInstallConfig(object):
             command_line_text = command_line.childNodes[0]
             assert command_line_text.nodeType == doc.TEXT_NODE
             dummy_re = 'KVM_TEST_VIRTIO_NETWORK_INSTALLER'
-            if self.install_virtio == 'yes':
+            if (self.install_virtio == 'yes' and
+                hasattr(self, 'virtio_network_installer_path')):
                 driver = self.virtio_network_installer_path
             else:
                 driver = 'dir'
