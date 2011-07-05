@@ -2787,8 +2787,9 @@ variants:
 
 
 virtio_net, virtio_blk, e1000, balloon_check:
-    only Fedora.11 Fedora.12 Fedora.13 Fedora.14 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
-    # only WinXP Win2003 Win2008 WinVista Win7 Fedora.11 Fedora.12 Fedora.13 Fedora.14 RHEL.5 RHEL.6 OpenSUSE.11 SLES.11 Ubuntu-8.10-server
+    # Only excluding the OS that we *know* they won't have the drivers installed
+    # Some might require special setup though.
+    no Win2000, Fedora.8 Fedora.9 Fedora.10, RHEL.3, RHEL.4, Unix, livecd
 
 kdump, watchdog:
     only RHEL.5 RHEL.6
