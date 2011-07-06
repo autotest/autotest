@@ -2135,13 +2135,6 @@ variants:
             drive_index_winutils = 2
             kernel =
             initrd =
-            # Turn install_virtio = yes if you want to install the
-            # Windows virtio drivers. It might be a lot of setup though :)
-            #install_virtio = no
-            #cdroms += " virtio"
-            #cdrom_virtio = isos/windows/virtio-win.iso
-            #drive_index_virtio = 3
-            #virtio_floppy = /usr/share/virtio-win/virtio-drivers.vfd
         migrate:
             migration_test_command = ver && vol
             migration_bg_command = start ping -t localhost
@@ -2261,12 +2254,6 @@ variants:
                             md5sum_1m_cd1 = b473bf75af2d1269fec8958cf0202bfd
                             unattended_file = unattended/winxp32.sif
                             floppy = images/winXP-32/answer.vfd
-                            # Uncomment virtio_network_installer_path line if
-                            # you have an msi installer, also make sure the
-                            # paths are properly set in your virtio driver iso.
-                            virtio_oemsetup_id = WXP32
-                            virtio_network_path = 'F:\NetKVM\xp\x86'
-                            #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
                         whql.submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows XP
                             desc_path_desc2 = $\WDK\Logo Type\Systems Logo\Windows XP
@@ -2297,12 +2284,6 @@ variants:
                             md5sum_1m_cd1 = e812363ff427effc512b7801ee70e513
                             unattended_file = unattended/winxp64.sif
                             floppy = images/winXP-64/answer.vfd
-                            # Uncomment virtio_network_installer_path line if
-                            # you have an msi installer, also make sure the
-                            # paths are properly set in your virtio driver iso.
-                            virtio_oemsetup_id = WNET64
-                            virtio_network_path = 'F:\NetKVM\xp\amd64'
-                            #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
                         whql.submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows XP
                             desc_path_desc2 = $\WDK\Logo Type\Systems Logo\Windows XP
@@ -2348,12 +2329,6 @@ variants:
                             #md5sum_1m_cd1 = 37c2fdec15ac4ec16aa10fdfdb338aa3
                             unattended_file = unattended/win2003-32.sif
                             floppy = images/win2003-32/answer.vfd
-                            # Uncomment virtio_network_installer_path line if
-                            # you have an msi installer, also make sure the
-                            # paths are properly set in your virtio driver iso.
-                            virtio_oemsetup_id = WNET32
-                            virtio_network_path = 'F:\NetKVM\2k3\x86'
-                            #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
                         whql.submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows Server 2003
                             dd_data_logoarch = X86
@@ -2390,12 +2365,6 @@ variants:
                             #md5sum_1m_cd1 = 439393c384116aa09e08a0ad047dcea8
                             unattended_file = unattended/win2003-64.sif
                             floppy = images/win2003-64/answer.vfd
-                            # Uncomment virtio_network_installer_path line if
-                            # you have an msi installer, also make sure the
-                            # paths are properly set in your virtio driver iso.
-                            virtio_oemsetup_id = WNET64
-                            virtio_network_path = 'F:\NetKVM\2k3\amd64'
-                            #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
                         whql.submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows Server 2003
                             dd_data_logoarch = AMD64
@@ -2438,12 +2407,6 @@ variants:
                                     md5sum_1m_cd1 = c724e9695da483bc0fd59e426eaefc72
                                     unattended_file = unattended/winvista-32-autounattend.xml
                                     floppy = images/winvista-sp1-32/answer.vfd
-                                    # Uncomment virtio_network_installer_path line if
-                                    # you have an msi installer, also make sure the
-                                    # paths are properly set in your virtio driver iso.
-                                    virtio_storage_path = 'F:\viostor\w7\x86'
-                                    virtio_network_path = 'F:\NetKVM\w7\x86'
-                                    #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
                                 whql.submission.device.net:
                                     image_name_supportvm = winvista-sp1-32-supportvm
 
@@ -2457,12 +2420,6 @@ variants:
                                     sha1sum_1m_cd1 = a2afa4cffdc1c362dbf9e62942337f4f875a22cf
                                     unattended_file = unattended/winvista-32-autounattend.xml
                                     floppy = images/winvista-sp2-32/answer.vfd
-                                    # Uncomment virtio_network_installer_path line if
-                                    # you have an msi installer, also make sure the
-                                    # paths are properly set in your virtio driver iso.
-                                    virtio_storage_path = 'F:\viostor\w7\x86'
-                                    virtio_network_path = 'F:\NetKVM\w7\x86'
-                                    #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
                                 whql.submission.device.net:
                                     image_name_supportvm = winvista-sp2-32-supportvm
 
@@ -2489,12 +2446,6 @@ variants:
                                     md5sum_1m_cd1 = 0947bcd5390546139e25f25217d6f165
                                     unattended_file = unattended/winvista-64-autounattend.xml
                                     floppy = images/winvista-sp1-64/answer.vfd
-                                    # Uncomment virtio_network_installer_path line if
-                                    # you have an msi installer, also make sure the
-                                    # paths are properly set in your virtio driver iso.
-                                    virtio_storage_path = 'F:\viostor\w7\amd64'
-                                    virtio_network_path = 'F:\NetKVM\w7\amd64'
-                                    #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
                                 whql.submission.device.net:
                                     image_name_supportvm = winvista-sp1-64-supportvm
 
@@ -2508,12 +2459,6 @@ variants:
                                     sha1sum_1m_cd1 = 1fd21bd3ce2a4de8856c7b8fe6fdf80260f6d1c7
                                     unattended_file = unattended/winvista-64-autounattend.xml
                                     floppy = images/winvista-sp2-64/answer.vfd
-                                    # Uncomment virtio_network_installer_path line if
-                                    # you have an msi installer, also make sure the
-                                    # paths are properly set in your virtio driver iso.
-                                    virtio_storage_path = 'F:\viostor\w7\amd64'
-                                    virtio_network_path = 'F:\NetKVM\w7\amd64'
-                                    #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
                                 whql.submission.device.net:
                                     image_name_supportvm = winvista-sp2-64-supportvm
 
@@ -2542,12 +2487,6 @@ variants:
                                     md5sum_1m_cd1 = 07d7f5006393f74dc76e6e2e943e2440
                                     unattended_file = unattended/win2008-32-autounattend.xml
                                     floppy = images/win2008-sp1-32/answer.vfd
-                                    # Uncomment virtio_network_installer_path line if
-                                    # you have an msi installer, also make sure the
-                                    # paths are properly set in your virtio driver iso.
-                                    virtio_storage_path = 'F:\viostor\2k8\x86'
-                                    virtio_network_path = 'F:\NetKVM\2k8\x86'
-                                    #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
 
                             - sp2:
                                 image_name += -sp2-32
@@ -2559,12 +2498,6 @@ variants:
                                     sha1sum_1m_cd1 = 9662ff7ed715faa00407e4befc484ea52a92a9fb
                                     unattended_file = unattended/win2008-32-autounattend.xml
                                     floppy = images/win2008-sp2-32/answer.vfd
-                                    # Uncomment virtio_network_installer_path line if
-                                    # you have an msi installer, also make sure the
-                                    # paths are properly set in your virtio driver iso.
-                                    virtio_storage_path = 'F:\viostor\2k8\x86'
-                                    virtio_network_path = 'F:\NetKVM\2k8\x86'
-                                    #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
 
                     - 64:
                         variants:
@@ -2586,12 +2519,6 @@ variants:
                                     md5sum_1m_cd1 = efdcc11d485a1ef9afa739cb8e0ca766
                                     unattended_file = unattended/win2008-64-autounattend.xml
                                     floppy = images/win2008-sp1-64/answer.vfd
-                                    # Uncomment virtio_network_installer_path line if
-                                    # you have an msi installer, also make sure the
-                                    # paths are properly set in your virtio driver iso.
-                                    virtio_storage_path = 'F:\viostor\2k8\amd64'
-                                    virtio_network_path = 'F:\NetKVM\2k8\amd64'
-                                    #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
 
                             - sp2:
                                 image_name += -sp2-64
@@ -2603,12 +2530,6 @@ variants:
                                     sha1sum_1m_cd1 = 8fe08b03e3531906855a60a78020ac9577dff5ba
                                     unattended_file = unattended/win2008-64-autounattend.xml
                                     floppy = images/win2008-sp2-64/answer.vfd
-                                    # Uncomment virtio_network_installer_path line if
-                                    # you have an msi installer, also make sure the
-                                    # paths are properly set in your virtio driver iso.
-                                    virtio_storage_path = 'F:\viostor\2k8\amd64'
-                                    virtio_network_path = 'F:\NetKVM\2k8\amd64'
-                                    #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
 
                             - r2:
                                 image_name += -r2-64
@@ -2620,12 +2541,6 @@ variants:
                                     sha1sum_1m_cd1 = 9194a3aabae25b36e5f73cad001314b2c8d07d14
                                     unattended_file = unattended/win2008-r2-autounattend.xml
                                     floppy = images/win2008-r2-64/answer.vfd
-                                    # Uncomment virtio_network_installer_path line if
-                                    # you have an msi installer, also make sure the
-                                    # paths are properly set in your virtio driver iso.
-                                    virtio_storage_path = 'F:\viostor\2k8\amd64'
-                                    virtio_network_path = 'F:\NetKVM\2k8\amd64'
-                                    #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
 
             - Win7:
                 image_name = win7
@@ -2648,12 +2563,6 @@ variants:
                             sha1sum_1m_cd1 = 9f9c3780aebeb28a9bf22188eed6bc15475dc9c5
                             unattended_file = unattended/win7-32-autounattend.xml
                             floppy = images/win7-32/answer.vfd
-                            # Uncomment virtio_network_installer_path line if
-                            # you have an msi installer, also make sure the
-                            # paths are properly set in your virtio driver iso.
-                            virtio_storage_path = 'F:\viostor\w7\x86'
-                            virtio_network_path = 'F:\NetKVM\w7\x86'
-                            #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
                         whql.submission:
                             dd_data_logoarch = X86
                             dd_data_logoos = Windows 7
@@ -2681,12 +2590,6 @@ variants:
                             sha1sum_1m_cd1 = 4a3903bd5157de54f0702e5263e0a683c5775515
                             unattended_file = unattended/win7-64-autounattend.xml
                             floppy = images/win7-64/answer.vfd
-                            # Uncomment virtio_network_installer_path line if
-                            # you have an msi installer, also make sure the
-                            # paths are properly set in your virtio driver iso.
-                            virtio_storage_path = 'F:\viostor\w7\amd64'
-                            virtio_network_path = 'F:\NetKVM\w7\amd64'
-                            #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
                         whql.submission:
                             dd_data_logoarch = AMD64
                             dd_data_logoos = Windows 7
