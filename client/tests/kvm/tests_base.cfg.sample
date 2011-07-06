@@ -115,7 +115,6 @@ variants:
         guest_port_unattended_install = 12323
         kernel = vmlinuz
         initrd = initrd.img
-        nic_mode = tap
         # uncomment the following line to test the migration in parallel
         # migrate_background = yes
 
@@ -2692,7 +2691,7 @@ variants:
 virtio_net, virtio_blk, e1000, balloon_check:
     # Only excluding the OS that we *know* they won't have the drivers installed
     # Some might require special setup though.
-    no Win2000, Fedora.8 Fedora.9 Fedora.10, RHEL.3, RHEL.4, Unix, livecd
+    no Win2000, Fedora.8, Fedora.9, Fedora.10, RHEL.3, RHEL.4, Unix, livecd
 
 kdump, watchdog:
     only RHEL.5 RHEL.6
