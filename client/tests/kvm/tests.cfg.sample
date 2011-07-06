@@ -3,6 +3,7 @@
 # This file contains the test set definitions. Define your test sets here.
 include tests_base.cfg
 include cdkeys.cfg
+include virtio-win.cfg
 
 # Modify/comment the following lines if you wish to modify the paths of the
 # image files, ISO files or qemu binaries.
