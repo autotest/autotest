@@ -4,7 +4,7 @@
 Utility to upload or remove the packages from the packages repository.
 """
 
-import logging, os, sys, optparse, socket, tempfile, shutil
+import logging, optparse, os, shutil, sys, tempfile
 import common
 from autotest_lib.client.common_lib import utils as client_utils
 from autotest_lib.client.common_lib import global_config, error
@@ -77,10 +77,10 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir,
     names = [p.strip() for p in pkg_names.split(',')]
     for name in names:
         print "Processing %s ... " % name
-        if pkg_type=='client':
+        if pkg_type == 'client':
             pkg_dir = src_dir
-            exclude_string  = get_exclude_string(pkg_dir)
-        elif pkg_type=='test':
+            exclude_string = get_exclude_string(pkg_dir)
+        elif pkg_type == 'test':
             # if the package is a test then look whether it is in client/tests
             # or client/site_tests
             pkg_dir = os.path.join(get_test_dir(name, src_dir), name)
@@ -117,10 +117,10 @@ def tar_packages(pkgmgr, pkg_type, pkg_names, src_dir, temp_dir):
     names = [p.strip() for p in pkg_names.split(',')]
     for name in names:
         print "Processing %s ... " % name
-        if pkg_type=='client':
+        if pkg_type == 'client':
             pkg_dir = src_dir
-            exclude_string  = get_exclude_string(pkg_dir)
-        elif pkg_type=='test':
+            exclude_string = get_exclude_string(pkg_dir)
+        elif pkg_type == 'test':
             # if the package is a test then look whether it is in client/tests
             # or client/site_tests
             pkg_dir = os.path.join(get_test_dir(name, src_dir), name)
@@ -139,8 +139,6 @@ def tar_packages(pkgmgr, pkg_type, pkg_names, src_dir, temp_dir):
 
 def process_all_packages(pkgmgr, client_dir, remove=False):
     """Process a full upload of packages as a directory upload."""
-    test_dir = os.path.join(client_dir, "tests")
-    site_test_dir = os.path.join(client_dir, "site_tests")
     dep_dir = os.path.join(client_dir, "deps")
     prof_dir = os.path.join(client_dir, "profilers")
     # Directory where all are kept
@@ -183,7 +181,7 @@ def process_all_packages(pkgmgr, client_dir, remove=False):
         pkgmgr.upload_pkg(temp_dir)
         client_utils.run('rm -rf ' + temp_dir)
     else:
-        process_packages(pkgmgr, 'test', tests, client_dir,remove=remove)
+        process_packages(pkgmgr, 'test', tests, client_dir, remove=remove)
         process_packages(pkgmgr, 'test', site_tests, client_dir, remove=remove)
         process_packages(pkgmgr, 'client', 'autotest', client_dir,
                          remove=remove)
@@ -226,8 +224,15 @@ def main():
                                    type=list, default=[])
     upload_paths = c.get_config_value('PACKAGES', 'upload_location',
                                       type=list, default=[])
+
+    if options.repo:
+        upload_paths.append(options.repo)
+
     # Having no upload paths basically means you're not using packaging.
-    if len(upload_paths) == 0:
+    if not upload_paths:
+        print("No upload locations found. Please set upload_location under"
+              " PACKAGES in the global_config.ini or provide a location using"
+              " the --repository option.")
         return
 
     client_dir = os.path.join(autotest_dir, "client")
@@ -239,26 +244,21 @@ def main():
     dep_dir = os.path.join(client_dir, "deps")
     prof_dir = os.path.join(client_dir, "profilers")
 
-    if len(args)==0 or args[0] not in ['upload','remove']:
+    if len(args) == 0 or args[0] not in ['upload', 'remove']:
         print("Either 'upload' or 'remove' needs to be specified "
               "for the package")
         sys.exit(0)
 
-    if args[0]=='upload':
-        remove_flag=False
-    elif args[0]=='remove':
-        remove_flag=True
+    if args[0] == 'upload':
+        remove_flag = False
+    elif args[0] == 'remove':
+        remove_flag = True
     else:
         # we should not be getting here
         assert(False)
 
-    if options.repo:
-        upload_path_list = [options.repo]
-    else:
-        upload_path_list = upload_paths
-
     pkgmgr = packages.PackageManager(autotest_dir, repo_urls=repo_urls,
-                                     upload_paths=upload_path_list,
+                                     upload_paths=upload_paths,
                                      run_function_dargs={'timeout':600})
 
     if options.all:
