@@ -7,11 +7,25 @@ should inherit this class.
 
 import re, os, sys, traceback, subprocess, shutil, time, traceback, urlparse
 import fcntl, logging
+from autotest_lib.client.bin import os_dep
 from autotest_lib.client.common_lib import error, utils, global_config
 
 
 # the name of the checksum file that stores the packages' checksums
 CHECKSUM_FILE = "packages.checksum"
+
+
+def has_pbzip2():
+    '''Check if parallel bzip2 is available on this system.'''
+    try:
+        os_dep.command('pbzip2')
+    except ValueError:
+        return False
+    return True
+
+
+# is parallel bzip2 available for use?
+_PBZIP2_AVAILABLE = has_pbzip2()
 
 
 def parse_ssh_path(repo):
@@ -759,10 +773,16 @@ class BasePackageManager(object):
         '''
         tarball_path = os.path.join(dest_dir, pkg_name)
         temp_path = tarball_path + '.tmp'
-        cmd = "tar -cvjf %s -C %s %s " % (temp_path, src_dir, exclude_string)
+        cmd_list = ['tar', '-cf', temp_path, '-C', src_dir]
+        if _PBZIP2_AVAILABLE:
+            cmd_list.append('--use-compress-prog=pbzip2')
+        else:
+            cmd_list.append('-j')
+        if exclude_string is not None:
+            cmd_list.append(exclude_string)
 
         try:
-            utils.system(cmd)
+            utils.system(' '.join(cmd_list))
         except:
             os.unlink(temp_path)
             raise
