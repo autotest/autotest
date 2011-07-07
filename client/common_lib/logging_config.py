@@ -95,7 +95,12 @@ class LoggingConfig(object):
     def _clear_all_handlers(self):
         for handler in list(self.logger.handlers):
             self.logger.removeHandler(handler)
-            handler.close()
+            # Attempt to close the handler. If it's already closed a KeyError
+            # will be generated. http://bugs.python.org/issue8581
+            try:
+                handler.close()
+            except KeyError:
+                pass
 
 
     def configure_logging(self, use_console=True, verbose=False):
