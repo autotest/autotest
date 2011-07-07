@@ -89,7 +89,7 @@ class LoggingConfig(object):
 
 
     def add_debug_file_handlers(self, log_dir, log_name=None):
-        raise NotImplemented
+        raise NotImplementedError
 
 
     def _clear_all_handlers(self):
