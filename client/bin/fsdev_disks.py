@@ -10,37 +10,51 @@ fd_mgr = fsdev_mgr.FsdevManager()
 # scheduler tunables.
 _DISKPART_FILE = '/proc/partitions'
 
-##############################################################################
-#
-# The 'disk_list' array returned by get_disk_list() has an entry for each
-# disk drive we find on the box. Each of these entries is a map with the
-# following 3 string values:
-#
-#     'device'      disk device name (i.e. the part after /dev/)
-#     'mountpt'     disk mount path
-#     'tunable'     disk name for setting scheduler tunables (/sys/block/sd??)
-#
-# The last value is an integer that indicates the current mount status
-# of the drive:
-#
-#     'mounted'     0 = not currently mounted
-#                   1 = mounted r/w on the expected path
-#                  -1 = mounted readonly or at an unexpected path
-#
-# When the 'std_mounts_only' argument is True we don't include drives
-# mounted on 'unusual' mount points in the result.
-#
-##############################################################################
 
-def get_disk_list(std_mounts_only=True):
+def get_disk_list(std_mounts_only=True, get_all_disks=False):
+    """
+    Get a list of dictionaries with information about disks on this system.
 
+    @param std_mounts_only: Whether the function should return only disks that
+            have a mount point defined (True) or even devices that doesn't
+            (False).
+
+    @param get_all_disks: Whether the function should return only partitioned
+            disks (False) or return every disk, regardless of being partitioned
+            or not (True).
+
+    @return: List of dictionaries with disk information (see more below).
+
+    The 'disk_list' array returned by get_disk_list() has an entry for each
+    disk drive we find on the box. Each of these entries is a map with the
+    following 3 string values:
+
+        'device'      disk device name (i.e. the part after /dev/)
+        'mountpt'     disk mount path
+        'tunable'     disk name for setting scheduler tunables (/sys/block/sd??)
+
+    The last value is an integer that indicates the current mount status
+    of the drive:
+
+        'mounted'     0 = not currently mounted
+                      1 = mounted r/w on the expected path
+                     -1 = mounted readonly or at an unexpected path
+
+    When the 'std_mounts_only' argument is True we don't include drives
+    mounted on 'unusual' mount points in the result. If a given device is
+    partitioned, it will return all partitions that exist on it. If it's not,
+    it will return the device itself (ie, if there are /dev/sdb1 and /dev/sdb2,
+    those will be returned but not /dev/sdb. if there is only a /dev/sdc, that
+    one will be returned).
+    """
     # Get hold of the currently mounted file systems
     mounts = utils.system_output('mount').splitlines()
 
     # Grab all the interesting disk partition names from /proc/partitions,
     # and build up the table of drives present in the system.
     hd_list   = []
-    hd_regexp = re.compile("([hs]d[a-z]+3)$")
+    # h for IDE drives, s for SATA/SCSI drives, v for Virtio drives
+    hd_regexp = re.compile("([hsv]d[a-z]+3)$")
 
     partfile  = open(_DISKPART_FILE)
     for partline in partfile:
@@ -51,9 +65,11 @@ def get_disk_list(std_mounts_only=True):
         # Get hold of the partition name
         partname = parts[3]
 
-        # The partition name better end with a digit
-        if not partname[-1:].isdigit():
-            continue
+        if not get_all_disks:
+            # The partition name better end with a digit
+            # (get only partitioned disks)
+            if not partname[-1:].isdigit():
+                continue
 
         # Process any site-specific filters on the partition name
         if not fd_mgr.use_partition(partname):
@@ -67,15 +83,11 @@ def get_disk_list(std_mounts_only=True):
         fstype = ''
         fsopts = ''
         fsmkfs = '?'
-
         # Prepare the full device path for matching
         chkdev  = '/dev/' + partname
 
-        # If the partition is mounted, we'll record the mount point
         mountpt = None
-
         for mln in mounts:
-
             splt = mln.split()
 
             # Typical 'mount' output line looks like this (indices
@@ -84,7 +96,7 @@ def get_disk_list(std_mounts_only=True):
             #    <device> on <mount_point> type <fstp> <options>
             #    0        1  2             3    4      5
 
-            if splt[0] == chkdev:
+            if splt[0].strip() == chkdev.strip():
 
                 # Make sure the mount point looks reasonable
                 mountpt = fd_mgr.check_mount_point(partname, splt[2])
@@ -100,7 +112,6 @@ def get_disk_list(std_mounts_only=True):
                 if fsopts[:3] != '(rw':
                     mstat = -1
                     break
-
                 # The drive is mounted at the 'normal' mount point
                 mstat = 1
 
@@ -108,12 +119,21 @@ def get_disk_list(std_mounts_only=True):
         if std_mounts_only and mstat < 0:
             continue
 
-        # Was this partition mounted at all?
-        if not mountpt:
-            # Ask the client where we should mount this partition
-            mountpt = fd_mgr.check_mount_point(partname, None)
+        device_name = ''
+
+        if not get_all_disks:
+            # Was this partition mounted at all?
             if not mountpt:
-                # Client doesn't know where to mount partition - ignore it
+                mountpt = fd_mgr.check_mount_point(partname, None)
+                # Ask the client where we should mount this partition
+                if not mountpt:
+                    continue
+        else:
+            if partname[-1:].isdigit():
+                device_name = re.sub("\d", "", "/dev/%s" % partname)
+
+        if get_all_disks:
+            if not device_name:
                 continue
 
         # Looks like we have a valid disk drive, add it to the list
