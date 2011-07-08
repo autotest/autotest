@@ -524,11 +524,11 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
         mig_timeout = float(params.get("mig_timeout", "3600"))
         mig_protocol = params.get("migration_protocol", "tcp")
 
-    compressed_autotest_path = "/tmp/autotest.tar.bz2"
+    compressed_autotest_path = os.path.relpath("/tmp/autotest.tar.bz2")
 
     # To avoid problems, let's make the test use the current AUTODIR
     # (autotest client path) location
-    autotest_path = os.environ['AUTODIR']
+    autotest_path = os.path.relpath(os.environ['AUTODIR'])
 
     # tar the contents of bindir/autotest
     cmd = "tar cvjf %s %s/*" % (compressed_autotest_path, autotest_path)
