@@ -42,12 +42,6 @@ def _get_site_job_data_dummy(job):
     return {}
 
 
-# load up site-specific code for generating site-specific job data
-get_site_job_data = utils.import_site_function(__file__,
-    "autotest_lib.server.site_server_job", "get_site_job_data",
-    _get_site_job_data_dummy)
-
-
 class status_indenter(base_job.status_indenter):
     """Provide a simple integer-backed status indenter."""
     def __init__(self):
@@ -1108,14 +1102,6 @@ class base_server_job(base_job.base_job):
                 host.clear_known_hosts()
 
 
-site_server_job = utils.import_site_class(
-    __file__, "autotest_lib.server.site_server_job", "site_server_job",
-    base_server_job)
-
-class server_job(site_server_job):
-    pass
-
-
 class warning_manager(object):
     """Class for controlling warning logs. Manages the enabling and disabling
     of warnings."""
@@ -1147,3 +1133,18 @@ class warning_manager(object):
         intervals = self.disabled_warnings.get(warning_type, [])
         if intervals and intervals[-1][1] is None:
             intervals[-1] = (intervals[-1][0], int(current_time_func()))
+
+
+# load up site-specific code for generating site-specific job data
+get_site_job_data = utils.import_site_function(__file__,
+    "autotest_lib.server.site_server_job", "get_site_job_data",
+    _get_site_job_data_dummy)
+
+
+site_server_job = utils.import_site_class(
+    __file__, "autotest_lib.server.site_server_job", "site_server_job",
+    base_server_job)
+
+
+class server_job(site_server_job):
+    pass
