@@ -173,7 +173,7 @@ def run_physical_resources_check(test, params, env):
                            catch_serial_cmd)
     n_fail.extend(f_fail)
 
-    if n_fail != 0:
+    if n_fail:
         session.close()
         raise error.TestFail("Physical resources check test "
                              "reported %s failures:\n%s" %
