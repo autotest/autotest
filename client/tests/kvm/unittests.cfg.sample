@@ -18,14 +18,7 @@ main_monitor = humanmonitor1
 monitor_type = human
 
 # Screendump specific stuff
-convert_ppm_files_to_png_on_error = yes
-#keep_ppm_files = yes
-#keep_ppm_files_on_error = yes
-take_regular_screendumps = yes
-keep_screendumps_on_error = yes
-screendump_delay = 5
-screendump_quality = 30
-screendump_temp_dir = /dev/shm
+take_regular_screendumps = no
 
 # Some default VM params
 qemu_binary = qemu
