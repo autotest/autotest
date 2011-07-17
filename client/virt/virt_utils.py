@@ -150,13 +150,17 @@ class Env(UserDict.IterableUserDict):
         if filename:
             self._filename = filename
             try:
-                f = open(filename, "r")
-                env = cPickle.load(f)
-                f.close()
-                if env.get("version", 0) >= version:
-                    self.data = env
+                if os.path.isfile(filename):
+                    f = open(filename, "r")
+                    env = cPickle.load(f)
+                    f.close()
+                    if env.get("version", 0) >= version:
+                        self.data = env
+                    else:
+                        logging.warn("Incompatible env file found. Not using it.")
+                        self.data = empty
                 else:
-                    logging.warn("Incompatible env file found. Not using it.")
+                    # No previous env file found, proceed...
                     self.data = empty
             # Almost any exception can be raised during unpickling, so let's
             # catch them all
