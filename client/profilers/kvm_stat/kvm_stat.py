@@ -6,7 +6,7 @@ will try to mount it so it's possible to proceed.
 @copyright: Red Hat 2010
 @author: Lucas Meneghel Rodrigues (lmr@redhat.com)
 """
-import time, os, subprocess, commands
+import time, os, subprocess, commands, logging
 from autotest_lib.client.bin import utils, profiler, os_dep
 from autotest_lib.client.common_lib import error
 
@@ -21,15 +21,27 @@ class kvm_stat(profiler.profiler):
         """
         Gets path of kvm_stat and verifies if debugfs needs to be mounted.
         """
-        self.stat_path = os_dep.command('kvm_stat')
+        self.is_enabled = False
+
+        kvm_stat_installed = False
         try:
-            utils.system_output("%s --batch" % self.stat_path)
-        except error.CmdError, e:
-            if 'debugfs' in str(e):
-                utils.system('mount -t debugfs debugfs /sys/kernel/debug')
-            else:
-                raise error.AutotestError('kvm_stat failed due to an '
-                                          'unknown reason: %s' % str(e))
+            self.stat_path = os_dep.command('kvm_stat')
+            kvm_stat_installed = True
+        except ValueError:
+            logging.error('Command kvm_stat not present')
+
+        if kvm_stat_installed:
+            try:
+                utils.run("%s --batch" % self.stat_path)
+                self.is_enabled = True
+            except error.CmdError, e:
+                if 'debugfs' in str(e):
+                    try:
+                        utils.run('mount -t debugfs debugfs /sys/kernel/debug')
+                    except error.CmdError, e:
+                        logging.error('Failed to mount debugfs:\n%s', str(e))
+                else:
+                    logging.error('Failed to execute kvm_stat:\n%s', str(e))
 
 
     def start(self, test):
@@ -38,11 +50,15 @@ class kvm_stat(profiler.profiler):
 
         @param test: Autotest test on which this profiler will operate on.
         """
-        cmd = "%s -l" % self.stat_path
-        logfile = open(os.path.join(test.profdir, "kvm_stat"), 'w')
-        p = subprocess.Popen(cmd, shell=True, stdout=logfile,
-                             stderr=subprocess.STDOUT)
-        self.pid = p.pid
+        if self.is_enabled:
+            cmd = "%s -l" % self.stat_path
+            logfile = open(os.path.join(test.profdir, "kvm_stat"), 'w')
+            p = subprocess.Popen(cmd, shell=True, stdout=logfile,
+                                 stderr=subprocess.STDOUT)
+            self.pid = p.pid
+        else:
+            logging.error('Asked for kvm_stat profiler, but kvm_stat not '
+                          'present')
 
 
     def stop(self, test):
@@ -51,10 +67,11 @@ class kvm_stat(profiler.profiler):
 
         @param test: Autotest test on which this profiler will operate on.
         """
-        try:
-            os.kill(self.pid, 15)
-        except OSError:
-            pass
+        if self.is_enabled:
+            try:
+                os.kill(self.pid, 15)
+            except OSError:
+                pass
 
 
     def report(self, test):
