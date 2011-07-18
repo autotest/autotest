@@ -46,6 +46,8 @@ variants:
         load_modules = no
         # Save the results of this build on test.resultsdir?
         save_results = no
+        # Preserve the source code directory between tests?
+        preserve_srcdir = yes
         variants:
             - git:
                 mode = git

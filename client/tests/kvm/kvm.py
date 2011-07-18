@@ -23,6 +23,14 @@ class kvm(test.test):
     version = 1
     env_version = 1
 
+
+    def initialize(self, params):
+        # Change the value of the preserve_srcdir attribute according to
+        # the value present on the configuration file (defaults to yes)
+        if params.get("preserve_srcdir", "yes") == "yes":
+            self.preserve_srcdir = True
+
+
     def run_once(self, params):
         # Convert params to a Params object
         params = virt_utils.Params(params)
