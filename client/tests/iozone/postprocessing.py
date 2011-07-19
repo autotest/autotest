@@ -400,10 +400,10 @@ class IOzonePlotter(object):
             commands_file.write(commands)
             commands_file.close()
             try:
-                utils.run("%s %s" % (self.gnuplot, commands_path))
-            except error.CmdError, e:
-                logging.error("Problem plotting from commands file %s: %s",
-                              commands_file, str(e))
+                utils.system("%s %s" % (self.gnuplot, commands_path))
+            except error.CmdError:
+                logging.error("Problem plotting from commands file %s",
+                              commands_path)
 
 
     def plot_3d_graphs(self):
@@ -439,10 +439,10 @@ class IOzonePlotter(object):
             commands_file.write(commands)
             commands_file.close()
             try:
-                utils.run("%s %s" % (self.gnuplot, commands_path))
-            except error.CmdError, e:
-                logging.error("Problem plotting from commands file %s: %s",
-                              commands_file, str(e))
+                utils.system("%s %s" % (self.gnuplot, commands_path))
+            except error.CmdError:
+                logging.error("Problem plotting from commands file %s",
+                              commands_path)
 
 
     def plot_all(self):
