@@ -5,10 +5,10 @@ This file contains the implementation of a host object for the local machine.
 """
 
 import glob, os, platform
-from autotest_lib.client.common_lib import hosts, error
+from autotest_lib.client.common_lib import error, base_hosts
 from autotest_lib.client.bin import utils
 
-class LocalHost(hosts.Host):
+class LocalHost(base_hosts.Host):
     def _initialize(self, hostname=None, bootloader=None, *args, **dargs):
         super(LocalHost, self)._initialize(*args, **dargs)
 
@@ -29,7 +29,7 @@ class LocalHost(hosts.Host):
             stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
             stdin=None, args=()):
         """
-        @see common_lib.hosts.Host.run()
+        @see common_lib.base_hosts.Host.run()
         """
         try:
             result = utils.run(

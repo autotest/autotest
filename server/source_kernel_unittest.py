@@ -3,7 +3,8 @@
 import unittest
 import common
 from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.server import source_kernel, autotest, hosts
+from autotest_lib.client.common_lib import hosts
+from autotest_lib.server import source_kernel, autotest
 
 
 class TestSourceKernel(unittest.TestCase):

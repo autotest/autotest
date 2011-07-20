@@ -6,9 +6,24 @@ Implementation details:
 You should 'import hosts' instead of importing every available host module.
 """
 
-from autotest_lib.client.common_lib import utils
-import base_classes
+from base_classes import Host
+from remote import RemoteHost
+try:
+    from site_host import SiteHost
+except ImportError, e:
+    pass
 
-Host = utils.import_site_class(
-    __file__, "autotest_lib.client.common_lib.hosts.site_host", "SiteHost",
-    base_classes.Host)
+# host implementation classes
+from ssh_host import SSHHost
+from guest import Guest
+from kvm_guest import KVMGuest
+
+# extra logger classes
+from serial import SerialHost
+from netconsole import NetconsoleHost
+
+# bootloader classes
+from bootloader import Bootloader
+
+# factory function
+from factory import create_host

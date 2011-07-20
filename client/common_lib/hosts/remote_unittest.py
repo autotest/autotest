@@ -3,7 +3,7 @@
 import unittest
 import common
 
-from autotest_lib.server.hosts import remote
+from autotest_lib.client.common_lib.hosts import remote
 
 
 class test_remote_host(unittest.TestCase):

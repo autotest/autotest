@@ -5,10 +5,10 @@ __author__ = "raphtee@google.com (Travis Miller)"
 import unittest, os, tempfile, logging
 
 import common
-from autotest_lib.server import utils, hosts, server_job, profilers
+from autotest_lib.server import utils, server_job, profilers
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import utils as client_utils, packages
-from autotest_lib.client.common_lib import error, autotest
+from autotest_lib.client.common_lib import error, autotest, hosts
 from autotest_lib.client.common_lib.test_utils import mock
 
 

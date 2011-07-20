@@ -1353,9 +1353,101 @@ class run_randomly:
             fn(*args, **dargs)
 
 
+def scp_remote_escape(filename):
+    """
+    Escape special characters from a filename so that it can be passed
+    to scp (within double quotes) as a remote file.
+
+    Bis-quoting has to be used with scp for remote files, "bis-quoting"
+    as in quoting x 2
+    scp does not support a newline in the filename
+
+    Args:
+            filename: the filename string to escape.
+
+    Returns:
+            The escaped filename string. The required englobing double
+            quotes are NOT added and so should be added at some point by
+            the caller.
+    """
+    escape_chars= r' !"$&' "'" r'()*,:;<=>?[\]^`{|}'
+
+    new_name= []
+    for char in filename:
+        if char in escape_chars:
+            new_name.append("\\%s" % (char,))
+        else:
+            new_name.append(char)
+
+    return sh_escape("".join(new_name))
+
+
+def get_public_key():
+    """
+    Return a valid string ssh public key for the user executing autoserv or
+    autotest. If there's no DSA or RSA public key, create a DSA keypair with
+    ssh-keygen and return it.
+    """
+
+    ssh_conf_path = os.path.expanduser('~/.ssh')
+
+    dsa_public_key_path = os.path.join(ssh_conf_path, 'id_dsa.pub')
+    dsa_private_key_path = os.path.join(ssh_conf_path, 'id_dsa')
+
+    rsa_public_key_path = os.path.join(ssh_conf_path, 'id_rsa.pub')
+    rsa_private_key_path = os.path.join(ssh_conf_path, 'id_rsa')
+
+    has_dsa_keypair = os.path.isfile(dsa_public_key_path) and \
+        os.path.isfile(dsa_private_key_path)
+    has_rsa_keypair = os.path.isfile(rsa_public_key_path) and \
+        os.path.isfile(rsa_private_key_path)
+
+    if has_dsa_keypair:
+        print 'DSA keypair found, using it'
+        public_key_path = dsa_public_key_path
+
+    elif has_rsa_keypair:
+        print 'RSA keypair found, using it'
+        public_key_path = rsa_public_key_path
+
+    else:
+        print 'Neither RSA nor DSA keypair found, creating DSA ssh key pair'
+        utils.system('ssh-keygen -t dsa -q -N "" -f %s' % dsa_private_key_path)
+        public_key_path = dsa_public_key_path
+
+    public_key = open(public_key_path, 'r')
+    public_key_str = public_key.read()
+    public_key.close()
+
+    return public_key_str
+
+
 def get_server_dir():
     path = os.path.dirname(sys.modules['autotest_lib.server.utils'].__file__)
     return os.path.abspath(path)
+
+
+def parse_machine(machine, user='root', password='', port=22):
+    """
+    Parse the machine string user:pass@host:port and return it separately,
+    if the machine string is not complete, use the default parameters
+    when appropriate.
+    """
+
+    if '@' in machine:
+        user, machine = machine.split('@', 1)
+
+    if ':' in user:
+        user, password = user.split(':', 1)
+
+    if ':' in machine:
+        machine, port = machine.split(':', 1)
+        port = int(port)
+
+    if not machine or not user:
+        raise ValueError
+
+    return machine, user, password, port
 
 
 # A dictionary of pid and a list of tmpdirs for that pid
