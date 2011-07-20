@@ -86,7 +86,8 @@ class _sysinfo_logger(object):
 
     def _install(self):
         if not self.host:
-            from autotest_lib.server import hosts, autotest
+            from autotest_lib.client.common_lib import hosts
+            from autotest_lib.server import autotest
             self.host = hosts.create_host(self.job.machines[0],
                                           auto_monitor=False)
             try:

@@ -9,7 +9,7 @@ This module defines the Bootloader class.
 
 import os, weakref
 from autotest_lib.client.common_lib import error, boottool
-from autotest_lib.server import utils
+from autotest_lib.client.common_lib import utils
 
 BOOTTOOL_SRC = '../client/tools/boottool'  # Get it from autotest client
 

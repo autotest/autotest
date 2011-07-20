@@ -7,7 +7,7 @@ TEST_TYPE = "server"
 RUN_VERIFY = False
 DOC = """\
 This will re-install a machine, using the code in
-autotest_lib.server.hosts.Host.machine_install()."""
+autotest_lib.client.common_lib.hosts.Host.machine_install()."""
 
 def run(machine):
     host = hosts.create_host(machine, initialize=False)

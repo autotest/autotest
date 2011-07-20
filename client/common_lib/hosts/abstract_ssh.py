@@ -1,7 +1,7 @@
 import os, time, types, socket, shutil, glob, logging, traceback
 from autotest_lib.client.common_lib import autotemp, error, logging_manager
-from autotest_lib.server import utils, autotest
-from autotest_lib.server.hosts import remote
+from autotest_lib.client.common_lib import utils, autotest
+from autotest_lib.client.common_lib.hosts import remote
 from autotest_lib.client.common_lib.global_config import global_config
 
 
@@ -29,7 +29,7 @@ make_ssh_command = utils.import_site_function(
 
 # import site specific Host class
 SiteHost = utils.import_site_class(
-    __file__, "autotest_lib.server.hosts.site_host", "SiteHost",
+    __file__, "autotest_lib.client.common_lib.hosts.site_host", "SiteHost",
     remote.RemoteHost)
 
 

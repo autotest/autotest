@@ -2,7 +2,7 @@
 
 import common
 import cStringIO, os, unittest
-from autotest_lib.server.hosts.monitors import monitors_util
+from autotest_lib.client.common_lib.hosts.monitors import monitors_util
 
 class _MockWarnFile(object):
     def __init__(self):

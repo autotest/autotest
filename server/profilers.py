@@ -1,8 +1,8 @@
 import os, shutil, tempfile, logging
 
 import common
-from autotest_lib.client.common_lib import utils, error, profiler_manager
-from autotest_lib.server import profiler, autotest, standalone_profiler, hosts
+from autotest_lib.client.common_lib import utils, error, profiler_manager, hosts
+from autotest_lib.server import profiler, autotest, standalone_profiler
 
 
 PROFILER_TMPDIR = '/tmp/profilers'

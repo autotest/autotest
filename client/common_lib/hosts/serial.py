@@ -1,12 +1,11 @@
 import os, sys, subprocess, logging
 
 from autotest_lib.client.common_lib import utils, error
-from autotest_lib.server import utils as server_utils
-from autotest_lib.server.hosts import remote
+from autotest_lib.client.common_lib.hosts import remote
 
 
 SiteHost = utils.import_site_class(
-    __file__, "autotest_lib.server.hosts.site_host", "SiteHost",
+    __file__, "autotest_lib.client.common_lib.hosts.site_host", "SiteHost",
     remote.RemoteHost)
 
 
@@ -30,7 +29,7 @@ class SerialHost(SiteHost):
             return conmux_attach
 
         # assume we're using the conmux-attach provided with autotest
-        server_dir = server_utils.get_server_dir()
+        server_dir = utils.get_server_dir()
         path = os.path.join(server_dir, "..", "conmux", "conmux-attach")
         path = os.path.abspath(path)
         return path

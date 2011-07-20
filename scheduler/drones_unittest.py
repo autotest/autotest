@@ -8,7 +8,7 @@ import common
 from autotest_lib.client.common_lib import utils
 from autotest_lib.client.common_lib.test_utils import mock, unittest
 from autotest_lib.scheduler import drones
-from autotest_lib.server.hosts import ssh_host
+from autotest_lib.client.common_lib.hosts import ssh_host
 
 
 class RemoteDroneTest(unittest.TestCase):
