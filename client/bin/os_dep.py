@@ -1,4 +1,5 @@
 import os
+import glob
 
 """
 One day, when this module grows up, it might actually try to fix things.
@@ -22,8 +23,27 @@ def commands(*cmds):
 
 
 def library(lib):
-    lddirs = [x.rstrip() for x in open('/etc/ld.so.conf', 'r').readlines()]
-    for dir in ['/lib', '/usr/lib'] + lddirs:
+    lddirs = []
+    # read lddirs from  main ld.so.conf file
+    for line in open('/etc/ld.so.conf', 'r').readlines():
+        if line.startswith('include '):
+            glob_pattern = line.split('include ')[1]
+            if not os.path.isabs(glob_pattern):
+                # prepend with a base path of '/etc'
+                glob_pattern = os.path.join('/etc', glob_pattern)
+            glob_result = glob.glob(glob_pattern)
+            for conf_file in glob_result:
+                for conf_file_line in open(conf_file, 'r').readlines():
+                    if os.path.isdir(conf_file_line):
+                        lddirs.append(conf_file_line)
+        else:
+            if os.path.isdir(line):
+                lddirs.append(line.strip())
+
+    lddirs = set(lddirs)
+    lddirs = list(lddirs)
+
+    for dir in ['/lib', '/usr/lib', '/lib64', '/usr/lib64'] + lddirs:
         file = os.path.join(dir, lib)
         if os.path.exists(file):
             return file
