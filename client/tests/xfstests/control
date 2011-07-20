@@ -1,0 +1,143 @@
+TIME="LONG"
+AUTHOR = "Cleber Rosa <cleber@redhat.com>"
+NAME = 'xfs filesystem test suite'
+TEST_CLASS = 'kernel'
+TEST_CATEGORY = 'Functional'
+TEST_TYPE = 'client'
+DOC = """
+xfstests in autotest
+--------------------
+
+This is a simple wrapper for running xfstests inside autotest. The steps to get
+started are really simple:
+
+1) Edit the configuration variables on the control file.
+
+1.1) The variables 'TEST_DEV' and 'TEST_DIR' are mandatory and should be set to
+     a block device path and mount point path, respectively, that will be used
+     *exclusively* for xfstests. It must have the filesystem of your choice
+     previously created.
+
+     DO NOT USE A BLOCK DEVICE WITH IMPORTANT DATA!!!
+
+1.2) Set the range of tests you want to run setting the TEST_RANGE variable.
+     Please notice that python's range() function may not work as you expect,
+     that is, if you want a range from 0-255, use: range(0, 256)
+
+2) Run the tests (assuming autotest installed in /usr/local/autotest):
+
+   # cd /usr/local/autotest/client/tests/xfstests
+   # ../../bin/autotest control
+
+3) Check the HTML report at
+
+   /usr/local/autotest/client/results/default/job_report.html
+
+General notes
+-------------
+
+* As autotest includes a setup phase for client tests, this step is encapsulated
+in a dummy xfstests number 000.
+
+* XFS utilities, system libraries and header files are checked early, before
+trying to build xfstests. Make sure you resolve those dependencies.
+
+* Some tests are not relevant to filesystems other than XFS, so they will return
+as TEST_NA.
+
+* Be extra careful when using TEST_DEV with device-mapper based block devices.
+For instance, xfstests may not be able to figure out that /dev/<vg>/<lv> is
+actually a link to /dev/mapper/vg-lv. Tests will then fail to check that the
+device is mounted.
+
+* As a convenience the default config file uses a virtual partition, so people
+can try it out the tests without having an actual spare device. However the
+virtual partition depends on the following programs to be available:
+     * sfdisk
+     * losetup
+     * kpartx
+Make sure you have them or a real spare device to test things.
+"""
+# Define the partitions you want to use.
+#
+# Here, by default we use the concept of virtual partition (a partition of 1GB
+# of size), to avoid setup by the user. However, you'll most likely use a real
+# block device for your tests.
+from autotest_lib.client.bin import partition
+file_img = os.path.join(job.tmpdir, 'xfstests.img')
+vp = partition.virtual_partition(file_img=file_img, file_size=1024*1024)
+device = vp.device
+# You can use a real block device, such as /dev/sdc1
+#device=/dev/sdc1
+
+# By default, we create a directory under autotest
+mountpoint = os.path.join(job.tmpdir, 'xfstests')
+if not os.path.isdir(mountpoint):
+    os.makedirs(mountpoint)
+
+p = job.partition(device=device, mountpoint=mountpoint)
+
+#
+# Job configuration, instead of editing xfstests config files, set them
+# right here as environment variables
+#
+
+# TEST_DEV: "device containing TEST PARTITION"
+os.environ['TEST_DEV'] = p.device
+
+# TEST_DIR: "mount point of TEST PARTITION"
+os.environ['TEST_DIR'] = p.mountpoint
+
+# SCRATCH_DEV "device containing SCRATCH PARTITION"
+# os.environ['SCRATCH_DEV'] = ''
+
+# SCRATCH_MNT "mount point for SCRATCH PARTITION"
+# os.environ['SCRATCH_MNT'] = ''
+
+# TAPE_DEV "tape device for testing xfsdump"
+# os.environ['TAPE_DEV'] = ''
+
+# RMT_TAPE_DEV "remote tape device for testing xfsdump"
+# os.environ['RMT_TAPE_DEV'] = ''
+
+# RMT_IRIXTAPE_DEV "remote IRIX tape device for testing xfsdump"
+# os.environ['RMT_IRIXTAPE_DEV'] = ''
+
+# SCRATCH_LOGDEV "device for scratch-fs external log"
+# os.environ['SCRATCH_LOGDEV'] = ''
+
+# SCRATCH_RTDEV "device for scratch-fs realtime data"
+# os.environ['SCRATCH_RTDEV'] = ''
+
+# TEST_LOGDEV "device for test-fs external log"
+# os.environ['TEST_LOGDEV'] = ''
+
+# TEST_RTDEV "device for test-fs realtime data"
+# os.environ['TEST_RTDEV'] = ''
+
+# Whether UDF tests are disable
+# os.environ['DISABLE_UDF_TEST'] = '1'
+
+#
+# Adapt to the list of tests you want to run
+#
+TEST_RANGE = ['%03i' % t for t in range(0, 256)]
+#
+# Choose the filesystem types you want the tests to run on
+#
+FS_TYPES = ['xfs']
+
+#
+# Finally, run the tests
+#
+
+for fs_type in FS_TYPES:
+    p.mkfs(fs_type)
+    for test in TEST_RANGE:
+        tag = "%s.%s" % (test, fs_type)
+        result = job.run_test_detail('xfstests', test_number=test, tag=tag)
+
+# It is good practice to unmount the partition created
+p.unmount()
+# If you are using the virtual partition, you may destroy it here
+vp.destroy()
