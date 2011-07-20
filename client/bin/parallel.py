@@ -26,7 +26,8 @@ def fork_start(tmp, l):
                 logging.error('child process failed')
                 # logging.exception() uses ERROR level, but we want DEBUG for
                 # the traceback
-                logging.debug(traceback.format_exc())
+                for line in traceback.format_exc().splitlines():
+                    logging.debug(line)
             finally:
                 # note that exceptions originating in this block won't make it
                 # to the logs
