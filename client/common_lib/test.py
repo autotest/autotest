@@ -417,11 +417,6 @@ class base_test(object):
 
                 _call_test_function(self.execute, *p_args, **p_dargs)
             except Exception:
-                try:
-                    logging.exception('Exception escaping from test:')
-                except:
-                    pass # don't let logging exceptions here interfere
-
                 # Save the exception while we run our cleanup() before
                 # reraising it.
                 exc_info = sys.exc_info()
