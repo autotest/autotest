@@ -883,7 +883,7 @@ class virtual_partition:
         logging.debug('Creating disk image %s, size = %d Bytes', img_path, size)
         try:
             cmd = 'dd if=/dev/zero of=%s bs=1024 count=%d' % (img_path, size)
-            utils.system(cmd)
+            utils.run(cmd)
         except error.CmdError, e:
             e_msg = 'Error creating disk image %s: %s' % (img_path, e)
             raise error.AutotestError(e_msg)
@@ -903,10 +903,10 @@ class virtual_partition:
             cmd = 'losetup -f'
             loop_path = utils.system_output(cmd)
             cmd = 'losetup -f %s' % img_path
-            utils.system(cmd)
+            utils.run(cmd)
         except error.CmdError, e:
-            e_msg = 'Error attaching image %s to a loop device: %s' % \
-                     (img_path, e)
+            e_msg = ('Error attaching image %s to a loop device: %s' %
+                     (img_path, e))
             raise error.AutotestError(e_msg)
         return loop_path
 
@@ -924,7 +924,7 @@ class virtual_partition:
             sfdisk_cmd_file = open(sfdisk_file_path, 'w')
             sfdisk_cmd_file.write(single_part_cmd)
             sfdisk_cmd_file.close()
-            utils.system('sfdisk %s < %s' % (loop_path, sfdisk_file_path))
+            utils.run('sfdisk %s < %s' % (loop_path, sfdisk_file_path))
         except error.CmdError, e:
             e_msg = 'Error partitioning device %s: %s' % (loop_path, e)
             raise error.AutotestError(e_msg)
@@ -943,7 +943,7 @@ class virtual_partition:
                       loop_path)
         try:
             cmd = 'kpartx -a %s' % loop_path
-            utils.system(cmd)
+            utils.run(cmd)
             l_cmd = 'kpartx -l %s | cut -f1 -d " "' % loop_path
             device = utils.system_output(l_cmd)
         except error.CmdError, e:
@@ -961,7 +961,7 @@ class virtual_partition:
                       self.loop)
         try:
             cmd = 'kpartx -d %s' % self.loop
-            utils.system(cmd)
+            utils.run(cmd)
         except error.CmdError, e:
             e_msg = 'Error removing entries for loop %s: %s' % (self.loop, e)
             raise error.AutotestError(e_msg)
@@ -975,7 +975,7 @@ class virtual_partition:
                       self.loop)
         try:
             cmd = 'losetup -d %s' % self.loop
-            utils.system(cmd)
+            utils.run(cmd)
         except error.CmdError, e:
             e_msg = ('Error detaching image %s from loop device %s: %s' %
                     (self.img, self.loop, e))
@@ -992,6 +992,7 @@ class virtual_partition:
         except:
             e_msg = 'Error removing image file %s' % self.img
             raise error.AutotestError(e_msg)
+
 
 # import a site partition module to allow it to override functions
 try:
