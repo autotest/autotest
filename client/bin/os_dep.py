@@ -54,3 +54,17 @@ def libraries(*libs):
     results = []
     for lib in libs:
         results.append(library(lib))
+
+
+def header(hdr):
+    for dir in ['/usr/include', '/usr/local/include']:
+        file = os.path.join(dir, hdr)
+        if os.path.exists(file):
+            return file
+    raise ValueError('Missing header: %s' % hdr)
+
+
+def headers(*hdrs):
+    results = []
+    for hdr in hdrs:
+        results.append(header(hdr))
