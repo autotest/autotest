@@ -7,6 +7,7 @@ The most common use case is to simply call make_installer() inside your tests.
 '''
 
 from autotest_lib.client.common_lib import error
+from autotest_lib.client.virt import base_installer
 
 __all__ = ['InstallerRegistry', 'INSTALLER_REGISTRY', 'make_installer',
            'run_installers']
@@ -91,6 +92,23 @@ class InstallerRegistry(dict):
 # InstallerRegistry unique instance
 #
 INSTALLER_REGISTRY = InstallerRegistry()
+
+
+#
+# Register base installers
+#
+INSTALLER_REGISTRY.register('yum',
+                            base_installer.YumInstaller)
+INSTALLER_REGISTRY.register('koji',
+                            base_installer.KojiInstaller)
+INSTALLER_REGISTRY.register('git_repo',
+                            base_installer.GitRepoInstaller)
+INSTALLER_REGISTRY.register('local_src',
+                            base_installer.LocalSourceDirInstaller)
+INSTALLER_REGISTRY.register('local_tar',
+                            base_installer.LocalSourceTarInstaller)
+INSTALLER_REGISTRY.register('remote_tar',
+                            base_installer.RemoteSourceTarInstaller)
 
 
 def installer_name_split(fullname, virt=None):
