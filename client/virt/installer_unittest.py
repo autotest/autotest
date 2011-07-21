@@ -45,7 +45,7 @@ class installer_test(unittest.TestCase):
 vm_type = test"""
 
         class Installer:
-            def __init__(self, test, params):
+            def __init__(self, mode, name, test, params):
                 pass
 
         installer.INSTALLER_REGISTRY.register('test_install_mode',
@@ -56,7 +56,7 @@ vm_type = test"""
         config_parser.parse_string(config)
         params = config_parser.get_dicts().next()
 
-        instance = installer.make_installer(params)
+        instance = installer.make_installer("test_install_mode_test", params)
         self.assertIsInstance(instance, Installer)
 
 

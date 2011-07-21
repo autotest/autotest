@@ -8,7 +8,8 @@ The most common use case is to simply call make_installer() inside your tests.
 
 from autotest_lib.client.common_lib import error
 
-__all__ = ['InstallerRegistry', 'INSTALLER_REGISTRY', 'make_installer']
+__all__ = ['InstallerRegistry', 'INSTALLER_REGISTRY', 'make_installer',
+           'run_installers']
 
 class InstallerRegistry(dict):
     '''
@@ -73,13 +74,43 @@ class InstallerRegistry(dict):
             return self[virt].get(mode)
 
 
+    def get_modes(self, virt=None):
+        '''
+        Returns a list of all registered installer modes
+        '''
+        if virt is None:
+            virt = self.DEFAULT_VIRT_NAME
+
+        if not self.has_key(virt):
+            return []
+
+        return self[virt].keys()
+
+
 #
 # InstallerRegistry unique instance
 #
 INSTALLER_REGISTRY = InstallerRegistry()
 
 
-def make_installer(params, test=None):
+def installer_name_split(fullname, virt=None):
+    '''
+    Split a full installer name into mode and short name
+
+    Examples:
+       git_repo_foo -> (git_repo, foo)
+       local_src_foo -> (local_src, foo)
+    '''
+    for mode in INSTALLER_REGISTRY.get_modes(virt):
+        if fullname.startswith('%s_' % mode):
+            null, _name = fullname.split(mode)
+            name = _name[1:]
+            return (mode, name)
+
+    return (None, None)
+
+
+def make_installer(fullname, params, test=None):
     '''
     Installer factory: returns a new installer for the chosen mode and vm type
 
@@ -89,14 +120,35 @@ def make_installer(params, test=None):
     Param priority evaluation order is 'install_mode', then 'mode'. For virt
     type, 'vm_type' is consulted.
 
+    @param fullname: the full name of instance, eg: git_repo_foo
     @param params: dictionary with parameters generated from cartersian config
     @param test: the test instance
     '''
-    mode = params.get("install_mode", params.get("mode", None))
     virt = params.get("vm_type", None)
-    klass = INSTALLER_REGISTRY.get_installer(mode, virt)
 
+    mode, name = installer_name_split(fullname, virt)
+    if mode is None or name is None:
+
+        error_msg = ('Invalid installer mode or name for "%s". Probably an '
+                     'installer has not been registered' % fullname)
+        if virt is not None:
+            error_msg += ' specifically for virt type "%s"' % virt
+
+        raise error.TestError(error_msg)
+
+    klass = INSTALLER_REGISTRY.get_installer(mode, virt)
     if klass is None:
-        raise error.TestError('Invalid or unsupported install mode: %s' % mode)
+        raise error.TestError('Installer mode %s is not registered' % mode)
     else:
-        return klass(test, params)
+        return klass(mode, name, test, params)
+
+
+def run_installers(params, test=None):
+    '''
+    Runs the installation routines for all installers, one at a time
+
+    This is usually the main entry point for tests
+    '''
+    for name in params.get("installers", "").split():
+        installer = make_installer(name, params, test)
+        installer.install()
