@@ -1216,6 +1216,11 @@ variants:
                  re_str = "[vhs]d[a-z][^0-9]"
 
         variants:
+            - CustomGuestLinux:
+                image_name = custom_image
+                image_size = 10G
+                #image_name = /dev/mapper/vg_some_label
+                #image_type_raw = yes
             - Fedora:
                 no setup
                 shell_prompt = "^\[.*\][\#\$]\s*$"
@@ -2222,6 +2227,11 @@ variants:
                 pre_cmd = del diskpart.script && (for /L %i in (1 1 23) do echo select disk %i >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
 
         variants:
+            - CustomGuestWindows:
+                image_name = custom_image
+                image_size = 20G
+                #image_name = /dev/mapper/vg_some_label
+                #image_type_raw = yes
             - Win2000:
                 no reboot whql
                 image_name = win2000-32
