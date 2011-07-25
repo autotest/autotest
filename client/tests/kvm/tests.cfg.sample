@@ -5,6 +5,27 @@ include tests_base.cfg
 include cdkeys.cfg
 include virtio-win.cfg
 
+# Here you can override the image name for our custom linux and windows guests
+#
+CustomGuestLinux:
+    # Here you can override the default login credentials for your custom guest
+    username = root
+    password = 123456
+    image_name = custom_image_linux
+    image_size = 10G
+    # If you want to use a block device as the vm disk, uncomment the 2 lines
+    # below, pointing the image name for the device you want
+    #image_name = /dev/mapper/vg_linux_guest
+    #image_raw_device = yes
+
+CustomGuestWindows:
+    image_name = custom_image_windows
+    image_size = 10G
+    # If you want to use a block device as the vm disk, uncomment the 2 lines
+    # below, pointing the image name for the device you want
+    #image_name = /dev/mapper/vg_windows_guest
+    #image_raw_device = yes
+
 # Modify/comment the following lines if you wish to modify the paths of the
 # image files, ISO files or qemu binaries.
 #
@@ -82,6 +103,23 @@ variants:
         only smallpages
         only Fedora.15.64
         only unattended_install.cdrom, boot, shutdown
+
+    # Runs your own guest image (qcow2, can be adjusted), all migration tests
+    # (on a core2 duo laptop with HD and 4GB RAM, F15 host took 3 hours to run)
+    # Be warned, disk stress + migration can corrupt your image, so make sure
+    # you have proper backups
+    - @qemu_kvm_custom_migrate:
+        # We want qemu-kvm for this run
+        qemu_binary = /usr/bin/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        only qcow2
+        only rtl8139
+        only ide
+        only smp2
+        only no_pci_assignable
+        only smallpages
+        only CustomGuestLinux
+        only migrate
 
 # You may provide information about the DTM server for WHQL tests here:
 #whql:
