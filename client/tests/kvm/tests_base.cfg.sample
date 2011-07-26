@@ -1108,6 +1108,13 @@ variants:
         cdrom_cd1 = orig.iso
         max_times = 20
 
+    - nmi_watchdog: install setup image_copy unattended_install.cdrom
+        type = nmi_watchdog
+        get_nmi_cmd = grep NMI /proc/interrupts
+        nmi_watchdog_type = 1
+        image_snapshot = yes
+        only Linux
+
 
 # NICs
 variants:
