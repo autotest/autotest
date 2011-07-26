@@ -1,0 +1,31 @@
+AUTHOR = "Poornima Nayak <mpnayak@linux.vnet.ibm.com>"
+NAME = "connectathon"
+TEST_CATEGORY = "NFS FVT"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+TIME = 'MEDIUM'
+DOC = '''
+Test for testing nfs mounted paths.
+
+More information about connecthon can be found at
+http://www.connectathon.org/nfstests.html
+'''
+
+import datetime, os
+now = datetime.datetime.now()
+#iter_range = [10, 100, 1000, 10000]
+#tests = ['-b -t', '-g -t', '-g -f', '-s -t', '-s -f', '-l -f', '-l -t']
+iter_range = [1]
+tests = ['-s -t']
+tag_ver = 0
+for test in tests:
+    for j in iter_range:
+        # On this example, /mnt/test is an NFS mounted location previously set
+        dir = os.path.join('/mnt', 'test', now.strftime("%Y-%m-%d%H:%M"))
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
+        job.run_test(url='connectathon', testdir=dir, args=test,
+                     cthon_iterations=j,
+                     tag=("itera-%s-test-%s" % (j, tag_ver)))
+        tag_ver = tag_ver + 1
+
