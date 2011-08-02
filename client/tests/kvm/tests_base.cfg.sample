@@ -1059,6 +1059,25 @@ variants:
         # clean the state file?
         clean_save = yes
 
+    - cdrom_test: install setup image_copy unattended_install.cdrom
+        only Linux
+        start_vm = no
+        type = cdrom
+        cdrom_cd1 = orig.iso
+        max_times = 20
+
+    - nmi_watchdog: install setup image_copy unattended_install.cdrom
+        type = nmi_watchdog
+        get_nmi_cmd = grep NMI /proc/interrupts
+        nmi_watchdog_type = 1
+        image_snapshot = yes
+        only Linux
+
+    - floppy: install setup image_copy unattended_install.cdrom
+        type = floppy
+        start_vm = no
+        floppy = images/test_floppy.img
+
     - trans_hugepage: install setup image_copy unattended_install.cdrom
         thp_test_config = ""
         kill_vm = yes
@@ -1102,20 +1121,6 @@ variants:
         kill_vm = yes
         kill_vm_gracefully = no
     # Do not define test variants below shutdown
-
-    - cdrom_test: install setup image_copy unattended_install.cdrom
-        only Linux
-        start_vm = no
-        type = cdrom
-        cdrom_cd1 = orig.iso
-        max_times = 20
-
-    - nmi_watchdog: install setup image_copy unattended_install.cdrom
-        type = nmi_watchdog
-        get_nmi_cmd = grep NMI /proc/interrupts
-        nmi_watchdog_type = 1
-        image_snapshot = yes
-        only Linux
 
 
 # NICs
@@ -1223,6 +1228,16 @@ variants:
                  image_name_stg27 = storage27
                  list_volume_command = cd /dev && \ls vd*
                  re_str = "[vhs]d[a-z][^0-9]"
+        floppy:
+            format_floppy_cmd = mkfs -t ext3 /dev/fd0
+            test_floppy_cmd = (dd if=/dev/urandom of=/mnt/test_floppy bs=1M count=1) && (rm -f /mnt/test_floppy)
+            format_floppy_cmd = mkfs -t ext3 /dev/fd0
+            source_file = /etc/passwd
+            dest_file = /mnt/passwd
+            clean_cmd = rm -f
+            mount_dir = /mnt/
+            diff_file_cmd = diff
+            copy_cmd = cp
 
         variants:
             - CustomGuestLinux:
@@ -2234,6 +2249,14 @@ variants:
                 pre_cmd = del diskpart.script && (echo select disk 1 >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
             max_disk:
                 pre_cmd = del diskpart.script && (for /L %i in (1 1 23) do echo select disk %i >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
+        floppy:
+            format_floppy_cmd = echo n|format A: /Q /V:test_floppy
+            source_file = C:\Windows\System32\cmd.exe
+            dest_file = A:\cmd.exe
+            clean_cmd = del
+            diff_file_cmd = fc
+            test_floppy_cmd = "chkdsk A:"
+            copy_cmd = copy
 
         variants:
             - CustomGuestWindows:
