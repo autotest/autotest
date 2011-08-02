@@ -1,0 +1,25 @@
+# Large file random writes.
+# 1024 files, 100MB per file.
+
+time=300  # 5 min
+alignio=1
+
+[filesystem0]
+#   For KVM Autotest , this will by-default
+#   be / , unless and until the user is absolutely
+#   sure what is is upto.
+    location=/
+    num_files=2
+    min_filesize=1G
+    max_filesize=2G
+[end0]
+
+[threadgroup0]
+    num_threads=4
+
+    read_random=1
+    read_weight=1
+
+    read_size=5242880  # 5 MB
+    read_blocksize=4096
+[end0]
