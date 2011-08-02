@@ -302,6 +302,8 @@ variants:
                 test_control_file = bonnie.control
             - ebizzy:
                 test_control_file = ebizzy.control
+            - ffsb:
+                test_control_file = ffsb.control
             - stress:
                 test_control_file = stress.control
             - disktest:
