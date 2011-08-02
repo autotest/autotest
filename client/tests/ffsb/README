@@ -1,0 +1,44 @@
+INTRODUCTION:
+=============
+This patch integrates the Flexible Filesystem Benchmark (FFSB) with
+the autotest. This integration enables the high-performace I/O load testing in the
+KVM Virtual machine environment.
+
+FFSB is a filesystem performance measurement tool.  It is a multi-threaded
+application (using pthreads), written entirely in C with cross-platform
+portability in mind.  It differs from other filesystem benchmarks in that
+the user may supply a profile to create custom workloads, while most other
+filesystem benchmarks use a fixed set of randomly generated workloads.
+
+More information about the FFSB can be got from reading the README in the
+FFSB source directory which can be accessed from this link:
+[http://sourceforge.net/projects/ffsb/]
+
+With this integration, it is now possible to test a variety of filesystems on
+the KVM guest for :
+
+(1) directed I/O with sequential/random read/write.
+(2) buffered I/O with sequential/random read/write.
+(3) use varying block alignment boundaries to measure filesystem behaviour.
+(4) use multithreaded workloads to stress the filesystem.
+(5) Exert weighted combination of I/O workloads to analyze the I/O performace
+    for a specific scenario.
+(6) Age filesystem according to a specified workload upto a specified limit.
+
+    Since the only interface used for the integration is a FFSB configuration file;
+Autotest will be able to run variety of I/O tests on guest as FFSB improves,
+with no or minimal code change in Autotest itself.
+
+USE:
+====
+To use the FFSB for Filesystem testing, two configuration files
+need to be modified -
+(1) Usual - tests.cfg file to activate the ffsb tests through KVM.
+(2) profile.cfg - where the workloads are specified.
+
+TODO:
+====
+* Add validations for max. number of threads according to number of
+  vcpus exported by QEMU-KVM
+* Test Autotest/ffsb
+* Test FFSB itself.
