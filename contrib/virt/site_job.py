@@ -24,7 +24,8 @@ class site_job_create(job.job_create):
         super(site_job_create, self).__init__()
         self.parser.add_option('-T', '--template', action='store_true',
                                help='Control file is actually a template')
-        self.parser.add_option('--extra-cartesian-config',
+        self.parser.add_option('-x', '--extra-cartesian-config',
+                               action='append',
                                help='Add extra configuration to the cartesian '
                                'config file')
         self.parser.add_option('--timestamp', action='store_true',
@@ -131,7 +132,7 @@ class site_job_create(job.job_create):
         '''
         extra = []
         if self.command_line_options.extra_cartesian_config:
-            extra.append(self.command_line_options.extra_cartesian_config)
+            extra += self.command_line_options.extra_cartesian_config
 
         if self.command_line_options.koji_tag:
             extra.append("koji_tag = %s" % self.command_line_options.koji_tag)

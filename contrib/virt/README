@@ -20,7 +20,7 @@ a job that will fail and waste developer time.
 Instalation:
 ------------
 
-1) copy the site_job.py file to <autotest_root>/cli/,
+1) copy (or link) the site_job.py file to <autotest_root>/cli/,
 usually /usr/local/autotest/cli.
 
 2) validate it is working by running:
@@ -31,7 +31,7 @@ The output should include the added options:
 
 ...
   -T, --template        Control file is actually a template
-  --extra-cartesian-config=EXTRA_CARTESIAN_CONFIG
+  -x EXTRA_CARTESIAN_CONFIG, --extra-cartesian-config=EXTRA_CARTESIAN_CONFIG
                         Add extra configuration to the cartesian config file
   --timestamp           Add a timestamp to the name of the job
   --koji-arch=KOJI_ARCH
@@ -56,7 +56,7 @@ use them only as a reference and adapt the examples to your scenario:
 
   # <autotest_root>/cli/atest job create -s -m "yourmail@yourdomain.org" \
     -f "<autotest_root>/contrib/virt/control.template" -T --timestamp \
-    --extra-cartesian-config='only qemu-git..sanity' "Upstream qemu.git sanity"
+    -x 'only qemu-git..sanity' "Upstream qemu.git sanity"
 
 2) To run a test with specific packages built on koji:
 
@@ -65,10 +65,10 @@ use them only as a reference and adapt the examples to your scenario:
     --koji-tag=f15 --koji-pkg=':qemu-kvm:qemu-kvm,qemu-img,qemu-kvm-tools' \
     --koji-pkg='seabios' --koji-pkg='vgabios' --koji-pkg=':gpxe:gpxe-roms-qemu' \
     --koji-pkg=':spice-server:spice-server' \
-    --extra-cartersian-config='only f15-koji..sanity' "Fedora 15 Koji Sanity"
+    -x 'only f15-koji..sanity' "Fedora 15 Koji Sanity"
 
 
-Contribute by (who to bug):
----------------------------
+Contributed by (who to bug):
+----------------------------
 Cleber Rosa (crosa@redhat.com)
 Lucas Meneghel Rodrigues (lmr@redhat.com)
