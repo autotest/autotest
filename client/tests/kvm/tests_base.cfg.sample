@@ -1122,6 +1122,21 @@ variants:
         kill_vm_gracefully = no
     # Do not define test variants below shutdown
 
+    - usb: install setup image_copy unattended_install.cdrom
+        type = usb
+        kill_vm = yes
+        format_timeout = 400
+        images += " stg"
+        image_name_stg = "usbdevice"
+        image_format_stg = "qcow2"
+        image_boot_stg = no
+        drive_format_stg = "usb2"
+        drive_index_stg = 1
+        create_image_stg = yes
+        image_size_stg = 10M
+        fdisk_string = "10 MB, 10485760 bytes"
+        only Linux
+
 
 # NICs
 variants:
