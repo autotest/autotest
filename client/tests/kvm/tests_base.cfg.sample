@@ -1137,6 +1137,19 @@ variants:
         fdisk_string = "10 MB, 10485760 bytes"
         only Linux
 
+    - hdparm:
+        type = hdparm
+        get_disk_cmd = \ls /dev/[vhs]da
+        low_status_cmd = hdparm -a64 -d0 -u0 %s
+        device_cache_read_cmd = hdparm -tT %s
+        high_status_cmd = hdparm -a256 -d1 -u1 %s
+        cmd_timeout = 540
+        only Linux
+        virtio_blk:
+            get_disk_cmd = \ls /dev/vda
+            low_status_cmd = hdparm -a32 -r0 %s
+            high_status_cmd = hdparm -a256 -r1 %s
+
 
 # NICs
 variants:
