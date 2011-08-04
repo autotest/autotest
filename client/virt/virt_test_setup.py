@@ -1,7 +1,7 @@
 """
 Library to perform pre/post test setup for KVM autotest.
 """
-import os, logging, time, re, sre, random
+import os, logging, time, re, random
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 
@@ -60,7 +60,7 @@ class TransparentHugePageConfig(object):
             tmp_list = re.split(';', test_config)
         while len(tmp_list) > 0:
             tmp_cfg = tmp_list.pop()
-            test_cfg[re.split(":", tmp_cfg)[0]] = sre.split(":", tmp_cfg)[1]
+            test_cfg[re.split(":", tmp_cfg)[0]] = re.split(":", tmp_cfg)[1]
         # Save host current config, so we can restore it during cleanup
         # We will only save the writeable part of the config files
         original_config = {}
