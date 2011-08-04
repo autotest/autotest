@@ -163,7 +163,7 @@ def process_command(test, params, env, command, command_timeout,
             raise
 
 
-def process(test, params, env, image_func, vm_func):
+def process(test, params, env, image_func, vm_func, vm_first=False):
     """
     Pre- or post-process VMs and images according to the instructions in params.
     Call image_func for each image listed in params and vm_func for each VM.
@@ -177,13 +177,20 @@ def process(test, params, env, image_func, vm_func):
     # Get list of VMs specified for this test
     for vm_name in params.objects("vms"):
         vm_params = params.object_params(vm_name)
-        # Get list of images specified for this VM
-        for image_name in vm_params.objects("images"):
-            image_params = vm_params.object_params(image_name)
-            # Call image_func for each image
-            image_func(test, image_params)
-        # Call vm_func for each vm
-        vm_func(test, vm_params, env, vm_name)
+        if not vm_first:
+            # Get list of images specified for this VM
+            for image_name in vm_params.objects("images"):
+                image_params = vm_params.object_params(image_name)
+                # Call image_func for each image
+                image_func(test, image_params)
+            # Call vm_func for each vm
+            vm_func(test, vm_params, env, vm_name)
+        else:
+            vm_func(test, vm_params, env, vm_name)
+            for image_name in vm_params.objects("images"):
+                image_params = vm_params.object_params(image_name)
+                image_func(test, image_params)
+
 
 
 @error.context_aware
@@ -293,7 +300,7 @@ def postprocess(test, params, env):
     error.context("postprocessing")
 
     # Postprocess all VMs and images
-    process(test, params, env, postprocess_image, postprocess_vm)
+    process(test, params, env, postprocess_image, postprocess_vm, vm_first=True)
 
     # Terminate the screendump thread
     global _screendump_thread, _screendump_thread_termination_event
