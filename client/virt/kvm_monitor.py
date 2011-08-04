@@ -174,7 +174,6 @@ class HumanMonitor(Monitor):
             # Find the initial (qemu) prompt
             s, o = self._read_up_to_qemu_prompt(20)
             if not s:
-                self._close_sock()
                 raise MonitorProtocolError("Could not find (qemu) prompt "
                                            "after connecting to monitor. "
                                            "Output so far: %r" % o)
@@ -432,7 +431,6 @@ class QMPMonitor(Monitor):
             try:
                 json
             except NameError:
-                self._close_sock()
                 raise MonitorNotSupportedError("QMP requires the json module "
                                                "(Python 2.6 and up)")
 
@@ -447,7 +445,6 @@ class QMPMonitor(Monitor):
                     break
                 time.sleep(0.1)
             else:
-                self._close_sock()
                 raise MonitorProtocolError("No QMP greeting message received")
 
             # Issue qmp_capabilities
