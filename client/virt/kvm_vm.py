@@ -617,7 +617,6 @@ class VM(virt_vm.BaseVM):
         @raise TAPCreationError: If fail to create tap fd
         @raise BRAddIfError: If fail to add a tap to a bridge
         @raise TAPBringUpError: If fail to bring up a tap
-        @raise PrivateBridgeError: If fail to bring the private bridge
         """
         error.context("creating '%s'" % self.name)
         self.destroy(free_mac_addresses=False)
@@ -692,8 +691,6 @@ class VM(virt_vm.BaseVM):
                 if nic_params.get("nic_mode") == "tap":
                     ifname = self.get_ifname(vlan)
                     brname = nic_params.get("bridge")
-                    if brname == "private":
-                        brname = virt_test_setup.PrivateBridgeConfig().brname
                     tapfd = virt_utils.open_tap("/dev/net/tun", ifname)
                     virt_utils.add_to_bridge(ifname, brname)
                     virt_utils.bring_up_ifname(ifname)
