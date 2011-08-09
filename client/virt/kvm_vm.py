@@ -533,8 +533,15 @@ class VM(virt_vm.BaseVM):
             else:
                 return " -redir tcp:%s::%s" % (host_port, guest_port)
 
-        def add_vnc(help, vnc_port):
-            return " -vnc :%d" % (vnc_port - 5900)
+
+        def add_vnc(help, vnc_port, vnc_password='no', extra_params=None):
+            vnc_cmd = " -vnc :%d" % (vnc_port - 5900)
+            if vnc_password == "yes":
+                vnc_cmd += ",password"
+            if extra_params:
+                vnc_cmd += ",%s" % extra_params
+            return vnc_cmd
+
 
         def add_sdl(help):
             if has_option(help, "sdl"):
@@ -1076,7 +1083,10 @@ class VM(virt_vm.BaseVM):
             qemu_cmd += add_tcp_redir(help, host_port, guest_port)
 
         if params.get("display") == "vnc":
-            qemu_cmd += add_vnc(help, vm.vnc_port)
+            vnc_extra_params = params.get("vnc_extra_params")
+            vnc_password = params.get("vnc_password", "no")
+            qemu_cmd += add_vnc(help, self.vnc_port, vnc_password,
+                                vnc_extra_params)
         elif params.get("display") == "sdl":
             qemu_cmd += add_sdl(help)
         elif params.get("display") == "nographic":
@@ -1785,6 +1795,14 @@ class VM(virt_vm.BaseVM):
         returns the PID of the parent shell process.
         """
         return self.process.get_pid()
+
+
+    def get_vnc_port(self):
+        """
+        Return self.vnc_port.
+        """
+
+        return self.vnc_port
 
 
     def get_vcpu_pids(self):
