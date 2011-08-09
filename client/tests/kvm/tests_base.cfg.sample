@@ -57,16 +57,9 @@ redirs = remote_shell
 guest_port_remote_shell = 22
 
 # NIC parameters
-#nic_mode = user
 nic_mode = tap
-bridge = private
-# You can set bridge to
-# be a specific bridge
-# name, such as 'virbr0'
-#bridge = virbr0
-# If you need more ports to be available for comm between host and guest,
-# please add them here
-priv_bridge_ports = 53 67
+# By default we use libvirt's bridge
+bridge = virbr0
 run_tcpdump = yes
 
 # Misc
