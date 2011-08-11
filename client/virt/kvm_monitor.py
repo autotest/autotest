@@ -120,7 +120,10 @@ class Monitor:
 
     def _data_available(self, timeout=0):
         timeout = max(0, timeout)
-        return bool(select.select([self._socket], [], [], timeout)[0])
+        try:
+            return bool(select.select([self._socket], [], [], timeout)[0])
+        except socket.error, e:
+            raise MonitorSocketError("Verifying data on monitor socket", e)
 
 
     def _recvall(self):
