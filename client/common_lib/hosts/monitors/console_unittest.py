@@ -7,7 +7,7 @@ import os, shutil, signal, StringIO, tempfile
 import common
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.common_lib.test_utils import unittest
-from autotest_lib.server.hosts.monitors import console
+from autotest_lib.client.common_lib.hosts.monitors import console
 
 class console_test(unittest.TestCase):
     def setUp(self):

@@ -234,6 +234,8 @@ class TestBaseAutotest(unittest.TestCase):
         run_obj.execute_control.expect_call(timeout=30,
                                             client_disconnect_timeout=1800)
 
+        self.host.job.clean_state.expect_call()
+
         # run and check output
         self.base_autotest.run(control, timeout=30)
         self.god.check_playback()

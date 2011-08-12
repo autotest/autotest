@@ -50,10 +50,14 @@ class Host(object):
     """
 
     job = None
-    DEFAULT_REBOOT_TIMEOUT = 1800
-    WAIT_DOWN_REBOOT_TIMEOUT = 840
-    WAIT_DOWN_REBOOT_WARNING = 540
-    HOURS_TO_WAIT_FOR_RECOVERY = 2.5
+    DEFAULT_REBOOT_TIMEOUT = global_config.global_config.get_config_value(
+        "HOSTS", "default_reboot_timeout", type=int, default=1800)
+    WAIT_DOWN_REBOOT_TIMEOUT = global_config.global_config.get_config_value(
+        "HOSTS", "wait_down_reboot_timeout", type=int, default=840)
+    WAIT_DOWN_REBOOT_WARNING = global_config.global_config.get_config_value(
+        "HOSTS", "wait_down_reboot_warning", type=int, default=540)
+    HOURS_TO_WAIT_FOR_RECOVERY = global_config.global_config.get_config_value(
+        "HOSTS", "hours_to_wait_for_recovery", type=float, default=2.5)
     # the number of hardware repair requests that need to happen before we
     # actually send machines to hardware repair
     HARDWARE_REPAIR_REQUEST_THRESHOLD = 4
@@ -188,18 +192,18 @@ class Host(object):
 
 
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT,
+                         down_timeout=WAIT_DOWN_REBOOT_TIMEOUT,
+                         down_warning=WAIT_DOWN_REBOOT_WARNING,
                          log_failure=True, old_boot_id=None, **dargs):
         """ Wait for the host to come back from a reboot. This is a generic
         implementation based entirely on wait_up and wait_down. """
-        if not self.wait_down(timeout=self.WAIT_DOWN_REBOOT_TIMEOUT,
-                              warning_timer=self.WAIT_DOWN_REBOOT_WARNING,
+        if not self.wait_down(timeout=down_timeout,
+                              warning_timer=down_warning,
                               old_boot_id=old_boot_id):
             if log_failure:
                 self.record("ABORT", None, "reboot.verify", "shut down failed")
             raise error.AutoservShutdownError("Host did not shut down")
 
-        self.wait_up(timeout)
-        time.sleep(2)    # this is needed for complete reliability
         if self.wait_up(timeout):
             self.record("GOOD", None, "reboot.verify")
             self.reboot_followup(**dargs)
@@ -238,12 +242,12 @@ class Host(object):
 
         @raises AutoservDiskFullHostError if path has less than gb GB free.
         """
-        one_mb = 10**6  # Bytes (SI unit).
+        one_mb = 10 ** 6  # Bytes (SI unit).
         mb_per_gb = 1000.0
         logging.info('Checking for >= %s GB of space under %s on machine %s',
                      gb, path, self.hostname)
         df = self.run('df -PB %d %s | tail -1' % (one_mb, path)).stdout.split()
-        free_space_gb = int(df[3])/mb_per_gb
+        free_space_gb = int(df[3]) / mb_per_gb
         if free_space_gb < gb:
             raise error.AutoservDiskFullHostError(path, gb, free_space_gb)
         else:
