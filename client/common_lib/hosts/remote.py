@@ -3,8 +3,8 @@ if it is available."""
 
 import os, logging, urllib
 from autotest_lib.client.common_lib import error, global_config
-from autotest_lib.server import utils
-from autotest_lib.server.hosts import base_classes, install_server
+from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib.hosts import base_classes, install_server
 
 
 class RemoteHost(base_classes.Host):
