@@ -1,4 +1,4 @@
-import os, time, pickle, logging, shutil
+import os, time, pickle, logging, shutil, gzip
 
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.server import utils
@@ -179,11 +179,13 @@ def collect_messages(host):
         else:
             size_at_start = 0
         raw_messages_file = open(messages_raw)
-        messages_file = open(messages, "w")
-        raw_messages_file.seek(size_at_start)
-        shutil.copyfileobj(raw_messages_file, messages_file)
-        raw_messages_file.close()
-        messages_file.close()
+        messages_file = gzip.GzipFile(messages+".gz", "w")
+        try:
+            raw_messages_file.seek(size_at_start)
+            shutil.copyfileobj(raw_messages_file, messages_file)
+            raw_messages_file.close()
+        finally:
+            messages_file.close()
 
         # get rid of the "raw" versions of messages
         os.remove(messages_raw)

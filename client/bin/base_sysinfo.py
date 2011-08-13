@@ -1,4 +1,4 @@
-import os, shutil, re, glob, subprocess, logging
+import os, shutil, re, glob, subprocess, logging, gzip
 
 from autotest_lib.client.common_lib import log
 from autotest_lib.client.bin import utils, package
@@ -324,11 +324,19 @@ class base_sysinfo(object):
                 if current_inode == self._messages_inode:
                     bytes_to_skip = self._messages_size
             in_messages = open("/var/log/messages")
-            in_messages.seek(bytes_to_skip)
-            out_messages = open(os.path.join(logdir, "messages"), "w")
-            out_messages.write(in_messages.read())
-            in_messages.close()
-            out_messages.close()
+            out_file_name = os.path.join(logdir, "messages.gz")
+            out_messages = gzip.GzipFile(out_file_name, "w")
+            try:
+                in_messages.seek(bytes_to_skip)
+                while True:
+                    # Read data in managable chunks rather than all at once.
+                    in_data = in_messages.read(200000)
+                    if not in_data:
+                        break
+                    out_messages.write(in_data)
+            finally:
+                out_messages.close()
+                in_messages.close()
         except Exception, e:
             logging.error("/var/log/messages collection failed with %s", e)
 

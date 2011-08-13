@@ -123,7 +123,6 @@ def launch_local_console(
     # Setup warning stream before we actually launch
     warning_stream = os.fdopen(r, 'r', 0)
 
-    devnull_r = open(os.devnull, 'r')
     devnull_w = open(os.devnull, 'w')
     # Launch console.py locally
     console_proc = subprocess.Popen(
