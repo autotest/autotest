@@ -415,6 +415,24 @@ variants:
         type = smbios_table
         start_vm = no
 
+    - softlockup: install setup unattended_install.cdrom
+        only Linux
+        type = softlockup
+        softlockup_files = stress-1.0.4.tar.gz
+        stress_setup_cmd = "cd %s && tar xvf stress-1.0.4.tar.gz && cd stress-1.0.4 && ./configure && make && cd src"
+        server_setup_cmd = "%s/heartbeat_slu.py --server --threshold %s --file %s --port %s --verbose --check-drift"
+        client_setup_cmd = "%s/heartbeat_slu.py --client --address %s --file %s --port %s --interval 1"
+        stress_cmd  = "cd %s && cd stress-1.0.4 && cd src && nohup ./stress -c %s > /dev/null 2>&1&"
+        kill_monitor_cmd = "ps aux | grep heart | grep -v grep | awk '{print$2}' | xargs kill -9 > /dev/null 2>&1"
+        kill_stress_cmd = "pkill -f stress > /dev/null 2>&1"
+        drift_cmd = "tail -1 %s | awk '{print $7}'"
+        monitor_log_file_server = /tmp/heartbeat_server.log
+        monitor_log_file_client = /tmp/heartbeat_client.log
+        monitor_port = 13330
+        stress_threshold = 10
+        # time_to_run (hours) = 12, 18, 24, 48 hours
+        test_length = 0.10
+
     - stress_boot: install setup image_copy unattended_install.cdrom
         type = stress_boot
         max_vms = 5    
