@@ -107,13 +107,9 @@ class TestNetUtils(unittest.TestCase):
         mock_netif.loopback_enabled = True
         mock_netif.was_down = False
 
-        self.god.stub_function(net_utils.bonding, 'is_enabled')
-
         # restore using phyint
         cmd = 'ifconfig %s %s' % (mock_netif._name, mock_netif.orig_ipaddr)
         utils.system.expect_call(cmd)
-
-        net_utils.bonding.is_enabled.expect_call().and_return(False)
 
         cmd = '%s -L %s %s %s' % (mock_netif.ethtool, mock_netif._name,
                                   'phyint', 'disable')
@@ -125,8 +121,6 @@ class TestNetUtils(unittest.TestCase):
         # restore using mac
         cmd = 'ifconfig %s %s' % (mock_netif._name, mock_netif.orig_ipaddr)
         utils.system.expect_call(cmd)
-
-        net_utils.bonding.is_enabled.expect_call().and_return(False)
 
         cmd = '%s -L %s %s %s' % (mock_netif.ethtool, mock_netif._name,
                                   'phyint', 'disable')
@@ -145,8 +139,6 @@ class TestNetUtils(unittest.TestCase):
 
         cmd = 'ifconfig %s %s' % (mock_netif._name, mock_netif.orig_ipaddr)
         utils.system.expect_call(cmd)
-
-        net_utils.bonding.is_enabled.expect_call().and_return(False)
 
         cmd = '%s -L %s %s %s' % (mock_netif.ethtool, mock_netif._name,
                                   'phyint', 'disable')
@@ -620,10 +612,7 @@ class TestNetUtils(unittest.TestCase):
         mock_netif.loopback_enabled = True
         mock_netif.was_down = False
 
-        self.god.stub_function(net_utils.bonding, 'is_enabled')
-
         # restore using phyint
-        net_utils.bonding.is_enabled.expect_call().and_return(False)
         cmd = '%s -L %s %s %s' % (mock_netif.ethtool, mock_netif._name,
                                   'phyint', 'disable')
         utils.system.expect_call(cmd, ignore_status=True).and_return(0)
@@ -631,7 +620,6 @@ class TestNetUtils(unittest.TestCase):
         self.god.check_playback()
 
         # restore using mac
-        net_utils.bonding.is_enabled.expect_call().and_return(False)
         cmd = '%s -L %s %s %s' % (mock_netif.ethtool, mock_netif._name,
                                   'phyint', 'disable')
         utils.system.expect_call(cmd, ignore_status=True).and_return(1)
@@ -641,18 +629,7 @@ class TestNetUtils(unittest.TestCase):
         mock_netif.disable_loopback()
         self.god.check_playback()
 
-        # catch exception on bonding enabled
-        net_utils.bonding.is_enabled.expect_call().and_return(True)
-        try:
-            mock_netif.disable_loopback()
-        except error.TestError:
-            pass
-        else:
-            self.assertEquals(0,1)
-        self.god.check_playback()
-
         # catch exception on phyint and mac failures
-        net_utils.bonding.is_enabled.expect_call().and_return(False)
         cmd = '%s -L %s %s %s' % (mock_netif.ethtool, mock_netif._name,
                                   'phyint', 'disable')
         utils.system.expect_call(cmd, ignore_status=True).and_return(1)
