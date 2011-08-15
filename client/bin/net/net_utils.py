@@ -274,9 +274,11 @@ class network_interface(object):
         # If bonded do not set loopback mode.
         # Try mac loopback first then phy loopback
         # If both fail, raise an error
-        if (bond().is_enabled() or
-            (self._set_loopback('phyint', 'enable') > 0 and
-             self._set_loopback('mac', 'enable') > 0)):
+        if bond().is_enabled():
+            raise error.TestError('Unable to enable loopback while '
+                                  'bonding is enabled.')
+        if (self._set_loopback('phyint', 'enable') > 0 and
+            self._set_loopback('mac', 'enable') > 0):
             raise error.TestError('Unable to enable loopback')
         # Add a 1 second wait for drivers which do not have
         # a synchronous loopback enable
@@ -287,12 +289,10 @@ class network_interface(object):
 
 
     def disable_loopback(self):
-        # If bonded, to not disable loopback.
         # Try mac loopback first then phy loopback
         # If both fail, raise an error
-        if (bond().is_enabled() or
-            (self._set_loopback('phyint', 'disable') > 0 and
-             self._set_loopback('mac', 'disable') > 0)):
+        if (self._set_loopback('phyint', 'disable') > 0 and
+            self._set_loopback('mac', 'disable') > 0):
             raise error.TestError('Unable to disable loopback')
 
 
