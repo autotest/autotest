@@ -1,6 +1,6 @@
 import logging, os, socket, time
 from autotest_lib.client.bin import utils
-
+from autotest_lib.client.common_lib import error
 
 def run_softlockup(test, params, env):
     """
@@ -118,7 +118,7 @@ def run_softlockup(test, params, env):
         logging.info("Setup monitor client on guest")
         # Start heartbeat on guest
         session.cmd(params.get("client_setup_cmd") %
-                    ("/tmp", monitor_log_file_client, host_ip, monitor_port))
+                    ("/tmp", host_ip, monitor_log_file_client, monitor_port))
 
         logging.info("Build stress on guest")
         # Uncompress and build stress on guest
