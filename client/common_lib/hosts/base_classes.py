@@ -192,11 +192,13 @@ class Host(object):
 
 
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT,
+                         down_timeout=WAIT_DOWN_REBOOT_TIMEOUT,
+                         down_warning=WAIT_DOWN_REBOOT_WARNING,
                          log_failure=True, old_boot_id=None, **dargs):
         """ Wait for the host to come back from a reboot. This is a generic
         implementation based entirely on wait_up and wait_down. """
-        if not self.wait_down(timeout=self.WAIT_DOWN_REBOOT_TIMEOUT,
-                              warning_timer=self.WAIT_DOWN_REBOOT_WARNING,
+        if not self.wait_down(timeout=down_timeout,
+                              warning_timer=down_warning,
                               old_boot_id=old_boot_id):
             if log_failure:
                 self.record("ABORT", None, "reboot.verify", "shut down failed")
