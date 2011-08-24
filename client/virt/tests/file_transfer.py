@@ -74,7 +74,7 @@ def run_file_transfer(test, params, env):
 
     finally:
         logging.info('Cleaning temp file on guest')
-        session.cmd("rm -rf %s" % guest_path)
+        session.cmd("%s %s" % (clean_cmd, guest_path))
         logging.info('Cleaning temp files on host')
         try:
             os.remove(host_path)
