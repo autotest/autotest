@@ -2,9 +2,9 @@
 if it is available."""
 
 import os, logging, urllib
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, global_config
 from autotest_lib.server import utils
-from autotest_lib.server.hosts import base_classes, bootloader
+from autotest_lib.server.hosts import base_classes, install_server
 
 
 class RemoteHost(base_classes.Host):
@@ -29,6 +29,8 @@ class RemoteHost(base_classes.Host):
 
     VAR_LOG_MESSAGES_COPY_PATH = "/var/tmp/messages.autotest_start"
 
+    INSTALL_SERVER_MAPPING = {'cobbler': install_server.CobblerInterface}
+
     def _initialize(self, hostname, autodir=None, *args, **dargs):
         super(RemoteHost, self)._initialize(*args, **dargs)
 
@@ -51,6 +53,26 @@ class RemoteHost(base_classes.Host):
                     self.run('rm -rf "%s"' % (utils.sh_escape(dir)))
                 except error.AutoservRunError:
                     pass
+
+
+    def machine_install(self, profile=None, timeout=None):
+        """
+        Install a profile using the install server.
+
+        @param profile: Profile name inside the install server database.
+        """
+        server_info = {}
+        cfg = global_config.global_config
+        cfg.parse_config_file()
+        for option, value in cfg.config.items('INSTALL_SERVER'):
+            server_info[option] = value
+
+        logging.debug("Install server params from global_config: %s",
+                      server_info)
+
+        ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
+        server_interface = ServerInterface(**server_info)
+        server_interface.install_host(self, profile=profile, timeout=timeout)
 
 
     def job_start(self):
