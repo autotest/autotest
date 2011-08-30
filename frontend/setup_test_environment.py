@@ -7,9 +7,10 @@ import common
 # system gets initialized.
 # django.conf.settings.LazySettings is buggy and requires us to get something
 # from it before we set stuff on it.
-getattr(settings, 'DATABASE_ENGINE')
-settings.DATABASE_ENGINE = 'autotest_lib.frontend.db.backends.afe_sqlite'
-settings.DATABASE_NAME = ':memory:'
+getattr(settings, 'DATABASES')
+settings.DATABASES['default']['ENGINE'] = (
+    'autotest_lib.frontend.db.backends.afe_sqlite')
+settings.DATABASES['default']['NAME'] = ':memory:'
 
 from django.db import connection
 from autotest_lib.frontend.afe import readonly_connection

@@ -55,7 +55,7 @@ class DoctestRunner(object):
         doctest_paths = self._get_doctest_paths()
         modules = self._get_modules()
         total_errors = 0
-        old_db = settings.DATABASE_NAME
+        old_db = settings.DATABASES['default']['NAME']
         django.test.utils.setup_test_environment()
         connection.creation.create_test_db()
         try:
