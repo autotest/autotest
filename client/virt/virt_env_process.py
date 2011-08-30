@@ -86,7 +86,7 @@ def preprocess_vm(test, params, env, name):
 
     scrdump_filename = os.path.join(test.debugdir, "pre_%s.ppm" % name)
     try:
-        if vm.monitor:
+        if vm.monitor and params.get("take_regular_screendumps") == "yes":
             vm.monitor.screendump(scrdump_filename, debug=False)
     except kvm_monitor.MonitorError, e:
         logging.warn(e)
@@ -122,7 +122,7 @@ def postprocess_vm(test, params, env, name):
 
     scrdump_filename = os.path.join(test.debugdir, "post_%s.ppm" % name)
     try:
-        if vm.monitor:
+        if vm.monitor and params.get("take_regular_screenshots") == "yes":
             vm.monitor.screendump(scrdump_filename, debug=False)
     except kvm_monitor.MonitorError, e:
         logging.warn(e)
