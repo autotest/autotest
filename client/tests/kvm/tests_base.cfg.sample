@@ -1104,6 +1104,14 @@ variants:
                 dd_timeout = 900
                 check_cmd_timeout = 900
 
+    - cpu_hotplug_test:
+        type = cpu_hotplug
+        cpu_hotplug_timeout = 600
+        n_cpus_add = 1
+        kill_vm = yes
+        iterations = 5
+        onoff_iterations = 100
+
     # system_powerdown, system_reset and shutdown *must* be the last ones
     # defined (in this order), since the effect of such tests can leave
     # the VM on a bad state.
