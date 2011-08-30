@@ -19,29 +19,26 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-DATABASE_ENGINE = 'autotest_lib.frontend.db.backends.afe'
-                               # 'postgresql_psycopg2', 'postgresql',
-                               # 'mysql', 'sqlite3' or 'ado_mssql'.
-DATABASE_PORT = ''             # Set to empty string for default.
-                               # Not used with sqlite3.
+def _get_config(config_key, default=None):
+    return c.get_config_value(_section, config_key, default=default)
 
-DATABASE_HOST = c.get_config_value(_section, "host")
-# Or path to database file if using sqlite3.
-DATABASE_NAME = c.get_config_value(_section, "database")
-# The following not used with sqlite3.
-DATABASE_USER = c.get_config_value(_section, "user")
-DATABASE_PASSWORD = c.get_config_value(_section, "password", default='')
+AUTOTEST_DEFAULT = {
+    'ENGINE': 'autotest_lib.frontend.db.backends.afe',
+    'PORT': '',
+    'HOST': _get_config("host"),
+    'NAME': _get_config("database"),
+    'USER': _get_config("user"),
+    'PASSWORD': _get_config("password", default=''),
+    'READONLY_HOST': _get_config("readonly_host", default=_get_config("host")),
+    'READONLY_USER': _get_config("readonly_user", default=_get_config("user"))}
 
-DATABASE_READONLY_HOST = c.get_config_value(_section, "readonly_host",
-                                            default=DATABASE_HOST)
-DATABASE_READONLY_USER = c.get_config_value(_section, "readonly_user",
-                                            default=DATABASE_USER)
-if DATABASE_READONLY_USER != DATABASE_USER:
-    DATABASE_READONLY_PASSWORD = c.get_config_value(_section,
-                                                    "readonly_password",
-                                                    default='')
+if AUTOTEST_DEFAULT['READONLY_USER'] != AUTOTEST_DEFAULT['USER']:
+    AUTOTEST_DEFAULT['READONLY_PASSWORD'] = _get_config("readonly_password",
+                                                        default='')
 else:
-    DATABASE_READONLY_PASSWORD = DATABASE_PASSWORD
+    AUTOTEST_DEFAULT['READONLY_PASSWORD'] = AUTOTEST_DEFAULT['PASSWORD']
+
+DATABASES = {'default': AUTOTEST_DEFAULT}
 
 # prefix applied to all URLs - useful if requests are coming through apache,
 # and you need this app to coexist with others

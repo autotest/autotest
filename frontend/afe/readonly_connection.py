@@ -45,22 +45,25 @@ class ReadOnlyConnection(object):
 
     def _save_django_state(self):
         self._old_connection = django_db.connection.connection
-        self._old_host = settings.DATABASE_HOST
-        self._old_username = settings.DATABASE_USER
-        self._old_password = settings.DATABASE_PASSWORD
+        _default_db = settings.DATABASES['default']
+        self._old_host = _default_db['HOST']
+        self._old_username = _default_db['USER']
+        self._old_password = _default_db['PASSWORD']
 
 
     def _restore_django_state(self):
         django_db.connection.connection = self._old_connection
-        settings.DATABASE_HOST = self._old_host
-        settings.DATABASE_USER = self._old_username
-        settings.DATABASE_PASSWORD = self._old_password
+        _default_db = settings.DATABASES['default']
+        _default_db['HOST'] = self._old_host
+        _default_db['USER'] = self._old_username
+        _default_db['PASSWORD'] = self._old_password
 
 
     def _get_readonly_connection(self):
-        settings.DATABASE_HOST = settings.DATABASE_READONLY_HOST
-        settings.DATABASE_USER = settings.DATABASE_READONLY_USER
-        settings.DATABASE_PASSWORD = settings.DATABASE_READONLY_PASSWORD
+        _default_db = settings.DATABASES['default']
+        _default_db['HOST'] = _default_db['READONLY_HOST']
+        _default_db['USER'] = _default_db['READONLY_USER']
+        _default_db['PASSWORD'] = _default_db['READONLY_PASSWORD']
         reload(django_db)
         # cursor() causes a new connection to be created
         cursor = django_db.connection.cursor()
