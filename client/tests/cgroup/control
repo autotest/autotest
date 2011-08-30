@@ -1,0 +1,12 @@
+AUTHOR = "Lukas Doktor <ldoktor@redhat.com>"
+NAME = "Cgroup"
+TIME = "SHORT"
+TEST_CATEGORY = "Functional"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+
+DOC = """
+This test checks basic functionality of cgroups
+"""
+
+job.run_test('cgroup')
