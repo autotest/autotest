@@ -67,7 +67,9 @@ def repo_run_command(repo, cmd, ignore_status=False, cd=True):
 
 
 def create_directory(repo):
-    _, remote_path = parse_ssh_path(repo)
+    remote_path = repo
+    if repo.startswith('ssh://'):
+        _, remote_path = parse_ssh_path(repo)
     repo_run_command(repo, 'mkdir -p %s' % remote_path, cd=False)
 
 
@@ -449,6 +451,9 @@ class BasePackageManager(object):
                         or not self.compare_checksum(dest_path, fetcher.url))
                 if need_to_fetch:
                     fetcher.fetch_pkg_file(pkg_name, dest_path)
+                    # update checksum so we won't refetch next time.
+                    if use_checksum:
+                        self.update_checksum(dest_path)
                 return
             except (error.PackageFetchError, error.AutoservRunError):
                 # The package could not be found in this repo, continue looking
