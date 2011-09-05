@@ -1,0 +1,1104 @@
+# Copy this file to subtests.cfg and edit it.
+#
+# Subtests
+variants:
+    - install:
+        type = steps
+        fail_if_stuck_for = 300
+        stuck_detection_history = 2
+        keep_screendump_history = yes
+        force_create_image = yes
+        kill_vm = yes
+        kill_vm_timeout = 60
+        kill_vm_timeout_on_error = 0
+
+    - setup: install
+        type = steps
+        fail_if_stuck_for = 300
+        stuck_detection_history = 2
+        kill_vm_on_error = yes
+        keep_screendump_history = yes
+
+    - image_copy:
+        type = image_copy
+        vms = ''
+        parallel = no
+        profilers =
+
+    - unattended_install:
+        type = unattended_install
+        start_vm = no
+        kill_vm = yes
+        kill_vm_gracefully = yes
+        kill_vm_on_error = yes
+        shutdown_cleanly = yes
+        shutdown_cleanly_timeout = 120
+        force_create_image = yes
+        extra_params += " -boot d"
+        guest_port_unattended_install = 12323
+        kernel = vmlinuz
+        initrd = initrd.img
+        # Set migrate_background to yes to run migration in parallel
+        migrate_background = no
+
+        variants:
+            # Install guest from cdrom 
+            - cdrom:
+                medium = cdrom
+                redirs += " unattended_install"
+            # Install guest from http/ftp url
+            - url:
+                only Linux
+                medium = url
+                url = REPLACE_THIS_WITH_TREE_URL
+            # Install guest from nfs nfs_server:nfs_dir
+            - nfs:
+                only Linux
+                medium = nfs
+                nfs_server = REPLACE_THIS_WITH_NFS_SERVER
+                nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
+            # Install guest with a remote kickstart
+            - remote_ks:
+                only Linux
+                medium = url
+                extra_params = " --append ks=REPLACE_THIS_WITH_URL_OF_KS"
+                url = REPLACE_THIS_WITH_TREE_URL
+
+    - qemu_img:
+        type = qemu_img
+        vms = ''
+        profilers = ''
+        take_regular_screendumps = no
+        variants:
+            - check:
+                subcommand = check
+                image_name_dd = dd_created_image
+                force_create_image_dd = no
+                remove_image_dd = yes
+                create_image_cmd = "dd if=/dev/zero of=%s bs=1G count=1"
+                # Test the convertion from 'dd_image_name' to specified format
+                supported_image_formats = qcow2 raw
+            - create:
+                subcommand = create
+                images += " large"
+                force_create_image_large = yes
+                image_size_large = 1G
+                image_name_large = create_large_image
+                remove_image_large = yes
+            - convert:
+                subcommand = convert
+                variants:
+                    - to_qcow2:
+                        dest_image_format = qcow2
+                        compressed = no
+                        encrypted = no
+                    - to_raw:
+                        dest_image_format = raw
+            - snapshot:
+                subcommand = snapshot
+            - info:
+                subcommand = info
+            - rebase:
+                subcommand = rebase
+                rebase_mode = unsafe
+                image_name_snapshot1 = sn1
+                image_name_snapshot2 = sn2
+
+    - pxe:
+        type = pxe
+        images = pxe
+        image_name_pxe = pxe-test
+        image_size_pxe = 1G
+        force_create_image_pxe = yes
+        remove_image_pxe = yes
+        extra_params += ' -boot n'
+        kill_vm_on_error = yes
+        network = bridge
+        restart_vm = yes
+        pxe_timeout = 60
+
+    - module_probe:
+        type = module_probe
+        # You can specify your own module list, though it is not needed usually.
+        # mod_list = kvm
+        load_count = 100
+        vms = ''
+        profilers = ''
+        take_regular_screendumps = no
+
+# Tests that do need installed guests to run
+    - boot: install setup image_copy unattended_install.cdrom
+        type = boot
+        restart_vm = yes
+        kill_vm_on_error = yes
+        login_timeout = 240
+
+    - reboot: install setup image_copy unattended_install.cdrom
+        type = boot
+        reboot_method = shell
+        kill_vm_on_error = yes
+        login_timeout = 240
+
+    - migrate: install setup image_copy unattended_install.cdrom
+        type = migration
+        migration_test_command = help
+        migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+        migration_bg_check_command = pgrep tcpdump
+        migration_bg_kill_command = pkill tcpdump
+        kill_vm_on_error = yes
+        iterations = 2
+        used_mem = 1024
+        mig_timeout = 3600
+        # you can uncomment the following line to enable the state
+        # check
+        # vmstate_check = yes
+        variants:
+            - tcp:
+                migration_protocol = "tcp"
+            - unix:
+                migration_protocol = "unix"
+            - exec:
+                migration_protocol = "exec"
+            - mig_cancel:
+                migration_protocol = "tcp"
+                mig_cancel = yes
+        variants:
+            - @default:
+            - with_set_speed:
+                mig_speed = 1G
+                pre_migrate = "mig_set_speed"
+            - with_reboot:
+                iterations = 1
+                type = migration_with_reboot
+            - with_file_transfer:
+                iterations = 1
+                type = migration_with_file_transfer
+            - with_autotest:
+                only Linux
+                type = autotest
+                migrate_background = yes
+                test_timeout = 1800
+                variants:
+                    - dbench:
+                        test_control_file = dbench.control
+                    - stress:
+                        test_control_file = stress.control
+                    - monotonic_time:
+                        test_control_file = monotonic_time.control
+
+    - migrate_multi_host: install setup image_copy unattended_install.cdrom
+        type = migration_multi_host
+        migration_test_command = help
+        migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+        migration_bg_check_command = pgrep tcpdump
+        migration_bg_kill_command = pkill tcpdump
+        kill_vm_on_error = yes
+        iterations = 2
+        used_mem = 1024
+        mig_timeout = 3600
+        comm_port = 13234
+        regain_ip_cmd = dhclient
+
+    - boot_savevm: install setup image_copy unattended_install.cdrom
+        type = boot_savevm
+        savevm_delay = 0.3
+        savevm_login_delay = 120
+        savevm_timeout = 2000
+        kill_vm_on_error = yes
+        kill_vm_gracefully = yes
+        kill_vm = yes
+
+    - autotest: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = autotest
+        test_timeout = 1800
+        variants:
+            - sleeptest:
+                test_timeout = 120
+                test_control_file = sleeptest.control
+            - dbench:
+                test_control_file = dbench.control
+            - bonnie:
+                test_control_file = bonnie.control
+            - ebizzy:
+                test_control_file = ebizzy.control
+            - ffsb:
+                test_control_file = ffsb.control
+            - stress:
+                test_control_file = stress.control
+            - disktest:
+                test_control_file = disktest.control
+            - ctcs:
+                # If you think this is too lengthy, please change the cerberus
+                # control file and set this timeout appropriately.
+                test_timeout = 3900
+                test_control_file = ctcs.control
+            - npb:
+                test_control_file = npb.control
+            - hackbench:
+                test_control_file = hackbench.control
+            - cpu_hotplug:
+                test_control_file = cpu_hotplug.control
+            - monotonic_time:
+                test_control_file = monotonic_time.control
+            - tsc:
+                test_control_file = tsc.control
+            - scrashme:
+                test_control_file = scrashme.control
+            - hwclock:
+                test_control_file = hwclock.control
+            - rtc:
+                test_control_file = rtc.control
+            - iozone:
+                test_control_file = iozone.control
+            - flail:
+                test_control_file = flail.control
+            - systemtap:
+                test_control_file = systemtap.control
+
+    - qemu_img_commit:  install setup image_copy unattended_install.cdrom
+        type = qemu_img
+        subcommand = commit
+
+    - stop_continue: install setup image_copy unattended_install.cdrom
+        type = stop_continue
+        kill_vm_on_error = yes
+
+    - linux_s3: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = linux_s3
+
+    - timedrift: install setup image_copy unattended_install.cdrom
+        variants:
+            - ntp:
+                variants:
+                    - with_load:
+                        type = timedrift
+                        # Pin the VM and host load to CPU #0
+                        cpu_mask = 0x1
+                        # Set the load and rest durations
+                        load_duration = 20
+                        rest_duration = 20
+                        # Fail if the drift after load is higher than 50%
+                        drift_threshold = 50
+                        # Fail if the drift after the rest period is higher than 10%
+                        drift_threshold_after_rest = 10
+                        # For now, make sure this test is executed alone
+                        used_cpus = 100
+                    - with_migration:
+                        type = timedrift_with_migration
+                        migration_iterations = 3
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+                    - with_reboot:
+                        type = timedrift_with_reboot
+                        reboot_iterations = 1
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+                    - with_stop:
+                        type = timedrift_with_stop
+                        stop_interations = 1
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+            - date:
+                variants:
+                    - with_load:
+                        type = timedrift
+                        # Pin the VM and host load to CPU #0
+                        cpu_mask = 0x1
+                        # Set the load and rest durations
+                        load_duration = 20
+                        rest_duration = 20
+                        # Fail if the drift after load is higher than 50%
+                        drift_threshold = 50
+                        # Fail if the drift after the rest period is higher than 10%
+                        drift_threshold_after_rest = 10
+                        # For now, make sure this test is executed alone
+                        used_cpus = 100
+                    - with_migration:
+                        type = timedrift_with_migration
+                        migration_iterations = 3
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+                    - with_reboot:
+                        type = timedrift_with_reboot
+                        reboot_iterations = 1
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+                    - with_stop:
+                        type = timedrift_with_stop
+                        stop_interations = 1
+                        drift_threshold = 10
+                        drift_threshold_single = 3
+
+    - balloon_check: install setup image_copy unattended_install.cdrom
+        no Win2000, Fedora.8, Fedora.9, Fedora.10, RHEL.3, RHEL.4, Unix, livecd
+        type = balloon_check
+        extra_params += " -balloon virtio"
+        iterations = 5
+
+    - watchdog: install setup image_copy unattended_install.cdrom
+        only RHEL.5, RHEL.6
+        type = watchdog
+        extra_params += " -watchdog i6300esb -watchdog-action reset"
+        relogin_timeout = 240
+
+    - smbios_table: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = smbios_table
+        start_vm = no
+
+    - softlockup: install setup unattended_install.cdrom
+        only Linux
+        type = softlockup
+        softlockup_files = stress-1.0.4.tar.gz
+        stress_setup_cmd = "cd %s && tar xvf stress-1.0.4.tar.gz && cd stress-1.0.4 && ./configure && make && cd src"
+        server_setup_cmd = "%s/heartbeat_slu.py --server --threshold %s --file %s --port %s --verbose --check-drift"
+        client_setup_cmd = "%s/heartbeat_slu.py --client --address %s --file %s --port %s --interval 1"
+        stress_cmd  = "cd %s && cd stress-1.0.4 && cd src && nohup ./stress -c %s > /dev/null 2>&1&"
+        kill_monitor_cmd = "ps aux | grep heart | grep -v grep | awk '{print$2}' | xargs kill -9 > /dev/null 2>&1"
+        kill_stress_cmd = "pkill -f stress > /dev/null 2>&1"
+        drift_cmd = "tail -1 %s | awk '{print $7}'"
+        monitor_log_file_server = /tmp/heartbeat_server.log
+        monitor_log_file_client = /tmp/heartbeat_client.log
+        monitor_port = 13330
+        stress_threshold = 10
+        # time_to_run (hours) = 12, 18, 24, 48 hours
+        test_length = 0.10
+
+    - stress_boot: install setup image_copy unattended_install.cdrom
+        type = stress_boot
+        max_vms = 5    
+        alive_test_cmd = uname -a
+        login_timeout = 240
+        kill_vm = yes
+        kill_vm_vm1 = no
+        kill_vm_gracefully = no
+        extra_params += " -snapshot"
+        used_cpus = 5
+        used_mem = 2560
+
+    - guest_test: install setup image_copy unattended_install.cdrom
+        only Windows
+        type = guest_test
+        login_timeout = 360
+        test_timeout = 600
+        script_params =
+        reboot = yes
+        variants:
+            - autoit:
+                interpreter = "cmd /c D:\AutoIt3.exe"
+                variants:
+                    - notepad:
+                        guest_script = autoit/notepad1.au3
+                        dst_rsc_path = "C:\script.au3"
+                    - stub:
+                        download = yes
+                        download_cmd = "git clone"
+                        rsc_server = "git://the.resource.server/autoit"
+                        dst_rsc_dir = "C:\"
+                        dst_rsc_path = "C:\autoit\stub\stub.au3"
+            - powershell:
+                interpreter = "cmd /c powershell.exe -File"
+                variants:
+                    - stub:
+                        download = yes
+                        download_cmd = "git clone"
+                        rsc_server = "git://the.resource.server/powershell"
+                        dst_rsc_dir = "C:\"
+                        dst_rsc_path = "C:\powershell\stub\stub.ps1"
+
+    - iozone_windows: install setup image_copy unattended_install.cdrom
+        only Windows
+        type = iozone_windows
+        iozone_cmd = "D:\IOzone\iozone.exe -a"
+        iozone_timeout = 3600
+
+    - whql: install setup image_copy unattended_install.cdrom
+        only Windows
+        nic_mode = tap
+        # Replace this with the address of an installed DTM server
+        server_address = 10.20.30.40
+        # The server should run rss.exe like a regular Windows VM, preferably
+        # with administrator privileges (or at least with permission to write
+        # to the DTM studio directory)
+        server_shell_port = 10022
+        server_file_transfer_port = 10023
+        server_studio_path = %programfiles%\Microsoft Driver Test Manager\Studio
+        dsso_test_binary = deps/whql_submission_15.exe
+        dsso_delete_machine_binary = deps/whql_delete_machine_15.exe
+        wtt_services = wttsvc
+        variants:
+            - support_vm_install:
+                # The support VM is identical to the tested VM in every way
+                # except for the image name which ends with '-supportvm'.
+                type = unattended_install
+                image_name += -supportvm
+                extra_params += " -boot d"
+                force_create_image = yes
+                kill_vm = yes
+                nic_mode = user
+                redirs += " unattended_install"
+                guest_port_unattended_install = 12323
+                medium = cdrom
+                kernel =
+                initrd = 
+            - client_install:    support_vm_install
+                type = whql_client_install
+                # The username and password are required for accessing the DTM client
+                # installer binary shared by the server
+                server_username = administrator
+                server_password = 1q2w3eP
+                # This path refers to a shared directory on the server
+                # (the final cmd will be something like \\servername\DTMInstall\...)
+                install_cmd = \DTMInstall\Client\Setup.exe /passive
+                install_timeout = 3600
+                # The test will setup auto logon on the client machine using the
+                # following username and password:
+                client_username = DTMLLUAdminUser
+                client_password = Testpassword,1
+                # (These are created by the DTM client installer and should probably not
+                # be changed.)
+                variants:
+                    - @original:
+                    - support_vm:
+                        image_name += -supportvm
+            - submission:    client_install support_vm_install
+                type = whql_submission
+                extra_params += " -snapshot"
+                restart_vm = yes
+                cdroms =
+                test_timeout = 3600
+                device_data = cat0 cat1 cat2 cat3 prog desc virt filter logoarch logoos whqlos whqlqual
+                descriptors = desc1 desc2 desc3
+                # DeviceData names
+                dd_name_cat0     = Category
+                dd_name_cat1     = Category
+                dd_name_cat2     = Category
+                dd_name_cat3     = Category
+                dd_name_logoarch = LogoProcessorArchitecture
+                dd_name_logoos   = LogoOperatingSystem
+                dd_name_whqlos   = WhqlOs
+                dd_name_whqlqual = WhqlQualification
+                dd_name_prog     = LogoProgramId
+                dd_name_desc     = LogoProgramDescription
+                dd_name_filter   = WDKFilterAttribute
+                dd_name_virt     = ParaVirtualizationDriver
+                # Common DeviceData data
+                dd_data_filter   = FilterIfNoInf
+                dd_data_virt     = True
+                # Exclude jobs that have '(Manual)' in their names
+                job_filter = ^((?!\(Manual\)).)*$
+                variants:
+                    - unclassified:
+                        dd_data_cat0 = Device Fundamentals
+                        dd_data_cat1 = System Fundamentals\Dynamic Partitioning
+                        dd_data_prog = Unclassified
+                        dd_data_desc = Unclassified
+                        dd_data_whqlqual = Unclassified Signature
+                        variants:
+                            - tablet:
+                                submission_name = tablet
+                                extra_params += " -usbdevice tablet"
+                                test_device = HID-compliant mouse
+                                test_timeout = 36000
+                    - device:
+                        variants:
+                            - keyboard:
+                                submission_name = keyboard
+                                # test_device is a regular expression that should match a device's
+                                # name as it appears in device manager.  The first device that matches
+                                # is used.
+                                test_device = keyboard
+                                # Set timeout to 10 hours
+                                test_timeout = 36000
+                                dd_data_cat0 = Input\Keyboard
+                                dd_data_cat1 = Device Fundamentals
+                                dd_data_cat2 = System Fundamentals\Dynamic Partitioning
+                                dd_data_prog = InputKbd
+                                dd_data_desc = Input > Keyboard
+                            - net:
+                                submission_name = net
+                                # Add a support machine and extra NICs
+                                vms += " supportvm"
+                                nics += " nic2 nic3"
+                                test_device = RTL8139.*NIC$
+                                test_timeout = 86400
+                                dd_data_cat0 = Network\LAN (Ethernet)
+                                dd_data_cat1 = Device Fundamentals
+                                dd_data_cat2 = System Fundamentals\Dynamic Partitioning
+                                dd_data_prog = NetLan
+                                dd_data_desc = Network > LAN (Ethernet)
+                                # Machine dimensions
+                                dimensions = testrole
+                                dim_name_testrole = NetDevice\TestRole
+                                dim_value_testrole_vm1 = NdistestLanClient
+                                dim_value_testrole_supportvm = NdistestLanServer
+                                # Device selection for the NDISTest client machine
+                                device_params_vm1 = testdev clientmsgdev clientsupportdev
+                                dp_name_testdev = NdistestLanClientTestDevice
+                                dp_regex_testdev = RTL8139.*NIC$
+                                dp_name_clientmsgdev = NdistestLanClientMessageDevice
+                                dp_regex_clientmsgdev = RTL8139.*NIC #2$
+                                dp_name_clientsupportdev = NdistestLanClientSupportDevice0
+                                dp_regex_clientsupportdev = RTL8139.*NIC #3$
+                                # Device selection for the NDISTest server machine
+                                device_params_supportvm = servermsgdev serversupportdev
+                                dp_name_servermsgdev = NdistestLanServerMessageDevice
+                                dp_regex_servermsgdev = RTL8139.*NIC$
+                                dp_name_serversupportdev = NdistestLanServerSupportDevice0
+                                dp_regex_serversupportdev = RTL8139.*NIC #2$
+                            - hdd:
+                                submission_name = hdd
+                                # Run the tests on a non-system drive
+                                # (match device names that contain 'QEMU HARDDISK' and do not contain '[C]')
+                                test_device = ^(?=.*?\bQEMU HARDDISK\b)((?!\[C\]).)*$
+                                device_data += " ex0 ex1 ex2 ex3"
+                                dd_data_cat0 = Storage\Device Class\Disk\Disk
+                                dd_data_cat1 = Storage\Device Class\Disk\Fixed
+                                dd_data_cat2 = Storage\Device Class\Disk\Bus\ATA
+                                dd_data_cat3 = Device Fundamentals
+                                dd_data_prog = StorHDD
+                                dd_data_desc = Storage > Hard Disk Drive (HDD)
+                                dd_name_ex0 = Storage_bus_type
+                                dd_data_ex0 = ATA/ATAPI
+                                dd_name_ex1 = Hybrid_HDD_Support
+                                dd_data_ex1 = 0
+                                dd_name_ex2 = Non_Rotating_Media
+                                dd_data_ex2 = 0
+                                dd_name_ex3 = Secure_Storage
+                                dd_data_ex3 = 0
+                                # Add a 2nd disk which will become D:
+                                images += " tmp"
+                                image_name_tmp = tmp
+                                image_size_tmp = 4G
+                                force_create_image_tmp = yes
+                                # Run diskpart to partition the 2nd disk
+                                whql_pre_command = "echo select disk=1 > dp.txt && "
+                                whql_pre_command += "echo create partition primary >> dp.txt && "
+                                whql_pre_command += "echo assign letter=d >> dp.txt && "
+                                whql_pre_command += "diskpart /s dp.txt & "
+                                whql_pre_command += "format d: /fs:ntfs /q /y"
+                                variants:
+                                    - full:
+                                        # Yes, 100 hours, this is not a mistake
+                                        test_timeout = 360000
+                                    - syscache_test:
+                                        job_filter = syscache test
+                                        test_timeout = 7200
+
+    - guest_s4: install setup image_copy unattended_install.cdrom
+        type = guest_s4
+        check_s4_support_cmd = grep -q disk /sys/power/state
+        test_s4_cmd = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+        check_s4_cmd = pgrep tcpdump
+        set_s4_cmd = echo disk > /sys/power/state
+        kill_test_s4_cmd = pkill tcpdump
+        services_up_timeout = 30
+        relogin_timeout = 240
+
+    - nic_hotplug: install setup image_copy unattended_install.cdrom
+        pci_type = nic
+        reference_cmd = lspci
+        find_pci_cmd = 'lspci | tail -n1'
+        pci_test_cmd = 'nslookup www.redhat.com'
+        wait_secs_for_hook_up = 3
+        variants:
+            - nic_8139:
+                pci_model = rtl8139
+                match_string = "8139"
+            - nic_virtio:
+                pci_model = virtio
+                match_string = "Virtio network device"
+            - nic_e1000:
+                pci_model = e1000
+                match_string = "Gigabit Ethernet Controller"
+        variants:
+            - default:
+                type = pci_hotplug
+            - additional:
+                type = nic_hotplug
+
+
+    - block_hotplug: install setup image_copy unattended_install.cdrom
+        type = pci_hotplug
+        pci_type = block
+        reference_cmd = lspci
+        find_pci_cmd = 'lspci | tail -n1'
+        images += " stg"
+        boot_drive_stg = no
+        image_name_stg = storage
+        image_size_stg = 1G
+        remove_image_stg = yes
+        force_create_image_stg = yes
+        pci_test_cmd = "yes | mke2fs `fdisk -l 2>&1 | awk '/\/dev\/[sv]d[a-z] doesn/ {print $2}'`"
+        wait_secs_for_hook_up = 3
+        kill_vm_on_error = yes
+        variants:
+            - block_virtio:
+                pci_model = virtio
+                match_string = "Virtio block device"
+            - block_scsi:
+                pci_model = scsi
+                match_string = "LSI Logic"
+        variants:
+            - fmt_qcow2:
+                image_format_stg = qcow2
+            - fmt_raw:
+                image_format_stg = raw
+
+    - enospc: install setup image_copy unattended_install.cdrom
+        type = enospc
+        start_vm = no
+        images += " stg"
+        drive_werror = stop
+        drive_cache = none
+        image_name_stg = enospc
+        image_format_stg = qcow2
+        image_boot_stg = no
+        image_snapshot_stg = no
+        check_image_stg = no
+        vgtest_name = vg_kvm_test_enospc
+        lvtest_name = lv_kvm_test_enospc
+        background_cmd = "nohup dd if=/dev/zero of=%s bs=1024 &"
+        kill_vm = yes
+
+    - qmp_basic: install setup image_copy unattended_install.cdrom
+        type = qmp_basic
+
+    - qmp_basic_rhel6: install setup image_copy unattended_install.cdrom
+        type = qmp_basic_rhel6
+
+    - vlan: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = vlan
+        # subnet should not be used by host
+        subnet = "192.168"
+        vlan_num = 5
+        file_size = 10
+        maximal = 4094
+        listen_cmd = "nc -l %s > %s"
+        send_cmd = "nc %s %s < %s"
+        nic_mode = tap
+        vms += " vm2"
+        image_snapshot = yes
+        kill_vm_vm2 = yes
+        kill_vm_gracefully_vm2 = no
+
+    - ping: install setup image_copy unattended_install.cdrom
+        type = ping
+        counts = 100
+        flood_minutes = 10
+        nics += ' nic2'
+
+    - jumbo: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = jumbo
+
+    - file_transfer: install setup image_copy unattended_install.cdrom
+        type = file_transfer
+        filesize = 4000
+        transfer_timeout = 1000
+        variants:
+            - remote:
+                transfer_type = remote
+
+    - nicdriver_unload: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = nicdriver_unload
+        nic_mode = tap
+        filesize = 100
+        transfer_timeout = 100
+        transfer_type = remote
+        sessions_num = 10
+
+    - nic_promisc: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = nic_promisc
+        filesize = 400
+        transfer_timeout = 100
+        transfer_type = remote
+
+    - multicast: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = multicast
+        nic_mode = tap
+        mcast = 225.0.0.1
+        mgroup_count = 20
+        flood_minutes = 1
+
+    - mac_change: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = mac_change
+        kill_vm = yes
+
+    - netperf: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = netperf
+        nics += ' nic2 nic3 nic4'
+        nic_mode = tap
+        netperf_files = netperf-2.4.5.tar.bz2 wait_before_data.patch
+        packet_size = 1500
+        setup_cmd = "cd %s && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure && make"
+        netserver_cmd =  %s/netperf-2.4.5/src/netserver
+        variants:
+            - stream:
+                netperf_cmd = %s/netperf-2.4.5/src/netperf -t %s -H %s -l 60 -- -m %s
+                protocols = "TCP_STREAM TCP_MAERTS TCP_SENDFILE UDP_STREAM"
+            - rr:
+                netperf_cmd = %s/netperf-2.4.5/src/netperf -t %s -H %s -l 60 -- -r %s
+                protocols = "TCP_RR TCP_CRR UDP_RR"
+
+    - ethtool: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = ethtool
+        filesize = 512
+        nic_mode = tap
+
+    - nic_bonding: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = nic_bonding
+        nics += ' nic2 nic3 nic4'
+        image_snapshot = yes
+        serial_login = yes
+        test_timeout = 1000
+        filesize = 4000
+        transfer_timeout = 1000
+        transfer_type = remote
+        kill_vm = yes
+        # you can specify the parameters of bonding module here
+        # bonding_params = "mode=active-backup"
+
+    - set_link: install setup image_copy unattended_install.cdrom
+        type = set_link
+        test_timeout = 1000
+        filesize = 4000
+        transfer_timeout = 1000
+        transfer_type = remote
+        kill_vm =yes
+
+    - physical_resources_check: install setup image_copy unattended_install.cdrom
+        type = physical_resources_check
+        catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
+
+    - ksm_overcommit: install setup image_copy unattended_install.cdrom
+        only Linux
+        # Don't preprocess any vms as we need to change its params
+        vms = ''
+        image_snapshot = yes
+        kill_vm_gracefully = no
+        type = ksm_overcommit
+        # Make host use swap (a value of 'no' will turn off host swap)
+        ksm_swap = yes
+        no hugepages
+        # Overcommit of host memmory
+        ksm_overcommit_ratio = 3
+        # Max paralel runs machine
+        ksm_parallel_ratio = 4
+        # Host memory reserve (default - best fit for used mem)
+        # ksm_host_reserve = 512
+        # ksm_guest_reserve = 1024
+        variants:
+            - ksm_serial:
+                ksm_mode = "serial"
+            - ksm_parallel:
+                ksm_mode = "parallel"
+
+    - iofuzz: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = iofuzz
+
+    - virtio_console: install setup image_copy unattended_install.cdrom
+        only Linux
+        vms = ''
+        type = virtio_console
+        # Default number of consoles
+        virtio_console_no_serialports = 0
+        virtio_console_no_consoles = 0
+
+        # smoke params - $console_type:data_string
+        # FIXME: test_smoke doesn't work with console yet (virtio_console bug)
+        # "serialport;console:Custom data"
+        smoke_test = yes
+        virtio_console_smoke = "serialport"
+        # loopback params - '$source_console_type@buffer_length:$destination_console_type1@buffer_length:...:$loopback_buffer_length;...'
+        loopback_test = yes
+        virtio_console_loopback = "serialport:serialport;serialport@1024:serialport@32:console@1024:console@8:16"
+        # perf params - $console_type@buffer_length:$test_duration
+        # FIXME: test_perf doesn't work with console yet (virtio_console bug)
+        # virtio_console_perf = "serialport;serialport@1000000:120;console@1024:60"
+        perf_test = yes
+        virtio_console_perf = "serialport;serialport@1000000:120"
+        # Enable destructive tests: "test_name  = yes"
+        # Disable test: change yes or delete key.
+        rmmod_test = yes
+        max_ports_test = yes
+        shutdown_test = yes
+
+        # Offline migration params - '$console_type:$no_migrations:$send-:$recv-$loopback-buffer_length'
+        migrate_offline_test = yes
+        virtio_console_migration_offline = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
+
+        # Online migration params - '$console_type:$no_migrations:$send-:$recv-$loopback-buffer_length'
+        migrate_online_test = yes
+        virtio_console_migration_online = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
+
+        hotplug_test = yes
+        hotplug_serial_test = yes
+        hotplug_console_test = no
+
+    # This unit test module is for older branches of KVM that use the
+    # kvmctl test harness (such as the code shipped with RHEL 5.x)
+    - unit_test_kvmctl:
+        type = unit_test
+        vms = ''
+        profilers = ''
+        variants:
+            - access:
+                case = access
+            - apic:
+                case = apic
+            - emulator:
+                case = emulator
+            - hypercall:
+                case = hypercall
+            - msr:
+                case = msr
+            - port80:
+                case = port80
+            - realmode:
+                case = realmode
+            - sieve:
+                case = sieve
+            - smptest:
+                case = smptest
+            - tsc:
+                case = tsc
+            - stringio:
+                case = stringio
+            - vmexit:
+                case = vmexit
+
+    - fillup_disk: install setup image_copy unattended_install.cdrom
+        only Linux
+        only qcow2
+        type = fillup_disk
+        fillup_timeout = 120
+        fillup_size = 200
+        fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1 oflag=direct"
+        kill_vm = yes
+
+    - lvm: install setup image_copy unattended_install.cdrom
+        only Linux
+        images += ' stg1 stg2'
+        image_name_stg1 = storage_4k
+        image_cluster_size_stg1 = 4096
+        image_size_stg1 = 1G
+        image_format_stg1 = qcow2
+        image_name_stg2 = storage_64k
+        image_cluster_size_stg2 = 65536
+        image_size_stg2 = 1G
+        image_format_stg2 = qcow2
+        guest_testdir = /mnt
+        disks = "/dev/sdb /dev/sdc"
+        kill_vm = no
+        post_command_noncritical = no
+        variants:
+            lvm_create:
+                type = lvm
+                force_create_image_stg1 = yes
+                force_create_image_stg2 = yes
+                clean = no
+            lvm_fill: lvm_create
+                type = fillup_disk
+                force_create_image_stg1 = no
+                force_create_image_stg2 = no
+                guest_testdir = /mnt/kvm_test_lvm
+                fillup_timeout = 120
+                fillup_size = 20
+                fillup_cmd = "dd if=/dev/zero of=%s/fillup.%d bs=%dM count=1 oflag=direct"
+            lvm_ioquit: lvm_create
+                type = ioquit
+                force_create_image_stg1 = no
+                force_create_image_stg2 = no
+                kill_vm = yes
+                background_cmd = "for i in 1 2 3 4; do (dd if=/dev/urandom of=/mnt/kvm_test_lvm/file bs=102400 count=10000000 &); done"
+                check_cmd = pgrep dd
+                clean = yes
+                remove_image_stg1 = yes
+                remove_image_stg2 = yes
+
+    - ioquit: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = ioquit
+        background_cmd = "for i in 1 2 3 4; do (dd if=/dev/urandom of=/tmp/file bs=102400 count=10000000 &); done"
+        check_cmd = ps -a |grep dd
+        login_timeout = 360
+
+    - multi_disk: install setup image_copy unattended_install.cdrom
+        type = multi_disk
+        force_create_image = yes
+        force_create_image_image1 = no
+        remove_image = yes
+        remove_image_image1 = no
+        cmd_timeout = 1000
+        block_list = C: D: vda vda1 vda2 hda hda1 hda2 sda sda1 sda2
+        variants:
+            - signal_repeat:
+                images += " stg"
+                image_format_stg = qcow2
+                image_name_stg = storage
+                image_size_stg = 1G
+                n_repeat = 10
+            - max_disk:
+                only virtio_blk
+                images += " stg stg2 stg3 stg4 stg5 stg6 stg7 stg8 stg9 stg10 stg11 stg12 stg13 stg14 stg15 stg16 stg17 stg18 stg19 stg20 stg21 stg22 stg23"
+                image_name_stg = storage
+                image_name_stg2 = storage2
+                image_name_stg3 = storage3
+                image_name_stg4 = storage4
+                image_name_stg5 = storage5
+                image_name_stg6 = storage6
+                image_name_stg7 = storage7
+                image_name_stg8 = storage8
+                image_name_stg9 = storage9
+                image_name_stg10 = storage10
+                image_name_stg11 = storage11
+                image_name_stg12 = storage12
+                image_name_stg13 = storage13
+                image_name_stg14 = storage14
+                image_name_stg15 = storage15
+                image_name_stg16 = storage16
+                image_name_stg17 = storage17
+                image_name_stg18 = storage18
+                image_name_stg19 = storage19
+                image_name_stg20 = storage20
+                image_name_stg21 = storage21
+                image_name_stg22 = storage22
+                image_name_stg23 = storage23
+
+    - clock_getres: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = clock_getres
+
+    - yum_update: install setup image_copy unattended_install.cdrom
+        only Fedora, RHEL
+        type = yum_update
+        shell_prompt = "Is this ok"
+
+    - kdump: install setup image_copy unattended_install.cdrom
+        only RHEL.5, RHEL.6
+        type = kdump
+        # time waited for the completion of crash dump
+        # crash_timeout = 360
+        # command to add the crashkernel=X@Y to kernel cmd line
+        # kernel_param_cmd = "grubby --update-kernel=`grubby --default-kernel` --args=crashkernel=128M@64M"
+        # command to enable kdump service
+        # kdump_enable_cmd = chkconfig kdump on && service kdump start
+        # command to probe the crash kernel
+        # crash_kernel_prob_cmd = "grep -q 1 /sys/kernel/kexec_crash_loaded"
+
+    - vmstop: install setup image_copy unattended_install.cdrom
+        type = vmstop
+        # the path used to store the saved vm state
+        # save_path = /tmp
+        # clean the state file?
+        clean_save = yes
+
+    - cdrom_test: install setup image_copy unattended_install.cdrom
+        only Linux
+        start_vm = no
+        type = cdrom
+        cdrom_cd1 = orig.iso
+        max_times = 20
+
+    - nmi_watchdog: install setup image_copy unattended_install.cdrom
+        type = nmi_watchdog
+        get_nmi_cmd = grep NMI /proc/interrupts
+        nmi_watchdog_type = 1
+        image_snapshot = yes
+        only Linux
+
+    - floppy: install setup image_copy unattended_install.cdrom
+        type = floppy
+        start_vm = no
+        floppy = images/test_floppy.img
+
+    - trans_hugepage: install setup image_copy unattended_install.cdrom
+        thp_test_config = ""
+        kill_vm = yes
+        login_timeout = 360
+        variants:
+            - base:
+                type = trans_hugepage
+                dd_timeout = 900
+            - defrag:
+                type = trans_hugepage_defrag
+            - swapping:
+                type = trans_hugepage_swapping
+                dd_timeout = 900
+                check_cmd_timeout = 900
+
+    - cpu_hotplug_test:
+        type = cpu_hotplug
+        cpu_hotplug_timeout = 600
+        n_cpus_add = 1
+        kill_vm = yes
+        iterations = 5
+        onoff_iterations = 100
+
+    - usb: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = usb
+        kill_vm = yes
+        format_timeout = 400
+        images += " stg"
+        image_name_stg = "usbdevice"
+        image_format_stg = "qcow2"
+        image_boot_stg = no
+        drive_format_stg = "usb2"
+        drive_index_stg = 1
+        create_image_stg = yes
+        image_size_stg = 10M
+        fdisk_string = "10 MB, 10485760 bytes"
+
+    - hdparm:
+        only Linux
+        type = hdparm
+        get_disk_cmd = \ls /dev/[vhs]da
+        low_status_cmd = hdparm -a64 -d0 -u0 %s
+        device_cache_read_cmd = hdparm -tT %s
+        high_status_cmd = hdparm -a256 -d1 -u1 %s
+        cmd_timeout = 540
+        virtio_blk:
+            get_disk_cmd = \ls /dev/vda
+            low_status_cmd = hdparm -a32 -r0 %s
+            high_status_cmd = hdparm -a256 -r1 %s
+
+    # system_powerdown, system_reset and shutdown *must* be the last ones
+    # defined (in this order), since the effect of such tests can leave
+    # the VM on a bad state.
+    - system_powerdown: install setup image_copy unattended_install.cdrom
+        type = shutdown
+        shutdown_method = system_powerdown
+        sleep_before_powerdown = 20
+        kill_vm = yes
+
+    - system_reset: install setup image_copy unattended_install.cdrom
+        type = boot
+        reboot_method = system_reset
+        sleep_before_reset = 20
+        kill_vm_on_error = yes
+
+    - system_reset_bootable: install setup image_copy unattended_install.cdrom
+        type = system_reset_bootable
+        interval = 1
+        reset_times = 20
+        wait_time_for_reset = 120
+        kill_vm_on_error = yes
+
+    - shutdown: install setup image_copy unattended_install.cdrom
+        type = shutdown
+        shutdown_method = shell
+        kill_vm = yes
+        kill_vm_gracefully = no
