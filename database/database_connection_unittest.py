@@ -6,7 +6,7 @@ from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.database import database_connection
 
-_CONFIG_SECTION = 'TKO'
+_CONFIG_SECTION = 'AUTOTEST_WEB'
 _HOST = 'myhost'
 _USER = 'myuser'
 _PASS = 'mypass'
