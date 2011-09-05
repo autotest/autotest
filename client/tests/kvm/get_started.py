@@ -5,7 +5,7 @@ Program to help setup kvm test environment
 @copyright: Red Hat 2010
 """
 
-import os, sys, logging, shutil
+import os, sys, logging, shutil, glob
 import common
 from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.client.bin import utils
@@ -85,11 +85,10 @@ if __name__ == "__main__":
                  "config samples to actual config files)")
     kvm_test_dir = os.path.dirname(sys.modules[__name__].__file__)
     kvm_test_dir = os.path.abspath(kvm_test_dir)
-    config_file_list = ["build.cfg", "cdkeys.cfg", "tests_base.cfg",
-                        "tests.cfg", "unittests.cfg", "virtio-win.cfg"]
+    config_file_list = glob.glob(os.path.join(kvm_test_dir, "*.cfg.sample"))
     for config_file in config_file_list:
-        src_file = os.path.join(kvm_test_dir, "%s.sample" % config_file)
-        dst_file = os.path.join(kvm_test_dir, config_file)
+        src_file = config_file
+        dst_file = config_file.rstrip(".sample")
         if not os.path.isfile(dst_file):
             logging.debug("Creating config file %s from sample", dst_file)
             shutil.copyfile(src_file, dst_file)
