@@ -1,7 +1,11 @@
 # Copy this file to tests.cfg and edit it.
 #
 # This file contains the test set definitions. Define your test sets here.
-include tests_base.cfg
+
+# Include the base config files.
+include base.cfg
+include guest-os.cfg
+include subtests.cfg
 include cdkeys.cfg
 include virtio-win.cfg
 

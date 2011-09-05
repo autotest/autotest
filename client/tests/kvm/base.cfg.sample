@@ -1,0 +1,185 @@
+# Copy this file to base.cfg and edit it.
+#
+# Define the objects we'll be using
+vms = vm1
+vm_type = kvm
+images = image1
+cdroms = cd1
+nics = nic1
+monitors = humanmonitor1
+main_monitor = humanmonitor1
+monitor_type_humanmonitor1 = human
+monitor_type = human
+main_vm = vm1
+
+# Location of the qemu programs. You can refer to absolute paths here.
+qemu_binary = qemu
+qemu_img_binary = qemu-img
+
+# Default VM params
+# Number of processors
+smp = 1
+
+# Memory
+mem = 1024
+
+# Hard disk
+image_size = 10G
+image_raw_device = no
+drive_index_image1 = 0
+drive_cache = none
+
+# Cdrom drive index
+drive_index_cd1 = 1
+
+# Display
+display = vnc
+
+# If display = spice, you can set specific spice stuff here
+qxl = on
+qxl_dev_nr = 1
+spice = disable-ticketing
+
+# NIC parameters
+nic_mode = tap
+# By default we use libvirt's bridge
+bridge = virbr0
+run_tcpdump = yes
+
+# Some preprocessor/postprocessor params
+start_vm = yes
+kill_vm = no
+kill_vm_gracefully = yes
+kill_unresponsive_vms = yes
+
+# Screendump thread params
+convert_ppm_files_to_png_on_error = yes
+keep_ppm_files = no
+keep_ppm_files_on_error = no
+take_regular_screendumps = yes
+keep_screendumps_on_error = yes
+screendump_delay = 5
+screendump_quality = 30
+screendump_temp_dir = /dev/shm
+screendump_verbose = no
+
+# Default remote shell port (SSH under linux)
+shell_port = 22
+
+# Default scheduler params
+used_cpus = 1
+used_mem = 512
+
+# Port redirections
+redirs = remote_shell
+guest_port_remote_shell = 22
+
+# Profilers
+profilers = kvm_stat
+
+# Timeouts
+login_timeout = 360
+
+# NFS directory of guest images
+images_good = fileserver.foo.com:/autotest/images_good
+
+# NICs
+variants:
+    - @rtl8139:
+        nic_model = rtl8139
+        no ethtool
+        jumbo:
+            mtu = 1500
+    - e1000:
+        nic_model = e1000
+        jumbo:
+            mtu = 16110
+        ethtool:
+            # gso gro lro is only supported by latest kernel
+            supported_features = "tx rx sg tso gso gro lro"
+    - virtio_net:
+        nic_model = virtio
+        # You can add advanced attributes on nic_extra_params such as mrg_rxbuf
+        #nic_extra_params =
+        # You can add advanced attributes through netdev_extra_params
+        # such as sndbuf, as an example, you can uncomment the
+        # following lines to enable the vhost support ( only available
+        # for tap )
+        #netdev_extra_params = "vhost=on"
+        jumbo:
+            mtu = 65520
+        ethtool:
+            supported_features = "tx sg tso gso"
+        whql.submission.device.net:
+            test_device = VirtIO Ethernet Adapter$
+            # Device selection for the NDISTest client machine
+            dp_regex_testdev = VirtIO Ethernet Adapter$
+            dp_regex_clientmsgdev = VirtIO Ethernet Adapter #2$
+            dp_regex_clientsupportdev = VirtIO Ethernet Adapter #3$
+            # Device selection for the NDISTest server machine
+            dp_regex_servermsgdev = VirtIO Ethernet Adapter$
+            dp_regex_serversupportdev = VirtIO Ethernet Adapter #2$
+
+variants:
+    - @up:
+        no autotest.npb autotest.tsc
+    - smp2:
+        smp = 2
+        used_cpus = 2
+        stress_boot: used_cpus = 10
+        timedrift.with_load: used_cpus = 100
+
+variants:
+    - @ide:
+        drive_format=ide
+    - scsi:
+        drive_format=scsi
+    - virtio_blk:
+        drive_format=virtio
+        # Some older qemu might need image_boot=yes for virtio images to work.
+        # Please uncomment the below if that is the case.
+        #image_boot=yes
+    - ahci:
+        drive_format=ahci
+        cd_format=ahci
+    - usb.stick:
+        drive_format=usb2
+    - usb.cdrom:
+        cd_format=usb2
+
+variants:
+    - @qcow2:
+        image_format = qcow2
+        check_image = yes
+    - vmdk:
+        no ioquit
+        image_format = vmdk
+    - raw:
+        no ioquit
+        image_format = raw
+
+variants:
+    - @smallpages:
+    - hugepages:
+        setup_hugepages = yes
+        extra_params += " -mem-path /mnt/kvm_hugepage"
+
+variants:
+    - @no_pci_assignable:
+        pci_assignable = no
+    - pf_assignable:
+        pci_assignable = pf
+        device_names = eth1
+    - vf_assignable:
+        pci_assignable = vf
+        # Driver (kernel module) that supports SR-IOV hardware.
+        # As of today (30-11-2009), we have 2 drivers for this type of hardware:
+        # Intel® 82576 Gigabit Ethernet Controller - igb
+        # Neterion® X3100™ - vxge
+        driver = igb
+        # Driver option to specify the maximum number of virtual functions
+        # (on vxge the option is , for example, is max_config_dev)
+        # the default below is for the igb driver
+        driver_option = "max_vfs=7"
+        # Number of devices that are going to be requested.
+        devices_requested = 7
