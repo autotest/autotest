@@ -329,6 +329,14 @@ class HostRunErrorMixIn(Exception):
         return self.description + '\n' + repr(self.result_obj)
 
 
+class HostInstallTimeoutError(Exception):
+    """
+    Indicates the machine failed to be installed after the predetermined
+    timeout.
+    """
+    pass
+
+
 class AutotestHostRunError(HostRunErrorMixIn, AutotestError):
     pass
 
