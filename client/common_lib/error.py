@@ -311,6 +311,7 @@ class AutotestTimeoutError(AutotestError):
     """This exception is raised when an autotest test exceeds the timeout
     parameter passed to run_timed_test and is killed.
     """
+    pass
 
 
 class HostRunErrorMixIn(Exception):
@@ -329,7 +330,7 @@ class HostRunErrorMixIn(Exception):
         return self.description + '\n' + repr(self.result_obj)
 
 
-class HostInstallTimeoutError(Exception):
+class HostInstallTimeoutError(JobError):
     """
     Indicates the machine failed to be installed after the predetermined
     timeout.
