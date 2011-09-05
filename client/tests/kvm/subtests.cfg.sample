@@ -777,6 +777,24 @@ variants:
         transfer_type = remote
         kill_vm =yes
 
+    - netstress_kill_guest: install setup unattended_install.cdrom
+        only Linux
+        type = netstress_kill_guest
+        image_snapshot = yes
+        nic_mode = tap
+        # There should be enough vms for build topology.
+        variants:
+            -driver:
+                mode = driver
+            -load:
+                mode = load
+                netperf_files = netperf-2.4.5.tar.bz2 wait_before_data.patch
+                packet_size = 1500
+                setup_cmd = "cd %s && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure && make"
+                clean_cmd = " while killall -9 netserver; do True test; done;"
+                netserver_cmd =  %s/netperf-2.4.5/src/netserver
+                netperf_cmd = %s/netperf-2.4.5/src/netperf -t %s -H %s -l 60 -- -m %s
+
     - physical_resources_check: install setup image_copy unattended_install.cdrom
         type = physical_resources_check
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
