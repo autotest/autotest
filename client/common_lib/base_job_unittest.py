@@ -1361,7 +1361,8 @@ class test_make_outputdir(unittest.TestCase):
             @classmethod
             def _find_base_directories(cls):
                 return '/autodir', '/autodir/client', '/autodir/server'
-            def _find_resultdir(inner_self):
+            @classmethod
+            def _find_resultdir(cls):
                 return self.resultdir
 
         # stub out _job_directory for creation only
