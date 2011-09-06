@@ -241,7 +241,7 @@ class wb_kupdate(test.test):
             # Check if there is a need to remove the previously written file.
             if remove_previous:
                 logging.debug('Removing previous file instance.')
-                os.remove(file_name)
+                os.remove(sparse_file)
             else:
                 logging.debug('Not removing previous file instance.')
 
