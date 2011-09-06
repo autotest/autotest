@@ -4,8 +4,8 @@
 
 # Include the base config files.
 include base.cfg
-include guest-os.cfg
 include subtests.cfg
+include guest-os.cfg
 include cdkeys.cfg
 include virtio-win.cfg
 
