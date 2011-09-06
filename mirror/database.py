@@ -24,7 +24,7 @@ class item(object):
 
     def __eq__(self, other):
         if not isinstance(other, item):
-            return NotImplemented
+            return NotImplementedError
 
         return (self.name == other.name and self.size == other.size and
                 self.timestamp == other.timestamp)
@@ -46,7 +46,7 @@ class database(object):
         Should be implemented to open and read the persistent contents of
         the database and return it as a key->value dictionary.
         """
-        raise NotImplemented('get_dictionary not implemented')
+        raise NotImplementedError('get_dictionary not implemented')
 
 
     def merge_dictionary(self, values):
@@ -55,7 +55,7 @@ class database(object):
         database persistent contents (ie to update existent entries and to add
         those that do not exist).
         """
-        raise NotImplemented('merge_dictionary not implemented')
+        raise NotImplementedError('merge_dictionary not implemented')
 
 
 class dict_database(database):
