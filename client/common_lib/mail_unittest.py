@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import unittest
-import mail, email.Message
+import mail, email
 
 class test_data:
     mail_host = None
