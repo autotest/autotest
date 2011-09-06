@@ -266,7 +266,7 @@ class mock_class(object):
         return '<mock_class: %s>' % self.__name
 
 
-class mock_god:
+class mock_god(object):
     NONEXISTENT_ATTRIBUTE = object()
 
     def __init__(self, debug=False, fail_fast=True, ut=None):
@@ -343,8 +343,6 @@ class mock_god:
                                 orig_symbol)
 
                 return obj
-
-
 
         return cls_sub
 
