@@ -61,10 +61,10 @@ class parser(object):
     def make_job(dir):
         """ Create a new instance of the job model used by the
         parser, given a results directory."""
-        raise NotImplemented
+        raise NotImplementedError
 
 
     def state_iterator(self, buffer):
         """ A generator method that implements the actual parser
         state machine. """
-        raise NotImplemented
+        raise NotImplementedError
