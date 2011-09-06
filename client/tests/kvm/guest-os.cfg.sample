@@ -346,7 +346,7 @@ variants:
                 variants:
                     - 3.9.i386:
                         no setup autotest linux_s3 guest_s4 shutdown multi_disk
-                        image_name = rhel3-32
+                        image_name = rhel3.9-32
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         install:
                             steps = steps/RHEL-3.9-i386.steps
@@ -368,7 +368,7 @@ variants:
 
                     - 3.9.x86_64:
                         no setup autotest linux_s3 guest_s4 shutdown multi_disk
-                        image_name = rhel3-64
+                        image_name = rhel3.9-64
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         install:
                             steps = steps/RHEL-3.9-x86_64.steps
@@ -390,7 +390,7 @@ variants:
 
                     - 4.7.i386:
                         no setup autotest
-                        image_name = rhel4-32
+                        image_name = rhel4.7-32
                         install:
                             steps = steps/RHEL-4.7-i386.steps
                             cdrom_cd1 = isos/linux/RHEL-4.7-i386-DVD.iso
@@ -413,7 +413,7 @@ variants:
 
                     - 4.7.x86_64:
                         no setup autotest
-                        image_name = rhel4-64
+                        image_name = rhel4.7-64
                         install:
                             steps = steps/RHEL-4.7-x86_64.steps
                             cdrom_cd1 = isos/linux/RHEL-4.7-x86_64-DVD.iso
@@ -436,7 +436,7 @@ variants:
 
                     - 4.8.i386:
                         no setup autotest
-                        image_name = rhel4-32
+                        image_name = rhel4.8-32
                         unattended_install:
                             unattended_file = unattended/RHEL-4-series.ks
                             #floppy = images/rhel48-32/ks.vfd
@@ -457,7 +457,7 @@ variants:
 
                     - 4.8.x86_64:
                         no setup autotest
-                        image_name = rhel4-64
+                        image_name = rhel4.8-64
                         unattended_install:
                             unattended_file = unattended/RHEL-4-series.ks
                             #floppy = images/rhel48-64/ks.vfd
@@ -478,7 +478,7 @@ variants:
 
                     - 5.3.i386:
                         no setup
-                        image_name = rhel5-32
+                        image_name = rhel5.3-32
                         install:
                             steps = steps/RHEL-5.3-i386.steps
                             cdrom_cd1 = isos/linux/RHEL-5.3-i386-DVD.iso
@@ -497,7 +497,7 @@ variants:
 
                     - 5.3.x86_64:
                         no setup
-                        image_name = rhel5-64
+                        image_name = rhel5.3-64
                         install:
                             steps = steps/RHEL-5.3-x86_64.steps
                             cdrom_cd1 = isos/linux/RHEL-5.3-x86_64-DVD.iso
@@ -516,7 +516,7 @@ variants:
 
                     - 5.4.i386:
                         no setup
-                        image_name = rhel5-32
+                        image_name = rhel5.4-32
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             #floppy = images/rhel54-32/ks.vfd
@@ -530,7 +530,7 @@ variants:
 
                     - 5.4.x86_64:
                         no setup
-                        image_name = rhel5-64
+                        image_name = rhel5.4-64
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             #floppy = images/rhel54-64/ks.vfd
@@ -544,7 +544,7 @@ variants:
 
                     - 5.5.i386:
                         no setup
-                        image_name = rhel5-32
+                        image_name = rhel5.5-32
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             #floppy = images/rhel55-32/ks.vfd
@@ -558,7 +558,7 @@ variants:
 
                     - 5.5.x86_64:
                         no setup
-                        image_name = rhel5-64
+                        image_name = rhel5.5-64
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             #floppy = images/rhel55-64/ks.vfd
@@ -572,7 +572,7 @@ variants:
 
                     - 5.6.i386:
                         no setup
-                        image_name = rhel5-32
+                        image_name = rhel5.6-32
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             #floppy = images/rhel56-32/ks.vfd
@@ -586,7 +586,7 @@ variants:
 
                     - 5.6.x86_64:
                         no setup
-                        image_name = rhel5-64
+                        image_name = rhel5.6-64
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             #floppy = images/rhel56-64/ks.vfd
@@ -604,7 +604,7 @@ variants:
                             modprobe_module =
                         block_hotplug:
                             modprobe_module =
-                        image_name = rhel6-32
+                        image_name = rhel6.0-32
                         unattended_install:
                             unattended_file = unattended/RHEL-6-series.ks
                             #floppy = images/rhel60-32/ks.vfd
@@ -622,7 +622,7 @@ variants:
                             modprobe_module =
                         block_hotplug:
                             modprobe_module =
-                        image_name = rhel6-64
+                        image_name = rhel6.0-64
                         unattended_install:
                             unattended_file = unattended/RHEL-6-series.ks
                             #floppy = images/rhel60-64/ks.vfd
@@ -640,7 +640,7 @@ variants:
                             modprobe_module =
                         block_hotplug:
                             modprobe_module =
-                        image_name = rhel6-32
+                        image_name = rhel6.1-32
                         unattended_install:
                             unattended_file = unattended/RHEL-6-series.ks
                             #floppy = images/rhel61-32/ks.vfd
@@ -658,7 +658,7 @@ variants:
                             modprobe_module =
                         block_hotplug:
                             modprobe_module =
-                        image_name = rhel6-64
+                        image_name = rhel6.1-64
                         unattended_install:
                             unattended_file = unattended/RHEL-6-series.ks
                             #floppy = images/rhel61-64/ks.vfd
