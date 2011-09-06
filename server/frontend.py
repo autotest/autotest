@@ -798,7 +798,7 @@ class JobStatus(RpcObject):
         self.hash = hash
         self.__dict__.update(hash)
         self.job = Job(afe, self.job)
-        if self.host:
+        if getattr(self, 'host'):
             self.host = Host(afe, self.host)
 
 
