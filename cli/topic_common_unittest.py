@@ -607,7 +607,7 @@ class atest_unittest(cli_mock.cli_unittest):
         ulist.clean()
 
 
-    def test_parse_no_add_on(self):
+    def test_parse_no_add_on_2(self):
         flist = cli_mock.create_file('host1\nhost2\nleft2')
         ulist = cli_mock.create_file('user1\nuser2\nuser3\n')
         sys.argv = ['atest', '-U', ulist.name,
@@ -898,7 +898,7 @@ class atest_unittest(cli_mock.cli_unittest):
                                       'Host=h1|Platform=p1|Locked=False\n')
 
 
-    def test_print_table_parse_all_fields(self):
+    def test_print_table_parse_all_fields_2(self):
         self.atest.parse_delim = '?'
         self.__test_print_table_parse(['hostname', 'platform',
                                        'locked'],
