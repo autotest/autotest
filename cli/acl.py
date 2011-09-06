@@ -79,23 +79,26 @@ class acl_list(action_common.atest_list, acl):
         (options, leftover) = super(acl_list, self).parse([user_info,
                                                            host_info])
 
-        if ((self.users and (self.hosts or self.acls)) or
-            (self.hosts and self.acls)):
+        users = getattr(self, 'users')
+        hosts = getattr(self, 'hosts')
+        acls = getattr(self, 'acls')
+        if ((users and (hosts or acls)) or
+            (hosts and acls)):
             self.invalid_syntax('Only specify one of --user,'
                                 '--machine or ACL')
 
-        if len(self.users) > 1:
+        if len(users) > 1:
             self.invalid_syntax('Only specify one <user>')
-        if len(self.hosts) > 1:
+        if len(hosts) > 1:
             self.invalid_syntax('Only specify one <machine>')
 
         try:
-            self.users = self.users[0]
+            self.users = users[0]
         except IndexError:
             pass
 
         try:
-            self.hosts = self.hosts[0]
+            self.hosts = hosts[0]
         except IndexError:
             pass
         return (options, leftover)
