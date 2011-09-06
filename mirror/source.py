@@ -24,7 +24,7 @@ class source(object):
 
 
     def get_new_files(self):
-        raise NotImplemented('get_new_files not implemented')
+        raise NotImplementedError('get_new_files not implemented')
 
 
     def store_files(self, files):
