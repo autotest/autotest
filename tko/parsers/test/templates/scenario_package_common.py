@@ -1,7 +1,7 @@
-# This is meant to run from within a scenerio package
+# This is meant to run from within a scenario package
 import os, sys
 dirname = os.path.dirname(sys.modules[__name__].__file__)
-autotest_dir = os.path.abspath(os.path.join(dirname, "..", "..", "..", "..", ".."))
+autotest_dir = os.path.abspath(os.path.join(dirname, "..", "..", "..", ".."))
 client_dir = os.path.join(autotest_dir, "client")
 sys.path.insert(0, client_dir)
 import setup_modules
