@@ -19,7 +19,7 @@ class cgroup(test.test):
 
     def run_once(self):
         """
-	    Try to access different resources which are restricted by cgroup.
+            Try to access different resources which are restricted by cgroup.
         """
         logging.info('Starting cgroup testing')
 
