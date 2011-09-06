@@ -73,7 +73,7 @@ def run_client(host, port, daemon, file, interval):
     seq = 1
     while 1:
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((host, port))
             heartbeat = get_heartbeat(seq)
             sock.sendall(heartbeat)
@@ -107,7 +107,7 @@ def check_heartbeat(heartbeat, local_timestamp, threshold, check_drift):
         drift = timestamp - local_timestamp - client_clock_offset[hostname]
         drift_delta = drift - client_prev_drift[hostname]
         client_prev_drift[hostname] = drift
-        return "drift %+4.2f (%+4.2f)" % (drift, drift_delta) 
+        return "drift %+4.2f (%+4.2f)" % (drift, drift_delta)
 
 def check_for_timeouts(threshold, check_drift):
     local_timestamp = float(time.time())
@@ -126,7 +126,7 @@ def check_for_timeouts(threshold, check_drift):
 def usage():
     print """
 Usage:
-    
+
     heartbeat_slu.py --server --address <bind_address> --port <bind_port>
                      [--file <output_file>] [--no-daemon] [--verbose]
                      [--threshold <heartbeat threshold>]
