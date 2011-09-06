@@ -322,7 +322,7 @@ class InstanceEntry(Entry):
 
     def __init__(self, request, instance):
         assert self.model is not None
-        super(Entry, self).__init__(request)
+        super(InstanceEntry, self).__init__(request)
         self.instance = instance
         self._is_prepared_for_full_representation = False
 
