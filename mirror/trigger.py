@@ -1,4 +1,4 @@
-import email.Message, os, re, smtplib
+import email, os, re, smtplib
 
 from autotest_lib.server import frontend
 
@@ -32,7 +32,7 @@ class base_action(object):
 
         @param kernel_list: a sequence of kernel filenames (strings)
         """
-        raise NotImplemented('__call__ not implemented')
+        raise NotImplementedError('__call__ not implemented')
 
 
 class map_action(base_action):
