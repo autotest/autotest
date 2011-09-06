@@ -314,10 +314,11 @@ class job_create_or_clone(action_common.atest_create, job):
                 [host_info, job_info, oth_info, label_info] + parse_info,
                 req_items='jobname')
         self.data = {}
-        if len(self.jobname) > 1:
+        jobname = getattr(self, 'jobname')
+        if len(jobname) > 1:
             self.invalid_syntax('Too many arguments specified, only expected '
-                                'to receive job name: %s' % self.jobname)
-        self.jobname = self.jobname[0]
+                                'to receive job name: %s' % jobname)
+        self.jobname = jobname[0]
 
         if options.priority:
             self.data['priority'] = options.priority.capitalize()
