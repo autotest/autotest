@@ -24,7 +24,7 @@ class CsvEncoder(object):
 
 
     def encode(self):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class UnhandledMethodEncoder(CsvEncoder):
