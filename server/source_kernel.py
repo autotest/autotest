@@ -22,7 +22,7 @@ class SourceKernel(kernel.Kernel):
     implement the unimplemented methods in parent classes.
     """
     def __init__(self, k):
-        super(kernel.Kernel, self).__init__()
+        super(SourceKernel, self).__init__()
         self.__kernel = k
         self.__patch_list = []
         self.__config_file = None
