@@ -12,13 +12,9 @@ import sys
 import os.path
 import unittest
 
-# Adjust the path so Python can find the autoserv modules
-src = os.path.abspath("%s/.." % (os.path.dirname(sys.argv[0]),))
-if src not in sys.path:
-    sys.path.insert(1, src)
+import common
 
-import utils
-
+from autotest_lib.server import utils
 
 
 class UtilsTestCase(unittest.TestCase):
