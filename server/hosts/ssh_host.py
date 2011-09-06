@@ -181,8 +181,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
         # We ignore the status, because we will handle it at the end.
         result = self.run(command, timeout, ignore_status=True,
-                          connect_timeout=connect_timeout,
-                          stderr_is_expected=ignore_status)
+                          connect_timeout=connect_timeout)
 
         # Look for the patterns, in order
         for (regexp, stream) in ((stderr_err_regexp, result.stderr),
