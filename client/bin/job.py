@@ -19,6 +19,7 @@ from autotest_lib.client.common_lib import base_packages, packages
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.tools import html_report
 
+GLOBAL_CONFIG = global_config.global_config
 
 LAST_BOOT_TAG = object()
 JOB_PREAMBLE = """
@@ -146,7 +147,17 @@ class base_client_job(base_job.base_job):
         always <autodir>/results/<tag>, where tag is passed in on the command
         line as an option.
         """
-        return os.path.join(self.autodir, 'results', options.tag)
+        output_dir_config = GLOBAL_CONFIG.get_config_value('CLIENT',
+                                                           'output_dir',
+                                                            default="")
+        if options.output_dir:
+            basedir = options.output_dir
+        elif output_dir_config:
+            basedir = output_dir_config
+        else:
+            basedir = self.autodir
+
+        return os.path.join(basedir, 'results', options.tag)
 
 
     def _get_status_logger(self):
@@ -270,9 +281,9 @@ class base_client_job(base_job.base_job):
         Perform the drop caches initialization.
         """
         self.drop_caches_between_iterations = (
-                       global_config.global_config.get_config_value('CLIENT',
-                                            'drop_caches_between_iterations',
-                                            type=bool, default=True))
+                                    GLOBAL_CONFIG.get_config_value('CLIENT',
+                                    'drop_caches_between_iterations',
+                                    type=bool, default=True))
         self.drop_caches = drop_caches
         if self.drop_caches:
             utils.drop_caches()
