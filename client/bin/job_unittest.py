@@ -87,6 +87,7 @@ class test_init_minimal_options(abstract_test_init, job_test_case):
             user = None
             log = False
             args = ''
+            output_dir = ''
             tap_report = None
         self.god.stub_function_to_return(job.utils, 'drop_caches', None)
 
@@ -245,6 +246,7 @@ class test_base_job(unittest.TestCase):
         options.hostname = 'localhost'
         options.user = 'my_user'
         options.args = ''
+        options.output_dir = ''
         options.tap_report = None
         self.job.__init__(self.control, options,
                           extra_copy_cmdline=['more-blah'])
@@ -286,6 +288,7 @@ class test_base_job(unittest.TestCase):
         options.hostname = 'localhost'
         options.user = 'my_user'
         options.args = ''
+        options.output_dir = ''
         options.tap_report = None
         error = Exception('fail')
 

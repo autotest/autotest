@@ -55,6 +55,10 @@ parser.add_option('--hostname', dest='hostname', type='string',
                   help='Take this as the hostname of this machine '
                        '(given by autoserv)')
 
+parser.add_option('--output_dir', dest='output_dir',
+                  type='string', default="", action='store',
+                  help='Specify an alternate path to store test result logs')
+
 parser.add_option('--client_test_setup', dest='client_test_setup',
                   type='string', default=None, action='store',
                   help='a comma seperated list of client tests to prebuild on '
