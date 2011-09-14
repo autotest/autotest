@@ -1436,6 +1436,17 @@ variants:
                                 dd_data_whqlqual = Logo
                             device.net:
                                 image_name_supportvm = win7-32-supportvm
+                        variants:
+                            - @sp0:
+                            - sp1:
+                                image_name += -sp1
+                                unattended_install.cdrom, whql.support_vm_install:
+                                    cdrom_cd1 = isos/windows/en_windows_7_ultimate_n_with_sp1_x86_dvd_u_677597.iso
+                                    md5sum_cd1 = 8d9c55270d91a25663517dbef9968c80
+                                    md5sum_1m_cd1 = 65b2d563769a07982a4fb0c26eaed910
+                                    sha1sum_cd1 = bbf301280faa00b02f5475cdaa06558f569569e8
+                                    sha1sum_1m_cd1 = e0c1dc9d1cca9fd1cb601fab86fa7679a4d83275
+                                    floppy = images/win7-32-sp1/answer.vfd
 
                     - 64:
                         image_name += -64
@@ -1463,6 +1474,17 @@ variants:
                                 dd_data_whqlqual = Logo
                             device.net:
                                 image_name_supportvm = win7-64-supportvm
+                        variants:
+                            - @sp0:
+                            - sp1:
+                                image_name += -sp1
+                                unattended_install.cdrom, whql.support_vm_install:
+                                    cdrom_cd1 = isos/windows/en_windows_7_ultimate_with_sp1_x64_dvd_u_677332.iso
+                                    md5sum_cd1 = c9f7ecb768acb82daacf5030e14b271e
+                                    md5sum_1m_cd1 = 0b45ee07fc26d8cbc7d08daed9be1a22
+                                    sha1sum_cd1 = 36ae90defbad9d9539e649b193ae573b77a71c83
+                                    sha1sum_1m_cd1 = 3bdeb6786ac94bdd982a0bad8593de206b3d7321
+                                    floppy = images/win7-64-sp1/answer.vfd
 
 
     # Unix/BSD section
