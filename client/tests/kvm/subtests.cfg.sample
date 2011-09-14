@@ -11,6 +11,10 @@ variants:
         kill_vm = yes
         kill_vm_timeout = 60
         kill_vm_timeout_on_error = 0
+        # Backup image settings
+        backup_image = no
+        # If you turn backup_image = yes, please keep the below 'no'
+        restore_image_on_check_error = no
 
     - setup: install
         type = steps
@@ -18,12 +22,20 @@ variants:
         stuck_detection_history = 2
         kill_vm_on_error = yes
         keep_screendump_history = yes
+        # Backup image settings
+        backup_image = no
+        # If you turn backup_image = yes, please keep the below 'no'
+        restore_image_on_check_error = no
 
     - image_copy:
         type = image_copy
         vms = ''
         parallel = no
         profilers =
+        # Backup image settings
+        backup_image = no
+        # If you turn backup_image = yes, please keep the below 'no'
+        restore_image_on_check_error = no
 
     - unattended_install:
         type = unattended_install
@@ -40,6 +52,10 @@ variants:
         initrd = initrd.img
         # Set migrate_background to yes to run migration in parallel
         migrate_background = no
+        # Backup image settings
+        backup_image = no
+        # If you turn backup_image = yes, please keep the below 'no'
+        restore_image_on_check_error = no
 
         variants:
             # Install guest from cdrom 
