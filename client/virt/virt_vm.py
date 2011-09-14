@@ -853,3 +853,17 @@ class BaseVM(object):
         a restart.
         """
         raise NotImplementedError
+
+
+    def pause(self):
+        """
+        Stop the VM operation.
+        """
+        raise NotImplementedError
+
+
+    def resume(self):
+        """
+        Resume the VM operation in case it's stopped.
+        """
+        raise NotImplementedError
