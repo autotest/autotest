@@ -72,7 +72,7 @@ variants:
         # No large memory pages
         only smallpages
         # Operating system choice
-        only Win7.64
+        only Win7.64.sp1
         # Subtest choice. You can modify that line to add more subtests
         only unattended_install.cdrom, boot, shutdown
 
