@@ -5,7 +5,7 @@ Interfaces to the QEMU monitor.
 """
 
 import socket, time, threading, logging, select
-import virt_utils
+import virt_utils, virt_passfd_setup
 try:
     import json
 except ImportError:
@@ -72,6 +72,7 @@ class Monitor:
         self.filename = filename
         self._lock = threading.RLock()
         self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self._passfd = None
 
         try:
             self._socket.connect(filename)
@@ -235,7 +236,7 @@ class HumanMonitor(Monitor):
 
     # Public methods
 
-    def cmd(self, command, timeout=20, debug=True):
+    def cmd(self, command, timeout=20, debug=True, fd=None):
         """
         Send command to the monitor.
 
@@ -258,8 +259,14 @@ class HumanMonitor(Monitor):
         try:
             # Read any data that might be available
             self._recvall()
-            # Send command
-            self._send(command)
+            if fd is not None:
+                if self._passfd is None:
+                    self._passfd = virt_passfd_setup.import_passfd()
+                # If command includes a file descriptor, use passfd module
+                self._passfd.sendfd(self._socket, fd, "%s\n" % (command))
+            else:
+                # Send command
+                self._send(command)
             # Read output
             s, o = self._read_up_to_qemu_prompt(timeout)
             # Remove command echo from output
@@ -400,6 +407,17 @@ class HumanMonitor(Monitor):
         @return: The command's output
         """
         return self.cmd("mouse_button %d" % state)
+
+
+    def getfd(self, fd, name):
+        """
+        Receives a file descriptor
+
+        @param fd: File descriptor to pass to QEMU
+        @param name: File descriptor name (internal to QEMU)
+        @return: The command's output
+        """
+        return self.cmd("getfd %s" % name, fd=fd)
 
 
 class QMPMonitor(Monitor):
