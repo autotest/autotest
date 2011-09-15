@@ -9,10 +9,10 @@ def kill_qemu_processes():
     Kills all qemu processes, also kills all processes holding /dev/kvm down.
     """
     logging.debug("Killing any qemu processes that might be left behind")
-    utils.system("pkill qemu", ignore_status=True)
+    utils.run("pkill qemu", ignore_status=True)
     # Let's double check to see if some other process is holding /dev/kvm
     if os.path.isfile("/dev/kvm"):
-        utils.system("fuser -k /dev/kvm", ignore_status=True)
+        utils.run("fuser -k /dev/kvm", ignore_status=True)
 
 
 def create_symlinks(test_bindir, prefix=None, bin_list=None, unittest=None):
@@ -157,9 +157,9 @@ class BaseInstaller(object):
         if self.unittest_cfg:
             logging.info("Building and installing unittests")
             os.chdir(os.path.dirname(os.path.dirname(self.unittest_cfg)))
-            utils.system('./configure --prefix=%s' % self.prefix)
-            utils.system('make')
-            utils.system('make install')
+            utils.run('./configure --prefix=%s' % self.prefix)
+            utils.run('make')
+            utils.run('make install')
             self.unittest_prefix = os.path.join(self.prefix, 'share', 'qemu',
                                                 'tests')
 
@@ -192,7 +192,7 @@ class BaseInstaller(object):
         """
         logging.info("Loading KVM modules")
         for module in mod_list:
-            utils.system("modprobe %s" % module)
+            utils.run("modprobe %s" % module)
 
 
     def load_modules(self, mod_list=None):
@@ -259,7 +259,7 @@ class YumInstaller(BaseInstaller):
         for pkg in self.pkg_list:
             removable_packages += " %s" % pkg
 
-        utils.system("yum remove -y %s" % removable_packages)
+        utils.run("yum remove -y %s" % removable_packages)
 
 
     def _get_packages(self):
@@ -328,7 +328,7 @@ class KojiInstaller(YumInstaller):
     def _clean_previous_installs(self):
         kill_qemu_processes()
         removable_packages = " ".join(self._get_rpm_names())
-        utils.system("yum -y remove %s" % removable_packages)
+        utils.run("yum -y remove %s" % removable_packages)
 
 
     def install(self):
@@ -427,16 +427,16 @@ class SourceDirInstaller(BaseInstaller):
         steps = [cfg, "make clean", "make -j %s" % make_jobs]
         logging.info("Building KVM")
         for step in steps:
-            utils.system(step)
+            utils.run(step)
 
 
     def _install(self):
         os.chdir(self.srcdir)
         logging.info("Installing KVM userspace")
         if self.repo_type == 1:
-            utils.system("make -C qemu install")
+            utils.run("make -C qemu install")
         elif self.repo_type == 2:
-            utils.system("make install")
+            utils.run("make install")
         if self.path_to_roms:
             install_roms(self.path_to_roms, self.prefix)
         self.install_unittests()
@@ -476,13 +476,12 @@ class GitRepo(object):
         for patch in self.patches:
             utils.get_file(patch, os.path.join(self.srcdir,
                                                os.path.basename(patch)))
-            utils.system('patch -p1 < %s' % os.path.basename(patch))
+            utils.run('patch -p1 < %s' % os.path.basename(patch))
 
 
     def build(self):
         os.chdir(self.srcdir)
         for step in self.build_steps:
-            logging.info(step)
             utils.run(step)
 
 
@@ -493,8 +492,8 @@ class GitInstaller(SourceDirInstaller):
         """
         params = self.params
         make_jobs = utils.count_cpus()
-        cfg = 'PKG_CONFIG_PATH="%s/lib/pkgconfig:%s/share/pkgconfig" ./configure' % (
-            self.prefix, self.prefix)
+        cfg = ('PKG_CONFIG_PATH="%s/lib/pkgconfig:%s/share/pkgconfig" '
+               './configure' % (self.prefix, self.prefix))
 
         self.spice_protocol = GitRepo(installer=self, prefix='spice_protocol',
             srcdir='spice-protocol',
@@ -549,7 +548,7 @@ class GitInstaller(SourceDirInstaller):
 
     def _install(self):
         os.chdir(self.userspace.srcdir)
-        utils.system('make install')
+        utils.run('make install')
 
         if self.path_to_roms:
             install_roms(self.path_to_roms, self.prefix)
