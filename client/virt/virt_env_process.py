@@ -100,7 +100,12 @@ def postprocess_image(test, params):
     @param params: A dict containing image postprocessing parameters.
     """
     if params.get("check_image") == "yes":
-        virt_vm.check_image(params, test.bindir)
+        try:
+            virt_vm.check_image(params, test.bindir)
+        except Exception, e:
+            if params.get("restore_image_on_check_error", "no") == "yes":
+                virt_vm.backup_image(params, test.bindir, 'restore', True)
+            raise e
     if params.get("remove_image") == "yes":
         virt_vm.remove_image(params, test.bindir)
 
@@ -177,20 +182,28 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
     # Get list of VMs specified for this test
     for vm_name in params.objects("vms"):
         vm_params = params.object_params(vm_name)
+        vm = env.get_vm(vm_name)
         if not vm_first:
             # Get list of images specified for this VM
             for image_name in vm_params.objects("images"):
                 image_params = vm_params.object_params(image_name)
                 # Call image_func for each image
+                if vm is not None and vm.is_alive():
+                    vm.pause()
                 image_func(test, image_params)
+                if vm is not None and vm.is_alive():
+                    vm.resume()
             # Call vm_func for each vm
             vm_func(test, vm_params, env, vm_name)
         else:
             vm_func(test, vm_params, env, vm_name)
             for image_name in vm_params.objects("images"):
                 image_params = vm_params.object_params(image_name)
+                if vm is not None and vm.is_alive():
+                    vm.pause()
                 image_func(test, image_params)
-
+                if vm is not None and vm.is_alive():
+                    vm.resume()
 
 
 @error.context_aware
