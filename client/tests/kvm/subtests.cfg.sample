@@ -164,6 +164,12 @@ variants:
                 mig_cancel = yes
         variants:
             - @default:
+            - with_blkdebug:
+                drive_blkdebug_image1 = blkdebug/default.conf
+                drive_rerror_image1 = stop
+                drive_werror_image1 = stop
+                vmstate_check = yes
+                migration_living_guest = no
             - with_set_speed:
                 mig_speed = 1G
                 pre_migrate = "mig_set_speed"
