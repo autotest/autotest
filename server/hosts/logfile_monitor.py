@@ -6,7 +6,7 @@ from autotest_lib.server import utils as server_utils
 from autotest_lib.server.hosts import abstract_ssh, monitors
 
 MONITORDIR = monitors.__path__[0]
-SUPPORTED_PYTHON_VERS = ('2.4', '2.5', '2.6')
+SUPPORTED_PYTHON_VERS = ('2.4', '2.5', '2.6', '2.7')
 DEFAULT_PYTHON = '/usr/bin/python'
 
 
