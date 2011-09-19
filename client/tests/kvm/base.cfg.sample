@@ -28,6 +28,15 @@ image_size = 10G
 image_raw_device = no
 drive_index_image1 = 0
 drive_cache = none
+# You can specify a blkdebug file here, relative to kvm/blkdebug dir
+# we have a premade default.conf in there. Important to note that you
+# can set this for any image defined in the config at a given time
+#drive_blkdebug_image1 = blkdebug/default.conf
+#drive_blkdebug_image1 =
+# What to do whether a read error is detected, such as 'stop'
+drive_rerror_image1 =
+# What to do whether a write error is detected, such as 'stop'
+drive_werror_image1 =
 
 # Cdrom drive index
 drive_index_cd1 = 1

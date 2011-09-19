@@ -188,6 +188,27 @@ class VMRebootError(VMError):
 class VMStatusError(VMError):
     pass
 
+
+def get_image_blkdebug_filename(params, root_dir):
+    """
+    Generate an blkdebug file path from params and root_dir.
+
+    blkdebug files allow error injection in the block subsystem.
+
+    @param params: Dictionary containing the test parameters.
+    @param root_dir: Base directory for relative filenames.
+
+    @note: params should contain:
+           blkdebug -- the name of the debug file.
+    """
+    blkdebug_name = params.get("drive_blkdebug", None)
+    if blkdebug_name is not None:
+        blkdebug_filename = virt_utils.get_path(root_dir, blkdebug_name)
+    else:
+        blkdebug_filename = None
+    return blkdebug_filename
+
+
 def get_image_filename(params, root_dir):
     """
     Generate an image path from params and root_dir.
