@@ -215,7 +215,8 @@ class VM(virt_vm.BaseVM):
                 return " -cdrom '%s'" % filename
 
         def add_drive(help, filename, index=None, format=None, cache=None,
-                      werror=None, serial=None, snapshot=False, boot=False):
+                      werror=None, rerror=None, serial=None, snapshot=False,
+                      boot=False, blkdebug=None):
             name = None;
             dev = "";
             if format == "ahci":
@@ -229,13 +230,18 @@ class VM(virt_vm.BaseVM):
                 dev += ",port=%d" % (int(index) + 1)
                 format = "none"
                 index = None
-            cmd = " -drive file='%s'" % filename
+            if blkdebug is not None:
+                cmd = " -drive file=blkdebug:%s:%s" % (blkdebug, filename)
+            else:
+                cmd = " -drive file='%s'" % filename
             if index is not None:
                 cmd += ",index=%s" % index
             if format:
                 cmd += ",if=%s" % format
             if cache:
                 cmd += ",cache=%s" % cache
+            if rerror:
+                cmd += ",rerror=%s" % rerror
             if werror:
                 cmd += ",werror=%s" % werror
             if serial:
@@ -440,10 +446,12 @@ class VM(virt_vm.BaseVM):
                                   image_params.get("drive_index"),
                                   image_params.get("drive_format"),
                                   image_params.get("drive_cache"),
+                                  image_params.get("drive_rerror"),
                                   image_params.get("drive_werror"),
                                   image_params.get("drive_serial"),
                                   image_params.get("image_snapshot") == "yes",
-                                  image_params.get("image_boot") == "yes")
+                                  image_params.get("image_boot") == "yes",
+                    virt_vm.get_image_blkdebug_filename(image_params, root_dir))
 
         redirs = []
         for redir_name in params.objects("redirs"):
