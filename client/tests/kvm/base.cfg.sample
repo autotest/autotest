@@ -37,6 +37,20 @@ drive_cache = none
 drive_rerror_image1 =
 # What to do whether a write error is detected, such as 'stop'
 drive_werror_image1 =
+# Disk backup settings
+# Enable backup_image = yes only in some specific tests, such as
+# unattended_install. In all other tests, it should be no, so keep the global
+# as is.
+backup_image = no
+# Enable backup_image_on_check_error = yes globally to allow isolate bad images
+# for investigation purposes
+backup_image_on_check_error = no
+# Enable restore_image_on_check_error = yes globally to allow restore a image
+# that had a check image with a pristine image. Works only if
+# backup_image_on_check_error = yes, of course. For tests such as
+# unattended_install, you'll have to set it to no, since if it fails, we won't
+# have an image at all, so you save time.
+restore_image_on_check_error = no
 
 # Cdrom drive index
 drive_index_cd1 = 1
