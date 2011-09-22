@@ -1142,3 +1142,9 @@ variants:
         shutdown_method = shell
         kill_vm = yes
         kill_vm_gracefully = no
+
+    - getfd: install setup image_copy unattended_install.cdrom
+        type = getfd
+        restart_vm = yes
+        kill_vm = yes
+        number_of_files = 900
