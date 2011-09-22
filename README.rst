@@ -1,5 +1,6 @@
+========================================================
 Autotest: Fully automated tests under the linux platform
---------------------------------------------------------
+========================================================
 
 Autotest is a framework for fully automated testing. It is designed primarily to
 test the Linux kernel, though it is useful for many other functions such as
