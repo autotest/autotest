@@ -13,33 +13,33 @@ tests or setup a fully automated test grid, depending on what you are up to.
 A non extensive list of modules is:
 
 * Autotest client: The engine that executes the tests (dir client). Each
-autotest test is a a directory inside (client/tests) and it is represented
-by a python class that implements a minimum number of methods. The client
-is what you need if you are a single developer trying out autotest and executing
-some tests. Autotest client executes ''client side control files'', which are
-regular python programs, and leverage the API of the client.
+  autotest test is a a directory inside (client/tests) and it is represented
+  by a python class that implements a minimum number of methods. The client
+  is what you need if you are a single developer trying out autotest and executing
+  some tests. Autotest client executes ''client side control files'', which are
+  regular python programs, and leverage the API of the client.
 
 * Autotest server: A program that copies the client to remote machines and
-controls their execution. Autotest server executes ''server side control files'',
-which are also regular python programs, but leverage a higher level API, since
-the autotest server can control test execution in multiple machines. If you
-want to perform tests slightly more complex involving more than one machine you
-might want the autotest server
+  controls their execution. Autotest server executes ''server side control files'',
+  which are also regular python programs, but leverage a higher level API, since
+  the autotest server can control test execution in multiple machines. If you
+  want to perform tests slightly more complex involving more than one machine you
+  might want the autotest server
 
 * Autotest database: For test grids, we need a way to store test results, and
-that is the purpose of the database component. This DB is used by the autotest
-scheduler and the frontends to store and visualize test results.
+  that is the purpose of the database component. This DB is used by the autotest
+  scheduler and the frontends to store and visualize test results.
 
 * Autotest scheduler: For test grids, we need an utility that can schedule and
-trigger job execution in test machines, the autotest scheduler is that utility.
+  trigger job execution in test machines, the autotest scheduler is that utility.
 
 * Autotest web frontend: For test grids, A web app, whose backend is written in
-django (http://www.djangoproject.com/) and UI written in gwt
-(http://code.google.com/webtoolkit/), lets users to trigger jobs and visualize
-test results
+  django (http://www.djangoproject.com/) and UI written in gwt
+  (http://code.google.com/webtoolkit/), lets users to trigger jobs and visualize
+  test results
 
 * Autotest command line interface: Alternatively, users also can use the
-autotest CLI, written in python
+  autotest CLI, written in python
 
 
 Getting started with autotest client
@@ -55,16 +55,7 @@ Check out the main project documentation source
 
 You can find plenty of information on the autotest wiki
 
-http://autotest.kernel.org/
-
-That also contains references to the project activity
-
-http://autotest.kernel.org/timeline
-
-Links to an online view of the version control system
-
-http://autotest.kernel.org/browser
-
+http://autotest.kernel.org/wiki
 
 Grabbing the latest source
 --------------------------
