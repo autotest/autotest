@@ -719,8 +719,8 @@ variants:
 
     - file_transfer: install setup image_copy unattended_install.cdrom
         type = file_transfer
-        filesize = 4000
-        transfer_timeout = 1000
+        filesize = 1000
+        transfer_timeout = 250
         variants:
             - remote:
                 transfer_type = remote
