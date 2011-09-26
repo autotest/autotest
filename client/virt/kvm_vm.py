@@ -1358,10 +1358,10 @@ class VM(virt_vm.BaseVM):
 
 
     # should this really be expected from VMs of all hypervisor types?
-    def screendump(self, filename):
+    def screendump(self, filename, debug=True):
         try:
             if self.monitor:
-                self.monitor.screendump(filename=filename)
+                self.monitor.screendump(filename=filename, debug=debug)
         except kvm_monitor.MonitorError, e:
             logging.warn(e)
 
