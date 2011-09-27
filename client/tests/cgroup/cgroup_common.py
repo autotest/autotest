@@ -25,7 +25,19 @@ class Cgroup(object):
         self.module = module
         self._client = _client
         self.root = None
+        self.cgroups = []
 
+
+    def __del__(self):
+        """
+        Destructor
+        """
+        self.cgroups.sort(reverse=True)
+        for pwd in self.cgroups[:]:
+            for task in self.get_property("tasks", pwd):
+                if task:
+                    self.set_root_cgroup(int(task))
+            self.rm_cgroup(pwd)
 
     def initialize(self, modules):
         """
@@ -57,6 +69,7 @@ class Cgroup(object):
         except Exception, inst:
             logging.error("cg.mk_cgroup(): %s" , inst)
             return None
+        self.cgroups.append(pwd)
         return pwd
 
 
@@ -70,6 +83,10 @@ class Cgroup(object):
         """
         try:
             os.rmdir(pwd)
+            self.cgroups.remove(pwd)
+        except ValueError:
+            logging.warn("cg.rm_cgroup(): Removed cgroup which wasn't created"
+                         "using this Cgroup")
         except Exception, inst:
             if not supress:
                 logging.error("cg.rm_cgroup(): %s" , inst)
@@ -309,6 +326,21 @@ class CgroupModules(object):
         self.modules.append([])
         self.mountdir = mkdtemp(prefix='cgroup-') + '/'
 
+    def __del__(self):
+        """
+        Unmount all cgroups and remove the mountdir
+        """
+        for i in range(len(self.modules[0])):
+            if self.modules[2][i]:
+                try:
+                    utils.system('umount %s -l' % self.modules[1][i])
+                except Exception, failure_detail:
+                    logging.warn("CGM: Couldn't unmount %s directory: %s"
+                                 % (self.modules[1][i], failure_detail))
+        try:
+            shutil.rmtree(self.mountdir)
+        except:
+            logging.warn("CGM: Couldn't remove the %s directory", self.mountdir)
 
     def init(self, _modules):
         """
@@ -356,13 +388,9 @@ class CgroupModules(object):
 
     def cleanup(self):
         """
-        Unmount all cgroups and remove the mountdir.
+        Kept for compatibility
         """
-        for i in range(len(self.modules[0])):
-            if self.modules[2][i]:
-                utils.system('umount %s -l' % self.modules[1][i],
-                             ignore_status=True)
-        shutil.rmtree(self.mountdir)
+        pass
 
 
     def get_pwd(self, module):
