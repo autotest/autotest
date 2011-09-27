@@ -848,6 +848,13 @@ variants:
         only Linux
         type = iofuzz
 
+    - cgroup:
+        type = cgroup
+        # cgroup_tests = "re1[:loops] re2[:loops] ..."
+        cgroup_tests = ".*:1"
+        vms += " vm2"
+        extra_params += " -snapshot"
+
     - virtio_console: install setup image_copy unattended_install.cdrom
         only Linux
         vms = ''
