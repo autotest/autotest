@@ -611,16 +611,6 @@ def run_unattended_install(test, params, env):
                 pass
 
         if migrate_background:
-            # Drop the params which may break the migration
-            # Better method is to use dnsmasq to do the
-            # unattended installation
-            if vm.params.get("initrd"):
-                vm.params["initrd"] = None
-            if vm.params.get("kernel"):
-                vm.params["kernel"] = None
-            if vm.params.get("extra_params"):
-                vm.params["extra_params"] = re.sub("--append '.*'", "",
-                                                   vm.params["extra_params"])
             vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
         else:
             time.sleep(1)
