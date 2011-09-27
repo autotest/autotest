@@ -211,7 +211,6 @@ class UnattendedInstallConfig(object):
         @param params: Dictionary with test parameters.
         """
         root_dir = test.bindir
-        images_dir = os.path.join(root_dir, 'images')
         self.deps_dir = os.path.join(root_dir, 'deps')
         self.unattended_dir = os.path.join(root_dir, 'unattended')
 
