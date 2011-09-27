@@ -91,6 +91,7 @@ class FloppyDisk(Disk):
             m_cmd = 'mount -o loop,rw %s %s' % (path, self.mount)
             utils.run(m_cmd)
         except error.CmdError, e:
+            logging.error("Error during floppy initialization: %s" % e)
             cleanup(self.mount)
             raise
 
