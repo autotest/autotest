@@ -580,7 +580,6 @@ def run_unattended_install(test, params, env):
     vm.create()
 
     install_timeout = int(params.get("timeout", 3000))
-    post_install_delay = int(params.get("post_install_delay", 0))
     port = vm.get_port(int(params.get("guest_port_unattended_install")))
 
     migrate_background = params.get("migrate_background") == "yes"
