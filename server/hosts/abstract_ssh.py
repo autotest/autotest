@@ -347,6 +347,7 @@ class AbstractSSHHost(SiteHost):
         self.start_master_ssh()
 
         if isinstance(source, basestring):
+            source_is_dir = os.path.isdir(source)
             source = [source]
         remote_dest = self._encode_remote_paths([dest])
 
@@ -365,11 +366,35 @@ class AbstractSSHHost(SiteHost):
         if try_scp:
             # scp has no equivalent to --delete, just drop the entire dest dir
             if delete_dest:
-                is_dir = self.run("ls -d %s/" % dest,
-                                  ignore_status=True).exit_status == 0
-                if is_dir:
-                    cmd = "rm -rf %s && mkdir %s"
-                    cmd %= (dest, dest)
+                dest_exists = False
+                try:
+                    self.run("test -x %s" % dest)
+                    dest_exists = True
+                except error.AutoservRunError:
+                    pass
+
+                dest_is_dir = False
+                if dest_exists:
+                    try:
+                        self.run("test -d %s" % dest)
+                        dest_is_dir = True
+                    except error.AutoservRunError:
+                        pass
+
+                # If there is a list of more than one path, destination *has*
+                # to be a dir. If there's a single path being transfered and
+                # it is a dir, the destination also has to be a dir. Therefore
+                # it has to be created on the remote machine in case it doesn't
+                # exist, otherwise we will have an scp failure.
+                if len(source) > 1 or source_is_dir:
+                    dest_is_dir = True
+
+                if dest_exists and dest_is_dir:
+                    cmd = "rm -rf %s && mkdir %s" % (dest, dest)
+                    self.run(cmd)
+
+                elif not dest_exists and dest_is_dir:
+                    cmd = "mkdir %s" % dest
                     self.run(cmd)
 
             local_sources = self._make_rsync_compatible_source(source, True)
