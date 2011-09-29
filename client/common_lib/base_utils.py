@@ -2,7 +2,7 @@
 # Copyright 2008 Google Inc. Released under the GPL v2
 
 import os, pickle, random, re, resource, select, shutil, signal, StringIO
-import socket, struct, subprocess, sys, time, textwrap, urlparse
+import socket, struct, subprocess, sys, time, textwrap, traceback, urlparse
 import warnings, smtplib, logging, urllib2
 from threading import Thread, Event
 try:
@@ -827,6 +827,15 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
     return True
 
 
+def get_children_pids(ppid):
+    """
+    Get all PIDs of children/threads of parent ppid
+    param ppid: parent PID
+    return: list of PIDs of all children/threads of ppid
+    """
+    return (system_output("ps -L --ppid=%d -o lwp" % ppid).split('\n')[1:])
+
+
 def pid_is_alive(pid):
     """
     True if process pid exists and is not yet stuck in Zombie state.
@@ -959,6 +968,19 @@ def system_output_parallel(commands, timeout=None, ignore_status=False,
                                   timeout=timeout, ignore_status=ignore_status)]
     for x in out:
         if out[-1:] == '\n': out = out[:-1]
+    return out
+
+
+def etraceback(prep, exc_info):
+    """
+    Enhanced Traceback formats traceback into lines "prep: line\nname: line"
+    @param prep: desired line preposition
+    @param exc_info: sys.exc_info of the exception
+    @return: string which contains beautifully formatted exception
+    """
+    for line in traceback.format_exception(exc_info[0], exc_info[1],
+                                           exc_info[2]):
+        out += "%s: %s" % (prep, line)
     return out
 
 
