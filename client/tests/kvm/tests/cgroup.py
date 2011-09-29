@@ -3,7 +3,7 @@ cgroup autotest test (on KVM guest)
 @author: Lukas Doktor <ldoktor@redhat.com>
 @copyright: 2011 Red Hat, Inc.
 """
-import logging, re, sys, tempfile, time, traceback
+import logging, re, sys, tempfile, time
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from client.virt import virt_vm
@@ -16,6 +16,135 @@ def run_cgroup(test, params, env):
     """
     vms = None
     tests = None
+
+
+    # Func
+    def _check_vms(vms):
+        """
+        Checks if the VM is alive.
+        @param vms: list of vm's
+        """
+        err = ""
+        for i in range(len(vms)):
+            try:
+                vms[i].verify_alive()
+                vms[i].verify_kernel_crash()
+                vms[i].wait_for_login(timeout=30).close()
+            except virt_vm.VMDeadKernelCrashError, failure_detail:
+                logging.error("_check_vms: %s", failure_detail)
+                logging.warn("recreate VM(%s)", i)
+                # The vm has to be recreated to reset the qemu PCI state
+                vms[i].create()
+                err += "%s, " % vms[i].name
+        if err:
+            raise error.TestFail("WM [%s] had to be recreated" % err[:-2])
+
+
+    def get_device_driver():
+        """
+        Discovers the used block device driver {ide, scsi, virtio_blk}
+        @return: Used block device driver {ide, scsi, virtio}
+        """
+        return params.get('drive_format', 'virtio')
+
+
+    def add_file_drive(vm, driver=get_device_driver(), host_file=None):
+        """
+        Hot-add a drive based on file to a vm
+        @param vm: Desired VM
+        @param driver: which driver should be used (default: same as in test)
+        @param host_file: Which file on host is the image (default: create new)
+        @return: Tupple(ret_file, device)
+                    ret_file: created file handler (None if not created)
+                    device: PCI id of the virtual disk
+        """
+        if not host_file:
+            host_file = tempfile.NamedTemporaryFile(prefix="cgroup-disk-",
+                                               suffix=".iso")
+            utils.system("dd if=/dev/zero of=%s bs=1M count=8 &>/dev/null"
+                         % (host_file.name))
+            ret_file = host_file
+        else:
+            ret_file = None
+
+        out = vm.monitor.cmd("pci_add auto storage file=%s,if=%s,snapshot=off,"
+                             "cache=off" % (host_file.name, driver))
+        dev = re.search(r'OK domain (\d+), bus (\d+), slot (\d+), function \d+',
+                        out)
+        if not dev:
+            raise error.TestFail("Can't add device(%s, %s, %s): %s" % (vm.name,
+                                                host_file.name, driver, out))
+        device = "%02x:%02x" % (int(dev.group(2)), int(dev.group(3)))
+        time.sleep(3)
+        out = vm.monitor.info('qtree', debug=False)
+        if out.count('addr %s.0' % device) != 1:
+            raise error.TestFail("Can't add device(%s, %s, %s): device in qtree"
+                            ":\n%s" % (vm.name, host_file.name, driver, out))
+        return (ret_file, device)
+
+
+    def add_scsi_drive(vm, driver=get_device_driver(), host_file=None):
+        """
+        Hot-add a drive based on scsi_debug device to a vm
+        @param vm: Desired VM
+        @param driver: which driver should be used (default: same as in test)
+        @param host_file: Which dev on host is the image (default: create new)
+        @return: Tupple(ret_file, device)
+                    ret_file: string of the created dev (None if not created)
+                    device: PCI id of the virtual disk
+        """
+        if not host_file:
+            if utils.system_output("lsmod | grep scsi_debug -c") == 0:
+                utils.system("modprobe scsi_debug dev_size_mb=8 add_host=0")
+            utils.system("echo 1 > /sys/bus/pseudo/drivers/scsi_debug/add_host")
+            host_file = utils.system_output("ls /dev/sd* | tail -n 1")
+            # Enable idling in scsi_debug drive
+            utils.system("echo 1 > /sys/block/%s/queue/rotational" % host_file)
+            ret_file = host_file
+        else:
+            # Don't remove this device during cleanup
+            # Reenable idling in scsi_debug drive (in case it's not)
+            utils.system("echo 1 > /sys/block/%s/queue/rotational" % host_file)
+            ret_file = None
+
+        out = vm.monitor.cmd("pci_add auto storage file=%s,if=%s,snapshot=off,"
+                             "cache=off" % (host_file, driver))
+        dev = re.search(r'OK domain (\d+), bus (\d+), slot (\d+), function \d+',
+                        out)
+        if not dev:
+            raise error.TestFail("Can't add device(%s, %s, %s): %s" % (vm.name,
+                                                        host_file, driver, out))
+        device = "%02x:%02x" % (int(dev.group(2)), int(dev.group(3)))
+        time.sleep(3)
+        out = vm.monitor.info('qtree', debug=False)
+        if out.count('addr %s.0' % device) != 1:
+            raise error.TestFail("Can't add device(%s, %s, %s): device in qtree"
+                            ":\n%s" % (vm.name, host_file.name, driver, out))
+        return (ret_file, device)
+
+
+    def rm_drive(vm, host_file, device):
+        """
+        Remove drive from vm and device on disk
+        ! beware to remove scsi devices in reverse order !
+        """
+        err = False
+        vm.monitor.cmd("pci_del %s" % device)
+        time.sleep(3)
+        qtree = vm.monitor.info('qtree', debug=False)
+        if qtree.count('addr %s.0' % device) != 0:
+            err = True
+            vm.destroy()
+
+        if isinstance(host_file, str):    # scsi device
+            utils.system("echo -1> /sys/bus/pseudo/drivers/scsi_debug/add_host")
+        else:     # file
+            host_file.close()
+
+        if err:
+            logging.error("Cant del device(%s, %s, %s):\n%s", vm.name,
+                                                    host_file, device, qtree)
+
 
     # Tests
     class _TestBlkioBandwidth:
@@ -46,9 +175,8 @@ def run_cgroup(test, params, env):
             """
             err = ""
             try:
-                for i in range (2):
-                    vms[i].monitor.cmd("pci_del %s" % self.devices[i])
-                    self.files[i].close()
+                for i in range(1, -1, -1):
+                    rm_drive(vms[i], self.files[i], self.devices[i])
             except Exception, failure_detail:
                 err += "\nCan't remove PCI drive: %s" % failure_detail
             try:
@@ -67,7 +195,7 @@ def run_cgroup(test, params, env):
              * assigns vm1 and vm2 into cgroups and sets the properties
              * creates a new virtio device and adds it into vms
             """
-            if test.tagged_testname.find('virtio_blk') == -1:
+            if get_device_driver() != 'virtio':
                 logging.warn("The main disk for this VM is non-virtio, keep in "
                              "mind that this particular subtest will add a new "
                              "virtio_blk disk to it")
@@ -89,8 +217,7 @@ def run_cgroup(test, params, env):
                 if blkio.set_cgroup(self.vms[i].get_shell_pid(), pwd[i]):
                     raise error.TestError("Could not set cgroup")
                 # Move all existing threads into cgroup
-                for tmp in utils.system_output("ps -L --ppid=%d -o lwp"
-                                % self.vms[i].get_shell_pid()).split('\n')[1:]:
+                for tmp in utils.get_children_pids(self.vms[i].get_shell_pid()):
                     if blkio.set_cgroup(int(tmp), pwd[i]):
                         raise error.TestError("Could not set cgroup")
             if self.blkio.set_property("blkio.weight", 100, pwd[0]):
@@ -101,18 +228,9 @@ def run_cgroup(test, params, env):
             # Add dummy drives
             # TODO: implement also using QMP.
             for i in range(2):
-                self.files.append(tempfile.NamedTemporaryFile(
-                                        prefix="cgroup-disk-",
-                                        suffix=".iso"))
-                utils.system("dd if=/dev/zero of=%s bs=1M count=10 &>/dev/null"
-                             % (self.files[i].name))
-                out = vms[i].monitor.cmd("pci_add auto storage file=%s,"
-                                "if=virtio,snapshot=off,cache=off"
-                                % (self.files[i].name))
-                out = re.search(r'OK domain (\d+), bus (\d+), slot (\d+), '
-                                 'function \d+', out).groups()
-                self.devices.append("%s:%s:%s" % out)
-
+                (host_file, device) = add_file_drive(vms[i], "virtio")
+                self.files.append(host_file)
+                self.devices.append(device)
 
         def run(self):
             """
@@ -155,13 +273,16 @@ def run_cgroup(test, params, env):
             out2 = out[1][1]
             # Cgroup are limitting weights of guests 100:1000. On bare mettal it
             # works in virtio_blk we are satisfied with the ratio 1:3.
+            if out1 == 0:
+                raise error.TestFail("No data transfered: %d:%d (1:10)" %
+                                      (out1, out2))
             if out1*3  > out2:
-                raise error.TestFail("dd values: %s:%s (1:%f), limit 1:2.5"
+                raise error.TestFail("dd values: %d:%d (1:%.2f), limit 1:3"
                                      ", theoretical: 1:10"
                                      % (out1, out2, out2/out1))
             else:
-                logging.info("dd values: %s:%s (1:%s)", out1, out2, out2/out1)
-            return "dd values: %s:%s (1:%s)" % (out1, out2, out2/out1)
+                logging.info("dd values: %d:%d (1:%.2f)", out1, out2, out2/out1)
+            return "dd values: %d:%d (1:%.2f)" % (out1, out2, out2/out1)
 
 
 
@@ -178,7 +299,7 @@ def run_cgroup(test, params, env):
             _TestBlkioBandwidth.__init__(self, vms, modules)
             # Read from the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
-            self.dd_cmd = ("export FILE=$(ls /dev/vd* | tail -n 1); touch "
+            self.dd_cmd = ("export FILE=$(ls /dev/vd? | tail -n 1); touch "
                            "/tmp/cgroup_lock ; while [ -e /tmp/cgroup_lock ];"
                            "do dd if=$FILE of=/dev/null iflag=direct bs=100K;"
                            "done")
@@ -197,39 +318,10 @@ def run_cgroup(test, params, env):
             # Write on the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
             _TestBlkioBandwidth.__init__(self, vms, modules)
-            self.dd_cmd = ('export FILE=$(ls /dev/vd* | tail -n 1); touch '
+            self.dd_cmd = ('export FILE=$(ls /dev/vd? | tail -n 1); touch '
                            '/tmp/cgroup_lock ; while [ -e /tmp/cgroup_lock ];'
                            'do dd if=/dev/zero of=$FILE oflag=direct bs=100K;'
                            'done')
-
-
-    def _check_vms(vms):
-        """
-        Checks if the VM is alive.
-        @param vms: list of vm's
-        """
-        for i in range(len(vms)):
-            vms[i].verify_alive()
-            try:
-                vms[i].verify_kernel_crash()
-            except virt_vm.VMDeadKernelCrashError, failure_detail:
-                logging.error("_check_vms: %s", failure_detail)
-                logging.warn("recreate VM(%s)", i)
-                # The vm has to be recreated to reset the qemu PCI state
-                vms[i].create()
-
-    def _traceback(name, exc_info):
-        """
-        Formats traceback into lines "name: line\nname: line"
-        @param name: desired line preposition
-        @param exc_info: sys.exc_info of the exception
-        @return: string which contains beautifully formatted exception
-        """
-        out = "\n"
-        for line in traceback.format_exception(exc_info[0], exc_info[1],
-                                               exc_info[2]):
-            out += "%s: %s" % (name, line)
-        return out
 
 
     # Setup
@@ -266,55 +358,49 @@ def run_cgroup(test, params, env):
             # cg_test is the subtest name from regular expression
             for cg_test in [_ for _ in tests.keys() if re.match(rexpr, _)]:
                 logging.info("%s: Entering the test", cg_test)
+                err = ""
                 try:
-                    _check_vms(vms)
                     tst = tests[cg_test](vms, modules)
                     tst.init()
                     out = tst.run()
                 except error.TestFail, failure_detail:
                     logging.error("%s: Leaving, test FAILED (TestFail): %s",
                                   cg_test, failure_detail)
-                    results += "\n * %s: Test FAILED (TestFail): %s" % (cg_test,
-                                                                failure_detail)
-                    try:
-                        tst.cleanup()
-                    except Exception, failure_detail:
-                        tb = _traceback("%s cleanup:" % cg_test, sys.exc_info())
-                        logging.info("%s: cleanup also failed\n%s", cg_test, tb)
+                    err += "test, "
+                    out = failure_detail
                 except error.TestError, failure_detail:
-                    tb = _traceback(cg_test, sys.exc_info())
+                    tb = utils.etraceback(cg_test, sys.exc_info())
                     logging.error("%s: Leaving, test FAILED (TestError): %s",
                                   cg_test, tb)
-                    results += "\n * %s: Test FAILED (TestError): %s"% (cg_test,
-                                                                failure_detail)
-                    try:
-                        tst.cleanup()
-                    except Exception, failure_detail:
-                        logging.warn("%s: cleanup also failed: %s\n", cg_test,
-                                                                failure_detail)
+                    err += "testErr, "
+                    out = failure_detail
                 except Exception, failure_detail:
-                    tb = _traceback(cg_test, sys.exc_info())
+                    tb = utils.etraceback(cg_test, sys.exc_info())
                     logging.error("%s: Leaving, test FAILED (Exception): %s",
                                   cg_test, tb)
-                    results += "\n * %s: Test FAILED (Exception): %s"% (cg_test,
-                                                                failure_detail)
-                    try:
-                        tst.cleanup()
-                    except Exception, failure_detail:
-                        logging.warn("%s: cleanup also failed: %s\n", cg_test,
-                                                                failure_detail)
+                    err += "testUnknownErr, "
+                    out = failure_detail
+
+                try:
+                    tst.cleanup()
+                except Exception, failure_detail:
+                    logging.warn("%s: cleanup failed: %s\n", failure_detail)
+                    err += "cleanup, "
+
+                try:
+                    _check_vms(vms)
+                except Exception, failure_detail:
+                    logging.warn("%s: _check_vms failed: %s\n", failure_detail)
+                    err += "VM check, "
+
+                if err.startswith("test"):
+                    results += ("\n [F] %s: {%s} FAILED: %s" %
+                                 (cg_test, err[:-2], out))
+                elif err:
+                    results += ("\n [E] %s: Test passed but {%s} FAILED: %s" %
+                                 (cg_test, err[:-2], out))
                 else:
-                    try:
-                        tst.cleanup()
-                    except Exception, failure_detail:
-                        tb = _traceback("%s cleanup:" % cg_test, sys.exc_info())
-                        logging.info("%s: Leaving, test passed but cleanup "
-                                     "FAILED\n%s", cg_test, tb)
-                        results += ("\n * %s: Test passed but cleanup FAILED"
-                                    % (cg_test))
-                    else:
-                        logging.info("%s: Leaving, test PASSED", cg_test)
-                        results += "\n * %s: Test PASSED: %s" % (cg_test, out)
+                    results += ("\n [P] %s: PASSED: %s" % (cg_test, out))
 
     out = ("SUM: All tests finished (%d PASS / %d FAIL = %d TOTAL)%s" %
            (results.count("PASSED"), results.count("FAILED"),
