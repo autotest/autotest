@@ -17,6 +17,108 @@ def run_cgroup(test, params, env):
     vms = None
     tests = None
 
+    # Func
+    def get_device_driver():
+        """
+        Discovers the used block device driver {ide, scsi, virtio_blk}
+        @return: Used block device driver {ide, scsi, virtio}
+        """
+        return params.get('drive_format', 'virtio')
+
+
+    def add_file_drive(vm, driver=get_device_driver(), host_file=None):
+        """
+        Hot-add a drive based on file to a vm
+        @param vm: Desired VM
+        @param driver: which driver should be used (default: same as in test)
+        @param host_file: Which file on host is the image (default: create new)
+        @return: Tupple(ret_file, device)
+                    ret_file: created file handler (None if not created)
+                    device: PCI id of the virtual disk
+        """
+        if not host_file:
+            host_file = tempfile.NamedTemporaryFile(prefix="cgroup-disk-",
+                                               suffix=".iso")
+            utils.system("dd if=/dev/zero of=%s bs=1M count=8 &>/dev/null"
+                         % (host_file.name))
+            ret_file = host_file
+        else:
+            ret_file = None
+
+        out = vm.monitor.cmd("pci_add auto storage file=%s,if=%s,snapshot=off,"
+                             "cache=off" % (host_file.name, driver))
+        dev = re.search(r'OK domain (\d+), bus (\d+), slot (\d+), function \d+',
+                        out)
+        if not dev:
+            raise error.TestFail("Can't add device(%s, %s, %s): %s" % (vm.name,
+                                                host_file.name, driver, out))
+        device = "%02x:%02x" % (int(dev.group(2)), int(dev.group(3)))
+        time.sleep(3)
+        out = vm.monitor.info('qtree', debug=False)
+        if out.count('addr %s.0' % device) != 1:
+            raise error.TestFail("Can't add device(%s, %s, %s): device in qtree"
+                            ":\n%s" % (vm.name, host_file.name, driver, out))
+        return (ret_file, device)
+
+
+    def add_scsi_drive(vm, driver=get_device_driver(), host_file=None):
+        """
+        Hot-add a drive based on scsi_debug device to a vm
+        @param vm: Desired VM
+        @param driver: which driver should be used (default: same as in test)
+        @param host_file: Which dev on host is the image (default: create new)
+        @return: Tupple(ret_file, device)
+                    ret_file: string of the created dev (None if not created)
+                    device: PCI id of the virtual disk
+        """
+        if not host_file:
+            if utils.system_output("lsmod | grep scsi_debug -c") == 0:
+                utils.system("modprobe scsi_debug dev_size_mb=8 add_host=0")
+            utils.system("echo 1 > /sys/bus/pseudo/drivers/scsi_debug/add_host")
+            host_file = utils.system_output("ls /dev/sd* | tail -n 1")
+            # Enable idling in scsi_debug drive
+            utils.system("echo 1 > /sys/block/%s/queue/rotational" % host_file)
+            ret_file = host_file
+        else:
+            # Don't remove this device during cleanup
+            # Reenable idling in scsi_debug drive (in case it's not)
+            utils.system("echo 1 > /sys/block/%s/queue/rotational" % host_file)
+            ret_file = None
+
+        out = vm.monitor.cmd("pci_add auto storage file=%s,if=%s,snapshot=off,"
+                             "cache=off" % (host_file, driver))
+        dev = re.search(r'OK domain (\d+), bus (\d+), slot (\d+), function \d+',
+                        out)
+        if not dev:
+            raise error.TestFail("Can't add device(%s, %s, %s): %s" % (vm.name,
+                                                        host_file, driver, out))
+        device = "%02x:%02x" % (int(dev.group(2)), int(dev.group(3)))
+        time.sleep(3)
+        out = vm.monitor.info('qtree', debug=False)
+        if out.count('addr %s.0' % device) != 1:
+            raise error.TestFail("Can't add device(%s, %s, %s): device in qtree"
+                            ":\n%s" % (vm.name, host_file.name, driver, out))
+        return (ret_file, device)
+
+
+    def rm_drive(vm, host_file, device):
+        """
+        Remove drive from vm and device on disk
+        ! beware to remove scsi devices in reverse order !
+        """
+        vm.monitor.cmd("pci_del %s" % device)
+        time.sleep(3)
+        out = vm.monitor.info('qtree', debug=False)
+        if out.count('addr %s.0' % device) != 0:
+            raise error.TestFail("Can't remove device(%s, %s, %s):\n%s" %
+                                 (vm.name, host_file, device, out))
+
+        if isinstance(host_file, file):     # file
+            host_file.close()
+        elif isinstance(host_file, str):    # scsi device
+            utils.system("echo -1> /sys/bus/pseudo/drivers/scsi_debug/add_host")
+
+
     # Tests
     class _TestBlkioBandwidth:
         """
@@ -46,9 +148,8 @@ def run_cgroup(test, params, env):
             """
             err = ""
             try:
-                for i in range (2):
-                    vms[i].monitor.cmd("pci_del %s" % self.devices[i])
-                    self.files[i].close()
+                for i in range(1, -1, -1):
+                    rm_drive(vms[i], self.files[i], self.devices[i])
             except Exception, failure_detail:
                 err += "\nCan't remove PCI drive: %s" % failure_detail
             try:
@@ -67,7 +168,7 @@ def run_cgroup(test, params, env):
              * assigns vm1 and vm2 into cgroups and sets the properties
              * creates a new virtio device and adds it into vms
             """
-            if test.tagged_testname.find('virtio_blk') == -1:
+            if get_device_driver() != 'virtio':
                 logging.warn("The main disk for this VM is non-virtio, keep in "
                              "mind that this particular subtest will add a new "
                              "virtio_blk disk to it")
@@ -89,8 +190,7 @@ def run_cgroup(test, params, env):
                 if blkio.set_cgroup(self.vms[i].get_shell_pid(), pwd[i]):
                     raise error.TestError("Could not set cgroup")
                 # Move all existing threads into cgroup
-                for tmp in utils.system_output("ps -L --ppid=%d -o lwp"
-                                % self.vms[i].get_shell_pid()).split('\n')[1:]:
+                for tmp in utils.get_children_pids(self.vms[i].get_shell_pid()):
                     if blkio.set_cgroup(int(tmp), pwd[i]):
                         raise error.TestError("Could not set cgroup")
             if self.blkio.set_property("blkio.weight", 100, pwd[0]):
@@ -101,18 +201,9 @@ def run_cgroup(test, params, env):
             # Add dummy drives
             # TODO: implement also using QMP.
             for i in range(2):
-                self.files.append(tempfile.NamedTemporaryFile(
-                                        prefix="cgroup-disk-",
-                                        suffix=".iso"))
-                utils.system("dd if=/dev/zero of=%s bs=1M count=10 &>/dev/null"
-                             % (self.files[i].name))
-                out = vms[i].monitor.cmd("pci_add auto storage file=%s,"
-                                "if=virtio,snapshot=off,cache=off"
-                                % (self.files[i].name))
-                out = re.search(r'OK domain (\d+), bus (\d+), slot (\d+), '
-                                 'function \d+', out).groups()
-                self.devices.append("%s:%s:%s" % out)
-
+                (host_file, device) = add_file_drive(vms[i], "virtio")
+                self.files.append(host_file)
+                self.devices.append(device)
 
         def run(self):
             """
@@ -155,13 +246,16 @@ def run_cgroup(test, params, env):
             out2 = out[1][1]
             # Cgroup are limitting weights of guests 100:1000. On bare mettal it
             # works in virtio_blk we are satisfied with the ratio 1:3.
+            if out1 == 0:
+                raise error.TestFail("No data transfered: %d:%d (1:10)" %
+                                      (out1, out2))
             if out1*3  > out2:
-                raise error.TestFail("dd values: %s:%s (1:%f), limit 1:2.5"
+                raise error.TestFail("dd values: %d:%d (1:%.2f), limit 1:3"
                                      ", theoretical: 1:10"
                                      % (out1, out2, out2/out1))
             else:
-                logging.info("dd values: %s:%s (1:%s)", out1, out2, out2/out1)
-            return "dd values: %s:%s (1:%s)" % (out1, out2, out2/out1)
+                logging.info("dd values: %d:%d (1:%.2f)", out1, out2, out2/out1)
+            return "dd values: %d:%d (1:%.2f)" % (out1, out2, out2/out1)
 
 
 
@@ -178,7 +272,7 @@ def run_cgroup(test, params, env):
             _TestBlkioBandwidth.__init__(self, vms, modules)
             # Read from the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
-            self.dd_cmd = ("export FILE=$(ls /dev/vd* | tail -n 1); touch "
+            self.dd_cmd = ("export FILE=$(ls /dev/vd? | tail -n 1); touch "
                            "/tmp/cgroup_lock ; while [ -e /tmp/cgroup_lock ];"
                            "do dd if=$FILE of=/dev/null iflag=direct bs=100K;"
                            "done")
@@ -197,7 +291,7 @@ def run_cgroup(test, params, env):
             # Write on the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
             _TestBlkioBandwidth.__init__(self, vms, modules)
-            self.dd_cmd = ('export FILE=$(ls /dev/vd* | tail -n 1); touch '
+            self.dd_cmd = ('export FILE=$(ls /dev/vd? | tail -n 1); touch '
                            '/tmp/cgroup_lock ; while [ -e /tmp/cgroup_lock ];'
                            'do dd if=/dev/zero of=$FILE oflag=direct bs=100K;'
                            'done')
