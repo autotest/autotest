@@ -625,12 +625,13 @@ variants:
         find_pci_cmd = 'lspci | tail -n1'
         pci_test_cmd = 'nslookup www.redhat.com'
         wait_secs_for_hook_up = 3
+        run_dhclient = no
         variants:
             - nic_8139:
                 pci_model = rtl8139
                 match_string = "8139"
             - nic_virtio:
-                pci_model = virtio
+                pci_model = virtio-net-pci
                 match_string = "Virtio network device"
             - nic_e1000:
                 pci_model = e1000
