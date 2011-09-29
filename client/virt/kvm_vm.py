@@ -1057,8 +1057,12 @@ class VM(virt_vm.BaseVM):
         @param nic_index: Index of the NIC
         """
         nics = self.params.objects("nics")
-        nic_name = nics[nic_index]
-        nic_params = self.params.object_params(nic_name)
+        try:
+            nic_name = nics[nic_index]
+            nic_params = self.params.object_params(nic_name)
+        except IndexError:
+            nic_params = {}
+
         if nic_params.get("nic_ifname"):
             return nic_params.get("nic_ifname")
         else:
@@ -1130,6 +1134,131 @@ class VM(virt_vm.BaseVM):
         shm = int(open(filename).read().split()[2])
         # statm stores informations in pages, translate it to MB
         return shm * 4.0 / 1024
+
+
+    @error.context_aware
+    def add_netdev(self, netdev_id=None, extra_params=None):
+        """
+        Hotplug a netdev device.
+
+        @param netdev_id: Optional netdev id.
+        """
+        brname = self.params.get("bridge")
+        if netdev_id is None:
+            netdev_id = virt_utils.generate_random_id()
+        vlan_index = len(self.tapfds)
+        ifname = self.get_ifname(vlan_index)
+        logging.debug("interface name is %s" % ifname)
+        tapfd = virt_utils.open_tap("/dev/net/tun", ifname, vnet_hdr=False)
+        virt_utils.add_to_bridge(ifname, brname)
+        virt_utils.bring_up_ifname(ifname)
+        self.tapfds.append(tapfd)
+        tapfd_id = virt_utils.generate_random_id()
+        self.monitor.getfd(tapfd, tapfd_id)
+        attach_cmd = "netdev_add tap,id=%s,fd=%s" % (netdev_id, tapfd_id)
+        if extra_params is not None:
+            attach_cmd += ",%s" % extra_params
+        error.context("adding netdev id %s to vm %s" % (netdev_id, self.name))
+        self.monitor.cmd(attach_cmd)
+
+        network_info = self.monitor.info("network")
+        if netdev_id not in network_info:
+            raise virt_vm.VMAddNetDevError("Failed to add netdev: %s" %
+                                           netdev_id)
+
+        return netdev_id
+
+
+    @error.context_aware
+    def del_netdev(self, netdev_id):
+        """
+        Hot unplug a netdev device.
+        """
+        error.context("removing netdev id %s from vm %s" %
+                      (netdev_id, self.name))
+        self.monitor.cmd("netdev_del %s" % netdev_id)
+
+        network_info = self.monitor.info("network")
+        if netdev_id in network_info:
+            raise virt_vm.VMDelNetDevError("Fail to remove netdev %s" %
+                                           netdev_id)
+
+
+    @error.context_aware
+    def add_nic(self, model='rtl8139', nic_id=None, netdev_id=None, mac=None,
+                romfile=None):
+        """
+        Hotplug a nic.
+
+        @param model: Optional nic model.
+        @param nic_id: Optional nic ID.
+        @param netdev_id: Optional id of netdev.
+        @param mac: Optional Mac address of new nic.
+        @param rom: Optional Rom file.
+
+        @return: Dict with added nic info. Keys:
+                netdev_id = netdev id
+                nic_id = nic id
+                model = nic model
+                mac = mac address
+        """
+        nic_info = {}
+        nic_info['model'] = model
+
+        if nic_id is None:
+            nic_id = virt_utils.generate_random_id()
+        nic_info['nic_id'] = nic_id
+
+        if netdev_id is None:
+            netdev_id = self.add_netdev()
+        nic_info['netdev_id'] = netdev_id
+
+        if mac is None:
+            mac = virt_utils.generate_mac_address(self.instance, 1)
+        nic_info['mac'] = mac
+
+        device_add_cmd = "device_add driver=%s,netdev=%s,mac=%s,id=%s" % (model,
+                                                                          netdev_id,
+                                                                          mac, nic_id)
+
+        if romfile is not None:
+            device_add_cmd += ",romfile=%s" % romfile
+        nic_info['romfile'] = romfile
+
+        error.context("adding nic %s to vm %s" % (nic_info, self.name))
+        self.monitor.cmd(device_add_cmd)
+
+        qtree = self.monitor.info("qtree")
+        if not nic_id in qtree:
+            logging.error(qtree)
+            raise virt_vm.VMAddNicError("Device %s was not plugged into qdev"
+                                        "tree" % nic_id)
+
+        return nic_info
+
+
+    @error.context_aware
+    def del_nic(self, nic_info, wait=20):
+        """
+        Remove the nic from pci tree.
+
+        @vm: VM object
+        @nic_info: Dictionary with nic info
+        @wait: Time test will wait for the guest to unplug the device
+        """
+        error.context("")
+        nic_del_cmd = "device_del %s" % nic_info['nic_id']
+        self.monitor.cmd(nic_del_cmd)
+        if wait:
+            logging.info("waiting for the guest to finish the unplug")
+            if not virt_utils.wait_for(lambda: nic_info['nic_id'] not in
+                                       self.monitor.info("qtree"),
+                                       wait, 5 ,1):
+                raise virt_vm.VMDelNicError("Device is not unplugged by "
+                                            "guest, please check whether the "
+                                            "hotplug module was loaded in "
+                                            "guest")
+        self.del_netdev(nic_info['netdev_id'])
 
 
     @error.context_aware
