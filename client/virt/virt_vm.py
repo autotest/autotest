@@ -152,6 +152,22 @@ class VMIPAddressMissingError(VMAddressError):
         return "Cannot find IP address for MAC address %s" % self.mac
 
 
+class VMAddNetDevError(VMError):
+    pass
+
+
+class VMDelNetDevError(VMError):
+    pass
+
+
+class VMAddNicError(VMError):
+    pass
+
+
+class VMDelNicError(VMError):
+    pass
+
+
 class VMMigrateError(VMError):
     pass
 
