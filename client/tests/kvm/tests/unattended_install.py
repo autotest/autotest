@@ -91,6 +91,7 @@ class FloppyDisk(Disk):
             m_cmd = 'mount -o loop,rw %s %s' % (path, self.mount)
             utils.run(m_cmd)
         except error.CmdError, e:
+            logging.error("Error during floppy initialization: %s" % e)
             cleanup(self.mount)
             raise
 
@@ -210,7 +211,6 @@ class UnattendedInstallConfig(object):
         @param params: Dictionary with test parameters.
         """
         root_dir = test.bindir
-        images_dir = os.path.join(root_dir, 'images')
         self.deps_dir = os.path.join(root_dir, 'deps')
         self.unattended_dir = os.path.join(root_dir, 'unattended')
 
@@ -580,7 +580,6 @@ def run_unattended_install(test, params, env):
     vm.create()
 
     install_timeout = int(params.get("timeout", 3000))
-    post_install_delay = int(params.get("post_install_delay", 0))
     port = vm.get_port(int(params.get("guest_port_unattended_install")))
 
     migrate_background = params.get("migrate_background") == "yes"
@@ -612,16 +611,6 @@ def run_unattended_install(test, params, env):
                 pass
 
         if migrate_background:
-            # Drop the params which may break the migration
-            # Better method is to use dnsmasq to do the
-            # unattended installation
-            if vm.params.get("initrd"):
-                vm.params["initrd"] = None
-            if vm.params.get("kernel"):
-                vm.params["kernel"] = None
-            if vm.params.get("extra_params"):
-                vm.params["extra_params"] = re.sub("--append '.*'", "",
-                                                   vm.params["extra_params"])
             vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
         else:
             time.sleep(1)
