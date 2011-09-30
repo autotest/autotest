@@ -60,7 +60,7 @@ def run_guest_test(test, params, env):
             logging.info("Download resource finished.")
         else:
             session.cmd_output("del %s" % dst_rsc_path, internal_timeout=0)
-            script_path = virt_utils.get_path(test.bindir, script)
+            script_path = virt_utils.get_path(test.virtdir, script)
             vm.copy_files_to(script_path, dst_rsc_path, timeout=60)
 
         cmd = "%s %s %s" % (interpreter, dst_rsc_path, script_params)

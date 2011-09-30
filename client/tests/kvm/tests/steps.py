@@ -192,7 +192,7 @@ def run_steps(test, params, env):
     steps_filename = params.get("steps")
     if not steps_filename:
         raise error.TestError("Steps filename not specified")
-    steps_filename = virt_utils.get_path(test.bindir, steps_filename)
+    steps_filename = virt_utils.get_path(test.virtdir, steps_filename)
     if not os.path.exists(steps_filename):
         raise error.TestError("Steps file not found: %s" % steps_filename)
 

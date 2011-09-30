@@ -1,4 +1,4 @@
-import os, logging, imp
+import os, logging, imp, sys
 from autotest_lib.client.bin import test
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.virt import virt_utils, virt_env_process
@@ -29,6 +29,9 @@ class kvm(test.test):
         # the value present on the configuration file (defaults to yes)
         if params.get("preserve_srcdir", "yes") == "yes":
             self.preserve_srcdir = True
+        dirname = os.path.dirname(sys.modules[__name__].__file__)
+        clientdir = os.path.abspath(os.path.join(dirname, "..", ".."))
+        self.virtdir = os.path.join(clientdir, "virt")
 
 
     def run_once(self, params):
