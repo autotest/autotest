@@ -994,7 +994,7 @@ class client_logger(object):
                     temp_dir = autotemp.tempdir(unique_id='autoserv-packager',
                                                 dir=self.job.tmpdir)
                     tarball_path = self.job.pkgmgr.tar_package(
-                        pkg_name, src_dir, temp_dir.name, " .")
+                        pkg_name, src_dir, temp_dir.name, " .", None)
                     self.host.send_file(tarball_path, remote_dest)
                 finally:
                     temp_dir.clean()
