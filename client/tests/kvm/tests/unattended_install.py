@@ -211,8 +211,8 @@ class UnattendedInstallConfig(object):
         @param params: Dictionary with test parameters.
         """
         root_dir = test.bindir
-        self.deps_dir = os.path.join(root_dir, 'deps')
-        self.unattended_dir = os.path.join(root_dir, 'unattended')
+        self.deps_dir = os.path.join(test.virtdir, 'deps')
+        self.unattended_dir = os.path.join(test.virtdir, 'unattended')
 
         attributes = ['kernel_args', 'finish_program', 'cdrom_cd1',
                       'unattended_file', 'medium', 'url', 'kernel', 'initrd',
@@ -233,10 +233,10 @@ class UnattendedInstallConfig(object):
         self.tmpdir = test.tmpdir
 
         if getattr(self, 'unattended_file'):
-            self.unattended_file = os.path.join(root_dir, self.unattended_file)
+            self.unattended_file = os.path.join(test.virtdir, self.unattended_file)
 
         if getattr(self, 'finish_program'):
-            self.finish_program = os.path.join(root_dir, self.finish_program)
+            self.finish_program = os.path.join(test.virtdir, self.finish_program)
 
         if getattr(self, 'qemu_img_binary'):
             if not os.path.isfile(getattr(self, 'qemu_img_binary')):
