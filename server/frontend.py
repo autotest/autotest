@@ -393,6 +393,20 @@ class AFE(RpcClient):
         url = '%s/afe/#tab_id=view_job&object_id=%s' % (base_url, job.id)
         text.append(url + '\n')
 
+        smtp_info = {}
+        smtp_info['server'] = GLOBAL_CONFIG.get_config_value('SERVER',
+                                                             'smtp_server',
+                                                             default='localhost')
+        smtp_info['port'] = GLOBAL_CONFIG.get_config_value('SERVER',
+                                                           'smtp_port',
+                                                           default='')
+        smtp_info['user'] = GLOBAL_CONFIG.get_config_value('SERVER',
+                                                           'smtp_user',
+                                                           default='')
+        smtp_info['password'] = GLOBAL_CONFIG.get_config_value('SERVER',
+                                                               'smtp_password',
+                                                               default='')
+
         body = '\n'.join(text)
         print '---------------------------------------------------'
         print 'Subject: ', subject
@@ -400,7 +414,7 @@ class AFE(RpcClient):
         print '---------------------------------------------------'
         if email_from and email_to:
             print 'Sending email ...'
-            utils.send_email(email_from, email_to, subject, body)
+            utils.send_email(email_from, email_to, subject, body, smtp_info)
         print
 
 

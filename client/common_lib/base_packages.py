@@ -770,11 +770,22 @@ class BasePackageManager(object):
         return (local_checksum == repository_checksum)
 
 
-    def tar_package(self, pkg_name, src_dir, dest_dir, exclude_string=None):
+    def tar_package(self, pkg_name, src_dir, dest_dir, include_string=None,
+                    exclude_string=None):
         '''
         Create a tar.bz2 file with the name 'pkg_name' say test-blah.tar.bz2.
-        Excludes the directories specified in exclude_string while tarring
-        the source. Returns the tarball path.
+
+        Includes the files specified in include_string, and excludes the files
+        specified on the exclude string, while tarring the source. Returns the
+        destination tarball path.
+
+        @param pkg_name: Package name.
+        @param src_dir: Directory that contains the data to be packaged.
+        @param dest_dir: Directory that will hold the destination tarball.
+        @param include_string: Pattern that represents the files that will be
+                added to the tar package.
+        @param exclude_string: Pattern that represents the files that should be
+                excluded from the tar package.
         '''
         tarball_path = os.path.join(dest_dir, pkg_name)
         temp_path = tarball_path + '.tmp'
@@ -783,7 +794,11 @@ class BasePackageManager(object):
             cmd_list.append('--use-compress-prog=pbzip2')
         else:
             cmd_list.append('-j')
+        if include_string is not None:
+            cmd_list.append(include_string)
         if exclude_string is not None:
+            if not "--exclude" in exclude_string:
+                cmd_list.append('--exclude')
             cmd_list.append(exclude_string)
 
         try:

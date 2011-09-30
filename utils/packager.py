@@ -33,12 +33,6 @@ def get_exclude_string(client_dir):
         if os.path.isdir(os.path.join(prof_dir, f)):
             exclude_string += ' --exclude=profilers/%s' % f
 
-    # The '.' here is needed to zip the files in the current
-    # directory. We use '-C' for tar to change to the required
-    # directory i.e. src_dir and then zip up the files in that
-    # directory(which is '.') excluding the ones in the exclude_dirs
-    exclude_string += " ."
-
     return exclude_string
 
 
@@ -73,7 +67,8 @@ def parse_args():
 # Method to upload or remove package depending on the flag passed to it.
 def process_packages(pkgmgr, pkg_type, pkg_names, src_dir,
                     remove=False):
-    exclude_string = ' .'
+    include_string = " ."
+    exclude_string = None
     names = [p.strip() for p in pkg_names.split(',')]
     for name in names:
         print "Processing %s ... " % name
@@ -99,8 +94,11 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir,
                     msg = ("Temporary directory for packages %s does not have "
                            "enough space available: %s" % (temp_dir, e))
                     raise error.RepoDiskFullError(msg)
-                tarball_path = pkgmgr.tar_package(pkg_name, pkg_dir,
-                                                  temp_dir, exclude_string)
+                tarball_path = pkgmgr.tar_package(pkg_name=pkg_name,
+                                                  src_dir=pkg_dir,
+                                                  dest_dir=temp_dir,
+                                                  include_string=include_string,
+                                                  exclude_string=exclude_string)
                 pkgmgr.upload_pkg(tarball_path, update_checksum=True)
             finally:
                 # remove the temporary directory
@@ -113,7 +111,8 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir,
 def tar_packages(pkgmgr, pkg_type, pkg_names, src_dir, temp_dir):
     """Tar all packages up and return a list of each tar created"""
     tarballs = []
-    exclude_string = ' .'
+    include_string = ' .'
+    exclude_string = None
     names = [p.strip() for p in pkg_names.split(',')]
     for name in names:
         print "Processing %s ... " % name
@@ -129,8 +128,11 @@ def tar_packages(pkgmgr, pkg_type, pkg_names, src_dir, temp_dir):
             pkg_dir = os.path.join(src_dir, name)
 
         pkg_name = pkgmgr.get_tarball_name(name, pkg_type)
-        tarball_path = pkgmgr.tar_package(pkg_name, pkg_dir,
-                                              temp_dir, exclude_string)
+        tarball_path = pkgmgr.tar_package(pkg_name=pkg_name,
+                                          src_dir=pkg_dir,
+                                          dest_dir=temp_dir,
+                                          include_string=include_string,
+                                          exclude_string=exclude_string)
 
         tarballs.append(tarball_path)
 

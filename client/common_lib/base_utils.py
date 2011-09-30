@@ -154,29 +154,39 @@ def set_ip_local_port_range(lower, upper):
                    '%d %d\n' % (lower, upper))
 
 
-
-def send_email(mail_from, mail_to, subject, body):
+def send_email(mail_from, mail_to, subject, body,
+               smtp_info={'server':'localhost', 'user':'', 'password':'',
+                          'port':''}):
     """
-    Sends an email via smtp
+    Sends an email via SMTP.
 
-    mail_from: string with email address of sender
-    mail_to: string or list with email address(es) of recipients
-    subject: string with subject of email
-    body: (multi-line) string with body of email
+    @param mail_from: string with email address of sender
+    @param mail_to: string or list with email address(es) of recipients
+    @param subject: string with subject of email
+    @param body: (multi-line) string with body of email
+    @param smtp_info: Dict with smtp server info
+            server: SMTP server
+            user: SMTP user (if any)
+            password: SMTP password (if any)
+            port: SMTP port (if non standard)
     """
     if isinstance(mail_to, str):
         mail_to = [mail_to]
     msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (mail_from, ','.join(mail_to),
                                                    subject, body)
     try:
-        mailer = smtplib.SMTP('localhost')
+        # Here if we pass an empty string as port, the default (25) will be
+        # used http://docs.python.org/library/smtplib.html
+        mailer = smtplib.SMTP(smtp_info['server'], smtp_info['port'])
+        if smtp_info['user']:
+            mailer.login(smtp_info['user'], smtp_info['password'])
         try:
             mailer.sendmail(mail_from, mail_to, msg)
         finally:
             mailer.quit()
     except Exception, e:
-        # Emails are non-critical, not errors, but don't raise them
-        print "Sending email failed. Reason: %s" % repr(e)
+        # Emails are non-critical, log the error, don't raise it
+        logging.error("Sending email failed. Reason: %s", repr(e))
 
 
 def read_one_line(filename):
