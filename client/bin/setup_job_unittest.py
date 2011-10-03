@@ -80,6 +80,7 @@ class test_init_minimal_options(abstract_test_init, setup_job_test_case):
             user = None
             log = False
             tap_report = None
+            output_dir = ''
 
         self.job.__init__(options)
 
@@ -171,6 +172,7 @@ class test_setup_job(unittest.TestCase):
         options.hostname = 'localhost'
         options.user = 'my_user'
         options.tap_report = None
+        options.output_dir = ''
         self.job.__init__(options)
 
         # check
