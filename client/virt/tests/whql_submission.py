@@ -42,10 +42,10 @@ def run_whql_submission(test, params, env):
                                     "Microsoft Driver Test Manager\\Studio")
     dsso_test_binary = params.get("dsso_test_binary",
                                   "deps/whql_submission_15.exe")
-    dsso_test_binary = virt_utils.get_path(test.bindir, dsso_test_binary)
+    dsso_test_binary = virt_utils.get_path(test.virtdir, dsso_test_binary)
     dsso_delete_machine_binary = params.get("dsso_delete_machine_binary",
                                             "deps/whql_delete_machine_15.exe")
-    dsso_delete_machine_binary = virt_utils.get_path(test.bindir,
+    dsso_delete_machine_binary = virt_utils.get_path(test.virtdir,
                                                     dsso_delete_machine_binary)
     test_timeout = float(params.get("test_timeout", 600))
 
