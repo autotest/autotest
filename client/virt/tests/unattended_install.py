@@ -275,7 +275,7 @@ class UnattendedInstallConfig(object):
                 contents = re.sub(dummy_cdkey_re, self.cdkey, contents)
 
         dummy_medium_re = r'\bKVM_TEST_MEDIUM\b'
-        if self.medium == "cdrom":
+        if self.medium in ["cdrom", "kernel_initrd"]:
             content = "cdrom"
         elif self.medium == "url":
             content = "url --url %s" % self.url
@@ -582,7 +582,7 @@ class UnattendedInstallConfig(object):
 
         if self.unattended_file and (self.floppy or self.cdrom_unattended):
             self.setup_boot_disk()
-        if self.medium == "cdrom":
+        if self.medium in ["cdrom", "kernel_initrd"]:
             if self.kernel and self.initrd:
                 self.setup_cdrom()
         elif self.medium == "url":
