@@ -1,0 +1,73 @@
+# Copy this file to tests.cfg and edit it.
+#
+# This file contains the test set definitions. Define your test sets here.
+include tests_base.cfg
+include cdkeys.cfg
+include virtio-win.cfg
+
+# Modify/comment the following lines if you wish to modify the paths of the
+# image files, ISO files or qemu binaries.
+#
+# As for the defaults:
+# * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
+#   /usr/bin/qemu-img respectively.
+# * All image files are expected under /tmp/libvirt_autotest_root/images/
+# * All install iso files are expected under /tmp/libvirt_autotest_root/isos/
+# * The parameters cdrom_unattended, floppy, kernel and initrd are generated
+#   by LIBVIRT autotest, so remember to put them under a writable location
+#   (for example, the cdrom share can be read only)
+image_name(_.*)? ?<= /tmp/libvirt_autotest_root/images/
+cdrom(_.*)? ?<= /tmp/libvirt_autotest_root/
+floppy ?<= /tmp/libvirt_autotest_root/
+image_dir = /tmp/libvirt_autotest_root/
+Linux..unattended_install:
+    kernel ?<= /tmp/libvirt_autotest_root/
+    initrd ?<= /tmp/libvirt_autotest_root/
+
+variants:
+    # Runs virt-install, f15 64 bit guest OS, install, boot, shutdown
+    - @libvirt_f15_quick:
+        virt_install_binary = /usr/bin/virt-install
+        qemu_img_binary = /usr/bin/qemu-img
+        only raw
+        only virtio_net
+        only ide
+        only smp2
+        only no_pci_assignable
+        only smallpages
+        only Fedora.15.64
+        only unattended_install.cdrom, boot, reboot, shutdown
+
+    # Runs virt-install, RHEL 6.0 64 bit guest OS, install, boot, shutdown
+    - @libvirt_rhel60_quick:
+        virt_install_binary = /usr/bin/virt-install
+        qemu_img_binary = /usr/bin/qemu-img
+        only raw
+        only virtio_net
+        only virtio_blk
+        only smp2
+        only no_pci_assignable
+        only smallpages
+        only RHEL.6.0.x86_64
+        only unattended_install.cdrom, boot, reboot, shutdown
+
+    - @libvirt_windows:
+        virt_install_binary = /usr/bin/virt-install
+        qemu_img_binary = /usr/bin/qemu-img
+        use_virt_install = yes
+        image_format = raw
+        virt_install_debug = yes
+        hvm_or_pv = --hvm --accelerate
+        mem = 4196
+        install_virtio = no
+        only raw
+        only rtl8139
+        only ide
+        only smp2
+        only no_pci_assignable
+        only smallpages
+        only Windows.Win7.64
+        only unattended_install.cdrom, boot, reboot, shutdown
+
+# Choose your test list from the testsets defined
+only libvirt_f15_quick
