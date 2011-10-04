@@ -1,0 +1,235 @@
+# Copy this file to virtio-win.cfg and edit it.
+# This file intends to be a central point of configuration for folks wanting
+# to install windows virtio drivers on windows guests
+
+# A bit of context on windows virtio drivers install
+# --------------------------------------------------
+# This method of install so far covers the storage (viostor) and network
+# (NetKVM) drivers. KVM autotest uses a boot floppy with a Windows answer
+# file in order to perform unattended install of windows guests. For winXP
+# and win2003, the unattended files are simple .ini files, while for win2008
+# and later, the unattended files are XML files.
+#
+# In order to install the virtio drivers during guest install, KVM autotest
+# has to inform the windows install programs *where* to find the drivers. So,
+# we work from the following assumptions:
+#
+# * You already have an iso file that contains windows virtio drivers
+# (inf files) for both netkvm and viostor. If you are unsure how to generate
+# that iso, there's an example script under contrib, inside the kvm test
+# directory. If you take a look at the files inside this iso image, a small
+# part of them should look like:
+#
+# ./wxp/x86/viostor.cat
+# ./wxp/x86/viostor.inf
+# ./wxp/x86/viostor.pdb
+# ./wxp/x86/viostor.sys
+#
+# * If you are planning on installing WinXP or Win2003, you should also have
+# a pre-made floppy disk image with the virtio drivers *and* a configuration
+# file that the installer program will read to fetch the right drivers from it.
+# Unfortunately, I don't have much info on how to build that file, you probably
+# would have the image already assembled if you are willing to test those guest
+# OS.
+#
+# So you have to map the paths of your cd containing the drivers on the config
+# variables. More details below.
+
+Windows:
+    unattended_install.cdrom, whql.support_vm_install:
+        # In order to enable drivers install, turn the below to 'yes'
+        install_virtio = no
+
+        # In order to enable drivers install, uncomment the assignment lines
+        # below.
+
+        # This makes the vm to be started with the virtio iso file as an extra
+        # cdrom drive
+        #cdroms += " virtio"
+
+        # This assumes the virtio iso will be at (/tmp/kvm_autotest_root/isos)
+        #cdrom_virtio = isos/virtio-win.iso
+
+        # This ensures the iso will appear to the guest as F:
+        #drive_index_virtio = 3
+
+        # This assumes the virtio floppy will be at (/tmp/kvm_autotest_root/)
+        # This floppy is needed only if you desire to test virtio drivers
+        # install for WinXP and Win2003. If you don't, you can leave the line
+        # below uncommented
+        #virtio_floppy = virtio-drivers.vfd
+
+    WinXP:
+        32:
+            unattended_install.cdrom, whql.support_vm_install:
+                # This is a label used on the oemsetup.ini file, inside your
+                # virtio floppy. You might actually want to check what are
+                # the labels on yours
+                virtio_oemsetup_id = WXP32
+
+                # Look at your cd structure and see where the drivers are
+                # actually located
+                virtio_network_path = 'F:\xp\x86'
+
+                # Uncomment if you have a nw driver installer on the iso
+                #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
+
+        64:
+            unattended_install.cdrom, whql.support_vm_install:
+                # This is a label used on the oemsetup.ini file, inside your
+                # virtio floppy. You might actually want to check what are
+                # the labels on yours
+                virtio_oemsetup_id = WNET64
+
+                # Look at your cd structure and see where the drivers are
+                # actually located
+                virtio_network_path = 'F:\xp\amd64'
+
+                # Uncomment if you have a nw driver installer on the iso
+                #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
+
+    Win2003:
+        32:
+            unattended_install.cdrom, whql.support_vm_install:
+                # This is a label used on the oemsetup.ini file, inside your
+                # virtio floppy. You might actually want to check what are
+                # the labels on yours
+                virtio_oemsetup_id = WNET32
+
+                # Look at your cd structure and see where the drivers are
+                # actually located
+                virtio_network_path = 'F:\xp\x86'
+
+                # Uncomment if you have a nw driver installer on the iso
+                #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
+
+        64:
+            unattended_install.cdrom, whql.support_vm_install:
+                # This is a label used on the oemsetup.ini file, inside your
+                # virtio floppy. You might actually want to check what are
+                # the labels on yours
+                virtio_oemsetup_id = WNET64
+
+                # Look at your cd structure and see where the drivers are
+                # actually located
+                virtio_network_path = 'F:\xp\amd64'
+
+                # Uncomment if you have a nw driver installer on the iso
+                #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
+
+    WinVista:
+        32:
+            sp1:
+                unattended_install.cdrom, whql.support_vm_install:
+                    # Look at your cd structure and see where the drivers are
+                    # actually located (viostor and netkvm)
+                    virtio_storage_path = 'F:\win7\x86'
+                    virtio_network_path = 'F:\vista\x86'
+
+                    # Uncomment if you have a nw driver installer on the iso
+                    #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
+
+            sp2:
+                unattended_install.cdrom, whql.support_vm_install:
+                    # Look at your cd structure and see where the drivers are
+                    # actually located (viostor and netkvm)
+                    virtio_storage_path = 'F:\win7\x86'
+                    virtio_network_path = 'F:\vista\x86'
+
+                    # Uncomment if you have a nw driver installer on the iso
+                    #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
+
+        64:
+            sp1:
+                unattended_install.cdrom, whql.support_vm_install:
+                    # Look at your cd structure and see where the drivers are
+                    # actually located (viostor and netkvm)
+                    virtio_storage_path = 'F:\win7\amd64'
+                    virtio_network_path = 'F:\vista\amd64'
+
+                    # Uncomment if you have a nw driver installer on the iso
+                    #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
+
+            sp2:
+                unattended_install.cdrom, whql.support_vm_install:
+                    # Look at your cd structure and see where the drivers are
+                    # actually located (viostor and netkvm)
+                    virtio_storage_path = 'F:\win7\amd64'
+                    virtio_network_path = 'F:\vista\amd64'
+
+                    # Uncomment if you have a nw driver installer on the iso
+                    #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
+
+    Win2008:
+        32:
+            sp1:
+                unattended_install.cdrom, whql.support_vm_install:
+                    # Look at your cd structure and see where the drivers are
+                    # actually located (viostor and netkvm)
+                    virtio_storage_path = 'F:\win7\x86'
+                    virtio_network_path = 'F:\vista\x86'
+
+                    # Uncomment if you have a nw driver installer on the iso
+                    #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
+
+            sp2:
+                unattended_install.cdrom, whql.support_vm_install:
+                    # Look at your cd structure and see where the drivers are
+                    # actually located (viostor and netkvm)
+                    virtio_storage_path = 'F:\win7\x86'
+                    virtio_network_path = 'F:\vista\x86'
+
+                    # Uncomment if you have a nw driver installer on the iso
+                    #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
+
+        64:
+            sp1:
+                unattended_install.cdrom, whql.support_vm_install:
+                    # Look at your cd structure and see where the drivers are
+                    # actually located (viostor and netkvm)
+                    virtio_storage_path = 'F:\win7\amd64'
+                    virtio_network_path = 'F:\vista\amd64'
+
+                    # Uncomment if you have a nw driver installer on the iso
+                    #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
+
+            sp2:
+                unattended_install.cdrom, whql.support_vm_install:
+                    # Look at your cd structure and see where the drivers are
+                    # actually located (viostor and netkvm)
+                    virtio_storage_path = 'F:\win7\amd64'
+                    virtio_network_path = 'F:\vista\amd64'
+
+                    # Uncomment if you have a nw driver installer on the iso
+                    #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
+
+            r2:
+                unattended_install.cdrom, whql.support_vm_install:
+                    # Look at your cd structure and see where the drivers are
+                    # actually located (viostor and netkvm)
+                    virtio_storage_path = 'F:\win7\amd64'
+                    virtio_network_path = 'F:\vista\amd64'
+
+                    # Uncomment if you have a nw driver installer on the iso
+                    #virtio_network_installer_path = 'F:\RHEV-Network64.msi'
+
+    Win7:
+        32:
+            unattended_install.cdrom, whql.support_vm_install:
+                # Look at your cd structure and see where the drivers are
+                # actually located (viostor and netkvm)
+                virtio_storage_path = 'F:\win7\x86'
+                virtio_network_path = 'F:\vista\x86'
+
+                # Uncomment if you have a nw driver installer on the iso
+                #virtio_network_installer_path = 'F:\RHEV-Network32.msi'
+
+        64:
+            unattended_install.cdrom, whql.support_vm_install:
+                # Look at your cd structure and see where the drivers are
+                # actually located (viostor and netkvm)
+                virtio_storage_path = 'F:\win7\amd64'
+                virtio_network_path = 'F:\vista\amd64'
+
+                # Uncomment if you have a nw driver installer on the iso
+                #virtio_network_installer_path = 'F:\RHEV-Network64.msi'

@@ -1,0 +1,11 @@
+For the impatient:
+
+Execute the get_started.py script located on this directory,
+that will guide you through setting up the default libvirt test
+scenario:
+
+ * Guest install with Fedora 15
+ * Boot, reboot and shutdown test
+
+The script will help you to create all the directories, and
+even get the OS iso in case you don't have it yet.
