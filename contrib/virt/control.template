@@ -39,7 +39,7 @@ def run(machine):
     profile = params.get('host_install_profile')
     timeout = int(params.get('host_install_timeout', 3600))
     if profile:
-        host.install(profile=profile, timeout=timeout)
+        host.machine_install(profile=profile, timeout=timeout)
     at = autotest.Autotest(host)
     control = get_control(params, custom_cfg)
     at.run(control)
