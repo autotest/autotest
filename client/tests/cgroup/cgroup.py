@@ -149,7 +149,7 @@ class cgroup(test.test):
         ps = item.test("memfill %d %s" % (mem, outf.name))
         ps.stdin.write('\n')
         i = 0
-        while ps.poll() == None:
+        while ps.poll() is None:
             if i > 60:
                 break
             i += 1
@@ -160,7 +160,7 @@ class cgroup(test.test):
         outf.seek(0)
         outf.flush()
         out = outf.readlines()
-        if (len(out) < 2) or (ps.poll() != 0):
+        if (len(out) < 2) or (ps.poll() is not 0):
             raise error.TestFail("Process failed (WO cgroup); output:\n%s"
                                  "\nReturn: %d" % (out, ps.poll()))
         if not out[-1].startswith("PASS"):
@@ -176,10 +176,10 @@ class cgroup(test.test):
         logging.debug("test_memory: Memfill mem only limit")
         ps = item.test("memfill %d %s" % (mem, outf.name))
         item.set_cgroup(ps.pid, pwd)
-        item.set_prop("memory.limit_in_bytes", ("%dM" % (mem/2)), pwd)
+        item.set_property_h("memory.limit_in_bytes", ("%dM" % (mem/2)), pwd)
         ps.stdin.write('\n')
         i = 0
-        while ps.poll() == None:
+        while ps.poll() is None:
             if i > 120:
                 break
             i += 1
@@ -222,10 +222,10 @@ class cgroup(test.test):
             logging.debug("test_memory: Memfill mem + swap limit")
             ps = item.test("memfill %d %s" % (mem, outf.name))
             item.set_cgroup(ps.pid, pwd)
-            item.set_prop("memory.memsw.limit_in_bytes", "%dM"%(mem/2), pwd)
+            item.set_property_h("memory.memsw.limit_in_bytes", "%dM"%(mem/2), pwd)
             ps.stdin.write('\n')
             i = 0
-            while ps.poll() == None:
+            while ps.poll() is None:
                 if i > 120:
                     break
                 i += 1
@@ -325,7 +325,7 @@ class cgroup(test.test):
                     i = 0
                     for i in range(10):
                         task.terminate()
-                        if task.poll() != None:
+                        if task.poll() is not None:
                             break
                         time.sleep(1)
                     if i >= 9:
@@ -352,15 +352,15 @@ class cgroup(test.test):
 
         try:
             # Available cpus: cpuset.cpus = "0-$CPUS\n"
-            no_cpus = int(item.get_prop("cpuset.cpus").split('-')[1]) + 1
+            no_cpus = int(item.get_property("cpuset.cpus")[0].split('-')[1]) + 1
         except:
             raise error.TestFail("Failed to get no_cpus or no_cpus = 1")
 
         pwd = item.mk_cgroup()
         try:
-            tmp = item.get_prop("cpuset.cpus")
+            tmp = item.get_property("cpuset.cpus")[0]
             item.set_property("cpuset.cpus", tmp, pwd)
-            tmp = item.get_prop("cpuset.mems")
+            tmp = item.get_property("cpuset.mems")[0]
             item.set_property("cpuset.mems", tmp, pwd)
         except:
             cleanup(True)
@@ -399,7 +399,7 @@ class cgroup(test.test):
                                      "used cpu: %s, remaining cpus: %s"
                                      % (stat1, stat2))
 
-        if no_cpus == 2:
+        if no_cpus is 2:
             item.set_property("cpuset.cpus", "1", pwd)
         else:
             item.set_property("cpuset.cpus", "1-%d"%(no_cpus-1), pwd)

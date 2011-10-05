@@ -87,7 +87,7 @@ def run_cgroup(test, params, env):
         device = "%02x:%02x" % (int(dev.group(2)), int(dev.group(3)))
         time.sleep(3)
         out = vm.monitor.info('qtree', debug=False)
-        if out.count('addr %s.0' % device) != 1:
+        if out.count('addr %s.0' % device) is not 1:
             raise error.TestFail("Can't add device(%s, %s, %s): device in qtree"
                             ":\n%s" % (vm.name, host_file.name, driver, out))
         return (ret_file, device)
@@ -104,7 +104,7 @@ def run_cgroup(test, params, env):
                     device: PCI id of the virtual disk
         """
         if not host_file:
-            if utils.system_output("lsmod | grep scsi_debug -c") == 0:
+            if utils.system_output("lsmod | grep scsi_debug -c") is 0:
                 utils.system("modprobe scsi_debug dev_size_mb=8 add_host=0")
             utils.system("echo 1 > /sys/bus/pseudo/drivers/scsi_debug/add_host")
             host_file = utils.system_output("ls /dev/sd* | tail -n 1")
@@ -127,7 +127,7 @@ def run_cgroup(test, params, env):
         device = "%02x:%02x" % (int(dev.group(2)), int(dev.group(3)))
         time.sleep(3)
         out = vm.monitor.info('qtree', debug=False)
-        if out.count('addr %s.0' % device) != 1:
+        if out.count('addr %s.0' % device) is not 1:
             raise error.TestFail("Can't add device(%s, %s, %s): device in qtree"
                             ":\n%s" % (vm.name, host_file.name, driver, out))
         return (ret_file, device)
@@ -205,7 +205,7 @@ def run_cgroup(test, params, env):
              * assigns vm1 and vm2 into cgroups and sets the properties
              * creates a new virtio device and adds it into vms
             """
-            if get_device_driver() != 'virtio':
+            if get_device_driver() is not 'virtio':
                 logging.warn("The main disk for this VM is non-virtio, keep in "
                              "mind that this particular subtest will add a new "
                              "virtio_blk disk to it")
@@ -277,7 +277,7 @@ def run_cgroup(test, params, env):
             out2 = out[1][1]
             # Cgroup are limitting weights of guests 100:1000. On bare mettal it
             # works in virtio_blk we are satisfied with the ratio 1:3.
-            if out1 == 0:
+            if out1 is 0:
                 raise error.TestFail("No data transfered: %d:%d (1:10)" %
                                       (out1, out2))
             if out1*3  > out2:

@@ -60,7 +60,7 @@ class Cgroup(object):
         """
         self.root = modules.get_pwd(self.module)
         if not self.root:
-            raise error.TestFail("cg.initialize(): Module %s not found"
+            raise error.TestError("cg.initialize(): Module %s not found"
                                                                 % self.module)
 
 
@@ -76,7 +76,7 @@ class Cgroup(object):
             else:
                 pwd = mkdtemp(prefix='cgroup-', dir=self.root) + '/'
         except Exception, inst:
-            raise error.TestFail("cg.mk_cgroup(): %s" % inst)
+            raise error.TestError("cg.mk_cgroup(): %s" % inst)
         self.cgroups.append(pwd)
         return pwd
 
@@ -94,7 +94,7 @@ class Cgroup(object):
             logging.warn("cg.rm_cgroup(): Removed cgroup which wasn't created"
                          "using this Cgroup")
         except Exception, inst:
-            raise error.TestFail("cg.rm_cgroup(): %s" % inst)
+            raise error.TestError("cg.rm_cgroup(): %s" % inst)
 
 
     def test(self, cmd):
@@ -143,9 +143,9 @@ class Cgroup(object):
         try:
             open(pwd+'/tasks', 'w').write(str(pid))
         except Exception, inst:
-            raise error.TestFail("cg.set_cgroup(): %s" % inst)
+            raise error.TestError("cg.set_cgroup(): %s" % inst)
         if self.is_cgroup(pid, pwd):
-            raise error.TestFail("cg.set_cgroup(): Setting %d pid into %s "
+            raise error.TestError("cg.set_cgroup(): Setting %d pid into %s "
                                  "cgroup failed" % (pid, pwd))
 
     def set_root_cgroup(self, pid):
@@ -157,20 +157,6 @@ class Cgroup(object):
         return self.set_cgroup(pid, self.root)
 
 
-    def get_prop(self, prop, pwd=None):
-        """
-        Gets one line of the property value
-        @param prop: property name (file)
-        @param pwd: cgroup directory
-        @return: String value or None when FAILED
-        """
-        tmp = self.get_property(prop, pwd)
-        if tmp:
-            if tmp[0][-1] == '\n':
-                tmp[0] = tmp[0][:-1]
-            return tmp[0]
-
-
     def get_property(self, prop, pwd=None):
         """
         Gets the property value
@@ -178,63 +164,71 @@ class Cgroup(object):
         @param pwd: cgroup directory
         @return: [] values or None when FAILED
         """
-        if pwd == None:
+        if pwd is None:
             pwd = self.root
         try:
-            ret = open(pwd+prop, 'r').readlines()
+            # Remove tailing '\n' from each line
+            ret = [_[:-1] for _ in open(pwd+prop, 'r').readlines()]
+            if ret:
+                return ret
+            else:
+                return [""]
         except Exception, inst:
-            raise error.TestFail("cg.get_property(): %s" % inst)
-        else:
-            return ret
+            raise error.TestError("cg.get_property(): %s" % inst)
 
 
-    def set_prop(self, prop, value, pwd=None, check=True):
+    def set_property_h(self, prop, value, pwd=None, check=True, checkprop=None):
         """
         Sets the one-line property value concerning the K,M,G postfix
         @param prop: property name (file)
         @param value: desired value
         @param pwd: cgroup directory
-        @param check: check the value after setup
+        @param check: check the value after setup / override checking value
+        @param checkprop: override prop when checking the value
         """
         _value = value
         try:
             value = str(value)
-            if value[-1] == '\n':
-                value = value[:-1]
-            if value[-1] == 'K':
-                value = int(value[:-1]) * 1024
-            elif value[-1] == 'M':
-                value = int(value[:-1]) * 1048576
-            elif value[-1] == 'G':
-                value = int(value[:-1]) * 1073741824
+            human = {'B': 1,
+                     'K': 1024,
+                     'M': 1048576,
+                     'G': 1073741824,
+                     'T': 1099511627776
+                    }
+            if human.has_key(value[-1]):
+                value = int(value[:-1]) * human[value[-1]]
         except:
             logging.warn("cg.set_prop() fallback into cg.set_property.")
             value = _value
-        self.set_property(prop, value, pwd, check)
+        self.set_property(prop, value, pwd, check, checkprop)
 
 
-    def set_property(self, prop, value, pwd=None, check=True):
+    def set_property(self, prop, value, pwd=None, check=True, checkprop=None):
         """
         Sets the property value
         @param prop: property name (file)
         @param value: desired value
         @param pwd: cgroup directory
-        @param check: check the value after setup
+        @param check: check the value after setup / override checking value
+        @param checkprop: override prop when checking the value
         """
         value = str(value)
-        if pwd == None:
+        if pwd is None:
             pwd = self.root
         try:
             open(pwd+prop, 'w').write(value)
         except Exception, inst:
-            raise error.TestFail("cg.set_property(): %s" % inst)
-        if check:
-            # Get the first line - '\n'
-            _value = self.get_property(prop, pwd)[0][:-1]
-            if value != _value:
-                raise error.TestFail("cg.set_property(): Setting failed: "
-                                     "desired = %s, real value = %s"
-                                     % (value, _value))
+            raise error.TestError("cg.set_property(): %s" % inst)
+        if check is not False:
+            if check is True:
+                check = value
+            if checkprop is None:
+                checkprop = prop
+            _values = self.get_property(checkprop, pwd)
+            if check not in _values:
+                raise error.TestError("cg.set_property(): Setting failed: "
+                                      "desired = %s, real values = %s"
+                                      % (repr(check), repr(_values)))
 
 
     def smoke_test(self):
@@ -245,15 +239,15 @@ class Cgroup(object):
         pwd = self.mk_cgroup()
 
         ps = self.test("smoke")
-        if ps == None:
-            raise error.TestFail("cg.smoke_test: Couldn't create process")
+        if ps is None:
+            raise error.TestError("cg.smoke_test: Couldn't create process")
 
-        if (ps.poll() != None):
-            raise error.TestFail("cg.smoke_test: Process died unexpectidly")
+        if (ps.poll() is not None):
+            raise error.TestError("cg.smoke_test: Process died unexpectidly")
 
         # New process should be a root member
         if self.is_root_cgroup(ps.pid):
-            raise error.TestFail("cg.smoke_test: Process is not a root member")
+            raise error.TestError("cg.smoke_test: Process is not a root member")
 
         # Change the cgroup
         self.set_cgroup(ps.pid, pwd)
@@ -261,10 +255,10 @@ class Cgroup(object):
         # Try to remove used cgroup
         try:
             self.rm_cgroup(pwd)
-        except error.TestFail:
+        except error.TestError:
             pass
         else:
-            raise error.TestFail("cg.smoke_test: Unexpected successful deletion"
+            raise error.TestError("cg.smoke_test: Unexpected successful deletion"
                                  " of the used cgroup")
 
         # Return the process into the root cgroup
@@ -276,8 +270,8 @@ class Cgroup(object):
         # Finish the process
         ps.stdin.write('\n')
         time.sleep(2)
-        if (ps.poll() == None):
-            raise error.TestFail("cg.smoke_test: Process is not finished")
+        if (ps.poll() is None):
+            raise error.TestError("cg.smoke_test: Process is not finished")
 
 
 class CgroupModules(object):
@@ -316,19 +310,19 @@ class CgroupModules(object):
         """
         logging.debug("Desired cgroup modules: %s", _modules)
         mounts = []
-        fp = open('/proc/mounts', 'r')
-        line = fp.readline().split()
+        proc_mounts = open('/proc/mounts', 'r')
+        line = proc_mounts.readline().split()
         while line:
-            if line[2] == 'cgroup':
+            if line[2] is 'cgroup':
                 mounts.append(line)
-            line = fp.readline().split()
-        fp.close()
+            line = proc_mounts.readline().split()
+        proc_mounts.close()
 
         for module in _modules:
             # Is it already mounted?
             i = False
             for mount in mounts:
-                if mount[3].find(module) != -1:
+                if mount[3].find(module) is not -1:
                     self.modules[0].append(module)
                     self.modules[1].append(mount[1] + '/')
                     self.modules[2].append(False)
