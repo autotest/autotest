@@ -906,29 +906,35 @@ variants:
                             md5sum_cd1 = d2e10420f3689faa49a004b60fb396b7
                             md5sum_1m_cd1 = f7f67b5da46923a9f01da8a2b6909654
 
-            - @Ubuntu:
+            - Ubuntu:
                 shell_prompt = "^root@.*[\#\$]\s*$"
+                password = 12345678
+                image_name = ubuntu
+                unattended_install:
+                    kernel = linux
+                    initrd = initrd
+                    wait_no_ack = yes
 
                 variants:
-                    - Ubuntu-6.10-32:
+                    - 6.10-32:
                         only install
-                        image_name = ubuntu-6.10-32
+                        image_name += -6.10-32
                         steps = steps/Ubuntu-6.10-32.steps
                         cdrom_cd1 = isos/linux/ubuntu-6.10-desktop-i386.iso
                         md5sum_cd1 = 17fb825641571ce5888a718329efd016
                         md5sum_1m_cd1 = 7531d0a84e7451d17c5d976f1c3f8509
 
-                    - Ubuntu-8.04-32:
+                    - 8.04-32:
                         skip = yes
-                        image_name = ubuntu-8.04-32
+                        image_name += -8.04-32
                         install:
                             steps = steps/Ubuntu-8.04-32.steps
                             cdrom_cd1 = isos/linux/ubuntu-8.04.1-desktop-i386.iso
                         setup:
                             steps = steps/Ubuntu-8.04-32-setupssh.steps
 
-                    - Ubuntu-8.10-server-32:
-                        image_name = ubuntu-8.10-server-32
+                    - 8.10-server-32:
+                        image_name += -8.10-server-32
                         install:
                             steps = steps/Ubuntu-8.10-server-32.steps
                             cdrom_cd1 = isos/linux/ubuntu-8.10-server-i386.iso
@@ -936,6 +942,20 @@ variants:
                             md5sum_1m_cd1 = ea493eb8ef7722ead693492fd9f8a13f
                         setup:
                             steps = steps/Ubuntu-8.10-server-32-gcc.steps
+
+                    - 11.04-server-64:
+                        image_name += -11.04-server-64
+                        unattended_install:
+                            extra_params += " --append 'console=ttyS0,115200 console=tty0'"
+                            kernel = images/ubuntu-server-11-04-64/vmlinuz
+                            initrd = images/ubuntu-server-11-04-64/initrd.gz
+                            boot_path = install
+                        unattended_install.cdrom:
+                            unattended_file = unattended/Ubuntu-11-04.preseed
+                            cdrom_cd1 = isos/linux/ubuntu-11.04-server-amd64.iso
+                            md5sum_cd1 = 355ca2417522cb4a77e0295bf45c5cd5
+                            md5sum_1m_cd1 = 65b1514744bf99e88f6228e9b6f152a8
+
 
             - DSL-4.2.5:
                 no setup dbench bonnie linux_s3
