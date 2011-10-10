@@ -407,6 +407,34 @@ class UnattendedInstallConfig(object):
         doc.writexml(fp)
 
 
+    def preseed_initrd(self):
+        """
+        Puts a preseed file inside a gz compressed initrd file.
+
+        Debian and Ubuntu use preseed as the OEM install mechanism. The only
+        way to get fully automated setup without resorting to kernel params
+        is to add a preseed.cfg file at the root of the initrd image.
+        """
+        logging.debug("Remastering initrd.gz file with preseed file")
+        dest_fname = 'preseed.cfg'
+        remaster_path = os.path.join(self.image_path, "initrd_remaster")
+        os.makedirs(remaster_path)
+
+        os.chdir(remaster_path)
+        utils.run("gzip -d < ../%s | cpio --extract --make-directories "
+                  "--no-absolute-filenames" % os.path.basename(self.initrd))
+        utils.run("cp %s %s" % (self.unattended_file, dest_fname))
+        utils.run("find . | cpio -H newc --create | gzip -9 > ../%s" %
+                  os.path.basename(self.initrd))
+        os.chdir(self.image_path)
+        utils.run("rm -rf initrd_remaster")
+        contents = open(self.unattended_file).read()
+
+        logging.debug("Unattended install contents:")
+        for line in contents.splitlines():
+            logging.debug(line)
+
+
     def setup_boot_disk(self):
         if self.unattended_file.endswith('.sif'):
             dest_fname = 'winnt.sif'
@@ -492,6 +520,9 @@ class UnattendedInstallConfig(object):
                                 (self.cdrom_cd1_mount, self.boot_path,
                                  os.path.basename(self.initrd), self.initrd))
             utils.run(initrd_fetch_cmd)
+            if self.unattended_file.endswith('.preseed'):
+                self.preseed_initrd()
+
         finally:
             cleanup(self.cdrom_cd1_mount)
 
