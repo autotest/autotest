@@ -19,6 +19,6 @@ for profiler in ('readprofile', 'oprofile', 'catprofile', 'lockmeter'):
         job.profilers.add(profiler)
         job.run_test('sleeptest', seconds=5, tag=profiler)
         job.profilers.delete(profiler)
-    except:
+    except Exception:
         logging.error("Test of profiler %s failed", profiler)
         raise

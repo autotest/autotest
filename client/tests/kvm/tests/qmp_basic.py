@@ -78,7 +78,7 @@ def run_qmp_basic(test, params, env):
         fail_no_key(qmp_dict, key)
         try:
             value = int(qmp_dict[key])
-        except:
+        except Exception:
             raise error.TestFail("'%s' key is not of type int, it's '%s'" %
                                  (key, type(qmp_dict[key])))
 

@@ -46,7 +46,7 @@ def test_memfill(args):
         try:
             f.flush()
             os.fsync(f)
-        except:
+        except Exception:
             pass
     f.write("PASS: memfill (%dM)\n" % size)
 

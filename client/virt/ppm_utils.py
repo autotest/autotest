@@ -166,7 +166,7 @@ def image_verify_ppm_file(filename):
         fin.close()
         assert(size - size_read == width*height*3)
         return True
-    except:
+    except Exception:
         return False
 
 

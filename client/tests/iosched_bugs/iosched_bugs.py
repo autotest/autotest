@@ -37,7 +37,7 @@ class iosched_bugs(test.test):
 #       try:
 #           utils.run(dirty_bin + ' ' + blah + '1 > ' + dirty_op, 900, False,
 #                     None, None)
-#       except:
+#       except Exception:
 #           utils.nuke_subprocess(p1)
 #           raise error.TestFail('Writes made no progress')
         utils.nuke_subprocess(p1)

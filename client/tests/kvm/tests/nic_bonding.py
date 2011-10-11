@@ -52,7 +52,7 @@ def run_nic_bonding(test, params, env):
                     vm.monitor.cmd("set_link %s down" % device_id)
                     time.sleep(1)
                     vm.monitor.cmd("set_link %s up" % device_id)
-        except:
+        except Exception:
             transfer_thread.join(suppress_exception=True)
             raise
         else:
