@@ -80,7 +80,7 @@ def run_iofuzz(test, params, env):
                     logging.debug("VM is alive, try to re-login")
                     try:
                         session = vm.wait_for_login(timeout=10)
-                    except:
+                    except Exception:
                         logging.debug("Could not re-login, reboot the guest")
                         session = vm.reboot(method="system_reset")
                 else:

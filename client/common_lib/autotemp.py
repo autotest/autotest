@@ -62,11 +62,11 @@ class tempfile(object):
             if self.name is not None:
                 logging.debug('Clean was not called for ' + self.name)
                 self.clean()
-        except:
+        except Exception:
             try:
                 msg = 'An exception occurred while calling the destructor'
                 logging.exception(msg)
-            except:
+            except Exception:
                 pass
 
 
@@ -104,9 +104,9 @@ class tempdir(object):
             if self.name:
                 logging.debug('Clean was not called for ' + self.name)
                 self.clean()
-        except:
+        except Exception:
             try:
                 msg = 'An exception occurred while calling the destructor'
                 logging.exception(msg)
-            except:
+            except Exception:
                 pass

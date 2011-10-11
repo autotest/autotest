@@ -46,7 +46,7 @@ def run_migration_with_file_transfer(test, params, env):
                     logging.info("File transfer not ended, starting a round of "
                                  "migration...")
                     vm.migrate(mig_timeout, mig_protocol, mig_cancel_delay)
-            except:
+            except Exception:
                 # If something bad happened in the main thread, ignore
                 # exceptions raised in the background thread
                 bg.join(suppress_exception=True)

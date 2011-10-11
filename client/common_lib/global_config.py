@@ -194,7 +194,7 @@ class global_config(object):
         try:
             conv_val = value_type(sval)
             return conv_val
-        except:
+        except Exception:
             msg = ("Could not convert %s value %r in section %s to type %s" %
                     (key, sval, section, value_type))
             raise ConfigValueError(msg)

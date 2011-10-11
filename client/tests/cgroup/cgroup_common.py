@@ -215,7 +215,7 @@ class Cgroup(object):
                 value = int(value[:-1]) * 1048576
             elif value[-1] == 'G':
                 value = int(value[:-1]) * 1073741824
-        except:
+        except Exception:
             logging.error("cg.set_prop() fallback into cg.set_property.")
             value = _value
         return self.set_property(prop, value, pwd, check)
@@ -339,7 +339,7 @@ class CgroupModules(object):
                                  % (self.modules[1][i], failure_detail))
         try:
             shutil.rmtree(self.mountdir)
-        except:
+        except Exception:
             logging.warn("CGM: Couldn't remove the %s directory", self.mountdir)
 
     def init(self, _modules):

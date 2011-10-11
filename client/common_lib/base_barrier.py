@@ -346,7 +346,7 @@ class barrier(object):
 
             try:
                 client.close()
-            except:
+            except Exception:
                 pass
 
 
