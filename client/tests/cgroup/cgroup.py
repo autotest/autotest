@@ -351,7 +351,7 @@ class cgroup(test.test):
         try:
             # Available cpus: cpuset.cpus = "0-$CPUS\n"
             no_cpus = int(item.get_prop("cpuset.cpus").split('-')[1]) + 1
-        except:
+        except Exception:
             raise error.TestFail("Failed to get no_cpus or no_cpus = 1")
 
         pwd = item.mk_cgroup()
@@ -363,7 +363,7 @@ class cgroup(test.test):
             item.set_property("cpuset.cpus", tmp, pwd)
             tmp = item.get_prop("cpuset.mems")
             item.set_property("cpuset.mems", tmp, pwd)
-        except:
+        except Exception:
             cleanup(True)
             raise error.TestFail("Failed to set cpus and mems of"
                                  "a new cgroup")

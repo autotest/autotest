@@ -344,7 +344,7 @@ class FileUploadClient(FileTransferClient):
                 else:
                     # Neither RSS_OK nor RSS_ERROR found
                     raise FileTransferProtocolError("Received unexpected msg")
-        except:
+        except Exception:
             # In any case, if the transfer failed, close the connection
             self.close()
             raise
@@ -448,7 +448,7 @@ class FileDownloadClient(FileTransferClient):
                 else:
                     # Unexpected msg
                     raise FileTransferProtocolError("Received unexpected msg")
-        except:
+        except Exception:
             # In any case, if the transfer failed, close the connection
             self.close()
             raise

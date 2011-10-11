@@ -80,7 +80,7 @@ class ctcs(test.test):
         os.chdir(self.srcdir)
         try:
             utils.system('./run %s' % self.tcf_path)
-        except:
+        except Exception:
             self.nfail += 1
         log_base_path = os.path.join(self.srcdir, 'log')
         log_dir = glob.glob(os.path.join(log_base_path,

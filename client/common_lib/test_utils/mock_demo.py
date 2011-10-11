@@ -65,7 +65,7 @@ def do_more_stuff(d):
     print d.method6(False)
     try:
         d.method6(True)
-    except:
+    except Exception:
         print "caught error"
 
 

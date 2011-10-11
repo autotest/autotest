@@ -128,7 +128,7 @@ class base_test(object):
             try:
                 if not eval(constraint, keyval_env):
                     failures.append('%s: constraint was not met' % constraint)
-            except:
+            except Exception:
                 failures.append('could not evaluate constraint: %s'
                                 % constraint)
 

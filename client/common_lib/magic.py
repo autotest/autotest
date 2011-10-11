@@ -144,7 +144,7 @@ class MagicTest(object):
                 [data] = struct.unpack('>l', data[self.offset:self.offset + 4])
             else:
                 pass
-        except:
+        except Exception:
             return None
 
         return self.test(data)

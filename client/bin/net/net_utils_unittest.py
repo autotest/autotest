@@ -857,7 +857,7 @@ class TestNetUtils(unittest.TestCase):
                 f.close.expect_call()
             try:
                 mock_netif.wait_for_carrier(mock_netif, max_timeout)
-            except:
+            except Exception:
                 pass
             else:
                 if not y:

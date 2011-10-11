@@ -148,7 +148,7 @@ class Host(object):
         try:
             runlevel = int(self.run("runlevel").stdout.strip().split()[1])
             return runlevel in (0, 6)
-        except:
+        except Exception:
             return False
 
 

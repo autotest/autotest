@@ -31,7 +31,7 @@ def get_parent_pid(pid):
     """
     try:
         ppid = int(open('/proc/%s/stat' % pid).read().split()[3])
-    except:
+    except Exception:
         # It is not possible to determine the parent because the process
         # already left the process table.
         ppid = 1
