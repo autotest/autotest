@@ -105,7 +105,7 @@ def network():
     try:
         from autotest_lib.client.bin.net import site_net_utils
         return site_net_utils.network_utils()
-    except:
+    except Exception:
         return network_utils()
 
 
@@ -388,7 +388,7 @@ def netif(name):
     try:
         from autotest_lib.client.bin.net import site_net_utils
         return site_net_utils.network_interface(name)
-    except:
+    except Exception:
         return network_interface(name)
 
 
@@ -453,7 +453,7 @@ def bond():
     try:
         from autotest_lib.client.bin.net import site_net_utils
         return site_net_utils.bonding()
-    except:
+    except Exception:
         return bonding()
 
 
@@ -584,7 +584,7 @@ class raw_socket(object):
             raise error.TestError('Raw socket not open')
         try:
             packet = ethernet.pack(dst_mac, src_mac, protocol, payload)
-        except:
+        except Exception:
             raise error.TestError('Invalid Packet')
         self.send(packet)
 
@@ -747,5 +747,5 @@ def ethernet_packet():
     try:
         from autotest_lib.client.bin.net import site_net_utils
         return site_net_utils.ethernet()
-    except:
+    except Exception:
         return ethernet()

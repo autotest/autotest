@@ -39,11 +39,11 @@ def run_softlockup(test, params, env):
         logging.info("Kill stress and monitor on guest")
         try:
             session.cmd(kill_stress_cmd)
-        except:
+        except Exception:
             pass
         try:
             session.cmd(kill_monitor_cmd)
-        except:
+        except Exception:
             pass
 
 
@@ -105,7 +105,7 @@ def run_softlockup(test, params, env):
         # Opening firewall ports on guest
         try:
             session.cmd("iptables -F")
-        except:
+        except Exception:
             pass
 
         # Get required files and copy them from host to guest

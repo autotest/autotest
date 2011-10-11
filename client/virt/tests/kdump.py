@@ -58,7 +58,7 @@ def run_kdump(test, params, env):
         logging.info("Checking the existence of crash kernel...")
         try:
             session.cmd(crash_kernel_prob_cmd)
-        except:
+        except Exception:
             logging.info("Crash kernel is not loaded. Trying to load it")
             session.cmd(kernel_param_cmd)
             session = vm.reboot(session, timeout=timeout)

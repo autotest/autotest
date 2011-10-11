@@ -81,7 +81,7 @@ def wipe_filesystem(job, mountpoint):
     wipe_cmd = 'rm -rf %s/*' % mountpoint
     try:
         utils.system(wipe_cmd)
-    except:
+    except Exception:
         job.record('FAIL', None, wipe_cmd, error.format_error())
         raise
     else:
@@ -393,7 +393,7 @@ class partition(object):
             partitions = job.config_get('partition.partitions')
             try:
                 device = partitions[number]
-            except:
+            except Exception:
                 raise NameError("Partition '" + device + "' not available")
 
         self.device = device
@@ -597,7 +597,7 @@ class partition(object):
             if record:
                 self.job.record('FAIL', None, mkfs_cmd, error.format_error())
             raise
-        except:
+        except Exception:
             if record:
                 self.job.record('FAIL', None, mkfs_cmd, error.format_error())
             raise
@@ -642,7 +642,7 @@ class partition(object):
         sys.stdout.flush()
         try:
             utils.system_output(fsck_cmd)
-        except:
+        except Exception:
             if record:
                 self.job.record('FAIL', None, fsck_cmd, error.format_error())
             raise error.TestError('Fsck found errors with the underlying '
@@ -702,7 +702,7 @@ class partition(object):
         try:
             utils.system(mount_cmd)
             mtab.close()
-        except:
+        except Exception:
             mtab.close()
             if record:
                 self.job.record('FAIL', None, mount_cmd, error.format_error())
@@ -989,7 +989,7 @@ class virtual_partition:
         logging.debug('Removing disk image %s', self.img)
         try:
             os.remove(self.img)
-        except:
+        except Exception:
             e_msg = 'Error removing image file %s' % self.img
             raise error.AutotestError(e_msg)
 
