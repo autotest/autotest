@@ -1,0 +1,42 @@
+debconf debconf/priority string critical
+unknown debconf/priority string critical
+d-i debconf/priority string critical
+d-i debian-installer/locale string en_US
+d-i console-tools/archs select at
+d-i console-keymaps-at/keymap select us
+
+d-i netcfg/choose_interface select auto
+d-i netcfg/get_hostname string unassigned-hostname
+d-i netcfg/get_domain string unassigned-domain
+d-i netcfg/wireless_wep string
+
+d-i clock-setup/utc boolean true
+d-i time/zone string US/Eastern
+
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select home
+d-i partman/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+d-i passwd/root-login boolean true
+d-i passwd/make-user boolean false
+d-i passwd/root-password password 12345678
+d-i passwd/root-password-again password 12345678
+
+tasksel tasksel/first multiselect standard
+
+d-i pkgsel/include string openssh-server build-essential
+
+d-i grub-installer/only_debian boolean true
+d-i grub-installer/with_other_os boolean true
+
+d-i apt-setup/security_host string
+base-config apt-setup/security-updates boolean false
+
+ubiquity ubiquity/summary note
+ubiquity ubiquity/reboot boolean true
+
+d-i finish-install/reboot_in_progress note
+d-i debian-installer/exit/poweroff boolean true
