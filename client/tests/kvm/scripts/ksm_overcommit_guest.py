@@ -89,7 +89,7 @@ class MemFill(object):
         for i in range((PAGE_SIZE / a.itemsize)):
             try:
                 a.append(value)
-            except:
+            except Exception:
                 print "FAIL: Value can be only in range (0..255)"
         return a
 

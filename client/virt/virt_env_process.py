@@ -254,7 +254,7 @@ def preprocess(test, params, env):
     if os.path.exists("/dev/kvm"):
         try:
             kvm_version = open("/sys/module/kvm/version").read().strip()
-        except:
+        except Exception:
             kvm_version = os.uname()[2]
     else:
         kvm_version = "Unknown"

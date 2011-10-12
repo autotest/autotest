@@ -89,7 +89,7 @@ class lsb_dtk(test.test):
                     if not 'lsb-dtk-manager' in line:
                         line = re.findall(pkg_pattern, line)[0]
                         lsb_pkg_list.append(line)
-                except:
+                except Exception:
                     # If we don't get a match, no problem
                     pass
 

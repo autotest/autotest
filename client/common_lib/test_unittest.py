@@ -88,7 +88,7 @@ class Test_base_test_execute(TestTestCase):
         after_hook.expect_call(self.test)
         try:
             self.test._call_run_once([], False, None, (1, 2), {'arg': 'val'})
-        except:
+        except Exception:
             pass
         self.god.check_playback()
 

@@ -803,7 +803,7 @@ class BasePackageManager(object):
 
         try:
             utils.system(' '.join(cmd_list))
-        except:
+        except Exception:
             os.unlink(temp_path)
             raise
 

@@ -51,7 +51,7 @@ class systemtap(test.test):
         script = "PATH=%s/bin:$PATH stap -c /bin/true -e 'probe syscall.read { exit() }'" % self.systemtap_dir
         try:
             utils.system(script)
-        except:
+        except Exception:
             raise error.TestError('simple systemtap test failed, kernel debuginfo package may be missing: %s' % script)
 
 

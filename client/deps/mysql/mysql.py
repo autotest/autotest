@@ -22,7 +22,7 @@ def setup(tarball, topdir):
     #
     try:
         os.mkdir(topdir + '/mysql/var')
-    except:
+    except Exception:
         pass
     #
     # Initialize the database.
