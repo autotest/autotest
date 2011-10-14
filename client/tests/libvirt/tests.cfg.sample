@@ -38,6 +38,21 @@ variants:
         only Fedora.15.64
         only unattended_install.cdrom, boot, reboot, shutdown
 
+    # Runs virt-install, f15 64 as a 64 bit PV guest OS, install, boot, shutdown
+    - @libvirt_xenpv_f15_quick:
+        virt_install_binary = /usr/bin/virt-install
+        qemu_img_binary = /usr/bin/qemu-img
+        url = auto
+        cdrom_cd1 = isos/linux/Fedora-15-x86_64-DVD.iso
+        only raw
+        only xennet
+        only xenblk
+        only smp2
+        only no_pci_assignable
+        only smallpages
+        only Fedora.15.64
+        only unattended_install.url, boot, reboot, shutdown
+
     # Runs virt-install, RHEL 6.0 64 bit guest OS, install, boot, shutdown
     - @libvirt_rhel60_quick:
         virt_install_binary = /usr/bin/virt-install

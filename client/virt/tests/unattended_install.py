@@ -1,8 +1,45 @@
 import logging, time, socket, re, os, shutil, tempfile, glob, ConfigParser
+import threading
 import xml.dom.minidom
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-from autotest_lib.client.virt import virt_vm, virt_utils
+from autotest_lib.client.virt import virt_vm, virt_utils, virt_http_server
+
+
+_url_auto_content_server_thread = None
+_url_auto_content_server_thread_event = None
+
+_unattended_server_thread = None
+_unattended_server_thread_event = None
+
+
+def terminate_auto_content_server_thread():
+    global _url_auto_content_server_thread
+    global _url_auto_content_server_thread_event
+
+    if _url_auto_content_server_thread is None:
+        return False
+    if _url_auto_content_server_thread_event is None:
+        return False
+
+    if _url_auto_content_server_thread_event.isSet():
+        return True
+
+    return False
+
+
+def terminate_unattended_server_thread():
+    global _unattended_server_thread, _unattended_server_thread_event
+
+    if _unattended_server_thread is None:
+        return False
+    if _unattended_server_thread_event is None:
+        return False
+
+    if  _unattended_server_thread_event.isSet():
+        return True
+
+    return False
 
 
 @error.context_aware
@@ -213,12 +250,13 @@ class UnattendedInstallConfig(object):
         root_dir = test.bindir
         self.deps_dir = os.path.join(test.virtdir, 'deps')
         self.unattended_dir = os.path.join(test.virtdir, 'unattended')
+        self.params = params
 
         attributes = ['kernel_args', 'finish_program', 'cdrom_cd1',
                       'unattended_file', 'medium', 'url', 'kernel', 'initrd',
                       'nfs_server', 'nfs_dir', 'install_virtio', 'floppy',
                       'cdrom_unattended', 'boot_path', 'extra_params',
-                      'qemu_img_binary', 'cdkey', 'finish_program']
+                      'qemu_img_binary', 'cdkey', 'finish_program', 'vm_type']
 
         for a in attributes:
             setattr(self, a, params.get(a, ''))
@@ -258,6 +296,14 @@ class UnattendedInstallConfig(object):
 
         self.image_path = os.path.dirname(self.kernel)
 
+        # Content server params
+        self.url_auto_content_ip = params.get('url_auto_ip', '192.168.122.1')
+        self.url_auto_content_port = None
+
+        # Kickstart server params
+        # use the same IP as url_auto_content_ip, but a different port
+        self.unattended_server_port = None
+
 
     def answer_kickstart(self, answer_path):
         """
@@ -278,7 +324,13 @@ class UnattendedInstallConfig(object):
         if self.medium in ["cdrom", "kernel_initrd"]:
             content = "cdrom"
         elif self.medium == "url":
-            content = "url --url %s" % self.url
+            if self.url == 'auto':
+                url = "http://%s:%s" % (self.url_auto_content_ip,
+                                        self.url_auto_content_port)
+            else:
+                url = self.url
+            content = "url --url %s" % url
+
         elif self.medium == "nfs":
             content = "nfs --server=%s --dir=%s" % (self.nfs_server,
                                                     self.nfs_dir)
@@ -418,14 +470,22 @@ class UnattendedInstallConfig(object):
         logging.debug("Remastering initrd.gz file with preseed file")
         dest_fname = 'preseed.cfg'
         remaster_path = os.path.join(self.image_path, "initrd_remaster")
-        os.makedirs(remaster_path)
+        if not os.path.isdir(remaster_path):
+            os.makedirs(remaster_path)
 
+        base_initrd = os.path.basename(self.initrd)
         os.chdir(remaster_path)
         utils.run("gzip -d < ../%s | cpio --extract --make-directories "
-                  "--no-absolute-filenames" % os.path.basename(self.initrd))
+                  "--no-absolute-filenames" % base_initrd)
         utils.run("cp %s %s" % (self.unattended_file, dest_fname))
-        utils.run("find . | cpio -H newc --create | gzip -9 > ../%s" %
-                  os.path.basename(self.initrd))
+
+        if self.params.get("vm_type") == "libvirt":
+            utils.run("find . | cpio -H newc --create > ../%s.img" %
+                      base_initrd.rstrip(".gz"))
+        else:
+            utils.run("find . | cpio -H newc --create | gzip -9 > ../%s" %
+                      base_initrd)
+
         os.chdir(self.image_path)
         utils.run("rm -rf initrd_remaster")
         contents = open(self.unattended_file).read()
@@ -433,6 +493,51 @@ class UnattendedInstallConfig(object):
         logging.debug("Unattended install contents:")
         for line in contents.splitlines():
             logging.debug(line)
+
+
+    def setup_unattended_http_server(self):
+        '''
+        Setup a builtin http server for serving the kickstart file
+
+        Does nothing if unattended file is not a kickstart file
+        '''
+        global _unattended_server_thread, _unattended_server_thread_event
+
+        if self.unattended_file.endswith('.ks'):
+            # Red Hat kickstart install
+            dest_fname = 'ks.cfg'
+
+            answer_path = os.path.join(self.tmpdir, dest_fname)
+            self.answer_kickstart(answer_path)
+
+            if self.unattended_server_port is None:
+                self.unattended_server_port = virt_utils.find_free_port(
+                    8000,
+                    8100,
+                    self.url_auto_content_ip)
+
+            if _unattended_server_thread is None:
+                _unattended_server_thread_event = threading.Event()
+                _unattended_server_thread = threading.Thread(
+                    target=virt_http_server.http_server,
+                    args=(self.unattended_server_port, self.tmpdir,
+                          terminate_unattended_server_thread))
+                _unattended_server_thread.start()
+
+        # Point installation to this kickstart url
+        ks_param = 'ks=http://%s:%s/%s' % (self.url_auto_content_ip,
+                                           self.unattended_server_port,
+                                           dest_fname)
+        if 'ks=' in getattr(self, 'extra_params'):
+            extra_params = re.sub('ks\=[\w\d\:\.\/]+',
+                                  ks_param,
+                                  getattr(self, 'extra_params'))
+        else:
+            extra_params += ' %s ' % ks_param
+
+        # reflect change on params
+        self.extra_params = extra_params
+        self.params['extra_params'] = self.extra_params
 
 
     def setup_boot_disk(self):
@@ -522,9 +627,50 @@ class UnattendedInstallConfig(object):
             utils.run(initrd_fetch_cmd)
             if self.unattended_file.endswith('.preseed'):
                 self.preseed_initrd()
+            # Virtinstall command needs files named "vmlinuz" and "initrd.img"
+            elif self.params.get("vm_type") == "libvirt":
+                os.chdir(self.image_path)
+                base_kernel = os.path.basename(self.kernel)
+                base_initrd = os.path.basename(self.initrd)
+                utils.run("mv %s vmlinuz" % base_kernel)
+                utils.run("mv %s initrd.img" % base_initrd)
 
         finally:
             cleanup(self.cdrom_cd1_mount)
+
+
+    @error.context_aware
+    def setup_url_auto(self):
+        """
+        Configures the builtin web server for serving content
+        """
+        global _url_auto_content_server_thread
+        global _url_auto_content_server_thread_event
+
+        logging.debug("starting unattended content web server")
+
+        if self.params.get('cdrom_cd1'):
+            # setup and mount cdrom contents to be served by http server
+            m_cmd = ('mount -t iso9660 -v -o loop,ro %s %s' %
+                     (self.cdrom_cd1, self.cdrom_cd1_mount))
+            utils.run(m_cmd)
+
+        self.url_auto_content_port = virt_utils.find_free_port(
+            8000,
+            8100,
+            self.url_auto_content_ip)
+
+        if _url_auto_content_server_thread is None:
+            _url_auto_content_server_thread_event = threading.Event()
+            _url_auto_content_server_thread = threading.Thread(
+                target=virt_http_server.http_server,
+                args=(self.url_auto_content_port, self.cdrom_cd1_mount,
+                      terminate_auto_content_server_thread))
+            _url_auto_content_server_thread.start()
+
+        auto_content_url = 'http://%s:%s' % (self.url_auto_content_ip,
+                                             self.url_auto_content_port)
+        self.params['auto_content_url'] = auto_content_url
 
 
     @error.context_aware
@@ -532,20 +678,32 @@ class UnattendedInstallConfig(object):
         """
         Download the vmlinuz and initrd.img from URL.
         """
-        error.context("downloading vmlinuz and initrd.img from %s" % self.url)
-        os.chdir(self.image_path)
-        kernel_fetch_cmd = "wget -q %s/%s/%s" % (self.url, self.boot_path,
-                                                 os.path.basename(self.kernel))
-        initrd_fetch_cmd = "wget -q %s/%s/%s" % (self.url, self.boot_path,
-                                                 os.path.basename(self.initrd))
+        # it's only necessary to download kernel/initrd if running bare qemu
+        if self.vm_type == 'kvm':
+            error.context("downloading vmlinuz/initrd.img from %s" % self.url)
+            os.chdir(self.image_path)
+            kernel_cmd = "wget -q %s/%s/%s" % (self.url,
+                                               self.boot_path,
+                                               os.path.basename(self.kernel))
+            initrd_cmd = "wget -q %s/%s/%s" % (self.url,
+                                               self.boot_path,
+                                               os.path.basename(self.initrd))
 
-        if os.path.exists(self.kernel):
-            os.remove(self.kernel)
-        if os.path.exists(self.initrd):
-            os.remove(self.initrd)
+            if os.path.exists(self.kernel):
+                os.remove(self.kernel)
+            if os.path.exists(self.initrd):
+                os.remove(self.initrd)
 
-        utils.run(kernel_fetch_cmd)
-        utils.run(initrd_fetch_cmd)
+            utils.run(kernel_cmd)
+            utils.run(initrd_cmd)
+
+        elif self.vm_type == 'libvirt':
+            error.context("not downloading vmlinuz/initrd.img from %s, "
+                          "letting virt-install do it instead")
+
+        else:
+            error.context("no action defined/needed for the current virt "
+                          "type: '%s'" % self.vm_type)
 
 
     def setup_nfs(self):
@@ -587,6 +745,9 @@ class UnattendedInstallConfig(object):
                 self.setup_cdrom()
         elif self.medium == "url":
             self.setup_url()
+            if self.url == 'auto':
+                self.setup_url_auto()
+                self.setup_unattended_http_server()
         elif self.medium == "nfs":
             self.setup_nfs()
         else:
@@ -608,7 +769,10 @@ def run_unattended_install(test, params, env):
     unattended_install_config = UnattendedInstallConfig(test, params)
     unattended_install_config.setup()
     vm = env.get_vm(params["main_vm"])
-    vm.create()
+
+    # params passed explicitly, because they may have been updated by
+    # unattended install config code, such as when params['url'] == auto
+    vm.create(params=params)
 
     install_timeout = int(params.get("timeout", 3000))
     port = vm.get_port(int(params.get("guest_port_unattended_install")))
@@ -650,6 +814,22 @@ def run_unattended_install(test, params, env):
     else:
         raise error.TestFail("Timeout elapsed while waiting for install to "
                              "finish")
+
+    logging.debug('cleaning up threads and mounts that may be active')
+    global _url_auto_content_server_thread
+    global _url_auto_content_server_thread_event
+    if _url_auto_content_server_thread is not None:
+        _url_auto_content_server_thread_event.set()
+        _url_auto_content_server_thread.join(3)
+        _url_auto_content_server_thread = None
+        cleanup(unattended_install_config.cdrom_cd1_mount)
+
+    global _unattended_server_thread
+    global _unattended_server_thread_event
+    if _unattended_server_thread is not None:
+        _unattended_server_thread_event.set()
+        _unattended_server_thread.join(3)
+        _unattended_server_thread = None
 
     time_elapsed = time.time() - start_time
     logging.info("Guest reported successful installation after %d s (%d min)",
