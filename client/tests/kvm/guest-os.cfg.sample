@@ -914,6 +914,7 @@ variants:
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
+                    extra_params += "--append 'console=ttyS0,115200 console=tty0'"
 
                 variants:
                     - 6.10-32:
@@ -946,7 +947,6 @@ variants:
                     - 11.04-server-64:
                         image_name += -11.04-server-64
                         unattended_install:
-                            extra_params += " console=ttyS0,115200 console=tty0"
                             kernel = images/ubuntu-server-11-04-64/vmlinuz
                             initrd = images/ubuntu-server-11-04-64/initrd.gz
                             boot_path = install
