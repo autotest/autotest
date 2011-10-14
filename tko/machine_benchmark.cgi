@@ -99,7 +99,7 @@ def main():
     header_row = [ display.box('Benchmark', header=True) ]
     for benchmark in benchmark_key:
         header_row += [ display.box("%s - %s" % (re.sub(r'\.', '<br>', benchmark),key), header=True) for key in benchmark_key[benchmark] ]
- 
+
     matrix = [header_row]
     for machine in machine_idx:
         row = [display.box(machine)]

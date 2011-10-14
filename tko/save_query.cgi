@@ -19,7 +19,7 @@ HTTP_REFERER = os.environ.get('HTTP_REFERER')
 if HTTP_REFERER is None:
     ## fall back strategy for proxy connection
     ## substitute relative url
-    HTTP_REFERER = 'compose_query.cgi?' + urllib.urlencode(dict_url)    
+    HTTP_REFERER = 'compose_query.cgi?' + urllib.urlencode(dict_url)
 
 
 class QueryHistoryError(Exception):
@@ -44,7 +44,7 @@ def delete_query(time_stamp):
         db_obj.delete('tko_query_history', data_to_delete)
     except Exception:
         raise QueryHistoryError("Could not delete query")
-    
+
 
 def body():
     if not 'delete' in dict_url.keys():

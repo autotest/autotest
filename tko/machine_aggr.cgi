@@ -42,7 +42,7 @@ def main():
     machine_idx = form["machine"].value
     kernel = form["kernel"].value
     if kernel == "released":
-        kernel = released_kernel    
+        kernel = released_kernel
     if kernel == "rc":
         kernel = rc_kernel
 
