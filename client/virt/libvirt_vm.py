@@ -104,8 +104,8 @@ def virsh_is_dead(name):
 
     @param name: VM name
     """
-    if (virsh_domstate(name) == 'running' or
-        virsh_domstate(name) == 'idle'):
+    state = virsh_domstate(name)
+    if state in ('running', 'idle', 'no state'):
         return False
     else:
         return True
@@ -249,6 +249,15 @@ def virsh_domain_exists(name):
     except error.CmdError:
         logging.warning("VM %s does not exist", name)
         return False
+
+VIRSH_DEFAULT_URI = virsh_uri()
+LIBVIRT_QEMU = False
+LIBVIRT_XEN = False
+
+if VIRSH_DEFAULT_URI == 'qemu:///system':
+    LIBVIRT_QEMU = True
+elif VIRSH_DEFAULT_URI == 'xen:///':
+    LIBVIRT_XEN = True
 
 
 class VM(virt_vm.BaseVM):
@@ -410,7 +419,6 @@ class VM(virt_vm.BaseVM):
             return " --vcpu=%s" % smp
 
         def add_location(help, location):
-            #return " --location %s" % location
             if has_option(help, "location"):
                 return " --location %s" % location
             else:
@@ -563,7 +571,9 @@ class VM(virt_vm.BaseVM):
         # TODO: directory location for vmlinuz/kernel for cdrom install ?
         location = None
         if params.get("medium") == 'url':
-            location = params.get("url")
+            if params.get("url") == 'auto':
+                location = params.get('auto_content_url')
+
         elif params.get("medium") == 'kernel_initrd':
             # directory location of kernel/initrd pair (directory layout must
             # be in format libvirt will recognize)
@@ -634,33 +644,34 @@ class VM(virt_vm.BaseVM):
                                   image_params.get("drive_cache"),
                                   image_params.get("image_format"))
 
-        for cdrom in params.objects("cdroms"):
-            cdrom_params = params.object_params(cdrom)
-            iso = cdrom_params.get("cdrom")
-            if params.get("use_libvirt_cdrom_switch") == 'yes':
-                # we don't want to skip the winutils iso
-                if not cdrom == 'winutils':
-                    logging.debug("Using --cdrom instead of --disk for install")
-                    logging.debug("Skipping CDROM:%s:%s", cdrom, iso)
-                    continue
-            if params.get("medium") == 'cdrom_no_kernel_initrd':
-                if iso == params.get("cdrom_cd1"):
-                    logging.debug("Using cdrom or url for install")
-                    logging.debug("Skipping CDROM: %s", iso)
-                    continue
+        if LIBVIRT_QEMU:
+            for cdrom in params.objects("cdroms"):
+                cdrom_params = params.object_params(cdrom)
+                iso = cdrom_params.get("cdrom")
+                if params.get("use_libvirt_cdrom_switch") == 'yes':
+                    # we don't want to skip the winutils iso
+                    if not cdrom == 'winutils':
+                        logging.debug("Using --cdrom instead of --disk for install")
+                        logging.debug("Skipping CDROM:%s:%s", cdrom, iso)
+                        continue
+                if params.get("medium") == 'cdrom_no_kernel_initrd':
+                    if iso == params.get("cdrom_cd1"):
+                        logging.debug("Using cdrom or url for install")
+                        logging.debug("Skipping CDROM: %s", iso)
+                        continue
 
-            if iso:
-                virt_install_cmd += add_drive(help,
-                             virt_utils.get_path(root_dir, iso),
-                                  image_params.get("iso_image_pool"),
-                                  image_params.get("iso_image_vol"),
-                                  'cdrom',
-                                  None,
-                                  None,
-                                  None,
-                                  None,
-                                  None,
-                                  None)
+                if iso:
+                    virt_install_cmd += add_drive(help,
+                                 virt_utils.get_path(root_dir, iso),
+                                      image_params.get("iso_image_pool"),
+                                      image_params.get("iso_image_vol"),
+                                      'cdrom',
+                                      None,
+                                      None,
+                                      None,
+                                      None,
+                                      None,
+                                      None)
 
         # We may want to add {floppy_otps} parameter for -fda
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
@@ -685,9 +696,12 @@ class VM(virt_vm.BaseVM):
             virt_install_cmd += " --mac %s" % mac
             self.nic_mac = mac
 
-        virt_install_cmd += (" --network %s,model=%s" %
-                             (params.get("virsh_network"),
-                              params.get("nic_model")))
+        if LIBVIRT_XEN:
+            virt_install_cmd += (" --network=%s" % params.get("virsh_network"))
+        elif LIBVIRT_QEMU:
+            virt_install_cmd += (" --network=%s,model=%s" %
+                                 (params.get("virsh_network"),
+                                  params.get("nic_model")))
 
         if params.get("use_no_reboot") == "yes":
             virt_install_cmd += " --noreboot"
