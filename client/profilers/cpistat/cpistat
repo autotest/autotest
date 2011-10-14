@@ -64,15 +64,15 @@ if __name__ == '__main__':
 
     while infinite or iters:
         for i in range(0, len(events)):
-          e = events[i]
-          sum[e] = 0
-          for c in cpus:
-              count = struct.unpack('L', s.read(c, i))[0]
-              delta[e][c] = count - last[e][c]
-              last[e][c] = count
-              if show_per_cpu:
-                  print '''CPU%d: %s\t%lu''' % (c, e, delta[e][c])
-              sum[e] += delta[e][c]
+            e = events[i]
+            sum[e] = 0
+            for c in cpus:
+                count = struct.unpack('L', s.read(c, i))[0]
+                delta[e][c] = count - last[e][c]
+                last[e][c] = count
+                if show_per_cpu:
+                    print '''CPU%d: %s\t%lu''' % (c, e, delta[e][c])
+                sum[e] += delta[e][c]
 
         cycles = sum['PERF_COUNT_HW_CPU_CYCLES']
         instructions = sum['PERF_COUNT_HW_INSTRUCTIONS']

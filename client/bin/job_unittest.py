@@ -330,7 +330,7 @@ class test_base_job(unittest.TestCase):
         # record
         which = "which"
         harness_args = ''
-        harness.select.expect_call(which, self.job, 
+        harness.select.expect_call(which, self.job,
                                    harness_args).and_return(None)
 
         # run and test

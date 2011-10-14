@@ -322,4 +322,3 @@ def run_cgroup(test, params, env):
     logging.info(out)
     if results.count("FAILED"):
         raise error.TestFail("Some subtests failed\n%s" % out)
-
