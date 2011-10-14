@@ -16,7 +16,7 @@ db = db.db()
 
 def main():
     display.print_main_header()
-    
+
     form = cgi.FieldStorage()
 
     if form.has_key('sql'):

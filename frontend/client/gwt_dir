@@ -17,4 +17,3 @@ if not os.path.isdir(DEFAULT_GWT):
     sys.stderr.write('(%s): GWT not installed?\n' % __file__)
 
 print DEFAULT_GWT
-

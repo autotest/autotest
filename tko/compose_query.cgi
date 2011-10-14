@@ -80,7 +80,7 @@ next_field = {
     'reason': 'tag',
     'user': 'tag',
     'status': 'tag',
-   
+
     'time': 'tag',
     'time_daily': 'time',
 }
@@ -125,7 +125,7 @@ def split_forced_fields(force_field):
 
 force_row =  split_forced_fields(force_row_field)
 force_column =  split_forced_fields(force_column_field)
-  
+
 cgitb.enable()
 db_obj = db.db()
 
@@ -188,10 +188,10 @@ def header_tuneup(field_name, header):
         ## - breaking header into several strings if it is long url
         ## - creating date from datetime stamp
         ## - possibly, expect more various refinements for different fields
-        if field_name == 'kernel':
-                return  map_kernel_base(header)
-        else:
-                return header
+    if field_name == 'kernel':
+        return  map_kernel_base(header)
+    else:
+        return header
 
 
 # Kernel name mappings -- the kernels table 'printable' field is
@@ -209,7 +209,7 @@ def header_tuneup(field_name, header):
 #     2.6.24-mm1 p112
 #     +add-new-string-functions-
 #     +x86-amd-thermal-interrupt
-# 
+#
 # This mapping is produced when the first mapping is request, with
 # a single query over the patches table; the result is then cached.
 #
@@ -276,9 +276,9 @@ def gen_matrix():
         ## query_reason is relatively save.
         ## At the same time view when either rows or columns grouped
         ## by status is when users need reasons of failures the most.
-        
+
         ## TO DO: implement [Show/Hide reasons] button or link in
-        ## all views and make thorough performance testing 
+        ## all views and make thorough performance testing
         test_data = frontend.get_matrix_data(db_obj, column, row, where,
                 query_reasons = ('status' in [row,column])
                 )
@@ -286,8 +286,8 @@ def gen_matrix():
         sql_wall_time = time.time() - wall_time_start
 
     except db.MySQLTooManyRows, error:
-        return [[display.box(str(error))]]            
-    
+        return [[display.box(str(error))]]
+
     for f_row in force_row:
         if not f_row in test_data.y_values:
             test_data.y_values.append(f_row)
@@ -330,7 +330,7 @@ def gen_matrix():
             try:
                 box_data = test_data.data[x][y]
             except:
-                cur_row.append(display.box(None, None, 
+                cur_row.append(display.box(None, None,
                            row_label=y, column_label=x))
                 continue
             job_tag = test_data.data[x][y].job_tag
@@ -351,7 +351,7 @@ def main():
         ## create main grid table only as provided by gen_matrix()
         display.print_table(gen_matrix())
     else:
-        # create the actual page 
+        # create the actual page
         print '<html><head><title>'
         print 'Filtered Autotest Results'
         print '</title></head><body>'
@@ -367,7 +367,7 @@ def main():
         display.print_table(gen_matrix())
         print display.color_keys_row()
         total_wall_time = time.time() - total_wall_time_start
-        
+
         perf_info = '<p style="font-size:x-small;">'
         perf_info += 'sql access wall time = %s secs,' % sql_wall_time
         perf_info += 'total wall time = %s secs</p>' % total_wall_time
