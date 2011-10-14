@@ -90,6 +90,9 @@ use_os_variant = no
 use_os_type = yes
 # libvirt network to use examples network=default or bridge=br0
 virsh_network = network=default
+# if using 'url = auto' to install, url_auto_ip must match IP on
+# selected virsh network or bridge
+url_auto_ip = 192.168.122.1
 # wait in minutes for virt-install to finish (bz still open)
 use_virt_install_wait = no
 virt_install_wait_time = 300  
@@ -1165,6 +1168,8 @@ variants:
             # Device selection for the NDISTest server machine
             dp_regex_servermsgdev = VirtIO Ethernet Adapter$
             dp_regex_serversupportdev = VirtIO Ethernet Adapter #2$
+    -xennet:
+        # placeholder
 
 # Guests
 variants:
@@ -2802,6 +2807,8 @@ variants:
         drive_format=usb2
     - usb.cdrom:
         cd_format=usb2
+    - xenblk:
+        # placeholder
 
 
 virtio_net, virtio_blk, e1000, balloon_check:
