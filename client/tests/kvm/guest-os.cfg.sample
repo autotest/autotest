@@ -914,7 +914,7 @@ variants:
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
-                    extra_params += "--append 'console=ttyS0,115200 console=tty0'"
+                    extra_params += " --append 'console=ttyS0,115200 console=tty0'"
 
                 variants:
                     - 6.10-32:
