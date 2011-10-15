@@ -6,6 +6,7 @@
 include base.cfg
 include subtests.cfg
 include guest-os.cfg
+include guest-hw.cfg
 include cdkeys.cfg
 include virtio-win.cfg
 
