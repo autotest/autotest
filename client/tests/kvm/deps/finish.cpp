@@ -121,7 +121,7 @@ int main(int argc, char **argv)
     closesocket(ListenSocket);
 
     // Send the ack string to the client
-    iSendResult = send(ClientSocket, sendbuf, sizeof(sendbuf), 0);
+    iSendResult = send(ClientSocket, sendbuf, strlen(sendbuf), 0);
     if (iSendResult == SOCKET_ERROR) {
         closesocket(ClientSocket);
         ExitOnError("Send failed", TRUE);
