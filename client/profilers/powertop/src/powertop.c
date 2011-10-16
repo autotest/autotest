@@ -996,7 +996,7 @@ int main(int argc, char **argv)
 			push_line_pid(line2, cnt, pid);
 		}
 		if (file)
-			pclose(file);
+			fclose(file);
 
 		if (strstr(line, "total events")) {
 			int d;
