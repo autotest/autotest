@@ -342,8 +342,10 @@ static void read_data_cpuidle(uint64_t * usage, uint64_t * duration)
 			      entry->d_name);
 
 		dir = opendir(filename);
-		if (!dir)
+		if (!dir) {
+			closedir(cpudir);
 			return;
+		}
 
 		clevel = 0;
 
