@@ -978,6 +978,7 @@ def etraceback(prep, exc_info):
     @param exc_info: sys.exc_info of the exception
     @return: string which contains beautifully formatted exception
     """
+    out = ""
     for line in traceback.format_exception(exc_info[0], exc_info[1],
                                            exc_info[2]):
         out += "%s: %s" % (prep, line)
