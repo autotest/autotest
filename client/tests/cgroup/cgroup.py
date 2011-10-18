@@ -1,4 +1,12 @@
-import os, logging
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+"""
+Autotest test for testing cgroup functionalities
+
+@copyright: 2011 Red Hat Inc.
+@author: Lukas Doktor <ldoktor@redhat.com>
+"""
+import os, sys, logging
 import time
 from tempfile import NamedTemporaryFile
 
@@ -6,6 +14,7 @@ from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
 from cgroup_common import Cgroup as CG
 from cgroup_common import CgroupModules
+from cgroup_common import _traceback
 
 class cgroup(test.test):
     """
@@ -15,7 +24,7 @@ class cgroup(test.test):
     """
     version = 1
     _client = ""
-    modules = CgroupModules()
+    modules = None
 
     def run_once(self):
         """
@@ -25,25 +34,26 @@ class cgroup(test.test):
 
         err = ""
         # Run available tests
-        for i in ['memory', 'cpuset']:
-            logging.info("---< 'test_%s' START >---", i)
+        for subtest in ['memory', 'cpuset']:
+            logging.info("---< 'test_%s' START >---", subtest)
             try:
-                if not self.modules.get_pwd(i):
+                if not self.modules.get_pwd(subtest):
                     raise error.TestFail("module not available/mounted")
-                t_function = getattr(self, "test_%s" % i)
+                t_function = getattr(self, "test_%s" % subtest)
                 t_function()
-                logging.info("---< 'test_%s' PASSED >---", i)
+                logging.info("---< 'test_%s' PASSED >---", subtest)
             except AttributeError:
-                err += "%s, " % i
-                logging.error("test_%s: Test doesn't exist", i)
-                logging.info("---< 'test_%s' FAILED >---", i)
-            except Exception, inst:
-                err += "%s, " % i
-                logging.error("test_%s: %s", i, inst)
-                logging.info("---< 'test_%s' FAILED >---", i)
+                err += "%s, " % subtest
+                logging.error("test_%s: Test doesn't exist", subtest)
+                logging.info("---< 'test_%s' FAILED >---", subtest)
+            except Exception:
+                err += "%s, " % subtest
+                tb = _traceback("test_%s" % subtest, sys.exc_info())
+                logging.error("test_%s: FAILED%s", subtest, tb)
+                logging.info("---< 'test_%s' FAILED >---", subtest)
 
         if err:
-            logging.error('Some subtests failed (%s)' % err[:-2])
+            logging.error('Some subtests failed (%s)', err[:-2])
             raise error.TestFail('Some subtests failed (%s)' % err[:-2])
 
 
@@ -57,16 +67,16 @@ class cgroup(test.test):
 
         _modules = ['cpuset', 'ns', 'cpu', 'cpuacct', 'memory', 'devices',
                     'freezer', 'net_cls', 'blkio']
+        self.modules = CgroupModules()
         if (self.modules.init(_modules) <= 0):
             raise error.TestFail('Can\'t mount any cgroup modules')
 
 
     def cleanup(self):
-        """
-        Unmount all cgroups and remove directories
-        """
-        logging.info('Cleanup')
-        self.modules.cleanup()
+        """ Cleanup """
+        logging.debug('cgroup_test cleanup')
+        print "Cleanup"
+        del (self.modules)
 
 
     #############################
@@ -77,7 +87,7 @@ class cgroup(test.test):
         Memory test
         """
         def cleanup(supress=False):
-            # cleanup
+            """ cleanup """
             logging.debug("test_memory: Cleanup")
             err = ""
             if item.rm_cgroup(pwd):
@@ -87,51 +97,46 @@ class cgroup(test.test):
 
             if err:
                 if supress:
-                    logging.warn("Some parts of cleanup failed%s" % err)
+                    logging.warn("Some parts of cleanup failed%s", err)
                 else:
                     raise error.TestFail("Some parts of cleanup failed%s" % err)
 
         # Preparation
         item = CG('memory', self._client)
-        if item.initialize(self.modules):
-            raise error.TestFail("cgroup init failed")
-
-        if item.smoke_test():
-            raise error.TestFail("smoke_test failed")
-
+        item.initialize(self.modules)
+        item.smoke_test()
         pwd = item.mk_cgroup()
-        if pwd == None:
-            raise error.TestFail("Can't create cgroup")
 
         logging.debug("test_memory: Memory filling test")
-
-        f = open('/proc/meminfo','r')
-        mem = f.readline()
+        meminfo = open('/proc/meminfo','r')
+        mem = meminfo.readline()
         while not mem.startswith("MemFree"):
-            mem = f.readline()
+            mem = meminfo.readline()
         # Use only 1G or max of the free memory
         mem = min(int(mem.split()[1])/1024, 1024)
         mem = max(mem, 100) # at least 100M
-        memsw_limit_bytes = item.get_property("memory.memsw.limit_in_bytes",
-                                              supress=True)
-        if memsw_limit_bytes is not None:
+        try:
+            memsw_limit_bytes = item.get_property("memory.memsw.limit_in_bytes")
+        except error.TestFail:
+            # Doesn't support memsw limitation -> disabling
+            logging.info("System does not support 'memsw'")
+            utils.system("swapoff -a")
+            memsw = False
+        else:
+            # Supports memsw
             memsw = True
             # Clear swap
             utils.system("swapoff -a")
             utils.system("swapon -a")
-            f.seek(0)
-            swap = f.readline()
+            meminfo.seek(0)
+            swap = meminfo.readline()
             while not swap.startswith("SwapTotal"):
-                swap = f.readline()
+                swap = meminfo.readline()
             swap = int(swap.split()[1])/1024
             if swap < mem / 2:
                 logging.error("Not enough swap memory to test 'memsw'")
                 memsw = False
-        else:
-            # Doesn't support swap + memory limitation, disable swap
-            logging.info("System does not support 'memsw'")
-            utils.system("swapoff -a")
-            memsw = False
+        meminfo.close()
         outf = NamedTemporaryFile('w+', prefix="cgroup_client-",
                                   dir="/tmp")
         logging.debug("test_memory: Initializition passed")
@@ -170,10 +175,8 @@ class cgroup(test.test):
         ################################################
         logging.debug("test_memory: Memfill mem only limit")
         ps = item.test("memfill %d %s" % (mem, outf.name))
-        if item.set_cgroup(ps.pid, pwd):
-            raise error.TestFail("Could not set cgroup")
-        if item.set_prop("memory.limit_in_bytes", ("%dM" % (mem/2)), pwd):
-            raise error.TestFail("Could not set mem limit (mem)")
+        item.set_cgroup(ps.pid, pwd)
+        item.set_prop("memory.limit_in_bytes", ("%dM" % (mem/2)), pwd)
         ps.stdin.write('\n')
         i = 0
         while ps.poll() == None:
@@ -218,10 +221,8 @@ class cgroup(test.test):
         if memsw:
             logging.debug("test_memory: Memfill mem + swap limit")
             ps = item.test("memfill %d %s" % (mem, outf.name))
-            if item.set_cgroup(ps.pid, pwd):
-                raise error.TestFail("Could not set cgroup (memsw)")
-            if item.set_prop("memory.memsw.limit_in_bytes", "%dM"%(mem/2), pwd):
-                raise error.TestFail("Could not set mem limit (memsw)")
+            item.set_cgroup(ps.pid, pwd)
+            item.set_prop("memory.memsw.limit_in_bytes", "%dM"%(mem/2), pwd)
             ps.stdin.write('\n')
             i = 0
             while ps.poll() == None:
@@ -265,9 +266,9 @@ class cgroup(test.test):
         Cpuset test
         1) Initiate CPU load on CPU0, than spread into CPU* - CPU0
         """
-        class per_cpu_load:
+        class LoadPerCpu:
             """
-            Handles the per_cpu_load stats
+            Handles the LoadPerCpu stats
             self.values [cpus, cpu0, cpu1, ...]
             """
             def __init__(self):
@@ -275,14 +276,14 @@ class cgroup(test.test):
                 Init
                 """
                 self.values = []
-                self.f = open('/proc/stat', 'r')
-                line = self.f.readline()
+                self.stat = open('/proc/stat', 'r')
+                line = self.stat.readline()
                 while line:
                     if line.startswith('cpu'):
                         self.values.append(int(line.split()[1]))
                     else:
                         break
-                    line = self.f.readline()
+                    line = self.stat.readline()
 
             def reload(self):
                 """
@@ -295,11 +296,11 @@ class cgroup(test.test):
                 Get the current values
                 @return vals: array of current values [cpus, cpu0, cpu1..]
                 """
-                self.f.seek(0)
-                self.f.flush()
+                self.stat.seek(0)
+                self.stat.flush()
                 vals = []
-                for i in range(len(self.values)):
-                    vals.append(int(self.f.readline().split()[1]))
+                for _ in range(len(self.values)):
+                    vals.append(int(self.stat.readline().split()[1]))
                 return vals
 
             def tick(self):
@@ -316,11 +317,12 @@ class cgroup(test.test):
                 return ret
 
         def cleanup(supress=False):
-            # cleanup
+            """ cleanup """
             logging.debug("test_cpuset: Cleanup")
             err = ""
             try:
                 for task in tasks:
+                    i = 0
                     for i in range(10):
                         task.terminate()
                         if task.poll() != None:
@@ -334,7 +336,7 @@ class cgroup(test.test):
                 err += "\nCan't remove cgroup direcotry"
             if err:
                 if supress:
-                    logging.warn("Some parts of cleanup failed%s" % err)
+                    logging.warn("Some parts of cleanup failed%s", err)
                 else:
                     raise error.TestFail("Some parts of cleanup failed%s" % err)
 
@@ -343,8 +345,8 @@ class cgroup(test.test):
         if item.initialize(self.modules):
             raise error.TestFail("cgroup init failed")
 
-        # FIXME: new cpuset cgroup doesn't have any mems and cpus assigned
-        # thus smoke_test won't work
+        # in cpuset cgroup it's necessarily to set certain values before
+        # usage. Thus smoke_test will fail.
         #if item.smoke_test():
         #    raise error.TestFail("smoke_test failed")
 
@@ -355,9 +357,6 @@ class cgroup(test.test):
             raise error.TestFail("Failed to get no_cpus or no_cpus = 1")
 
         pwd = item.mk_cgroup()
-        if pwd == None:
-            raise error.TestFail("Can't create cgroup")
-        # FIXME: new cpuset cgroup doesn't have any mems and cpus assigned
         try:
             tmp = item.get_prop("cpuset.cpus")
             item.set_property("cpuset.cpus", tmp, pwd)
@@ -378,25 +377,27 @@ class cgroup(test.test):
         # Run no_cpus + 1 jobs
         for i in range(no_cpus + 1):
             tasks.append(item.test("cpu"))
-            if item.set_cgroup(tasks[i].pid, pwd):
+            try:
+                item.set_cgroup(tasks[i].pid, pwd)
+            except error.TestFail, inst:
                 cleanup(True)
-                raise error.TestFail("Failed to set cgroup")
+                raise error.TestFail("Failed to set cgroup: %s", inst)
             tasks[i].stdin.write('\n')
-        stats = per_cpu_load()
+        stats = LoadPerCpu()
         # Use only the first CPU
         item.set_property("cpuset.cpus", 0, pwd)
         stats.reload()
         time.sleep(10)
         # [0] = all cpus
-        s1 = stats.tick()[1:]
-        s2 = s1[1:]
-        s1 = s1[0]
-        for _s in s2:
-            if s1 < _s:
+        stat1 = stats.tick()[1:]
+        stat2 = stat1[1:]
+        stat1 = stat1[0]
+        for _stat in stat2:
+            if stat1 < _stat:
                 cleanup(True)
                 raise error.TestFail("Unused processor had higher utilization\n"
                                      "used cpu: %s, remaining cpus: %s"
-                                     % (s1, s2))
+                                     % (stat1, stat2))
 
         if no_cpus == 2:
             item.set_property("cpuset.cpus", "1", pwd)
@@ -404,15 +405,15 @@ class cgroup(test.test):
             item.set_property("cpuset.cpus", "1-%d"%(no_cpus-1), pwd)
         stats.reload()
         time.sleep(10)
-        s1 = stats.tick()[1:]
-        s2 = s1[0]
-        s1 = s1[1:]
-        for _s in s1:
-            if s2 > _s:
+        stat1 = stats.tick()[1:]
+        stat2 = stat1[0]
+        stat1 = stat1[1:]
+        for _stat in stat1:
+            if stat2 > _stat:
                 cleanup(True)
                 raise error.TestFail("Unused processor had higher utilization\n"
                                      "used cpus: %s, remaining cpu: %s"
-                                     % (s1, s2))
+                                     % (stat1, stat2))
         logging.debug("test_cpuset: Cpu allocation test passed")
 
         ################################################
