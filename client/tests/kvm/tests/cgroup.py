@@ -17,7 +17,39 @@ def run_cgroup(test, params, env):
     vms = None
     tests = None
 
+
     # Func
+    def _check_vms(vms):
+        """
+        Checks if the VM is alive.
+        @param vms: list of vm's
+        """
+        for i in range(len(vms)):
+            try:
+                vms[i].verify_alive()
+                vms[i].verify_kernel_crash()
+                vms[i].wait_for_login(timeout=30).close()
+            except Exception, failure_detail:
+                logging.error("_check_vms: %s", failure_detail)
+                logging.warn("recreate VM(%s)", i)
+                # The vm has to be recreated to reset the qemu PCI state
+                vms[i].create()
+
+
+    def _traceback(name, exc_info):
+        """
+        Formats traceback into lines "name: line\nname: line"
+        @param name: desired line preposition
+        @param exc_info: sys.exc_info of the exception
+        @return: string which contains beautifully formatted exception
+        """
+        out = "\n"
+        for line in traceback.format_exception(exc_info[0], exc_info[1],
+                                               exc_info[2]):
+            out += "%s: %s" % (name, line)
+        return out
+
+
     def get_device_driver():
         """
         Discovers the used block device driver {ide, scsi, virtio_blk}
@@ -106,17 +138,22 @@ def run_cgroup(test, params, env):
         Remove drive from vm and device on disk
         ! beware to remove scsi devices in reverse order !
         """
+        err = False
         vm.monitor.cmd("pci_del %s" % device)
         time.sleep(3)
-        out = vm.monitor.info('qtree', debug=False)
-        if out.count('addr %s.0' % device) != 0:
-            raise error.TestFail("Can't remove device(%s, %s, %s):\n%s" %
-                                 (vm.name, host_file, device, out))
+        qtree = vm.monitor.info('qtree', debug=False)
+        if qtree.count('addr %s.0' % device) != 0:
+            err = True
+            vm.destroy()
 
-        if isinstance(host_file, file):     # file
+        if isinstance(host_file, str):     # scsi
+            utils.system("echo -1 >/sys/bus/pseudo/drivers/scsi_debug/add_host")
+        else:    # file
             host_file.close()
-        elif isinstance(host_file, str):    # scsi device
-            utils.system("echo -1> /sys/bus/pseudo/drivers/scsi_debug/add_host")
+
+        if err:
+            logging.error("Cant del device(%s, %s, %s):\n%s" % (vm.name,
+                                                    host_file, device, qtree))
 
 
     # Tests
@@ -297,35 +334,6 @@ def run_cgroup(test, params, env):
                            'done')
 
 
-    def _check_vms(vms):
-        """
-        Checks if the VM is alive.
-        @param vms: list of vm's
-        """
-        for i in range(len(vms)):
-            vms[i].verify_alive()
-            try:
-                vms[i].verify_kernel_crash()
-            except virt_vm.VMDeadKernelCrashError, failure_detail:
-                logging.error("_check_vms: %s", failure_detail)
-                logging.warn("recreate VM(%s)", i)
-                # The vm has to be recreated to reset the qemu PCI state
-                vms[i].create()
-
-    def _traceback(name, exc_info):
-        """
-        Formats traceback into lines "name: line\nname: line"
-        @param name: desired line preposition
-        @param exc_info: sys.exc_info of the exception
-        @return: string which contains beautifully formatted exception
-        """
-        out = "\n"
-        for line in traceback.format_exception(exc_info[0], exc_info[1],
-                                               exc_info[2]):
-            out += "%s: %s" % (name, line)
-        return out
-
-
     # Setup
     # TODO: Add all new tests here
     tests = {"blkio_bandwidth_weigth_read"  : TestBlkioBandwidthWeigthRead,
@@ -416,4 +424,3 @@ def run_cgroup(test, params, env):
     logging.info(out)
     if results.count("FAILED"):
         raise error.TestFail("Some subtests failed\n%s" % out)
-
