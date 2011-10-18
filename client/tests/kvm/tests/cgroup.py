@@ -222,18 +222,12 @@ def run_cgroup(test, params, env):
                 raise error.TestError("Could not initialize blkio Cgroup")
             for i in range(2):
                 pwd.append(blkio.mk_cgroup())
-                if pwd[i] == None:
-                    raise error.TestError("Can't create cgroup")
-                if blkio.set_cgroup(self.vms[i].get_shell_pid(), pwd[i]):
-                    raise error.TestError("Could not set cgroup")
+                blkio.set_cgroup(self.vms[i].get_shell_pid(), pwd[i])
                 # Move all existing threads into cgroup
                 for tmp in utils.get_children_pids(self.vms[i].get_shell_pid()):
-                    if blkio.set_cgroup(int(tmp), pwd[i]):
-                        raise error.TestError("Could not set cgroup")
-            if self.blkio.set_property("blkio.weight", 100, pwd[0]):
-                raise error.TestError("Could not set blkio.weight")
-            if self.blkio.set_property("blkio.weight", 1000, pwd[1]):
-                raise error.TestError("Could not set blkio.weight")
+                    blkio.set_cgroup(int(tmp), pwd[i])
+            self.blkio.set_property("blkio.weight", 100, pwd[0])
+            self.blkio.set_property("blkio.weight", 1000, pwd[1])
 
             # Add dummy drives
             # TODO: implement also using QMP.
