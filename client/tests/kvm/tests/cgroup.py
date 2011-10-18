@@ -4,9 +4,9 @@ cgroup autotest test (on KVM guest)
 @copyright: 2011 Red Hat, Inc.
 """
 import logging, re, sys, tempfile, time
+from random import random
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-from client.virt import virt_vm
 from autotest_lib.client.tests.cgroup.cgroup_common import Cgroup, CgroupModules
 
 def run_cgroup(test, params, env):
@@ -30,7 +30,7 @@ def run_cgroup(test, params, env):
                 vms[i].verify_alive()
                 vms[i].verify_kernel_crash()
                 vms[i].wait_for_login(timeout=30).close()
-            except virt_vm.VMDeadKernelCrashError, failure_detail:
+            except Exception, failure_detail:
                 logging.error("_check_vms: %s", failure_detail)
                 logging.warn("recreate VM(%s)", i)
                 # The vm has to be recreated to reset the qemu PCI state
@@ -38,6 +38,40 @@ def run_cgroup(test, params, env):
                 err += "%s, " % vms[i].name
         if err:
             raise error.TestFail("WM [%s] had to be recreated" % err[:-2])
+
+
+    def distance(actual, reference):
+        """
+        Absolute value of relative distance of two numbers
+        @param actual: actual value
+        @param reference: reference value
+        @return: relative distance abs((a-r)/r) (float)
+        """
+        return abs(float(actual-reference) / reference)
+
+
+    def get_dd_cmd(direction, dev='vd?', count=None, bs=None):
+        """
+        Generates dd_cmd string
+        @param direction: {read,write,bi} dd direction
+        @param dev: used device ('vd?')
+        @param count: count parameter of dd
+        @param bs: bs parameter of dd
+        @return: dd command string
+        """
+        if direction == "read":
+            params = "if=$FILE of=/dev/null iflag=direct"
+        elif direction == "write":
+            params = "if=/dev/zero of=$FILE oflag=direct"
+        else:
+            params = "if=$FILE of=$FILE iflag=direct oflag=direct"
+        if bs:
+            params += " bs=%s" % (bs)
+        if count:
+            params += " count=%s" % (count)
+        return ("export FILE=$(ls /dev/%s | tail -n 1); touch /tmp/cgroup_lock "
+                "; while [ -e /tmp/cgroup_lock ]; do dd %s ; done"
+                % (dev, params))
 
 
     def get_device_driver():
@@ -58,14 +92,17 @@ def run_cgroup(test, params, env):
                     ret_file: created file handler (None if not created)
                     device: PCI id of the virtual disk
         """
+        # TODO: Implement also via QMP
         if not host_file:
             host_file = tempfile.NamedTemporaryFile(prefix="cgroup-disk-",
                                                suffix=".iso")
             utils.system("dd if=/dev/zero of=%s bs=1M count=8 &>/dev/null"
                          % (host_file.name))
             ret_file = host_file
+            logging.debug("add_file_drive: new file %s as drive", host_file)
         else:
             ret_file = None
+            logging.debug("add_file_drive: using file %s as drive", host_file)
 
         out = vm.monitor.cmd("pci_add auto storage file=%s,if=%s,snapshot=off,"
                              "cache=off" % (host_file.name, driver))
@@ -93,19 +130,25 @@ def run_cgroup(test, params, env):
                     ret_file: string of the created dev (None if not created)
                     device: PCI id of the virtual disk
         """
+        # TODO: Implement also via QMP
         if not host_file:
-            if utils.system_output("lsmod | grep scsi_debug -c") == 0:
+            if utils.system("lsmod | grep scsi_debug", ignore_status=True):
                 utils.system("modprobe scsi_debug dev_size_mb=8 add_host=0")
             utils.system("echo 1 > /sys/bus/pseudo/drivers/scsi_debug/add_host")
+            time.sleep(1)   # Wait for device init
             host_file = utils.system_output("ls /dev/sd* | tail -n 1")
             # Enable idling in scsi_debug drive
-            utils.system("echo 1 > /sys/block/%s/queue/rotational" % host_file)
+            utils.system("echo 1 > /sys/block/%s/queue/rotational"
+                         % (host_file.split('/')[-1]))
             ret_file = host_file
+            logging.debug("add_scsi_drive: add %s device", host_file)
         else:
             # Don't remove this device during cleanup
             # Reenable idling in scsi_debug drive (in case it's not)
-            utils.system("echo 1 > /sys/block/%s/queue/rotational" % host_file)
+            utils.system("echo 1 > /sys/block/%s/queue/rotational"
+                         % (host_file.split('/')[-1]))
             ret_file = None
+            logging.debug("add_scsi_drive: using %s device", host_file)
 
         out = vm.monitor.cmd("pci_add auto storage file=%s,if=%s,snapshot=off,"
                              "cache=off" % (host_file, driver))
@@ -129,6 +172,7 @@ def run_cgroup(test, params, env):
         ! beware to remove scsi devices in reverse order !
         """
         err = False
+        # TODO: Implement also via QMP
         vm.monitor.cmd("pci_del %s" % device)
         time.sleep(3)
         qtree = vm.monitor.info('qtree', debug=False)
@@ -208,8 +252,7 @@ def run_cgroup(test, params, env):
             # cgroups
             pwd = []
             blkio = self.blkio
-            if blkio.initialize(self.modules):
-                raise error.TestError("Could not initialize blkio Cgroup")
+            blkio.initialize(self.modules)
             for i in range(2):
                 pwd.append(blkio.mk_cgroup())
                 blkio.set_cgroup(self.vms[i].get_shell_pid(), pwd[i])
@@ -219,8 +262,6 @@ def run_cgroup(test, params, env):
             self.blkio.set_property("blkio.weight", 100, pwd[0])
             self.blkio.set_property("blkio.weight", 1000, pwd[1])
 
-            # Add dummy drives
-            # TODO: implement also using QMP.
             for i in range(2):
                 (host_file, device) = add_file_drive(vms[i], "virtio")
                 self.files.append(host_file)
@@ -293,10 +334,7 @@ def run_cgroup(test, params, env):
             _TestBlkioBandwidth.__init__(self, vms, modules)
             # Read from the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
-            self.dd_cmd = ("export FILE=$(ls /dev/vd? | tail -n 1); touch "
-                           "/tmp/cgroup_lock ; while [ -e /tmp/cgroup_lock ];"
-                           "do dd if=$FILE of=/dev/null iflag=direct bs=100K;"
-                           "done")
+            self.dd_cmd = get_dd_cmd("read", bs="100K")
 
 
     class TestBlkioBandwidthWeigthWrite(_TestBlkioBandwidth):
@@ -312,16 +350,261 @@ def run_cgroup(test, params, env):
             # Write on the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
             _TestBlkioBandwidth.__init__(self, vms, modules)
-            self.dd_cmd = ('export FILE=$(ls /dev/vd? | tail -n 1); touch '
-                           '/tmp/cgroup_lock ; while [ -e /tmp/cgroup_lock ];'
-                           'do dd if=/dev/zero of=$FILE oflag=direct bs=100K;'
-                           'done')
+            self.dd_cmd = get_dd_cmd("write", bs="100K")
+
+
+    class _TestBlkioThrottle:
+        """
+        BlkioThrottle dummy test
+         * Use it as a base class to an actual test!
+         * self.dd_cmd and throughputs have to be implemented
+         * It prepares a vm and runs self.dd_cmd. Always after 1 minute switches
+           the cgroup. At the end verifies, that the throughputs matches the
+           theoretical values.
+        """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            self.vm = vms[0]    # Virt machines
+            self.modules = modules  # cgroup module handler
+            self.cgroup = Cgroup('blkio', '')   # cgroup blkio handler
+            self.cgroups = []   # List of cgroups directories
+            self.files = None   # Temporary files (files of virt disks)
+            self.devices = None # Temporary virt devices (PCI drive 1 per vm)
+            self.dd_cmd = None  # DD command used to test the throughput
+            self.speeds = None  # cgroup throughput
+            if get_device_driver() == "virtio":
+                self.dev = "vd?"
+            else:
+                self.dev = "[sh]d?"
+
+        def cleanup(self):
+            """
+            Cleanup
+            """
+            err = ""
+            try:
+                rm_drive(self.vm, self.files, self.devices)
+            except Exception, failure_detail:
+                err += "\nCan't remove PCI drive: %s" % failure_detail
+            try:
+                del(self.cgroup)
+            except Exception, failure_detail:
+                err += "\nCan't remove Cgroup: %s" % failure_detail
+
+            if err:
+                logging.error("Some cleanup operations failed: %s", err)
+                raise error.TestError("Some cleanup operations failed: %s"
+                                      % err)
+
+        def init(self):
+            """
+            Initialization
+             * creates a new virtio device and adds it into vm
+             * creates a cgroup for each throughput
+            """
+            if (self.dd_cmd is None) or (self.speeds) is None:
+                raise error.TestError("Corrupt class, aren't you trying to run "
+                                      "parent _TestBlkioThrottle() function?")
+
+            if get_device_driver() == "ide":
+                logging.warn("The main disk for this VM is ide wich doesn't "
+                             "support hot-plug. Using virtio_blk instead")
+                (self.files, self.devices) = add_scsi_drive(self.vm,
+                                                            driver="virtio")
+            else:
+                (self.files, self.devices) = add_scsi_drive(self.vm)
+            try:
+                dev = utils.system_output("ls -l %s" % self.files).split()[4:6]
+                dev[0] = dev[0][:-1]    # Remove tailing ','
+            except:
+                time.sleep(5)
+                raise error.TestFail("Couldn't get %s maj and min numbers"
+                                     % self.files)
+
+            cgroup = self.cgroup
+            cgroup.initialize(self.modules)
+            for i in range(len(self.speeds)):
+                speed = self.speeds[i]
+                self.cgroups.append(cgroup.mk_cgroup())
+                if speed == 0:  # Disable limit (removes the limit)
+                    cgroup.set_property("blkio.throttle.write_bps_device",
+                                        "%s:%s %s" % (dev[0], dev[1], speed),
+                                        check="")
+                    cgroup.set_property("blkio.throttle.read_bps_device",
+                                        "%s:%s %s" % (dev[0], dev[1], speed),
+                                        check="")
+                else:       # Enable limit (input separator ' ', output '\t')
+                    cgroup.set_property("blkio.throttle.write_bps_device",
+                                        "%s:%s %s" % (dev[0], dev[1], speed),
+                                        self.cgroups[i], check="%s:%s\t%s"
+                                                    % (dev[0], dev[1], speed))
+                    cgroup.set_property("blkio.throttle.read_bps_device",
+                                        "%s:%s %s" % (dev[0], dev[1], speed),
+                                        self.cgroups[i], check="%s:%s\t%s"
+                                                    % (dev[0], dev[1], speed))
+
+        def run(self):
+            """
+            Actual test:
+             * executes self.dd_cmd in vm while limiting it's throughput using
+               different cgroups (or in a special case only one). At the end
+               it verifies the throughputs.
+            """
+            out = []
+            sessions = []
+            sessions.append(self.vm.wait_for_login(timeout=30))
+            sessions.append(self.vm.wait_for_login(timeout=30))
+            sessions[0].sendline(self.dd_cmd)
+            for i in range(len(self.cgroups)):
+                logging.info("Limiting speed to: %s", (self.speeds[i]))
+                # Assign all threads of vm
+                self.cgroup.set_cgroup(self.vm.get_shell_pid(), self.cgroups[i])
+                for pid in utils.get_children_pids(self.vm.get_shell_pid()):
+                    self.cgroup.set_cgroup(int(pid), self.cgroups[i])
+
+                # Standard test-time is 60s. If the slice time is less than 30s,
+                # test-time is prolonged to 30s per slice.
+                time.sleep(max(60/len(self.speeds), 30))
+                sessions[1].sendline("rm -f /tmp/cgroup_lock; killall -9 dd")
+                out.append(sessions[0].read_up_to_prompt())
+                sessions[0].sendline(self.dd_cmd)
+                time.sleep(random()*0.05)
+
+            sessions[1].sendline("rm -f /tmp/cgroup_lock; killall -9 dd")
+            # Verification
+            re_dd = (r'(\d+) bytes \(\d+\.*\d* \w*\) copied, (\d+\.*\d*) s, '
+                      '\d+\.*\d* \w./s')
+            err = []
+            for i in range(len(out)):
+                out[i] = [int(int(_[0])/float(_[1]))
+                              for _ in re.findall(re_dd, out[i])]
+                if not out[i]:
+                    raise error.TestFail("Not enough samples; please increase"
+                                         "throughput speed or testing time;"
+                                         "\nsamples: %s" % (out[i]))
+                # First samples might be corrupted, use only last sample when
+                # not enough data. (which are already an avg of 3xBS)
+                warn = False
+                if len(out[i]) < 3:
+                    warn = True
+                    out[i] = [out[i][-1]]
+                count = len(out[i])
+                out[i].sort()
+                # out = [min, med, max, number_of_samples]
+                out[i] = [out[i][0], out[i][count/2], out[i][-1], count]
+                if warn:
+                    logging.warn("Not enough samples, using the last one (%s)",
+                                 out[i])
+                if ((self.speeds[i] != 0) and
+                        (distance(out[i][1], self.speeds[i]) > 0.1)):
+                    logging.error("The throughput didn't match the requirements"
+                                  "(%s !~ %s)", out[i], self.speeds[i])
+                    err.append(i)
+
+            if self.speeds.count(0) > 1:
+                unlimited = []
+                for i in range(len(self.speeds)):
+                    if self.speeds[i] == 0:
+                        unlimited.append(out[i][1])
+                        self.speeds[i] = "(inf)"
+
+                avg = sum(unlimited) / len(unlimited)
+                if avg == 0:
+                    logging.warn("Average unlimited speed is 0 (%s)", out)
+                else:
+                    for speed in unlimited:
+                        if distance(speed, avg) > 0.1:
+                            logging.warning("Unlimited speeds variates during "
+                                            "the test: %s", unlimited)
+                            break
+
+
+            out_speeds = ["%s ~ %s" % (out[i][1], self.speeds[i])
+                                        for i in range(len(self.speeds))]
+            if err:
+                if len(out) == 1:
+                    raise error.TestFail("Actual throughput: %s, theoretical: "
+                                         "%s" % (out[0][1], self.speeds[0]))
+                elif len(err) == len(out):
+                    raise error.TestFail("All throughput limits were broken "
+                                         "(%s)" % (out_speeds))
+                else:
+                    raise error.TestFail("Limits (%s) were broken (%s)"
+                                         % (err, out_speeds))
+
+            return ("All throughputs matched their limits (%s)" % out_speeds)
+
+
+    class TestBlkioThrottleRead(_TestBlkioThrottle):
+        """ Tests the blkio.throttle.read_bps_device """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            _TestBlkioThrottle.__init__(self, vms, modules)
+            self.dd_cmd = get_dd_cmd("read", dev=self.dev, count=1)
+            self.speeds = [1024]
+
+
+    class TestBlkioThrottleWrite(_TestBlkioThrottle):
+        """ Tests the blkio.throttle.write_bps_device """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            _TestBlkioThrottle.__init__(self, vms, modules)
+            self.dd_cmd = get_dd_cmd("write", dev=self.dev, count=1)
+            self.speeds = [1024]
+
+
+    class TestBlkioThrottleMultipleRead(_TestBlkioThrottle):
+        """
+        Tests the blkio.throttle.read_bps_device while switching multiple
+        cgroups with different speeds.
+        """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            _TestBlkioThrottle.__init__(self, vms, modules)
+            self.dd_cmd = get_dd_cmd("read", dev=self.dev, count=1)
+            self.speeds = [0, 1024, 0, 2048, 0, 4096]
+
+
+    class TestBlkioThrottleMultipleWrite(_TestBlkioThrottle):
+        """
+        Tests the blkio.throttle.write_bps_device while switching multiple
+        cgroups with different speeds.
+        """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            _TestBlkioThrottle.__init__(self, vms, modules)
+            self.dd_cmd = get_dd_cmd("write", dev=self.dev, count=1)
+            self.speeds = [0, 1024, 0, 2048, 0, 4096]
 
 
     # Setup
     # TODO: Add all new tests here
     tests = {"blkio_bandwidth_weigth_read"  : TestBlkioBandwidthWeigthRead,
              "blkio_bandwidth_weigth_write" : TestBlkioBandwidthWeigthWrite,
+             "blkio_throttle_read"          : TestBlkioThrottleRead,
+             "blkio_throttle_write"         : TestBlkioThrottleWrite,
+             "blkio_throttle_multiple_read" : TestBlkioThrottleMultipleRead,
+             "blkio_throttle_multiple_write" : TestBlkioThrottleMultipleWrite,
             }
     modules = CgroupModules()
     if (modules.init(['blkio']) <= 0):
