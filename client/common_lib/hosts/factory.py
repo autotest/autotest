@@ -1,7 +1,7 @@
 from autotest_lib.client.common_lib import utils, error, global_config
-from autotest_lib.server import autotest, utils as server_utils
-from autotest_lib.server.hosts import site_factory, ssh_host, serial
-from autotest_lib.server.hosts import logfile_monitor
+from autotest_lib.client.common_lib import autotest, utils as server_utils
+from autotest_lib.client.common_lib.hosts import site_factory, ssh_host, serial
+from autotest_lib.client.common_lib.hosts import logfile_monitor
 
 DEFAULT_FOLLOW_PATH = '/var/log/kern.log'
 DEFAULT_PATTERNS_PATH = 'console_patterns'
@@ -17,7 +17,7 @@ def create_host(
     netconsole=False, **args):
     # by default assume we're using SSH support
     if SSH_ENGINE == 'paramiko':
-        from autotest_lib.server.hosts import paramiko_host
+        from autotest_lib.client.common_lib.hosts import paramiko_host
         classes = [paramiko_host.ParamikoHost]
     elif SSH_ENGINE == 'raw_ssh':
         classes = [ssh_host.SSHHost]

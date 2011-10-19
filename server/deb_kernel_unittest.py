@@ -3,9 +3,9 @@
 import unittest, os
 import common
 from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib import utils as common_utils
-from autotest_lib.server import deb_kernel, utils, hosts
-from autotest_lib.server.hosts import bootloader
+from autotest_lib.client.common_lib import utils as common_utils, hosts
+from autotest_lib.server import deb_kernel, utils
+from autotest_lib.client.common_lib.hosts import bootloader
 
 
 class TestDebKernel(unittest.TestCase):

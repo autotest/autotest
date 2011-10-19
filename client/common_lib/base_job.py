@@ -348,6 +348,24 @@ class job_state(object):
 
 
     @with_backing_file
+    def rename_namespace(self, namespace, new_namespace):
+        """Saves the value given with the provided name.
+
+        This operation must be atomic.
+
+        @param namespace: The namespace that the property should be stored in.
+        @param new_namespace: The name the value should be saved with.
+        """
+        if namespace in self._state:
+            self._state[new_namespace] = self._state[namespace]
+            del self._state[namespace]
+            logging.debug('Namespace %s rename to %s', namespace,
+                          new_namespace)
+        elif not namespace in self._state:
+            raise KeyError('No namespace %s in namespaces' % (namespace))
+
+
+    @with_backing_file
     def has(self, namespace, name):
         """Return a boolean indicating if namespace.name is defined.
 
@@ -358,6 +376,17 @@ class job_state(object):
             False otherwise.
         """
         return namespace in self._state and name in self._state[namespace]
+
+
+    @with_backing_file
+    def has_namespace(self, namespace):
+        """Return a boolean indicating if namespace.name is defined.
+
+        @param namespace: The namespace to check for a definition.
+
+        @return: True if the namespace defined False otherwise.
+        """
+        return namespace in self._state
 
 
     @with_backing_file
@@ -387,6 +416,13 @@ class job_state(object):
         if namespace in self._state:
             del self._state[namespace]
         logging.debug('Persistent state %s.* deleted', namespace)
+
+
+    @with_backing_file
+    def atomic(self, func, *args, **kargs):
+        """Use state like synchronization tool between process.
+        """
+        return func(*args, **kargs)
 
 
     @staticmethod
@@ -933,7 +969,7 @@ class base_job(object):
             Returns a status_logger instance for recording job status logs.
     """
 
-   # capture the dependency on several helper classes with factories
+    # capture the dependency on several helper classes with factories
     _job_directory = job_directory
     _job_state = job_state
 
@@ -1208,3 +1244,82 @@ class base_job(object):
                 logs should be written into the subdirectory status log file.
         """
         self._get_status_logger().record_entry(entry, log_in_subdir)
+
+
+    def clean_state(self):
+        pass
+
+
+    def _update_uncollected_logs_list(self, update_func):
+        """Updates the uncollected logs list in a multi-process safe manner.
+
+        @param update_func - a function that updates the list of uncollected
+            logs. Should take one parameter, the list to be updated.
+        """
+        if self._uncollected_log_file:
+            log_file = open(self._uncollected_log_file, "r+")
+            fcntl.flock(log_file, fcntl.LOCK_EX)
+            try:
+                uncollected_logs = pickle.load(log_file)
+                update_func(uncollected_logs)
+                log_file.seek(0)
+                log_file.truncate()
+                pickle.dump(uncollected_logs, log_file)
+                log_file.flush()
+            finally:
+                fcntl.flock(log_file, fcntl.LOCK_UN)
+                log_file.close()
+
+
+    def add_client_log(self, hostname, remote_path, local_path):
+        """Adds a new set of client logs to the list of uncollected logs,
+        to allow for future log recovery.
+
+        @param host - the hostname of the machine holding the logs
+        @param remote_path - the directory on the remote machine holding logs
+        @param local_path - the local directory to copy the logs into
+        """
+        def update_func(logs_list):
+            logs_list.append((hostname, remote_path, local_path))
+        self._update_uncollected_logs_list(update_func)
+
+
+    def remove_client_log(self, hostname, remote_path, local_path):
+        """Removes a set of client logs from the list of uncollected logs,
+        to allow for future log recovery.
+
+        @param host - the hostname of the machine holding the logs
+        @param remote_path - the directory on the remote machine holding logs
+        @param local_path - the local directory to copy the logs into
+        """
+        def update_func(logs_list):
+            logs_list.remove((hostname, remote_path, local_path))
+        self._update_uncollected_logs_list(update_func)
+
+
+    def get_client_logs(self):
+        """Retrieves the list of uncollected logs, if it exists.
+
+        @returns A list of (host, remote_path, local_path) tuples. Returns
+                 an empty list if no uncollected logs file exists.
+        """
+        log_exists = (self._uncollected_log_file and
+                      os.path.exists(self._uncollected_log_file))
+        if log_exists:
+            return pickle.load(open(self._uncollected_log_file))
+        else:
+            return []
+
+
+    def get_record_context(self):
+        """Returns an object representing the current job.record context.
+
+        The object returned is an opaque object with a 0-arg restore method
+        which can be called to restore the job.record context (i.e. indentation)
+        to the current level. The intention is that it should be used when
+        something external which generate job.record calls (e.g. an autotest
+        client) can fail catastrophically and the server job record state
+        needs to be reset to its original "known good" state.
+
+        @return: A context object with a 0-arg restore() method."""
+        return self._indenter.get_context()

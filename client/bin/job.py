@@ -8,6 +8,7 @@ Copyright Andy Whitcroft, Martin J. Bligh 2006
 import copy, os, platform, re, shutil, sys, time, traceback, types, glob
 import logging, getpass, errno, weakref
 import cPickle as pickle
+import tempfile, fcntl
 from autotest_lib.client.bin import client_logging_config
 from autotest_lib.client.bin import utils, parallel, kernel, xen
 from autotest_lib.client.bin import profilers, boottool, harness
@@ -72,6 +73,17 @@ class status_indenter(base_job.status_indenter):
         self.job._record_indent -= 1
 
 
+    def get_context(self):
+        """Returns a context object for use by job.get_record_context."""
+        class context(object):
+            def __init__(self, indenter, indent):
+                self._indenter = indenter
+                self._indent = indent
+            def restore(self):
+                self._indenter._indent = self._indent
+        return context(self, self.job._record_indent)
+
+
 class base_client_job(base_job.base_job):
     """The client-side concrete implementation of base_job.
 
@@ -119,6 +131,56 @@ class base_client_job(base_job.base_job):
                     'ABORT', None, None,'client.bin.job.__init__ failed: %s' %
                     str(err))
             raise
+
+
+    def use_external_logging(self):
+        """
+        Return True if external logging should be used.
+        """
+        return False
+
+
+    def extend_to_server_job(self, ssh_user="root", ssh_pass="", ssh_port=22,
+                             only_collect_crashinfo=False):
+        """
+        Extend client job to be able work as server part.
+        """
+        self._uncollected_log_file = None
+        created_uncollected_logs = False
+        if self.resultdir:
+            if only_collect_crashinfo:
+                # if this is a crashinfo-only run, and there were no existing
+                # uncollected logs, just bail out early
+                logging.info("No existing uncollected logs, "
+                             "skipping crashinfo collection")
+            else:
+                self._uncollected_log_file = os.path.join(self.resultdir,
+                                                          'uncollected_logs')
+                log_file = open(self._uncollected_log_file, "w")
+                pickle.dump([], log_file)
+                log_file.close()
+                created_uncollected_logs = True
+
+        from autotest_lib.client.common_lib import hosts
+        from autotest_lib.client.common_lib import autotest
+        hosts.factory.ssh_user = ssh_user
+        hosts.factory.ssh_port = ssh_port
+        hosts.factory.ssh_pass = ssh_pass
+        hosts.Host.job = self
+        autotest.Autotest.job = self
+
+        if self.resultdir:
+            os.chdir(self.resultdir)
+            # touch status.log so that the parser knows a job is running here
+            #open(self.get_status_log_path(), 'a').close()
+            self.enable_external_logging()
+
+        fd, sub_job_filepath = tempfile.mkstemp(dir=self.tmpdir)
+        os.close(fd)
+        self._sub_state = base_job.job_state()
+        self._sub_state.set_backing_file(sub_job_filepath)
+
+        self._sub_state.set('autotests', 'count', 0)
 
 
     @classmethod
@@ -173,6 +235,7 @@ class base_client_job(base_job.base_job):
         As of now self.record() needs self.resultdir, self._group_level,
         self.harness and of course self._logger.
         """
+        #TODO: Fix delete all debugdir files.
         if not options.cont:
             self._cleanup_debugdir_files()
             self._cleanup_results_dir()
@@ -209,8 +272,9 @@ class base_client_job(base_job.base_job):
             self.harness.test_status(rendered_entry, msg_tag)
             # send the entry to stdout, if it's enabled
             logging.info(rendered_entry)
+        self._indenter = status_indenter(self)
         self._logger = base_job.status_logger(
-            self, status_indenter(self), record_hook=client_job_record_hook,
+            self, self._indenter, record_hook=client_job_record_hook,
             tap_writer=self._tap)
 
     def _post_record_init(self, control, options, drop_caches,
@@ -1210,6 +1274,83 @@ class base_client_job(base_job.base_job):
     def _save_sysinfo_state(self):
         state = self.sysinfo.serialize()
         self._state.set('client', 'sysinfo', state)
+
+
+    def preprocess_client_state(self):
+        """
+        Produce a state file for initializing the state of a client job.
+
+        Creates a new client state file with all the current server state, as
+        well as some pre-set client state.
+
+        @returns The path of the file the state was written into.
+        """
+        # initialize the sysinfo state
+        def group_func():
+            if self._state.has_namespace('client-s'):
+                self._sub_state.set('autotests','count',
+                                self._sub_state.get('autotests','count')+1)
+            else:
+                self._state.rename_namespace("client", "client-s")
+                self._sub_state.set('autotests','count',1)
+
+        self._state.atomic(group_func)
+
+        self._state.set('client', 'sysinfo', self.sysinfo.serialize())
+
+        # dump the state out to a tempfile
+        fd, file_path = tempfile.mkstemp(dir=self.tmpdir)
+        os.close(fd)
+
+        # write_to_file doesn't need locking, we exclusively own file_path
+        self._state.write_to_file(file_path)
+        return file_path
+
+
+    def postprocess_client_state(self, state_path):
+        """
+        Update the state of this job with the state from a client job.
+
+        Updates the state of the server side of a job with the final state
+        of a client job that was run. Updates the non-client-specific state,
+        pulls in some specific bits from the client-specific state, and then
+        discards the rest. Removes the state file afterwards
+
+        @param state_file A path to the state file from the client.
+        """
+        # update the on-disk state
+        try:
+            self._state.read_from_file(state_path)
+            os.remove(state_path)
+        except OSError, e:
+            # ignore file-not-found errors
+            if e.errno != errno.ENOENT:
+                raise
+            else:
+                logging.debug('Client state file %s not found', state_path)
+
+        # update the sysinfo state
+        if self._state.has('client', 'sysinfo'):
+            self.sysinfo.deserialize(self._state.get('client', 'sysinfo'))
+
+        # drop all the client-specific state
+        self._state.discard_namespace('client')
+
+
+    def clean_state(self):
+        """
+        Repair client namespace after sub client job ends.
+        """
+        def group_func():
+            if self._state.has_namespace('client-s'):
+                if self._sub_state.get('autotests','count') > 1:
+                    self._sub_state.set('autotests','count',
+                                    self._sub_state.get('autotests','count')-1)
+                else:
+                    if self._state.has_namespace('client'):
+                        self._state.discard_namespace('client')
+                    self._state.rename_namespace('client-s', 'client')
+        self._sub_state.atomic(group_func)
 
 
 class disk_usage_monitor:

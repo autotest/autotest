@@ -2,8 +2,8 @@
 # Copyright 2008 Google Inc. Released under the GPL v2
 
 import os, pickle, random, re, resource, select, shutil, signal, StringIO
-import socket, struct, subprocess, sys, time, textwrap, urlparse
-import warnings, smtplib, logging, urllib2
+import socket, struct, subprocess, sys, time, textwrap, urlparse, tempfile
+import warnings, smtplib, logging, urllib2, types
 from threading import Thread, Event
 try:
     import hashlib
@@ -1351,6 +1351,193 @@ class run_randomly:
                 test_index = 0
             (args, dargs) = self.test_list.pop(test_index)
             fn(*args, **dargs)
+
+
+def scp_remote_escape(filename):
+    """
+    Escape special characters from a filename so that it can be passed
+    to scp (within double quotes) as a remote file.
+
+    Bis-quoting has to be used with scp for remote files, "bis-quoting"
+    as in quoting x 2
+    scp does not support a newline in the filename
+
+    Args:
+            filename: the filename string to escape.
+
+    Returns:
+            The escaped filename string. The required englobing double
+            quotes are NOT added and so should be added at some point by
+            the caller.
+    """
+    escape_chars= r' !"$&' "'" r'()*,:;<=>?[\]^`{|}'
+
+    new_name= []
+    for char in filename:
+        if char in escape_chars:
+            new_name.append("\\%s" % (char,))
+        else:
+            new_name.append(char)
+
+    return sh_escape("".join(new_name))
+
+
+def get_public_key():
+    """
+    Return a valid string ssh public key for the user executing autoserv or
+    autotest. If there's no DSA or RSA public key, create a DSA keypair with
+    ssh-keygen and return it.
+    """
+
+    ssh_conf_path = os.path.expanduser('~/.ssh')
+
+    dsa_public_key_path = os.path.join(ssh_conf_path, 'id_dsa.pub')
+    dsa_private_key_path = os.path.join(ssh_conf_path, 'id_dsa')
+
+    rsa_public_key_path = os.path.join(ssh_conf_path, 'id_rsa.pub')
+    rsa_private_key_path = os.path.join(ssh_conf_path, 'id_rsa')
+
+    has_dsa_keypair = os.path.isfile(dsa_public_key_path) and \
+        os.path.isfile(dsa_private_key_path)
+    has_rsa_keypair = os.path.isfile(rsa_public_key_path) and \
+        os.path.isfile(rsa_private_key_path)
+
+    if has_dsa_keypair:
+        print 'DSA keypair found, using it'
+        public_key_path = dsa_public_key_path
+
+    elif has_rsa_keypair:
+        print 'RSA keypair found, using it'
+        public_key_path = rsa_public_key_path
+
+    else:
+        print 'Neither RSA nor DSA keypair found, creating DSA ssh key pair'
+        utils.system('ssh-keygen -t dsa -q -N "" -f %s' % dsa_private_key_path)
+        public_key_path = dsa_public_key_path
+
+    public_key = open(public_key_path, 'r')
+    public_key_str = public_key.read()
+    public_key.close()
+
+    return public_key_str
+
+
+def get_server_dir():
+    path = os.path.dirname(sys.modules['autotest_lib.server'].__file__)
+    return os.path.abspath(path)
+
+
+def parse_machine(machine, user='root', password='', port=22):
+    """
+    Parse the machine string user:pass@host:port and return it separately,
+    if the machine string is not complete, use the default parameters
+    when appropriate.
+    """
+
+    if '@' in machine:
+        user, machine = machine.split('@', 1)
+
+    if ':' in user:
+        user, password = user.split(':', 1)
+
+    if ':' in machine:
+        machine, port = machine.split(':', 1)
+        port = int(port)
+
+    if not machine or not user:
+        raise ValueError
+
+    return machine, user, password, port
+
+
+# A dictionary of pid and a list of tmpdirs for that pid
+__tmp_dirs = {}
+
+
+def clean_tmp_dirs():
+    """Erase temporary directories that were created by the get_tmp_dir()
+    function and that are still present.
+    """
+    pid = os.getpid()
+    if pid not in __tmp_dirs:
+        return
+    for dir in __tmp_dirs[pid]:
+        try:
+            shutil.rmtree(dir)
+        except OSError, e:
+            if e.errno == 2:
+                pass
+    __tmp_dirs[pid] = []
+
+
+def get_tmp_dir():
+    """Return the pathname of a directory on the host suitable
+    for temporary file storage.
+
+    The directory and its content will be deleted automatically
+    at the end of the program execution if they are still present.
+    """
+    dir_name = tempfile.mkdtemp(prefix="autoserv-")
+    pid = os.getpid()
+    if not pid in __tmp_dirs:
+        __tmp_dirs[pid] = []
+    __tmp_dirs[pid].append(dir_name)
+    return dir_name
+
+
+def get(location, local_copy = False):
+    """Get a file or directory to a local temporary directory.
+
+    Args:
+            location: the source of the material to get. This source may
+                    be one of:
+                    * a local file or directory
+                    * a URL (http or ftp)
+                    * a python file-like object
+
+    Returns:
+            The location of the file or directory where the requested
+            content was saved. This will be contained in a temporary
+            directory on the local host. If the material to get was a
+            directory, the location will contain a trailing '/'
+    """
+    tmpdir = get_tmp_dir()
+
+    # location is a file-like object
+    if hasattr(location, "read"):
+        tmpfile = os.path.join(tmpdir, "file")
+        tmpfileobj = file(tmpfile, 'w')
+        shutil.copyfileobj(location, tmpfileobj)
+        tmpfileobj.close()
+        return tmpfile
+
+    if isinstance(location, types.StringTypes):
+        # location is a URL
+        if location.startswith('http') or location.startswith('ftp'):
+            tmpfile = os.path.join(tmpdir, os.path.basename(location))
+            urlretrieve(location, tmpfile)
+            return tmpfile
+        # location is a local path
+        elif os.path.exists(os.path.abspath(location)):
+            if not local_copy:
+                if os.path.isdir(location):
+                    return location.rstrip('/') + '/'
+                else:
+                    return location
+            tmpfile = os.path.join(tmpdir, os.path.basename(location))
+            if os.path.isdir(location):
+                tmpfile += '/'
+                shutil.copytree(location, tmpfile, symlinks=True)
+                return tmpfile
+            shutil.copyfile(location, tmpfile)
+            return tmpfile
+        # location is just a string, dump it to a file
+        else:
+            tmpfd, tmpfile = tempfile.mkstemp(dir=tmpdir)
+            tmpfileobj = os.fdopen(tmpfd, 'w')
+            tmpfileobj.write(location)
+            tmpfileobj.close()
+            return tmpfile
 
 
 def import_site_module(path, module, dummy=None, modulefile=None):
