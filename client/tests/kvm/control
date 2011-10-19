@@ -29,8 +29,8 @@ os.environ['LANG'] = 'en_US.UTF-8'
 
 str = """
 # This string will be parsed after build.cfg.  Make any desired changes to the
-# build configuration here.  For example:
-#release_tag = 84
+# build configuration here.  For example (to install from koji/brew):
+# installers = koji_qemu_kvm
 """
 
 parser = cartesian_config.Parser()
