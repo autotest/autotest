@@ -55,7 +55,7 @@ def run_ethtool(test, params, env):
             try:
                 session.cmd(cmd)
                 return True
-            except:
+            except Exception:
                 return False
         if ethtool_get(f_type) != status:
             logging.error("Fail to set %s %s", f_type, status)

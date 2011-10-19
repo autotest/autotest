@@ -96,7 +96,7 @@ def _EmulateWith(context, func):
     context.__enter__()
     try:
         func()
-    except:
+    except Exception:
         if not context.__exit__(sys.exc_type, sys.exc_value, sys.exc_traceback):
             raise
     else:

@@ -154,7 +154,7 @@ def unmap_url_cache(cachedir, url, expected_hash, method="md5"):
     if not os.path.isdir(cachedir):
         try:
             os.makedirs(cachedir)
-        except:
+        except Exception:
             raise ValueError('Could not create cache directory %s' % cachedir)
     file_from_url = os.path.basename(url)
     file_local_path = os.path.join(cachedir, file_from_url)
@@ -434,7 +434,7 @@ def dump_object(object):
         try:
             (key,value) = item
             dump_object(value)
-        except:
+        except Exception:
             continue
 
 
@@ -480,7 +480,7 @@ def avgtime_print(dir):
             elapsed += (float(s.group(3)) * 60) + float(s.group(4))
             cpu += float(s.group(5))
             count += 1
-        except:
+        except Exception:
             raise ValueError("badly formatted times")
 
     f.close()

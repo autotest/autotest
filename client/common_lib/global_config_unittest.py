@@ -94,7 +94,7 @@ class global_config_test(unittest.TestCase):
         try:
             val = self.conf.get_config_value("SECTION_B",
                                             "value_2", int)
-        except:
+        except Exception:
             error = 1
         self.assertEquals(error, 1)
 

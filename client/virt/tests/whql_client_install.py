@@ -110,7 +110,7 @@ def run_whql_client_install(test, params, env):
         try:
             session.cmd(cmd)
             break
-        except:
+        except Exception:
             pass
         time.sleep(5)
     else:

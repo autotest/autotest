@@ -40,7 +40,7 @@ def get_results(results_files):
             fh = utils.urlopen(file)
             results = fh.readlines()
             fh.close()
-        except:
+        except Exception:
             print "ERROR: reading results resource [%s]" % (file)
             usage()
         for line in results:
@@ -50,7 +50,7 @@ def get_results(results_files):
                 status = s.group(2)
                 runs[i][testname] = status
                 testnames[testname] = 1
-            except:
+            except Exception:
                 pass
         i += 1
     return (runs, testnames)
