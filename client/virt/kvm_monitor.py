@@ -322,11 +322,12 @@ class HumanMonitor(Monitor):
         self._send("quit")
 
 
-    def info(self, what):
+    def info(self, what, debug=True):
         """
         Request info about something and return the output.
+        @param debug: Whether to print the commands being sent and responses
         """
-        return self.cmd("info %s" % what)
+        return self.cmd("info %s" % what, debug=debug)
 
 
     def query(self, what):
