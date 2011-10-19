@@ -1,11 +1,4 @@
 # Copy this file to build.cfg and edit it.
-#
-# This configuration file holds the KVM build test config parameters.
-# The default is noinstall (won't attempt to build KVM), so if you stick with it
-# please make sure:
-# 1) You have setup symbolic links to qemu and qemu-img binaries on the
-#    KVM test dir.
-# 2) The appropriate KVM modules are already loaded on your machine.
 
 vm_type = kvm
 
@@ -18,75 +11,45 @@ variants:
         save_results = no
         # Preserve the source code directory between tests?
         preserve_srcdir = yes
-        variants:
-            - localtar:
-                install_mode = localtar
-                ## Install from tarball located on the host's filesystem.
-                tarball = /tmp/kvm-84.tar.gz
-                # In some cases, you might want to provide a ROM dir, so ROM
-                # files can be copied from there to your source based install
-                # path_to_rom_images = /usr/share/kvm
-            - localsrc:
-                install_mode = localsrc
-                ## Install from tarball located on the host's filesystem.
-                srcdir = /tmp/kvm-84
-                # In some cases, you might want to provide a ROM dir, so ROM
-                # files can be copied from there to your source based install
-                # path_to_rom_images = /usr/share/kvm
-            - git:
-                install_mode = git
-                ## Install KVM from git repositories.
-                ## This now only concerns the userspace component, and it assumes
-                ## the kernel modules are shipped with the linux kernel.
-                user_git_repo = git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git
-                # user_branch = user_branch_name
-                # user_lbranch = user_lbranch_name
-                # user_commit = user_commit_name
-                # user_patches = ['http://foo.com/patch1', 'http://foo.com/patch2']
-                ## This is how you pass extra params to the userspace configure script
-                # extra_configure_options = '--enable-spice --disable-werror'
-                # spice_repo = git://anongit.freedesktop.org/spice/spice
-                # spice_branch = master
-                # spice_lbranch = master
-                # spice_patches = []
-                # spice_protocol_repo = git://anongit.freedesktop.org/spice/spice-protocol
-                # spice_protocol_branch = master
-                # spice_protocol_lbranch = master
-                # spice_protocol_patches = []
-                # In some cases, you might want to provide a ROM dir, so ROM
-                # files can be copied from there to your source based install
-                # path_to_rom_images = /usr/share/kvm
-            - yum:
-                install_mode = yum
-                src_pkg = qemu
-                ## Name of the rpms we need installed
-                pkg_list = ['qemu-kvm', 'qemu-kvm-tools', 'qemu-system-x86', 'qemu-common', 'qemu-img']
-                ## Paths of the qemu relevant executables that should be checked
-                qemu_bin_paths = ['/usr/bin/qemu-kvm', '/usr/bin/qemu-img']
-                ## List of RPMs that will be installed
-                pkg_path_list = ['http://foo.com/rpm1', 'http://foo.com/rpm2']
-            - koji:
-                install_mode = koji
-                ## Install KVM from koji (Fedora build server)
-                ## It is possible to install packages right from Koji if you
-                ## provide a release tag or a build.
-                ## Tag (if available)
-                koji_tag = dist-f11
-                ## Build (if available, is going to override tag).
-                ## Build ID can be either an integer or a string as below
-                koji_build = qemu-0.10-16.fc11
-                # koji_build = 250544
-                ## Command to interact with the build server
-                koji_cmd = /usr/bin/koji
-                ## The name of the source package that will be built
-                src_pkg = qemu
-                ## Name of the rpms we need installed
-                pkg_list = ['qemu-kvm', 'qemu-kvm-tools', 'qemu-system-x86', 'qemu-common', 'qemu-img']
-                ## Paths of the qemu relevant executables that should be checked
-                qemu_bin_paths = ['/usr/bin/qemu-kvm', '/usr/bin/qemu-img']
+
+        ######################################################################
+        # INSTALLERS DEFINITION SECTION
+        # Many different components can be defined. The ones that will
+        # actually be run have to be defined in the 'installers'
+        ######################################################################
+        # QEMU installation from a local tarball
+        # local_tar_qemu_path = /tmp/qemu-0.15.1.tar.gz
+
+        # QEMU installation from a local source directory
+        # local_src_qemu_path = /tmp/qemu-0.15.1
+
+        # QEMU installation from a GIT repo
+        git_repo_qemu_uri = git://git.qemu.org/qemu.git
+        git_repo_qemu_configure_options = --target-list=x86_64-softmmu --enable-spice
+
+        # QEMU (KVM) installation from a GIT repo
+        # git_repo_qemu_kvm_uri = git://github.com/avikivity/qemu.git
+        # git_repo_qemu_kvm_configure_options = --enable-spice
+
+        # SPICE installation from a GIT repo
+        git_repo_spice_uri = git://anongit.freedesktop.org/spice/spice
+
+        # spice-protocol installation from a GIT repo
+        git_repo_spice_protocol_uri = git://anongit.freedesktop.org/spice/spice-protocol
+
+        # QEMU (KVM) installation from a YUM repo
+        # yum_qemu_kvm_pkgs = ['qemu-kvm', 'qemu-kvm-tools', 'qemu-system-x86', 'qemu-common', 'qemu-img']
+
+        # QEMU (KVM) installation from koji/brew
+        # koji_qemu_kvm_tag = dist-f15
+        # koji_qemu_kvm_pkgs = [':qemu:qemu-common,qemu-img,qemu-kvm,qemu-system-x86,qemu-kvm-tools', 'seabios', 'vgabios', ':gpxe:gpxe-roms-qemu', ':spice-server:spice-server']
+
+        ######################################################################
+        # INSTALLERS SELECTION
+        # Choose here what components you want to install
+        ######################################################################
+        installers = git_repo_spice_protocol git_repo_spice git_repo_qemu
 
 
-# Choose your install method here. The variant noinstall is not defined by
-# default, so therefore no attempt to build/install KVM will be made by
-# default
-only build.noinstall
+# Comment out the 'no build' line to enable the build test
+no build
