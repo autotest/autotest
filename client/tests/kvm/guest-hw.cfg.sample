@@ -1,0 +1,102 @@
+# Copy this file to guest-hw.cfg and edit it.
+#
+# NICs
+variants:
+    - @rtl8139:
+        nic_model = rtl8139
+        no ethtool
+        jumbo:
+            mtu = 1500
+    - e1000:
+        nic_model = e1000
+        jumbo:
+            mtu = 16110
+        ethtool:
+            # gso gro lro is only supported by latest kernel
+            supported_features = "tx rx sg tso gso gro lro"
+    - virtio_net:
+        nic_model = virtio
+        # You can add advanced attributes on nic_extra_params such as mrg_rxbuf
+        #nic_extra_params =
+        # You can add advanced attributes through netdev_extra_params
+        # such as sndbuf, as an example, you can uncomment the
+        # following lines to enable the vhost support ( only available
+        # for tap )
+        #netdev_extra_params = "vhost=on"
+        jumbo:
+            mtu = 65520
+        ethtool:
+            supported_features = "tx sg tso gso"
+        whql.submission.device.net:
+            test_device = VirtIO Ethernet Adapter$
+            # Device selection for the NDISTest client machine
+            dp_regex_testdev = VirtIO Ethernet Adapter$
+            dp_regex_clientmsgdev = VirtIO Ethernet Adapter #2$
+            dp_regex_clientsupportdev = VirtIO Ethernet Adapter #3$
+            # Device selection for the NDISTest server machine
+            dp_regex_servermsgdev = VirtIO Ethernet Adapter$
+            dp_regex_serversupportdev = VirtIO Ethernet Adapter #2$
+
+variants:
+    - @up:
+        no autotest.npb autotest.tsc
+    - smp2:
+        smp = 2
+        used_cpus = 2
+        stress_boot: used_cpus = 10
+        timedrift.with_load: used_cpus = 100
+
+variants:
+    - @ide:
+        drive_format=ide
+    - scsi:
+        drive_format=scsi
+    - virtio_blk:
+        drive_format=virtio
+        # Some older qemu might need image_boot=yes for virtio images to work.
+        # Please uncomment the below if that is the case.
+        #image_boot=yes
+    - ahci:
+        drive_format=ahci
+        cd_format=ahci
+    - usb_stick:
+        drive_format=usb2
+    - usb_cdrom:
+        cd_format=usb2
+
+variants:
+    - @qcow2:
+        image_format = qcow2
+        check_image = yes
+    - vmdk:
+        no ioquit
+        image_format = vmdk
+    - raw:
+        no ioquit
+        image_format = raw
+
+variants:
+    - @no_pci_assignable:
+        pci_assignable = no
+    - pf_assignable:
+        pci_assignable = pf
+        device_names = eth1
+    - vf_assignable:
+        pci_assignable = vf
+        # Driver (kernel module) that supports SR-IOV hardware.
+        # As of today (30-11-2009), we have 2 drivers for this type of hardware:
+        # Intel® 82576 Gigabit Ethernet Controller - igb
+        # Neterion® X3100™ - vxge
+        driver = igb
+        # Driver option to specify the maximum number of virtual functions
+        # (on vxge the option is , for example, is max_config_dev)
+        # the default below is for the igb driver
+        driver_option = "max_vfs=7"
+        # Number of devices that are going to be requested.
+        devices_requested = 7
+
+variants:
+    - @smallpages:
+    - hugepages:
+        setup_hugepages = yes
+        extra_params += " -mem-path /mnt/kvm_hugepage"
