@@ -3,6 +3,7 @@
 import unittest
 import common
 from autotest_lib.client.virt import virt_utils
+from autotest_lib.client.common_lib import cartesian_config
 
 class virt_utils_test(unittest.TestCase):
 
@@ -62,6 +63,23 @@ class virt_utils_test(unittest.TestCase):
                                                            None,
                                                            'bz2')
         self.assertEqual(tarball_name, 'tmp.tar.bz2')
+
+
+    def test_git_repo_param_helper(self):
+        config = """git_repo_foo_uri = git://git.foo.org/foo.git
+git_repo_foo_branch = next
+git_repo_foo_lbranch = local
+git_repo_foo_commit = bc732ad8b2ed8be52160b893735417b43a1e91a8
+"""
+        config_parser = cartesian_config.Parser()
+        config_parser.parse_string(config)
+        params = config_parser.get_dicts().next()
+
+        h = virt_utils.GitRepoParamHelper(params, 'foo', '/tmp/foo')
+        self.assertEqual(h.name, 'foo')
+        self.assertEqual(h.branch, 'next')
+        self.assertEqual(h.lbranch, 'local')
+        self.assertEqual(h.commit, 'bc732ad8b2ed8be52160b893735417b43a1e91a8')
 
 
 if __name__ == '__main__':
