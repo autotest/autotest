@@ -533,6 +533,11 @@ class BaseLocalSourceInstaller(BaseInstaller):
                 self.source_destination, self.install_prefix)
 
 
+    def _install_phase_prepare(self):
+        if self.patch_helper is not None:
+            self.patch_helper.execute()
+
+
     def _install_phase_download(self):
         if self.content_helper is not None:
             self.content_helper.execute()

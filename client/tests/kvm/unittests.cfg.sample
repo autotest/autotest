@@ -48,13 +48,24 @@ variants:
         save_results = no
         # Preserve the source code directory between tests?
         preserve_srcdir = yes
-        variants:
-            - git:
-                mode = git
-                user_git_repo = git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git
-                user_branch = next
-                user_lbranch = next
-                test_git_repo = git://git.kernel.org/pub/scm/virt/kvm/kvm-unit-tests.git
+
+        ######################################################################
+        # INSTALLERS DEFINITION SECTION
+        # Many different components can be defined. The ones that will
+        # actually be run have to be defined in the 'installers'
+        ######################################################################
+        # QEMU (KVM) installation from a GIT repo
+        git_repo_qemu_kvm_uri = git://github.com/avikivity/qemu.git
+
+        # KVM unit tests from a GIT repo
+        git_repo_kvm_unit_tests_uri = git://github.com/avikivity/kvm-unit-tests.git
+        #git_repo_kvm_unit_tests_configure_options = --arch=x86_64
+
+        ######################################################################
+        # INSTALLERS SELECTION
+        # Choose here what components you want to install
+        ######################################################################
+        installers = git_repo_qemu_kvm git_repo_kvm_unit_tests
 
     - unittest:
         type = unittest
@@ -67,4 +78,4 @@ variants:
         # unittests.cfg file on qemu-kvm, uncomment and edit test_list
         #test_list = idt_test hypercall vmexit realmode
 
-only build.git unittest
+only build unittest
