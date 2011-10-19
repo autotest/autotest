@@ -58,10 +58,10 @@ def _rpm_info(rpm_package):
         try:
             utils.system(i_cmd)
             package_info['installed'] = True
-        except:
+        except Exception:
             package_info['installed'] = False
 
-    except:
+    except Exception:
         package_info['system_support'] = False
         package_info['installed'] = False
         # File gives a wealth of information about rpm packages.
@@ -144,7 +144,7 @@ def _dpkg_info(dpkg_package):
         else:
             package_info['installed'] = True
 
-    except:
+    except Exception:
         package_info['system_support'] = False
         package_info['installed'] = False
         # The output of file is not as generous for dpkg files as
@@ -261,7 +261,7 @@ def convert(package, destination_format):
     """
     try:
         os_dep.command('alien')
-    except:
+    except Exception:
         e_msg = 'Cannot convert to %s, alien not installed' % destination_format
         raise error.TestError(e_msg)
 
@@ -299,13 +299,13 @@ def os_support():
         try:
             os_dep.command(package_manager)
             support_info[package_manager] = True
-        except:
+        except Exception:
             support_info[package_manager] = False
 
     try:
         os_dep.command('alien')
         support_info['conversion'] = True
-    except:
+    except Exception:
         support_info['conversion'] = False
 
     return support_info

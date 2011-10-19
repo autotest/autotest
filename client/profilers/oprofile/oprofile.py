@@ -44,7 +44,7 @@ class oprofile(profiler.profiler):
                                                     self.srcdir)
             utils.make('-j %d' % utils.count_cpus())
             utils.make('install')
-        except:
+        except Exception:
             # Build from source failed.
             # But maybe can still use the local copy
             local_opcontrol = os.path.exists('/usr/bin/opcontrol')

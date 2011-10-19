@@ -54,7 +54,7 @@ def run_nicdriver_unload(test, params, env):
             session_serial.cmd("modprobe -r %s" % driver)
             session_serial.cmd("modprobe %s" % driver)
             session_serial.cmd("ifconfig %s up" % ethname)
-    except:
+    except Exception:
         for thread in threads:
             thread.join(suppress_exception=True)
             raise

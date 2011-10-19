@@ -15,7 +15,7 @@ def parse_lines(filename):
             key = ' '.join(a[start_key:])
             count = int(a[0])
             results.append((key, count))
-        except:         # presumably a header line
+        except Exception:         # presumably a header line
             if re.match(r'samples\s*%\s*app name\s*symbol name', line):
                 start_key = 2
             elif re.match(r'samples\s*%\s*image name\s*app name\s*symbol name', line):

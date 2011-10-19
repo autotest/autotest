@@ -61,7 +61,7 @@ def run_netstress_kill_guest(test, params, env):
 
         try:
             utils.run(firewall_flush)
-        except:
+        except Exception:
             logging.warning("Could not flush firewall rules on guest")
 
         try:
@@ -81,7 +81,7 @@ def run_netstress_kill_guest(test, params, env):
 
         try:
             session_serial.cmd(clean_cmd)
-        except:
+        except Exception:
             pass
         session_serial.cmd(params.get("netserver_cmd") % "/tmp")
 
@@ -101,7 +101,7 @@ def run_netstress_kill_guest(test, params, env):
                 pid = int(utils.system_output("pidof tcpdump"))
                 logging.debug("Stopping the background tcpdump")
                 os.kill(pid, signal.SIGSTOP)
-            except:
+            except Exception:
                 pass
 
         try:

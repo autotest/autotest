@@ -48,7 +48,7 @@ class VirtioGuest:
             f = open(name, "r")
             out = f.read()
             f.close()
-        except:
+        except Exception:
             print "FAIL: Cannot open file %s" % (name)
 
         return out
@@ -68,7 +68,7 @@ class VirtioGuest:
         try:
             if not os.path.isdir('%s/virtio-ports' % (DEBUGPATH)):
                 print not_present_msg
-        except:
+        except Exception:
             print not_present_msg
         else:
             viop_names = os.listdir('%s/virtio-ports' % (DEBUGPATH))
@@ -719,7 +719,7 @@ def worker(virt):
             str = raw_input()
             try:
                 exec str
-            except:
+            except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 print "On Guest exception from: \n" + "".join(
                                 traceback.format_exception(exc_type,

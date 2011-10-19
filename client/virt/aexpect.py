@@ -26,11 +26,11 @@ def _unlock(fd):
 def _locked(filename):
     try:
         fd = os.open(filename, os.O_RDWR)
-    except:
+    except Exception:
         return False
     try:
         fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except:
+    except Exception:
         os.close(fd)
         return True
     fcntl.lockf(fd, fcntl.LOCK_UN)
@@ -391,7 +391,7 @@ class Spawn:
         base_dir = "/tmp/kvm_spawn"
         try:
             os.makedirs(base_dir)
-        except:
+        except Exception:
             pass
         (self.shell_pid_filename,
          self.status_filename,
@@ -444,7 +444,7 @@ class Spawn:
             assert(_locked(self.lock_server_running_filename))
             for reader, filename in self.reader_filenames.items():
                 self.reader_fds[reader] = os.open(filename, os.O_RDONLY)
-        except:
+        except Exception:
             pass
 
         # Allow the server to continue
@@ -530,7 +530,7 @@ class Spawn:
             pid = int(file.read())
             file.close()
             return pid
-        except:
+        except Exception:
             return None
 
 
@@ -545,7 +545,7 @@ class Spawn:
             status = int(file.read())
             file.close()
             return status
-        except:
+        except Exception:
             return None
 
 
@@ -558,7 +558,7 @@ class Spawn:
             output = file.read()
             file.close()
             return output
-        except:
+        except Exception:
             return ""
 
 
@@ -587,7 +587,7 @@ class Spawn:
         for fd in self.reader_fds.values():
             try:
                 os.close(fd)
-            except:
+            except Exception:
                 pass
         self.reader_fds = {}
         # Remove all used files
@@ -618,7 +618,7 @@ class Spawn:
             fd = os.open(self.inpipe_filename, os.O_RDWR)
             os.write(fd, str)
             os.close(fd)
-        except:
+        except Exception:
             pass
 
 
@@ -794,7 +794,7 @@ class Tail(Spawn):
                 try:
                     # See if there's any data to read from the pipe
                     r, w, x = select.select([fd], [], [], 0.05)
-                except:
+                except Exception:
                     break
                 if fd in r:
                     # Some data is available; read it
@@ -912,7 +912,7 @@ class Expect(Tail):
         while True:
             try:
                 r, w, x = select.select([fd], [], [], timeout)
-            except:
+            except Exception:
                 return data
             if fd in r:
                 new_data = os.read(fd, 1024)

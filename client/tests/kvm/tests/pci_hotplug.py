@@ -195,7 +195,7 @@ def run_pci_hotplug(test, params, env):
 
         session.close()
 
-    except:
+    except Exception:
         pci_del(ignore_failure=True)
         raise
 

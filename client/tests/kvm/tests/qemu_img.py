@@ -325,7 +325,7 @@ def run_qemu_img(test, params, env):
                 output = session.cmd("[ ! -e /commit_testfile ] && echo $?")
                 logging.info("Output of [ ! -e /commit_testfile ] && echo $?: "
                              "%s", output)
-            except:
+            except Exception:
                 output = session.cmd("rm -f /commit_testfile")
                 raise error.TestFail("The commit_testfile exists on the "
                                      "original file")
@@ -352,7 +352,7 @@ def run_qemu_img(test, params, env):
                 logging.info("Output of [ -e /commit_testfile ] && echo $?: %s",
                              output)
                 session.cmd("rm -f /commit_testfile")
-            except:
+            except Exception:
                 raise error.TestFail("Could not find commit_testfile after a "
                                      "commit")
             vm.destroy()
@@ -430,7 +430,7 @@ def run_qemu_img(test, params, env):
         try:
             os.remove(sn2)
             os.remove(sn1)
-        except:
+        except Exception:
             pass
 
 
