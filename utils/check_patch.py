@@ -603,7 +603,8 @@ class PatchChecker(object):
             # Additional safety check, new commits might introduce
             # new directories
             if os.path.isfile(modified_file):
-                file_checker = FileChecker(modified_file)
+                file_checker = FileChecker(path=modified_file, vcs=self.vcs,
+                                           confirm=self.confirm)
                 file_checker.report()
 
 
