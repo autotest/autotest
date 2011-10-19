@@ -32,7 +32,7 @@ def run_nic_promisc(test, params, env):
         while transfer_thread.isAlive():
             session_serial.cmd("ip link set %s promisc on" % ethname)
             session_serial.cmd("ip link set %s promisc off" % ethname)
-    except:
+    except Exception:
         transfer_thread.join(suppress_exception=True)
         raise
     else:

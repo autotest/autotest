@@ -541,7 +541,7 @@ class _FdRedirectionStreamManager(_StreamManager):
                 os.close(1)
                 os.close(2)
                 self._run_logging_subprocess(read_end) # never returns
-            except:
+            except Exception:
                 # don't let exceptions in the child escape
                 try:
                     logging.exception('Logging subprocess died:')

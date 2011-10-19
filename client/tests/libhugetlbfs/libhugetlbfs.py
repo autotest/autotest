@@ -45,7 +45,7 @@ class libhugetlbfs(test.test):
         # version, in that case try only for the 64 bit version
         try:
             utils.make()
-        except:
+        except Exception:
             utils.make('OBJDIRS=obj64')
 
 
@@ -55,7 +55,7 @@ class libhugetlbfs(test.test):
         # had failed. See if it passes for 64 bit in that case.
         try:
             utils.make('check')
-        except:
+        except Exception:
             utils.make('check OBJDIRS=obj64')
 
 

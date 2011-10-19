@@ -46,7 +46,7 @@ class sysbench(test.test):
         # Check for nobody user
         try:
             utils.system(self.sudo + '/bin/true')
-        except:
+        except Exception:
             raise error.TestError('Unable to run as nobody')
 
         if (db_type == 'pgsql'):
@@ -93,7 +93,7 @@ class sysbench(test.test):
             self.results.append(utils.system_output(cmd + ' run',
                                                     retain_output=True))
 
-        except:
+        except Exception:
             utils.system(self.sudo + bin + '/pg_ctl -D ' + data + ' stop')
             raise
 
@@ -138,7 +138,7 @@ class sysbench(test.test):
             self.results.append(utils.system_output(cmd + ' run',
                                                     retain_output=True))
 
-        except:
+        except Exception:
             utils.system(bin + '/mysqladmin shutdown')
             raise
 

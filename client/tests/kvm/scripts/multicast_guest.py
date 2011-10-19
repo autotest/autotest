@@ -27,7 +27,7 @@ if __name__ == "__main__":
             mreq = struct.pack("4sl", socket.inet_aton(mcast),
                                socket.INADDR_ANY)
             s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        except:
+        except Exception:
             s.close()
             print "Could not join multicast: %s" % mcast
             raise

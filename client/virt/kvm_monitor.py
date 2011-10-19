@@ -511,7 +511,7 @@ class QMPMonitor(Monitor):
                 if line:
                     try:
                         json.loads(line)
-                    except:
+                    except Exception:
                         # Found an incomplete or broken line -- keep reading
                         break
             else:
@@ -522,7 +522,7 @@ class QMPMonitor(Monitor):
         for line in s.splitlines():
             try:
                 objs += [json.loads(line)]
-            except:
+            except Exception:
                 pass
         # Keep track of asynchronous events
         self._events += [obj for obj in objs if "event" in obj]

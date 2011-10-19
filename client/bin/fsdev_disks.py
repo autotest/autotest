@@ -169,7 +169,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
         # Create a file system instance
         try:
             fs = job.filesystem(device=dev_path, mountpoint=mnt_path)
-        except:
+        except Exception:
             raise Exception("Could not create a filesystem on '%s'" % dev_path)
 
         # Make sure the volume is unmounted
@@ -179,7 +179,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
             except Exception, info:
                 raise Exception("umount failed: exception = %s, args = %s" %
                                                (sys.exc_info()[0], info.args))
-            except:
+            except Exception:
                 raise Exception("Could not unmount device ", dev_path)
 
         # Is the drive already formatted with the right file system?
@@ -189,7 +189,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
         try:
             if not skip_mkfs:
                 fs.mkfs(fstype = fs_type, args = fs_makeopt)
-        except:
+        except Exception:
             raise Exception("Could not 'mkfs " + "-t " + fs_type + " " +
                                        fs_makeopt + " " + dev_path + "'")
 
@@ -499,7 +499,7 @@ class fsdev_disks:
             # See if we have a matching entry in the path dictionary
             try:
                 tune_path = self.tune_loc[tune_name]
-            except:
+            except Exception:
                 raise Exception("Unknown config entry: " + cfgline)
 
             self.tune_list.append((tune_name, tune_path, tune_val))

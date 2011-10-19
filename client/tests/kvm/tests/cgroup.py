@@ -259,7 +259,7 @@ def run_cgroup(test, params, env):
         try:
             loops = int(rexpr[rexpr.rfind(':')+1:])
             rexpr = rexpr[:rexpr.rfind(':')]
-        except:
+        except Exception:
             loops = 1
         # number of loops per regular expression
         for _loop in range(loops):

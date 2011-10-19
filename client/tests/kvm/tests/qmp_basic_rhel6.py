@@ -79,7 +79,7 @@ def run_qmp_basic_rhel6(test, params, env):
         fail_no_key(qmp_dict, key)
         try:
             int(qmp_dict[key])
-        except:
+        except Exception:
             raise error.TestFail("'%s' key is not of type int, it's '%s'" %
                                  (key, type(qmp_dict[key])))
 
