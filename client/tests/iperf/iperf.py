@@ -240,13 +240,13 @@ class iperf(test.test):
                         runs['Bandwidth_S2C'].append(int(stats['bandwidth']))
                         try:
                             runs['Jitter_S2C'].append(float(stats['jitter']))
-                        except:
+                        except Exception:
                             pass
                     else:
                         runs['Bandwidth_C2S'].append(int(stats['bandwidth']))
                         try:
                             runs['Jitter_C2S'].append(float(stats['jitter']))
-                        except:
+                        except Exception:
                             pass
 
                 # Calculate sums assuming there are values

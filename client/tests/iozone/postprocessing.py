@@ -339,7 +339,7 @@ class IOzonePlotter(object):
         self.active = True
         try:
             self.gnuplot = os_dep.command("gnuplot")
-        except:
+        except Exception:
             logging.error("Command gnuplot not found, disabling graph "
                           "generation")
             self.active = False

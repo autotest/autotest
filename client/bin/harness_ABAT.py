@@ -17,7 +17,7 @@ def autobench_load(fn):
 
     try:
         fd = file(fn, "r")
-    except:
+    except Exception:
         return conf
     for ln in fd.readlines():
         m = disks.match(ln)

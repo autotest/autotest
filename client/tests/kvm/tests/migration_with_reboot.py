@@ -32,7 +32,7 @@ def run_migration_with_reboot(test, params, env):
         try:
             while bg.isAlive():
                 vm.migrate(mig_timeout, mig_protocol, mig_cancel_delay)
-        except:
+        except Exception:
             # If something bad happened in the main thread, ignore exceptions
             # raised in the background thread
             bg.join(suppress_exception=True)

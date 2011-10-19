@@ -558,7 +558,7 @@ def run_ksm_overcommit(test, params, env):
     try:
         tmp = open(params.get('pid_' + vm_name), 'r')
         params['pid_' + vm_name] = int(tmp.readline())
-    except:
+    except Exception:
         raise error.TestFail("Could not get PID of %s" % (vm_name))
 
     # Creating other guest systems
@@ -586,7 +586,7 @@ def run_ksm_overcommit(test, params, env):
         try:
             tmp = open(params.get('pid_' + vm_name), 'r')
             params['pid_' + vm_name] = int(tmp.readline())
-        except:
+        except Exception:
             raise error.TestFail("Could not get PID of %s" % (vm_name))
 
     # Let guests rest a little bit :-)

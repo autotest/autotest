@@ -534,7 +534,7 @@ class spawn (object):
             try:
                 self.child_fd = sys.stdout.fileno() # used by setwinsize()
                 self.setwinsize(24, 80)
-            except:
+            except Exception:
                 # Some platforms do not like setwinsize (Cygwin).
                 # This will cause problem when running applications that
                 # are very picky about window size.
@@ -624,7 +624,7 @@ class spawn (object):
             if fd >= 0:
                 os.close(fd)
                 raise ExceptionPexpect, "Error! We are not disconnected from a controlling tty."
-        except:
+        except Exception:
             # Good! We are disconnected from a controlling tty.
             pass
 
@@ -1407,7 +1407,7 @@ class spawn (object):
                 self.match = None
                 self.match_index = None
                 raise TIMEOUT (str(e) + '\n' + str(self))
-        except:
+        except Exception:
             self.before = incoming
             self.after = None
             self.match = None

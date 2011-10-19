@@ -110,7 +110,7 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
             whole_image_md5sum not in prev_whole_image_md5sums[:1]):
             try:
                 os.makedirs(history_dir)
-            except:
+            except Exception:
                 pass
             history_scrdump_filename = os.path.join(history_dir,
                     "scrdump-step_%s-%s.jpg" % (current_step_num,

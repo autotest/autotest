@@ -18,7 +18,7 @@ implement the given backend class.
 import os, re, logging, ConfigParser, optparse, random, string
 try:
     import yum
-except:
+except Exception:
     pass
 import common
 from autotest_lib.client.bin import os_dep, utils
@@ -78,7 +78,7 @@ class SystemInspector(object):
             try:
                 os_dep.command(high_level_pm)
                 list_supported.append(high_level_pm)
-            except:
+            except Exception:
                 pass
 
         pm_supported = None
@@ -404,7 +404,7 @@ class YumBackend(RpmBackend):
         try:
             utils.system(i_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -418,7 +418,7 @@ class YumBackend(RpmBackend):
         try:
             utils.system(r_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -469,7 +469,7 @@ class YumBackend(RpmBackend):
         try:
             utils.system(r_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -517,7 +517,7 @@ class ZypperBackend(RpmBackend):
         try:
             utils.system(i_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -531,7 +531,7 @@ class ZypperBackend(RpmBackend):
         try:
             utils.system(ar_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -545,7 +545,7 @@ class ZypperBackend(RpmBackend):
         try:
             utils.system(rr_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -558,7 +558,7 @@ class ZypperBackend(RpmBackend):
         try:
             utils.system(r_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -571,7 +571,7 @@ class ZypperBackend(RpmBackend):
         try:
             utils.system(u_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -600,7 +600,7 @@ class ZypperBackend(RpmBackend):
                 logging.info("Package %s provides %s", list_provides[0], name)
                 return list_provides[0]
             return None
-        except:
+        except Exception:
             return None
 
 
@@ -637,7 +637,7 @@ class AptBackend(DpkgBackend):
         try:
             utils.system(i_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -654,7 +654,7 @@ class AptBackend(DpkgBackend):
         try:
             utils.system(r_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -698,14 +698,14 @@ class AptBackend(DpkgBackend):
         ud_cmd = self.base_command + ' ' + ud_command
         try:
             utils.system(ud_cmd)
-        except:
+        except Exception:
             logging.error("Apt package update failed")
         up_command = 'upgrade'
         up_cmd = self.base_command + ' ' + up_command
         try:
             utils.system(up_cmd)
             return True
-        except:
+        except Exception:
             return False
 
 
@@ -721,7 +721,7 @@ class AptBackend(DpkgBackend):
         cache_update_cmd = command + ' update'
         try:
             utils.system(cache_update_cmd, ignore_status=True)
-        except:
+        except Exception:
             logging.error("Apt file cache update failed")
         fu_cmd = command + ' search ' + file
         try:
@@ -744,7 +744,7 @@ class AptBackend(DpkgBackend):
                 logging.info("Package %s provides %s", list_provides[0], file)
                 return list_provides[0]
             return None
-        except:
+        except Exception:
             return None
 
 
