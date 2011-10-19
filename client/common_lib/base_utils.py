@@ -827,6 +827,15 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
     return True
 
 
+def get_children_pids(ppid):
+    """
+    Get all PIDs of children/threads of parent ppid
+    param ppid: parent PID
+    return: list of PIDs of all children/threads of ppid
+    """
+    return (system_output("ps -L --ppid=%d -o lwp" % ppid).split('\n')[1:])
+
+
 def pid_is_alive(pid):
     """
     True if process pid exists and is not yet stuck in Zombie state.

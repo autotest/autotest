@@ -6,10 +6,23 @@ Helpers for cgroup testing.
 @copyright: 2011 Red Hat Inc.
 @author: Lukas Doktor <ldoktor@redhat.com>
 """
-import os, logging, subprocess, time, shutil
+import logging, os, shutil, subprocess, time, traceback
 from tempfile import mkdtemp
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
+
+def _traceback(name, exc_info):
+    """
+    Formats traceback into lines "name: line\nname: line"
+    @param name: desired line preposition
+    @param exc_info: sys.exc_info of the exception
+    @return: string which contains beautifully formatted exception
+    """
+    out = "\n"
+    for line in traceback.format_exception(exc_info[0], exc_info[1],
+                                           exc_info[2]):
+        out += "%s: %s" % (name, line)
+    return out
 
 
 class Cgroup(object):
@@ -44,15 +57,11 @@ class Cgroup(object):
         Initializes object for use.
 
         @param modules: Array of all available cgroup modules.
-        @return: 0 when PASSED.
         """
         self.root = modules.get_pwd(self.module)
-        if self.root:
-            return 0
-        else:
-            logging.error("cg.initialize(): Module %s not found", self.module)
-            return -1
-        return 0
+        if not self.root:
+            raise error.TestError("cg.initialize(): Module %s not found"
+                                                                % self.module)
 
 
     def mk_cgroup(self, root=None):
@@ -67,19 +76,16 @@ class Cgroup(object):
             else:
                 pwd = mkdtemp(prefix='cgroup-', dir=self.root) + '/'
         except Exception, inst:
-            logging.error("cg.mk_cgroup(): %s" , inst)
-            return None
+            raise error.TestError("cg.mk_cgroup(): %s" % inst)
         self.cgroups.append(pwd)
         return pwd
 
 
-    def rm_cgroup(self, pwd, supress=False):
+    def rm_cgroup(self, pwd):
         """
         Removes cgroup.
 
         @param pwd: cgroup directory.
-        @param supress: supress output.
-        @return: 0 when PASSED
         """
         try:
             os.rmdir(pwd)
@@ -88,10 +94,7 @@ class Cgroup(object):
             logging.warn("cg.rm_cgroup(): Removed cgroup which wasn't created"
                          "using this Cgroup")
         except Exception, inst:
-            if not supress:
-                logging.error("cg.rm_cgroup(): %s" , inst)
-            return -1
-        return 0
+            raise error.TestError("cg.rm_cgroup(): %s" % inst)
 
 
     def test(self, cmd):
@@ -136,19 +139,14 @@ class Cgroup(object):
         Sets cgroup membership
         @param pid: pid of the process
         @param pwd: cgroup directory
-        @return: 0 when PASSED
         """
         try:
             open(pwd+'/tasks', 'w').write(str(pid))
         except Exception, inst:
-            logging.error("cg.set_cgroup(): %s" , inst)
-            return -1
+            raise error.TestError("cg.set_cgroup(): %s" % inst)
         if self.is_cgroup(pid, pwd):
-            logging.error("cg.set_cgroup(): Setting %d pid into %s cgroup "
-                          "failed", pid, pwd)
-            return -1
-        else:
-            return 0
+            raise error.TestError("cg.set_cgroup(): Setting %d pid into %s "
+                                 "cgroup failed" % (pid, pwd))
 
     def set_root_cgroup(self, pid):
         """
@@ -159,93 +157,78 @@ class Cgroup(object):
         return self.set_cgroup(pid, self.root)
 
 
-    def get_prop(self, prop, pwd=None, supress=False):
-        """
-        Gets one line of the property value
-        @param prop: property name (file)
-        @param pwd: cgroup directory
-        @param supress: supress the output
-        @return: String value or None when FAILED
-        """
-        tmp = self.get_property(prop, pwd, supress)
-        if tmp:
-            if tmp[0][-1] == '\n':
-                tmp[0] = tmp[0][:-1]
-            return tmp[0]
-        else:
-            return None
-
-
-    def get_property(self, prop, pwd=None, supress=False):
+    def get_property(self, prop, pwd=None):
         """
         Gets the property value
         @param prop: property name (file)
         @param pwd: cgroup directory
-        @param supress: supress the output
         @return: [] values or None when FAILED
         """
-        if pwd == None:
+        if pwd is None:
             pwd = self.root
         try:
-            ret = open(pwd+prop, 'r').readlines()
+            # Remove tailing '\n' from each line
+            ret = [_[:-1] for _ in open(pwd+prop, 'r').readlines()]
+            if ret:
+                return ret
+            else:
+                return [""]
         except Exception, inst:
-            ret = None
-            if not supress:
-                logging.error("cg.get_property(): %s" , inst)
-        return ret
+            raise error.TestError("cg.get_property(): %s" % inst)
 
 
-    def set_prop(self, prop, value, pwd=None, check=True):
+    def set_property_h(self, prop, value, pwd=None, check=True, checkprop=None):
         """
         Sets the one-line property value concerning the K,M,G postfix
         @param prop: property name (file)
         @param value: desired value
         @param pwd: cgroup directory
-        @param check: check the value after setup
-        @return: 0 when PASSED
+        @param check: check the value after setup / override checking value
+        @param checkprop: override prop when checking the value
         """
         _value = value
         try:
             value = str(value)
-            if value[-1] == '\n':
-                value = value[:-1]
-            if value[-1] == 'K':
-                value = int(value[:-1]) * 1024
-            elif value[-1] == 'M':
-                value = int(value[:-1]) * 1048576
-            elif value[-1] == 'G':
-                value = int(value[:-1]) * 1073741824
+            human = {'B': 1,
+                     'K': 1024,
+                     'M': 1048576,
+                     'G': 1073741824,
+                     'T': 1099511627776
+                    }
+            if human.has_key(value[-1]):
+                value = int(value[:-1]) * human[value[-1]]
         except:
-            logging.error("cg.set_prop() fallback into cg.set_property.")
+            logging.warn("cg.set_prop() fallback into cg.set_property.")
             value = _value
-        return self.set_property(prop, value, pwd, check)
+        self.set_property(prop, value, pwd, check, checkprop)
 
 
-    def set_property(self, prop, value, pwd=None, check=True):
+    def set_property(self, prop, value, pwd=None, check=True, checkprop=None):
         """
         Sets the property value
         @param prop: property name (file)
         @param value: desired value
         @param pwd: cgroup directory
-        @param check: check the value after setup
-        @return: 0 when PASSED
+        @param check: check the value after setup / override checking value
+        @param checkprop: override prop when checking the value
         """
         value = str(value)
-        if pwd == None:
+        if pwd is None:
             pwd = self.root
         try:
             open(pwd+prop, 'w').write(value)
         except Exception, inst:
-            logging.error("cg.set_property(): %s" , inst)
-            return -1
-        if check:
-            # Get the first line - '\n'
-            _value = self.get_property(prop, pwd)[0][:-1]
-            if value != _value:
-                logging.error("cg.set_property(): Setting failed: desired = %s,"
-                              " real value = %s", value, _value)
-                return -1
-        return 0
+            raise error.TestError("cg.set_property(): %s" % inst)
+        if check is not False:
+            if check is True:
+                check = value
+            if checkprop is None:
+                checkprop = prop
+            _values = self.get_property(checkprop, pwd)
+            if check not in _values:
+                raise error.TestError("cg.set_property(): Setting failed: "
+                                      "desired = %s, real values = %s"
+                                      % (repr(check), repr(_values)))
 
 
     def smoke_test(self):
@@ -253,66 +236,42 @@ class Cgroup(object):
         Smoke test
         Module independent basic tests
         """
-        part = 0
         pwd = self.mk_cgroup()
-        if pwd == None:
-            logging.error("cg.smoke_test[%d]: Can't create cgroup", part)
-            return -1
 
-        part += 1
         ps = self.test("smoke")
-        if ps == None:
-            logging.error("cg.smoke_test[%d]: Couldn't create process", part)
-            return -1
+        if ps is None:
+            raise error.TestError("cg.smoke_test: Couldn't create process")
 
-        part += 1
-        if (ps.poll() != None):
-            logging.error("cg.smoke_test[%d]: Process died unexpectidly", part)
-            return -1
+        if (ps.poll() is not None):
+            raise error.TestError("cg.smoke_test: Process died unexpectidly")
 
         # New process should be a root member
-        part += 1
         if self.is_root_cgroup(ps.pid):
-            logging.error("cg.smoke_test[%d]: Process is not a root member",
-                          part)
-            return -1
+            raise error.TestError("cg.smoke_test: Process is not a root member")
 
         # Change the cgroup
-        part += 1
-        if self.set_cgroup(ps.pid, pwd):
-            logging.error("cg.smoke_test[%d]: Could not set cgroup", part)
-            return -1
+        self.set_cgroup(ps.pid, pwd)
 
         # Try to remove used cgroup
-        part += 1
-        if self.rm_cgroup(pwd, supress=True) == 0:
-            logging.error("cg.smoke_test[%d]: Unexpected successful deletion of"
-                          " the used cgroup", part)
-            return -1
+        try:
+            self.rm_cgroup(pwd)
+        except error.TestError:
+            pass
+        else:
+            raise error.TestError("cg.smoke_test: Unexpected successful deletion"
+                                 " of the used cgroup")
 
         # Return the process into the root cgroup
-        part += 1
-        if self.set_root_cgroup(ps.pid):
-            logging.error("cg.smoke_test[%d]: Could not return the root cgroup "
-                          "membership", part)
-            return -1
+        self.set_root_cgroup(ps.pid)
 
         # It should be safe to remove the cgroup now
-        part += 1
-        if self.rm_cgroup(pwd):
-            logging.error("cg.smoke_test[%d]: Can't remove cgroup directory",
-                          part)
-            return -1
+        self.rm_cgroup(pwd)
 
         # Finish the process
-        part += 1
         ps.stdin.write('\n')
         time.sleep(2)
-        if (ps.poll() == None):
-            logging.error("cg.smoke_test[%d]: Process is not finished", part)
-            return -1
-
-        return 0
+        if (ps.poll() is None):
+            raise error.TestError("cg.smoke_test: Process is not finished")
 
 
 class CgroupModules(object):
@@ -351,19 +310,19 @@ class CgroupModules(object):
         """
         logging.debug("Desired cgroup modules: %s", _modules)
         mounts = []
-        fp = open('/proc/mounts', 'r')
-        line = fp.readline().split()
+        proc_mounts = open('/proc/mounts', 'r')
+        line = proc_mounts.readline().split()
         while line:
-            if line[2] == 'cgroup':
+            if line[2] is 'cgroup':
                 mounts.append(line)
-            line = fp.readline().split()
-        fp.close()
+            line = proc_mounts.readline().split()
+        proc_mounts.close()
 
         for module in _modules:
             # Is it already mounted?
             i = False
             for mount in mounts:
-                if mount[3].find(module) != -1:
+                if mount[3].find(module) is not -1:
                     self.modules[0].append(module)
                     self.modules[1].append(mount[1] + '/')
                     self.modules[2].append(False)
@@ -384,13 +343,6 @@ class CgroupModules(object):
 
         logging.debug("Initialized cgroup modules: %s", self.modules[0])
         return len(self.modules[0])
-
-
-    def cleanup(self):
-        """
-        Kept for compatibility
-        """
-        pass
 
 
     def get_pwd(self, module):
