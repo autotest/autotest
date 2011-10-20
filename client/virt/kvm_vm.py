@@ -786,7 +786,7 @@ class VM(virt_vm.BaseVM):
 
             logging.info("Running qemu command:\n%s", qemu_command)
             self.process = aexpect.run_bg(qemu_command, None,
-                                                 logging.info, "(qemu) ")
+                                          logging.info, "[qemu output] ")
             for tapfd in self.tapfds:
                 try:
                     os.close(tapfd)
