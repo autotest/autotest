@@ -825,14 +825,16 @@ class QMPMonitor(Monitor):
                 return e
 
 
-    def human_monitor_cmd(self, cmd=None):
+    def human_monitor_cmd(self, cmd=None, timeout=CMD_TIMEOUT):
         """
         Run human monitor command in QMP through human-monitor-command
 
         @param cmd: human monitor command.
+
+        @return: The response to the command
         """
         args = {"command-line": cmd}
-        self.cmd("human-monitor-command", args)
+        return self.cmd("human-monitor-command", args, timeout)
 
 
     def clear_events(self):
