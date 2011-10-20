@@ -1087,6 +1087,15 @@ variants:
                 dd_timeout = 900
                 check_cmd_timeout = 900
 
+    - cpuflags:
+        type = cpuflags
+        extra_params += " -snapshot"
+        #Disable all unnecessary vms.
+        vms = ""
+        cpu_models = "core2duo"
+        virtual_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
+        hw_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
+
     - cpu_hotplug_test:
         type = cpu_hotplug
         cpu_hotplug_timeout = 600

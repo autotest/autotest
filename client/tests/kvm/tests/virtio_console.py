@@ -90,7 +90,7 @@ def run_virtio_console(test, params, env):
                 self.result.append(res)
                 self.passed += 1
                 return ret
-            except:
+            except Exception:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logging.error("In function (" + function.func_name + "):")
                 logging.error("Call from:\n" +
@@ -108,7 +108,7 @@ def run_virtio_console(test, params, env):
                 if cleanup:
                     try:
                         self.cleanup_func(*self.cleanup_args)
-                    except:
+                    except Exception:
                         error.TestFail("Cleanup function crashed as well")
                 if fatal:
                     raise
@@ -370,7 +370,7 @@ def run_virtio_console(test, params, env):
                                     self.port.open()
                                     try:
                                         idx = self.port.sock.send(buf)
-                                    except:
+                                    except Exception:
                                         attempt += 1
                                         time.sleep(10)
                                     else:
@@ -492,7 +492,7 @@ def run_virtio_console(test, params, env):
                                                     self.getName(),
                                                     (self.sendlen - sendidx))
                                         raise error.TestFail("ThRecvCheck %s: "
-                                                             "incorrect data",
+                                                             "incorrect data" %
                                                              self.getName())
                         attempt = 10
                     else:   # ! buf
@@ -1259,7 +1259,7 @@ def run_virtio_console(test, params, env):
             try:
                 os.system("dd if=/dev/random of='%s' bs=4096 &>/dev/null &"
                           % port.path)
-            except:
+            except Exception:
                 pass
         # Just start sending, it won't finish anyway...
         _on_guest("virt.send('%s', 1024**3, True, is_static=True)"
@@ -1768,7 +1768,7 @@ def run_virtio_console(test, params, env):
             if len(param) > 1:
                 try:
                     duration = float(param[1])
-                except:
+                except Exception:
                     pass
             param = param[0].split('@')
             if len(param) > 1 and param[1].isdigit():
@@ -2135,8 +2135,8 @@ def run_virtio_console(test, params, env):
     vm, consoles = _vm_create(no_consoles, no_serialports)
 
     # Copy virtio_console_guest.py into guests
-    pwd = os.path.join(os.environ['AUTODIR'], 'tests/kvm')
-    vksmd_src = os.path.join(pwd, "scripts/virtio_console_guest.py")
+    virt_dir = os.path.join(os.environ['AUTODIR'], 'virt')
+    vksmd_src = os.path.join(virt_dir, "scripts", "virtio_console_guest.py")
     dst_dir = "/tmp"
 
     vm[0].copy_files_to(vksmd_src, dst_dir)

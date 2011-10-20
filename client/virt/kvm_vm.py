@@ -382,6 +382,19 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
+        def add_cpu_flags(help, cpu_model, flags=None, vendor_id=None):
+            if has_option(help, 'cpu'):
+                cmd = " -cpu %s" % cpu_model
+
+                if vendor_id:
+                    cmd += ",vendor=\"%s\"" % vendor_id
+                if flags:
+                    cmd += ",%s" % flags
+
+                return cmd
+            else:
+                return ""
+
         # End of command line option wrappers
 
         if name is None:
@@ -517,6 +530,16 @@ class VM(virt_vm.BaseVM):
                 qemu_cmd += add_cdrom(help, virt_utils.get_path(root_dir, iso),
                                       cdrom_params.get("drive_index"),
                                       cdrom_params.get("cd_format"))
+
+        cpu_model = params.get("cpu_model", "qemu64")
+        flags = params.get("extra_flags")
+        x2apic = params.get("enable_x2apic")
+
+        if x2apic=="yes" and "x2apic" in virt_utils.get_cpu_flags():
+            flags += ",+x2apic"
+
+        qemu_cmd += add_cpu_flags(help, cpu_model, flags,
+                                  params.get("cpu_vendor_id"))
 
         # We may want to add {floppy_otps} parameter for -fda
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
