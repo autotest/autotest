@@ -5,10 +5,10 @@ __author__ = "raphtee@google.com (Travis Miller)"
 import unittest, os, tempfile, logging
 
 import common
-from autotest_lib.server import autotest, utils, hosts, server_job, profilers
+from autotest_lib.server import utils, server_job, profilers
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import utils as client_utils, packages
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, autotest, hosts
 from autotest_lib.client.common_lib.test_utils import mock
 
 
@@ -35,12 +35,12 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.job.record = lambda *args: None
 
         # stubs
-        self.god.stub_function(utils, "get_server_dir")
-        self.god.stub_function(utils, "run")
-        self.god.stub_function(utils, "get")
-        self.god.stub_function(utils, "read_keyval")
-        self.god.stub_function(utils, "write_keyval")
-        self.god.stub_function(utils, "system")
+        self.god.stub_function(client_utils, "get_server_dir")
+        self.god.stub_function(client_utils, "run")
+        self.god.stub_function(client_utils, "get")
+        self.god.stub_function(client_utils, "read_keyval")
+        self.god.stub_function(client_utils, "write_keyval")
+        self.god.stub_function(client_utils, "system")
         self.god.stub_function(tempfile, "mkstemp")
         self.god.stub_function(tempfile, "mktemp")
         self.god.stub_function(os, "getcwd")
@@ -67,7 +67,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.serverdir = "serverdir"
 
         # record
-        utils.get_server_dir.expect_call().and_return(self.serverdir)
+        client_utils.get_server_dir.expect_call().and_return(self.serverdir)
 
         # create the autotest object
         self.base_autotest = autotest.BaseAutotest(self.host)
@@ -93,9 +93,9 @@ class TestBaseAutotest(unittest.TestCase):
         # record
         os.getcwd.expect_call().and_return('cwd')
         os.chdir.expect_call(os.path.join(self.serverdir, '../client'))
-        utils.system.expect_call('tools/make_clean', ignore_status=True)
+        client_utils.system.expect_call('tools/make_clean', ignore_status=True)
         os.chdir.expect_call('cwd')
-        utils.get.expect_call(os.path.join(self.serverdir,
+        client_utils.get.expect_call(os.path.join(self.serverdir,
             '../client')).and_return('source_material')
 
         self.host.wait_up.expect_call(timeout=30)
@@ -201,7 +201,7 @@ class TestBaseAutotest(unittest.TestCase):
         cmd = ';'.join('rm -f ' + control for control in delete_file_list)
         self.host.run.expect_call(cmd, ignore_status=True)
 
-        utils.get.expect_call(control).and_return("temp")
+        client_utils.get.expect_call(control).and_return("temp")
 
         c = autotest.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
@@ -233,6 +233,8 @@ class TestBaseAutotest(unittest.TestCase):
 
         run_obj.execute_control.expect_call(timeout=30,
                                             client_disconnect_timeout=1800)
+
+        self.host.job.clean_state.expect_call()
 
         # run and check output
         self.base_autotest.run(control, timeout=30)
