@@ -414,6 +414,19 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
+        def add_cpu_flags(help, cpu_model, flags=None, vendor_id=None):
+            if has_option(help, 'cpu'):
+                cmd = " -cpu %s" % cpu_model
+
+                if vendor_id:
+                    cmd += ",vendor=\"%s\"" % vendor_id
+                if flags:
+                    cmd += ",%s" % flags
+
+                return cmd
+            else:
+                return ""
+
         def add_usb(help, usb_id, usb_type, multifunction=False,
                     masterbus=None, firstport=None):
             cmd = ""
@@ -599,6 +612,12 @@ class VM(virt_vm.BaseVM):
         smp = params.get("smp")
         if smp:
             qemu_cmd += add_smp(help, smp)
+
+        cpu_model = params.get("cpu_model")
+        if cpu_model:
+            vendor = params.get("cpu_model_vendor")
+            flags = params.get("cpu_model_flags")
+            qemu_cmd += add_cpu_flags(help, cpu_model, vendor, flags)
 
         for cdrom in params.objects("cdroms"):
             cdrom_params = params.object_params(cdrom)

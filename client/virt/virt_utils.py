@@ -1290,6 +1290,53 @@ def get_vendor_from_pci_id(pci_id):
     return re.sub(":", " ", commands.getoutput(cmd))
 
 
+class Flag(str):
+    """
+    Class for easy merge cpuflags.
+    """
+    def __init__(self,  *args, **kwargs):
+        super(Flag, self).__init__( *args, **kwargs)
+
+    def __eq__(self, other):
+        s = set(self.split("|"))
+        o = set(other.split("|"))
+        if s & o:
+            return True
+        else:
+            return False
+
+    def __hash__(self, *args, **kwargs):
+        return 0
+
+
+kvm_map_flags_to_test = {
+            Flag('avx')                        :set(['avx']),
+            Flag('sse3')                       :set(['sse3']),
+            Flag('ssse3')                      :set(['ssse3']),
+            Flag('sse4.1|sse4_1|sse4.2|sse4_2'):set(['sse4']),
+            Flag('aes')                        :set(['aes','pclmul']),
+            Flag('pclmuldq')                   :set(['pclmul']),
+            Flag('pclmulqdq')                  :set(['pclmul']),
+            Flag('rdrand')                     :set(['rdrand']),
+            }
+
+
+def kvm_flags_to_stresstests(flags):
+    """
+    Covert [cpu flags] to [tests]
+
+    @param cpuflags: list of cpuflags
+    @return: Return tests like string.
+    """
+    tests = set([])
+    for f in flags:
+        tests |= kvm_map_flags_to_test[f]
+    param = ""
+    for f in tests:
+        param += ","+f
+    return param
+
+
 def get_cpu_flags():
     """
     Returns a list of the CPU flags

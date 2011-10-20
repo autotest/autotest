@@ -468,6 +468,8 @@ variants:
                 test_control_file = flail.control
             - systemtap:
                 test_control_file = systemtap.control
+            - cpuflags-stress:
+                test_control_file = cpuflags.control
 
     - qemu_img_commit:  install setup image_copy unattended_install.cdrom
         type = qemu_img
@@ -1368,6 +1370,17 @@ variants:
                 type = trans_hugepage_swapping
                 dd_timeout = 900
                 check_cmd_timeout = 900
+
+    - cpuflags:
+        type = cpuflags
+        extra_params += " -snapshot"
+        #Disable all unnecessary vms.
+        vms = ""
+        #Try to start guest with all flags which are supported by host.
+        all_host_supported_flags = "no"
+        cpu_models = "core2duo:avx"
+        guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
+        host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
 
     - cpu_hotplug_test:
         type = cpu_hotplug
