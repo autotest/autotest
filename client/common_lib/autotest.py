@@ -2,7 +2,7 @@
 
 import re, os, sys, traceback, subprocess, time, pickle, glob, tempfile
 import logging, getpass
-from autotest_lib.server import installable_object, prebuild, utils
+from autotest_lib.client.common_lib import installable_object, prebuild, utils
 from autotest_lib.client.common_lib import base_job, log, error, autotemp
 from autotest_lib.client.common_lib import global_config, packages
 from autotest_lib.client.common_lib import utils as client_utils
@@ -398,9 +398,12 @@ class BaseAutotest(installable_object.InstallableObject):
         if os.path.abspath(tmppath) != os.path.abspath(control_file):
             os.remove(tmppath)
 
-        atrun.execute_control(
-                timeout=timeout,
-                client_disconnect_timeout=client_disconnect_timeout)
+        try:
+            atrun.execute_control(
+                    timeout=timeout,
+                    client_disconnect_timeout=client_disconnect_timeout)
+        finally:
+            host.job.clean_state()
 
 
     def run_timed_test(self, test_name, results_dir='.', host=None,
