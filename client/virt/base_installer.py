@@ -54,6 +54,10 @@ class BaseInstaller(object):
         self.param_key_prefix = '%s_%s' % (self.mode,
                                            self.name)
 
+        # If a installer has a failure that can be worked around, save that
+        self.minor_failure = False
+        self.minor_failure_reason = ''
+
         if test and params:
             self.set_install_params(test, params)
 
@@ -545,7 +549,26 @@ class BaseLocalSourceInstaller(BaseInstaller):
 
     def _install_phase_build(self):
         if self.build_helper is not None:
-            self.build_helper.execute()
+            #
+            # Currently there's only one build helper: GnuSourceBuildHelper.
+            # But, still, let's play safe and check if build helper is indeed
+            # an instance of GnuSourceBuildHelper so the code doesnot fail
+            # when other choices of build helpers are introduced
+            #
+            if isinstance(self.build_helper,
+                          virt_utils.GnuSourceBuildHelper):
+                try:
+                    self.build_helper.execute()
+                except virt_utils.GnuSourceBuildParallelFailed:
+                    # Flag minor the failure
+                    self.minor_failure = True
+                    self.minor_failure_reason = "Failed to do parallel build"
+
+                except virt_utils.GnuSourceBuildFailed:
+                    # Failed the current test
+                    raise error.Fail("Failed to build %s" % self.name)
+            else:
+                self.build_helper.execute()
 
 
     def _install_phase_install(self):
