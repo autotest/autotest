@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     try:
         # Run qemu command.
-        logging.info("Opening a new TAP fd to %s: %s", brname, tapfd)
+        logging.info("TAP fd open to %s: %s", brname, tapfd_list)
         utils.system(cmd_line)
     finally:
         destroy_tap(tapfd_list)
