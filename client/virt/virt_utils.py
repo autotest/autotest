@@ -2888,6 +2888,24 @@ class GnuSourceBuildInvalidSource(Exception):
     pass
 
 
+class GnuSourceBuildFailed(Exception):
+    '''
+    Exception raised when building with parallel jobs fails
+
+    This servers as feedback for code using GnuSourceBuildHelper
+    '''
+    pass
+
+
+class GnuSourceBuildParallelFailed(Exception):
+    '''
+    Exception raised when building with parallel jobs fails
+
+    This servers as feedback for code using GnuSourceBuildHelper
+    '''
+    pass
+
+
 class GnuSourceBuildHelper(object):
     '''
     Handles software installation of GNU-like source code
@@ -3018,15 +3036,53 @@ class GnuSourceBuildHelper(object):
         utils.system(configure_command)
 
 
-    def make(self):
+    def make_parallel(self):
         '''
         Runs "make" using the correct number of parallel jobs
         '''
         parallel_make_jobs = utils.count_cpus()
         make_command = "make -j %s" % parallel_make_jobs
-        logging.info("Running make on build dir")
+        logging.info("Running parallel make on build dir")
         os.chdir(self.build_dir)
         utils.system(make_command)
+
+
+    def make_non_parallel(self):
+        '''
+        Runs "make", using a single job
+        '''
+        os.chdir(self.build_dir)
+        utils.system("make")
+
+
+    def make_clean(self):
+        '''
+        Runs "make clean"
+        '''
+        os.chdir(self.build_dir)
+        utils.system("make clean")
+
+
+    def make(self, failure_feedback=True):
+        '''
+        Runs a parallel make, falling back to a single job in failure
+
+        @param failure_feedback: return information on build failure by raising
+                                 the appropriate exceptions
+        @raise: GnuSourceBuildParallelFailed if parallel build fails, or
+                GnuSourceBuildFailed if single job build fails
+        '''
+        try:
+            self.make_parallel()
+        except error.CmdError:
+            try:
+                self.make_clean()
+                self.make_non_parallel()
+            except error.CmdError:
+                if failure_feedback:
+                    raise GnuSourceBuildFailed
+            if failure_feedback:
+                raise GnuSourceBuildParallelFailed
 
 
     def make_install(self):
