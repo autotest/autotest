@@ -492,7 +492,7 @@ def run_virtio_console(test, params, env):
                                                     self.getName(),
                                                     (self.sendlen - sendidx))
                                         raise error.TestFail("ThRecvCheck %s: "
-                                                             "incorrect data",
+                                                             "incorrect data" %
                                                              self.getName())
                         attempt = 10
                     else:   # ! buf
