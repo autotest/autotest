@@ -404,7 +404,7 @@ class VM(virt_vm.BaseVM):
             return " --name '%s'" % name
 
         def add_hvm_or_pv(help, hvm_or_pv):
-            return " --%s" % hvm_or_pv
+            return " %s" % hvm_or_pv
 
         def add_mem(help, mem):
             return " --ram=%s" % mem
