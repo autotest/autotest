@@ -3,7 +3,7 @@ cgroup autotest test (on KVM guest)
 @author: Lukas Doktor <ldoktor@redhat.com>
 @copyright: 2011 Red Hat, Inc.
 """
-import logging, re, sys, tempfile, time
+import logging, os, re, sys, tempfile, time
 from random import random
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
@@ -50,7 +50,7 @@ def run_cgroup(test, params, env):
         return abs(float(actual-reference) / reference)
 
 
-    def get_dd_cmd(direction, dev='vd?', count=None, bs=None):
+    def get_dd_cmd(direction, dev=None, count=None, bs=None):
         """
         Generates dd_cmd string
         @param direction: {read,write,bi} dd direction
@@ -59,6 +59,11 @@ def run_cgroup(test, params, env):
         @param bs: bs parameter of dd
         @return: dd command string
         """
+        if dev is None:
+            if get_device_driver() == "virtio":
+                dev = 'vd?'
+            else:
+                dev = '[sh]d?'
         if direction == "read":
             params = "if=$FILE of=/dev/null iflag=direct"
         elif direction == "write":
@@ -82,13 +87,27 @@ def run_cgroup(test, params, env):
         return params.get('drive_format', 'virtio')
 
 
+    def get_maj_min(dev):
+        """
+        Returns the major and minor numbers of the dev device
+        @return: Tuple(major, minor) numbers of the dev device
+        """
+        try:
+            rdev = os.stat(dev).st_rdev
+            ret = (os.major(rdev), os.minor(rdev))
+        except Exception, details:
+            raise error.TestFail("get_maj_min(%s) failed: %s" %
+                                  (dev, details))
+        return ret
+
+
     def add_file_drive(vm, driver=get_device_driver(), host_file=None):
         """
         Hot-add a drive based on file to a vm
         @param vm: Desired VM
         @param driver: which driver should be used (default: same as in test)
         @param host_file: Which file on host is the image (default: create new)
-        @return: Tupple(ret_file, device)
+        @return: Tuple(ret_file, device)
                     ret_file: created file handler (None if not created)
                     device: PCI id of the virtual disk
         """
@@ -99,10 +118,10 @@ def run_cgroup(test, params, env):
             utils.system("dd if=/dev/zero of=%s bs=1M count=8 &>/dev/null"
                          % (host_file.name))
             ret_file = host_file
-            logging.debug("add_file_drive: new file %s as drive", host_file)
+            logging.debug("add_file_drive: new file %s as drive", host_file.name)
         else:
             ret_file = None
-            logging.debug("add_file_drive: using file %s as drive", host_file)
+            logging.debug("add_file_drive: using file %s as drive", host_file.name)
 
         out = vm.monitor.cmd("pci_add auto storage file=%s,if=%s,snapshot=off,"
                              "cache=off" % (host_file.name, driver))
@@ -126,7 +145,7 @@ def run_cgroup(test, params, env):
         @param vm: Desired VM
         @param driver: which driver should be used (default: same as in test)
         @param host_file: Which dev on host is the image (default: create new)
-        @return: Tupple(ret_file, device)
+        @return: Tuple(ret_file, device)
                     ret_file: string of the created dev (None if not created)
                     device: PCI id of the virtual disk
         """
@@ -173,14 +192,17 @@ def run_cgroup(test, params, env):
         """
         err = False
         # TODO: Implement also via QMP
-        vm.monitor.cmd("pci_del %s" % device)
-        time.sleep(3)
-        qtree = vm.monitor.info('qtree', debug=False)
-        if qtree.count('addr %s.0' % device) != 0:
-            err = True
-            vm.destroy()
+        if device:
+            vm.monitor.cmd("pci_del %s" % device)
+            time.sleep(3)
+            qtree = vm.monitor.info('qtree', debug=False)
+            if qtree.count('addr %s.0' % device) != 0:
+                err = True
+                vm.destroy()
 
-        if isinstance(host_file, str):    # scsi device
+        if host_file is None:   # Do not remove
+            pass
+        elif isinstance(host_file, str):    # scsi device
             utils.system("echo -1> /sys/bus/pseudo/drivers/scsi_debug/add_host")
         else:     # file
             host_file.close()
@@ -334,7 +356,7 @@ def run_cgroup(test, params, env):
             _TestBlkioBandwidth.__init__(self, vms, modules)
             # Read from the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
-            self.dd_cmd = get_dd_cmd("read", bs="100K")
+            self.dd_cmd = get_dd_cmd("read", dev='vd?', bs="100K")
 
 
     class TestBlkioBandwidthWeigthWrite(_TestBlkioBandwidth):
@@ -350,7 +372,7 @@ def run_cgroup(test, params, env):
             # Write on the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
             _TestBlkioBandwidth.__init__(self, vms, modules)
-            self.dd_cmd = get_dd_cmd("write", bs="100K")
+            self.dd_cmd = get_dd_cmd("write", dev='vd?', bs="100K")
 
 
     class _TestBlkioThrottle:
@@ -376,10 +398,6 @@ def run_cgroup(test, params, env):
             self.devices = None # Temporary virt devices (PCI drive 1 per vm)
             self.dd_cmd = None  # DD command used to test the throughput
             self.speeds = None  # cgroup throughput
-            if get_device_driver() == "virtio":
-                self.dev = "vd?"
-            else:
-                self.dev = "[sh]d?"
 
         def cleanup(self):
             """
@@ -417,13 +435,8 @@ def run_cgroup(test, params, env):
                                                             driver="virtio")
             else:
                 (self.files, self.devices) = add_scsi_drive(self.vm)
-            try:
-                dev = utils.system_output("ls -l %s" % self.files).split()[4:6]
-                dev[0] = dev[0][:-1]    # Remove tailing ','
-            except:
-                time.sleep(5)
-                raise error.TestFail("Couldn't get %s maj and min numbers"
-                                     % self.files)
+            time.sleep(3)
+            dev = get_maj_min(self.files)
 
             cgroup = self.cgroup
             cgroup.initialize(self.modules)
@@ -548,7 +561,7 @@ def run_cgroup(test, params, env):
             @param modules: initialized cgroup module class
             """
             _TestBlkioThrottle.__init__(self, vms, modules)
-            self.dd_cmd = get_dd_cmd("read", dev=self.dev, count=1)
+            self.dd_cmd = get_dd_cmd("read", count=1)
             self.speeds = [1024]
 
 
@@ -561,7 +574,7 @@ def run_cgroup(test, params, env):
             @param modules: initialized cgroup module class
             """
             _TestBlkioThrottle.__init__(self, vms, modules)
-            self.dd_cmd = get_dd_cmd("write", dev=self.dev, count=1)
+            self.dd_cmd = get_dd_cmd("write", count=1)
             self.speeds = [1024]
 
 
@@ -577,7 +590,7 @@ def run_cgroup(test, params, env):
             @param modules: initialized cgroup module class
             """
             _TestBlkioThrottle.__init__(self, vms, modules)
-            self.dd_cmd = get_dd_cmd("read", dev=self.dev, count=1)
+            self.dd_cmd = get_dd_cmd("read", count=1)
             self.speeds = [0, 1024, 0, 2048, 0, 4096]
 
 
@@ -593,9 +606,164 @@ def run_cgroup(test, params, env):
             @param modules: initialized cgroup module class
             """
             _TestBlkioThrottle.__init__(self, vms, modules)
-            self.dd_cmd = get_dd_cmd("write", dev=self.dev, count=1)
+            self.dd_cmd = get_dd_cmd("write", count=1)
             self.speeds = [0, 1024, 0, 2048, 0, 4096]
 
+
+    class TestDevicesAccess:
+        """
+        It tries to attach scsi_debug disk with different cgroup devices.list
+        setting.
+         * self.permissions are defined as a list of dictionaries:
+           {'property': control property, 'value': permition value,
+            'check_value': check value (from devices.list property),
+            'read_results': excepced read results T/F,
+            'write_results': expected write results T/F}
+        """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            self.vm = vms[0]      # Virt machines
+            self.modules = modules          # cgroup module handler
+            self.cgroup = Cgroup('devices', '')   # cgroup blkio handler
+            self.files = None   # Temporary files (files of virt disks)
+            self.devices = None # Temporary virt devices
+            self.permissions = None  # Test dictionary, see init for details
+
+
+        def cleanup(self):
+            """ Cleanup """
+            err = ""
+            try:
+                rm_drive(self.vm, self.files, self.devices)
+            except Exception, failure_detail:
+                err += "\nCan't remove PCI drive: %s" % failure_detail
+            try:
+                del(self.cgroup)
+            except Exception, failure_detail:
+                err += "\nCan't remove Cgroup: %s" % failure_detail
+
+            if err:
+                logging.error("Some cleanup operations failed: %s", err)
+                raise error.TestError("Some cleanup operations failed: %s"
+                                      % err)
+
+
+        def init(self):
+            """
+            Initialization
+             * creates a new scsi_debug device
+             * prepares one cgroup and assign vm to it
+            """
+            # Only create the host /dev/sd? device
+            (self.files, self.devices) = add_scsi_drive(self.vm)
+            rm_drive(self.vm, host_file=None, device=self.devices)
+            self.devices = None # We don't want to mess cleanup
+
+            time.sleep(3)
+            dev = "%s:%s" % get_maj_min(self.files)
+
+            self.cgroup.initialize(self.modules)
+            self.cgroup.mk_cgroup()
+            self.cgroup.set_cgroup(self.vm.get_shell_pid(),
+                                   self.cgroup.cgroups[0])
+            for pid in utils.get_children_pids(self.vm.get_shell_pid()):
+                self.cgroup.set_cgroup(int(pid), self.cgroup.cgroups[0])
+
+            # Test dictionary
+            # Beware of persistence of some setting to another round!!!
+            self.permissions = [
+                               {'property'      : 'deny',
+                                'value'         : 'a',
+                                'check_value'   : '',
+                                'result'        : False},
+                               {'property'      : 'allow',
+                                'value'         : 'b %s rm' % dev,
+                                'check_value'   : True,
+                                'result'        : False},
+                               {'property'      : 'allow',
+                                'value'         : 'b %s w' % dev,
+                                'check_value'   : 'b %s rwm' % dev,
+                                'result'        : True},
+                               {'property'      : 'deny',
+                                'value'         : 'b %s r' % dev,
+                                'check_value'   : 'b %s wm' % dev,
+                                'result'        : False},
+                               {'property'      : 'deny',
+                                'value'         : 'b %s wm' % dev,
+                                'check_value'   : '',
+                                'result'        : False},
+                               {'property'      : 'allow',
+                                'value'         : 'a',
+                                'check_value'   : 'a *:* rwm',
+                                'result'        : True},
+                              ]
+
+
+
+        def run(self):
+            """
+            Actual test:
+             * For each self.permissions sets the cgroup devices permition
+               and tries attach the disk. Checks the results with prescription.
+            """
+            def set_permissions(cgroup, permissions):
+                """
+                Wrapper for setting permissions to first cgroup
+                @param self.permissions: is defined as a list of dictionaries:
+                   {'property': control property, 'value': permition value,
+                    'check_value': check value (from devices.list property),
+                    'read_results': excepced read results T/F,
+                    'write_results': expected write results T/F}
+                """
+                cgroup.set_property('devices.'+permissions['property'],
+                                    permissions['value'],
+                                    cgroup.cgroups[0],
+                                    check=permissions['check_value'],
+                                    checkprop='devices.list')
+
+
+            session = self.vm.wait_for_login(timeout=30)
+
+            cgroup = self.cgroup
+            results = ""
+            for perm in self.permissions:
+                set_permissions(cgroup, perm)
+                logging.debug("Setting permissions: {%s: %s}, value: %s",
+                              perm['property'], perm['value'],
+                              cgroup.get_property('devices.list',
+                                                  cgroup.cgroups[0]))
+
+                try:
+                    (_, self.devices) = add_scsi_drive(self.vm,
+                                                        host_file=self.files)
+                except Exception, details:
+                    if perm['result']:
+                        logging.error("Perm: {%s: %s}: drive was not attached:"
+                                      " %s", perm['property'], perm['value'],
+                                      details)
+                        results += ("{%s: %s => NotAttached}, " %
+                                     (perm['property'], perm['value']))
+                else:
+                    if not perm['result']:
+                        logging.error("Perm: {%s: %s}: drive was attached",
+                                      perm['property'], perm['value'])
+                        results += ("{%s: %s => Attached}, " %
+                                     (perm['property'], perm['value']))
+                    rm_drive(self.vm, host_file=None, device=self.devices)
+                    self.devices = None
+
+            session.close()
+            if results:
+                raise error.TestFail("Some restrictions were broken: {%s}" %
+                                      results[:-2])
+
+            time.sleep(10)
+
+            return ("All restrictions enforced successfully.")
 
     # Setup
     # TODO: Add all new tests here
@@ -605,9 +773,10 @@ def run_cgroup(test, params, env):
              "blkio_throttle_write"         : TestBlkioThrottleWrite,
              "blkio_throttle_multiple_read" : TestBlkioThrottleMultipleRead,
              "blkio_throttle_multiple_write" : TestBlkioThrottleMultipleWrite,
+             "devices_access"               : TestDevicesAccess,
             }
     modules = CgroupModules()
-    if (modules.init(['blkio']) <= 0):
+    if (modules.init(['blkio', 'devices']) <= 0):
         raise error.TestFail('Can\'t mount any cgroup modules')
     # Add all vms
     vms = []
@@ -661,27 +830,30 @@ def run_cgroup(test, params, env):
                 try:
                     tst.cleanup()
                 except Exception, failure_detail:
-                    logging.warn("%s: cleanup failed: %s\n", failure_detail)
+                    logging.warn("%s: cleanup failed: %s\n", cg_test,
+                                 failure_detail)
                     err += "cleanup, "
 
                 try:
                     _check_vms(vms)
                 except Exception, failure_detail:
-                    logging.warn("%s: _check_vms failed: %s\n", failure_detail)
+                    logging.warn("%s: _check_vms failed: %s\n", cg_test,
+                                 failure_detail)
                     err += "VM check, "
 
                 if err.startswith("test"):
                     results += ("\n [F] %s: {%s} FAILED: %s" %
                                  (cg_test, err[:-2], out))
                 elif err:
-                    results += ("\n [E] %s: Test passed but {%s} FAILED: %s" %
+                    results += ("\n [W] %s: Test passed but {%s} FAILED: %s" %
                                  (cg_test, err[:-2], out))
                 else:
                     results += ("\n [P] %s: PASSED: %s" % (cg_test, out))
 
-    out = ("SUM: All tests finished (%d PASS / %d FAIL = %d TOTAL)%s" %
-           (results.count("PASSED"), results.count("FAILED"),
-            (results.count("PASSED")+results.count("FAILED")), results))
+    out = ("SUM: All tests finished (%d PASS / %d WARN / %d FAIL = %d TOTAL)%s"%
+           (results.count("\n [P]"), results.count("\n [W]"),
+            results.count("\n [F]"), (results.count("\n [P]") +
+            results.count("\n [F]") + results.count("\n [W]")), results))
     logging.info(out)
     if results.count("FAILED"):
         raise error.TestFail("Some subtests failed\n%s" % out)
