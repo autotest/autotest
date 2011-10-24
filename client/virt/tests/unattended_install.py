@@ -528,12 +528,14 @@ class UnattendedInstallConfig(object):
         ks_param = 'ks=http://%s:%s/%s' % (self.url_auto_content_ip,
                                            self.unattended_server_port,
                                            dest_fname)
-        if 'ks=' in getattr(self, 'extra_params'):
+        self.extra_params = getattr(self, 'extra_params')
+        if 'ks=' in self.extra_params:
             extra_params = re.sub('ks\=[\w\d\:\.\/]+',
                                   ks_param,
-                                  getattr(self, 'extra_params'))
+                                  self.extra_params)
         else:
-            extra_params += ' %s ' % ks_param
+            extra_params = '%s %s' % (self.extra_params,
+                                      ks_param)
 
         # reflect change on params
         self.extra_params = extra_params
