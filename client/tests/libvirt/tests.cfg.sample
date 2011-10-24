@@ -5,25 +5,6 @@ include tests_base.cfg
 include cdkeys.cfg
 include virtio-win.cfg
 
-# Modify/comment the following lines if you wish to modify the paths of the
-# image files, ISO files or qemu binaries.
-#
-# As for the defaults:
-# * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
-#   /usr/bin/qemu-img respectively.
-# * All image files are expected under /tmp/libvirt_autotest_root/images/
-# * All install iso files are expected under /tmp/libvirt_autotest_root/isos/
-# * The parameters cdrom_unattended, floppy, kernel and initrd are generated
-#   by LIBVIRT autotest, so remember to put them under a writable location
-#   (for example, the cdrom share can be read only)
-image_name(_.*)? ?<= /tmp/libvirt_autotest_root/images/
-cdrom(_.*)? ?<= /tmp/libvirt_autotest_root/
-floppy ?<= /tmp/libvirt_autotest_root/
-image_dir = /tmp/libvirt_autotest_root/
-Linux..unattended_install:
-    kernel ?<= /tmp/libvirt_autotest_root/
-    initrd ?<= /tmp/libvirt_autotest_root/
-
 variants:
     # Runs virt-install, f15 64 bit guest OS, install, boot, shutdown
     - @libvirt_f15_quick:
@@ -44,9 +25,27 @@ variants:
         qemu_img_binary = /usr/bin/qemu-img
         url = auto
         cdrom_cd1 = isos/linux/Fedora-15-x86_64-DVD.iso
+        hvm_or_pv = --paravirt
         only raw
         only xennet
         only xenblk
+        only smp2
+        only no_pci_assignable
+        only smallpages
+        only Fedora.15.64
+        only unattended_install.url, boot, reboot, shutdown
+
+    # Runs virt-install, f15 64 as a 64 bit HVM (full virt) guest OS,
+    # install, boot, shutdown
+    - @libvirt_xenhvm_f15_quick:
+        virt_install_binary = /usr/bin/virt-install
+        qemu_img_binary = /usr/bin/qemu-img
+        url = auto
+        cdrom_cd1 = isos/linux/Fedora-15-x86_64-DVD.iso
+        hvm_or_pv = --hvm --accelerate
+        only raw
+        only rtl8139
+        only ide
         only smp2
         only no_pci_assignable
         only smallpages
@@ -83,6 +82,25 @@ variants:
         only smallpages
         only Windows.Win7.64
         only unattended_install.cdrom, boot, reboot, shutdown
+
+# Modify/comment the following lines if you wish to modify the paths of the
+# image files, ISO files or qemu binaries.
+#
+# As for the defaults:
+# * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
+#   /usr/bin/qemu-img respectively.
+# * All image files are expected under /tmp/libvirt_autotest_root/images/
+# * All install iso files are expected under /tmp/libvirt_autotest_root/isos/
+# * The parameters cdrom_unattended, floppy, kernel and initrd are generated
+#   by LIBVIRT autotest, so remember to put them under a writable location
+#   (for example, the cdrom share can be read only)
+image_name(_.*)? ?<= /tmp/libvirt_autotest_root/images/
+cdrom(_.*)? ?<= /tmp/libvirt_autotest_root/
+floppy ?<= /tmp/libvirt_autotest_root/
+image_dir = /tmp/libvirt_autotest_root/
+Linux..unattended_install:
+    kernel ?<= /tmp/libvirt_autotest_root/
+    initrd ?<= /tmp/libvirt_autotest_root/
 
 # Choose your test list from the testsets defined
 only libvirt_f15_quick
