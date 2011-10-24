@@ -60,7 +60,7 @@ class BaseInstaller(object):
 
     def _set_test_dirs(self, test):
         '''
-        Save common test directories paths (srcdir, bindir) as class attributes
+        Save common test directories paths as class attributes
 
         Test variables values are saved here again because it's not possible to
         pickle the test instance inside BaseInstaller due to limitations
@@ -73,13 +73,16 @@ class BaseInstaller(object):
         For reference:
            * bindir = tests/<test>
            * srcdir = tests/<test>/src
+           * resultsdir = results/<job>/<testname.tag>/results
 
         So, for KVM tests, it'd evaluate to:
            * bindir = tests/kvm/
            * srcdir = tests/kvm/src
+           * resultsdir = results/<job>/kvm.<other_variant_names>.build/results
         '''
         self.test_bindir = test.bindir
         self.test_srcdir = test.srcdir
+        self.test_resultsdir = test.resultsdir
 
         #
         # test_bindir is guaranteed to exist, but test_srcdir is not
@@ -359,7 +362,8 @@ class BaseInstaller(object):
 
         self.reload_modules_if_needed()
         if self.save_results:
-            virt_utils.archive_as_tarball(self.srcdir, self.results_dir)
+            virt_utils.archive_as_tarball(self.test_srcdir,
+                                          self.test_resultsdir)
 
 
     def uninstall(self):
