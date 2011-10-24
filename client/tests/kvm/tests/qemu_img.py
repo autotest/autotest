@@ -303,7 +303,7 @@ def run_qemu_img(test, params, env):
                              output)
             except Exception, e:
                 raise error.TestFail("Could not create commit_testfile in the "
-                                     "backing file %s", e)
+                                     "backing file %s" % e)
             vm.destroy()
 
             # Make sure there is no effect on the original harddisk

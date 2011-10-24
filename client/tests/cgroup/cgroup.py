@@ -381,7 +381,7 @@ class cgroup(test.test):
                 item.set_cgroup(tasks[i].pid, pwd)
             except error.TestFail, inst:
                 cleanup(True)
-                raise error.TestFail("Failed to set cgroup: %s", inst)
+                raise error.TestFail("Failed to set cgroup: %s" % inst)
             tasks[i].stdin.write('\n')
         stats = LoadPerCpu()
         # Use only the first CPU

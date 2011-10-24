@@ -220,13 +220,13 @@ def run_ethtool(test, params, env):
                     logging.error("Fail to enable %s", i)
                     success = False
             if not callback():
-                raise error.TestFail("Test failed, %s: on", f_type)
+                raise error.TestFail("Test failed, %s: on" % f_type)
 
             if not ethtool_set(f_type, "off"):
                 logging.error("Fail to disable %s", f_type)
                 success = False
             if not callback(status="off"):
-                raise error.TestFail("Test failed, %s: off", f_type)
+                raise error.TestFail("Test failed, %s: off" % f_type)
         if not success:
             raise error.TestError("Enable/disable offload function fail")
     finally:

@@ -32,7 +32,7 @@ variants:
             host_load_command = "bzip2 -c --best /dev/urandom > /dev/null"
             host_load_instances = 8
             ntp:
-                time_command = "ntpdate -d -q ns1.nay.redhat.com"
+                time_command = "ntpdate -d -q pool.ntp.org"
                 time_filter_re = "originate timestamp:.*, (.\w+\s+\d+\s+\d+\s+\d+:\d+:\d+)\.(.\d+)"
                 time_format = "%b %d %Y %H:%M:%S"
             date:
@@ -1034,7 +1034,7 @@ variants:
             #host_load_command = "dd if=/dev/urandom of=/dev/null"
             host_load_instances = 8
             ntp:
-                time_command = "w32tm /stripchart /samples:1 /computer:ns1.nay.redhat.com"
+                time_command = "w32tm /stripchart /samples:1 /computer:pool.ntp.org"
                 time_filter_re = "\d+/\d+/\d+\s\d+:\d+:\d+ [AP]M"
                 time_format = "%m/%d/%Y %H:%M:%S"
             date:
