@@ -533,9 +533,10 @@ class VM(virt_vm.BaseVM):
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
 
-        virt_install_binary = virt_utils.get_path(root_dir,
-                                    params.get("virt_install_binary",
-                                    "virt-install"))
+        virt_install_binary = virt_utils.get_path(
+            root_dir,
+            params.get("virt_install_binary",
+                       "virt-install"))
 
         help = utils.system_output("%s --help" % virt_install_binary)
 
@@ -573,6 +574,8 @@ class VM(virt_vm.BaseVM):
         if params.get("medium") == 'url':
             if params.get("url") == 'auto':
                 location = params.get('auto_content_url')
+            else:
+                location = params.get('url')
 
         elif params.get("medium") == 'kernel_initrd':
             # directory location of kernel/initrd pair (directory layout must
