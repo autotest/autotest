@@ -403,20 +403,14 @@ def _update_address_cache(address_cache, line):
             address_cache["last_seen"] = matches[0]
     if re.search("Client.Ethernet.Address", line, re.IGNORECASE):
         matches = re.findall(r"\w*:\w*:\w*:\w*:\w*:\w*", line)
-        if matches:
-            address_cache["last_mac"] = matches[0]
-    if re.search("DHCP-Message", line, re.IGNORECASE):
-        matches = re.findall(r"ACK", line)
-        if matches and (address_cache.get("last_seen") and
-                        address_cache.get("last_mac")):
-            mac_address = address_cache.get("last_mac").lower()
+        if matches and address_cache.get("last_seen"):
+            mac_address = matches[0].lower()
             if time.time() - address_cache.get("time_%s" % mac_address, 0) > 5:
                 logging.debug("(address cache) Adding cache entry: %s ---> %s",
                               mac_address, address_cache.get("last_seen"))
             address_cache[mac_address] = address_cache.get("last_seen")
             address_cache["time_%s" % mac_address] = time.time()
             del address_cache["last_seen"]
-            del address_cache["last_mac"]
 
 
 def _take_screendumps(test, params, env):
