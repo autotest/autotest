@@ -7,6 +7,16 @@ from autotest_lib.server import utils
 from autotest_lib.server.hosts import base_classes, install_server
 
 
+def get_install_server_info():
+    server_info = {}
+    cfg = global_config.global_config
+    cfg.parse_config_file()
+    for option, value in cfg.config.items('INSTALL_SERVER'):
+        server_info[option] = value
+
+    return server_info
+
+
 class RemoteHost(base_classes.Host):
     """
     This class represents a remote machine on which you can run
@@ -61,18 +71,90 @@ class RemoteHost(base_classes.Host):
 
         @param profile: Profile name inside the install server database.
         """
-        server_info = {}
-        cfg = global_config.global_config
-        cfg.parse_config_file()
-        for option, value in cfg.config.items('INSTALL_SERVER'):
-            server_info[option] = value
+        server_info = get_install_server_info()
+        if server_info.get('xmlrpc_url', None) is not None:
+            ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
+            server_interface = ServerInterface(**server_info)
+            server_interface.install_host(self, profile=profile,
+                                          timeout=timeout)
+        else:
+            raise error.AutoservUnsupportedError("Empty install server setup "
+                                                 "on global_config.ini")
 
-        logging.debug("Install server params from global_config: %s",
-                      server_info)
 
-        ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
-        server_interface = ServerInterface(**server_info)
-        server_interface.install_host(self, profile=profile, timeout=timeout)
+    def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,
+                  num_attempts=1, halt=False, **wait_for_restart_kwargs):
+        """
+        Reboot the machine using the install server.
+
+        @params timeout: timelimit in seconds before the machine is
+                         considered unreachable
+        @params wait: Whether or not to wait for the machine to reboot
+        @params num_attempts: Number of times to attempt hard reset erroring
+                              on the last attempt.
+        @params halt: Halts the machine before hardresetting.
+        @params **wait_for_restart_kwargs: keyword arguments passed to
+                wait_for_restart()
+        """
+        server_info = get_install_server_info()
+
+        if server_info.get('xmlrpc_url', None) is not None:
+            ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
+            server_interface = ServerInterface(**server_info)
+            try:
+                old_boot_id = self.get_boot_id()
+            except error.AutoservSSHTimeout:
+                old_boot_id = 'unknown boot_id prior to RemoteHost.hardreset'
+
+            def reboot():
+                power_state = "reboot"
+                if halt:
+                    self.halt()
+                    power_state = "on"
+                server_interface.power_host(host=self, state=power_state)
+                self.record("GOOD", None, "reboot.start", "hard reset")
+                if wait:
+                    warning_msg = ('Machine failed to respond to hard reset '
+                                   'attempt (%s/%s)')
+                    for attempt in xrange(num_attempts-1):
+                        try:
+                            self.wait_for_restart(timeout, log_failure=False,
+                                                  old_boot_id=old_boot_id,
+                                                  **wait_for_restart_kwargs)
+                        except error.AutoservShutdownError:
+                            logging.warning(warning_msg, attempt+1,
+                                            num_attempts)
+                            # re-send the hard reset command
+                            server_interface.power_host(host=self,
+                                                        state=power_state)
+                        else:
+                            break
+                    else:
+                        # Run on num_attempts=1 or last retry
+                        try:
+                            self.wait_for_restart(timeout,
+                                                  old_boot_id=old_boot_id,
+                                                  **wait_for_restart_kwargs)
+                        except error.AutoservShutdownError:
+                            logging.warning(warning_msg, num_attempts,
+                                            num_attempts)
+                            msg = "Host did not shutdown"
+                            raise error.AutoservShutdownError(msg)
+
+            if self.job:
+                self.job.disable_warnings("POWER_FAILURE")
+            try:
+                if wait:
+                    self.log_reboot(reboot)
+                else:
+                    reboot()
+            finally:
+                if self.job:
+                    self.job.enable_warnings("POWER_FAILURE")
+
+        else:
+            raise error.AutoservUnsupportedError("Empty install server setup "
+                                                 "on global_config.ini")
 
 
     def job_start(self):

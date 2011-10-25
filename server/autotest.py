@@ -714,9 +714,9 @@ class _BaseRun(object):
             logging.warning(warning)
             try:
                 self.host.hardreset(wait=False)
-            except (AttributeError, error.AutoservUnsupportedError):
-                warning = "Hard reset unsupported on %s"
-                warning %= self.host.hostname
+            except (AttributeError, error.AutoservUnsupportedError), detail:
+                warning = ("Hard reset unsupported on %s: %s" %
+                           (self.hostname, detail))
                 logging.warning(warning)
             raise error.AutotestRunError("%s failed to boot after %ds" %
                                          (self.host.hostname,
