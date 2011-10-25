@@ -602,7 +602,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
 
                 bg.start()
 
-                while bg.is_alive():
+                while bg.isAlive():
                     logging.info("Autotest job did not end, start a round of "
                                  "migration")
                     vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
