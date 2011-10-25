@@ -358,6 +358,32 @@ variants:
         type = balloon_check
         extra_params += " -balloon virtio"
         iterations = 5
+        variants:
+           - @base:
+
+           - balloon-migrate:
+               sub_balloon_test_enlarge = "migration"
+               sub_balloon_test_evict = "migration"
+               migration_test_command = help
+               migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+               migration_bg_check_command = pgrep tcpdump
+               migration_bg_kill_command = pkill tcpdump
+               kill_vm_on_error = yes
+               iterations = 2
+               used_mem = 1024
+               mig_timeout = 3600
+               migration_protocol = "tcp"
+           - balloon-shutdown_enlarge:
+               sub_balloon_test_enlarge = "shutdown"
+               shutdown_method = shell
+               kill_vm = yes
+               kill_vm_gracefully = no
+               check_img = yes
+           - balloon-shutdown_evict:
+               shutdown_method = shell
+               kill_vm = yes
+               kill_vm_gracefully = no
+               sub_balloon_test_evict = "shutdown"
 
     - watchdog: install setup image_copy unattended_install.cdrom
         only RHEL.5, RHEL.6
