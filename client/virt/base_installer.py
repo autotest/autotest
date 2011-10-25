@@ -457,6 +457,37 @@ class KojiInstaller(BaseInstaller):
             virt_utils.set_default_koji_tag(self.tag)
         self.koji_pkgs = eval(params.get("%s_pkgs" % self.param_key_prefix,
                                          "[]"))
+        if self.install_debug_info:
+            self._expand_koji_pkgs_with_debuginfo()
+
+
+    def _expand_koji_pkgs_with_debuginfo(self):
+        '''
+        Include debuginfo RPMs on koji_pkgs
+
+        @returns: None
+        '''
+        logging.debug("Koji package list to be updated with debuginfo pkgs")
+
+        koji_pkgs_with_debug = []
+        for pkg_text in self.koji_pkgs:
+            pkg = virt_utils.KojiPkgSpec(pkg_text)
+            debuginfo_pkg_name = '%s-debuginfo' % pkg.package
+            # if no subpackages are set, then all packages will be installed
+            # so there's no need to manually include debuginfo packages
+            if pkg.subpackages:
+                # make sure we do not include the debuginfo package if
+                # already specified in the list of subpackages
+                if not debuginfo_pkg_name in pkg.subpackages:
+                    pkg.subpackages.append(debuginfo_pkg_name)
+
+            pkg_with_debug_text = pkg.to_text()
+            logging.debug("KojiPkgSpec with debuginfo package added: %s",
+                          pkg_with_debug_text)
+            koji_pkgs_with_debug.append(pkg_with_debug_text)
+
+        # swap current koji_pkgs with on that includes debuginfo pkgs
+        self.koji_pkgs = koji_pkgs_with_debug
 
 
     def _get_rpm_names(self):
