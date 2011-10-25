@@ -21,7 +21,7 @@ More specifically:
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, re, signal
+import time, os, logging, re, signal, imp
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.tools import scan_results
@@ -780,3 +780,34 @@ def get_linux_ifname(session, mac_address):
         return ethname
     except Exception:
         return None
+
+def run_virt_sub_test(test, params, env, sub_type=None):
+    """
+    Call another test script in one test script.
+    @param test:   KVM test object.
+    @param params: Dictionary with the test parameters.
+    @param env:    Dictionary with test environment.
+    @sub_type: type of called test script.
+    """
+    if sub_type is None:
+        raise error.TestError("No sub test is found")
+    virt_dir = os.path.dirname(virt_utils.__file__)
+    subtest_dir_virt = os.path.join(virt_dir, "tests")
+    subtest_dir_kvm = os.path.join(test.bindir, "tests")
+    subtest_dir = None
+    for d in [subtest_dir_kvm, subtest_dir_virt]:
+        module_path = os.path.join(d, "%s.py" % sub_type)
+        if os.path.isfile(module_path):
+            subtest_dir = d
+            break
+    if subtest_dir is None:
+        raise error.TestError("Could not find test file %s.py "
+                              "on either %s or %s directory" % (sub_type,
+                              subtest_dir_kvm, subtest_dir_virt))
+
+    f, p, d = imp.find_module(sub_type, [subtest_dir])
+    test_module = imp.load_module(sub_type, f, p, d)
+    f.close()
+    # Run the test function
+    run_func = getattr(test_module, "run_%s" % sub_type)
+    run_func(test, params, env)
