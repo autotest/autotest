@@ -4,7 +4,7 @@ Interfaces to the QEMU monitor.
 @copyright: 2008-2010 Red Hat Inc.
 """
 
-import socket, time, threading, logging, select
+import socket, time, threading, logging, select, re
 import virt_utils, virt_passfd_setup
 try:
     import json
@@ -314,6 +314,44 @@ class HumanMonitor(Monitor):
     #   cmd().
     # - A command wrapper should use self._help_str if it requires information
     #   about the monitor's capabilities.
+    def send_args_cmd(self, cmdlines, timeout=20, convert=True):
+        """
+        Send a command with/without parameters and return its output.
+        Have same effect with cmd function.
+        Implemented under the same name for both the human and QMP monitors.
+        Command with parameters should in following format e.g.:
+        'memsave val=0 size=10240 filename=memsave'
+        Command without parameter: 'sendkey ctrl-alt-f1'
+
+        @param cmdlines: Commands send to qemu which is seperated by ";". For
+                         command with parameters command should send in a string
+                         with this format:
+                         $command $arg_name=$arg_value $arg_name=$arg_value
+        @param timeout: Time duration to wait for (qemu) prompt after command
+        @param convert: If command need to convert. For commands such as:
+                        $command $arg_value
+        @return: The output of the command
+        @raise MonitorLockError: Raised if the lock cannot be acquired
+        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorProtocolError: Raised if the (qemu) prompt cannot be
+                found after sending the command
+        """
+        cmd_output = ""
+        for cmdline in cmdlines.split(";"):
+            logging.info(cmdline)
+            if not convert:
+                return self.cmd(cmdline, timeout)
+            if "=" in cmdline:
+                command = cmdline.split()[0]
+                cmdargs = " ".join(cmdline.split()[1:]).split(",")
+                for arg in cmdargs:
+                    command += " " + arg.split("=")[-1]
+            else:
+                command = cmdline
+            cmd_output += self.cmd(command, timeout)
+        return cmd_output
+
+
 
     def quit(self):
         """
@@ -756,6 +794,59 @@ class QMPMonitor(Monitor):
     # Command wrappers
     # Note: all of the following functions raise exceptions in a similar manner
     # to cmd().
+    def send_args_cmd(self, cmdlines, timeout=20, convert=True):
+        """
+        Send a command with/without parameters and return its output.
+        Have same effect with cmd function.
+        Implemented under the same name for both the human and QMP monitors.
+        Command with parameters should in following format e.g.:
+        'memsave val=0 size=10240 filename=memsave'
+        Command without parameter: 'query-vnc'
+
+        @param cmdlines: Commands send to qemu which is seperated by ";". For
+                         command with parameters command should send in a string
+                         with this format:
+                         $command $arg_name=$arg_value $arg_name=$arg_value
+        @param timeout: Time duration to wait for (qemu) prompt after command
+        @param convert: If command need to convert. For commands not in standard
+                        format such as: $command $arg_value
+        @return: The response to the command
+        @raise MonitorLockError: Raised if the lock cannot be acquired
+        @raise MonitorSendError: Raised if the command cannot be sent
+        @raise MonitorProtocolError: Raised if no response is received
+        """
+        cmd_output = []
+        for cmdline in cmdlines.split(";"):
+            command = cmdline.split()[0]
+            commands = self.cmd("query-commands")
+            if command not in str(commands):
+                if "=" in cmdline:
+                    command = cmdline.split()[0]
+                    cmdargs = " ".join(cmdline.split()[1:]).split(",")
+                    for arg in cmdargs:
+                        command += " " + arg.split("=")[-1]
+                else:
+                    command = cmdline
+                cmd_output.append(self.human_monitor_cmd(command))
+            else:
+                cmdargs = " ".join(cmdline.split()[1:]).split(",")
+                args = {}
+                for arg in cmdargs:
+                    opt = arg.split('=')
+                    try:
+                        if re.match("^[0-9]+$", opt[1]):
+                            value = int(opt[1])
+                        elif "True" in opt[1] or "true" in opt[1]:
+                            value = True
+                        elif "false" in opt[1] or "False" in opt[1]:
+                            value = False
+                        else:
+                            value = opt[1].strip()
+                        args[opt[0].strip()] = value
+                    except:
+                        logging.debug("Fail to create args, please check cmd")
+                cmd_output.append(self.cmd(command, args, timeout=timeout))
+        return cmd_output
 
     def quit(self):
         """
