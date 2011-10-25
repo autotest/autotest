@@ -634,8 +634,10 @@ class UnattendedInstallConfig(object):
                 os.chdir(self.image_path)
                 base_kernel = os.path.basename(self.kernel)
                 base_initrd = os.path.basename(self.initrd)
-                utils.run("mv %s vmlinuz" % base_kernel)
-                utils.run("mv %s initrd.img" % base_initrd)
+                if base_kernel != 'vmlinux':
+                    utils.run("mv %s vmlinuz" % base_kernel)
+                if base_initrd != 'initrd.img':
+                    utils.run("mv %s initrd.img" % base_initrd)
 
         finally:
             cleanup(self.cdrom_cd1_mount)
