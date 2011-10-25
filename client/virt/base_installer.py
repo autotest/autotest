@@ -134,6 +134,19 @@ class BaseInstaller(object):
             self.save_results = False
 
 
+    def _set_param_install_debug_info(self):
+        '''
+        Sets whether to enable debug information on installed software
+
+        Configuration file parameter: install_debug_info
+        Class attribute set: install_debug_info
+        '''
+        self.install_debug_info = True
+        install_debug_info = self.params.get('install_debug_info', 'no')
+        if install_debug_info == 'no':
+            self.install_debug_info = False
+
+
     def set_install_params(self, test=None, params=None):
         '''
         Called by test to setup parameters from the configuration file
@@ -146,6 +159,7 @@ class BaseInstaller(object):
             self._set_param_load_module()
             self._set_param_module_list()
             self._set_param_save_results()
+            self._set_param_install_debug_info()
 
 
     def _install_phase_cleanup(self):

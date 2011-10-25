@@ -50,6 +50,9 @@ variants:
         ######################################################################
         installers = git_repo_spice_protocol git_repo_spice git_repo_qemu
 
+        # Choose wether you want to include debug information/symbols
+        install_debug_info = yes
+
 
 # Comment out the 'no build' line to enable the build test
 no build
