@@ -34,6 +34,7 @@ class CobblerInterface(object):
         self.xmlrpc_url = kwargs['xmlrpc_url']
         self.user = kwargs['user']
         self.password = kwargs['password']
+        self.fallback_profile = kwargs['fallback_profile']
         if self.xmlrpc_url:
             self.server = xmlrpclib.Server(self.xmlrpc_url)
             self.token = self.server.login(self.user, self.password)
@@ -78,12 +79,16 @@ class CobblerInterface(object):
             remove_hosts_file()
 
             system, system_handle = self.get_system_handle(host)
-            if profile is not None:
+
+            if profile is None:
+                profile = self.fallback_profile
+
+            system_info = self.server.get_system(system)
+            current_profile = system_info.get('profile')
+            if profile != current_profile:
                 self.server.modify_system(system_handle, 'profile', profile,
                                           self.token)
-            else:
-                system_info = self.server.get_system(system)
-                profile = '%s (default)' % system_info.get('profile')
+
             # Enable netboot for that machine (next time it'll reboot and be
             # reinstalled)
             self.server.modify_system(system_handle, 'netboot_enabled', 'True',
