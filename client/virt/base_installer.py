@@ -420,6 +420,8 @@ class YumInstaller(BaseInstaller):
         super(YumInstaller, self).set_install_params(test, params)
         os_dep.command("rpm")
         os_dep.command("yum")
+        if self.install_debug_info:
+            os_dep.command("debuginfo-install")
         self.yum_pkgs = eval(params.get("%s_pkgs" % self.param_key_prefix,
                                         "[]"))
 
@@ -433,6 +435,9 @@ class YumInstaller(BaseInstaller):
         if self.yum_pkgs:
             os.chdir(self.test_srcdir)
             utils.system("yum --nogpgcheck -y install %s" %
+                         " ".join(self.yum_pkgs))
+        if self.install_debug_info:
+            utils.system("debuginfo-install --enablerepo='*debuginfo' -y %s" %
                          " ".join(self.yum_pkgs))
 
 
