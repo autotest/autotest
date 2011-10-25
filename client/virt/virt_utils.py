@@ -3190,6 +3190,11 @@ class GnuSourceBuildParamHelper(GnuSourceBuildHelper):
         self.configure_options = configure_options
         self.include_pkg_config_path()
 
+        # Support the install_debug_info feature, that automatically
+        # adds/keeps debug information on generated libraries/binaries
+        if not self.params.get("install_debug_info", "yes") == "no":
+            self.enable_debug_symbols()
+
 
 def install_host_kernel(job, params):
     """
