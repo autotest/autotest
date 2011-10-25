@@ -34,6 +34,29 @@ class CobblerInterface(object):
         self.xmlrpc_url = kwargs['xmlrpc_url']
         self.user = kwargs['user']
         self.password = kwargs['password']
+        if self.xmlrpc_url:
+            self.server = xmlrpclib.Server(self.xmlrpc_url)
+            self.token = self.server.login(self.user, self.password)
+
+
+    def get_system_handle(self, host):
+        """
+        Get a system handle, needed to perform operations on the given host
+
+        @param host: Host name
+
+        @return: Tuple (system, system_handle)
+        """
+        try:
+            system = self.server.find_system({"name" : host.hostname})[0]
+        except IndexError, detail:
+            ### TODO: Method to register this system as brand new
+            logging.error("Error finding %s: %s", host.hostname, detail)
+            raise ValueError("No system %s registered on install server" %
+                             host.hostname)
+
+        system_handle = self.server.get_system_handle(system, self.token)
+        return (system, system_handle)
 
 
     def install_host(self, host, profile=None, timeout=None):
@@ -53,30 +76,22 @@ class CobblerInterface(object):
 
             logging.info("Setting up machine %s install", host.hostname)
             remove_hosts_file()
-            server = xmlrpclib.Server(self.xmlrpc_url)
-            token = server.login(self.user, self.password)
 
-            try:
-                system = server.find_system({"name" : host.hostname})[0]
-            except IndexError, detail:
-                ### TODO: Method to register this system as brand new
-                logging.error("Error finding %s: %s", host.hostname, detail)
-                raise ValueError("No system %s registered on install server" %
-                                 host.hostname)
-
-            system_handle = server.get_system_handle(system, token)
+            system, system_handle = self.get_system_handle(host)
             if profile is not None:
-                server.modify_system(system_handle, 'profile', profile, token)
+                self.server.modify_system(system_handle, 'profile', profile,
+                                          self.token)
             else:
-                system_info = server.get_system(system)
+                system_info = self.server.get_system(system)
                 profile = '%s (default)' % system_info.get('profile')
             # Enable netboot for that machine (next time it'll reboot and be
             # reinstalled)
-            server.modify_system(system_handle, 'netboot_enabled', 'True', token)
+            self.server.modify_system(system_handle, 'netboot_enabled', 'True',
+                                      self.token)
             # Now, let's just restart the machine (machine has to have
             # power management data properly set up).
-            server.save_system(system_handle, token)
-            server.power_system(system_handle, 'reboot', token)
+            self.server.save_system(system_handle, self.token)
+            self.server.power_system(system_handle, 'reboot', self.token)
             logging.info("Installing machine %s with profile %s (timeout %s s)",
                          host.hostname, profile, timeout)
             install_start = time.time()
@@ -84,7 +99,7 @@ class CobblerInterface(object):
             install_successful = False
             while time_elapsed < timeout:
                 time.sleep(step_time)
-                system_info = server.get_system(system)
+                system_info = self.server.get_system(system)
                 install_successful = not system_info.get('netboot_enabled')
                 if install_successful:
                     break
@@ -98,3 +113,15 @@ class CobblerInterface(object):
             time_elapsed = time.time() - install_start
             logging.info("Machine %s installed successfuly after %d s (%d min)",
                          host.hostname, time_elapsed, time_elapsed/60)
+
+
+    def power_host(self, host, state='reboot'):
+        """
+        Power on/off/reboot a host through cobbler.
+
+        @param host: Autotest host object.
+        @param state: Allowed states - one of 'on', 'off', 'reboot'.
+        """
+        if self.xmlrpc_url:
+            system_handle = self.get_system_handle(host)[1]
+            self.server.power_system(system_handle, state, self.token)
