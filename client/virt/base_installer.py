@@ -134,6 +134,19 @@ class BaseInstaller(object):
             self.save_results = False
 
 
+    def _set_param_install_debug_info(self):
+        '''
+        Sets whether to enable debug information on installed software
+
+        Configuration file parameter: install_debug_info
+        Class attribute set: install_debug_info
+        '''
+        self.install_debug_info = True
+        install_debug_info = self.params.get('install_debug_info', 'no')
+        if install_debug_info == 'no':
+            self.install_debug_info = False
+
+
     def set_install_params(self, test=None, params=None):
         '''
         Called by test to setup parameters from the configuration file
@@ -146,6 +159,7 @@ class BaseInstaller(object):
             self._set_param_load_module()
             self._set_param_module_list()
             self._set_param_save_results()
+            self._set_param_install_debug_info()
 
 
     def _install_phase_cleanup(self):
@@ -406,6 +420,8 @@ class YumInstaller(BaseInstaller):
         super(YumInstaller, self).set_install_params(test, params)
         os_dep.command("rpm")
         os_dep.command("yum")
+        if self.install_debug_info:
+            os_dep.command("debuginfo-install")
         self.yum_pkgs = eval(params.get("%s_pkgs" % self.param_key_prefix,
                                         "[]"))
 
@@ -419,6 +435,9 @@ class YumInstaller(BaseInstaller):
         if self.yum_pkgs:
             os.chdir(self.test_srcdir)
             utils.system("yum --nogpgcheck -y install %s" %
+                         " ".join(self.yum_pkgs))
+        if self.install_debug_info:
+            utils.system("debuginfo-install --enablerepo='*debuginfo' -y %s" %
                          " ".join(self.yum_pkgs))
 
 
@@ -443,6 +462,37 @@ class KojiInstaller(BaseInstaller):
             virt_utils.set_default_koji_tag(self.tag)
         self.koji_pkgs = eval(params.get("%s_pkgs" % self.param_key_prefix,
                                          "[]"))
+        if self.install_debug_info:
+            self._expand_koji_pkgs_with_debuginfo()
+
+
+    def _expand_koji_pkgs_with_debuginfo(self):
+        '''
+        Include debuginfo RPMs on koji_pkgs
+
+        @returns: None
+        '''
+        logging.debug("Koji package list to be updated with debuginfo pkgs")
+
+        koji_pkgs_with_debug = []
+        for pkg_text in self.koji_pkgs:
+            pkg = virt_utils.KojiPkgSpec(pkg_text)
+            debuginfo_pkg_name = '%s-debuginfo' % pkg.package
+            # if no subpackages are set, then all packages will be installed
+            # so there's no need to manually include debuginfo packages
+            if pkg.subpackages:
+                # make sure we do not include the debuginfo package if
+                # already specified in the list of subpackages
+                if not debuginfo_pkg_name in pkg.subpackages:
+                    pkg.subpackages.append(debuginfo_pkg_name)
+
+            pkg_with_debug_text = pkg.to_text()
+            logging.debug("KojiPkgSpec with debuginfo package added: %s",
+                          pkg_with_debug_text)
+            koji_pkgs_with_debug.append(pkg_with_debug_text)
+
+        # swap current koji_pkgs with on that includes debuginfo pkgs
+        self.koji_pkgs = koji_pkgs_with_debug
 
 
     def _get_rpm_names(self):
