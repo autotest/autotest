@@ -2344,6 +2344,44 @@ class KojiPkgSpec(object):
                     self.describe_invalid())
 
 
+    def to_text(self):
+        '''
+        Return the textual representation of this package spec
+
+        The output should be consumable by parse() and produce the same
+        package specification.
+
+        We find that it's acceptable to put the currently set default tag
+        as the package explicit tag in the textual definition for completeness.
+
+        @returns: package specification in a textual representation
+        '''
+        default_tag = get_default_koji_tag()
+
+        if self.build:
+            if self.subpackages:
+                return "%s:%s" % (self.build, ",".join(self.subpackages))
+            else:
+                return "%s" % self.build
+
+        elif self.tag:
+            if self.subpackages:
+                return "%s:%s:%s" % (self.tag, self.package,
+                                     ",".join(self.subpackages))
+            else:
+                return "%s:%s" % (self.tag, self.package)
+
+        elif default_tag is not None:
+            # neither build or tag is set, try default_tag as a fallback
+            if self.subpackages:
+                return "%s:%s:%s" % (default_tag, self.package,
+                                     ",".join(self.subpackages))
+            else:
+                return "%s:%s" % (default_tag, self.package)
+        else:
+            raise ValueError, 'neither build or tag is set'
+
+
     def __repr__(self):
         return ("<KojiPkgSpec tag=%s build=%s pkg=%s subpkgs=%s>" %
                 (self.tag, self.build, self.package,
@@ -3151,6 +3189,11 @@ class GnuSourceBuildParamHelper(GnuSourceBuildHelper):
         self.prefix = self.install_prefix
         self.configure_options = configure_options
         self.include_pkg_config_path()
+
+        # Support the install_debug_info feature, that automatically
+        # adds/keeps debug information on generated libraries/binaries
+        if not self.params.get("install_debug_info", "yes") == "no":
+            self.enable_debug_symbols()
 
 
 def install_host_kernel(job, params):

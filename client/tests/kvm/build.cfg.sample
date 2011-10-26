@@ -42,13 +42,16 @@ variants:
 
         # QEMU (KVM) installation from koji/brew
         # koji_qemu_kvm_tag = dist-f15
-        # koji_qemu_kvm_pkgs = [':qemu:qemu-common,qemu-img,qemu-kvm,qemu-system-x86,qemu-kvm-tools', 'seabios', 'vgabios', ':gpxe:gpxe-roms-qemu', ':spice-server:spice-server']
+        # koji_qemu_kvm_pkgs = [':qemu:qemu-common,qemu-img,qemu-kvm,qemu-system-x86,qemu-kvm-tools', 'seabios', 'vgabios', ':gpxe:gpxe-roms-qemu', ':spice:spice-server']
 
         ######################################################################
         # INSTALLERS SELECTION
         # Choose here what components you want to install
         ######################################################################
         installers = git_repo_spice_protocol git_repo_spice git_repo_qemu
+
+        # Choose wether you want to include debug information/symbols
+        install_debug_info = yes
 
 
 # Comment out the 'no build' line to enable the build test
