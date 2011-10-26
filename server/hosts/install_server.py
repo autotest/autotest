@@ -97,6 +97,8 @@ class CobblerInterface(object):
             # power management data properly set up).
             self.server.save_system(system_handle, self.token)
             self.server.power_system(system_handle, 'reboot', self.token)
+            host.record("START", None, "install", host.hostname)
+            host.record("GOOD", None, "install.start", host.hostname)
             logging.info("Installing machine %s with profile %s (timeout %s s)",
                          host.hostname, profile, timeout)
             install_start = time.time()
@@ -111,10 +113,12 @@ class CobblerInterface(object):
                 time_elapsed = time.time() - install_start
 
             if not install_successful:
-                raise error.HostInstallTimeoutError('Machine %s install '
-                                                    'timed out' % host.hostname)
+                e_msg = 'Host %s install timed out' % host.hostname
+                host.record("END FAIL", None, "install", e_msg)
+                raise error.HostInstallTimeoutError(e_msg)
 
             host.wait_for_restart()
+            host.record("END GOOD", None, "install", host.hostname)
             time_elapsed = time.time() - install_start
             logging.info("Machine %s installed successfuly after %d s (%d min)",
                          host.hostname, time_elapsed, time_elapsed/60)
