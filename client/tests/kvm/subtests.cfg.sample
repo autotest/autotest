@@ -1156,6 +1156,8 @@ variants:
         type = usb
         kill_vm = yes
         format_timeout = 400
+        usbs = usb1
+        usb_type_usb1 = ehci
         images += " stg"
         image_name_stg = "usbdevice"
         image_format_stg = "qcow2"
