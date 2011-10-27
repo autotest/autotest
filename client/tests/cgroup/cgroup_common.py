@@ -6,24 +6,10 @@ Helpers for cgroup testing.
 @copyright: 2011 Red Hat Inc.
 @author: Lukas Doktor <ldoktor@redhat.com>
 """
-import logging, os, shutil, subprocess, time, traceback
+import logging, os, shutil, subprocess, time
 from tempfile import mkdtemp
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
-
-def _traceback(name, exc_info):
-    """
-    Formats traceback into lines "name: line\nname: line"
-    @param name: desired line preposition
-    @param exc_info: sys.exc_info of the exception
-    @return: string which contains beautifully formatted exception
-    """
-    out = "\n"
-    for line in traceback.format_exception(exc_info[0], exc_info[1],
-                                           exc_info[2]):
-        out += "%s: %s" % (name, line)
-    return out
-
 
 class Cgroup(object):
     """
