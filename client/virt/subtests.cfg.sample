@@ -1126,6 +1126,28 @@ variants:
                 netperf_cmd = %s/netperf-2.4.5/src/netperf -t %s -H %s -l 60 -- -r %s
                 protocols = "TCP_RR TCP_CRR UDP_RR"
 
+    - ntttcp:
+        type = ntttcp
+        image_snapshot = yes
+        check_ntttcp_cmd = "cmd /c dir C:\NTttcp"
+        ntttcp_sender_cmd = "cmd /c C:\NTttcp\NTttcps.exe -m %s,0,%s -a 2 -l %s -n %s"
+        ntttcp_receiver_cmd = "cmd /c C:\NTttcp\NTttcpr.exe -m %s,0,%s -a 6 -rb %s -n %s"
+        session_num = 1
+        buffers = "2k 4k 8k 16k 32k 64k 128k 256k 512k 1024k 2048k"
+        timeout = 1200
+        kill_vm = yes
+        numa_node = -1
+        variants:
+            - guest_guest:
+                vms += " vm2"
+            - guest_host:
+                # external Windows system IP, NTttcp need to be installed firstly.
+                receiver_address = "192.168.1.1"
+        32:
+            ntttcp_install_cmd = 'cmd /c "D:\autoit3.exe D:\NTttcp\NTttcp.au3 && mkdir C:\NTttcp && copy "C:\Program Files\Microsoft Corporation\NT Testing TCP Tool\*" C:\NTttcp && cd C:\NTttcp\ && copy NTttcp_%s.exe NTttcps.exe && copy NTttcp_%s.exe NTttcpr.exe"'
+        64:
+            ntttcp_install_cmd = 'cmd /c "D:\autoit3.exe D:\NTttcp\NTttcp.au3 && mkdir C:\NTttcp && copy "C:\Program Files (x86)\Microsoft Corporation\NT Testing TCP Tool\*" C:\NTttcp && cd C:\NTttcp\ && copy NTttcp_%s.exe NTttcps.exe && copy NTttcp_%s.exe NTttcpr.exe"'
+
     - ethtool: install setup image_copy unattended_install.cdrom
         only Linux
         type = ethtool
