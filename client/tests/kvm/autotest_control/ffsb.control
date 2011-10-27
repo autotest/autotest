@@ -1,0 +1,16 @@
+AUTHOR = "Onkar N Mahajan <onkar.n.mahajan@linux.vnet.ibm.com>"
+NAME = "Flexible Filesystem Benchmark (FFSB)"
+TEST_CATEGORY = "Filesystem Benchmark"
+TEST_CLASS = "General"
+TEST_TYPE = "client"
+TIME = 'MEDIUM'
+DOC = """
+The Flexible Filesystem Benchmark (FFSB) is a cross-platform
+filesystem performance measurement tool. It uses customizable
+profiles to measure of different workloads, and it supports
+multiple groups of threads across multiple filesystems.
+
+For more info, see http://sourceforge.net/projects/ffsb/
+"""
+
+job.run_test('ffsb')
