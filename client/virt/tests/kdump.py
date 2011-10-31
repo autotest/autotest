@@ -8,7 +8,9 @@ def run_kdump(test, params, env):
     KVM reboot test:
     1) Log into a guest
     2) Check and enable the kdump
-    3) For each vcpu, trigger a crash and check the vmcore
+    3) Trigger a crash by 'sysrq-trigger' and check the vmcore for
+       each vcpu, or only trigger one crash with nmi interrupt and
+       check vmcore.
 
     @param test: kvm test object
     @param params: Dictionary with the test parameters
@@ -37,9 +39,12 @@ def run_kdump(test, params, env):
         session = vm.wait_for_login(timeout=timeout)
         session.cmd_output("rm -rf /var/crash/*")
 
-        logging.info("Triggering crash on vcpu %d ...", vcpu)
-        crash_cmd = "taskset -c %d echo c > /proc/sysrq-trigger" % vcpu
-        session.sendline(crash_cmd)
+        if crash_cmd == "nmi":
+            session.cmd("echo 1 > /proc/sys/kernel/unknown_nmi_panic")
+            vm.monitor.cmd('nmi')
+        else:
+            logging.info("Triggering crash on vcpu %d ...", vcpu)
+            session.sendline("taskset -c %d %s" % (vcpu, crash_cmd))
 
         if not virt_utils.wait_for(lambda: not session.is_responsive(), 240, 0,
                                   1):
@@ -67,9 +72,14 @@ def run_kdump(test, params, env):
         # the initrd may be rebuilt here so we need to wait a little more
         session.cmd(kdump_enable_cmd, timeout=120)
 
-        nvcpu = int(params.get("smp", 1))
-        for i in range (nvcpu):
-            crash_test(i)
+        crash_cmd = params.get("crash_cmd", "echo c > /proc/sysrq-trigger")
+        if crash_cmd == "nmi":
+            crash_test(None)
+        else:
+            # trigger crash for each vcpu
+            nvcpu = int(params.get("smp", 1))
+            for i in range (nvcpu):
+                crash_test(i)
 
     finally:
         session.close()
