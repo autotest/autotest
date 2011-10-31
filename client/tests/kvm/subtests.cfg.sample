@@ -1130,6 +1130,12 @@ variants:
         # kdump_enable_cmd = chkconfig kdump on && service kdump start
         # command to probe the crash kernel
         # crash_kernel_prob_cmd = "grep -q 1 /sys/kernel/kexec_crash_loaded"
+        # crash_cmd = "echo c > /proc/sysrq-trigger"
+        variants:
+            - @default:
+            - nmi:
+                kernel_param_cmd = "grubby --update-kernel=`grubby --default-kernel` --args='crashkernel=128M nmi_watchdog=1'"
+                crash_cmd = nmi
 
     - vmstop: install setup image_copy unattended_install.cdrom
         type = vmstop
