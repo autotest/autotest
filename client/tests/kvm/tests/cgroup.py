@@ -8,6 +8,7 @@ from random import random
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.tests.cgroup.cgroup_common import Cgroup, CgroupModules
+from autotest_lib.client.virt.aexpect import ExpectTimeoutError
 
 def run_cgroup(test, params, env):
     """
@@ -894,6 +895,87 @@ def run_cgroup(test, params, env):
             return ("Freezer works fine")
 
 
+    class TestMemoryMove:
+        """
+        Tests the memory.move_charge_at_immigrate cgroup capability. It changes
+        memory cgroup while running the guest system.
+        """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            self.vm = vms[0]      # Virt machines
+            self.modules = modules          # cgroup module handler
+            self.cgroup = Cgroup('memory', '')   # cgroup blkio handler
+
+        def cleanup(self):
+            """ Cleanup """
+            err = ""
+            try:
+                del(self.cgroup)
+            except Exception, failure_detail:
+                err += "\nCan't remove Cgroup: %s" % failure_detail
+
+            if err:
+                logging.error("Some cleanup operations failed: %s", err)
+                raise error.TestError("Some cleanup operations failed: %s" %
+                                       err)
+
+
+        def init(self):
+            """ Initialization: prepares two cgroups """
+            self.cgroup.initialize(self.modules)
+            self.cgroup.mk_cgroup()
+            self.cgroup.mk_cgroup()
+            assign_vm_into_cgroup(self.vm, self.cgroup, 0)
+
+            self.cgroup.set_property('memory.move_charge_at_immigrate', '3',
+                                     self.cgroup.cgroups[0])
+            self.cgroup.set_property('memory.move_charge_at_immigrate', '3',
+                                     self.cgroup.cgroups[1])
+
+
+        def run(self):
+            """ Actual test: change cgroup while running test command """
+            sessions = []
+            sessions.append(self.vm.wait_for_login(timeout=30))
+            sessions.append(self.vm.wait_for_login(timeout=30))
+
+            size = int(params.get('mem', 512)) / 2   # Use half of the memory
+            sessions[0].sendline('dd if=/dev/zero of=/dev/null bs=%sM' % size)
+            time.sleep(2)
+
+            sessions[1].cmd('killall -SIGUSR1 dd')
+            for i in range(10):
+                logging.debug("Moving vm into cgroup %s." % (i%2))
+                assign_vm_into_cgroup(self.vm, self.cgroup, i%2)
+                time.sleep(0.1)
+            time.sleep(2)
+            sessions[1].cmd('killall -SIGUSR1 dd')
+            try:
+                out = sessions[0].read_until_output_matches(
+                                                ['(\d+)\+\d records out'])[1]
+                if len(re.findall(r'(\d+)\+\d records out', out)) < 2:
+                    out += sessions[0].read_until_output_matches(
+                                                ['(\d+)\+\d records out'])[1]
+            except ExpectTimeoutError:
+                raise error.TestFail("dd didn't produce expected output: %s" %
+                                      out)
+
+            sessions[1].cmd('killall dd')
+            dd_res = re.findall(r'(\d+)\+(\d+) records in', out)
+            dd_res += re.findall(r'(\d+)\+(\d+) records out', out)
+            dd_res = [int(_[0]) + int(_[1]) for _ in dd_res]
+            if dd_res[1] <= dd_res[0] or dd_res[3] <= dd_res[2]:
+                raise error.TestFail("dd stoped sending bytes: %s..%s, %s..%s" %
+                                      (dd_res[0], dd_res[1], dd_res[2],
+                                       dd_res[3]))
+
+            return ("Memory move succeeded")
+
+
     # Setup
     # TODO: Add all new tests here
     tests = {"blkio_bandwidth_weigth_read"  : TestBlkioBandwidthWeigthRead,
@@ -904,9 +986,10 @@ def run_cgroup(test, params, env):
              "blkio_throttle_multiple_write" : TestBlkioThrottleMultipleWrite,
              "devices_access"               : TestDevicesAccess,
              "freezer"                      : TestFreezer,
+             "memory_move"                  : TestMemoryMove,
             }
     modules = CgroupModules()
-    if (modules.init(['blkio', 'devices', 'freezer']) <= 0):
+    if (modules.init(['blkio', 'devices', 'freezer', 'memory']) <= 0):
         raise error.TestFail('Can\'t mount any cgroup modules')
     # Add all vms
     vms = []
