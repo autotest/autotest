@@ -1,6 +1,6 @@
-import logging
+import logging, os
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_test_utils, virt_utils
+from autotest_lib.client.virt import virt_test_utils, virt_utils, aexpect
 
 
 def run_nic_hotplug(test, params, env):
@@ -29,19 +29,25 @@ def run_nic_hotplug(test, params, env):
     vm = virt_test_utils.get_living_vm(env, params.get("main_vm"))
     login_timeout = int(params.get("login_timeout", 360))
     guest_delay = int(params.get("guest_delay", 20))
-    romfile = params.get("romfile", "")
     pci_model = params.get("pci_model", "rtl8139")
     run_dhclient = params.get("run_dhclient", "no")
     guest_is_not_windows = "Win" not in params.get("guest_name", "")
 
     session = virt_test_utils.wait_for_login(vm, timeout=login_timeout)
 
+    udev_rules_path = "/etc/udev/rules.d/70-persistent-net.rules"
+    udev_rules_bkp_path = "/tmp/70-persistent-net.rules"
+
+    def guest_path_isfile(path):
+        try:
+            session.cmd("test -f %s" % path)
+        except aexpect.ShellError:
+            return False
+        return True
+
     if guest_is_not_windows:
-        # Disable udev rules that usually mess up with device naming
-        mv_stat, o = session.cmd_status_output("mv /etc/udev/rules.d/"
-                                               "70-persistent-net.rules /tmp")
-        logging.debug("command to disable udev rules returned status: %s" %
-                      mv_stat)
+        if guest_path_isfile(udev_rules_path):
+            session.cmd("mv -f %s %s" % (udev_rules_path, udev_rules_bkp_path))
 
         # Modprobe the module if specified in config file
         module = params.get("modprobe_module")
@@ -94,7 +100,5 @@ def run_nic_hotplug(test, params, env):
     # disable the rules failed. We may be undoing what was done in a previous
     # (failed) test that never reached this point.
     if guest_is_not_windows:
-        mv_stat, o = session.cmd_status_output("mv /tmp/70-persistent-net"
-                                               ".rules /etc/udev/rules.d/")
-        logging.debug("command to revert udev rules returned status: %s" %
-                      mv_stat)
+        if guest_path_isfile(udev_rules_bkp_path):
+            session.cmd("mv -f %s %s" % (udev_rules_bkp_path, udev_rules_path))
