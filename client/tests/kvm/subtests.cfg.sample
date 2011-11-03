@@ -178,6 +178,7 @@ variants:
             - mig_cancel:
                 migration_protocol = "tcp"
                 mig_cancel = yes
+                only migrate..default
         variants:
             - @default:
             - with_blkdebug:
