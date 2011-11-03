@@ -9,6 +9,8 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.tests.cgroup.cgroup_common import Cgroup, CgroupModules
 from autotest_lib.client.virt.aexpect import ExpectTimeoutError
+from autotest_lib.client.virt.aexpect import ExpectProcessTerminatedError
+
 
 def run_cgroup(test, params, env):
     """
@@ -976,6 +978,109 @@ def run_cgroup(test, params, env):
             return ("Memory move succeeded")
 
 
+    class TestMemoryLimit:
+        """ Tests the memory.limit_in_bytes by triyng to break the limit """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            self.vm = vms[0]      # Virt machines
+            self.modules = modules          # cgroup module handler
+            self.cgroup = Cgroup('memory', '')   # cgroup blkio handler
+
+
+        def cleanup(self):
+            """ Cleanup """
+            err = ""
+            try:
+                del(self.cgroup)
+            except Exception, failure_detail:
+                err += "\nCan't remove Cgroup: %s" % failure_detail
+
+            if err:
+                logging.error("Some cleanup operations failed: %s", err)
+                raise error.TestError("Some cleanup operations failed: %s" %
+                                       err)
+
+
+        def init(self):
+            """
+            Initialization: prepares the cgroup and starts new VM inside it.
+            """
+            # Use half of the VM's memory (in KB)
+            mem = int(int(params.get('mem', 1024)) * 512)
+            self.cgroup.initialize(self.modules)
+            self.cgroup.mk_cgroup()
+            self.cgroup.set_property('memory.move_charge_at_immigrate', '3',
+                                     self.cgroup.cgroups[0])
+            self.cgroup.set_property_h('memory.limit_in_bytes', "%sK" % mem,
+                                     self.cgroup.cgroups[0])
+
+            logging.info("Expected VM reload")
+            try:
+                self.vm.create()
+            except Exception, failure_detail:
+                raise error.TestFail("init: Failed to recreate the VM: %s" %
+                                      failure_detail)
+            assign_vm_into_cgroup(self.vm, self.cgroup, 0)
+            timeout = int(params.get("login_timeout", 360))
+            self.vm.wait_for_login(timeout=timeout).close()
+            status = open('/proc/%s/status' % self.vm.get_pid(), 'r').read()
+            rss = int(re.search(r'VmRSS:[\t ]*(\d+) kB', status).group(1))
+            if rss > mem:
+                raise error.TestFail("Init failed to move VM into cgroup, VmRss"
+                                     "=%s, expected=%s" % (rss, mem))
+
+        def run(self):
+            """
+            Run dd with bs > memory limit. Verify that qemu survives and
+            success in executing the command without breaking off the limit.
+            """
+            session = self.vm.wait_for_login(timeout=30)
+
+            # Convert into KB, use 0.6 * guest memory (== * 614.4)
+            mem = int(int(params.get('mem', 1024)) * 615)
+            session.sendline('dd if=/dev/zero of=/dev/null bs=%sK count=1' %mem)
+
+            # Check every 0.1s VM memory usage. Limit the maximum execution time
+            # to mem / 10 (== mem * 0.1 sleeps)
+            max_rss = 0
+            max_swap = 0
+            out = ""
+            for _ in range(int(mem / 1024)):
+                status = open('/proc/%s/status' % self.vm.get_pid(), 'r').read()
+                rss = int(re.search(r'VmRSS:[\t ]*(\d+) kB', status).group(1))
+                max_rss = max(rss, max_rss)
+                swap = int(re.search(r'VmSwap:[\t ]*(\d+) kB', status).group(1))
+                max_swap = max(swap + rss, max_swap)
+                try:
+                    out += session.read_up_to_prompt(timeout=0.1)
+                except ExpectTimeoutError:
+                    #0.1s passed, lets begin the next round
+                    pass
+                except ExpectProcessTerminatedError, failure_detail:
+                    raise error.TestFail("VM failed executing the command: %s" %
+                                          failure_detail)
+                else:
+                    break
+
+            if max_rss > mem:
+                raise error.TestFail("The limit was broken: max_rss=%s, limit="
+                                     "%s" % (max_rss, mem))
+            exit_nr = session.cmd_output("echo $?")[:-1]
+            if exit_nr != '0':
+                raise error.TestFail("dd command failed: %s, output: %s" %
+                                      (exit_nr, out))
+            if (max_rss + max_swap) < mem:
+                raise error.TestFail("VM didn't consume expected amount of "
+                                     "memory. Output of dd cmd: %s" % out)
+
+            return ("Limits were enforced successfully.")
+
+
+
     # Setup
     # TODO: Add all new tests here
     tests = {"blkio_bandwidth_weigth_read"  : TestBlkioBandwidthWeigthRead,
@@ -987,6 +1092,7 @@ def run_cgroup(test, params, env):
              "devices_access"               : TestDevicesAccess,
              "freezer"                      : TestFreezer,
              "memory_move"                  : TestMemoryMove,
+             "memory_limit"                 : TestMemoryLimit,
             }
     modules = CgroupModules()
     if (modules.init(['blkio', 'devices', 'freezer', 'memory']) <= 0):
