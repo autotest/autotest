@@ -877,6 +877,7 @@ variants:
         type = iofuzz
 
     - cgroup:
+        only Linux
         type = cgroup
         # cgroup_tests = "re1[:loops] re2[:loops] ..."
         cgroup_tests = ".*:1"
@@ -1007,7 +1008,7 @@ variants:
         only Linux
         type = ioquit
         background_cmd = "for i in 1 2 3 4; do (dd if=/dev/urandom of=/tmp/file bs=102400 count=10000000 &); done"
-        check_cmd = ps -a |grep dd
+        check_cmd = ps -a | grep dd
         login_timeout = 360
 
     - multi_disk: install setup image_copy unattended_install.cdrom
@@ -1087,6 +1088,27 @@ variants:
         cdrom_cd1 = orig.iso
         max_times = 20
 
+    - floppy_test: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = floppy
+        start_vm = no
+        floppy = images/test_floppy.img
+
+    - usb_test: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = usb
+        kill_vm = yes
+        format_timeout = 400
+        images += " stg"
+        image_name_stg = "usbdevice"
+        image_format_stg = "qcow2"
+        image_boot_stg = no
+        drive_format_stg = "usb2"
+        drive_index_stg = 1
+        create_image_stg = yes
+        image_size_stg = 10M
+        fdisk_string = "10 MB, 10485760 bytes"
+
     - nmi_watchdog: install setup image_copy unattended_install.cdrom
         type = nmi_watchdog
         get_nmi_cmd = grep NMI /proc/interrupts
@@ -1094,12 +1116,8 @@ variants:
         image_snapshot = yes
         only Linux
 
-    - floppy: install setup image_copy unattended_install.cdrom
-        type = floppy
-        start_vm = no
-        floppy = images/test_floppy.img
-
     - trans_hugepage: install setup image_copy unattended_install.cdrom
+        only Linux
         thp_test_config = ""
         kill_vm = yes
         login_timeout = 360
@@ -1122,21 +1140,6 @@ variants:
         iterations = 5
         onoff_iterations = 100
 
-    - usb: install setup image_copy unattended_install.cdrom
-        only Linux
-        type = usb
-        kill_vm = yes
-        format_timeout = 400
-        images += " stg"
-        image_name_stg = "usbdevice"
-        image_format_stg = "qcow2"
-        image_boot_stg = no
-        drive_format_stg = "usb2"
-        drive_index_stg = 1
-        create_image_stg = yes
-        image_size_stg = 10M
-        fdisk_string = "10 MB, 10485760 bytes"
-
     - hdparm:
         only Linux
         type = hdparm
@@ -1149,6 +1152,12 @@ variants:
             get_disk_cmd = \ls /dev/vda
             low_status_cmd = hdparm -a32 -r0 %s
             high_status_cmd = hdparm -a256 -r1 %s
+
+    - getfd: install setup image_copy unattended_install.cdrom
+        type = getfd
+        restart_vm = yes
+        kill_vm = yes
+        number_of_files = 900
 
     # system_powerdown, system_reset and shutdown *must* be the last ones
     # defined (in this order), since the effect of such tests can leave
@@ -1177,9 +1186,3 @@ variants:
         shutdown_method = shell
         kill_vm = yes
         kill_vm_gracefully = no
-
-    - getfd: install setup image_copy unattended_install.cdrom
-        type = getfd
-        restart_vm = yes
-        kill_vm = yes
-        number_of_files = 900
