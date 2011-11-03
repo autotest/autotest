@@ -513,7 +513,7 @@ class UnattendedInstallConfig(object):
             if self.unattended_server_port is None:
                 self.unattended_server_port = virt_utils.find_free_port(
                     8000,
-                    8100,
+                    8099,
                     self.url_auto_content_ip)
 
             if _unattended_server_thread is None:
@@ -660,8 +660,8 @@ class UnattendedInstallConfig(object):
             utils.run(m_cmd)
 
         self.url_auto_content_port = virt_utils.find_free_port(
-            8000,
             8100,
+            8199,
             self.url_auto_content_ip)
 
         if _url_auto_content_server_thread is None:
