@@ -67,7 +67,7 @@ variants:
                  image_name_stg27 = storage27
                  list_volume_command = cd /dev && \ls vd*
                  re_str = "[vhs]d[a-z][^0-9]"
-        floppy:
+        floppy_test:
             format_floppy_cmd = mkfs -t ext3 /dev/fd0
             test_floppy_cmd = (dd if=/dev/urandom of=/mnt/test_floppy bs=1M count=1) && (rm -f /mnt/test_floppy)
             format_floppy_cmd = mkfs -t ext3 /dev/fd0
@@ -1116,7 +1116,7 @@ variants:
                 pre_cmd = del diskpart.script && (echo select disk 1 >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
             max_disk:
                 pre_cmd = del diskpart.script && (for /L %i in (1 1 23) do echo select disk %i >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
-        floppy:
+        floppy_test:
             format_floppy_cmd = echo n|format A: /Q /V:test_floppy
             source_file = C:\Windows\System32\cmd.exe
             dest_file = A:\cmd.exe
