@@ -596,8 +596,8 @@ def run_ksm_overcommit(test, params, env):
     logging.debug(virt_test_utils.get_memory_info(lvms))
 
     # Copy ksm_overcommit_guest.py into guests
-    pwd = os.path.join(os.environ['AUTODIR'],'tests/kvm')
-    vksmd_src = os.path.join(pwd, "scripts/ksm_overcommit_guest.py")
+    virt_dir = os.path.join(os.environ['AUTODIR'], 'virt')
+    vksmd_src = os.path.join(virt_dir, "scripts", "ksm_overcommit_guest.py")
     dst_dir = "/tmp"
     for vm in lvms:
         vm.copy_files_to(vksmd_src, dst_dir)

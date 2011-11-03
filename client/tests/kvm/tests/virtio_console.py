@@ -2135,8 +2135,8 @@ def run_virtio_console(test, params, env):
     vm, consoles = _vm_create(no_consoles, no_serialports)
 
     # Copy virtio_console_guest.py into guests
-    pwd = os.path.join(os.environ['AUTODIR'], 'tests/kvm')
-    vksmd_src = os.path.join(pwd, "scripts/virtio_console_guest.py")
+    virt_dir = os.path.join(os.environ['AUTODIR'], 'virt')
+    vksmd_src = os.path.join(virt_dir, "scripts", "virtio_console_guest.py")
     dst_dir = "/tmp"
 
     vm[0].copy_files_to(vksmd_src, dst_dir)

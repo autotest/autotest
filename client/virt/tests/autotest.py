@@ -17,7 +17,7 @@ def run_autotest(test, params, env):
 
     # Collect test parameters
     timeout = int(params.get("test_timeout", 300))
-    control_path = os.path.join(test.bindir, "autotest_control",
+    control_path = os.path.join(test.virtdir, "autotest_control",
                                 params.get("test_control_file"))
     outputdir = test.outputdir
 
