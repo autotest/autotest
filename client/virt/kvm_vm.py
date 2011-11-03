@@ -49,6 +49,8 @@ class VM(virt_vm.BaseVM):
         self.name = name
         self.params = params
         self.root_dir = root_dir
+        # We need this to get to the blkdebug files
+        self.virt_dir = os.path.abspath(os.path.join(root_dir, "..", "..", "virt"))
         self.address_cache = address_cache
 
 
@@ -451,7 +453,8 @@ class VM(virt_vm.BaseVM):
                                   image_params.get("drive_serial"),
                                   image_params.get("image_snapshot") == "yes",
                                   image_params.get("image_boot") == "yes",
-                    virt_vm.get_image_blkdebug_filename(image_params, root_dir))
+                    virt_vm.get_image_blkdebug_filename(image_params,
+                                                        self.virt_dir))
 
         redirs = []
         for redir_name in params.objects("redirs"):

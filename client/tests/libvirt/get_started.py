@@ -1,20 +1,20 @@
 #!/usr/bin/python
 """
-Program to help setup kvm test environment
+Program to help setup libvirt test environment
 
-@copyright: Red Hat 2010
+@copyright: Red Hat 2011
 """
 import os, sys
 import common
 from autotest_lib.client.virt import virt_utils
 
-test_name = "kvm"
+test_name = "libvirt"
 test_dir = os.path.dirname(sys.modules[__name__].__file__)
 test_dir = os.path.abspath(test_dir)
-base_dir = "/tmp/kvm_autotest_root"
-default_userspace_paths = ["/usr/bin/qemu-kvm", "/usr/bin/qemu-img"]
-check_modules = ["kvm", "kvm-%s" % virt_utils.get_cpu_vendor(verbose=False)]
-online_docs_url = "https://github.com/autotest/autotest/wiki/KVMAutotest-GetStartedClient"
+base_dir = "/tmp/libvirt_autotest_root"
+default_userspace_paths = ["/usr/bin/virt-install"]
+check_modules = None
+online_docs_url = None
 
 if __name__ == "__main__":
     virt_utils.virt_test_assistant(test_name, test_dir, base_dir,
