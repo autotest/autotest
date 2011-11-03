@@ -13,7 +13,7 @@ def run_clock_getres(test, params, env):
     @param env: Dictionary with the test environment.
     """
     source_name = "test_clock_getres/test_clock_getres.c"
-    source_name = os.path.join(test.bindir, "deps", source_name)
+    source_name = os.path.join(test.virtdir, "deps", source_name)
     dest_name = "/tmp/test_clock_getres.c"
     bin_name = "/tmp/test_clock_getres"
 
