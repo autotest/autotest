@@ -91,7 +91,7 @@ def run_cpu_hotplug(test, params, env):
 
     # Now that all CPUs were onlined, let's execute the
     # autotest CPU Hotplug test
-    control_path = os.path.join(test.bindir, "autotest_control",
+    control_path = os.path.join(test.virtdir, "autotest_control",
                                 "cpu_hotplug.control")
 
     timeout = int(params.get("cpu_hotplug_timeout"), 300)
