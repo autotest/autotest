@@ -40,6 +40,20 @@ def run_cgroup(test, params, env):
             raise error.TestFail("WM [%s] had to be recreated" % err[:-2])
 
 
+    def assign_vm_into_cgroup(vm, cgroup, pwd=None):
+        """
+        Assigns all threads of VM into cgroup
+        @param vm: desired VM
+        @param cgroup: cgroup handler
+        @param pwd: desired cgroup's pwd, cgroup index or None for root cgroup
+        """
+        if isinstance(pwd, int):
+            pwd = cgroup.cgroups[pwd]
+        cgroup.set_cgroup(vm.get_shell_pid(), pwd)
+        for pid in utils.get_children_pids(vm.get_shell_pid()):
+            cgroup.set_cgroup(int(pid), pwd)
+
+
     def distance(actual, reference):
         """
         Absolute value of relative distance of two numbers
@@ -118,10 +132,12 @@ def run_cgroup(test, params, env):
             utils.system("dd if=/dev/zero of=%s bs=1M count=8 &>/dev/null"
                          % (host_file.name))
             ret_file = host_file
-            logging.debug("add_file_drive: new file %s as drive", host_file.name)
+            logging.debug("add_file_drive: new file %s as drive",
+                          host_file.name)
         else:
             ret_file = None
-            logging.debug("add_file_drive: using file %s as drive", host_file.name)
+            logging.debug("add_file_drive: using file %s as drive",
+                          host_file.name)
 
         out = vm.monitor.cmd("pci_add auto storage file=%s,if=%s,snapshot=off,"
                              "cache=off" % (host_file.name, driver))
@@ -277,10 +293,7 @@ def run_cgroup(test, params, env):
             blkio.initialize(self.modules)
             for i in range(2):
                 pwd.append(blkio.mk_cgroup())
-                blkio.set_cgroup(self.vms[i].get_shell_pid(), pwd[i])
-                # Move all existing threads into cgroup
-                for tmp in utils.get_children_pids(self.vms[i].get_shell_pid()):
-                    blkio.set_cgroup(int(tmp), pwd[i])
+                assign_vm_into_cgroup(self.vms[i], blkio, pwd[i])
             self.blkio.set_property("blkio.weight", 100, pwd[0])
             self.blkio.set_property("blkio.weight", 1000, pwd[1])
 
@@ -475,9 +488,7 @@ def run_cgroup(test, params, env):
             for i in range(len(self.cgroups)):
                 logging.info("Limiting speed to: %s", (self.speeds[i]))
                 # Assign all threads of vm
-                self.cgroup.set_cgroup(self.vm.get_shell_pid(), self.cgroups[i])
-                for pid in utils.get_children_pids(self.vm.get_shell_pid()):
-                    self.cgroup.set_cgroup(int(pid), self.cgroups[i])
+                assign_vm_into_cgroup(self.vm, self.cgroup, self.cgroups[i])
 
                 # Standard test-time is 60s. If the slice time is less than 30s,
                 # test-time is prolonged to 30s per slice.
@@ -668,10 +679,7 @@ def run_cgroup(test, params, env):
 
             self.cgroup.initialize(self.modules)
             self.cgroup.mk_cgroup()
-            self.cgroup.set_cgroup(self.vm.get_shell_pid(),
-                                   self.cgroup.cgroups[0])
-            for pid in utils.get_children_pids(self.vm.get_shell_pid()):
-                self.cgroup.set_cgroup(int(pid), self.cgroup.cgroups[0])
+            assign_vm_into_cgroup(self.vm, self.cgroup, 0)
 
             # Test dictionary
             # Beware of persistence of some setting to another round!!!
@@ -765,6 +773,127 @@ def run_cgroup(test, params, env):
 
             return ("All restrictions enforced successfully.")
 
+
+    class TestFreezer:
+        """
+        Tests the freezer.state cgroup functionality. (it freezes the guest
+        and unfreeze it again)
+        """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            self.vm = vms[0]      # Virt machines
+            self.modules = modules          # cgroup module handler
+            self.cgroup = Cgroup('freezer', '')   # cgroup blkio handler
+            self.files = None   # Temporary files (files of virt disks)
+            self.devices = None # Temporary virt devices
+
+
+        def cleanup(self):
+            """ Cleanup """
+            err = ""
+            try:
+                self.cgroup.set_property('freezer.state', 'THAWED',
+                                         self.cgroup.cgroups[0])
+            except Exception, failure_detail:
+                err += "\nCan't unfreeze vm: %s" % failure_detail
+
+            try:
+                _ = self.vm.wait_for_login(timeout=30)
+                _.cmd('rm -f /tmp/freeze-lock')
+                _.close()
+            except Exception, failure_detail:
+                err += "\nCan't stop the stresses."
+
+            try:
+                del(self.cgroup)
+            except Exception, failure_detail:
+                err += "\nCan't remove Cgroup: %s" % failure_detail
+
+            if err:
+                logging.error("Some cleanup operations failed: %s", err)
+                raise error.TestFail("Some cleanup operations failed: %s" %
+                                      err)
+
+
+        def init(self):
+            """
+            Initialization
+             * prepares one cgroup and assign vm to it
+            """
+            self.cgroup.initialize(self.modules)
+            self.cgroup.mk_cgroup()
+            assign_vm_into_cgroup(self.vm, self.cgroup, 0)
+
+
+        def run(self):
+            """
+            Actual test:
+             * Freezes the guest and thaws it again couple of times
+             * verifies that guest is frozen and runs when expected
+            """
+            def get_stat(pid):
+                """
+                Gather statistics of pid+1st level subprocesses cpu usage
+                @param pid: PID of the desired process
+                @return: sum of all cpu-related values of 1st level subprocesses
+                """
+                out = None
+                for i in range(10):
+                    try:
+                        out = utils.system_output("cat /proc/%s/task/*/stat" %
+                                                   pid)
+                    except error.CmdError:
+                        out = None
+                    else:
+                        break
+                out = out.split('\n')
+                ret = 0
+                for i in out:
+                    ret += sum([int(_) for _ in i.split(' ')[13:17]])
+                return ret
+
+
+            session = self.vm.wait_for_serial_login(timeout=30)
+            session.cmd('touch /tmp/freeze-lock')
+            session.sendline('while [ -e /tmp/freeze-lock ]; do :; done')
+            cgroup = self.cgroup
+            pid = self.vm.get_pid()
+
+            for tsttime in [0.5, 3, 20]:
+                # Let it work for short, mid and long period of time
+                logging.info("FREEZING (%ss)", tsttime)
+                # Death line for freezing is 1s
+                cgroup.set_property('freezer.state', 'FROZEN',
+                                    cgroup.cgroups[0], check=False)
+                time.sleep(1)
+                _ = cgroup.get_property('freezer.state', cgroup.cgroups[0])
+                if 'FROZEN' not in _:
+                    raise error.TestFail("Couldn't freeze the VM: state %s" % _)
+                stat_ = get_stat(pid)
+                time.sleep(tsttime)
+                stat = get_stat(pid)
+                if stat != stat_:
+                    raise error.TestFail('Process was running in FROZEN state; '
+                                         'stat=%s, stat_=%s, diff=%s' %
+                                          (stat, stat_, stat-stat_))
+                logging.info("THAWING (%ss)", tsttime)
+                self.cgroup.set_property('freezer.state', 'THAWED',
+                                         self.cgroup.cgroups[0])
+                stat_ = get_stat(pid)
+                time.sleep(tsttime)
+                stat = get_stat(pid)
+                if (stat - stat_) < (90*tsttime):
+                    raise error.TestFail('Process was not active in FROZEN'
+                                         'state; stat=%s, stat_=%s, diff=%s' %
+                                          (stat, stat_, stat-stat_))
+
+            return ("Freezer works fine")
+
+
     # Setup
     # TODO: Add all new tests here
     tests = {"blkio_bandwidth_weigth_read"  : TestBlkioBandwidthWeigthRead,
@@ -774,9 +903,10 @@ def run_cgroup(test, params, env):
              "blkio_throttle_multiple_read" : TestBlkioThrottleMultipleRead,
              "blkio_throttle_multiple_write" : TestBlkioThrottleMultipleWrite,
              "devices_access"               : TestDevicesAccess,
+             "freezer"                      : TestFreezer,
             }
     modules = CgroupModules()
-    if (modules.init(['blkio', 'devices']) <= 0):
+    if (modules.init(['blkio', 'devices', 'freezer']) <= 0):
         raise error.TestFail('Can\'t mount any cgroup modules')
     # Add all vms
     vms = []
