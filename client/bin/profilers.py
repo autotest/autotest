@@ -5,7 +5,12 @@ from autotest_lib.client.common_lib import utils, error, profiler_manager
 
 
 class profilers(profiler_manager.profiler_manager):
+    def __init__(self, job):
+        super(profilers, self).__init__(job)
+        self.add_log = {}
+
     def load_profiler(self, profiler, args, dargs):
+        self.add_log[profiler] = (args, dargs)
         prof_dir = os.path.join(self.job.autodir, "profilers", profiler)
 
         try:

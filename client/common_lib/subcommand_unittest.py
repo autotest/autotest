@@ -5,7 +5,7 @@ import unittest
 
 import common
 from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.server import subcommand
+from autotest_lib.client.common_lib import subcommand
 
 
 def _create_subcommand(func, args):

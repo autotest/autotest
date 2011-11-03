@@ -12,8 +12,8 @@ You should import the "hosts" package instead of importing each type of host.
 
 import sys, re, traceback, logging
 from autotest_lib.client.common_lib import error, pxssh
-from autotest_lib.server import utils
-from autotest_lib.server.hosts import abstract_ssh
+from autotest_lib.client.common_lib import utils
+from autotest_lib.client.common_lib.hosts import abstract_ssh
 
 
 class SSHHost(abstract_ssh.AbstractSSHHost):

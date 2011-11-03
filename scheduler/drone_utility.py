@@ -4,7 +4,7 @@ import pickle, subprocess, os, shutil, socket, sys, time, signal, getpass
 import datetime, traceback, tempfile, itertools, logging
 import common
 from autotest_lib.client.common_lib import utils, global_config, error
-from autotest_lib.server import hosts, subcommand
+from autotest_lib.client.common_lib import hosts, subcommand
 from autotest_lib.scheduler import email_manager, scheduler_config
 
 # An environment variable we add to the environment to enable us to

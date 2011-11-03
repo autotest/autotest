@@ -7,8 +7,9 @@ This module defines a class for handling building from git repos
 
 import os, warnings, logging
 from autotest_lib.client.common_lib import error, revision_control
+from autotest_lib.client.common_lib import installable_object
 from autotest_lib.client.bin import os_dep
-from autotest_lib.server import utils, installable_object
+from autotest_lib.server import utils
 
 
 class InstallableGitRepo(installable_object.InstallableObject):

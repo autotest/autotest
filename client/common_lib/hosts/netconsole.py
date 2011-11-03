@@ -1,7 +1,7 @@
 import os, re, sys, subprocess, socket
 
 from autotest_lib.client.common_lib import utils, error
-from autotest_lib.server.hosts import remote
+from autotest_lib.client.common_lib.hosts import remote
 
 
 class NetconsoleHost(remote.RemoteHost):

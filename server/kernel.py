@@ -7,7 +7,7 @@ This module defines the Kernel class
 """
 
 
-from autotest_lib.server import installable_object
+from autotest_lib.client.common_lib import installable_object
 
 
 class Kernel(installable_object.InstallableObject):

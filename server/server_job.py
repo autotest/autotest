@@ -11,9 +11,9 @@ import traceback, shutil, warnings, fcntl, pickle, logging, itertools, errno
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import base_job
 from autotest_lib.client.common_lib import error, log, utils, packages
-from autotest_lib.client.common_lib import logging_manager
-from autotest_lib.server import test, subcommand, profilers
-from autotest_lib.server.hosts import abstract_ssh
+from autotest_lib.client.common_lib import logging_manager, subcommand
+from autotest_lib.server import test, profilers
+from autotest_lib.client.common_lib.hosts import abstract_ssh
 from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
 
 
@@ -748,20 +748,6 @@ class base_server_job(base_job.base_job):
         return subdirectory
 
 
-    def get_record_context(self):
-        """Returns an object representing the current job.record context.
-
-        The object returned is an opaque object with a 0-arg restore method
-        which can be called to restore the job.record context (i.e. indentation)
-        to the current level. The intention is that it should be used when
-        something external which generate job.record calls (e.g. an autotest
-        client) can fail catastrophically and the server job record state
-        needs to be reset to its original "known good" state.
-
-        @return: A context object with a 0-arg restore() method."""
-        return self._indenter.get_context()
-
-
     def record_summary(self, status_code, test_name, reason='', attributes=None,
                        distinguishing_attributes=(), child_test_ids=None):
         """Record a summary test result.
@@ -837,67 +823,6 @@ class base_server_job(base_job.base_job):
             return None
 
 
-    def _update_uncollected_logs_list(self, update_func):
-        """Updates the uncollected logs list in a multi-process safe manner.
-
-        @param update_func - a function that updates the list of uncollected
-            logs. Should take one parameter, the list to be updated.
-        """
-        if self._uncollected_log_file:
-            log_file = open(self._uncollected_log_file, "r+")
-            fcntl.flock(log_file, fcntl.LOCK_EX)
-        try:
-            uncollected_logs = pickle.load(log_file)
-            update_func(uncollected_logs)
-            log_file.seek(0)
-            log_file.truncate()
-            pickle.dump(uncollected_logs, log_file)
-            log_file.flush()
-        finally:
-            fcntl.flock(log_file, fcntl.LOCK_UN)
-            log_file.close()
-
-
-    def add_client_log(self, hostname, remote_path, local_path):
-        """Adds a new set of client logs to the list of uncollected logs,
-        to allow for future log recovery.
-
-        @param host - the hostname of the machine holding the logs
-        @param remote_path - the directory on the remote machine holding logs
-        @param local_path - the local directory to copy the logs into
-        """
-        def update_func(logs_list):
-            logs_list.append((hostname, remote_path, local_path))
-        self._update_uncollected_logs_list(update_func)
-
-
-    def remove_client_log(self, hostname, remote_path, local_path):
-        """Removes a set of client logs from the list of uncollected logs,
-        to allow for future log recovery.
-
-        @param host - the hostname of the machine holding the logs
-        @param remote_path - the directory on the remote machine holding logs
-        @param local_path - the local directory to copy the logs into
-        """
-        def update_func(logs_list):
-            logs_list.remove((hostname, remote_path, local_path))
-        self._update_uncollected_logs_list(update_func)
-
-
-    def get_client_logs(self):
-        """Retrieves the list of uncollected logs, if it exists.
-
-        @returns A list of (host, remote_path, local_path) tuples. Returns
-                 an empty list if no uncollected logs file exists.
-        """
-        log_exists = (self._uncollected_log_file and
-                      os.path.exists(self._uncollected_log_file))
-        if log_exists:
-            return pickle.load(open(self._uncollected_log_file))
-        else:
-            return []
-
-
     def _fill_server_control_namespace(self, namespace, protect=True):
         """
         Prepare a namespace to be used when executing server control files.
@@ -964,11 +889,12 @@ class base_server_job(base_job.base_job):
         # the front of the control script.
         namespace.update(os=os, sys=sys, logging=logging)
         _import_names('autotest_lib.server',
-                ('hosts', 'autotest', 'kvm', 'git', 'standalone_profiler',
+                ('autotest', 'kvm', 'git', 'standalone_profiler',
                  'source_kernel', 'rpm_kernel', 'deb_kernel', 'git_kernel'))
-        _import_names('autotest_lib.server.subcommand',
+        _import_names('autotest_lib.client.common_lib', ('hosts',))
+        _import_names('autotest_lib.client.common_lib.subcommand',
                       ('parallel', 'parallel_simple', 'subcommand'))
-        _import_names('autotest_lib.server.utils',
+        _import_names('autotest_lib.client.common_lib.utils',
                       ('run', 'get_tmp_dir', 'sh_escape', 'parse_machine'))
         _import_names('autotest_lib.client.common_lib.error')
         _import_names('autotest_lib.client.common_lib.barrier', ('barrier',))
