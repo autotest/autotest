@@ -1,4 +1,4 @@
-import logging, os, signal, sys, warnings
+import logging, os, signal, sys, warnings, re
 
 # primary public APIs
 
@@ -94,13 +94,16 @@ class LoggingFile(object):
     File-like object that will receive messages pass them to the logging
     infrastructure in an appropriate way.
     """
-    def __init__(self, prefix='', level=logging.DEBUG):
+    def __init__(self, prefix='', level=logging.DEBUG,
+                 logger=logging.getLogger()):
         """
         @param prefix - The prefix for each line logged by this object.
         """
+
         self._prefix = prefix
         self._level = level
         self._buffer = []
+        self._logger = logger
 
 
     @do_not_report_as_logging_caller
@@ -126,7 +129,7 @@ class LoggingFile(object):
         """
         Passes lines of output to the logging module.
         """
-        logging.log(self._level, self._prefix + line)
+        self._logger.log(self._level, self._prefix + line)
 
 
     @do_not_report_as_logging_caller
@@ -140,6 +143,27 @@ class LoggingFile(object):
     def flush(self):
         self._flush_buffer()
 
+class SortingLoggingFile(LoggingFile):
+    """
+    File-like object that will recieve messages and pass them to the logging
+    infrastructure. It decides where to pass each line by applying a regex
+    to it and seeing which level it matched.
+    """
+    def __init__(self, prefix='', level_list=[('ERROR', logging.ERROR),
+        ('WARN', logging.WARN), ('INFO', logging.INFO),
+        ('DEBUG', logging.DEBUG)], logger=logging.getLogger()):
+        super(SortingLoggingFile, self).__init__(prefix=prefix, logger=logger)
+        self._level_list = [(re.compile(x),y) for x,y in level_list]
+
+    @do_not_report_as_logging_caller
+    def _log_line(self, line):
+        for pattern, level in self._level_list:
+            if pattern.search(line):
+                self._logger.log(level, self._prefix + line)
+                break
+        else:
+            self._logger.log(logging.ERROR, 'UNMATCHED_LOG_LEVEL: ' +
+                self._prefix + line)
 
 class _StreamManager(object):
     """
