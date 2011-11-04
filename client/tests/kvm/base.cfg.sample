@@ -86,6 +86,12 @@ screendump_quality = 30
 screendump_temp_dir = /dev/shm
 screendump_verbose = no
 
+# Encode video from vm screenshots (requires ffmpeg build that can encode webm)
+encode_video_files = yes
+encode_video_framerate = 1
+keep_video_files = yes
+keep_video_files_on_error = yes
+
 # Default remote shell port (SSH under linux)
 shell_port = 22
 

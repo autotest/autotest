@@ -16,6 +16,16 @@ _screendump_thread = None
 _screendump_thread_termination_event = None
 
 
+def ffmpeg_path():
+    try:
+        return virt_utils.find_command("ffmpeg")
+    except ValueError:
+        return None
+
+
+_ffmpeg = ffmpeg_path()
+
+
 def preprocess_image(test, params):
     """
     Preprocess a single QEMU image according to the instructions in params.
@@ -155,6 +165,25 @@ def postprocess_vm(test, params, env, name):
             vm.screendump(scrdump_filename, debug=False)
     except kvm_monitor.MonitorError, e:
         logging.warn(e)
+
+    # Encode a webm video from the screenshots produced?
+    if params.get("encode_video_files", "yes") == "yes":
+        video_framerate = int(params.get("encode_video_framerate", 1))
+        if _ffmpeg is not None:
+            logging.debug("Param 'encode_video_files' specified, trying to "
+                          "encode a video from the screenshots produced by "
+                          "vm %s", vm.name)
+            os.chdir(test.debugdir)
+            try:
+                utils.run("%s -r %d -b 1800 -i screendumps_%s/%s %s.webm" %
+                          (_ffmpeg, video_framerate, vm.name, "%04d.jpg",
+                           vm.name))
+            except error.CmdError, e:
+                logging.info("Failed to encode video for vm %s: %s",
+                             vm.name, e)
+        else:
+            logging.info("Param 'encode_video' specified, but ffmpeg not "
+                         "present, not encoding video for vm %s", vm.name)
 
     if params.get("kill_vm") == "yes":
         kill_vm_timeout = float(params.get("kill_vm_timeout", 0))
@@ -364,19 +393,26 @@ def postprocess(test, params, env):
             pass
 
     # Should we keep the PPM files?
-    if params.get("keep_ppm_files") != "yes":
+    if params.get("keep_ppm_files", "no") != "yes":
         logging.debug("Param 'keep_ppm_files' not specified, removing all PPM "
                       "files from debug dir")
         for f in glob.glob(os.path.join(test.debugdir, '*.ppm')):
             os.unlink(f)
 
     # Should we keep the screendump dirs?
-    if params.get("keep_screendumps") != "yes":
+    if params.get("keep_screendumps", "no") != "yes":
         logging.debug("Param 'keep_screendumps' not specified, removing "
                       "screendump dirs")
         for d in glob.glob(os.path.join(test.debugdir, "screendumps_*")):
             if os.path.isdir(d) and not os.path.islink(d):
                 shutil.rmtree(d, ignore_errors=True)
+
+    # Should we keep the video files?
+    if params.get("keep_video_files", "yes") != "yes":
+        logging.debug("Param 'keep_videos' not specified, removing all webm "
+                      "files from debug dir")
+        for f in glob.glob(os.path.join(test.debugdir, '*.webm')):
+            os.unlink(f)
 
     # Kill all unresponsive VMs
     if params.get("kill_unresponsive_vms") == "yes":
@@ -457,9 +493,12 @@ def _take_screendumps(test, params, env):
     quality = int(params.get("screendump_quality", 30))
 
     cache = {}
+    counter = {}
 
     while True:
         for vm in env.get_all_vms():
+            if vm not in counter.keys():
+                counter[vm] = 0
             if not vm.is_alive():
                 continue
             try:
@@ -482,9 +521,9 @@ def _take_screendumps(test, params, env):
                 os.makedirs(screendump_dir)
             except OSError:
                 pass
-            screendump_filename = os.path.join(screendump_dir,
-                    "%s_%s.jpg" % (vm.name,
-                                   time.strftime("%Y-%m-%d_%H-%M-%S")))
+            counter[vm] += 1
+            screendump_filename = os.path.join(screendump_dir, "%04d.jpg" %
+                                               counter[vm])
             hash = utils.hash_file(temp_filename)
             if hash in cache:
                 try:
