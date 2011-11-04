@@ -15,7 +15,8 @@ def run_watchdog(test, params, env):
     timeout = int(params.get("login_timeout", 360))
     session = vm.wait_for_login(timeout=timeout)
     relogin_timeout = int(params.get("relogin_timeout", 240))
-    watchdog_enable_cmd = "chkconfig watchdog on && service watchdog start"
+    watchdog_enable_cmd = "chkconfig watchdog on"
+    watchdog_start_cmd = "service watchdog start"
 
     def watchdog_action_reset():
         """
@@ -35,8 +36,10 @@ def run_watchdog(test, params, env):
         logging.info("Waiting for kernel watchdog_action to take place")
         session = vm.wait_for_login(timeout=relogin_timeout)
 
-    logging.info("Enabling watchdog service...")
-    session.cmd(watchdog_enable_cmd, timeout=320)
+    error.context("Enabling watchdog service")
+    session.cmd(watchdog_enable_cmd)
+    error.context("Starting watchdog service")
+    session.cmd(watchdog_start_cmd, timeout=320)
     watchdog_action_reset()
 
     # Close stablished session
