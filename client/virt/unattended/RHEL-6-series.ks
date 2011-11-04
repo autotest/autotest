@@ -30,6 +30,7 @@ watchdog
 
 %post --interpreter /usr/bin/python
 import socket, os
+os.system('grubby --remove-args="rhgb quiet" --update-kernel=$(grubby --default-kernel)')
 os.system('dhclient')
 os.system('chkconfig sshd on')
 os.system('iptables -F')
