@@ -74,6 +74,9 @@ variants:
     - raw:
         no ioquit
         image_format = raw
+    - qed:
+        no ioquit
+        image_format = qed
 
 variants:
     - @no_pci_assignable:
