@@ -93,7 +93,7 @@ variants:
                 remove_image_dd = yes
                 create_image_cmd = "dd if=/dev/zero of=%s bs=1G count=1"
                 # Test the convertion from 'dd_image_name' to specified format
-                supported_image_formats = qcow2 raw
+                supported_image_formats = qcow2 raw qed
             - create:
                 subcommand = create
                 images += " large"
@@ -110,6 +110,9 @@ variants:
                         encrypted = no
                     - to_raw:
                         dest_image_format = raw
+                    - to_qed:
+                        dest_image_format = qed
+
             - snapshot:
                 subcommand = snapshot
             - info:
