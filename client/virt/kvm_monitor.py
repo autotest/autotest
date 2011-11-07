@@ -304,8 +304,7 @@ class HumanMonitor(Monitor):
         @return: return True if VM status is same as we expected
         """
         o = self.cmd("info status", debug=False)
-        if status=='paused' or status=='running':
-            return (status in o)
+        return (status in o)
 
 
     # Command wrappers
@@ -734,11 +733,14 @@ class QMPMonitor(Monitor):
         @param status: Optional VM status, 'running' or 'paused'
         @return: return True if VM status is same as we expected
         """
-        o = str(self.cmd(cmd="query-status", debug=False))
-        if (status=='paused' and "u'running': False" in o):
+        o = dict(self.cmd(cmd="query-status", debug=False))
+        if status == 'paused':
+            return (o['running'] == False)
+        if status == 'running':
+            return (o['running'] == True)
+        if o['status'] == status:
             return True
-        if (status=='running' and "u'running': True" in o):
-            return True
+        return False
 
 
     def get_events(self):
