@@ -980,6 +980,7 @@ def run_unattended_install(test, params, env):
                 break
             else:
                 raise e
+        vm.verify_userspace_crash()
         vm.verify_kernel_crash()
         test.verify_background_errors()
         finish_signal = vm.serial_console.get_output()

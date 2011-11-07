@@ -11,6 +11,15 @@ import virt_utils, virt_vm, virt_test_setup, kvm_monitor, aexpect
 import virt_storage
 
 
+class QemuSegFaultError(virt_vm.VMError):
+    def __init__(self, crash_message):
+        virt_vm.VMError.__init__(self, crash_message)
+        self.crash_message = crash_message
+
+    def __str__(self):
+        return ("Qemu crashed: %s" % self.crash_message)
+
+
 class VM(virt_vm.BaseVM):
     """
     This class handles all basic VM operations.
@@ -123,6 +132,15 @@ class VM(virt_vm.BaseVM):
         if not self.monitor.verify_status(status):
             raise virt_vm.VMStatusError('Unexpected VM status: "%s"' %
                                         self.monitor.get_status())
+
+
+    def verify_userspace_crash(self):
+        """
+        Verify if the userspace component (qemu) crashed.
+        """
+        for line in self.process.get_output().splitlines():
+            if "(core dumped)" in line:
+                raise QemuSegFaultError(line)
 
 
     def clone(self, name=None, params=None, root_dir=None, address_cache=None,

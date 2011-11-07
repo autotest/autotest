@@ -570,6 +570,13 @@ class VM(virt_vm.BaseVM):
         return virsh_dumpxml(self.name, self.connect_uri)
 
 
+    def verify_userspace_crash(self):
+        """
+        Doesn't do anything yet.
+        """
+        pass
+
+
     def clone(self, name=None, params=None, root_dir=None, address_cache=None,
               copy_state=False):
         """
