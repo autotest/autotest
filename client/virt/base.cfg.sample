@@ -309,3 +309,9 @@ image_clone_commnad = 'cp --reflink=auto %s %s'
 image_remove_commnad = 'rm -rf %s'
 
 indirect_image_blacklist = "/dev/hda.* /dev/sda.* /dev/sg0 /dev/md0"
+
+# Guest screen max inactive time until taking actions (log or throw errors)
+inactivity_treshold = 1800
+
+# Default action if inactivity threshold is reached
+inactivity_watcher = log

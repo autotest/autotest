@@ -38,6 +38,8 @@ variants:
         guest_port_unattended_install = 12323
         kernel = vmlinuz
         initrd = initrd.img
+        # Throw errors if guest screen is inactive
+        inactivity_watcher = error
         # Set migrate_background to yes to run migration in parallel
         # migrate_background = yes
 
