@@ -48,8 +48,10 @@ def run_vmstop(test, params, env):
 
             # check with monitor
             logging.info("Check the status through monitor")
-            if "paused" not in vm.monitor.info("status"):
-                raise error.TestFail("Guest did not pause after sending stop")
+            if not vm.monitor.verify_status("paused"):
+                status = str(vm.monitor.info("status"))
+                raise error.TestFail("Guest did not pause after sending stop,"
+                                     " guest status is %s" % status)
 
             # check through session
             logging.info("Check the session")
