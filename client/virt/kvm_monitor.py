@@ -43,6 +43,17 @@ class MonitorNotSupportedError(MonitorError):
     pass
 
 
+class MonitorStatusNotExpectedError(MonitorError):
+    def __init__(self, expected_status, actual_status):
+        MonitorError.__init__(self, expected_status, actual_status)
+        self.expected_status = expected_status
+        self.actual_status = actual_status
+
+    def __str__(self):
+        return ("Expected VM Status %s but actual status is %s" %
+                (self.expected_status, self.actual_status))
+
+
 class QMPCmdError(MonitorError):
     def __init__(self, cmd, qmp_args, data):
         MonitorError.__init__(self, cmd, qmp_args, data)
@@ -304,8 +315,9 @@ class HumanMonitor(Monitor):
         @return: return True if VM status is same as we expected
         """
         o = self.cmd("info status", debug=False)
-        if status=='paused' or status=='running':
-            return (status in o)
+        if status in o:
+            return True
+        raise MonitorStatusNotExpectedError(status, o)
 
 
     # Command wrappers
@@ -729,16 +741,18 @@ class QMPMonitor(Monitor):
 
     def verify_status(self, status):
         """
-        Verify VM status
+        Verify VM status.
 
-        @param status: Optional VM status, 'running' or 'paused'
-        @return: return True if VM status is same as we expected
+        @param status: Expected status
+        @return: True if VM status is same as we expected
+
+        @raise MonitorStatusNotExpectedError: If the VM status is not the same
+                as we expected
         """
-        o = str(self.cmd(cmd="query-status", debug=False))
-        if (status=='paused' and "u'running': False" in o):
+        o = dict(self.cmd(cmd="query-status", debug=False))
+        if o['status'] == status:
             return True
-        if (status=='running' and "u'running': True" in o):
-            return True
+        raise MonitorStatusNotExpectedError(status, o['status'])
 
 
     def get_events(self):
