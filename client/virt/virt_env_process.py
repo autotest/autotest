@@ -167,13 +167,14 @@ def postprocess_vm(test, params, env, name):
         logging.warn(e)
 
     # Encode a webm video from the screenshots produced?
-    if params.get("encode_video_files", "yes") == "yes":
+    os.chdir(test.debugdir)
+    if (params.get("encode_video_files", "yes") == "yes" and
+                glob.glob("screendumps_%s/*" % vm.name)):
         video_framerate = int(params.get("encode_video_framerate", 1))
         if _ffmpeg is not None:
             logging.debug("Param 'encode_video_files' specified, trying to "
                           "encode a video from the screenshots produced by "
                           "vm %s", vm.name)
-            os.chdir(test.debugdir)
             try:
                 utils.run("%s -r %d -b 1800 -i screendumps_%s/%s %s.webm" %
                           (_ffmpeg, video_framerate, vm.name, "%04d.jpg",
