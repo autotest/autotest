@@ -139,9 +139,7 @@ def run_enospc(test, params, env):
     i = 0
     pause_n = 0
     while i < iterations:
-        status = vm.monitor.cmd("info status")
-        logging.debug(status)
-        if "paused" in status:
+        if vm.monitor.verify_status("paused"):
             pause_n += 1
             logging.info("Checking all images in use by the VM")
             for image_name in vm.params.objects("images"):
@@ -156,6 +154,9 @@ def run_enospc(test, params, env):
             except error.CmdError, e:
                 logging.debug(e.result_obj.stdout)
             vm.monitor.cmd("cont")
+        elif not vm.monitor.verify_status("running"):
+            status = str(vm.monitor.info("status"))
+            raise error.TestError("Unexpected guest status: %s" % status)
         time.sleep(10)
         i += 1
 
@@ -165,5 +166,5 @@ def run_enospc(test, params, env):
         logging.info("Guest paused %s times from %s iterations",
                      pause_n, iterations)
 
-    logging.info("Final %s", vm.monitor.cmd("info status"))
+    logging.info("Final %s", str(vm.monitor.info("status")))
     enospc_config.cleanup()
