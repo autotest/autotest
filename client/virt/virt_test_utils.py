@@ -25,7 +25,7 @@ import time, os, logging, re, signal, imp
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.tools import scan_results
-import aexpect, virt_utils, virt_vm
+import aexpect, virt_utils, virt_vm, kvm_monitor
 
 
 def get_living_vm(env, vm_name):
@@ -277,9 +277,12 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
         raise error.TestFail("Migration ended with unknown status")
 
     if dest_host == 'localhost':
-        if "paused" in dest_vm.monitor.info("status"):
+        try:
+            dest_vm.monitor.verify_status("paused")
             logging.debug("Destination VM is paused, resuming it")
             dest_vm.monitor.cmd("cont")
+        except kvm_monitor.MonitorStatusNotExpectedError:
+            pass
 
     # Kill the source VM
     vm.destroy(gracefully=False)
