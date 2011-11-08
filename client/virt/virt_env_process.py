@@ -2,7 +2,7 @@ import os, time, commands, re, logging, glob, threading, shutil
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
 import aexpect, virt_utils, kvm_monitor, ppm_utils, virt_test_setup
-import virt_vm, kvm_vm, libvirt_vm
+import virt_vm, kvm_vm, libvirt_vm, virt_video_maker
 try:
     import PIL.Image
 except ImportError:
@@ -14,16 +14,6 @@ except ImportError:
 
 _screendump_thread = None
 _screendump_thread_termination_event = None
-
-
-def ffmpeg_path():
-    try:
-        return virt_utils.find_command("ffmpeg")
-    except ValueError:
-        return None
-
-
-_ffmpeg = ffmpeg_path()
 
 
 def preprocess_image(test, params):
@@ -166,24 +156,20 @@ def postprocess_vm(test, params, env, name):
     except kvm_monitor.MonitorError, e:
         logging.warn(e)
 
-    # Encode a webm video from the screenshots produced?
+    # Encode an HTML 5 compatible video from the screenshots produced?
     if params.get("encode_video_files", "yes") == "yes":
-        video_framerate = int(params.get("encode_video_framerate", 1))
-        if _ffmpeg is not None:
-            logging.debug("Param 'encode_video_files' specified, trying to "
-                          "encode a video from the screenshots produced by "
-                          "vm %s", vm.name)
-            os.chdir(test.debugdir)
-            try:
-                utils.run("%s -r %d -b 1800 -i screendumps_%s/%s %s.webm" %
-                          (_ffmpeg, video_framerate, vm.name, "%04d.jpg",
-                           vm.name))
-            except error.CmdError, e:
-                logging.info("Failed to encode video for vm %s: %s",
-                             vm.name, e)
-        else:
-            logging.info("Param 'encode_video' specified, but ffmpeg not "
-                         "present, not encoding video for vm %s", vm.name)
+        logging.debug("Param 'encode_video_files' specified, trying to "
+                      "encode a video from the screenshots produced by "
+                      "vm %s", vm.name)
+        try:
+            input_dir = os.path.join(test.debugdir,
+                                     "screendumps_%s" % vm.name)
+            output_file = os.path.join(test.debugdir,
+                                       "%s.ogg" % vm.name)
+            virt_video_maker.video_maker(input_dir, output_file)
+        except:
+            logging.error("Param 'encode_video_files' specified, but video "
+                          "creation failed for vm %s", vm.name)
 
     if params.get("kill_vm") == "yes":
         kill_vm_timeout = float(params.get("kill_vm_timeout", 0))
@@ -409,9 +395,10 @@ def postprocess(test, params, env):
 
     # Should we keep the video files?
     if params.get("keep_video_files", "yes") != "yes":
-        logging.debug("Param 'keep_videos' not specified, removing all webm "
-                      "files from debug dir")
-        for f in glob.glob(os.path.join(test.debugdir, '*.webm')):
+        logging.debug("Param 'keep_video_files' not specified, removing all .ogg "
+                      "and .webm files from debug dir")
+        for f in (glob.glob(os.path.join(test.debugdir, '*.ogg')) +
+                  glob.glob(os.path.join(test.debugdir, '*.webm'))):
             os.unlink(f)
 
     # Kill all unresponsive VMs
