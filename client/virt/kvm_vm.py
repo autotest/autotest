@@ -1483,22 +1483,25 @@ class VM(virt_vm.BaseVM):
                         if monitor_params.get("monitor_type") == "qmp":
                             if virt_utils.qemu_has_option("qmp",
                                                           self.qemu_binary):
-                                # Add a QMP monitor
-                                monitor = kvm_monitor.QMPMonitor(
-                                    monitor_name,
-                                    self.get_monitor_filename(monitor_name))
+                               # Add a QMP monitor
+                               monitor = kvm_monitor.QMPMonitor(
+                               name=monitor_name,
+                               filename=self.get_monitor_filename(monitor_name),
+                               vm=self)
                             else:
                                 logging.warn("qmp monitor is unsupported, "
                                              "using human monitor instead.")
                                 # Add a "human" monitor
                                 monitor = kvm_monitor.HumanMonitor(
-                                    monitor_name,
-                                    self.get_monitor_filename(monitor_name))
+                                name=monitor_name,
+                                filename=self.get_monitor_filename(monitor_name),
+                                vm=self)
                         else:
                             # Add a "human" monitor
                             monitor = kvm_monitor.HumanMonitor(
-                                monitor_name,
-                                self.get_monitor_filename(monitor_name))
+                            name=monitor_name,
+                            filename=self.get_monitor_filename(monitor_name),
+                            vm=self)
                         monitor.verify_responsive()
                         break
                     except kvm_monitor.MonitorError, e:

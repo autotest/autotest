@@ -83,6 +83,7 @@ class Monitor:
         try:
             self._socket.connect(filename)
         except socket.error:
+            self.vm.verify_userspace_crash()
             raise MonitorConnectError("Could not connect to monitor socket")
 
 
@@ -131,6 +132,7 @@ class Monitor:
         try:
             return bool(select.select([self._socket], [], [], timeout)[0])
         except socket.error, e:
+            self.vm.verify_userspace_crash()
             raise MonitorSocketError("Verifying data on monitor socket", e)
 
 
@@ -140,6 +142,7 @@ class Monitor:
             try:
                 data = self._socket.recv(1024)
             except socket.error, e:
+                self.vm.verify_userspace_crash()
                 raise MonitorSocketError("Could not receive data from monitor",
                                          e)
             if not data:
@@ -193,7 +196,7 @@ class HumanMonitor(Monitor):
     PROMPT_TIMEOUT = 20
     CMD_TIMEOUT = 20
 
-    def __init__(self, name, filename, suppress_exceptions=False):
+    def __init__(self, name, filename, vm, suppress_exceptions=False):
         """
         Connect to the monitor socket and find the (qemu) prompt.
 
@@ -210,10 +213,12 @@ class HumanMonitor(Monitor):
             Monitor.__init__(self, name, filename)
 
             self.protocol = "human"
+            self.vm = vm
 
             # Find the initial (qemu) prompt
             s, o = self._read_up_to_qemu_prompt()
             if not s:
+                self.vm.verify_userspace_crash()
                 raise MonitorProtocolError("Could not find (qemu) prompt "
                                            "after connecting to monitor. "
                                            "Output so far: %r" % o)
@@ -225,6 +230,7 @@ class HumanMonitor(Monitor):
             if suppress_exceptions:
                 logging.warn(e)
             else:
+                self.vm.verify_userspace_crash()
                 raise
 
 
@@ -255,6 +261,7 @@ class HumanMonitor(Monitor):
         @raise MonitorSocketError: Raised if a socket error occurs
         """
         if not self._acquire_lock():
+            self.vm.verify_userspace_crash()
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "monitor command '%s'" % cmd)
 
@@ -262,6 +269,7 @@ class HumanMonitor(Monitor):
             try:
                 self._socket.sendall(cmd + "\n")
             except socket.error, e:
+                self.vm.verify_userspace_crash()
                 raise MonitorSocketError("Could not send monitor command %r" %
                                          cmd, e)
 
@@ -313,6 +321,7 @@ class HumanMonitor(Monitor):
         """
         self._log_command(cmd, debug)
         if not self._acquire_lock():
+            self.vm.verify_userspace_crash()
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "monitor command '%s'" % cmd)
 
@@ -339,6 +348,7 @@ class HumanMonitor(Monitor):
             else:
                 msg = ("Could not find (qemu) prompt after command '%s'. "
                        "Output so far: %r" % (cmd, o))
+                self.vm.verify_userspace_crash()
                 raise MonitorProtocolError(msg)
 
         finally:
@@ -578,7 +588,7 @@ class QMPMonitor(Monitor):
     RESPONSE_TIMEOUT = 20
     PROMPT_TIMEOUT = 20
 
-    def __init__(self, name, filename, suppress_exceptions=False):
+    def __init__(self, name, filename, vm, suppress_exceptions=False):
         """
         Connect to the monitor socket, read the greeting message and issue the
         qmp_capabilities command.  Also make sure the json module is available.
@@ -600,6 +610,7 @@ class QMPMonitor(Monitor):
             self.protocol = "qmp"
             self._greeting = None
             self._events = []
+            self.vm = vm
 
             # Make sure json is available
             try:
@@ -619,6 +630,7 @@ class QMPMonitor(Monitor):
                     break
                 time.sleep(0.1)
             else:
+                self.vm.verify_userspace_crash()
                 raise MonitorProtocolError("No QMP greeting message received")
 
             # Issue qmp_capabilities
@@ -631,6 +643,7 @@ class QMPMonitor(Monitor):
             if suppress_exceptions:
                 logging.warn(e)
             else:
+                self.vm.verify_userspace_crash()
                 raise
 
 
@@ -694,6 +707,7 @@ class QMPMonitor(Monitor):
         try:
             self._socket.sendall(data)
         except socket.error, e:
+            self.vm.verify_userspace_crash()
             raise MonitorSocketError("Could not send data: %r" % data, e)
 
 
@@ -798,6 +812,7 @@ class QMPMonitor(Monitor):
         """
         self._log_command(cmd, debug)
         if not self._acquire_lock():
+            self.vm.verify_userspace_crash()
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "QMP command '%s'" % cmd)
 
@@ -817,6 +832,7 @@ class QMPMonitor(Monitor):
             # Read response
             r = self._get_response(id, timeout)
             if r is None:
+                self.vm.verify_userspace_crash()
                 raise MonitorProtocolError("Received no response to QMP "
                                            "command '%s', or received a "
                                            "response with an incorrect id"
@@ -827,6 +843,7 @@ class QMPMonitor(Monitor):
                     self._log_response(cmd, ret, debug)
                 return ret
             if "error" in r:
+                self.vm.verify_userspace_crash()
                 raise QMPCmdError(cmd, args, r["error"])
 
         finally:
@@ -847,6 +864,7 @@ class QMPMonitor(Monitor):
         @raise MonitorProtocolError: Raised if no response is received
         """
         if not self._acquire_lock():
+            self.vm.verify_userspace_crash()
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "data: %r" % data)
 
@@ -855,6 +873,7 @@ class QMPMonitor(Monitor):
             self._send(data)
             r = self._get_response(None, timeout)
             if r is None:
+                self.vm.verify_userspace_crash()
                 raise MonitorProtocolError("Received no response to data: %r" %
                                            data)
             return r
@@ -982,6 +1001,7 @@ class QMPMonitor(Monitor):
         @raise MonitorLockError: Raised if the lock cannot be acquired
         """
         if not self._acquire_lock():
+            self.vm.verify_userspace_crash()
             raise MonitorLockError("Could not acquire exclusive lock to clear "
                                    "QMP event list")
         self._events = []
