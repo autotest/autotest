@@ -108,43 +108,50 @@ def run_balloon_check(test, params, env):
 
     new_mem = int(random.uniform(vm_assigned_mem - vm_mem_free, vm_assigned_mem))
     fail += balloon_memory(new_mem, offset)
+
+    skip = False
     # Run option test after evict memory
     if params.has_key('sub_balloon_test_evict'):
         balloon_test = params['sub_balloon_test_evict']
-        virt_test_utils.run_virt_sub_test(test, params, env, sub_type=balloon_test)
+        virt_test_utils.run_virt_sub_test(test, params, env,
+                                          sub_type=balloon_test)
         if balloon_test == "shutdown" :
             logging.info("Guest shutdown normally after balloon")
-            exit(0)
-    # Reset memory value to original memory assigned on qemu. This will ensure
-    # we won't trigger guest OOM killer while running multiple iterations
-    fail += balloon_memory(vm_assigned_mem, offset)
+            skip = True
 
-    # Run sub test after enlarge memory
-    if params.has_key('sub_balloon_test_enlarge'):
-        balloon_test = params['sub_balloon_test_enlarge']
-        virt_test_utils.run_virt_sub_test(test, params, env, sub_type=balloon_test)
-        if balloon_test == "shutdown" :
-            logging.info("Guest shutdown normally after balloon")
-            exit(0)
+    if not skip:
+        # Reset memory value to original memory assigned on qemu. This will ensure
+        # we won't trigger guest OOM killer while running multiple iterations
+        fail += balloon_memory(vm_assigned_mem, offset)
 
-    #Check memory after sub test running
-    logging.info("Check memory after tests")
-    boot_mem = vm.get_memory_size()
-    if boot_mem != vm_assigned_mem:
-        fail += 1
-    # Check if info balloon works or not
-    current_vm_mem, cfail = check_ballooned_memory()
-    if params.get("monitor_type") == "qmp":
-        current_vm_mem = current_vm_mem / 1024 / 1024
-    if current_vm_mem != vm_assigned_mem:
-        fail += 1
-    logging.error("Memory size after tests:")
-    logging.error("    Assigned to VM: %s", vm_assigned_mem)
-    logging.error("    Reported by guest OS: %s", boot_mem)
-    logging.error("    Reported by monitor: %s", current_vm_mem)
+        # Run sub test after enlarge memory
+        if params.has_key('sub_balloon_test_enlarge'):
+            balloon_test = params['sub_balloon_test_enlarge']
+            virt_test_utils.run_virt_sub_test(test, params, env,
+                                              sub_type=balloon_test)
+            if balloon_test == "shutdown" :
+                logging.info("Guest shutdown normally after balloon")
+                skip = True
 
-    # Close stablished session
-    session.close()
-    # Check if any failures happen during the whole test
-    if fail != 0:
-        raise error.TestFail("Memory ballooning test failed")
+    if not skip:
+        # Check memory after sub test running
+        logging.info("Check memory after tests")
+        boot_mem = vm.get_memory_size()
+        if boot_mem != vm_assigned_mem:
+            fail += 1
+        # Check if info balloon works or not
+        current_vm_mem, cfail = check_ballooned_memory()
+        if params.get("monitor_type") == "qmp":
+            current_vm_mem = current_vm_mem / 1024 / 1024
+        if current_vm_mem != vm_assigned_mem:
+            fail += 1
+        logging.error("Memory size after tests:")
+        logging.error("    Assigned to VM: %s", vm_assigned_mem)
+        logging.error("    Reported by guest OS: %s", boot_mem)
+        logging.error("    Reported by monitor: %s", current_vm_mem)
+
+        # Close stablished session
+        session.close()
+        # Check if any failures happen during the whole test
+        if fail != 0:
+            raise error.TestFail("Memory ballooning test failed")
