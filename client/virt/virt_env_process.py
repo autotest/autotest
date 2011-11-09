@@ -157,16 +157,16 @@ def postprocess_vm(test, params, env, name):
         logging.warn(e)
 
     # Encode an HTML 5 compatible video from the screenshots produced?
-    if params.get("encode_video_files", "yes") == "yes":
+    screendump_dir = os.path.join(test.debugdir, "screendumps_%s" % vm.name)
+    if (params.get("encode_video_files", "yes") == "yes" and
+        glob.glob("%s/*" % screendump_dir)):
         logging.debug("Param 'encode_video_files' specified, trying to "
                       "encode a video from the screenshots produced by "
                       "vm %s", vm.name)
+        video_file = os.path.join(test.debugdir, "%s-%s.ogg" %
+                                  (vm.name, test.iteration))
         try:
-            input_dir = os.path.join(test.debugdir,
-                                     "screendumps_%s" % vm.name)
-            output_file = os.path.join(test.debugdir,
-                                       "%s.ogg" % vm.name)
-            virt_video_maker.video_maker(input_dir, output_file)
+            virt_video_maker.video_maker(screendump_dir, video_file)
         except Exception, detail:
             logging.info("Param 'encode_video_files' specified, but video "
                          "creation failed for vm %s: %s", vm.name, detail)
