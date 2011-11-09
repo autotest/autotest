@@ -8,172 +8,153 @@ Module used to parse the autotest job results and generate an HTML report.
 """
 
 import os, sys, re, getopt, time, datetime, commands
-import common
 
 
 format_css = """
-html,body {
-    padding:0;
-    color:#222;
-    background:#FFFFFF;
+html, body {
+    padding: 0;
+    color: #222;
+    background: #FFFFFF;
 }
-
 body {
-    padding:0px;
-    font:76%/150% "Lucida Grande", "Lucida Sans Unicode", Lucida, Verdana, Geneva, Arial, Helvetica, sans-serif;
+    padding: 0px;
+    font: 76% /150% sans-serif;
 }
-
-#page_title{
-    text-decoration:none;
-    font:bold 2em/2em Arial, Helvetica, sans-serif;
-    text-transform:none;
+#page_title {
+    text-decoration: none;
+    font: bold 2em /2em sans-serif;
+    text-transform: none;
     text-align: left;
-    color:#555555;
+    color: #555555;
     border-bottom: 1px solid #555555;
 }
-
-#page_sub_title{
-        text-decoration:none;
-        font:bold 16px Arial, Helvetica, sans-serif;
-        text-transform:uppercase;
-        text-align: left;
-        color:#555555;
-    margin-bottom:0;
+#page_sub_title {
+    text-decoration: none;
+    font: bold 16px sans-serif;
+    text-transform: uppercase;
+    text-align: left;
+    color: #555555;
+    margin-bottom: 0;
 }
-
-#comment{
-        text-decoration:none;
-        font:bold 10px Arial, Helvetica, sans-serif;
-        text-transform:none;
-        text-align: left;
-        color:#999999;
-    margin-top:0;
+#comment {
+    text-decoration: none;
+    font: bold 10px sans-serif;
+    text-transform: none;
+    text-align: left;
+    color: #999999;
+    margin-top: 0;
 }
-
-
-#meta_headline{
-                text-decoration:none;
-                font-family: Verdana, Geneva, Arial, Helvetica, sans-serif ;
-                text-align: left;
-                color:black;
-                font-weight: bold;
-                font-size: 14px;
-        }
-
-
-table.meta_table
-{text-align: center;
-font-family: Verdana, Geneva, Arial, Helvetica, sans-serif ;
-width: 90%;
-background-color: #FFFFFF;
-border: 0px;
-border-top: 1px #003377 solid;
-border-bottom: 1px #003377 solid;
-border-right: 1px #003377 solid;
-border-left: 1px #003377 solid;
-border-collapse: collapse;
-border-spacing: 0px;}
-
-table.meta_table td
-{background-color: #FFFFFF;
-color: #000;
-padding: 4px;
-border-top: 1px #BBBBBB solid;
-border-bottom: 1px #BBBBBB solid;
-font-weight: normal;
-font-size: 13px;}
-
-
-table.stats
-{text-align: center;
-font-family: Verdana, Geneva, Arial, Helvetica, sans-serif ;
-width: 100%;
-background-color: #FFFFFF;
-border: 0px;
-border-top: 1px #003377 solid;
-border-bottom: 1px #003377 solid;
-border-right: 1px #003377 solid;
-border-left: 1px #003377 solid;
-border-collapse: collapse;
-border-spacing: 0px;}
-
-table.stats td{
-background-color: #FFFFFF;
-color: #000;
-padding: 4px;
-border-top: 1px #BBBBBB solid;
-border-bottom: 1px #BBBBBB solid;
-font-weight: normal;
-font-size: 11px;}
-
-table.stats th{
-background: #dcdcdc;
-color: #000;
-padding: 6px;
-font-size: 12px;
-border-bottom: 1px #003377 solid;
-font-weight: bold;}
-
-table.stats td.top{
-background-color: #dcdcdc;
-color: #000;
-padding: 6px;
-text-align: center;
-border: 0px;
-border-bottom: 1px #003377 solid;
-font-size: 10px;
-font-weight: bold;}
-
-table.stats th.table-sorted-asc{
-        background-image: url(ascending.gif);
-        background-position: top left  ;
-        background-repeat: no-repeat;
+#meta_headline {
+    text-decoration: none;
+    font-family: sans-serif;
+    text-align: left;
+    color: black;
+    font-weight: bold;
+    font-size: 14px;
 }
-
-table.stats th.table-sorted-desc{
-        background-image: url(descending.gif);
-        background-position: top left;
-        background-repeat: no-repeat;
+table.meta_table {
+    text-align: center;
+    font-family: sans-serif;
+    width: 90%;
+    background-color: #FFFFFF;
+    border: 0px;
+    border-top: 1px #BBBBBB solid;
+    border-bottom: 1px #BBBBBB solid;
+    border-right: 1px #BBBBBB solid;
+    border-left: 1px #BBBBBB solid;
+    border-collapse: collapse;
+    border-spacing: 0px;
 }
-
-table.stats2
-{text-align: left;
-font-family: Verdana, Geneva, Arial, Helvetica, sans-serif ;
-width: 100%;
-background-color: #FFFFFF;
-border: 0px;
+table.meta_table td {
+    background-color: #FFFFFF;
+    color: #000;
+    padding: 4px;
+    border-top: 1px #BBBBBB solid;
+    border-bottom: 1px #BBBBBB solid;
+    font-weight: normal;
+    font-size: 13px;
+    font-family: monospace;
 }
-
-table.stats2 td{
-background-color: #FFFFFF;
-color: #000;
-padding: 0px;
-font-weight: bold;
-font-size: 13px;}
-
-
-
+table.stats {
+    text-align: center;
+    font-family: sans-serif;
+    width: 100%;
+    background-color: #FFFFFF;
+    border: 0px;
+    border-top: 1px #BBBBBB solid;
+    border-bottom: 1px #BBBBBB solid;
+    border-right: 1px #BBBBBB solid;
+    border-left: 1px #BBBBBB solid;
+    border-collapse: collapse;
+    border-spacing: 0px;
+}
+table.stats td {
+    background-color: #FFFFFF;
+    color: #000;
+    padding: 4px;
+    border-top: 1px #BBBBBB solid;
+    border-bottom: 1px #BBBBBB solid;
+    font-weight: normal;
+    font-size: 11px;
+}
+table.stats th {
+    background: #dcdcdc;
+    color: #000;
+    padding: 6px;
+    font-size: 12px;
+    border-bottom: 1px #BBBBBB solid;
+    font-weight: bold;
+}
+table.stats td.top {
+    background-color: #dcdcdc;
+    color: #000;
+    padding: 6px;
+    text-align: center;
+    border: 0px;
+    border-bottom: 1px #BBBBBB solid;
+    font-size: 10px;
+    font-weight: bold;
+}
+table.stats th.table-sorted-asc {
+    background-image: url(ascending.gif);
+    background-position: top left;
+    background-repeat: no-repeat;
+}
+table.stats th.table-sorted-desc {
+    background-image: url(descending.gif);
+    background-position: top left;
+    background-repeat: no-repeat;
+}
+table.stats2 {
+    text-align: left;
+    font-family: sans-serif;
+    width: 100%;
+    background-color: #FFFFFF;
+    border: 0px;
+}
+table.stats2 td {
+    background-color: #FFFFFF;
+    color: #000;
+    padding: 0px;
+    font-weight: bold;
+    font-size: 13px;
+}
 /* Put this inside a @media qualifier so Netscape 4 ignores it */
 @media screen, print {
-        /* Turn off list bullets */
-        ul.mktree  li { list-style: none; }
-        /* Control how "spaced out" the tree is */
-        ul.mktree, ul.mktree ul , ul.mktree li { margin-left:10px; padding:0px; }
-        /* Provide space for our own "bullet" inside the LI */
-        ul.mktree  li           .bullet { padding-left: 15px; }
-        /* Show "bullets" in the links, depending on the class of the LI that the link's in */
-        ul.mktree  li.liOpen    .bullet { cursor: pointer; }
-        ul.mktree  li.liClosed  .bullet { cursor: pointer;  }
-        ul.mktree  li.liBullet  .bullet { cursor: default; }
-        /* Sublists are visible or not based on class of parent LI */
-        ul.mktree  li.liOpen    ul { display: block; }
-        ul.mktree  li.liClosed  ul { display: none; }
-
-        /* Format menu items differently depending on what level of the tree they are in */
-        /* Uncomment this if you want your fonts to decrease in size the deeper they are in the tree */
-/*
-        ul.mktree  li ul li { font-size: 90% }
-*/
+    /* Turn off list bullets */
+    ul.mktree  li { list-style: none; }
+    /* Control how "spaced out" the tree is */
+    ul.mktree, ul.mktree ul , ul.mktree li { margin-left:10px; padding:0px; }
+    /* Provide space for our own "bullet" inside the LI */
+    ul.mktree  li           .bullet { padding-left: 15px; }
+    /* Show "bullets" in the links, depending on the class of the LI that the link's in */
+    ul.mktree  li.liOpen    .bullet { cursor: pointer; }
+    ul.mktree  li.liClosed  .bullet { cursor: pointer;  }
+    ul.mktree  li.liBullet  .bullet { cursor: default; }
+    /* Sublists are visible or not based on class of parent LI */
+    ul.mktree  li.liOpen    ul { display: block; }
+    ul.mktree  li.liClosed  ul { display: none; }
+    ul.mktree  li ul li { font-size: 90% }
 }
 """
 
@@ -1373,8 +1354,6 @@ function processList(ul) {
 """
 
 
-
-
 def make_html_file(metadata, results, tag, host, output_file_name, dirname):
     """
     Create HTML file contents for the job report, to stdout or filesystem.
@@ -1413,11 +1392,9 @@ return true;
 
     if output_file_name:
         output = open(output_file_name, "w")
-    else:   #if no output file defined, print html file to console
-        output = sys.stdout
     # create html page
-    print >> output, html_prefix
-    print >> output, '<h2 id=\"page_title\">Autotest job execution report</h2>'
+    output.write(html_prefix)
+    output.write('<h2 id=\"page_title\">Autotest job execution report</h2>')
 
     # formating date and time to print
     t = datetime.datetime.now()
@@ -1438,26 +1415,27 @@ return true;
                 total_failed += 1
     stat_str = 'No test cases executed'
     if total_executed > 0:
-        failed_perct = int(float(total_failed)/float(total_executed)*100)
+        failed_perct = int(float(total_failed) / float(total_executed) * 100)
         stat_str = ('From %d tests executed, %d have passed (%d%% failures)' %
                     (total_executed, total_passed, failed_perct))
 
     kvm_ver_str = metadata.get('kvmver', None)
 
-    print >> output, '<table class="stats2">'
-    print >> output, '<tr><td>HOST</td><td>:</td><td>%s</td></tr>' % host
-    print >> output, '<tr><td>RESULTS DIR</td><td>:</td><td>%s</td></tr>'  % tag
-    print >> output, '<tr><td>DATE</td><td>:</td><td>%s</td></tr>' % now.ctime()
-    print >> output, '<tr><td>STATS</td><td>:</td><td>%s</td></tr>'% stat_str
-    print >> output, '<tr><td></td><td></td><td></td></tr>'
+    output.write('<table class="stats2">')
+    output.write('<tr><td>HOST</td><td>:</td><td>%s</td></tr>' % host)
+    output.write('<tr><td>RESULTS DIR</td><td>:</td><td>%s</td></tr>' % tag)
+    output.write('<tr><td>DATE</td><td>:</td><td>%s</td></tr>' % now.ctime())
+    output.write('<tr><td>STATS</td><td>:</td><td>%s</td></tr>' % stat_str)
+    output.write('<tr><td></td><td></td><td></td></tr>')
     if kvm_ver_str is not None:
-        print >> output, '<tr><td>KVM VERSION</td><td>:</td><td>%s</td></tr>' % kvm_ver_str
-    print >> output, '</table>'
+        output.write('<tr><td>KVM VERSION</td><td>:</td><td>%s</td></tr>' %
+                     kvm_ver_str)
+    output.write('</table>')
 
     ## print test results
-    print >> output, '<br>'
-    print >> output, '<h2 id=\"page_sub_title\">Test Results</h2>'
-    print >> output, '<h2 id=\"comment\">click on table headers to asc/desc sort</h2>'
+    output.write('<br>')
+    output.write('<h2 id=\"page_sub_title\">Test Results</h2>')
+    output.write('<h2 id=\"comment\">click on table headers to asc/desc sort</h2>')
     result_table_prefix = """<table
 id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alternate table-page-number:t1page table-page-count:t1pages table-filtered-rowcount:t1filtercount table-rowcount:t1allcount">
 <thead class="th table-sorted-asc table-sorted-desc">
@@ -1471,24 +1449,25 @@ id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alterna
 </tr></thead>
 <tbody>
 """
-    print >> output, result_table_prefix
+    output.write(result_table_prefix)
+
     def print_result(result, indent):
         while result != []:
             r = result.pop(0)
             res = results[r][2]
-            print >> output, '<tr>'
-            print >> output, '<td align="left">%s</td>' % res['time']
-            print >> output, '<td align="left" style="padding-left:%dpx">%s</td>' % (indent * 20, res['title'])
+            output.write('<tr>')
+            output.write('<td align="left">%s</td>' % res['time'])
+            output.write('<td align="left" style="padding-left:%dpx">%s</td>' % (indent * 20, res['title']))
             if res['status'] == 'GOOD':
-                print >> output, '<td align=\"left\"><b><font color="#00CC00">PASS</font></b></td>'
+                output.write('<td align=\"left\"><b><font color="#00CC00">PASS</font></b></td>')
             elif res['status'] == 'FAIL':
-                print >> output, '<td align=\"left\"><b><font color="red">FAIL</font></b></td>'
+                output.write('<td align=\"left\"><b><font color="red">FAIL</font></b></td>')
             elif res['status'] == 'ERROR':
-                print >> output, '<td align=\"left\"><b><font color="red">ERROR!</font></b></td>'
+                output.write('<td align=\"left\"><b><font color="red">ERROR!</font></b></td>')
             else:
-                print >> output, '<td align=\"left\">%s</td>' % res['status']
+                output.write('<td align=\"left\">%s</td>' % res['status'])
             # print exec time (seconds)
-            print >> output, '<td align="left">%s</td>' % res['exec_time_sec']
+            output.write('<td align="left">%s</td>' % res['exec_time_sec'])
             # print log only if test failed..
             if res['log']:
                 #chop all '\n' from log text (to prevent html errors)
@@ -1501,39 +1480,37 @@ id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alterna
                 updated_tag = rx2.sub('_', res['title'])
 
                 html_body_text = '<html><head><title>%s</title></head><body>%s</body></html>' % (str(updated_tag), log_text)
-                print >> output, '<td align=\"left\"><A HREF=\"#\" onClick=\"popup(\'%s\',\'%s\')\">Info</A></td>' % (str(updated_tag), str(html_body_text))
+                output.write('<td align=\"left\"><A HREF=\"#\" onClick=\"popup(\'%s\',\'%s\')\">Info</A></td>' % (str(updated_tag), str(html_body_text)))
             else:
-                print >> output, '<td align=\"left\"></td>'
+                output.write('<td align=\"left\"></td>')
             # print execution time
-            print >> output, '<td align="left"><A HREF=\"%s\">Debug</A></td>' % os.path.join(dirname, res['subdir'], "debug")
+            output.write('<td align="left"><A HREF=\"%s\">Debug</A></td>' % os.path.join(dirname, res['subdir'], "debug"))
 
-            print >> output, '</tr>'
+            output.write('</tr>')
             print_result(results[r][1], indent + 1)
 
     print_result(results[""][1], 0)
-    print >> output, "</tbody></table>"
+    output.write("</tbody></table>")
 
-
-    print >> output, '<h2 id=\"page_sub_title\">Host Info</h2>'
-    print >> output, '<h2 id=\"comment\">click on each item to expend/collapse</h2>'
+    output.write('<h2 id=\"page_sub_title\">Host Info</h2>')
+    output.write('<h2 id=\"comment\">click on each item to expend/collapse</h2>')
     ## Meta list comes here..
-    print >> output, '<p>'
-    print >> output, '<A href="#" class="button" onClick="expandTree(\'meta_tree\');return false;">Expand All</A>'
-    print >> output, '&nbsp;&nbsp;&nbsp'
-    print >> output, '<A class="button" href="#" onClick="collapseTree(\'meta_tree\'); return false;">Collapse All</A>'
-    print >> output, '</p>'
+    output.write('<p>')
+    output.write('<A href="#" class="button" onClick="expandTree(\'meta_tree\');return false;">Expand All</A>')
+    output.write('&nbsp;&nbsp;&nbsp')
+    output.write('<A class="button" href="#" onClick="collapseTree(\'meta_tree\'); return false;">Collapse All</A>')
+    output.write('</p>')
 
-    print >> output, '<ul class="mktree" id="meta_tree">'
-    counter = 0
+    output.write('<ul class="mktree" id="meta_tree">')
     keys = metadata.keys()
     keys.sort()
     for key in keys:
         val = metadata[key]
-        print >> output, '<li id=\"meta_headline\">%s' % key
-        print >> output, '<ul><table class="meta_table"><tr><td align="left">%s</td></tr></table></ul></li>' % val
-    print >> output, '</ul>'
+        output.write('<li id=\"meta_headline\">%s' % key)
+        output.write('<ul><table class="meta_table"><tr><td align="left">%s</td></tr></table></ul></li>' % val)
+    output.write('</ul>')
 
-    print >> output, "</body></html>"
+    output.write("</body></html>")
     if output_file_name:
         output.close()
 
@@ -1542,14 +1519,17 @@ def parse_result(dirname, line, results_data):
     """
     Parse job status log line.
 
-    @param dirname: Job results dir
+    @param dirname: Job results dir.
     @param line: Status log line.
-    @param results_data: Dictionary with for results.
+    @param results_data: Dictionary with results.
     """
     parts = line.split()
+
     if len(parts) < 4:
         return None
+
     global tests
+
     if parts[0] == 'START':
         pair = parts[3].split('=')
         stime = int(pair[1])
@@ -1587,13 +1567,17 @@ def parse_result(dirname, line, results_data):
         result['status'] = parts[1]
         if result['status'] != 'GOOD':
             result['log'] = get_exec_log(dirname, tag)
-        if len(results_data)>0:
+        if len(results_data) > 0:
             pair = parts[4].split('=')
-            etime = int(pair[1])
-            stime = results_data[parts[2]][0]
-            total_exec_time_sec = etime - stime
+            try:
+                etime = int(pair[1])
+                stime = results_data[parts[2]][0]
+                total_exec_time_sec = etime - stime
+            except ValueError:
+                total_exec_time_sec = 0
             result['exec_time_sec'] = total_exec_time_sec
         results_data[parts[2]][2] = result
+
     return None
 
 
@@ -1762,9 +1746,9 @@ def main(argv):
             usage()
             sys.exit()
         elif opt == '-r':
-            dirname =  arg
+            dirname = arg
         elif opt == '-f':
-            output_file_name =  arg
+            output_file_name = arg
         elif opt == '-R':
             relative_path = True
         else:
@@ -1777,8 +1761,7 @@ def main(argv):
         html_path = ''
 
     if dirname:
-        if os.path.isdir(dirname): # TBD: replace it with a validation of
-                                   # autotest result dir
+        if os.path.isdir(dirname):
             create_report(dirname, html_path, output_file_name)
             sys.exit(0)
         else:
