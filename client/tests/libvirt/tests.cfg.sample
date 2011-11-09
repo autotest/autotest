@@ -28,7 +28,7 @@ variants:
         qemu_img_binary = /usr/bin/qemu-img
         url = auto
         cdrom_cd1 = isos/linux/Fedora.16-x86_64-DVD.iso
-        hvm_or_pv = --paravirt
+        hvm_or_pv = pv
         only raw
         only xennet
         only xenblk
@@ -45,7 +45,7 @@ variants:
         qemu_img_binary = /usr/bin/qemu-img
         url = auto
         cdrom_cd1 = isos/linux/Fedora.16-x86_64-DVD.iso
-        hvm_or_pv = --hvm --accelerate
+        hvm_or_pv = hvm
         only raw
         only rtl8139
         only ide
@@ -74,7 +74,7 @@ variants:
         use_virt_install = yes
         image_format = raw
         virt_install_debug = yes
-        hvm_or_pv = --hvm --accelerate
+        hvm_or_pv = hvm
         mem = 4196
         install_virtio = no
         only raw

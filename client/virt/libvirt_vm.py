@@ -427,7 +427,13 @@ class VM(virt_vm.BaseVM):
             return " --name '%s'" % name
 
         def add_hvm_or_pv(help, hvm_or_pv):
-            return " %s" % hvm_or_pv
+            if hvm_or_pv == "hvm":
+                return " --hvm --accelerate"
+            elif hvm_or_pv == "pv":
+                return " --paravirt"
+            else:
+                logging.warning("Unknown virt type hvm_or_pv, using default.")
+                return ""
 
         def add_mem(help, mem):
             return " --ram=%s" % mem
