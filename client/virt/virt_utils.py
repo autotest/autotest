@@ -2448,7 +2448,8 @@ class GitRepoHelper(object):
     '''
     Helps to deal with git repos, mostly fetching content from a repo
     '''
-    def __init__(self, uri, branch, destination_dir, commit=None, lbranch=None):
+    def __init__(self, uri, branch, destination_dir, commit=None, lbranch=None,
+                 base_uri=None):
         '''
         Instantiates a new GitRepoHelper
 
@@ -2464,6 +2465,7 @@ class GitRepoHelper(object):
         @param lbranch: git local branch name, if different from remote
         '''
         self.uri = uri
+        self.base_uri = base_uri
         self.branch = branch
         self.destination_dir = destination_dir
         self.commit = commit
@@ -2497,14 +2499,14 @@ class GitRepoHelper(object):
             utils.system('git init')
 
 
-    def fetch(self):
+    def fetch(self, uri):
         '''
         Performs a git fetch from the remote repo
         '''
         logging.info("Fetching git [REP '%s' BRANCH '%s'] -> %s",
-                     self.uri, self.branch, self.destination_dir)
+                     uri, self.branch, self.destination_dir)
         os.chdir(self.destination_dir)
-        utils.system("git fetch -q -f -u -t %s %s:%s" % (self.uri,
+        utils.system("git fetch -q -f -u -t %s %s:%s" % (uri,
                                                          self.branch,
                                                          self.lbranch))
 
@@ -2539,7 +2541,9 @@ class GitRepoHelper(object):
         utility method.
         '''
         self.init()
-        self.fetch()
+        if self.base_uri is not None:
+            self.fetch(self.base_uri)
+        self.fetch(self.uri)
         self.checkout()
 
 
@@ -2556,6 +2560,7 @@ class GitRepoParamHelper(GitRepoHelper):
     Example for repo named foo:
 
     git_repo_foo_uri = git://git.foo.org/foo.git
+    git_repo_foo_base_uri = /home/user/code/foo
     git_repo_foo_branch = master
     git_repo_foo_lbranch = master
     git_repo_foo_commit = bb5fb8e678aabe286e74c4f2993dc2a9e550b627
@@ -2582,6 +2587,9 @@ class GitRepoParamHelper(GitRepoHelper):
         config_prefix = 'git_repo_%s' % self.name
         logging.debug('Parsing parameters for git repo %s, configuration '
                       'prefix is %s' % (self.name, config_prefix))
+
+        self.base_uri = self.params.get('%s_base_uri' % config_prefix)
+        logging.debug('Git repo %s base uri: %s' % (self.name, self.base_uri))
 
         self.uri = self.params.get('%s_uri' % config_prefix)
         logging.debug('Git repo %s uri: %s' % (self.name, self.uri))
