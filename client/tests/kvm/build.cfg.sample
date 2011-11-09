@@ -26,6 +26,9 @@ variants:
         # QEMU installation from a GIT repo
         git_repo_qemu_uri = git://git.qemu.org/qemu.git
         git_repo_qemu_configure_options = --target-list=x86_64-softmmu --enable-spice
+        # if you have a git repo that is closer to you, you may
+        # use it to fetch object first from it, and then later from "upstream"
+        # git_repo_qemu_base_uri = /home/user/code/qemu
 
         # QEMU (KVM) installation from a GIT repo
         # git_repo_qemu_kvm_uri = git://github.com/avikivity/qemu.git
