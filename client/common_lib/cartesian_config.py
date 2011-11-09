@@ -28,7 +28,7 @@ Cartesian configuration format file parser.
 @copyright: Red Hat 2008-2011
 """
 
-import re, os, sys, optparse, collections
+import re, os, optparse, collections
 
 class ParserError:
     def __init__(self, msg, line=None, filename=None, linenum=None):
@@ -43,6 +43,17 @@ class ParserError:
                                        self.filename, self.linenum)
         else:
             return "%s (%s:%s)" % (self.msg, self.filename, self.linenum)
+
+
+class MissingIncludeError:
+    def __init__(self, line, filename, linenum):
+        self.line = line
+        self.filename = filename
+        self.linenum = linenum
+
+    def __str__(self):
+        return ("%r (%s:%s): file does not exist or it's not a regular "
+                "file" % (self.line, self.filename, self.linenum))
 
 
 num_failed_cases = 5
@@ -462,8 +473,7 @@ class Parser(object):
                     filename = os.path.join(os.path.dirname(cr.filename),
                                             filename)
                 if not os.path.isfile(filename):
-                    self._warn("%r (%s:%s): file doesn't exist or is not a "
-                               "regular file", line, cr.filename, linenum)
+                    raise MissingIncludeError(line, cr.filename, linenum)
                     continue
                 node = self._parse(FileReader(filename), node)
                 continue
