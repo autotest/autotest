@@ -56,7 +56,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         options = "%s %s" % (options, self.master_ssh_option)
         base_cmd = abstract_ssh.make_ssh_command(user=self.user, port=self.port,
                                                 opts=options,
-                                                hosts_file=self.known_hosts_fd,
+                                                hosts_file=self.known_hosts_file,
                                                 connect_timeout=connect_timeout,
                                                 alive_interval=alive_interval)
         return "%s %s" % (base_cmd, self.hostname)
