@@ -3,7 +3,6 @@
 import sys, os, re, logging
 import common
 from autotest_lib.client.common_lib import logging_manager
-from autotest_lib.client.bin import utils
 from autotest_lib.client.virt import virt_utils
 
 
@@ -59,6 +58,6 @@ if __name__ == "__main__":
     try:
         # Run qemu command.
         logging.info("TAP fd open to %s: %s", brname, tapfd_list)
-        utils.system(cmd_line)
+        os.system(cmd_line)
     finally:
         destroy_tap(tapfd_list)
