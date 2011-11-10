@@ -1,4 +1,4 @@
-import os, time, types, socket, shutil, glob, logging, traceback
+import os, time, types, socket, shutil, glob, logging, traceback, tempfile
 from autotest_lib.client.common_lib import autotemp, error, logging_manager
 from autotest_lib.server import utils, autotest
 from autotest_lib.server.hosts import remote
@@ -50,9 +50,7 @@ class AbstractSSHHost(SiteHost):
         self.port = port
         self.password = password
         self._use_rsync = None
-        self.known_hosts_file = os.tmpfile()
-        known_hosts_fd = self.known_hosts_file.fileno()
-        self.known_hosts_fd = '/dev/fd/%s' % known_hosts_fd
+        self.known_hosts_file = tempfile.mkstemp()[1]
 
         """
         Master SSH connection background job, socket temp directory and socket
@@ -106,7 +104,7 @@ class AbstractSSHHost(SiteHost):
         """
         ssh_cmd = make_ssh_command(user=self.user, port=self.port,
                                    opts=self.master_ssh_option,
-                                   hosts_file=self.known_hosts_fd)
+                                   hosts_file=self.known_hosts_file)
         if delete_dest:
             delete_flag = "--delete"
         else:
@@ -127,7 +125,7 @@ class AbstractSSHHost(SiteHost):
         """
         base_cmd = make_ssh_command(user=self.user, port=self.port,
                                     opts=self.master_ssh_option,
-                                    hosts_file=self.known_hosts_fd)
+                                    hosts_file=self.known_hosts_file)
 
         return '%s %s "%s"' % (base_cmd, self.hostname, utils.sh_escape(cmd))
 
@@ -139,7 +137,7 @@ class AbstractSSHHost(SiteHost):
         """
         command = ("scp -rq %s -o StrictHostKeyChecking=no "
                    "-o UserKnownHostsFile=%s -P %d %s '%s'")
-        return command % (self.master_ssh_option, self.known_hosts_fd,
+        return command % (self.master_ssh_option, self.known_hosts_file,
                           self.port, " ".join(sources), dest)
 
 
@@ -567,7 +565,7 @@ class AbstractSSHHost(SiteHost):
     def close(self):
         super(AbstractSSHHost, self).close()
         self._cleanup_master_ssh()
-        self.known_hosts_file.close()
+        os.remove(self.known_hosts_file)
 
 
     def _cleanup_master_ssh(self):
@@ -627,7 +625,7 @@ class AbstractSSHHost(SiteHost):
         reduce the spam in the logs.
         """
         logging.info("Clearing known hosts for host '%s', file '%s'.",
-                     self.hostname, self.known_hosts_fd)
+                     self.hostname, self.known_hosts_file)
         # Clear out the file by opening it for writing and then closing.
-        fh = open(self.known_hosts_fd, "w")
+        fh = open(self.known_hosts_file, "w")
         fh.close()
