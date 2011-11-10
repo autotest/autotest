@@ -634,7 +634,7 @@ class UnattendedInstallConfig(object):
                 os.chdir(self.image_path)
                 base_kernel = os.path.basename(self.kernel)
                 base_initrd = os.path.basename(self.initrd)
-                if base_kernel != 'vmlinux':
+                if base_kernel != 'vmlinuz':
                     utils.run("mv %s vmlinuz" % base_kernel)
                 if base_initrd != 'initrd.img':
                     utils.run("mv %s initrd.img" % base_initrd)
