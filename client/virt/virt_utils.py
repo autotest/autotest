@@ -3493,11 +3493,11 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
     logging.info("%s - Verifying iso (make sure we have the OS ISO needed for "
                  "the default test set)", step)
 
-    iso_name = "Fedora-15-x86_64-DVD.iso"
-    fedora_dir = "pub/fedora/linux/releases/15/Fedora/x86_64/iso"
+    iso_name = "Fedora-16-x86_64-DVD.iso"
+    fedora_dir = "pub/fedora/linux/releases/16/Fedora/x86_64/iso"
     url = os.path.join("http://download.fedoraproject.org/", fedora_dir,
                        iso_name)
-    hash = "61b3407f62bac22d3a3b2e919c7fc960116012d7"
+    hash = "76dd59c37e9a0ec2af56263fa892ff571c92c89a"
     destination = os.path.join(base_dir, 'isos', 'linux')
     check_iso(url, destination, hash)
 

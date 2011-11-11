@@ -78,7 +78,7 @@ variants:
         only unattended_install.cdrom, boot, shutdown
 
     # Runs qemu, f15 64 bit guest OS, install, boot, shutdown
-    - @qemu_f15_quick:
+    - @qemu_f16_quick:
         # We want qemu for this run
         qemu_binary = /usr/bin/qemu
         qemu_img_binary = /usr/bin/qemu-img
@@ -90,13 +90,13 @@ variants:
         only up
         only no_pci_assignable
         only smallpages
-        only Fedora.15.64
+        only Fedora.16.64
         only unattended_install.cdrom, boot, shutdown
         # qemu needs -enable-kvm on the cmdline
         extra_params += ' -enable-kvm'
 
     # Runs qemu-kvm, f15 64 bit guest OS, install, boot, shutdown
-    - @qemu_kvm_f15_quick:
+    - @qemu_kvm_f16_quick:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
@@ -106,7 +106,7 @@ variants:
         only smp2
         only no_pci_assignable
         only smallpages
-        only Fedora.15.64
+        only Fedora.16.64
         only unattended_install.cdrom, boot, shutdown
 
     # Runs your own guest image (qcow2, can be adjusted), all migration tests
@@ -140,4 +140,4 @@ variants:
 #kill_unresponsive_vms.* ?= no
 
 # Choose your test list from the testsets defined
-only qemu_kvm_f15_quick
+only qemu_kvm_f16_quick
