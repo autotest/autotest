@@ -52,15 +52,19 @@ def wait_for_machine_to_recover(host, hours_to_wait=HOURS_TO_WAIT):
         logging.info("%s already up, collecting crash info", host.hostname)
         return True
 
-    logging.info("Waiting %s hours for %s to come up (%s)",
-                 hours_to_wait, host.hostname, current_time)
-    if not host.wait_up(timeout=hours_to_wait * 3600):
-        logging.warning("%s down, unable to collect crash info",
-                        host.hostname)
-        return False
+    if hours_to_wait > 0:
+        logging.info("Waiting %s hours for %s to come up (%s)",
+                     hours_to_wait, host.hostname, current_time)
+        if not host.wait_up(timeout=hours_to_wait * 3600):
+            logging.warning("%s down, unable to collect crash info",
+                            host.hostname)
+            return False
+        else:
+            logging.info("%s is back up, collecting crash info", host.hostname)
+            return True
     else:
-        logging.info("%s is back up, collecting crash info", host.hostname)
-        return True
+        logging.info("Skipping crash info collection")
+        return False
 
 
 def get_crashinfo_dir(host):
