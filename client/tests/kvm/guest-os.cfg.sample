@@ -328,6 +328,33 @@ variants:
                             md5sum_cd1 = c122a2a4f478da4a3d2d12396e84244e
                             md5sum_1m_cd1 = c02f37e293bbc85be02a7c850a61273a
 
+                    - 16.32:
+                        image_name = f16-32
+                        unattended_install:
+                            unattended_file = unattended/Fedora-16.ks
+                            #floppy = images/f16-32/ks.vfd
+                            cdrom_unattended = images/f16-32/ks.iso
+                            kernel = images/f16-32/vmlinuz
+                            initrd = images/f16-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/Fedora-16-i386-DVD.iso
+                            md5sum_cd1 = 0d64ab6b1b800827a9c83d95395b3da0
+                            md5sum_1m_cd1 = 3f616b5034980cadeefe67dbca79cf99
+
+                    - 16.64:
+                        image_name = f16-64
+                        unattended_install:
+                            unattended_file = unattended/Fedora-16.ks
+                            #floppy = images/f16-64/ks.vfd
+                            cdrom_unattended = images/f16-64/ks.iso
+                            kernel = images/f16-64/vmlinuz
+                            initrd = images/f16-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/Fedora-16-x86_64-DVD.iso
+                            md5sum_cd1 = bb38ea1fe4b2fc69e7a6e15cf1c69c91
+                            md5sum_1m_cd1 = e25ea147176f24239d38a46f501bd25e
+
+
             - RHEL:
                 no setup
                 shell_prompt = "^\[.*\][\#\$]\s*$"
