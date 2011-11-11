@@ -23,7 +23,7 @@ class MonitorConnectError(MonitorError):
 
 class MonitorSocketError(MonitorError):
     def __init__(self, msg, e):
-        Exception.__init__(self, msg, e)
+        MonitorError.__init__(self, msg, e)
         self.msg = msg
         self.e = e
 
