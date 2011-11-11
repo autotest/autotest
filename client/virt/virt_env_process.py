@@ -108,13 +108,6 @@ def preprocess_vm(test, params, env, name):
         # Don't start the VM, just update its params
         vm.params = params
 
-    scrdump_filename = os.path.join(test.debugdir, "pre_%s.ppm" % name)
-    try:
-        if vm.monitor and params.get("take_regular_screendumps") == "yes":
-            vm.screendump(scrdump_filename, debug=False)
-    except kvm_monitor.MonitorError, e:
-        logging.warn(e)
-
 
 def postprocess_image(test, params):
     """
@@ -148,13 +141,6 @@ def postprocess_vm(test, params, env, name):
     vm = env.get_vm(name)
     if not vm:
         return
-
-    scrdump_filename = os.path.join(test.debugdir, "post_%s.ppm" % name)
-    try:
-        if vm.monitor and params.get("take_regular_screenshots") == "yes":
-            vm.screendump(scrdump_filename, debug=False)
-    except kvm_monitor.MonitorError, e:
-        logging.warn(e)
 
     # Encode an HTML 5 compatible video from the screenshots produced?
     screendump_dir = os.path.join(test.debugdir, "screendumps_%s" % vm.name)
