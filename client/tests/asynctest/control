@@ -1,0 +1,11 @@
+TIME="SHORT"
+AUTHOR = "David Greenbrg <david.greenberg@twosigma.com>"
+DOC = """
+This test demonstrates how the asynchronous local job api works.
+"""
+NAME = 'asynctest'
+TEST_CLASS = 'self'
+TEST_CATEGORY = 'Functional'
+TEST_TYPE = 'client'
+
+job.run_test('asynctest')

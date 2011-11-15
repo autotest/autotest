@@ -20,7 +20,7 @@ def create_host(
         from autotest_lib.server.hosts import paramiko_host
         classes = [paramiko_host.ParamikoHost]
     elif SSH_ENGINE == 'raw_ssh':
-        classes = [ssh_host.SSHHost]
+        classes = [ssh_host.SSHHost, ssh_host.AsyncSSHMixin]
     else:
         raise error.AutoServError("Unknown SSH engine %s. Please verify the "
                                   "value of the configuration key 'ssh_engine' "
