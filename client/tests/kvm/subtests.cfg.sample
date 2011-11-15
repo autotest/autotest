@@ -348,6 +348,23 @@ variants:
         type = stop_continue
         kill_vm_on_error = yes
 
+    - nfs_corrupt:
+        only Linux
+        type = nfs_corrupt
+        start_vm = no
+        images += " stg"
+        image_size_stg = "10G"
+        image_format_stg = "qcow2"
+        create_image_stg = no
+        force_create_image_stg = no
+        remove_image_stg = yes
+        drive_werror = stop
+        drive_cache = none
+        kill_vm = yes
+        post_command_noncritical = yes
+        wait_paused_timeout = 120
+        nfs_stat_chk_re = "running"
+
     - linux_s3: install setup image_copy unattended_install.cdrom
         only Linux
         type = linux_s3
