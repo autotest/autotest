@@ -77,7 +77,7 @@ variants:
         # Subtest choice. You can modify that line to add more subtests
         only unattended_install.cdrom, boot, shutdown
 
-    # Runs qemu, f15 64 bit guest OS, install, boot, shutdown
+    # Runs qemu, f16 64 bit guest OS, install, boot, shutdown
     - @qemu_f16_quick:
         # We want qemu for this run
         qemu_binary = /usr/bin/qemu
@@ -95,7 +95,7 @@ variants:
         # qemu needs -enable-kvm on the cmdline
         extra_params += ' -enable-kvm'
 
-    # Runs qemu-kvm, f15 64 bit guest OS, install, boot, shutdown
+    # Runs qemu-kvm, f16 64 bit guest OS, install, boot, shutdown
     - @qemu_kvm_f16_quick:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
