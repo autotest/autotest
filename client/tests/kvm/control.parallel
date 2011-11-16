@@ -169,6 +169,19 @@ str = """
 
 parser = cartesian_config.Parser()
 parser.parse_file(os.path.join(pwd, "tests.cfg"))
+
+# Catch the host version for different host
+dict_test = {}
+for i in parser.get_dicts():
+    dict_test = i
+
+if len(dict_test) > 0:
+    host_version = cartesian_config.get_host_verson(dict_test)
+    if host_version:
+        str += "only %s_host\n" % host_version
+    else:
+        str += "only default_host"
+
 parser.parse_string(str)
 
 tests = list(parser.get_dicts())

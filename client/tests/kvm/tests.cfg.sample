@@ -9,6 +9,7 @@ include guest-os.cfg
 include guest-hw.cfg
 include cdkeys.cfg
 include virtio-win.cfg
+include host-version.cfg
 
 # Here you can override the image name for our custom linux and windows guests
 #
