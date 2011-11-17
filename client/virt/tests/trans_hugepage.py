@@ -1,4 +1,4 @@
-import logging, time, commands, os, string, re
+import logging, os, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import utils
 from autotest_lib.client.virt import virt_test_utils, aexpect, virt_test_setup
@@ -15,8 +15,8 @@ def run_trans_hugepage(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    def get_mem_status(params, type):
-        if type == "host":
+    def get_mem_status(params, role):
+        if role == "host":
             info = utils.system_output("cat /proc/meminfo")
         else:
             info = session.cmd("cat /proc/meminfo")
@@ -25,8 +25,8 @@ def run_trans_hugepage(test, params, env):
                 output = re.split('\s+', h)[1]
         return output
 
+
     dd_timeout = float(params.get("dd_timeout", 900))
-    nr_ah = []
     mem = params['mem']
     failures = []
 
