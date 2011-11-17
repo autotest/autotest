@@ -1,4 +1,4 @@
-import logging, time, commands, os, string, re
+import logging, time, os, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.virt import virt_test_utils, virt_test_setup
@@ -76,9 +76,9 @@ def run_trans_hugepage_defrag(test, params, env):
         nr_hp_after = set_libhugetlbfs(nr_full)
 
         if nr_hp_before >= nr_hp_after:
-            raise error.TestFail("There was no memory defragmentation on host: "
-                                 "%s huge pages allocated before turning "
-                                 "khugepaged defrag on, %s allocated after it" %
+            raise error.TestFail("No memory defragmentation on host: "
+                                 "%s huge pages before turning "
+                                 "khugepaged defrag on, %s after it" %
                                  (nr_hp_before, nr_hp_after))
         logging.info("Defrag test succeeded")
         session.close()
