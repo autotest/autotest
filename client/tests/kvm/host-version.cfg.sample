@@ -13,17 +13,47 @@ variants:
     - RHEL_Server_5.7_host:
 
     - RHEL_Server_6.0_host:
+        qmp_basic:
+            check_details = no
+            expected_error = "MissingParameter" 
+            data_dict = "name:device"
+            check_stop = no
+            check_screendump = no
+            check_device = no
+
     - RHEL_Server_6.1_host:
         virtio_nic:
             vhost = "vhost=on"
+        qmp_basic:
+            check_details = no
+            expected_error = "MissingParameter" 
+            data_dict = "name:device"
+            check_stop = no
+            check_screendump = no
+            check_device = no
+
     - RHEL_Server_6.2_host:
         virtio_nic:
             vhost = "vhost=on"
+        qmp_basic:
+            expected_error = "MissingParameter" 
+            data_dict = "name:device"
+            check_stop = no
+            check_screendump = no
+            check_device = no
+
     - Fedora_13_host:
+        qmp_basic:
+            migrate_set_speed_type = int
 
     - Fedora_14_host:
+        qmp_basic:
+            migrate_set_speed_type = int
 
     - Fedora_15_host:
+        qmp_basic:
+            migrate_set_speed_type = int
 
     - Fedora_16_host:
-
+        qmp_basic:
+            migrate_set_speed_type = int
