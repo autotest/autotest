@@ -68,12 +68,15 @@ class TransparentHugePageConfig(object):
         self.file_list_str = []
         # List of files that contain integer config values
         self.file_list_num = []
+        logging.info("Scanning THP base path and recording base values")
         for f in os.walk(self.thp_path):
             base_dir = f[0]
             if f[2]:
                 for name in f[2]:
                     f_dir = os.path.join(base_dir, name)
                     parameter = file(f_dir, 'r').read()
+                    logging.debug("Reading path %s: %s", f_dir,
+                                  parameter.strip())
                     try:
                         # Verify if the path in question is writable
                         f = open(f_dir, 'w')
@@ -97,7 +100,10 @@ class TransparentHugePageConfig(object):
         Applies test configuration on the host.
         """
         if self.test_config:
+            logging.info("Applying custom THP test configuration")
             for path in self.test_config.keys():
+                logging.info("Writing path %s: %s", path,
+                             self.test_config[path])
                 file(path, 'w').write(self.test_config[path])
 
 
@@ -121,10 +127,18 @@ class TransparentHugePageConfig(object):
             Check the status of khugepaged when set value to specify file.
             """
             for (a, r) in action_list:
-                open(file_name, "w").write(a)
+                logging.info("Writing path %s: %s, expected khugepage rc: %s ",
+                             file_name, a, r)
+                try:
+                    file_object = open(file_name, "w")
+                    file_object.write(a)
+                    file_object.close()
+                except IOError, error_detail:
+                    logging.info("IO Operation on path %s failed: %s",
+                                 file_name, error_detail)
                 time.sleep(5)
                 try:
-                    utils.run('pgrep khugepaged')
+                    utils.run('pgrep khugepaged', verbose=False)
                     if r != 0:
                         raise THPKhugepagedError("Khugepaged still alive when"
                                                  "transparent huge page is "
@@ -134,7 +148,7 @@ class TransparentHugePageConfig(object):
                         raise THPKhugepagedError("Khugepaged could not be set to"
                                                  "status %s" % a)
 
-
+        logging.info("Testing khugepaged")
         for file_path in self.file_list_str:
             action_list = []
             if re.findall("enabled", file_path):
@@ -159,7 +173,10 @@ class TransparentHugePageConfig(object):
 
         for file_path in self.file_list_num:
             action_list = []
-            value = int(open(file_path, "r").read())
+            file_object = open(file_path, "r")
+            value = file_object.read()
+            value = int(value)
+            file_object.close()
             if value != 0 and value != 1:
                 new_value = random.random()
                 action_list.append((str(int(value * new_value)),0))
@@ -184,10 +201,17 @@ class TransparentHugePageConfig(object):
         """:
         Restore the host's original configuration after test
         """
+        logging.info("Restoring host's original THP configuration")
         for path in self.original_config:
-            p_file = open(path, 'w')
-            p_file.write(str(self.original_config[path]))
-            p_file.close()
+            logging.info("Writing path %s: %s", path,
+                         self.original_config[path])
+            try:
+                p_file = open(path, 'w')
+                p_file.write(str(self.original_config[path]))
+                p_file.close()
+            except IOError, error_detail:
+                logging.info("IO operation failed on file %s: %s", path,
+                             error_detail)
 
 
 class HugePageConfig(object):
