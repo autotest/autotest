@@ -1,4 +1,4 @@
-import logging, time, commands, os, string, re
+import logging, os, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.virt import virt_utils, virt_test_utils
@@ -48,11 +48,9 @@ def run_trans_hugepage_swapping(test, params, env):
         swap_size = int(args_dict['swap_size']) / 1024
         swap_free.append(int(args_dict['swap_free'])/1024)
         hugepage_size = int(args_dict['hugepage_size']) / 1024
-        dd_timeout = float(params.get("dd_timeout", 900))
         login_timeout = float(params.get("login_timeout", 360))
         check_cmd_timeout = float(params.get("check_cmd_timeout", 900))
         mem_path = os.path.join(test.tmpdir, 'thp_space')
-        tmpfs_path = "/space"
 
         # If swap is enough fill all memory with dd
         if swap_free > (total - free):
@@ -63,7 +61,7 @@ def run_trans_hugepage_swapping(test, params, env):
             tmpfs_size = free
 
         if swap_size <= 0:
-            raise logging.info("Host does not have swap enabled")
+            logging.warning("Host does not have swap enabled")
         session = None
         try:
             if not os.path.isdir(mem_path):
