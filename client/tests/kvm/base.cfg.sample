@@ -10,6 +10,22 @@ monitors = humanmonitor1
 main_monitor = humanmonitor1
 monitor_type_humanmonitor1 = human
 monitor_type = human
+
+# Specify usb controller device for guest.
+usbs = usb1
+# USB controller type, can be ehci/uhci
+usb_type_usb1 = uhci
+## These configure is used for multifunction support.
+# usbs = usb1 usb2
+## UHCI's multifunction configure.
+# usb_type_usb1 = uhci
+# multifunction_usb1 = on
+# masterbus_usb1 = usb1
+# firstport_usb1 = 0
+## EHCI's multifunction configure.
+# usb_type_usb2 = ehci
+# multifunction_usb2 = on
+
 main_vm = vm1
 
 # Location of the qemu programs. You can refer to absolute paths here.
