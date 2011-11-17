@@ -1,5 +1,5 @@
 import logging, os, sys, subprocess, tempfile, traceback
-import time
+import time, threading
 
 from autotest_lib.client.common_lib import utils
 from autotest_lib.server import utils as server_utils
@@ -73,12 +73,25 @@ def launch_remote_followfiles(host, lastlines_dirpath, follow_paths):
                                       stdin=open(os.devnull, 'r'),
                                       stdout=subprocess.PIPE, shell=True)
 
-
-    # Give it enough time to crash if it's going to (it shouldn't).
-    time.sleep(5)
-    doa = remote_ff_proc.poll()
-    if doa:
-        raise FollowFilesLaunchError('ssh command crashed.')
+    def wait_for_crash():
+        """
+        Warning: this is not threadsafe due to the call to
+        host.job.record()
+        """
+        # Give it enough time to crash if it's going to (it shouldn't).
+        time.sleep(5)
+        doa = remote_ff_proc.poll()
+        if doa:
+            # We're hosed, there is no point in proceeding.
+            logging.fatal('Failed to launch followfiles on target,'
+                          ' aborting logfile monitoring: %s', host.hostname)
+            if host.job:
+                # Put a warning in the status.log
+                host.job.record(
+                    'WARN', None, 'logfile.monitor',
+                    'followfiles launch failed')
+    crash_waiter = threading.Thread(target=wait_for_crash)
+    crash_waiter.start()
 
     return remote_ff_proc
 
@@ -222,19 +235,8 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
             self._lastlines_dirpath = self.get_tmp_dir(parent='/var/tmp')
 
         # Launch followfiles on target
-        try:
-            self._followfiles_proc = launch_remote_followfiles(
-                self, self._lastlines_dirpath, existing)
-        except FollowFilesLaunchError:
-            # We're hosed, there is no point in proceeding.
-            logging.fatal('Failed to launch followfiles on target,'
-                          ' aborting logfile monitoring: %s', self.hostname)
-            if self.job:
-                # Put a warning in the status.log
-                self.job.record(
-                    'WARN', None, 'logfile.monitor',
-                    'followfiles launch failed')
-            return
+        self._followfiles_proc = launch_remote_followfiles(
+            self, self._lastlines_dirpath, existing)
 
         # Ensure we have sane pattern_paths before launching console.py
         sane_pattern_paths = []
