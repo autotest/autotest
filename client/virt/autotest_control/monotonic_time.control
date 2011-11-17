@@ -32,6 +32,3 @@ job.run_test('monotonic_time', tag='gtod',  test_type='gtod',
 
 job.run_test('monotonic_time', tag='clock', test_type='clock',
              duration=300, threshold=0)
-
-job.run_test('monotonic_time', tag='tsc',   test_type='tsc',
-             duration=300, threshold=0)
