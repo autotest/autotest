@@ -152,11 +152,65 @@ variants:
         kill_vm_on_error = yes
         login_timeout = 240
 
+    - boot_with_usb:
+        type = boot
+        restart_vm = yes
+        kill_vm_on_error = yes
+        login_timeout = 240
+        variants:
+            - ehci:
+                usbs = usb1
+                usb_type_usb1 = ehci
+            - keyboard:
+                extra_params += " -device usb-kbd,id=kbd1"
+            - mouse:
+                extra_params += " -device usb-mouse,id=mouse1"
+            - hub:
+                extra_params += " -device usb-hub,id=hub1"
+            - storage:
+                usbs = usb1
+                usb_type_usb1 = ehci
+                images += " stg"
+                image_name_stg = "usbdevice"
+                image_format_stg = "qcow2"
+                image_boot_stg = no
+                drive_format_stg = "usb2"
+                drive_index_stg = 1
+                create_image_stg = yes
+                image_size_stg = 10M
+
     - reboot: install setup image_copy unattended_install.cdrom
         type = boot
         reboot_method = shell
         kill_vm_on_error = yes
         login_timeout = 240
+
+    - reboot_with_usb:
+        type = boot
+        reboot_method = shell
+        kill_vm_on_error = yes
+        login_timeout = 240
+        variants:
+            - ehci:
+                usbs = usb1
+                usb_type_usb1 = ehci
+            - keyboard:
+                extra_params += " -device usb-kbd,id=kbd1"
+            - mouse:
+                extra_params += " -device usb-mouse,id=mouse1"
+            - hub:
+                extra_params += " -device usb-hub,id=hub1"
+            - storage:
+                usbs = usb1
+                usb_type_usb1 = ehci
+                images += " stg"
+                image_name_stg = "usbdevice"
+                image_format_stg = "qcow2"
+                image_boot_stg = no
+                drive_format_stg = "usb2"
+                drive_index_stg = 1
+                create_image_stg = yes
+                image_size_stg = 10M
 
     - migrate: install setup image_copy unattended_install.cdrom
         type = migration
@@ -1102,6 +1156,8 @@ variants:
         type = usb
         kill_vm = yes
         format_timeout = 400
+        usbs = usb1
+        usb_type_usb1 = ehci
         images += " stg"
         image_name_stg = "usbdevice"
         image_format_stg = "qcow2"
