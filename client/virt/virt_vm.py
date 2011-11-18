@@ -204,6 +204,8 @@ class VMRebootError(VMError):
 class VMStatusError(VMError):
     pass
 
+class VMRemoveError(VMError):
+    pass
 
 def get_image_blkdebug_filename(params, root_dir):
     """
