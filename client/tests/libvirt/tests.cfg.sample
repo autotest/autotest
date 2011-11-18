@@ -1,13 +1,16 @@
 # Copy this file to tests.cfg and edit it.
 #
 # This file contains the test set definitions. Define your test sets here.
-include tests_base.cfg
+include base.cfg
+include subtests.cfg
+include guest-os.cfg
+include guest-hw.cfg
 include cdkeys.cfg
 include virtio-win.cfg
 
 variants:
-    # Runs virt-install, f15 64 bit guest OS, install, boot, shutdown
-    - @libvirt_f15_quick:
+    # Runs virt-install, f16 64 bit guest OS, install, boot, shutdown
+    - @libvirt_f16_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
         only raw
@@ -16,15 +19,15 @@ variants:
         only smp2
         only no_pci_assignable
         only smallpages
-        only Fedora.15.64
+        only Fedora.16.64
         only unattended_install.cdrom, boot, reboot, shutdown
 
-    # Runs virt-install, f15 64 as a 64 bit PV guest OS, install, boot, shutdown
-    - @libvirt_xenpv_f15_quick:
+    # Runs virt-install, f16 64 as a 64 bit PV guest OS, install, boot, shutdown
+    - @libvirt_xenpv_f16_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
         url = auto
-        cdrom_cd1 = isos/linux/Fedora-15-x86_64-DVD.iso
+        cdrom_cd1 = isos/linux/Fedora.16-x86_64-DVD.iso
         hvm_or_pv = --paravirt
         only raw
         only xennet
@@ -32,16 +35,16 @@ variants:
         only smp2
         only no_pci_assignable
         only smallpages
-        only Fedora.15.64
+        only Fedora.16.64
         only unattended_install.url, boot, reboot, shutdown
 
-    # Runs virt-install, f15 64 as a 64 bit HVM (full virt) guest OS,
+    # Runs virt-install, f16 64 as a 64 bit HVM (full virt) guest OS,
     # install, boot, shutdown
-    - @libvirt_xenhvm_f15_quick:
+    - @libvirt_xenhvm_f16_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
         url = auto
-        cdrom_cd1 = isos/linux/Fedora-15-x86_64-DVD.iso
+        cdrom_cd1 = isos/linux/Fedora.16-x86_64-DVD.iso
         hvm_or_pv = --hvm --accelerate
         only raw
         only rtl8139
@@ -49,7 +52,7 @@ variants:
         only smp2
         only no_pci_assignable
         only smallpages
-        only Fedora.15.64
+        only Fedora.16.64
         only unattended_install.url, boot, reboot, shutdown
 
     # Runs virt-install, RHEL 6.0 64 bit guest OS, install, boot, shutdown
@@ -103,4 +106,4 @@ Linux..unattended_install:
     initrd ?<= /tmp/libvirt_autotest_root/
 
 # Choose your test list from the testsets defined
-only libvirt_f15_quick
+only libvirt_f16_quick
