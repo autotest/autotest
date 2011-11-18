@@ -126,10 +126,11 @@ def run_netstress_kill_guest(test, params, env):
         logging.debug(modules)
         for _ in range(50):
             for module in modules:
-                session_serial.sendline("rmmod %s" % (module))
+                session_serial.cmd("rmmod %s" % (module))
                 time.sleep(0.2)
             for module in modules:
-                session_serial.sendline("modprobe %s" % (module))
+                logging.debug("Sending command: modprobe %s", module)
+                session_serial.sendline("modprobe %s\n" % (module))
                 time.sleep(0.2)
         kill_and_check(vm)
 
