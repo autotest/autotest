@@ -80,8 +80,10 @@ image_raw_device = no
 # NFS directory of guests' images
 images_good = 0.0.0.0:/autotest/images_good
 
+# libvirt driver
+driver_type = default
+
 # libvirt (virt-install optional arguments)
-use_connect_uri = yes
 use_autostart = no
 use_check_cpu = yes
 use_debug = yes
