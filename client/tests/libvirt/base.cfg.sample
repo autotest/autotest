@@ -1,0 +1,98 @@
+# Copy this file to base.cfg and edit it.
+#
+# Define the objects we'll be using
+vms = vm1
+vm_type = libvirt
+images = image1
+cdroms = cd1
+nics = nic1
+monitors = 
+
+# Choose the main VM and monitor
+main_vm = vm1
+#main_monitor = humanmonitor1
+
+# Some preprocessor/postprocessor params
+start_vm = yes
+kill_vm = no
+kill_vm_gracefully = yes
+kill_unresponsive_vms = no
+
+# Screendump specific stuff
+convert_ppm_files_to_png_on_error = yes
+#keep_ppm_files = yes
+#keep_ppm_files_on_error = yes
+take_regular_screendumps = yes
+keep_screendumps_on_error = yes
+screendump_delay = 5
+screendump_quality = 30
+screendump_temp_dir = /dev/shm
+screendump_verbose = no
+
+# Some default VM params
+qemu_binary = qemu
+qemu_img_binary = qemu-img
+smp = 1
+mem = 1024
+image_size = 10G
+drive_index_image1 = 0
+drive_cache = none
+shell_port = 22
+display = vnc
+drive_index_cd1 = 1
+
+qxl = on
+qxl_dev_nr = 1
+spice = disable-ticketing
+
+# Monitor params
+monitor_type = human
+
+# Default scheduler params
+used_cpus = 1
+used_mem = 512
+
+# Port redirections
+redirs = remote_shell
+guest_port_remote_shell = 22
+
+# NIC parameters
+#nic_mode = user
+nic_mode = tap
+
+# DO NOT set to 'private when using libvirt client
+bridge = none
+
+# You can set bridge to
+# be a specific bridge
+# name, such as 'virbr0'
+#bridge = virbr0
+# If you need more ports to be available for comm between host and guest,
+# please add them here
+priv_bridge_ports = 53 67
+run_tcpdump = yes
+
+# Misc
+profilers = kvm_stat
+login_timeout = 360
+image_raw_device = no
+
+# NFS directory of guests' images
+images_good = 0.0.0.0:/autotest/images_good
+
+# libvirt (virt-install optional arguments)
+use_connect_uri = yes
+use_autostart = no
+use_check_cpu = yes
+use_debug = yes
+use_no_reboot = no
+use_os_variant = no
+use_os_type = yes
+# libvirt network to use examples network=default or bridge=br0
+virsh_network = network=default
+# if using 'url = auto' to install, url_auto_ip must match IP on
+# selected virsh network or bridge
+url_auto_ip = 192.168.122.1
+# wait in minutes for virt-install to finish (bz still open)
+use_virt_install_wait = no
+virt_install_wait_time = 300  
