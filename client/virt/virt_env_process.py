@@ -65,8 +65,8 @@ def preprocess_vm(test, params, env, name):
         logging.debug("'force_remove_vm' specified; removing VM...")
         remove_vm = True
 
-    if remove_vm and not libvirt_vm.virsh_remove_domain(name):
-        raise error.TestError("Could not remove VM")
+    if remove_vm:
+        vm.remove()
 
     start_vm = False
 
@@ -80,7 +80,7 @@ def preprocess_vm(test, params, env, name):
     elif params.get("start_vm") == "yes":
         # need to deal with libvirt VM differently than qemu
         if vm_type == 'libvirt':
-            if not libvirt_vm.virsh_is_alive(name):
+            if not vm.is_alive():
                 logging.debug("VM is not alive; starting it...")
                 start_vm = True
         else:
@@ -95,7 +95,7 @@ def preprocess_vm(test, params, env, name):
     if start_vm:
         if vm_type == "libvirt" and params.get("type") != "unattended_install":
             vm.params = params
-            libvirt_vm.virsh_start(name, vm)
+            vm.start()
             # Wait for the domain to be created
             virt_utils.wait_for(func=vm.is_alive, timeout=60,
                                 text=("waiting for domain %s to start" %
