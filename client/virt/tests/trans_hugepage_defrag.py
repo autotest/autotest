@@ -12,7 +12,10 @@ def run_trans_hugepage_defrag(test, params, env):
         If it does proceed with the test.
     2) Verify that the kernel hugepages can be used in host.
     3) Verify that the kernel hugepages can be used in guest.
-    4) Migrate guest while using hugepages.
+    4) Use dd and tmpfs to make fragement in memory
+    5) Use libhugetlbfs to allocated huge page before start defrag
+    6) Set the khugepaged do defrag
+    7) Use libhugetlbfs to allocated huge page compare the value
 
     @param test: KVM test object.
     @param params: Dictionary with test parameters.
@@ -27,9 +30,10 @@ def run_trans_hugepage_defrag(test, params, env):
 
     def set_libhugetlbfs(number):
         f = file("/proc/sys/vm/nr_hugepages", "w+")
-        f.write(number)
+        f.write(str(number))
         f.seek(0)
         ret = f.read()
+        logging.info("Number of huge pages on libhugetlbfs: %s" % ret)
         return int(ret)
 
     test_config = virt_test_setup.TransparentHugePageConfig(test, params)
@@ -44,11 +48,13 @@ def run_trans_hugepage_defrag(test, params, env):
         test_config.setup()
         error.context("Fragmenting guest memory")
         try:
+            logging.info("Prepare tmpfs in host")
             if not os.path.isdir(mem_path):
                 os.makedirs(mem_path)
             if os.system("mount -t tmpfs none %s" % mem_path):
                 raise error.TestError("Can not mount tmpfs")
 
+            logging.info("Start using dd to fragment memory in host")
             # Try to fragment the memory a bit
             cmd = ("for i in `seq 262144`; do dd if=/dev/urandom of=%s/$i "
                    "bs=4K count=1 & done" % mem_path)
@@ -83,4 +89,6 @@ def run_trans_hugepage_defrag(test, params, env):
         logging.info("Defrag test succeeded")
         session.close()
     finally:
+        # Clean up lib huge tlb fs in system
+        set_libhugetlbfs(0)
         test_config.cleanup()
