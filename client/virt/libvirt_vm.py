@@ -261,8 +261,6 @@ class VM(virt_vm.BaseVM):
     """
     This class handles all basic VM operations for libvirt.
     """
-
-
     # constant for libirt driver type,
     # now it only supports default, qemu and xen.
     LIBVIRT_DEFAULT = "default"
@@ -305,7 +303,7 @@ class VM(virt_vm.BaseVM):
         self.driver_type = params.get("driver_type", self.LIBVIRT_DEFAULT)
 
         default_uri = virsh_uri()
-        if not self.driver_type:
+        if not self.driver_type or self.driver_type == self.LIBVIRT_DEFAULT:
             if default_uri == "qemu:///system":
                 self.driver_type = self.LIBVIRT_QEMU
             elif default_uri == "xen:///":
