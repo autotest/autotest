@@ -6,7 +6,7 @@ as dpkg and rpm.
 
 __author__ = 'lucasmr@br.ibm.com (Lucas Meneghel Rodrigues)'
 
-import os, re
+import os, re, logging
 from autotest_lib.client.bin import os_dep, utils
 from autotest_lib.client.common_lib import error
 
@@ -157,14 +157,17 @@ def _dpkg_info(dpkg_package):
 
 def list_all():
     """Returns a list with the names of all currently installed packages."""
+    logging.debug("Listing all packages available")
     support_info = os_support()
     installed_packages = []
 
     if support_info['rpm']:
-        installed_packages += utils.system_output('rpm -qa').splitlines()
+        cmd_result = utils.run('rpm -qa', ignore_status=True, verbose=False)
+        installed_packages += cmd_result.stdout.splitlines()
 
     if support_info['dpkg']:
-        raw_list = utils.system_output('dpkg -l').splitlines()[5:]
+        cmd_result = utils.run('dpkg -l', ignore_status=True, verbose=False)
+        raw_list = cmd_result.stdout.splitlines()[5:]
         for line in raw_list:
             parts = line.split()
             if parts[0] == "ii":  # only grab "installed" packages
