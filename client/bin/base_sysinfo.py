@@ -127,7 +127,8 @@ class command(loggable):
             for f in (stdin, stdout, stderr):
                 f.close()
             if self._compress_log and os.path.exists(logf_path):
-                utils.system('gzip -9 "%s"' % logf_path, ignore_status=True)
+                utils.run('gzip -9 "%s"' % logf_path, ignore_status=True,
+                          verbose=False)
 
 
 class base_sysinfo(object):
