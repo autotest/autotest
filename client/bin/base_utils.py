@@ -336,7 +336,8 @@ def count_cpus():
 
 # Returns total memory in kb
 def read_from_meminfo(key):
-    meminfo = utils.system_output('grep %s /proc/meminfo' % key)
+    cmd_result = utils.run('grep %s /proc/meminfo' % key, verbose=False)
+    meminfo = cmd_result.stdout
     return int(re.search(r'\d+', meminfo).group(0))
 
 
