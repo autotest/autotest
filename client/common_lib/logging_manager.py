@@ -558,7 +558,6 @@ class _FdRedirectionStreamManager(_StreamManager):
         input_file = os.fdopen(read_fd, 'r')
         for line in iter(input_file.readline, ''):
             logging.log(self._level, line.rstrip('\n'))
-        logging.debug('Logging subprocess finished')
         os._exit(0)
 
 
