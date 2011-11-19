@@ -30,7 +30,6 @@ class harness_standalone(harness.harness):
             shutil.copyfile(src, dest)
             job.control_set(dest)
 
-        logging.debug("Symlinking init scripts")
         rc = os.path.join(self.autodir, 'tools/autotest')
         # see if system supports event.d versus systemd versus inittab
         supports_eventd = os.path.exists('/etc/event.d')
@@ -38,7 +37,9 @@ class harness_standalone(harness.harness):
         supports_inittab = os.path.exists('/etc/inittab')
         if supports_eventd or supports_systemd:
             # NB: assuming current runlevel is default
-            initdefault = utils.system_output('/sbin/runlevel').split()[1]
+            cmd_result = utils.run('/sbin/runlevel', ignore_status=True,
+                                   verbose=False)
+            initdefault = cmd_result.stdout.split()[1]
         elif supports_inittab:
             initdefault = utils.system_output('grep :initdefault: /etc/inittab')
             initdefault = initdefault.split(':')[1]
