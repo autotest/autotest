@@ -50,7 +50,7 @@ class test(common_test.base_test):
         # make sure this script will run with a new enough python to work
         cmd = ("python -c 'import sys; "
                "print sys.version_info[0], sys.version_info[1]'")
-        result = utils.run(cmd, ignore_status=True)
+        result = utils.run(cmd, ignore_status=True, verbose=False)
         if result.exit_status != 0:
             logging.warning('System python is too old, crash handling disabled')
             return
@@ -82,7 +82,6 @@ class test(common_test.base_test):
             except ValueError:
                 logging.warning('Could not find GDB installed. Crash handling '
                                 'will operate with limited functionality')
-            logging.debug('Crash handling enabled')
 
 
     def crash_handler_report(self):
