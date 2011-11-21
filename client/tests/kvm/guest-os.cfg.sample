@@ -63,6 +63,23 @@ variants:
                  stg_image_num = 27
                  list_volume_command = cd /dev && \ls vd*
                  re_str = "[vhs]d[a-z][^0-9]"
+        usb_multi_disk:
+            show_mount_cmd = mount|gawk '/mnt/{print $1}'
+            clean_cmd = "\rm -rf /mnt/*"
+            cmd_list = "copy_to_command copy_from_command"
+            file_system = "ext3 ext2"
+            mount_command = mkdir /mnt/%s && mount /dev/%s /mnt/%s
+            umount_command = umount /dev/%s && rmdir /mnt/%s
+            list_volume_command = cd /dev && \ls [vhs]d?
+            re_str = "[vhs]d[a-z]"
+            format_command = echo y | mkfs -t %s /dev/%s
+            copy_to_command = \cp -rf /bin/ls /mnt/%s
+            copy_from_command = \cp -rf /mnt/%s/ls /tmp/ls
+            compare_command = cd /bin && md5sum ls > /tmp/ls.md5 && cd /tmp && md5sum -c ls.md5
+            check_result_key_word = OK
+            max_disk:
+                list_volume_command = cd /dev && \ls [vhs]d*
+                re_str = "[vhs]d[a-z][^0-9]"
         floppy_test:
             format_floppy_cmd = mkfs -t ext3 /dev/fd0
             test_floppy_cmd = (dd if=/dev/urandom of=/mnt/test_floppy bs=1M count=1) && (rm -f /mnt/test_floppy)
@@ -369,6 +386,7 @@ variants:
                 variants:
                     - 3.9.i386:
                         no setup autotest linux_s3 guest_s4 shutdown multi_disk
+                        no usb_multi_disk
                         image_name = rhel3.9-32
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         install:
@@ -391,6 +409,7 @@ variants:
 
                     - 3.9.x86_64:
                         no setup autotest linux_s3 guest_s4 shutdown multi_disk
+                        no usb_multi_disk
                         image_name = rhel3.9-64
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         install:
@@ -1150,6 +1169,25 @@ variants:
                 pre_cmd = del diskpart.script && (echo select disk 1 >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
             max_disk:
                 pre_cmd = del diskpart.script && (for /L %i in (1 1 23) do echo select disk %i >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
+        usb_multi_disk:
+            block_list += " E:"
+            shell_port = 23
+            shell_client = telnet
+            post_cmd = del c:\cmd.exe
+            file_system = "ntfs fat32"
+            cmd_list = "copy_to_command copy_from_command"
+            list_volume_command = wmic volume get driveletter
+            re_str = "([A-Z]:)"
+            format_command = format /fs:%s %s /q /y
+            copy_to_command = copy C:\WINDOWS\system32\cmd.exe %s /y
+            copy_from_command = copy %s\cmd.exe c:\ /y
+            compare_command = fc /b c:\windows\system32\cmd.exe c:\cmd.exe
+            check_result_key_word = no difference
+            signal_repeat:
+                pre_cmd = del diskpart.script && (echo select disk 1 >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
+            max_disk:
+                disks_num = 23
+                pre_cmd = del diskpart.script && (for /L %i in (1 1 23) do echo select disk %i >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
         floppy_test:
             format_floppy_cmd = echo n|format A: /Q /V:test_floppy
             source_file = C:\Windows\System32\cmd.exe
@@ -1213,7 +1251,7 @@ variants:
                                 dd_data_whqlqual = Basic
                             device.net:
                                 image_name_supportvm = winXP-32-supportvm
-                        multi_disk:
+                        multi_disk, usb_multi_disk:
                             list_volume_command = fsutil fsinfo drives
 
 
@@ -1243,7 +1281,7 @@ variants:
                                 dd_data_whqlqual = Basic
                             device.net:
                                 image_name_supportvm = winXP-64-supportvm
-                        multi_disk:
+                        multi_disk, usb_multi_disk:
                             list_volume_command = fsutil fsinfo drives
 
 
