@@ -298,7 +298,7 @@ def remove_image(params, root_dir):
     if os.path.exists(image_filename):
         os.unlink(image_filename)
     else:
-        logging.debug("Image file %s not found")
+        logging.debug("Image file %s not found", image_filename)
 
 
 def check_image(params, root_dir):
