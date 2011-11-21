@@ -15,6 +15,8 @@ monitor_type = human
 usbs = usb1
 # USB controller type, can be ehci/uhci
 usb_type_usb1 = uhci
+# Max ports on a controller.
+usb_max_port_usb1 = 2
 ## These configure is used for multifunction support.
 # usbs = usb1 usb2
 ## UHCI's multifunction configure.

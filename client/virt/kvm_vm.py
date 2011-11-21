@@ -63,6 +63,17 @@ class VM(virt_vm.BaseVM):
         # We need this to get to the blkdebug files
         self.virt_dir = os.path.abspath(os.path.join(root_dir, "..", "..", "virt"))
         self.address_cache = address_cache
+        # This usb_dev_dict member stores usb controller and device info,
+        # It's dict, each key is an id of usb controller,
+        # and key's value is a list, contains usb devices' ids which
+        # attach to this controller.
+        # A filled usb_dev_dict may look like:
+        # { "usb1" : ["stg1", "stg2", "stg3", "stg4", "stg5", "stg6"],
+        #   "usb2" : ["stg7", "stg8"],
+        #   ...
+        # }
+        # This structure can used in usb hotplug/unplug test.
+        self.usb_dev_dict = {}
 
 
     def verify_alive(self):
@@ -229,7 +240,7 @@ class VM(virt_vm.BaseVM):
 
         def add_drive(help, filename, index=None, format=None, cache=None,
                       werror=None, rerror=None, serial=None, snapshot=False,
-                      boot=False, blkdebug=None, bus=None):
+                      boot=False, blkdebug=None, bus=None, port=None):
             name = None;
             dev = "";
             if format == "ahci":
@@ -243,7 +254,7 @@ class VM(virt_vm.BaseVM):
                 if bus:
                     dev += ",bus=%s" % bus
                 dev += ",drive=%s" % name
-                dev += ",port=%d" % (int(index) + 1)
+                dev += ",port=%d" % (int(port) + 1)
                 format = "none"
                 index = None
             if blkdebug is not None:
@@ -409,6 +420,9 @@ class VM(virt_vm.BaseVM):
             else:
                 # Okay, for the archaic qemu which has not device parameter,
                 # just return a usb uhci controller.
+                # If choose this kind of usb controller, it has no name/id,
+                # and only can be created once, so give it a special name.
+                self.usb_dev_dict["OLDVERSION_usb0"] = []
                 return " -usb"
 
             if multifunction is True:
@@ -418,6 +432,8 @@ class VM(virt_vm.BaseVM):
             if firstport:
                 cmd += ",firstport=%s" % firstport
 
+            # register this usb controller.
+            self.usb_dev_dict[usb_id] = []
             return cmd
 
         # End of command line option wrappers
@@ -488,12 +504,20 @@ class VM(virt_vm.BaseVM):
                 have_ahci = True
 
             bus = None
+            port = None
             if image_params.get("drive_format") == "usb2":
+                # Find an available USB port.
                 for usb in params.objects("usbs"):
                     usb_params = params.object_params(usb)
-                    if usb_params.get("usb_type") == "ehci":
+                    max_port = int(usb_params.get("usb_max_port", 6))
+                    if (usb_params.get("usb_type") == "ehci" and
+                       len(self.usb_dev_dict.get(usb)) < max_port):
                         bus = "%s.0" % usb
+                        self.usb_dev_dict[usb].append(image_name)
+                        port = self.usb_dev_dict[usb].index(image_name)
                         break
+                if bus is None:
+                    raise virt_vm.VMUSBControllerPortFullError(self.name)
 
             qemu_cmd += add_drive(help,
                     virt_vm.get_image_filename(image_params, root_dir),
@@ -507,7 +531,7 @@ class VM(virt_vm.BaseVM):
                     image_params.get("image_boot") == "yes",
                     virt_vm.get_image_blkdebug_filename(image_params,
                                                         self.virt_dir),
-                    bus)
+                    bus, port)
 
         redirs = []
         for redir_name in params.objects("redirs"):
