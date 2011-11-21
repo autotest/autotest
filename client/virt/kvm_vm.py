@@ -446,7 +446,8 @@ class VM(virt_vm.BaseVM):
         # Add the VM's name
         qemu_cmd += add_name(help, name)
         # no automagic devices please
-        if has_option(help,"nodefaults"):
+        defaults = params.get("defaults")
+        if has_option(help,"nodefaults") and defaults != "yes":
             qemu_cmd += " -nodefaults"
             qemu_cmd += " -vga std"
         # Add monitors
