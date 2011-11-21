@@ -207,6 +207,21 @@ class VMStatusError(VMError):
 class VMRemoveError(VMError):
     pass
 
+class VMUSBError(VMError):
+    pass
+
+class VMUSBControllerError(VMUSBError):
+    pass
+
+class VMUSBControllerPortFullError(VMUSBControllerError):
+    def __init__(self, name):
+        VMUSBControllerError.__init__(self, name)
+        self.name = name
+
+    def __str__(self):
+        return ("No available USB Controller port left for VM %s." % self.name)
+
+
 def get_image_blkdebug_filename(params, root_dir):
     """
     Generate an blkdebug file path from params and root_dir.
