@@ -1162,6 +1162,42 @@ variants:
         image_size_stg = 10M
         fdisk_string = "10 MB, 10485760 bytes"
 
+    - usb_multi_disk: install setup image_copy unattended_install.cdrom
+        type = multi_disk
+        cmd_timeout = 1000
+        block_list = C: D: vda vda1 vda2 hda hda1 hda2 sda sda1 sda2
+        kill_vm = yes
+        create_image = yes
+        image_boot_image1 = yes
+        usbs = usb1
+        usb_type_usb1 = ehci
+        usb_type = ehci
+        usb_max_port_usb1 = 6
+        usb_max_port = 6
+        variants:
+            - signal_repeat:
+                images += " stg"
+                image_format_stg = qcow2
+                image_name_stg = storage
+                image_size_stg = 1G
+                drive_format_stg = usb2
+                drive_index_stg = 1
+                image_boot_stg = no
+                force_create_image_stg = yes
+                remove_image_stg = yes
+                n_repeat = 10
+            - max_disk:
+                start_vm = no
+                usbs += " usb2 usb3 usb4"
+                stg_image_num = 24
+                stg_image_size = 1G
+                stg_image_boot = no
+                stg_drive_format = usb2
+                stg_assign_index = yes
+                remove_image = yes
+                remove_image_image1 = no
+                cmd_timeout = 1000
+
     - nmi_watchdog: install setup image_copy unattended_install.cdrom
         type = nmi_watchdog
         get_nmi_cmd = grep NMI /proc/interrupts
