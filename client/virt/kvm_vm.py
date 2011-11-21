@@ -708,7 +708,8 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
-        def add_cpu_flags(help, cpu_model, flags=None, vendor_id=None):
+        def add_cpu_flags(help, cpu_model, flags=None, vendor_id=None,
+                          family=None):
             if has_option(help, 'cpu'):
                 cmd = " -cpu '%s'" % cpu_model
 
@@ -716,7 +717,8 @@ class VM(virt_vm.BaseVM):
                     cmd += ",vendor=\"%s\"" % vendor_id
                 if flags:
                     cmd += ",%s" % flags
-
+                if family is not None:
+                    cmd += ",family=%s" % family
                 return cmd
             else:
                 return ""
@@ -995,7 +997,9 @@ class VM(virt_vm.BaseVM):
         if cpu_model:
             vendor = params.get("cpu_model_vendor")
             flags = params.get("cpu_model_flags")
-            qemu_cmd += add_cpu_flags(help, cpu_model, vendor, flags)
+            family = params.get("cpu_family")
+            qemu_cmd += add_cpu_flags(help, cpu_model, flags,
+                                      vendor, family)
 
         machine_type = params.get("machine_type")
         if machine_type:
