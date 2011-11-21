@@ -283,6 +283,8 @@ class VM(virt_vm.BaseVM):
 
         def add_nic(help, vlan, model=None, mac=None, device_id=None, netdev_id=None,
                     nic_extra_params=None):
+            if model == 'none':
+                return ''
             if has_option(help, "netdev"):
                 netdev_vlan_str = ",netdev=%s" % netdev_id
             else:
@@ -310,6 +312,8 @@ class VM(virt_vm.BaseVM):
         def add_net(help, vlan, mode, ifname=None, tftp=None, bootfile=None,
                     hostfwd=[], netdev_id=None, netdev_extra_params=None,
                     tapfd=None):
+            if mode == 'none':
+                return ''
             if has_option(help, "netdev"):
                 cmd = " -netdev %s,id=%s" % (mode, netdev_id)
                 if netdev_extra_params:
