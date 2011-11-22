@@ -1637,12 +1637,17 @@ def usage():
     """
     Print stand alone program usage.
     """
-    print 'usage:',
-    print 'make_html_report.py -r <result_directory> [-f output_file] [-R]'
-    print '(e.g. make_html_reporter.py -r '\
-          '/usr/local/autotest/client/results/default -f /tmp/myreport.html)'
+    called_as = os.path.abspath(sys.argv[0])
+    bn = os.path.basename(called_as) # keep print statements short also
+    rs = os.path.join(\
+        os.path.split(os.path.dirname(called_as))[0], 'results', 'default' \
+    )
+    print 'usage: ' + bn + ' -r <result_directory> [-f output_file] [-R]'
+    print
     print 'add "-R" for an html report with relative-paths (relative '\
           'to results directory)'
+    print
+    print 'e.g. ' + bn + ' -r ' + rs + ' -f /tmp/myreport.html'
     print ''
     sys.exit(1)
 
