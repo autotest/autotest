@@ -1157,7 +1157,7 @@ variants:
         start_vm = no
         floppy = images/test_floppy.img
 
-    - usb_test: install setup image_copy unattended_install.cdrom
+    - usb_storage: install setup image_copy unattended_install.cdrom
         only Linux
         type = usb
         kill_vm = yes
