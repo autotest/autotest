@@ -1,5 +1,6 @@
 import logging, re, random
 from autotest_lib.client.common_lib import error
+from autotest_lib.client.virt import virt_env_process
 
 
 @error.context_aware
@@ -17,14 +18,40 @@ def run_multi_disk(test, params, env):
     @param params: Dictionary with the test parameters
     @param env: Dictionary with test environment.
     """
+    stg_image_num = int(params.get("stg_image_num", 0))
+    stg_image_size = params.get("stg_image_size")
+    stg_image_format = params.get("stg_image_format")
+    stg_image_boot = params.get("stg_image_boot")
+    stg_drive_format = params.get("stg_drive_format")
+    stg_assign_index = params.get("stg_assign_index") == "yes"
+    for num in xrange(stg_image_num):
+        name = "stg%d" % num
+        params["images"] = params.get("images") + " %s" % name
+        params["image_name_%s" % name] = name
+        if stg_image_size:
+            params["image_size_%s" % name] = stg_image_size
+        if stg_image_format:
+            params["image_format_%s" % name] = stg_image_format
+        if stg_image_boot:
+            params["image_boot_%s" % name] = stg_image_boot
+        if stg_drive_format:
+            params["drive_format_%s" % name] = stg_drive_format
+        if stg_assign_index:
+            params["drive_index_%s" % name] = num
+        stg_params = params.object_params(name)
+        virt_env_process.preprocess_image(test, stg_params)
+
     vm = env.get_vm(params["main_vm"])
+    # stg_image_num is greater than 0 means there is some disk(s) added in
+    # this case. and guest must be created explicitly.
+    if stg_image_num > 0:
+        vm.create(params=params)
     vm.verify_alive()
     session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
 
     images = params.get("images").split()
     n_repeat = int(params.get("n_repeat", "1"))
     image_num = len(images)
-    disk_num = 0
     file_system = params.get("file_system").split()
     fs_num = len(file_system)
     cmd_timeout = float(params.get("cmd_timeout", 360))

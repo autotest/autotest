@@ -1090,30 +1090,13 @@ variants:
                 n_repeat = 10
             - max_disk:
                 only virtio_blk
-                images += " stg stg2 stg3 stg4 stg5 stg6 stg7 stg8 stg9 stg10 stg11 stg12 stg13 stg14 stg15 stg16 stg17 stg18 stg19 stg20 stg21 stg22 stg23"
-                image_name_stg = storage
-                image_name_stg2 = storage2
-                image_name_stg3 = storage3
-                image_name_stg4 = storage4
-                image_name_stg5 = storage5
-                image_name_stg6 = storage6
-                image_name_stg7 = storage7
-                image_name_stg8 = storage8
-                image_name_stg9 = storage9
-                image_name_stg10 = storage10
-                image_name_stg11 = storage11
-                image_name_stg12 = storage12
-                image_name_stg13 = storage13
-                image_name_stg14 = storage14
-                image_name_stg15 = storage15
-                image_name_stg16 = storage16
-                image_name_stg17 = storage17
-                image_name_stg18 = storage18
-                image_name_stg19 = storage19
-                image_name_stg20 = storage20
-                image_name_stg21 = storage21
-                image_name_stg22 = storage22
-                image_name_stg23 = storage23
+                stg_image_num = 23
+                stg_image_size = 1G
+                stg_image_boot = no
+                # other variants.
+                # stg_image_format = qcow2
+                # stg_drive_format = virtio
+                # stg_assign_index = yes
 
     - clock_getres: install setup image_copy unattended_install.cdrom
         only Linux
