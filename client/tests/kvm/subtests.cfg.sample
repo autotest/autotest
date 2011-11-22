@@ -1070,6 +1070,7 @@ variants:
 
     - multi_disk: install setup image_copy unattended_install.cdrom
         type = multi_disk
+        usbs = ""
         force_create_image = yes
         force_create_image_image1 = no
         remove_image = yes
