@@ -441,6 +441,8 @@ class VM(virt_vm.BaseVM):
         if os.path.isdir(library_path):
             library_path = os.path.abspath(library_path)
             qemu_cmd += "LD_LIBRARY_PATH=%s " % library_path
+        if params.get("qemu_audio_drv"):
+            qemu_cmd += "QEMU_AUDIO_DRV=%s " % params.get("qemu_audio_drv")
         # Add the qemu binary
         qemu_cmd += qemu_binary
         # Add the VM's name
