@@ -60,11 +60,7 @@ variants:
             compare_command = cd /bin && md5sum ls > /tmp/ls.md5 && cd /tmp && md5sum -c ls.md5
             check_result_key_word = OK
             max_disk:
-                 images += " stg24 stg25 stg26 stg27"
-                 image_name_stg24 = storage24
-                 image_name_stg25 = storage25
-                 image_name_stg26 = storage26
-                 image_name_stg27 = storage27
+                 stg_image_num = 27
                  list_volume_command = cd /dev && \ls vd*
                  re_str = "[vhs]d[a-z][^0-9]"
         floppy_test:
