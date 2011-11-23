@@ -429,6 +429,9 @@ class VM(virt_vm.BaseVM):
 
         # Start constructing the qemu command
         qemu_cmd = ""
+        # Enable the use of glibc's malloc_perturb feature
+        if params.get("malloc_perturb", "yes") == "yes":
+            qemu_cmd += "MALLOC_PERTURB_=1 "
         # Set the X11 display parameter if requested
         if params.get("x11_display"):
             qemu_cmd += "DISPLAY=%s " % params.get("x11_display")
