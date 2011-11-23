@@ -126,3 +126,7 @@ login_timeout = 360
 
 # NFS directory of guest images
 images_good = fileserver.foo.com:/autotest/images_good
+
+# Whether to run the qemu binary with malloc perturb set.
+# Off by default, set to 'yes' to enable it
+malloc_perturb = no
