@@ -1458,17 +1458,30 @@ def get_path(base_path, user_path):
         return os.path.join(base_path, user_path)
 
 
-def generate_random_string(length):
+def generate_random_string(length, ignore_str=string.punctuation,
+                           convert_str=""):
     """
     Return a random string using alphanumeric characters.
 
-    @length: length of the string that will be generated.
+    @param length: Length of the string that will be generated.
+    @param ignore_str: Characters that will not include in generated string.
+    @param convert_str: Characters that need to be escaped (prepend "\\").
+
+    @return: The generated random string.
     """
     r = random.SystemRandom()
     str = ""
-    chars = string.letters + string.digits
+    chars = string.letters + string.digits + string.punctuation
+    if not ignore_str:
+        ignore_str = ""
+    for i in ignore_str:
+        chars = chars.replace(i, "")
+
     while length > 0:
-        str += r.choice(chars)
+        tmp = r.choice(chars)
+        if convert_str and (tmp in convert_str):
+            tmp = "\\%s" % tmp
+        str += tmp
         length -= 1
     return str
 
