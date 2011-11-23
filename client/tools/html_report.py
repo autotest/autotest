@@ -7,7 +7,16 @@ Module used to parse the autotest job results and generate an HTML report.
 @author: Dror Russo (drusso@redhat.com)
 """
 
-import os, sys, re, getopt, time, datetime, commands
+import os, sys, re, time, datetime, commands, optparse
+
+
+class InvalidAutotestResultDirError(Exception):
+    def __init__(self, directory):
+        self.directory = directory
+
+
+    def __str__(self):
+        return "Invalid Autotest results directory: %s" % self.directory
 
 
 format_css = """
@@ -1633,25 +1642,6 @@ def get_info_file(filename):
     return data
 
 
-def usage():
-    """
-    Print stand alone program usage.
-    """
-    called_as = os.path.abspath(sys.argv[0])
-    bn = os.path.basename(called_as) # keep print statements short also
-    rs = os.path.join(\
-        os.path.split(os.path.dirname(called_as))[0], 'results', 'default' \
-    )
-    print 'usage: ' + bn + ' -r <result_directory> [-f output_file] [-R]'
-    print
-    print 'add "-R" for an html report with relative-paths (relative '\
-          'to results directory)'
-    print
-    print 'e.g. ' + bn + ' -r ' + rs + ' -f /tmp/myreport.html'
-    print ''
-    sys.exit(1)
-
-
 def get_keyval_value(result_dir, key):
     """
     Return the value of the first appearance of key in any keyval file in
@@ -1701,6 +1691,8 @@ def create_report(dirname, html_path='', output_file_name=None):
     res_dir = os.path.abspath(dirname)
     tag = res_dir
     status_file_name = os.path.join(dirname, 'status')
+    if not os.path.isfile(status_file_name):
+        raise InvalidAutotestResultDirError(res_dir)
     sysinfo_dir = os.path.join(dirname, 'sysinfo')
     host = get_info_file(os.path.join(sysinfo_dir, 'hostname'))
     rx = re.compile('^\s+[END|START].*$')
@@ -1734,48 +1726,41 @@ def create_report(dirname, html_path='', output_file_name=None):
                    html_path)
 
 
-def main(argv):
-    """
-    Parses the arguments and executes the stand alone program.
-    """
-    dirname = None
-    output_file_name = None
-    relative_path = False
-    try:
-        opts, args = getopt.getopt(argv, "r:f:h:R", ['help'])
-    except getopt.GetoptError:
-        usage()
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            usage()
-            sys.exit()
-        elif opt == '-r':
-            dirname = arg
-        elif opt == '-f':
-            output_file_name = arg
-        elif opt == '-R':
-            relative_path = True
-        else:
-            usage()
-            sys.exit(1)
+if __name__ == "__main__":
+    parser = optparse.OptionParser(
+                      usage="%prog -r <result_directory> [-f output_file] [-R]")
+    parser.add_option("-r", dest="results_dir",
+                      help="Path to an autotest results directory")
+    parser.add_option("-f", dest="output_file", default="job_report.html",
+                      help="Path to an output file")
+    parser.add_option("-R", dest="relative_paths", action='store_true',
+                      default=False,
+                      help="Use relative logfile paths on the HTML report")
 
-    html_path = dirname
-    # don't use absolute path in html output if relative flag passed
-    if relative_path:
-        html_path = ''
+    options = parser.parse_args()[0]
 
-    if dirname:
-        if os.path.isdir(dirname):
-            create_report(dirname, html_path, output_file_name)
+    if options.results_dir:
+        html_path = options.results_dir
+        if options.relative_paths:
+            html_path = ''
+        results_dir = os.path.abspath(options.results_dir)
+        output_file = os.path.abspath(options.output_file)
+        if os.path.isdir(results_dir):
+            try:
+                create_report(results_dir, html_path, output_file)
+            except InvalidAutotestResultDirError, detail:
+                print "%s (directory missing 'status' file)" % detail
+                parser.print_help()
+                sys.exit(1)
             sys.exit(0)
         else:
-            print 'Invalid result directory <%s>' % dirname
-            sys.exit(1)
+            try:
+                raise InvalidAutotestResultDirError(results_dir)
+            except InvalidAutotestResultDirError, detail:
+                print "%s (directory does not exist)" % detail
+                parser.print_help()
+                sys.exit(1)
     else:
-        usage()
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main(sys.argv[1:])
+        print "No autotest results dir specified"
+        parser.print_help()
+        sys.exit(2)
