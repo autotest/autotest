@@ -4,7 +4,7 @@ nsprei@redhat.com (Naphtali Sprei)
 lmr@redhat.com (Lucas Meneghel Rodrigues)
 """
 TIME = 'MEDIUM'
-NAME = 'KVM test'
+NAME = 'KVM Test (Unittests)'
 TEST_TYPE = 'client'
 TEST_CLASS = 'Virtualization'
 TEST_CATEGORY = 'Unittest'
