@@ -7,15 +7,13 @@ aeromenk@redhat.com (Alexey Eromenko)
 mburns@redhat.com (Mike Burns)
 """
 TIME = 'SHORT'
-NAME = 'KVM test'
+NAME = 'KVM Test (Parallel)'
 TEST_TYPE = 'client'
 TEST_CLASS = 'Virtualization'
 TEST_CATEGORY = 'Functional'
 
 DOC = """
-Executes the KVM test framework on a given host. This module is separated in
-minor functions, that execute different tests for doing Quality Assurance on
-KVM (both kernelspace and userspace) code.
+Executes the KVM test framework on a given host (parallel version).
 """
 
 

@@ -7,7 +7,7 @@ aeromenk@redhat.com (Alexey Eromenko)
 mburns@redhat.com (Mike Burns)
 """
 TIME = 'MEDIUM'
-NAME = 'KVM test'
+NAME = 'KVM Test'
 TEST_TYPE = 'client'
 TEST_CLASS = 'Virtualization'
 TEST_CATEGORY = 'Functional'

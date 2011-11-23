@@ -1,6 +1,6 @@
 AUTHOR = "Yolkfull Chow <yzhou@redhat.com>"
 TIME = "SHORT"
-NAME = "Migration across multiple hosts"
+NAME = "KVM Test (migration across multiple hosts)"
 TEST_CATEGORY = "Functional"
 TEST_CLASS = "Virtualization"
 TEST_TYPE = "Server"
