@@ -17,12 +17,12 @@ static inline void spin_lock(spinlock_t *lock)
 		"1: rep; nop\n"
 		" lock; btsl $0,%0\n"
 		"jc 1b\n"
-			     : "=g"(*lock) : : "memory");
+			     : "=m"(*lock) : : "memory");
 }
 
 static inline void spin_unlock(spinlock_t *lock)
 {
-	__asm__ __volatile__("movl $0,%0; rep; nop" : "=g"(*lock) :: "memory");
+	__asm__ __volatile__("movl $0,%0; rep; nop" : "=m"(*lock) :: "memory");
 }
 
 #endif	/* SPINLOCK_H_ */
