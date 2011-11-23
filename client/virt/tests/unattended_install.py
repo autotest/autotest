@@ -6,6 +6,9 @@ from autotest_lib.client.bin import utils
 from autotest_lib.client.virt import virt_vm, virt_utils, virt_http_server
 
 
+# Whether to print all shell commands called
+DEBUG = False
+
 _url_auto_content_server_thread = None
 _url_auto_content_server_thread_event = None
 
@@ -52,8 +55,8 @@ def cleanup(dir):
     """
     error.context("cleaning up unattended install directory %s" % dir)
     if os.path.ismount(dir):
-        utils.run('fuser -k %s' % dir, ignore_status=True)
-        utils.run('umount %s' % dir)
+        utils.run('fuser -k %s' % dir, ignore_status=True, verbose=DEBUG)
+        utils.run('umount %s' % dir, verbose=DEBUG)
     if os.path.isdir(dir):
         shutil.rmtree(dir)
 
@@ -72,8 +75,8 @@ def clean_old_image(image):
         mtab_contents = mtab.read()
         mtab.close()
         if image in mtab_contents:
-            utils.run('fuser -k %s' % image, ignore_status=True)
-            utils.run('umount %s' % image)
+            utils.run('fuser -k %s' % image, ignore_status=True, verbose=DEBUG)
+            utils.run('umount %s' % image, verbose=DEBUG)
         os.remove(image)
 
 
@@ -122,11 +125,11 @@ class FloppyDisk(Disk):
 
         try:
             c_cmd = '%s create -f raw %s 1440k' % (qemu_img_binary, path)
-            utils.run(c_cmd)
+            utils.run(c_cmd, verbose=DEBUG)
             f_cmd = 'mkfs.msdos -s 1 %s' % path
-            utils.run(f_cmd)
+            utils.run(f_cmd, verbose=DEBUG)
             m_cmd = 'mount -o loop,rw %s %s' % (path, self.mount)
-            utils.run(m_cmd)
+            utils.run(m_cmd, verbose=DEBUG)
         except error.CmdError, e:
             logging.error("Error during floppy initialization: %s" % e)
             cleanup(self.mount)
@@ -146,7 +149,7 @@ class FloppyDisk(Disk):
         pwd = os.getcwd()
         try:
             m_cmd = 'mount -o loop,ro %s %s' % (virtio_floppy, virtio_mount)
-            utils.run(m_cmd)
+            utils.run(m_cmd, verbose=DEBUG)
             os.chdir(virtio_mount)
             path_list = glob.glob('*')
             for path in path_list:
@@ -226,7 +229,7 @@ class CdromDisk(Disk):
         g_cmd = ('mkisofs -o %s -max-iso9660-filenames '
                  '-relaxed-filenames -D --input-charset iso8859-1 '
                  '%s' % (self.path, self.mount))
-        utils.run(g_cmd)
+        utils.run(g_cmd, verbose=DEBUG)
 
         os.chmod(self.path, 0755)
         cleanup(self.mount)
@@ -476,18 +479,19 @@ class UnattendedInstallConfig(object):
         base_initrd = os.path.basename(self.initrd)
         os.chdir(remaster_path)
         utils.run("gzip -d < ../%s | cpio --extract --make-directories "
-                  "--no-absolute-filenames" % base_initrd)
-        utils.run("cp %s %s" % (self.unattended_file, dest_fname))
+                  "--no-absolute-filenames" % base_initrd, verbose=DEBUG)
+        utils.run("cp %s %s" % (self.unattended_file, dest_fname),
+                  verbose=DEBUG)
 
         if self.params.get("vm_type") == "libvirt":
             utils.run("find . | cpio -H newc --create > ../%s.img" %
-                      base_initrd.rstrip(".gz"))
+                      base_initrd.rstrip(".gz"), verbose=DEBUG)
         else:
             utils.run("find . | cpio -H newc --create | gzip -9 > ../%s" %
-                      base_initrd)
+                      base_initrd, verbose=DEBUG)
 
         os.chdir(self.image_path)
-        utils.run("rm -rf initrd_remaster")
+        utils.run("rm -rf initrd_remaster", verbose=DEBUG)
         contents = open(self.unattended_file).read()
 
         logging.debug("Unattended install contents:")
@@ -614,7 +618,7 @@ class UnattendedInstallConfig(object):
                       self.cdrom_cd1)
         m_cmd = ('mount -t iso9660 -v -o loop,ro %s %s' %
                  (self.cdrom_cd1, self.cdrom_cd1_mount))
-        utils.run(m_cmd)
+        utils.run(m_cmd, verbose=DEBUG)
 
         try:
             if not os.path.isdir(self.image_path):
@@ -622,11 +626,11 @@ class UnattendedInstallConfig(object):
             kernel_fetch_cmd = ("cp %s/%s/%s %s" %
                                 (self.cdrom_cd1_mount, self.boot_path,
                                  os.path.basename(self.kernel), self.kernel))
-            utils.run(kernel_fetch_cmd)
+            utils.run(kernel_fetch_cmd, verbose=DEBUG)
             initrd_fetch_cmd = ("cp %s/%s/%s %s" %
                                 (self.cdrom_cd1_mount, self.boot_path,
                                  os.path.basename(self.initrd), self.initrd))
-            utils.run(initrd_fetch_cmd)
+            utils.run(initrd_fetch_cmd, verbose=DEBUG)
             if self.unattended_file.endswith('.preseed'):
                 self.preseed_initrd()
             # Virtinstall command needs files named "vmlinuz" and "initrd.img"
@@ -635,9 +639,9 @@ class UnattendedInstallConfig(object):
                 base_kernel = os.path.basename(self.kernel)
                 base_initrd = os.path.basename(self.initrd)
                 if base_kernel != 'vmlinuz':
-                    utils.run("mv %s vmlinuz" % base_kernel)
+                    utils.run("mv %s vmlinuz" % base_kernel, verbose=DEBUG)
                 if base_initrd != 'initrd.img':
-                    utils.run("mv %s initrd.img" % base_initrd)
+                    utils.run("mv %s initrd.img" % base_initrd, verbose=DEBUG)
 
         finally:
             cleanup(self.cdrom_cd1_mount)
@@ -657,7 +661,7 @@ class UnattendedInstallConfig(object):
             # setup and mount cdrom contents to be served by http server
             m_cmd = ('mount -t iso9660 -v -o loop,ro %s %s' %
                      (self.cdrom_cd1, self.cdrom_cd1_mount))
-            utils.run(m_cmd)
+            utils.run(m_cmd, verbose=DEBUG)
 
         self.url_auto_content_port = virt_utils.find_free_port(
             8100,
@@ -698,8 +702,8 @@ class UnattendedInstallConfig(object):
             if os.path.exists(self.initrd):
                 os.remove(self.initrd)
 
-            utils.run(kernel_cmd)
-            utils.run(initrd_cmd)
+            utils.run(kernel_cmd, verbose=DEBUG)
+            utils.run(initrd_cmd, verbose=DEBUG)
 
         elif self.vm_type == 'libvirt':
             error.context("not downloading vmlinuz/initrd.img from %s, "
@@ -718,17 +722,17 @@ class UnattendedInstallConfig(object):
 
         m_cmd = ("mount %s:%s %s -o ro" %
                  (self.nfs_server, self.nfs_dir, self.nfs_mount))
-        utils.run(m_cmd)
+        utils.run(m_cmd, verbose=DEBUG)
 
         try:
             kernel_fetch_cmd = ("cp %s/%s/%s %s" %
                                 (self.nfs_mount, self.boot_path,
                                 os.path.basename(self.kernel), self.image_path))
-            utils.run(kernel_fetch_cmd)
+            utils.run(kernel_fetch_cmd, verbose=DEBUG)
             initrd_fetch_cmd = ("cp %s/%s/%s %s" %
                                 (self.nfs_mount, self.boot_path,
                                 os.path.basename(self.initrd), self.image_path))
-            utils.run(initrd_fetch_cmd)
+            utils.run(initrd_fetch_cmd, verbose=DEBUG)
         finally:
             cleanup(self.nfs_mount)
 
@@ -740,7 +744,8 @@ class UnattendedInstallConfig(object):
         Uses an appropriate strategy according to each install model.
         """
         logging.info("Starting unattended install setup")
-        virt_utils.display_attributes(self)
+        if DEBUG:
+            virt_utils.display_attributes(self)
 
         if self.unattended_file and (self.floppy or self.cdrom_unattended):
             self.setup_boot_disk()
