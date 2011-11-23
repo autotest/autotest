@@ -898,15 +898,13 @@ class Expect(Tail):
         return Tail.__getinitargs__(self)
 
 
-    def read_nonblocking(self, timeout=None):
+    def read_nonblocking(self, timeout=0.1):
         """
         Read from child until there is nothing to read for timeout seconds.
 
         @param timeout: Time (seconds) to wait before we give up reading from
-                the child process, or None to use the default value.
+                the child process.
         """
-        if timeout is None:
-            timeout = 0.1
         fd = self._get_fd("expect")
         data = ""
         while True:

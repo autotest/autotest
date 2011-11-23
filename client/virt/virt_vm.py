@@ -509,6 +509,17 @@ class BaseVM(object):
     #
     MIGRATION_PROTOS = ['tcp', ]
 
+    #
+    # Timeout definition. This is being kept inside the base class so that
+    # sub classes can change the default just for themselves
+    #
+    LOGIN_TIMEOUT = 10
+    LOGIN_WAIT_TIMEOUT = 240
+    COPY_FILES_TIMEOUT = 600
+    MIGRATE_TIMEOUT = 3600
+    REBOOT_TIMEOUT = 240
+    CREATE_TIMEOUT = 5
+
     def __init__(self, name, params):
         self.name = name
         self.params = params
@@ -607,7 +618,7 @@ class BaseVM(object):
 
 
     @error.context_aware
-    def login(self, nic_index=0, timeout=10):
+    def login(self, nic_index=0, timeout=LOGIN_TIMEOUT):
         """
         Log into the guest via SSH/Telnet/Netcat.
         If timeout expires while waiting for output from the guest (e.g. a
@@ -636,14 +647,15 @@ class BaseVM(object):
         return session
 
 
-    def remote_login(self, nic_index=0, timeout=10):
+    def remote_login(self, nic_index=0, timeout=LOGIN_TIMEOUT):
         """
         Alias for login() for backward compatibility.
         """
         return self.login(nic_index, timeout)
 
 
-    def wait_for_login(self, nic_index=0, timeout=240, internal_timeout=10):
+    def wait_for_login(self, nic_index=0, timeout=LOGIN_WAIT_TIMEOUT,
+                       internal_timeout=LOGIN_TIMEOUT):
         """
         Make multiple attempts to log into the guest via SSH/Telnet/Netcat.
 
@@ -667,7 +679,7 @@ class BaseVM(object):
 
     @error.context_aware
     def copy_files_to(self, host_path, guest_path, nic_index=0, verbose=False,
-                      timeout=600):
+                      timeout=COPY_FILES_TIMEOUT):
         """
         Transfer files to the remote host(guest).
 
@@ -694,7 +706,7 @@ class BaseVM(object):
 
     @error.context_aware
     def copy_files_from(self, guest_path, host_path, nic_index=0,
-                        verbose=False, timeout=600):
+                        verbose=False, timeout=COPY_FILES_TIMEOUT):
         """
         Transfer files from the guest.
 
@@ -720,7 +732,7 @@ class BaseVM(object):
 
 
     @error.context_aware
-    def serial_login(self, timeout=10):
+    def serial_login(self, timeout=LOGIN_TIMEOUT):
         """
         Log into the guest via the serial console.
         If timeout expires while waiting for output from the guest (e.g. a
@@ -747,7 +759,8 @@ class BaseVM(object):
         return self.serial_console
 
 
-    def wait_for_serial_login(self, timeout=240, internal_timeout=10):
+    def wait_for_serial_login(self, timeout=LOGIN_WAIT_TIMEOUT,
+                              internal_timeout=LOGIN_TIMEOUT):
         """
         Make multiple attempts to log into the guest via serial console.
 
@@ -898,9 +911,10 @@ class BaseVM(object):
         raise NotImplementedError
 
 
-    def migrate(self, timeout=3600, protocol="tcp", cancel_delay=None,
-                offline=False, stable_check=False, clean=True,
-                save_path="/tmp", dest_host="localhost", remote_port=None):
+    def migrate(self, timeout=MIGRATE_TIMEOUT, protocol="tcp",
+                cancel_delay=None, offline=False, stable_check=False,
+                clean=True, save_path="/tmp", dest_host="localhost",
+                remote_port=None):
         """
         Migrate the VM.
 
@@ -925,7 +939,8 @@ class BaseVM(object):
         raise NotImplementedError
 
 
-    def reboot(self, session=None, method="shell", nic_index=0, timeout=240):
+    def reboot(self, session=None, method="shell", nic_index=0,
+               timeout=REBOOT_TIMEOUT):
         """
         Reboot the VM and wait for it to come back up by trying to log in until
         timeout expires.

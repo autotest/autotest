@@ -60,6 +60,9 @@ class Monitor:
     Common code for monitor classes.
     """
 
+    ACQUIRE_LOCK_TIMEOUT = 20
+    DATA_AVAILABLE_TIMEOUT = 0
+
     def __init__(self, name, filename):
         """
         Initialize the instance.
@@ -110,7 +113,8 @@ class Monitor:
             pass
         self._socket.close()
 
-    def _acquire_lock(self, timeout=20):
+
+    def _acquire_lock(self, timeout=ACQUIRE_LOCK_TIMEOUT):
         end_time = time.time() + timeout
         while time.time() < end_time:
             if self._lock.acquire(False):
@@ -119,7 +123,7 @@ class Monitor:
         return False
 
 
-    def _data_available(self, timeout=0):
+    def _data_available(self, timeout=DATA_AVAILABLE_TIMEOUT):
         timeout = max(0, timeout)
         try:
             return bool(select.select([self._socket], [], [], timeout)[0])
@@ -157,6 +161,9 @@ class HumanMonitor(Monitor):
     Wraps "human monitor" commands.
     """
 
+    PROMPT_TIMEOUT = 20
+    CMD_TIMEOUT = 20
+
     def __init__(self, name, filename, suppress_exceptions=False):
         """
         Connect to the monitor socket and find the (qemu) prompt.
@@ -176,7 +183,7 @@ class HumanMonitor(Monitor):
             self.protocol = "human"
 
             # Find the initial (qemu) prompt
-            s, o = self._read_up_to_qemu_prompt(20)
+            s, o = self._read_up_to_qemu_prompt()
             if not s:
                 raise MonitorProtocolError("Could not find (qemu) prompt "
                                            "after connecting to monitor. "
@@ -195,7 +202,7 @@ class HumanMonitor(Monitor):
 
     # Private methods
 
-    def _read_up_to_qemu_prompt(self, timeout=20):
+    def _read_up_to_qemu_prompt(self, timeout=PROMPT_TIMEOUT):
         s = ""
         end_time = time.time() + timeout
         while self._data_available(end_time - time.time()):
@@ -219,7 +226,7 @@ class HumanMonitor(Monitor):
         @raise MonitorLockError: Raised if the lock cannot be acquired
         @raise MonitorSocketError: Raised if a socket error occurs
         """
-        if not self._acquire_lock(20):
+        if not self._acquire_lock():
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "monitor command '%s'" % cmd)
 
@@ -236,7 +243,7 @@ class HumanMonitor(Monitor):
 
     # Public methods
 
-    def cmd(self, command, timeout=20, debug=True, fd=None):
+    def cmd(self, command, timeout=CMD_TIMEOUT, debug=True, fd=None):
         """
         Send command to the monitor.
 
@@ -252,7 +259,7 @@ class HumanMonitor(Monitor):
         if debug:
             logging.debug("(monitor %s) Sending command '%s'",
                           self.name, command)
-        if not self._acquire_lock(20):
+        if not self._acquire_lock():
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "monitor command '%s'" % command)
 
@@ -313,7 +320,7 @@ class HumanMonitor(Monitor):
     #   cmd().
     # - A command wrapper should use self._help_str if it requires information
     #   about the monitor's capabilities.
-    def send_args_cmd(self, cmdlines, timeout=20, convert=True):
+    def send_args_cmd(self, cmdlines, timeout=CMD_TIMEOUT, convert=True):
         """
         Send a command with/without parameters and return its output.
         Have same effect with cmd function.
@@ -463,6 +470,11 @@ class QMPMonitor(Monitor):
     Wraps QMP monitor commands.
     """
 
+    READ_OBJECTS_TIMEOUT = 5
+    CMD_TIMEOUT = 20
+    RESPONSE_TIMEOUT = 20
+    PROMPT_TIMEOUT = 20
+
     def __init__(self, name, filename, suppress_exceptions=False):
         """
         Connect to the monitor socket, read the greeting message and issue the
@@ -528,7 +540,7 @@ class QMPMonitor(Monitor):
         return obj
 
 
-    def _read_objects(self, timeout=5):
+    def _read_objects(self, timeout=READ_OBJECTS_TIMEOUT):
         """
         Read lines from the monitor and try to decode them.
         Stop when all available lines have been successfully decoded, or when
@@ -580,7 +592,7 @@ class QMPMonitor(Monitor):
             raise MonitorSocketError("Could not send data: %r" % data, e)
 
 
-    def _get_response(self, id=None, timeout=20):
+    def _get_response(self, id=None, timeout=RESPONSE_TIMEOUT):
         """
         Read a response from the QMP monitor.
 
@@ -600,7 +612,7 @@ class QMPMonitor(Monitor):
 
     # Public methods
 
-    def cmd(self, cmd, args=None, timeout=20, debug=True):
+    def cmd(self, cmd, args=None, timeout=CMD_TIMEOUT, debug=True):
         """
         Send a QMP monitor command and return the response.
 
@@ -621,7 +633,7 @@ class QMPMonitor(Monitor):
         if debug:
             logging.debug("(monitor %s) Sending command '%s'",
                           self.name, cmd)
-        if not self._acquire_lock(20):
+        if not self._acquire_lock():
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "QMP command '%s'" % cmd)
 
@@ -653,7 +665,7 @@ class QMPMonitor(Monitor):
             self._lock.release()
 
 
-    def cmd_raw(self, data, timeout=20):
+    def cmd_raw(self, data, timeout=CMD_TIMEOUT):
         """
         Send a raw string to the QMP monitor and return the response.
         Unlike cmd(), return the raw response dict without performing any
@@ -666,7 +678,7 @@ class QMPMonitor(Monitor):
         @raise MonitorSocketError: Raised if a socket error occurs
         @raise MonitorProtocolError: Raised if no response is received
         """
-        if not self._acquire_lock(20):
+        if not self._acquire_lock():
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "data: %r" % data)
 
@@ -683,7 +695,7 @@ class QMPMonitor(Monitor):
             self._lock.release()
 
 
-    def cmd_obj(self, obj, timeout=20):
+    def cmd_obj(self, obj, timeout=CMD_TIMEOUT):
         """
         Transform a Python object to JSON, send the resulting string to the QMP
         monitor, and return the response.
@@ -697,10 +709,10 @@ class QMPMonitor(Monitor):
         @raise MonitorSocketError: Raised if a socket error occurs
         @raise MonitorProtocolError: Raised if no response is received
         """
-        return self.cmd_raw(json.dumps(obj) + "\n")
+        return self.cmd_raw(json.dumps(obj) + "\n", timeout)
 
 
-    def cmd_qmp(self, cmd, args=None, id=None, timeout=20):
+    def cmd_qmp(self, cmd, args=None, id=None, timeout=CMD_TIMEOUT):
         """
         Build a QMP command from the passed arguments, send it to the monitor
         and return the response.
@@ -751,7 +763,7 @@ class QMPMonitor(Monitor):
         @return: A list of events (the objects returned have an "event" key)
         @raise MonitorLockError: Raised if the lock cannot be acquired
         """
-        if not self._acquire_lock(20):
+        if not self._acquire_lock():
             raise MonitorLockError("Could not acquire exclusive lock to read "
                                    "QMP events")
         try:
@@ -779,7 +791,7 @@ class QMPMonitor(Monitor):
 
         @raise MonitorLockError: Raised if the lock cannot be acquired
         """
-        if not self._acquire_lock(20):
+        if not self._acquire_lock():
             raise MonitorLockError("Could not acquire exclusive lock to clear "
                                    "QMP event list")
         self._events = []
@@ -796,7 +808,7 @@ class QMPMonitor(Monitor):
     # Command wrappers
     # Note: all of the following functions raise exceptions in a similar manner
     # to cmd().
-    def send_args_cmd(self, cmdlines, timeout=20, convert=True):
+    def send_args_cmd(self, cmdlines, timeout=CMD_TIMEOUT, convert=True):
         """
         Send a command with/without parameters and return its output.
         Have same effect with cmd function.
