@@ -58,11 +58,13 @@ class GstPythonVideoMaker(object):
                                  'webm' : 'vp8'}
 
 
-    def __init__(self):
+    def __init__(self, verbose=False):
         if not GST_PYTHON_INSTALLED:
             raise ValueError('gstreamer-python library was not found')
         if not PIL_INSTALLED:
             raise ValueError('python-imaging library was not found')
+
+        self.verbose = verbose
 
 
     def get_most_common_image_size(self, input_dir):
@@ -95,7 +97,8 @@ class GstPythonVideoMaker(object):
         if image_size is None:
             image_size = (800, 600)
 
-        logging.debug('Normalizing image files to size: %s', image_size)
+        if self.verbose:
+            logging.debug('Normalizing image files to size: %s', image_size)
         image_files = glob.glob(os.path.join(input_dir, '*.jpg'))
         for f in image_files:
             i = PIL.Image.open(f)
@@ -138,7 +141,8 @@ class GstPythonVideoMaker(object):
         '''
         Makes and returns and element from the gst factory interface
         '''
-        logging.debug('GStreamer element requested: %s', name)
+        if self.verbose:
+            logging.debug('GStreamer element requested: %s', name)
         return gst.element_factory_make(name, name)
 
 
@@ -148,13 +152,15 @@ class GstPythonVideoMaker(object):
         '''
         self.normalize_images(input_dir)
         no_files = len(glob.glob(os.path.join(input_dir, '*.jpg')))
-        logging.debug('Number of files to encode as video: %s', no_files)
+        if self.verbose:
+            logging.debug('Number of files to encode as video: %s', no_files)
 
         pipeline = gst.Pipeline("pipeline")
 
         source = self.get_element("multifilesrc")
         source_location = os.path.join(input_dir, "%04d.jpg")
-        logging.debug("Source location: %s", source_location)
+        if self.verbose:
+            logging.debug("Source location: %s", source_location)
         source.set_property('location', source_location)
         source.set_property('index', 1)
         source_caps = gst.Caps()
@@ -192,8 +198,9 @@ class GstPythonVideoMaker(object):
         pipeline.set_state(gst.STATE_PLAYING)
         while True:
             if source.get_property('index') <= no_files:
-                logging.debug("Currently processing image number: %s",
-                              source.get_property('index'))
+                if self.verbose:
+                    logging.debug("Currently processing image number: %s",
+                                  source.get_property('index'))
                 time.sleep(1)
             else:
                 break
