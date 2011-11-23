@@ -149,10 +149,16 @@ def postprocess_vm(test, params, env, name):
         logging.debug("Param 'encode_video_files' specified, trying to "
                       "encode a video from the screenshots produced by "
                       "vm %s", vm.name)
-        video_file = os.path.join(test.debugdir, "%s-%s.ogg" %
-                                  (vm.name, test.iteration))
         try:
-            virt_video_maker.video_maker(screendump_dir, video_file)
+            video = virt_video_maker.GstPythonVideoMaker()
+            if (video.has_element('vp8enc') and video.has_element('webmmux')):
+                video_file = os.path.join(test.debugdir, "%s-%s.webm" %
+                                          (vm.name, test.iteration))
+            else:
+                video_file = os.path.join(test.debugdir, "%s-%s.ogg" %
+                                          (vm.name, test.iteration))
+            video.start(screendump_dir, video_file)
+
         except Exception, detail:
             logging.info("Param 'encode_video_files' specified, but video "
                          "creation failed for vm %s: %s", vm.name, detail)
