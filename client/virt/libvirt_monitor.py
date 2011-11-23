@@ -8,6 +8,8 @@ class VirshMonitor:
     Wraps "Virsh monitor" commands.
     """
 
+    LOGIN_TIMEOUT = 10
+
     def __init__(self, virsh_exec, name, vmname, password=None,
                  prompt=None, hostname='localhost', driver=None, username=None,
                  linesep="\\n"):
@@ -61,7 +63,7 @@ class VirshMonitor:
                 self.hostname, self.driver, self.username)
 
 
-    def login(self, timeout=10):
+    def login(self, timeout=LOGIN_TIMEOUT):
         """
         Log into the hypervisor using required URIs .
 
@@ -83,7 +85,7 @@ class VirshMonitor:
         if self.username is not None:
             try:
                 virt_utils._remote_login(session, self.username, self.password,
-                                         self.prompt, self.timeout)
+                                         self.prompt, timeout)
             except aexpect.ShellError:
                 session.close()
                 session = None
