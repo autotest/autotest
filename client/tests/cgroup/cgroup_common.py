@@ -201,6 +201,8 @@ class Cgroup(object):
         value = str(value)
         if pwd == None:
             pwd = self.root
+        if isinstance(pwd, int):
+            pwd = self.cgroups[pwd]
         try:
             open(pwd+prop, 'w').write(value)
         except Exception, inst:
@@ -280,8 +282,8 @@ class CgroupModules(object):
                 try:
                     utils.system('umount %s -l' % self.modules[1][i])
                 except Exception, failure_detail:
-                    logging.warn("CGM: Couldn't unmount %s directory: %s"
-                                 % (self.modules[1][i], failure_detail))
+                    logging.warn("CGM: Couldn't unmount %s directory: %s",
+                                 self.modules[1][i], failure_detail)
         try:
             shutil.rmtree(self.mountdir)
         except Exception:
@@ -308,7 +310,7 @@ class CgroupModules(object):
             # Is it already mounted?
             i = False
             for mount in mounts:
-                if mount[3].find(module) != -1:
+                if  module in mount[3].split(','):
                     self.modules[0].append(module)
                     self.modules[1].append(mount[1] + '/')
                     self.modules[2].append(False)
