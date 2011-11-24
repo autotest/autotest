@@ -664,6 +664,7 @@ class BaseVM(object):
         @param internal_timeout: Timeout to pass to login().
         @return: A ShellSession object.
         """
+        error_messages = []
         logging.debug("Attempting to log into '%s' (timeout %ds)", self.name,
                       timeout)
         end_time = time.time() + timeout
@@ -671,7 +672,10 @@ class BaseVM(object):
             try:
                 return self.login(nic_index, internal_timeout)
             except (virt_utils.LoginError, VMError), e:
-                logging.debug(e)
+                e = str(e)
+                if e not in error_messages:
+                    logging.debug(e)
+                    error_messages.append(e)
             time.sleep(2)
         # Timeout expired; try one more time but don't catch exceptions
         return self.login(nic_index, internal_timeout)
@@ -768,6 +772,7 @@ class BaseVM(object):
         @param internal_timeout: Timeout to pass to serial_login().
         @return: A ShellSession object.
         """
+        error_messages = []
         logging.debug("Attempting to log into '%s' via serial console "
                       "(timeout %ds)", self.name, timeout)
         end_time = time.time() + timeout
@@ -775,7 +780,10 @@ class BaseVM(object):
             try:
                 return self.serial_login(internal_timeout)
             except virt_utils.LoginError, e:
-                logging.debug(e)
+                e = str(e)
+                if e not in error_messages:
+                    logging.debug(e)
+                    error_messages.append(e)
             time.sleep(2)
         # Timeout expired; try one more time but don't catch exceptions
         return self.serial_login(internal_timeout)
