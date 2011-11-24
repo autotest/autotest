@@ -8,6 +8,7 @@ from random import random
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.tests.cgroup.cgroup_common import Cgroup, CgroupModules
+from autotest_lib.client.virt import virt_utils, virt_env_process
 from autotest_lib.client.virt.aexpect import ExpectTimeoutError
 from autotest_lib.client.virt.aexpect import ExpectProcessTerminatedError
 
@@ -951,7 +952,7 @@ def run_cgroup(test, params, env):
 
             sessions[1].cmd('killall -SIGUSR1 dd')
             for i in range(10):
-                logging.debug("Moving vm into cgroup %s." % (i%2))
+                logging.debug("Moving vm into cgroup %s.", (i%2))
                 assign_vm_into_cgroup(self.vm, self.cgroup, i%2)
                 time.sleep(0.1)
             time.sleep(2)
@@ -1080,6 +1081,240 @@ def run_cgroup(test, params, env):
             return ("Limits were enforced successfully.")
 
 
+    class _TestCpuShare:
+        """
+        Tests the cpu.share cgroup capability. It creates n cgroups accordingly
+        to self.speeds variable and sufficient VMs to symetricaly test three
+        different scenerios.
+        1) #threads == #CPUs
+        2) #threads + 1 == #CPUs, +1thread have the lowest priority (or equal)
+        3) #threads * #cgroups == #CPUs
+        Cgroup shouldn't slow down VMs on unoccupied CPUs. With thread
+        overcommit the scheduler should stabilize accordingly to speeds
+        value.
+        """
+        def __init__(self, vms, modules):
+            self.vms = vms[:]      # Copy of virt machines
+            self.vms_count = len(vms) # Original number of vms
+            self.modules = modules          # cgroup module handler
+            self.cgroup = Cgroup('cpu', '')   # cgroup blkio handler
+            self.speeds = None  # cpu.share values [cg1, cg2]
+            self.sessions = []    # ssh sessions
+            self.serials = []   # serial consoles
+
+
+        def cleanup(self):
+            """ Cleanup """
+            err = ""
+            try:
+                del(self.cgroup)
+            except Exception, failure_detail:
+                err += "\nCan't remove Cgroup: %s" % failure_detail
+
+            # Stop all VMS in parallel, then check for success.
+            for i in range(len(self.vms)):
+                self.serials[i].sendline('rm -f /tmp/cgroup-cpu-lock')
+            time.sleep(2)
+            for i in range(len(self.vms)):
+                try:
+                    out = self.serials[i].cmd_output('echo $?', timeout=10)
+                    if out != "0\n":
+                        err += ("\nCan't stop the stresser on %s: %s" %
+                                self.vms[i].name)
+                except Exception, failure_detail:
+                    err += ("\nCan't stop the stresser on %s: %s" %
+                             (self.vms[i].name, failure_detail))
+            del self.serials
+
+            for i in range(len(self.sessions)):
+                try:
+                    self.sessions[i].close()
+                except Exception, failure_detail:
+                    err += ("\nCan't close the %dst ssh connection" % i)
+            del self.sessions
+
+            for vm in self.vms[self.vms_count:]:
+                try:
+                    vm.destroy(gracefully=False)
+                except Exception, failure_detail:
+                    err += "\nCan't destroy added VM: %s" % failure_detail
+            del self.vms
+
+            if err:
+                logging.error("Some cleanup operations failed: %s", err)
+                raise error.TestError("Some cleanup operations failed: %s"
+                                      % err)
+
+
+        def init(self):
+            """
+            Initialization
+             * creates additional VMs to fit the  no_cgroups * host_cpus /
+               vm_cpus requirement (self.vms + additional VMs)
+             * creates two cgroups and sets cpu.share accordingly to self.speeds
+            """
+            self.speeds.sort()
+            host_cpus = open('/proc/cpuinfo').read().count('model name')
+            vm_cpus = int(params.get('smp', 1)) # cpus per VM
+            no_speeds = len(self.speeds)        # #cgroups
+            no_vms = host_cpus * no_speeds / vm_cpus    # #VMs used by test
+            no_threads = no_vms * vm_cpus       # total #threads
+            sessions = self.sessions
+            for i in range(no_vms - self.vms_count):    # create needed VMs
+                vm_name = "clone%s" % i
+                self.vms.append(self.vms[0].clone(vm_name, params))
+                env.register_vm(vm_name, self.vms[-1])
+                self.vms[-1].create()
+            timeout = 1.5 * int(params.get("login_timeout", 360))
+            for i in range(no_threads):
+                sessions.append(self.vms[i%no_vms].wait_for_login(
+                                                            timeout=timeout))
+            self.cgroup.initialize(self.modules)
+            for i in range(no_speeds):
+                self.cgroup.mk_cgroup()
+                self.cgroup.set_property('cpu.shares', self.speeds[i], i)
+            for i in range(no_vms):
+                assign_vm_into_cgroup(self.vms[i], self.cgroup, i%no_speeds)
+                sessions[i].cmd("touch /tmp/cgroup-cpu-lock")
+                self.serials.append(self.vms[i].wait_for_serial_login(
+                                                                timeout=30))
+
+
+        def run(self):
+            """
+            Actual test:
+            Let each of 3 scenerios (described in test specification) stabilize
+            and then measure the CPU utilisation for time_test time.
+            """
+            def get_stat(f_stats, _stats=None):
+                """ Reads CPU times from f_stats[] files and sumarize them. """
+                if _stats is None:
+                    _stats = []
+                    for i in range(len(f_stats)):
+                        _stats.append(0)
+                stats = []
+                for i in range(len(f_stats)):
+                    f_stats[i].seek(0)
+                    stats.append(f_stats[i].read().split()[13:17])
+                    stats[i] = sum([int(_) for _ in stats[i]]) - _stats[i]
+                return stats
+
+
+            host_cpus = open('/proc/cpuinfo').read().count('model name')
+            no_speeds = len(self.speeds)
+            no_threads = host_cpus * no_speeds       # total #threads
+            sessions = self.sessions
+            f_stats = []
+            err = []
+            for vm in self.vms:
+                f_stats.append(open("/proc/%d/stat" % vm.get_pid(), 'r'))
+
+            time_init = 10
+            time_test = 10
+            thread_count = 0    # actual thread number
+            stats = []
+            cmd = "renice -n 10 $$; " # new ssh login should pass
+            cmd += "while [ -e /tmp/cgroup-cpu-lock ]; do :; done"
+            for thread_count in range(0, host_cpus):
+                sessions[thread_count].sendline(cmd)
+            time.sleep(time_init)
+            _stats = get_stat(f_stats)
+            time.sleep(time_test)
+            stats.append(get_stat(f_stats, _stats))
+
+            thread_count += 1
+            sessions[thread_count].sendline(cmd)
+            if host_cpus % no_speeds == 0 and no_speeds <= host_cpus:
+                time.sleep(time_init)
+                _stats = get_stat(f_stats)
+                time.sleep(time_test)
+                stats.append(get_stat(f_stats, _stats))
+
+            for i in range(thread_count+1, no_threads):
+                sessions[i].sendline(cmd)
+            time.sleep(time_init)
+            _stats = get_stat(f_stats)
+            for j in range(3):
+                __stats = get_stat(f_stats)
+                time.sleep(time_test)
+                stats.append(get_stat(f_stats, __stats))
+            stats.append(get_stat(f_stats, _stats))
+
+            # Verify results
+            err = ""
+            # accumulate stats from each cgroup
+            for j in range(len(stats)):
+                for i in range(no_speeds, len(stats[j])):
+                    stats[j][i % no_speeds] += stats[j][i]
+                stats[j] = stats[j][:no_speeds]
+            # I.
+            i = 0
+            dist = distance(min(stats[i]), max(stats[i]))
+            if dist > min(0.10 + 0.01 * len(self.vms), 0.2):
+                err += "1, "
+                logging.error("1st part's limits broken. Utilisation should be "
+                              "equal. stats = %s, distance = %s", stats[i],
+                              dist)
+            # II.
+            i += 1
+            if len(stats) == 6:
+                dist = distance(min(stats[i]), max(stats[i]))
+                if dist > min(0.10 + 0.01 * len(self.vms), 0.2):
+                    err += "2, "
+                    logging.error("2nd part's limits broken, Utilisation "
+                                  "should be equal. stats = %s, distance = %s",
+                                  stats[i], dist)
+
+            # III.
+            # normalize stats, then they should have equal values
+            i += 1
+            for i in range(i, len(stats)):
+                norm_stats = [float(stats[i][_]) / self.speeds[_]
+                                                for _ in range(len(stats[i]))]
+                dist = distance(min(norm_stats), max(norm_stats))
+                if dist > min(0.10 + 0.02 * len(self.vms), 0.25):
+                    err += "3, "
+                    logging.error("3rd part's limits broken; utilisation should"
+                                  " be in accordance to self.speeds. stats=%s"
+                                  ", norm_stats=%s, distance=%s, speeds=%s,it="
+                                  "%d", stats[i], norm_stats, dist,
+                                  self.speeds, i-1)
+
+            if err:
+                err = "[%s] parts broke their limits" % err[:-2]
+                logging.error(err)
+                raise error.TestFail(err)
+
+            return ("Cpu utilisation enforced succesfully")
+
+
+    class TestCpuShare10(_TestCpuShare):
+        """
+        1:10 variant of _TestCpuShare test.
+        """
+        def __init__(self, vms, module):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            _TestCpuShare.__init__(self, vms, modules)
+            self.speeds = [10000, 100000]
+
+
+    class TestCpuShare50(_TestCpuShare):
+        """
+        1:1 variant of _TestCpuShare test.
+        """
+        def __init__(self, vms, module):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            _TestCpuShare.__init__(self, vms, modules)
+            self.speeds = [100000, 100000]
+
 
     # Setup
     # TODO: Add all new tests here
@@ -1093,9 +1328,11 @@ def run_cgroup(test, params, env):
              "freezer"                      : TestFreezer,
              "memory_move"                  : TestMemoryMove,
              "memory_limit"                 : TestMemoryLimit,
+             "cpu_share_10"                 : TestCpuShare10,
+             "cpu_share_50"                 : TestCpuShare50,
             }
     modules = CgroupModules()
-    if (modules.init(['blkio', 'devices', 'freezer', 'memory']) <= 0):
+    if (modules.init(['blkio', 'cpu', 'devices', 'freezer', 'memory']) <= 0):
         raise error.TestFail('Can\'t mount any cgroup modules')
     # Add all vms
     vms = []
@@ -1121,7 +1358,8 @@ def run_cgroup(test, params, env):
         # number of loops per regular expression
         for _loop in range(loops):
             # cg_test is the subtest name from regular expression
-            for cg_test in [_ for _ in tests.keys() if re.match(rexpr, _)]:
+            for cg_test in sorted(
+                            [_ for _ in tests.keys() if re.match(rexpr, _)]):
                 logging.info("%s: Entering the test", cg_test)
                 err = ""
                 try:
