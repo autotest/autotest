@@ -2,7 +2,7 @@ import logging, os, sys, fcntl
 kvm_test_dir = "/usr/local/autotest/client/tests/kvm"
 from autotest_lib.client.common_lib import cartesian_config
 
-def get_control(params, custom_cfg):
+def get_control(params, custom_cfg, kernel_install=True):
     control = '''
 import sys, os, logging
 os.environ['LANG'] = 'en_US.UTF-8'
@@ -13,10 +13,15 @@ from autotest_lib.client.virt import virt_utils
 
 kernel_install_params = %s
 custom_cfg = %s
+kernel_install = %s
 
 def step_init():
     job.next_step([step_test])
-    virt_utils.install_host_kernel(job, kernel_install_params)
+    if kernel_install:
+        try:
+            virt_utils.install_host_kernel(job, kernel_install_params)
+        except Exception, details:
+            job.record('FAIL', None, 'host kernel install (client)', str(details))
 
 def step_test():
     parser = cartesian_config.Parser()
@@ -24,7 +29,7 @@ def step_test():
     for line in custom_cfg:
         parser.parse_string(line)
     virt_utils.run_tests(parser, job)
-''' % (params, custom_cfg)
+''' % (params, custom_cfg, kernel_install)
     return control
 
 def run(machine):
@@ -42,6 +47,11 @@ def run(machine):
         host.machine_install(profile=profile, timeout=timeout)
     at = autotest.Autotest(host)
     control = get_control(params, custom_cfg)
-    at.run(control)
+    try:
+        at.run(control)
+    except Exception, details:
+        job.record('FAIL', None, 'host kernel install (server)', str(details))
+        control = get_control(params, custom_cfg, kernel_install=False)
+        at.run(control)
 
 job.parallel_simple(run, machines)
