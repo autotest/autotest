@@ -53,7 +53,7 @@ def run_trans_hugepage(test, params, env):
         logging.info("Smoke test start")
         error.context("smoke test")
 
-        nr_ah_before = get_mem_status('AnonHugePages', 'host')
+        nr_ah_before = int(get_mem_status('AnonHugePages', 'host'))
         if nr_ah_before <= 0:
             e_msg = 'smoke: Host is not using THP'
             logging.error(e_msg)
@@ -71,7 +71,7 @@ def run_trans_hugepage(test, params, env):
         session.cmd("dd if=/dev/zero of=%s/1 bs=4000000 count=%s" %
                     (mem_path, count), timeout=dd_timeout)
 
-        nr_ah_after = get_mem_status('AnonHugePages', 'host')
+        nr_ah_after = int(get_mem_status('AnonHugePages', 'host'))
 
         if nr_ah_after <= nr_ah_before:
             e_msg = ('smoke: Host did not use new THP during dd')
