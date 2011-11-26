@@ -3082,22 +3082,11 @@ def install_host_kernel(job, params):
     """
     install_type = params.get('host_kernel_install_type')
 
-    rpm_url = params.get('host_kernel_rpm_url')
-
-    koji_cmd = params.get('host_kernel_koji_cmd')
-    koji_build = params.get('host_kernel_koji_build')
-    koji_tag = params.get('host_kernel_koji_tag')
-
-    git_repo = params.get('host_kernel_git_repo')
-    git_branch = params.get('host_kernel_git_branch')
-    git_commit = params.get('host_kernel_git_commit')
-    patch_list = params.get('host_kernel_patch_list')
-    if patch_list:
-        patch_list = patch_list.split()
-    kernel_config = params.get('host_kernel_config')
-
     if install_type == 'rpm':
         logging.info('Installing host kernel through rpm')
+
+        rpm_url = params.get('host_kernel_rpm_url')
+
         dst = os.path.join("/tmp", os.path.basename(rpm_url))
         k = utils.get_file(rpm_url, dst)
         host_kernel = job.kernel(k)
@@ -3105,6 +3094,12 @@ def install_host_kernel(job, params):
         host_kernel.boot()
 
     elif install_type in ['koji', 'brew']:
+        logging.info('Installing host kernel through koji/brew')
+
+        koji_cmd = params.get('host_kernel_koji_cmd')
+        koji_build = params.get('host_kernel_koji_build')
+        koji_tag = params.get('host_kernel_koji_tag')
+
         k_deps = KojiPkgSpec(tag=koji_tag, package='kernel',
                              subpackages=['kernel-devel', 'kernel-firmware'])
         k = KojiPkgSpec(tag=koji_tag, package='kernel',
@@ -3128,8 +3123,19 @@ def install_host_kernel(job, params):
 
     elif install_type == 'git':
         logging.info('Chose to install host kernel through git, proceeding')
+
+        repo = params.get('host_kernel_git_repo')
+        repo_base = params.get('host_kernel_git_repo_base', None)
+        branch = params.get('host_kernel_git_branch')
+        commit = params.get('host_kernel_git_commit')
+        patch_list = params.get('host_kernel_patch_list')
+        if patch_list:
+            patch_list = patch_list.split()
+        kernel_config = params.get('host_kernel_config')
+
         repodir = os.path.join("/tmp", 'kernel_src')
-        r = git.get_git_branch(git_repo, git_branch, repodir, git_commit)
+        r = git.get_git_branch(repo, branch, repodir, commit,
+                               base_uri=repo_base)
         host_kernel = job.kernel(r)
         if patch_list:
             host_kernel.patch(patch_list)
