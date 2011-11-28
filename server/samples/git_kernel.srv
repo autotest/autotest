@@ -1,39 +1,68 @@
-# dir on remote host to hold git repo
-repodir = '/tmp/kvm'
+AUTHOR = "Lucas Meneghel Rodrigues <lmr@redhat.com>"
+NAME = "Kernel install from git repo (server side)"
+TIME = "MEDIUM"
+TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
+TEST_TYPE = "server"
+DOC = """
+This will fetch a git repo, then it'll push it to the client machines, compile
+it there and reboot on the new kernel, running the client side tests 'dbench'
+and 'kernbench'.
+"""
 
-# git url to clone
-giturl  = 'git://git.kernel.org/pub/scm/linux/kernel/git/avi/kvm.git'
+import logging
 
-# web url to check remote version to determine whether or not to 'git pull'
-weburl  = 'http://git.kernel.org/?p=linux/kernel/git/avi/kvm.git'
+# Git repo info
+# uri: Git URL
+# uri example: 'git://git.kernel.org/pub/scm/virt/kvm/kvm'
+uri = 'git://git.kernel.org/pub/scm/virt/kvm/kvm'
+# branch: If specified, checkout this specific branch.
+# branch example: 'master'
+branch = 'master'
+# commit: If specified, checkout this specific commit.
+# commit example: '16089f73ba3207fb4a61f3cfbd645035019c9563'
+commit = None
+# base_uri: If provided, it is the place where content is 1st fetched from.
+# Usually, it is a local clone of the code. Idea is to reduce bandwidth usage.
+# base_uri example: '/path/to/local/kernel/repo'
+base_uri = None
+# patches: List of patches to be applied on top of that tree.
+# patches example: ['http://my-server-name/path/to/p1.patch']
+patches = []
+# config: Config file for the kernel you're building. Mandatory.
+# config example: 'http://my-server-name/path/to/config'
+config = 'http://my-server-name/path/to/config'
+# repo_dir: Place that holds the code checkout on the server.
+# repo_dir example: '/tmp/linux'
+repo_dir = '/tmp/linux'
+# remote_destination_dir: Place that holds the code checkout on the client.
+# remote_destination_dir example: '/tmp/linux'
+remote_destination_dir = '/tmp/linux'
 
-# CHANGEME - kernel config
-kconfig = 'http://git.kernel.org/?p=virt/kvm/kvm-userspace.git;a=blob_plain;f=kernel/x86_64.config;hb=HEAD'
+# Fetch the git repo with the appropriate commit
+kernel = git_kernel.GitKernel(uri=uri, branch=branch,
+                              commit=commit,
+                              destination_dir=repo_dir,
+                              remote_destination_dir=remote_destination_dir,
+                              base_uri=base_uri, patches=patches,
+                              config=config)
 
-# CHANGEME
-myhostname = 'myhost'
+def run(machine):
+    host = hosts.create_host(machine)
+    logging.info("Host %s kernel before: %s", machine,
+                 host.run("uname -a").stdout.strip())
+    # Installing git kernel. Install may also take a branch and a commit.
+    kernel.install(host=host)
+    # Setting bootloader to boot the autotest built kernel
+    host.bootloader.boot_once("autotest")
+    # Rebooting
+    host.reboot()
+    host.wait_up()
+    logging.info("Host %s kernel after: %s", machine,
+                 host.run("uname -a").stdout.strip())
+    # Initializing autotest and running some tests
+    at = autotest.Autotest(host)
+    at.run_test('dbench')
+    at.run_test('kernbench')
 
-# init the git kernel
-kernel = git_kernel.GitKernel(repodir, giturl, weburl)
-
-# ssh to remote host
-h = hosts.create_host(myhostname)
-
-# acquire git repo, make sure it is up-to-date, clone repo into tmp dir
-kernel.get(h)
-
-# display local repo version
-print kernel.get_local_head(h)
-
-# configure, build, and install on remote host
-kernel.configure(kconfig)
-kernel.build(h)
-kernel.install(h)
-
-# add kernel to remote host bootloader, set up next boot entry
-h.bootloader.boot_once('autotest')
-
-# reboot and check that everything worked
-h.reboot()
-h.wait_up()
-print h.run("uname -a").stdout
+job.parallel_simple(run, machines)
