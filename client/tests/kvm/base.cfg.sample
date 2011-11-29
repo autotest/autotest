@@ -1,36 +1,118 @@
 # Copy this file to base.cfg and edit it.
-#
-# Whitespace seperated object names and test parameters
 
-# List of virtual machine object names
+# Absolute paths and/or names of binaries (default path is /usr/bin)
+qemu_binary = qemu
+qemu_img_binary = qemu-img
+
+# List of virtual machine object names (whitespace seperated)
 vms = vm1
 # Default virtual machine to use, when not specified by test.
 main_vm = vm1
 # Virtualization type (kvm/xen/libvirt/etc.)
 vm_type = kvm
 
-# List of block device object names
+# List of network device object names (whitespace seperated)
+nics = nic1
+# Connect NIC devices to host bridge device
+bridge = virbr0
+
+# List of block device object names (whitespace seperated)
 images = image1
+# List of optical device object names
 cdroms = cd1
 
-# List of network device object names
-nics = nic1
+# USB controller object names (whitespace seperated)
+usbs = usb1
+# USB controller type, can be ehci/uhci
+usb_type = uhci
+# Max ports on a controller.
+usb_max_port = 6
 
-# List of hypervisor-monitor object names (one per guest)
+
+
+##### Low-level parameters for platform, networking, block, and usb devices.
+
+# Default number of processors for each VM
+smp = 1
+# Memory for each VM
+mem = 1024
+
+# Networking type (nic, user, tap, socket, vde, dump, none) 
+nic_mode = tap
+
+# Size of file-based qcow2 image, if image_raw-device not used.
+image_size = 10G
+
+# Use raw block device node or file-based qcow2 format
+image_raw_device = no
+# Name of image, or path to device node if using image_raw_device
+image_name = image
+
+# Host-side caching to use (none, writeback, writethrough)
+#    writeback - use host cache, report complete after storage write
+#    writethrough - use host cache, report complete before storage write
+drive_cache = none
+
+# List of hypervisor-monitor object names (one per guest), 
+#    used to communicate with hypervisor to control guests.
 monitors = humanmonitor1
 # Default monitor object to use, when not specified by test.
 main_monitor = humanmonitor1
 # Default monitor type (protocol), if multiple types to be used
 monitor_type = human
 
-# Specify usb controller device for guest.
-usbs = usb1
-# USB controller type, can be ehci/uhci
-usb_type_usb1 = uhci
-# Max ports on a controller.
-usb_max_port_usb1 = 2
-## These configure is used for multifunction support.
-# usbs = usb1 usb2
+# Guest Display type (vnc, sdl, spice, or nographic) 
+display = vnc
+# If using a spice display, specific spice options
+qxl = on
+qxl_dev_nr = 1
+spice = disable-ticketing
+# Capture contents of display during each test
+take_regular_screendumps = yes
+keep_screendumps_on_error = yes
+screendump_delay = 5
+# Encode video from vm screenshots
+encode_video_files = yes
+
+
+
+##### Less-common and default parameters expected by some tests, 
+##### do not modify unless you know what you're doing.
+
+# Whether to run the qemu binary with malloc perturb set.
+#    Off by default, set to 'yes' to enable
+malloc_perturb = no
+
+# Monitor network traffic during testing
+run_tcpdump = yes
+
+# Block devices
+drive_index_image1 = 0
+drive_index_cd1 = 1
+# You can specify a blkdebug file here, relative to kvm/blkdebug dir
+#    we have a premade default.conf in there. Important to note that you
+#    can set this for any image defined in the config at a given time
+#    drive_blkdebug_image1 = blkdebug/default.conf
+#    drive_blkdebug_image1 =
+# What to do whether a read error is detected, such as 'stop'
+drive_rerror_image1 =
+# What to do whether a write error is detected, such as 'stop'
+drive_werror_image1 =
+# Disk backup settings
+# Enable backup_image = yes only in some specific tests, such as
+#    unattended_install. In all other tests, it should be no, so keep the global
+#    as is.
+backup_image = no
+# Enable backup_image_on_check_error = yes globally to allow isolate bad images
+#    for investigation purposes
+backup_image_on_check_error = no
+# Enable restore_image_on_check_error = yes globally to allow restore a image
+#    that had a check image with a pristine image. Works only if
+#    backup_image_on_check_error = yes, of course. For tests such as
+#    unattended_install, you'll have to set it to no, since if it fails, we won't
+#    have an image at all, so you save time.
+restore_image_on_check_error = no
+
 ## UHCI's multifunction configure.
 # usb_type_usb1 = uhci
 # multifunction_usb1 = on
@@ -39,63 +121,6 @@ usb_max_port_usb1 = 2
 ## EHCI's multifunction configure.
 # usb_type_usb2 = ehci
 # multifunction_usb2 = on
-
-# Location of the qemu programs. You can refer to absolute paths here.
-qemu_binary = qemu
-qemu_img_binary = qemu-img
-
-# Default VM params
-# Number of processors
-smp = 1
-
-# Memory
-mem = 1024
-
-# Hard disk
-image_size = 10G
-image_raw_device = no
-drive_index_image1 = 0
-drive_cache = none
-# You can specify a blkdebug file here, relative to kvm/blkdebug dir
-# we have a premade default.conf in there. Important to note that you
-# can set this for any image defined in the config at a given time
-#drive_blkdebug_image1 = blkdebug/default.conf
-#drive_blkdebug_image1 =
-# What to do whether a read error is detected, such as 'stop'
-drive_rerror_image1 =
-# What to do whether a write error is detected, such as 'stop'
-drive_werror_image1 =
-# Disk backup settings
-# Enable backup_image = yes only in some specific tests, such as
-# unattended_install. In all other tests, it should be no, so keep the global
-# as is.
-backup_image = no
-# Enable backup_image_on_check_error = yes globally to allow isolate bad images
-# for investigation purposes
-backup_image_on_check_error = no
-# Enable restore_image_on_check_error = yes globally to allow restore a image
-# that had a check image with a pristine image. Works only if
-# backup_image_on_check_error = yes, of course. For tests such as
-# unattended_install, you'll have to set it to no, since if it fails, we won't
-# have an image at all, so you save time.
-restore_image_on_check_error = no
-
-# Cdrom drive index
-drive_index_cd1 = 1
-
-# Display
-display = vnc
-
-# If display = spice, you can set specific spice stuff here
-qxl = on
-qxl_dev_nr = 1
-spice = disable-ticketing
-
-# NIC parameters
-nic_mode = tap
-# By default we use libvirt's bridge
-bridge = virbr0
-run_tcpdump = yes
 
 # Some preprocessor/postprocessor params
 start_vm = yes
@@ -107,15 +132,10 @@ kill_unresponsive_vms = yes
 convert_ppm_files_to_png_on_error = yes
 keep_ppm_files = no
 keep_ppm_files_on_error = no
-take_regular_screendumps = yes
-keep_screendumps_on_error = yes
-screendump_delay = 5
 screendump_quality = 30
 screendump_temp_dir = /dev/shm
 screendump_verbose = no
 
-# Encode video from vm screenshots
-encode_video_files = yes
 keep_video_files = yes
 keep_video_files_on_error = yes
 
@@ -139,6 +159,3 @@ login_timeout = 360
 # NFS directory of guest images
 images_good = fileserver.foo.com:/autotest/images_good
 
-# Whether to run the qemu binary with malloc perturb set.
-# Off by default, set to 'yes' to enable it
-malloc_perturb = no
