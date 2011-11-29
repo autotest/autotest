@@ -9,7 +9,7 @@ import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect, tarfile
 import struct, shutil, glob
 from autotest_lib.client.bin import utils, os_dep
 from autotest_lib.client.common_lib import error, logging_config
-from autotest_lib.client.common_lib import logging_manager
+from autotest_lib.client.common_lib import logging_manager, git
 import rss_client, aexpect
 try:
     import koji
@@ -464,42 +464,6 @@ def kill_process_tree(pid, sig=signal.SIGKILL):
         kill_process_tree(int(child), sig)
     safe_kill(pid, sig)
     safe_kill(pid, signal.SIGCONT)
-
-
-def get_git_branch(repository, branch, srcdir, commit=None, lbranch=None):
-    """
-    Retrieves a given git code repository.
-
-    @param repository: Git repository URL
-    """
-    logging.info("Fetching git [REP '%s' BRANCH '%s' COMMIT '%s'] -> %s",
-                 repository, branch, commit, srcdir)
-    if not os.path.exists(srcdir):
-        os.makedirs(srcdir)
-    os.chdir(srcdir)
-
-    if os.path.exists(".git"):
-        utils.system("git reset --hard")
-    else:
-        utils.system("git init")
-
-    if not lbranch:
-        lbranch = branch
-
-    utils.system("git fetch -q -f -u -t %s %s:%s" %
-                 (repository, branch, lbranch))
-    utils.system("git checkout %s" % lbranch)
-    if commit:
-        utils.system("git checkout %s" % commit)
-
-    h = utils.system_output('git log --pretty=format:"%H" -1')
-    try:
-        desc = "tag %s" % utils.system_output("git describe")
-    except error.CmdError:
-        desc = "no tag found"
-
-    logging.info("Commit hash for %s is %s (%s)", repository, h.strip(), desc)
-    return srcdir
 
 
 def check_kvm_source_dir(source_dir):
@@ -2444,110 +2408,7 @@ def mount(src, mount_point, type, perm="rw"):
         return False
 
 
-class GitRepoHelper(object):
-    '''
-    Helps to deal with git repos, mostly fetching content from a repo
-    '''
-    def __init__(self, uri, branch, destination_dir, commit=None, lbranch=None,
-                 base_uri=None):
-        '''
-        Instantiates a new GitRepoHelper
-
-        @type uri: string
-        @param uri: git repository url
-        @type branch: string
-        @param branch: git remote branch
-        @type destination_dir: string
-        @param destination_dir: path of a dir where to save downloaded code
-        @type commit: string
-        @param commit: specific commit to download
-        @type lbranch: string
-        @param lbranch: git local branch name, if different from remote
-        '''
-        self.uri = uri
-        self.base_uri = base_uri
-        self.branch = branch
-        self.destination_dir = destination_dir
-        self.commit = commit
-        if lbranch is None:
-            self.lbranch = branch
-
-
-    def init(self):
-        '''
-        Initializes a directory for receiving a verbatim copy of git repo
-
-        This creates a directory if necessary, and either resets or inits
-        the repo
-        '''
-        if not os.path.exists(self.destination_dir):
-            logging.debug('Creating directory %s for git repo %s',
-                          self.destination_dir, self.uri)
-            os.makedirs(self.destination_dir)
-
-        os.chdir(self.destination_dir)
-
-        if os.path.exists('.git'):
-            logging.debug('Resetting previously existing git repo at %s for '
-                          'receiving git repo %s',
-                          self.destination_dir, self.uri)
-            utils.system('git reset --hard')
-        else:
-            logging.debug('Initializing new git repo at %s for receiving '
-                          'git repo %s',
-                          self.destination_dir, self.uri)
-            utils.system('git init')
-
-
-    def fetch(self, uri):
-        '''
-        Performs a git fetch from the remote repo
-        '''
-        logging.info("Fetching git [REP '%s' BRANCH '%s'] -> %s",
-                     uri, self.branch, self.destination_dir)
-        os.chdir(self.destination_dir)
-        utils.system("git fetch -q -f -u -t %s %s:%s" % (uri,
-                                                         self.branch,
-                                                         self.lbranch))
-
-
-    def checkout(self):
-        '''
-        Performs a git checkout for a given branch and start point (commit)
-        '''
-        os.chdir(self.destination_dir)
-
-        logging.debug('Checking out local branch %s', self.lbranch)
-        utils.system("git checkout %s" % self.lbranch)
-
-        if self.commit is not None:
-            logging.debug('Checking out commit %s', self.commit)
-            utils.system("git checkout %s" % self.commit)
-
-        h = utils.system_output('git log --pretty=format:"%H" -1').strip()
-        try:
-            desc = "tag %s" % utils.system_output("git describe")
-        except error.CmdError:
-            desc = "no tag found"
-
-        logging.info("Commit hash for %s is %s (%s)", self.name, h, desc)
-
-
-    def execute(self):
-        '''
-        Performs all steps necessary to initialize and download a git repo
-
-        This includes the init, fetch and checkout steps in one single
-        utility method.
-        '''
-        self.init()
-        if self.base_uri is not None:
-            self.fetch(self.base_uri)
-        self.fetch(self.uri)
-        self.checkout()
-
-
-class GitRepoParamHelper(GitRepoHelper):
+class GitRepoParamHelper(git.GitRepoHelper):
     '''
     Helps to deal with git repos specified in cartersian config files
 
@@ -2589,7 +2450,11 @@ class GitRepoParamHelper(GitRepoHelper):
                       'prefix is %s' % (self.name, config_prefix))
 
         self.base_uri = self.params.get('%s_base_uri' % config_prefix)
-        logging.debug('Git repo %s base uri: %s' % (self.name, self.base_uri))
+        if self.base_uri is None:
+            logging.debug('Git repo %s base uri is not set' % self.name)
+        else:
+            logging.debug('Git repo %s base uri: %s' % (self.name,
+                                                        self.base_uri))
 
         self.uri = self.params.get('%s_uri' % config_prefix)
         logging.debug('Git repo %s uri: %s' % (self.name, self.uri))
@@ -3217,22 +3082,11 @@ def install_host_kernel(job, params):
     """
     install_type = params.get('host_kernel_install_type')
 
-    rpm_url = params.get('host_kernel_rpm_url')
-
-    koji_cmd = params.get('host_kernel_koji_cmd')
-    koji_build = params.get('host_kernel_koji_build')
-    koji_tag = params.get('host_kernel_koji_tag')
-
-    git_repo = params.get('host_kernel_git_repo')
-    git_branch = params.get('host_kernel_git_branch')
-    git_commit = params.get('host_kernel_git_commit')
-    patch_list = params.get('host_kernel_patch_list')
-    if patch_list:
-        patch_list = patch_list.split()
-    kernel_config = params.get('host_kernel_config')
-
     if install_type == 'rpm':
         logging.info('Installing host kernel through rpm')
+
+        rpm_url = params.get('host_kernel_rpm_url')
+
         dst = os.path.join("/tmp", os.path.basename(rpm_url))
         k = utils.get_file(rpm_url, dst)
         host_kernel = job.kernel(k)
@@ -3240,6 +3094,12 @@ def install_host_kernel(job, params):
         host_kernel.boot()
 
     elif install_type in ['koji', 'brew']:
+        logging.info('Installing host kernel through koji/brew')
+
+        koji_cmd = params.get('host_kernel_koji_cmd')
+        koji_build = params.get('host_kernel_koji_build')
+        koji_tag = params.get('host_kernel_koji_tag')
+
         k_deps = KojiPkgSpec(tag=koji_tag, package='kernel',
                              subpackages=['kernel-devel', 'kernel-firmware'])
         k = KojiPkgSpec(tag=koji_tag, package='kernel',
@@ -3263,8 +3123,19 @@ def install_host_kernel(job, params):
 
     elif install_type == 'git':
         logging.info('Chose to install host kernel through git, proceeding')
+
+        repo = params.get('host_kernel_git_repo')
+        repo_base = params.get('host_kernel_git_repo_base', None)
+        branch = params.get('host_kernel_git_branch')
+        commit = params.get('host_kernel_git_commit')
+        patch_list = params.get('host_kernel_patch_list')
+        if patch_list:
+            patch_list = patch_list.split()
+        kernel_config = params.get('host_kernel_config')
+
         repodir = os.path.join("/tmp", 'kernel_src')
-        r = get_git_branch(git_repo, git_branch, repodir, git_commit)
+        r = git.get_repo(uri=repo, branch=branch, destination_dir=repodir,
+                         commit=commit, base_uri=repo_base)
         host_kernel = job.kernel(r)
         if patch_list:
             host_kernel.patch(patch_list)
