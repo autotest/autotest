@@ -159,20 +159,51 @@ variants:
         login_timeout = 240
         variants:
             - ehci:
+                check_func = "check_usb_device"
+                info_usb_name = 
+                vendor_id = "1d6b"
+                vendor = "Linux Foundation"
+                product_id = "0002"
+                product = "EHCI Host Controller"
                 usbs = usb1
                 usb_type_usb1 = ehci
                 usb_max_port_usb1 = 6
             - keyboard:
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB Keyboard"
+                vendor_id = "0627"
+                vendor = "Adomax Technology Co., Ltd"
+                product_id = "0001"
+                product = "QEMU USB Keyboard"
                 extra_params += " -device usb-kbd,id=kbd1"
             - mouse:
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB Mouse"
+                vendor_id = "0627"
+                vendor = "Adomax Technology Co., Ltd"
+                product_id = "0001"
+                product = "QEMU USB Mouse"
                 extra_params += " -device usb-mouse,id=mouse1"
             - hub:
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB Hub"
+                vendor_id = "0000"
+                vendor = 
+                product_id = "0000"
+                product = "QEMU USB Hub"
                 extra_params += " -device usb-hub,id=hub1"
             - storage:
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB MSD"
+                vendor_id = "0000"
+                vendor = 
+                product_id = "0000"
+                product = "QEMU USB HARDDRIVE"
                 usbs = usb1
                 usb_type_usb1 = ehci
                 usb_max_port_usb1 = 6
                 images += " stg"
+                image_boot_image1 = yes
                 image_name_stg = "usbdevice"
                 image_format_stg = "qcow2"
                 image_boot_stg = no
@@ -194,20 +225,51 @@ variants:
         login_timeout = 240
         variants:
             - ehci:
+                check_func = "check_usb_device"
+                info_usb_name = 
+                vendor_id = "1d6b"
+                vendor = "Linux Foundation"
+                product_id = "0002"
+                product = "EHCI Host Controller"
                 usbs = usb1
                 usb_type_usb1 = ehci
                 usb_max_port_usb1 = 6
             - keyboard:
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB Keyboard"
+                vendor_id = "0627"
+                vendor = "Adomax Technology Co., Ltd"
+                product_id = "0001"
+                product = "QEMU USB Keyboard"
                 extra_params += " -device usb-kbd,id=kbd1"
             - mouse:
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB Mouse"
+                vendor_id = "0627"
+                vendor = "Adomax Technology Co., Ltd"
+                product_id = "0001"
+                product = "QEMU USB Mouse"
                 extra_params += " -device usb-mouse,id=mouse1"
             - hub:
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB Hub"
+                vendor_id = "0000"
+                vendor = 
+                product_id = "0000"
+                product = "QEMU USB Hub"
                 extra_params += " -device usb-hub,id=hub1"
             - storage:
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB MSD"
+                vendor_id = "0000"
+                vendor = 
+                product_id = "0000"
+                product = "QEMU USB HARDDRIVE"
                 usbs = usb1
                 usb_type_usb1 = ehci
                 usb_max_port_usb1 = 6
                 images += " stg"
+                image_boot_image1 = yes
                 image_name_stg = "usbdevice"
                 image_format_stg = "qcow2"
                 image_boot_stg = no
