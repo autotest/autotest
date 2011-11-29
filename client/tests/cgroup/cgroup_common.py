@@ -345,3 +345,25 @@ class CgroupModules(object):
             logging.error("module %s not found: %s", module, inst)
             return None
         return self.modules[1][i]
+
+
+def get_load_per_cpu(_stats=None):
+    """
+    Gather load per cpu from /proc/stat
+    @param _stats: previous values
+    @return: list of diff/absolute values of CPU times [SUM, CPU1, CPU2, ...]
+    """
+    stats = []
+    f_stat = open('/proc/stat', 'r')
+    if _stats:
+        for i in range(len(_stats)):
+            stats.append(int(f_stat.readline().split()[1]) - _stats[i])
+    else:
+        line = f_stat.readline()
+        while line:
+            if line.startswith('cpu'):
+                stats.append(int(line.split()[1]))
+            else:
+                break
+            line = f_stat.readline()
+    return stats
