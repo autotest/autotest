@@ -2,6 +2,7 @@
 #
 # Define the objects we'll be using
 vms = vm1
+main_vm = vm1
 vm_type = kvm
 images = image1
 cdroms = cd1
@@ -27,8 +28,6 @@ usb_max_port_usb1 = 2
 ## EHCI's multifunction configure.
 # usb_type_usb2 = ehci
 # multifunction_usb2 = on
-
-main_vm = vm1
 
 # Location of the qemu programs. You can refer to absolute paths here.
 qemu_binary = qemu
