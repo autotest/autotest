@@ -1,15 +1,26 @@
 # Copy this file to base.cfg and edit it.
 #
-# Define the objects we'll be using
+# Whitespace seperated object names and test parameters
+
+# List of virtual machine object names
 vms = vm1
+# Default virtual machine to use, when not specified by test.
 main_vm = vm1
+# Virtualization type (kvm/xen/libvirt/etc.)
 vm_type = kvm
+
+# List of block device object names
 images = image1
 cdroms = cd1
+
+# List of network device object names
 nics = nic1
+
+# List of hypervisor-monitor object names (one per guest)
 monitors = humanmonitor1
+# Default monitor object to use, when not specified by test.
 main_monitor = humanmonitor1
-monitor_type_humanmonitor1 = human
+# Default monitor type (protocol), if multiple types to be used
 monitor_type = human
 
 # Specify usb controller device for guest.
