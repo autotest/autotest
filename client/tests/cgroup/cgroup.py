@@ -12,9 +12,7 @@ from tempfile import NamedTemporaryFile
 
 from autotest_lib.client.bin import test, utils
 from autotest_lib.client.common_lib import error
-from cgroup_common import Cgroup as CG
-from cgroup_common import CgroupModules
-from cgroup_common import _traceback
+from cgroup_common import Cgroup, CgroupModules, get_load_per_cpu
 
 class cgroup(test.test):
     """
@@ -48,7 +46,7 @@ class cgroup(test.test):
                 logging.info("---< 'test_%s' FAILED >---", subtest)
             except Exception:
                 err += "%s, " % subtest
-                tb = _traceback("test_%s" % subtest, sys.exc_info())
+                tb = utils.etraceback("test_%s" % subtest, sys.exc_info())
                 logging.error("test_%s: FAILED%s", subtest, tb)
                 logging.info("---< 'test_%s' FAILED >---", subtest)
 
@@ -75,7 +73,6 @@ class cgroup(test.test):
     def cleanup(self):
         """ Cleanup """
         logging.debug('cgroup_test cleanup')
-        print "Cleanup"
         del (self.modules)
 
 
@@ -102,7 +99,7 @@ class cgroup(test.test):
                     raise error.TestFail("Some parts of cleanup failed%s" % err)
 
         # Preparation
-        item = CG('memory', self._client)
+        item = Cgroup('memory', self._client)
         item.initialize(self.modules)
         item.smoke_test()
         pwd = item.mk_cgroup()
@@ -116,8 +113,8 @@ class cgroup(test.test):
         mem = min(int(mem.split()[1])/1024, 1024)
         mem = max(mem, 100) # at least 100M
         try:
-            memsw_limit_bytes = item.get_property("memory.memsw.limit_in_bytes")
-        except error.TestFail:
+            item.get_property("memory.memsw.limit_in_bytes")
+        except error.TestError:
             # Doesn't support memsw limitation -> disabling
             logging.info("System does not support 'memsw'")
             utils.system("swapoff -a")
@@ -222,7 +219,8 @@ class cgroup(test.test):
             logging.debug("test_memory: Memfill mem + swap limit")
             ps = item.test("memfill %d %s" % (mem, outf.name))
             item.set_cgroup(ps.pid, pwd)
-            item.set_property_h("memory.memsw.limit_in_bytes", "%dM"%(mem/2), pwd)
+            item.set_property_h("memory.memsw.limit_in_bytes", "%dM"%(mem/2),
+                                pwd)
             ps.stdin.write('\n')
             i = 0
             while ps.poll() == None:
@@ -266,56 +264,6 @@ class cgroup(test.test):
         Cpuset test
         1) Initiate CPU load on CPU0, than spread into CPU* - CPU0
         """
-        class LoadPerCpu:
-            """
-            Handles the LoadPerCpu stats
-            self.values [cpus, cpu0, cpu1, ...]
-            """
-            def __init__(self):
-                """
-                Init
-                """
-                self.values = []
-                self.stat = open('/proc/stat', 'r')
-                line = self.stat.readline()
-                while line:
-                    if line.startswith('cpu'):
-                        self.values.append(int(line.split()[1]))
-                    else:
-                        break
-                    line = self.stat.readline()
-
-            def reload(self):
-                """
-                Reload current values
-                """
-                self.values = self.get()
-
-            def get(self):
-                """
-                Get the current values
-                @return vals: array of current values [cpus, cpu0, cpu1..]
-                """
-                self.stat.seek(0)
-                self.stat.flush()
-                vals = []
-                for _ in range(len(self.values)):
-                    vals.append(int(self.stat.readline().split()[1]))
-                return vals
-
-            def tick(self):
-                """
-                Reload values and returns the load between the last tick/reload
-                @return vals: array of load between ticks/reloads
-                              values [cpus, cpu0, cpu1..]
-                """
-                vals = self.get()
-                ret = []
-                for i in range(len(self.values)):
-                    ret.append(vals[i] - self.values[i])
-                self.values = vals
-                return ret
-
         def cleanup(supress=False):
             """ cleanup """
             logging.debug("test_cpuset: Cleanup")
@@ -341,7 +289,7 @@ class cgroup(test.test):
                     raise error.TestFail("Some parts of cleanup failed%s" % err)
 
         # Preparation
-        item = CG('cpuset', self._client)
+        item = Cgroup('cpuset', self._client)
         if item.initialize(self.modules):
             raise error.TestFail("cgroup init failed")
 
@@ -379,17 +327,16 @@ class cgroup(test.test):
             tasks.append(item.test("cpu"))
             try:
                 item.set_cgroup(tasks[i].pid, pwd)
-            except error.TestFail, inst:
+            except error.TestError, inst:
                 cleanup(True)
                 raise error.TestFail("Failed to set cgroup: %s" % inst)
             tasks[i].stdin.write('\n')
-        stats = LoadPerCpu()
         # Use only the first CPU
         item.set_property("cpuset.cpus", 0, pwd)
-        stats.reload()
+        stats = get_load_per_cpu()
         time.sleep(10)
         # [0] = all cpus
-        stat1 = stats.tick()[1:]
+        stat1 = get_load_per_cpu(stats)[1:]
         stat2 = stat1[1:]
         stat1 = stat1[0]
         for _stat in stat2:
@@ -403,9 +350,9 @@ class cgroup(test.test):
             item.set_property("cpuset.cpus", "1", pwd)
         else:
             item.set_property("cpuset.cpus", "1-%d"%(no_cpus-1), pwd)
-        stats.reload()
+        stats = get_load_per_cpu()
         time.sleep(10)
-        stat1 = stats.tick()[1:]
+        stat1 = get_load_per_cpu(stats)[1:]
         stat2 = stat1[0]
         stat1 = stat1[1:]
         for _stat in stat1:
