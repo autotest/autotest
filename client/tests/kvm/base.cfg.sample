@@ -37,7 +37,7 @@ smp = 1
 # Memory for each VM
 mem = 1024
 
-# Networking type (nic, user, tap, socket, vde, dump, none) 
+# Networking type (nic, user, tap, socket, vde, dump, none)
 nic_mode = tap
 
 # Size of file-based qcow2 image, if image_raw-device not used.
@@ -53,7 +53,7 @@ image_name = image
 #    writethrough - use host cache, report complete before storage write
 drive_cache = none
 
-# List of hypervisor-monitor object names (one per guest), 
+# List of hypervisor-monitor object names (one per guest),
 #    used to communicate with hypervisor to control guests.
 monitors = humanmonitor1
 # Default monitor object to use, when not specified by test.
@@ -61,7 +61,7 @@ main_monitor = humanmonitor1
 # Default monitor type (protocol), if multiple types to be used
 monitor_type = human
 
-# Guest Display type (vnc, sdl, spice, or nographic) 
+# Guest Display type (vnc, sdl, spice, or nographic)
 display = vnc
 # If using a spice display, specific spice options
 qxl = on
@@ -76,7 +76,7 @@ encode_video_files = yes
 
 
 
-##### Less-common and default parameters expected by some tests, 
+##### Less-common and default parameters expected by some tests,
 ##### do not modify unless you know what you're doing.
 
 # Whether to run the qemu binary with malloc perturb set.

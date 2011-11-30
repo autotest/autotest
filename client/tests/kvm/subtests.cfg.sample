@@ -58,7 +58,7 @@ variants:
         restore_image_on_check_error = no
 
         variants:
-            # Install guest from cdrom 
+            # Install guest from cdrom
             - cdrom:
                 medium = cdrom
                 redirs += " unattended_install"
@@ -160,7 +160,7 @@ variants:
         variants:
             - ehci:
                 check_func = "check_usb_device"
-                info_usb_name = 
+                info_usb_name =
                 vendor_id = "1d6b"
                 vendor = "Linux Foundation"
                 product_id = "0002"
@@ -188,7 +188,7 @@ variants:
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB Hub"
                 vendor_id = "0000"
-                vendor = 
+                vendor =
                 product_id = "0000"
                 product = "QEMU USB Hub"
                 extra_params += " -device usb-hub,id=hub1"
@@ -196,7 +196,7 @@ variants:
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB MSD"
                 vendor_id = "0000"
-                vendor = 
+                vendor =
                 product_id = "0000"
                 product = "QEMU USB HARDDRIVE"
                 usbs = usb1
@@ -226,7 +226,7 @@ variants:
         variants:
             - ehci:
                 check_func = "check_usb_device"
-                info_usb_name = 
+                info_usb_name =
                 vendor_id = "1d6b"
                 vendor = "Linux Foundation"
                 product_id = "0002"
@@ -254,7 +254,7 @@ variants:
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB Hub"
                 vendor_id = "0000"
-                vendor = 
+                vendor =
                 product_id = "0000"
                 product = "QEMU USB Hub"
                 extra_params += " -device usb-hub,id=hub1"
@@ -262,7 +262,7 @@ variants:
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB MSD"
                 vendor_id = "0000"
-                vendor = 
+                vendor =
                 product_id = "0000"
                 product = "QEMU USB HARDDRIVE"
                 usbs = usb1
@@ -557,7 +557,7 @@ variants:
 
     - stress_boot: install setup image_copy unattended_install.cdrom
         type = stress_boot
-        max_vms = 5    
+        max_vms = 5
         alive_test_cmd = uname -a
         login_timeout = 240
         kill_vm = yes
@@ -631,7 +631,7 @@ variants:
                 guest_port_unattended_install = 12323
                 medium = cdrom
                 kernel =
-                initrd = 
+                initrd =
             - client_install:    support_vm_install
                 type = whql_client_install
                 # The username and password are required for accessing the DTM client

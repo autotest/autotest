@@ -353,7 +353,7 @@ variants:
 
     - stress_boot: install setup image_copy unattended_install.cdrom
         type = stress_boot
-        max_vms = 5    
+        max_vms = 5
         alive_test_cmd = uname -a
         login_timeout = 240
         kill_vm = yes
@@ -426,7 +426,7 @@ variants:
                 guest_port_unattended_install = 12323
                 medium = cdrom
                 kernel =
-                initrd = 
+                initrd =
             - client_install:    support_vm_install
                 type = whql_client_install
                 # The username and password are required for accessing the DTM client
