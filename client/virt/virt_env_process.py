@@ -511,9 +511,17 @@ def _take_screendumps(test, params, env):
                     pass
             else:
                 try:
-                    image = PIL.Image.open(temp_filename)
-                    image.save(screendump_filename, format="JPEG", quality=quality)
-                    cache[hash] = screendump_filename
+                    try:
+                        image = PIL.Image.open(temp_filename)
+                        image.save(screendump_filename, format="JPEG",
+                                   quality=quality)
+                        cache[hash] = screendump_filename
+                    except IOError, error_detail:
+                        logging.warning("VM '%s' failed to produce a "
+                                        "screendump: %s", vm.name, error_detail)
+                        # Decrement the counter as we in fact failed to
+                        # produce a converted screendump
+                        counter[vm] -= 1
                 except NameError:
                     pass
             os.unlink(temp_filename)
