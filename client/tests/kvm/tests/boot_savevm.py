@@ -21,6 +21,7 @@ def run_boot_savevm(test, params, env):
     savevm_login_delay = float(params.get("savevm_login_delay"))
     end_time = time.time() + float(params.get("savevm_timeout"))
 
+    successful_login = False
     while time.time() < end_time:
         time.sleep(savevm_delay)
         try:
@@ -46,10 +47,11 @@ def run_boot_savevm(test, params, env):
 
         try:
             vm.wait_for_login(timeout=savevm_login_delay)
+            successful_login = True
             break
         except Exception, detail:
             logging.debug(detail)
 
-    if (time.time() > end_time):
+    if not successful_login:
         raise error.TestFail("Not possible to log onto the vm after %s s" %
                              params.get("savevm_timeout"))
