@@ -283,6 +283,8 @@ class VM(virt_vm.BaseVM):
 
         def add_nic(help, vlan, model=None, mac=None, device_id=None, netdev_id=None,
                     nic_extra_params=None):
+            if model == 'none':
+                return ''
             if has_option(help, "netdev"):
                 netdev_vlan_str = ",netdev=%s" % netdev_id
             else:
@@ -310,6 +312,8 @@ class VM(virt_vm.BaseVM):
         def add_net(help, vlan, mode, ifname=None, tftp=None, bootfile=None,
                     hostfwd=[], netdev_id=None, netdev_extra_params=None,
                     tapfd=None):
+            if mode == 'none':
+                return ''
             if has_option(help, "netdev"):
                 cmd = " -netdev %s,id=%s" % (mode, netdev_id)
                 if netdev_extra_params:
@@ -467,12 +471,15 @@ class VM(virt_vm.BaseVM):
         if os.path.isdir(library_path):
             library_path = os.path.abspath(library_path)
             qemu_cmd += "LD_LIBRARY_PATH=%s " % library_path
+        if params.get("qemu_audio_drv"):
+            qemu_cmd += "QEMU_AUDIO_DRV=%s " % params.get("qemu_audio_drv")
         # Add the qemu binary
         qemu_cmd += qemu_binary
         # Add the VM's name
         qemu_cmd += add_name(help, name)
         # no automagic devices please
-        if has_option(help,"nodefaults"):
+        defaults = params.get("defaults")
+        if has_option(help,"nodefaults") and defaults != "yes":
             qemu_cmd += " -nodefaults"
             qemu_cmd += " -vga std"
         # Add monitors
