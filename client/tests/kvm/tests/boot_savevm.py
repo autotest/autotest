@@ -19,10 +19,14 @@ def run_boot_savevm(test, params, env):
     vm.verify_alive()
     savevm_delay = float(params.get("savevm_delay"))
     savevm_login_delay = float(params.get("savevm_login_delay"))
-    end_time = time.time() + float(params.get("savevm_timeout"))
+    savevm_login_timeout = float(params.get("savevm_timeout"))
+    start_time = time.time()
+
+    cycles = 0
 
     successful_login = False
-    while time.time() < end_time:
+    while (time.time() - start_time) < savevm_login_timeout:
+        logging.info("Save/load cycle %d", cycles + 1)
         time.sleep(savevm_delay)
         try:
             vm.monitor.cmd("stop")
@@ -45,13 +49,20 @@ def run_boot_savevm(test, params, env):
         except kvm_monitor.MonitorError, e:
             logging.error(e)
 
+        vm.verify_kernel_crash()
+
         try:
             vm.wait_for_login(timeout=savevm_login_delay)
             successful_login = True
             break
-        except Exception, detail:
-            logging.debug(detail)
+        except:
+            pass
 
+        cycles += 1
+
+    time_elapsed = int(time.time() - start_time)
+    info = "after %s s, %d load/save cycles" % (time_elapsed, cycles + 1)
     if not successful_login:
-        raise error.TestFail("Not possible to log onto the vm after %s s" %
-                             params.get("savevm_timeout"))
+        raise error.TestFail("Can't log on '%s' %s" % (vm.name, info))
+    else:
+        logging.info("Test ended %s", info)
