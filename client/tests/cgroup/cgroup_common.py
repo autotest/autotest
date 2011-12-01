@@ -152,6 +152,8 @@ class Cgroup(object):
         """
         if pwd == None:
             pwd = self.root
+        if isinstance(pwd, int):
+            pwd = self.cgroups[pwd]
         try:
             # Remove tailing '\n' from each line
             ret = [_[:-1] for _ in open(pwd+prop, 'r').readlines()]
