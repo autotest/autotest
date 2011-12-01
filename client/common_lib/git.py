@@ -5,7 +5,7 @@ Code that helps to deal with content from git repositories
 
 import os, logging
 import error
-from autotest_lib.client.bin import utils
+from autotest_lib.client.bin import utils, os_dep
 
 
 __all__ = ["GitRepoHelper", "get_repo"]
@@ -38,6 +38,7 @@ class GitRepoHelper(object):
         self.base_uri = base_uri
         self.branch = branch
         self.commit = commit
+
         if destination_dir is None:
             uri_basename = uri.split("/")[-1]
             self.destination_dir = os.path.join("/tmp", uri_basename)
@@ -47,6 +48,8 @@ class GitRepoHelper(object):
             self.lbranch = branch
         else:
             self.lbranch = lbranch
+
+        self.cmd = os_dep.command('git')
 
 
     def init(self):
@@ -62,17 +65,30 @@ class GitRepoHelper(object):
             os.makedirs(self.destination_dir)
 
         os.chdir(self.destination_dir)
-
         if os.path.exists('.git'):
             logging.debug('Resetting previously existing git repo at %s for '
                           'receiving git repo %s',
                           self.destination_dir, self.uri)
-            utils.system('git reset --hard')
+            self.git_cmd('reset --hard')
         else:
             logging.debug('Initializing new git repo at %s for receiving '
                           'git repo %s',
                           self.destination_dir, self.uri)
-            utils.system('git init')
+            self.git_cmd('init')
+
+
+    def git_cmd(self, cmd, ignore_status=False):
+        '''
+        Wraps git commands.
+
+        @param cmd: Command to be executed.
+        @param ignore_status: Whether we should supress error.CmdError
+                exceptions if the command did return exit code !=0 (True), or
+                not supress them (False).
+        '''
+        os.chdir(self.destination_dir)
+        return utils.run(r"%s %s" % (self.cmd, utils.sh_escape(cmd)),
+                                     ignore_status=ignore_status)
 
 
     def fetch(self, uri):
@@ -81,10 +97,8 @@ class GitRepoHelper(object):
         '''
         logging.info("Fetching git [REP '%s' BRANCH '%s'] -> %s",
                      uri, self.branch, self.destination_dir)
-        os.chdir(self.destination_dir)
-        utils.system("git fetch -q -f -u -t %s %s:%s" % (uri,
-                                                         self.branch,
-                                                         self.lbranch))
+        self.git_cmd("fetch -q -f -u -t %s %s:%s" %
+                     (uri, self.branch, self.lbranch))
 
 
     def get_top_commit(self):
@@ -93,8 +107,7 @@ class GitRepoHelper(object):
 
         @return: Commit id.
         '''
-        os.chdir(self.destination_dir)
-        return utils.system_output('git log --pretty=format:"%H" -1').strip()
+        return self.git_cmd('log --pretty=format:"%H" -1').stdout.strip()
 
 
     def get_top_tag(self):
@@ -103,9 +116,8 @@ class GitRepoHelper(object):
 
         @return: Tag.
         '''
-        os.chdir(self.destination_dir)
         try:
-            return utils.system_output("git describe").strip()
+            return self.git_cmd('describe').stdout.strip()
         except error.CmdError:
             return None
 
@@ -117,20 +129,18 @@ class GitRepoHelper(object):
         @param branch: Remote branch name.
         @param commit: Specific commit hash.
         '''
-        os.chdir(self.destination_dir)
-
         if branch is None:
             branch = self.branch
 
         logging.debug('Checking out branch %s', branch)
-        utils.system("git checkout %s" % branch)
+        self.git_cmd("checkout %s" % branch)
 
         if commit is None:
             commit = self.commit
 
         if commit is not None:
             logging.debug('Checking out commit %s', self.commit)
-            utils.system("git checkout %s" % self.commit)
+            self.git_cmd("checkout %s" % self.commit)
         else:
             logging.debug('Specific commit not specified')
 
