@@ -39,6 +39,8 @@ class RemoteHost(base_classes.Host):
 
     VAR_LOG_MESSAGES_COPY_PATH = "/var/tmp/messages.autotest_start"
 
+    VAR_LOG_MESSAGES_PATHS = ["/var/log/messages", "/var/log/syslog"]
+
     INSTALL_SERVER_MAPPING = {'cobbler': install_server.CobblerInterface}
 
     def _initialize(self, hostname, autodir=None, *args, **dargs):
@@ -157,6 +159,21 @@ class RemoteHost(base_classes.Host):
                                                  "on global_config.ini")
 
 
+    def _var_log_messages_path(self):
+        """
+        Find possible paths for a messages file.
+        """
+        for path in self.VAR_LOG_MESSAGES_PATHS:
+            try:
+                self.run('test -f %s' % path)
+                logging.debug("Found remote path %s", path)
+                return path
+            except:
+                logging.debug("Remote path %s is missing", path)
+
+        return None
+
+
     def job_start(self):
         """
         Abstract method, called the first time a remote host object
@@ -167,13 +184,19 @@ class RemoteHost(base_classes.Host):
         you will need to call this method yourself (and enforce the
         single-call rule).
         """
-        try:
-            self.run('rm -f %s' % self.VAR_LOG_MESSAGES_COPY_PATH)
-            self.run('cp /var/log/messages %s' %
-                     self.VAR_LOG_MESSAGES_COPY_PATH)
-        except Exception, e:
-            # Non-fatal error
-            logging.info('Failed to copy /var/log/messages at startup: %s', e)
+        messages_file = self._var_log_messages_path()
+        if messages_file is not None:
+            try:
+                self.run('rm -f %s' % self.VAR_LOG_MESSAGES_COPY_PATH)
+                self.run('cp %s %s' % (messages_file,
+                                       self.VAR_LOG_MESSAGES_COPY_PATH))
+            except Exception, e:
+                # Non-fatal error
+                logging.info('Failed to copy %s at startup: %s',
+                             messages_file, e)
+        else:
+            logging.info("No remote messages path found, looked %s",
+                         self.VAR_LOG_MESSAGES_PATHS)
 
 
     def get_autodir(self):
