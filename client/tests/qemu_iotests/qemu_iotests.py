@@ -49,6 +49,7 @@ class qemu_iotests(test.test):
         #     -qcow2              test qcow2
         #     -vpc                test vpc
         #     -vmdk               test vmdk
+        #     -qed                test qed
         #     -xdiff              graphical mode diff
         #     -nocache            use O_DIRECT on backing file
         #     -misalign           misalign memory allocations
