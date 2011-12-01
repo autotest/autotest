@@ -2473,6 +2473,8 @@ class GitRepoParamHelper(git.GitRepoHelper):
         else:
             logging.debug('Git repo %s commit: %s' % (self.name, self.commit))
 
+        self.cmd = os_dep.command('git')
+
 
 class LocalSourceDirHelper(object):
     '''
