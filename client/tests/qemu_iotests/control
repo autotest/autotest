@@ -26,7 +26,7 @@ Please send improvements to the upstream test suite, general feedback or just
 reports of failing tests cases to qemu-devel@savannah.nongnu.org.
 """
 
-image_types = ['raw', 'cow', 'qcow', 'qcow2', 'vpc', 'vmdk']
+image_types = ['raw', 'cow', 'qcow', 'qcow2', 'vpc', 'vmdk', 'qed']
 
 for image_type in image_types:
     option_flag = '-' + image_type
