@@ -27,6 +27,7 @@ variants:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
         hvm_or_pv = pv
+        take_regular_screendumps = no
         only raw
         only xennet
         only xenblk
@@ -42,6 +43,7 @@ variants:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
         hvm_or_pv = hvm
+        take_regular_screendumps = no
         only raw
         only rtl8139
         only ide
