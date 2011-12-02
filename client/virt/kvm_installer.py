@@ -32,6 +32,7 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
     #
     QEMU_BIN = 'qemu'
     QEMU_IMG_BIN = 'qemu-img'
+    QEMU_IO_BIN = 'qemu-io'
 
 
     def _kill_qemu_processes(self):
@@ -131,6 +132,23 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
             return None
 
 
+    def _qemu_io_bin_exists_at_prefix(self):
+        '''
+        Attempts to find the qemu-io binary at the installation prefix
+
+        @return: full path of qemu-io binary or None if not found
+        '''
+        qemu_io_bin_name = os.path.join(self.install_prefix,
+                                         'bin', self.QEMU_IO_BIN)
+        if os.path.isfile(qemu_io_bin_name):
+            logging.debug('Found qemu-io binary at %s', qemu_io_bin_name)
+            return qemu_io_bin_name
+        else:
+            logging.debug('Could not find qemu-img binary at prefix %s',
+                          self.install_prefix)
+            return None
+
+
     def _create_symlink_qemu(self):
         """
         Create symbolic links for qemu and qemu-img commands on test bindir
@@ -141,6 +159,7 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
 
         qemu_dst = os.path.join(self.test_bindir, self.QEMU_BIN)
         qemu_img_dst = os.path.join(self.test_bindir, self.QEMU_IMG_BIN)
+        qemu_io_dst = os.path.join(self.test_bindir, self.QEMU_IO_BIN)
 
         qemu_bin = self._qemu_bin_exists_at_prefix()
         if qemu_bin is not None:
@@ -154,6 +173,11 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
         else:
             raise error.TestError('Invalid qemu-img path')
 
+        qemu_io_bin = self._qemu_io_bin_exists_at_prefix()
+        if qemu_img_bin is not None:
+            os.symlink(qemu_io_bin, qemu_io_dst)
+        else:
+            raise error.TestError('Invalid qemu-img path')
 
     def _install_phase_init(self):
         '''

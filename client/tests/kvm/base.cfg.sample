@@ -3,6 +3,7 @@
 # Absolute paths and/or names of binaries (default path is /usr/bin)
 qemu_binary = qemu
 qemu_img_binary = qemu-img
+qemu_io_binary = qemu-io
 
 # List of virtual machine object names (whitespace seperated)
 vms = vm1
