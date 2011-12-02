@@ -60,6 +60,7 @@ variants:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
         # Only qcow2 file format
         only qcow2
         # Only rtl8139 for nw card (default on qemu-kvm)
@@ -82,6 +83,7 @@ variants:
         # We want qemu for this run
         qemu_binary = /usr/bin/qemu
         qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
         only qcow2
         # The default nw card for qemu is e1000
         only e1000
@@ -100,6 +102,7 @@ variants:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
         only qcow2
         only rtl8139
         only ide
@@ -117,6 +120,7 @@ variants:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
         only qcow2
         only rtl8139
         only ide
