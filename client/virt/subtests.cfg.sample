@@ -992,20 +992,36 @@ variants:
 
     - netperf: install setup image_copy unattended_install.cdrom
         only Linux
+        only virtio_net
         type = netperf
-        nics += ' nic2 nic3 nic4'
+        kill_vm = yes
+        image_snapshot = yes
+        nics += ' nic2'
+        # nic1 is for control, nic2 is for data connection
+        # bridge_nic1 = virbr0
+        pci_model_nic1 = virtio_net
+        # bridge_nic2 = switch
+        pci_model_nic2 = e1000
         nic_mode = tap
         netperf_files = netperf-2.4.5.tar.bz2 wait_before_data.patch
-        packet_size = 1500
-        setup_cmd = "cd %s && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure && make"
-        netserver_cmd =  %s/netperf-2.4.5/src/netserver
+        setup_cmd = "cd /tmp && rm -rf netperf-2.4.5 && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure && make"
+        # configure netperf test parameters
+        # l = 60
+        # protocols = "TCP_STREAM TCP_MAERTS TCP_RR"
+        # sessions = "1 2 4"
+        # sessions_rr = "50 100 250 500"
+        # sizes = "64 256 512 1024"
+        # sizes_rr = "64 256 512 1024"
         variants:
-            - stream:
-                netperf_cmd = %s/netperf-2.4.5/src/netperf -t %s -H %s -l 60 -- -m %s
-                protocols = "TCP_STREAM TCP_MAERTS TCP_SENDFILE UDP_STREAM"
-            - rr:
-                netperf_cmd = %s/netperf-2.4.5/src/netperf -t %s -H %s -l 60 -- -r %s
-                protocols = "TCP_RR TCP_CRR UDP_RR"
+            - guest_guest:
+                vms += " vm2"
+                nics = 'nic1'
+            - host_guest:
+                # local host ip address
+                # client = localhost
+            - exhost_guest:
+                # external host ip address
+                # client =
 
     - ntttcp:
         type = ntttcp
