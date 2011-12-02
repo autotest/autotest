@@ -80,6 +80,33 @@ variants:
                 extra_params = " --append ks=REPLACE_THIS_WITH_URL_OF_KS"
                 url = REPLACE_THIS_WITH_TREE_URL
 
+    - qemu_iotests:
+        type = qemu_iotests
+        vms = ''
+        profilers = ''
+        take_regular_screendumps = no
+        qemu_io_uri = git://git.kernel.org/pub/scm/linux/kernel/git/hch/qemu-iotests.git
+        qemu_io_branch = master
+        qemu_io_lbranch = master
+        #qemu_io_commit =
+        #qemu_io_base_uri =
+        #qemu_io_extra_options =
+        variants:
+            - raw_format:
+                qemu_io_image_format = raw
+            - qcow_format:
+                qemu_io_image_format = qcow
+            - qcow2_format:
+                qemu_io_image_format = qcow2
+            - qed_format:
+                qemu_io_image_format = qed
+            - vdi_format:
+                qemu_io_image_format = vdi
+            - vpc_format:
+                qemu_io_image_format = vpc
+            - vmdk_format:
+                qemu_io_image_format = vmdk
+
     - qemu_img:
         type = qemu_img
         vms = ''
