@@ -1451,6 +1451,8 @@ class VM(virt_vm.BaseVM):
                 return
 
             wait_for_migration()
+            self.verify_kernel_crash()
+            self.verify_alive()
 
             # Report migration status
             if mig_succeeded():
@@ -1473,6 +1475,7 @@ class VM(virt_vm.BaseVM):
             error.context("after migration")
             if local:
                 time.sleep(1)
+                self.verify_kernel_crash()
                 self.verify_alive()
 
             if local and stable_check:
