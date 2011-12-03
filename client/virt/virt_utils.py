@@ -564,7 +564,7 @@ class SCPTransferFailedError(SCPError):
                 (self.status, self.output))
 
 
-def _remote_login(session, username, password, prompt, timeout=10):
+def _remote_login(session, username, password, prompt, timeout=10, debug=False):
     """
     Log into a remote host (guest) using SSH or Telnet.  Wait for questions
     and provide answers.  If timeout expires while waiting for output from the
@@ -595,12 +595,14 @@ def _remote_login(session, username, password, prompt, timeout=10):
                  r"[Pp]lease wait", r"[Ww]arning", prompt],
                 timeout=timeout, internal_timeout=0.5)
             if match == 0:  # "Are you sure you want to continue connecting"
-                logging.debug("Got 'Are you sure...', sending 'yes'")
+                if debug:
+                    logging.debug("Got 'Are you sure...', sending 'yes'")
                 session.sendline("yes")
                 continue
             elif match == 1:  # "password:"
                 if password_prompt_count == 0:
-                    logging.debug("Got password prompt, sending '%s'", password)
+                    if debug:
+                        logging.debug("Got password prompt, sending '%s'", password)
                     session.sendline(password)
                     password_prompt_count += 1
                     continue
@@ -609,7 +611,8 @@ def _remote_login(session, username, password, prompt, timeout=10):
                                                    text)
             elif match == 2:  # "login:"
                 if login_prompt_count == 0 and password_prompt_count == 0:
-                    logging.debug("Got username prompt; sending '%s'", username)
+                    if debug:
+                        logging.debug("Got username prompt; sending '%s'", username)
                     session.sendline(username)
                     login_prompt_count += 1
                     continue
@@ -624,14 +627,17 @@ def _remote_login(session, username, password, prompt, timeout=10):
             elif match == 4:  # "Connection refused"
                 raise LoginError("Client said 'connection refused'", text)
             elif match == 5:  # "Please wait"
-                logging.debug("Got 'Please wait'")
+                if debug:
+                    logging.debug("Got 'Please wait'")
                 timeout = 30
                 continue
             elif match == 6:  # "Warning added RSA"
-                logging.debug("Got 'Warning added RSA to known host list")
+                if debug:
+                    logging.debug("Got 'Warning added RSA to known host list")
                 continue
             elif match == 7:  # prompt
-                logging.debug("Got shell prompt -- logged in")
+                if debug:
+                    logging.debug("Got shell prompt -- logged in")
                 break
         except aexpect.ExpectTimeoutError, e:
             raise LoginTimeoutError(e.output)
@@ -671,7 +677,7 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
     else:
         raise LoginBadClientError(client)
 
-    logging.debug("Trying to login with command '%s'", cmd)
+    logging.debug("Login command: '%s'", cmd)
     session = aexpect.ShellSession(cmd, linesep=linesep, prompt=prompt)
     try:
         _remote_login(session, username, password, prompt, timeout)
