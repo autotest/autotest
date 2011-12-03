@@ -105,6 +105,8 @@ class Cgroup(object):
         @param pwd: cgroup directory
         @return: 0 when is 'pwd' member
         """
+        if isinstance(pwd, int):
+            pwd = self.cgroups[pwd]
         if open(pwd + '/tasks').readlines().count("%d\n" % pid) > 0:
             return 0
         else:
@@ -126,6 +128,8 @@ class Cgroup(object):
         @param pid: pid of the process
         @param pwd: cgroup directory
         """
+        if isinstance(pwd, int):
+            pwd = self.cgroups[pwd]
         try:
             open(pwd+'/tasks', 'w').write(str(pid))
         except Exception, inst:

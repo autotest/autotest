@@ -51,11 +51,10 @@ def run_cgroup(test, params, env):
         @param cgroup: cgroup handler
         @param pwd: desired cgroup's pwd, cgroup index or None for root cgroup
         """
-        if isinstance(pwd, int):
-            pwd = cgroup.cgroups[pwd]
         cgroup.set_cgroup(vm.get_shell_pid(), pwd)
         for pid in utils.get_children_pids(vm.get_shell_pid()):
             cgroup.set_cgroup(int(pid), pwd)
+
 
 
     def distance(actual, reference):
@@ -1341,7 +1340,7 @@ def run_cgroup(test, params, env):
             except Exception, failure_detail:
                 err += "\nCan't remove Cgroup: %s" % failure_detail
 
-            self.sessions[0].sendline('rm -f /tmp/cgroup-cpu-lock')
+            self.sessions[-1].sendline('rm -f /tmp/cgroup-cpu-lock')
             for i in range(len(self.sessions)):
                 try:
                     self.sessions[i].close()
@@ -1381,6 +1380,7 @@ def run_cgroup(test, params, env):
                 self.sessions.append(self.vm.wait_for_login(timeout=30))
                 self.sessions[i].cmd("touch /tmp/cgroup-cpu-lock")
                 self.sessions[i].sendline(cmd)
+            self.sessions.append(self.vm.wait_for_login(timeout=30))   # cleanup
 
 
         def run(self):
@@ -1485,7 +1485,108 @@ def run_cgroup(test, params, env):
                 logging.error(err)
                 raise error.TestFail(err)
 
+            logging.info("Test passed successfully")
             return ("All clear")
+
+
+    class TestCpusetCpusSwitching:
+        """
+        Tests the cpuset.cpus cgroup feature. It stresses all VM's CPUs
+        while switching between cgroups with different setting.
+        """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            self.vm = vms[0]      # Virt machines
+            self.modules = modules          # cgroup module handler
+            self.cgroup = Cgroup('cpuset', '')   # cgroup handler
+            self.sessions = []
+
+
+        def cleanup(self):
+            """ Cleanup """
+            err = ""
+            try:
+                del(self.cgroup)
+            except Exception, failure_detail:
+                err += "\nCan't remove Cgroup: %s" % failure_detail
+
+            self.sessions[-1].sendline('rm -f /tmp/cgroup-cpu-lock')
+            for i in range(len(self.sessions)):
+                try:
+                    self.sessions[i].close()
+                except Exception, failure_detail:
+                    err += ("\nCan't close ssh connection %s" % i)
+
+            if err:
+                logging.error("Some cleanup operations failed: %s", err)
+                raise error.TestError("Some cleanup operations failed: %s" %
+                                      err)
+
+
+        def init(self):
+            """
+            Prepares cgroup, moves VM into it and execute stressers.
+            """
+            self.cgroup.initialize(self.modules)
+            vm_cpus = int(params.get('smp', 1))
+            all_cpus = self.cgroup.get_property("cpuset.cpus")[0]
+            if all_cpus == "0":
+                raise error.TestFail("This test needs at least 2 CPUs on "
+                                     "host, cpuset=%s" % all_cpus)
+            try:
+                last_cpu = int(all_cpus.split('-')[1])
+            except Exception:
+                raise error.TestFail("Failed to get #CPU from root cgroup.")
+
+            # Comments are for vm_cpus=2, no_cpus=4, _SC_CLK_TCK=100
+            self.cgroup.mk_cgroup() # oooo
+            self.cgroup.set_property('cpuset.cpus', all_cpus, 0)
+            self.cgroup.set_property('cpuset.mems', 0, 0)
+            self.cgroup.mk_cgroup() # O___
+            self.cgroup.set_property('cpuset.cpus', 0, 1)
+            self.cgroup.set_property('cpuset.mems', 0, 1)
+            self.cgroup.mk_cgroup() #_OO_
+            self.cgroup.set_property('cpuset.cpus',
+                            "1" if last_cpu == 1 else ("1-%s" % last_cpu) , 2)
+            self.cgroup.set_property('cpuset.mems', 0, 2)
+
+            assign_vm_into_cgroup(self.vm, self.cgroup, 0)
+            cmd = "renice -n 10 $$; " # new ssh login should pass
+            cmd += "while [ -e /tmp/cgroup-cpu-lock ]; do :; done"
+            for i in range(vm_cpus):
+                self.sessions.append(self.vm.wait_for_login(timeout=30))
+                self.sessions[i].cmd("touch /tmp/cgroup-cpu-lock")
+                self.sessions[i].sendline(cmd)
+
+
+        def run(self):
+            """
+            Actual test; stress VM while simultanously changing the cgroups.
+            """
+            logging.info("Some harmless IOError messages of non-existing "
+                         "processes might occur.")
+            i = 0
+            t_stop = time.time() + 60 # run for 60 seconds
+            while time.time() < t_stop:
+                for pid in utils.get_children_pids(self.vm.get_shell_pid()):
+                    try:
+                        self.cgroup.set_cgroup(int(pid), i % 3)
+                    except Exception, inst: # Process might already not exist
+                        if os.path.exists("/proc/%s/" % pid):
+                            raise error.TestFail("Failed to switch cgroup;"
+                                                 " it=%s; %s" % (i, inst))
+                i += 1
+
+            self.vm.verify_alive()
+
+            logging.info("Cgroups %s-times successfully switched", i)
+            return ("Cgroups %s-times successfully switched" % i)
+
+
 
     # Setup
     # TODO: Add all new tests here
@@ -1502,6 +1603,7 @@ def run_cgroup(test, params, env):
              "cpu_share_10"                 : TestCpuShare10,
              "cpu_share_50"                 : TestCpuShare50,
              "cpuset_cpus"                  : TestCpusetCpus,
+             "cpuset_cpus_switching"        : TestCpusetCpusSwitching,
             }
     modules = CgroupModules()
     if (modules.init(['blkio', 'cpu', 'cpuset', 'devices', 'freezer',
