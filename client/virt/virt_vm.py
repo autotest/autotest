@@ -19,6 +19,19 @@ class VMCreateError(VMError):
                 "output: %r)" % (self.cmd, self.status, self.output))
 
 
+class VMStartError(VMError):
+    def __init__(self, name, reason):
+        VMError.__init__(self, name, reason=None)
+        self.name = name
+        self.reason = reason
+
+    def __str__(self):
+        msg = "VM '%s' failed to start" % self.name
+        if self.reason is not None:
+            msg += ": %s" % self.reason
+        return msg
+
+
 class VMHashMismatchError(VMError):
     def __init__(self, actual, expected):
         VMError.__init__(self, actual, expected)
