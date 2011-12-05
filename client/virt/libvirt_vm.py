@@ -1195,45 +1195,21 @@ class VM(virt_vm.BaseVM):
         return virsh_screenshot(self.name, filename, self.connect_uri)
 
 
-    def wait_for_start(self, count=60):
-        """
-        Return True on successful domain start.
-
-        Wait for a domain to start, libvirt does not block on domain
-        start so we need to watch for successful completion.
-
-        @param name: VM name
-        @param name: Optional timeout value
-        """
-        timeout = count
-        while count > 0:
-            # check every 5 seconds
-            if count % 5 == 0:
-                if virsh_is_alive(self.name, self.connect_uri):
-                    session = self.wait_for_login(timeout=60)
-                    session.close()
-                    logging.debug("Start took %d seconds", timeout - count)
-                    return True
-            count -= 1
-            time.sleep(1)
-            logging.debug("Waiting for guest to start %d", count)
-        return False
-
-
     def start(self):
         """
         Starts this VM.
         """
         if virsh_start(self.name, self.connect_uri):
-            if self.wait_for_start():
-                logging.debug("Started VM %s", self.name)
-                return True
-            else:
-                logging.error("VM %s failed to start", self.name)
-                return False
+            # Wait for the domain to be created
+            has_started = virt_utils.wait_for(func=self.is_alive, timeout=60,
+                                              text=("waiting for domain %s "
+                                                    "to start" % self.name))
+            if has_started is None:
+                raise virt_vm.VMStartError(self.name, "libvirt domain not "
+                                                      "active after start")
         else:
-            logging.error("VM %s failed to start", self.name)
-            return False
+            raise virt_vm.VMStartError(self.name, "libvirt domain failed "
+                                                  "to start")
 
 
     def wait_for_shutdown(self, count=60):

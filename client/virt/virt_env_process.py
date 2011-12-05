@@ -96,10 +96,6 @@ def preprocess_vm(test, params, env, name):
         if vm_type == "libvirt" and params.get("type") != "unattended_install":
             vm.params = params
             vm.start()
-            # Wait for the domain to be created
-            virt_utils.wait_for(func=vm.is_alive, timeout=60,
-                                text=("waiting for domain %s to start" %
-                                      vm.name))
         else:
             # Start the VM (or restart it if it's already up)
             vm.create(name, params, test.bindir,
