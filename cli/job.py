@@ -264,7 +264,7 @@ class job_create_or_clone(action_common.atest_create, job):
                                help='Comma separated list of labels '
                                'to get machine list from.', default='')
         self.parser.add_option('-m', '--machine', help='List of machines to '
-                               'run on')
+                               'run on (hostnames or n*label)')
         self.parser.add_option('-M', '--mlist',
                                help='File listing machines to use',
                                type='string', metavar='MACHINE_FLIST')
