@@ -8,7 +8,7 @@ from random import random
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.tests.cgroup.cgroup_common import Cgroup, CgroupModules
-from autotest_lib.client.virt import virt_utils, virt_env_process
+from autotest_lib.client.tests.cgroup.cgroup_common import get_load_per_cpu
 from autotest_lib.client.virt.aexpect import ExpectTimeoutError
 from autotest_lib.client.virt.aexpect import ExpectProcessTerminatedError
 
@@ -51,11 +51,10 @@ def run_cgroup(test, params, env):
         @param cgroup: cgroup handler
         @param pwd: desired cgroup's pwd, cgroup index or None for root cgroup
         """
-        if isinstance(pwd, int):
-            pwd = cgroup.cgroups[pwd]
         cgroup.set_cgroup(vm.get_shell_pid(), pwd)
         for pid in utils.get_children_pids(vm.get_shell_pid()):
             cgroup.set_cgroup(int(pid), pwd)
+
 
 
     def distance(actual, reference):
@@ -233,7 +232,7 @@ def run_cgroup(test, params, env):
 
 
     # Tests
-    class _TestBlkioBandwidth:
+    class _TestBlkioBandwidth(object):
         """
         BlkioBandwidth dummy test
          * Use it as a base class to an actual test!
@@ -370,7 +369,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestBlkioBandwidth.__init__(self, vms, modules)
+            super(TestBlkioBandwidthWeigthRead, self).__init__(vms, modules)
             # Read from the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
             self.dd_cmd = get_dd_cmd("read", dev='vd?', bs="100K")
@@ -388,11 +387,11 @@ def run_cgroup(test, params, env):
             """
             # Write on the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
-            _TestBlkioBandwidth.__init__(self, vms, modules)
+            super(TestBlkioBandwidthWeigthWrite, self).__init__(vms, modules)
             self.dd_cmd = get_dd_cmd("write", dev='vd?', bs="100K")
 
 
-    class _TestBlkioThrottle:
+    class _TestBlkioThrottle(object):
         """
         BlkioThrottle dummy test
          * Use it as a base class to an actual test!
@@ -575,7 +574,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestBlkioThrottle.__init__(self, vms, modules)
+            super(TestBlkioThrottleRead, self).__init__(vms, modules)
             self.dd_cmd = get_dd_cmd("read", count=1)
             self.speeds = [1024]
 
@@ -588,7 +587,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestBlkioThrottle.__init__(self, vms, modules)
+            super(TestBlkioThrottleWrite, self).__init__(vms, modules)
             self.dd_cmd = get_dd_cmd("write", count=1)
             self.speeds = [1024]
 
@@ -604,7 +603,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestBlkioThrottle.__init__(self, vms, modules)
+            super(TestBlkioThrottleMultipleRead, self).__init__(vms, modules)
             self.dd_cmd = get_dd_cmd("read", count=1)
             self.speeds = [0, 1024, 0, 2048, 0, 4096]
 
@@ -620,7 +619,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestBlkioThrottle.__init__(self, vms, modules)
+            super(TestBlkioThrottleMultipleWrite, self).__init__(vms, modules)
             self.dd_cmd = get_dd_cmd("write", count=1)
             self.speeds = [0, 1024, 0, 2048, 0, 4096]
 
@@ -839,7 +838,7 @@ def run_cgroup(test, params, env):
              * Freezes the guest and thaws it again couple of times
              * verifies that guest is frozen and runs when expected
             """
-            def get_stat(pid):
+            def _get_stat(pid):
                 """
                 Gather statistics of pid+1st level subprocesses cpu usage
                 @param pid: PID of the desired process
@@ -877,9 +876,9 @@ def run_cgroup(test, params, env):
                 _ = cgroup.get_property('freezer.state', cgroup.cgroups[0])
                 if 'FROZEN' not in _:
                     raise error.TestFail("Couldn't freeze the VM: state %s" % _)
-                stat_ = get_stat(pid)
+                stat_ = _get_stat(pid)
                 time.sleep(tsttime)
-                stat = get_stat(pid)
+                stat = _get_stat(pid)
                 if stat != stat_:
                     raise error.TestFail('Process was running in FROZEN state; '
                                          'stat=%s, stat_=%s, diff=%s' %
@@ -887,9 +886,9 @@ def run_cgroup(test, params, env):
                 logging.info("THAWING (%ss)", tsttime)
                 self.cgroup.set_property('freezer.state', 'THAWED',
                                          self.cgroup.cgroups[0])
-                stat_ = get_stat(pid)
+                stat_ = _get_stat(pid)
                 time.sleep(tsttime)
-                stat = get_stat(pid)
+                stat = _get_stat(pid)
                 if (stat - stat_) < (90*tsttime):
                     raise error.TestFail('Process was not active in FROZEN'
                                          'state; stat=%s, stat_=%s, diff=%s' %
@@ -1081,7 +1080,7 @@ def run_cgroup(test, params, env):
             return ("Limits were enforced successfully.")
 
 
-    class _TestCpuShare:
+    class _TestCpuShare(object):
         """
         Tests the cpu.share cgroup capability. It creates n cgroups accordingly
         to self.speeds variable and sufficient VMs to symetricaly test three
@@ -1130,7 +1129,7 @@ def run_cgroup(test, params, env):
                 try:
                     self.sessions[i].close()
                 except Exception, failure_detail:
-                    err += ("\nCan't close the %dst ssh connection" % i)
+                    err += ("\nCan't close ssh connection %s" % i)
             del self.sessions
 
             for vm in self.vms[self.vms_count:]:
@@ -1186,7 +1185,7 @@ def run_cgroup(test, params, env):
             Let each of 3 scenerios (described in test specification) stabilize
             and then measure the CPU utilisation for time_test time.
             """
-            def get_stat(f_stats, _stats=None):
+            def _get_stat(f_stats, _stats=None):
                 """ Reads CPU times from f_stats[] files and sumarize them. """
                 if _stats is None:
                     _stats = []
@@ -1218,27 +1217,27 @@ def run_cgroup(test, params, env):
             for thread_count in range(0, host_cpus):
                 sessions[thread_count].sendline(cmd)
             time.sleep(time_init)
-            _stats = get_stat(f_stats)
+            _stats = _get_stat(f_stats)
             time.sleep(time_test)
-            stats.append(get_stat(f_stats, _stats))
+            stats.append(_get_stat(f_stats, _stats))
 
             thread_count += 1
             sessions[thread_count].sendline(cmd)
             if host_cpus % no_speeds == 0 and no_speeds <= host_cpus:
                 time.sleep(time_init)
-                _stats = get_stat(f_stats)
+                _stats = _get_stat(f_stats)
                 time.sleep(time_test)
-                stats.append(get_stat(f_stats, _stats))
+                stats.append(_get_stat(f_stats, _stats))
 
             for i in range(thread_count+1, no_threads):
                 sessions[i].sendline(cmd)
             time.sleep(time_init)
-            _stats = get_stat(f_stats)
+            _stats = _get_stat(f_stats)
             for j in range(3):
-                __stats = get_stat(f_stats)
+                __stats = _get_stat(f_stats)
                 time.sleep(time_test)
-                stats.append(get_stat(f_stats, __stats))
-            stats.append(get_stat(f_stats, _stats))
+                stats.append(_get_stat(f_stats, __stats))
+            stats.append(_get_stat(f_stats, _stats))
 
             # Verify results
             err = ""
@@ -1292,13 +1291,13 @@ def run_cgroup(test, params, env):
         """
         1:10 variant of _TestCpuShare test.
         """
-        def __init__(self, vms, module):
+        def __init__(self, vms, modules):
             """
             Initialization
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestCpuShare.__init__(self, vms, modules)
+            super(TestCpuShare10, self).__init__(vms, modules)
             self.speeds = [10000, 100000]
 
 
@@ -1306,14 +1305,287 @@ def run_cgroup(test, params, env):
         """
         1:1 variant of _TestCpuShare test.
         """
-        def __init__(self, vms, module):
+        def __init__(self, vms, modules):
             """
             Initialization
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestCpuShare.__init__(self, vms, modules)
+            super(TestCpuShare50, self).__init__(vms, modules)
             self.speeds = [100000, 100000]
+
+
+    class TestCpusetCpus:
+        """
+        Tests the cpuset.cpus cgroup feature. It stresses all VM's CPUs
+        and changes the CPU affinity. Verifies correct behaviour.
+        """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            self.vm = vms[0]      # Virt machines
+            self.modules = modules          # cgroup module handler
+            self.cgroup = Cgroup('cpuset', '')   # cgroup handler
+            self.sessions = []
+
+
+        def cleanup(self):
+            """ Cleanup """
+            err = ""
+            try:
+                del(self.cgroup)
+            except Exception, failure_detail:
+                err += "\nCan't remove Cgroup: %s" % failure_detail
+
+            self.sessions[-1].sendline('rm -f /tmp/cgroup-cpu-lock')
+            for i in range(len(self.sessions)):
+                try:
+                    self.sessions[i].close()
+                except Exception, failure_detail:
+                    err += ("\nCan't close ssh connection %s" % i)
+
+            if err:
+                logging.error("Some cleanup operations failed: %s", err)
+                raise error.TestError("Some cleanup operations failed: %s" %
+                                      err)
+
+
+        def init(self):
+            """
+            Prepares cgroup, moves VM into it and execute stressers.
+            """
+            self.cgroup.initialize(self.modules)
+            # We need only machine with more than 1 CPU
+            all_cpus = self.cgroup.get_property("cpuset.cpus")[0]
+            all_mems = self.cgroup.get_property("cpuset.mems")[0]
+            vm_cpus = int(params.get('smp', 1)) # cpus per VM
+            if all_cpus == "0" or vm_cpus < 2:
+                raise error.TestFail("This test needs at least 2 CPUs on "
+                                     "host and the first guest")
+            try:
+                no_cpus = int(all_cpus.split('-')[1]) + 1
+            except Exception:
+                raise error.TestFail("Failed to get #CPU from root cgroup.")
+            self.cgroup.mk_cgroup()
+            self.cgroup.set_property('cpuset.cpus', all_cpus, 0)
+            self.cgroup.set_property('cpuset.mems', all_mems, 0)
+            assign_vm_into_cgroup(self.vm, self.cgroup, 0)
+
+            cmd = "renice -n 10 $$; " # new ssh login should pass
+            cmd += "while [ -e /tmp/cgroup-cpu-lock ]; do :; done"
+            for i in range(vm_cpus):
+                self.sessions.append(self.vm.wait_for_login(timeout=30))
+                self.sessions[i].cmd("touch /tmp/cgroup-cpu-lock")
+                self.sessions[i].sendline(cmd)
+            self.sessions.append(self.vm.wait_for_login(timeout=30))   # cleanup
+
+
+        def run(self):
+            """
+            Actual test; stress VM and verifies the impact on host.
+            """
+            def _test_it(tst_time):
+                """ Helper; gets stat differences during test_time period. """
+                _load = get_load_per_cpu()
+                time.sleep(tst_time)
+                return (get_load_per_cpu(_load)[1:])
+
+            tst_time = 1    # 1s
+            vm_cpus = int(params.get('smp', 1)) # cpus per VM
+            all_cpus = self.cgroup.get_property("cpuset.cpus")[0]
+            no_cpus = int(all_cpus.split('-')[1]) + 1
+            stats = []
+
+            # Comments are for vm_cpus=2, no_cpus=4, _SC_CLK_TCK=100
+            # All CPUs are used, utilisation should be maximal
+            # CPUs: oooo, Stat: 200
+            cpus = False
+            stats.append((_test_it(tst_time), cpus))
+
+            if no_cpus > vm_cpus:
+                # CPUs: OO__, Stat: 200
+                cpus = '0-%d' % (vm_cpus-1)
+                self.cgroup.set_property('cpuset.cpus', cpus, 0)
+                stats.append((_test_it(tst_time), cpus))
+
+            if no_cpus > vm_cpus:
+                # CPUs: __OO, Stat: 200
+                cpus = "%d-%d" % (no_cpus-vm_cpus-1, no_cpus-1)
+                self.cgroup.set_property('cpuset.cpus', cpus, 0)
+                stats.append((_test_it(tst_time), cpus))
+
+            # CPUs: O___, Stat: 100
+            cpus = "0"
+            self.cgroup.set_property('cpuset.cpus', cpus, 0)
+            stats.append((_test_it(tst_time), cpus))
+
+            # CPUs: _OO_, Stat: 200
+            if no_cpus == 2:
+                cpus = "1"
+            else:
+                cpus = "1-%d" % min(no_cpus, vm_cpus-1)
+            self.cgroup.set_property('cpuset.cpus', cpus, 0)
+            stats.append((_test_it(tst_time), cpus))
+
+            # CPUs: O_O_, Stat: 200
+            cpus = "0"
+            for i in range(2, min(vm_cpus*2, no_cpus)):
+                cpus += ",%d" % i*2
+            self.cgroup.set_property('cpuset.cpus', cpus, 0)
+            stats.append((_test_it(tst_time), cpus))
+
+            # CPUs: oooo, Stat: 200
+            cpus = False
+            self.cgroup.set_property('cpuset.cpus', all_cpus, 0)
+            stats.append((_test_it(tst_time), cpus))
+
+            err = ""
+
+            max_cpu_stat = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
+            max_stat = max_cpu_stat * vm_cpus
+            for i in range(len(stats)):
+                if stats[i][1] is False:
+                    dist = distance(sum(stats[i][0]), max_stat)
+                    if dist > 0.25:
+                        err += "%d, " % i
+                        logging.error("%s part; incorrect utilisation, dist=%s,"
+                                      "%s", i, dist. stats[i])
+                    continue    # No restrictions, don't check per_cpu_load
+
+                if stats[i][1].count('-') == 1:
+                    # cpus defined by range
+                    cpus = []
+                    _ = stats[i][1].split('-')
+                    for cpu in range(_[0], _[1] + 1):
+                        cpus.append(cpu)
+                else:
+                    # cpus defined by ',' separated list
+                    cpus = [int(_) for _ in stats[i][1].split(',')]
+
+                for cpu in range(no_cpus):
+                    dist = distance(stats[i][0][cpu], max_cpu_stat)
+                    if cpu in cpus:
+                        if dist > 0.2:
+                            err += "%d, " % cpu
+                            logging.error("%s part; per_cpu_load failed; dist="
+                                          "%s, cpu=%s, stat=%s", i, dist, cpu,
+                                          stats[i])
+                    else:
+                        if dist < 0.75: # this CPU serves other processes
+                            err += "%d, " % i
+                            logging.error("%s part; per_cpu_load failed; 1-dist"
+                                          "=%s, cpu=%s, stat=%s", i, 1-dist,
+                                          cpu, stats[i])
+
+            if err:
+                err = "[%s] parts worked incorrectly, check the log" % err[:-2]
+                logging.error(err)
+                raise error.TestFail(err)
+
+            logging.info("Test passed successfully")
+            return ("All clear")
+
+
+    class TestCpusetCpusSwitching:
+        """
+        Tests the cpuset.cpus cgroup feature. It stresses all VM's CPUs
+        while switching between cgroups with different setting.
+        """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            self.vm = vms[0]      # Virt machines
+            self.modules = modules          # cgroup module handler
+            self.cgroup = Cgroup('cpuset', '')   # cgroup handler
+            self.sessions = []
+
+
+        def cleanup(self):
+            """ Cleanup """
+            err = ""
+            try:
+                del(self.cgroup)
+            except Exception, failure_detail:
+                err += "\nCan't remove Cgroup: %s" % failure_detail
+
+            self.sessions[-1].sendline('rm -f /tmp/cgroup-cpu-lock')
+            for i in range(len(self.sessions)):
+                try:
+                    self.sessions[i].close()
+                except Exception, failure_detail:
+                    err += ("\nCan't close ssh connection %s" % i)
+
+            if err:
+                logging.error("Some cleanup operations failed: %s", err)
+                raise error.TestError("Some cleanup operations failed: %s" %
+                                      err)
+
+
+        def init(self):
+            """
+            Prepares cgroup, moves VM into it and execute stressers.
+            """
+            self.cgroup.initialize(self.modules)
+            vm_cpus = int(params.get('smp', 1))
+            all_cpus = self.cgroup.get_property("cpuset.cpus")[0]
+            if all_cpus == "0":
+                raise error.TestFail("This test needs at least 2 CPUs on "
+                                     "host, cpuset=%s" % all_cpus)
+            try:
+                last_cpu = int(all_cpus.split('-')[1])
+            except Exception:
+                raise error.TestFail("Failed to get #CPU from root cgroup.")
+
+            # Comments are for vm_cpus=2, no_cpus=4, _SC_CLK_TCK=100
+            self.cgroup.mk_cgroup() # oooo
+            self.cgroup.set_property('cpuset.cpus', all_cpus, 0)
+            self.cgroup.set_property('cpuset.mems', 0, 0)
+            self.cgroup.mk_cgroup() # O___
+            self.cgroup.set_property('cpuset.cpus', 0, 1)
+            self.cgroup.set_property('cpuset.mems', 0, 1)
+            self.cgroup.mk_cgroup() #_OO_
+            self.cgroup.set_property('cpuset.cpus',
+                            "1" if last_cpu == 1 else ("1-%s" % last_cpu) , 2)
+            self.cgroup.set_property('cpuset.mems', 0, 2)
+
+            assign_vm_into_cgroup(self.vm, self.cgroup, 0)
+            cmd = "renice -n 10 $$; " # new ssh login should pass
+            cmd += "while [ -e /tmp/cgroup-cpu-lock ]; do :; done"
+            for i in range(vm_cpus):
+                self.sessions.append(self.vm.wait_for_login(timeout=30))
+                self.sessions[i].cmd("touch /tmp/cgroup-cpu-lock")
+                self.sessions[i].sendline(cmd)
+
+
+        def run(self):
+            """
+            Actual test; stress VM while simultanously changing the cgroups.
+            """
+            logging.info("Some harmless IOError messages of non-existing "
+                         "processes might occur.")
+            i = 0
+            t_stop = time.time() + 60 # run for 60 seconds
+            while time.time() < t_stop:
+                for pid in utils.get_children_pids(self.vm.get_shell_pid()):
+                    try:
+                        self.cgroup.set_cgroup(int(pid), i % 3)
+                    except Exception, inst: # Process might already not exist
+                        if os.path.exists("/proc/%s/" % pid):
+                            raise error.TestFail("Failed to switch cgroup;"
+                                                 " it=%s; %s" % (i, inst))
+                i += 1
+
+            self.vm.verify_alive()
+
+            logging.info("Cgroups %s-times successfully switched", i)
+            return ("Cgroups %s-times successfully switched" % i)
+
 
 
     # Setup
@@ -1330,9 +1602,12 @@ def run_cgroup(test, params, env):
              "memory_limit"                 : TestMemoryLimit,
              "cpu_share_10"                 : TestCpuShare10,
              "cpu_share_50"                 : TestCpuShare50,
+             "cpuset_cpus"                  : TestCpusetCpus,
+             "cpuset_cpus_switching"        : TestCpusetCpusSwitching,
             }
     modules = CgroupModules()
-    if (modules.init(['blkio', 'cpu', 'devices', 'freezer', 'memory']) <= 0):
+    if (modules.init(['blkio', 'cpu', 'cpuset', 'devices', 'freezer',
+                      'memory']) <= 0):
         raise error.TestFail('Can\'t mount any cgroup modules')
     # Add all vms
     vms = []
