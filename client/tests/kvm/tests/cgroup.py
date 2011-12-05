@@ -232,7 +232,7 @@ def run_cgroup(test, params, env):
 
 
     # Tests
-    class _TestBlkioBandwidth:
+    class _TestBlkioBandwidth(object):
         """
         BlkioBandwidth dummy test
          * Use it as a base class to an actual test!
@@ -369,7 +369,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestBlkioBandwidth.__init__(self, vms, modules)
+            super(TestBlkioBandwidthWeigthRead, self).__init__(vms, modules)
             # Read from the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
             self.dd_cmd = get_dd_cmd("read", dev='vd?', bs="100K")
@@ -387,11 +387,11 @@ def run_cgroup(test, params, env):
             """
             # Write on the last vd* in a loop until test removes the
             # /tmp/cgroup_lock file (and kills us)
-            _TestBlkioBandwidth.__init__(self, vms, modules)
+            super(TestBlkioBandwidthWeigthWrite, self).__init__(vms, modules)
             self.dd_cmd = get_dd_cmd("write", dev='vd?', bs="100K")
 
 
-    class _TestBlkioThrottle:
+    class _TestBlkioThrottle(object):
         """
         BlkioThrottle dummy test
          * Use it as a base class to an actual test!
@@ -574,7 +574,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestBlkioThrottle.__init__(self, vms, modules)
+            super(TestBlkioThrottleRead, self).__init__(vms, modules)
             self.dd_cmd = get_dd_cmd("read", count=1)
             self.speeds = [1024]
 
@@ -587,7 +587,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestBlkioThrottle.__init__(self, vms, modules)
+            super(TestBlkioThrottleWrite, self).__init__(vms, modules)
             self.dd_cmd = get_dd_cmd("write", count=1)
             self.speeds = [1024]
 
@@ -603,7 +603,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestBlkioThrottle.__init__(self, vms, modules)
+            super(TestBlkioThrottleMultipleRead, self).__init__(vms, modules)
             self.dd_cmd = get_dd_cmd("read", count=1)
             self.speeds = [0, 1024, 0, 2048, 0, 4096]
 
@@ -619,7 +619,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestBlkioThrottle.__init__(self, vms, modules)
+            super(TestBlkioThrottleMultipleWrite, self).__init__(vms, modules)
             self.dd_cmd = get_dd_cmd("write", count=1)
             self.speeds = [0, 1024, 0, 2048, 0, 4096]
 
@@ -1080,7 +1080,7 @@ def run_cgroup(test, params, env):
             return ("Limits were enforced successfully.")
 
 
-    class _TestCpuShare:
+    class _TestCpuShare(object):
         """
         Tests the cpu.share cgroup capability. It creates n cgroups accordingly
         to self.speeds variable and sufficient VMs to symetricaly test three
@@ -1297,7 +1297,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestCpuShare.__init__(self, vms, modules)
+            super(TestCpuShare10, self).__init__(vms, modules)
             self.speeds = [10000, 100000]
 
 
@@ -1311,7 +1311,7 @@ def run_cgroup(test, params, env):
             @param vms: list of vms
             @param modules: initialized cgroup module class
             """
-            _TestCpuShare.__init__(self, vms, modules)
+            super(TestCpuShare50, self).__init__(vms, modules)
             self.speeds = [100000, 100000]
 
 
