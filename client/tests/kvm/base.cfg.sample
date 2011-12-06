@@ -159,3 +159,10 @@ login_timeout = 360
 # NFS directory of guest images
 images_good = fileserver.foo.com:/autotest/images_good
 
+# Regex for get peer device for a net device.
+# This regex is for Fedora host (with qemu-kvm 0.15.*),
+netdev_peer_re = "\s{2,}(.*?): .*?\\\s(.*?):"
+# for RHEL5 host, the regex should be:
+# netdev_peer_re = "\s{2,}(.*?): .*?\s{2,}(.*?):"
+# for RHEL6 host, the regex should be:
+# netdev_peer_re = "\s{2,}(.*?):.*?peer=(.*?)\n"
