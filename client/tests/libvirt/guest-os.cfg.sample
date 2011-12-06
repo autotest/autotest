@@ -981,6 +981,36 @@ variants:
                             nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
 
 
+                    - 5.7.i386:
+                        no setup
+                        image_name = rhel5.7-32
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel56-64/ks.vfd
+                            cdrom_unattended = images/rhel57-32/ks.iso
+                            kernel = images/rhel57-32/vmlinuz
+                            initrd = images/rhel57-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.7-i386-DVD.iso
+                            md5sum_cd1 = d738dcaf8d65ebf03d6da32916ddde43
+                            md5sum_1m_cd1 = 9d9061f652ff435cc4c57e9e9ff09076
+
+
+                    - 5.7.x86_64:
+                        no setup
+                        image_name = rhel5.7-64
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel56-64/ks.vfd
+                            cdrom_unattended = images/rhel57-64/ks.iso
+                            kernel = images/rhel57-64/vmlinuz
+                            initrd = images/rhel57-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.7-x86_64-DVD.iso
+                            md5sum_cd1 = 1a3c5959e34612e91f4a1840b997b287
+                            md5sum_1m_cd1 = c65d0a1b4d9a32da42aa5142c6e9a5b3
+
+
                     - 6.0.i386:
                         no setup
                         os_variant = rhel6
