@@ -213,7 +213,7 @@ variants:
     - boot_savevm: install setup image_copy unattended_install.cdrom
         type = boot_savevm
         savevm_delay = 0.3
-        savevm_login_delay = 120
+        savevm_login_delay = 2
         savevm_timeout = 2000
         kill_vm_on_error = yes
         kill_vm_gracefully = yes
