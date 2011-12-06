@@ -1,6 +1,7 @@
-import logging, time, threading
+import logging, time
 from autotest_lib.client.virt.tests import file_transfer
 from autotest_lib.client.virt import virt_test_utils, virt_utils
+from autotest_lib.client.common_lib import error
 
 
 def run_nic_bonding(test, params, env):
@@ -49,9 +50,12 @@ def run_nic_bonding(test, params, env):
             while transfer_thread.isAlive():
                 for vlan, nic in enumerate(params.get("nics").split()):
                     device_id = vm.get_peer(vm.netdev_id[vlan])
-                    vm.monitor.cmd("set_link %s down" % device_id)
+                    if not device_id:
+                        raise error.TestError("Could not find peer device for"
+                                              " nic device %s" % nic)
+                    vm.set_link(device_id, up=False)
                     time.sleep(1)
-                    vm.monitor.cmd("set_link %s up" % device_id)
+                    vm.set_link(device_id, up=True)
         except Exception:
             transfer_thread.join(suppress_exception=True)
             raise
