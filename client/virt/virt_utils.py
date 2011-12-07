@@ -719,7 +719,7 @@ def wait_for_login(client, host, port, username, password, prompt, linesep="\n",
                         linesep, log_filename, internal_timeout)
 
 
-def _remote_scp(session, password_list, transfer_timeout=600, login_timeout=10):
+def _remote_scp(session, password_list, transfer_timeout=600, login_timeout=20):
     """
     Transfer file(s) to a remote host (guest) using SCP.  Wait for questions
     and provide answers.  If login_timeout expires while waiting for output
@@ -793,7 +793,7 @@ def _remote_scp(session, password_list, transfer_timeout=600, login_timeout=10):
 
 
 def remote_scp(command, password_list, log_filename=None, transfer_timeout=600,
-               login_timeout=10):
+               login_timeout=20):
     """
     Transfer file(s) to a remote host (guest) using SCP.
 
