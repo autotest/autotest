@@ -278,7 +278,7 @@ class CdromInstallDisk(Disk):
                       self.path)
 
 
-class UrlInstallDisk(Disk):
+class RemoteInstall(object):
     """
     Represents a install http server that we can master according to our needs.
     """
@@ -301,7 +301,7 @@ class UrlInstallDisk(Disk):
             _unattended_server_thread.start()
 
 
-    def get_ks_url_address(self):
+    def get_url(self):
         return 'http://%s:%s/%s' % (self.ip, self.port, self.filename)
 
 
@@ -312,7 +312,7 @@ class UrlInstallDisk(Disk):
     def close(self):
         os.chmod(self.path, 0755)
         logging.debug("unattended http server %s successfully created",
-                      self.get_ks_url_address())
+                      self.get_url())
 
 
 
@@ -664,9 +664,9 @@ class UnattendedInstallConfig(object):
                             8099,
                             self.url_auto_content_ip)
                     path = os.path.join(os.path.dirname(self.cdrom_unattended), 'ks')
-                    boot_disk = UrlInstallDisk(path, self.url_auto_content_ip
+                    boot_disk = RemoteInstall(path, self.url_auto_content_ip
                                                , self.unattended_server_port, dest_fname)
-                    ks_param = 'ks=%s' % boot_disk.get_ks_url_address()
+                    ks_param = 'ks=%s' % boot_disk.get_url()
                     extra_params = getattr(self, 'extra_params')
                     if 'ks=' in extra_params:
                         extra_params = re.sub('ks\=[\w\d\:\.\/]+',
