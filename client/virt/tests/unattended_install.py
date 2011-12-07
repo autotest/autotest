@@ -419,11 +419,6 @@ class UnattendedInstallConfig(object):
 
         contents = re.sub(dummy_medium_re, content, contents)
 
-        if self.params.get('hvm_or_pv') == "hvm":
-            strings = re.findall('bootloader.*"', contents)
-            content = strings[0][:-1] + ' xen_emul_unplug=never"'
-            contents = re.sub('bootloader.*"', content, contents)
-
         logging.debug("Unattended install contents:")
         for line in contents.splitlines():
             logging.debug(line)
@@ -657,7 +652,6 @@ class UnattendedInstallConfig(object):
                     else:
                         extra_params = '%s %s' % (extra_params,
                                               ks_param)
-                    extra_params = '%s xen_emul_unplug=never' % (extra_params)
                     self.params['extra_params'] = ''
                     boot_disk = CdromInstallDisk(self.cdrom_unattended, self.tmpdir
                                                  , self.cdrom_cd1_mount, extra_params)
