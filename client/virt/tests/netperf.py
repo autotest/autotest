@@ -26,12 +26,22 @@ def run_netperf(test, params, env):
     server_ctl = vm.get_address(1)
     session.close()
 
+    logging.debug(commands.getoutput("numactl --hardware"))
+    logging.debug(commands.getoutput("numactl --show"))
+    # pin guest vcpus/memory/vhost threads to last numa node of host by default
+    if params.get('numa_node'):
+        numa_node = int(params.get('numa_node'))
+        node = virt_utils.NumaNode(numa_node)
+        virt_test_utils.pin_vm_threads(vm, node)
+
     if "vm2" in params["vms"]:
         vm2 = env.get_vm("vm2")
         vm2.verify_alive()
         session2 = vm2.wait_for_login(timeout=login_timeout)
         client = vm2.get_address()
         session2.close()
+        if params.get('numa_node'):
+            virt_test_utils.pin_vm_threads(vm2, node)
 
     if params.get("client"):
         client = params["client"]
@@ -196,7 +206,10 @@ def launch_client(sessions, server, server_ctl, host, client, l, nf_args):
         return [nrx, ntx, nrxb, ntxb, nre, nrx_intr, ntx_intr, io_exit, irq_inj]
 
     def netperf_thread(i):
-        cmd = "%s -H %s -l %s %s" % (client_path, server, l, nf_args)
+        output = ssh_cmd(client, "numactl --hardware")
+        n = int(re.findall("available: (\d+) nodes", output)[0]) - 1
+        cmd = "numactl --cpunodebind=%s --membind=%s %s -H %s -l %s %s" % \
+                                    (n, n, client_path, server, l, nf_args)
         output = ssh_cmd(client, cmd)
         f = file("/tmp/netperf.%s.%s.nf" % (pid, i), "w")
         f.write(output)
