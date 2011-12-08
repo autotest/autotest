@@ -147,6 +147,11 @@ shell_port = 22
 used_cpus = 1
 used_mem = 512
 
+# Numa pinning params
+# pin guest memory to 1st numa node
+# pin processes to host cpu of 1st node
+# numa_node = 1
+
 # Port redirections
 redirs = remote_shell
 guest_port_remote_shell = 22
@@ -159,4 +164,3 @@ login_timeout = 360
 
 # NFS directory of guest images
 images_good = fileserver.foo.com:/autotest/images_good
-

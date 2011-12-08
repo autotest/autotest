@@ -473,6 +473,14 @@ class VM(virt_vm.BaseVM):
             qemu_cmd += "LD_LIBRARY_PATH=%s " % library_path
         if params.get("qemu_audio_drv"):
             qemu_cmd += "QEMU_AUDIO_DRV=%s " % params.get("qemu_audio_drv")
+        # Add numa memory cmd to pin guest memory to numa node
+        if params.get("numa_node"):
+            numa_node = int(params.get("numa_node"))
+            if numa_node < 0:
+                p = virt_utils.NumaNode(numa_node)
+                qemu_cmd += "numactl -m %s " % (int(p.get_node_num()) + numa_node)
+            else:
+                qemu_cmd += "numactl -m %s " % (numa_node - 1)
         # Add the qemu binary
         qemu_cmd += qemu_binary
         # Add the VM's name

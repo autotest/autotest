@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
-import unittest
+import unittest, logging
 import common
 from autotest_lib.client.virt import virt_utils
+from autotest_lib.client.bin import utils
+from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.common_lib import cartesian_config
 
 class virt_utils_test(unittest.TestCase):
@@ -80,6 +82,114 @@ git_repo_foo_commit = bc732ad8b2ed8be52160b893735417b43a1e91a8
         self.assertEqual(h.branch, 'next')
         self.assertEqual(h.lbranch, 'local')
         self.assertEqual(h.commit, 'bc732ad8b2ed8be52160b893735417b43a1e91a8')
+
+
+class FakeCmd(object):
+    def __init__(self, cmd):
+        self.fake_cmds = [
+{"cmd": "numactl --hardware",
+"stdout": """
+available: 1 nodes (0)
+node 0 cpus: 0 1 2 3 4 5 6 7
+node 0 size: 18431 MB
+node 0 free: 17186 MB
+node distances:
+node   0
+  0:  10
+"""},
+{"cmd": "ps -eLf | awk '{print $4}'",
+"stdout": """
+1230
+1231
+1232
+1233
+1234
+1235
+1236
+1237
+"""},
+{"cmd": "taskset -p 0x1 1230", "stdout": ""},
+{"cmd": "taskset -p 0x2 1231", "stdout": ""},
+{"cmd": "taskset -p 0x4 1232", "stdout": ""},
+{"cmd": "taskset -p 0x8 1233", "stdout": ""},
+{"cmd": "taskset -p 0x10 1234", "stdout": ""},
+{"cmd": "taskset -p 0x20 1235", "stdout": ""},
+{"cmd": "taskset -p 0x40 1236", "stdout": ""},
+{"cmd": "taskset -p 0x80 1237", "stdout": ""},
+
+]
+
+        self.stdout = self.get_stdout(cmd)
+
+
+    def get_stdout(self, cmd):
+        for fake_cmd in self.fake_cmds:
+            if fake_cmd['cmd'] == cmd:
+                return fake_cmd['stdout']
+        raise ValueError("Could not locate locate '%s' on fake cmd db" % cmd)
+
+
+def utils_run(cmd):
+    return FakeCmd(cmd)
+
+
+class TestNumaNode(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god(ut=self)
+        self.god.stub_with(utils, 'run', utils_run)
+        self.numa_node = virt_utils.NumaNode(-1)
+
+
+    def test_get_node_num(self):
+        self.assertEqual(self.numa_node.get_node_num(), '1')
+
+
+    def test_get_node_cpus(self):
+        self.assertEqual(self.numa_node.get_node_cpus(0), '0 1 2 3 4 5 6 7')
+
+
+    def test_pin_cpu(self):
+        self.assertEqual(self.numa_node.pin_cpu("1230"), "0")
+        self.assertEqual(self.numa_node.dict["0"], "1230")
+
+        self.assertEqual(self.numa_node.pin_cpu("1231"), "1")
+        self.assertEqual(self.numa_node.dict["1"], "1231")
+
+        self.assertEqual(self.numa_node.pin_cpu("1232"), "2")
+        self.assertEqual(self.numa_node.dict["2"], "1232")
+
+        self.assertEqual(self.numa_node.pin_cpu("1233"), "3")
+        self.assertEqual(self.numa_node.dict["3"], "1233")
+
+        self.assertEqual(self.numa_node.pin_cpu("1234"), "4")
+        self.assertEqual(self.numa_node.dict["4"], "1234")
+
+        self.assertEqual(self.numa_node.pin_cpu("1235"), "5")
+        self.assertEqual(self.numa_node.dict["5"], "1235")
+
+        self.assertEqual(self.numa_node.pin_cpu("1236"), "6")
+        self.assertEqual(self.numa_node.dict["6"], "1236")
+
+        self.assertEqual(self.numa_node.pin_cpu("1237"), "7")
+        self.assertEqual(self.numa_node.dict["7"], "1237")
+
+        self.assertNotIn("free", self.numa_node.dict.values())
+
+
+    def test_free_cpu(self):
+        self.assertEqual(self.numa_node.pin_cpu("1230"), "0")
+        self.assertEqual(self.numa_node.dict["0"], "1230")
+
+        self.assertEqual(self.numa_node.pin_cpu("1231"), "1")
+        self.assertEqual(self.numa_node.dict["1"], "1231")
+
+        self.numa_node.free_cpu("0")
+        self.assertEqual(self.numa_node.dict["0"], "free")
+        self.assertEqual(self.numa_node.dict["1"], "1231")
+
+
+    def tearDown(self):
+        self.god.unstub_all()
 
 
 if __name__ == '__main__':
