@@ -391,6 +391,32 @@ class HumanMonitor(Monitor):
         return self.cmd(command="screendump %s" % filename, debug=debug)
 
 
+    def set_link(self, name, up):
+        """
+        Set link up/down.
+
+        @param name: Link name
+        @param up: Bool value, True=set up this link, False=Set down this link
+        @return: The response to the command
+        """
+        set_link_cmd = "set_link"
+
+        # set_link in RHEL5 host use "up|down" instead of "on|off" which is
+        # used in RHEL6 host and Fedora host. So here find out the string
+        # this monitor accept.
+        o = self.cmd("help %s" % set_link_cmd)
+        try:
+            on_str, off_str = re.findall("(\w+)\|(\w+)", o)[0]
+        except Exception:
+            # take a default value if can't get on/off string from monitor.
+            on_str, off_str = "on", "off"
+
+        status = off_str
+        if up:
+            status = on_str
+        return self.cmd("%s %s %s" % (set_link_cmd, name, status))
+
+
     def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):
         """
         Migrate.
@@ -785,6 +811,16 @@ class QMPMonitor(Monitor):
                 return e
 
 
+    def human_monitor_cmd(self, cmd=None):
+        """
+        Run human monitor command in QMP through human-monitor-command
+
+        @param cmd: human monitor command.
+        """
+        args = {"command-line": cmd}
+        self.cmd("human-monitor-command", args)
+
+
     def clear_events(self):
         """
         Clear the list of asynchronous events.
@@ -919,3 +955,15 @@ class QMPMonitor(Monitor):
         """
         args = {"value": value}
         return self.cmd("migrate_set_speed", args)
+
+
+    def set_link(self, name, up):
+        """
+        Set link up/down.
+
+        @param name: Link name
+        @param up: Bool value, True=set up this link, False=Set down this link
+
+        @return: The response to the command
+        """
+        return self.send_args_cmd("set_link name=%s,up=%s" % (name, str(up)))
