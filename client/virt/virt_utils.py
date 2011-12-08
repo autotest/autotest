@@ -2039,9 +2039,16 @@ class KojiClient(object):
         info = self.get_pkg_info(pkg)
         rpms = self.get_pkg_rpm_info(pkg, arch)
         rpm_urls = []
+
+        if self.config_options.has_key('pkgurl'):
+            base_url = self.config_options['pkgurl']
+        else:
+            base_url = "%s/%s" % (self.config_options['topurl'],
+                                  'packages')
+
         for rpm in rpms:
             rpm_name = koji.pathinfo.rpm(rpm)
-            url = ("%s/%s/%s/%s/%s" % (self.config_options['pkgurl'],
+            url = ("%s/%s/%s/%s/%s" % (base_url,
                                        info['package_name'],
                                        info['version'], info['release'],
                                        rpm_name))
