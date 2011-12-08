@@ -3452,3 +3452,83 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
     logging.info("Autotest prints the results dir, so you can look at DEBUG "
                  "logs if something went wrong")
     logging.info("You can also edit the test config files")
+
+
+class NumaNode(object):
+    """
+    Numa node to control processes and shared memory.
+    """
+    def __init__(self, i=-1):
+        self.num = self.get_node_num()
+        if i < 0:
+            self.cpus = self.get_node_cpus(int(self.num) + i).split()
+        else:
+            self.cpus = self.get_node_cpus(i - 1).split()
+        self.dict = {}
+        for i in self.cpus:
+            self.dict[i] = "free"
+
+
+    def get_node_num(self):
+        """
+        Get the number of nodes of current host.
+        """
+        cmd = utils.run("numactl --hardware")
+        return re.findall("available: (\d+) nodes", cmd.stdout)[0]
+
+
+    def get_node_cpus(self, i):
+        """
+        Get cpus of a specific node
+
+        @param i: Index of the CPU inside the node.
+        """
+        cmd = utils.run("numactl --hardware")
+        return re.findall("node %s cpus: (.*)" % i, cmd.stdout)[0]
+
+
+    def free_cpu(self, i):
+        """
+        Release pin of one node.
+
+        @param i: Index of the node.
+        """
+        self.dict[i] = "free"
+
+
+    def _flush_pin(self):
+        """
+        Flush pin dict, remove the record of exited process.
+        """
+        cmd = utils.run("ps -eLf | awk '{print $4}'")
+        all_pids = cmd.stdout
+        for i in self.cpus:
+            if self.dict[i] != "free" and self.dict[i] not in all_pids:
+                self.free_cpu(i)
+
+
+    @error.context_aware
+    def pin_cpu(self, process):
+        """
+        Pin one process to a single cpu.
+
+        @param process: Process ID.
+        """
+        self._flush_pin()
+        error.context("Pinning process %s to the CPU" % process)
+        for i in self.cpus:
+            if self.dict[i] == "free":
+                self.dict[i] = str(process)
+                cmd = "taskset -p %s %s" % (hex(2 ** int(i)), process)
+                logging.debug("NumaNode (%s): " % i + cmd)
+                utils.run(cmd)
+                return i
+
+
+    def show(self):
+        """
+        Display the record dict in a convenient way.
+        """
+        logging.info("Numa Node record dict:")
+        for i in self.cpus:
+            logging.info("    %s: %s" % (i, self.dict[i]))
