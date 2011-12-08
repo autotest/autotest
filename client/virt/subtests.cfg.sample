@@ -1047,6 +1047,7 @@ variants:
         # sessions_rr = "50 100 250 500"
         # sizes = "64 256 512 1024"
         # sizes_rr = "64 256 512 1024"
+        numa_node = -1
         variants:
             - guest_guest:
                 vms += " vm2"
