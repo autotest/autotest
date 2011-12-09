@@ -119,6 +119,220 @@ class BgJob(object):
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 
+def subtest_fatal(function):
+    """
+    Decorator which mark test critical.
+    If subtest failed whole test ends.
+    """
+    def wrapped(self, *args, **kwds):
+        self._fatal = True
+        self.decored()
+        result = function(self, *args, **kwds)
+        return result
+    wrapped.func_name = function.func_name
+    return wrapped
+
+
+def subtest_nocleanup(function):
+    """
+    Decorator disable cleanup function.
+    """
+    def wrapped(self, *args, **kwds):
+        self._cleanup = False
+        self.decored()
+        result = function(self, *args, **kwds)
+        return result
+    wrapped.func_name = function.func_name
+    return wrapped
+
+
+class Subtest(object):
+    """
+    Collect result of subtest of main test.
+    """
+    result = []
+    passed = 0
+    failed = 0
+    def __new__(cls, *args, **kargs):
+        self = super(Subtest, cls).__new__(cls)
+
+        self._fatal = False
+        self._cleanup = True
+        self._num_decored = 0
+
+        ret = None
+        if args is None:
+            args = []
+
+        res = {
+               'result' : None,
+               'name'   : self.__class__.__name__,
+               'args'   : args,
+               'kargs'  : kargs,
+               'output' : None,
+              }
+        try:
+            logging.info("Starting test %s" % self.__class__.__name__)
+            ret = self.test(*args, **kargs)
+            res['result'] = 'PASS'
+            res['output'] = ret
+            try:
+                logging.info(Subtest.result_to_string(res))
+            except:
+                self._num_decored = 0
+                raise
+            Subtest.result.append(res)
+            Subtest.passed += 1
+        except NotImplementedError:
+            raise
+        except Exception:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            for _ in range(self._num_decored):
+                exc_traceback = exc_traceback.tb_next
+            logging.error("In function (" + self.__class__.__name__ + "):")
+            logging.error("Call from:\n" +
+                          traceback.format_stack()[-2][:-1])
+            logging.error("Exception from:\n" +
+                          "".join(traceback.format_exception(
+                                                  exc_type, exc_value,
+                                                  exc_traceback.tb_next)))
+            # Clean up environment after subTest crash
+            res['result'] = 'FAIL'
+            logging.info(self.result_to_string(res))
+            Subtest.result.append(res)
+            Subtest.failed += 1
+            if self._fatal:
+                raise
+        finally:
+            if self._cleanup:
+                self.clean()
+
+        return ret
+
+
+    def test(self):
+        """
+        Check if test is defined.
+
+        For makes test fatal add before implementation of test method
+        decorator @subtest_fatal
+        """
+        raise NotImplementedError("Method test is not implemented.")
+
+
+    def clean(self):
+        """
+        Check if cleanup is defined.
+
+        For makes test fatal add before implementation of test method
+        decorator @subtest_nocleanup
+        """
+        raise NotImplementedError("Method cleanup is not implemented.")
+
+
+    def decored(self):
+        self._num_decored += 1
+
+
+    @classmethod
+    def has_failed(cls):
+        """
+        @return: If any of subtest not pass return True.
+        """
+        if cls.failed > 0:
+            return True
+        else:
+            return False
+
+
+    @classmethod
+    def get_result(cls):
+        """
+        @return: Result of subtests.
+           Format:
+             tuple(pass/fail,function_name,call_arguments)
+        """
+        return cls.result
+
+
+    @staticmethod
+    def result_to_string_debug(result):
+        """
+        @param result: Result of test.
+        """
+        sargs = ""
+        for arg in result['args']:
+            sargs += str(arg) + ","
+        sargs = sargs[:-1]
+        return ("Subtest (%s(%s)): --> %s") % (result['name'],
+                                               sargs,
+                                               result['status'])
+
+
+    @staticmethod
+    def result_to_string(result):
+        """
+        Format of result dict.
+
+        result = {
+               'result' : "PASS" / "FAIL",
+               'name'   : class name,
+               'args'   : test's args,
+               'kargs'  : test's kargs,
+               'output' : return of test function,
+              }
+
+        @param result: Result of test.
+        """
+        return ("Subtest (%(name)s): --> %(result)s") % (result)
+
+
+    @classmethod
+    def log_append(cls, msg):
+        """
+        Add log_append to result output.
+
+        @param msg: Test of log_append
+        """
+        cls.result.append([msg])
+
+
+    @classmethod
+    def _gen_res(cls, format_func):
+        """
+        Format result with formatting function
+
+        @param format_func: Func for formating result.
+        """
+        result = ""
+        for res in cls.result:
+            if (isinstance(res,dict)):
+                result += format_func(res) + "\n"
+            else:
+                result += str(res[0]) + "\n"
+        return result
+
+
+    @classmethod
+    def get_full_text_result(cls, format_func=None):
+        """
+        @return string with text form of result
+        """
+        if format_func is None:
+            format_func = cls.result_to_string_debug
+        return cls._gen_res(lambda s: format_func(s))
+
+
+    @classmethod
+    def get_text_result(cls, format_func=None):
+        """
+        @return string with text form of result
+        """
+        if format_func is None:
+            format_func = cls.result_to_string
+        return cls._gen_res(lambda s: format_func(s))
+
+
 def ip_to_long(ip):
     # !L is a long in network byte order
     return struct.unpack('!L', socket.inet_aton(ip))[0]
