@@ -16,6 +16,30 @@ _unattended_server_thread = None
 _unattended_server_thread_event = None
 
 
+def start_auto_content_server_thread(port,path):
+    global _url_auto_content_server_thread
+    global _url_auto_content_server_thread_event
+
+    if _url_auto_content_server_thread is None:
+        _url_auto_content_server_thread_event = threading.Event()
+        _url_auto_content_server_thread = threading.Thread(
+            target=virt_http_server.http_server,
+            args=(port, path, terminate_auto_content_server_thread))
+        _url_auto_content_server_thread.start()
+
+
+def start_unattended_server_thread(port,path):
+    global _unattended_server_thread
+    global _unattended_server_thread_event
+
+    if _unattended_server_thread is None:
+        _unattended_server_thread_event = threading.Event()
+        _unattended_server_thread = threading.Thread(
+            target=virt_http_server.http_server,
+            args=(port, path, terminate_unattended_server_thread))
+        _unattended_server_thread.start()
+
+
 def terminate_auto_content_server_thread():
     global _url_auto_content_server_thread
     global _url_auto_content_server_thread_event
@@ -292,15 +316,7 @@ class RemoteInstall(object):
         self.port = port
         self.filename = filename
 
-        global _unattended_server_thread, _unattended_server_thread_event
-
-        if _unattended_server_thread is None:
-            _unattended_server_thread_event = threading.Event()
-            _unattended_server_thread = threading.Thread(
-                target=virt_http_server.http_server,
-                args=(self.port, self.path,
-                      terminate_unattended_server_thread))
-            _unattended_server_thread.start()
+        start_unattended_server_thread(self.port,self.path)        
 
 
     def get_url(self):
@@ -583,8 +599,6 @@ class UnattendedInstallConfig(object):
 
         Does nothing if unattended file is not a kickstart file
         '''
-        global _unattended_server_thread, _unattended_server_thread_event
-
         if self.unattended_file.endswith('.ks'):
             # Red Hat kickstart install
             dest_fname = 'ks.cfg'
@@ -598,13 +612,7 @@ class UnattendedInstallConfig(object):
                     8099,
                     self.url_auto_content_ip)
 
-            if _unattended_server_thread is None:
-                _unattended_server_thread_event = threading.Event()
-                _unattended_server_thread = threading.Thread(
-                    target=virt_http_server.http_server,
-                    args=(self.unattended_server_port, self.tmpdir,
-                          terminate_unattended_server_thread))
-                _unattended_server_thread.start()
+            start_unattended_server_thread(self.unattended_server_port, self.tmpdir)
 
         # Point installation to this kickstart url
         ks_param = 'ks=http://%s:%s/%s' % (self.url_auto_content_ip,
@@ -763,9 +771,6 @@ class UnattendedInstallConfig(object):
                     utils.run("mv %s initrd.img" % base_initrd, verbose=DEBUG)
                 cleanup(self.cdrom_cd1_mount)
             elif self.vm.driver_type == self.vm.LIBVIRT_XEN and self.params.get('hvm_or_pv') == 'pv':
-                global _url_auto_content_server_thread
-                global _url_auto_content_server_thread_event
-
                 logging.debug("starting unattended content web server")
 
                 self.url_auto_content_port = virt_utils.find_free_port(
@@ -773,13 +778,7 @@ class UnattendedInstallConfig(object):
                     8199,
                     self.url_auto_content_ip)
 
-                if _url_auto_content_server_thread is None:
-                    _url_auto_content_server_thread_event = threading.Event()
-                    _url_auto_content_server_thread = threading.Thread(
-                        target=virt_http_server.http_server,
-                        args=(self.url_auto_content_port, self.cdrom_cd1_mount,
-                              terminate_auto_content_server_thread))
-                    _url_auto_content_server_thread.start()
+                start_auto_content_server_thread(self.url_auto_content_port, self.cdrom_cd1_mount)
 
                 self.medium = 'url'
                 self.url = 'http://%s:%s' % (self.url_auto_content_ip, self.url_auto_content_port)
