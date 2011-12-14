@@ -1611,17 +1611,39 @@ class VM(virt_vm.BaseVM):
 
     def save_to_file(self, path):
         """
-        Save the state of virtual machine to a file through migrate to
-        exec
+        Override BaseVM save_to_file method
         """
-        # Make sure we only get one iteration
-        self.monitor.cmd("migrate_set_speed 1000g")
-        self.monitor.cmd("migrate_set_downtime 100000000")
-        self.monitor.migrate('"exec:cat>%s"' % path)
-        # Restore the speed and downtime of migration
-        self.monitor.cmd("migrate_set_speed %d" % (32<<20))
-        self.monitor.cmd("migrate_set_downtime 0.03")
+        self.verify_status('paused') # Throws exception if not
+        # Set high speed 1TB/S
+        self.monitor.migrate_set_speed(2<<39)
+        self.monitor.migrate_set_downtime(self.MIGRATE_TIMEOUT)
+        logging.debug("Saving VM %s to %s" % (self.name, path))
+        # Can only check status if background migration
+        self.monitor.migrate("exec:cat>%s" % path, wait=False)
+        result = virt_utils.wait_for(
+            # no monitor.migrate-status method
+            lambda : "status: completed" in self.monitor.info("migrate"),
+            self.MIGRATE_TIMEOUT, 2, 2,
+            "Waiting for save to %s to complete" % path)
+        # Restore the speed and downtime to default values
+        self.monitor.migrate_set_speed(32<<20)
+        self.monitor.migrate_set_downtime(0.03)
+        # Base class defines VM must be off after a save
+        self.monitor.cmd("system_reset")
+        state = self.monitor.get_status()
+        self.verify_status('paused') # Throws exception if not
 
+    def restore_from_file(self, path):
+        """
+        Override BaseVM restore_from_file method
+        """
+        self.verify_status('paused') # Throws exception if not
+        logging.debug("Restoring VM %s from %s" % (self.name,path))
+        # Rely on create() in incoming migration mode to do the 'right thing'
+        self.create(name=self.name, params=self.params, root_dir=self.root_dir,
+                    timeout=self.MIGRATE_TIMEOUT, migration_mode="exec",
+                    migration_exec_cmd="cat "+path, mac_source=self)
+        self.verify_status('running') # Throws exception if not
 
     def needs_restart(self, name, params, basedir):
         """
