@@ -174,7 +174,7 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
             raise error.TestError('Invalid qemu-img path')
 
         qemu_io_bin = self._qemu_io_bin_exists_at_prefix()
-        if qemu_img_bin is not None:
+        if qemu_io_bin is not None:
             os.symlink(qemu_io_bin, qemu_io_dst)
         else:
             raise error.TestError('Invalid qemu-img path')
