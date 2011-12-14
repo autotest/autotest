@@ -690,7 +690,8 @@ class VM(virt_vm.BaseVM):
 
     @error.context_aware
     def create(self, name=None, params=None, root_dir=None,
-               timeout=CREATE_TIMEOUT, migration_mode=None, mac_source=None):
+               timeout=CREATE_TIMEOUT, migration_mode=None,
+               migration_exec_cmd=None, mac_source=None):
         """
         Start the VM by running a qemu command.
         All parameters are optional. If name, params or root_dir are not
@@ -703,6 +704,7 @@ class VM(virt_vm.BaseVM):
                 using this protocol (either 'tcp', 'unix' or 'exec')
         @param migration_exec_cmd: Command to embed in '-incoming "exec: ..."'
                 (e.g. 'gzip -c -d filename') if migration_mode is 'exec'
+                default to listening on a random TCP port
         @param mac_source: A VM object from which to copy MAC addresses. If not
                 specified, new addresses will be generated.
 
@@ -873,9 +875,13 @@ class VM(virt_vm.BaseVM):
                 self.migration_file = "/tmp/migration-unix-%s" % self.instance
                 qemu_command += " -incoming unix:%s" % self.migration_file
             elif migration_mode == "exec":
-                self.migration_port = virt_utils.find_free_port(5200, 6000)
-                qemu_command += (' -incoming "exec:nc -l %s"' %
-                                 self.migration_port)
+                if migration_exec_cmd == None:
+                    self.migration_port = virt_utils.find_free_port(5200, 6000)
+                    qemu_command += (' -incoming "exec:nc -l %s"' %
+                                     self.migration_port)
+                else:
+                    qemu_command += (' -incoming "exec:%s"' %
+                                     migration_exec_cmd)
 
             logging.info("Running qemu command:\n%s", qemu_command)
             self.process = aexpect.run_bg(qemu_command, None,
