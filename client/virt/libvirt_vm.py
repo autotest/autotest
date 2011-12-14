@@ -156,6 +156,43 @@ def virsh_resume(name, uri = ""):
         logging.error("Resume VM %s failed", name)
         return False
 
+def virsh_save(name, path, uri = ""):
+    """
+    Store state of VM into named file.
+
+    @param: name: VM Name to operate on
+    @param: uri: URI of libvirt hypervisor to use
+    @param: path: absolute path to state file
+    """
+    state = virsh_domstate(name, uri)
+    if state not in ('paused',):
+        raise virt_vm.VMStatusError("Cannot save a VM that is %s" % state)
+    logging.debug("Saving VM %s to %s" %(name, path))
+    virsh_cmd("save %s %s" % (name,path), uri)
+    # libvirt always stops VM after saving
+    state = virsh_domstate(name, uri)
+    if state not in ('shut off',):
+        raise virt_vm.VMStatusError("VM not shut off after save")
+
+def virsh_restore(name, path, uri = ""):
+    """
+    Load state of VM from named file and remove file.
+
+    @param: name: VM Name to operate on
+    @param: uri: URI of libvirt hypervisor to use
+    @param: path: absolute path to state file.
+    """
+    # Blindly assume named VM cooresponds with state in path
+    # rely on higher-layers to take exception if missmatch
+    state = virsh_domstate(name, uri)
+    if state not in ('shut off',):
+        raise virt_vm.VMStatusError("Can not restore VM that is %s" % state)
+    logging.debug("Restoring VM from %s" % path)
+    virsh_cmd("restore %s" % path, uri)
+    state = virsh_domstate(name, uri)
+    if state not in ('paused','running'):
+        raise virt_vm.VMStatusError("VM not paused after restore, it is %s." %
+                state)
 
 def virsh_start(name, uri = ""):
     """
@@ -1250,22 +1287,21 @@ class VM(virt_vm.BaseVM):
             logging.error("VM %s failed to shut down", self.name)
             return False
 
-
-    def send_key(self):
-        pass
-
-
-    def migrate(self):
-        pass
-
-
     def pause(self):
-        pass
+        return virsh_suspend(self.name, self.connect_uri)
 
 
     def resume(self):
-        pass
+        return virsh_resume(self.name, self.connect_uri)
 
+    def save_to_file(self, path):
+        """
+        Override BaseVM save_to_file method
+        """
+        virsh_save(self.name, path, uri=self.connect_uri)
 
-    def save_to_file(self):
-        pass
+    def restore_from_file(self, path):
+        """
+        Override BaseVM restore_from_file method
+        """
+        virsh_restore(self.name, path, uri=self.connect_uri)
