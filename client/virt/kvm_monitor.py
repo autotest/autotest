@@ -303,6 +303,10 @@ class HumanMonitor(Monitor):
         self.cmd("info status", debug=False)
 
 
+    def get_status(self):
+        return self.cmd("info status", debug=False)
+
+
     def verify_status(self, status):
         """
         Verify VM status
@@ -310,8 +314,7 @@ class HumanMonitor(Monitor):
         @param status: Optional VM status, 'running' or 'paused'
         @return: return True if VM status is same as we expected
         """
-        o = self.cmd("info status", debug=False)
-        return (status in o)
+        return (status in self.get_status())
 
 
     # Command wrappers
@@ -420,6 +423,16 @@ class HumanMonitor(Monitor):
         @return: The command's output
         """
         return self.cmd("migrate_set_speed %s" % value)
+
+
+    def migrate_set_downtime(self, value):
+        """
+        Set maximum tolerated downtime (in seconds) for migration.
+
+        @param: value: maximum downtime (in seconds)
+        @return: The command's output
+        """
+        return self.cmd("migrate_set_downtime %s" % value)
 
 
     def sendkey(self, keystr, hold_time=1):
