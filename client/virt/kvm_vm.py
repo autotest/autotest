@@ -115,7 +115,8 @@ class VM(virt_vm.BaseVM):
         @raise VMStatusError: If the VM status is not same as parameter
         """
         if not self.monitor.verify_status(status):
-            raise virt_vm.VMStatusError("VM status is unexpected")
+            raise virt_vm.VMStatusError('Unexpected VM status: "%s"' %
+                                        self.monitor.get_status())
 
 
     def clone(self, name=None, params=None, root_dir=None, address_cache=None,
