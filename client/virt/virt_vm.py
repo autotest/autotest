@@ -1001,14 +1001,26 @@ class BaseVM(object):
         """
         raise NotImplementedError
 
-
     def save_to_file(self, path):
         """
-        Save the state of virtual machine to a file through migrate to
-        exec
+        State of paused VM recorded to path and VM shutdown on success
+
+        Throws a VMStatusError if before/after state is incorrect.
+
+        @param: path: file where VM state recorded
+
         """
         raise NotImplementedError
 
+    def restore_from_file(self, path):
+        """
+        A shutdown or paused VM is resumed from path, & possibly set running
+
+        Throws a VMStatusError if before/after restore state is incorrect
+
+        @param: path: path to file vm state was saved to
+        """
+        raise NotImplementedError
 
     def needs_restart(self, name, params, basedir):
         """
