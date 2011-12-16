@@ -7,18 +7,20 @@ import common
 from optparse import OptionParser
 from autotest_lib.client.bin import job
 from autotest_lib.client.common_lib import global_config
-
+from autotest_lib.client.bin import cmdparser
 
 # Use the name of the binary to find the real installation directory
 # aka $AUTODIR.  Update our path to include the $AUTODIR/bin/tests
 # directory and ensure we have $AUTODIR in our environment.
 autodirbin = os.path.dirname(os.path.realpath(sys.argv[0]))
 autodir = os.path.dirname(autodirbin)
+autodirtest = os.path.join(autodir, "tests")
 
 sys.path.insert(0, autodirbin)
 
 os.environ['AUTODIR'] = autodir
 os.environ['AUTODIRBIN'] = autodirbin
+os.environ['AUTODIRTEST'] = autodirtest
 os.environ['PYTHONPATH'] = autodirbin
 
 parser = OptionParser(usage='Usage: %prog [options] <control-file>')
@@ -73,6 +75,9 @@ def usage():
     sys.exit(1)
 
 options, args = parser.parse_args()
+
+cmd_parser = cmdparser.CommandParser()
+args = cmd_parser.parse_args(args)
 
 # Check for a control file if not in prebuild mode.
 if len(args) != 1 and options.client_test_setup is None:
