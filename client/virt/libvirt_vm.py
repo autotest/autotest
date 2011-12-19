@@ -111,7 +111,7 @@ def virsh_is_dead(name, uri = ""):
     @param name: VM name
     """
     state = virsh_domstate(name, uri)
-    if state in ('running', 'idle', 'no state'):
+    if state in ('running', 'idle', 'no state', 'paused'):
         return False
     else:
         return True
