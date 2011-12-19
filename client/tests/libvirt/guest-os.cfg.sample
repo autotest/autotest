@@ -83,7 +83,7 @@ variants:
                 variants:
                     - 8.32:
                         no setup
-                        image_name = fc8-32
+                        image_name = f8-32
                         install:
                             steps = steps/Fedora-8-i386.steps
                             cdrom_cd1 = isos/linux/Fedora-8-i386-DVD.iso
@@ -672,7 +672,7 @@ variants:
                     - 3.9.i386:
                         no setup autotest linux_s3 guest_s4 shutdown multi_disk
                         os_variant = rhel3
-                        image_name = rhel3-32
+                        image_name = rhel39-32
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         install:
                             steps=RHEL-3.9-i386.steps
@@ -698,7 +698,7 @@ variants:
                     - 3.9.x86_64:
                         no setup autotest linux_s3 guest_s4 shutdown multi_disk
                         os_variant = rhel3
-                        image_name = rhel3-64
+                        image_name = rhel39-64
                         mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
                         install:
                             steps=RHEL-3.9-x86_64.steps
@@ -725,7 +725,7 @@ variants:
                     - 4.7.i386:
                         no setup autotest
                         os_variant = rhel4
-                        image_name = rhel4-32
+                        image_name = rhel47-32
                         install:
                             steps = steps/RHEL-4.7-i386.steps
                             cdrom_cd1 = isos/linux/RHEL-4.7-i386-DVD.iso
@@ -750,7 +750,7 @@ variants:
                     - 4.7.x86_64:
                         no setup autotest
                         os_variant = rhel4
-                        image_name = rhel4-64
+                        image_name = rhel47-64
                         install:
                             steps = steps/RHEL-4.7-x86_64.steps
                             cdrom_cd1 = isos/linux/RHEL-4.7-x86_64-DVD.iso
@@ -775,7 +775,7 @@ variants:
                     - 4.8.i386:
                         no setup autotest
                         os_variant = rhel4
-                        image_name = rhel4-32
+                        image_name = rhel48-32
                         unattended_install:
                             unattended_file = unattended/RHEL-4-series.ks
                             cdrom_unattended = images/rhel48-32/ks.iso
@@ -799,7 +799,7 @@ variants:
                     - 4.8.x86_64:
                         no setup autotest
                         os_variant = rhel4
-                        image_name = rhel4-64
+                        image_name = rhel48-64
                         unattended_install:
                             unattended_file = unattended/RHEL-4-series.ks
                             cdrom_unattended = images/rhel48-64/ks.iso
@@ -823,7 +823,7 @@ variants:
                     - 5.3.i386:
                         no setup
                         os_variant = rhel5
-                        image_name = rhel5-32
+                        image_name = rhel53-32
                         install:
                             steps = steps/RHEL-5.3-i386.steps
                             cdrom_cd1 = isos/linux/RHEL-5.3-i386-DVD.iso
@@ -847,7 +847,7 @@ variants:
                     - 5.3.x86_64:
                         no setup
                         os_variant = rhel5
-                        image_name = rhel5-64
+                        image_name = rhel53-64
                         install:
                             steps=RHEL-5.3-x86_64.steps
                             cdrom_cd1 = isos/linux/RHEL-5.3-x86_64-DVD.iso
@@ -871,7 +871,7 @@ variants:
                     - 5.4.i386:
                         no setup
                         os_variant = rhel5
-                        image_name = rhel5-32
+                        image_name = rhel54-32
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             cdrom_unattended = images/rhel54-32/ks.iso
@@ -890,7 +890,7 @@ variants:
                     - 5.4.x86_64:
                         no setup
                         os_variant = rhel5
-                        image_name = rhel5-64
+                        image_name = rhel54-64
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             cdrom_unattended = images/rhel54-64/ks.iso
@@ -909,7 +909,7 @@ variants:
                     - 5.5.i386:
                         no setup
                         os_variant = rhel5
-                        image_name = rhel5-32
+                        image_name = rhel55-32
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             cdrom_unattended = images/rhel55-32/ks.iso
@@ -928,7 +928,7 @@ variants:
                     - 5.5.x86_64:
                         no setup
                         os_variant = rhel5
-                        image_name = rhel5-64
+                        image_name = rhel55-64
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             cdrom_unattended = images/rhel55-64/ks.iso
@@ -946,7 +946,7 @@ variants:
                     - 5.6.i386:
                         no setup
                         os_variant = rhel5
-                        image_name = rhel5-32
+                        image_name = rhel56-32
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             cdrom_unattended = images/rhel56-32/ks.iso
@@ -965,7 +965,7 @@ variants:
                     - 5.6.x86_64:
                         no setup
                         os_variant = rhel5
-                        image_name = rhel5-64
+                        image_name = rhel56-64
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             cdrom_unattended = images/rhel56-64/ks.iso
@@ -983,7 +983,7 @@ variants:
 
                     - 5.7.i386:
                         no setup
-                        image_name = rhel5.7-32
+                        image_name = rhel57-32
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             cdrom_unattended = images/rhel57-32/ks.iso
@@ -997,7 +997,7 @@ variants:
 
                     - 5.7.x86_64:
                         no setup
-                        image_name = rhel5.7-64
+                        image_name = rhel57-64
                         unattended_install:
                             unattended_file = unattended/RHEL-5-series.ks
                             cdrom_unattended = images/rhel57-64/ks.iso
@@ -1016,7 +1016,7 @@ variants:
                             modprobe_module =
                         block_hotplug:
                             modprobe_module =
-                        image_name = rhel6-32
+                        image_name = rhel60-32
                         unattended_install:
                             unattended_file = unattended/RHEL-6-series.ks
                             cdrom_unattended = images/rhel60-32/ks.iso
@@ -1039,7 +1039,7 @@ variants:
                             modprobe_module =
                         block_hotplug:
                             modprobe_module =
-                        image_name = rhel6-64
+                        image_name = rhel60-64
                         unattended_install:
                             unattended_file = unattended/RHEL-6-series.ks
                             cdrom_unattended = images/rhel60-64/ks.iso
@@ -1062,7 +1062,7 @@ variants:
                             modprobe_module =
                         block_hotplug:
                             modprobe_module =
-                        image_name = rhel6-32
+                        image_name = rhel61-32
                         unattended_install:
                             unattended_file = unattended/RHEL-6-series.ks
                             cdrom_unattended = images/rhel61-32/ks.iso
@@ -1085,7 +1085,7 @@ variants:
                             modprobe_module =
                         block_hotplug:
                             modprobe_module =
-                        image_name = rhel6-64
+                        image_name = rhel61-64
                         unattended_install:
                             unattended_file = unattended/RHEL-6-series.ks
                             cdrom_unattended = images/rhel61-64/ks.iso
