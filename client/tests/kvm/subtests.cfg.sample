@@ -193,7 +193,7 @@ variants:
                 product_id = "0002"
                 product = "EHCI Host Controller"
                 usbs = usb1
-                usb_type_usb1 = ehci
+                usb_type_usb1 = usb-ehci
                 usb_max_port_usb1 = 6
             - keyboard:
                 check_func = "check_usb_device"
@@ -227,7 +227,7 @@ variants:
                 product_id = "0000"
                 product = "QEMU USB HARDDRIVE"
                 usbs = usb1
-                usb_type_usb1 = ehci
+                usb_type_usb1 = usb-ehci
                 usb_max_port_usb1 = 6
                 images += " stg"
                 image_boot_image1 = yes
@@ -259,7 +259,7 @@ variants:
                 product_id = "0002"
                 product = "EHCI Host Controller"
                 usbs = usb1
-                usb_type_usb1 = ehci
+                usb_type_usb1 = usb-ehci
                 usb_max_port_usb1 = 6
             - keyboard:
                 check_func = "check_usb_device"
@@ -293,7 +293,7 @@ variants:
                 product_id = "0000"
                 product = "QEMU USB HARDDRIVE"
                 usbs = usb1
-                usb_type_usb1 = ehci
+                usb_type_usb1 = usb-ehci
                 usb_max_port_usb1 = 6
                 images += " stg"
                 image_boot_image1 = yes
@@ -1257,7 +1257,7 @@ variants:
         kill_vm = yes
         format_timeout = 400
         usbs = usb1
-        usb_type_usb1 = ehci
+        usb_type_usb1 = usb-ehci
         images += " stg"
         image_name_stg = "usbdevice"
         image_format_stg = "qcow2"
@@ -1276,8 +1276,7 @@ variants:
         create_image = yes
         image_boot_image1 = yes
         usbs = usb1
-        usb_type_usb1 = ehci
-        usb_type = ehci
+        usb_type = usb-ehci
         usb_max_port_usb1 = 6
         usb_max_port = 6
         variants:

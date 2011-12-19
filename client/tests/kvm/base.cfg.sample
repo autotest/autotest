@@ -24,10 +24,11 @@ cdroms = cd1
 
 # USB controller object names (whitespace seperated)
 usbs = usb1
-# USB controller type, can be ehci/uhci
-usb_type = uhci
+# USB controller type, run following command to see supported controller.
+# `qemu-kvm -device \? 2>&1 | grep "usb.*bus PCI"`
+usb_type = ich9-usb-uhci1
 # Max ports on a controller.
-usb_max_port = 6
+usb_max_port = 2
 
 
 
@@ -115,12 +116,12 @@ backup_image_on_check_error = no
 restore_image_on_check_error = no
 
 ## UHCI's multifunction configure.
-# usb_type_usb1 = uhci
+# usb_type_usb1 = ich9-usb-uhci1
 # multifunction_usb1 = on
 # masterbus_usb1 = usb1
 # firstport_usb1 = 0
 ## EHCI's multifunction configure.
-# usb_type_usb2 = ehci
+# usb_type_usb2 = usb-ehci
 # multifunction_usb2 = on
 
 # Some preprocessor/postprocessor params
