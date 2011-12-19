@@ -219,6 +219,48 @@ variants:
         kill_vm_gracefully = yes
         kill_vm = yes
 
+    - save_restore: install setup image_copy boot
+        type = save_restore
+        # Number of times to repeat save/restore
+        save_restore_repeat = 1
+        # Seconds to allow for guest runtime
+        save_restore_start_delay = 4.0
+        # Seconds to wait before restoring guest
+        save_restore_delay = 1.0
+        # Maximum time test allowed to run
+        save_restore_duration = 30.0
+        save_restore_path = "/tmp"
+        kill_unresponsive_vms = no
+        restart_vm = no
+        kill_vm = yes
+        variants:
+            # Tests assumed to include install and boot before, 
+            # and a shutdown after the lifecycle test
+            - lifecycle_short: unattended_install.cdrom boot
+                type = save_restore
+                save_restore_repeat = 25
+                save_restore_start_delay = 1.0
+                save_restore_delay = 1.0
+                save_restore_duration = 600.0
+                save_restore_path = "/tmp"
+                kill_vm = no
+            - lifecycle_medium: unattended_install.cdrom boot
+                type = save_restore
+                save_restore_repeat = 50
+                save_restore_start_delay = 1.0
+                save_restore_delay = 1.0
+                save_restore_duration = 1300.0
+                save_restore_path = "/tmp"
+                kill_vm = no
+            - lifecycle_long: unattended_install.cdrom boot
+                type = save_restore
+                save_restore_repeat = 100
+                save_restore_start_delay = 1.0
+                save_restore_delay = 1.0
+                save_restore_duration = 2700.0
+                save_restore_path = "/tmp"
+                kill_vm = no
+
     - autotest: install setup image_copy unattended_install.cdrom
         only Linux
         type = autotest
