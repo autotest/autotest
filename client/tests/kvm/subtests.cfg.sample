@@ -186,49 +186,59 @@ variants:
         login_timeout = 240
         variants:
             - ehci:
+                # Disable other usb devices
+                usb_devices = ""
+                usbs = usb1
+                usb_type_usb1 = usb-ehci
+                usb_max_port_usb1 = 6
                 check_func = "check_usb_device"
-                info_usb_name =
+                info_usb_name = ""
                 vendor_id = "1d6b"
                 vendor = "Linux Foundation"
                 product_id = "0002"
                 product = "EHCI Host Controller"
-                usbs = usb1
-                usb_type_usb1 = usb-ehci
-                usb_max_port_usb1 = 6
             - keyboard:
+                usb_devices = kbd1
+                usb_type_kbd1 = usb-kbd
+                usb_controller_kbd1 = uhci
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB Keyboard"
                 vendor_id = "0627"
                 vendor = "Adomax Technology Co., Ltd"
                 product_id = "0001"
                 product = "QEMU USB Keyboard"
-                extra_params += " -device usb-kbd,id=kbd1"
             - mouse:
+                usb_devices = mouse1
+                usb_type_mouse1 = usb-mouse
+                usb_controller_mouse1 = uhci
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB Mouse"
                 vendor_id = "0627"
                 vendor = "Adomax Technology Co., Ltd"
                 product_id = "0001"
                 product = "QEMU USB Mouse"
-                extra_params += " -device usb-mouse,id=mouse1"
             - hub:
+                usb_devices = hub1
+                usb_type_hub1 = usb-hub
+                usb_controller_hub1 = uhci
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB Hub"
                 vendor_id = "0000"
-                vendor =
+                vendor = ""
                 product_id = "0000"
                 product = "QEMU USB Hub"
-                extra_params += " -device usb-hub,id=hub1"
             - storage:
-                check_func = "check_usb_device"
-                info_usb_name = "QEMU USB MSD"
-                vendor_id = "0000"
-                vendor =
-                product_id = "0000"
-                product = "QEMU USB HARDDRIVE"
+                # Disable other usb devices
+                usb_devices = ""
                 usbs = usb1
                 usb_type_usb1 = usb-ehci
                 usb_max_port_usb1 = 6
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB MSD"
+                vendor_id = "0000"
+                vendor = ""
+                product_id = "0000"
+                product = "QEMU USB HARDDRIVE"
                 images += " stg"
                 image_boot_image1 = yes
                 image_name_stg = "usbdevice"
@@ -252,49 +262,59 @@ variants:
         login_timeout = 240
         variants:
             - ehci:
+                # Disable other usb devices
+                usb_devices = ""
+                usbs = usb1
+                usb_type_usb1 = usb-ehci
+                usb_max_port_usb1 = 6
                 check_func = "check_usb_device"
-                info_usb_name =
+                info_usb_name = ""
                 vendor_id = "1d6b"
                 vendor = "Linux Foundation"
                 product_id = "0002"
                 product = "EHCI Host Controller"
-                usbs = usb1
-                usb_type_usb1 = usb-ehci
-                usb_max_port_usb1 = 6
             - keyboard:
+                usb_devices = kbd1
+                usb_type_kbd1 = usb-kbd
+                usb_controller_kbd1 = uhci
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB Keyboard"
                 vendor_id = "0627"
                 vendor = "Adomax Technology Co., Ltd"
                 product_id = "0001"
                 product = "QEMU USB Keyboard"
-                extra_params += " -device usb-kbd,id=kbd1"
             - mouse:
+                usb_devices = mouse1
+                usb_type_mouse1 = usb-mouse
+                usb_controller_mouse1 = uhci
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB Mouse"
                 vendor_id = "0627"
                 vendor = "Adomax Technology Co., Ltd"
                 product_id = "0001"
                 product = "QEMU USB Mouse"
-                extra_params += " -device usb-mouse,id=mouse1"
             - hub:
+                usb_devices = hub1
+                usb_type_hub1 = usb-hub
+                usb_controller_hub1 = uhci
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB Hub"
                 vendor_id = "0000"
-                vendor =
+                vendor = ""
                 product_id = "0000"
                 product = "QEMU USB Hub"
-                extra_params += " -device usb-hub,id=hub1"
             - storage:
-                check_func = "check_usb_device"
-                info_usb_name = "QEMU USB MSD"
-                vendor_id = "0000"
-                vendor =
-                product_id = "0000"
-                product = "QEMU USB HARDDRIVE"
+                # Disable other usb devices
+                usb_devices = ""
                 usbs = usb1
                 usb_type_usb1 = usb-ehci
                 usb_max_port_usb1 = 6
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB MSD"
+                vendor_id = "0000"
+                vendor = ""
+                product_id = "0000"
+                product = "QEMU USB HARDDRIVE"
                 images += " stg"
                 image_boot_image1 = yes
                 image_name_stg = "usbdevice"
@@ -1258,6 +1278,7 @@ variants:
         format_timeout = 400
         usbs = usb1
         usb_type_usb1 = usb-ehci
+        usb_devices = ""
         images += " stg"
         image_name_stg = "usbdevice"
         image_format_stg = "qcow2"
@@ -1279,6 +1300,7 @@ variants:
         usb_type = usb-ehci
         usb_max_port_usb1 = 6
         usb_max_port = 6
+        usb_devices = ""
         variants:
             - signal_repeat:
                 images += " stg"

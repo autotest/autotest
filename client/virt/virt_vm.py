@@ -239,6 +239,16 @@ class VMUSBError(VMError):
 class VMUSBControllerError(VMUSBError):
     pass
 
+class VMUSBControllerMissingError(VMUSBControllerError):
+    def __init__(self, name, controller_type):
+        VMUSBControllerError.__init__(self, name, controller_type)
+        self.name = name
+        self.controller_type = controller_type
+
+    def __str__(self):
+        return ("Could not find '%s' USB Controller on vm '%s'. Please "
+                "check config files." % (self.controller_type, self.name))
+
 class VMUSBControllerPortFullError(VMUSBControllerError):
     def __init__(self, name):
         VMUSBControllerError.__init__(self, name)
