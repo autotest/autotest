@@ -945,8 +945,13 @@ def run_cgroup(test, params, env):
             sessions.append(self.vm.wait_for_login(timeout=30))
             sessions.append(self.vm.wait_for_login(timeout=30))
 
-            size = int(params.get('mem', 512)) / 2   # Use half of the memory
-            sessions[0].sendline('dd if=/dev/zero of=/dev/null bs=%sM' % size)
+            # Don't allow to specify more than 1/2 of the VM's memory
+            size = int(params.get('mem', 1024)) / 2
+            if params.get('cgroup_memory_move_mb') is not None:
+                size = min(size, int(params.get('cgroup_memory_move_mb')))
+
+            sessions[0].sendline('dd if=/dev/zero of=/dev/null bs=%dM '
+                                 'iflag=fullblock' % size)
             time.sleep(2)
 
             sessions[1].cmd('killall -SIGUSR1 dd')
@@ -975,7 +980,7 @@ def run_cgroup(test, params, env):
                                       (dd_res[0], dd_res[1], dd_res[2],
                                        dd_res[3]))
 
-            return ("Memory move succeeded")
+            return ("Guest moved 10times while creating %dMB blocks" % size)
 
 
     class TestMemoryLimit:
@@ -1009,13 +1014,16 @@ def run_cgroup(test, params, env):
             """
             Initialization: prepares the cgroup and starts new VM inside it.
             """
-            # Use half of the VM's memory (in KB)
-            mem = int(int(params.get('mem', 1024)) * 512)
+            # Don't allow to specify more than 1/2 of the VM's memory
+            mem = int(params.get('mem', 1024)) * 512
+            if params.get('cgroup_memory_limit_kb') is not None:
+                mem = min(mem, int(params.get('cgroup_memory_limit_kb')))
+
             self.cgroup.initialize(self.modules)
             self.cgroup.mk_cgroup()
             self.cgroup.set_property('memory.move_charge_at_immigrate', '3',
                                      self.cgroup.cgroups[0])
-            self.cgroup.set_property_h('memory.limit_in_bytes', "%sK" % mem,
+            self.cgroup.set_property_h('memory.limit_in_bytes', "%dK" % mem,
                                      self.cgroup.cgroups[0])
 
             logging.info("Expected VM reload")
@@ -1040,9 +1048,13 @@ def run_cgroup(test, params, env):
             """
             session = self.vm.wait_for_login(timeout=30)
 
-            # Convert into KB, use 0.6 * guest memory (== * 614.4)
-            mem = int(int(params.get('mem', 1024)) * 615)
-            session.sendline('dd if=/dev/zero of=/dev/null bs=%sK count=1' %mem)
+            # Use 1.1 * memory_limit block size
+            mem = int(params.get('mem', 1024)) * 512
+            if params.get('cgroup_memory_limit_kb') is not None:
+                mem = min(mem, int(params.get('cgroup_memory_limit_kb')))
+            mem *= 1.1
+            session.sendline('dd if=/dev/zero of=/dev/null bs=%dK count=1 '
+                             'iflag=fullblock' %mem)
 
             # Check every 0.1s VM memory usage. Limit the maximum execution time
             # to mem / 10 (== mem * 0.1 sleeps)
@@ -1077,7 +1089,7 @@ def run_cgroup(test, params, env):
                 raise error.TestFail("VM didn't consume expected amount of "
                                      "memory. Output of dd cmd: %s" % out)
 
-            return ("Limits were enforced successfully.")
+            return ("Created %dMB block with 1.1 limit overcommit" % (mem/1024))
 
 
     class _TestCpuShare(object):
@@ -1599,8 +1611,8 @@ def run_cgroup(test, params, env):
 
             # CPUs: O_O_, Stat: 200
             cpus = "0"
-            for i in range(2, min(vm_cpus*2, no_cpus)):
-                cpus += ",%d" % i*2
+            for i in range(1, min(vm_cpus, (no_cpus/2))):
+                cpus += ",%d" % (i*2)
             self.cgroup.set_property('cpuset.cpus', cpus, 0)
             stats.append((_test_it(tst_time), cpus))
 
