@@ -20,8 +20,8 @@ class VMCreateError(VMError):
 
 
 class VMStartError(VMError):
-    def __init__(self, name, reason):
-        VMError.__init__(self, name, reason=None)
+    def __init__(self, name, reason=None):
+        VMError.__init__(self, name, reason)
         self.name = name
         self.reason = reason
 
