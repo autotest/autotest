@@ -1315,6 +1315,173 @@ def run_cgroup(test, params, env):
             self.speeds = [100000, 100000]
 
 
+    class TestCpuCFSUtil:
+        """
+        Tests the utilisation of scheduler when cgroup cpu.cfs_* setting is
+        set. There is a known issue with scheduler and multiple CPUs.
+        """
+        def __init__(self, vms, modules):
+            """
+            Initialization
+            @param vms: list of vms
+            @param modules: initialized cgroup module class
+            """
+            self.vms = vms[:]      # Copy of virt machines
+            self.vms_count = len(vms) # Original number of vms
+            self.modules = modules          # cgroup module handler
+            self.cgroup = Cgroup('cpu', '')   # cgroup blkio handler
+            self.sessions = []    # ssh sessions
+            self.serials = []   # serial consoles
+
+
+        def cleanup(self):
+            """ Cleanup """
+            err = ""
+            del(self.cgroup)
+
+            for i in range(len(self.vms)):
+                self.serials[i].sendline('rm -f /tmp/cgroup-cpu-lock')
+            del self.serials
+
+            for i in range(len(self.sessions)):
+                try:
+                    self.sessions[i].close()
+                except Exception, failure_detail:
+                    err += ("\nCan't close ssh connection %s" % i)
+            del self.sessions
+
+            for vm in self.vms[self.vms_count:]:
+                try:
+                    vm.destroy(gracefully=False)
+                except Exception, failure_detail:
+                    err += "\nCan't destroy added VM: %s" % failure_detail
+            del self.vms
+
+            if err:
+                logging.error("Some cleanup operations failed: %s", err)
+                raise error.TestError("Some cleanup operations failed: %s"
+                                      % err)
+
+
+        def init(self):
+            """
+            Initialization
+             * creates additional VMs (vm_cpus = 2 * host_cpus)
+             * creates cgroup for each VM and subcgroup for theirs vCPUs
+               (../vm[123..]/vcpu[012..])
+            """
+            def get_cpu_pids(vm, smp=None):
+                """ Get pids of all VM's vcpus """
+                cpu_pids = re.findall(r'thread_id=(\d+)',
+                                      vm.monitor.info("cpus"))
+                if not cpu_pids:
+                    raise error.TestFail("Can't get 'info cpus' from monitor")
+                if smp is not None and len(cpu_pids) != smp:
+                    raise error.TestFail("Incorrect no vcpus: monitor = %s, "
+                                         "params = %s" % (len(cpu_pids), smp))
+                return cpu_pids
+
+            self.cgroup.initialize(self.modules)
+            host_cpus = open('/proc/cpuinfo').read().count('model name')
+            smp = int(params.get('smp', 1))
+            vm_cpus = 0
+            # Prepare existing vms (if necessarily)
+            for i in range(min(len(self.vms), 2 * host_cpus / smp)):
+                # create "/vm[123]/ cgroups and set cfs_quota_us to no_vcpus*50%
+                vm_pwd = self.cgroup.mk_cgroup()
+                self.cgroup.set_property("cpu.cfs_period_us", 100000, vm_pwd)
+                self.cgroup.set_property("cpu.cfs_quota_us", 50000*smp, vm_pwd)
+                assign_vm_into_cgroup(self.vms[i], self.cgroup, vm_pwd)
+                cpu_pids = get_cpu_pids(self.vms[i], smp)
+                for j in range(smp):
+                    # create "/vm*/vcpu[123] cgroups and set cfs_quota_us to 50%
+                    vcpu_pwd = self.cgroup.mk_cgroup(vm_pwd)
+                    self.cgroup.set_property("cpu.cfs_period_us", 100000,
+                                                                    vcpu_pwd)
+                    self.cgroup.set_property("cpu.cfs_quota_us", 50000,
+                                                                    vcpu_pwd)
+                    self.cgroup.set_cgroup(int(cpu_pids[j]), vcpu_pwd)
+                    self.sessions.append(self.vms[i].wait_for_login(timeout=30))
+                    vm_cpus += 1
+                self.serials.append(self.vms[i].wait_for_serial_login(
+                                                                    timeout=30))
+                self.serials[-1].cmd("touch /tmp/cgroup-cpu-lock")
+            timeout = 1.5 * int(params.get("login_timeout", 360))
+            _params = params
+            # Add additional vms (if necessarily)
+            i = 0
+            while vm_cpus < 2 * host_cpus:
+                vm_name = "clone%s" % i
+                smp = min(vm_cpus, 2 * host_cpus - vm_cpus)
+                _params['smp'] = smp
+                self.vms.append(self.vms[0].clone(vm_name, _params))
+                env.register_vm(vm_name, self.vms[-1])
+                self.vms[-1].create()
+                vm_pwd = self.cgroup.mk_cgroup()
+                self.cgroup.set_property("cpu.cfs_period_us", 100000, vm_pwd)
+                self.cgroup.set_property("cpu.cfs_quota_us", 50000*smp, vm_pwd)
+                assign_vm_into_cgroup(self.vms[-1], self.cgroup, vm_pwd)
+                cpu_pids = get_cpu_pids(self.vms[-1], smp)
+                for j in range(smp):
+                    vcpu_pwd = self.cgroup.mk_cgroup(vm_pwd)
+                    self.cgroup.set_property("cpu.cfs_period_us", 100000,
+                                                                    vcpu_pwd)
+                    self.cgroup.set_property("cpu.cfs_quota_us", 50000,
+                                                                    vcpu_pwd)
+                    self.cgroup.set_cgroup(int(cpu_pids[j]), vcpu_pwd)
+                    self.sessions.append(self.vms[-1].wait_for_login(
+                                                            timeout=timeout))
+                self.serials.append(self.vms[-1].wait_for_serial_login(
+                                                                    timeout=30))
+                self.serials[-1].cmd("touch /tmp/cgroup-cpu-lock")
+                vm_cpus += smp
+                i += 1
+
+
+        def run(self):
+            """
+            Actual test:
+            It run stressers on all vcpus, gather host CPU utilisation and
+            verifies that guests use at least 95% of CPU time.
+            """
+            stats = []
+            cmd = "renice -n 10 $$; "
+            cmd += "while [ -e /tmp/cgroup-cpu-lock ]; do :; done"
+            for session in self.sessions:
+                session.sendline(cmd)
+
+            # Test
+            time.sleep(1)
+            stats.append(open('/proc/stat', 'r').readline())
+            time.sleep(1)
+            stats.append(open('/proc/stat', 'r').readline())
+            time.sleep(9)
+            stats.append(open('/proc/stat', 'r').readline())
+            time.sleep(49)
+            stats.append(open('/proc/stat', 'r').readline())
+            for session in self.serials:
+                session.sendline('rm -f /tmp/cgroup-cpu-lock')
+
+            # Verification
+            print stats
+            stats[0] = [int(_) for _ in stats[0].split()[1:]]
+            stats[0] = [sum(stats[0][0:8]), sum(stats[0][8:])]
+            for i in range(1, len(stats)):
+                stats[i] = [int(_) for _ in stats[i].split()[1:]]
+                try:
+                    stats[i] = (float(sum(stats[i][8:]) - stats[0][1]) /
+                                        (sum(stats[i][0:8]) - stats[0][0]))
+                except ZeroDivisionError:
+                    logging.error("ZeroDivisionError in stats calculation")
+                    stats[i] = False
+            print stats
+            for i in range(1, len(stats)):
+                if stats[i] < 0.95:
+                    raise error.TestFail("Guest time is not >95%% %s" % stats)
+
+            logging.info("Guest times are over 95%%: %s", stats)
+            return "Guest times are over 95%%: %s" % stats
+
     class TestCpusetCpus:
         """
         Tests the cpuset.cpus cgroup feature. It stresses all VM's CPUs
@@ -1606,6 +1773,7 @@ def run_cgroup(test, params, env):
              "memory_limit"                 : TestMemoryLimit,
              "cpu_share_10"                 : TestCpuShare10,
              "cpu_share_50"                 : TestCpuShare50,
+             "cpu_cfs_util"                 : TestCpuCFSUtil,
              "cpuset_cpus"                  : TestCpusetCpus,
              "cpuset_cpus_switching"        : TestCpusetCpusSwitching,
             }
