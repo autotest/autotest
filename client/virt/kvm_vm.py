@@ -290,9 +290,12 @@ class VM(virt_vm.BaseVM):
 
         def add_drive(help, filename, index=None, format=None, cache=None,
                       werror=None, rerror=None, serial=None, snapshot=False,
-                      boot=False, blkdebug=None, bus=None, port=None):
-            name = None;
-            dev = "";
+                      boot=False, blkdebug=None, bus=None, port=None,
+                      bootindex=None, removable=None, min_io_size=None,
+                      opt_io_size=None, physical_block_size=None,
+                      logical_block_size=None):
+            name = None
+            dev = ""
             if format == "ahci":
                 name = "ahci%s" % index
                 dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
@@ -301,34 +304,33 @@ class VM(virt_vm.BaseVM):
             if format == "usb2":
                 name = "usb2.%s" % index
                 dev += " -device usb-storage"
-                if bus:
-                    dev += ",bus=%s" % bus
-                dev += ",drive=%s" % name
-                dev += ",port=%d" % (int(port) + 1)
+                dev += _add_option("bus", bus)
+                dev += _add_option("port", port)
+                dev += _add_option("serial", serial)
+                dev += _add_option("bootindex", bootindex)
+                dev += _add_option("removable", removable)
+                dev += _add_option("min_io_size", min_io_size)
+                dev += _add_option("opt_io_size", opt_io_size)
+                dev += _add_option("physical_block_size", physical_block_size)
+                dev += _add_option("logical_block_size", logical_block_size)
+                dev += _add_option("drive", name)
                 format = "none"
                 index = None
+
             if blkdebug is not None:
                 cmd = " -drive file=blkdebug:%s:%s" % (blkdebug, filename)
             else:
                 cmd = " -drive file='%s'" % filename
-            if index is not None:
-                cmd += ",index=%s" % index
-            if format:
-                cmd += ",if=%s" % format
-            if cache:
-                cmd += ",cache=%s" % cache
-            if rerror:
-                cmd += ",rerror=%s" % rerror
-            if werror:
-                cmd += ",werror=%s" % werror
-            if serial:
-                cmd += ",serial='%s'" % serial
-            if snapshot:
-                cmd += ",snapshot=on"
-            if boot:
-                cmd += ",boot=on"
-            if name:
-                cmd += ",id=%s" % name
+
+            cmd += _add_option("index", index)
+            cmd += _add_option("if", format)
+            cmd += _add_option("cache", cache)
+            cmd += _add_option("rerror", rerror)
+            cmd += _add_option("werror", werror)
+            cmd += _add_option("serial", serial)
+            cmd += _add_option("snapshot", snapshot)
+            cmd += _add_option("boot", boot)
+            cmd += _add_option("id", name)
             return cmd + dev
 
         def add_nic(help, vlan, model=None, mac=None, device_id=None, netdev_id=None,
@@ -605,7 +607,14 @@ class VM(virt_vm.BaseVM):
                     image_params.get("image_boot") == "yes",
                     virt_vm.get_image_blkdebug_filename(image_params,
                                                         self.virt_dir),
-                    bus, port)
+                    bus,
+                    port,
+                    image_params.get("bootindex"),
+                    image_params.get("removable"),
+                    image_params.get("min_io_size"),
+                    image_params.get("opt_io_size"),
+                    image_params.get("physical_block_size"),
+                    image_params.get("logical_block_size"))
 
         redirs = []
         for redir_name in params.objects("redirs"):
