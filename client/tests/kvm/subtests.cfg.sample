@@ -1048,6 +1048,8 @@ variants:
         type = cgroup
         # cgroup_tests = "re1[:loops] re2[:loops] ..."
         cgroup_tests = ".*:1"
+        #cgroup_memory_limit_kb = 2097152   # default 1/2 guest ram
+        #cgroup_memory_move_mb = 2048   # default 1/2 guest ram
         vms += " vm2"
         extra_params += " -snapshot"
 
