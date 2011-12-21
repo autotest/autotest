@@ -3374,7 +3374,6 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
                  "config samples to actual config files)", step)
     config_file_list = glob.glob(os.path.join(test_dir, "*.cfg.sample"))
     config_file_list += glob.glob(os.path.join(common_dir, "*.cfg.sample"))
-    logging.info("Default Config Files:\n%s" % config_file_list)
     for config_file in config_file_list:
         src_file = config_file
         dst_file = os.path.join(test_dir, \
