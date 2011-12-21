@@ -17,6 +17,9 @@ nics = nic1
 # Connect NIC devices to host bridge device
 bridge = virbr0
 
+# Tell framework of nic1's static ip address
+# ip_nic1 = 192.168.100.110
+
 # List of block device object names (whitespace seperated)
 images = image1
 # List of optical device object names
