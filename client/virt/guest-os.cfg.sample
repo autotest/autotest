@@ -105,7 +105,7 @@ variants:
                 unattended_install:
                     boot_path = "images/pxeboot"
                     # TODO: does kvm need to prefix this with '--append'?
-                    extra_params += " 'ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0'"
+                    extra_params += " ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
                     # You have to use ks=floppy if you want to use floppies to
                     # hold your kickstart file
                     #extra_params += " ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
@@ -768,8 +768,8 @@ variants:
                 unattended_install:
                     # You have to use autoyast=floppy if you want to use floppies to
                     # hold your autoyast file
-                    #extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
-                    extra_params += " --append 'autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0'"
+                    #extra_params += " autoyast=floppy console=ttyS0,115200 console=tty0"
+                    extra_params += " autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0"
                     wait_no_ack = yes
 
                 variants:
@@ -932,10 +932,10 @@ variants:
                 unattended_install:
                     # You have to use autoyast=floppy if you want to use floppies to
                     # hold your autoyast file
-                    #extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
-                    extra_params += " --append 'autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0'"
+                    #extra_params += " autoyast=floppy console=ttyS0,115200 console=tty0"
+                    extra_params += " autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0"
                     # --- uncomment the below line for other SLES 10 distros only ---
-                    #extra_params += " --append 'autoyast=device://hdb/autoinst.xml console=ttyS0,115200 console=tty0'"
+                    #extra_params += " autoyast=device://hdb/autoinst.xml console=ttyS0,115200 console=tty0"
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
@@ -1036,7 +1036,7 @@ variants:
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
-                    extra_params += " --append 'console=ttyS0,115200 console=tty0'"
+                    extra_params += " console=ttyS0,115200 console=tty0"
 
                 variants:
                     - 6.10-32:
