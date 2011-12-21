@@ -8,6 +8,11 @@ include guest-hw.cfg
 include cdkeys.cfg
 include virtio-win.cfg
 
+# Virtualization type (kvm or libvirt)
+# TODO: Update code to use vm_library + vm_type + vm_subtype
+#       i.e.        (libvirt/none) + (qemu/kvm/xen) + (hvm/paravirt)
+vm_type = libvirt
+
 variants:
     # Runs virt-install, f16 64 bit guest OS, install, boot, shutdown
     - @libvirt_f16_quick:
