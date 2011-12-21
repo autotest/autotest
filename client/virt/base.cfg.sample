@@ -1,4 +1,4 @@
-# Copy this file to base.cfg and edit it.
+# Copy this file to base.cfg and edit it
 
 # Absolute paths and/or names of binaries (default path is /usr/bin)
 qemu_binary = qemu
@@ -9,13 +9,17 @@ qemu_io_binary = qemu-io
 vms = vm1
 # Default virtual machine to use, when not specified by test.
 main_vm = vm1
-# Virtualization type (kvm/xen/libvirt/etc.)
+# Virtualization type (kvm or libvirt)
+# TODO: Update code to use vm_library + vm_type + vm_subtype
+#           i.e.        (libvirt/none) + (qemu/kvm/xen) + (hvm/paravirt)
 vm_type = kvm
 
 # List of network device object names (whitespace seperated)
 nics = nic1
-# Connect NIC devices to host bridge device
+# List of end-point bridges to connect NIC devices to on host
 bridge = virbr0
+# For libvirt, use following as argument to --network
+virsh_network = network=default
 
 # List of block device object names (whitespace seperated)
 images = image1
@@ -32,6 +36,9 @@ usb_max_port = 6
 
 
 ##### Low-level parameters for platform, networking, block, and usb devices.
+
+# libvirt driver
+driver_type = default
 
 # Default number of processors for each VM
 smp = 1
@@ -56,9 +63,8 @@ drive_cache = none
 
 # List of hypervisor-monitor object names (one per guest),
 #    used to communicate with hypervisor to control guests.
+#    Order cooresponds to 'vms' list above.
 monitors = humanmonitor1
-# Default monitor object to use, when not specified by test.
-main_monitor = humanmonitor1
 # Default monitor type (protocol), if multiple types to be used
 monitor_type = human
 
@@ -99,7 +105,7 @@ drive_index_cd1 = 1
 drive_rerror_image1 =
 # What to do whether a write error is detected, such as 'stop'
 drive_werror_image1 =
-# Disk backup settings
+# KVM qcow2 image verification and backup settings
 # Enable backup_image = yes only in some specific tests, such as
 #    unattended_install. In all other tests, it should be no, so keep the global
 #    as is.
@@ -136,21 +142,18 @@ keep_ppm_files_on_error = no
 screendump_quality = 30
 screendump_temp_dir = /dev/shm
 screendump_verbose = no
-
 keep_video_files = yes
 keep_video_files_on_error = yes
 
 # Default remote shell port (SSH under linux)
 shell_port = 22
+# If you need more ports to be available for comm between host and guest,
+# please add them here
+priv_bridge_ports = 53 67
 
 # Default scheduler params
 used_cpus = 1
 used_mem = 512
-
-# Numa pinning params
-# pin guest memory to 1st numa node
-# pin processes to host cpu of 1st node
-# numa_node = 1
 
 # Port redirections
 redirs = remote_shell
@@ -161,6 +164,21 @@ profilers = kvm_stat
 
 # Timeouts
 login_timeout = 360
+
+# libvirt (virt-install optional arguments)
+# TODO: Rename these with 'libvirt_' prefix
+use_autostart = no
+use_check_cpu = yes
+use_debug = yes
+use_no_reboot = no
+use_os_variant = no
+use_os_type = yes
+# if using 'url = auto' to install, url_auto_ip must match IP on
+# selected virsh network or bridge
+url_auto_ip = 192.168.122.1
+# wait in minutes for virt-install to finish (bz still open)
+use_virt_install_wait = no
+virt_install_wait_time = 300
 
 # NFS directory of guest images
 images_good = fileserver.foo.com:/autotest/images_good
