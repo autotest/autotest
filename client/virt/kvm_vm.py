@@ -821,7 +821,12 @@ class VM(virt_vm.BaseVM):
                 if mac:
                     virt_utils.set_mac_address(self.instance, vlan, mac)
                 else:
-                    virt_utils.generate_mac_address(self.instance, vlan)
+                    mac = virt_utils.generate_mac_address(self.instance, vlan)
+
+                if nic_params.get("ip"):
+                    self.address_cache[mac] = nic_params.get("ip")
+                    logging.debug("(address cache) Adding static cache entry: "
+                                  "%s ---> %s" % (mac, nic_params.get("ip")))
 
             # Assign a PCI assignable device
             self.pci_assignable = None
