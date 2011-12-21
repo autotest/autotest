@@ -33,7 +33,7 @@ variants:
             host_load_command = "bzip2 -c --best /dev/urandom > /dev/null"
             host_load_instances = 8
             ntp:
-                time_command = "ntpdate -d -q ns1.nay.redhat.com"
+                time_command = "ntpdate -d -q pool.ntp.org"
                 time_filter_re = "originate timestamp:.*, (.\w+\s+\d+\s+\d+\s+\d+:\d+:\d+)\.(.\d+)"
                 time_format = "%b %d %Y %H:%M:%S"
             date:
@@ -61,25 +61,54 @@ variants:
             compare_command = cd /bin && md5sum ls > /tmp/ls.md5 && cd /tmp && md5sum -c ls.md5
             check_result_key_word = OK
             max_disk:
-                 images += " stg24 stg25 stg26 stg27"
-                 image_name_stg24 = storage24
-                 image_name_stg25 = storage25
-                 image_name_stg26 = storage26
-                 image_name_stg27 = storage27
+                 stg_image_num = 27
                  list_volume_command = cd /dev && \ls vd*
                  re_str = "[vhs]d[a-z][^0-9]"
+        usb_multi_disk:
+            show_mount_cmd = mount|gawk '/mnt/{print $1}'
+            clean_cmd = "\rm -rf /mnt/*"
+            cmd_list = "copy_to_command copy_from_command"
+            file_system = "ext3 ext2"
+            mount_command = mkdir /mnt/%s && mount /dev/%s /mnt/%s
+            umount_command = umount /dev/%s && rmdir /mnt/%s
+            list_volume_command = cd /dev && \ls [vhs]d?
+            re_str = "[vhs]d[a-z]"
+            format_command = echo y | mkfs -t %s /dev/%s
+            copy_to_command = \cp -rf /bin/ls /mnt/%s
+            copy_from_command = \cp -rf /mnt/%s/ls /tmp/ls
+            compare_command = cd /bin && md5sum ls > /tmp/ls.md5 && cd /tmp && md5sum -c ls.md5
+            check_result_key_word = OK
+            max_disk:
+                list_volume_command = cd /dev && \ls [vhs]d*
+                re_str = "[vhs]d[a-z][^0-9]"
+        floppy_test:
+            format_floppy_cmd = mkfs -t ext3 /dev/fd0
+            test_floppy_cmd = (dd if=/dev/urandom of=/mnt/test_floppy bs=1M count=1) && (rm -f /mnt/test_floppy)
+            format_floppy_cmd = mkfs -t ext3 /dev/fd0
+            source_file = /etc/passwd
+            dest_file = /mnt/passwd
+            clean_cmd = rm -f
+            mount_dir = /mnt/
+            diff_file_cmd = diff
+            copy_cmd = cp
 
         variants:
+            - CustomGuestLinux:
+                image_name = custom_image
+                image_size = 10G
+                #image_name = /dev/mapper/vg_some_label
+                #image_type_raw = yes
+
             - Fedora:
                 no setup
                 shell_prompt = "^\[.*\][\#\$]\s*$"
                 unattended_install:
                     boot_path = "images/pxeboot"
+                    # TODO: does kvm need to prefix this with '--append'?
+                    extra_params += " ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
                     # You have to use ks=floppy if you want to use floppies to
                     # hold your kickstart file
                     #extra_params += " ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
-                    extra_params += " ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
-
                 variants:
                     - 8.32:
                         no setup
@@ -91,9 +120,10 @@ variants:
                             md5sum_1m_cd1 = dabae451bb69fbbad0e505b25144b1f9
                         unattended_install:
                             unattended_file = unattended/Fedora-8.ks
+                            #floppy = images/f8-32/ks.vfd
                             cdrom_unattended = images/f8-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f8-32/vmlinuz
+                            initrd = images/f8-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-8-i386-DVD.iso
                             md5sum_cd1 = dd6c79fddfff36d409d02242e7b10189
@@ -109,9 +139,10 @@ variants:
                             md5sum_1m_cd1 = 145f6414e19492649a56c89f0a45e719
                         unattended_install:
                             unattended_file = unattended/Fedora-8.ks
+                            #floppy = images/f8-64/ks.vfd
                             cdrom_unattended = images/f8-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f8-64/vmlinuz
+                            initrd = images/f8-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-8-x86_64-DVD.iso
                             md5sum_cd1 = 2cb231a86709dec413425fd2f8bf5295
@@ -126,9 +157,10 @@ variants:
                             md5sum_1m_cd1 = f24fa25689e5863f1b99984c6feb787f
                         unattended_install:
                             unattended_file = unattended/Fedora-9.ks
+                            #floppy = images/f9-32/ks.vfd
                             cdrom_unattended = images/f9-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f9-32/vmlinuz
+                            initrd = images/f9-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-9-i386-DVD.iso
                             md5sum_cd1 = 72601f685ea8c808c303353d8bf4d307
@@ -144,9 +176,10 @@ variants:
                             md5sum_1m_cd1 = 9822ab5097e37e8fe306ef2192727db4
                         unattended_install:
                             unattended_file = unattended/Fedora-9.ks
+                            #floppy = images/f9-64/ks.vfd
                             cdrom_unattended = images/f9-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f9-64/vmlinuz
+                            initrd = images/f9-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-9-x86_64-DVD.iso
                             md5sum_cd1 = 05b2ebeed273ec54d6f9ed3d61ea4c96
@@ -157,9 +190,10 @@ variants:
                         image_name = f10-32
                         unattended_install:
                             unattended_file = unattended/Fedora-10.ks
+                            #floppy = images/f10-32/ks.vfd
                             cdrom_unattended = images/f10-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f10-32/vmlinuz
+                            initrd = images/f10-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-10-i386-DVD.iso
                             md5sum_cd1 = 27e581edb392728c4a07d00d3fc5ced0
@@ -169,9 +203,10 @@ variants:
                         image_name = f10-64
                         unattended_install:
                             unattended_file = unattended/Fedora-10.ks
+                            #floppy = images/f10-64/ks.vfd
                             cdrom_unattended = images/f10-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f10-64/vmlinuz
+                            initrd = images/f10-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-10-x86_64-DVD.iso
                             sha1sum_cd1 = f1e5ae7db6a1ba227de7294c4112385922388648
@@ -183,9 +218,10 @@ variants:
                             steps = steps/Fedora-11-32.steps
                         unattended_install:
                             unattended_file = unattended/Fedora-11.ks
+                            #floppy = images/f11-32/ks.vfd
                             cdrom_unattended = images/f11-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f11-32/vmlinuz
+                            initrd = images/f11-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-11-i386-DVD.iso
                             md5sum_cd1 = e3b1e2d1ba42aa4705fa5f41771b3927
@@ -195,9 +231,10 @@ variants:
                         image_name = f11-64
                         unattended_install:
                             unattended_file = unattended/Fedora-11.ks
+                            #floppy = images/f11-64/ks.vfd
                             cdrom_unattended = images/f11-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f11-64/vmlinuz
+                            initrd = images/f11-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-11-x86_64-DVD.iso
                             md5sum_cd1 = 9d419844adeb93120215fe7505c9bce8
@@ -207,9 +244,10 @@ variants:
                         image_name = f12-32
                         unattended_install:
                             unattended_file = unattended/Fedora-12.ks
+                            #floppy = images/f12-32/ks.vfd
                             cdrom_unattended = images/f12-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f12-32/vmlinuz
+                            initrd = images/f12-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-12-i386-DVD.iso
                             md5sum_cd1 = 2c4c1c0d09f2fbcfd8ee6a0c5542eeb2
@@ -219,9 +257,10 @@ variants:
                         image_name = f12-64
                         unattended_install:
                             unattended_file = unattended/Fedora-12.ks
+                            #floppy = images/f12-64/ks.vfd
                             cdrom_unattended = images/f12-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f12-64/vmlinuz
+                            initrd = images/f12-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-12-x86_64-DVD.iso
                             md5sum_cd1 = 6dd31e292cc2eb1140544e9b1ba61c56
@@ -231,9 +270,10 @@ variants:
                         image_name = f13-32
                         unattended_install:
                             unattended_file = unattended/Fedora-13.ks
+                            #floppy = images/f13-32/ks.vfd
                             cdrom_unattended = images/f13-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f13-32/vmlinuz
+                            initrd = images/f13-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-13-i386-DVD.iso
                             md5sum_cd1 = 212fec517c2629b4b5eaf3662ac13136
@@ -243,9 +283,10 @@ variants:
                         image_name = f13-64
                         unattended_install:
                             unattended_file = unattended/Fedora-13.ks
+                            #floppy = images/f13-64/ks.vfd
                             cdrom_unattended = images/f13-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f13-64/vmlinuz
+                            initrd = images/f13-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-13-x86_64-DVD.iso
                             md5sum_cd1 = 6fbae6379cf27f36e1f2c7827ba7dc35
@@ -255,9 +296,10 @@ variants:
                         image_name = f14-32
                         unattended_install:
                             unattended_file = unattended/Fedora-14.ks
+                            #floppy = images/f14-32/ks.vfd
                             cdrom_unattended = images/f14-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f14-32/vmlinuz
+                            initrd = images/f14-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-14-i386-DVD.iso
                             md5sum_cd1 = 1cc67641506d2f931d669b8d3528dded
@@ -271,9 +313,10 @@ variants:
                         image_name = f14-64
                         unattended_install:
                             unattended_file = unattended/Fedora-14.ks
+                            #floppy = images/f14-64/ks.vfd
                             cdrom_unattended = images/f14-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f14-64/vmlinuz
+                            initrd = images/f14-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-14-x86_64-DVD.iso
                             md5sum_cd1 = f2ebf941dc45f99ee3e8a457c9544552
@@ -287,9 +330,10 @@ variants:
                         image_name = f15-32
                         unattended_install:
                             unattended_file = unattended/Fedora-15.ks
+                            #floppy = images/f15-32/ks.vfd
                             cdrom_unattended = images/f15-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f15-32/vmlinuz
+                            initrd = images/f15-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-15-i386-DVD.iso
                             md5sum_cd1 = 9a91492ac84dde9ceff0cb346a079487
@@ -305,10 +349,8 @@ variants:
                             unattended_file = unattended/Fedora-15.ks
                             #floppy = images/f15-64/ks.vfd
                             cdrom_unattended = images/f15-64/ks.iso
-                            #kernel = images/f15-64/vmlinuz
-                            #initrd = images/f15-64/initrd.img
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f15-64/vmlinuz
+                            initrd = images/f15-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-15-x86_64-DVD.iso
                             md5sum_cd1 = c122a2a4f478da4a3d2d12396e84244e
@@ -322,9 +364,10 @@ variants:
                         image_name = f16-32
                         unattended_install:
                             unattended_file = unattended/Fedora-16.ks
+                            #floppy = images/f16-32/ks.vfd
                             cdrom_unattended = images/f16-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f16-32/vmlinuz
+                            initrd = images/f16-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-16-i386-DVD.iso
                             md5sum_cd1 = 0d64ab6b1b800827a9c83d95395b3da0
@@ -338,34 +381,386 @@ variants:
                         image_name = f16-64
                         unattended_install:
                             unattended_file = unattended/Fedora-16.ks
+                            #floppy = images/f16-64/ks.vfd
                             cdrom_unattended = images/f16-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
+                            kernel = images/f16-64/vmlinuz
+                            initrd = images/f16-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-16-x86_64-DVD.iso
                             md5sum_cd1 = bb38ea1fe4b2fc69e7a6e15cf1c69c91
                             md5sum_1m_cd1 = e25ea147176f24239d38a46f501bd25e
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
 
-            - DSL-4.2.5:
-                no setup dbench bonnie linux_s3
-                image_name = dsl-4.2.5
-                install:
-                    steps = steps/DSL-4.2.5.steps
-                    cdrom_cd1 = isos/linux/dsl-4.2.5.iso
-                    md5sum_cd1 = 61694888aede3e01229865b8e6acd4a1
-                    md5sum_1m_cd1 = 527f2481bd25310f2e3a6e5345ff3d12
 
-            - Mandriva-One-2007:
-                only install
-                image_name = mandriva-one-2007
-                steps = steps/Mandriva-One-2007-32.steps
-                cdrom_cd1 = isos/linux/mandriva-one-2007-i386.iso
-                md5sum_cd1 = 7e9e183dc11b9d39f480238e4e12bb05
-                md5sum_1m_cd1 = dc7865a75db665efc86d59bca7c1fe07
+            - RHEL:
+                no setup
+                shell_prompt = "^\[.*\][\#\$]\s*$"
+                nic_hotplug:
+                    modprobe_module = acpiphp
+                block_hotplug:
+                    modprobe_module = acpiphp
+                    no block_scsi
+                unattended_install:
+                    boot_path = images/pxeboot
+                    # You have to use ks=floppy if you want to use floppies to
+                    # hold your kickstart file
+                    # TODO: does kvm need to prefix this with '--append'?
+                    extra_params += " ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
+                variants:
+                    - 3.9.i386:
+                        no setup autotest linux_s3 guest_s4 shutdown multi_disk
+                        no usb_multi_disk
+                        image_name = rhel39-32
+                        mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
+                        install:
+                            steps = steps/RHEL-3.9-i386.steps
+                            cdrom_cd1 = isos/linux/RHEL-3.9-i386-DVD.iso
+                            md5sum_cd1 = ddd11a1cb104119039b0fa05df6d52b8
+                            md5sum_1m_cd1 = 5f10c9417c7b8372b3456c1b5f3f9ed0
+                        unattended_install:
+                            unattended_file = unattended/RHEL-3-series.ks
+                            #floppy = images/rhel39-32/ks.vfd
+                            cdrom_unattended = images/rhel39-32/ks.iso
+                            kernel = images/rhel39-32/vmlinuz
+                            initrd = images/rhel39-32/initrd.img
+                            # 3.X anaconda does not support 'poweroff' on ks
+                            shutdown_cleanly = no
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-3.9-i386-DVD.iso
+                            md5sum_cd1 = ddd11a1cb104119039b0fa05df6d52b8
+                            md5sum_1m_cd1 = 5f10c9417c7b8372b3456c1b5f3f9ed0
+
+                    - 3.9.x86_64:
+                        no setup autotest linux_s3 guest_s4 shutdown multi_disk
+                        no usb_multi_disk
+                        image_name = rhel39-64
+                        mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
+                        install:
+                            steps = steps/RHEL-3.9-x86_64.steps
+                            cdrom_cd1 = isos/linux/RHEL-3.9-x86_64-DVD.iso
+                            md5sum_cd1 = bf4635e4a4bd3b43838e72bc8c329d55
+                            md5sum_1m_cd1 = 18ecd37b639109f1b2af05cfb57dfeaf
+                        unattended_install:
+                            unattended_file = unattended/RHEL-3-series.ks
+                            #floppy = images/rhel39-64/ks.vfd
+                            cdrom_unattended = images/rhel39-64/ks.iso
+                            kernel = images/rhel39-64/vmlinuz
+                            initrd = images/rhel39-64/initrd.img
+                            # 3.X anaconda does not support 'poweroff' on ks
+                            shutdown_cleanly = no
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-3.9-x86_64-DVD.iso
+                            md5sum_cd1 = bf4635e4a4bd3b43838e72bc8c329d55
+                            md5sum_1m_cd1 = 18ecd37b639109f1b2af05cfb57dfeaf
+
+                    - 4.7.i386:
+                        no setup autotest
+                        image_name = rhel47-32
+                        install:
+                            steps = steps/RHEL-4.7-i386.steps
+                            cdrom_cd1 = isos/linux/RHEL-4.7-i386-DVD.iso
+                            md5sum_cd1 = ee5092653732a88ddbaf8eef2484c500
+                            md5sum_1m_cd1 = 127081cbed825d7232331a2083975528
+                        unattended_install:
+                            unattended_file = unattended/RHEL-4-series.ks
+                            #floppy = images/rhel47-32/ks.vfd
+                            cdrom_unattended = images/rhel47-32/ks.iso
+                            kernel = images/rhel47-32/vmlinuz
+                            initrd = images/rhel47-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-4.7-i386-DVD.iso
+                            md5sum_cd1 = ee5092653732a88ddbaf8eef2484c500
+                            md5sum_1m_cd1 = 127081cbed825d7232331a2083975528
+                        fillup_disk:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+                        lvm.lvm_fill:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+
+                    - 4.7.x86_64:
+                        no setup autotest
+                        image_name = rhel47-64
+                        install:
+                            steps = steps/RHEL-4.7-x86_64.steps
+                            cdrom_cd1 = isos/linux/RHEL-4.7-x86_64-DVD.iso
+                            md5sum_cd1 = ea9dae16dd86f7d94092d0e672333292
+                            md5sum_1m_cd1 = 58fa63eaee68e269f4cb1d2edf479792
+                        unattended_install:
+                            unattended_file = unattended/RHEL-4-series.ks
+                            #floppy = images/rhel47-64/ks.vfd
+                            cdrom_unattended = images/rhel47-64/ks.iso
+                            kernel = images/rhel47-64/vmlinuz
+                            initrd = images/rhel47-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-4.7-x86_64-DVD.iso
+                            md5sum_cd1 = ea9dae16dd86f7d94092d0e672333292
+                            md5sum_1m_cd1 = 58fa63eaee68e269f4cb1d2edf479792
+                        fillup_disk:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+                        lvm.lvm_fill:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+
+                    - 4.8.i386:
+                        no setup autotest
+                        image_name = rhel48-32
+                        unattended_install:
+                            unattended_file = unattended/RHEL-4-series.ks
+                            #floppy = images/rhel48-32/ks.vfd
+                            cdrom_unattended = images/rhel48-32/ks.iso
+                            kernel = images/rhel48-32/vmlinuz
+                            initrd = images/rhel48-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-4.8-i386-DVD.iso
+                            md5sum_cd1 = b024f0af5079539d3ef51f71fed0b194
+                            md5sum_1m_cd1 = 969c197402b9058f28a278c1f807d15b
+                        nicdriver_unload:
+                            readlink_command = readlink -f
+                            sys_path = "/sys/class/net/%s/driver"
+                        fillup_disk:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+                        lvm.lvm_fill:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+
+                    - 4.8.x86_64:
+                        no setup autotest
+                        image_name = rhel48-64
+                        unattended_install:
+                            unattended_file = unattended/RHEL-4-series.ks
+                            #floppy = images/rhel48-64/ks.vfd
+                            cdrom_unattended = images/rhel48-64/ks.iso
+                            kernel = images/rhel48-64/vmlinuz
+                            initrd = images/rhel48-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-4.8-x86_64-DVD.iso
+                            md5sum_cd1 = 696bc877b0200cc942626673fcc3fc09
+                            md5sum_1m_cd1 = b11ac0ef7fd345ad712966972db63886
+                        nicdriver_unload:
+                            readlink_command = readlink -f
+                            sys_path = "/sys/class/net/%s/driver"
+                        fillup_disk:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+                        lvm.lvm_fill:
+                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
+
+                    - 5.3.i386:
+                        no setup
+                        image_name = rhel53-32
+                        install:
+                            steps = steps/RHEL-5.3-i386.steps
+                            cdrom_cd1 = isos/linux/RHEL-5.3-i386-DVD.iso
+                            md5sum_cd1 = 371c62851611fd32ead440df6f24a296
+                            md5sum_1m_cd1 = 242318dd44152210f6ff6cdda1bfbf51
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel53-32/ks.vfd
+                            cdrom_unattended = images/rhel53-32/ks.iso
+                            kernel = images/rhel53-32/vmlinuz
+                            initrd = images/rhel53-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.3-i386-DVD.iso
+                            md5sum_cd1 = 371c62851611fd32ead440df6f24a296
+                            md5sum_1m_cd1 = 242318dd44152210f6ff6cdda1bfbf51
+
+                    - 5.3.x86_64:
+                        no setup
+                        image_name = rhel53-64
+                        install:
+                            steps = steps/RHEL-5.3-x86_64.steps
+                            cdrom_cd1 = isos/linux/RHEL-5.3-x86_64-DVD.iso
+                            md5sum_cd1 = c5ed6b284410f4d8212cafc78fd7a8c5
+                            md5sum_1m_cd1 = b999f437583098ea5bbd56fb1de1d011
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel53-64/ks.vfd
+                            cdrom_unattended = images/rhel53-64/ks.iso
+                            kernel = images/rhel53-64/vmlinuz
+                            initrd = images/rhel53-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.3-x86_64-DVD.iso
+                            md5sum_cd1 = c5ed6b284410f4d8212cafc78fd7a8c5
+                            md5sum_1m_cd1 = b999f437583098ea5bbd56fb1de1d011
+
+                    - 5.4.i386:
+                        no setup
+                        image_name = rhel54-32
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel54-32/ks.vfd
+                            cdrom_unattended = images/rhel54-32/ks.iso
+                            kernel = images/rhel54-32/vmlinuz
+                            initrd = images/rhel54-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.4-i386-DVD.iso
+                            md5sum_cd1 = 7a12ec6599527e4f3d1790b51eadbfed
+                            md5sum_1m_cd1 = 0dbeb8f58d213752d8c029e8601abfbb
+
+                    - 5.4.x86_64:
+                        no setup
+                        image_name = rhel54-64
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel54-64/ks.vfd
+                            cdrom_unattended = images/rhel54-64/ks.iso
+                            kernel = images/rhel54-64/vmlinuz
+                            initrd = images/rhel54-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.4-x86_64-DVD.iso
+                            md5sum_cd1 = 04fe3c10202402d7b389528d2bad0210
+                            md5sum_1m_cd1 = 3e74112003e88a966754849dbb8f5c3f
+
+                    - 5.5.i386:
+                        no setup
+                        image_name = rhel55-32
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel55-32/ks.vfd
+                            cdrom_unattended = images/rhel55-32/ks.iso
+                            kernel = images/rhel55-32/vmlinuz
+                            initrd = images/rhel55-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.5-i386-DVD.iso
+                            md5sum_cd1 = 148858b157f275d9153797efddfc83c3
+                            md5sum_1m_cd1 = 2502cc7ddb9d0684fe08c4a83d247902
+
+                    - 5.5.x86_64:
+                        no setup
+                        image_name = rhel55-64
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel55-64/ks.vfd
+                            cdrom_unattended = images/rhel55-64/ks.iso
+                            kernel = images/rhel55-64/vmlinuz
+                            initrd = images/rhel55-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.5-x86_64-DVD.iso
+                            md5sum_cd1 = f3119f883257ef9041234feda2f1cad0
+                            md5sum_1m_cd1 = a744084a03f6a08627f71527fc107a1e
+
+                    - 5.6.i386:
+                        no setup
+                        image_name = rhel56-32
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel56-32/ks.vfd
+                            cdrom_unattended = images/rhel56-32/ks.iso
+                            kernel = images/rhel56-32/vmlinuz
+                            initrd = images/rhel56-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.6-i386-DVD.iso
+                            md5sum_cd1 = c214653d91b81c9a7a7f7249753d0f5d
+                            md5sum_1m_cd1 = f299a881950bfec81fd5c74484e1b1d4
+
+                    - 5.6.x86_64:
+                        no setup
+                        image_name = rhel56-64
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel56-64/ks.vfd
+                            cdrom_unattended = images/rhel56-64/ks.iso
+                            kernel = images/rhel56-64/vmlinuz
+                            initrd = images/rhel56-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.6-x86_64-DVD.iso
+                            md5sum_cd1 = d77d3815afb381a50148ba55ad930679
+                            md5sum_1m_cd1 = 9dd97de110e391fcbed88b124a60f7a9
+
+                    - 5.7.i386:
+                        no setup
+                        image_name = rhel57-32
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel56-64/ks.vfd
+                            cdrom_unattended = images/rhel57-32/ks.iso
+                            kernel = images/rhel57-32/vmlinuz
+                            initrd = images/rhel57-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.7-i386-DVD.iso
+                            md5sum_cd1 = d738dcaf8d65ebf03d6da32916ddde43
+                            md5sum_1m_cd1 = 9d9061f652ff435cc4c57e9e9ff09076
+
+                    - 5.7.x86_64:
+                        no setup
+                        image_name = rhel57-64
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel56-64/ks.vfd
+                            cdrom_unattended = images/rhel57-64/ks.iso
+                            kernel = images/rhel57-64/vmlinuz
+                            initrd = images/rhel57-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.7-x86_64-DVD.iso
+                            md5sum_cd1 = 1a3c5959e34612e91f4a1840b997b287
+                            md5sum_1m_cd1 = c65d0a1b4d9a32da42aa5142c6e9a5b3
+
+                    - 6.0.i386:
+                        no setup
+                        nic_hotplug:
+                            modprobe_module =
+                        block_hotplug:
+                            modprobe_module =
+                        image_name = rhel60-32
+                        unattended_install:
+                            unattended_file = unattended/RHEL-6-series.ks
+                            #floppy = images/rhel60-32/ks.vfd
+                            cdrom_unattended = images/rhel60-32/ks.iso
+                            kernel = images/rhel60-32/vmlinuz
+                            initrd = images/rhel60-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-6.0-i386-DVD.iso
+                            md5sum_cd1 = 291d234c93442405972689b4b41c14bc
+                            md5sum_1m_cd1 = ee2cc3d3babe91a1d581a07099c4318b
+
+                    - 6.0.x86_64:
+                        no setup
+                        nic_hotplug:
+                            modprobe_module =
+                        block_hotplug:
+                            modprobe_module =
+                        image_name = rhel60-64
+                        unattended_install:
+                            unattended_file = unattended/RHEL-6-series.ks
+                            #floppy = images/rhel60-64/ks.vfd
+                            cdrom_unattended = images/rhel60-64/ks.iso
+                            kernel = images/rhel60-64/vmlinuz
+                            initrd = images/rhel60-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-6.0-x86_64-DVD.iso
+                            md5sum_cd1 = f7141396c6a19399d63e8c195354317d
+                            md5sum_1m_cd1 = b060eeef63e2c8700db54ae02056e80c
+
+                    - 6.1.i386:
+                        no setup
+                        nic_hotplug:
+                            modprobe_module =
+                        block_hotplug:
+                            modprobe_module =
+                        image_name = rhel61-32
+                        unattended_install:
+                            unattended_file = unattended/RHEL-6-series.ks
+                            #floppy = images/rhel61-32/ks.vfd
+                            cdrom_unattended = images/rhel61-32/ks.iso
+                            kernel = images/rhel61-32/vmlinuz
+                            initrd = images/rhel61-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-6.1-i386-DVD.iso
+                            md5sum_cd1 = f8c8a310e34d26339c99d462e3557324
+                            md5sum_1m_cd1 = 12f7692e6e20be0d42b9407d956f74c3
+
+                    - 6.1.x86_64:
+                        no setup
+                        nic_hotplug:
+                            modprobe_module =
+                        block_hotplug:
+                            modprobe_module =
+                        image_name = rhel61-64
+                        unattended_install:
+                            unattended_file = unattended/RHEL-6-series.ks
+                            #floppy = images/rhel61-64/ks.vfd
+                            cdrom_unattended = images/rhel61-64/ks.iso
+                            kernel = images/rhel61-64/vmlinuz
+                            initrd = images/rhel61-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-6.1-x86_64-DVD.iso
+                            md5sum_cd1 = a051dbf28ef444a019dc6660efe3e3a4
+                            md5sum_1m_cd1 = cb3b9d140404a6797b0f423dfe620ab8
 
             - OpenSUSE:
                 no setup
@@ -373,8 +768,8 @@ variants:
                 unattended_install:
                     # You have to use autoyast=floppy if you want to use floppies to
                     # hold your autoyast file
-                    #extra_params += '--append "autoyast=floppy"'
-                    extra_params += '--append "autoyast=device://scd0/autoinst.xml"'
+                    #extra_params += " autoyast=floppy console=ttyS0,115200 console=tty0"
+                    extra_params += " autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0"
                     wait_no_ack = yes
 
                 variants:
@@ -389,14 +784,13 @@ variants:
                             unattended_file = unattended/OpenSUSE-11.xml
                             #floppy = images/opensuse-11-0-32/autoyast.vfd
                             cdrom_unattended = images/opensuse-11-0-32/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/opensuse-11-0-32/linux
+                            initrd = images/opensuse-11-0-32/initrd
                             boot_path = boot/i386/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.0-DVD-i386.iso
                             md5sum_cd1 = ed6a5b3feb668866df812b1c2aed9d7f
                             md5sum_1m_cd1 = c720b30557af758e69de450409516369
-
 
                     - 11.0.64:
                         image_name = openSUSE-11.0-64
@@ -404,8 +798,8 @@ variants:
                             unattended_file = unattended/OpenSUSE-11.xml
                             #floppy = images/opensuse-11-0-64/autoyast.vfd
                             cdrom_unattended = images/opensuse-11-0-64/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/opensuse-11-0-64/linux
+                            initrd = images/opensuse-11-0-64/initrd
                             boot_path = boot/x86_64/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.0-DVD-x86_64.iso
@@ -423,8 +817,8 @@ variants:
                             unattended_file = unattended/OpenSUSE-11.xml
                             #floppy = images/opensuse-11-1-32/autoyast.vfd
                             cdrom_unattended = images/opensuse-11-1-32/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/opensuse-11-1-32/linux
+                            initrd = images/opensuse-11-1-32/initrd
                             boot_path = boot/i386/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.1-DVD-i586.iso
@@ -434,7 +828,7 @@ variants:
                     - 11.1.64:
                         image_name = openSUSE-11.1-64
                         install:
-                            steps=openSUSE-11.1-32-and-64.steps
+                            steps = steps/openSUSE-11.1-32-and-64.steps
                             cdrom_cd1 = isos/linux/openSUSE-11.1-DVD-x86_64.iso
                             md5sum_cd1 = 2afee1b8a87175e6dee2b8dbbd1ad8e8
                             md5sum_1m_cd1 = 768ca32503ef92c28f2d144f2a87e4d0
@@ -442,14 +836,13 @@ variants:
                             unattended_file = unattended/OpenSUSE-11.xml
                             #floppy = images/opensuse-11-1-64/autoyast.vfd
                             cdrom_unattended = images/opensuse-11-1-64/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/opensuse-11-1-64/linux
+                            initrd = images/opensuse-11-1-64/initrd
                             boot_path = boot/x86_64/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.1-DVD-x86_64.iso
                             md5sum_cd1 = 2afee1b8a87175e6dee2b8dbbd1ad8e8
                             md5sum_1m_cd1 = 768ca32503ef92c28f2d144f2a87e4d0
-
 
                     - 11.2.32:
                         image_name = openSUSE-11.2-32
@@ -457,14 +850,13 @@ variants:
                             unattended_file = unattended/OpenSUSE-11.xml
                             #floppy = images/opensuse-11-2-32/autoyast.vfd
                             cdrom_unattended = images/opensuse-11-2-32/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/opensuse-11-2-32/linux
+                            initrd = images/opensuse-11-2-32/initrd
                             boot_path = boot/i386/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.2-DVD-i586.iso
                             md5sum_cd1 = 295d713314a30ad017948f0d542c6d92
                             md5sum_1m_cd1 = 1f8767d00acb492be5a5627c834e543f
-
 
                     - 11.2.64:
                         image_name = openSUSE-11.2-64
@@ -472,8 +864,8 @@ variants:
                             unattended_file = unattended/OpenSUSE-11.xml
                             #floppy = images/opensuse11-2-64/autoyast.vfd
                             cdrom_unattended = images/opensuse11-2-64/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/opensuse-11-2-64/linux
+                            initrd = images/opensuse-11-2-64/initrd
                             boot_path = boot/x86_64/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.2-DVD-x86_64.iso
@@ -486,8 +878,8 @@ variants:
                             unattended_file = unattended/OpenSUSE-11.xml
                             #floppy = images/opensuse-11-3-32/autoyast.vfd
                             cdrom_unattended = images/opensuse-11-3-32/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/opensuse-11-3-32/linux
+                            initrd = images/opensuse-11-3-32/initrd
                             boot_path = boot/i386/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.3-DVD-i586.iso
@@ -500,8 +892,8 @@ variants:
                             unattended_file = unattended/OpenSUSE-11.xml
                             #floppy = images/opensuse-11-3-64/autoyast.vfd
                             cdrom_unattended = images/opensuse-11-3-64/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/opensuse-11-3-64/linux
+                            initrd = images/opensuse-11-3-64/initrd
                             boot_path = boot/x86_64/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.3-DVD-x86_64.iso
@@ -514,8 +906,8 @@ variants:
                             unattended_file = unattended/OpenSUSE-11.xml
                             #floppy = images/opensuse-11-4-32/autoyast.vfd
                             cdrom_unattended = images/opensuse-11-4-32/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/opensuse-11-4-32/linux
+                            initrd = images/opensuse-11-4-32/initrd
                             boot_path = boot/x86_64/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.4-DVD-i586.iso
@@ -527,8 +919,8 @@ variants:
                             unattended_file = unattended/OpenSUSE-11.xml
                             #floppy = images/opensuse-11-4-64/autoyast.vfd
                             cdrom_unattended = images/opensuse-11-4-64/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/opensuse-11-4-64/linux
+                            initrd = images/opensuse-11-4-64/initrd
                             boot_path = boot/x86_64/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.4-DVD-x86_64.iso
@@ -538,69 +930,103 @@ variants:
             - SLES:
                 shell_prompt = "^root@.*[\#\$]\s*$|#"
                 unattended_install:
-                    extra_params += " 'autoyast=device://scd0/autoinst.xml'"
+                    # You have to use autoyast=floppy if you want to use floppies to
+                    # hold your autoyast file
+                    #extra_params += " autoyast=floppy console=ttyS0,115200 console=tty0"
+                    extra_params += " autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0"
+                    # --- uncomment the below line for other SLES 10 distros only ---
+                    #extra_params += " autoyast=device://hdb/autoinst.xml console=ttyS0,115200 console=tty0"
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
 
                 variants:
-                    - 11.0.32:
+                   - 10.4.64:
+                        image_name = sles10-64
+                        unattended_install:
+                            unattended_file = unattended/SLES-10.xml
+                            #floppy = images/sles-10-64/autoyast.vfd
+                            cdrom_unattended = images/sles-10-64/autoyast.iso
+                            kernel = images/sles-10-64/linux
+                            initrd = images/sles-10-64/initrd
+                            boot_path = boot/x86_64/loader
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/SLES-10-x86_64-DVD1.iso
+                            md5sum_cd1 = b07e59b7cba66b995f97eef42e28f5c3
+                            md5sum_1m_cd1 = ac4963cf50b683972491a3fd1da64cc1
+
+                   - 10.4.32:
+                        image_name = sles10-64
+                        unattended_install:
+                            unattended_file = unattended/SLES-10.xml
+                            #floppy = images/sles-10-32/autoyast.vfd
+                            cdrom_unattended = images/sles-10-32/autoyast.iso
+                            kernel = images/sles-10-32/linux
+                            initrd = images/sles-10-32/initrd
+                            boot_path = boot/i386/loader
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/SLES-10-i386-DVD1.iso
+                            md5sum_cd1 = 277912f7503df68322820c955c8adce8
+                            md5sum_1m_cd1 = 282453620102c7b9d7386fc623420b91
+
+                   - 11.0.32:
                         image_name = sles11-32
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
+                            #floppy = images/sles-11-0-32/autoyast.vfd
                             cdrom_unattended = images/sles-11-0-32/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/sles-11-0-32/linux
+                            initrd = images/sles-11-0-32/initrd
                             boot_path = boot/i386/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/SLES-11-DVD-i586-GM-DVD1.iso
                             md5sum_cd1 = 4958d4dde2575666355c8a1c5858bab0
                             md5sum_1m_cd1 = 1f19d4eff5bcead2a3e5b8b4212b6796
 
-
-                    - 11.0.64:
+                   - 11.0.64:
                         image_name = sles11-64
                         cdrom_cd1 = isos/linux/SLES-11-DVD-x86_64-GM-DVD1.iso
                         md5sum_cd1 = 50a2bd45cd12c3808c3ee48208e2586b
                         md5sum_1m_cd1 = 00000951cab7c32e332362fc424c1054
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
+                            #floppy = images/sles-11-0-64/autoyast.vfd
                             cdrom_unattended = images/sles-11-0-64/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/sles-11-0-64/linux
+                            initrd = images/sles-11-0-64/initrd
                             boot_path = boot/x86_64/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/SLES-11-DVD-x86_64-GM-DVD1.iso
                             md5sum_cd1 = 50a2bd45cd12c3808c3ee48208e2586b
                             md5sum_1m_cd1 = 00000951cab7c32e332362fc424c1054
 
-
-                    - 11.1.32:
+                   - 11.1.32:
                         image_name = sles11sp1-32
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
+                            #floppy = images/sles-11-1-32/autoyast.vfd
                             cdrom_unattended = images/sles-11-1-32/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/sles-11-1-32/linux
+                            initrd = images/sles-11-1-32/initrd
                             boot_path = boot/i386/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/SLES-11-SP1-DVD-i586-GM-DVD1.iso
                             md5sum_cd1 = 0dd6886858d93501c38854552b9b1b0d
                             md5sum_1m_cd1 = a626a3d50813410e3ac42794e05773bb
 
-                    - 11.1.64:
+                   - 11.1.64:
                         image_name = sles11sp1-64
                         unattended_install:
                             unattended_file = unattended/SLES-11.xml
+                            #floppy = images/sles-11-1-64/autoyast.vfd
                             cdrom_unattended = images/sles-11-1-64/autoyast.iso
-                            kernel = images/pxeboot/linux
-                            initrd = images/pxeboot/initrd
+                            kernel = images/sles-11-1-64/linux
+                            initrd = images/sles-11-1-64/initrd
                             boot_path = boot/x86_64/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/SLES-11-SP1-DVD-x86_64-GM-DVD1.iso
                             md5sum_cd1 = d2e10420f3689faa49a004b60fb396b7
                             md5sum_1m_cd1 = f7f67b5da46923a9f01da8a2b6909654
-
 
             - Ubuntu:
                 shell_prompt = "^root@.*[\#\$]\s*$"
@@ -610,14 +1036,13 @@ variants:
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
-                    extra_params += '--append "console=ttyS0,115200 console=tty0"'
-
+                    extra_params += " console=ttyS0,115200 console=tty0"
 
                 variants:
                     - 6.10-32:
                         only install
                         image_name += -6.10-32
-                        steps = steps/steps/Ubuntu-6.10-32.steps
+                        steps = steps/Ubuntu-6.10-32.steps
                         cdrom_cd1 = isos/linux/ubuntu-6.10-desktop-i386.iso
                         md5sum_cd1 = 17fb825641571ce5888a718329efd016
                         md5sum_1m_cd1 = 7531d0a84e7451d17c5d976f1c3f8509
@@ -626,26 +1051,26 @@ variants:
                         skip = yes
                         image_name += -8.04-32
                         install:
-                            steps = steps/steps/Ubuntu-8.04-32.steps
+                            steps = steps/Ubuntu-8.04-32.steps
                             cdrom_cd1 = isos/linux/ubuntu-8.04.1-desktop-i386.iso
                         setup:
-                            steps = steps/steps/Ubuntu-8.04-32-setupssh.steps
+                            steps = steps/Ubuntu-8.04-32-setupssh.steps
 
                     - 8.10-server-32:
                         image_name += -8.10-server-32
                         install:
-                            steps = steps/steps/Ubuntu-8.10-server-32.steps
+                            steps = steps/Ubuntu-8.10-server-32.steps
                             cdrom_cd1 = isos/linux/ubuntu-8.10-server-i386.iso
                             md5sum_cd1 = a2ec9975a91e1228c8292ed9799dc302
                             md5sum_1m_cd1 = ea493eb8ef7722ead693492fd9f8a13f
                         setup:
-                            steps = steps/steps/Ubuntu-8.10-server-32-gcc.steps
+                            steps = steps/Ubuntu-8.10-server-32-gcc.steps
 
                     - 11.04-server-64:
                         image_name += -11.04-server-64
                         unattended_install:
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.gz
+                            kernel = images/ubuntu-server-11-04-64/vmlinuz
+                            initrd = images/ubuntu-server-11-04-64/initrd.gz
                             boot_path = install
                         unattended_install.cdrom:
                             unattended_file = unattended/Ubuntu-11-04.preseed
@@ -653,454 +1078,34 @@ variants:
                             md5sum_cd1 = 355ca2417522cb4a77e0295bf45c5cd5
                             md5sum_1m_cd1 = 65b1514744bf99e88f6228e9b6f152a8
 
-            - RHEL:
-                no setup
-                shell_prompt = "^\[.*\][\#\$]\s*$"
-                nic_hotplug:
-                    modprobe_module = acpiphp
-                block_hotplug:
-                    modprobe_module = acpiphp
-                    no block_scsi
-                unattended_install:
-                    boot_path = images/pxeboot
-                    # You have to use ks=floppy if you want to use floppies to
-                    # hold your kickstart file
-                    #extra_params += " ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
-                    extra_params += " ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
-
-                variants:
-                    - 3.9.i386:
-                        no setup autotest linux_s3 guest_s4 shutdown multi_disk
-                        os_variant = rhel3
-                        image_name = rhel39-32
-                        mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
-                        install:
-                            steps=RHEL-3.9-i386.steps
-                            cdrom_cd1 = isos/linux/RHEL-3.9-i386-DVD.iso
-                            md5sum_cd1 = ddd11a1cb104119039b0fa05df6d52b8
-                            md5sum_1m_cd1 = 5f10c9417c7b8372b3456c1b5f3f9ed0
+                    - 11.10-server-64:
+                        image_name += -11.10-server-64
                         unattended_install:
-                            unattended_file = unattended/RHEL-3-series.ks
-                            cdrom_unattended = images/rhel39-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                            # 3.X anaconda does not support 'poweroff' on ks
-                            shutdown_cleanly = no
+                            kernel = images/ubuntu-server-11-10-64/vmlinuz
+                            initrd = images/ubuntu-server-11-10-64/initrd.gz
+                            boot_path = install
                         unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-3.9-i386-DVD.iso
-                            md5sum_cd1 = ddd11a1cb104119039b0fa05df6d52b8
-                            md5sum_1m_cd1 = 5f10c9417c7b8372b3456c1b5f3f9ed0
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
+                            unattended_file = unattended/Ubuntu-11-10.preseed
+                            cdrom_cd1 = isos/linux/ubuntu-11.10-server-amd64.iso
+                            md5sum_cd1 = f8a0112b7cb5dcd6d564dbe59f18c35f
+                            md5sum_1m_cd1 = 3f5d0a11f4d62f82db358b329819ad9c
 
-                    - 3.9.x86_64:
-                        no setup autotest linux_s3 guest_s4 shutdown multi_disk
-                        os_variant = rhel3
-                        image_name = rhel39-64
-                        mem_chk_cmd = dmidecode | awk -F: '/Maximum Capacity/ {print $2}'
-                        install:
-                            steps=RHEL-3.9-x86_64.steps
-                            cdrom_cd1 = isos/linux/RHEL-3.9-x86_64-DVD.iso
-                            md5sum_cd1 = bf4635e4a4bd3b43838e72bc8c329d55
-                            md5sum_1m_cd1 = 18ecd37b639109f1b2af05cfb57dfeaf
-                        unattended_install:
-                            unattended_file = unattended/RHEL-3-series.ks
-                            cdrom_unattended = images/rhel39-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                            # 3.X anaconda does not support 'poweroff' on ks
-                            shutdown_cleanly = no
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-3.9-x86_64-DVD.iso
-                            md5sum_cd1 = bf4635e4a4bd3b43838e72bc8c329d55
-                            md5sum_1m_cd1 = 18ecd37b639109f1b2af05cfb57dfeaf
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
+            - DSL-4.2.5:
+                no setup dbench bonnie linux_s3
+                image_name = dsl-4.2.5
+                install:
+                    steps = steps/DSL-4.2.5.steps
+                    cdrom_cd1 = isos/linux/dsl-4.2.5.iso
+                    md5sum_cd1 = 61694888aede3e01229865b8e6acd4a1
+                    md5sum_1m_cd1 = 527f2481bd25310f2e3a6e5345ff3d12
 
-
-                    - 4.7.i386:
-                        no setup autotest
-                        os_variant = rhel4
-                        image_name = rhel47-32
-                        install:
-                            steps = steps/RHEL-4.7-i386.steps
-                            cdrom_cd1 = isos/linux/RHEL-4.7-i386-DVD.iso
-                            md5sum_cd1 = ee5092653732a88ddbaf8eef2484c500
-                            md5sum_1m_cd1 = 127081cbed825d7232331a2083975528
-                        unattended_install:
-                            unattended_file = unattended/RHEL-4-series.ks
-                            cdrom_unattended = images/rhel47-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-4.7-i386-DVD.iso
-                            md5sum_cd1 = ee5092653732a88ddbaf8eef2484c500
-                            md5sum_1m_cd1 = 127081cbed825d7232331a2083975528
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                        fillup_disk:
-                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
-                        lvm.lvm_fill:
-                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
-
-                    - 4.7.x86_64:
-                        no setup autotest
-                        os_variant = rhel4
-                        image_name = rhel47-64
-                        install:
-                            steps = steps/RHEL-4.7-x86_64.steps
-                            cdrom_cd1 = isos/linux/RHEL-4.7-x86_64-DVD.iso
-                            md5sum_cd1 = ea9dae16dd86f7d94092d0e672333292
-                            md5sum_1m_cd1 = 58fa63eaee68e269f4cb1d2edf479792
-                        unattended_install:
-                            unattended_file = unattended/RHEL-4-series.ks
-                            cdrom_unattended = images/rhel47-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-4.7-x86_64-DVD.iso
-                            md5sum_cd1 = ea9dae16dd86f7d94092d0e672333292
-                            md5sum_1m_cd1 = 58fa63eaee68e269f4cb1d2edf479792
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                        fillup_disk:
-                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
-                        lvm.lvm_fill:
-                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
-
-                    - 4.8.i386:
-                        no setup autotest
-                        os_variant = rhel4
-                        image_name = rhel48-32
-                        unattended_install:
-                            unattended_file = unattended/RHEL-4-series.ks
-                            cdrom_unattended = images/rhel48-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-4.8-i386-DVD.iso
-                            md5sum_cd1 = b024f0af5079539d3ef51f71fed0b194
-                            md5sum_1m_cd1 = 969c197402b9058f28a278c1f807d15b
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                        nicdriver_unload:
-                            readlink_command = readlink -f
-                            sys_path = "/sys/class/net/%s/driver"
-                        fillup_disk:
-                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
-                        lvm.lvm_fill:
-                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
-
-
-                    - 4.8.x86_64:
-                        no setup autotest
-                        os_variant = rhel4
-                        image_name = rhel48-64
-                        unattended_install:
-                            unattended_file = unattended/RHEL-4-series.ks
-                            cdrom_unattended = images/rhel48-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-4.8-x86_64-DVD.iso
-                            md5sum_cd1 = 696bc877b0200cc942626673fcc3fc09
-                            md5sum_1m_cd1 = b11ac0ef7fd345ad712966972db63886
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                        nicdriver_unload:
-                            readlink_command = readlink -f
-                            sys_path = "/sys/class/net/%s/driver"
-                        fillup_disk:
-                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
-                        lvm.lvm_fill:
-                            fillup_cmd = "dd if=/dev/zero of=/%s/fillup.%d bs=%dM count=1"
-
-
-                    - 5.3.i386:
-                        no setup
-                        os_variant = rhel5
-                        image_name = rhel53-32
-                        install:
-                            steps = steps/RHEL-5.3-i386.steps
-                            cdrom_cd1 = isos/linux/RHEL-5.3-i386-DVD.iso
-                            md5sum_cd1 = 371c62851611fd32ead440df6f24a296
-                            md5sum_1m_cd1 = 242318dd44152210f6ff6cdda1bfbf51
-                        unattended_install:
-                            unattended_file = unattended/RHEL-5-series.ks
-                            cdrom_unattended = images/rhel53-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-5.3-i386-DVD.iso
-                            md5sum_cd1 = 371c62851611fd32ead440df6f24a296
-                            md5sum_1m_cd1 = 242318dd44152210f6ff6cdda1bfbf51
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
-                    - 5.3.x86_64:
-                        no setup
-                        os_variant = rhel5
-                        image_name = rhel53-64
-                        install:
-                            steps=RHEL-5.3-x86_64.steps
-                            cdrom_cd1 = isos/linux/RHEL-5.3-x86_64-DVD.iso
-                            md5sum_cd1 = c5ed6b284410f4d8212cafc78fd7a8c5
-                            md5sum_1m_cd1 = b999f437583098ea5bbd56fb1de1d011
-                        unattended_install:
-                            unattended_file = unattended/RHEL-5-series.ks
-                            cdrom_unattended = images/rhel53-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-5.3-x86_64-DVD.iso
-                            md5sum_cd1 = c5ed6b284410f4d8212cafc78fd7a8c5
-                            md5sum_1m_cd1 = b999f437583098ea5bbd56fb1de1d011
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
-                    - 5.4.i386:
-                        no setup
-                        os_variant = rhel5
-                        image_name = rhel54-32
-                        unattended_install:
-                            unattended_file = unattended/RHEL-5-series.ks
-                            cdrom_unattended = images/rhel54-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-5.4-i386-DVD.iso
-                            md5sum_cd1 = 7a12ec6599527e4f3d1790b51eadbfed
-                            md5sum_1m_cd1 = 0dbeb8f58d213752d8c029e8601abfbb
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
-                    - 5.4.x86_64:
-                        no setup
-                        os_variant = rhel5
-                        image_name = rhel54-64
-                        unattended_install:
-                            unattended_file = unattended/RHEL-5-series.ks
-                            cdrom_unattended = images/rhel54-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-5.4-x86_64-DVD.iso
-                            md5sum_cd1 = 04fe3c10202402d7b389528d2bad0210
-                            md5sum_1m_cd1 = 3e74112003e88a966754849dbb8f5c3f
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
-                    - 5.5.i386:
-                        no setup
-                        os_variant = rhel5
-                        image_name = rhel55-32
-                        unattended_install:
-                            unattended_file = unattended/RHEL-5-series.ks
-                            cdrom_unattended = images/rhel55-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-5.5-i386-DVD.iso
-                            md5sum_cd1 = 148858b157f275d9153797efddfc83c3
-                            md5sum_1m_cd1 = 2502cc7ddb9d0684fe08c4a83d247902
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
-                    - 5.5.x86_64:
-                        no setup
-                        os_variant = rhel5
-                        image_name = rhel55-64
-                        unattended_install:
-                            unattended_file = unattended/RHEL-5-series.ks
-                            cdrom_unattended = images/rhel55-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-5.5-x86_64-DVD.iso
-                            md5sum_cd1 = f3119f883257ef9041234feda2f1cad0
-                            md5sum_1m_cd1 = a744084a03f6a08627f71527fc107a1e
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-                    - 5.6.i386:
-                        no setup
-                        os_variant = rhel5
-                        image_name = rhel56-32
-                        unattended_install:
-                            unattended_file = unattended/RHEL-5-series.ks
-                            cdrom_unattended = images/rhel56-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-5.6-i386-DVD.iso
-                            md5sum_cd1 = c214653d91b81c9a7a7f7249753d0f5d
-                            md5sum_1m_cd1 = f299a881950bfec81fd5c74484e1b1d4
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
-                    - 5.6.x86_64:
-                        no setup
-                        os_variant = rhel5
-                        image_name = rhel56-64
-                        unattended_install:
-                            unattended_file = unattended/RHEL-5-series.ks
-                            cdrom_unattended = images/rhel56-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-5.6-x86_64-DVD.iso
-                            md5sum_cd1 = d77d3815afb381a50148ba55ad930679
-                            md5sum_1m_cd1 = 9dd97de110e391fcbed88b124a60f7a9
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
-                    - 5.7.i386:
-                        no setup
-                        image_name = rhel57-32
-                        unattended_install:
-                            unattended_file = unattended/RHEL-5-series.ks
-                            cdrom_unattended = images/rhel57-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-5.7-i386-DVD.iso
-                            md5sum_cd1 = d738dcaf8d65ebf03d6da32916ddde43
-                            md5sum_1m_cd1 = 9d9061f652ff435cc4c57e9e9ff09076
-
-
-                    - 5.7.x86_64:
-                        no setup
-                        image_name = rhel57-64
-                        unattended_install:
-                            unattended_file = unattended/RHEL-5-series.ks
-                            cdrom_unattended = images/rhel57-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-5.7-x86_64-DVD.iso
-                            md5sum_cd1 = 1a3c5959e34612e91f4a1840b997b287
-                            md5sum_1m_cd1 = c65d0a1b4d9a32da42aa5142c6e9a5b3
-
-
-                    - 6.0.i386:
-                        no setup
-                        os_variant = rhel6
-                        nic_hotplug:
-                            modprobe_module =
-                        block_hotplug:
-                            modprobe_module =
-                        image_name = rhel60-32
-                        unattended_install:
-                            unattended_file = unattended/RHEL-6-series.ks
-                            cdrom_unattended = images/rhel60-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-6.0-i386-DVD.iso
-                            md5sum_cd1 = 291d234c93442405972689b4b41c14bc
-                            md5sum_1m_cd1 = ee2cc3d3babe91a1d581a07099c4318b
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
-                    - 6.0.x86_64:
-                        no setup
-                        os_variant = rhel6
-                        nic_hotplug:
-                            modprobe_module =
-                        block_hotplug:
-                            modprobe_module =
-                        image_name = rhel60-64
-                        unattended_install:
-                            unattended_file = unattended/RHEL-6-series.ks
-                            cdrom_unattended = images/rhel60-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-6.0-x86_64-DVD.iso
-                            md5sum_cd1 = f7141396c6a19399d63e8c195354317d
-                            md5sum_1m_cd1 = b060eeef63e2c8700db54ae02056e80c
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
-                    - 6.1.i386:
-                        no setup
-                        os_variant = rhel6
-                        nic_hotplug:
-                            modprobe_module =
-                        block_hotplug:
-                            modprobe_module =
-                        image_name = rhel61-32
-                        unattended_install:
-                            unattended_file = unattended/RHEL-6-series.ks
-                            cdrom_unattended = images/rhel61-32/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-6.1-i386-DVD.iso
-                            md5sum_cd1 = f8c8a310e34d26339c99d462e3557324
-                            md5sum_1m_cd1 = 12f7692e6e20be0d42b9407d956f74c3
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
-                    - 6.1.x86_64:
-                        no setup
-                        os_variant = rhel6
-                        nic_hotplug:
-                            modprobe_module =
-                        block_hotplug:
-                            modprobe_module =
-                        image_name = rhel61-64
-                        unattended_install:
-                            unattended_file = unattended/RHEL-6-series.ks
-                            cdrom_unattended = images/rhel61-64/ks.iso
-                            kernel = images/pxeboot/vmlinuz
-                            initrd = images/pxeboot/initrd.img
-                        unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL-6.1-x86_64-DVD.iso
-                            md5sum_cd1 = a051dbf28ef444a019dc6660efe3e3a4
-                            md5sum_1m_cd1 = cb3b9d140404a6797b0f423dfe620ab8
-                        unattended_install.url:
-                            url = REPLACE_THIS_WITH_TREE_URL
-                            nfs_server = REPLACE_THIS_WITH_NFS_SERVER
-                            nfs_dir = REPLACE_THIS_WITH_NFS_DIRECTORY
-
-
+            - Mandriva-One-2007:
+                only install
+                image_name = mandriva-one-2007
+                steps = steps/Mandriva-One-2007-32.steps
+                cdrom_cd1 = isos/linux/mandriva-one-2007-i386.iso
+                md5sum_cd1 = 7e9e183dc11b9d39f480238e4e12bb05
+                md5sum_1m_cd1 = dc7865a75db665efc86d59bca7c1fe07
 
     # Windows section
     - @Windows:
@@ -1163,7 +1168,7 @@ variants:
             #host_load_command = "dd if=/dev/urandom of=/dev/null"
             host_load_instances = 8
             ntp:
-                time_command = "w32tm /stripchart /samples:1 /computer:ns1.nay.redhat.com"
+                time_command = "w32tm /stripchart /samples:1 /computer:pool.ntp.org"
                 time_filter_re = "\d+/\d+/\d+\s\d+:\d+:\d+ [AP]M"
                 time_format = "%m/%d/%Y %H:%M:%S"
             date:
@@ -1215,8 +1220,40 @@ variants:
                 pre_cmd = del diskpart.script && (echo select disk 1 >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
             max_disk:
                 pre_cmd = del diskpart.script && (for /L %i in (1 1 23) do echo select disk %i >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
+        usb_multi_disk:
+            block_list += " E:"
+            shell_port = 23
+            shell_client = telnet
+            post_cmd = del c:\cmd.exe
+            file_system = "ntfs fat32"
+            cmd_list = "copy_to_command copy_from_command"
+            list_volume_command = wmic volume get driveletter
+            re_str = "([A-Z]:)"
+            format_command = format /fs:%s %s /q /y
+            copy_to_command = copy C:\WINDOWS\system32\cmd.exe %s /y
+            copy_from_command = copy %s\cmd.exe c:\ /y
+            compare_command = fc /b c:\windows\system32\cmd.exe c:\cmd.exe
+            check_result_key_word = no difference
+            signal_repeat:
+                pre_cmd = del diskpart.script && (echo select disk 1 >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
+            max_disk:
+                disks_num = 23
+                pre_cmd = del diskpart.script && (for /L %i in (1 1 23) do echo select disk %i >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
+        floppy_test:
+            format_floppy_cmd = echo n|format A: /Q /V:test_floppy
+            source_file = C:\Windows\System32\cmd.exe
+            dest_file = A:\cmd.exe
+            clean_cmd = del
+            diff_file_cmd = fc
+            test_floppy_cmd = "chkdsk A:"
+            copy_cmd = copy
 
         variants:
+            - CustomGuestWindows:
+                image_name = custom_image
+                image_size = 20G
+                #image_name = /dev/mapper/vg_some_label
+                #image_type_raw = yes
             - Win2000:
                 no reboot whql
                 os_variant = win2k
@@ -1267,7 +1304,7 @@ variants:
                                 dd_data_whqlqual = Basic
                             device.net:
                                 image_name_supportvm = winXP-32-supportvm
-                        multi_disk:
+                        multi_disk, usb_multi_disk:
                             list_volume_command = fsutil fsinfo drives
 
 
@@ -1297,7 +1334,7 @@ variants:
                                 dd_data_whqlqual = Basic
                             device.net:
                                 image_name_supportvm = winXP-64-supportvm
-                        multi_disk:
+                        multi_disk, usb_multi_disk:
                             list_volume_command = fsutil fsinfo drives
 
 
@@ -1578,6 +1615,17 @@ variants:
                                 dd_data_whqlqual = Logo
                             device.net:
                                 image_name_supportvm = win7-32-supportvm
+                        variants:
+                            - @sp0:
+                            - sp1:
+                                image_name += -sp1
+                                unattended_install.cdrom, whql.support_vm_install:
+                                    cdrom_cd1 = isos/windows/en_windows_7_ultimate_n_with_sp1_x86_dvd_u_677597.iso
+                                    md5sum_cd1 = 8d9c55270d91a25663517dbef9968c80
+                                    md5sum_1m_cd1 = 65b2d563769a07982a4fb0c26eaed910
+                                    sha1sum_cd1 = bbf301280faa00b02f5475cdaa06558f569569e8
+                                    sha1sum_1m_cd1 = e0c1dc9d1cca9fd1cb601fab86fa7679a4d83275
+                                    floppy = images/win7-32-sp1/answer.vfd
 
                     - 64:
                         image_name += -64
@@ -1605,6 +1653,17 @@ variants:
                                 dd_data_whqlqual = Logo
                             device.net:
                                 image_name_supportvm = win7-64-supportvm
+                        variants:
+                            - @sp0:
+                            - sp1:
+                                image_name += -sp1
+                                unattended_install.cdrom, whql.support_vm_install:
+                                    cdrom_cd1 = isos/windows/en_windows_7_ultimate_with_sp1_x64_dvd_u_677332.iso
+                                    md5sum_cd1 = c9f7ecb768acb82daacf5030e14b271e
+                                    md5sum_1m_cd1 = 0b45ee07fc26d8cbc7d08daed9be1a22
+                                    sha1sum_cd1 = 36ae90defbad9d9539e649b193ae573b77a71c83
+                                    sha1sum_1m_cd1 = 3bdeb6786ac94bdd982a0bad8593de206b3d7321
+                                    floppy = images/win7-64-sp1/answer.vfd
 
 
     # Unix/BSD section

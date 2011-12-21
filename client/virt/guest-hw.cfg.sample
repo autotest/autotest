@@ -36,6 +36,8 @@ variants:
             # Device selection for the NDISTest server machine
             dp_regex_servermsgdev = VirtIO Ethernet Adapter$
             dp_regex_serversupportdev = VirtIO Ethernet Adapter #2$
+    -xennet:
+        # placeholder
 
 variants:
     - @up:
@@ -63,6 +65,8 @@ variants:
         drive_format=usb2
     - usb_cdrom:
         cd_format=usb2
+    - xenblk:
+        # placeholder
 
 variants:
     - @qcow2:
@@ -103,3 +107,4 @@ variants:
     - hugepages:
         setup_hugepages = yes
         extra_params += " -mem-path /mnt/kvm_hugepage"
+        domain_xml_snippet = "<memoryBacking><hugepages/></memoryBacking>"

@@ -682,7 +682,7 @@ class VM(virt_vm.BaseVM):
 
         extra_params = params.get("extra_params")
         if extra_params:
-            qemu_cmd += " %s" % extra_params
+            qemu_cmd += " --append '%s'" % extra_params
 
         return qemu_cmd
 

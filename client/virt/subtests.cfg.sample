@@ -1,6 +1,7 @@
 # Copy this file to subtests.cfg and edit it.
 #
 # Subtests
+
 variants:
     - install:
         type = steps
@@ -11,10 +12,6 @@ variants:
         kill_vm = yes
         kill_vm_timeout = 60
         kill_vm_timeout_on_error = 0
-        # Backup image settings
-        backup_image = no
-        # If you turn backup_image = yes, please keep the below 'no'
-        restore_image_on_check_error = no
 
     - setup: install
         type = steps
@@ -22,20 +19,12 @@ variants:
         stuck_detection_history = 2
         kill_vm_on_error = yes
         keep_screendump_history = yes
-        # Backup image settings
-        backup_image = no
-        # If you turn backup_image = yes, please keep the below 'no'
-        restore_image_on_check_error = no
 
     - image_copy:
         type = image_copy
         vms = ''
         parallel = no
         profilers =
-        # Backup image settings
-        backup_image = no
-        # If you turn backup_image = yes, please keep the below 'no'
-        restore_image_on_check_error = no
 
     - unattended_install:
         type = unattended_install
@@ -46,16 +35,13 @@ variants:
         shutdown_cleanly = yes
         shutdown_cleanly_timeout = 120
         force_create_image = yes
+        # TODO: is this needed for both kvm and libvirt?
         extra_params += " -boot d"
         guest_port_unattended_install = 12323
         kernel = vmlinuz
         initrd = initrd.img
         # Set migrate_background to yes to run migration in parallel
-        migrate_background = no
-        # Backup image settings
-        backup_image = no
-        # If you turn backup_image = yes, please keep the below 'no'
-        restore_image_on_check_error = no
+        # migrate_background = yes
 
         variants:
             # Install guest from cdrom
@@ -77,8 +63,17 @@ variants:
             - remote_ks:
                 only Linux
                 medium = url
-                extra_params = " --append ks=REPLACE_THIS_WITH_URL_OF_KS"
+                # TODO: does kvm need to prefix this with '--append'?
+                extra_params = " ks=REPLACE_THIS_WITH_URL_OF_KS"
                 url = REPLACE_THIS_WITH_TREE_URL
+            # Install guest using pxe/tftp  (virt-install --pxe)
+            - pxe:
+                only Linux
+                medium = pxe
+            # Install guest using kernel/initrd pair from directory
+            - kernel_initrd:
+                only Linux
+                medium = kernel_initrd
 
     - qemu_iotests:
         type = qemu_iotests
@@ -149,6 +144,9 @@ variants:
                 rebase_mode = unsafe
                 image_name_snapshot1 = sn1
                 image_name_snapshot2 = sn2
+            # Commit is the only subtest that does need an installed guest
+            - commit:  install setup image_copy unattended_install.cdrom
+                subcommand = commit
 
     - pxe:
         type = pxe
@@ -825,6 +823,7 @@ variants:
                 pci_model = rtl8139
                 match_string = "8139"
             - nic_virtio:
+                #TODO: Confirm this works with libvirt
                 pci_model = virtio-net-pci
                 match_string = "Virtio network device"
             - nic_e1000:
@@ -914,8 +913,8 @@ variants:
 
     - file_transfer: install setup image_copy unattended_install.cdrom
         type = file_transfer
-        filesize = 1000
-        transfer_timeout = 250
+        filesize = 4000
+        transfer_timeout = 1000
         variants:
             - remote:
                 transfer_type = remote
@@ -1196,6 +1195,7 @@ variants:
                 n_repeat = 10
             - max_disk:
                 only virtio_blk
+                # TODO: confirm this works with libvirt
                 stg_image_num = 23
                 stg_image_size = 1G
                 stg_image_boot = no
@@ -1381,3 +1381,12 @@ variants:
         shutdown_method = shell
         kill_vm = yes
         kill_vm_gracefully = no
+    # Do not define test variants below shutdown
+
+whql.support_vm_install, whql.client_install.support_vm:
+    image_name += -supportvm
+
+virtio_net, virtio_blk, e1000, balloon_check:
+    # Only excluding the OS that we *know* they won't have the drivers installed
+    # Some might require special setup though.
+    no Win2000, Fedora.8, Fedora.9, Fedora.10, RHEL.3, Unix, livecd
