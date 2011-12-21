@@ -56,7 +56,12 @@ def fork_start(tmp, l):
 def _check_for_subprocess_exception(temp_dir, pid):
     ename = temp_dir + "/debug/error-%d" % pid
     if os.path.exists(ename):
-        e = pickle.load(file(ename, 'r'))
+        try:
+            e = pickle.load(file(ename, 'r'))
+        except ImportError:
+            logging.error("Unknown exception to unpickle. Exception must be"
+                          " defined in error module.")
+            raise
         # rename the error-pid file so that they do not affect later child
         # processes that use recycled pids.
         i = 0

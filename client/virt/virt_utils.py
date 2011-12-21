@@ -11,26 +11,48 @@ from autotest_lib.client.bin import utils, os_dep
 from autotest_lib.client.common_lib import error, logging_config
 from autotest_lib.client.common_lib import logging_manager, git
 import rss_client, aexpect
+import platform
+
 try:
     import koji
     KOJI_INSTALLED = True
 except ImportError:
     KOJI_INSTALLED = False
 
-# From include/linux/sockios.h
-SIOCSIFHWADDR = 0x8924
-SIOCGIFHWADDR = 0x8927
-SIOCSIFFLAGS = 0x8914
-SIOCGIFINDEX = 0x8933
-SIOCBRADDIF = 0x89a2
-# From linux/include/linux/if_tun.h
-TUNSETIFF = 0x400454ca
-TUNGETIFF = 0x800454d2
-TUNGETFEATURES = 0x800454cf
-IFF_UP = 0x1
-IFF_TAP = 0x0002
-IFF_NO_PI = 0x1000
-IFF_VNET_HDR = 0x4000
+ARCH = platform.machine()
+if ARCH == "ppc64":
+       # From include/linux/sockios.h
+       SIOCSIFHWADDR  = 0x8924
+       SIOCGIFHWADDR  = 0x8927
+       SIOCSIFFLAGS   = 0x8914
+       SIOCGIFINDEX   = 0x8933
+       SIOCBRADDIF    = 0x89a2
+       # From linux/include/linux/if_tun.h
+       TUNSETIFF      = 0x800454ca
+       TUNGETIFF      = 0x400454d2
+       TUNGETFEATURES = 0x400454cf
+       IFF_TAP        = 0x2
+       IFF_NO_PI      = 0x1000
+       IFF_VNET_HDR   = 0x4000
+       # From linux/include/linux/if.h
+       IFF_UP = 0x1
+else:
+       # From include/linux/sockios.h
+       SIOCSIFHWADDR = 0x8924
+       SIOCGIFHWADDR = 0x8927
+       SIOCSIFFLAGS = 0x8914
+       SIOCGIFINDEX = 0x8933
+       SIOCBRADDIF = 0x89a2
+       # From linux/include/linux/if_tun.h
+       TUNSETIFF = 0x400454ca
+       TUNGETIFF = 0x800454d2
+       TUNGETFEATURES = 0x800454cf
+       IFF_TAP = 0x0002
+       IFF_NO_PI = 0x1000
+       IFF_VNET_HDR = 0x4000
+       # From linux/include/linux/if.h
+       IFF_UP = 0x1
+
 
 def _lock_file(filename):
     f = open(filename, "w")
