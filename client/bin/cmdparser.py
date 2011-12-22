@@ -133,8 +133,8 @@ class CommandParser(object):
                 args = getattr(self, cmd)(args)
             except TypeError:
                 args = getattr(self, cmd)()
-        except SystemExit as return_code:
-            sys.exit(return_code)
+        except SystemExit, return_code:
+            sys.exit(return_code.code)
         except Exception, error_detail:
             if DEBUG:
                 raise
