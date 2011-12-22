@@ -194,5 +194,122 @@ class Test_base_test_execute(TestTestCase):
         self.god.check_playback()
 
 
+class test_subtest(unittest.TestCase):
+    """
+    Test subtest class.
+    """
+    def setUp(self):
+        self.god = mock.mock_god(ut=self)
+        self.god.stub_function(test.logging, 'error')
+        self.god.stub_function(test.logging, 'info')
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+    def test_test_not_implemented_raise(self):
+        test.logging.info.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.info.expect_call("Subtest (test_not_implement):"
+                                            " --> FAIL")
+
+        class test_not_implement(test.Subtest):
+            pass
+
+        self.assertRaises(NotImplementedError, test_not_implement)
+
+    def test_clean_not_implemented_raise(self):
+        test.logging.info.expect_any_call()
+        test.logging.info.expect_any_call()
+
+        class test_test_not_cleanup_implement(test.Subtest):
+            def test(self):
+                pass
+
+        self.assertRaises(NotImplementedError, test_test_not_cleanup_implement)
+
+    def test_fail_in_nofatal_test(self):
+        test.logging.info.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.info.expect_call("Subtest (test_raise_in_nofatal"
+                                            "_test): --> FAIL")
+
+        class test_raise_in_nofatal_test(test.Subtest):
+            @test.subtest_nocleanup
+            def test(self):
+                raise Exception("No fatal test.")
+
+        test_raise_in_nofatal_test()
+
+    def test_fail_in_fatal_test(self):
+        test.logging.info.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.info.expect_call("Subtest (test_raise_in_fatal"
+                                            "_test): --> FAIL")
+
+        class test_raise_in_fatal_test(test.Subtest):
+            @test.subtest_nocleanup
+            @test.subtest_fatal
+            def test(self):
+                raise Exception("Fatal test.")
+
+        self.assertRaises(Exception, test_raise_in_fatal_test)
+
+    def test_pass_with_cleanup_test(self):
+        test.logging.info.expect_any_call()
+        test.logging.info.expect_call("Subtest (test_pass_test):"
+                                            " --> PASS")
+
+        class test_pass_test(test.Subtest):
+            @test.subtest_fatal
+            def test(self):
+                pass
+
+            def clean(self):
+                pass
+
+        test_pass_test()
+
+
+    def test_results(self):
+        test.logging.info.expect_any_call()
+        test.logging.info.expect_call("Subtest (test_pass_test):"
+                                            " --> PASS")
+        test.logging.info.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.error.expect_any_call()
+        test.logging.info.expect_call("Subtest (test_raise_in_nofatal"
+                                            "_test): --> FAIL")
+
+        #Reset test fail count.
+        test.Subtest.failed = 0
+
+        class test_pass_test(test.Subtest):
+            @test.subtest_fatal
+            def test(self):
+                pass
+
+            def clean(self):
+                pass
+
+        class test_raise_in_nofatal_test(test.Subtest):
+            @test.subtest_nocleanup
+            def test(self):
+                raise Exception("No fatal test.")
+
+        test_pass_test()
+        test_raise_in_nofatal_test()
+        self.assertEqual(test.Subtest.has_failed(), True,
+                         "Subtest class did not catch subtest failure.")
+        self.assertEqual(test.Subtest.failed, 1,
+                         "Subtest count failure is wrong")
+
+
 if __name__ == '__main__':
     unittest.main()
