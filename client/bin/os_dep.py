@@ -43,7 +43,9 @@ def library(lib):
     lddirs = set(lddirs)
     lddirs = list(lddirs)
 
-    for dir in ['/lib', '/usr/lib', '/lib64', '/usr/lib64'] + lddirs:
+    for dir in ['/lib', '/usr/lib', '/lib64', '/usr/lib64',
+                '/lib/i386-linux-gnu', '/lib/x86_64-linux-gnu',
+                '/usr/lib/i386-linux-gnu', '/usr/lib/x86_64-linux-gnu'] + lddirs:
         file = os.path.join(dir, lib)
         if os.path.exists(file):
             return file
@@ -57,7 +59,8 @@ def libraries(*libs):
 
 
 def header(hdr):
-    for dir in ['/usr/include', '/usr/local/include']:
+    for dir in ['/usr/include', '/usr/local/include',
+                '/usr/include/i386-linux-gnu', '/usr/include/x86_64-linux-gnu']:
         file = os.path.join(dir, hdr)
         if os.path.exists(file):
             return file
