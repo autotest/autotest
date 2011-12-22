@@ -252,6 +252,10 @@ class base_sysinfo(object):
             stat = os.stat("/var/log/messages")
             self._messages_size = stat.st_size
             self._messages_inode = stat.st_ino
+        elif os.path.exists("/var/log/syslog"):
+            stat = os.stat("/var/log/syslog")
+            self._messages_size = stat.st_size
+            self._messages_inode = stat.st_ino
 
 
     @log.log_and_ignore_errors("post-test sysinfo error:")
@@ -275,7 +279,7 @@ class base_sysinfo(object):
         for log in self.test_loggables:
             log.run(test_sysinfodir)
 
-        # grab any new data from /var/log/messages
+        # grab any new data from the system log
         self._log_messages(test_sysinfodir)
 
         # log some sysinfo data into the test keyval file
@@ -316,16 +320,24 @@ class base_sysinfo(object):
 
 
     def _log_messages(self, logdir):
-        """ Log all of the new data in /var/log/messages. """
+        """ Log all of the new data in the system log. """
         try:
-            # log all of the new data in /var/log/messages
+            # log all of the new data in the system log
+            logpaths =  ["/var/log/messages", "/var/log/syslog"]
+            for logpath in logpaths:
+                if os.path.exists(logpath):
+                    break
+            else:
+                raise ValueError("system log file not found")
+
             bytes_to_skip = 0
             if hasattr(self, "_messages_size"):
-                current_inode = os.stat("/var/log/messages").st_ino
+                current_inode = os.stat(logpath).st_ino
                 if current_inode == self._messages_inode:
                     bytes_to_skip = self._messages_size
-            in_messages = open("/var/log/messages")
-            out_file_name = os.path.join(logdir, "messages.gz")
+            in_messages = open(logpath)
+            out_file_basename = os.path.basename(logpath) + ".gz"
+            out_file_name = os.path.join(logdir, out_file_basename)
             out_messages = gzip.GzipFile(out_file_name, "w")
             try:
                 in_messages.seek(bytes_to_skip)
@@ -339,7 +351,7 @@ class base_sysinfo(object):
                 out_messages.close()
                 in_messages.close()
         except Exception, e:
-            logging.error("/var/log/messages collection failed with %s", e)
+            logging.error("system log collection failed with %s", e)
 
 
     @staticmethod
