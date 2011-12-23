@@ -69,9 +69,12 @@ def main(resfiles):
     for resfile in resfiles:
         try:
             text = open(resfile).read()
-        except IOError:
-            print "Bad result file: %s" % resfile
-            continue
+        except IOError, e:
+            if e.errno == 21: # Directory
+                continue
+            else:
+                print "Bad result file: %s, errno = %d" % (resfile, e.errno)
+                continue
         results = parse_results(text)
         result_lists.append((resfile, results))
         name_width = max([name_width] + [len(r[0]) for r in results])
@@ -80,7 +83,8 @@ def main(resfiles):
     print_result(("----", "------", "-------", "----"), name_width)
 
     for resfile, results in result_lists:
-        print "        (Result file: %s)" % resfile
+        if len(results):
+            print "        (Result file: %s)" % resfile
         for r in results:
             print_result(r, name_width)
 
