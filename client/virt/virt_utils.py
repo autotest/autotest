@@ -2837,20 +2837,20 @@ class GnuSourceBuildInvalidSource(Exception):
     pass
 
 
-class GnuSourceBuildFailed(Exception):
+class SourceBuildFailed(Exception):
     '''
     Exception raised when building with parallel jobs fails
 
-    This servers as feedback for code using GnuSourceBuildHelper
+    This servers as feedback for code using *BuildHelper
     '''
     pass
 
 
-class GnuSourceBuildParallelFailed(Exception):
+class SourceBuildParallelFailed(Exception):
     '''
     Exception raised when building with parallel jobs fails
 
-    This servers as feedback for code using GnuSourceBuildHelper
+    This servers as feedback for code using *BuildHelper
     '''
     pass
 
@@ -3019,8 +3019,8 @@ class GnuSourceBuildHelper(object):
 
         @param failure_feedback: return information on build failure by raising
                                  the appropriate exceptions
-        @raise: GnuSourceBuildParallelFailed if parallel build fails, or
-                GnuSourceBuildFailed if single job build fails
+        @raise: SourceBuildParallelFailed if parallel build fails, or
+                SourceBuildFailed if single job build fails
         '''
         try:
             self.make_parallel()
@@ -3030,9 +3030,9 @@ class GnuSourceBuildHelper(object):
                 self.make_non_parallel()
             except error.CmdError:
                 if failure_feedback:
-                    raise GnuSourceBuildFailed
+                    raise SourceBuildFailed
             if failure_feedback:
-                raise GnuSourceBuildParallelFailed
+                raise SourceBuildParallelFailed
 
 
     def make_install(self):
@@ -3053,6 +3053,109 @@ class GnuSourceBuildHelper(object):
         if self.install_debug_info:
             self.enable_debug_symbols()
         self.configure()
+        self.make()
+
+
+class LinuxKernelBuildHelper(object):
+    '''
+    Handles Building Linux Kernel.
+    '''
+    def __init__(self, params, prefix, source):
+        '''
+        @type params: dict
+        @param params: dictionary containing the test parameters
+        @type source: string
+        @param source: source directory or tarball
+        @type prefix: string
+        @param prefix: installation prefix
+        '''
+        self.params = params
+        self.prefix = prefix
+        self.source = source
+        self._parse_params()
+
+
+    def _parse_params(self):
+        '''
+        Parses the params items for entries related to guest kernel
+        '''
+        configure_opt_key = '%s_config' % self.prefix
+        self.config = self.params.get(configure_opt_key, '')
+
+        build_image_key = '%s_build_image' % self.prefix
+        self.build_image = self.params.get(build_image_key,
+                                           'arch/x86/boot/bzImage')
+
+        build_target_key = '%s_build_target' % self.prefix
+        self.build_target = self.params.get(build_target_key, 'bzImage')
+
+        kernel_path_key = '%s_kernel_path' % self.prefix
+        default_kernel_path = os.path.join('/tmp/kvm_autotest_root/images',
+                                           self.build_target)
+        self.kernel_path = self.params.get(kernel_path_key,
+                                           default_kernel_path)
+
+        logging.info('Parsing Linux kernel build parameters for %s',
+                     self.prefix)
+
+
+    def make_guest_kernel(self):
+        '''
+        Runs "make", using a single job
+        '''
+        os.chdir(self.source)
+        logging.info("Building guest kernel")
+        logging.debug("Kernel config is %s" % self.config)
+        utils.get_file(self.config, '.config')
+
+        # FIXME currently no support for builddir
+        # run old config
+        utils.system('yes "" | make oldconfig > /dev/null')
+        parallel_make_jobs = utils.count_cpus()
+        make_command = "make -j %s %s" % (parallel_make_jobs, self.build_target)
+        logging.info("Running parallel make on src dir")
+        utils.system(make_command)
+
+
+    def make_clean(self):
+        '''
+        Runs "make clean"
+        '''
+        os.chdir(self.source)
+        utils.system("make clean")
+
+
+    def make(self, failure_feedback=True):
+        '''
+        Runs a parallel make
+
+        @param failure_feedback: return information on build failure by raising
+                                 the appropriate exceptions
+        @raise: SourceBuildParallelFailed if parallel build fails, or
+        '''
+        try:
+            self.make_clean()
+            self.make_guest_kernel()
+        except error.CmdError:
+            if failure_feedback:
+                raise SourceBuildParallelFailed
+
+
+    def cp_linux_kernel(self):
+        '''
+        Copying Linux kernel to target path
+        '''
+        os.chdir(self.source)
+        utils.force_copy(self.build_image, self.kernel_path)
+
+
+    install = cp_linux_kernel
+
+
+    def execute(self):
+        '''
+        Runs appropriate steps for *building* this source code tree
+        '''
         self.make()
 
 
