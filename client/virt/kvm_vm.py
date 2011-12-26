@@ -471,7 +471,7 @@ class VM(virt_vm.BaseVM):
                 return ""
 
         def add_usb(help, usb_id, usb_type, multifunction=False,
-                    masterbus=None, firstport=None):
+                    masterbus=None, firstport=None, freq=None):
             if not has_option(help, "device"):
                 # Okay, for the archaic qemu which has not device parameter,
                 # just return a usb uhci controller.
@@ -486,14 +486,11 @@ class VM(virt_vm.BaseVM):
 
             cmd = " -device %s" % usb_type
 
-            if usb_id:
-                cmd += ",id=%s" % usb_id
-            if multifunction is True:
-                cmd += ",multifunction=on"
-            if masterbus:
-                cmd += ",mastbus=%s" % masterbus
-            if firstport:
-                cmd += ",firstport=%s" % firstport
+            cmd += _add_option("id", usb_id)
+            cmd += _add_option("multifunction", multifunction)
+            cmd += _add_option("masterbus", masterbus)
+            cmd += _add_option("firstport", firstport)
+            cmd += _add_option("freq", freq)
 
             # register this usb controller.
             self.usb_dev_dict[usb_id] = []
@@ -587,7 +584,8 @@ class VM(virt_vm.BaseVM):
             qemu_cmd += add_usb(help, usb_name, usb_params.get("usb_type"),
                                 usb_params.get("multifunction") == "on",
                                 usb_params.get("masterbus"),
-                                usb_params.get("firstport"))
+                                usb_params.get("firstport"),
+                                usb_params.get("freq"))
 
         for image_name in params.objects("images"):
             image_params = params.object_params(image_name)
