@@ -23,6 +23,15 @@ variants:
         # QEMU installation from a local source directory
         # local_src_qemu_path = /tmp/qemu-0.15.1
 
+        # Guest Kernel installation from a GIT repo
+        git_repo_guest_kernel_build_helper = linux_kernel
+        git_repo_guest_kernel_uri = git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+        git_repo_guest_kernel_branch = master
+        #git_repo_guest_kernel_patches = ['http://foo/bar.patch', 'http://foo/baz.patch']
+        git_repo_guest_kernel_config =  http://foo/bar/kernel-config
+        git_repo_guest_kernel_build_target = bzImage
+        git_repo_guest_kernel_build_image  = arch/x86/boot/bzImage
+
         # QEMU installation from a GIT repo
         git_repo_qemu_uri = git://git.qemu.org/qemu.git
         git_repo_qemu_configure_options = --target-list=x86_64-softmmu --enable-spice
