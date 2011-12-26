@@ -1288,6 +1288,13 @@ variants:
         create_image_stg = yes
         image_size_stg = 10M
         fdisk_string = "10 MB, 10485760 bytes"
+        variants:
+            - @default:
+            - check_options:
+                check_serial_option = yes
+                check_removable_option = yes
+                check_io_size_option = yes
+                check_freq_option = yes
 
     - usb_multi_disk: install setup image_copy unattended_install.cdrom
         type = multi_disk
