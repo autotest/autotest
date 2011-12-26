@@ -689,6 +689,25 @@ class VM(virt_vm.BaseVM):
         if extra_params:
             qemu_cmd += " %s" % extra_params
 
+        guest_kernel = params.get("guest_kernel")
+        if guest_kernel:
+            if not os.path.exists(guest_kernel):
+                raise virt_vm.VMImageMissingError(guest_kernel)
+            qemu_cmd += add_kernel(help, guest_kernel)
+
+        guest_kernel_initrd = params.get("guest_initrd")
+        if guest_kernel_initrd:
+            if not os.path.exists(guest_kernel_initrd):
+                raise virt_vm.VMImageMissingError(guest_kernel_initrd)
+            qemu_cmd += add_initrd(help, guest_kernel_initrd)
+
+        default_cmdline = "selinux=0 console=ttyS0,115200 console=tty0"
+        guest_kernel_cmdline = params.get("guest_kernel_cmdline",
+                                          default_cmdline)
+
+        if guest_kernel_cmdline and guest_kernel:
+            qemu_cmd += add_kernel_cmdline(help, guest_kernel_cmdline)
+
         return qemu_cmd
 
 
