@@ -589,6 +589,10 @@ class BaseLocalSourceInstaller(BaseInstaller):
             self.build_helper = virt_utils.GnuSourceBuildParamHelper(
                 self.params, self.param_key_prefix,
                 self.source_destination, self.install_prefix)
+        elif build_helper_name == 'linux_kernel':
+            self.build_helper = virt_utils.LinuxKernelBuildHelper(
+                self.params, self.param_key_prefix,
+                self.source_destination)
 
 
     def _install_phase_prepare(self):
@@ -603,22 +607,18 @@ class BaseLocalSourceInstaller(BaseInstaller):
 
     def _install_phase_build(self):
         if self.build_helper is not None:
-            #
-            # Currently there's only one build helper: GnuSourceBuildHelper.
-            # But, still, let's play safe and check if build helper is indeed
-            # an instance of GnuSourceBuildHelper so the code doesnot fail
-            # when other choices of build helpers are introduced
-            #
-            if isinstance(self.build_helper,
-                          virt_utils.GnuSourceBuildHelper):
+            if (isinstance(self.build_helper,
+                           virt_utils.GnuSourceBuildHelper) or
+                isinstance(self.build_helper,
+                           virt_utils.LinuxKernelBuildHelper)):
                 try:
                     self.build_helper.execute()
-                except virt_utils.GnuSourceBuildParallelFailed:
+                except virt_utils.SourceBuildParallelFailed:
                     # Flag minor the failure
                     self.minor_failure = True
                     self.minor_failure_reason = "Failed to do parallel build"
 
-                except virt_utils.GnuSourceBuildFailed:
+                except virt_utils.SourceBuildFailed:
                     # Failed the current test
                     raise error.Fail("Failed to build %s" % self.name)
             else:
