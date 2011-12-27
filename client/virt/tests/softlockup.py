@@ -32,7 +32,7 @@ def run_softlockup(test, params, env):
     vm = env.get_vm(params["main_vm"])
     login_timeout = int(params.get("login_timeout", 360))
     stress_dir = os.path.join(os.environ['AUTODIR'], "tests/stress")
-    monitor_dir = os.path.join(test.bindir, 'deps')
+    monitor_dir = os.path.join(test.virtdir, 'deps')
 
 
     def _kill_guest_programs(session, kill_stress_cmd, kill_monitor_cmd):
