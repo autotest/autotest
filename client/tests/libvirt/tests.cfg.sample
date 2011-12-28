@@ -26,9 +26,8 @@ variants:
     - @libvirt_xenpv_f16_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
-        url = auto
-        cdrom_cd1 = isos/linux/Fedora.16-x86_64-DVD.iso
-        hvm_or_pv = --paravirt
+        hvm_or_pv = pv
+        take_regular_screendumps = no
         only raw
         only xennet
         only xenblk
@@ -36,16 +35,15 @@ variants:
         only no_pci_assignable
         only smallpages
         only Fedora.16.64
-        only unattended_install.url, boot, reboot, shutdown
+        only unattended_install.cdrom, boot, reboot, shutdown
 
     # Runs virt-install, f16 64 as a 64 bit HVM (full virt) guest OS,
     # install, boot, shutdown
     - @libvirt_xenhvm_f16_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
-        url = auto
-        cdrom_cd1 = isos/linux/Fedora.16-x86_64-DVD.iso
-        hvm_or_pv = --hvm --accelerate
+        hvm_or_pv = hvm
+        take_regular_screendumps = no
         only raw
         only rtl8139
         only ide
@@ -53,7 +51,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Fedora.16.64
-        only unattended_install.url, boot, reboot, shutdown
+        only unattended_install.cdrom, boot, reboot, shutdown
 
     # Runs virt-install, RHEL 6.0 64 bit guest OS, install, boot, shutdown
     - @libvirt_rhel60_quick:
@@ -74,7 +72,7 @@ variants:
         use_virt_install = yes
         image_format = raw
         virt_install_debug = yes
-        hvm_or_pv = --hvm --accelerate
+        hvm_or_pv = hvm
         mem = 4196
         install_virtio = no
         only raw
