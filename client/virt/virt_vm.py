@@ -220,11 +220,34 @@ class VMStatusError(VMError):
 class VMRemoveError(VMError):
     pass
 
+class VMDeviceError(VMError):
+    pass
+
+class VMDeviceNotSupportedError(VMDeviceError):
+    def __init__(self, name, device):
+        VMDeviceError.__init__(self, name, device)
+        self.name = name
+        self.device = device
+
+    def __str__(self):
+        return ("Device '%s' is not supported for vm '%s' on this Host." %
+                (self.device, self.name))
+
 class VMUSBError(VMError):
     pass
 
 class VMUSBControllerError(VMUSBError):
     pass
+
+class VMUSBControllerMissingError(VMUSBControllerError):
+    def __init__(self, name, controller_type):
+        VMUSBControllerError.__init__(self, name, controller_type)
+        self.name = name
+        self.controller_type = controller_type
+
+    def __str__(self):
+        return ("Could not find '%s' USB Controller on vm '%s'. Please "
+                "check config files." % (self.controller_type, self.name))
 
 class VMUSBControllerPortFullError(VMUSBControllerError):
     def __init__(self, name):
