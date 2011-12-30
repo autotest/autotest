@@ -761,9 +761,9 @@ class VM(virt_vm.BaseVM):
             virt_install_cmd += (" --wait %s" %
                                  params.get("virt_install_wait_time"))
 
-        extra_params = params.get("extra_params")
-        if extra_params:
-            virt_install_cmd += " --extra-args '%s'" % extra_params
+        kernel_params = params.get("kernel_params")
+        if kernel_params:
+            virt_install_cmd += " --extra-args '%s'" % kernel_params
 
         virt_install_cmd += " --noautoconsole"
 
