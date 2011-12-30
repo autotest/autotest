@@ -9,10 +9,6 @@ qemu_io_binary = qemu-io
 vms = vm1
 # Default virtual machine to use, when not specified by test.
 main_vm = vm1
-# Virtualization type (kvm or libvirt)
-# TODO: Update code to use vm_library + vm_type + vm_subtype
-#           i.e.        (libvirt/none) + (qemu/kvm/xen) + (hvm/paravirt)
-vm_type = kvm
 
 # List of network device object names (whitespace seperated)
 nics = nic1
