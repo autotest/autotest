@@ -680,6 +680,10 @@ class VM(virt_vm.BaseVM):
             for pci_id in vm.pa_pci_ids:
                 qemu_cmd += add_pcidevice(help, pci_id)
 
+        kernel_params = params.get("kernel_params")
+        if kernel_params:
+            qemu_cmd += " --append '%s'" % kernel_params
+
         extra_params = params.get("extra_params")
         if extra_params:
             qemu_cmd += " %s" % extra_params

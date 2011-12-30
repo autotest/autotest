@@ -104,11 +104,10 @@ variants:
                 shell_prompt = "^\[.*\][\#\$]\s*$"
                 unattended_install:
                     boot_path = "images/pxeboot"
-                    # TODO: does kvm need to prefix this with '--append'?
-                    extra_params += " 'ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0'"
+                    kernel_params = "ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
                     # You have to use ks=floppy if you want to use floppies to
                     # hold your kickstart file
-                    #extra_params += " ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
+                    #kernel_params = "ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
                 variants:
                     - 8.32:
                         no setup
@@ -403,8 +402,7 @@ variants:
                     boot_path = images/pxeboot
                     # You have to use ks=floppy if you want to use floppies to
                     # hold your kickstart file
-                    # TODO: does kvm need to prefix this with '--append'?
-                    extra_params += " ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
+                    kernel_params = "ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
                 variants:
                     - 3.9.i386:
                         no setup autotest linux_s3 guest_s4 shutdown multi_disk
@@ -768,8 +766,8 @@ variants:
                 unattended_install:
                     # You have to use autoyast=floppy if you want to use floppies to
                     # hold your autoyast file
-                    #extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
-                    extra_params += " --append 'autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0'"
+                    #kernel_params = "autoyast=floppy console=ttyS0,115200 console=tty0"
+                    kernel_params = "autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0"
                     wait_no_ack = yes
 
                 variants:
@@ -932,10 +930,10 @@ variants:
                 unattended_install:
                     # You have to use autoyast=floppy if you want to use floppies to
                     # hold your autoyast file
-                    #extra_params += " --append 'autoyast=floppy console=ttyS0,115200 console=tty0'"
-                    extra_params += " --append 'autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0'"
+                    #kernel_params = "autoyast=floppy console=ttyS0,115200 console=tty0"
+                    kernel_params = "autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0"
                     # --- uncomment the below line for other SLES 10 distros only ---
-                    #extra_params += " --append 'autoyast=device://hdb/autoinst.xml console=ttyS0,115200 console=tty0'"
+                    #kernel_params = "autoyast=device://hdb/autoinst.xml console=ttyS0,115200 console=tty0"
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
@@ -1036,7 +1034,7 @@ variants:
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
-                    extra_params += " --append 'console=ttyS0,115200 console=tty0'"
+                    kernel_params = "console=ttyS0,115200 console=tty0"
 
                 variants:
                     - 6.10-32:
@@ -1720,4 +1718,3 @@ variants:
                 steps = steps/memtest86+.steps
                 cdrom_cd1 = isos/misc/memtest86+-2.01.iso
                 md5sum_cd1 = 9fae22f2666369968a76ef59e9a81ced
-
