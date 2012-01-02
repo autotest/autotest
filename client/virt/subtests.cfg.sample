@@ -1423,6 +1423,19 @@ variants:
         shutdown_method = shell
         kill_vm = yes
         kill_vm_gracefully = no
+
+    - 9p: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = 9p
+        9p_mount_dir = /root/mount1
+        9p_posix_acl = yes
+        9p_guest_cache = yes
+        9p_proto_version = 9p2000.L
+        test_timeout = 1800
+        variants:
+            - 9p_ci:
+                test_control_file = 9p-ci.control
+                test_timeout = 1800
     # Do not define test variants below shutdown
 
 whql.support_vm_install, whql.client_install.support_vm:
