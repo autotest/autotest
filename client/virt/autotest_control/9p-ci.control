@@ -1,0 +1,25 @@
+TIME="SHORT"
+AUTHOR = "Faizan Husain <faizanh@linux.vnet.ibm.com>"
+DOC = """
+9p CI is one of IBM's standard kernel tests.
+"""
+NAME = '9p-ci'
+TEST_CLASS = 'kernel'
+TEST_CATEGORY = 'Functional'
+TEST_TYPE = 'client'
+
+import os
+
+# FIXME: Using hardcoded mount dir here,that can be changed with user
+# defined mount path. This must the match '9p_mount_dir' parameter.
+mount_dir = "/root/mount1/"
+test_dir  = mount_dir + "/9p_test/"
+if not os.path.exists(test_dir):
+   os.mkdir(test_dir)
+
+job.run_test('dbench', dir = test_dir, seconds = 600)
+job.run_test('fsstress', testdir = test_dir, nprocs = 10, nops = 10)
+job.run_test('connectathon', testdir = test_dir, args = "-b -t", tag = "bt")
+job.run_test('connectathon', testdir = test_dir, args = "-g -f", tag = "gf")
+job.run_test('connectathon', testdir = test_dir, args = "-s -f", tag = "sf")
+job.run_test('connectathon', testdir = test_dir, args = "-l -f", tag = "lf")
