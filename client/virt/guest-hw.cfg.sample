@@ -108,3 +108,16 @@ variants:
         setup_hugepages = yes
         extra_params += " -mem-path /mnt/kvm_hugepage"
         domain_xml_snippet = "<memoryBacking><hugepages/></memoryBacking>"
+
+variants:
+    - @no_9p_export:
+    - 9p_export:
+         # 9p_fs_driver support include local, handle, proxy
+         9p_fs_driver = local
+         9p_export_dir = /mnt/
+         # 9p_security_model support include passthrough, mapped, none
+         9p_security_model = passthrough
+         9p_immediate_writeout = yes
+         9p_readonly = no
+         # Only used in case of proxy fs driver
+         #9p_socket_name = /tmp/virtfs-9p-socket
