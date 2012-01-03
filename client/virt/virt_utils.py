@@ -2841,7 +2841,7 @@ class SourceBuildFailed(Exception):
     '''
     Exception raised when building with parallel jobs fails
 
-    This servers as feedback for code using *BuildHelper
+    This serves as feedback for code using *BuildHelper
     '''
     pass
 
@@ -2850,7 +2850,7 @@ class SourceBuildParallelFailed(Exception):
     '''
     Exception raised when building with parallel jobs fails
 
-    This servers as feedback for code using *BuildHelper
+    This serves as feedback for code using *BuildHelper
     '''
     pass
 
