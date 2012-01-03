@@ -68,6 +68,7 @@ class CommandParser(object):
 
         @param args is not used here.
         """
+        print "Commands:"
         print "help\t\t\tOutput a list of supported commands"
         print "list\t\t\tOutput a list of available tests"
         print "run <test> [<args>]\tFind given <test> in path and run with args"
