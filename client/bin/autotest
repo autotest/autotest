@@ -23,7 +23,10 @@ os.environ['AUTODIRBIN'] = autodirbin
 os.environ['AUTODIRTEST'] = autodirtest
 os.environ['PYTHONPATH'] = autodirbin
 
-parser = OptionParser(usage='Usage: %prog [options] <control-file>')
+cmd_parser = cmdparser.CommandParser() # Allow access to instance in parser
+
+parser = OptionParser(usage='Usage: %prog [options] [command] <control-file>',
+                      epilog="[command]\t\tOne of: "+str(cmd_parser.cmdlist))
 
 parser.add_option("-a", "--args", dest='args',
                         help="additional args to pass to control file")
@@ -76,7 +79,6 @@ def usage():
 
 options, args = parser.parse_args()
 
-cmd_parser = cmdparser.CommandParser()
 args = cmd_parser.parse_args(args)
 
 # Check for a control file if not in prebuild mode.
