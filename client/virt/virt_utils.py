@@ -3308,7 +3308,7 @@ def if_set_macaddress(ifname, mac):
     ctrl_sock.close()
 
 
-def check_iso(url, destination, hash):
+def check_iso(url, destination, iso_sha1):
     """
     Verifies if ISO that can be find on url is on destination with right hash.
 
@@ -3317,22 +3317,19 @@ def check_iso(url, destination, hash):
 
     @param url: URL where the ISO file can be found.
     @param destination: Directory in local disk where we'd like the iso to be.
-    @param hash: SHA1 hash for the ISO image.
+    @param iso_sha1: SHA1 hash for the ISO image.
     """
     file_ok = False
-    if not destination:
+    if not os.path.isdir(destination):
         os.makedirs(destination)
     iso_path = os.path.join(destination, os.path.basename(url))
     if not os.path.isfile(iso_path):
         logging.warning("File %s not found", iso_path)
-        logging.warning("Expected SHA1 sum: %s", hash)
+        logging.warning("Expected SHA1 sum: %s", iso_sha1)
         answer = utils.ask("Would you like to download it from %s?" % url)
         if answer == 'y':
-            try:
-                utils.unmap_url_cache(destination, url, hash, method="sha1")
-                file_ok = True
-            except EnvironmentError, e:
-                logging.error(e)
+            logging.info("Downloading to %s", iso_path)
+            os.system("wget %s -O %s" % (url, iso_path))
         else:
             logging.warning("Missing file %s", iso_path)
             logging.warning("Please download it or put an exsiting copy on the "
@@ -3340,15 +3337,15 @@ def check_iso(url, destination, hash):
             return
     else:
         logging.info("Found %s", iso_path)
-        logging.info("Expected SHA1 sum: %s", hash)
+        logging.info("Expected SHA1 sum: %s", iso_sha1)
         answer = utils.ask("Would you like to check %s? It might take a while" %
                            iso_path)
         if answer == 'y':
-            try:
-                utils.unmap_url_cache(destination, url, hash, method="sha1")
-                file_ok = True
-            except EnvironmentError, e:
-                logging.error(e)
+            actual_iso_sha1 = utils.hash_file(iso_path, method='sha1')
+            if actual_iso_sha1 != iso_sha1:
+                logging.error("Actual SHA1 sum: %s", actual_iso_sha1)
+            else:
+                logging.info("SHA1 sum check OK")
         else:
             logging.info("File %s present, but chose to not verify it",
                          iso_path)
@@ -3415,9 +3412,9 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
     fedora_dir = "pub/fedora/linux/releases/16/Fedora/x86_64/iso"
     url = os.path.join("http://download.fedoraproject.org/", fedora_dir,
                        iso_name)
-    hash = "76dd59c37e9a0ec2af56263fa892ff571c92c89a"
+    iso_sha1 = "76dd59c37e9a0ec2af56263fa892ff571c92c89a"
     destination = os.path.join(base_dir, 'isos', 'linux')
-    check_iso(url, destination, hash)
+    check_iso(url, destination, iso_sha1)
 
     logging.info("")
     step += 1
@@ -3428,10 +3425,10 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
                  "provide you an ISO that this script can download")
 
     url = "http://people.redhat.com/mrodrigu/kvm/winutils.iso"
-    hash = "02930224756510e383c44c49bffb760e35d6f892"
+    iso_sha1 = "02930224756510e383c44c49bffb760e35d6f892"
     destination = os.path.join(base_dir, 'isos', 'windows')
     path = os.path.join(destination, iso_name)
-    check_iso(url, destination, hash)
+    check_iso(url, destination, iso_sha1)
 
     logging.info("")
     step += 1
