@@ -324,6 +324,7 @@ class VM(virt_vm.BaseVM):
             self.serial_console = None
             self.redirs = {}
             self.vnc_port = 5900
+            self.vnclisten = "0.0.0.0"
             self.pci_assignable = None
             self.netdev_id = []
             self.device_id = []
@@ -335,6 +336,7 @@ class VM(virt_vm.BaseVM):
         self.params = params
         self.root_dir = root_dir
         self.address_cache = address_cache
+        self.vnclisten = "0.0.0.0"
         # For now, libvirt does not have a monitor property.
         self.monitor = None
         self.driver_type = params.get("driver_type", self.LIBVIRT_DEFAULT)
@@ -527,6 +529,9 @@ class VM(virt_vm.BaseVM):
         def add_vnc(help, vnc_port):
             return " --vnc --vncport=%d" % (vnc_port)
 
+        def add_vnclisten(help, vnclisten):
+            return " --vnclisten=%s " % (vnclisten)
+
         def add_sdl(help):
             if has_option(help, "sdl"):
                 return " --sdl"
@@ -675,6 +680,9 @@ class VM(virt_vm.BaseVM):
             if params.get("vnc_port"):
                 vm.vnc_port = int(params.get("vnc_port"))
             virt_install_cmd += add_vnc(help, vm.vnc_port)
+            if params.get("vnclisten"):
+                vm.vnclisten = params.get("vnclisten")
+            virt_install_cmd += add_vnclisten(help, vm.vnclisten)
         elif params.get("display") == "sdl":
             virt_install_cmd += add_sdl(help)
         elif params.get("display") == "nographic":
