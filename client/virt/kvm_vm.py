@@ -685,9 +685,62 @@ class VM(virt_vm.BaseVM):
         if kernel_params:
             qemu_cmd += " --append '%s'" % kernel_params
 
+        p9_export_dir = params.get("9p_export_dir")
+        if p9_export_dir:
+            qemu_cmd += " -fsdev"
+            p9_fs_driver = params.get("9p_fs_driver")
+            if p9_fs_driver == "handle":
+                qemu_cmd += " handle,id=local1,path=" + p9_export_dir
+            elif p9_fs_driver == "proxy":
+                qemu_cmd += " proxy"
+            else:
+                p9_fs_driver = "local"
+                qemu_cmd += " local,id=local1,path=" + p9_export_dir
+
+            # security model is needed only for local fs driver
+            if p9_fs_driver == "local":
+                p9_security_model = params.get("9p_security_model")
+                if not p9_security_model:
+                    p9_security_model = "none"
+                qemu_cmd += ",security_model=" + p9_security_model
+            elif p9_fs_driver == "proxy":
+                p9_socket_name = params.get("9p_socket_name")
+                if not p9_socket_name:
+                    raise virt_vm.VMImageMissingError("Socket name not defined")
+                qemu_cmd += p9_socket_name
+
+            p9_immediate_writeout = params.get("9p_immediate_writeout")
+            if p9_immediate_writeout == "yes":
+                qemu_cmd += ",writeout=immediate"
+
+            p9_readonly = params.get("9p_readonly")
+            if p9_readonly == "yes":
+                qemu_cmd += ",readonly"
+
+            qemu_cmd += " -device virtio-9p-pci,fsdev=local1,mount_tag=autotest_tag"
+
         extra_params = params.get("extra_params")
         if extra_params:
             qemu_cmd += " %s" % extra_params
+
+        guest_kernel = params.get("guest_kernel")
+        if guest_kernel:
+            if not os.path.exists(guest_kernel):
+                raise virt_vm.VMImageMissingError(guest_kernel)
+            qemu_cmd += add_kernel(help, guest_kernel)
+
+        guest_kernel_initrd = params.get("guest_initrd")
+        if guest_kernel_initrd:
+            if not os.path.exists(guest_kernel_initrd):
+                raise virt_vm.VMImageMissingError(guest_kernel_initrd)
+            qemu_cmd += add_initrd(help, guest_kernel_initrd)
+
+        default_cmdline = "selinux=0 console=ttyS0,115200 console=tty0"
+        guest_kernel_cmdline = params.get("guest_kernel_cmdline",
+                                          default_cmdline)
+
+        if guest_kernel_cmdline and guest_kernel:
+            qemu_cmd += add_kernel_cmdline(help, guest_kernel_cmdline)
 
         return qemu_cmd
 
