@@ -1204,11 +1204,27 @@ class VM(virt_vm.BaseVM):
         @param netid: id of netdev or device
         @return: id of the peer device otherwise None
         """
-        network_info = self.monitor.info("network")
-        try:
-            return re.findall("%s:.*peer=(.*)" % netid, network_info)[0]
-        except IndexError:
-            return None
+        o = self.monitor.info("network")
+        network_info = o
+        if isinstance(o, dict):
+            network_info = o.get["return"]
+
+        netdev_peer_re = self.params.get("netdev_peer_re")
+        if not netdev_peer_re:
+            default_netdev_peer_re = "\s{2,}(.*?): .*?\\\s(.*?):"
+            logging.warning("Missing config netdev_peer_re for VM %s, "
+                            "using default %s", self.name,
+                            default_netdev_peer_re)
+            netdev_peer_re = default_netdev_peer_re
+
+        pairs = re.findall(netdev_peer_re, network_info, re.S)
+        for nic, tap in pairs:
+            if nic == netid:
+                return tap
+            if tap == netid:
+                return nic
+
+        return None
 
 
     def get_ifname(self, nic_index=0):
