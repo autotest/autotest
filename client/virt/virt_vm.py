@@ -32,6 +32,16 @@ class VMStartError(VMError):
         return msg
 
 
+class VMConfigMissingError(VMError):
+    def __init__(self, name, config):
+        VMError.__init(self, name, config)
+        self.name = name
+        self.config = config
+
+    def __str__(self):
+        return "Missing config '%s' for VM %s" % (self.config, self.name)
+
+
 class VMHashMismatchError(VMError):
     def __init__(self, actual, expected):
         VMError.__init__(self, actual, expected)
