@@ -74,6 +74,8 @@ variants:
         only ide
         # qemu-kvm will start only with -smp 2 (2 processors)
         only smp2
+        # Disable 9p export by default
+        only no_9p_export
         # No PCI assignable devices
         only no_pci_assignable
         # No large memory pages
@@ -95,6 +97,7 @@ variants:
         only ide
         # qemu using kvm doesn't support smp yet
         only up
+        only no_9p_export
         only no_pci_assignable
         only smallpages
         only Fedora.16.64
@@ -112,10 +115,28 @@ variants:
         only rtl8139
         only ide
         only smp2
+        only no_9p_export
         only no_pci_assignable
         only smallpages
         only Fedora.16.64
         only unattended_install.cdrom, boot, shutdown
+
+    # Runs qemu-kvm, f16 64 bit guest OS, install, starts qemu-kvm
+    # with 9P support and runs 9P CI tests
+    - @qemu_kvm_9p_export:
+        qemu_binary = /usr/bin/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        9p_immediate_writeout = no
+        only raw
+        only virtio_net
+        only virtio_blk
+        only smp2
+        only no_pci_assignable
+        only smallpages
+        only 9p_export
+        only Fedora.16.64
+        only unattended_install.cdrom, boot, 9p.9p_ci, shutdown
 
     # Runs your own guest image (qcow2, can be adjusted), all migration tests
     # (on a core2 duo laptop with HD and 4GB RAM, F15 host took 3 hours to run)
@@ -130,6 +151,7 @@ variants:
         only rtl8139
         only ide
         only smp2
+        only no_9p_export
         only no_pci_assignable
         only smallpages
         only CustomGuestLinux
