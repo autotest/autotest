@@ -466,7 +466,13 @@ class VM(virt_vm.BaseVM):
             return " --name '%s'" % name
 
         def add_hvm_or_pv(help, hvm_or_pv):
-            return " %s" % hvm_or_pv
+            if hvm_or_pv == "hvm":
+                return " --hvm --accelerate"
+            elif hvm_or_pv == "pv":
+                return " --paravirt"
+            else:
+                logging.warning("Unknown virt type hvm_or_pv, using default.")
+                return ""
 
         def add_mem(help, mem):
             return " --ram=%s" % mem
@@ -646,21 +652,24 @@ class VM(virt_vm.BaseVM):
         # libvirt expects --location <path>/images/pxeboot/<vmlinuz|initrd>
         location = None
         if params.get("medium") == 'url':
-            if params.get("url") == 'auto':
-                location = params.get('auto_content_url')
-            else:
-                location = params.get('url')
+            location = params.get('url')
 
         elif params.get("medium") == 'kernel_initrd':
             # directory location of kernel/initrd pair (directory layout must
             # be in format libvirt will recognize)
             location = params.get("image_dir")
+
         elif params.get("medium") == 'nfs':
             location = "nfs:%s:%s" % (params.get("nfs_server"),
                                       params.get("nfs_dir"))
+
         elif params.get("medium") == 'cdrom':
             if params.get("use_libvirt_cdrom_switch") == 'yes':
                 virt_install_cmd += add_cdrom(help, params.get("cdrom_cd1"))
+            elif ((self.driver_type == self.LIBVIRT_XEN) and
+                  (params.get('hvm_or_pv') == 'hvm')):
+                virt_install_cmd += add_cdrom(help,
+                                              params.get("cdrom_unattended"))
             else:
                 # Fake images/pxeboot using relative symlinks
                 # Assumes kernel and initrd were copied to same dir
@@ -860,6 +869,10 @@ class VM(virt_vm.BaseVM):
         for cdrom in params.objects("cdroms"):
             cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
+            if ((self.driver_type == self.LIBVIRT_XEN) and
+                (params.get('hvm_or_pv') == 'pv') and
+                (os.path.basename(iso) == 'ks.iso')):
+                continue
             if iso:
                 iso = virt_utils.get_path(root_dir, iso)
                 if not os.path.exists(iso):
