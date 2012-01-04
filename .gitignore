@@ -13,10 +13,11 @@
 *.pyc
 client/control
 client/results/
-client/tests/kvm/images
 client/tests/kvm/env
-client/tmp
 client/tests/kvm/*.cfg
+client/tests/libvirt/env
+client/tests/libvirt/*.cfg
+client/tmp
 server/tmp
 tko/parsers/test/site_scenarios
 ExternalSource
