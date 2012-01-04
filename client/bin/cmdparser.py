@@ -16,9 +16,8 @@ class CommandParser(object):
     """
     A client-side command wrapper for the autotest client.
     """
-    def __init__(self):
-        self.cmdlist = ['help', 'list', 'run']
 
+    COMMAND_LIST = ['help', 'list', 'run']
 
     @classmethod
     def _print_control_list(cls, pipe, path):
@@ -120,7 +119,7 @@ class CommandParser(object):
 
         @param args: Command line args.
         """
-        if len(args) and args[0] in self.cmdlist:
+        if len(args) and args[0] in self.COMMAND_LIST:
             cmd = args.pop(0)
         else:
             # Do things the traditional way
