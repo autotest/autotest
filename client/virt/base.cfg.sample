@@ -30,6 +30,14 @@ usb_type = ich9-usb-uhci1
 # Max ports on a controller.
 usb_max_port = 2
 
+# USB device object names (whitespace seperated)
+usb_devices = tablet1
+# USB device type, run following command to see device list on your host.
+# `qemu-kvm -device \? 2>&1 | grep "bus USB"`
+usb_type_tablet1 = usb-tablet
+# USB Controller type which device uses.
+usb_controller_tablet1 = uhci
+
 
 
 ##### Low-level parameters for platform, networking, block, and usb devices.
