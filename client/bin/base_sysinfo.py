@@ -1,8 +1,13 @@
 import os, shutil, re, glob, subprocess, logging, gzip
 
-from autotest_lib.client.common_lib import log
+from autotest_lib.client.common_lib import log, global_config
 from autotest_lib.client.bin import utils, package
 
+GLOBAL_CONFIG = global_config.global_config
+
+_LOG_INSTALLED_PACKAGES = GLOBAL_CONFIG.get_config_value('CLIENT',
+                                                       'log_installed_packages',
+                                                       type=bool, default=False)
 
 _DEFAULT_COMMANDS_TO_LOG_PER_TEST = []
 _DEFAULT_COMMANDS_TO_LOG_PER_BOOT = [
@@ -238,16 +243,18 @@ class base_sysinfo(object):
         for log in (self.test_loggables | self.boot_loggables):
             log.run(logdir)
 
-        # also log any installed packages
-        installed_path = os.path.join(logdir, "installed_packages")
-        installed_packages = "\n".join(package.list_all()) + "\n"
-        utils.open_write_close(installed_path, installed_packages)
+        if _LOG_INSTALLED_PACKAGES:
+            # also log any installed packages
+            installed_path = os.path.join(logdir, "installed_packages")
+            installed_packages = "\n".join(package.list_all()) + "\n"
+            utils.open_write_close(installed_path, installed_packages)
 
 
     @log.log_and_ignore_errors("pre-test sysinfo error:")
     def log_before_each_test(self, test):
         """ Logging hook called before a test starts. """
-        self._installed_packages = package.list_all()
+        if _LOG_INSTALLED_PACKAGES:
+            self._installed_packages = package.list_all()
         if os.path.exists("/var/log/messages"):
             stat = os.stat("/var/log/messages")
             self._messages_size = stat.st_size
@@ -286,15 +293,16 @@ class base_sysinfo(object):
         keyval = self.log_test_keyvals(test_sysinfodir)
         test.write_test_keyval(keyval)
 
-        # log any changes to installed packages
-        old_packages = set(self._installed_packages)
-        new_packages = set(package.list_all())
-        added_path = os.path.join(test_sysinfodir, "added_packages")
-        added_packages = "\n".join(new_packages - old_packages) + "\n"
-        utils.open_write_close(added_path, added_packages)
-        removed_path = os.path.join(test_sysinfodir, "removed_packages")
-        removed_packages = "\n".join(old_packages - new_packages) + "\n"
-        utils.open_write_close(removed_path, removed_packages)
+        if _LOG_INSTALLED_PACKAGES:
+            # log any changes to installed packages
+            old_packages = set(self._installed_packages)
+            new_packages = set(package.list_all())
+            added_path = os.path.join(test_sysinfodir, "added_packages")
+            added_packages = "\n".join(new_packages - old_packages) + "\n"
+            utils.open_write_close(added_path, added_packages)
+            removed_path = os.path.join(test_sysinfodir, "removed_packages")
+            removed_packages = "\n".join(old_packages - new_packages) + "\n"
+            utils.open_write_close(removed_path, removed_packages)
 
 
     @log.log_and_ignore_errors("pre-test siteration sysinfo error:")
