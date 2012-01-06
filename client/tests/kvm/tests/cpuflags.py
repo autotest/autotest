@@ -249,7 +249,8 @@ def run_cpuflags(test, params, env):
         for f in flags:
             try:
                 for tc in virt_utils.kvm_map_flags_to_test[f]:
-                    session.cmd("%s/cpuflags-test --%s" % (path, tc))
+                    session.cmd("%s/cpuflags-test --%s" %
+                                (os.path.join(path,"test_cpu_flags"), tc))
                 pass_Flags.append(f)
             except aexpect.ShellCmdError:
                 not_working.append(f)
@@ -569,10 +570,8 @@ def run_cpuflags(test, params, env):
 
                 time.sleep(5)
 
-                try:
-                    stress_session.cmd('killall cpuflags-test')
-                except aexpect.ShellCmdError:
-                    pass
+                #If cpuflags-test hang up during migration test raise exception
+                stress_session.cmd('killall cpuflags-test')
 
 
         for cpu_model in cpu_models:
