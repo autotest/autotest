@@ -127,7 +127,6 @@ variants:
         qemu_binary = /usr/bin/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
         qemu_io_binary = /usr/bin/qemu-io
-        9p_immediate_writeout = no
         only raw
         only virtio_net
         only virtio_blk
