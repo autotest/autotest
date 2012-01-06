@@ -63,6 +63,12 @@ void stress(inst in) {
 			pclmul();
 		if (in.rdrand)
 			rdrand();
+		if (in.fma4)
+			fma4();
+		if (in.xop)
+			xop();
+		if (in.sse4a)
+			sse4a();
 	}
 
 	int r = rand()%size;
