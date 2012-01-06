@@ -1318,6 +1318,9 @@ kvm_map_flags_to_test = {
             Flag('pclmuldq')                   :set(['pclmul']),
             Flag('pclmulqdq')                  :set(['pclmul']),
             Flag('rdrand')                     :set(['rdrand']),
+            Flag('sse4a')                      :set(['sse4a']),
+            Flag('fma4')                       :set(['fma4']),
+            Flag('xop')                        :set(['xop']),
             }
 
 
