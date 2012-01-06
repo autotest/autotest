@@ -8,7 +8,7 @@
 #include "tests.h"
 
 #ifdef __PCLMUL__
-void pclmul(){
+int pclmul(){
 	__ma128i v1;
 	__ma128i v2;
 	for (int i = 1;i >= 0; i--){
@@ -17,10 +17,14 @@ void pclmul(){
 	}
 	__ma128i v3;
 	v3.i = _mm_clmulepi64_si128(v1.i, v2.i, 0);
-	printf("[%d %d %d]\n",v1.ui64[0],v2.ui64[0],v3.ui64[0]);
+	if (v3.ui64[0] != 5)
+		printf("Correct: %d result: %d\n", 5, v3.ui64[0]);
+		return -1;
+	return 0;
 }
 #else
-void pclmul(){
+int pclmul(){
 	printf("PCMUL is not supported.");
+	return 0;
 }
 #endif

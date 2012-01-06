@@ -7,8 +7,10 @@
 
 #include "tests.h"
 
+#define result (5931894172722287318L)
+
 #ifdef __AES__
-void aes(){
+int aes(){
 	__ma128i v1;
 	__ma128i v2;
 	for (int i = 1;i >= 0; i--){
@@ -17,10 +19,15 @@ void aes(){
 	}
 	__ma128i v3;
 	v3.i = _mm_aesdeclast_si128(v1.i, v2.i);
-	printf("[%d %d %d]\n",v1.ui64[0],v2.ui64[0],v3.ui64[0]);
+	if (v3.ui64[0] != result){
+		printf("Correct: %ld result: %ld\n", result, v3.ui64[0]);
+		return -1;
+	}
+	return 0;
 }
 #else
-void aes(){
+int aes(){
 	printf("AES is not supported.");
+	return 0;
 }
 #endif

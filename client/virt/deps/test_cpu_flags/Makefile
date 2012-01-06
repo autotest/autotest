@@ -3,57 +3,42 @@ MKDIR = mkdir -p
 OPTFLAGS=-O3
 
 CFLAGS= -m64 ${OPTFLAGS} -std=c99 -pipe \
-	-ftree-vectorize -ftree-vectorizer-verbose=0 \
+	-ftree-vectorize \
 	-ffast-math \
 	-fopenmp \
 
-CFLAGSAVX= -m64 ${OPTFLAGS} -std=c99 -pipe \
-	-ftree-vectorize -ftree-vectorizer-verbose=0 \
-	-ffast-math \
-	-mavx \
-	-fopenmp \
+CFLAGSAVX= ${CFLAGS} \
+		-mavx \
 
-CFLAGSSSE4= -m64 ${OPTFLAGS} -std=c99 -pipe \
-	-ftree-vectorize -ftree-vectorizer-verbose=0 \
-	-ffast-math \
+CFLAGSFMA4= ${CFLAGS} \
+	-mfma4 \
+
+CFLAGSSSE4A= ${CFLAGS} \
+	-msse4a \
+
+CFLAGSSSE4= ${CFLAGS} \
 	-msse4 -msse4.1 -msse4.2 \
-	-fopenmp \
 
-CFLAGSSSSE3= -m64 ${OPTFLAGS} -std=c99 -pipe \
-	-ftree-vectorize -ftree-vectorizer-verbose=0 \
-	-ffast-math \
+CFLAGSSSSE3= ${CFLAGS} \
 	-mssse3 \
-	-fopenmp \
 
-CFLAGSSSE3= -m64 ${OPTFLAGS} -std=c99 -pipe \
-	-ftree-vectorize -ftree-vectorizer-verbose=0 \
-	-ffast-math \
+CFLAGSSSE3= ${CFLAGS} \
 	-msse3 \
-	-fopenmp \
 
-CFLAGSAES= -m64 ${OPTFLAGS} -std=c99 -pipe \
-	-ftree-vectorize -ftree-vectorizer-verbose=0 \
-	-ffast-math \
+CFLAGSAES= ${CFLAGS} \
 	-maes \
-	-fopenmp \
 
-CFLAGSPCLMUL= -m64 ${OPTFLAGS} -std=c99 -pipe \
-	-ftree-vectorize -ftree-vectorizer-verbose=0 \
-	-ffast-math \
+CFLAGSPCLMUL= ${CFLAGS} \
 	-mpclmul \
-	-fopenmp \
 
-CFLAGSRDRAND= -m64 ${OPTFLAGS} -std=c99 -pipe \
-	-ftree-vectorize -ftree-vectorizer-verbose=0 \
-	-ffast-math \
+CFLAGSRDRAND= ${CFLAGS} \
 	-mrdrnd \
-	-fopenmp \
 
-CFLAGSSTRESS= -m64 ${OPTFLAGS} -std=c99 -pipe \
-	-ftree-vectorize -ftree-vectorizer-verbose=0 \
-	-ffast-math \
+CFLAGSXOP= ${CFLAGS} \
+	-mxop \
+
+CFLAGSSTRESS= ${CFLAGS} \
 	$(EXTRA_FLAGS) \
-	-fopenmp \
 
 CXX=g++
 CC=gcc
@@ -66,39 +51,51 @@ default:cpuflags-test
 
 all:cpuflags-test
 
-cpuflags-test: avx.o sse4.o ssse3.o sse3.o aes.o pclmul.o rdrand.o stress.o
+cpuflags-test: avx.o fma4.o xop.o sse4a.o sse4.o ssse3.o sse3.o aes.o pclmul.o rdrand.o stress.o
 	$(CC) $(CFLAGS) $(LIBS) cpuflags-test.c -o cpuflags-test \
 		aes.o \
 		pclmul.o \
 		rdrand.o \
 		avx.o \
+		fma4.o \
+		xop.o \
+		sse4a.o \
 		sse4.o \
 		ssse3.o \
 		sse3.o \
 		stress.o \
 
-aes.o: aes.c
+aes.o: aes.c tests.h
 	$(CC) $(CFLAGSAES) $(LIBS) -c aes.c
 
-pclmul.o: pclmul.c
+pclmul.o: pclmul.c tests.h
 	$(CC) $(CFLAGSPCLMUL) $(LIBS) -c pclmul.c
 
-rdrand.o: rdrand.c
+rdrand.o: rdrand.c tests.h
 	$(CC) $(CFLAGSRDRAND) $(LIBS) -c rdrand.c
 
-avx.o: avx.c
+fma4.o: fma4.c tests.h
+	$(CC) $(CFLAGSFMA4) $(LIBS) -c fma4.c
+
+xop.o: xop.c tests.h
+	$(CC) $(CFLAGSXOP) $(LIBS) -c xop.c
+
+avx.o: avx.c tests.h
 	$(CC) $(CFLAGSAVX) $(LIBS) -c avx.c
 
-sse4.o: sse4.c
+sse4a.o: sse4a.c tests.h
+	$(CC) $(CFLAGSSSE4A) $(LIBS) -c sse4a.c
+
+sse4.o: sse4.c tests.h
 	$(CC) $(CFLAGSSSE4) $(LIBS) -c sse4.c
 
-ssse3.o: ssse3.c
+ssse3.o: ssse3.c tests.h
 	$(CC) $(CFLAGSSSSE3) $(LIBS) -c ssse3.c
 
-sse3.o: sse3.c
+sse3.o: sse3.c tests.h
 	$(CC) $(CFLAGSSSE3) $(LIBS) -c sse3.c
 
-stress.o: stress.c
+stress.o: stress.c tests.h
 	$(CC) $(CFLAGSSTRESS) $(LIBS) -c stress.c
 
 ARCHIVE= cpuflags-test
