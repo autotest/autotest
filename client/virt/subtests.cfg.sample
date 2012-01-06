@@ -1406,9 +1406,16 @@ variants:
         vms = ""
         #Try to start guest with all flags which are supported by host.
         all_host_supported_flags = "no"
-        cpu_models = "core2duo:avx"
+        cpu_models = "core2duo"
         guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
+        variants:
+            - interface:
+                test_type = "test_qemu_interface"
+            - boot_guest:
+                test_type = "test_boot_guest"
+            - stress_guest:
+                test_type = "test_stress_guest"
 
     - cpu_hotplug_test:
         type = cpu_hotplug

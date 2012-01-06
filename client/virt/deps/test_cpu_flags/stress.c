@@ -30,7 +30,6 @@ void AddTwo(float *aa, float *bb, int num_threads) {
 		for (int i = 0; i < 2048; i++){
 			sum += a[2*i] & a[2*i+1];
 		}
-		printf("%d\n",sum);
 		free(a);
 	}
 }
@@ -69,11 +68,8 @@ void stress(inst in) {
 			xop();
 		if (in.sse4a)
 			sse4a();
+		printf("Stress round.\n");
 	}
-
-	int r = rand()%size;
-	printf("rand a[%d]=%f\n",r ,a[r]);
-
 	free(a);
 	free(b);
 }

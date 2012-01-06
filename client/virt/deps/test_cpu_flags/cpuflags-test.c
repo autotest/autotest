@@ -25,11 +25,9 @@ inst parse_Inst(char * optarg){
 	char * pch;
 
 	pch = strtok (optarg,",");
-	printf("%s\n",pch);
 	i.num_threads = atoi(pch);
 	while (pch != NULL)
 	{
-		printf ("%s\n",pch);
 		if (strcmp(pch,"sse3") == 0){
 			i.sse3 = 1;
 		}
