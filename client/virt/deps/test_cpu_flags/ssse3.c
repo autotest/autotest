@@ -8,17 +8,23 @@
 #include "tests.h"
 
 #ifdef __SSSE3__
-void ssse3(){
+int ssse3(){
 	__ma128i v1;
 	for (int i = 16;i >= 0; i--){
-		v1.ui8[i] = -i;
+		v1.i8[i] = -i;
 	}
 	__ma128i vo;
 	vo.i = _mm_abs_epi8(v1.i);
-	printf("[%d]\n", vo.ui8[4]);
+	if (abs(v1.i8[4]) == vo.i8[4]){
+		return 0;
+	}else{
+		printf("Correct: %d result: %d\n", abs(v1.i8[4]), vo.i8[4]);
+		return -1;
+	}
 }
 #else
-void ssse3(){
+int ssse3(){
 	printf("SSSE3 is not supported.");
+	return 0;
 }
 #endif

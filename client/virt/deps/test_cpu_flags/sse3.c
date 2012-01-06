@@ -9,7 +9,7 @@
 #include "tests.h"
 
 #ifdef __SSE3__
-void sse3(){
+int sse3(){
 	__ma128f v1;
 	__ma128f v2;
 	for (int i = 4;i >= 0; i--){
@@ -18,11 +18,17 @@ void sse3(){
 	}
 	__ma128f vo;
 	vo.f = _mm_addsub_ps(v1.f,v2.f);
-	printf("[%f]\n", vo.f32[3]);
+	if (abs(vo.f32[3] - (v1.f32[3]+v2.f32[3])) < FLT_EPSILON){
+		return 0;
+	}else{
+		printf("Correct: %f result: %f\n",v1.f32[3]+v2.f32[3], vo.f32[3]);
+		return -1;
+	}
 }
 #else
-void sse3(){
+int sse3(){
 	printf("SSE3 is not supported.");
+	return 0;
 }
 #endif
 
