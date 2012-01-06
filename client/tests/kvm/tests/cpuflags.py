@@ -249,7 +249,8 @@ def run_cpuflags(test, params, env):
         for f in flags:
             try:
                 for tc in virt_utils.kvm_map_flags_to_test[f]:
-                    session.cmd("%s/cpuflags-test --%s" % (path, tc))
+                    session.cmd("%s/cpuflags-test --%s" %
+                                (os.path.join(path,"test_cpu_flags"), tc))
                 pass_Flags.append(f)
             except aexpect.ShellCmdError:
                 not_working.append(f)
@@ -348,15 +349,17 @@ def run_cpuflags(test, params, env):
         test_qemu_dump()
         test_qemu_cpuid()
 
+    class test_temp(Subtest):
+        def clean(self):
+            logging.info("cleanup")
+            if (hasattr(self, "vm")):
+                self.vm.destroy(gracefully=False)
 
-    def test_qemu_guest():
+    def test_boot_guest():
         """
         1) boot with cpu_model
         2) migrate with flags
         3) <qemu-kvm-cmd> -cpu model_name,+Flag
-        4) fail boot unsupported flags
-        5) check guest flags under load cpu, system (dd)
-        6) online/offline CPU
         """
         cpu_models = params.get("cpu_models","").split()
         if not cpu_models:
@@ -364,10 +367,10 @@ def run_cpuflags(test, params, env):
         logging.debug("CPU models found: %s", str(cpu_models))
 
         # 1) boot with cpu_model
-        class test_boot_cpu_model(Subtest):
+        class test_boot_cpu_model(test_temp):
             def test(self, cpu_model):
                 logging.debug("Run tests with cpu model %s", cpu_model)
-                flags = HgFlags(cpu_model, extra_flags)
+                flags = HgFlags(cpu_model)
                 (self.vm, session) = start_guest_with_cpuflags(cpu_model)
                 not_enable_flags = (check_cpuflags(cpu_model, session) -
                                     flags.hw_flags)
@@ -375,13 +378,9 @@ def run_cpuflags(test, params, env):
                     raise error.TestFail("Flags defined on host but not found "
                                          "on guest: %s" % (not_enable_flags))
 
-            def clean(self):
-                logging.info("cleanup")
-                self.vm.destroy(gracefully=False)
-
 
         # 2) success boot with supported flags
-        class test_boot_cpu_model_and_additional_flags(test_boot_cpu_model):
+        class test_boot_cpu_model_and_additional_flags(test_temp):
             def test(self, cpu_model, extra_flags):
                 flags = HgFlags(cpu_model, extra_flags)
 
@@ -409,7 +408,7 @@ def run_cpuflags(test, params, env):
                 not_enable_flags = (check_cpuflags(cpuf_model, session) -
                                     flags.hw_flags)
                 if not_enable_flags != set([]):
-                    logging.error("Model unsupported flags: %s",
+                    logging.info("Model unsupported flags: %s",
                                   str(flags.cpumodel_unsupport_flags))
                     logging.error("Flags defined on host but not on found "
                                   "on guest: %s", str(not_enable_flags))
@@ -461,10 +460,31 @@ def run_cpuflags(test, params, env):
                     if fwarn_flags:
                         raise error.TestFail("Qemu did not warn the use of "
                                              "flags %s" % str(fwarn_flags))
+        for cpu_model in cpu_models:
+            try:
+                (cpu_model, extra_flags) = cpu_model.split(":")
+                extra_flags = set(map(virt_utils.Flag, extra_flags.split(",")))
+            except ValueError:
+                cpu_model = cpu_model
+                extra_flags = set([])
+            test_fail_boot_with_host_unsupported_flags(cpu_model, extra_flags)
+            test_boot_cpu_model(cpu_model)
+            test_boot_cpu_model_and_additional_flags(cpu_model, extra_flags)
 
+
+    def test_stress_guest():
+        """
+        4) fail boot unsupported flags
+        5) check guest flags under load cpu, system (dd)
+        6) online/offline CPU
+        """
+        cpu_models = params.get("cpu_models","").split()
+        if not cpu_models:
+            cpu_models = get_cpu_models()
+        logging.debug("CPU models found: %s", str(cpu_models))
 
         # 4) check guest flags under load cpu, stress and system (dd)
-        class test_boot_guest_and_try_flags_under_load(test_boot_cpu_model):
+        class test_boot_guest_and_try_flags_under_load(test_temp):
             def test(self, cpu_model, extra_flags):
                 logging.info("Check guest working cpuflags under load "
                              "cpu and stress and system (dd)")
@@ -490,9 +510,13 @@ def run_cpuflags(test, params, env):
                     raise error.TestFail("Stress test ended before"
                                          " end of test.")
 
+            def clean(self):
+                    logging.info("cleanup")
+                    self.vm.destroy(gracefully=False)
+
 
         # 5) Online/offline CPU
-        class test_online_offline_guest_CPUs(test_boot_cpu_model):
+        class test_online_offline_guest_CPUs(test_temp):
             def test(self, cpu_model, extra_flags):
                 logging.debug("Run tests with cpu model %s.", (cpu_model))
                 flags = HgFlags(cpu_model, extra_flags)
@@ -530,7 +554,7 @@ def run_cpuflags(test, params, env):
 
 
         # 6) migration test
-        class test_migration_with_additional_flags(test_boot_cpu_model):
+        class test_migration_with_additional_flags(test_temp):
             def test(self, cpu_model, extra_flags):
                 flags = HgFlags(cpu_model, extra_flags)
 
@@ -561,7 +585,8 @@ def run_cpuflags(test, params, env):
                 cmd = ("nohup %s/cpuflags-test --stress  %s%s &" %
                        (os.path.join(install_path, "test_cpu_flags"), smp,
                        virt_utils.kvm_flags_to_stresstests(flags[0])))
-                stress_session.sendline()
+                stress_session.sendline(cmd)
+
                 time.sleep(5)
 
                 self.vm.monitor.migrate_set_speed(mig_speed)
@@ -569,10 +594,12 @@ def run_cpuflags(test, params, env):
 
                 time.sleep(5)
 
+                #If cpuflags-test hang up during migration test raise exception
                 try:
                     stress_session.cmd('killall cpuflags-test')
                 except aexpect.ShellCmdError:
-                    pass
+                    raise error.TestFail("Cpuflags-test should work after"
+                                         " migration.")
 
 
         for cpu_model in cpu_models:
@@ -582,19 +609,13 @@ def run_cpuflags(test, params, env):
             except ValueError:
                 cpu_model = cpu_model
                 extra_flags = set([])
-            test_fail_boot_with_host_unsupported_flags(cpu_model, extra_flags)
-            test_boot_cpu_model(cpu_model)
-            test_boot_cpu_model_and_additional_flags(cpu_model, extra_flags)
             test_boot_guest_and_try_flags_under_load(cpu_model, extra_flags)
             test_online_offline_guest_CPUs(cpu_model, extra_flags)
             test_migration_with_additional_flags(cpu_model, extra_flags)
 
 
     try:
-        Subtest.log_append("<qemu-kvm> interface tests.")
-        test_qemu_interface()
-        Subtest.log_append("<qemu-kvm> guests tests.")
-        test_qemu_guest()
+        locals()[params.get("test_type")]()
     finally:
         logging.info("RESULTS:")
         for line in Subtest.get_text_result().splitlines():
