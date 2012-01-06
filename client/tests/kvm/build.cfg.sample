@@ -31,6 +31,9 @@ variants:
         git_repo_guest_kernel_config =  http://foo/bar/kernel-config
         git_repo_guest_kernel_build_target = bzImage
         git_repo_guest_kernel_build_image  = arch/x86/boot/bzImage
+        # Should be same as the kernel variable defined in guest-os.cfg. Which is
+        # used to boot the guest.
+        git_repo_guest_kernel_kernel_path = /tmp/kvm_autotest_root/images/bzImage
 
         # QEMU installation from a GIT repo
         git_repo_qemu_uri = git://git.qemu.org/qemu.git

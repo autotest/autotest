@@ -117,7 +117,10 @@ variants:
          9p_export_dir = /mnt/
          # 9p_security_model support include passthrough, mapped, none
          9p_security_model = passthrough
-         9p_immediate_writeout = yes
+         9p_immediate_writeout = no
          9p_readonly = no
          # Only used in case of proxy fs driver
          #9p_socket_name = /tmp/virtfs-9p-socket
+         #9p_qemu_user = guest
+         #9p_qemu_group = guest
+         #9p_proxy_binary = virtfs-proxy-helper
