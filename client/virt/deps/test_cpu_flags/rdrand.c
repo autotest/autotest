@@ -8,7 +8,7 @@
 #include "tests.h"
 
 #ifdef __RDRND__
-void rdrand()
+int rdrand()
 {
 	int val, num=1;
 	while (num--) {
@@ -19,9 +19,11 @@ void rdrand()
 		__asm volatile("movl %%eax,%0" : "=m"(val));
 		printf("Random is %d\n",val);
 	}
+	return 0;
 }
 #else
-void rdrand(){
+int rdrand(){
 	printf("RDRAND is not supported.");
+	return 0;
 }
 #endif
