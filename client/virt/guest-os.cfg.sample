@@ -760,6 +760,42 @@ variants:
                             md5sum_cd1 = a051dbf28ef444a019dc6660efe3e3a4
                             md5sum_1m_cd1 = cb3b9d140404a6797b0f423dfe620ab8
 
+                    - 6.2.i386:
+                        no setup
+                        nic_hotplug:
+                            modprobe_module =
+                        block_hotplug:
+                            modprobe_module =
+                        image_name = rhel62-32
+                        unattended_install:
+                            unattended_file = unattended/RHEL-6-series.ks
+                            #floppy = images/rhel62-32/ks.vfd
+                            cdrom_unattended = images/rhel62-32/ks.iso
+                            kernel = images/rhel62-32/vmlinuz
+                            initrd = images/rhel62-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-6.2-i386-DVD.iso
+                            md5sum_cd1 = 2c6bde4c9d381940d8ee9726cf8f4114
+                            md5sum_1m_cd1 = b6d81b360a5672d80c27430f39153e2c
+
+                    - 6.2.x86_64:
+                        no setup
+                        nic_hotplug:
+                            modprobe_module =
+                        block_hotplug:
+                            modprobe_module =
+                        image_name = rhel62-64
+                        unattended_install:
+                            unattended_file = unattended/RHEL-6-series.ks
+                            #floppy = images/rhel62-64/ks.vfd
+                            cdrom_unattended = images/rhel62-64/ks.iso
+                            kernel = images/rhel62-64/vmlinuz
+                            initrd = images/rhel62-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-6.2-x86_64-DVD.iso
+                            md5sum_cd1 = bd86044a64a45b897fc2e196ed89e4e5
+                            md5sum_1m_cd1 = aaa42e5d45329414b82afbba8a60b065
+
             - OpenSUSE:
                 no setup
                 shell_prompt = ".*:.*\s#"
