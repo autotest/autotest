@@ -823,3 +823,14 @@ def run_virt_sub_test(test, params, env, sub_type=None):
     # Run the test function
     run_func = getattr(test_module, "run_%s" % sub_type)
     run_func(test, params, env)
+
+def pin_vm_threads(vm, node):
+    """
+    Pin VM threads to single cpu of a numa node
+    @param vm: VM object
+    @param node: NumaNode object
+    """
+    for i in vm.vhost_threads:
+        logging.info("pin vhost thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
+    for i in vm.vcpu_threads:
+        logging.info("pin vcpu thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
