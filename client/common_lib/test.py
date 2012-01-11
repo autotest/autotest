@@ -513,37 +513,38 @@ class Subtest(object):
                'output' : None,
               }
         try:
-            logging.info("Starting test %s" % self.__class__.__name__)
-            ret = self.test(*args, **kargs)
-            res['result'] = 'PASS'
-            res['output'] = ret
             try:
-                logging.info(Subtest.result_to_string(res))
-            except:
-                self._num_decored = 0
+                logging.info("Starting test %s" % self.__class__.__name__)
+                ret = self.test(*args, **kargs)
+                res['result'] = 'PASS'
+                res['output'] = ret
+                try:
+                    logging.info(Subtest.result_to_string(res))
+                except:
+                    self._num_decored = 0
+                    raise
+                Subtest.result.append(res)
+                Subtest.passed += 1
+            except NotImplementedError:
                 raise
-            Subtest.result.append(res)
-            Subtest.passed += 1
-        except NotImplementedError:
-            raise
-        except Exception:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            for _ in range(self._num_decored):
-                exc_traceback = exc_traceback.tb_next
-            logging.error("In function (" + self.__class__.__name__ + "):")
-            logging.error("Call from:\n" +
-                          traceback.format_stack()[-2][:-1])
-            logging.error("Exception from:\n" +
-                          "".join(traceback.format_exception(
-                                                  exc_type, exc_value,
-                                                  exc_traceback.tb_next)))
-            # Clean up environment after subTest crash
-            res['result'] = 'FAIL'
-            logging.info(self.result_to_string(res))
-            Subtest.result.append(res)
-            Subtest.failed += 1
-            if self._fatal:
-                raise
+            except Exception:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                for _ in range(self._num_decored):
+                    exc_traceback = exc_traceback.tb_next
+                logging.error("In function (" + self.__class__.__name__ + "):")
+                logging.error("Call from:\n" +
+                              traceback.format_stack()[-2][:-1])
+                logging.error("Exception from:\n" +
+                              "".join(traceback.format_exception(
+                                                      exc_type, exc_value,
+                                                      exc_traceback.tb_next)))
+                # Clean up environment after subTest crash
+                res['result'] = 'FAIL'
+                logging.info(self.result_to_string(res))
+                Subtest.result.append(res)
+                Subtest.failed += 1
+                if self._fatal:
+                    raise
         finally:
             if self._cleanup:
                 self.clean()
