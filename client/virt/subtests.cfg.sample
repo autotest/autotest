@@ -1466,12 +1466,6 @@ variants:
         wait_time_for_reset = 120
         kill_vm_on_error = yes
 
-    - shutdown: install setup image_copy unattended_install.cdrom
-        type = shutdown
-        shutdown_method = shell
-        kill_vm = yes
-        kill_vm_gracefully = no
-
     - 9p: install setup image_copy unattended_install.cdrom
         only Linux
         type = 9p
@@ -1484,6 +1478,13 @@ variants:
             - 9p_ci:
                 test_control_file = 9p-ci.control
                 test_timeout = 1800
+
+    - shutdown: install setup image_copy unattended_install.cdrom
+        type = shutdown
+        shutdown_method = shell
+        kill_vm = yes
+        kill_vm_gracefully = no
+
     # Do not define test variants below shutdown
 
 whql.support_vm_install, whql.client_install.support_vm:
