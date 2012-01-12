@@ -56,9 +56,10 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
         '''
         qemu_path = os.path.join(self.test_bindir, self.QEMU_BIN)
         qemu_img_path = os.path.join(self.test_bindir, self.QEMU_IMG_BIN)
+        qemu_io_path = os.path.join(self.test_bindir, self.QEMU_IO_BIN)
 
         # clean up previous links, if they exist
-        for path in (qemu_path, qemu_img_path):
+        for path in (qemu_path, qemu_img_path, qemu_io_path):
             if os.path.lexists(path):
                 os.unlink(path)
 
