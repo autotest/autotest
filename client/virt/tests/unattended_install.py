@@ -4,7 +4,8 @@ import xml.dom.minidom
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
 from autotest_lib.client.virt import virt_vm, virt_utils, virt_http_server
-from autotest_lib.client.virt import libvirt_vm
+from autotest_lib.client.virt import libvirt_vm, kvm_monitor
+
 
 # Whether to print all shell commands called
 DEBUG = False
@@ -928,7 +929,9 @@ def run_unattended_install(test, params, env):
     while (time.time() - start_time) < install_timeout:
         try:
             vm.verify_alive()
-        except virt_vm.VMDeadError, e:
+        # Due to a race condition, sometimes we might get a MonitorError
+        # before the VM gracefully shuts down, so let's capture MonitorErrors.
+        except (virt_vm.VMDeadError, kvm_monitor.MonitorError), e:
             if params.get("wait_no_ack", "no") == "yes":
                 break
             else:
@@ -977,5 +980,9 @@ def run_unattended_install(test, params, env):
         shutdown_cleanly_timeout = int(params.get("shutdown_cleanly_timeout",
                                                   120))
         logging.info("Wait for guest to shutdown cleanly")
-        if virt_utils.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
-            logging.info("Guest managed to shutdown cleanly")
+        try:
+            if virt_utils.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
+                logging.info("Guest managed to shutdown cleanly")
+        except kvm_monitor.MonitorError, e:
+            logging.warning("Guest apparently shut down, but got a "
+                            "monitor error: %s", e)
