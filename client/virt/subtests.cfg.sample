@@ -1725,6 +1725,39 @@ variants:
                 test_control_file = 9p-ci.control
                 test_timeout = 1800
 
+    - kernel_install:
+        only Linux
+        type = kernel_install
+        variants:
+            ## Example for other installation methods
+            #- koji:
+            #    install_type = koji
+            #    kernel_dep_pkgs = "linux-firmware module-init-tools"
+            #    kernel_koji_tag = f16-updates
+            #- rpm:
+            #    install_type = rpm
+                 # These 2 parameters can be url.
+            #    kernel_rpm_path = "kernel-3.1.7-1.fc16.x86_64"
+            #    kernel_deps_rpms = "linux-firmware-20110731-2.fc16.noarch"
+            #    file_checklist = kernel_rpm_path kernel_deps_rpms
+            #- git:
+            #    install_type = git
+            #    kernel_git_repo = ""
+            #    kernel_git_repo_base = ""
+            #    kernel_git_branch = ""
+            #    kernel_git_commit = ""
+            #    kernel_patch_list = ""
+            #    kernel_config = ""
+            #    kerne_config_list = ""
+            - @tar:
+                install_type = tar
+                kernel_src_pkg = "http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.2.tar.bz2"
+                # Remember to update this config file to your own.
+                kernel_config = "/boot/config-3.2.7-1.fc16.x86_64"
+                kernel_patch_list = "http://www.kernel.org/pub/linux/kernel/v3.0/patch-3.2.7.bz2"
+                file_checklist = kerne_src_pkg kernel_config kernel_patch_list
+                kernel_tag = "3.2.7"
+
     - shutdown: install setup image_copy unattended_install.cdrom
         type = shutdown
         shutdown_method = shell
