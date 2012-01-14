@@ -775,8 +775,8 @@ variants:
                             initrd = images/rhel62-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.2-i386-DVD.iso
-                            md5sum_cd1 = 2c6bde4c9d381940d8ee9726cf8f4114
-                            md5sum_1m_cd1 = b6d81b360a5672d80c27430f39153e2c
+                            md5sum_cd1 = 31f3ef3825fbde428bf3ab49ce2b99db 
+                            md5sum_1m_cd1 = 46ef65cdab3c0164b43011813a319755
 
                     - 6.2.x86_64:
                         no setup
@@ -793,8 +793,8 @@ variants:
                             initrd = images/rhel62-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.2-x86_64-DVD.iso
-                            md5sum_cd1 = bd86044a64a45b897fc2e196ed89e4e5
-                            md5sum_1m_cd1 = aaa42e5d45329414b82afbba8a60b065
+                            md5sum_cd1 = 7525d7ea1b1fd074538c7505bccd143d 
+                            md5sum_1m_cd1 = 19b99519559067656193e5e2146a81a4
 
             - OpenSUSE:
                 no setup
