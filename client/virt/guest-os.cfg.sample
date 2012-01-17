@@ -1169,7 +1169,9 @@ variants:
 
         unattended_install.cdrom, whql.support_vm_install:
             timeout = 7200
-            finish_program = deps/finish.exe
+            finish_program = deps/finish.bat
+            # process need to check after post install
+            # process_check = $process_name
             cdroms += " winutils"
             cdrom_winutils = isos/windows/winutils.iso
             drive_index_winutils = 2
