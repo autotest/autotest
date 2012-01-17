@@ -358,7 +358,7 @@ class UnattendedInstallConfig(object):
                       'nfs_server', 'nfs_dir', 'install_virtio', 'floppy',
                       'cdrom_unattended', 'boot_path', 'kernel_params',
                       'extra_params', 'qemu_img_binary', 'cdkey',
-                      'finish_program', 'vm_type']
+                      'finish_program', 'vm_type', 'process_check']
 
         for a in attributes:
             setattr(self, a, params.get(a, ''))
@@ -463,7 +463,7 @@ class UnattendedInstallConfig(object):
         else:
             parser.remove_option('Unattended', 'OemPnPDriversPath')
 
-        # Last, replace the virtio installer command
+        # Replace the virtio installer command
         if self.install_virtio == 'yes':
             driver = self.virtio_network_installer_path
         else:
@@ -474,6 +474,16 @@ class UnattendedInstallConfig(object):
         if dummy_re in installer:
             installer = re.sub(dummy_re, driver, installer)
         parser.set('GuiRunOnce', 'Command0', installer)
+
+        # Replace the process check in finish command
+        dummy_process_re = r'\bPROCESS_CHECK\b'
+        for opt in parser.options('GuiRunOnce'):
+            process_check = parser.get('GuiRunOnce', opt)
+            if re.search(dummy_process_re, process_check):
+                process_check = re.sub(dummy_process_re,
+                              "%s" % self.process_check,
+                              process_check)
+                parser.set('GuiRunOnce', opt, process_check)
 
         # Now, writing the in memory config state to the unattended file
         fp = open(answer_path, 'w')
@@ -520,11 +530,13 @@ class UnattendedInstallConfig(object):
                         s.removeChild(c)
 
         # Last but not least important, replacing the virtio installer command
+        # And process check in finish command
         command_lines = doc.getElementsByTagName("CommandLine")
         for command_line in command_lines:
             command_line_text = command_line.childNodes[0]
             assert command_line_text.nodeType == doc.TEXT_NODE
             dummy_re = 'KVM_TEST_VIRTIO_NETWORK_INSTALLER'
+            process_check_re = 'PROCESS_CHECK'
             if (self.install_virtio == 'yes' and
                 hasattr(self, 'virtio_network_installer_path')):
                 driver = self.virtio_network_installer_path
@@ -535,6 +547,10 @@ class UnattendedInstallConfig(object):
             if dummy_re in command_line_text.data:
                 t = command_line_text.data
                 t = re.sub(dummy_re, driver, t)
+                command_line_text.data = t
+            if process_check_re in command_line_text.data:
+                t = command_line_text.data
+                t = re.sub(process_check_re, self.process_check, t)
                 command_line_text.data = t
 
         contents = doc.toxml()
@@ -913,6 +929,8 @@ def run_unattended_install(test, params, env):
     # unattended install config code, such as when params['url'] == auto
     vm.create(params=params)
 
+    post_finish_str = params.get("post_finish_str",
+                                 "Post set up finished")
     install_timeout = int(params.get("timeout", 3000))
     port = vm.get_port(int(params.get("guest_port_unattended_install")))
 
@@ -937,21 +955,15 @@ def run_unattended_install(test, params, env):
             else:
                 raise e
         vm.verify_kernel_crash()
-        if params.get("wait_no_ack", "no") == "no":
-            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            try:
-                client.connect((vm.get_address(), port))
-                if client.recv(1024) == "done":
-                    break
-            except (socket.error, virt_vm.VMAddressError):
-                pass
+        finish_signal = vm.serial_console.get_output()
+        if params.get("wait_no_ack", "no") == "no" and\
+            post_finish_str in finish_signal:
+            break
 
         if migrate_background:
             vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
         else:
             time.sleep(1)
-        if params.get("wait_no_ack", "no") == "no":
-            client.close()
     else:
         raise error.TestFail("Timeout elapsed while waiting for install to "
                              "finish")

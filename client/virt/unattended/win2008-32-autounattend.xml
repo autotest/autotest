@@ -161,7 +161,7 @@
 					<Order>8</Order>
 				</SynchronousCommand>
 				<SynchronousCommand wcm:action="add">
-					<CommandLine>%WINDIR%\System32\cmd /c A:\finish.exe</CommandLine>
+					<CommandLine>%WINDIR%\System32\cmd /c A:\finish.bat PROCESS_CHECK</CommandLine>
 					<Order>9</Order>
 				</SynchronousCommand>
 			</FirstLogonCommands>
