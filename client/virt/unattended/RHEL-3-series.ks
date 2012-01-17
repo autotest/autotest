@@ -24,13 +24,8 @@ skipx
 ntp
 
 %post --interpreter /usr/bin/python
-import socket, os
+import os
 os.system('/sbin/ifconfig eth0 10.0.2.15 netmask 255.255.255.0 up')
 os.system('/sbin/route add default gw 10.0.2.2')
 os.system('chkconfig sshd on')
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('', 12323))
-server.listen(1)
-(client, addr) = server.accept()
-client.send("done")
-client.close()
+os.system('echo Post set up finished > /dev/ttyS0')

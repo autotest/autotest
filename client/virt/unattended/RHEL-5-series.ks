@@ -26,14 +26,9 @@ watchdog
 ntp
 
 %post --interpreter /usr/bin/python
-import socket, os
+import os
 os.system('dhclient')
 os.system('chkconfig sshd on')
 os.system('iptables -F')
 os.system('echo 0 > /selinux/enforce')
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(('', 12323))
-server.listen(1)
-(client, addr) = server.accept()
-client.send("done")
-client.close()
+os.system('echo Post set up finished > /dev/ttyS0')
