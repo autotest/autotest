@@ -336,23 +336,37 @@ def create_image(params, root_dir):
            image_cluster_size (optional) -- the cluster size for the image
            image_size -- the requested size of the image (a string
            qemu-img can understand, such as '10G')
+           create_with_dd -- use dd to create the image (raw format only)
     """
-    qemu_img_cmd = virt_utils.get_path(root_dir, params.get("qemu_img_binary",
-                                                           "qemu-img"))
-    qemu_img_cmd += " create"
-
     format = params.get("image_format", "qcow2")
-    qemu_img_cmd += " -f %s" % format
-
-    image_cluster_size = params.get("image_cluster_size", None)
-    if image_cluster_size is not None:
-        qemu_img_cmd += " -o cluster_size=%s" % image_cluster_size
-
     image_filename = get_image_filename(params, root_dir)
-    qemu_img_cmd += " %s" % image_filename
-
     size = params.get("image_size", "10G")
-    qemu_img_cmd += " %s" % size
+    if params.get("create_with_dd") == "yes" and format == "raw":
+        # maps K,M,G,T => (count, bs)
+        human = {'K': (1, 1),
+                 'M': (1, 1024),
+                 'G': (1024, 1024),
+                 'T': (1024, 1048576),
+                }
+        if human.has_key(size[-1]):
+            block_size = human[size[-1]][1]
+            size = int(size[:-1]) * human[size[-1]][0]
+        qemu_img_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
+                        % (image_filename, size, block_size))
+    else:
+        qemu_img_cmd = virt_utils.get_path(root_dir,
+                                    params.get("qemu_img_binary", "qemu-img"))
+        qemu_img_cmd += " create"
+
+        qemu_img_cmd += " -f %s" % format
+
+        image_cluster_size = params.get("image_cluster_size", None)
+        if image_cluster_size is not None:
+            qemu_img_cmd += " -o cluster_size=%s" % image_cluster_size
+
+        qemu_img_cmd += " %s" % image_filename
+
+        qemu_img_cmd += " %s" % size
 
     utils.system(qemu_img_cmd)
     return image_filename
