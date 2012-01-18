@@ -536,7 +536,10 @@ class VM(virt_vm.BaseVM):
             return " --vnc --vncport=%d" % (vnc_port)
 
         def add_vnclisten(help, vnclisten):
-            return " --vnclisten=%s " % (vnclisten)
+            if has_option(help, "vnclisten"):
+                return " --vnclisten=%s" % (vnclisten)
+            else:
+                return ""
 
         def add_sdl(help):
             if has_option(help, "sdl"):
