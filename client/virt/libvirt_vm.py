@@ -652,7 +652,7 @@ class VM(virt_vm.BaseVM):
         if smp:
             virt_install_cmd += add_smp(help, smp)
 
-        # libvirt expects --location <path>/images/pxeboot/<vmlinuz|initrd>
+        # TODO: directory location for vmlinuz/kernel for cdrom install ?
         location = None
         if params.get("medium") == 'url':
             location = params.get('url')
@@ -674,16 +674,7 @@ class VM(virt_vm.BaseVM):
                 virt_install_cmd += add_cdrom(help,
                                               params.get("cdrom_unattended"))
             else:
-                # Fake images/pxeboot using relative symlinks
-                # Assumes kernel and initrd were copied to same dir
-                # TODO: This and cooresponding add_cdrom() in unattended_install test
-                #       should be much cleaner.
-                location = os.path.dirname(params.get("kernel"))
-                try:
-                    os.symlink( ".", os.path.join(location, "images")  )
-                    os.symlink( ".", os.path.join(location, "pxeboot")  )
-                except OSError:
-                    pass # ignore if already exists
+                location = params.get("image_dir")
 
         if location:
             virt_install_cmd += add_location(help, location)
