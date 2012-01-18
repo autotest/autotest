@@ -21,12 +21,13 @@ More specifically:
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, re, signal, imp
-from autotest_lib.client.common_lib import error
+import time, os, logging, re, signal, imp, tempfile
+from autotest_lib.client.common_lib import error, global_config
 from autotest_lib.client.bin import utils
 from autotest_lib.client.tools import scan_results
 import aexpect, virt_utils, virt_vm
 
+GLOBAL_CONFIG = global_config.global_config
 
 def get_living_vm(env, vm_name):
     """
@@ -574,6 +575,16 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
     # Extract autotest.tar.bz2
     if update:
         extract(vm, compressed_autotest_path, destination_autotest_path)
+
+    g_fd, g_path = tempfile.mkstemp(dir='/tmp/')
+    aux_file = os.fdopen(g_fd, 'w')
+    config = GLOBAL_CONFIG.get_section_values('CLIENT')
+    config.write(aux_file)
+    aux_file.close()
+    global_config_guest = os.path.join(destination_autotest_path,
+                                       'global_config.ini')
+    vm.copy_files_to(g_path, global_config_guest)
+    os.unlink(g_path)
 
     vm.copy_files_to(control_path,
                      os.path.join(destination_autotest_path, 'control'))
