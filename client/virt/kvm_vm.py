@@ -199,8 +199,12 @@ class VM(virt_vm.BaseVM):
             """
             Add option to qemu parameters.
             """
+            fmt=",%s=%s"
             if value and isinstance(value, bool):
-                return ",%s=%s" % (option, "on" if value else "off")
+                if value:
+                    return fmt % (option, "on")
+                else:
+                    return fmt % (option, "off")
             elif value and isinstance(value, str):
                 # "EMPTY_STRING" and "NULL_STRING" is used for testing illegal
                 # foramt of option.
@@ -212,7 +216,7 @@ class VM(virt_vm.BaseVM):
                     return ",%s" % option
                 if value == "EMPTY_STRING":
                     value = '""'
-                return ",%s=%s" % (option, str(value))
+                return fmt % (option, str(value))
             return ""
 
 
