@@ -547,7 +547,8 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
         mig_protocol = params.get("migration_protocol", "tcp")
 
     compressed_autotest_path = "/tmp/autotest.tar.bz2"
-    destination_autotest_path = "/usr/local/autotest"
+    destination_autotest_path = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                            'autotest_top_path')
 
     # To avoid problems, let's make the test use the current AUTODIR
     # (autotest client path) location
@@ -578,7 +579,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
 
     g_fd, g_path = tempfile.mkstemp(dir='/tmp/')
     aux_file = os.fdopen(g_fd, 'w')
-    config = GLOBAL_CONFIG.get_section_values('CLIENT')
+    config = GLOBAL_CONFIG.get_section_values(('CLIENT', 'COMMON'))
     config.write(aux_file)
     aux_file.close()
     global_config_guest = os.path.join(destination_autotest_path,

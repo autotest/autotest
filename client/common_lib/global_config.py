@@ -86,6 +86,8 @@ class global_config(object):
                 object.
         @return: ConfigParser() object containing all the contents of sections.
         """
+        if isinstance(sections, str):
+            sections = (sections)
         cfgparser = ConfigParser.ConfigParser()
         for section in sections:
             cfgparser.add_section(section)

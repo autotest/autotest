@@ -43,9 +43,11 @@ class BaseAutotest(installable_object.InstallableObject):
     install_in_tmpdir = False
     @classmethod
     def set_install_in_tmpdir(cls, flag):
-        """ Sets a flag that controls whether or not Autotest should by
-        default be installed in a "standard" directory (e.g.
-        /home/autotest, /usr/local/autotest) or a temporary directory. """
+        """
+        Sets a flag that controls whether or not Autotest should by
+        default be installed in a "standard" directory (e.g. /home/autotest) or
+        a temporary directory.
+        """
         cls.install_in_tmpdir = flag
 
 
