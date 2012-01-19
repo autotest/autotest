@@ -531,14 +531,15 @@ class _BaseRun(object):
 
     def _create_client_config_file(self, client_log_prefix=None):
         """
-        Create a temporary file with the [CLIENT] section configuration values
-        taken from the server global_config.ini.
+        Create a temporary file with the [CLIENT] and [COMMON] section
+        configuration values taken from the server global_config.ini.
 
         @param client_log_prefix: Optional prefix to prepend to log files.
 
         @return: Path of the temporary file generated.
         """
-        config = global_config.global_config.get_section_values('CLIENT')
+        config = global_config.global_config.get_section_values(
+                                                           ('CLIENT', 'COMMON'))
         if client_log_prefix:
             config.set('CLIENT', 'default_logging_name', client_log_prefix)
         return self._create_aux_file(config.write)
