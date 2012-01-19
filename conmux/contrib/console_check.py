@@ -16,6 +16,10 @@ _author_ = 'Scott Zawalski (scottz@google.com)'
 
 import sys,  pexpect, commands, os
 from optparse import OptionParser
+from autotest_lib.client.common_lib import global_config
+
+
+GLOBAL_CONFIG = global_config.global_config
 
 
 def main(argv):
@@ -24,6 +28,7 @@ def main(argv):
     consoles['bad'] = []
     consoles['unknown'] = []
     # 0, 1, 2 status
+    TOP_DIR = GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path')
     STATUS = [ 'good', 'bad', 'unknown']
     parser = OptionParser()
     parser.add_option('--conmux-server', dest="conmux_server",
@@ -36,7 +41,7 @@ def main(argv):
                      default='/usr/local/conmux/bin/console',
                      help="Conmux console binary location")
     parser.add_option('--autotest-cli-dir', dest="autotest_cli_dir",
-                     default='/usr/local/autotest/cli',
+                     default=os.path.join(TOP_DIR, 'cli'),
                      help="Autotest CLI dir")
     parser.add_option('--add-hosts',
                       action="store_true", dest="add_hosts",

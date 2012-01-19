@@ -6,17 +6,17 @@ This utility allows for easy updating, removing and importing
 of tests into the autotest_web afe_autotests table.
 
 Example of updating client side tests:
-./test_importer.py -t /usr/local/autotest/client/tests
+./test_importer.py -t TOP_DIR/client/tests
 
 If, for example, not all of your control files adhere to the standard outlined
 at http://autotest.kernel.org/wiki/ControlRequirements, you can force options:
 
-./test_importer.py --test-type server -t /usr/local/autotest/server/tests
+./test_importer.py --test-type server -t TOP_DIR/server/tests
 
 You would need to pass --add-noncompliant to include such control files,
 however.  An easy way to check for compliance is to run in dry mode:
 
-./test_importer.py --dry-run -t /usr/local/autotest/server/tests/mytest
+./test_importer.py --dry-run -t TOP_DIR/server/tests/mytest
 
 Or to check a single control file, you can use check_control_file_vars.py.
 
@@ -58,7 +58,8 @@ def update_all(autotest_dir, add_noncompliant, add_experimental):
     from the db.  The base test directories are hard-coded to client/tests,
     client/site_tests, server/tests and server/site_tests.
 
-    @param autotest_dir: prepended to path strings (/usr/local/autotest).
+    @param autotest_dir: prepended to path strings
+            (see global_config.ini, COMMON, autotest_top_path).
     @param add_noncompliant: attempt adding test with invalid control files.
     @param add_experimental: add tests with experimental attribute set.
     """
@@ -101,7 +102,8 @@ def update_samples(autotest_dir, add_noncompliant, add_experimental):
     Only adds tests to the database - does not delete any.
     Samples tests are formatted slightly differently than other tests.
 
-    @param autotest_dir: prepended to path strings (/usr/local/autotest).
+    @param autotest_dir: prepended to path strings
+            (see global_config.ini, COMMON, autotest_top_path).
     @param add_noncompliant: attempt adding test with invalid control files.
     @param add_experimental: add tests with experimental attribute set.
     """
@@ -124,7 +126,8 @@ def db_clean_broken(autotest_dir):
     found in the filesystem.  Also removes profilers which are just
     a special case of tests.
 
-    @param autotest_dir: prepended to path strings (/usr/local/autotest).
+    @param autotest_dir: prepended to path strings
+            (see global_config.ini, COMMON, autotest_top_path).
     """
     for test in models.Test.objects.all():
         full_path = os.path.join(autotest_dir, test.path)
@@ -148,7 +151,8 @@ def db_clean_all(autotest_dir):
     This function invoked when -C supplied on the command line.
     Removes ALL tests from the database.
 
-    @param autotest_dir: prepended to path strings (/usr/local/autotest).
+    @param autotest_dir: prepended to path strings
+            (see global_config.ini, COMMON, autotest_top_path).
     """
     for test in models.Test.objects.all():
         full_path = os.path.join(autotest_dir, test.path)
@@ -206,7 +210,8 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
     @param dry_run: not used at this time.
     @param add_experimental: add tests with experimental attribute set.
     @param add_noncompliant: attempt adding test with invalid control files.
-    @param autotest_dir: prepended to path strings (/usr/local/autotest).
+    @param autotest_dir: prepended to path strings
+            (see global_config.ini, COMMON, autotest_top_path).
     """
     site_set_attributes_module = utils.import_site_module(
         __file__, 'autotest_lib.utils.site_test_importer_attributes')
@@ -439,7 +444,8 @@ def update_from_whitelist(whitelist_set, add_experimental, add_noncompliant,
     @param whitelist_set: set of tests in full-path form from a whitelist.
     @param add_experimental: add tests with experimental attribute set.
     @param add_noncompliant: attempt adding test with invalid control files.
-    @param autotest_dir: prepended to path strings (/usr/local/autotest).
+    @param autotest_dir: prepended to path strings
+            (see global_config.ini, COMMON, autotest_top_path).
     """
     tests = {}
     profilers = {}
