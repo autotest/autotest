@@ -77,18 +77,20 @@ class global_config(object):
             return default
 
 
-    def get_section_values(self, section):
+    def get_section_values(self, sections):
         """
         Return a config parser object containing a single section of the
         global configuration, that can be later written to a file object.
 
-        @param section: Section we want to turn into a config parser object.
-        @return: ConfigParser() object containing all the contents of section.
+        @param section: Tuple with sections we want to turn into a config parser
+                object.
+        @return: ConfigParser() object containing all the contents of sections.
         """
         cfgparser = ConfigParser.ConfigParser()
-        cfgparser.add_section(section)
-        for option, value in self.config.items(section):
-            cfgparser.set(section, option, value)
+        for section in sections:
+            cfgparser.add_section(section)
+            for option, value in self.config.items(section):
+                cfgparser.set(section, option, value)
         return cfgparser
 
 
