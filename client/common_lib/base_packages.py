@@ -539,7 +539,7 @@ class BasePackageManager(object):
         '''
         try:
             if upload_path.startswith('ssh://'):
-                # parse ssh://user@host/usr/local/autotest/packages
+                # parse ssh://user@host[autotest_top_path]/packages
                 hostline, remote_path = parse_ssh_path(upload_path)
                 try:
                     utils.run('scp %s %s:%s' % (file_path, hostline,
