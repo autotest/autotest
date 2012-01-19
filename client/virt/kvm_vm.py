@@ -1449,6 +1449,16 @@ class VM(virt_vm.BaseVM):
         return self.process.get_pid()
 
 
+    def get_vcpu_pids(self):
+        """
+        Return the list of vcpu PIDs
+
+        @return: the list of vcpu PIDs
+        """
+        return [int(_) for _ in re.findall(r'thread_id=(\d+)',
+                                           self.monitor.info("cpus"))]
+
+
     def get_shared_meminfo(self):
         """
         Returns the VM's shared memory information.
