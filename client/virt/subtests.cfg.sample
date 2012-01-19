@@ -1182,10 +1182,89 @@ variants:
     - cgroup:
         only Linux
         type = cgroup
-        # cgroup_tests = "re1[:loops] re2[:loops] ..."
-        cgroup_tests = ".*:1"
-        vms += " vm2"
-        extra_params += " -snapshot"
+        cgroup_test_time = 60
+        cgroup_limit = 0.1
+        # rmmod scsi_debug instead of writing into /sys/../add_host (safer)
+        cgroup_rmmod_scsi_debug = "yes"
+        variants:
+            - blkio_bandwidth:
+                # Test creates VMs with disks according to weights
+                vms = ""
+                # problem with multiple preprocess, turn off the screendumps
+                take_regular_screendumps = "no"
+                extra_params += " -snapshot"
+                cgroup_test = "blkio_bandwidth"
+                # cgroup_test_time, cgroup_weights, cgroup_limit{ ,_read,_write}
+                # cgroup_weights = "[100, 1000, 500]"
+            - blkio_throttle:
+                # Test creats VMs with disks according to speeds
+                vms = ""
+                # problem with multiple preprocess, turn off the screendumps
+                take_regular_screendumps = "no"
+                extra_params += " -snapshot"
+                cgroup_test = "blkio_throttle"
+                # cgroup_test_time, cgroup_limit{ ,_read,_write}, cgroup_speeds
+                # cgroup_speeds = [1024, 2048, 4096, 8192]
+            - blkio_throttle_multi:
+                # Test creats VMs with disks according to speeds
+                vms = ""
+                # problem with multiple preprocess, turn off the screendumps
+                take_regular_screendumps = "no"
+                extra_params += " -snapshot"
+                cgroup_test = "blkio_throttle_multi"
+                # cgroup_test_time, cgroup_limit{ ,_read,_write}, cgroup_speeds
+                # cgroup_speeds = "[[0, 1024, 0, 2048, 0, 4096],"
+                # cgroup_speeds += "[1024, 1024, 1024, 1024, 1024, 1024]]"
+            - cpu_cfs_util:
+                # Test creats VMs according to no_host_cpus
+                # We want to be sure 1st VM have only 1 vCPU
+                vms = vm1
+                smp = 1
+                extra_params += " -snapshot"
+                cgroup_test = "cpu_cfs_util"
+                # cgroup_test_time, cgroup_limit
+            - cpu_share:
+                # Test creats VMs according to smp and cgroup_speeds
+                vms = ""
+                # When smp = 0 => it sets smp = no_host_cpus (optimal for test)
+                smp = 0
+                # problem with multiple preprocess, turn off the screendumps
+                take_regular_screendumps = "no"
+                extra_params += " -snapshot"
+                cgroup_test = "cpu_share"
+                # cgroup_test_time, cgroup_speeds
+                # cgroup_speeds = "[1000, 10000, 100000]"
+            - cpuset_cpus:
+                cgroup_test = "cpuset_cpus"
+                # cgroup_test_time, cgroup_limit, cgroup_cpuset, cgroup_verify
+                cgroup_test_time = 10
+                # smp have to match cpuset scenerios!
+                # smp = 4
+                # cgroup_cpuset = "[[None, '0,3', '1', '2', '1-2'],
+                # cgroup_cpuset += "[None, '0', '1', '0-1', '0-1']]
+                # cgroup_verify = [[50, 100, 100, 50], [100, 100, 5, 5]]
+            - cpuset_cpus_switching:
+                cgroup_test = "cpuset_cpus_switching"
+                # cgroup_test_time
+            - devices_access:
+                cgroup_test = "devices_access"
+            - freezer:
+                cgroup_test = "freezer"
+                # cgroup_test_time
+            - memory_limit:
+                # Test creats VMs
+                cgroup_test = "memory_limit"
+                # cgroup_memory_limit_kb(4kb aligned)
+                # cgroup_memory_limit_kb = 2097152
+            - memory_memsw_limit:
+                # Test creats VMs
+                cgroup_test = "memory_memsw_limit"
+                # cgroup_memory_limit_kb(4kb aligned)
+                # cgroup_memory_limit_kb = 2097152
+            - memory_move:
+                cgroup_test = "memory_move"
+                # cgroup_test_time, cgroup_memory_move_mb
+                # cgroup_memory_move_mb = 2048
 
     - virtio_console: install setup image_copy unattended_install.cdrom
         only Linux
