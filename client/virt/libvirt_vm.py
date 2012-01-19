@@ -223,7 +223,7 @@ def virsh_shutdown(name, uri = ""):
     if virsh_domstate(name, uri) == 'shut off':
         return True
     try:
-        virsh_cmd("virsh shutdown %s" % (name), uri)
+        virsh_cmd("shutdown %s" % (name), uri)
         return True
     except error.CmdError:
         logging.error("Shutdown VM %s failed", name)
@@ -242,7 +242,7 @@ def virsh_destroy(name, uri = ""):
     if virsh_domstate(name, uri) == 'shut off':
         return True
     try:
-        virsh_cmd("virsh destroy %s" % (name), uri)
+        virsh_cmd("destroy %s" % (name), uri)
         return True
     except error.CmdError:
         logging.error("Destroy VM %s failed", name)
