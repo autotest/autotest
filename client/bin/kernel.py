@@ -130,7 +130,8 @@ class kernel(BootableKernel):
             job
                     Backpointer to the job object we're part of
             autodir
-                    Path to the top level autotest dir (/usr/local/autotest)
+                    Path to the top level autotest dir (see global_config.ini,
+                    session COMMON/autotest_top_path)
             src_dir
                     <tmp_dir>/src/
             build_dir

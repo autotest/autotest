@@ -16,7 +16,11 @@ import common
 from autotest_lib.server import utils
 from autotest_lib.server import autotest
 from autotest_lib.server import hosts
+from autotest_lib.client.common_lib import global_config
 
+
+_GLOBAL_CONFIG = global_config.global_config
+_TOP_PATH = _GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path')
 
 class AutotestTestCase(unittest.TestCase):
     def setUp(self):
@@ -59,7 +63,7 @@ class AutotestTestCase(unittest.TestCase):
             def run(self, command):
                 if command == "grep autodir= /etc/autotest.conf":
                     result= hosts.CmdResult()
-                    result.stdout = "autodir=/usr/local/autotest\n"
+                    result.stdout = "autodir=%s\n" % _TOP_PATH
                     return result
                 else:
                     self.commands.append(command)
@@ -72,11 +76,10 @@ class AutotestTestCase(unittest.TestCase):
         tmpdir = utils.get_tmp_dir()
         self.autotest.get(tmpdir)
         self.autotest.install(host)
-        self.assertEqual(host.commands[0],
-                         'mkdir -p /usr/local/autotest')
+        self.assertEqual(host.commands[0], 'mkdir -p %s' % _TOP_PATH)
         self.assertTrue(host.commands[1].startswith('send_file: /tmp/'))
         self.assertTrue(host.commands[1].endswith(
-                '/ /usr/local/autotest'))
+        '/ %s' % _GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path')))
 
 
 
@@ -89,7 +92,7 @@ class AutotestTestCase(unittest.TestCase):
             def run(self, command):
                 if command == "grep autodir= /etc/autotest.conf":
                     result= hosts.CmdResult()
-                    result.stdout = "autodir=/usr/local/autotest\n"
+                    result.stdout = ("autodir=%s\n" % _TOP_PATH)
                     return result
                 else:
                     self.commands.append(command)
@@ -98,8 +101,7 @@ class AutotestTestCase(unittest.TestCase):
         self.autotest.install(host)
         self.assertEqual(host.commands,
                          ['svn checkout '
-                          + autotest.AUTOTEST_SVN + ' '
-                          + "/usr/local/autotest"])
+                          + autotest.AUTOTEST_SVN + ' ' + _TOP_PATH])
 
 
     def testFirstInstallFromSVNFails(self):
@@ -110,13 +112,12 @@ class AutotestTestCase(unittest.TestCase):
             def run(self, command):
                 if command == "grep autodir= /etc/autotest.conf":
                     result= hosts.CmdResult()
-                    result.stdout = "autodir=/usr/local/autotest\n"
+                    result.stdout = "autodir=%s\n" % _TOP_PATH
                     return result
                 else:
                     self.commands.append(command)
-                    first = ('svn checkout ' +
-                        autotest.AUTOTEST_SVN + ' ' +
-                        "/usr/local/autotest")
+                    first = ('svn checkout ' + autotest.AUTOTEST_SVN + ' ' +
+                             _TOP_PATH)
                     if (command == first):
                         raise autotest.AutoservRunError(
                                 "svn not found")
@@ -125,9 +126,9 @@ class AutotestTestCase(unittest.TestCase):
         self.autotest.install(host)
         self.assertEqual(host.commands,
                          ['svn checkout ' + autotest.AUTOTEST_SVN +
-                          ' ' + "/usr/local/autotest",
+                          ' ' + _TOP_PATH,
                           'svn checkout ' + autotest.AUTOTEST_HTTP +
-                          ' ' + "/usr/local/autotest"])
+                          ' ' + _TOP_PATH])
 
 
 def suite():
