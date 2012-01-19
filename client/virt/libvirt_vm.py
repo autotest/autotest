@@ -675,6 +675,12 @@ class VM(virt_vm.BaseVM):
                                               params.get("cdrom_unattended"))
             else:
                 location = params.get("image_dir")
+                kernel_dir = os.path.dirname(params.get("kernel"))
+                kernel_parent_dir = os.path.dirname(kernel_dir)
+                pxeboot_link = os.path.join(kernel_parent_dir, "pxeboot")
+                if os.path.islink(pxeboot_link):
+                    os.unlink(pxeboot_link)
+                os.symlink(kernel_dir, pxeboot_link)
 
         if location:
             virt_install_cmd += add_location(help, location)
