@@ -50,17 +50,18 @@ class Cgroup(object):
                                                                 % self.module)
 
 
-    def mk_cgroup(self, root=None):
+    def mk_cgroup(self, pwd=None):
         """
         Creates new temporary cgroup
         @param root: where to create this cgroup (default: self.root)
         @return: 0 when PASSED
         """
+        if pwd == None:
+            pwd = self.root
+        if isinstance(pwd, int):
+            pwd = self.cgroups[pwd]
         try:
-            if root:
-                pwd = mkdtemp(prefix='cgroup-', dir=root) + '/'
-            else:
-                pwd = mkdtemp(prefix='cgroup-', dir=self.root) + '/'
+            pwd = mkdtemp(prefix='cgroup-', dir=pwd) + '/'
         except Exception, inst:
             raise error.TestError("cg.mk_cgroup(): %s" % inst)
         self.cgroups.append(pwd)
@@ -122,12 +123,14 @@ class Cgroup(object):
         return self.is_cgroup(pid, self.root)
 
 
-    def set_cgroup(self, pid, pwd):
+    def set_cgroup(self, pid, pwd=None):
         """
         Sets cgroup membership
         @param pid: pid of the process
         @param pwd: cgroup directory
         """
+        if pwd == None:
+            pwd = self.root
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
         try:
