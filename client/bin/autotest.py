@@ -21,8 +21,13 @@ os.environ['PYTHONPATH'] = autodirbin
 
 cmd_parser = cmdparser.CommandParser() # Allow access to instance in parser
 
-parser = OptionParser(usage='Usage: %prog [options] [command] <control-file>',
-                      epilog="[command]\t\tOne of: "+str(cmd_parser.cmdlist))
+commandinfo = "[command] (optional)\tOne of: "+str(cmd_parser.cmdlist)
+if sys.version_info[0:2] < (2,6):
+    parser = OptionParser(usage='Usage: %prog [options] [command] <control-file>',
+                          description=commandinfo)
+else:
+    parser = OptionParser(usage='Usage: %prog [options] [command] <control-file>',
+                          epilog=commandinfo)
 
 parser.add_option("-a", "--args", dest='args',
                         help="additional args to pass to control file")
