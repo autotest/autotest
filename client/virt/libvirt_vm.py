@@ -4,7 +4,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, fcntl, re, commands
+import time, os, logging, fcntl, re, commands, shutil
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils, os_dep
 from xml.dom import minidom
@@ -680,6 +680,10 @@ class VM(virt_vm.BaseVM):
                 pxeboot_link = os.path.join(kernel_parent_dir, "pxeboot")
                 if os.path.islink(pxeboot_link):
                     os.unlink(pxeboot_link)
+                if os.path.isdir(pxeboot_link):
+                    logging.info("Removed old %s leftover directory",
+                                 pxeboot_link)
+                    shutil.rmtree(pxeboot_link)
                 os.symlink(kernel_dir, pxeboot_link)
 
         if location:
