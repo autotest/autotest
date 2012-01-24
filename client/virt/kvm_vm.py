@@ -548,11 +548,6 @@ class VM(virt_vm.BaseVM):
 
         # Start constructing the qemu command
         qemu_cmd = ""
-        p9_fs_driver = params.get("9p_fs_driver")
-        if p9_fs_driver == "proxy":
-            p9_qemu_user = params.get("9p_qemu_user")
-            if p9_qemu_user:
-                qemu_cmd += "su - " + p9_qemu_user + " -c " + "\""
 
         # Enable the use of glibc's malloc_perturb feature
         if params.get("malloc_perturb", "no") == "yes":
@@ -833,10 +828,6 @@ class VM(virt_vm.BaseVM):
         if extra_params:
             qemu_cmd += " %s" % extra_params
 
-        # Terminate the su command.
-        if p9_fs_driver == "proxy":
-            if p9_qemu_user:
-                qemu_cmd += "\""
         return qemu_cmd
 
 
@@ -1052,19 +1043,15 @@ class VM(virt_vm.BaseVM):
                     raise virt_vm.VMCreateError("Export dir not specified")
 
                 proxy_helper_cmd += " -p " + p9_export_dir
+                proxy_helper_cmd += " -u 0 -g 0"
                 p9_socket_name = params.get("9p_socket_name")
-                p9_qemu_user = params.get("9p_qemu_user")
-                p9_qemu_group = params.get("9p_qemu_group")
-                qemu_user_uid = commands.getoutput('id -u ' + p9_qemu_user)
-                qemu_user_gid = commands.getoutput('id -g ' + p9_qemu_group)
                 proxy_helper_cmd += " -s " + p9_socket_name
-                proxy_helper_cmd += " -u " + qemu_user_uid
-                proxy_helper_cmd += " -g " + qemu_user_gid
                 proxy_helper_cmd += " -n"
 
                 logging.info("Running Proxy Helper:\n%s", proxy_helper_cmd)
                 self.process = aexpect.run_bg(proxy_helper_cmd, None,
-                                                     logging.info," ")
+                                              logging.info,
+                                              "[9p proxy helper]")
 
             logging.info("Running qemu command:\n%s", qemu_command)
             self.process = aexpect.run_bg(qemu_command, None,
