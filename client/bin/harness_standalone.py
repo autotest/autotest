@@ -5,7 +5,8 @@ The default interface as required for the standalone reboot helper.
 
 __author__ = """Copyright Andy Whitcroft 2007"""
 
-from autotest_lib.client.common_lib import utils, error
+from autotest_lib.client.common_lib import error
+from autotest_lib.client.bin import utils
 import os, harness, shutil, logging
 
 class harness_standalone(harness.harness):
@@ -47,8 +48,12 @@ class harness_standalone(harness.harness):
             initdefault = '2'
 
         try:
+            vendor = utils.get_os_vendor()
             service = '/etc/init.d/autotest'
-            service_link = '/etc/rc%s.d/S99autotest' % initdefault
+            if vendor == 'SUSE':
+               service_link = '/etc/init.d/rc%s.d/S99autotest' % initdefault
+            else:
+               service_link = '/etc/rc%s.d/S99autotest' % initdefault
             if os.path.islink(service):
                 os.remove(service)
             if os.path.islink(service_link):
