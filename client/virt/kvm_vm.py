@@ -1033,8 +1033,10 @@ class VM(virt_vm.BaseVM):
 
             p9_fs_driver = params.get("9p_fs_driver")
             if p9_fs_driver == "proxy":
-                os.chdir(self.root_dir)
-                proxy_helper_cmd = params.get("9p_proxy_binary")
+                proxy_helper_name = params.get("9p_proxy_binary",
+                                               "virtfs-proxy-helper")
+                proxy_helper_cmd =  virt_utils.get_path(root_dir,
+                                                        proxy_helper_name)
                 if not proxy_helper_cmd:
                     raise virt_vm.VMCreateError("Proxy command not specified")
 
