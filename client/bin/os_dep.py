@@ -26,6 +26,7 @@ def library(lib):
     lddirs = []
     # read lddirs from  main ld.so.conf file
     for line in open('/etc/ld.so.conf', 'r').readlines():
+        line = line.strip()
         if line.startswith('include '):
             glob_pattern = line.split('include ')[1]
             if not os.path.isabs(glob_pattern):
@@ -34,11 +35,11 @@ def library(lib):
             glob_result = glob.glob(glob_pattern)
             for conf_file in glob_result:
                 for conf_file_line in open(conf_file, 'r').readlines():
-                    if os.path.isdir(conf_file_line):
-                        lddirs.append(conf_file_line)
+                    if os.path.isdir(conf_file_line.strip()):
+                        lddirs.append(conf_file_line.strip())
         else:
             if os.path.isdir(line):
-                lddirs.append(line.strip())
+                lddirs.append(line)
 
     lddirs = set(lddirs)
     lddirs = list(lddirs)
