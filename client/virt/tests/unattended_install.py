@@ -1,7 +1,7 @@
 import logging, time, socket, re, os, shutil, tempfile, glob, ConfigParser
 import threading
 import xml.dom.minidom
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, iso9660
 from autotest_lib.client.bin import utils
 from autotest_lib.client.virt import virt_vm, virt_utils, virt_http_server
 from autotest_lib.client.virt import libvirt_vm, kvm_monitor
@@ -760,27 +760,20 @@ class UnattendedInstallConfig(object):
         """
         error.context("Copying vmlinuz and initrd.img from install cdrom %s" %
                       self.cdrom_cd1)
-        m_cmd = ('mount -t iso9660 -v -o loop,ro %s %s' %
-                 (self.cdrom_cd1, self.cdrom_cd1_mount))
-        utils.run(m_cmd, verbose=DEBUG)
+        i = iso9660.iso9660(self.cdrom_cd1)
+        if i is None:
+            raise error.TestFail("Could not instantiate an iso9660 class")
 
-        try:
-            if not os.path.isdir(self.image_path):
-                os.makedirs(self.image_path)
-            kernel_fetch_cmd = ("cp %s/%s/%s %s" %
-                                (self.cdrom_cd1_mount, self.boot_path,
-                                 os.path.basename(self.kernel), self.kernel))
-            utils.run(kernel_fetch_cmd, verbose=DEBUG)
-            initrd_fetch_cmd = ("cp %s/%s/%s %s" %
-                                (self.cdrom_cd1_mount, self.boot_path,
-                                 os.path.basename(self.initrd), self.initrd))
-            utils.run(initrd_fetch_cmd, verbose=DEBUG)
-            if self.unattended_file.endswith('.preseed'):
-                self.preseed_initrd()
+        if not os.path.isdir(self.image_path):
+            os.makedirs(self.image_path)
+        i.copy(os.path.join(self.boot_path, os.path.basename(self.kernel)),
+               self.kernel)
+        i.copy(os.path.join(self.boot_path, os.path.basename(self.initrd)),
+               self.initrd)
+        i.close()
 
-        finally:
-            if self.params.get("vm_type") == "kvm":
-                cleanup(self.cdrom_cd1_mount)
+        if self.unattended_file.endswith('.preseed'):
+            self.preseed_initrd()
 
         if self.params.get("vm_type") == "libvirt":
             if self.vm.driver_type == self.vm.LIBVIRT_QEMU:
