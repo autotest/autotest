@@ -14,7 +14,7 @@ For the not so impatient:
 
 You are *strongly* advised to read the online docs:
 
-http://www.linux-kvm.org/page/KVM-Autotest/Client_Install
+https://github.com/autotest/autotest/wiki/KVMAutotest
 
 So you can have a better idea of how the test is organized
 and how it works.
