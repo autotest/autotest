@@ -38,15 +38,15 @@ def dump(obj):
 # text_clean
 #
 def text_clean(text):
-   '''
-   This always seems like such a hack, however, there are some characters that we can't
-   deal with properly so this function just removes them from the text passed in.
-   '''
-   retval = text
-   retval = retval.replace('\xe2\x80\x98', "'")
-   retval = retval.replace('\xe2\x80\x99', "'")
-   retval = retval.replace('\xe2', "")
-   return retval
+    '''
+    This always seems like such a hack, however, there are some characters that we can't
+    deal with properly so this function just removes them from the text passed in.
+    '''
+    retval = text
+    retval = retval.replace('\xe2\x80\x98', "'")
+    retval = retval.replace('\xe2\x80\x99', "'")
+    retval = retval.replace('\xe2', "")
+    return retval
 
 # file_load
 #
