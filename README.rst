@@ -47,30 +47,38 @@ Getting started with autotest client
 
 For the impatient:
 
-http://autotest.kernel.org/wiki/QuickStart
+https://github.com/autotest/autotest/wiki/ClientQuickStart
 
 
-Check out the main project documentation source
------------------------------------------------
+Main project page
+-----------------
+
+http://autotest.github.com/
+
+
+Main project documentation source
+----------------------------------
 
 You can find plenty of information on the autotest wiki
 
-http://autotest.kernel.org/wiki
+http://github.com/autotest/autotest/wiki
+
 
 Grabbing the latest source
 --------------------------
 
-http://autotest.kernel.org/wiki/DownloadSource
+https://github.com/autotest/autotest
 
 
 Hacking and submitting patches
 ------------------------------
 
-http://autotest.kernel.org/wiki/SubmissionChecklist
+https://github.com/autotest/autotest/wiki/SubmissionChecklist
 
 
 Downloading stable versions
 ---------------------------
 
-http://autotest.kernel.org/wiki/Download
+https://github.com/autotest/autotest/downloads
+
 
