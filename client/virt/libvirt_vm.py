@@ -973,10 +973,9 @@ class VM(virt_vm.BaseVM):
                                 text=("waiting for domain %s to start" %
                                       self.name))
 
-            # Establish a session with the serial console -- requires a version
-            # of netcat that supports -U
+            # Establish a session with the serial console
             self.serial_console = aexpect.ShellSession(
-                "nc -U %s" % self.get_serial_console_filename(),
+                "tail -f %s" % self.get_serial_console_filename(),
                 auto_close=False,
                 output_func=virt_utils.log_line,
                 output_params=("serial-%s.log" % name,))
