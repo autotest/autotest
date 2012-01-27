@@ -1294,8 +1294,12 @@ class Flag(str):
     """
     Class for easy merge cpuflags.
     """
-    def __init__(self,  *args, **kwargs):
-        super(Flag, self).__init__( *args, **kwargs)
+    aliases = {}
+
+    def __new__(cls, flag):
+        if flag in Flag.aliases:
+            flag = Flag.aliases[flag]
+        return str.__new__(cls, flag)
 
     def __eq__(self, other):
         s = set(self.split("|"))
@@ -1321,6 +1325,12 @@ kvm_map_flags_to_test = {
             Flag('sse4a')                      :set(['sse4a']),
             Flag('fma4')                       :set(['fma4']),
             Flag('xop')                        :set(['xop']),
+            }
+
+
+kvm_map_flags_aliases = {
+            'sse4.1'              :'sse4_1',
+            'sse4.2'              :'sse4_2',
             }
 
 
