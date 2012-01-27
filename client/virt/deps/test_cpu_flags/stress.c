@@ -7,7 +7,7 @@
 
 #include "tests.h"
 
-#define size (40000000)
+#define size (4194304)
 
 void AddTwo(float *aa, float *bb, int num_threads) {
 	{
