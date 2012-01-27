@@ -133,6 +133,18 @@ class VMDeadKernelCrashError(VMError):
         return ("VM is dead due to a kernel crash:\n%s" % self.kernel_crash)
 
 
+class VMInvalidInstructionCode(VMError):
+    def __init__(self, invalid_code):
+        VMError.__init__(self, invalid_code)
+        self.invalid_code = invalid_code
+
+    def __str__(self):
+        error = ""
+        for invalid_code in self.invalid_code:
+            error += "%s" % (invalid_code)
+        return ("Invalid instruction was executed on VM:\n%s" % error)
+
+
 class VMAddressError(VMError):
     pass
 
@@ -654,6 +666,21 @@ class BaseVM(object):
                               re.DOTALL|re.MULTILINE)
             if match is not None:
                 raise VMDeadKernelCrashError(match.group(0))
+
+
+    def verify_illegal_instructonn(self):
+        """
+        Find illegal instruction code on VM serial console output.
+
+        @raise: VMInvalidInstructionCode, in case a wrong instruction code.
+        """
+        if self.serial_console is not None:
+            data = self.serial_console.get_output()
+            match = re.findall(r".*trap invalid opcode.*\n", data,
+                               re.MULTILINE)
+
+            if match:
+                raise VMInvalidInstructionCode(match)
 
 
     def get_params(self):
