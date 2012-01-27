@@ -3,17 +3,7 @@
 # This file contains the test set definitions. Define your test sets here.
 
 # Include the base config files.
-include base.cfg
-include subtests.cfg
-include guest-os.cfg
-include guest-hw.cfg
-include cdkeys.cfg
-include virtio-win.cfg
-
-# Virtualization type (kvm or libvirt)
-# TODO: Update code to use vm_library + vm_type + vm_subtype
-#           i.e.        (libvirt/none) + (qemu/kvm/xen) + (hvm/paravirt)
-vm_type = kvm
+include tests-shared.cfg
 
 # Here you can override the image name for our custom linux and windows guests
 #
@@ -35,24 +25,6 @@ CustomGuestWindows:
     # below, pointing the image name for the device you want
     #image_name = /dev/mapper/vg_windows_guest
     #image_raw_device = yes
-
-# Modify/comment the following lines if you wish to modify the paths of the
-# image files, ISO files or qemu binaries.
-#
-# As for the defaults:
-# * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
-#   /usr/bin/qemu-img respectively.
-# * All image files are expected under /tmp/kvm_autotest_root/images/
-# * All install iso files are expected under /tmp/kvm_autotest_root/isos/
-# * The parameters cdrom_unattended, floppy, kernel and initrd are generated
-#   by KVM autotest, so remember to put them under a writable location
-#   (for example, the cdrom share can be read only)
-image_name(_.*)? ?<= /tmp/kvm_autotest_root/images/
-cdrom(_.*)? ?<= /tmp/kvm_autotest_root/
-floppy ?<= /tmp/kvm_autotest_root/
-Linux..unattended_install:
-    kernel ?<= /tmp/kvm_autotest_root/
-    initrd ?<= /tmp/kvm_autotest_root/
 
 # Here are the test sets variants. The variant 'qemu_kvm_windows_quick' is
 # fully commented, the following ones have comments only on noteworthy points
@@ -155,19 +127,6 @@ variants:
         only smallpages
         only CustomGuestLinux
         only migrate
-
-# You may provide information about the DTM server for WHQL tests here:
-#whql:
-#    server_address = 10.20.30.40
-#    server_shell_port = 10022
-#    server_file_transfer_port = 10023
-# Note that the DTM server must run rss.exe (available under deps/),
-# preferably with administrator privileges.
-
-# Uncomment the following lines to enable abort-on-error mode:
-#abort_on_error = yes
-#kill_vm.* ?= no
-#kill_unresponsive_vms.* ?= no
 
 # Choose your test list from the testsets defined
 only qemu_kvm_f16_quick
