@@ -721,6 +721,9 @@ class VM(virt_vm.BaseVM):
         if params.get("use_os_variant") == "yes":
             virt_install_cmd += add_os_variant(help, params.get("os_variant"))
 
+        # Add serial console
+        virt_install_cmd += add_serial(help, self.get_serial_console_filename())
+
         # If the PCI assignment step went OK, add each one of the PCI assigned
         # devices to the command line.
         if self.pci_devices:
