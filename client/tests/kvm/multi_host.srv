@@ -1,26 +1,23 @@
-AUTHOR = "Yolkfull Chow <yzhou@redhat.com>"
+AUTHOR = "Jiri Zupka <jzupka@redhat.com>"
 TIME = "SHORT"
-NAME = "KVM Test (migration across multiple hosts)"
+NAME = ""
 TEST_CATEGORY = "Functional"
 TEST_CLASS = "Virtualization"
 TEST_TYPE = "Server"
-DOC = """
-Migrate KVM guest between two hosts. It parses the base config file, restricts
-it with appropriate parameters, generates the test dicts, modify the test_dicts
-so there's a distinction between the migration roles ('dest' or 'source').
+DOC = "KVM tests (multi-host) server control"
+Runs tests across multiple hosts. It uses the config file
+'multi-host-tests.cfg' in order to yield the appropriate
+dicts for the multi host test.
 """
 
 import sys, os, commands, glob, shutil, logging, random
 from autotest_lib.server import utils
-from autotest_lib.client.common_lib import cartesian_config
+from autotest_lib.client.common_lib import cartesian_config, error
 
 # Specify the directory of autotest before you start this test
-AUTOTEST_DIR = '/usr/local/autotest'
+AUTOTEST_DIR = job.clientdir
 
-# Specify the root directory that on client machines
-rootdir = '/tmp/kvm_autotest_root'
-
-KVM_DIR = os.path.join(AUTOTEST_DIR, 'client/tests/kvm')
+KVM_DIR = os.path.join(AUTOTEST_DIR, 'tests', 'kvm')
 
 
 def generate_mac_address():
@@ -34,7 +31,7 @@ def generate_mac_address():
 
 
 def run(pair):
-    logging.info("KVM migration running on source host [%s] and destination "
+    logging.info("KVM test running on source host [%s] and destination "
                  "host [%s]\n", pair[0], pair[1])
 
     source = hosts.create_host(pair[0])
@@ -42,46 +39,32 @@ def run(pair):
     source_at = autotest.Autotest(source)
     dest_at = autotest.Autotest(dest)
 
-    cfg_file = os.path.join(KVM_DIR, "tests_base.cfg")
+    cfg_file = os.path.join(KVM_DIR, "multi-host-tests.cfg")
 
     if not os.path.exists(cfg_file):
         raise error.JobError("Config file %s was not found", cfg_file)
 
     # Get test set (dictionary list) from the configuration file
     parser = cartesian_config.Parser()
-    test_variants = """
-image_name(_.*)? ?<= /tmp/kvm_autotest_root/images/
-cdrom(_.*)? ?<= /tmp/kvm_autotest_root/
-floppy ?<= /tmp/kvm_autotest_root/
-Linux:
-    unattended_install:
-        kernel ?<= /tmp/kvm_autotest_root/
-        initrd ?<= /tmp/kvm_autotest_root/
-qemu_binary = /usr/libexec/qemu-kvm
-qemu_img_binary = /usr/bin/qemu-img
-only qcow2
-only virtio_net
-only virtio_blk
-only smp2
-only no_pci_assignable
-only smallpages
-only Fedora.14.64
-only migrate_multi_host
-nic_mode = tap
-nic_mac_nic1 = %s
-""" % (generate_mac_address())
     parser.parse_file(cfg_file)
-    parser.parse_string(test_variants)
     test_dicts = parser.get_dicts()
 
     source_control_file = dest_control_file = """
-kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests/kvm')
-sys.path.append(kvm_test_dir)\n
+testname = "kvm"
+bindir = os.path.join(job.testdir, testname)
+job.install_pkg(testname, 'test', bindir)
+
+kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'kvm')
+sys.path.append(kvm_test_dir)
 """
+    import sys
+
     for params in test_dicts:
         params['srchost'] = source.ip
         params['dsthost'] = dest.ip
-        params['rootdir'] = rootdir
+
+        for nic in params.get('nics',"").split():
+            params['nic_mac_%s' % nic] = generate_mac_address()
 
         source_params = params.copy()
         source_params['role'] = "source"
