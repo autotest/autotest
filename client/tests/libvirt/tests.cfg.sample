@@ -82,7 +82,7 @@ variants:
         image_format = raw
         virt_install_debug = yes
         hvm_or_pv = hvm
-        mem = 4196
+        mem = 1024
         install_virtio = no
         only raw
         only rtl8139
@@ -91,7 +91,7 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only Windows.Win7.64
+        only Win7.64.sp1
         only unattended_install.cdrom, boot, reboot, shutdown
 
 # Modify/comment the following lines if you wish to modify the paths of the
