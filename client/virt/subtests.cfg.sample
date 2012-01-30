@@ -1411,11 +1411,22 @@ variants:
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
         variants:
             - interface:
-                test_type = "test_qemu_interface"
+                test_type = "test_qemu_interface_group"
             - boot_guest:
-                test_type = "test_boot_guest"
+                test_type = "test_boot_guest_group"
             - stress_guest:
-                test_type = "test_stress_guest"
+                test_type = "test_stress_guest_group"
+
+    - cpuflags_multi_host:
+        type = cpuflags
+        test_type = test_multi_host_migration_group
+        #Disable all unnecessary vms.
+        vms = ""
+        #Try to start guest with all flags which are supported by host.
+        all_host_supported_flags = "no"
+        cpu_models = "core2duo:sse3"
+        guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
+        host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
 
     - cpu_hotplug_test:
         type = cpu_hotplug

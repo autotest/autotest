@@ -1,0 +1,46 @@
+# Copy this file to tests.cfg and edit it.
+#
+# This file contains the test set definitions. Define your test sets here.
+
+# Include the base config files.
+include tests-config.cfg
+
+# Here are the test sets variants. The variant 'qemu_kvm_windows_quick' is
+# fully commented, the following ones have comments only on noteworthy points
+variants:
+    # Runs all variants defined. HUGE test set.
+    - @full:
+
+    # Runs qemu-kvm, Windows Vista 64 bit guest OS, install, boot, shutdown
+    - @qemu_migrate_multi_host:
+        qemu_binary = /usr/bin/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        nic_mode = tap
+        only qcow2
+        only virtio_net
+        only virtio_blk
+        only smp2
+        only no_pci_assignable
+        only no_9p_export
+        only smallpages
+        only Fedora.15.64
+        only migrate_multi_host
+
+    # Runs qemu, f16 64 bit guest OS, install, boot, shutdown
+    - @qemu_cpuflags_multi_host:
+        qemu_binary = /usr/bin/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        nic_mode = tap
+        only qcow2
+        only virtio_net
+        only virtio_blk
+        only smp2
+        only no_pci_assignable
+        only no_9p_export
+        only smallpages
+        only Fedora.15.64
+        only cpuflags_multi_host
+
+only qemu_cpuflags_multi_host
