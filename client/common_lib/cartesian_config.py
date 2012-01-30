@@ -28,7 +28,8 @@ Cartesian configuration format file parser.
 @copyright: Red Hat 2008-2011
 """
 
-import re, os, optparse, collections
+import re, os, optparse, collections, commands
+from distutils import version
 
 class ParserError:
     def __init__(self, msg, line=None, filename=None, linenum=None):
@@ -674,6 +675,77 @@ class FileReader(StrReader):
         StrReader.__init__(self, open(filename).read())
         self.filename = filename
 
+def get_host_distribution(os_distributions):
+    """
+    Get the host distribution category
+ 
+    @os_distributions: String with the pattern and distribution name
+    @return: None or distribution name
+    """
+    s, o = commands.getstatusoutput("cat /etc/issue")
+    if s != 0:
+        print "Can not get host distribution."
+        os_distribution = None
+
+    dict_os = {}
+    for i in re.split(";", os_distributions):
+        dict_os[re.split(":", i)[0]] = re.split(":", i)[1]
+
+    for keys in dict_os:
+        distribution = re.findall(keys, o)
+        if distribution:
+            os_distribution = dict_os[distribution[0]]
+            print "Host distribution is %s" % os_distribution
+            break;
+        else:
+            print "Distribution don't fit"
+            os_distribution = None
+    return os_distribution
+
+def get_host_verson(dict_test):
+    """
+    Get host version by kernel version
+    
+    @dict_test: one dict of the list test cases
+    @return: host version category
+    """
+    os_distribution = get_host_distribution(dict_test.get("OS_distributions"))
+    if os_distribution:
+       s, o = commands.getstatusoutput("uname -r")
+       if s != 0:
+           print "Can not get kernel version"
+           host_version = None
+       else:
+           cur_v = version.LooseVersion(o)
+           hvs = dict_test.get("%s_version_standard" % os_distribution)
+           v_dict = {}
+           for i in re.split(";", hvs):
+               v_dict[re.split(":", i)[1]] = re.split(":", i)[0]
+
+           v_list = sorted(v_dict.items()
+                           ,key=lambda v_dict:version.LooseVersion(v_dict[0]))
+
+           if cur_v < version.LooseVersion(v_list[0][0]):
+               print "Old version of %s" % os_distribution
+               host_version = None
+           elif cur_v > version.LooseVersion(v_list[-1][0]):
+               host_version = v_list[-1][1]
+           else:
+               count = 1
+               while count < len(v_list):
+                   if cur_v >= version.LooseVersion(v_list[count-1][0]) and\
+                      cur_v <= version.LooseVersion(v_list[count][0]):
+                       host_version = v_list[count-1][1]
+                       break;
+                   elif cur_v >= version.LooseVersion(v_list[count][0]):
+                       count += 1
+           if host_version:
+                print "Host kernel version is %s" % host_version
+    else:
+        print "Unknown distribution"
+        host_version = None
+    return host_version
+
 
 if __name__ == "__main__":
     parser = optparse.OptionParser('usage: %prog [options] filename '
@@ -691,6 +763,20 @@ if __name__ == "__main__":
         parser.error("filename required")
 
     c = Parser(args[0], debug=options.debug)
+
+    # Get host version related parameters
+    host_tmp = {}
+    for i in c.get_dicts():
+        host_tmp = i
+    if len(host_tmp) > 0:
+        host_version = get_host_verson(host_tmp)
+        str = ""
+        if host_version:
+            str += "only %s_host\n" % host_version
+        else:
+            str += "only default_host"
+        c.parse_string(str)
+
     for s in args[1:]:
         c.parse_string(s)
 

@@ -1,3 +1,4 @@
+import logging, re
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.virt import kvm_monitor
 
@@ -77,7 +78,7 @@ def run_qmp_basic(test, params, env):
     def check_key_is_int(qmp_dict, key):
         fail_no_key(qmp_dict, key)
         try:
-            value = int(qmp_dict[key])
+            int(qmp_dict[key])
         except Exception:
             raise error.TestFail("'%s' key is not of type int, it's '%s'" %
                                  (key, type(qmp_dict[key])))
@@ -111,6 +112,7 @@ def run_qmp_basic(test, params, env):
         @param classname: Expected error class name
         @param datadict: Expected error data dictionary
         """
+        logging.debug("resp %s", str(resp))
         check_key_is_dict(resp, "error")
         check_key_is_str(resp["error"], "class")
         if classname and resp["error"]["class"] != classname:
@@ -130,9 +132,14 @@ def run_qmp_basic(test, params, env):
         { "qemu": { "major": json-int, "minor": json-int, "micro": json-int }
           "package": json-string }
         """
-        check_key_is_dict(version, "qemu")
-        for key in [ "major", "minor", "micro" ]:
-            check_key_is_int(version["qemu"], key)
+        check_details = params.get("check_details", "yes")
+        if check_details == "yes":
+            check_key_is_dict(version, "qemu")
+            for key in [ "major", "minor", "micro" ]:
+                check_key_is_int(version["qemu"], key)
+        else:
+            check_key_is_str(version, "qemu")
+
         check_key_is_str(version, "package")
 
 
@@ -224,10 +231,15 @@ def run_qmp_basic(test, params, env):
         "arguments" and "id". Although expansion is supported, invalid key
         names must be detected.
         """
+        expected_error = params.get("expected_error",
+                                    "QMPExtraInputObjectMember")
+        data_dict_str = params.get("data_dict", "member:foobar")
+        data_dict = {}
+        for i in re.split(";", data_dict_str.strip()):
+            item = re.split(":", i.strip())
+            data_dict[item[0].strip()] = item[1].strip()
         resp = monitor.cmd_obj({ "execute": "eject", "foobar": True })
-        check_error_resp(resp, "QMPExtraInputObjectMember",
-                         { "member": "foobar" })
-
+        check_error_resp(resp, expected_error, data_dict)
 
     def test_bad_arguments_key_type(monitor):
         """
@@ -270,7 +282,8 @@ def run_qmp_basic(test, params, env):
         """
         for cmd in [ "foo", [], True, 1 ]:
             resp = monitor.cmd_obj(cmd)
-            check_error_resp(resp, "QMPBadInputObject", { "expected":"object" })
+            check_error_resp(resp,
+                             "QMPBadInputObject", { "expected":"object" })
 
 
     def test_good_input_obj(monitor):
@@ -285,11 +298,11 @@ def run_qmp_basic(test, params, env):
         resp = monitor.cmd_obj({ "arguments": {}, "execute": "query-version" })
         check_success_resp(resp)
 
-        id = "1234foo"
-        resp = monitor.cmd_obj({ "id": id, "execute": "query-version",
+        id_key = "1234foo"
+        resp = monitor.cmd_obj({ "id": id_key, "execute": "query-version",
                                  "arguments": {} })
         check_success_resp(resp)
-        check_str_key(resp, "id", id)
+        check_str_key(resp, "id", id_key)
 
         # TODO: would be good to test simple argument usage, but we don't have
         # a read-only command that accepts arguments.
@@ -319,36 +332,46 @@ def run_qmp_basic(test, params, env):
         command used doesn't matter much as QMP performs argument checking
         _before_ calling the command.
         """
-        # stop doesn't take arguments
-        resp = monitor.cmd_qmp("stop", { "foo": 1 })
-        check_error_resp(resp, "InvalidParameter", { "name": "foo" })
-
-        # required argument omitted
-        resp = monitor.cmd_qmp("screendump")
-        check_error_resp(resp, "MissingParameter", { "name": "filename" })
-
-        # 'bar' is not a valid argument
-        resp = monitor.cmd_qmp("screendump", { "filename": "outfile",
-                                               "bar": "bar" })
-        check_error_resp(resp, "InvalidParameter", { "name": "bar"})
-
+        # qmp in RHEL6 is different from 0.13.*:
+        # 1. 'stop' command just return {} evenif stop have arguments.
+        # 2. there is no 'screendump' command.
+        # 3. argument isn't checked in 'device' command.
+        # so skip these tests in RHEL6.
+        check_stop = params.get("check_stop", "yes")
+        check_screendump = params.get("check_screendump", "yes")
+        check_device = params.get("check_device", "yes")
+        migrate_set_speed_type = params.get("migrate_set_speed_type",
+                                            "number")
+        if check_stop == "yes":
+            # stop doesn't take arguments
+            resp = monitor.cmd_qmp("stop", { "foo": 1 })
+            check_error_resp(resp, "InvalidParameter", { "name": "foo" })
+        if check_screendump == "yes":
+            # required argument omitted
+            resp = monitor.cmd_qmp("screendump")
+            check_error_resp(resp, "MissingParameter", { "name": "filename" })
+ 
+            # 'bar' is not a valid argument
+            resp = monitor.cmd_qmp("screendump", { "filename": "outfile",
+                                                   "bar": "bar" })
+            check_error_resp(resp, "InvalidParameter", { "name": "bar"})
+            # filename argument must be a json-string
+            for arg in [ {}, [], 1, True ]:
+                resp = monitor.cmd_qmp("screendump", { "filename": arg })
+                check_error_resp(resp, "InvalidParameterType",
+                                 { "name": "filename", "expected": "string" })
+        if check_device == "yes":
+        # force argument must be a json-bool
+            for arg in [ {}, [], 1, "foo" ]:
+                resp = monitor.cmd_qmp("eject",
+                                       { "force": arg, "device": "foo" })
+                check_error_resp(resp, "InvalidParameterType",
+                                 { "name": "force", "expected": "bool" })
         # test optional argument: 'force' is omitted, but it's optional, so
         # the handler has to be called. Test this happens by checking an
         # error that is generated by the handler itself.
         resp = monitor.cmd_qmp("eject", { "device": "foobar" })
         check_error_resp(resp, "DeviceNotFound")
-
-        # filename argument must be a json-string
-        for arg in [ {}, [], 1, True ]:
-            resp = monitor.cmd_qmp("screendump", { "filename": arg })
-            check_error_resp(resp, "InvalidParameterType",
-                             { "name": "filename", "expected": "string" })
-
-        # force argument must be a json-bool
-        for arg in [ {}, [], 1, "foo" ]:
-            resp = monitor.cmd_qmp("eject", { "force": arg, "device": "foo" })
-            check_error_resp(resp, "InvalidParameterType",
-                             { "name": "force", "expected": "bool" })
 
         # val argument must be a json-int
         for arg in [ {}, [], True, "foo" ]:
@@ -361,16 +384,16 @@ def run_qmp_basic(test, params, env):
         for arg in [ {}, [], True, "foo" ]:
             resp = monitor.cmd_qmp("migrate_set_speed", { "value": arg })
             check_error_resp(resp, "InvalidParameterType",
-                             { "name": "value", "expected": "number" })
+                      { "name": "value", "expected": migrate_set_speed_type })
 
         # qdev-type commands have their own argument checker, all QMP does
         # is to skip its checking and pass arguments through. Check this
         # works by providing invalid options to device_add and expecting
         # an error message from qdev
-        resp = monitor.cmd_qmp("device_add", { "driver": "e1000",
-                                              "foo": "bar" })
+        resp = monitor.cmd_qmp("device_add",
+                               { "driver": "e1000", "foo": "bar" })
         check_error_resp(resp, "PropertyNotFound",
-                               {"device": "e1000", "property": "foo"})
+                         {"device": "e1000", "property": "foo"})
 
 
     def unknown_commands_suite(monitor):

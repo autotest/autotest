@@ -1,0 +1,59 @@
+# Host version related parameters
+Fedora_version_standard = "Fedora_13:2.6.33;Fedora_14:2.6.35;Fedora_15:2.6.38;Fedora_16:3.1.0"
+
+RHEL_Server_version_standard = "RHEL_Server_5.5:2.6.18-194;RHEL_Server_5.6:2.6.18-238;RHEL_Server_5.7:2.6.18-274;RHEL_Server_6.0:2.6.32-71;RHEL_Server_6.1:2.6.32-131;RHEL_Server_6.2:2.6.32-132"
+
+OS_distributions = "Fedora:Fedora;Red Hat Enterprise Linux:RHEL_Server"
+
+# Host
+variants:
+    - @default_host:
+    - RHEL_Server_5.6_host:
+
+    - RHEL_Server_5.7_host:
+
+    - RHEL_Server_6.0_host:
+        qmp_basic:
+            check_details = no
+            expected_error = "MissingParameter" 
+            data_dict = "name:device"
+            check_stop = no
+            check_screendump = no
+            check_device = no
+
+    - RHEL_Server_6.1_host:
+        virtio_nic:
+            vhost = "vhost=on"
+        qmp_basic:
+            check_details = no
+            expected_error = "MissingParameter" 
+            data_dict = "name:device"
+            check_stop = no
+            check_screendump = no
+            check_device = no
+
+    - RHEL_Server_6.2_host:
+        virtio_nic:
+            vhost = "vhost=on"
+        qmp_basic:
+            expected_error = "MissingParameter" 
+            data_dict = "name:device"
+            check_stop = no
+            check_screendump = no
+            check_device = no
+
+    - Fedora_13_host:
+        qmp_basic:
+            migrate_set_speed_type = int
+
+    - Fedora_14_host:
+        qmp_basic:
+            migrate_set_speed_type = int
+
+    - Fedora_15_host:
+        qmp_basic:
+            migrate_set_speed_type = int
+
+    - Fedora_16_host:
+        qmp_basic:
+            migrate_set_speed_type = int

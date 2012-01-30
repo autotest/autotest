@@ -9,6 +9,7 @@ include guest-os.cfg
 include guest-hw.cfg
 include cdkeys.cfg
 include virtio-win.cfg
+include host-version.cfg
 
 # Virtualization type (kvm or libvirt)
 # TODO: Update code to use vm_library + vm_type + vm_subtype
