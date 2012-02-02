@@ -26,7 +26,10 @@ Most options should be fairly self explanatory, use --help to display them.
 """
 
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import logging, re, os, sys, optparse, compiler
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import models

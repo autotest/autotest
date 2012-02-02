@@ -8,7 +8,11 @@ Step file creator/editor.
 """
 
 import pygtk, gtk, os, glob, shutil, sys, logging
-import common, ppm_utils
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+import ppm_utils
 pygtk.require('2.0')
 
 

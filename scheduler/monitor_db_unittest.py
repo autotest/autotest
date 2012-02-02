@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import gc, logging, time
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.frontend import setup_django_environment
 from autotest_lib.frontend.afe import frontend_test_utils
 from autotest_lib.client.common_lib.test_utils import mock

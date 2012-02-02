@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import cgi, traceback, urllib2
-import common
+try:
+    import autotest.common
+except ImportError:
+    import common
 from autotest_lib.frontend.afe.json_rpc import serviceHandler
 
 script = """\

@@ -1,6 +1,9 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.server.autoserv_parser import base_autoserv_parser
 
 

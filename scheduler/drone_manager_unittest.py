@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import os, unittest
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.scheduler import drone_manager, drone_utility, drones

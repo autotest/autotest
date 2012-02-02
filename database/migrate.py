@@ -2,7 +2,10 @@
 
 import os, sys, re, subprocess, tempfile
 from optparse import OptionParser
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import MySQLdb, MySQLdb.constants.ER
 from autotest_lib.client.common_lib import global_config, utils
 from autotest_lib.database import database_connection

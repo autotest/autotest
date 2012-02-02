@@ -6,7 +6,10 @@
 
 import unittest, sys, os
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.cli import cli_mock, topic_common, test
 
 

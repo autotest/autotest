@@ -30,7 +30,10 @@ See doctests/001_rpc_test.txt for (lots) more examples.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.frontend.afe import models, model_logic, model_attributes
 from autotest_lib.frontend.afe import control_file, rpc_utils
 from autotest_lib.client.common_lib import global_config

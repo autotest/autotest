@@ -4,7 +4,10 @@ Library for autotest-remote usage.
 
 import sys, os, re, traceback, signal, time, logging, getpass
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 
 from autotest_lib.client.common_lib.global_config import global_config
 require_atfork = global_config.get_config_value(

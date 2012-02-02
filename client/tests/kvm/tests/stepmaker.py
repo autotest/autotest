@@ -8,7 +8,10 @@ Step file creator/editor.
 """
 
 import pygtk, gtk, gobject, time, os, commands, logging
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.virt import virt_utils, ppm_utils, virt_step_editor
 from autotest_lib.client.virt import kvm_monitor

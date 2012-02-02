@@ -1,5 +1,8 @@
 import cPickle, os, tempfile, logging
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.scheduler import drone_utility, email_manager
 from autotest_lib.client.common_lib import error, global_config
 

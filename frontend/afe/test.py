@@ -1,4 +1,7 @@
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import os, doctest, glob, sys
 from django.conf import settings
 from django.db import connection

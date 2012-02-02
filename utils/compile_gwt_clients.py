@@ -1,5 +1,8 @@
 #!/usr/bin/python
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import sys, os, shutil, errno, optparse, logging
 from autotest_lib.client.common_lib import error, utils
 from autotest_lib.client.common_lib import logging_config, logging_manager

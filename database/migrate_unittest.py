@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import unittest, tempfile, os
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import MySQLdb
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.database import database_connection, migrate

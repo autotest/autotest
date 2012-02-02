@@ -1,6 +1,9 @@
 #!/usr/bin/python
 import unittest, os, socket, time, sys, struct
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import utils
 from autotest_lib.client.bin.net import net_utils, net_utils_mock
 from autotest_lib.client.common_lib.test_utils import mock

@@ -84,7 +84,10 @@ from common_lib.error import AutoservError
 For example:
 import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
 import sys, time, urllib, urlparse
-import common   # Magic autotest_lib module and sys.path setup code.
+try:
+    import autotest.common   
+except ImportError:
+    import common   # Magic autotest_lib module and sys.path setup code.
 import MySQLdb  # After common so that we check our site-packages first.
 from common_lib import error
 

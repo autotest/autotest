@@ -10,7 +10,10 @@ running through autotest.
 __author__ = 'cranger@google.com (Colby Ranger)'
 
 import platform
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import barrier
 
 # Client control file snippet used to synchronize profiler start & stop.

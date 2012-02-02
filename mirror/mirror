@@ -2,7 +2,10 @@
 
 import optparse, os, re
 
-import common
+try:
+    import autotest.common
+except ImportError:
+    import common
 from autotest_lib.mirror import trigger
 
 default_config_path = os.path.expanduser(

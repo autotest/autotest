@@ -2,7 +2,10 @@
 
 import os, unittest, StringIO, socket, urllib2, shutil, subprocess, logging
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import base_utils, autotemp
 from autotest_lib.client.common_lib.test_utils import mock
 

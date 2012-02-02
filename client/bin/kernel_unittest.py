@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import unittest, os, time, re, glob, logging
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.bin import kernel, job, utils, kernelexpand
 from autotest_lib.client.bin import kernel_config, boottool, os_dep

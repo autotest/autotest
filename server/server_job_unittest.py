@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import tempfile
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 
 from autotest_lib.server import server_job
 from autotest_lib.client.common_lib import base_job_unittest

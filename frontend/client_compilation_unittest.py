@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import os, shutil, tempfile, unittest
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 
 _AUTOTEST_DIR = common.autotest_dir
 

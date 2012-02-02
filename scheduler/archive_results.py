@@ -1,6 +1,10 @@
 #!/usr/bin/python
 
-import common, logging
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+import logging
 from autotest_lib.client.common_lib import global_config, utils
 from autotest_lib.scheduler import drone_utility
 

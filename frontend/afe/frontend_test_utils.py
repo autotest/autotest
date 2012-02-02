@@ -1,5 +1,8 @@
 import atexit, datetime, os, tempfile, unittest
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.frontend import setup_test_environment
 from autotest_lib.frontend import thread_local
 from autotest_lib.frontend.afe import models, model_attributes

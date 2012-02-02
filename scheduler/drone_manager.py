@@ -1,5 +1,9 @@
 import os, re, shutil, signal, subprocess, errno, time, heapq, traceback
-import common, logging
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+import logging
 from autotest_lib.client.common_lib import error, global_config
 from autotest_lib.scheduler import email_manager, drone_utility, drones
 from autotest_lib.scheduler import scheduler_config
