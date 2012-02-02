@@ -2,7 +2,7 @@
 #
 # autotest <control file> - run the autotest control file specified.
 #
-import autotest
+import autotest_local
 
 if __name__ == '__main__':
-    autotest.main()
+    autotest_local.main()
