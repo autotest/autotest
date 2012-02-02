@@ -16,7 +16,7 @@ from autotest_lib.server import utils
 def run(pair):
     logging.info('Running on %s and %s', pair[0], pair[1])
     host_objs = [hosts.create_host(machine) for machine in pair]
-    host_at_objs = [autotest.Autotest(host) for host in host_objs]
+    host_at_objs = [autotest_remote.Autotest(host) for host in host_objs]
 
     client_control_template = """
 import logging, platform, socket, traceback

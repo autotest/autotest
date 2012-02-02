@@ -1,4 +1,4 @@
-from autotest_lib.server import autotest, hosts, subcommand, test
+from autotest_lib.server import autotest_remote, hosts, subcommand, test
 from autotest_lib.server import utils
 
 class iperf(test.test):
@@ -25,8 +25,8 @@ class iperf(test.test):
             if not status.exit_status:
                 m.disable_ipfilters()
 
-        server_at = autotest.Autotest(server)
-        client_at = autotest.Autotest(client)
+        server_at = autotest_remote.Autotest(server)
+        client_at = autotest_remote.Autotest(client)
 
         template = ''.join(["job.run_test('iperf', server_ip='%s', client_ip=",
                             "'%s', role='%s', udp=%s, bidirectional=%s,",
