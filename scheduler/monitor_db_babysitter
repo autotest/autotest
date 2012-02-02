@@ -1,7 +1,10 @@
 #!/usr/bin/python -u
 import os, sys, signal, time, subprocess, logging
 from optparse import OptionParser
-import common
+try:
+    import autotest.common
+except ImportError:
+    import common
 from autotest_lib.scheduler import babysitter_logging_config
 from autotest_lib.client.common_lib import error, global_config, utils
 from autotest_lib.client.common_lib import logging_manager

@@ -1,6 +1,9 @@
 import re, os, sys, types, time, random
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.tko import utils
 

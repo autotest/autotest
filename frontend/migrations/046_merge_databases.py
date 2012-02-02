@@ -1,4 +1,7 @@
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.database import db_utils, migrate
 
 TKO_MIGRATION_NAME = '031_rename_tko_tables'

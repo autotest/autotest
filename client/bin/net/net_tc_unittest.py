@@ -3,7 +3,10 @@
 # TODO(chavey) complete all the unit test in this file
 
 import unittest, os, socket, time, sys
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.bin import utils
 from autotest_lib.client.bin.net import net_tc, net_utils, net_utils_mock
 from autotest_lib.client.common_lib.test_utils import mock

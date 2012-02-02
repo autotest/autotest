@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import cgi, os, sys, urllib2
-import common
+try:
+    import autotest.common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.bin import utils
 from autotest_lib.frontend.afe.json_rpc import serviceHandler

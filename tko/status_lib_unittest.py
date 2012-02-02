@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import unittest
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.tko import status_lib
 from autotest_lib.client.common_lib import log
 

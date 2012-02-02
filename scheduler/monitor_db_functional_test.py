@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import logging, os, unittest
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import enum, global_config, host_protections
 from autotest_lib.database import database_connection
 from autotest_lib.frontend import setup_django_environment

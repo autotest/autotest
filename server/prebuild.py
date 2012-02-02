@@ -3,7 +3,10 @@
 # Eric Li <ericli@google.com>
 
 import logging, os, pickle, re, sys
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.bin import setup_job as client_setup_job
 
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from django.core.management import execute_manager
 try:
     import settings # Assumed to be in the same directory.

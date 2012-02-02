@@ -5,7 +5,10 @@
 """Test for the rpc proxy class."""
 
 import unittest, os
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.cli import rpc
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.frontend.afe import rpc_client_lib

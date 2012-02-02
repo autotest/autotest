@@ -2,7 +2,10 @@
 
 import os, sys, optparse, fcntl, errno, traceback, socket
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import mail, pidfile
 from autotest_lib.tko import db as tko_db, utils as tko_utils, status_lib, models
 from autotest_lib.client.common_lib import utils

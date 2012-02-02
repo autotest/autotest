@@ -1,7 +1,10 @@
 import tempfile, shutil, os
 from django.core import management
 from django.conf import settings
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 
 # we need to set DATABASE_ENGINE now, at import time, before the Django database
 # system gets initialized.

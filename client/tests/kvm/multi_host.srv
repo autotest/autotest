@@ -19,6 +19,10 @@ AUTOTEST_DIR = job.clientdir
 
 KVM_DIR = os.path.join(AUTOTEST_DIR, 'tests', 'kvm')
 
+try:
+    import autotest.common
+except ImportError:
+    import common
 
 def generate_mac_address():
     r = random.SystemRandom()

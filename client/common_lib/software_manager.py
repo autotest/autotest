@@ -20,7 +20,10 @@ try:
     import yum
 except Exception:
     pass
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.bin import os_dep, utils
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import logging_config, logging_manager

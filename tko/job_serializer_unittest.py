@@ -6,7 +6,10 @@ Mostly test if the serialized object has the expected content.
 
 """
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import datetime
 import os
 import re

@@ -1,6 +1,9 @@
 #!/usr/bin/python
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import unittest
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.frontend import setup_django_environment

@@ -5,7 +5,10 @@
 __author__ = 'gps@google.com (Gregory Smith)'
 
 import unittest
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.bin import fsdev_disks
 
 class fsdev_disks_test(unittest.TestCase):

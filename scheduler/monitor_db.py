@@ -5,7 +5,10 @@ Autotest scheduler
 """
 
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import datetime, errno, optparse, os, pwd, Queue, re, shutil, signal
 import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback, urllib
 import itertools, logging, weakref, gc

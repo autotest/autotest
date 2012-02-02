@@ -18,7 +18,6 @@ class InvalidAutotestResultDirError(Exception):
     def __str__(self):
         return "Invalid Autotest results directory: %s" % self.directory
 
-
 format_css = """
 html, body {
     padding: 0;

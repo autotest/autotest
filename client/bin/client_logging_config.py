@@ -1,4 +1,7 @@
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import logging, os
 from autotest_lib.client.common_lib import logging_config, global_config
 

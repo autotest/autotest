@@ -2,7 +2,10 @@
 
 import unittest, datetime, time
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import utils
 from autotest_lib.tko.parsers import version_1
 

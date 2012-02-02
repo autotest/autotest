@@ -3,7 +3,10 @@
 # change_protection_level.py "No protection" machine1 machine2 machine3
 
 import sys, optparse, traceback, pwd, os
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.cli import rpc, host
 
 usage = 'usage: %prog [options] new_protection_level machine1 machine2 ...'

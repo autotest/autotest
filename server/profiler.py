@@ -1,5 +1,8 @@
 import itertools
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 
 
 def _get_unpassable_types(arg):

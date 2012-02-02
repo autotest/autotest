@@ -6,7 +6,10 @@ The interface between the client and the server when hosted.
 __author__ = """Copyright Andy Whitcroft 2006"""
 
 import os, sys, logging
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 
 class harness(object):
     """The NULL server harness

@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import sys, optparse, pwd
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.cli import rpc, host
 from autotest_lib.client.common_lib import host_queue_entry_states
 

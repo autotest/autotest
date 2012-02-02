@@ -1,6 +1,9 @@
 #!/usr/bin/python
 
-import common
+try:
+    import autotest.common
+except ImportError:
+    import common
 import sys, os, subprocess, fcntl
 
 
