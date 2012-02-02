@@ -9,7 +9,7 @@ def usage():
 
 def run(client):
     m = hosts.create_host(client)
-    at = autotest.Autotest()
+    at = autotest_remote.Autotest()
 
     results_dir = os.path.join(logdir, client)
     at.run_test(test, results_dir, m)

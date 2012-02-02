@@ -1,12 +1,12 @@
 def run(machine):
 	host = hosts.create_host(machine)
-        at = autotest.Autotest(host)
+        at = autotest_remote.Autotest(host)
         at.run_timed_test('sleeptest', seconds=1, timeout=15) # no exception
 	try:
 		at.run_timed_test('sleeptest', seconds=30, timeout=5)
                 # should timeout
 		raise 'Test failed to timeout!'
-	except autotest.AutotestTimeoutError:
+	except autotest_remote.AutotestTimeoutError:
 		print 'Timeout test success!'
 
 job.parallel_simple(run, machines)

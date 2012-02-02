@@ -41,7 +41,7 @@ gserver.wait_up()
 
 
 print "XXXX installing autotest"
-at= autotest.Autotest()
+at= autotest_remote.Autotest()
 at.get("/home/foo/autotest/client")
 at.install(gserver)
 at.install(remote_host2)
