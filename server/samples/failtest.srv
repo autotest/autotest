@@ -1,6 +1,6 @@
 def run(machine):
     host = hosts.create_host(machine)
-    at = autotest.Autotest(host)
+    at = autotest_remote.Autotest(host)
     at.run_test('failtest')
 
 job.parallel_simple(run, machines)

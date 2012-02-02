@@ -1,5 +1,5 @@
 from autotest_lib.client.common_lib import utils, error, global_config
-from autotest_lib.server import autotest, utils as server_utils
+from autotest_lib.server import autotest_remote, utils as server_utils
 from autotest_lib.server.hosts import site_factory, ssh_host, serial
 from autotest_lib.server.hosts import logfile_monitor
 
@@ -28,7 +28,7 @@ def create_host(
                                   SSH_ENGINE)
 
     # by default mix in run_test support
-    classes.append(autotest.AutotestHostMixin)
+    classes.append(autotest_remote.AutotestHostMixin)
 
     # if the user really wants to use netconsole, let them
     if netconsole:

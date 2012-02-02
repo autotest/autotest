@@ -5,7 +5,7 @@ __author__ = "raphtee@google.com (Travis Miller)"
 import unittest, os, tempfile, logging
 
 import common
-from autotest_lib.server import autotest, utils, hosts, server_job, profilers
+from autotest_lib.server import autotest_remote, utils, hosts, server_job, profilers
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import utils as client_utils, packages
 from autotest_lib.client.common_lib import error
@@ -50,12 +50,12 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(os, "remove")
         self.god.stub_function(os, "fdopen")
         self.god.stub_function(os.path, "exists")
-        self.god.stub_function(autotest, "open")
-        self.god.stub_function(autotest.global_config.global_config,
+        self.god.stub_function(autotest_remote, "open")
+        self.god.stub_function(autotest_remote.global_config.global_config,
                                "get_config_value")
         self.god.stub_function(logging, "exception")
-        self.god.stub_class(autotest, "_Run")
-        self.god.stub_class(autotest, "log_collector")
+        self.god.stub_class(autotest_remote, "_Run")
+        self.god.stub_class(autotest_remote, "log_collector")
 
 
     def tearDown(self):
@@ -70,7 +70,7 @@ class TestBaseAutotest(unittest.TestCase):
         utils.get_server_dir.expect_call().and_return(self.serverdir)
 
         # create the autotest object
-        self.base_autotest = autotest.BaseAutotest(self.host)
+        self.base_autotest = autotest_remote.BaseAutotest(self.host)
         self.base_autotest.job = self.host.job
         self.god.stub_function(self.base_autotest, "_install_using_send_file")
 
@@ -117,7 +117,7 @@ class TestBaseAutotest(unittest.TestCase):
     def test_full_client_install(self):
         self.record_install_prologue()
 
-        c = autotest.global_config.global_config
+        c = autotest_remote.global_config.global_config
         c.get_config_value.expect_call('PACKAGES',
                                        'serve_packages_from_autoserv',
                                        type=bool).and_return(False)
@@ -132,7 +132,7 @@ class TestBaseAutotest(unittest.TestCase):
     def test_autoserv_install(self):
         self.record_install_prologue()
 
-        c = autotest.global_config.global_config
+        c = autotest_remote.global_config.global_config
         c.get_config_value.expect_call('PACKAGES',
             'fetch_location', type=list, default=[]).and_return([])
 
@@ -149,7 +149,7 @@ class TestBaseAutotest(unittest.TestCase):
     def test_packaging_install(self):
         self.record_install_prologue()
 
-        c = autotest.global_config.global_config
+        c = autotest_remote.global_config.global_config
         c.get_config_value.expect_call('PACKAGES',
             'fetch_location', type=list, default=[]).and_return(['repo'])
         pkgmgr = packages.PackageManager.expect_new('autodir',
@@ -181,7 +181,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.base_autotest.install.expect_call(self.host)
         self.host.wait_up.expect_call(timeout=30)
         os.path.abspath.expect_call('.').and_return('.')
-        run_obj = autotest._Run.expect_new(self.host, '.', None, False, False)
+        run_obj = autotest_remote._Run.expect_new(self.host, '.', None, False, False)
         tag = None
         run_obj.manual_control_file = os.path.join('autodir',
                                                    'control.%s' % tag)
@@ -203,7 +203,7 @@ class TestBaseAutotest(unittest.TestCase):
 
         utils.get.expect_call(control).and_return("temp")
 
-        c = autotest.global_config.global_config
+        c = autotest_remote.global_config.global_config
         c.get_config_value.expect_call("PACKAGES",
             'fetch_location', type=list, default=[]).and_return(['repo'])
         pkgmgr = packages.PackageManager.expect_new('autotest',
@@ -215,9 +215,9 @@ class TestBaseAutotest(unittest.TestCase):
         cfile_new = "args = []\njob.add_repository(['repo'])\n"
         cfile_new += cfile_orig
 
-        autotest.open.expect_call("temp").and_return(cfile)
+        autotest_remote.open.expect_call("temp").and_return(cfile)
         cfile.read.expect_call().and_return(cfile_orig)
-        autotest.open.expect_call("temp", 'w').and_return(cfile)
+        autotest_remote.open.expect_call("temp", 'w').and_return(cfile)
         cfile.write.expect_call(cfile_new)
 
         self.host.job.preprocess_client_state.expect_call().and_return(
@@ -242,7 +242,7 @@ class TestBaseAutotest(unittest.TestCase):
     def _stub_get_client_autodir_paths(self):
         def mock_get_client_autodir_paths(cls, host):
             return ['/some/path', '/another/path']
-        self.god.stub_with(autotest.Autotest, 'get_client_autodir_paths',
+        self.god.stub_with(autotest_remote.Autotest, 'get_client_autodir_paths',
                            classmethod(mock_get_client_autodir_paths))
 
 
@@ -258,7 +258,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.run.expect_call('test -x /another/path/bin/autotest')
         self.host.run.expect_call('test -w /another/path')
 
-        autodir = autotest.Autotest.get_installed_autodir(self.host)
+        autodir = autotest_remote.Autotest.get_installed_autodir(self.host)
         self.assertEquals(autodir, '/another/path')
 
 
@@ -271,13 +271,13 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.run.expect_call('mkdir -p /another/path')
         self.host.run.expect_call('test -w /another/path')
 
-        install_dir = autotest.Autotest.get_install_dir(self.host)
+        install_dir = autotest_remote.Autotest.get_install_dir(self.host)
         self.assertEquals(install_dir, '/another/path')
 
 
     def test_client_logger_process_line_log_copy_collection_failure(self):
-        collector = autotest.log_collector.expect_new(self.host, '', '')
-        logger = autotest.client_logger(self.host, '', '')
+        collector = autotest_remote.log_collector.expect_new(self.host, '', '')
+        logger = autotest_remote.client_logger(self.host, '', '')
         collector.collect_client_job_results.expect_call().and_raises(
                 Exception('log copy failure'))
         logging.exception.expect_call(mock.is_string_comparator())
@@ -285,8 +285,8 @@ class TestBaseAutotest(unittest.TestCase):
 
 
     def test_client_logger_process_line_log_copy_fifo_failure(self):
-        collector = autotest.log_collector.expect_new(self.host, '', '')
-        logger = autotest.client_logger(self.host, '', '')
+        collector = autotest_remote.log_collector.expect_new(self.host, '', '')
+        logger = autotest_remote.client_logger(self.host, '', '')
         collector.collect_client_job_results.expect_call()
         self.host.run.expect_call('echo A > /autotest/fifo2').and_raises(
                 Exception('fifo failure'))
@@ -295,11 +295,11 @@ class TestBaseAutotest(unittest.TestCase):
 
 
     def test_client_logger_process_line_package_install_fifo_failure(self):
-        collector = autotest.log_collector.expect_new(self.host, '', '')
-        logger = autotest.client_logger(self.host, '', '')
+        collector = autotest_remote.log_collector.expect_new(self.host, '', '')
+        logger = autotest_remote.client_logger(self.host, '', '')
         self.god.stub_function(logger, '_send_tarball')
 
-        c = autotest.global_config.global_config
+        c = autotest_remote.global_config.global_config
         c.get_config_value.expect_call('PACKAGES',
                                        'serve_packages_from_autoserv',
                                        type=bool).and_return(True)
@@ -327,7 +327,7 @@ class test_autotest_mixin(unittest.TestCase):
                 self.control_file = control_file
                 self.host = host
 
-        self.mixin = autotest.AutotestHostMixin()
+        self.mixin = autotest_remote.AutotestHostMixin()
         self.mixin._Autotest = stub_autotest
         self.job = self.mixin._Autotest.job
 

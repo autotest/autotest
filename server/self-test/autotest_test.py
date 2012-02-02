@@ -14,7 +14,7 @@ import unittest
 import common
 
 from autotest_lib.server import utils
-from autotest_lib.server import autotest
+from autotest_lib.server import autotest_remote
 from autotest_lib.server import hosts
 from autotest_lib.client.common_lib import global_config
 
@@ -24,7 +24,7 @@ _TOP_PATH = _GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path')
 
 class AutotestTestCase(unittest.TestCase):
     def setUp(self):
-        self.autotest = autotest.Autotest()
+        self.autotest = autotest_remote.Autotest()
 
     def tearDown(self):
         pass
@@ -46,13 +46,13 @@ class AutotestTestCase(unittest.TestCase):
 
         host = MockInstallHost()
         self.assertEqual('/stuff/autotest',
-                         autotest.Autotest.get_installed_autodir(host))
+                         autotest_remote.Autotest.get_installed_autodir(host))
         host.result = "autodir=/stuff/autotest\n"
         self.assertEqual('/stuff/autotest',
-                         autotest.Autotest.get_installed_autodir(host))
+                         autotest_remote.Autotest.get_installed_autodir(host))
         host.result = 'autodir="/stuff/auto test"\n'
         self.assertEqual('/stuff/auto test',
-                         autotest.Autotest.get_installed_autodir(host))
+                         autotest_remote.Autotest.get_installed_autodir(host))
 
 
     def testInstallFromDir(self):
@@ -82,8 +82,6 @@ class AutotestTestCase(unittest.TestCase):
         '/ %s' % _GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path')))
 
 
-
-
     def testInstallFromSVN(self):
         class MockInstallHost:
             def __init__(self):
@@ -101,7 +99,7 @@ class AutotestTestCase(unittest.TestCase):
         self.autotest.install(host)
         self.assertEqual(host.commands,
                          ['svn checkout '
-                          + autotest.AUTOTEST_SVN + ' ' + _TOP_PATH])
+                          + autotest_remote.AUTOTEST_SVN + ' ' + _TOP_PATH])
 
 
     def testFirstInstallFromSVNFails(self):
@@ -116,7 +114,7 @@ class AutotestTestCase(unittest.TestCase):
                     return result
                 else:
                     self.commands.append(command)
-                    first = ('svn checkout ' + autotest.AUTOTEST_SVN + ' ' +
+                    first = ('svn checkout ' + autotest_remote.AUTOTEST_SVN + ' ' +
                              _TOP_PATH)
                     if (command == first):
                         raise autotest.AutoservRunError(
@@ -125,9 +123,9 @@ class AutotestTestCase(unittest.TestCase):
         host = MockFirstInstallFailsHost()
         self.autotest.install(host)
         self.assertEqual(host.commands,
-                         ['svn checkout ' + autotest.AUTOTEST_SVN +
+                         ['svn checkout ' + autotest_remote.AUTOTEST_SVN +
                           ' ' + _TOP_PATH,
-                          'svn checkout ' + autotest.AUTOTEST_HTTP +
+                          'svn checkout ' + autotest_remote.AUTOTEST_HTTP +
                           ' ' + _TOP_PATH])
 
 

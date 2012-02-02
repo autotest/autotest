@@ -2,7 +2,8 @@ import os, shutil, tempfile, logging
 
 import common
 from autotest_lib.client.common_lib import utils, error, profiler_manager
-from autotest_lib.server import profiler, autotest, standalone_profiler, hosts
+from autotest_lib.server import profiler, autotest_remote, standalone_profiler
+from autotest_lib.server import hosts
 
 
 PROFILER_TMPDIR = '/tmp/profilers'
@@ -10,7 +11,7 @@ PROFILER_TMPDIR = '/tmp/profilers'
 
 def get_profiler_results_dir(autodir):
     """
-    Given the directory of the autotest client used to run a profiler,
+    Given the directory of the autotest_remote client used to run a profiler,
     return the remote path where profiler results will be stored.
     """
     return os.path.join(autodir, 'results', 'default', 'profiler_sync',
@@ -29,7 +30,7 @@ class profilers(profiler_manager.profiler_manager):
         super(profilers, self).__init__(job)
         self.add_log = {}
         self.start_delay = 0
-        # maps hostname to (host object, autotest.Autotest object, Autotest
+        # maps hostname to (host object, autotest_remote.Autotest object, Autotest
         # install dir), where the host object is the one created specifically
         # for profiling
         self.installed_hosts = {}
@@ -60,7 +61,7 @@ class profilers(profiler_manager.profiler_manager):
 
     def _install_clients(self):
         """
-        Install autotest on any current job hosts.
+        Install autotest_remote on any current job hosts.
         """
         in_use_hosts = set()
         # find hosts in use but not used by us
@@ -84,11 +85,11 @@ class profilers(profiler_manager.profiler_manager):
         logging.debug('Hosts with profiler clients already installed: %s',
                       profiler_hosts)
 
-        # install autotest on any new hosts in use
+        # install autotest_remote on any new hosts in use
         for hostname in in_use_hosts - profiler_hosts:
             host = hosts.create_host(hostname, auto_monitor=False)
             tmp_dir = host.get_tmp_dir(parent=PROFILER_TMPDIR)
-            at = autotest.Autotest(host)
+            at = autotest_remote.Autotest(host)
             at.install_no_autoserv(autodir=tmp_dir)
             self.installed_hosts[host.hostname] = (host, at, tmp_dir)
 

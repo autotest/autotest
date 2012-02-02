@@ -1,6 +1,6 @@
 def run(machine):
     host = hosts.create_host(machine)
-    at = autotest.Autotest(host)
+    at = autotest_remote.Autotest(host)
     at.run_test('kernbench', iterations=2, threads=5)
 
 job.parallel_simple(run, machines)

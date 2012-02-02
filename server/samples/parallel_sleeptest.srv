@@ -45,7 +45,7 @@ def run_client(at, machine_name, machine_num, instance):
 
 def main(machine_name, machine_num):
     host = hosts.create_host(machine_name)
-    at = autotest.Autotest(host)
+    at = autotest_remote.Autotest(host)
     at.install()
 
     parallel([subcommand(run_client, [at, machine_name, machine_num, i])

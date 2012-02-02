@@ -1,4 +1,4 @@
-at = autotest.Autotest()
+at = autotest_remote.Autotest()
 
 def run(machine):
     host = hosts.create_host(machine)

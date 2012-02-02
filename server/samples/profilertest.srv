@@ -1,7 +1,7 @@
 import time
 
 ssh_hosts = [hosts.create_host(m, initialize=False) for m in machines]
-at_hosts = [autotest.Autotest(h) for h in ssh_hosts]
+at_hosts = [autotest_remote.Autotest(h) for h in ssh_hosts]
 
 
 def add_profilers(at, profilers, timeout_sync, timeout_start, timeout_stop,

@@ -61,7 +61,7 @@ def run(machine):
     logging.info("Host %s kernel after: %s", machine,
                  host.run("uname -a").stdout.strip())
     # Initializing autotest and running some tests
-    at = autotest.Autotest(host)
+    at = autotest_remote.Autotest(host)
     at.run_test('dbench')
     at.run_test('kernbench')
 
