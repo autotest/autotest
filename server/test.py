@@ -86,12 +86,12 @@ class _sysinfo_logger(object):
 
     def _install(self):
         if not self.host:
-            from autotest_lib.server import hosts, autotest
+            from autotest_lib.server import hosts, autotest_remote
             self.host = hosts.create_host(self.job.machines[0],
                                           auto_monitor=False)
             try:
                 tmp_dir = self.host.get_tmp_dir(parent="/tmp/sysinfo")
-                self.autotest = autotest.Autotest(self.host)
+                self.autotest = autotest_remote.Autotest(self.host)
                 self.autotest.install(autodir=tmp_dir)
                 self.outputdir = self.host.get_tmp_dir()
             except:

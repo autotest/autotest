@@ -964,7 +964,7 @@ class base_server_job(base_job.base_job):
         # the front of the control script.
         namespace.update(os=os, sys=sys, logging=logging)
         _import_names('autotest_lib.server',
-                ('hosts', 'autotest', 'kvm', 'standalone_profiler',
+                ('hosts', 'autotest_remote', 'kvm', 'standalone_profiler',
                  'source_kernel', 'rpm_kernel', 'deb_kernel', 'git_kernel'))
         _import_names('autotest_lib.server.subcommand',
                       ('parallel', 'parallel_simple', 'subcommand'))
@@ -977,7 +977,7 @@ class base_server_job(base_job.base_job):
         # (Yuck, this injection is a gross thing be part of a public API. -gps)
         #
         # XXX Base & SiteAutotest do not appear to use .job.  Who does?
-        namespace['autotest'].Autotest.job = self
+        namespace['autotest_remote'].Autotest.job = self
         # server.hosts.base_classes.Host uses .job.
         namespace['hosts'].Host.job = self
         namespace['hosts'].factory.ssh_user = self._ssh_user

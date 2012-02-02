@@ -36,8 +36,8 @@ def run(pair):
 
     source = hosts.create_host(pair[0])
     dest = hosts.create_host(pair[1])
-    source_at = autotest.Autotest(source)
-    dest_at = autotest.Autotest(dest)
+    source_at = autotest_remote.Autotest(source)
+    dest_at = autotest_remote.Autotest(dest)
 
     cfg_file = os.path.join(KVM_DIR, "multi-host-tests.cfg")
 

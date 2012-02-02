@@ -160,7 +160,7 @@ def step_test(kernel_version):
     pass
 """
 from autotest_lib.client.common_lib import error
-at = autotest.Autotest()
+at = autotest_remote.Autotest()
 def install_kernel(machine, kernel_info):
     host = hosts.create_host(machine)
     at.install(host=host)
@@ -238,7 +238,7 @@ def step_test(kernel_version):
     pass
 """
 from autotest_lib.client.common_lib import error
-at = autotest.Autotest()
+at = autotest_remote.Autotest()
 def upload_kernel_config(host, kernel_info):
     """
     If the kernel_info['config_file'] is a URL it will be downloaded

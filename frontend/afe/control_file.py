@@ -58,7 +58,7 @@ kernel_install_control = \"""
 
 from autotest_lib.client.common_lib import error
 
-at = autotest.Autotest()
+at = autotest_remote.Autotest()
 
 %%(upload_config_func)s
 def install_kernel(machine, kernel_info):
