@@ -265,10 +265,10 @@ def get_vmlinux():
 
     Ahem. This is crap. Pray harder. Bad Martin.
     """
-    vmlinux = '/boot/vmlinux-%s' % utils.system_output('uname -r')
+    vmlinux = '/boot/vmlinux-%s' % os.uname()[2]
     if os.path.isfile(vmlinux):
         return vmlinux
-    vmlinux = '/lib/modules/%s/build/vmlinux' % utils.system_output('uname -r')
+    vmlinux = '/lib/modules/%s/build/vmlinux' % os.uname()[2]
     if os.path.isfile(vmlinux):
         return vmlinux
     return None
@@ -279,10 +279,10 @@ def get_systemmap():
 
     Ahem. This is crap. Pray harder. Bad Martin.
     """
-    map = '/boot/System.map-%s' % utils.system_output('uname -r')
+    map = '/boot/System.map-%s' % os.uname()[2]
     if os.path.isfile(map):
         return map
-    map = '/lib/modules/%s/build/System.map' % utils.system_output('uname -r')
+    map = '/lib/modules/%s/build/System.map' % os.uname()[2]
     if os.path.isfile(map):
         return map
     return None
@@ -290,7 +290,7 @@ def get_systemmap():
 
 def get_modules_dir():
     """Return the modules dir for the running kernel version"""
-    kernel_version = utils.system_output('uname -r')
+    kernel_version = os.uname()[2]
     return '/lib/modules/%s/kernel' % kernel_version
 
 
@@ -502,7 +502,7 @@ def running_config():
     """
     Return path of config file of the currently running kernel
     """
-    version = utils.system_output('uname -r')
+    version = os.uname()[2]
     for config in ('/proc/config.gz', \
                    '/boot/config-%s' % version,
                    '/lib/modules/%s/build/.config' % version):
@@ -546,7 +546,7 @@ def check_glibc_ver(ver):
                               (glibc_ver, ver))
 
 def check_kernel_ver(ver):
-    kernel_ver = utils.system_output('uname -r')
+    kernel_ver = os.uname()[2]
     kv_tmp = re.split(r'[-]', kernel_ver)[0:3]
     # In compare_versions, if v1 < v2, return value == -1
     if utils.compare_versions(kv_tmp[0], ver) == -1:
