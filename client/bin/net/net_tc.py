@@ -3,7 +3,10 @@
 see http://linux.die.net/man/8/tc for details about traffic controls in linux.
 
 Example
-  import common
+  try:
+    import autotest.common as common
+except ImportError:
+    import common
   from autotest_lib.client.bin.net.net_tc import *
   from autotest_lib.client.bin.net.net_utils import *
 
@@ -38,7 +41,10 @@ Example
 """
 
 import commands, os, re
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin.net import net_utils
 

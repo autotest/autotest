@@ -18,7 +18,10 @@ __author__ = 'jmeurin@google.com (Jean-Marc Eurin)'
 
 import os, sys, optparse, re, traceback
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.cli import topic_common
 
 

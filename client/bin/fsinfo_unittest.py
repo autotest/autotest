@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import unittest, StringIO
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.bin import fsinfo
 from autotest_lib.client.common_lib.test_utils import mock
 

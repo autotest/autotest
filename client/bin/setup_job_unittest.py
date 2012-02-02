@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import logging, os, shutil, sys, StringIO
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 
 from autotest_lib.client.bin import job, setup_job
 from autotest_lib.client.bin import utils

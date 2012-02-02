@@ -2,7 +2,10 @@
 
 import os, unittest, time, datetime, itertools
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.tko import utils
 

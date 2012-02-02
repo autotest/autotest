@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import unittest
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import serviceHandler
 
 

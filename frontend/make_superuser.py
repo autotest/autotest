@@ -1,6 +1,9 @@
 #!/usr/bin/python
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import MySQLdb
 import sys
 from autotest_lib.client.common_lib import global_config

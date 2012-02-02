@@ -2,7 +2,10 @@
 
 import pickle, subprocess, os, shutil, socket, sys, time, signal, getpass
 import datetime, traceback, tempfile, itertools, logging
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import utils, global_config, error
 from autotest_lib.server import hosts, subcommand
 from autotest_lib.scheduler import email_manager, scheduler_config

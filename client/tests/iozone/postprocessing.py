@@ -9,7 +9,10 @@ is not present, functionality degrates gracefully.
 @copyright: Red Hat 2010
 """
 import os, sys, optparse, logging, math, time
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import logging_config, logging_manager
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils, os_dep

@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import sys, os
-import common
+try:
+    import autotest.common
+except ImportError:
+    import common
 import MySQLdb
 import urllib, db, unique_cookie
 

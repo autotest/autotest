@@ -6,7 +6,10 @@
 
 import unittest, os, sys, StringIO, copy
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.cli import cli_mock, topic_common, action_common, rpc
 from autotest_lib.frontend.afe.json_rpc import proxy
 

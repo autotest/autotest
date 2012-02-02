@@ -1,18 +1,21 @@
 import os, sys
-import common
 from optparse import OptionParser
+try:
+    import autotest.common as common
+    rootdir = os.path.abspath(os.path.dirname(common.__file__))
+    autodir = os.path.join(rootdir, 'client')
+    autodirbin = os.path.join(rootdir, 'client', 'bin')
+except ImportError:
+    import common
+    autodirbin = os.path.dirname(os.path.realpath(sys.argv[0]))
+    autodir = os.path.dirname(autodirbin)
+    sys.path.insert(0, autodirbin)
+
 from autotest_lib.client.bin import job
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.bin import cmdparser
 
-# Use the name of the binary to find the real installation directory
-# aka $AUTODIR.  Update our path to include the $AUTODIR/bin/tests
-# directory and ensure we have $AUTODIR in our environment.
-autodirbin = os.path.dirname(os.path.realpath(sys.argv[0]))
-autodir = os.path.dirname(autodirbin)
 autodirtest = os.path.join(autodir, "tests")
-
-sys.path.insert(0, autodirbin)
 
 os.environ['AUTODIR'] = autodir
 os.environ['AUTODIRBIN'] = autodirbin
@@ -21,7 +24,7 @@ os.environ['PYTHONPATH'] = autodirbin
 
 cmd_parser = cmdparser.CommandParser() # Allow access to instance in parser
 
-commandinfo = "[command] (optional)\tOne of: "+str(cmd_parser.cmdlist)
+commandinfo = "[command] (optional)\tOne of: " + str(cmd_parser.cmdlist)
 if sys.version_info[0:2] < (2,6):
     parser = OptionParser(usage='Usage: %prog [options] [command] <control-file>',
                           description=commandinfo)

@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
 import unittest, os
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import utils as common_utils
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.server import rpm_kernel, utils, hosts

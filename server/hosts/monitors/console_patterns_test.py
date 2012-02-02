@@ -1,6 +1,9 @@
 #!/usr/bin/python
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import cStringIO, os, unittest
 from autotest_lib.server.hosts.monitors import monitors_util
 
