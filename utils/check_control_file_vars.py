@@ -1,6 +1,9 @@
 #!/usr/bin/python
 import sys, os, textwrap
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import control_data
 
 if len(sys.argv) != 2:

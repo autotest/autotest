@@ -1,6 +1,9 @@
 #!/usr/bin/python
 import unittest
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.bin import harness, harness_standalone, harness_ABAT
 

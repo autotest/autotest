@@ -1,5 +1,8 @@
 import os, re, db, sys, datetime
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import kernel_versions
 
 MAX_RECORDS = 50000L

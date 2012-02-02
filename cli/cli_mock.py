@@ -5,7 +5,10 @@
 
 import unittest, os, sys, StringIO
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.cli import atest, topic_common, rpc
 from autotest_lib.frontend.afe import rpc_client_lib
 from autotest_lib.frontend.afe.json_rpc import proxy

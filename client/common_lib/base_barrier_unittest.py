@@ -4,7 +4,10 @@ __author__ = """Ashwin Ganti (aganti@google.com)"""
 
 import os, sys, socket, errno, unittest, threading
 from time import time, sleep
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import error, barrier, base_barrier
 from autotest_lib.client.common_lib.test_utils import mock
 

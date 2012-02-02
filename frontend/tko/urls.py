@@ -1,5 +1,8 @@
 from django.conf.urls import defaults
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.frontend import settings, urls_common
 from autotest_lib.frontend.tko import resources
 

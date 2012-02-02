@@ -6,7 +6,10 @@ import cgi, cgitb, os, sys, re, subprocess
 cgitb.enable()
 Popen = subprocess.Popen
 
-import common
+try:
+    import autotest.common
+except ImportError:
+    import common
 from autotest_lib.tko import db, display, frontend, plotgraph
 from autotest_lib.client.common_lib import kernel_versions
 

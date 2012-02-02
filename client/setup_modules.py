@@ -3,7 +3,7 @@ __author__ = "jadmanski@google.com (John Admanski)"
 import os, sys
 
 try:
-    import autotest.client.common_lib.check_python_version as check_version
+    import autotest.client.common_lib.check_version as check_version
 except ImportError:
     # This must run on Python versions less than 2.4.
     dirname = os.path.dirname(sys.modules[__name__].__file__)

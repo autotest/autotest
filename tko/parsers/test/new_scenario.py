@@ -20,7 +20,10 @@ be easily extended and configured once generated.
 import optparse, os, shutil, sys
 from os import path
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.tko.parsers.test import scenario_base
 from autotest_lib.client.common_lib import autotemp
 

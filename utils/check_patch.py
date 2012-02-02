@@ -23,7 +23,10 @@ Usage: check_patch.py -p [/path/to/patch]
 """
 
 import os, stat, logging, sys, optparse, re
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import utils, error, logging_config
 from autotest_lib.client.common_lib import logging_manager
 

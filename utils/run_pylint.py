@@ -1,7 +1,10 @@
 #!/usr/bin/python -u
 
 import os, sys, fnmatch
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 
 # do a basic check to see if pylint is even installed
 try:

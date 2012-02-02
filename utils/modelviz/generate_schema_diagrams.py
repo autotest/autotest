@@ -6,7 +6,10 @@ arguments.  If you don't have them installed, you'll need "dot" from the
 Graphviz package and Django.
 """
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import os
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))

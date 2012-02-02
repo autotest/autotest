@@ -4,7 +4,10 @@ tune2fs or xfs_growfs is called according to the filesystem. The results,
 filesystem tunables, are parsed and mapped to corresponding mkfs options.
 """
 import os, re, tempfile
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import error, utils
 
 

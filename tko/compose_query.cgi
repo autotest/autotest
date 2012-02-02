@@ -12,7 +12,10 @@ import sys, os, urllib, cgi, cgitb, re, datetime, time
 
 total_wall_time_start = time.time()
 
-import common
+try:
+    import autotest.common
+except ImportError:
+    import common
 from autotest_lib.tko import display, frontend, db, query_lib
 from autotest_lib.client.common_lib import kernel_versions
 

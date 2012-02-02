@@ -7,7 +7,10 @@
 
 from cStringIO import StringIO
 import os, sys, unittest
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import utils
 from autotest_lib.client.common_lib.test_utils import mock

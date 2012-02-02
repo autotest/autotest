@@ -1,6 +1,9 @@
 #!/usr/bin/python
 
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 import unittest
 
 # This has to be done very early.

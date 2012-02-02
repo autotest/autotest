@@ -4,7 +4,10 @@ Selects all rows and columns that satisfy the condition specified
 and prints the matrix.
 """
 import sys, os, re, optparse
-import common
+try:
+    import autotest.common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import kernel_versions
 from autotest_lib.tko import display, frontend, db, query_lib
 

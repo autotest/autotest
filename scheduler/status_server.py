@@ -1,5 +1,8 @@
 import os, BaseHTTPServer, cgi, threading, urllib, fcntl, logging
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.scheduler import drone_manager, scheduler_config
 
 _PORT = 13467

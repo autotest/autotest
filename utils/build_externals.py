@@ -14,7 +14,10 @@ Usage?  Just run it.
 
 import compileall, logging, os, shutil, sys, tempfile, time, urllib2
 import subprocess, re
-import common
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from autotest_lib.client.common_lib import logging_config, logging_manager
 from autotest_lib.client.common_lib import utils
 from autotest_lib.utils import external_packages
