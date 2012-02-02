@@ -9,6 +9,7 @@ precedence order defined there
 """
 import os, shutil, commands, pickle, glob
 import math, re, fnmatch, logging
+import platform
 from autotest.client.shared import error, utils, magic
 
 
@@ -319,8 +320,9 @@ def get_cpu_arch():
 
 
 def get_current_kernel_arch():
-    """Get the machine architecture, now just a wrap of 'uname -m'."""
-    return os.popen('uname -m').read().rstrip()
+    """Get the machine architecture"""
+    # this returns platform.uname()[4]
+    return platform.machine()
 
 
 def get_file_arch(filename):
