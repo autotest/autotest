@@ -32,7 +32,8 @@ class CheckPatchLoggingConfig(logging_config.LoggingConfig):
     def configure_logging(self, results_dir=None, verbose=False):
         super(CheckPatchLoggingConfig, self).configure_logging(use_console=True,
                                                                verbose=verbose)
-
+        p = os.path.join(os.getcwd(), 'check-patch.log')
+        self.add_file_handler(file_path=p)
 
 class VCS(object):
     """
