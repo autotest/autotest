@@ -58,10 +58,10 @@ blacklist = ['/contrib/*', '/frontend/afe/management.py']
 # * DB model objects (scheduler models are the worst, but Django models also
 #   generate some errors)
 if pylint_version >= 0.21:
-    pylint_base_opts = ['--disable=W,R,C,E1101,E1103,E1120']
+    pylint_base_opts = ['--disable=W,R,C,E1101,E1103,E1120,F0401']
 else:
     pylint_base_opts = ['--disable-msg-cat=warning,refactor,convention',
-                        '--disable-msg=E1101,E1103,E1120']
+                        '--disable-msg=E1101,E1103,E1120,F0401']
 pylint_base_opts += ['--reports=no',
                      '--include-ids=y']
 
