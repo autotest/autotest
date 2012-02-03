@@ -7,9 +7,6 @@ from autotest_lib.client.common_lib import base_job, log, error, autotemp
 from autotest_lib.client.common_lib import global_config, packages
 from autotest_lib.client.common_lib import utils as client_utils
 
-AUTOTEST_SVN = 'svn://test.kernel.org/autotest/trunk/client'
-AUTOTEST_HTTP = 'http://test.kernel.org/svn/autotest/trunk/client'
-
 
 get_value = global_config.global_config.get_config_value
 autoserv_prebuild = get_value('AUTOSERV', 'enable_server_prebuild',
@@ -189,8 +186,8 @@ class BaseAutotest(installable_object.InstallableObject):
             running with the autoserv harness
         @param use_packaging Enable install modes that use the packaging system
 
-        @exception AutoservError if a tarball was not specified and
-            the target host does not have svn installed in its path
+        @exception AutoservError If it wasn't possible to install the client
+                after trying all available methods
         """
         if not host:
             host = self.host
@@ -236,16 +233,8 @@ class BaseAutotest(installable_object.InstallableObject):
             self.installed = True
             return
 
-        # if that fails try to install using svn
-        if utils.run('which svn').exit_status:
-            raise error.AutoservError('svn not found on target machine: %s' %
-                                      host.name)
-        try:
-            host.run('svn checkout %s %s' % (AUTOTEST_SVN, autodir))
-        except error.AutoservRunError, e:
-            host.run('svn checkout %s %s' % (AUTOTEST_HTTP, autodir))
-        logging.info("Installation of autotest completed")
-        self.installed = True
+        raise error.AutoservError('Could not install autotest on '
+                                  'target machine: %s' % host.name)
 
 
     def uninstall(self, host=None):
