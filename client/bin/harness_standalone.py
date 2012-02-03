@@ -51,9 +51,9 @@ class harness_standalone(harness.harness):
             vendor = utils.get_os_vendor()
             service = '/etc/init.d/autotest'
             if vendor == 'SUSE':
-               service_link = '/etc/init.d/rc%s.d/S99autotest' % initdefault
+                service_link = '/etc/init.d/rc%s.d/S99autotest' % initdefault
             else:
-               service_link = '/etc/rc%s.d/S99autotest' % initdefault
+                service_link = '/etc/rc%s.d/S99autotest' % initdefault
             if os.path.islink(service):
                 os.remove(service)
             if os.path.islink(service_link):
