@@ -20,7 +20,8 @@ def avg_dev(values):
 
 
 class gnuplot:
-    def __init__(self, title, xlabel, ylabel, xsort = sorted, size = "1180,900", keytitle = None):
+    def __init__(self, title, xlabel, ylabel, xsort=sorted, size="1180,900",
+                 keytitle=None):
         self.title = title
         self.xlabel = xlabel
         self.ylabel = ylabel
@@ -30,6 +31,7 @@ class gnuplot:
         self.xvalues = set([])
         self.size = size
         self.keytitle = keytitle
+
 
     def xtics(self):
         count = 1
@@ -62,7 +64,8 @@ class gnuplot:
         self.datasets.append(data_points)
 
 
-    def plot(self, cgi_header = False, output = None, test = None):
+    def plot(self, cgi_header=False, output=None, test=None, ymin=None,
+             dark=False):
         if cgi_header:
             print "Content-type: image/png\n"
             sys.stdout.flush()
@@ -89,6 +92,9 @@ class gnuplot:
 
         g.write('set xrange [0.5:%f]\n' % (len(self.xvalues)+0.5))
         g.write('set xtics rotate (%s)\n' % ','.join(self.xtics()))
+
+        if ymin is not None:
+            g.write('set yrange [%f:]\n' % ymin)
 
         plot_lines = ['"-" title "%s"' % t for t in self.data_titles]
         g.write('plot ' + ', '.join(plot_lines) + '\n')
