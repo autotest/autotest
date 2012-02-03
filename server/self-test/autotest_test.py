@@ -82,53 +82,6 @@ class AutotestTestCase(unittest.TestCase):
         '/ %s' % _GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path')))
 
 
-    def testInstallFromSVN(self):
-        class MockInstallHost:
-            def __init__(self):
-                self.commands = []
-
-            def run(self, command):
-                if command == "grep autodir= /etc/autotest.conf":
-                    result= hosts.CmdResult()
-                    result.stdout = ("autodir=%s\n" % _TOP_PATH)
-                    return result
-                else:
-                    self.commands.append(command)
-
-        host = MockInstallHost()
-        self.autotest.install(host)
-        self.assertEqual(host.commands,
-                         ['svn checkout '
-                          + autotest_remote.AUTOTEST_SVN + ' ' + _TOP_PATH])
-
-
-    def testFirstInstallFromSVNFails(self):
-        class MockFirstInstallFailsHost:
-            def __init__(self):
-                self.commands = []
-
-            def run(self, command):
-                if command == "grep autodir= /etc/autotest.conf":
-                    result= hosts.CmdResult()
-                    result.stdout = "autodir=%s\n" % _TOP_PATH
-                    return result
-                else:
-                    self.commands.append(command)
-                    first = ('svn checkout ' + autotest_remote.AUTOTEST_SVN + ' ' +
-                             _TOP_PATH)
-                    if (command == first):
-                        raise autotest.AutoservRunError(
-                                "svn not found")
-
-        host = MockFirstInstallFailsHost()
-        self.autotest.install(host)
-        self.assertEqual(host.commands,
-                         ['svn checkout ' + autotest_remote.AUTOTEST_SVN +
-                          ' ' + _TOP_PATH,
-                          'svn checkout ' + autotest_remote.AUTOTEST_HTTP +
-                          ' ' + _TOP_PATH])
-
-
 def suite():
     return unittest.TestLoader().loadTestsFromTestCase(AutotestTestCase)
 
