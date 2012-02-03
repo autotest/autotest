@@ -10,6 +10,7 @@ __author__ = """stutsman@google.com (Ryan Stutsman)"""
 import os
 import sys
 import unittest
+import logging
 
 import common
 
@@ -34,24 +35,18 @@ class AutotestTestCase(unittest.TestCase):
         class MockInstallHost:
             def __init__(self):
                 self.commands = []
-                self.result = "autodir='/stuff/autotest'\n"
 
-            def run(self, command):
-                if command == "grep autodir= /etc/autotest.conf":
-                    result = hosts.CmdResult()
-                    result.stdout = self.result
-                    return result
-                else:
-                    self.commands.append(command)
+            def run(self, command, ignore_status=False):
+                self.commands.append(command)
+
+            def wait_up(self, timeout):
+                pass
+
+            def get_autodir(self):
+                pass
 
         host = MockInstallHost()
-        self.assertEqual('/stuff/autotest',
-                         autotest_remote.Autotest.get_installed_autodir(host))
-        host.result = "autodir=/stuff/autotest\n"
-        self.assertEqual('/stuff/autotest',
-                         autotest_remote.Autotest.get_installed_autodir(host))
-        host.result = 'autodir="/stuff/auto test"\n'
-        self.assertEqual('/stuff/auto test',
+        self.assertEqual(_TOP_PATH,
                          autotest_remote.Autotest.get_installed_autodir(host))
 
 
@@ -59,27 +54,36 @@ class AutotestTestCase(unittest.TestCase):
         class MockInstallHost:
             def __init__(self):
                 self.commands = []
+                self.hostname = 'autotest-client.foo.com'
 
-            def run(self, command):
-                if command == "grep autodir= /etc/autotest.conf":
-                    result= hosts.CmdResult()
-                    result.stdout = "autodir=%s\n" % _TOP_PATH
-                    return result
-                else:
-                    self.commands.append(command)
+            def run(self, command, ignore_status=False):
+                self.commands.append(command)
 
-            def send_file(self, src, dst):
-                self.commands.append("send_file: %s %s" % (src,
-                                                           dst))
+            def send_file(self, src, dst, delete_dest=False):
+                self.commands.append("send_file: %s %s" % (src, dst))
+
+            def wait_up(self, timeout):
+                pass
+
+            def get_autodir(self):
+                pass
+
+            def set_autodir(self, autodir):
+                pass
+
+            def setup(self):
+                pass
 
         host = MockInstallHost()
         tmpdir = utils.get_tmp_dir()
         self.autotest.get(tmpdir)
         self.autotest.install(host)
-        self.assertEqual(host.commands[0], 'mkdir -p %s' % _TOP_PATH)
-        self.assertTrue(host.commands[1].startswith('send_file: /tmp/'))
-        self.assertTrue(host.commands[1].endswith(
-        '/ %s' % _GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path')))
+        self.assertEqual(host.commands[0],
+                         'test -x %s/bin/autotest' % _TOP_PATH)
+        self.assertEqual(host.commands[1], 'test -w %s' % _TOP_PATH)
+        self.assertEqual(host.commands[2], 'mkdir -p %s' % _TOP_PATH)
+        self.assertTrue(host.commands[4].startswith('send_file: []'))
+        self.assertTrue(host.commands[4].endswith(_TOP_PATH))
 
 
 def suite():
