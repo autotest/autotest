@@ -49,13 +49,14 @@ def run_save_restore(test, params, env):
         """
         session = None
         try:
-            session = vm.wait_for_login(timeout=timeout)
-            result = session.is_responsive(timeout=timeout/10.0)
-            if not result:
-                logging.warning("Login session established, but non-responsive")
-                # assume guest is just busy with stuff
-        except:
-            raise error.TestFail("VM check timed out and/or VM non-responsive")
+            try:
+                session = vm.wait_for_login(timeout=timeout)
+                result = session.is_responsive(timeout=timeout/10.0)
+                if not result:
+                    logging.warning("Login session established, but non-responsive")
+                    # assume guest is just busy with stuff
+            except:
+                raise error.TestFail("VM check timed out and/or VM non-responsive")
         finally:
             del session
 
@@ -80,7 +81,7 @@ def run_save_restore(test, params, env):
             bg_command_pid = int(session.cmd('jobs -rp'))
         except ValueError:
             logging.warning("Background guest command 'job -rp' output not PID")
-            bg_command_pid = none
+            bg_command_pid = None
     del session # don't leave stray ssh session lying around over save/restore
 
     start_time = time.time()
