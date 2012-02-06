@@ -323,6 +323,30 @@ variants:
                 create_image_stg = yes
                 image_size_stg = 10M
 
+    - virsh_migrate: install setup image_copy unattended_install.cdrom
+        type = virsh_migrate
+        # Migrating non-started VM causes undefined behavior
+        start_vm = yes
+        # Options to pass to virsh migrate command before <domain> <desturi>
+        virsh_migrate_options = "--live --undefinesource --persistent"
+        # Extra options to pass after <domain> <desturi>
+        virsh_migrate_extra = "--timeout 60"
+        # Migration protocol to use (qemu+ssh uses root+pubkey auth)
+        virsh_migrate_proto = qemu+ssh
+        # Hostname part of <desturi>
+        # Remember to open ports 49152-49216 on destination
+        virsh_migrate_desthost = DESTINADDTION_HOSTNAME_OR_IP.example.com
+        # FIXME: Impliment libvirt URI connect user/password
+        # virsh_migrate_destuser = root
+        # virsh_migrate_destpwd = ""
+        variants:
+            - there:
+                virsh_migrate_delay = 60
+                virsh_migrate_desthost = DESTINADDTION_HOSTNAME_OR_IP.example.com
+            - back: there
+                virsh_migrate_delay = 10
+                virsh_migrate_desthost = SOURCE_HOSTNAME_OR_IP.example.com
+
     - migrate: install setup image_copy unattended_install.cdrom
         type = migration
         migration_test_command = help

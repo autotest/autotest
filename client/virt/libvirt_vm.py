@@ -26,26 +26,26 @@ def libvirtd_restart():
         logging.debug("Restarted libvirtd successfuly")
         return True
     except error.CmdError, detail:
-        logging.error("Failed to restart libvirtd: %s" % detail)
+        logging.error("Failed to restart libvirtd:\n%s", detail)
         return False
 
 
 def virsh_cmd(cmd, uri = ""):
+    """
+    Append cmd to 'virsh' and execute, optionally return full results.
+
+    @param: cmd: Command line to append to virsh command
+    @param: uri: hypervisor URI to connect to
+    @return: stdout of command
+    """
     if VIRSH_EXEC is None:
         raise ValueError('Missing command: virsh')
 
     uri_arg = ""
     if uri:
         uri_arg = "-c " + uri
-
-    cmd_result = utils.run("%s %s %s" % (VIRSH_EXEC, uri_arg, cmd), ignore_status=True,
-                           verbose=DEBUG)
-    if DEBUG:
-        if cmd_result.stdout.strip():
-            logging.debug("stdout: %s", cmd_result.stdout.strip())
-        if cmd_result.stderr.strip():
-            logging.debug("stderr: %s", cmd_result.stderr.strip())
-
+    cmd = "%s %s %s" % (VIRSH_EXEC, uri_arg, cmd)
+    cmd_result = utils.run(cmd, verbose=DEBUG)
     return cmd_result.stdout.strip()
 
 
@@ -106,11 +106,14 @@ def virsh_is_alive(name, uri = ""):
 
 def virsh_is_dead(name, uri = ""):
     """
-    Return True if the domain is not started/dead.
+    Return True if the domain is undefined or not started/dead.
 
     @param name: VM name
     """
-    state = virsh_domstate(name, uri)
+    try:
+        state = virsh_domstate(name, uri)
+    except error.CmdError:
+        return True
     if state in ('running', 'idle', 'no state', 'paused'):
         return False
     else:
@@ -132,8 +135,8 @@ def virsh_suspend(name, uri = ""):
             return True
         else:
             return False
-    except error.CmdError:
-        logging.error("Suspending VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("Suspending VM %s failed:\n%s", name, detail)
         return False
 
 
@@ -152,8 +155,8 @@ def virsh_resume(name, uri = ""):
             return True
         else:
             return False
-    except error.CmdError:
-        logging.error("Resume VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("Resume VM %s failed:\n%s", name, detail)
         return False
 
 def virsh_save(name, path, uri = ""):
@@ -207,8 +210,8 @@ def virsh_start(name, uri = ""):
     try:
         virsh_cmd("start %s" % (name), uri)
         return True
-    except error.CmdError:
-        logging.error("Start VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("Start VM %s failed:\n%s", name, detail)
         return False
 
 
@@ -225,8 +228,8 @@ def virsh_shutdown(name, uri = ""):
     try:
         virsh_cmd("shutdown %s" % (name), uri)
         return True
-    except error.CmdError:
-        logging.error("Shutdown VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("Shutdown VM %s failed:\n%s", name, detail)
         return False
 
 
@@ -244,8 +247,8 @@ def virsh_destroy(name, uri = ""):
     try:
         virsh_cmd("destroy %s" % (name), uri)
         return True
-    except error.CmdError:
-        logging.error("Destroy VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("Destroy VM %s failed:\n%s", name, detail)
         return False
 
 
@@ -262,8 +265,8 @@ def virsh_undefine(name, uri = ""):
         virsh_cmd("undefine %s" % (name), uri)
         logging.debug("undefined VM %s", name)
         return True
-    except error.CmdError:
-        logging.error("undefine VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("undefine VM %s failed:\n%s", name, detail)
         return False
 
 
@@ -289,9 +292,28 @@ def virsh_domain_exists(name, uri = ""):
     try:
         virsh_cmd("domstate %s" % name, uri)
         return True
-    except error.CmdError:
-        logging.warning("VM %s does not exist", name)
+    except error.CmdError, detail:
+        logging.warning("VM %s does not exist:\n%s", name, detail)
         return False
+
+def virsh_migrate(migrate_cmd, uri = ""):
+    """
+    Migrate a guest to another host.
+
+    @params migrate_cmd: Migrate command to be executed
+    @param: uri: URI of libvirt hypervisor to use
+    @return: True if migration command succeeded
+    """
+    # Rely on test-code to verify guest state on receiving-end
+    # Assume success unless proven otherwise
+    migrate_cmd = "migrate " + migrate_cmd
+    logging.debug("Mirating VM with command: virsh %s" % migrate_cmd)
+    try:
+        virsh_cmd(migrate_cmd, uri)
+    except error.CmdError, detail:
+        logging.warning("Migration error: %s" % (detail))
+        return False
+    return True
 
 
 class VM(virt_vm.BaseVM):
@@ -983,6 +1005,26 @@ class VM(virt_vm.BaseVM):
         finally:
             fcntl.lockf(lockfile, fcntl.LOCK_UN)
             lockfile.close()
+
+
+
+    def migrate(self, dest_host, protocol="qemu+ssh",
+                options="--live --timeout 60", extra=""):
+        """
+        Migrate a VM to a remote host.
+
+        @param: dest_host: Destination host
+        @param: protocol: Migration protocol (qemu, qemu+ssh, etc)
+        @param: options: Migration options before <domain> <desturi>
+        @param: extra: Migration options after <domain> <desturi>
+        @return: True if command succeeded
+        """
+        migrate_cmd = "%s %s %s %s" % (options, self.name,
+                                       protocol+"://"+dest_host+"/system",
+                                       extra)
+        logging.info("Migrating VM %s from %s to %s" %
+                     (self.name, self.connect_uri, dest_host))
+        return virsh_migrate(migrate_cmd, self.connect_uri)
 
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
