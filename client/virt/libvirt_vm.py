@@ -296,6 +296,36 @@ def virsh_domain_exists(name, uri = ""):
         logging.warning("VM %s does not exist:\n%s", name, detail)
         return False
 
+def virsh_migrate(name, migrate_cmd, params = None, uri = ""):
+    """
+    Migrate a guest to another host.
+
+    @params name: VM name
+    @params migrate_cmd: Migrate command to be executed
+    @param params: A dict containing VM params
+    """
+    uri_arg = ""
+    if uri:
+        uri_arg = "-c " + uri
+    destpwd = params.get("virsh_migrate_destpwd")
+    destuser = params.get("virsh_migrate_destuser")
+    try:
+        cmd = "virsh %s %s" % (uri_arg, migrate_cmd)
+        session = aexpect.ShellSession(cmd, linesep="\n")
+        virt_utils._remote_login(session, destuser, destpwd, "", timeout=60)
+        return True
+    # If migration succeeds, migrate command will terminate the session
+    # automically. So we have to catch the LoginProcessTerminatedError.
+    except virt_utils.LoginProcessTerminatedError, e:
+        logging.info("%s", e)
+        session.close()
+        if str(e).find("status: 0") >= 0:
+            return True
+        else:
+            return False
+    except error.CmdError:
+        logging.error("Migrating VM %s failed", name)
+        return False
 
 class VM(virt_vm.BaseVM):
     """
@@ -987,6 +1017,188 @@ class VM(virt_vm.BaseVM):
             fcntl.lockf(lockfile, fcntl.LOCK_UN)
             lockfile.close()
 
+    def __make_migrate_command(self, name=None, params=None):
+        """
+        Generate a migrate command line.
+
+        @param name: The name of the object
+        @param params: A dict containing VM params
+
+        @note: The params dict should contain:
+               virsh_migrate_live -- yes/no
+               virsh_migrate_method -- direct/p2p/p2p_tunnelled
+               virsh_migrate_persistent -- yes/no
+               virsh_migrate_undefinesource -- yes/no
+               virsh_migrate_suspend -- yes/no
+               virsh_migrate_copy_storage -- all/inc
+               virsh_migrate_change_protection -- yes/no
+               virsh_migrate_verbose -- /yes/no
+               virsh_migrate_domain -- VM name
+               virsh_migrate_desturi -- Destination URI
+               virsh_migrate_migrateuri -- Migration URI
+               virsh_migrate_dname -- VM name on destination
+               virsh_migrate_timeout -- timeout > 0
+               virsh_migrate_xml_file -- Path to xml file to be used on destination
+        """
+        def add_live():
+            return " --live"
+
+        def add_method(method):
+            if method == "direct":
+                return " --direct"
+            elif method == "p2p":
+                return " --p2p"
+            # Cannot use --tunnelled without --p2p.
+            elif method == "p2p_tunnelled":
+                return " --p2p --tunnelled"
+            else:
+                logging.warning("Unknown migrate method, using default.")
+                return ""
+
+        def add_persistent():
+            return " --persistent"
+
+        def add_undefinesource():
+            return " --undefinesource"
+
+        def add_suspend():
+            return " --suspend"
+
+        def add_copy_storage(copy_storage_mode):
+            if copy_storage_mode == "all":
+                return " --copy-storage-all"
+            elif copy_storage_mode == "inc":
+                return " --copy-storage-inc"
+            else:
+                logging.warning("Unknown copy storage mode, using default.")
+                return ""
+
+        def add_change_protection():
+            return " --change-protection"
+
+        def add_verbose():
+            return " --verbose"
+
+        # Domain name must be specified.
+        def add_domain(domain_name):
+            if virsh_domain_exists(domain_name):
+                return " --domain %s" % domain_name
+            else:
+                raise virt_vm.VMMigrateError("Wrong domain name.")
+
+        # Destination uri must be specified.
+        def add_desturi(desturi):
+            if desturi:
+                return " --desturi %s" % desturi
+            else:
+                raise virt_vm.VMMigrateError("Wrong destination uri.")
+
+        def add_migrateuri(migrateuri):
+            if migrateuri:
+                return " --migrateuri %s" % migrateuri
+            else:
+                return ""
+
+        def add_dname(dname):
+            if dname:
+                return " --dname %s" % dname
+            else:
+                return ""
+
+        def add_timeout(timeout):
+            if int(timeout) > 0:
+                return " --timeout %s" % timeout
+            else:
+                logging.warning("Invalid timeout value. Ingoring it.")
+                return ""
+
+        def add_xml(xml_file):
+            if os.path.isfile(xml_file):
+                return " --xml %s" % xml_file
+            else:
+                logging.warning("%s: No such xml file is found. Ingoring it.", xml_file)
+                return ""
+
+        migrate_cmd = "migrate "
+
+        if name is None:
+            name = self.name
+        if params is None:
+            params = self.params
+
+        live = params.get("virsh_migrate_live")
+        if live == "yes":
+            migrate_cmd += add_live()
+
+        method = params.get("virsh_migrate_method")
+        if method:
+            migrate_cmd += add_method(method)
+
+        persistent = params.get("virsh_migrate_persistent")
+        if persistent == "yes":
+            migrate_cmd += add_persistent()
+
+        undefinesource = params.get("virsh_migrate_undefinesource")
+        if undefinesource == "yes":
+            migrate_cmd += add_undefinesource()
+
+        suspend = params.get("virsh_migrate_suspend")
+        if suspend == "yes":
+            migrate_cmd += add_suspend()
+
+        copy_storage_mode = params.get("virsh_migrate_copy_storage")
+        if copy_storage_mode:
+            migrate_cmd += add_copy_storage(copy_storage_mode)
+
+        change_protection = params.get("virsh_migrate_change_protection")
+        if change_protection == "yes":
+            migrate_cmd += add_change_protection()
+
+        verbose = params.get("virsh_migrate_verbose")
+        if verbose == "yes":
+            migrate_cmd += add_verbose()
+
+        # --domain and --desturi must be specified.
+        domain_name = params.get("main_vm")
+        if domain_name:
+            migrate_cmd += add_domain(domain_name)
+
+        desturi = params.get("virsh_migrate_desturi")
+        if desturi:
+            migrate_cmd += add_desturi(desturi)
+
+        migrateuri = params.get("virsh_migrate_migrateuri")
+        if migrateuri:
+            migrate_cmd += add_migrateuri(migrateuri)
+
+        dname = params.get("virsh_migrate_dname")
+        if dname:
+            migrate_cmd += add_dname(dname)
+
+        timeout = params.get("virsh_migrate_timeout")
+        if timeout:
+            migrate_cmd += add_timeout(timeout)
+
+        xml_file = params.get("virsh_migrate_xml_file")
+        if xml_file:
+            migrate_cmd += add_xml(xml_file)
+
+        logging.info("Migrate command: %s" % migrate_cmd)
+        return migrate_cmd
+
+    def migrate(self, name=None):
+        """
+        Migrate a VM to a remote host.
+        """
+        migrate_cmd = ""
+
+        migrate_cmd = self.__make_migrate_command(name, self.params)
+
+        ret = virsh_migrate(self.name, migrate_cmd, self.params, self.connect_uri)
+        if ret == True:
+            return True
+        else:
+            return False
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
         """
