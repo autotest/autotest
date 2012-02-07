@@ -1,4 +1,4 @@
-import re, os, logging, commands, shutil
+import re, os, logging, commands, shutil, time
 from autotest_lib.client.common_lib import utils, error
 from autotest_lib.client.virt import virt_vm, virt_utils, virt_env_process
 
@@ -14,10 +14,12 @@ def run_virsh_migrate(test, params, env):
     extra = params.get("virsh_migrate_extra")
     destuser = params.get("virsh_migrate_destuser", "root")
     destpwd = params.get("virsh_migrate_destpwd", "")
+    dly = int(params.get("virsh_migrate_delay", 10))
 
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
-
+    logging.info("Sleeping %d seconds before migration" % dly)
+    time.sleep(dly)
     # Migrate the guest.
     successful = vm.migrate(dest_host, protocol, options, extra)
     if not successful:
