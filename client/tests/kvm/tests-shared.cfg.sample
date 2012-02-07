@@ -34,6 +34,8 @@ floppy ?<= /tmp/kvm_autotest_root/
 Linux..unattended_install:
     kernel ?<= /tmp/kvm_autotest_root/
     initrd ?<= /tmp/kvm_autotest_root/
+Linux..JeOS:
+    kernel ?<= /tmp/kvm_autotest_root/
 
 # You may provide information about the DTM server for WHQL tests here:
 #whql:
