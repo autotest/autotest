@@ -323,6 +323,19 @@ variants:
                 create_image_stg = yes
                 image_size_stg = 10M
 
+    - virsh_migrate: install setup image_copy unattended_install.cdrom
+        type = virsh_migrate
+        virsh_migrate_live = yes
+        virsh_migrate_verbose = yes
+        virsh_migrate_desturi = qemu+ssh://Destination Host IP/system
+        virsh_migrate_destuser = Destination Host Username
+        virsh_migrate_destpwd = Destination Host Password
+        virsh_migrate_destip = Destination Host IP
+        virsh_migrate_destprompt = "#"
+        virsh_migrate_timeout = 30
+        virsh_migrate_method = direct
+        virsh_migrate_copy_storage = all
+
     - migrate: install setup image_copy unattended_install.cdrom
         type = migration
         migration_test_command = help
