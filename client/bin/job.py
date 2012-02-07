@@ -1279,7 +1279,6 @@ def runjob(control, drop_caches, options):
     # Ensure state file is cleaned up before the job starts to run if autotest
     # is not running with the --continue flag
     if not options.cont and os.path.isfile(state):
-        logging.debug('Cleaning up previously found state file')
         os.remove(state)
 
     # instantiate the job object ready for the control file.
