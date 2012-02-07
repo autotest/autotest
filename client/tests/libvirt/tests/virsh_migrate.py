@@ -8,26 +8,34 @@ def run_virsh_migrate(test, params, env):
     """
 
     vm_name = params.get("main_vm")
+    dest_host = params.get("virsh_migrate_desthost")
+    protocol = params.get("virsh_migrate_proto", "qemu+ssh")
+    options = params.get("virsh_migrate_options")
+    extra = params.get("virsh_migrate_extra")
+    destuser = params.get("virsh_migrate_destuser", "root")
+    destpwd = params.get("virsh_migrate_destpwd", "")
+
     vm = env.get_vm(params["main_vm"])
-    desturi = params.get("virsh_migrate_desturi")
     vm.verify_alive()
 
     # Migrate the guest.
-    ret = vm.migrate()
-    if ret == False:
-        raise error.TestFail("Migration command failed for %s." % vm_name)
+    successful = vm.migrate(dest_host, protocol, options, extra)
+    if not successful:
+        raise error.TestFail("Migration failed for %s." % vm_name)
 
     if vm.is_alive():
-        raise error.TestFail("VM %s found running on %s" %
+        raise error.TestFail("VM %s still running on %s after migration" %
                              (vm_name, vm.connect_uri))
     # libvirt guaranteed to be running on remote uri, exploit for verification
-    # and optional destruction
-    vm.connect_uri = desturi
+    # and optional destruction or subsequent tests with same VM instance
+    orig_uri = vm.connect_uri
+    vm.connect_uri = "%s://%s/system" % (protocol,dest_host)
     if vm.is_alive():
         logging.info("Alive guest %s found on destination %s." %
-                     (vm_name, desturi))
-        if params.get("kill_vm") == "yes":
-            vm.destroy()
+                     (vm_name, dest_host))
     else:
-        raise error.TestFail("VM %s not running on destination %s" %
-                             (vm_name, desturi))
+        vm.connect_uri = orig_uri
+        raise error.TestFail("VM %s is not running on destination %s" %
+                             (vm_name, dest_host))
+    # FIXME: This needs to be tested, but won't work currently
+    # vm.verify_kernel_crash()
