@@ -325,16 +325,24 @@ variants:
 
     - virsh_migrate: install setup image_copy unattended_install.cdrom
         type = virsh_migrate
-        virsh_migrate_live = yes
-        virsh_migrate_verbose = yes
-        virsh_migrate_desturi = qemu+ssh://Destination Host IP/system
-        virsh_migrate_destuser = Destination Host Username
-        virsh_migrate_destpwd = Destination Host Password
-        virsh_migrate_destip = Destination Host IP
-        virsh_migrate_destprompt = "#"
-        virsh_migrate_timeout = 30
-        virsh_migrate_method = direct
-        virsh_migrate_copy_storage = all
+        # Default parameters presume hosts are using shared storage (SAN)
+        # and the path to storage on both hosts is exactly the same
+        # Migrating non-started VM causes undefined behavior
+        start_vm = yes
+        # Options to pass to virsh migrate command before <domain> <desturi>
+        # such as --copy-storage-all, --change-protection, --verbose, etc.
+        virsh_migrate_options = "--live --undefinesource --persistent"
+        # Extra options to pass after <domain> <desturi>
+        # not are normally not needed unless your doing --p2p
+        virsh_migrate_extra = ""
+        # Migration protocol to use (qemu+ssh uses root+pubkey auth)
+        virsh_migrate_proto = qemu+ssh
+        # Hostname part of <desturi>
+        # Remember to open ports 49152-49216 on destination
+        virsh_migrate_desthost = DESTINADDTION_HOSTNAME_OR_IP.example.com
+        # FIXME: Impliment libvirt URI connect user/password
+        # virsh_migrate_destuser = root
+        # virsh_migrate_destpwd = ""
 
     - migrate: install setup image_copy unattended_install.cdrom
         type = migration
