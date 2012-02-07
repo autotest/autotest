@@ -21,36 +21,49 @@ os.environ['AUTODIRBIN'] = autodirbin
 os.environ['AUTODIRTEST'] = autodirtest
 os.environ['PYTHONPATH'] = autodirbin
 
-opt_parser = optparser.AutotestLocalOptionParser()
-cmd_parser = cmdparser.CommandParser() # Allow access to instance in parser
 
-def usage():
-    opt_parser.print_help()
-    sys.exit(1)
+class AutotestLocalApp:
+    '''
+    Autotest local app runs tests locally
+
+    Point it to a control file and let it rock
+    '''
+    def __init__(self):
+        self.opt_parser = optparser.AutotestLocalOptionParser()
+        self.cmd_parser = cmdparser.CommandParser()
 
 
-def main():
-    options, args = opt_parser.parse_args()
-    args = cmd_parser.parse_args(args)
+    def usage(self):
+        self.opt_parser.print_help()
+        sys.exit(1)
 
-    # Check for a control file if not in prebuild mode.
-    if len(args) != 1 and options.client_test_setup is None:
-        print "Missing control file!"
-        usage()
 
-    drop_caches = global_config.global_config.get_config_value('CLIENT',
-                                                               'drop_caches',
-                                                               type=bool,
-                                                               default=True)
+    def parse_cmdline(self):
+        self.options, args = self.opt_parser.parse_args()
+        self.args = self.cmd_parser.parse_args(args)
 
-    if options.client_test_setup:
-        from autotest_lib.client.bin import setup_job
-        exit_code = 0
-        try:
-            setup_job.setup_tests(options)
-        except Exception:
-            exit_code = 1
-        sys.exit(exit_code)
+        # Check for a control file if not in prebuild mode.
+        if len(args) != 1 and self.options.client_test_setup is None:
+            print "Missing control file!"
+            self.usage()
 
-    # JOB: run the specified job control file.
-    job.runjob(os.path.realpath(args[0]), drop_caches, options)
+
+    def main(self):
+        self.parse_cmdline()
+
+        drop_caches = global_config.global_config.get_config_value('CLIENT',
+                                                                   'drop_caches',
+                                                                   type=bool,
+                                                                   default=True)
+
+        if self.options.client_test_setup:
+            from autotest_lib.client.bin import setup_job
+            exit_code = 0
+            try:
+                setup_job.setup_tests(self.options)
+            except Exception:
+                exit_code = 1
+            sys.exit(exit_code)
+
+        # JOB: run the specified job control file.
+        job.runjob(os.path.realpath(self.args[0]), drop_caches, self.options)
