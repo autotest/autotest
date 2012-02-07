@@ -10,6 +10,7 @@
 .#*
 .DS_Store.
 # additional patterns:
+RELEASE-VERSION
 *.pyc
 client/control
 client/results/
