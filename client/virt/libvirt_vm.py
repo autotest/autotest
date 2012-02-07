@@ -310,7 +310,7 @@ def virsh_migrate(migrate_cmd, uri = ""):
     logging.debug("Mirating VM with command: virsh %s" % migrate_cmd)
     try:
         virsh_cmd(migrate_cmd, uri)
-    except error.CmdError, defail:
+    except error.CmdError, detail:
         logging.warning("Migration error: %s" % (detail))
         return False
     return True
@@ -1020,7 +1020,10 @@ class VM(virt_vm.BaseVM):
         @return: True if command succeeded
         """
         migrate_cmd = "%s %s %s %s" % (options, self.name,
-                protocol+"://"+dest_host+"/system", extra)
+                                       protocol+"://"+dest_host+"/system",
+                                       extra)
+        logging.info("Migrating VM %s from %s to %s" %
+                     (self.name, self.connect_uri, dest_host))
         return virsh_migrate(migrate_cmd, self.connect_uri)
 
 
