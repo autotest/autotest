@@ -26,7 +26,7 @@ def libvirtd_restart():
         logging.debug("Restarted libvirtd successfuly")
         return True
     except error.CmdError, detail:
-        logging.error("Failed to restart libvirtd: %s" % detail)
+        logging.error("Failed to restart libvirtd:\n%s", detail)
         return False
 
 
@@ -106,11 +106,14 @@ def virsh_is_alive(name, uri = ""):
 
 def virsh_is_dead(name, uri = ""):
     """
-    Return True if the domain is not started/dead.
+    Return True if the domain is undefined or not started/dead.
 
     @param name: VM name
     """
-    state = virsh_domstate(name, uri)
+    try:
+        state = virsh_domstate(name, uri)
+    except error.CmdError:
+        return True
     if state in ('running', 'idle', 'no state', 'paused'):
         return False
     else:
@@ -132,8 +135,8 @@ def virsh_suspend(name, uri = ""):
             return True
         else:
             return False
-    except error.CmdError:
-        logging.error("Suspending VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("Suspending VM %s failed:\n%s", name, detail)
         return False
 
 
@@ -152,8 +155,8 @@ def virsh_resume(name, uri = ""):
             return True
         else:
             return False
-    except error.CmdError:
-        logging.error("Resume VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("Resume VM %s failed:\n%s", name, detail)
         return False
 
 def virsh_save(name, path, uri = ""):
@@ -207,8 +210,8 @@ def virsh_start(name, uri = ""):
     try:
         virsh_cmd("start %s" % (name), uri)
         return True
-    except error.CmdError:
-        logging.error("Start VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("Start VM %s failed:\n%s", name, detail)
         return False
 
 
@@ -225,8 +228,8 @@ def virsh_shutdown(name, uri = ""):
     try:
         virsh_cmd("shutdown %s" % (name), uri)
         return True
-    except error.CmdError:
-        logging.error("Shutdown VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("Shutdown VM %s failed:\n%s", name, detail)
         return False
 
 
@@ -244,8 +247,8 @@ def virsh_destroy(name, uri = ""):
     try:
         virsh_cmd("destroy %s" % (name), uri)
         return True
-    except error.CmdError:
-        logging.error("Destroy VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("Destroy VM %s failed:\n%s", name, detail)
         return False
 
 
@@ -262,8 +265,8 @@ def virsh_undefine(name, uri = ""):
         virsh_cmd("undefine %s" % (name), uri)
         logging.debug("undefined VM %s", name)
         return True
-    except error.CmdError:
-        logging.error("undefine VM %s failed", name)
+    except error.CmdError, detail:
+        logging.error("undefine VM %s failed:\n%s", name, detail)
         return False
 
 
@@ -289,8 +292,8 @@ def virsh_domain_exists(name, uri = ""):
     try:
         virsh_cmd("domstate %s" % name, uri)
         return True
-    except error.CmdError:
-        logging.warning("VM %s does not exist", name)
+    except error.CmdError, detail:
+        logging.warning("VM %s does not exist:\n%s", name, detail)
         return False
 
 
