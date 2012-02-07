@@ -10,4 +10,5 @@ except ImportError:
 from autotest_lib.client.bin import autotest_local
 
 if __name__ == '__main__':
-    autotest_local.main()
+    app = autotest_local.AutotestLocalApp()
+    app.main()
