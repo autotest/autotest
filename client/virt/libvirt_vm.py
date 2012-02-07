@@ -31,21 +31,21 @@ def libvirtd_restart():
 
 
 def virsh_cmd(cmd, uri = ""):
+    """
+    Append cmd to 'virsh' and execute, optionally return full results.
+
+    @param: cmd: Command line to append to virsh command
+    @param: uri: hypervisor URI to connect to
+    @return: stdout of command
+    """
     if VIRSH_EXEC is None:
         raise ValueError('Missing command: virsh')
 
     uri_arg = ""
     if uri:
         uri_arg = "-c " + uri
-
-    cmd_result = utils.run("%s %s %s" % (VIRSH_EXEC, uri_arg, cmd), ignore_status=True,
-                           verbose=DEBUG)
-    if DEBUG:
-        if cmd_result.stdout.strip():
-            logging.debug("stdout: %s", cmd_result.stdout.strip())
-        if cmd_result.stderr.strip():
-            logging.debug("stderr: %s", cmd_result.stderr.strip())
-
+    cmd = "%s %s %s" % (VIRSH_EXEC, uri_arg, cmd)
+    cmd_result = utils.run(cmd, verbose=DEBUG)
     return cmd_result.stdout.strip()
 
 
