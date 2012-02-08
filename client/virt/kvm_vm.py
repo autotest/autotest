@@ -281,6 +281,13 @@ class VM(virt_vm.BaseVM):
                     dev += ",port=%d" % (int(index) + 1)
                     format = "none"
                     index = None
+                if format.startswith("scsi-"):
+                    # handles scsi-{hd, cd, disk, block, generic} targets
+                    name = "virtio-scsi-cd%s" % index
+                    dev += (" -device %s,drive=%s,bus=virtio_scsi_pci.0" %
+                            (format, name))
+                    format = "none"
+                    index = None
                 cmd = " -drive file='%s',media=cdrom" % filename
                 if index is not None:
                     cmd += ",index=%s" % index
@@ -318,6 +325,20 @@ class VM(virt_vm.BaseVM):
                 dev += _add_option("physical_block_size", physical_block_size)
                 dev += _add_option("logical_block_size", logical_block_size)
                 dev += _add_option("drive", name)
+                format = "none"
+                index = None
+            if format.startswith("scsi-"):
+                # handles scsi-{hd, cd, disk, block, generic} targets
+                name = "virtio-scsi%s" % index
+                dev += " -device %s,bus=virtio_scsi_pci.0" % format
+                dev += _add_option("drive", name)
+                dev += _add_option("logical_block_size", logical_block_size)
+                dev += _add_option("physical_block_size", physical_block_size)
+                dev += _add_option("min_io_size", min_io_size)
+                dev += _add_option("opt_io_size", opt_io_size)
+                dev += _add_option("bootindex", bootindex)
+                dev += _add_option("serial", serial)
+                dev += _add_option("removable", removable)
                 format = "none"
                 index = None
 
@@ -538,6 +559,7 @@ class VM(virt_vm.BaseVM):
             root_dir = self.root_dir
 
         have_ahci = False
+        have_virtio_scsi = False
 
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
@@ -607,6 +629,10 @@ class VM(virt_vm.BaseVM):
             if image_params.get("drive_format") == "ahci" and not have_ahci:
                 qemu_cmd += " -device ahci,id=ahci"
                 have_ahci = True
+            if (image_params.get("drive_format").startswith("scsi-")
+                        and not have_virtio_scsi):
+                qemu_cmd += " -device virtio-scsi,id=virtio_scsi_pci"
+                have_virtio_scsi = True
 
             bus = None
             port = None
@@ -697,6 +723,10 @@ class VM(virt_vm.BaseVM):
             if cdrom_params.get("cd_format") == "ahci" and not have_ahci:
                 qemu_cmd += " -device ahci,id=ahci"
                 have_ahci = True
+            if (cdrom_params.get("cd_format").startswith("scsi-")
+                        and not have_virtio_scsi):
+                qemu_cmd += " -device virtio-scsi,id=virtio_scsi_pci"
+                have_virtio_scsi = True
             if iso:
                 qemu_cmd += add_cdrom(help, virt_utils.get_path(root_dir, iso),
                                       cdrom_params.get("drive_index"),
