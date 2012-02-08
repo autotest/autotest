@@ -413,6 +413,13 @@ class VM(virt_vm.BaseVM):
         return virsh_is_dead(self.name, self.connect_uri)
 
 
+    def state(self):
+        """
+        Return domain state.
+        """
+        return virsh_domstate(self.name, self.connect_uri)
+
+
     def clone(self, name=None, params=None, root_dir=None, address_cache=None,
               copy_state=False):
         """
