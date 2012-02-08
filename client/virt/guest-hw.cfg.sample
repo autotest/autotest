@@ -58,6 +58,14 @@ variants:
         # Some older qemu might need image_boot=yes for virtio images to work.
         # Please uncomment the below if that is the case.
         #image_boot=yes
+    - virtio_scsi:
+        # supported formats are: scsi-hd, scsi-cd, scsi-disk, scsi-block,
+        # scsi-generic
+        # Use drive_format_$DISKNAME = "scsi-generic" to force disk driver
+        # for single disk.
+        # NOTE:  scsi-block and scsi-generic are pass-through physical dev only
+        drive_format=scsi-hd
+        cd_format=scsi-cd
     - ahci:
         drive_format=ahci
         cd_format=ahci
