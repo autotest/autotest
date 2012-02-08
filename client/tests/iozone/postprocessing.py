@@ -431,7 +431,7 @@ class IOzonePlotter(object):
             commands += "set xlabel 'File size (KB)'\n"
             commands += "set ylabel 'Record size (KB)'\n"
             commands += "set zlabel 'Througput (KB/s)'\n"
-            commands += "set data style lines\n"
+            commands += "set style data lines\n"
             commands += "set dgrid3d 80,80, 3\n"
             commands += "set terminal png small size 900 700\n"
             commands += "set output '%s'\n" % os.path.join(self.output_dir,
