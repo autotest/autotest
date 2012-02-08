@@ -47,18 +47,18 @@ class harness_standalone(harness.harness):
         else:
             initdefault = '2'
 
+        vendor = utils.get_os_vendor()
+        service = '/etc/init.d/autotest'
+        if vendor == 'SUSE':
+            service_link = '/etc/init.d/rc%s.d/S99autotest' % initdefault
+        else:
+            service_link = '/etc/rc%s.d/S99autotest' % initdefault
         try:
-            vendor = utils.get_os_vendor()
-            service = '/etc/init.d/autotest'
-            if vendor == 'SUSE':
-                service_link = '/etc/init.d/rc%s.d/S99autotest' % initdefault
-            else:
-                service_link = '/etc/rc%s.d/S99autotest' % initdefault
             if os.path.islink(service):
                 os.remove(service)
             if os.path.islink(service_link):
                 os.remove(service_link)
             os.symlink(rc, service)
             os.symlink(rc, service_link)
-        except Exception, e:
-            logging.error("Symlink init scripts failed with %s", e)
+        except (OSError, IOError):
+            logging.info("Could not symlink init scripts (lack of permissions)")

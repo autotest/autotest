@@ -80,7 +80,11 @@ class logfile(loggable):
 
     def run(self, logdir):
         if os.path.exists(self.path):
-            shutil.copyfile(self.path, os.path.join(logdir, self.logf))
+            try:
+                shutil.copyfile(self.path, os.path.join(logdir, self.logf))
+            except IOError:
+                logging.info("Not logging %s (lack of permissions)",
+                             self.path)
 
 
 class command(loggable):
@@ -336,7 +340,8 @@ class base_sysinfo(object):
                 if os.path.exists(logpath):
                     break
             else:
-                raise ValueError("system log file not found")
+                raise ValueError("System log file not found (looked for %s)" %
+                                 logpaths)
 
             bytes_to_skip = 0
             if hasattr(self, "_messages_size"):
@@ -358,8 +363,12 @@ class base_sysinfo(object):
             finally:
                 out_messages.close()
                 in_messages.close()
+        except ValueError, e:
+            logging.info(e)
+        except (IOError, OSError):
+            logging.info("Not logging %s (lack of permissions)", logpath)
         except Exception, e:
-            logging.error("system log collection failed with %s", e)
+            logging.info("System log collection failed: %s", e)
 
 
     @staticmethod
