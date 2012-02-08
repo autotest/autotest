@@ -33,4 +33,5 @@ os.system('chkconfig sshd on')
 os.system('iptables -F')
 os.system('echo 0 > /selinux/enforce')
 os.system('echo Post set up finished > /dev/ttyS0')
+os.system('echo Post set up finished > /dev/hvc0')
 %end
