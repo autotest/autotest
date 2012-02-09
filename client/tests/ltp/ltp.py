@@ -40,7 +40,6 @@ class ltp(test.test):
             utils.system('patch -p1 < ../ltp_capability.patch')
 
         utils.system('cp ../scan.c pan/')   # saves having lex installed
-        utils.make('autotools')
         utils.configure('--prefix=%s' % ltpbin_dir)
         utils.make('-j %d all' % utils.count_cpus())
         utils.system('yes n | make SKIP_IDCHECK=1 install')
