@@ -28,7 +28,7 @@ Cartesian configuration format file parser.
 @copyright: Red Hat 2008-2011
 """
 
-import re, os, optparse, collections
+import re, os, optparse, collections, string
 
 class ParserError:
     def __init__(self, msg, line=None, filename=None, linenum=None):
@@ -535,38 +535,44 @@ _reserved_keys = set(("name", "shortname", "dep"))
 
 def _op_set(d, key, value):
     if key not in _reserved_keys:
-        d[key] = value
+        st = string.Template(value)
+        d[key] = st.safe_substitute(d)
 
 
 def _op_append(d, key, value):
     if key not in _reserved_keys:
-        d[key] = d.get(key, "") + value
+        st = string.Template(value)
+        d[key] = d.get(key, "") + st.safe_substitute(d)
 
 
 def _op_prepend(d, key, value):
     if key not in _reserved_keys:
-        d[key] = value + d.get(key, "")
+        st = string.Template(value)
+        d[key] = st.safe_substitute(d) + d.get(key, "")
 
 
 def _op_regex_set(d, exp, value):
     exp = re.compile("%s$" % exp)
+    st = string.Template(value)
     for key in d:
         if key not in _reserved_keys and exp.match(key):
-            d[key] = value
+            d[key] = st.safe_substitute(d)
 
 
 def _op_regex_append(d, exp, value):
     exp = re.compile("%s$" % exp)
+    st = string.Template(value)
     for key in d:
         if key not in _reserved_keys and exp.match(key):
-            d[key] += value
+            d[key] += st.safe_substitute(d)
 
 
 def _op_regex_prepend(d, exp, value):
     exp = re.compile("%s$" % exp)
+    st = string.Template(value)
     for key in d:
         if key not in _reserved_keys and exp.match(key):
-            d[key] = value + d[key]
+            d[key] = st.safe_substitute(d) + d[key]
 
 
 def _op_regex_del(d, empty, exp):
