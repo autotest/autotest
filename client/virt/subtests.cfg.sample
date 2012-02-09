@@ -323,6 +323,7 @@ variants:
                 create_image_stg = yes
                 image_size_stg = 10M
 
+
     - virsh_migrate: install setup image_copy unattended_install.cdrom
         type = virsh_migrate
         # Migrating non-started VM causes undefined behavior
@@ -331,21 +332,31 @@ variants:
         virsh_migrate_options = "--live --undefinesource --persistent"
         # Extra options to pass after <domain> <desturi>
         virsh_migrate_extra = "--timeout 60"
-        # Migration protocol to use (qemu+ssh uses root+pubkey auth)
-        virsh_migrate_proto = qemu+ssh
-        # Hostname part of <desturi>
+        # Fully qualified desturi (qemu+ssh://other.hostname.example.com/system)
         # Remember to open ports 49152-49216 on destination
-        virsh_migrate_desthost = DESTINADDTION_HOSTNAME_OR_IP.example.com
+        virsh_migrate_desturi = qemu+ssh://DEST_HOSTNAME.EXAMPLE.COM/system
         # FIXME: Impliment libvirt URI connect user/password
         # virsh_migrate_destuser = root
         # virsh_migrate_destpwd = ""
         variants:
-            - there:
+            - there_and_back:
                 virsh_migrate_delay = 60
-                virsh_migrate_desthost = DESTINADDTION_HOSTNAME_OR_IP.example.com
-            - back: there
-                virsh_migrate_delay = 10
-                virsh_migrate_desthost = SOURCE_HOSTNAME_OR_IP.example.com
+                # After migrating, migrate the guest back.
+                virsh_migrate_back = 'yes'
+                # By 'default', use same options and extra with the
+                # virsh_migrate_back_desturi set to the original connect_uri
+                virsh_migrate_back_options = 'default'
+                virsh_migrate_back_extra = 'default'
+                virsh_migrate_back_desturi = 'default'
+            - there_and_back_a_lot:
+                iterations = 100
+                # don't kill anything inbetween iterations
+                kill_vm = no
+                kill_vm_gracefully = no
+                kill_unresponsive_vms = no
+                # migrate as fast as possible
+                virsh_migrate_delay = 0
+
 
     - migrate: install setup image_copy unattended_install.cdrom
         type = migration
