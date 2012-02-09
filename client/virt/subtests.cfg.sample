@@ -1424,11 +1424,29 @@ variants:
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
         variants:
             - interface:
-                test_type = "test_qemu_interface_group"
+                variants:
+                    - qemu_cpu_model:
+                        test_type = "test_qemu_cpu_model"
+                    - qemu_cpu_dump:
+                        test_type = "test_qemu_dump"
+                    - qemu_cpu_cpuid:
+                        test_type = "test_qemu_cpuid"
             - boot_guest:
-                test_type = "test_boot_guest_group"
+                variants:
+                    - qemu_boot_cpu_model:
+                        test_type = "test_boot_cpu_model"
+                    - qemu_boot_cpu_model_and_flags:
+                        test_type = "test_boot_cpu_model_and_additional_flags"
+                    - qemu_boot_fail_cpu_model:
+                        test_type = "test_fail_boot_with_host_unsupported_flags"
             - stress_guest:
-                test_type = "test_stress_guest_group"
+                variants:
+                    - qemu_test_boot_guest_and_try_flags_under_load:
+                        test_type = "test_boot_guest_and_try_flags_under_load"
+                    - qemu_test_online_offline_guest_CPUs:
+                        test_type = "test_online_offline_guest_CPUs"
+                    - qemu_test_migration_with_additional_flags:
+                        test_type = "test_migration_with_additional_flags"
 
     - cpuflags_multi_host:
         type = cpuflags
