@@ -1331,6 +1331,7 @@ kvm_map_flags_to_test = {
 kvm_map_flags_aliases = {
             'sse4.1'              :'sse4_1',
             'sse4.2'              :'sse4_2',
+            'pclmulqdq'           :'pclmuldq',
             }
 
 
