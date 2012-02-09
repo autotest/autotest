@@ -1,6 +1,5 @@
-import re, os, logging, commands, shutil, time
-from autotest_lib.client.common_lib import utils, error
-from autotest_lib.client.virt import virt_vm, virt_utils, virt_env_process
+import logging, time
+from autotest_lib.client.common_lib import error
 
 def run_virsh_migrate(test, params, env):
     """
@@ -28,14 +27,23 @@ def run_virsh_migrate(test, params, env):
 
     src_uri = vm.connect_uri
     dest_uri = params.get("virsh_migrate_desturi")
+    # Identify easy config. mistakes early
+    warning_text = ("Migration VM %s URI %s appears problematic "
+                    "this may lead to migration problems. "
+                    "Consider specifying vm.connect_uri using "
+                    "fully-qualified network-based style.")
+
+    if src_uri.count('///') or src_uri.count('EXAMPLE'):
+        logging.warning(warning_text % ('source', src_uri))
+
+    if dest_uri.count('///') or dest_uri.count('EXAMPLE'):
+        logging.warning(warning_text % ('destination', dest_uri))
+
     options = params.get("virsh_migrate_options")
     extra = params.get("virsh_migrate_extra")
-    # FIXME: libvirt.vm should support other remote access styles
-    # destuser = params.get("virsh_migrate_destuser", "root")
-    # destpwd = params.get("virsh_migrate_destpwd", "")
     dly = int(params.get("virsh_migrate_delay", 10))
 
-    
+
     do_migration(dly, vm, dest_uri, options, extra)
     # Repeat the migration with a recursive call and guaranteed exit
     if params.get("virsh_migrate_back", "no") == 'yes':
