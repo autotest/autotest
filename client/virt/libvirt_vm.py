@@ -335,18 +335,20 @@ def virsh_domain_exists(name, uri = ""):
         logging.warning("VM %s does not exist:\n%s", name, detail)
         return False
 
-def virsh_migrate(migrate_cmd, uri = ""):
+def virsh_migrate(options, name, dest_uri, extra, uri = ""):
     """
     Migrate a guest to another host.
 
-    @params migrate_cmd: Migrate command to be executed
-    @param: uri: URI of libvirt hypervisor to use
-    @return: True if migration command succeeded
+    @param: options: Free-form string of options to virsh migrate
+    @param: name: name of guest on uri
+    @param: dest_uri: libvirt uri to send guest to
+    @param: extra: Free-form string of options to follow <domain> <desturi>
+    @return: True if migration command was successful
     """
     # Rely on test-code to verify guest state on receiving-end
     # Assume success unless proven otherwise
-    migrate_cmd = "migrate " + migrate_cmd
-    logging.debug("Mirating VM with command: virsh %s" % migrate_cmd)
+    migrate_cmd = "migrate %s %s %s %s" %\
+                (options, name, dest_uri, extra)
     try:
         virsh_cmd(migrate_cmd, uri)
     except error.CmdError, detail:
@@ -1048,23 +1050,23 @@ class VM(virt_vm.BaseVM):
 
 
 
-    def migrate(self, dest_host, protocol="qemu+ssh",
-                options="--live --timeout 60", extra=""):
+    def migrate(self, dest_uri, options="--live --timeout 60", extra=""):
         """
         Migrate a VM to a remote host.
 
-        @param: dest_host: Destination host
-        @param: protocol: Migration protocol (qemu, qemu+ssh, etc)
+        @param: dest_uri: Destination libvirt URI
         @param: options: Migration options before <domain> <desturi>
         @param: extra: Migration options after <domain> <desturi>
         @return: True if command succeeded
         """
-        migrate_cmd = "%s %s %s %s" % (options, self.name,
-                                       protocol+"://"+dest_host+"/system",
-                                       extra)
         logging.info("Migrating VM %s from %s to %s" %
-                     (self.name, self.connect_uri, dest_host))
-        return virsh_migrate(migrate_cmd, self.connect_uri)
+                     (self.name, self.connect_uri, dest_uri))
+        result = virsh_migrate(options, self.name, dest_uri,
+                             extra, self.connect_uri)
+        # On successful migration, point to guests new hypervisor
+        if result == True:
+            self.connect_uri = dest_uri
+        return result
 
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
