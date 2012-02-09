@@ -366,6 +366,7 @@ class VM(virt_vm.BaseVM):
             self.device_id = []
             self.pci_devices = []
             self.uuid = None
+            self.only_pty = False
 
         self.spice_port = 8000
         self.name = name
@@ -623,6 +624,7 @@ class VM(virt_vm.BaseVM):
             if has_option(help, "serial"):
                 return "  --serial file,path=%s --serial pty" % filename
             else:
+                self.only_pty = True
                 return ""
 
         def add_kernel_cmdline(help, cmdline):
@@ -1007,11 +1009,18 @@ class VM(virt_vm.BaseVM):
                                       self.name))
 
             # Establish a session with the serial console
-            self.serial_console = aexpect.ShellSession(
-                "tail -f %s" % self.get_serial_console_filename(),
-                auto_close=False,
-                output_func=virt_utils.log_line,
-                output_params=("serial-%s.log" % name,))
+            if self.only_pty == True:
+                self.serial_console = aexpect.ShellSession(
+                    "virsh console %s" % self.name,
+                    auto_close=False,
+                    output_func=virt_utils.log_line,
+                    output_params=("serial-%s.log" % name,))
+            else:
+                self.serial_console = aexpect.ShellSession(
+                    "tail -f %s" % self.get_serial_console_filename(),
+                    auto_close=False,
+                    output_func=virt_utils.log_line,
+                    output_params=("serial-%s.log" % name,))
 
         finally:
             fcntl.lockf(lockfile, fcntl.LOCK_UN)
