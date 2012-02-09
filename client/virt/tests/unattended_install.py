@@ -670,7 +670,7 @@ class UnattendedInstallConfig(object):
             # Red Hat kickstart install
             dest_fname = 'ks.cfg'
             if ((self.params.get('vm_type') == 'libvirt') and
-                (self.vm.driver_type == self.vm.LIBVIRT_XEN)):
+                (self.vm.driver_type == 'xen')):
                 if self.params.get('hvm_or_pv') == 'hvm':
                     ks_param = 'ks=cdrom:/isolinux/%s' % dest_fname
                     kernel_params = getattr(self, 'kernel_params')
@@ -776,7 +776,7 @@ class UnattendedInstallConfig(object):
             self.preseed_initrd()
 
         if self.params.get("vm_type") == "libvirt":
-            if self.vm.driver_type == self.vm.LIBVIRT_QEMU:
+            if self.vm.driver_type == 'qemu':
                 # Virtinstall command needs files "vmlinuz" and "initrd.img"
                 os.chdir(self.image_path)
                 base_kernel = os.path.basename(self.kernel)
@@ -786,7 +786,7 @@ class UnattendedInstallConfig(object):
                 if base_initrd != 'initrd.img':
                     utils.run("mv %s initrd.img" % base_initrd, verbose=DEBUG)
                 cleanup(self.cdrom_cd1_mount)
-            elif ((self.vm.driver_type == self.vm.LIBVIRT_XEN) and
+            elif ((self.vm.driver_type == 'xen') and
                   (self.params.get('hvm_or_pv') == 'pv')):
                 logging.debug("starting unattended content web server")
 

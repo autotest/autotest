@@ -4,7 +4,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, fcntl, re, commands, shutil
+import time, os, logging, fcntl, re, commands, shutil, urlparse
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils, os_dep
 from xml.dom import minidom
@@ -88,6 +88,14 @@ def virsh_hostname(uri = ""):
     """
     return virsh_cmd("hostname", uri)
 
+def virsh_driver(uri = ""):
+    """
+    return the driver by asking libvirt
+    """
+    # libvirt schme composed of driver + command
+    scheme = urlparse.urlsplit(virsh_uri(uri)).scheme
+    # extract just the driver, whether or not there is a '+'
+    return scheme.split('+', 2)[0]
 
 def virsh_domstate(name, uri = ""):
     """
@@ -351,11 +359,6 @@ class VM(virt_vm.BaseVM):
     """
     This class handles all basic VM operations for libvirt.
     """
-    # constant for libirt driver type,
-    # now it only supports default, qemu and xen.
-    LIBVIRT_DEFAULT = "default"
-    LIBVIRT_QEMU = "qemu"
-    LIBVIRT_XEN = "xen"
 
     def __init__(self, name, params, root_dir, address_cache, state=None):
         """
@@ -391,29 +394,19 @@ class VM(virt_vm.BaseVM):
         self.root_dir = root_dir
         self.address_cache = address_cache
         self.vnclisten = "0.0.0.0"
-        # For now, libvirt does not have a monitor property.
+        # TODO: Impliment monitor class & property
         self.monitor = None
-        self.driver_type = params.get("driver_type", self.LIBVIRT_DEFAULT)
+        # TODO: The monitor class should do this
+        self.connect_uri = params.get("connect_uri", "default")
+        if self.connect_uri == 'default':
+            self.connect_uri = virsh_uri()
+        else: # Validate and canonicalize uri early to catch problems
+            self.connect_uri = virsh_uri(uri = self.connect_uri)
+        # TODO: The monitor class should do this also
+        self.driver_type = virsh_driver(uri = self.connect_uri)
 
-        default_uri = virsh_uri()
-        if not self.driver_type or self.driver_type == self.LIBVIRT_DEFAULT:
-            if default_uri == "qemu:///system":
-                self.driver_type = self.LIBVIRT_QEMU
-            elif default_uri == "xen:///":
-                self.driver_type = self.LIBVIRT_XEN
-            else:
-                self.driver_type = self.LIBVIRT_DEFAULT
-
-        #   if driver_type is not supported, just use the default uri that
-        #   was detected by virsh
-        if self.driver_type == self.LIBVIRT_QEMU:
-            self.connect_uri = "qemu:///system"
-        elif self.driver_type == self.LIBVIRT_XEN:
-            self.connect_uri = "xen:///"
-        else:
-            self.connect_uri = default_uri
-
-        logging.info("VM '%s' with uri '%s'" % (name, self.connect_uri))
+        logging.info("Libvirt VM '%s', driver '%s', uri '%s'",
+                     self.name, self.driver_type, self.connect_uri)
 
     def verify_alive(self):
         """
@@ -731,7 +724,7 @@ class VM(virt_vm.BaseVM):
         elif params.get("medium") == 'cdrom':
             if params.get("use_libvirt_cdrom_switch") == 'yes':
                 virt_install_cmd += add_cdrom(help, params.get("cdrom_cd1"))
-            elif ((self.driver_type == self.LIBVIRT_XEN) and
+            elif ((self.driver_type == 'xen') and
                   (params.get('hvm_or_pv') == 'hvm')):
                 virt_install_cmd += add_cdrom(help,
                                               params.get("cdrom_unattended"))
@@ -811,7 +804,7 @@ class VM(virt_vm.BaseVM):
                                   image_params.get("drive_cache"),
                                   image_params.get("image_format"))
 
-        if self.driver_type == self.LIBVIRT_QEMU:
+        if self.driver_type == 'qemu':
             for cdrom in params.objects("cdroms"):
                 cdrom_params = params.object_params(cdrom)
                 iso = cdrom_params.get("cdrom")
@@ -863,9 +856,9 @@ class VM(virt_vm.BaseVM):
             virt_install_cmd += " --mac %s" % mac
             self.nic_mac = mac
 
-        if self.driver_type == self.LIBVIRT_XEN:
+        if self.driver_type == 'xen':
             virt_install_cmd += (" --network=%s" % params.get("virsh_network"))
-        elif self.driver_type == self.LIBVIRT_QEMU:
+        elif self.driver_type == 'qemu':
             virt_install_cmd += (" --network=%s,model=%s" %
                                  (params.get("virsh_network"),
                                   params.get("nic_model")))
@@ -938,7 +931,7 @@ class VM(virt_vm.BaseVM):
         for cdrom in params.objects("cdroms"):
             cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
-            if ((self.driver_type == self.LIBVIRT_XEN) and
+            if ((self.driver_type == 'xen') and
                 (params.get('hvm_or_pv') == 'pv') and
                 (os.path.basename(iso) == 'ks.iso')):
                 continue
