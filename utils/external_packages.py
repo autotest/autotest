@@ -74,9 +74,9 @@ class ExternalPackage(object):
 
     class __metaclass__(type):
         """Any time a subclass is defined, add it to our list."""
-        def __init__(mcs, name, bases, dict):
+        def __init__(self, name, bases, d):
             if name != 'ExternalPackage':
-                mcs.subclasses.append(mcs)
+                self.subclasses.append(self)
 
 
     def __init__(self):
@@ -103,7 +103,7 @@ class ExternalPackage(object):
             return True
         try:
             module = __import__(self.module_name)
-        except ImportError, e:
+        except ImportError:
             logging.info("%s isn't present. Will install.", self.module_name)
             return True
         self.installed_version = self._get_installed_version_from_module(module)
@@ -715,6 +715,8 @@ class GwtPackage(ExternalPackage):
 
 
     def _build_and_install(self, install_dir):
+        if not os.path.isdir(install_dir):
+            os.makedirs(install_dir)
         os.chdir(install_dir)
         self._extract_compressed_package()
         extracted_dir = self.local_filename[:-len('.zip')]
