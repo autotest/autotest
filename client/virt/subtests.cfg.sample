@@ -333,7 +333,9 @@ variants:
         # Extra options to pass after <domain> <desturi>
         virsh_migrate_extra = "--timeout 60"
         # Fully qualified desturi (qemu+ssh://other.hostname.example.com/system)
-        # Remember to open ports 49152-49216 on destination
+        # Remember to open ports 49152-49216 on destination and
+        # NAT-based host networking will cause external connectivity-loss
+        # to guest, consider a shared-bridge setup instead.
         virsh_migrate_desturi = qemu+ssh://DEST_HOSTNAME.EXAMPLE.COM/system
         # FIXME: Impliment libvirt URI connect user/password
         # virsh_migrate_destuser = root
@@ -345,12 +347,16 @@ variants:
                 virsh_migrate_back = 'yes'
                 # By 'default', use same options and extra with the
                 # virsh_migrate_back_desturi set to the original connect_uri
-                virsh_migrate_back_options = 'default'
-                virsh_migrate_back_extra = 'default'
-                virsh_migrate_back_desturi = 'default'
+                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
+                # virsh_migrate_back_options = 'default'
+                # virsh_migrate_back_extra = 'default'
+                # virsh_migrate_back_desturi = 'default'
             - there_and_back_a_lot:
                 iterations = 100
-                # don't kill anything inbetween iterations
+                virsh_migrate_back = 'yes'
+                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
+                # don't kill anything inbetween iterations, you'll need to
+                # shut it down manually or by including a shutdown test
                 kill_vm = no
                 kill_vm_gracefully = no
                 kill_unresponsive_vms = no

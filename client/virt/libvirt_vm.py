@@ -67,6 +67,7 @@ def virsh_driver(uri = ""):
     return the driver by asking libvirt
     """
     # libvirt schme composed of driver + command
+    # ref: http://libvirt.org/uri.html
     scheme = urlparse.urlsplit(virsh_uri(uri)).scheme
     # extract just the driver, whether or not there is a '+'
     return scheme.split('+', 2)[0]
@@ -319,8 +320,11 @@ def virsh_migrate(options, name, dest_uri, extra, uri = ""):
     @param: extra: Free-form string of options to follow <domain> <desturi>
     @return: True if migration command was successful
     """
+    # Fail early with warning when simple to do so
+    if not virsh_domain_exists(name, uri) or virsh_is_dead(name, uri):
+        logging.warning("Domain doesn't exist or found dead, prior to migration")
+        return False
     # Rely on test-code to verify guest state on receiving-end
-    # Assume success unless proven otherwise
     migrate_cmd = "migrate %s %s %s %s" %\
                 (options, name, dest_uri, extra)
     try:
