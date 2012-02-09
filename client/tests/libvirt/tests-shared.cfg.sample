@@ -23,25 +23,18 @@ connect_uri = default
 # As for the defaults:
 # * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
 #   /usr/bin/qemu-img respectively.
-# * All image files are expected under /tmp/kvm_autotest_root/images/
-# * All install iso files are expected under /tmp/kvm_autotest_root/isos/
+# * All image files are expected under /tmp/libvirt_autotest_root/images/
+# * All install iso files are expected under /tmp/libvirt_autotest_root/isos/
 # * The parameters cdrom_unattended, floppy, kernel and initrd are generated
-#   by KVM autotest, so remember to put them under a writable location
+#   by LIBVIRT autotest, so remember to put them under a writable location
 #   (for example, the cdrom share can be read only)
-image_name(_.*)? ?<= /tmp/kvm_autotest_root/images/
-cdrom(_.*)? ?<= /tmp/kvm_autotest_root/
-floppy ?<= /tmp/kvm_autotest_root/
+image_name(_.*)? ?<= /tmp/libvirt_autotest_root/images/
+cdrom(_.*)? ?<= /tmp/libvirt_autotest_root/
+floppy ?<= /tmp/libvirt_autotest_root/
+image_dir = /tmp/libvirt_autotest_root/
 Linux..unattended_install:
-    kernel ?<= /tmp/kvm_autotest_root/
-    initrd ?<= /tmp/kvm_autotest_root/
-
-# You may provide information about the DTM server for WHQL tests here:
-#whql:
-#    server_address = 10.20.30.40
-#    server_shell_port = 10022
-#    server_file_transfer_port = 10023
-# Note that the DTM server must run rss.exe (available under deps/),
-# preferably with administrator privileges.
+    kernel ?<= /tmp/libvirt_autotest_root/
+    initrd ?<= /tmp/libvirt_autotest_root/
 
 # Uncomment the following lines to enable abort-on-error mode:
 #abort_on_error = yes
