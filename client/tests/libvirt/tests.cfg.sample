@@ -1,17 +1,9 @@
 # Copy this file to tests.cfg and edit it.
 #
 # This file contains the test set definitions. Define your test sets here.
-include base.cfg
-include subtests.cfg
-include guest-os.cfg
-include guest-hw.cfg
-include cdkeys.cfg
-include virtio-win.cfg
 
-# Virtualization type (kvm or libvirt)
-# TODO: Update code to use vm_library + vm_type + vm_subtype
-#           i.e.        (libvirt/none) + (qemu/kvm/xen) + (hvm/paravirt)
-vm_type = libvirt
+# Include the base config files.
+include tests-shared.cfg
 
 variants:
     # Runs virt-install, f16 64 bit guest OS, install, boot, shutdown
@@ -93,25 +85,6 @@ variants:
         only smallpages
         only Win7.64.sp1
         only unattended_install.cdrom, boot, reboot, shutdown
-
-# Modify/comment the following lines if you wish to modify the paths of the
-# image files, ISO files or qemu binaries.
-#
-# As for the defaults:
-# * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
-#   /usr/bin/qemu-img respectively.
-# * All image files are expected under /tmp/libvirt_autotest_root/images/
-# * All install iso files are expected under /tmp/libvirt_autotest_root/isos/
-# * The parameters cdrom_unattended, floppy, kernel and initrd are generated
-#   by LIBVIRT autotest, so remember to put them under a writable location
-#   (for example, the cdrom share can be read only)
-image_name(_.*)? ?<= /tmp/libvirt_autotest_root/images/
-cdrom(_.*)? ?<= /tmp/libvirt_autotest_root/
-floppy ?<= /tmp/libvirt_autotest_root/
-image_dir = /tmp/libvirt_autotest_root/
-Linux..unattended_install:
-    kernel ?<= /tmp/libvirt_autotest_root/
-    initrd ?<= /tmp/libvirt_autotest_root/
 
 # Choose your test list from the testsets defined
 only libvirt_f16_quick

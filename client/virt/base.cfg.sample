@@ -42,9 +42,6 @@ usb_controller_tablet1 = uhci
 
 ##### Low-level parameters for platform, networking, block, and usb devices.
 
-# libvirt driver
-driver_type = default
-
 # Default number of processors for each VM
 smp = 1
 # Memory for each VM
