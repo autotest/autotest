@@ -75,10 +75,15 @@ class BgJob(object):
 
         if verbose:
             logging.debug("Running '%s'" % command)
+        # Ok, bash is nice and everything, but we might face occasions where
+        # it is not available. Just do the right thing and point to /bin/sh.
+        shell = '/bin/bash'
+        if not os.path.isfile(shell):
+            shell = '/bin/sh'
         self.sp = subprocess.Popen(command, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
                                    preexec_fn=self._reset_sigpipe, shell=True,
-                                   executable="/bin/bash",
+                                   executable=shell,
                                    stdin=stdin)
 
 
