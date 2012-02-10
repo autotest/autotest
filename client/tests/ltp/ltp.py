@@ -3,7 +3,7 @@ from autotest_lib.client.bin import utils, test
 from autotest_lib.client.common_lib import error
 
 class ltp(test.test):
-    version = 6
+    version = 7
 
     def _import_site_config(self):
         site_config_path = os.path.join(os.path.dirname(__file__),
@@ -23,8 +23,8 @@ class ltp(test.test):
         self.job.require_gcc()
 
 
-    # http://prdownloads.sourceforge.net/ltp/ltp-full-20091231.tgz
-    def setup(self, tarball = 'ltp-full-20091231.tar.bz2'):
+    # http://sourceforge.net/projects/ltp/files/LTP%20Source/ltp-20120104/
+    def setup(self, tarball = 'ltp-full-20120104.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
