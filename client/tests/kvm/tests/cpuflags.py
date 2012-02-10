@@ -429,6 +429,42 @@ def run_cpuflags(test, params, env):
                                      (str(Flags[1])))
 
     # 3) fail boot unsupported flags
+    class test_boot_warn_with_host_unsupported_flags(MiniSubtest):
+        def test(self):
+            #This is virtual cpu flags which are supported by
+            #qemu but no with host cpu.
+            cpu_model, extra_flags = parse_cpu_model()
+
+            flags = HgFlags(cpu_model, extra_flags)
+
+            logging.debug("Unsupported flags %s.",
+                          str(flags.host_all_unsupported_flags))
+            cpuf_model = cpu_model + ",check"
+
+            # Add unsupported flags.
+            for fadd in flags.host_all_unsupported_flags:
+                cpuf_model += ",+" + fadd
+
+            vnc_port = virt_utils.find_free_port(5900, 6100) - 5900
+            cmd = "%s -cpu %s -vnc :%d" % (qemu_binary, cpuf_model, vnc_port)
+            out = None
+
+            try:
+                try:
+                    out = utils.run(cmd, timeout=5, ignore_status=True).stderr
+                    raise error.TestFail("Guest not boot with unsupported "
+                                         "flags.")
+                except error.CmdError, e:
+                    out = e.result_obj.stderr
+            finally:
+                uns_re = re.compile("^warning:.*flag '(.+)'", re.MULTILINE)
+                warn_flags = set(map(virt_utils.Flag, uns_re.findall(out)))
+                fwarn_flags = flags.host_all_unsupported_flags - warn_flags
+                if fwarn_flags:
+                    raise error.TestFail("Qemu did not warn the use of "
+                                         "flags %s" % str(fwarn_flags))
+
+    # 3) fail boot unsupported flags
     class test_fail_boot_with_host_unsupported_flags(MiniSubtest):
         def test(self):
             #This is virtual cpu flags which are supported by
@@ -445,7 +481,8 @@ def run_cpuflags(test, params, env):
             for fadd in flags.host_all_unsupported_flags:
                 cpuf_model += ",+" + fadd
 
-            cmd = qemu_binary + " -cpu " + cpuf_model
+            vnc_port = virt_utils.find_free_port(5900, 6100) - 5900
+            cmd = "%s -cpu %s -vnc :%d" % (qemu_binary, cpuf_model, vnc_port)
             out = None
             try:
                 try:

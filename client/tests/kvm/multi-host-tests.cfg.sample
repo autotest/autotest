@@ -40,4 +40,4 @@ variants:
         only Fedora.15.64
         only cpuflags_multi_host
 
-only qemu_cpuflags_multi_host
+only qemu_migrate_multi_host

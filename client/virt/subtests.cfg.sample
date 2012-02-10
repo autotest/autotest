@@ -1419,7 +1419,7 @@ variants:
         vms = ""
         #Try to start guest with all flags which are supported by host.
         all_host_supported_flags = "no"
-        cpu_models = "core2duo"
+        cpu_model = "core2duo"
         guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
         variants:
@@ -1437,6 +1437,8 @@ variants:
                         test_type = "test_boot_cpu_model"
                     - qemu_boot_cpu_model_and_flags:
                         test_type = "test_boot_cpu_model_and_additional_flags"
+                    - qemu_warn_boot_check_cpu_model:
+                        test_type = "test_boot_warn_with_host_unsupported_flags"
                     - qemu_boot_fail_cpu_model:
                         test_type = "test_fail_boot_with_host_unsupported_flags"
             - stress_guest:
@@ -1450,12 +1452,12 @@ variants:
 
     - cpuflags_multi_host:
         type = cpuflags
-        test_type = test_multi_host_migration_group
+        test_type = test_multi_host_migration
         #Disable all unnecessary vms.
         vms = ""
         #Try to start guest with all flags which are supported by host.
         all_host_supported_flags = "no"
-        cpu_models = "core2duo:sse3"
+        cpu_model = "core2duo:sse3"
         guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
 

@@ -4,7 +4,10 @@ NAME = ""
 TEST_CATEGORY = "Functional"
 TEST_CLASS = "Virtualization"
 TEST_TYPE = "Server"
-DOC = "KVM tests (multi-host) server control"
+
+DOC = """
+KVM tests (multi-host) server control
+
 Runs tests across multiple hosts. It uses the config file
 'multi-host-tests.cfg' in order to yield the appropriate
 dicts for the multi host test.
