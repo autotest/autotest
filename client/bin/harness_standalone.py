@@ -31,21 +31,47 @@ class harness_standalone(harness.harness):
             shutil.copyfile(src, dest)
             job.control_set(dest)
 
+        def yield_default_initlevel():
+            """
+            If we really can't figure out something better, default to '2',
+            which is the case with some debian systems
+            """
+            init_default = '2'
+            logging.error('Could not determine initlevel, assuming %s' %
+                          init_default)
+            return init_default
+
         rc = os.path.join(self.autodir, 'tools/autotest')
         # see if system supports event.d versus systemd versus inittab
         supports_eventd = os.path.exists('/etc/event.d')
         supports_systemd = os.path.exists('/etc/systemd')
         supports_inittab = os.path.exists('/etc/inittab')
-        if supports_eventd or supports_systemd:
-            # NB: assuming current runlevel is default
-            cmd_result = utils.run('/sbin/runlevel', ignore_status=True,
-                                   verbose=False)
-            initdefault = cmd_result.stdout.split()[1]
+        # This is the best heuristics I can think of for identifying
+        # an embedded system running busybox
+        busybox_system = (os.readlink('/bin/sh') == 'busybox')
+
+        # Small busybox systems usually use /etc/rc.d/ straight
+        if busybox_system:
+            initdefault = ''
+
+        elif supports_eventd or supports_systemd:
+            try:
+                # NB: assuming current runlevel is default
+                cmd_result = utils.run('/sbin/runlevel', verbose=False)
+                initdefault = cmd_result.stdout.split()[1]
+            except (error.CmdError, IndexError):
+                initdefault = yield_default_initlevel()
+
         elif supports_inittab:
-            initdefault = utils.system_output('grep :initdefault: /etc/inittab')
-            initdefault = initdefault.split(':')[1]
+            try:
+                cmd_result = utils.run('grep :initdefault: /etc/inittab',
+                                       verbose=False)
+                initdefault = cmd_result.stdout.split(':')[1]
+            except (error.CmdError, IndexError):
+                initdefault = yield_default_initlevel()
+
         else:
-            initdefault = '2'
+            initdefault = yield_default_initlevel()
 
         vendor = utils.get_os_vendor()
         service = '/etc/init.d/autotest'
