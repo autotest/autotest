@@ -384,15 +384,15 @@ def prepare_fsdev(job):
     # Avoid preparing the same thing more than once
     FSDEV_PREP_CNT += 1
     if FSDEV_PREP_CNT > 1:
-        return (FSDEV_DISKLIST[0]['mountpt'],FSDEV_DISKLIST)
+        return (FSDEV_DISKLIST[0]['mountpt'], FSDEV_DISKLIST)
 
     FSDEV_JOB = job
 
-    (path,toss,disks) = prepare_disks(job, fs_desc    = FSDEV_FS_DESC,
-                                           disk1_only = FSDEV_DISK1_ONLY,
-                                           disk_list  = None)
+    (path, toss, disks) = prepare_disks(job, fs_desc    = FSDEV_FS_DESC,
+                                             disk1_only = FSDEV_DISK1_ONLY,
+                                             disk_list  = None)
     FSDEV_DISKLIST = disks
-    return (path,disks)
+    return (path, disks)
 
 
 def finish_fsdev(force_cleanup=False):

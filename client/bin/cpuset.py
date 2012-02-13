@@ -408,8 +408,8 @@ def set_io_controls(container_name, disks=[], ioprio_classes=[PROPIO_NORMAL],
         return  # kernel predates propio features
             # or io cgroup is mounted separately from cpusets
     disk_infos = []
-    for disk,ioclass,limit,share in zip(disks, ioprio_classes,
-                                        io_limits, io_shares):
+    for disk, ioclass, limit, share in zip(disks, ioprio_classes,
+                                           io_limits, io_shares):
         parts = (disk, str(ioclass), str(limit), str(share))
         disk_info = ' '.join(parts)
         utils.write_one_line(service_level, disk_info)

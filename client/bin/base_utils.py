@@ -433,7 +433,7 @@ def dump_object(object):
     for item in object.__dict__.iteritems():
         print item
         try:
-            (key,value) = item
+            (key, value) = item
             dump_object(value)
         except Exception:
             continue

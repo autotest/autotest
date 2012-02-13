@@ -63,7 +63,7 @@ class host_list_unittest(cli_mock.cli_unittest):
         mfile = cli_mock.create_file('host0\nhost3\nhost4\n')
         sys.argv = ['atest', 'host1', '--mlist', mfile.name, 'host3']
         (options, leftover) = hl.parse()
-        self.assertEqualNoOrder(['host0', 'host1','host3', 'host4'],
+        self.assertEqualNoOrder(['host0', 'host1', 'host3', 'host4'],
                                 hl.hosts)
         self.assertEqual(leftover, [])
         mfile.clean()
@@ -107,7 +107,7 @@ class host_list_unittest(cli_mock.cli_unittest):
         sys.argv = ['atest', 'host1', '--mlist', mfile.name, 'host3',
                     '--label', 'label0']
         (options, leftover) = hl.parse()
-        self.assertEqualNoOrder(['host0', 'host1','host3', 'host4'],
+        self.assertEqualNoOrder(['host0', 'host1', 'host3', 'host4'],
                                 hl.hosts)
         self.assertEqual(['label0'], hl.labels)
         self.assertEqual(leftover, [])
