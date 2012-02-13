@@ -67,3 +67,10 @@ if args:
 parser.parse_string(str)
 
 virt_utils.run_tests(parser, job)
+
+# compare the perfmance results of job
+# from autotest_lib.client.virt.tests import regression
+# regression.compare("ntttcp", "$olddir",
+# "%s/results/default/" % os.environ['AUTODIR'],
+# config_file="%s/tests/kvm/perf.conf" % os.environ['AUTODIR'],
+# output_dir="%s/results/default/netperf-result.txt" % os.environ['AUTODIR'])
