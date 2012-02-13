@@ -116,7 +116,7 @@ class config_loader:
         Check if the config file has valid values
         """
         if not self.parser.has_section(section):
-            return False, "Section not found: %s"%(section)
+            return False, "Section not found: %s" %(section)
 
         options = self.parser.items(section)
         for i in range(options.__len__()):
@@ -124,10 +124,10 @@ class config_loader:
             aux = string.split(param, '.')
 
             if aux.__len__ < 2:
-                return False, "Invalid parameter syntax at %s"%(param)
+                return False, "Invalid parameter syntax at %s" %(param)
 
             if not self.check_parameter(aux[0], options[i][1]):
-                return False, "Invalid value at %s"%(param)
+                return False, "Invalid value at %s" %(param)
 
         return True, None
 
