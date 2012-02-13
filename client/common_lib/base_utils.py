@@ -10,6 +10,7 @@ try:
 except ImportError:
     import md5, sha
 from autotest_lib.client.common_lib import error, logging_manager, global_config
+from autotest_lib.client.common_lib import progressbar
 
 GLOBAL_CONFIG = global_config.global_config
 
@@ -1883,3 +1884,67 @@ def ask(question, auto=False):
         return "y"
     return raw_input("%s INFO | %s (y/n) " %
                      (time.strftime("%H:%M:%S", time.localtime()), question))
+
+
+def display_data_size(size):
+    '''
+    Display data size in human readable units.
+
+    @type size: int
+    @param size: Data size, in Bytes.
+    @return: Human readable string with data size.
+    '''
+    prefixes = ['B', 'kB', 'MB', 'GB', 'TB']
+    i = 0
+    while size > 1000.0:
+        size /= 1000.0
+        i += 1
+    return '%.2f %s' % (size, prefixes[i])
+
+
+def interactive_download(url, output_file, title='', chunk_size=100*1024):
+    '''
+    Interactively downloads a given file url to a given output file
+
+    @type url: string
+    @param url: URL for the file to be download
+    @type output_file: string
+    @param output_file: file name or absolute path on which to save the file to
+    @type title: string
+    @param title: optional title to go along the progress bar
+    @type chunk_size: integer
+    @param chunk_size: amount of data to read at a time
+    '''
+    output_dir = os.path.dirname(output_file)
+    output_file = open(output_file, 'w+b')
+    input_file = urllib2.urlopen(url)
+
+    try:
+        file_size = int(input_file.headers['Content-Length'])
+    except KeyError:
+        raise ValueError('Could not find file size in HTTP headers')
+
+    logging.info('Downloading %s, %s to %s', os.path.basename(url),
+                 display_data_size(file_size), output_dir)
+
+    # Calculate progrss bar size based on title size
+    if title:
+        width = progressbar.ProgressBar.DEFAULT_WIDTH - len(title)
+        progress_bar = progressbar.ProgressBar(maximum=file_size,
+                                               width=width, title=title)
+    else:
+        progress_bar = progressbar.ProgressBar(maximum=file_size)
+
+    # Download the file, while interactively updating the progress
+    progress_bar.update_screen()
+    while True:
+        data = input_file.read(chunk_size)
+        if data:
+            progress_bar.increment(len(data))
+            output_file.write(data)
+        else:
+            progress_bar.update(file_size)
+            print
+            break
+
+    output_file.close()
