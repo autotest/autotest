@@ -875,4 +875,4 @@ def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
     else:
         if len(kernel_paths) > 1:
             raise error.TestError("don't know what to do with more than one non-rpm kernel file")
-        return kernel(job,kernel_paths[0], subdir, tmp_dir, build_dir, leave)
+        return kernel(job, kernel_paths[0], subdir, tmp_dir, build_dir, leave)

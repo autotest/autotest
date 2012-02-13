@@ -128,9 +128,9 @@ class acl_list(action_common.atest_list, acl):
     def output(self, results):
         # If an ACL was specified, always print its details
         if self.acls or self.verbose:
-            sublist_keys=('hosts', 'users')
+            sublist_keys = ('hosts', 'users')
         else:
-            sublist_keys=()
+            sublist_keys = ()
 
         super(acl_list, self).output(results,
                                      keys=('name', 'description'),

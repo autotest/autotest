@@ -221,12 +221,12 @@ class item_parse_info_unittest(cli_mock.cli_unittest):
 
 
     def test_file_list_add_on_space(self):
-        self.__test_parsing_leftover_good(['a','c','b'],
+        self.__test_parsing_leftover_good(['a', 'c', 'b'],
                                           ['a', 'b', 'c'])
 
 
     def test_file_list_add_on_mix_space_comma(self):
-        self.__test_parsing_leftover_good(['a', 'c','b,d'],
+        self.__test_parsing_leftover_good(['a', 'c', 'b,d'],
                                           ['a', 'b', 'c', 'd'])
 
 
@@ -778,18 +778,18 @@ class atest_unittest(cli_mock.cli_unittest):
     #
     def __test_print_fields(self, func, expected, **dargs):
         if not dargs.has_key('items'):
-            dargs['items']=[{'hostname': 'h0',
-                            'platform': 'p0',
-                            'labels': [u'l0', u'l1'],
-                            'locked': 1,
-                            'id': 'id0',
-                            'name': 'name0'},
-                           {'hostname': 'h1',
-                            'platform': 'p1',
-                            'labels': [u'l2', u'l3'],
-                            'locked': 0,
-                            'id': 'id1',
-                            'name': 'name1'}]
+            dargs['items'] = [{'hostname': 'h0',
+                             'platform': 'p0',
+                             'labels': [u'l0', u'l1'],
+                             'locked': 1,
+                             'id': 'id0',
+                             'name': 'name0'},
+                              {'hostname': 'h1',
+                             'platform': 'p1',
+                             'labels': [u'l2', u'l3'],
+                             'locked': 0,
+                             'id': 'id1',
+                             'name': 'name1'}]
         self.god.mock_io()
         func(**dargs)
         (output, err) = self.god.unmock_io()

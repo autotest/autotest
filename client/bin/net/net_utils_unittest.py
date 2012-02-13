@@ -25,7 +25,7 @@ class TestNetUtils(unittest.TestCase):
         self.god.stub_function(net_utils, "open")
         self.god.stub_function(time, 'sleep')
 
-        self.god.stub_with(net_utils,"bond", net_utils.bonding)
+        self.god.stub_with(net_utils, "bond", net_utils.bonding)
         self.god.stub_with(os, 'open', net_utils_mock.os_open)
         self.god.stub_with(net_utils, 'netif', net_utils_mock.netutils_netif)
 
@@ -253,7 +253,7 @@ class TestNetUtils(unittest.TestCase):
         self.god.stub_function(os, 'listdir')
         stat_path = '/sys/class/net/%s/statistics/' % mock_netif._name
 
-        os.listdir.expect_call(stat_path).and_return(('stat1','stat2', 'stat4'))
+        os.listdir.expect_call(stat_path).and_return(('stat1', 'stat2', 'stat4'))
         f = self.god.create_mock_class(file, 'file')
         net_utils.open.expect_call(stat_path + 'stat1', 'r').and_return(f)
         f.read.expect_call().and_return(1234)
@@ -349,7 +349,7 @@ class TestNetUtils(unittest.TestCase):
         except ValueError:
             pass
         else:
-            self.assertEquals(0,1)
+            self.assertEquals(0, 1)
         self.god.check_playback()
 
 
@@ -575,7 +575,7 @@ class TestNetUtils(unittest.TestCase):
         except error.TestError:
             pass
         else:
-            self.assertEquals(0,1)
+            self.assertEquals(0, 1)
         self.god.check_playback()
 
         # catch exception on bond enabled
@@ -585,7 +585,7 @@ class TestNetUtils(unittest.TestCase):
         except error.TestError:
             pass
         else:
-            self.assertEquals(0,1)
+            self.assertEquals(0, 1)
         self.god.check_playback()
 
         # check that setting tg3 and bnx2x driver have a sleep call
@@ -644,7 +644,7 @@ class TestNetUtils(unittest.TestCase):
         except error.TestError:
             pass
         else:
-            self.assertEquals(0,1)
+            self.assertEquals(0, 1)
         self.god.check_playback()
 
 
@@ -657,7 +657,7 @@ class TestNetUtils(unittest.TestCase):
         except error.TestError:
             pass
         else:
-            self.assertEquals(0,1)
+            self.assertEquals(0, 1)
         self.god.check_playback()
 
         self.god.stub_function(net_utils.bonding, 'is_enabled')
@@ -996,7 +996,7 @@ class TestNetUtils(unittest.TestCase):
         protocol = 2030
         payload = 'some payload'
         frame = struct.pack("!6s6sH", dst, src, protocol) + payload
-        self.assertEquals(net_utils.ethernet.pack(dst, src,protocol, payload),
+        self.assertEquals(net_utils.ethernet.pack(dst, src, protocol, payload),
                           frame)
 
 

@@ -176,7 +176,7 @@ def virsh_save(name, path, uri = ""):
     if state not in ('paused',):
         raise virt_vm.VMStatusError("Cannot save a VM that is %s" % state)
     logging.debug("Saving VM %s to %s" %(name, path))
-    virsh_cmd("save %s %s" % (name,path), uri)
+    virsh_cmd("save %s %s" % (name, path), uri)
     # libvirt always stops VM after saving
     state = virsh_domstate(name, uri)
     if state not in ('shut off',):

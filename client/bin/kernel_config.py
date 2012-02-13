@@ -136,5 +136,5 @@ class kernel_config(object):
         to = self.config_dir + '/config.%s' % name
         while os.path.exists(to):
             i += 1
-            to = self.config_dir + '/config.%s.%d' % (name,i)
+            to = self.config_dir + '/config.%s.%d' % (name, i)
         shutil.copyfile(self.build_dir + '/.config', to)

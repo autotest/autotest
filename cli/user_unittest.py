@@ -27,7 +27,7 @@ class user_list_unittest(cli_mock.cli_unittest):
         ufile = cli_mock.create_file('user0\nuser3\nuser4\n')
         sys.argv = ['atest', 'user1', '--ulist', ufile.name, 'user3']
         (options, leftover) = ul.parse()
-        self.assertEqualNoOrder(['user0', 'user1','user3', 'user4'],
+        self.assertEqualNoOrder(['user0', 'user1', 'user3', 'user4'],
                                 ul.users)
         self.assertEqual(leftover, [])
         ufile.clean()
@@ -55,7 +55,7 @@ class user_list_unittest(cli_mock.cli_unittest):
         sys.argv = ['atest', 'user1', '--ulist', ufile.name, 'user3',
                     '-l', '4', '-a', 'acl0']
         (options, leftover) = ul.parse()
-        self.assertEqualNoOrder(['user0', 'user1','user3', 'user4'],
+        self.assertEqualNoOrder(['user0', 'user1', 'user3', 'user4'],
                                 ul.users)
         self.assertEqual('acl0', ul.acl)
         self.assertEqual('4', ul.access_level)

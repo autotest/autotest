@@ -38,7 +38,7 @@ class network_utils(object):
         """
         ip = client_utils.system_output("ip addr show to %s/%s" %
                                         (query_ip, netmask))
-        ip = re.search(r"inet ([0-9.]*)/",ip)
+        ip = re.search(r"inet ([0-9.]*)/", ip)
         if ip is None:
             return ip
         return ip.group(1)
@@ -695,7 +695,7 @@ class ethernet(object):
         Returns:
          A text string.
         """
-        return "%02x:%02x:%02x:%02x:%02x:%02x" % tuple(map(ord,hwaddr))
+        return "%02x:%02x:%02x:%02x:%02x:%02x" % tuple(map(ord, hwaddr))
 
 
     @staticmethod
