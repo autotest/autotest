@@ -30,6 +30,32 @@ def libvirtd_restart():
         return False
 
 
+def libvirtd_stop():
+    """
+    Stop libvirt daemon.
+    """
+    try:
+        utils.run("service libvirtd stop")
+        logging.debug("Stop  libvirtd successfuly")
+        return True
+    except error.CmdError, detail:
+        logging.error("Failed to stop libvirtd:\n%s", detail)
+        return False
+
+
+def libvirtd_start():
+    """
+    Start libvirt daemon.
+    """
+    try:
+        utils.run("service libvirtd  start")
+        logging.debug("Start  libvirtd successfuly")
+        return True
+    except error.CmdError, detail:
+        logging.error("Failed to start libvirtd:\n%s", detail)
+        return False
+
+
 def virsh_cmd(cmd, uri = ""):
     """
     Append cmd to 'virsh' and execute, optionally return full results.
