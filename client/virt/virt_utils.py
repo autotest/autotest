@@ -3491,8 +3491,7 @@ def check_iso(url, destination, iso_sha1):
         logging.warning("Expected SHA1 sum: %s", iso_sha1)
         answer = utils.ask("Would you like to download it from %s?" % url)
         if answer == 'y':
-            logging.info("Downloading to %s", iso_path)
-            os.system("wget %s -O %s" % (url, iso_path))
+            utils.interactive_download(url, iso_path, 'ISO Download')
         else:
             logging.warning("Missing file %s", iso_path)
             logging.warning("Please download it or put an exsiting copy on the "
