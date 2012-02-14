@@ -1137,12 +1137,12 @@ class VM(virt_vm.BaseVM):
     def remove(self):
         if self.is_alive():
             if not virsh_destroy(self.name, self.connect_uri):
-                raise virt_vm.VMRemoveError("VM can not be destroy")
+                raise virt_vm.VMRemoveError("VM '%s'can not be destroyed" % self.name)
 
         if not virsh_undefine(self.name, self.connect_uri):
-            raise virt_vm.VMRemoveError("VM removed fault")
+            raise virt_vm.VMRemoveError("VM '%s' undefine error" % self.name)
 
-        logging.debug("VM '%s' is removed", self.name)
+        logging.debug("VM '%s' was removed", self.name)
 
 
     def get_uuid(self):
