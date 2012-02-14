@@ -350,7 +350,7 @@ variants:
     - migrate: install setup image_copy unattended_install.cdrom
         type = migration
         migration_test_command = help
-        migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+        migration_bg_command = "cd /tmp; nohup tcpdump -q -i any -t ip host localhost"
         migration_bg_check_command = pgrep tcpdump
         migration_bg_kill_command = pkill tcpdump
         kill_vm_on_error = yes
