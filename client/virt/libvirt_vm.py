@@ -4,7 +4,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, fcntl, re, commands, shutil
+import time, os, logging, fcntl, re, commands, shutil, urlparse
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils, os_dep
 from xml.dom import minidom
@@ -88,6 +88,15 @@ def virsh_hostname(uri = ""):
     """
     return virsh_cmd("hostname", uri)
 
+def virsh_driver(uri = ""):
+    """
+    return the driver by asking libvirt
+    """
+    # libvirt schme composed of driver + command
+    # ref: http://libvirt.org/uri.html
+    scheme = urlparse.urlsplit(virsh_uri(uri)).scheme
+    # extract just the driver, whether or not there is a '+'
+    return scheme.split('+', 2)[0]
 
 def virsh_domstate(name, uri = ""):
     """
@@ -327,18 +336,23 @@ def virsh_domain_exists(name, uri = ""):
         logging.warning("VM %s does not exist:\n%s", name, detail)
         return False
 
-def virsh_migrate(migrate_cmd, uri = ""):
+def virsh_migrate(options, name, dest_uri, extra, uri = ""):
     """
     Migrate a guest to another host.
 
-    @params migrate_cmd: Migrate command to be executed
-    @param: uri: URI of libvirt hypervisor to use
-    @return: True if migration command succeeded
+    @param: options: Free-form string of options to virsh migrate
+    @param: name: name of guest on uri
+    @param: dest_uri: libvirt uri to send guest to
+    @param: extra: Free-form string of options to follow <domain> <desturi>
+    @return: True if migration command was successful
     """
+    # Fail early with warning when simple to do so
+    if not virsh_domain_exists(name, uri) or virsh_is_dead(name, uri):
+        logging.warning("Domain doesn't exist or found dead, prior to migration")
+        return False
     # Rely on test-code to verify guest state on receiving-end
-    # Assume success unless proven otherwise
-    migrate_cmd = "migrate " + migrate_cmd
-    logging.debug("Mirating VM with command: virsh %s" % migrate_cmd)
+    migrate_cmd = "migrate %s %s %s %s" %\
+                (options, name, dest_uri, extra)
     try:
         virsh_cmd(migrate_cmd, uri)
     except error.CmdError, detail:
@@ -351,11 +365,6 @@ class VM(virt_vm.BaseVM):
     """
     This class handles all basic VM operations for libvirt.
     """
-    # constant for libirt driver type,
-    # now it only supports default, qemu and xen.
-    LIBVIRT_DEFAULT = "default"
-    LIBVIRT_QEMU = "qemu"
-    LIBVIRT_XEN = "xen"
 
     def __init__(self, name, params, root_dir, address_cache, state=None):
         """
@@ -391,29 +400,19 @@ class VM(virt_vm.BaseVM):
         self.root_dir = root_dir
         self.address_cache = address_cache
         self.vnclisten = "0.0.0.0"
-        # For now, libvirt does not have a monitor property.
+        # TODO: Impliment monitor class & property
         self.monitor = None
-        self.driver_type = params.get("driver_type", self.LIBVIRT_DEFAULT)
+        # TODO: The monitor class should do this
+        self.connect_uri = params.get("connect_uri", "default")
+        if self.connect_uri == 'default':
+            self.connect_uri = virsh_uri()
+        else: # Validate and canonicalize uri early to catch problems
+            self.connect_uri = virsh_uri(uri = self.connect_uri)
+        # TODO: The monitor class should do this also
+        self.driver_type = virsh_driver(uri = self.connect_uri)
 
-        default_uri = virsh_uri()
-        if not self.driver_type or self.driver_type == self.LIBVIRT_DEFAULT:
-            if default_uri == "qemu:///system":
-                self.driver_type = self.LIBVIRT_QEMU
-            elif default_uri == "xen:///":
-                self.driver_type = self.LIBVIRT_XEN
-            else:
-                self.driver_type = self.LIBVIRT_DEFAULT
-
-        #   if driver_type is not supported, just use the default uri that
-        #   was detected by virsh
-        if self.driver_type == self.LIBVIRT_QEMU:
-            self.connect_uri = "qemu:///system"
-        elif self.driver_type == self.LIBVIRT_XEN:
-            self.connect_uri = "xen:///"
-        else:
-            self.connect_uri = default_uri
-
-        logging.info("VM '%s' with uri '%s'" % (name, self.connect_uri))
+        logging.info("VM '%s' with libvirt %s uri '%s'" %\
+                    (self.name, self.driver_type, self.connect_uri))
 
     def verify_alive(self):
         """
@@ -1055,23 +1054,23 @@ class VM(virt_vm.BaseVM):
 
 
 
-    def migrate(self, dest_host, protocol="qemu+ssh",
-                options="--live --timeout 60", extra=""):
+    def migrate(self, dest_uri, options="--live --timeout 60", extra=""):
         """
         Migrate a VM to a remote host.
 
-        @param: dest_host: Destination host
-        @param: protocol: Migration protocol (qemu, qemu+ssh, etc)
+        @param: dest_uri: Destination libvirt URI
         @param: options: Migration options before <domain> <desturi>
         @param: extra: Migration options after <domain> <desturi>
         @return: True if command succeeded
         """
-        migrate_cmd = "%s %s %s %s" % (options, self.name,
-                                       protocol+"://"+dest_host+"/system",
-                                       extra)
         logging.info("Migrating VM %s from %s to %s" %
-                     (self.name, self.connect_uri, dest_host))
-        return virsh_migrate(migrate_cmd, self.connect_uri)
+                     (self.name, self.connect_uri, dest_uri))
+        result = virsh_migrate(options, self.name, dest_uri,
+                             extra, self.connect_uri)
+        # On successful migration, point to guests new hypervisor
+        if result == True:
+            self.connect_uri = dest_uri
+        return result
 
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
