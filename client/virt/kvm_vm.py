@@ -718,13 +718,13 @@ class VM(virt_vm.BaseVM):
             qemu_cmd += add_cpu_flags(help, cpu_model, vendor, flags)
 
         for cdrom in params.objects("cdroms"):
+            cd_format = params.get("cd_format", "")
             cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
-            if cdrom_params.get("cd_format") == "ahci" and not have_ahci:
+            if cd_format == "ahci" and not have_ahci:
                 qemu_cmd += " -device ahci,id=ahci"
                 have_ahci = True
-            if (cdrom_params.get("cd_format").startswith("scsi-")
-                        and not have_virtio_scsi):
+            if cd_format.startswith("scsi-") and not have_virtio_scsi:
                 qemu_cmd += " -device virtio-scsi,id=virtio_scsi_pci"
                 have_virtio_scsi = True
             if iso:
