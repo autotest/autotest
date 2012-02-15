@@ -94,7 +94,7 @@ def virsh_driver(uri = ""):
     """
     # libvirt schme composed of driver + command
     # ref: http://libvirt.org/uri.html
-    scheme = urlparse.urlsplit(virsh_uri(uri)).scheme
+    scheme = urlparse.urlsplit(virsh_uri(uri))[0]
     # extract just the driver, whether or not there is a '+'
     return scheme.split('+', 2)[0]
 
