@@ -281,7 +281,7 @@ class VM(virt_vm.BaseVM):
                     dev += ",port=%d" % (int(index) + 1)
                     format = "none"
                     index = None
-                if format.startswith("scsi-"):
+                if format is not None and format.startswith("scsi-"):
                     # handles scsi-{hd, cd, disk, block, generic} targets
                     name = "virtio-scsi-cd%s" % index
                     dev += (" -device %s,drive=%s,bus=virtio_scsi_pci.0" %
