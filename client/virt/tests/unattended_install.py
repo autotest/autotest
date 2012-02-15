@@ -760,17 +760,23 @@ class UnattendedInstallConfig(object):
         """
         error.context("Copying vmlinuz and initrd.img from install cdrom %s" %
                       self.cdrom_cd1)
-        i = iso9660.iso9660(self.cdrom_cd1)
-        if i is None:
-            raise error.TestFail("Could not instantiate an iso9660 class")
-
         if not os.path.isdir(self.image_path):
             os.makedirs(self.image_path)
+            
+        if self.vm.driver_type == 'xen':
+            i = iso9660.Iso9660Mount(self.cdrom_cd1)
+            self.cdrom_cd1_mount = i.mnt_dir
+        else:
+            i = iso9660.iso9660(self.cdrom_cd1)
+            if i is None:
+                raise error.TestFail("Could not instantiate an iso9660 class")
+
         i.copy(os.path.join(self.boot_path, os.path.basename(self.kernel)),
                self.kernel)
         i.copy(os.path.join(self.boot_path, os.path.basename(self.initrd)),
                self.initrd)
-        i.close()
+        if self.vm.driver_type != 'xen':
+            i.close()
 
         if self.unattended_file.endswith('.preseed'):
             self.preseed_initrd()
