@@ -31,8 +31,6 @@ class ltp(test.test):
         ltpbin_dir = os.path.join(self.srcdir, 'bin')
         os.mkdir(ltpbin_dir)
 
-        utils.system('patch -p1 < ../ltp.patch')
-
         # comment the capability tests if we fail to load the capability module
         try:
             utils.system('modprobe capability')
@@ -56,7 +54,9 @@ class ltp(test.test):
         if script == 'runltp':
             logfile = os.path.join(self.resultsdir, 'ltp.log')
             failcmdfile = os.path.join(self.debugdir, 'failcmdfile')
-            args2 = '-q -l %s -C %s -d %s' % (logfile, failcmdfile, self.tmpdir)
+            skipfile = os.path.join(self.bindir, 'skipfile')
+            args2 = '-q -l %s -C %s -d %s -S %s' % \
+                (logfile, failcmdfile, self.tmpdir, skipfile)
             args = args + ' ' + args2
 
         ltpbin_dir = os.path.join(self.srcdir, 'bin')
