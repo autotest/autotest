@@ -730,7 +730,7 @@ class VM(virt_vm.BaseVM):
             if iso:
                 qemu_cmd += add_cdrom(help, virt_utils.get_path(root_dir, iso),
                                       cdrom_params.get("drive_index"),
-                                      cdrom_params.get("cd_format"))
+                                      cd_format)
 
         # We may want to add {floppy_otps} parameter for -fda
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
