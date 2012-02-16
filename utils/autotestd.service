@@ -2,7 +2,7 @@
 Description=Autotest scheduler
 
 [Service]
-ExecStart=/usr/local/autotest/scheduler/monitor_db_babysitter
+ExecStart=/usr/local/autotest/scheduler/autotest-monitor-watcher
 User=autotest
 Group=autotest
 Restart=on-abort

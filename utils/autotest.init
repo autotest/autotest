@@ -21,10 +21,10 @@ fi
 autotest_start() {
   cd /tmp
 
-  log_daemon_msg "Starting monitor_db_babysitter"
+  log_daemon_msg "Starting autotest-monitor-watcher"
   ( ulimit -v 2048000 ; \
     start-stop-daemon --start --quiet --chuid $BECOME_USER \
-      --background --exec $BASE_DIR/scheduler/monitor_db_babysitter )
+      --background --exec $BASE_DIR/scheduler/autotest-monitor-watcher )
 }
 
 stop_daemon() {
@@ -35,7 +35,7 @@ stop_daemon() {
 }
 
 autotest_stop() {
-  stop_daemon monitor_db_babysitter babysitter
+  stop_daemon autotest-monitor-watcher babysitter
   stop_daemon monitor_db scheduler
 }
 

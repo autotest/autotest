@@ -29,7 +29,7 @@ from autotest_lib.scheduler import drone_manager, drones, email_manager
 from autotest_lib.scheduler import gc_stats, host_scheduler, monitor_db_cleanup
 from autotest_lib.scheduler import status_server, scheduler_config
 from autotest_lib.scheduler import scheduler_models
-BABYSITTER_PID_FILE_PREFIX = 'monitor_db_babysitter'
+WATCHER_PID_FILE_PREFIX = 'autotest-monitor-watcher'
 PID_FILE_PREFIX = 'monitor_db'
 
 RESULTS_DIR = '.'
