@@ -1,19 +1,12 @@
-#!/usr/bin/python -u
-
 """
-Autotest scheduler
+Autotest scheduler main library.
 """
-
-
 try:
     import autotest.common as common
 except ImportError:
     import common
-import datetime, errno, optparse, os, pwd, Queue, re, shutil, signal
-import smtplib, socket, stat, subprocess, sys, tempfile, time, traceback, urllib
-import itertools, logging, weakref, gc
-
-import MySQLdb
+import datetime, optparse, os, signal, sys, time, traceback, urllib
+import logging, gc
 
 from autotest_lib.scheduler import scheduler_logging_config
 from autotest_lib.frontend import setup_django_environment
@@ -29,8 +22,9 @@ from autotest_lib.scheduler import drone_manager, drones, email_manager
 from autotest_lib.scheduler import gc_stats, host_scheduler, monitor_db_cleanup
 from autotest_lib.scheduler import status_server, scheduler_config
 from autotest_lib.scheduler import scheduler_models
-BABYSITTER_PID_FILE_PREFIX = 'monitor_db_babysitter'
-PID_FILE_PREFIX = 'monitor_db'
+
+WATCHER_PID_FILE_PREFIX = 'autotest-scheduler-watcher'
+PID_FILE_PREFIX = 'autotest-scheduler'
 
 RESULTS_DIR = '.'
 AUTOSERV_NICE_LEVEL = 10
@@ -58,6 +52,7 @@ _autoserv_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'server', 'autoserv')
 _testing_mode = False
 _drone_manager = None
 
+
 def _parser_path_default(install_dir):
     return os.path.join(install_dir, 'tko', 'parse')
 _parser_path_func = utils.import_site_function(
@@ -71,6 +66,32 @@ def _get_pidfile_timeout_secs():
     pidfile_timeout_mins = global_config.global_config.get_config_value(
             scheduler_config.CONFIG_SECTION, 'pidfile_timeout_mins', type=int)
     return pidfile_timeout_mins * 60
+
+
+def _autoserv_command_line(machines, extra_args, job=None,
+                           queue_entry=None, verbose=True):
+    """
+    @returns The autoserv command line as a list of executable + parameters.
+
+    @param machines - string - A machine or comma separated list of machines
+            for the (-m) flag.
+    @param extra_args - list - Additional arguments to pass to autoserv.
+    @param job - Job object - If supplied, -u owner and -l name parameters
+            will be added.
+    @param queue_entry - A HostQueueEntry object - If supplied and no Job
+            object was supplied, this will be used to lookup the Job object.
+    """
+    autoserv_argv = [_autoserv_path, '-p',
+                     '-r', drone_manager.WORKING_DIRECTORY]
+    if machines:
+        autoserv_argv += ['-m', machines]
+    if job or queue_entry:
+        if not job:
+            job = queue_entry.job
+        autoserv_argv += ['-u', job.owner, '-l', job.name]
+    if verbose:
+        autoserv_argv.append('--verbose')
+    return autoserv_argv + extra_args
 
 
 def _site_init_monitor_db_dummy():
@@ -89,17 +110,62 @@ def _sanity_check():
     _verify_default_drone_set_exists()
 
 
-def main():
-    try:
-        try:
-            main_without_exception_handling()
-        except SystemExit:
-            raise
-        except:
-            logging.exception('Exception escaping in monitor_db')
-            raise
-    finally:
-        utils.delete_pid_file_if_exists(PID_FILE_PREFIX)
+def setup_logging():
+    log_dir = os.environ.get('AUTOTEST_SCHEDULER_LOG_DIR', None)
+    log_name = os.environ.get('AUTOTEST_SCHEDULER_LOG_NAME', None)
+    logging_manager.configure_logging(
+            scheduler_logging_config.SchedulerLoggingConfig(), log_dir=log_dir,
+            logfile_name=log_name)
+
+
+def handle_sigint(signum, frame):
+    global _shutdown
+    _shutdown = True
+    logging.info("Shutdown request received.")
+
+
+def initialize():
+    logging.info("%s> dispatcher starting", time.strftime("%X %x"))
+    logging.info("My PID is %d", os.getpid())
+
+    if utils.program_is_alive(PID_FILE_PREFIX):
+        logging.critical("scheduler already running, aborting!")
+        sys.exit(1)
+    utils.write_pid(PID_FILE_PREFIX)
+
+    if _testing_mode:
+        global_config.global_config.override_config_value(
+            DB_CONFIG_SECTION, 'database', 'stresstest_autotest_web')
+
+    os.environ['PATH'] = AUTOTEST_SERVER_DIR + ':' + os.environ['PATH']
+    global _db
+    _db = database_connection.DatabaseConnection(DB_CONFIG_SECTION)
+    _db.connect(db_type='django')
+
+    # ensure Django connection is in autocommit
+    setup_django_environment.enable_autocommit()
+    # bypass the readonly connection
+    readonly_connection.ReadOnlyConnection.set_globally_disabled(True)
+
+    logging.info("Setting signal handler")
+    signal.signal(signal.SIGINT, handle_sigint)
+
+    initialize_globals()
+    scheduler_models.initialize()
+
+    drones = global_config.global_config.get_config_value(
+        scheduler_config.CONFIG_SECTION, 'drones', default='localhost')
+    drone_list = [hostname.strip() for hostname in drones.split(',')]
+    results_host = global_config.global_config.get_config_value(
+        scheduler_config.CONFIG_SECTION, 'results_host', default='localhost')
+    _drone_manager.initialize(RESULTS_DIR, drone_list, results_host)
+
+    logging.info("Connected! Running...")
+
+
+def initialize_globals():
+    global _drone_manager
+    _drone_manager = drone_manager.instance()
 
 
 def main_without_exception_handling():
@@ -162,7 +228,7 @@ def main_without_exception_handling():
             time.sleep(scheduler_config.config.tick_pause_sec)
     except:
         email_manager.manager.log_stacktrace(
-            "Uncaught exception; terminating monitor_db")
+            "Uncaught exception; terminating scheduler")
 
     email_manager.manager.send_queued_emails()
     server.shutdown()
@@ -170,88 +236,17 @@ def main_without_exception_handling():
     _db.disconnect()
 
 
-def setup_logging():
-    log_dir = os.environ.get('AUTOTEST_SCHEDULER_LOG_DIR', None)
-    log_name = os.environ.get('AUTOTEST_SCHEDULER_LOG_NAME', None)
-    logging_manager.configure_logging(
-            scheduler_logging_config.SchedulerLoggingConfig(), log_dir=log_dir,
-            logfile_name=log_name)
-
-
-def handle_sigint(signum, frame):
-    global _shutdown
-    _shutdown = True
-    logging.info("Shutdown request received.")
-
-
-def initialize():
-    logging.info("%s> dispatcher starting", time.strftime("%X %x"))
-    logging.info("My PID is %d", os.getpid())
-
-    if utils.program_is_alive(PID_FILE_PREFIX):
-        logging.critical("monitor_db already running, aborting!")
-        sys.exit(1)
-    utils.write_pid(PID_FILE_PREFIX)
-
-    if _testing_mode:
-        global_config.global_config.override_config_value(
-            DB_CONFIG_SECTION, 'database', 'stresstest_autotest_web')
-
-    os.environ['PATH'] = AUTOTEST_SERVER_DIR + ':' + os.environ['PATH']
-    global _db
-    _db = database_connection.DatabaseConnection(DB_CONFIG_SECTION)
-    _db.connect(db_type='django')
-
-    # ensure Django connection is in autocommit
-    setup_django_environment.enable_autocommit()
-    # bypass the readonly connection
-    readonly_connection.ReadOnlyConnection.set_globally_disabled(True)
-
-    logging.info("Setting signal handler")
-    signal.signal(signal.SIGINT, handle_sigint)
-
-    initialize_globals()
-    scheduler_models.initialize()
-
-    drones = global_config.global_config.get_config_value(
-        scheduler_config.CONFIG_SECTION, 'drones', default='localhost')
-    drone_list = [hostname.strip() for hostname in drones.split(',')]
-    results_host = global_config.global_config.get_config_value(
-        scheduler_config.CONFIG_SECTION, 'results_host', default='localhost')
-    _drone_manager.initialize(RESULTS_DIR, drone_list, results_host)
-
-    logging.info("Connected! Running...")
-
-
-def initialize_globals():
-    global _drone_manager
-    _drone_manager = drone_manager.instance()
-
-
-def _autoserv_command_line(machines, extra_args, job=None, queue_entry=None,
-                           verbose=True):
-    """
-    @returns The autoserv command line as a list of executable + parameters.
-
-    @param machines - string - A machine or comma separated list of machines
-            for the (-m) flag.
-    @param extra_args - list - Additional arguments to pass to autoserv.
-    @param job - Job object - If supplied, -u owner and -l name parameters
-            will be added.
-    @param queue_entry - A HostQueueEntry object - If supplied and no Job
-            object was supplied, this will be used to lookup the Job object.
-    """
-    autoserv_argv = [_autoserv_path, '-p',
-                     '-r', drone_manager.WORKING_DIRECTORY]
-    if machines:
-        autoserv_argv += ['-m', machines]
-    if job or queue_entry:
-        if not job:
-            job = queue_entry.job
-        autoserv_argv += ['-u', job.owner, '-l', job.name]
-    if verbose:
-        autoserv_argv.append('--verbose')
-    return autoserv_argv + extra_args
+def main():
+    try:
+        try:
+            main_without_exception_handling()
+        except SystemExit:
+            raise
+        except:
+            logging.exception('Exception escaping in scheduler')
+            raise
+    finally:
+        utils.delete_pid_file_if_exists(PID_FILE_PREFIX)
 
 
 class Dispatcher(object):
@@ -800,7 +795,6 @@ class Dispatcher(object):
             host_objects = info['hosts']
             one_time_hosts = info['one_time_hosts']
             metahost_objects = info['meta_hosts']
-            dependencies = info['dependencies']
             atomic_group = info['atomic_group']
 
             for host in one_time_hosts or []:
@@ -950,7 +944,7 @@ class PidfileRunMonitor(object):
         """
         try:
             self._get_pidfile_info_helper()
-        except self._PidfileException, exc:
+        except self._PidfileException:
             self._handle_pidfile_error('Pidfile error', traceback.format_exc())
 
 
@@ -2194,7 +2188,3 @@ class ArchiveResultsTask(SelfThrottledPostJobTask):
                                   % self.monitor.exit_code()],
                     paired_with_process=paired_process)
         self._set_all_statuses(self._final_status())
-
-
-if __name__ == '__main__':
-    main()
