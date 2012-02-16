@@ -12,6 +12,7 @@
 # additional patterns:
 RELEASE-VERSION
 *.pyc
+*.pid
 client/control
 client/results/
 client/tests/kvm/env
@@ -19,6 +20,7 @@ client/tests/kvm/*.cfg
 client/tests/libvirt/env
 client/tests/libvirt/*.cfg
 client/tmp
+logs/*
 server/tmp
 tko/parsers/test/site_scenarios
 ExternalSource
