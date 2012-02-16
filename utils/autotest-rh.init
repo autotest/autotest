@@ -14,7 +14,7 @@
 # chkconfig: - 65 25
 # description: Autotest is a framework for fully automated testing.
 # processname: monitor_db.py
-# pidfile: /var/run/autotest/monitor_db_babysitter.pid
+# pidfile: /var/run/autotest/autotest-monitor-watcher.pid
 #
 ### BEGIN INIT INFO
 # Provides: autotest
@@ -37,7 +37,7 @@ LOCKFILE=/var/lock/subsys/$PROG
 
 # Autotest paths
 AUTOTEST_DIR="/usr/local/$PROG"
-BABYSITTER="$AUTOTEST_DIR/scheduler/monitor_db_babysitter"
+WATCHER="$AUTOTEST_DIR/scheduler/autotest-monitor-watcher"
 SCHEDULER="$AUTOTEST_DIR/scheduler/monitor_db.py"
 
 # Scheduler options
@@ -45,7 +45,7 @@ OPTIONS="--background"
 
 # Where to locate PID files
 PID_PATH="$AUTOTEST_DIR" # "/var/run/$PROG"
-BABYSITTER_PIDFILE="$PID_PATH/monitor_db_babysitter.pid"
+WATCHER_PIDFILE="$PID_PATH/autotest-monitor-watcher.pid"
 SCHEDULER_PIDFILE="$PID_PATH/monitor_db.pid"
 
 # Assume pass
@@ -53,10 +53,10 @@ RETVAL=0
 
 start()
 {
-    [ -f $BABYSITTER ] || exit 5
+    [ -f $WATCHER ] || exit 5
 
     echo -n $"Starting $PROG: "
-    daemon --user $BECOME_USER --check $PROG $BABYSITTER $OPTIONS
+    daemon --user $BECOME_USER --check $PROG $WATCHER $OPTIONS
     RETVAL=$?
     echo
     [ "$RETVAL" = 0 ] && touch $LOCKFILE
@@ -67,13 +67,13 @@ stop()
 {
     echo -n $"Stopping $PROG: "
 
-    killproc $BABYSITTER
+    killproc $WATCHER
 
     RETVAL=$?
     echo
     if [ "$RETVAL" = 0 ]; then
          rm -f $LOCKFILE
-         rm -f $BABYSITTER_PIDFILE
+         rm -f $WATCHER_PIDFILE
          rm -f $SCHEDULER_PIDFILE
     fi
     return $RETVAL
@@ -82,7 +82,7 @@ stop()
 reload()
 {
     echo -n $"Reloading $PROG: "
-    killproc -p $BABYSITTER_PIDFILE $PROG -HUP
+    killproc -p $WATCHER_PIDFILE $PROG -HUP
     RETVAL=$?
     echo
     return $RETVAL
@@ -124,7 +124,7 @@ case "$1" in
         ;;
     status)
         # status -p $PIDFILE $PROG
-        status $BABYSITTER
+        status $WATCHER
         status $SCHEDULER
         RETVAL=$?
         ;;

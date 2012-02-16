@@ -59,14 +59,14 @@ def kill_monitor():
 def handle_sigterm(signum, frame):
     logging.info('Caught SIGTERM')
     kill_monitor()
-    utils.delete_pid_file_if_exists(monitor_db.BABYSITTER_PID_FILE_PREFIX)
+    utils.delete_pid_file_if_exists(monitor_db.WATCHER_PID_FILE_PREFIX)
     sys.exit(1)
 
 signal.signal(signal.SIGTERM, handle_sigterm)
 
 
 SiteMonitorProc = utils.import_site_class(
-    __file__, 'autotest_lib.scheduler.site_monitor_db_babysitter',
+    __file__, 'autotest_lib.scheduler.site_autotest_monitor_watcher',
     'SiteMonitorProc', object)
 
 
@@ -146,11 +146,11 @@ if os.getuid() == 0:
     logging.critical("Running as root, aborting!")
     sys.exit(1)
 
-if utils.program_is_alive(monitor_db.BABYSITTER_PID_FILE_PREFIX):
-    logging.critical("Monitor_db_babysitter already running, aborting!")
+if utils.program_is_alive(monitor_db.WATCHER_PID_FILE_PREFIX):
+    logging.critical("autotest-monitor-watcher already running, aborting!")
     sys.exit(1)
 
-utils.write_pid(monitor_db.BABYSITTER_PID_FILE_PREFIX)
+utils.write_pid(monitor_db.WATCHER_PID_FILE_PREFIX)
 
 if options.background:
     logging_manager.configure_logging(
