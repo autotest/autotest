@@ -1,0 +1,13 @@
+#!/usr/bin/python -u
+"""
+Autotest scheduler.
+"""
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+
+from autotest_lib.scheduler import monitor_db
+
+if __name__ == '__main__':
+    monitor_db.main()
