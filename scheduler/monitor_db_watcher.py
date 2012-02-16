@@ -1,35 +1,26 @@
-#!/usr/bin/python -u
+"""
+Autotest scheduler watcher main library.
+"""
+
 import os, sys, signal, time, subprocess, logging
 from optparse import OptionParser
 try:
-    import autotest.common
+    import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.scheduler import babysitter_logging_config
+from autotest_lib.scheduler import watcher_logging_config
 from autotest_lib.client.common_lib import error, global_config, utils
 from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.scheduler import scheduler_logging_config
 from autotest_lib.scheduler import monitor_db
 
+
 PAUSE_LENGTH = 60
 STALL_TIMEOUT = 2*60*60
 
-parser = OptionParser()
-parser.add_option("-r", action="store_true", dest="recover",
-                  help=("run recovery mode (implicit after any crash)"))
-parser.add_option("--background", dest="background", action="store_true",
-                  default=False, help=("runs the scheduler monitor on "
-                                       "background"))
-(options, args) = parser.parse_args()
-
 autodir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 results_dir = os.path.join(autodir, 'results')
-monitor_db_path = os.path.join(autodir, 'scheduler/monitor_db.py')
-recover = (options.recover == True)
-
-if len(args) != 0:
-    parser.print_help()
-    sys.exit(1)
+monitor_db_path = os.path.join(autodir, 'scheduler/autotest-scheduler')
 
 
 def run_banner_output(cmd):
@@ -46,7 +37,7 @@ def run_banner_output(cmd):
 
 
 def kill_monitor():
-    logging.info("Killing monitor_db")
+    logging.info("Killing scheduler")
     # try shutdown first
     utils.signal_program(monitor_db.PID_FILE_PREFIX, sig=signal.SIGINT)
     if utils.program_is_alive(monitor_db.PID_FILE_PREFIX): # was it killed?
@@ -59,14 +50,14 @@ def kill_monitor():
 def handle_sigterm(signum, frame):
     logging.info('Caught SIGTERM')
     kill_monitor()
-    utils.delete_pid_file_if_exists(monitor_db.BABYSITTER_PID_FILE_PREFIX)
+    utils.delete_pid_file_if_exists(monitor_db.WATCHER_PID_FILE_PREFIX)
     sys.exit(1)
 
 signal.signal(signal.SIGTERM, handle_sigterm)
 
 
 SiteMonitorProc = utils.import_site_class(
-    __file__, 'autotest_lib.scheduler.site_monitor_db_babysitter',
+    __file__, 'autotest_lib.scheduler.site_monitor_db_watcher',
     'SiteMonitorProc', object)
 
 
@@ -78,7 +69,6 @@ class MonitorProc(SiteMonitorProc):
         args.append(results_dir)
 
         kill_monitor()
-        environ = os.environ
         scheduler_config = scheduler_logging_config.SchedulerLoggingConfig
         log_name = scheduler_config.get_log_name()
         os.environ['AUTOTEST_SCHEDULER_LOG_NAME'] = log_name
@@ -88,7 +78,7 @@ class MonitorProc(SiteMonitorProc):
         self.log_size = 0
         self.last_log_change = time.time()
 
-        logging.info("STARTING monitor_db with log file %s" % self.log_path)
+        logging.info("Starting scheduler with log file %s" % self.log_path)
         self.args = args
 
         # Allow site specific code to run, set environment variables and
@@ -103,7 +93,7 @@ class MonitorProc(SiteMonitorProc):
 
     def is_running(self):
         if self.proc.poll() is not None:
-            logging.info("monitor_db DIED")
+            logging.info("Scheduler died")
             return False
 
         old_size = self.log_size
@@ -113,7 +103,7 @@ class MonitorProc(SiteMonitorProc):
             self.log_size = new_size
             self.last_log_change = time.time()
         elif self.last_log_change + STALL_TIMEOUT < time.time():
-            logging.info("monitor_db STALLED")
+            logging.info("Scheduler stalled")
             self.collect_stalled_info()
             return False
 
@@ -142,52 +132,68 @@ class MonitorProc(SiteMonitorProc):
         log.close()
 
 
-if os.getuid() == 0:
-    logging.critical("Running as root, aborting!")
-    sys.exit(1)
+def main():
+    parser = OptionParser()
+    parser.add_option("-r", action="store_true", dest="recover",
+                      help=("run recovery mode (implicit after any crash)"))
+    parser.add_option("--background", dest="background", action="store_true",
+                      default=False, help=("runs the scheduler monitor on "
+                                           "background"))
+    (options, args) = parser.parse_args()
 
-if utils.program_is_alive(monitor_db.BABYSITTER_PID_FILE_PREFIX):
-    logging.critical("Monitor_db_babysitter already running, aborting!")
-    sys.exit(1)
+    recover = (options.recover == True)
 
-utils.write_pid(monitor_db.BABYSITTER_PID_FILE_PREFIX)
-
-if options.background:
-    logging_manager.configure_logging(
-           babysitter_logging_config.BabysitterLoggingConfig(use_console=False))
-
-    # Double fork - see http://code.activestate.com/recipes/66012/
-    try:
-        pid = os.fork()
-        if (pid > 0):
-            sys.exit(0) # exit from first parent
-    except OSError, e:
-        sys.stderr.write("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror))
+    if len(args) != 0:
+        parser.print_help()
         sys.exit(1)
 
-    # Decouple from parent environment
-    os.chdir("/")
-    os.umask(0)
-    os.setsid()
-
-    # Second fork
-    try:
-        pid = os.fork()
-        if (pid > 0):
-            sys.exit(0) # exit from second parent
-    except OSError, e:
-        sys.stderr.write("fork #2 failed: (%d) %s\n" % (e.errno, e.strerror))
+    if os.getuid() == 0:
+        logging.critical("Running as root, aborting!")
         sys.exit(1)
-else:
-    logging_manager.configure_logging(
-                            babysitter_logging_config.BabysitterLoggingConfig())
 
+    if utils.program_is_alive(monitor_db.WATCHER_PID_FILE_PREFIX):
+        logging.critical("autotest-monitor-watcher already running, aborting!")
+        sys.exit(1)
 
-while True:
-    proc = MonitorProc(do_recovery=recover)
-    proc.start()
-    time.sleep(PAUSE_LENGTH)
-    while proc.is_running():
-        logging.info("Tick")
+    utils.write_pid(monitor_db.WATCHER_PID_FILE_PREFIX)
+
+    if options.background:
+        logging_manager.configure_logging(
+             watcher_logging_config.WatcherLoggingConfig(use_console=False))
+
+        # Double fork - see http://code.activestate.com/recipes/66012/
+        try:
+            pid = os.fork()
+            if (pid > 0):
+                sys.exit(0) # exit from first parent
+        except OSError, e:
+            sys.stderr.write("fork #1 failed: (%d) %s\n" %
+                             (e.errno, e.strerror))
+            sys.exit(1)
+
+        # Decouple from parent environment
+        os.chdir("/")
+        os.umask(0)
+        os.setsid()
+
+        # Second fork
+        try:
+            pid = os.fork()
+            if (pid > 0):
+                sys.exit(0) # exit from second parent
+        except OSError, e:
+            sys.stderr.write("fork #2 failed: (%d) %s\n" %
+                             (e.errno, e.strerror))
+            sys.exit(1)
+    else:
+        logging_manager.configure_logging(
+                                watcher_logging_config.WatcherLoggingConfig())
+
+    while True:
+        proc = MonitorProc(do_recovery=recover)
+        proc.start()
         time.sleep(PAUSE_LENGTH)
-    recover = False
+        while proc.is_running():
+            logging.info("Tick")
+            time.sleep(PAUSE_LENGTH)
+        recover = False

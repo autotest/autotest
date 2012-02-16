@@ -5,14 +5,14 @@ except ImportError:
 import logging
 from autotest_lib.client.common_lib import logging_config
 
-class BabysitterLoggingConfig(logging_config.LoggingConfig):
+class WatcherLoggingConfig(logging_config.LoggingConfig):
     def __init__(self, use_console=True):
-        super(BabysitterLoggingConfig, self).__init__(use_console=use_console)
+        super(WatcherLoggingConfig, self).__init__(use_console=use_console)
 
     def configure_logging(self):
-        super(BabysitterLoggingConfig, self).configure_logging(
+        super(WatcherLoggingConfig, self).configure_logging(
                                                   use_console=self.use_console)
 
-        self.add_file_handler(self.get_timestamped_log_name('babysitter'),
+        self.add_file_handler(self.get_timestamped_log_name('scheduler-watcher'),
                               logging.DEBUG,
                               log_dir=self.get_server_log_dir())

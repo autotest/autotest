@@ -21,22 +21,22 @@ fi
 autotest_start() {
   cd /tmp
 
-  log_daemon_msg "Starting monitor_db_babysitter"
+  log_daemon_msg "Starting autotest-scheduler-watcher"
   ( ulimit -v 2048000 ; \
     start-stop-daemon --start --quiet --chuid $BECOME_USER \
-      --background --exec $BASE_DIR/scheduler/monitor_db_babysitter )
+      --background --exec $BASE_DIR/scheduler/autotest-scheduler-watcher )
 }
 
 stop_daemon() {
   PID_NAME=$1
   DAEMON_NAME=$2
-  log_daemon_msg "Stopping $DAEMON_NAME"
+  log_daemon_msg "Stopping autotest $DAEMON_NAME"
   start-stop-daemon --stop --quiet --pidfile $BASE_DIR/$PID_NAME.pid
 }
 
 autotest_stop() {
-  stop_daemon monitor_db_babysitter babysitter
-  stop_daemon monitor_db scheduler
+  stop_daemon autotest-scheduler-watcher scheduler-watcher
+  stop_daemon autotest-scheduler scheduler
 }
 
 case "$1" in
