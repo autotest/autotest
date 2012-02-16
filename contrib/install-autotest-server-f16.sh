@@ -2,7 +2,7 @@
 
 ATHOME=/usr/local/autotest
 DATETIMESTAMP=$(date "+%m-%d-%Y-%H-%M-%S")
-BASENAME=$(echo $0 | cut -f1 -d '.')
+BASENAME=$(echo $(basename $0) | cut -f1 -d '.')
 LOG="/tmp/$BASENAME-$DATETIMESTAMP.log"
 
 print_log() {
@@ -54,11 +54,11 @@ print_log "INFO" "Installing the Autotest server"
 print_log "INFO" "A log of operation is kept in $LOG"
 print_log "INFO" "Install started at: $(date)"
 
-LOCALFREE=$(df -k /usr/local | awk '{ print $4 }' | grep -v Avai)
-VARFREE=$(df -k /var | awk '{ print $4 }' | grep -v Avai)
+LOCALFREE=$(df -kP /usr/local | awk '{ print $4 }' | grep -v Avai)
+VARFREE=$(df -kP /var | awk '{ print $4 }' | grep -v Avai)
 
-LOCALFREE_HUMAN=$(df -H /usr/local | awk '{ print $4 }' | grep -v Avai)
-VARFREE_HUMAN=$(df -H /var | awk '{ print $4 }' | grep -v Avai)
+LOCALFREE_HUMAN=$(df -HP /usr/local | awk '{ print $4 }' | grep -v Avai)
+VARFREE_HUMAN=$(df -HP /var | awk '{ print $4 }' | grep -v Avai)
 
 print_log "INFO" "/usr/local free $LOCALFREE_HUMAN"
 print_log "INFO" "/var free $VARFREE_HUMAN"
