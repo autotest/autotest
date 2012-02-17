@@ -3,8 +3,25 @@ from autotest_lib.client.common_lib import error
 
 def run_virsh_migrate(test, params, env):
     """
-    Test the migrate command with parameter --live.
+    Test virsh migrate command.
     """
+
+    def cleanup_dest(vm, src_uri = ""):
+        """
+        Clean up the destination host environment 
+        when doing the uni-direction migration.
+        """
+        vm_state = vm.state()
+        if vm_state == "running":
+            vm.destroy()
+        elif vm_state == "paused":
+            vm.resume()
+            vm.destroy()
+
+        if vm.is_persistent():
+            vm.undefine()
+
+        vm.connect_uri = src_uri
 
     def do_migration(dly, vm, dest_uri, options, extra):
         logging.info("Sleeping %d seconds before migration" % dly)
@@ -57,3 +74,6 @@ def run_virsh_migrate(test, params, env):
         if back_extra == 'default':
             back_extra = extra
         do_migration(dly, vm, back_dest_uri, back_options, back_extra)
+    # Do the uni-direction migration here.
+    else:
+        cleanup_dest(vm, src_uri)
