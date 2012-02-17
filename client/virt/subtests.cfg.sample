@@ -161,6 +161,24 @@ variants:
         restart_vm = yes
         pxe_timeout = 60
 
+    - virsh_version: install setup image_copy unattended_install.cdrom
+        type = virsh_version
+        vms = ''
+        variants:
+            - no_option:
+                options = ""
+                status_error = "no"
+                libvirtd = "on"
+            - unexpect_option:
+                options = " xyz"
+                status_error = "yes"
+                libvirtd = "on"
+            - with_libvirtd_stop:
+                options = ""
+                status_error = "yes"
+                libvirtd = "off"
+
+
     - module_probe:
         type = module_probe
         # You can specify your own module list, though it is not needed usually.
