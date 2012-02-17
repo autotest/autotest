@@ -380,6 +380,31 @@ variants:
                 kill_unresponsive_vms = no
                 # migrate as fast as possible
                 virsh_migrate_delay = 0
+            - there_live:
+                # Uni-direction migration with option --live.
+                virsh_migrate_options = "--live"
+                virsh_migrate_delay = 60
+                virsh_migrate_back = 'no'
+                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
+            - there_p2p:
+                # Uni-direction migration with option --p2p.
+                virsh_migrate_options = "--live --p2p"
+                virsh_migrate_delay = 60
+                virsh_migrate_back = 'no'
+                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
+            - there_p2p_tunnelled:
+                # Uni-direction migration with option --tunnelled.
+                # --tunnelled should be used with --p2p.
+                virsh_migrate_options = "--live --p2p --tunnelled"
+                virsh_migrate_delay = 60
+                virsh_migrate_back = 'no'
+                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
+            - there_direct:
+                # Uni-direction migration with option --direct.
+                virsh_migrate_options = "--live --direct"
+                virsh_migrate_delay = 60
+                virsh_migrate_back = 'no'
+                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
 
 
     - migrate: install setup image_copy unattended_install.cdrom
