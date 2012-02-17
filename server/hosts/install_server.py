@@ -85,7 +85,9 @@ class CobblerInterface(object):
 
             system_info = self.server.get_system(system)
             current_profile = system_info.get('profile')
-            if profile != current_profile:
+            # If no fallback profile is enabled, we don't want to mess
+            # with the currently profile set for that machine.
+            if profile and (profile != current_profile):
                 self.server.modify_system(system_handle, 'profile', profile,
                                           self.token)
 
