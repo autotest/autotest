@@ -90,6 +90,8 @@ class CobblerInterface(object):
             if profile and (profile != current_profile):
                 self.server.modify_system(system_handle, 'profile', profile,
                                           self.token)
+            else:
+                profile = current_profile
 
             # Enable netboot for that machine (next time it'll reboot and be
             # reinstalled)
