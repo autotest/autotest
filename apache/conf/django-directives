@@ -1,7 +1,7 @@
 <IfModule !prefork.c>
     # Django requires the prefork MPM, so just fail with this bogus directive
     # if it's not loaded. See
-    # http://test.kernel.org/autotest/AutotestServerInstall for more info.
+    # https://github.com/autotest/autotest/wiki/AutotestServerInstall for more info.
     ERROR__DJANGO_REQUIRES_THE_PREFORK_MPM
 </IfModule>
 
@@ -34,5 +34,5 @@ RewriteRule /media(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/med
     # to mod_python's system python site-packages directory.
     # This way our code can depend on library versions other than
     # those available as packages on various OS distributions.
-    PythonPath "['/usr/local/autotest/site-packages', '/usr/local/autotest'] + sys.path"
+    PythonPath "['/usr/local/autotest/site-packages', '/usr/local/autotest', '/usr/lib/python2.7/site-packages/autotest', '/usr/lib/python2.6/site-packages/autotest', '/usr/lib/python2.5/site-packages/autotest', '/usr/lib/python2.4/site-packages/autotest'] + sys.path"
 </Location>
