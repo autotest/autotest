@@ -27,7 +27,7 @@ html_header = """\
   <td>Row: </td>
   <td>Condition: </td>
   <td align="center">
-  <a href="http://autotest.kernel.org/wiki/AutotestTKOCondition">Help</a>
+  <a href="https://github.com/autotest/autotest/wiki/UnderstandingTheTkoResultsDatabase">Help</a>
   </td>
 </tr>
 <tr>
