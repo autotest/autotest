@@ -1,1 +1,25 @@
-Alias /embedded_tko "/usr/local/autotest/frontend/client/www/autotest.EmbeddedTkoClient"
+RewriteEngine On
+
+# This rule is meant for autotest installations under a single directory,
+# such as when pulling the code from git or from a tarball
+RewriteCond /usr/local/autotest/frontend/client/www/autotest.EmbeddedTkoClient -d
+RewriteRule /embedded_tko(.*) /usr/local/autotest/frontend/client/www/autotest.EmbeddedTkoClient$1
+
+# This rule is meant for autotest installations from a package such as RPM
+RewriteCond /usr/share/autotest/frontend/client/www/autotest.EmbeddedTkoClient -d
+RewriteRule /embedded_tko(.*) /usr/share/autotest/frontend/client/www/autotest.EmbeddedTkoClient$1
+
+# These rules are fallbacks when autotest web client is installed along
+# the autotest server files, following the same layout as it is currently
+# in the source tree, that is, the "client" directory inside "frontent"
+RewriteCond /usr/lib/python2.7/site-packages/autotest/frontend/client/www/autotest.EmbeddedTkoClient -d
+RewriteRule /embedded_tko(.*) /usr/lib/python2.7/site-packages/autotest/frontend/client/www/autotest.EmbeddedTkoClient$1
+
+RewriteCond /usr/lib/python2.6/site-packages/autotest/frontend/client/www/autotest.EmbeddedTkoClient -d
+RewriteRule /embedded_tko(.*) /usr/lib/python2.6/site-packages/autotest/frontend/client/www/autotest.EmbeddedTkoClient$1
+
+RewriteCond /usr/lib/python2.5/site-packages/autotest/frontend/client/www/autotest.EmbeddedTkoClient -d
+RewriteRule /embedded_tko(.*) /usr/lib/python2.5/site-packages/autotest/frontend/client/www/autotest.EmbeddedTkoClient$1
+
+RewriteCond /usr/lib/python2.4/site-packages/autotest/frontend/client/www/autotest.EmbeddedTkoClient -d
+RewriteRule /embedded_tko(.*) /usr/lib/python2.4/site-packages/autotest/frontend/client/www/autotest.EmbeddedTkoClient$1
