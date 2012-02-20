@@ -74,6 +74,7 @@ class VM(virt_vm.BaseVM):
         # }
         # This structure can used in usb hotplug/unplug test.
         self.usb_dev_dict = {}
+        self.driver_type = 'kvm'
 
 
     def verify_alive(self):
