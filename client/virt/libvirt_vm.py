@@ -88,6 +88,7 @@ def virsh_hostname(uri = ""):
     """
     return virsh_cmd("hostname", uri)
 
+
 def virsh_driver(uri = ""):
     """
     return the driver by asking libvirt
@@ -98,6 +99,7 @@ def virsh_driver(uri = ""):
     # extract just the driver, whether or not there is a '+'
     return scheme.split('+', 2)[0]
 
+
 def virsh_domstate(name, uri = ""):
     """
     Return the state about a running domain.
@@ -105,6 +107,13 @@ def virsh_domstate(name, uri = ""):
     @param name: VM name
     """
     return virsh_cmd("domstate %s" % name, uri)
+
+
+def virsh_dominfo(name, uri = ""):
+    """
+    Return the VM information.
+    """
+    return virsh_cmd("dominfo %s" % (name), uri)
 
 
 def virsh_uuid(name, uri = ""):
@@ -438,6 +447,29 @@ class VM(virt_vm.BaseVM):
         """
         return virsh_is_dead(self.name, self.connect_uri)
 
+    def is_persistent(self):
+        """
+        Return True if VM is persistent.
+        """
+        if not virsh_domain_exists(self.name, self.connect_uri):
+            logging.warning("VM does not exist on uri %s" % self.connect_uri)
+            return False
+        dom_info = virsh_dominfo(self.name, self.connect_uri).split("\n")
+        persistent_info = ""
+        for tmp_info in dom_info:
+            if tmp_info.count('Persistent'):
+                persistent_info = tmp_info
+                break
+        if persistent_info.count('yes'):
+            return True
+        else:
+            return False
+
+    def undefine(self):
+        """
+        Undefine the VM.
+        """
+        return virsh_undefine(self.name, self.connect_uri)
 
     def state(self):
         """
