@@ -108,6 +108,11 @@ def virsh_domstate(name, uri = ""):
     """
     return virsh_cmd("domstate %s" % name, uri)
 
+def virsh_domid(name, uri = ""):
+    """
+    Return VM's ID.
+    """
+    return virsh_cmd("domid %s" % (name), uri)
 
 def virsh_dominfo(name, uri = ""):
     """
@@ -477,6 +482,23 @@ class VM(virt_vm.BaseVM):
         """
         return virsh_domstate(self.name, self.connect_uri)
 
+    def get_uuid(self):
+        """
+        Return VM's UUID.
+        """
+        return virsh_uuid(self.name, self.connect_uri)
+
+    def get_id(self):
+        """
+        Return VM's ID.
+        """
+        return virsh_domid(self.name, self.connect_uri)
+
+    def get_xml(self):
+        """
+        Return VM's xml file.
+        """
+        return virsh_dumpxml(self.name, self.connect_uri)
 
     def clone(self, name=None, params=None, root_dir=None, address_cache=None,
               copy_state=False):
