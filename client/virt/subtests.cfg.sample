@@ -1229,7 +1229,7 @@ variants:
     # This unit test module is for older branches of KVM that use the
     # kvmctl test harness (such as the code shipped with RHEL 5.x)
     - unit_test_kvmctl:
-        type = unit_test
+        type = unittest_kvmctl
         vms = ''
         profilers = ''
         variants:
