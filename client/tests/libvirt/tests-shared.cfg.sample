@@ -12,7 +12,7 @@ include cdkeys.cfg
 include virtio-win.cfg
 
 # Virtualization type (kvm or libvirt)
-vm_type = kvm
+vm_type = libvirt
 # The hypervisor uri (default, qemu://hostname/system, etc.)
 # where default or unset means derive from installed system
 connect_uri = default
