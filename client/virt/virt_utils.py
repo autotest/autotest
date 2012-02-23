@@ -1398,6 +1398,54 @@ def get_archive_tarball_name(source_dir, tarball_name, compression):
     return tarball_name
 
 
+def get_archive_compression_by_suffix(path):
+    '''
+    Returns the probable compression type of an archive based on its suffix
+
+    @type path: string
+    @param path: path to a hopefully compressed file
+    @returns: compression type or None
+    '''
+    suffix_to_type = {('tgz', 'gz') : 'gz',
+                      ('tbz', 'tbz2', 'bz2') : 'bz2'}
+    suffix = path.split('.')[-1]
+    for k in suffix_to_type:
+        if suffix in k:
+            return suffix_to_type[k]
+    return None
+
+
+def archive_is_tarball(path):
+    '''
+    Tries to detect if the given file path is a (optionally compressed) tarball
+    @type path: string
+    @param path: path to a hopefully compressed file
+    @returns: True if archive is a tarball or False if it's not a tarball
+    '''
+    try:
+        tarball = tarfile.open(name=path, mode='r:*')
+        tarball.close()
+        return True
+    except:
+        return False
+
+
+def extract_tarball(path, dest_dir):
+    '''
+    Extracts the content of a given tarball into the given destination dir
+
+    @type path: string
+    @param path: path to a hopefully compressed file
+    @returns: True on success or False on failure
+    '''
+    try:
+        tarball = tarfile.open(name=path, mode='r:*')
+        tarball.extractall(path=dest_dir)
+        return True
+    except:
+        return False
+
+
 def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
                        compression='bz2', verbose=True):
     '''
