@@ -305,6 +305,18 @@ def virsh_destroy(name, uri = ""):
         logging.error("Destroy VM %s failed:\n%s", name, detail)
         return False
 
+def virsh_define(xml_path, uri = ""):
+    """
+    Return True on successful domain define.
+
+    @param xml_path: XML file path
+    """
+    try:
+        virsh_cmd("define --file %s" % xml_path, uri)
+        return True
+    except error.CmdError:
+        logging.error("Define %s failed.", xml_path)
+        return False
 
 def virsh_undefine(name, uri = ""):
     """
