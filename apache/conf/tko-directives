@@ -3,11 +3,11 @@ RewriteEngine On
 # This rule is meant for autotest installations under a single directory,
 # such as when pulling the code from git or from a tarball
 RewriteCond /usr/local/autotest/results -d
-RewriteRule /results/(.*) /usr/local/autotest/results/$1
+RewriteRule /results(.*) /usr/local/autotest/results/$1
 
 # This rule is meant for autotest installations from a package such as RPM
 RewriteCond /var/lib/autotest/results -d
-RewriteRule /results/(.*) /var/lib/autotest/results/$1
+RewriteRule /results(.*) /var/lib/autotest/results/$1
 
 <Location "/results">
     Options Indexes FollowSymLinks MultiViews
@@ -22,21 +22,21 @@ RewriteRule /results/(.*) /var/lib/autotest/results/$1
 # This rule is meant for autotest installations under a single directory,
 # such as when pulling the code from git or from a tarball
 RewriteCond /usr/local/autotest/tko -d
-RewriteRule /tko/(.*) /usr/local/autotest/tko/$1
+RewriteRule /tko(.*) /usr/local/autotest/tko/$1
 
 # These rules serve the tko interface when installed together with autotest
 # libraries on python site-packages. Covers python versions 2.4 through 2.7
 RewriteCond /usr/lib/python2.7/site-packages/autotest/tko -d
-RewriteRule /tko/(.*) /usr/lib/python2.7/site-packages/autotest/tko/$1
+RewriteRule /tko(.*) /usr/lib/python2.7/site-packages/autotest/tko/$1
 
 RewriteCond /usr/lib/python2.6/site-packages/autotest/tko -d
-RewriteRule /tko/(.*) /usr/lib/python2.6/site-packages/autotest/tko/$1
+RewriteRule /tko(.*) /usr/lib/python2.6/site-packages/autotest/tko/$1
 
 RewriteCond /usr/lib/python2.5/site-packages/autotest/tko -d
-RewriteRule /tko/(.*) /usr/lib/python2.5/site-packages/autotest/tko/$1
+RewriteRule /tko(.*) /usr/lib/python2.5/site-packages/autotest/tko/$1
 
 RewriteCond /usr/lib/python2.4/site-packages/autotest/tko -d
-RewriteRule /tko/(.*) /usr/lib/python2.4/site-packages/autotest/tko/$1
+RewriteRule /tko(.*) /usr/lib/python2.4/site-packages/autotest/tko/$1
 
 <Location "/tko">
     Options ExecCGI Indexes MultiViews +SymLinksIfOwnerMatch
