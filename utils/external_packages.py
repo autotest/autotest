@@ -684,10 +684,10 @@ class Httplib2Package(ExternalPackage):
 class GwtPackage(ExternalPackage):
     """Fetch and extract a local copy of GWT used to build the frontend."""
 
-    version = '2.3.0'
+    version = '2.4.0'
     local_filename = 'gwt-%s.zip' % version
     urls = ('http://google-web-toolkit.googlecode.com/files/' + local_filename,)
-    hex_sum = 'd51fce9166e6b31349659ffca89baf93e39bc84b'
+    hex_sum = 'a91ac20db0ddd5994ac3cbfb0e8061d5bbf66f88'
     name = 'gwt'
     about_filename = 'about.txt'
     module_name = None  # Not a Python module.
