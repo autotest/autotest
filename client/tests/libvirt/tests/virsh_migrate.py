@@ -6,6 +6,16 @@ def run_virsh_migrate(test, params, env):
     Test virsh migrate command.
     """
 
+    def check_vm_state(vm, state):
+        """
+        Return True if vm is in the correct state.
+        """
+        actual_state = vm.state()
+        if cmp(actual_state, state) == 0:
+            return True
+        else:
+            return False
+
     def cleanup_dest(vm, src_uri = ""):
         """
         Clean up the destination host environment 
@@ -35,6 +45,15 @@ def run_virsh_migrate(test, params, env):
             logging.info("Alive guest found on destination %s." % dest_uri)
         else:
             raise error.TestFail("VM not running on destination %s" % dest_uri)
+
+        # Migration may fail, but VM is alive on destination.
+        dest_state = params.get("virsh_migrate_dest_state")
+        ret = check_vm_state(vm, dest_state)
+        logging.info("Supposed state: %s" % dest_state)
+        logging.info("Actual state: %s" % vm.state())
+        if not ret:
+            raise error.TestFail("VM is not in the supposed state.")
+
         # FIXME: This needs to be tested, but won't work currently
         # vm.verify_kernel_crash()
 
