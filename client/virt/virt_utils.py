@@ -3495,7 +3495,7 @@ def check_iso(url, destination, iso_sha1):
             utils.interactive_download(url, iso_path, 'ISO Download')
         else:
             logging.warning("Missing file %s", iso_path)
-            logging.warning("Please download it or put an exsiting copy on the "
+            logging.warning("Please download it or put an existing copy on the "
                             "appropriate location")
             return
     else:
