@@ -386,6 +386,29 @@ def virsh_migrate(options, name, dest_uri, extra, uri = ""):
         return False
     return True
 
+def virsh_attach_device(name, xml_file, extra = "", uri = ""):
+    """
+    Attach a device to VM.
+    """
+    cmd = "attach-device --domain %s --file %s %s" % (name, xml_file, extra)
+    try:
+        virsh_cmd(cmd, uri)
+        return True
+    except error.CmdError:
+        logging.error("Attaching device to VM %s failed." % name)
+        return False
+
+def virsh_detach_device(name, xml_file, extra = "", uri = ""):
+    """
+    Detach a device from VM.
+    """
+    cmd = "detach-device --domain %s --file %s %s" % (name, xml_file, extra)
+    try:
+        virsh_cmd(cmd, uri)
+        return True
+    except error.CmdError:
+        logging.error("Detaching device from VM %s failed." % name)
+        return False
 
 class VM(virt_vm.BaseVM):
     """
@@ -1138,6 +1161,17 @@ class VM(virt_vm.BaseVM):
             self.connect_uri = dest_uri
         return result
 
+    def attach_device(self, xml_file, extra = ""):
+        """
+        Attach a device to VM.
+        """
+        return virsh_attach_device(self.name, xml_file, extra, self.connect_uri)
+
+    def detach_device(self, xml_file, extra = ""):
+        """
+        Detach a device from VM.
+        """
+        return virsh_detach_device(self.name, xml_file, extra, self.connect_uri)
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
         """
