@@ -358,6 +358,7 @@ variants:
         # FIXME: Impliment libvirt URI connect user/password
         # virsh_migrate_destuser = root
         # virsh_migrate_destpwd = ""
+        virsh_migrate_dest_state = running
         variants:
             - there_and_back:
                 virsh_migrate_delay = 60
@@ -405,7 +406,13 @@ variants:
                 virsh_migrate_delay = 60
                 virsh_migrate_back = 'no'
                 connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
-
+            - there_suspend:
+                # Uni-direction migration with option --suspend.
+                virsh_migrate_options = "--live --suspend"
+                virsh_migrate_delay = 60
+                virsh_migrate_back = 'no'
+                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
+                virsh_migrate_dest_state = paused
 
     - migrate: install setup image_copy unattended_install.cdrom
         type = migration
