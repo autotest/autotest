@@ -6,11 +6,11 @@
   <source path="tko"/>
   <source path="common"/>
   <entry-point class='autotest.tko.EmbeddedTkoClient'/>
-  
+
   <stylesheet src='common.css'/>
   <stylesheet src='standard.css'/>
-  <stylesheet src='afeclient.css'/>
-  <stylesheet src='tkoclient.css'/>
-  
+  <stylesheet src='rpcweb.css'/>
+  <stylesheet src='rpcdb.css'/>
+
   <!-- <set-property name="user.agent" value="gecko1_8"/> -->
 </module>

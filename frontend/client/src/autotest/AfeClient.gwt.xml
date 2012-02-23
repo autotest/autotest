@@ -6,8 +6,8 @@
 	<source path="afe"/>
 	<source path="common"/>
 	<entry-point class='autotest.afe.AfeClient'/>
-	
+
 	<stylesheet src='common.css'/>
-	<stylesheet src='afeclient.css'/>
+	<stylesheet src='rpcweb.css'/>
 	<stylesheet src='standard.css'/>
 </module>
