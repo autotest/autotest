@@ -31,12 +31,6 @@ class ltp(test.test):
         ltpbin_dir = os.path.join(self.srcdir, 'bin')
         os.mkdir(ltpbin_dir)
 
-        # comment the capability tests if we fail to load the capability module
-        try:
-            utils.system('modprobe capability')
-        except error.CmdError, detail:
-            utils.system('patch -p1 < ../ltp_capability.patch')
-
         utils.system('cp ../scan.c pan/')   # saves having lex installed
         utils.configure('--prefix=%s' % ltpbin_dir)
         utils.make('-j %d all' % utils.count_cpus())
