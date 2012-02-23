@@ -16,8 +16,7 @@
 #       src             eg. tests/<test>/src
 #       tmpdir          eg. tmp/<tempname>_<testname.tag>
 
-import fcntl, getpass, os, re, sys, shutil, tarfile, tempfile, time, traceback
-import warnings, logging, glob, resource
+import fcntl, getpass, os, re, sys, shutil, tempfile, time, traceback, logging
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
