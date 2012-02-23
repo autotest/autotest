@@ -89,6 +89,13 @@ def virsh_hostname(uri = ""):
     return virsh_cmd("hostname", uri)
 
 
+def virsh_version(uri = ""):
+    """
+    Return the major version info about what this built from.
+    """
+    return virsh_cmd("version", uri)
+
+
 def virsh_driver(uri = ""):
     """
     return the driver by asking libvirt
