@@ -1,0 +1,295 @@
+#!/usr/bin/python -u
+#
+# run-qemu-test [options] <<test1> [testN]> - run the qemu/virt test specified
+#
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+
+import os, logging, optparse
+from autotest_lib.client.bin import job, optparser, cmdparser
+from autotest_lib.client.bin import autotest_local, utils
+from autotest_lib.client.common_lib import cartesian_config
+from autotest_lib.client.virt import virt_utils
+
+# Shared tests among libvirt/kvm
+os.environ['AUTODIRTEST_VIRT'] = os.path.join(os.environ['AUTODIRTEST'], '..',
+                                              'virt', 'tests')
+# KVM specific tests
+os.environ['AUTODIRTEST_KVM'] = os.path.join(os.environ['AUTODIRTEST'],
+                                             'kvm', 'tests')
+
+# TODO: Check if current directory looks like qemu source tree, and if there
+# is an autotest tests subdirectory
+os.environ['AUTODIRTEST_QEMU'] = os.path.join('autotest', 'tests')
+
+TEST_DIRECTORIES = [os.environ['AUTODIRTEST_VIRT'],
+                    os.environ['AUTODIRTEST_KVM'],
+                    os.environ['AUTODIRTEST_QEMU']]
+
+QEMU_CONTROL_FILE = os.path.join(os.environ['AUTODIRTEST'], 'kvm', 'control.qemu')
+QEMU_CONFIG_DIR = os.path.join(os.environ['AUTODIRTEST'], 'kvm', 'configsets')
+
+
+class AutotestLocalQemuOptionParser(optparser.AutotestLocalOptionParser):
+    '''
+    Autotest option parser for autotest-local-qemu
+    '''
+
+    DOWNLOAD_IMAGE_VALUES = ['auto', 'yes', 'no']
+    LINUX_DISTRO_VALUES = ['f16', 'f17']
+    ARCH_VALUES = ['x86_64', 'arm', 'ppc64']
+
+    def __init__(self):
+        optparser.AutotestLocalOptionParser.__init__(self)
+
+        self.epilog = ''
+        self.description = ''
+
+        self.remove_option('--args')
+
+        image_opts = optparse.OptionGroup(self, 'GUEST IMAGE')
+
+        # Actually this options defaults to True, but this is set at
+        # check_values() so that we can check if both --linux-distro and
+        # --jeos were set
+        image_opts.add_option('-j', '--jeos', action='store_true',
+                              default=False,
+                              help='Use a custom autotest guest image, not a '
+                              'full blown Linux distribution')
+
+        linux_distro_values = self._values_to_help(self.LINUX_DISTRO_VALUES)
+        image_opts.add_option('--linux-distro',
+                              default=self.LINUX_DISTRO_VALUES[0],
+                              help=('Use a regular linux distribution guest '
+                                    'image. %s' % linux_distro_values))
+
+        image_opts.add_option('-d', '--download-image',
+                              default=self.DOWNLOAD_IMAGE_VALUES[0],
+                              help='Download guest image. %s' %
+                              self._values_to_help(self.DOWNLOAD_IMAGE_VALUES))
+
+        image_opts.add_option('-r', '--refresh-image',
+                              action='store_true', default='False',
+                              help='Extracts the guest image again from the '
+                              'downloaded image archive')
+        self.add_option_group(image_opts)
+
+        arch_opts = optparse.OptionGroup(self, 'QEMU AND GUEST ARCH')
+        arch_opts.add_option('--arch',
+                             default='x86_64',
+                             help='Choose system architecture to run test on')
+        arch_opts.add_option('--qemu-path',
+                             help='Choose the qemu binary to run test with. '
+                             'Default depends on guest arch')
+
+        self.add_option_group(arch_opts)
+
+        action_opts = optparse.OptionGroup(self, 'ACTIONS')
+        action_opts.add_option('--list', action='store_true', default=False,
+                               help='Lists all available test names')
+        self.add_option_group(action_opts)
+
+
+    def _values_to_help(self, values):
+        '''
+        Builds a string to show in the help message with the valid values
+
+        Assumes first value is the default one
+        '''
+        stock = "Valid values are: %s"
+        default_option = '"%s" (default)' % values[0]
+
+        if len(values) > 2:
+            other_options = ", ".join(['"%s"' % v for v in values[1:-1]])
+            options =  '%s, %s and "%s"' % (default_option,
+                                            other_options,
+                                            values[-1])
+        else:
+            options = '%s and "%s"' % (default_option,
+                                       values[1])
+
+        return stock % options
+
+
+    def check_values(self, opts, args):
+        '''
+        Check if given command line parameter values are valid
+        '''
+        if opts.download_image not in self.DOWNLOAD_IMAGE_VALUES:
+            print ('Command line error: "%s" is not a valid value for '
+                   '--download-image.\n%s' %
+                   (opts.download_image,
+                    self._values_to_help(self.DOWNLOAD_IMAGE_VALUES)))
+
+            raise SystemExit
+
+        if opts.linux_distro and opts.jeos:
+            print ('Command line error: "--jeos" and "--linux-distro" are '
+                   'mutually exclusive options')
+            raise SystemExit
+        else:
+            opts.jeos = True
+
+        # FIXME: add default paths for other architectures and also
+        # detection when running this from inside a qemu source tree
+        if opts.arch == 'x86_64':
+            opts.qemu_path = '/usr/bin/qemu-system-x86_64'
+
+        # args should have list of test names, check that
+        return (opts, args)
+
+
+class AutotestLocalQemuApp(autotest_local.AutotestLocalApp):
+
+
+    DEFAULT_TEST_SET = ['boot', 'shutdown']
+
+    def __init__(self):
+        autotest_local.AutotestLocalApp.__init__(self)
+
+
+    def _set_parsers(self):
+        self.opt_parser = AutotestLocalQemuOptionParser()
+        self.cmd_parser = None
+
+
+    def _get_download_image_name(self):
+        '''
+        Build the name of the image file to download based on cli options
+        '''
+        if self.options.jeos:
+            # guess it should be named autotest_jeos...
+            return 'jeos_%s.tar.bz2' % self.options.arch
+        else:
+            return '%s_%s.tar.bz2' % (self.options.linux_distro,
+                                      self.options.arch)
+
+
+    def _get_download_image_path(self):
+        '''
+        Returns the location where to save the current download guest image
+        '''
+        image_name = self._get_download_image_name()
+        return os.path.join('/tmp', image_name)
+
+
+    def download_image(self, skip_if_exists=True):
+        '''
+        Downloads the guest image file according to the given options
+
+        @type skip_if_exists: boolean
+        @param skip_if_exists: do not download image again if already done
+        '''
+        # We really need some kind of repo metada, so that this kind of
+        # information is not set here
+        images_hashes = {'jeos_x86_64.tar.bz2' :
+                             'b02da58e4a95cc6ff15253ddf5311db0bc2cf0ad'}
+
+        image_name = self._get_download_image_name()
+        output_file_path = self._get_download_image_path()
+
+        if skip_if_exists is True:
+            image_hash = images_hashes.get(image_name)
+            calculated_hash = utils.hash_file(output_file_path, method='sha1')
+            if image_hash == calculated_hash:
+                return
+
+        url = 'http://lmr.fedorapeople.org/jeos_images/%s' % image_name
+        utils.interactive_download(url, output_file_path, 'Image Download')
+
+
+    def refresh_image(self):
+        '''
+        Extracts the guest image archive overwriting previous versions
+        '''
+        guest_archive_path = self._get_download_image_path()
+        # this should come from somewhere else
+        dest = '/tmp/kvm_autotest_root/images'
+        virt_utils.extract_tarball(guest_archive_path, dest)
+
+
+    def parse_cmdline(self):
+        self.options, self.args = self.opt_parser.parse_args()
+
+
+    def _get_config_base_path(self):
+        '''
+        Constructs the configuration directory based on command line options
+        '''
+        config_paths = []
+        if self.options.jeos:
+            config_paths.append('jeos')
+        config_paths.append(self.options.arch)
+        return os.path.join(QEMU_CONFIG_DIR, *config_paths)
+
+
+    def _get_config_file(self):
+        '''
+        Constructs the configuration file path
+        '''
+        return os.path.join(self._get_config_base_path(), 'tests.cfg')
+
+
+    def _get_subtests_by_config(self):
+        '''
+        Gets the list of available tests by looking at the cartesian config
+        '''
+        subtests_config = os.path.join(self._get_config_base_path(),
+                                       'subtests.cfg')
+        parser = cartesian_config.Parser(subtests_config)
+        tests = [p['shortname'] for p in parser.get_dicts()]
+        return tests
+
+
+    def _get_test_set(self):
+        '''
+        Constructs the test set
+        '''
+        test_set = self.args[:]
+        if not test_set:
+            test_set = self.DEFAULT_TEST_SET
+            logging.info('Running default tests: "%s"', ', '.join(test_set))
+        return ', '.join(test_set)
+
+
+    def list(self):
+        '''
+        Lists virt tests available
+
+        This should also scan for "drop-in" tests (when they become supported)
+        '''
+        tests = self._get_subtests_by_config()
+        tests.sort()
+        for t in tests:
+            print t
+
+
+    def main(self):
+        self.parse_cmdline()
+
+        if self.options.list:
+            self.list()
+            raise SystemExit
+
+        if self.options.download_image == 'auto':
+            self.download_image(skip_if_exists=True)
+        elif self.options.download_image == 'yes':
+            self.download_image(skip_if_exists=False)
+
+        if self.options.refresh_image is True:
+            self.refresh_image()
+
+        os.environ['QEMU_CONF'] = self._get_config_file()
+        os.environ['QEMU_TESTS'] = self._get_test_set()
+        os.environ['QEMU_PATH'] = self.options.qemu_path
+
+        # JOB: run the specified job control file.
+        job.runjob(os.path.realpath(QEMU_CONTROL_FILE),
+                   False, self.options)
+
+
+if __name__ == '__main__':
+    app = AutotestLocalQemuApp()
+    app.main()

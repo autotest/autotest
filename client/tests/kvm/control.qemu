@@ -1,0 +1,34 @@
+AUTHOR = """
+Lucas Meneghel Rodrigues <lmr@redhat.com>
+Cleber Rosa <cleber@redhat.com>
+"""
+TIME = 'MEDIUM'
+NAME = 'QEMU Test'
+TEST_TYPE = 'client'
+TEST_CLASS = 'Virtualization'
+TEST_CATEGORY = 'Functional'
+
+DOC = """
+This test runs QEMU (with or without KVM) tests.
+
+This control file is supposed to be run by run-qemu-test as it receives
+some special configuration from environment variables, and uses some custom
+configuration files and JeOS guest images.
+"""
+
+import sys, os, logging
+from autotest_lib.client.common_lib import cartesian_config
+from autotest_lib.client.virt import virt_utils
+
+# set English environment (command output might be localized, need to be safe)
+os.environ['LANG'] = 'en_US.UTF-8'
+
+tests = os.environ['QEMU_TESTS']
+conf = os.environ['QEMU_CONF']
+qemu_binary = os.environ['QEMU_PATH']
+
+parser = cartesian_config.Parser()
+parser.parse_file(conf)
+parser.parse_string("only %s" % tests)
+parser.parse_string("qemu_binary = %s" % qemu_binary)
+virt_utils.run_tests(parser, job)
