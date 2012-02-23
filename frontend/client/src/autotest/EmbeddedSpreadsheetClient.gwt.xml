@@ -9,7 +9,7 @@
 
   <stylesheet src='common.css'/>
   <stylesheet src='standard.css'/>
-  <stylesheet src='afeclient.css'/>
-  <stylesheet src='tkoclient.css'/>
+  <stylesheet src='rpcweb.css'/>
+  <stylesheet src='rpcdb.css'/>
 
 </module>
