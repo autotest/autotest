@@ -11,19 +11,19 @@
 #
 RewriteEngine On
 RewriteCond /usr/local/autotest/site-packages/django/contrib/admin/media -d
-RewriteRule /media/(.*) /usr/local/autotest/site-packages/django/contrib/admin/media/$1
+RewriteRule /media(.*) /usr/local/autotest/site-packages/django/contrib/admin/media/$1
 
 RewriteCond /usr/lib/python2.4/site-packages/django/contrib/admin/media -d
-RewriteRule /media/(.*) /usr/lib/python2.4/site-packages/django/contrib/admin/media/$1
+RewriteRule /media(.*) /usr/lib/python2.4/site-packages/django/contrib/admin/media/$1
 
 RewriteCond /usr/lib/python2.5/site-packages/django/contrib/admin/media -d
-RewriteRule /media/(.*) /usr/lib/python2.5/site-packages/django/contrib/admin/media/$1
+RewriteRule /media(.*) /usr/lib/python2.5/site-packages/django/contrib/admin/media/$1
 
 RewriteCond /usr/lib/python2.6/site-packages/django/contrib/admin/media -d
-RewriteRule /media/(.*) /usr/lib/python2.6/site-packages/django/contrib/admin/media/$1
+RewriteRule /media(.*) /usr/lib/python2.6/site-packages/django/contrib/admin/media/$1
 
 RewriteCond /usr/lib/python2.7/site-packages/django/contrib/admin/media -d
-RewriteRule /media/(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/media/$1
+RewriteRule /media(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/media/$1
 
 <Location ~ "/(afe|new_tko)/server">
     SetHandler python-program
