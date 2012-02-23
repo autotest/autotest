@@ -2,24 +2,24 @@ RewriteEngine On
 
 # This rule is meant for autotest installations under a single directory,
 # such as when pulling the code from git or from a tarball
-RewriteCond /usr/local/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet -d
-RewriteRule /embedded_spreadsheet(.*) /usr/local/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet$1
+RewriteCond /usr/local/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient -d
+RewriteRule /embedded_spreadsheet/(.*) /usr/local/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient/$1
 
 # This rule is meant for autotest installations from a package such as RPM
-RewriteCond /usr/share/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet -d
-RewriteRule /embedded_spreadsheet(.*) /usr/share/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet$1
+RewriteCond /usr/share/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient -d
+RewriteRule /embedded_spreadsheet/(.*) /usr/share/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient/$1
 
 # These rules are fallbacks when autotest web client is installed along
 # the autotest server files, following the same layout as it is currently
 # in the source tree, that is, the "client" directory inside "frontent"
-RewriteCond /usr/lib/python2.7/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet -d
-RewriteRule /embedded_spreadsheet(.*) /usr/lib/python2.7/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet$1
+RewriteCond /usr/lib/python2.7/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient -d
+RewriteRule /embedded_spreadsheet/(.*) /usr/lib/python2.7/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient/$1
 
-RewriteCond /usr/lib/python2.6/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet -d
-RewriteRule /embedded_spreadsheet(.*) /usr/lib/python2.6/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet$1
+RewriteCond /usr/lib/python2.6/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient -d
+RewriteRule /embedded_spreadsheet/(.*) /usr/lib/python2.6/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient/$1
 
-RewriteCond /usr/lib/python2.5/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet -d
-RewriteRule /embedded_spreadsheet(.*) /usr/lib/python2.5/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet$1
+RewriteCond /usr/lib/python2.5/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient -d
+RewriteRule /embedded_spreadsheet/(.*) /usr/lib/python2.5/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient/$1
 
-RewriteCond /usr/lib/python2.4/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet -d
-RewriteRule /embedded_spreadsheet(.*) /usr/lib/python2.4/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheet$1
+RewriteCond /usr/lib/python2.4/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient -d
+RewriteRule /embedded_spreadsheet/(.*) /usr/lib/python2.4/site-packages/autotest/frontend/client/www/autotest.EmbeddedSpreadsheetClient/$1
