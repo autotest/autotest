@@ -203,7 +203,7 @@ class Parser(object):
     and generate a list of dicts that will be later used as configuration
     parameters by autotest tests that use that format.
 
-    @see: http://autotest.kernel.org/wiki/CartesianConfig
+    @see: https://github.com/autotest/autotest/wiki/KVMAutotest-CartesianConfigParametersIntro
     """
 
     def __init__(self, filename=None, debug=False):

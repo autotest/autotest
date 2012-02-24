@@ -18,7 +18,7 @@ try:
     cd = control_data.parse_control(sys.argv[1], True)
 except Exception, e:
     print "This control file does not adhear to the spec set forth in"
-    print "http://autotest.kernel.org/wiki/ControlRequirements"
+    print "https://github.com/autotest/autotest/wiki/ControlRequirements"
     print
     print "Specific error:"
     print '\n'.join(textwrap.wrap(str(e), initial_indent='    ',
