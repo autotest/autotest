@@ -9,7 +9,8 @@ Example of updating client side tests:
 ./test_importer.py -t TOP_DIR/client/tests
 
 If, for example, not all of your control files adhere to the standard outlined
-at http://autotest.kernel.org/wiki/ControlRequirements, you can force options:
+at https://github.com/autotest/autotest/wiki/ControlRequirements, you can force
+options:
 
 ./test_importer.py --test-type server -t TOP_DIR/server/tests
 
