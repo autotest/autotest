@@ -1,6 +1,28 @@
-body {
-  margin-top: 0px;
+html {
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
 }
+
+body {
+  margin: 0;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 18px;
+  color: #333333;
+  background-color: #ffffff;
+}
+
+a {
+  color: #0088cc;
+  text-decoration: none;
+}
+a:hover {
+  color: #005580;
+  text-decoration: underline;
+}
+
+
 
 .motd {
   color: black;
@@ -12,7 +34,7 @@ body {
 }
 
 .data-table-outlined {
-  border: 2px solid #A0A0A0;
+  border: 1px solid #0088cc;
 }
 
 .data-table td {
@@ -23,7 +45,8 @@ body {
 }
 
 .data-row-header {
-  background: #b4b9cb;
+  background: #0088cc;
+  color:white;
   font-weight: bold;
 }
 
@@ -62,9 +85,8 @@ tr.data-row-clickable:hover {
 .job-filter-links .gwt-TabBarItem {
   padding: 0.3em;
   margin-right: 1em;
-  color: blue;
-  text-decoration: underline;
-  cursor: pointer;
+  color: #0088cc;
+  text-decoration: none;
 }
 
 .job-filter-links .gwt-TabBarItem-selected {
@@ -209,4 +231,3 @@ tr.data-row-clickable:hover {
   white-space: nowrap;
   margin-right: 1em;
 }
-
