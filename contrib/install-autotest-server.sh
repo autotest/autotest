@@ -145,6 +145,19 @@ EOF
 
 fi
 
+if [ -f /etc/redhat-release ]
+then
+  
+    if [ ! -f /etc/yum.repos.d/epel.repo ]
+    then
+        if [ "`grep 'release 6' /etc/redhat-release`" != "" ]
+        then
+            print_log "INFO" "Adding EPEL 6 repository"
+            rpm -ivh http://download.fedoraproject.org/pub/epel/6/`arch`/epel-release-6-5.noarch.rpm >> $LOG 2>&1
+        fi
+    fi
+fi
+
 print_log "INFO" "Installing utility packages"
 yum install -y unzip wget >> $LOG 2>&1
 print_log "INFO" "Installing webserver packages"
@@ -169,8 +182,14 @@ fi
 setenforce 0
 
 print_log "INFO" "Starting MySQL server"
-systemctl enable mysqld.service >> $LOG
-systemctl restart mysqld.service >> $LOG
+if [ -x /etc/init.d/mysqld ]
+then
+    chkconfig --level 2345 mysqld on >> $LOG
+    /etc/init.d/mysqld restart >> $LOG
+else
+    systemctl enable mysqld.service >> $LOG
+    systemctl restart mysqld.service >> $LOG
+fi
 
 print_log "INFO" "Installing autotest"
 if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
@@ -229,7 +248,12 @@ then
     ln -s /usr/local/autotest/apache/conf/all-directives /etc/httpd/conf.d/autotest.conf
     service httpd configtest
 fi
-systemctl enable httpd.service >> $LOG
+if [ -x /etc/init.d/httpd ]
+then
+    chkconfig --level 2345 httpd on
+else
+    systemctl enable httpd.service >> $LOG
+fi
 
 print_log "INFO" "Setting up the autotest configuration files"
 
@@ -254,7 +278,12 @@ else
 fi
 
 print_log "INFO" "Re-starting MySQL server"
-systemctl restart mysqld.service >> $LOG
+if [ -x /etc/init.d/mysqld ]
+then
+    /etc/init.d/mysqld restart >> $LOG
+else
+    systemctl restart mysqld.service >> $LOG
+fi
 
 # Patch up a python 2.7 problem
 if [ "$(grep '^CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py)" != "" ]
@@ -273,15 +302,30 @@ cat << EOF | su - autotest >> $LOG
 EOF
 
 print_log "INFO" "Restarting web server"
-systemctl restart httpd.service
+if [ -x /etc/init.d/httpd ]
+then
+    /etc/init.d/httpd restart
+else
+    systemctl restart httpd.service
+fi
 
 print_log "INFO" "Starting the scheduler"
-cp $ATHOME/utils/autotestd.service /etc/systemd/system/ >> $LOG
-systemctl daemon-reload >> $LOG
-systemctl enable autotestd.service >> $LOG
-systemctl stop autotestd.service >> $LOG
-rm -f $ATHOME/monitor_db_babysitter.pid $ATHOME/monitor_db.pid
-systemctl start autotestd.service >> $LOG
+if [ -x /etc/init.d/httpd ]
+then
+    cp $ATHOME/utils/autotest-rh.init /etc/init.d/autotest >> $LOG
+    chmod +x /etc/init.d/autotest >> $LOG
+    chkconfig --level 2345 autotest on >> $LOG
+    /etc/init.d/autotest stop >> $LOG
+    rm -f $ATHOME/monitor_db_babysitter.pid $ATHOME/monitor_db.pid
+    /etc/init.d/autotest start >> $LOG
+else
+    cp $ATHOME/utils/autotestd.service /etc/systemd/system/ >> $LOG
+    systemctl daemon-reload >> $LOG
+    systemctl enable autotestd.service >> $LOG
+    systemctl stop autotestd.service >> $LOG
+    rm -f $ATHOME/monitor_db_babysitter.pid $ATHOME/monitor_db.pid
+    systemctl start autotestd.service >> $LOG
+fi
 
 if [ "$(grep -- '--dport 80 -j ACCEPT' /etc/sysconfig/iptables)" = "" ]
 then
@@ -296,7 +340,12 @@ then
     cp /tmp/tmp$$ /etc/sysconfig/iptables
     rm /tmp/tmp$$
 
-    systemctl restart iptables.service >> $LOG
+    if [ -x /etc/init.d/iptables ]
+    then
+        /etc/init.d/iptables restart >> $LOG
+    else
+        systemctl restart iptables.service >> $LOG
+    fi
 fi
 
 print_log "INFO" "$(systemctl status autotestd.service)"
@@ -305,5 +354,5 @@ cd $ATHOME/client/common_lib/
 VERSION="$(./version.py)"
 print_log "INFO" "Finished installing autotest server $VERSION at: $(date)"
 
-IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | cut -d: -f2 | awk '{ print $1}')"
+IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | grep -v 192.168.122 | cut -d: -f2 | awk '{ print $1}')"
 print_log "INFO" "You can access your server on http://$IP/afe"
