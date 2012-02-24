@@ -50,7 +50,7 @@ class ltp(test.test):
             failcmdfile = os.path.join(self.debugdir, 'failcmdfile')
             skipfile = os.path.join(self.bindir, 'skipfile')
             args2 = '-q -l %s -C %s -d %s -S %s' % \
-                (logfile, failcmdfile, self.tmpdir, skipfile)
+                (logfile, failcmdfile, self.srcdir, skipfile)
             args = args + ' ' + args2
 
         ltpbin_dir = os.path.join(self.srcdir, 'bin')
