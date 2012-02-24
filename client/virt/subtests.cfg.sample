@@ -178,6 +178,23 @@ variants:
                 status_error = "yes"
                 libvirtd = "off"
 
+    - virsh_hostname: install setup image_copy unattended_install.cdrom
+        type = virsh_hostname
+        vms = ''
+        variants:
+            - no_option:
+                options = ""
+                status_error = "no"
+                libvirtd = "on"
+            - unexpect_option:
+                options = " xyz"
+                status_error = "yes"
+                libvirtd = "on"
+            - with_libvirtd_stop:
+                options = ""
+                status_error = "yes"
+                libvirtd = "off"
+
 
     - module_probe:
         type = module_probe
