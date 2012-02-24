@@ -47,7 +47,7 @@
 }
 .gwt-MenuBar-horizontal .gwt-MenuItemSeparator .menuSeparatorInner {
   width: 1px;
-  background: white; 
+  background: white;
 }
 .gwt-MenuBar-vertical {
   margin-top: 0px;
@@ -79,9 +79,9 @@
 }
 
 /*
- * ToggleButton 
+ * ToggleButton
  */
- 
+
 .gwt-ToggleButton-up,
 .gwt-ToggleButton-up-hovering,
 .gwt-ToggleButton-up-disabled,
@@ -149,7 +149,7 @@
 .gwt-SuggestBoxPopup .suggestPopupTopLeftInner {
   width: 5px;
   height: 5px;
-  zoom: 1;  
+  zoom: 1;
 }
 .gwt-SuggestBoxPopup .suggestPopupTopRightInner {
   width: 8px;
@@ -166,4 +166,3 @@
   height: 8px;
   zoom: 1;
 }
-
