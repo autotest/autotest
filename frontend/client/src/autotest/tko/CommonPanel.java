@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 class CommonPanel extends Composite implements ClickHandler, PositionCallback {
-    private static final String WIKI_URL = "http://autotest.kernel.org/wiki/TkoHowTo";
+    private static final String WIKI_URL = "https://github.com/autotest/autotest/wiki/WebFrontendHowTo";
     private static final String SHOW_QUICK_REFERENCE = "Show quick reference";
     private static final String HIDE_QUICK_REFERENCE = "Hide quick reference";
     private static final String SHOW_CONTROLS = "Show controls";
