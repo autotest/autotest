@@ -21,6 +21,7 @@ virsh_network = network=default
 images = image1
 # List of optical device object names
 cdroms = cd1
+cd_format = usb2
 
 # USB controller object names (whitespace seperated)
 usbs = usb1
