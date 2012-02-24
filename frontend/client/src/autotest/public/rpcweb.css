@@ -219,12 +219,12 @@ tr.data-row-clickable:hover {
 }
 
 .gwt-HorizontalSplitPanel {
-  border: 1px solid #ACF;
+  border: 1px solid #0088cc;
 }
 
 .gwt-HorizontalSplitPanel .hsplitter {
   cursor: move;
-  background: #55679e;
+  background: #0088cc;
 }
 
 .radio-chooser .gwt-RadioButton {
