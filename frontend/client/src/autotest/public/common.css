@@ -9,13 +9,13 @@
 }
 
 .gwt-TabBar .gwt-TabBarItem-selected {
-  background: #55679e;
+  background: #0088cc;
   color: white;
   cursor: default;
 }
 
 .gwt-TabPanelBottom {
-  border: 2px solid #55679e;
+  border: 2px solid #0088cc;
   padding: 5px;
 }
 
@@ -26,7 +26,7 @@
 /* The addition of "body" here gives this priority over the default rule in standard.css, which
  * would otherwise have the same specificity.
  */
-body .menubar-hand-cursor .gwt-MenuItem { 
+body .menubar-hand-cursor .gwt-MenuItem {
   cursor: pointer;
 }
 
