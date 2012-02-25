@@ -341,9 +341,12 @@ class kernel(BootableKernel):
             p = extraversion_sub + '"\\1-%s"/' % tag
         else:
             p = extraversion_sub + '"-%s"/' % tag
-        utils.system('mv %s %s.old' % (cfg, cfg))
-        utils.system("sed '%s' < %s.old > %s" % (p, cfg, cfg))
-        self.config(make='oldconfig')
+        if os.path.exists(cfg):
+            utils.system('mv %s %s.old' % (cfg, cfg))
+            utils.system("sed '%s' < %s.old > %s" % (p, cfg, cfg))
+            self.config(make='oldconfig')
+        else:
+            self.config(make='defconfig')
 
 
     @log.record
