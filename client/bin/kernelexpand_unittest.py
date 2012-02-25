@@ -22,6 +22,64 @@ class kernelexpandTest(unittest.TestCase):
         self.assertEqual(sample, correct)
 
 
+    def test_decompose_simple_30(self):
+        correct = [ [ km + 'v3.x/linux-3.0.14.tar.bz2' ] ]
+        sample = decompose_kernel('3.0.14')
+        self.assertEqual(sample, correct)
+
+
+    def test_decompose_simple_3X(self):
+        correct = [ [ km + 'v3.x/linux-3.2.1.tar.bz2' ] ]
+        sample = decompose_kernel('3.2.1')
+        self.assertEqual(sample, correct)
+
+
+    def test_decompose_nominor_30(self):
+        correct = [ [ km + 'v3.x/linux-3.0.tar.bz2' ] ]
+        sample = decompose_kernel('3.0')
+        self.assertEqual(sample, correct)
+
+
+    def test_decompose_nominor_26_fail(self):
+        success = False
+        try:
+            sample = decompose_kernel('2.6')
+            success = True
+        except NameError:
+            pass
+        except Exception, e:
+            self.fail('expected NameError, got something else')
+
+        if success:
+            self.fail('expected NameError, was successful')
+
+
+    def test_decompose_testing_26(self):
+        correct = km + 'v2.6/testing/linux-2.6.35-rc1.tar.bz2'
+        sample = decompose_kernel('2.6.35-rc1')[0][1]
+        self.assertEqual(sample, correct)
+
+
+    def test_decompose_testing_30(self):
+        correct = km + 'v3.x/testing/linux-3.2-rc1.tar.bz2'
+        sample = decompose_kernel('3.2-rc1')[0][0]
+        self.assertEqual(sample, correct)
+
+
+    def test_decompose_testing_30_fail(self):
+        success = False
+        try:
+            sample = decompose_kernel('3.2.1-rc1')
+            success = True
+        except NameError:
+            pass
+        except Exception, e:
+            self.fail('expected NameError, got something else')
+
+        if success:
+            self.fail('expected NameError, was successful')
+
+
     def test_decompose_fail(self):
         success = False
         try:
