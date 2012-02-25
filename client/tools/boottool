@@ -298,6 +298,7 @@ sub get_template {
 sub set_default {
   my $self=shift;
   my $newdefault=shift;
+  my $defaultfound=0;
 
   print ("Setting default.\n") if $self->debug()>1;
 
@@ -324,8 +325,12 @@ sub set_default {
   foreach my $index (0..$#config) {
     if ($config[$index] =~ /^\s*default/i) { 
       $config[$index] = "default=$newdefault	# set by $0\n"; 
+      $defaultfound=1;
       last;
     }
+  }
+  if (!$defaultfound) {
+    unshift(@config, "default=$newdefault    # set by $0\n");
   }
   @{$self->{config}} = @config;
 }
