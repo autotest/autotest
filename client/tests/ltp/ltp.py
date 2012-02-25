@@ -57,10 +57,18 @@ class ltp(test.test):
         cmd = os.path.join(ltpbin_dir, script) + ' ' + args
         result = utils.run(cmd, ignore_status=True)
 
-        # look for the first line in result.stdout containing FAIL and,
-        # if found, raise the whole line as a reason of the test failure.
-        for line in result.stdout.split():
-            if 'FAIL' in line:
+        # Look for the first line in result.stdout containing a token
+        # that runltp would identify as a failure. If found, raise the
+        # whole line as a reason of the test failure.
+        #
+        # See include/test.h and lib/test_res.c:tst_exit of LTP for
+        # more information about the failure tokens.
+        failed_tests = []
+        for line in result.stdout.splitlines():
+            if set(('TFAIL', 'TBROK', 'TWARN')).intersection(line.split()):
                 test_name = line.strip().split(' ')[0]
                 if not test_name in ignore_tests:
-                    raise error.TestFail(line)
+                    failed_tests.append(test_name)
+
+        if failed_tests:
+            raise error.TestFail("LTP tests failed: %s" % failed_tests)
