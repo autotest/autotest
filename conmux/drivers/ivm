@@ -1,0 +1,425 @@
+#!/usr/bin/expect --
+#
+# ivm -- handle consoles and rebooting of VIOS based systems
+#
+# Allow connecting to the console of and rebooting of HMC connected
+# machines.  Machines are identified by the HMC IP address, connected
+# system name, and partition name.
+#
+# usage:
+#  ivm open-term|reboot -h <ivm IP> -p <partition> \
+#	-U <user> -P <password> -V <ivm version>
+#
+# example:
+#  ivm open-term -p FullSystemPartition -U hscroot -P passwd \
+#	-V 2.6 -h 1.2.3.4 
+#  ivm reboot -p FullSystemPartition -U hscroot -P passwd \
+#	-V 2.6 -h 1.2.3.4
+#
+# (C) Copyright IBM Corp. 2012
+# Author: Nishanth Aravamudan <nacc@us.ibm.com>
+# Based off hmc script, which is
+# (C) Copyright IBM Corp. 2004, 2005, 2006
+# Author: Andy Whitcroft <andyw@uk.ibm.com>
+#
+# The Console Multiplexor is released under the GNU Public License V2
+#
+set P "ivm"
+
+# See interactions.
+log_user 0
+#exp_internal 1
+
+proc note {m} {
+	global P
+	puts "$P: $m"
+}
+proc warn {m} {
+	global P
+	puts "$P: WARNING: $m"
+}
+proc winge {m} {
+	global P
+	puts "$P: MACHINE ERROR: $m"
+}
+
+#
+# OPTIONS: options parser.
+#
+proc shift {_list} {
+	upvar $_list list
+
+	set res [lindex $list 0]
+	set list [lreplace $list 0 0]
+
+	return $res
+}
+proc arg {_list arg} {
+	upvar $_list list
+
+	if {[llength $list] < 1} {
+		winge "$arg: required argument missing"
+		exit 1
+	}
+	
+	return [shift list]
+}
+
+set user		{padmin}
+set host		{}
+set lpar		{}
+set mode		{norm}
+set passwd		{}
+set version		{}
+
+set cmd [lindex $argv 0]
+shift argv
+while {[llength $argv] > 0} {
+	switch -- [shift argv] {
+		-h	{ set host [arg argv h]}
+		-l   	{ set lpar [arg argv l]}
+		-p   	{ set lpar [arg argv p]}
+		-b   	{ set mode [arg argv b]}
+		-U	{ set user [arg argv P]}
+		-P	{ set passwd [arg argv P]}
+		-V	{ set version [arg argv P]}
+	}
+}
+
+if {[llength $argv] > 0} {
+	puts stderr "Usage: $P <cmd> -h <ivm> -p <lpar> -b <mode>"
+	exit 1
+}
+if {[string compare $host ""] == 0 ||
+    [string compare $lpar ""] == 0} \
+{
+	winge "ivm (-h), and lpar (-p) required"
+	exit 1
+}
+
+set prompt		{___EOF___IVM___EOF___}
+set iospath		{/usr/ios/lpm/bin}
+
+#log_file -a "$logfile"
+
+set elapsed_time 0
+set timeout 30
+
+# Ensure we have a terminal so we don't get prompted for one.
+if {![info exists env(TERM)]} {
+	set env(TERM) {vt100}
+}
+
+# If we have a password don't use any ssh-keys we may have been offered.
+if {[string compare $passwd ""] == 0} {
+	set command "ssh $env(SSH_OPTIONS) $user@$host"
+} else {
+	set command "ssh $user@$host"
+}
+
+# CONNECT: connect to the remote console.  Set the prompt up so we
+#          know when a command we execute has completed.
+note "Logging into IVM console with command \"$command\" ..."
+eval spawn $command
+send "PS1=$prompt\r"
+expect {
+	-re {[pP]assword:} {
+		if {[string compare $passwd ""] == 0} {
+			winge "$host: requesting password - not hacked"
+			exit 2
+		}
+		send "$passwd\r"
+		after 500
+		send "PS1=$prompt\r"
+		exp_continue
+	}
+	"Connection timed out" {
+		winge "$host: cannot connect to console"
+		exit 2
+	}
+	"Name or service not known" {
+		winge "$host: IVM name invalid"
+		exit 1
+	}
+	"Permission denied" {
+		winge "$host: authentication failure, permission denied"
+		exit 2
+	}
+	timeout {
+		winge "$host: IVM did not prompt us, timed out"
+		exit 2
+	}
+	eof {
+		winge "$host: IVM disconnected without prompting"
+		exit 2
+	}
+
+	"Terminal type?" {
+		send "vt100\r"
+		send "PS1=$prompt\r"
+		exp_continue
+	}
+
+	"PS1=$prompt" {
+		# Ignore us typing the change to the prompt.
+		exp_continue
+	}
+	"$prompt" {
+		# Prompt see, we are in and working, drop out.
+		## note "prompt seen"
+	}
+
+	-re "^\[^\n]*\n" {
+		# We need to absorb any login information, motd etc.
+		## puts "NOISE<$expect_out(buffer)>"
+		exp_continue
+	}
+}
+
+proc runit {cmd _out} {
+	upvar $_out out
+
+	global prompt
+
+	send "$cmd"
+
+	set text ""
+	set line 0
+
+	set timeout 120
+	expect {
+		
+		-re "^\[^\n]*\n" {
+			##note "LINE: $expect_out(buffer)"
+			if { $line > 0 } {
+				append text $expect_out(buffer)
+			}
+			incr line
+			exp_continue
+		}
+
+		-re "$prompt" {
+			#note "prompt seen"
+		}
+
+		timeout {
+			set out "ivm: command timeout"
+			return 255
+		}
+	}
+	set out [string trimright $text]
+
+	send "echo \$?\r"
+	set text ""
+	set line 0
+	set timeout 30
+	expect {
+		-re "^\[^\n]*\n" {
+			##note "LINE: $expect_out(buffer)"
+			if { $line > 0 } {
+				append text $expect_out(buffer)
+			}
+			incr line
+			exp_continue
+		}
+
+		-re "$prompt" {
+			#note "prompt seen"
+		}
+
+		timeout {
+			set out "ivm: command status timeout"
+			return 255
+		}
+	}
+	#note "EXIT: $text"
+
+	return [string trimright $text]
+}
+
+proc extract_names {out} {
+	set res {}
+	foreach sys [split $out] {
+		if {[string compare $sys ""] != 0} {
+			lappend res $sys
+		}
+	}
+
+	return $res
+}
+
+# Find out the current version of the IVM software.
+if {[string compare $version ""] == 0} {
+	runit "ioslevel; echo ''\r" version
+}
+if {[string compare $version ""] == 0} {
+	winge "unable to obtain IVM code version"
+	exit 1
+}
+note "IVM revision v$version"
+
+# Based on the version of the IVM software select payload.
+if {$version < 3} {
+	#
+	# VERSION 2.6/3.0 specific support.
+	#
+	proc lpar_list {} {
+		global iospath
+
+		# Ask for a list of lpars for this system.
+		if {[runit "lssyscfg -r lpar -F name\r" out] != 0} {
+			winge "unable to obtain list of lpars"
+			exit 1
+		}
+
+		return [extract_names $out]
+	}
+	proc state {lpar} {
+		global iospath
+
+		# Ask for the lpar status.
+		if {[runit "lssyscfg -r lpar --filter lpar_names=$lpar -F state\r" out] != 0} {
+			winge "$lpar: failed to get lpar status"
+			exit 1
+		}
+
+		return $out
+	}
+	proc lparid {lpar} {
+		global iospath
+
+		# Ask for the corresponding ID of an LPAR by name
+		if {[ runit "lssyscfg -r lpar --filter lpar_names=$lpar -F lpar_id\r" out] != 0} {
+			winge "$lpar: failed to get lpar ID"
+			exit 1
+		}
+
+		return $out
+	}
+	proc reboot {lpar mode} {
+		global iospath
+
+		# Partitions in Error state are tricky, you _may_ either
+		# have to shut them down and then start them, or you may
+		# just have to start them.  So, if we are in Error start
+		# the partition, if it fails we can just drop through
+		# to the regular stop/start cycle.
+		if {[string compare [state $lpar] "Error"] == 0} {
+			note "starting lpar (from Error)"
+			if {[runit "chsysstate -r lpar -n $lpar -b $mode -o on\r" out] == 0} {
+				note "started"
+				return
+			}
+			note "start failed - attempting shutdown"
+		}
+
+		# See if the lpar is up, if so shut it down.
+		if {[string compare [state $lpar] "Ready"] != 0} {
+			note "shutting down lpar"
+			if {[runit "chsysstate -r lpar -n $lpar -o shutdown\r" out] != 0} {
+				winge "$lpar: power off failed\n$out"
+				exit 2
+			}
+		}
+
+		while {[string compare [state $lpar] "Not Activated"] != 0} {
+			note "waiting for shutdown"
+			sleep 15
+		}
+
+		note "starting lpar"
+		if {[runit "chsysstate -r lpar -n $lpar -b $mode -o on\r" out] != 0} {
+			winge "$lpar: power on failed\n$out"
+			exit 2
+		}
+		note "started"
+	}
+
+}
+
+#
+# VERSION: common
+#
+proc open-term {lpar lparid} {
+	global prompt
+	global iospath
+	global spawn_id
+
+	note "opening console ..."
+	send "ulimit -t 3600; mkvt -id $lparid\r"
+	expect {
+		"NVTS" { }
+		"Open in progress.." { }
+		"$prompt" {
+			winge "$lpar: open console failed"
+			exit 2
+		}
+	}
+
+	note "console open"
+	interact {
+		-i $spawn_id
+		" Connection has closed" {
+			winge "$lpar: console connection closed"
+			exit 2
+		}
+		{Error in communication path to the partition} {
+			winge "$lpar: lost contact with lpar"
+			exit 2
+		}
+		"$prompt" {
+			winge "$lpar: open console failed"
+			exit 2
+		}
+		eof {
+			winge "$lpar: payload lost"
+			exit 2
+		}
+		\000 {
+		}
+			
+	}
+	note "console closed"
+}
+
+proc close-term {lpar lparid} {
+	global iospath
+
+	note "closing console ..."
+	if {[runit "rmvt -id $lparid\r" out] != 0} {
+		winge "$lpar: close console failed"
+		exit 2
+	}
+}
+
+set lpars [lpar_list]
+if {[lsearch -exact $lpars $lpar] < 0} {
+	winge "$system/$lpar: lpar not known; console knows: $lpars"
+	exit 1
+}
+
+# Ask for the lpar status, to see if it exists.
+set lstate [state $lpar]
+set lparid [lparid $lpar]
+note "$lpar (ID $lparid): found ($lstate)"
+
+#
+# COMMANDS: command.
+#
+switch -- $cmd {
+	{open-term}	{
+		close-term $lpar $lparid
+		open-term $lpar $lparid
+	}
+	{close-term}	{
+		close-term $lpar $lparid
+	}
+	{reboot}	{
+		reboot $lpar $mode
+	}
+	default		{
+		winge "$cmd: unknown command"
+	}
+}
+
+exit 0
