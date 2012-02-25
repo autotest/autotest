@@ -654,7 +654,7 @@ class Host(object):
         # find all the vmlinuz images referenced by the bootloader
         vmlinuz_prefix = os.path.join(boot_dir, 'vmlinuz-')
         boot_info = self.bootloader.get_entries()
-        used_kernver = [boot['kernel'][len(vmlinuz_prefix):]
+        used_kernver = [boot['kernel'][len('vmlinuz-'):]
                         for boot in boot_info.itervalues()]
 
         # find all the unused vmlinuz images in /boot
