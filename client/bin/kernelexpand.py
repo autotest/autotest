@@ -1,43 +1,75 @@
 #!/usr/bin/python
-#
-# (C) International Business Machines 2008
-# Author: Andy Whitcroft
-#
-# Inspired by kernelexpand by:
-# (C) Martin J. Bligh 2003
-#
-# Released under the GPL, version 2
+"""
+Program and API used to expand kernel versions, trying to match
+them with the URL of the correspondent package on kernel.org or
+a mirror. Example:
 
-import sys, re, os
+$ ./kernelexpand.py 3.1
+http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.1.tar.bz2
 
-kernel = 'http://www.kernel.org/pub/linux/kernel/'
-mappings = [
+@author: Andy Whitcroft (apw@shadowen.org)
+@copyright: IBM 2008
+@license: GPL v2
+@see: Inspired by kernelexpand by Martin J. Bligh, 2003
+"""
+import sys, re, os, urllib2
+
+
+KERNEL_BASE_URL = 'http://www.kernel.org/pub/linux/kernel/'
+
+MAPPINGS_2X = [
+        [ r'^\d+\.\d+$', '', True, [
+                KERNEL_BASE_URL + 'v%(major)s/linux-%(full)s.tar.bz2'
+        ]],
         [ r'^\d+\.\d+\.\d+$', '', True, [
-                kernel + 'v%(major)s/linux-%(full)s.tar.bz2'
+                KERNEL_BASE_URL + 'v%(major)s/linux-%(full)s.tar.bz2'
         ]],
         [ r'^\d+\.\d+\.\d+\.\d+$', '', True, [
-                kernel + 'v%(major)s/linux-%(full)s.tar.bz2'
+                KERNEL_BASE_URL + 'v%(major)s/linux-%(full)s.tar.bz2'
         ]],
         [ r'-rc\d+$', '%(minor-prev)s', True, [
-                kernel + 'v%(major)s/testing/v%(minor)s/linux-%(full)s.tar.bz2',
-                kernel + 'v%(major)s/testing/linux-%(full)s.tar.bz2',
+                KERNEL_BASE_URL + 'v%(major)s/testing/v%(minor)s/linux-%(full)s.tar.bz2',
+                KERNEL_BASE_URL + 'v%(major)s/testing/linux-%(full)s.tar.bz2',
         ]],
         [ r'-(git|bk)\d+$', '%(base)s', False, [
-                kernel + 'v%(major)s/snapshots/old/patch-%(full)s.bz2',
-                kernel + 'v%(major)s/snapshots/patch-%(full)s.bz2',
+                KERNEL_BASE_URL + 'v%(major)s/snapshots/old/patch-%(full)s.bz2',
+                KERNEL_BASE_URL + 'v%(major)s/snapshots/patch-%(full)s.bz2',
         ]],
         [ r'-mm\d+$', '%(base)s', False, [
-                kernel + 'people/akpm/patches/' +
+                KERNEL_BASE_URL + 'people/akpm/patches/' +
                         '%(major)s/%(base)s/%(full)s/%(full)s.bz2'
         ]],
         [ r'-mjb\d+$', '%(base)s', False, [
-                kernel + 'people/mbligh/%(base)s/patch-%(full)s.bz2'
+                KERNEL_BASE_URL + 'people/mbligh/%(base)s/patch-%(full)s.bz2'
         ]]
 ];
 
-def decompose_kernel_once(kernel):
-    ##print "S<" + kernel + ">"
-    for mapping in mappings:
+MAPPINGS_POST_2X = [
+        [ r'^\d+\.\d+$', '', True, [
+                KERNEL_BASE_URL + 'v%(major)s/linux-%(full)s.tar.bz2'
+        ]],
+        [ r'^\d+\.\d+\.\d+$', '', True, [
+                KERNEL_BASE_URL + 'v%(major)s/linux-%(full)s.tar.bz2'
+        ]],
+        [ r'-rc\d+$', '%(minor-prev)s', True, [
+                KERNEL_BASE_URL + 'v%(major)s/testing/linux-%(full)s.tar.bz2',
+        ]],
+];
+
+
+def decompose_kernel_2x_once(kernel):
+    """
+    Generate the parameters for the patches (2.X version):
+
+    full         => full kernel name
+    base         => all but the matches suffix
+    minor        => 2.n.m
+    major        => 2.n
+    minor-prev   => 2.n.m-1
+
+    @param kernel: String representing a kernel version to be expanded.
+    """
+    for mapping in MAPPINGS_2X:
         (suffix, becomes, is_full, patch_templates) = mapping
 
         params = {}
@@ -46,18 +78,13 @@ def decompose_kernel_once(kernel):
         if not match:
             continue
 
-        # Generate the parameters for the patches:
-        #  full         => full kernel name
-        #  base         => all but the matches suffix
-        #  minor        => 2.n.m
-        #  major        => 2.n
-        #  minor-prev   => 2.n.m-1
         params['full'] = kernel
         params['base'] = match.group(1)
 
         match = re.search(r'^((\d+\.\d+)\.(\d+))', kernel)
         if not match:
-            raise "unable to determine major/minor version"
+            raise NameError("Unable to determine major/minor version for "
+                            "kernel %s" % kernel)
         params['minor'] = match.group(1)
         params['major'] = match.group(2)
         params['minor-prev'] = match.group(2) + '.%d' % (int(match.group(3)) -1)
@@ -73,16 +100,83 @@ def decompose_kernel_once(kernel):
     return (True, kernel, None)
 
 
-def decompose_kernel(kernel):
-    kernel_patches = []
+def decompose_kernel_post_2x_once(kernel):
+    """
+    Generate the parameters for the patches (post 2.X version):
 
+    full         => full kernel name
+    base         => all but the matches suffix
+    minor        => o.n.m
+    major        => o.n
+    minor-prev   => o.n.m-1
+
+    @param kernel: String representing a kernel version to be expanded.
+    """
+    for mapping in MAPPINGS_POST_2X:
+        (suffix, becomes, is_full, patch_templates) = mapping
+
+        params = {}
+
+        match = re.search(r'^(.*)' + suffix, kernel)
+        if not match:
+            continue
+
+        params['full'] = kernel
+        params['base'] = match.group(1)
+        major = ''
+
+        match = re.search(r'^((\d+\.\d+)\.(\d+))', kernel)
+        if not match:
+            match = re.search(r'^(\d+\.\d+)', kernel)
+            if not match:
+                raise NameError("Unable to determine major/minor version for "
+                                "kernel %s" % kernel)
+            else:
+                params['minor'] = 0
+                major = match.group(1)
+                params['minor-prev'] = match.group(1)
+        else:
+            params['minor'] = match.group(1)
+            major = match.group(1)
+            params['minor-prev'] = match.group(2) + '.%d' % (int(match.group(3)) -1)
+
+        # Starting with kernels 3.x, we have folders named '3.x' on kernel.org
+        first_number = major.split('.')[0]
+        params['major'] = '%s.x' % first_number
+
+        # It makes no sense a 3.1.1-rc1 version, for example
+        if re.search(r'-rc\d+$', params['full']) and params['minor'] != 0:
+            continue
+
+        # Build the new kernel and patch list.
+        new_kernel = becomes % params
+        patch_list = []
+        for template in patch_templates:
+            patch_list.append(template % params)
+
+        return (is_full, new_kernel, patch_list)
+
+    return (True, kernel, None)
+
+
+def decompose_kernel(kernel):
+    match = re.search(r'^(\d+\.\d+)', kernel)
+    if not match:
+        raise NameError("Unable to determine major/minor version for "
+                        "kernel %s" % kernel)
+    if int(match.group(1).split('.')[0]) == 2:
+        decompose_func = decompose_kernel_2x_once
+    elif int(match.group(1).split('.')[0]) > 2:
+        decompose_func = decompose_kernel_post_2x_once
+
+    kernel_patches = []
     done = False
     while not done:
-        (done, kernel, patch_list) = decompose_kernel_once(kernel)
+        (done, kernel, patch_list) = decompose_func(kernel)
         if patch_list:
             kernel_patches.insert(0, patch_list)
     if not len(kernel_patches):
-        raise NameError('kernelexpand: %s: unknown kernel' % (kernel))
+        raise NameError('Unknown kernel: %s' % kernel)
 
     return kernel_patches
 
@@ -106,10 +200,11 @@ def mirror_kernel_components(mirrors, components):
 
 
 def url_accessible(url):
-    status = os.system("wget --spider -q '%s'" % (url))
-    #print url + ": status=%d" % (status)
-
-    return status == 0
+    try:
+        urllib2.urlopen(url)
+        return True
+    except urllib2.HTTPError:
+        return False
 
 
 def select_kernel_components(components):
@@ -120,8 +215,6 @@ def select_kernel_components(components):
             if url_accessible(patch):
                 new_patches.append(patch)
                 break
-        if not len(new_patches):
-            new_patches.append(component[-1])
         new_components.append(new_patches)
     return new_components
 
@@ -160,14 +253,6 @@ if __name__ == '__main__':
         usage()
     kernel = args[0]
 
-    #mirrors = [
-    #       [ 'http://www.kernel.org/pub/linux/kernel/v2.4',
-    #         'http://kernel.beaverton.ibm.com/mirror/v2.4' ],
-    #       [ 'http://www.kernel.org/pub/linux/kernel/v2.6',
-    #         'http://kernel.beaverton.ibm.com/mirror/v2.6' ],
-    #       [ 'http://www.kernel.org/pub/linux/kernel/people/akpm/patches',
-    #         'http://kernel.beaverton.ibm.com/mirror/akpm' ],
-    #]
     mirrors = options.mirror
 
     try:
@@ -182,6 +267,7 @@ if __name__ == '__main__':
     if options.validate:
         components = select_kernel_components(components)
 
-    # Dump them out.
+    # Dump them out
     for component in components:
-        print " ".join(component)
+        if component:
+            print " ".join(component)
