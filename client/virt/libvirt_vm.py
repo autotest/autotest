@@ -115,11 +115,13 @@ def virsh_domstate(name, uri = ""):
     """
     return virsh_cmd("domstate %s" % name, uri)
 
+
 def virsh_domid(name, uri = ""):
     """
     Return VM's ID.
     """
     return virsh_cmd("domid %s" % (name), uri)
+
 
 def virsh_dominfo(name, uri = ""):
     """
@@ -220,6 +222,7 @@ def virsh_resume(name, uri = ""):
         logging.error("Resume VM %s failed:\n%s", name, detail)
         return False
 
+
 def virsh_save(name, path, uri = ""):
     """
     Store state of VM into named file.
@@ -237,6 +240,7 @@ def virsh_save(name, path, uri = ""):
     state = virsh_domstate(name, uri)
     if state not in ('shut off',):
         raise virt_vm.VMStatusError("VM not shut off after save")
+
 
 def virsh_restore(name, path, uri = ""):
     """
@@ -257,6 +261,7 @@ def virsh_restore(name, path, uri = ""):
     if state not in ('paused','running'):
         raise virt_vm.VMStatusError("VM not paused after restore, it is %s." %
                 state)
+
 
 def virsh_start(name, uri = ""):
     """
@@ -312,6 +317,7 @@ def virsh_destroy(name, uri = ""):
         logging.error("Destroy VM %s failed:\n%s", name, detail)
         return False
 
+
 def virsh_define(xml_path, uri = ""):
     """
     Return True on successful domain define.
@@ -324,6 +330,7 @@ def virsh_define(xml_path, uri = ""):
     except error.CmdError:
         logging.error("Define %s failed.", xml_path)
         return False
+
 
 def virsh_undefine(name, uri = ""):
     """
@@ -369,6 +376,7 @@ def virsh_domain_exists(name, uri = ""):
         logging.warning("VM %s does not exist:\n%s", name, detail)
         return False
 
+
 def virsh_migrate(options, name, dest_uri, extra, uri = ""):
     """
     Migrate a guest to another host.
@@ -393,6 +401,7 @@ def virsh_migrate(options, name, dest_uri, extra, uri = ""):
         return False
     return True
 
+
 def virsh_attach_device(name, xml_file, extra = "", uri = ""):
     """
     Attach a device to VM.
@@ -405,6 +414,7 @@ def virsh_attach_device(name, xml_file, extra = "", uri = ""):
         logging.error("Attaching device to VM %s failed." % name)
         return False
 
+
 def virsh_detach_device(name, xml_file, extra = "", uri = ""):
     """
     Detach a device from VM.
@@ -416,6 +426,7 @@ def virsh_detach_device(name, xml_file, extra = "", uri = ""):
     except error.CmdError:
         logging.error("Detaching device from VM %s failed." % name)
         return False
+
 
 class VM(virt_vm.BaseVM):
     """
@@ -470,6 +481,7 @@ class VM(virt_vm.BaseVM):
         logging.info("Libvirt VM '%s', driver '%s', uri '%s'",
                      self.name, self.driver_type, self.connect_uri)
 
+
     def verify_alive(self):
         """
         Make sure the VM is alive.
@@ -494,6 +506,7 @@ class VM(virt_vm.BaseVM):
         """
         return virsh_is_dead(self.name, self.connect_uri)
 
+
     def is_persistent(self):
         """
         Return True if VM is persistent.
@@ -512,11 +525,13 @@ class VM(virt_vm.BaseVM):
         else:
             return False
 
+
     def undefine(self):
         """
         Undefine the VM.
         """
         return virsh_undefine(self.name, self.connect_uri)
+
 
     def state(self):
         """
@@ -524,11 +539,6 @@ class VM(virt_vm.BaseVM):
         """
         return virsh_domstate(self.name, self.connect_uri)
 
-    def get_uuid(self):
-        """
-        Return VM's UUID.
-        """
-        return virsh_uuid(self.name, self.connect_uri)
 
     def get_id(self):
         """
@@ -536,11 +546,13 @@ class VM(virt_vm.BaseVM):
         """
         return virsh_domid(self.name, self.connect_uri)
 
+
     def get_xml(self):
         """
         Return VM's xml file.
         """
         return virsh_dumpxml(self.name, self.connect_uri)
+
 
     def clone(self, name=None, params=None, root_dir=None, address_cache=None,
               copy_state=False):
@@ -1168,17 +1180,20 @@ class VM(virt_vm.BaseVM):
             self.connect_uri = dest_uri
         return result
 
+
     def attach_device(self, xml_file, extra = ""):
         """
         Attach a device to VM.
         """
         return virsh_attach_device(self.name, xml_file, extra, self.connect_uri)
 
+
     def detach_device(self, xml_file, extra = ""):
         """
         Detach a device from VM.
         """
         return virsh_detach_device(self.name, xml_file, extra, self.connect_uri)
+
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
         """
@@ -1527,6 +1542,7 @@ class VM(virt_vm.BaseVM):
             logging.error("VM %s failed to shut down", self.name)
             return False
 
+
     def pause(self):
         return virsh_suspend(self.name, self.connect_uri)
 
@@ -1534,11 +1550,13 @@ class VM(virt_vm.BaseVM):
     def resume(self):
         return virsh_resume(self.name, self.connect_uri)
 
+
     def save_to_file(self, path):
         """
         Override BaseVM save_to_file method
         """
         virsh_save(self.name, path, uri=self.connect_uri)
+
 
     def restore_from_file(self, path):
         """
