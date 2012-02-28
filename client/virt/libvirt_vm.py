@@ -695,6 +695,8 @@ class VM(virt_vm.BaseVM):
                 cmd += ",sparse=false"
             if format:
                 cmd += ",format=%s" % format
+            if cache:
+                cmd += ",cache=%s" % cache
             return cmd
 
         def add_floppy(help, filename):
