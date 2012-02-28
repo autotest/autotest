@@ -56,6 +56,36 @@ def libvirtd_start():
         return False
 
 
+def service_libvirtd_control(action):
+    """
+    Libvirtd control by action, if cmd executes successfully,
+    return True, otherwise return False.
+    If the action is status, return True when it's running,
+    otherwise return False.
+    @ param action: start|stop|status|restart|condrestart|
+      reload|force-reload|try-restart
+    """
+    actions = ['start','stop','restart','condrestart','reload',
+               'force-reload','try-restart']
+    if action in actions:
+        try:
+            utils.run("service libvirtd %s" % action)
+            logging.debug("%s libvirtd successfuly", action)
+            return True
+        except error.CmdError, detail:
+            logging.error("Failed to %s libvirtd:\n%s", action, detail)
+            return False
+    elif action == "status":
+        cmd_result = utils.run("service libvirtd status")
+        if re.search("pid", cmd_result.stdout.strip()):
+            logging.info("Libvirtd service is running")
+            return True
+        else:
+            return False
+    else:
+        raise error.TestError("Unknown action: %s" % action)
+
+
 def virsh_cmd(cmd, uri = ""):
     """
     Append cmd to 'virsh' and execute, optionally return full results.
