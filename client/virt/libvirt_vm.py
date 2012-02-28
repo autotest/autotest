@@ -272,7 +272,7 @@ def virsh_start(name, uri = ""):
     @param name: VM name
     """
     if virsh_is_alive(name, uri):
-        return
+        return True
     try:
         virsh_cmd("start %s" % (name), uri)
         return True
