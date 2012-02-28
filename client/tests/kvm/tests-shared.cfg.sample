@@ -5,11 +5,11 @@
 
 # Include the base config files.
 include base.cfg
-include subtests.cfg
 include guest-os.cfg
 include guest-hw.cfg
 include cdkeys.cfg
 include virtio-win.cfg
+include subtests.cfg
 
 # Virtualization type (kvm or libvirt)
 vm_type = kvm
