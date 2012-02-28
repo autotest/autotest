@@ -562,7 +562,7 @@ class test_get_relative_path(unittest.TestCase):
 class test_sh_escape(unittest.TestCase):
     def _test_in_shell(self, text):
         escaped_text = base_utils.sh_escape(text)
-        proc = subprocess.Popen('echo "%s"' % escaped_text, shell=True,
+        proc = subprocess.Popen(['/bin/bash', '-c',  'echo "%s"' % escaped_text],
                                 stdin=open(os.devnull, 'r'),
                                 stdout=subprocess.PIPE,
                                 stderr=open(os.devnull, 'w'))
