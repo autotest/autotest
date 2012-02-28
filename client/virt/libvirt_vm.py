@@ -1,7 +1,7 @@
 """
-Utility classes and functions to handle Virtual Machine creation using qemu.
+Utility classes and functions to handle Virtual Machine creation using libvirt.
 
-@copyright: 2008-2009 Red Hat Inc.
+@copyright: 2011 Red Hat Inc.
 """
 
 import time, os, logging, fcntl, re, commands, shutil, urlparse
