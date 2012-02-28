@@ -196,16 +196,19 @@ class VM(virt_vm.BaseVM):
         # parameter, and should add the requested command line option
         # accordingly.
 
-        def _add_option(option, value):
+        def _add_option(option, value, option_type=None):
             """
             Add option to qemu parameters.
             """
-            fmt=",%s=%s"
-            if value and isinstance(value, bool):
-                if value:
+            fmt = ",%s=%s"
+            if option_type is bool:
+                # Decode value for bool parameter (supports True, False, None)
+                if value in ['yes', 'on', True]:
                     return fmt % (option, "on")
-                else:
+                elif value in ['no', 'off', False]:
                     return fmt % (option, "off")
+            elif value and isinstance(value, bool):
+                return fmt % (option, "on")
             elif value and isinstance(value, str):
                 # "EMPTY_STRING" and "NULL_STRING" is used for testing illegal
                 # foramt of option.
@@ -354,8 +357,8 @@ class VM(virt_vm.BaseVM):
             cmd += _add_option("rerror", rerror)
             cmd += _add_option("werror", werror)
             cmd += _add_option("serial", serial)
-            cmd += _add_option("snapshot", snapshot)
-            cmd += _add_option("boot", boot)
+            cmd += _add_option("snapshot", snapshot, bool)
+            cmd += _add_option("boot", boot, bool)
             cmd += _add_option("id", name)
             return cmd + dev
 
@@ -648,8 +651,8 @@ class VM(virt_vm.BaseVM):
                     image_params.get("drive_werror"),
                     image_params.get("drive_rerror"),
                     image_params.get("drive_serial"),
-                    image_params.get("image_snapshot") == "yes",
-                    image_params.get("image_boot") == "yes",
+                    image_params.get("image_snapshot"),
+                    image_params.get("image_boot"),
                     virt_vm.get_image_blkdebug_filename(image_params,
                                                         self.virt_dir),
                     bus,
