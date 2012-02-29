@@ -42,11 +42,23 @@ variants:
 variants:
     - @up:
         no autotest.npb autotest.tsc
+        cgroup..cpu_cfs_util:
+            smp = 1
+        cgroup..cpu_share:
+            smp = 0
+        cgroup..cpuset_cpus:
+            #smp = 4
     - smp2:
         smp = 2
         used_cpus = 2
         stress_boot: used_cpus = 10
         timedrift.with_load: used_cpus = 100
+        cgroup..cpu_cfs_util:
+            smp = 1
+        cgroup..cpu_share:
+            smp = 0
+        cgroup..cpuset_cpus:
+            #smp = 4
 
 variants:
     - @ide:
