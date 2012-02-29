@@ -488,7 +488,7 @@ variants:
     - migrate_multi_host: install setup image_copy unattended_install.cdrom
         type = migration_multi_host
         migration_test_command = help
-        migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+        migration_bg_command = "cd /tmp; nohup tcpdump -q -i any -t ip host localhost"
         migration_bg_check_command = pgrep tcpdump
         migration_bg_kill_command = pkill tcpdump
         kill_vm_on_error = yes
@@ -692,7 +692,7 @@ variants:
                sub_balloon_test_enlarge = "migration"
                sub_balloon_test_evict = "migration"
                migration_test_command = help
-               migration_bg_command = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+               migration_bg_command = "cd /tmp; nohup tcpdump -q -i any -t ip host localhost"
                migration_bg_check_command = pgrep tcpdump
                migration_bg_kill_command = pkill tcpdump
                kill_vm_on_error = yes
@@ -965,7 +965,7 @@ variants:
     - guest_s4: install setup image_copy unattended_install.cdrom
         type = guest_s4
         check_s4_support_cmd = grep -q disk /sys/power/state
-        test_s4_cmd = "cd /tmp; nohup tcpdump -q -t ip host localhost"
+        test_s4_cmd = "cd /tmp; nohup tcpdump -q -i any -t ip host localhost"
         check_s4_cmd = pgrep tcpdump
         set_s4_cmd = echo disk > /sys/power/state
         kill_test_s4_cmd = pkill tcpdump
