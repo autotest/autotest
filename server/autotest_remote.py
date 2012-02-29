@@ -1,7 +1,7 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-import re, os, sys, traceback, subprocess, time, pickle, glob, tempfile
-import logging, getpass
+import re, os, sys, traceback, time, glob, tempfile
+import logging
 from autotest_lib.server import installable_object, prebuild, utils
 from autotest_lib.client.common_lib import base_job, log, error, autotemp
 from autotest_lib.client.common_lib import global_config, packages
@@ -31,8 +31,8 @@ class BaseAutotest(installable_object.InstallableObject):
 
     def __init__(self, host=None):
         self.host = host
-        self.got = False
         self.installed = False
+        self.got = False
         self.serverdir = utils.get_server_dir()
         super(BaseAutotest, self).__init__()
 
@@ -68,7 +68,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
         for path in Autotest.get_client_autodir_paths(host):
             try:
-                autotest_binary = os.path.join(path, 'bin', 'autotest')
+                autotest_binary = os.path.join(path, 'bin', 'autotest-local')
                 host.run('test -x %s' % utils.sh_escape(autotest_binary))
                 host.run('test -w %s' % utils.sh_escape(path))
                 logging.debug('Found existing autodir at %s', path)
@@ -440,7 +440,7 @@ class _BaseRun(object):
 
 
     def verify_machine(self):
-        binary = os.path.join(self.autodir, 'bin/autotest')
+        binary = os.path.join(self.autodir, 'bin/autotest-local')
         try:
             self.host.run('ls %s > /dev/null 2>&1' % binary)
         except:
@@ -657,7 +657,7 @@ class _BaseRun(object):
 
     def execute_section(self, section, timeout, stderr_redirector,
                         client_disconnect_timeout):
-        logging.info("Executing %s/bin/autotest %s/control phase %d",
+        logging.info("Executing %s/bin/autotest-local %s/control phase %d",
                      self.autodir, self.autodir, section)
 
         if self.background:
