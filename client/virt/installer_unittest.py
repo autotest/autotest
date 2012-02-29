@@ -20,7 +20,7 @@ class installer_test(unittest.TestCase):
 
         self.registry.register(install_mode, CustomVirtInstaller, virt_type)
         klass = self.registry.get_installer(install_mode, virt_type)
-        self.assertIs(klass, CustomVirtInstaller)
+        self.assertTrue(klass is CustomVirtInstaller)
 
 
     def test_register_get_installer_default(self):
@@ -32,12 +32,12 @@ class installer_test(unittest.TestCase):
         self.registry.register(install_mode, BaseVirtInstaller)
         klass = self.registry.get_installer(install_mode,
                                             get_default_virt=True)
-        self.assertIs(klass, BaseVirtInstaller)
+        self.assertTrue(klass is BaseVirtInstaller)
 
         klass = self.registry.get_installer(install_mode,
                                             virt=None,
                                             get_default_virt=True)
-        self.assertIs(klass, BaseVirtInstaller)
+        self.assertTrue(klass is BaseVirtInstaller)
 
 
     def test_make_installer(self):
@@ -57,7 +57,7 @@ vm_type = test"""
         params = config_parser.get_dicts().next()
 
         instance = installer.make_installer("test_install_mode_test", params)
-        self.assertIsInstance(instance, Installer)
+        self.assertTrue(isinstance(instance, Installer))
 
 
 if __name__ == '__main__':
