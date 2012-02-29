@@ -317,7 +317,7 @@ class DroneManager(object):
 
 
     def _add_autoserv_process(self, drone, process_info):
-        assert process_info['comm'] == 'autoserv'
+        assert process_info['comm'] == 'autotest-remote'
         # only root autoserv processes have pgid == pid
         if process_info['pgid'] != process_info['pid']:
             return

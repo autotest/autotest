@@ -48,7 +48,7 @@ system error on the Autotest server.  Full results may not be available.  Sorry.
 
 _db = None
 _shutdown = False
-_autoserv_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'server', 'autoserv')
+_autoserv_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'server', 'autotest-remote')
 _testing_mode = False
 _drone_manager = None
 
