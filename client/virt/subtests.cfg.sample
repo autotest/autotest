@@ -161,6 +161,29 @@ variants:
         restart_vm = yes
         pxe_timeout = 60
 
+    - virsh_uri: install setup image_copy unattended_install.cdrom
+        type = virsh_uri
+        vms = ''
+        variants:
+            - no_option:
+                options = ""
+                status_error = "no"
+                libvirtd = "on"
+                #premise: connect with none-password
+                variants:
+                    - connect_to_local:
+                        target_uri = "qemu+ssh:///system"
+                    - connect_to_remote:
+                        target_uri = "qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system"
+            - unexpect_option:
+                options = " xyz"
+                status_error = "yes"
+                libvirtd = "on"
+            - with_libvirtd_stop:
+                options = ""
+                status_error = "yes"
+                libvirtd = "off"
+
     - virsh_version: install setup image_copy unattended_install.cdrom
         type = virsh_version
         vms = ''
