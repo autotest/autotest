@@ -82,7 +82,10 @@ def check_file(file_path):
         if fnmatch.fnmatch(os.path.abspath(file_path),
                            '*' + blacklist_pattern):
             return
-    pylint.lint.Run(pylint_base_opts + [file_path])
+    if pylint_version >= 0.21:
+        pylint.lint.Run(pylint_base_opts + [file_path], exit=False)
+    else:
+        pylint.lint.Run(pylint_base_opts + [file_path])
 
 
 def visit(arg, dirname, filenames):
