@@ -142,7 +142,7 @@ class FollowFilesTestCase(unittest.TestCase):
         self.assertEquals(flags, 0)
         monitors_util.nonblocking(po.stdout)
         flags = fcntl.fcntl(po.stdout, fcntl.F_GETFL)
-        self.assertEquals(flags, 2048)
+        self.assertEquals(flags, os.O_NONBLOCK)
         po.wait()
 
 
