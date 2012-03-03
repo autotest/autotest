@@ -14,9 +14,9 @@ def run_virsh_uri(test, params, env):
 
     def virsh_uri(cmd):
         cmd_result = utils.run(cmd, ignore_status=True)
-        logging.debug("Output: %s", cmd_result.stdout.strip())
-        logging.debug("Error: %s", cmd_result.stderr.strip())
-        logging.debug("Status: %d", cmd_result.exit_status)
+        logging.info("Output: %s", cmd_result.stdout.strip())
+        logging.error("Error: %s", cmd_result.stderr.strip())
+        logging.info("Status: %d", cmd_result.exit_status)
         return cmd_result.exit_status, cmd_result.stdout.strip()
 
     # Prepare libvirtd service
@@ -31,10 +31,12 @@ def run_virsh_uri(test, params, env):
     check_target_uri = params.has_key("target_uri")
     if check_target_uri:
         target_uri = params.get("target_uri")
+        logging.info("The target_uri: %s", target_uri)
         cmd = "virsh -c %s uri" % target_uri
     else:
         cmd = "virsh uri %s" % option
 
+    logging.info("The command: %s", cmd)
     status, uri_test = virsh_uri(cmd)
 
     # Recover libvirtd service start
@@ -45,11 +47,13 @@ def run_virsh_uri(test, params, env):
     status_error = params.get("status_error")
     if status_error == "yes":
         if status == 0:
-            raise error.TestFail("Command 'virsh uri %s' succeeded "
-                                 "(incorrect command)" % option)
+            raise error.TestFail("Command: %s  succeeded "
+                                 "(incorrect command)" % cmd)
+        else:
+            logging.info("command: %s is a expected error", cmd)
     elif status_error == "no":
         if cmp(target_uri, uri_test) != 0:
             raise error.TestFail("Virsh cmd gives wrong uri.")
         if status != 0:
-            raise error.TestFail("Command 'virsh uri %s' failed "
-                                 "(correct command)" % option)
+            raise error.TestFail("Command: %s  failed "
+                                 "(correct command)" % cmd)
