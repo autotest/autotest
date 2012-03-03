@@ -688,6 +688,35 @@ variants:
                             md5sum_cd1 = 1a3c5959e34612e91f4a1840b997b287
                             md5sum_1m_cd1 = c65d0a1b4d9a32da42aa5142c6e9a5b3
 
+
+                    - 5.8.i386:
+                        no setup
+                        image_name = rhel58-32
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel58-32/ks.vfd
+                            cdrom_unattended = images/rhel58-32/ks.iso
+                            kernel = images/rhel58-32/vmlinuz
+                            initrd = images/rhel58-32/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.8-i386-DVD.iso
+                            md5sum_cd1 = 514e6ac28590e521402329da23220cc4
+                            md5sum_1m_cd1 = fd680d61aaa7f257be81fa345a56216e
+
+                    - 5.8.x86_64:
+                        no setup
+                        image_name = rhel58-64
+                        unattended_install:
+                            unattended_file = unattended/RHEL-5-series.ks
+                            #floppy = images/rhel58-64/ks.vfd
+                            cdrom_unattended = images/rhel58-64/ks.iso
+                            kernel = images/rhel58-64/vmlinuz
+                            initrd = images/rhel58-64/initrd.img
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/RHEL-5.8-x86_64-DVD.iso
+                            md5sum_cd1 = e55f3a142ce6d36e8061be45f72b3c17
+                            md5sum_1m_cd1 = a09aa0e6b9ab9bb1eb019e6838b19ad3
+
                     - 6.0.i386:
                         no setup
                         nic_hotplug:
