@@ -176,7 +176,7 @@ variants:
                     - connect_to_remote:
                         target_uri = "qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system"
             - unexpect_option:
-                options = " xyz"
+                options = "xyz"
                 status_error = "yes"
                 libvirtd = "on"
             - with_libvirtd_stop:
