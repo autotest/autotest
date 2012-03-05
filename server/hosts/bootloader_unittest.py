@@ -49,9 +49,9 @@ class test_bootloader(unittest.TestCase):
     def test_installs_to_tmpdir(self):
         TMPDIR = "/unittest/tmp"
         SERVERDIR = "/unittest/server"
-        BOOTTOOL_SRC = os.path.join(SERVERDIR, bootloader.BOOTTOOL_SRC)
+        BOOTTOOL_SRC = os.path.join(SERVERDIR, bootloader.BOOTTOOL_CLI_PATH)
         BOOTTOOL_SRC = os.path.abspath(BOOTTOOL_SRC)
-        BOOTTOOL_DST = os.path.join(TMPDIR, "boottool")
+        BOOTTOOL_DST = os.path.join(TMPDIR, "boottool.py")
         # set up the recording
         host = self.create_mock_host()
         host.get_tmp_dir.expect_call().and_return(TMPDIR)
