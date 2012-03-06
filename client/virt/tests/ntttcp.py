@@ -157,7 +157,7 @@ def run_ntttcp(test, params, env):
     try:
         bg = virt_utils.Thread(receiver, ())
         bg.start()
-        if bg.is_alive():
+        if bg.isAlive():
             sender()
             bg.join(suppress_exception=True)
         else:

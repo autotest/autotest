@@ -1359,7 +1359,7 @@ def run_virtio_console(test, params, env):
                              tmp[:-2])
                 i+=1
                 time.sleep(2)
-            if not threads[0].is_alive():
+            if not threads[0].isAlive():
                 if exit_event.isSet():
                     raise error.TestFail("Exit event emited, check the log for"
                                          "send/recv thread failure.")
@@ -1367,7 +1367,7 @@ def run_virtio_console(test, params, env):
                     raise error.TestFail("Send thread died unexpectedly in "
                                          "migration %d", (j+1))
             for i in range(0, len(recv_pts)):
-                if not threads[i+1].is_alive():
+                if not threads[i+1].isAlive():
                     raise error.TestFail("Recv thread %d died unexpectedly in "
                                          "migration %d", i, (j+1))
                 if verified[i] == threads[i+1].idx:
@@ -1382,7 +1382,7 @@ def run_virtio_console(test, params, env):
         exit_event.set()
         # Send thread might fail to exit when the guest stucks
         i = 30
-        while threads[0].is_alive():
+        while threads[0].isAlive():
             if i <= 0:
                 raise error.TestFail("Send thread did not finish")
             time.sleep(1)
