@@ -6,8 +6,8 @@ TEST_TYPE = "client"
 TIME = 'MEDIUM'
 EXPERIMENTAL = "True"
 DOC='''
-fio is an I/O tool meant to be used both for benchmark and stress/hardware 
-verification. This test runs the fio tool. Details can be found at : 
-http://freshmeat.net/projects/fio/
+fio is an I/O tool meant to be used both for benchmark and stress/hardware
+verification. This test runs the fio tool. Details can be found at :
+http://freecode.com/projects/fio
 '''
 job.run_test('fio')

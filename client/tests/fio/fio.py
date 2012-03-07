@@ -3,14 +3,23 @@ from autotest_lib.client.bin import test, utils
 
 
 class fio(test.test):
-    version = 2
+    """
+    fio is an I/O tool mean for benchmark and stress/hardware verification.
+
+    @see: http://freecode.com/projects/fio
+    """
+    version = 3
 
     def initialize(self):
         self.job.require_gcc()
 
 
-    # http://brick.kernel.dk/snaps/fio-1.16.5.tar.bz2
-    def setup(self, tarball = 'fio-1.16.5.tar.bz2'):
+    def setup(self, tarball = 'fio-2.0.5.tar.bz2'):
+        """
+        Compiles and installs fio.
+
+        @see: http://brick.kernel.dk/snaps/fio-2.0.5.tar.bz2
+        """
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
 
