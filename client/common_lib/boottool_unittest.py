@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest
+import unittest, os, sys
 try:
     import autotest.common as common
 except ImportError:
@@ -8,53 +8,78 @@ except ImportError:
 
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.common_lib import boottool
+from autotest_lib.client.tools import boottool as t_boottool
 
-
-class test_boottool(unittest.TestCase):
+class TestEfiSys(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()
-        # creates a bootloader with _run_boottool mocked out
-        self.bt_mock = boottool.boottool()
-        self.god.stub_function(self.bt_mock, '_run_boottool')
 
 
     def tearDown(self):
         self.god.unstub_all()
 
 
-    def expect_run_boottool(self, args, result=''):
-        self.bt_mock._run_boottool.expect_call(*args).and_return(result)
+    def test_efi_path_not_found(self):
+        self.god.stub_function(os.path, 'exists')
+        self.god.stub_function(sys, 'exit')
+        os.path.exists.expect_call('/sys/firmware/efi/vars').and_return(False)
+        sys.exit.expect_call(-1)
 
-
-    def test_get_type(self):
-        # set up the recording
-        self.expect_run_boottool(('--bootloader-probe',), 'lilo\n')
-        # run the test
-        self.assertEquals(self.bt_mock.get_type(), 'lilo')
+        # Run
+        self.efi_tool = t_boottool.EfiToolSys()
         self.god.check_playback()
 
 
-    def test_get_arch(self):
+class TestBoottool(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god()
+        # creates a bootloader with _run_boottool mocked out
+        self.bt_mock = boottool.boottool()
+        self.god.stub_function(self.bt_mock, '_run_grubby_get_return')
+        self.god.stub_function(self.bt_mock, '_run_grubby_get_output')
+        self.god.stub_function(self.bt_mock, '_run_get_output_err')
+        self.god.stub_function(self.bt_mock, '_get_entry_selection')
+        self.god.stub_function(self.bt_mock, 'get_info')
+        self.god.stub_function(self.bt_mock, 'get_info_lines')
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def test_get_bootloader(self):
         # set up the recording
-        self.expect_run_boottool(('--arch-probe',), 'x86_64\n')
+        args = [self.bt_mock.path, '--bootloader-probe']
+        self.bt_mock._run_get_output_err.expect_call(args).and_return('lilo')
+        # run the test
+        self.assertEquals(self.bt_mock.get_bootloader(), 'lilo')
+        self.god.check_playback()
+
+
+    def test_get_architecture(self):
+        self.god.stub_function(os, 'uname')
+        # set up the recording
+        os.uname.expect_call().and_return(('Linux', 'foobar.local',
+                                           '3.2.7-1.fc16.x86_64',
+                                           '#1 SMP Tue Feb 21 01:40:47 UTC 2012',
+                                           'x86_64'))
         # run the test
         self.assertEquals(self.bt_mock.get_architecture(), 'x86_64')
         self.god.check_playback()
 
 
-    def test_get_default(self):
+    def test_get_default_index(self):
         # set up the recording
-        self.expect_run_boottool(('--default',), '0\n')
+        self.bt_mock._run_grubby_get_output.expect_call(['--default-index']).and_return(0)
         # run the test
-        self.assertEquals(self.bt_mock.get_default(), 0)
+        self.assertEquals(self.bt_mock.get_default_index(), 0)
         self.god.check_playback()
 
 
     def test_get_titles(self):
         # set up the recording
-        self.expect_run_boottool(
-                ('--info=all',), '\nindex\t: 0\ntitle\t: title #1\n'
-                '\nindex\t: 1\ntitle\t: title #2\n')
+        output = ['index=0', 'title=title #1', 'index=1','title=title #2']
+        self.bt_mock.get_info_lines.expect_call().and_return(output)
         # run the test
         self.assertEquals(self.bt_mock.get_titles(),
                           ['title #1', 'title #2'])
@@ -62,252 +87,284 @@ class test_boottool(unittest.TestCase):
 
 
     def test_get_entry(self):
-        RESULT = (
-        'index\t: 5\n'
-        'args\t: ro single\n'
-        'boot\t: (hd0,0)\n'
-        'initrd\t: /boot/initrd.img-2.6.15-23-386\n'
-        'kernel\t: /boot/vmlinuz-2.6.15-23-386\n'
-        'root\t: UUID=07D7-0714\n'
-        'savedefault\t:   \n'
-        'title\t: Distro, kernel 2.6.15-23-386\n'
-        )
+        index = 5
+        RESULT = ("""
+index=%s
+title="Fedora 16, kernel 3.2.6-3"
+kernel=/vmlinuz-3.2.6-3.fc16.x86_64
+args="ro quiet rhgb SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us-acentos"
+root=/dev/mapper/vg_foo-lv_root
+initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
+""" % index)
         # set up the recording
-        self.expect_run_boottool(('--info=5',), RESULT)
-        # run the test
-        info = self.bt_mock.get_entry(5)
-        self.god.check_playback()
-        expected_info = {'index': 5, 'args': 'ro single',
-                         'boot': '(hd0,0)',
-                         'initrd': '/boot/initrd.img-2.6.15-23-386',
-                         'kernel': '/boot/vmlinuz-2.6.15-23-386',
-                         'root': 'UUID=07D7-0714', 'savedefault': '',
-                         'title': 'Distro, kernel 2.6.15-23-386'}
-        self.assertEquals(expected_info, info)
+        self.bt_mock.get_info.expect_call(index).and_return(RESULT)
+        actual_info = self.bt_mock.get_entry(index)
+        expected_info = {'index': index,
+                         'args': '"ro quiet rhgb SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us-acentos"',
+                         'initrd': '/boot/initramfs-3.2.6-3.fc16.x86_64.img',
+                         'kernel': '/vmlinuz-3.2.6-3.fc16.x86_64',
+                         'root': '/dev/mapper/vg_foo-lv_root',
+                         'title': '"Fedora 16, kernel 3.2.6-3"'}
+        self.assertEquals(expected_info, actual_info)
 
 
     def test_get_entry_missing_result(self):
+        index = 4
+        RESULT = """
+"""
         # set up the recording
-        self.expect_run_boottool(('--info=4',), '')
-        # run the test
-        info = self.bt_mock.get_entry(4)
-        self.god.check_playback()
-        self.assertEquals({}, info)
+        self.bt_mock.get_info.expect_call(index).and_return(RESULT)
+        actual_info = self.bt_mock.get_entry(index)
+        expected_info = {}
+        self.assertEquals(expected_info, actual_info)
 
 
     def test_get_entries(self):
-        RESULT = (
-        'index\t: 5\n'
-        'args\t: ro single\n'
-        'boot\t: (hd0,0)\n'
-        'initrd\t: /boot/initrd.img-2.6.15-23-386\n'
-        'kernel\t: /boot/vmlinuz-2.6.15-23-386\n'
-        'root\t: UUID=07D7-0714\n'
-        'savedefault\t:   \n'
-        'title\t: Distro, kernel 2.6.15-23-386\n'
-        '\n'
-        'index\t: 7\n'
-        'args\t: ro single\n'
-        'boot\t: (hd0,0)\n'
-        'initrd\t: /boot/initrd.img-2.6.15-23-686\n'
-        'kernel\t: /boot/vmlinuz-2.6.15-23-686\n'
-        'root\t: UUID=07D7-0714\n'
-        'savedefault\t:   \n'
-        'title\t: Distro, kernel 2.6.15-23-686\n'
-        )
-        # set up the recording
-        self.expect_run_boottool(('--info=all',), RESULT)
+        self.god.stub_function(self.bt_mock, '_get_entry_indexes')
+        entry_0 = '''
+index=0
+kernel=/vmlinuz-3.2.9-1.fc16.x86_64
+args="ro quiet rhgb SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us-acentos"
+root=/dev/mapper/vg_freedom-lv_root
+initrd=/boot/initramfs-3.2.9-1.fc16.x86_64.img
+'''
+        entry_1 = '''
+index=1
+kernel=/vmlinuz-3.2.7-1.fc16.x86_64
+args="ro quiet rhgb SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us-acentos"
+root=/dev/mapper/vg_freedom-lv_root
+initrd=/boot/initramfs-3.2.7-1.fc16.x86_64.img
+'''
+        entry_2 = '''
+index=2
+kernel=/vmlinuz-3.2.6-3.fc16.x86_64
+args="ro quiet rhgb SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us-acentos"
+root=/dev/mapper/vg_freedom-lv_root
+initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
+'''
+        RESULT = entry_0 + entry_1 + entry_2
+        entry_indexes = [0, 1, 2]
         # run the test
-        info = self.bt_mock.get_entries()
+        self.bt_mock.get_info_lines.expect_call().and_return(RESULT)
+        self.bt_mock._get_entry_indexes.expect_call(RESULT).and_return(entry_indexes)
+        self.bt_mock.get_info.expect_call(0).and_return(entry_0)
+        self.bt_mock.get_info.expect_call(1).and_return(entry_1)
+        self.bt_mock.get_info.expect_call(2).and_return(entry_2)
+
+        actual_info = self.bt_mock.get_entries()
+        expected_info = {0: {'args': '"ro quiet rhgb SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us-acentos"',
+                             'index': 0,
+                             'initrd': '/boot/initramfs-3.2.9-1.fc16.x86_64.img',
+                             'kernel': '/vmlinuz-3.2.9-1.fc16.x86_64',
+                             'root': '/dev/mapper/vg_freedom-lv_root'},
+                         1: {'args': '"ro quiet rhgb SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us-acentos"',
+                             'index': 1,
+                             'initrd': '/boot/initramfs-3.2.7-1.fc16.x86_64.img',
+                             'kernel': '/vmlinuz-3.2.7-1.fc16.x86_64',
+                             'root': '/dev/mapper/vg_freedom-lv_root'},
+                         2: {'args': '"ro quiet rhgb SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us-acentos"',
+                             'index': 2,
+                             'initrd': '/boot/initramfs-3.2.6-3.fc16.x86_64.img',
+                             'kernel': '/vmlinuz-3.2.6-3.fc16.x86_64',
+                             'root': '/dev/mapper/vg_freedom-lv_root'}}
+
+        self.assertEquals(expected_info, actual_info)
+
         self.god.check_playback()
-        expected_info = {
-            5: {'index': 5, 'args': 'ro single', 'boot': '(hd0,0)',
-                'initrd': '/boot/initrd.img-2.6.15-23-386',
-                'kernel': '/boot/vmlinuz-2.6.15-23-386',
-                'root': 'UUID=07D7-0714', 'savedefault': '',
-                'title': 'Distro, kernel 2.6.15-23-386'},
-            7: {'index': 7, 'args': 'ro single', 'boot': '(hd0,0)',
-                'initrd': '/boot/initrd.img-2.6.15-23-686',
-                'kernel': '/boot/vmlinuz-2.6.15-23-686',
-                'root': 'UUID=07D7-0714', 'savedefault': '',
-                'title': 'Distro, kernel 2.6.15-23-686'}}
-        self.assertEquals(expected_info, info)
 
 
     def test_set_default(self):
-        # set up the recording
-        self.expect_run_boottool(('--set-default=41',))
-        # run the test
-        self.bt_mock.set_default(41)
-        self.god.check_playback()
+        pass
 
 
     def test_add_args(self):
         # set up the recording
-        self.expect_run_boottool(
-            ('--update-kernel=10', '--args=some kernel args'))
+        kernel = 10
+        args = "some kernel args"
+        self.bt_mock._get_entry_selection.expect_call(kernel).and_return(kernel)
+        command_arguments = ['--update-kernel=%s' % kernel,
+                             '--args=%s' % args]
+        self.bt_mock._run_grubby_get_return.expect_call(command_arguments)
         # run the test
-        self.bt_mock.add_args(10, 'some kernel args')
+        self.bt_mock.add_args(kernel, args)
         self.god.check_playback()
 
 
     def test_remove_args(self):
         # set up the recording
-        self.expect_run_boottool(
-            ('--update-kernel=12', '--remove-args=some kernel args'))
+        kernel = 12
+        args = "some kernel args"
+        self.bt_mock._get_entry_selection.expect_call(kernel).and_return(kernel)
+        command_arguments = ['--update-kernel=%s' % kernel,
+                             '--remove-args=%s' % args]
+        self.bt_mock._run_grubby_get_return.expect_call(command_arguments)
         # run the test
-        self.bt_mock.remove_args(12, 'some kernel args')
+        self.bt_mock.remove_args(kernel, args)
         self.god.check_playback()
 
 
     def setup_add_kernel(self, oldtitle, path, title, root=None, args=None,
-                         initrd=None, default=False, position='end',
-                         xen_hypervisor=None):
+                         initrd=None, default=False, position='end'):
         self.bt_mock.get_titles = self.god.create_mock_function('get_titles')
+        self.bt_mock.remove_kernel = self.god.create_mock_function('remove_kernel')
+
         # set up the recording
         self.bt_mock.get_titles.expect_call().and_return([oldtitle])
         if oldtitle == title:
-            self.expect_run_boottool(('--remove-kernel=%s' % oldtitle,))
+            self.bt_mock.remove_kernel.expect_call(title)
 
         parameters = ['--add-kernel=%s' % path, '--title=%s' % title]
-        if root:
-            parameters.append('--root=%s' % root)
+        #FIXME: grubby takes no --root parameter
+        #if root:
+        #    parameters.append('--root=%s' % root)
         if args:
-            parameters.append('--args=%s' % args)
+            parameters.append('--args=%s' %
+                              self.bt_mock._remove_duplicate_cmdline_args(args))
         if initrd:
             parameters.append('--initrd=%s' % initrd)
         if default:
             parameters.append('--make-default')
-        if position:
-            parameters.append('--position=%s' % position)
-        if self.bt_mock.get_xen_mode():
-            parameters.append('--xen')
-            if xen_hypervisor:
-                parameters.append('--xenhyper=%s' % xen_hypervisor)
-        self.expect_run_boottool(parameters)
+
+        # There's currently an issue with grubby '--add-to-bottom' feature.
+        # Because it uses the tail instead of the head of the list to add
+        # a new entry, when copying a default entry as a template
+        # (--copy-default), it usually copies the "recover" entries that
+        # usually go along a regular boot entry, specially on grub2.
+        #
+        # So, for now, until I fix grubby, we'll *not* respect the position
+        # (--position=end) command line option.
+
+        #if position:
+        #    parameters.append('--position=%s' % position)
+        parameters.append("--copy-default")
+        self.bt_mock._run_grubby_get_return.expect_call(parameters)
 
 
     def test_add_kernel_basic(self):
         # set up the recording
-        self.setup_add_kernel(
-                'notmylabel', '/unittest/kernels/vmlinuz', 'mylabel')
+        self.setup_add_kernel(oldtitle='notmylabel',
+                              path='/unittest/kernels/vmlinuz', title='mylabel')
         # run the test
-        self.bt_mock.add_kernel('/unittest/kernels/vmlinuz',
-                                'mylabel')
+        self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
+                                title='mylabel')
         self.god.check_playback()
 
 
     def test_add_kernel_removes_old(self):
         # set up the recording
-        self.setup_add_kernel(
-                'mylabel', '/unittest/kernels/vmlinuz', 'mylabel')
+        self.setup_add_kernel(oldtitle='mylabel',
+                              path='/unittest/kernels/vmlinuz', title='mylabel')
         # run the test
-        self.bt_mock.add_kernel('/unittest/kernels/vmlinuz', 'mylabel')
+        self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
+                                title='mylabel')
         self.god.check_playback()
 
 
     def test_add_kernel_adds_root(self):
         # set up the recording
-        self.setup_add_kernel(
-                'notmylabel', '/unittest/kernels/vmlinuz', 'mylabel',
-                root='/unittest/root')
+        self.setup_add_kernel(oldtitle='notmylabel',
+                              path='/unittest/kernels/vmlinuz', title='mylabel',
+                              root='/unittest/root')
         # run the test
-        self.bt_mock.add_kernel('/unittest/kernels/vmlinuz',
-                                'mylabel', root='/unittest/root')
+        self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
+                                title='mylabel', root='/unittest/root')
         self.god.check_playback()
 
 
     def test_add_kernel_adds_args(self):
         # set up the recording
-        self.setup_add_kernel(
-                'notmylabel', '/unittest/kernels/vmlinuz', 'mylabel',
-                args='my kernel args')
+        self.setup_add_kernel(oldtitle='notmylabel',
+                              path='/unittest/kernels/vmlinuz', title='mylabel',
+                              args='my kernel args')
         # run the test
-        self.bt_mock.add_kernel('/unittest/kernels/vmlinuz',
-                                'mylabel', args='my kernel args')
+        self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
+                                title='mylabel', args='my kernel args')
         self.god.check_playback()
 
 
     def test_add_kernel_args_remove_duplicates(self):
         # set up the recording
-        self.setup_add_kernel(
-                'notmylabel', '/unittest/kernels/vmlinuz', 'mylabel',
-                args='param2 param1')
+        self.setup_add_kernel(oldtitle='notmylabel',
+                              path='/unittest/kernels/vmlinuz', title='mylabel',
+                              args='param2 param1')
         # run the test
-        self.bt_mock.add_kernel('/unittest/kernels/vmlinuz',
-                                'mylabel', args='param1 param2 param1')
+        self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
+                                title='mylabel', args='param1 param2 param1')
         self.god.check_playback()
 
 
     def test_add_kernel_adds_initrd(self):
         # set up the recording
-        self.setup_add_kernel(
-                'notmylabel', '/unittest/kernels/vmlinuz', 'mylabel',
-                initrd='/unittest/initrd')
+        self.setup_add_kernel(oldtitle='notmylabel',
+                              path='/unittest/kernels/vmlinuz', title='mylabel',
+                              initrd='/unittest/initrd')
         # run the test
-        self.bt_mock.add_kernel('/unittest/kernels/vmlinuz',
-                                'mylabel', initrd='/unittest/initrd')
+        self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
+                                title='mylabel', initrd='/unittest/initrd')
         self.god.check_playback()
 
 
     def test_add_kernel_enables_make_default(self):
         # set up the recording
-        self.setup_add_kernel(
-                'notmylabel', '/unittest/kernels/vmlinuz', 'mylabel',
-                default=True)
+        self.setup_add_kernel(oldtitle='notmylabel',
+                              path='/unittest/kernels/vmlinuz', title='mylabel',
+                              default=True)
         # run the test
-        self.bt_mock.add_kernel('/unittest/kernels/vmlinuz',
-                                'mylabel', default=True)
+        self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
+                                title='mylabel', default=True)
         self.god.check_playback()
 
 
     def test_add_kernel_position(self):
         # set up the recording
-        self.setup_add_kernel(
-                'notmylabel', '/unittest/kernels/vmlinuz', 'mylabel',
-                position=5)
+        self.setup_add_kernel(oldtitle='notmylabel',
+                              path='/unittest/kernels/vmlinuz', title='mylabel',
+                              position=5)
         # run the test
-        self.bt_mock.add_kernel('/unittest/kernels/vmlinuz',
-                                'mylabel', position=5)
+        self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
+                                title='mylabel', position=5)
         self.god.check_playback()
 
 
     def test_remove_kernel(self):
+        index = 14
         # set up the recording
-        self.expect_run_boottool(('--remove-kernel=14',))
+        self.bt_mock._get_entry_selection.expect_call(index).and_return(index)
+        command_arguments = ['--remove-kernel=%s' % index]
+        self.bt_mock._run_grubby_get_return.expect_call(command_arguments)
         # run the test
-        self.bt_mock.remove_kernel(14)
+        self.bt_mock.remove_kernel(index)
         self.god.check_playback()
 
 
     def test_boot_once(self):
+        self.god.stub_function(self.bt_mock, 'get_bootloader')
+        self.god.stub_function(self.bt_mock, '_index_for_title')
+        self.god.stub_function(self.bt_mock, 'get_default_title')
         # set up the recording
-        self.expect_run_boottool(('--boot-once', '--title=autotest'))
-        # run the test
-        self.bt_mock.boot_once('autotest')
-        self.god.check_playback()
-
-
-    def test_enable_xen(self):
-        self.bt_mock.enable_xen_mode()
-        self.assertTrue(self.bt_mock.get_xen_mode())
-
-
-    def test_disable_xen(self):
-        self.bt_mock.disable_xen_mode()
-        self.assertFalse(self.bt_mock.get_xen_mode())
-
-
-    def test_add_kernel_xen(self):
-        # set up the recording
-        self.bt_mock.enable_xen_mode()
-        self.setup_add_kernel(
-                'notmylabel', '/unittest/kernels/vmlinuz', 'mylabel',
-                xen_hypervisor='xen_image')
-        # run the test
-        self.bt_mock.add_kernel('/unittest/kernels/vmlinuz',
-                                'mylabel', xen_hypervisor='xen_image')
-        self.god.check_playback()
+        title = 'autotest'
+        entry_index = 1
+        default_title = 'linux'
+        default_index = 0
+        info_lines = ['index=%s' % default_index, 'title=%s' % default_title,
+                      'index=%s' % entry_index, 'title=%s' % title]
+        bootloaders = ('grub2', 'grub', 'yaboot', 'elilo')
+        for bootloader in bootloaders:
+            self.god.stub_function(self.bt_mock, 'boot_once_%s' % bootloader)
+            self.bt_mock.get_info_lines.expect_call().and_return(info_lines)
+            self.bt_mock.get_default_title.expect_call().and_return(default_title)
+            self.bt_mock.get_bootloader.expect_call().and_return(bootloader)
+            if bootloader in ('grub', 'grub2', 'elilo'):
+                self.bt_mock._index_for_title.expect_call(title).and_return(entry_index)
+            bootloader_func = getattr(self.bt_mock, 'boot_once_%s' % bootloader)
+            if bootloader in ('yaboot'):
+                arg = title
+            else:
+                arg = entry_index
+            bootloader_func.expect_call(arg)
+            # run the test
+            self.bt_mock.boot_once('autotest')
+            self.god.check_playback()
 
 
 if __name__ == '__main__':
