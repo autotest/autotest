@@ -121,17 +121,29 @@ def run_netstress_kill_guest(test, params, env):
                 os.kill(pid, signal.SIGCONT)
 
 
+    def send_cmd_safe(session_serial, cmd):
+        logging.debug("Sending command: %s", cmd)
+        session_serial.sendline(cmd)
+        got_prompt = False
+        while not got_prompt:
+            time.sleep(0.2)
+            session_serial.sendline()
+            try:
+                session_serial.read_up_to_prompt()
+                got_prompt = True
+            except aexpect.ExpectTimeoutError:
+                pass
+
+
     def netdriver_kill_problem(session_serial):
         modules = get_ethernet_driver(session_serial)
         logging.debug(modules)
         for _ in range(50):
             for module in modules:
-                session_serial.cmd("rmmod %s" % (module))
-                time.sleep(0.2)
+                send_cmd_safe(session_serial, "rmmod %s" % module)
             for module in modules:
-                logging.debug("Sending command: modprobe %s", module)
-                session_serial.sendline("modprobe %s\n" % (module))
-                time.sleep(0.2)
+                send_cmd_safe(session_serial, "modprobe %s" % module)
+
         kill_and_check(vm)
 
 
