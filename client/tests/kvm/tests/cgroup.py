@@ -593,6 +593,11 @@ def run_cgroup(test, params, env):
         cgroup.initialize(modules)
         host_cpus = open('/proc/cpuinfo').read().count('model name')
 
+        # Create first VM
+        params['smp'] = 1
+        params['vms'] = "vm0"
+        preprocess(test, params, env)
+
         error.context("Prepare VMs")
         vms = []
         sessions = []
@@ -696,6 +701,8 @@ def run_cgroup(test, params, env):
                 err = "Guest time is not >%s%% %s" % (limit, stats[1:])
                 logging.error(err)
                 logging.info("Guest times are over %s%%: %s", limit, stats[1:])
+            else:
+                logging.info("CFS utilisation was over %s", limit)
 
         finally:
             error.context("Cleanup")
@@ -724,6 +731,7 @@ def run_cgroup(test, params, env):
         """
         Sets cpu.share shares for different VMs and measure the actual
         utilisation distribution over physical CPUs
+        @param cfg: cgroup_use_max_smp - use smp = all_host_cpus
         @param cfg: cgroup_test_time - test duration '60'
         @param cfg: smp - no_vcpus per VM. When smp <= 0 .. smp = no_host_cpus
         @param cfg: cgroup_speeds - list of speeds of each vms [vm0, vm1,..].
@@ -754,7 +762,8 @@ def run_cgroup(test, params, env):
         host_cpus = open('/proc/cpuinfo').read().count('model name')
         # when smp <= 0 use smp = no_host_cpus
         vm_cpus = int(params.get('smp', 0))     # cpus per VM
-        if vm_cpus <= 0:        # smp = no_host_cpu
+        # Use smp = no_host_cpu
+        if vm_cpus <= 0 or params.get('cgroup_use_max_smp') == "yes":
             params['smp'] = host_cpus
             vm_cpus = host_cpus
         no_speeds = len(speeds)
@@ -918,10 +927,13 @@ def run_cgroup(test, params, env):
         """
         Pins main_thread and each vcpu acoordingly to scenario setup
         and measures physical CPU utilisation.
+        When nothing is set the test uses smp vcpus. When cgroup_cpuset is
+        specified it forces smp to fit cpuset prescription. Last but not least
+        you can force the test to use half of the host cpus.
         @warning: Default verification method assumes 100% utilisation on each
                   used CPU. You can force cgroup_verify results.
+        @param cfg: cgroup_use_half_smp - force smp = no_host_cpus / 2
         @param cfg: cgroup_test_time - scenerio duration '1'
-        @param cfg: smp - number of virtual cpus
         @param cfg: cgroup_limit - allowed threshold '0.05' (5%)
         @params cfg: cgroup_cpuset - list of lists defining cpu pinning.
                      [[1st_scenario],[2nd_scenario], ...]
@@ -983,7 +995,7 @@ def run_cgroup(test, params, env):
                 for vcpu in cpuset[1:]:
                     vcpu.split(',')
                     # Get all usable CPUs for this vcpu
-                    for vcpu_pin in vcpu:
+                    for vcpu_pin in vcpu.split(','):
                         _ = vcpu_pin.split('-')
                         if len(_) == 2:
                             # Range of CPUs
@@ -995,17 +1007,12 @@ def run_cgroup(test, params, env):
             return verify
 
         error.context("Init")
-        vm_cpus = int(params.get("smp", 1))
         cpusets = None
         verify = None
-        if vm_cpus <= 1:
-            raise error.TestNAError("This test requires at least 2 VCPUs.")
         try:
             cpusets = eval(params.get("cgroup_cpuset", "None"))
-            if cpusets:
-                for _ in cpusets:
-                    if len(_) != (vm_cpus + 1):
-                        raise Exception
+            if not ((type(cpusets) is list) or (cpusets is None)):
+                raise Exception
         except Exception:
             raise error.TestError("Incorrect configuration: param cgroup_"
                                   "cpuset have to be list of lists, where "
@@ -1014,6 +1021,8 @@ def run_cgroup(test, params, env):
                                   "default.\n%s" % cpusets)
         try:
             verify = eval(params.get("cgroup_verify", "None"))
+            if not ((type(cpusets) is list) or (cpusets is None)):
+                raise Exception
         except Exception:
             raise error.TestError("Incorrect configuration: param cgroup_"
                                   "verify have to be list of lists or 'None' "
@@ -1039,6 +1048,38 @@ def run_cgroup(test, params, env):
         except (ValueError, IndexError):
             raise error.TestFail("Failed to get #CPU from root cgroup. (%s)",
                                  all_cpus)
+        vm_cpus = int(params.get("smp", 1))
+        # If cpuset specified, set smp accordingly
+        if cpusets:
+            if no_cpus < (len(cpusets[0]) - 1):
+                err = ("Not enough host CPUs to run this test with selected "
+                       "cpusets (cpus=%s, cpusets=%s)" % (no_cpus, cpusets))
+                logging.error(err)
+                raise error.TestNAError(err)
+            vm_cpus = len(cpusets[0]) - 1   # Don't count main_thread to vcpus
+            for i in range(len(cpusets)):
+                # length of each list have to be 'smp' + 1
+                if len(cpusets[i]) != (vm_cpus + 1):
+                    err = ("cpusets inconsistent. %d sublist have different "
+                           " length. (param cgroup_cpusets in cfg)." % i)
+                    logging.error(err)
+                    raise error.TestError(err)
+        # if cgroup_use_half_smp, set smp accordingly
+        elif params.get("cgroup_use_half_smp") == "yes":
+            vm_cpus = no_cpus / 2
+            if no_cpus == 2:
+                logging.warn("Host have only 2 CPUs, using 'smp = all cpus'")
+                vm_cpus = 2
+
+        if vm_cpus <= 1:
+            logging.error("Test requires at least 2 vCPUs.")
+            raise error.TestNAError("Test requires at least 2 vCPUs.")
+        # Check whether smp changed and recreate VM if so
+        if vm_cpus != params.get("smp", 0):
+            logging.info("Expected VM reload.")
+            params['smp'] = vm_cpus
+            vm.create(params=params)
+        # Verify vcpus matches prescription
         vcpus = vm.get_vcpu_pids()
         if len(vcpus) != vm_cpus:
             raise error.TestFail("Incorrect number of vcpu PIDs; smp=%s vcpus="
@@ -1054,7 +1095,14 @@ def run_cgroup(test, params, env):
                 if cpusets[i][j] == None:
                     cpusets[i][j] = all_cpus
 
-        if not verify:
+        if verify:  # Verify exists, check if it's correct
+            for _ in verify:
+                if len(_) != no_cpus:
+                    err = ("Incorrect cgroup_verify. Each verify sublist have "
+                           "to have length = no_host_cpus")
+                    logging.error(err)
+                    raise error.TestError(err)
+        else:   # Generate one
             error.context("Generating cpusets expected results")
             try:
                 verify = _generate_verification(cpusets, no_cpus)
@@ -1583,8 +1631,9 @@ def run_cgroup(test, params, env):
                                block created.
         memory.memsw.limit_in_bytes: Qemu should be killed with err 137.
         @param memsw: Whether to run memsw or rss mem only test
-        @param cfg: cgroup_memory_limit_kb - test uses 1.1 * memory_limit
-                    memory blocks for testing 'by default 1/2 of VM memory'
+        @param cfg: cgroup_memory_limit_kb - (4kb aligned) test uses
+                    1.1 * memory_limit memory blocks for testing
+                    'by default 1/2 of VM memory'
         """
         error.context("Init")
         try:

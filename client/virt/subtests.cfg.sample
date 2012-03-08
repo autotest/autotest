@@ -1303,31 +1303,30 @@ variants:
                 # cgroup_speeds += "[1024, 1024, 1024, 1024, 1024, 1024]]"
             - cpu_cfs_util:
                 # Test creats VMs according to no_host_cpus
-                # We want to be sure 1st VM have only 1 vCPU
-                vms = vm1
-                smp = 1
+                vms = ""
+                # problem with multiple preprocess, turn off the screendumps
+                take_regular_screendumps = "no"
                 extra_params += " -snapshot"
                 cgroup_test = "cpu_cfs_util"
                 # cgroup_test_time, cgroup_limit
             - cpu_share:
                 # Test creats VMs according to smp and cgroup_speeds
                 vms = ""
-                # When smp = 0 => it sets smp = no_host_cpus (optimal for test)
-                smp = 0
                 # problem with multiple preprocess, turn off the screendumps
                 take_regular_screendumps = "no"
                 extra_params += " -snapshot"
                 cgroup_test = "cpu_share"
-                # cgroup_test_time, cgroup_speeds
+                # cgroup_use_max_smp, cgroup_test_time, cgroup_speeds
+                cgroup_use_max_smp == 'yes'
                 # cgroup_speeds = "[1000, 10000, 100000]"
             - cpuset_cpus:
+                extra_params += " -snapshot"
                 cgroup_test = "cpuset_cpus"
-                # cgroup_test_time, cgroup_limit, cgroup_cpuset, cgroup_verify
+                # cgroup_use_half_smp, cgroup_test_time, cgroup_limit, cgroup_cpuset, cgroup_verify
+                cgroup_use_half_smp = 'yes'
                 cgroup_test_time = 10
-                # smp have to match cpuset scenerios!
-                # smp = 4
-                # cgroup_cpuset = "[[None, '0,3', '1', '2', '1-2'],
-                # cgroup_cpuset += "[None, '0', '1', '0-1', '0-1']]
+                # cgroup_cpuset = [[None, '0,3', '1', '2', '1-2'],
+                # cgroup_cpuset += [None, '0', '1', '0-1', '0-1']]
                 # cgroup_verify = [[50, 100, 100, 50], [100, 100, 5, 5]]
             - cpuset_cpus_switching:
                 cgroup_test = "cpuset_cpus_switching"
