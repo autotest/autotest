@@ -35,7 +35,7 @@ public class HostListView extends TabView implements TableActionsListener {
         return "hosts";
     }
 
-    protected HostTable table;
+    protected ProfileStaticHostTable table;
     protected HostTableDecorator hostTableDecorator;
     protected SelectionManager selectionManager;
 
@@ -43,7 +43,7 @@ public class HostListView extends TabView implements TableActionsListener {
     public void initialize() {
         super.initialize();
 
-        table = new HostTable(new HostDataSource(), true);
+        table = new ProfileStaticHostTable(new HostDataSource());
         hostTableDecorator = new HostTableDecorator(table, HOSTS_PER_PAGE);
 
         selectionManager = hostTableDecorator.addSelectionManager(false);

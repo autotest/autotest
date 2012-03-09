@@ -6,7 +6,10 @@ import autotest.common.table.TableClickWidget.TableWidgetClickListener;
 import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
 
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.ui.CheckBox;
+import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Widget;
 
 import java.util.ArrayList;
@@ -172,21 +175,47 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
 
     // code for acting as a TableWidgetFactory/TableWidgetClickListener
     
-    public Widget createWidget(int row, int cell, JSONObject rowObject) {
+    public Widget createWidget(int row, int cell, JSONObject rowObject, int type) {
         if (!isSelectable(rowObject)) {
             return null;
         }
 
-        CheckBox checkBox = new CheckBox();
-        if(selectedObjects.contains(rowObject)) {
-            checkBox.setValue(true);
+        if (type == 0) {
+            CheckBox checkBox = new CheckBox();
+            if(selectedObjects.contains(rowObject)) {
+                checkBox.setValue(true);
+            }
+            return new TableClickWidget(checkBox, this, row, cell);
+        } else {
+            int i;
+            ListBox listBox = new ListBox();
+            listBox.setVisibleItemCount(1);
+            JSONArray profiles = (JSONArray)rowObject.get("profiles");
+            for (i = 0; i < profiles.size(); i++) {
+                String s = profiles.get(i).toString();
+		// sigh, for some reason getting extra quotes from cobbler here
+                listBox.addItem(s.substring(1, s.length()-1));
+            }
+            for (i = 0; i < listBox.getItemCount(); i++) {
+                if (listBox.getItemText(i) == rowObject.get("current_profile").isString().toString()) {
+                    rowObject.put("profile", new JSONString(listBox.getItemText(i)));
+                    listBox.setSelectedIndex(i);
+                    break;
+                }
+            }
+            return new TableClickWidget(listBox, this, row, cell);
         }
-        return new TableClickWidget(checkBox, this, row, cell);
     }
 
     public void onClick(TableClickWidget widget) {
-        toggleSelected(attachedTable.getRow(widget.getRow()));
-        refreshSelection();
+        if (widget.getContainedWidget() instanceof CheckBox) {
+            toggleSelected(attachedTable.getRow(widget.getRow()));
+            refreshSelection();
+        } else {
+            ListBox l = (ListBox)widget.getContainedWidget();
+            JSONObject row = attachedTable.getRow(widget.getRow());
+            row.put("profile", new JSONString(l.getItemText(l.getSelectedIndex())));
+        }
     }
     
     // code for acting as a SelectionPanelListener

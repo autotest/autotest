@@ -45,6 +45,7 @@ public class HostSelector implements ClickHandler {
 
     public static class HostSelection {
         public List<String> hosts = new ArrayList<String>();
+        public List<String> profiles = new ArrayList<String>();
         public List<String> metaHosts = new ArrayList<String>();
         public List<String> oneTimeHosts = new ArrayList<String>();
     }
@@ -71,7 +72,7 @@ public class HostSelector implements ClickHandler {
     private HostTable availableTable = new HostTable(new HostDataSource());
     private HostTableDecorator availableDecorator =
         new HostTableDecorator(availableTable, TABLE_SIZE);
-    private HostTable selectedTable = new HostTable(selectedHostData);
+    private ProfileSelectHostTable selectedTable = new ProfileSelectHostTable(selectedHostData);
     private TableDecorator selectedDecorator = new TableDecorator(selectedTable);
     private boolean enabled = true;
 
@@ -140,6 +141,8 @@ public class HostSelector implements ClickHandler {
         display.getAddByHostnameButton().addClickHandler(this);
         display.getAddByLabelButton().addClickHandler(this);
         display.addTables(availableDecorator, selectedDecorator);
+        availableTable.setWidgetFactory(availableSelection);
+        selectedTable.setWidgetFactory(availableSelection);
 
         populateLabels(display.getLabelList());
     }
@@ -274,6 +277,10 @@ public class HostSelector implements ClickHandler {
         }
     }
 
+    private String getProfile(JSONObject row) {
+        return row.get("profile").isString().stringValue();
+    }
+
     private String getHostname(JSONObject row) {
         return row.get("hostname").isString().stringValue();
     }
@@ -317,6 +324,7 @@ public class HostSelector implements ClickHandler {
                     selection.oneTimeHosts.add(hostname);
                 } else {
                     selection.hosts.add(hostname);
+                    selection.profiles.add(getProfile(row));
                 }
             }
         }
