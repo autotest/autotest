@@ -73,6 +73,8 @@ class RemoteHost(base_classes.Host):
 
         @param profile: Profile name inside the install server database.
         """
+        if profile is None:
+            profile = self.profile
         server_info = get_install_server_info()
         if server_info.get('xmlrpc_url', None) is not None:
             ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
