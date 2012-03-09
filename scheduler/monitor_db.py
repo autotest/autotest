@@ -1716,7 +1716,7 @@ class AbstractQueueTask(AgentTask, TaskWithJobKeyvals):
         control_path = self._write_control_file(execution_path)
         hostnames = ','.join(entry.host.hostname
                              for entry in self.queue_entries
-                             if not entry.is_hostless())
+                             if not entry.is_hostless() and entry.profile]
 
         execution_tag = self.queue_entries[0].execution_tag()
         params = _autoserv_command_line(
