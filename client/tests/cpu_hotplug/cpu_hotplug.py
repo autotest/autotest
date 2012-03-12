@@ -1,5 +1,5 @@
-import time, os
-from autotest_lib.client.bin import test, utils
+import time, os, logging, re, sys
+from autotest_lib.client.bin import test, utils, os_dep
 from autotest_lib.client.common_lib import error
 
 class cpu_hotplug(test.test):
@@ -9,6 +9,8 @@ class cpu_hotplug(test.test):
     def setup(self, tarball = 'lhcs_regression-1.6.tgz'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
+        os.chdir(self.srcdir)
+        utils.run("patch -p1 < ../0001-LHCS-Cleanups-and-bugfixes.patch")
 
 
     def initialize(self):
@@ -34,6 +36,32 @@ class cpu_hotplug(test.test):
 
 
     def run_once(self):
+        tests_fail = []
+        tests_pass = []
         # Begin this cpu hotplug test big guru.
         os.chdir(self.srcdir)
-        utils.system('./runtests.sh')
+        result_cmd = utils.run('./runtests.sh', stdout_tee=sys.stdout)
+        for line in result_cmd.stdout.splitlines():
+            match = re.findall('^([\w:\.]+)\s+([A-Z]+):(.*)$', line)
+            if match:
+                info = {}
+                info['testname'] = match[0][0]
+                info['status'] = match[0][1]
+                info['reason'] = match[0][2]
+                if info['status'] == 'FAIL':
+                    logging.info("%s: %s -> %s",
+                                 info['testname'], info['status'],
+                                 info['reason'])
+                    tests_fail.append(info)
+                elif info['status'] == 'PASS':
+                    logging.info("%s: %s -> %s",
+                                 info['testname'], info['status'],
+                                 info['reason'])
+                    tests_pass.append(info)
+
+        if tests_fail:
+            raise error.TestFail("%d from %d tests FAIL" %
+                                 (len(tests_fail),
+                                  len(tests_pass) + len(tests_fail)))
+        else:
+            logging.info("All %d tests PASS" % len(tests_pass))
