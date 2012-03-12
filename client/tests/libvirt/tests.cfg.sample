@@ -43,7 +43,6 @@ variants:
         qemu_img_binary = /usr/bin/qemu-img
         hvm_or_pv = hvm
         take_regular_screendumps = no
-        drive_cache = not_used
         only raw
         only rtl8139
         only ide

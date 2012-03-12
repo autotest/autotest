@@ -725,7 +725,7 @@ class VM(virt_vm.BaseVM):
                 cmd += ",sparse=false"
             if format:
                 cmd += ",format=%s" % format
-            if cache and cache != 'not_used':
+            if cache:
                 cmd += ",cache=%s" % cache
             return cmd
 
