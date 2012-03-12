@@ -3,7 +3,7 @@ from autotest_lib.client.bin import utils, test
 
 
 class kernbench(test.test):
-    version = 4
+    version = 5
 
     def initialize(self):
         self.job.require_gcc()
@@ -12,19 +12,16 @@ class kernbench(test.test):
 
     def __init_tree(self, version=None):
         #
-        # If we have a local copy of the 2.6.14 tarball use that
+        # If we have a local copy of the 3.2.1 tarball use that
         # else let the kernel object use the defined mirrors
         # to obtain it.
         #
-        # http://kernel.org/pub/linux/kernel/v2.6/linux-2.6.14.tar.bz2
+        # http://kernel.org/pub/linux/kernel/v3.x/linux-3.2.1.tar.bz2
         #
-        # On ia64, we default to 2.6.20, as it can't compile 2.6.14.
         if version:
             default_ver = version
-        elif utils.get_current_kernel_arch() == 'ia64':
-            default_ver = '2.6.20'
         else:
-            default_ver = '2.6.14'
+            default_ver = '3.2.1'
 
         tarball = None
         for dir in (self.bindir, '/usr/local/src'):
