@@ -1155,7 +1155,9 @@ class VM(virt_vm.BaseVM):
             logging.debug("VM appears to be alive with PID %s", self.get_pid())
 
             o = self.monitor.info("cpus")
-            self.vcpu_threads = re.findall("thread_id=(\d+)", o)
+            vcpu_thread_pattern = params.get("vcpu_thread_pattern",
+                                               "thread_id=(\d+)")
+            self.vcpu_threads = re.findall(vcpu_thread_pattern, str(o))
             o = commands.getoutput("ps aux")
             self.vhost_threads = re.findall("\w+\s+(\d+)\s.*\[vhost-%s\]" %
                                             self.get_pid(), o)

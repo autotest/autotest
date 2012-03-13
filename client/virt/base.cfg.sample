@@ -69,6 +69,10 @@ drive_cache = none
 monitors = humanmonitor1
 # Default monitor type (protocol), if multiple types to be used
 monitor_type = human
+# Pattern to get vcpu threads from monitor.
+#    human monitor: thread_id=(\d+)
+#    qmp monitor: u'thread_id':\s+(\d+)
+vcpu_thread_pattern = "thread_id=(\d+)"
 
 # Guest Display type (vnc, sdl, spice, or nographic)
 display = vnc
