@@ -145,7 +145,7 @@ class AsyncJob(BgJob):
         def drainer(input, output, lock):
             """
             input is a pipe and output is file-like. if lock is non-None, then
-            we assume output isn't threadsafe
+            we assume output isn't thread-safe
             """
             try:
                 while True:
@@ -505,7 +505,7 @@ class FileFieldMonitor(object):
                  params 0   1   2  3   4
         @param mode_diff: True to subtract old value from new value,
             False make average of the values.
-        @parma continuously: Start the monitoring thread using the time_step
+        @param continuously: Start the monitoring thread using the time_step
             as the measurement period.
         @param contlogging: Log data in continuous run.
         @param separator: Regular expression of separator.
@@ -850,7 +850,7 @@ def join_bg_jobs(bg_jobs, timeout=None):
 
     if timeout_error:
         # TODO: This needs to be fixed to better represent what happens when
-        # running in parallel. However this is backwards compatable, so it will
+        # running in parallel. However this is backwards compatible, so it will
         # do for the time being.
         raise error.CmdError(bg_jobs[0].command, bg_jobs[0].result,
                              "Command(s) did not complete within %d seconds"
@@ -1027,7 +1027,7 @@ def system(command, timeout=None, ignore_status=False):
     @param timeout: timeout in seconds
     @param ignore_status: if ignore_status=False, throw an exception if the
             command's exit code is non-zero
-            if ignore_stauts=True, return the exit code.
+            if ignore_status=True, return the exit code.
 
     @return exit status of command
             (note, this will always be zero unless ignore_status=True)
@@ -1932,7 +1932,7 @@ def interactive_download(url, output_file, title='', chunk_size=100*1024):
     logging.info('Downloading %s, %s to %s', os.path.basename(url),
                  display_data_size(file_size), output_dir)
 
-    # Calculate progrss bar size based on title size
+    # Calculate progress bar size based on title size
     if title:
         width = progressbar.ProgressBar.DEFAULT_WIDTH - len(title)
         progress_bar = progressbar.ProgressBar(maximum=file_size,
