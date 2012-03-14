@@ -1755,6 +1755,20 @@ variants:
 
     # Do not define test variants below shutdown
 
+    - remove_guest: install setup image_copy unattended_install.cdrom
+        type = remove_guest
+        shutdown_method = shell
+        kill_vm = yes
+        kill_vm_gracefully = no
+        force_remove_vm = yes
+        start_vm = no
+        restart_vm = no
+        variants:
+            - without_disk:
+                remove_image = no
+            - with_disk:
+                remove_image = yes
+
 whql.support_vm_install, whql.client_install.support_vm:
     image_name += -supportvm
 
