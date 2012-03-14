@@ -218,6 +218,23 @@ variants:
                 status_error = "yes"
                 libvirtd = "off"
 
+    - virsh_capabilities:
+        type = virsh_capabilities
+        vms = ''
+        variants:
+            - no_option:
+                virsh_cap_options = ""
+                status_error = "no"
+                libvirtd = "on"
+            - unexpect_option:
+                virsh_cap_options = "xyz"
+                status_error = "yes"
+                libvirtd = "on"
+            - with_libvirtd_stop:
+                virsh_cap_options = ""
+                status_error = "yes"
+                libvirtd = "off"
+
 
     - module_probe:
         type = module_probe
