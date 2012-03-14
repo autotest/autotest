@@ -6,7 +6,6 @@ class memory_api(test.test):
     version = 1
 
     def setup(self):
-        os.mkdir(self.tmpdir)
         utils.system("%s %s -o %s" %
                       (utils.get_cc(),
                        os.path.join(self.bindir, "memory_api.c"),
