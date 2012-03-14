@@ -1,6 +1,6 @@
 import logging, time
 from autotest_lib.client.virt.tests import file_transfer
-from autotest_lib.client.virt import virt_test_utils, virt_utils
+from autotest_lib.client.virt import virt_test_utils, virt_utils, aexpect
 from autotest_lib.client.common_lib import error
 
 
@@ -36,6 +36,17 @@ def run_nic_bonding(test, params, env):
                for vlan, nic in enumerate(params.get("nics").split())]
     setup_cmd = "ifenslave bond0 " + " ".join(ifnames)
     session_serial.cmd(setup_cmd)
+    #do a pgrep to check if dhclient has already been running
+    pgrep_cmd = "pgrep dhclient"
+    try:
+        cmd_output = session_serial.cmd(pgrep_cmd)
+    #if dhclient is there, killl it
+    except aexpect.ShellCmdError:
+        logging.info("it's safe to run dhclient now")
+    else:
+        logging.info("dhclient already is running,kill it")
+        session_serial.cmd("killall -9 dhclient")
+        time.sleep(1)
     session_serial.cmd("dhclient bond0")
 
     try:
