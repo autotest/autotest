@@ -8,7 +8,7 @@ version = 3
 def setup(tarball, topdir):
     srcdir = os.path.join(topdir, 'src')
     if not os.path.exists(tarball):
-        utils.get_file('http://mirror.x10.com/mirror/mysql/Downloads/MySQL-5.0/mysql-5.0.45.tar.gz', tarball)
+        utils.get_file('http://downloads.mysql.com/archives/mysql-5.0/mysql-5.0.45.tar.gz', tarball)
     utils.extract_tarball_to_dir(tarball, 'src')
     os.chdir(srcdir)
     utils.configure('--prefix=%s/mysql --enable-thread-safe-client' \

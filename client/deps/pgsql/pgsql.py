@@ -8,7 +8,7 @@ version = 4
 def setup(tarball, topdir):
     srcdir = os.path.join(topdir, 'src')
     if not os.path.exists(tarball):
-        utils.get_file('ftp://ftp.postgresql.org/pub/source/v8.3.1/postgresql-8.3.1.tar.bz2', tarball)
+        utils.get_file('ftp://ftp-archives.postgresql.org/pub/source/v8.3.1/postgresql-8.3.1.tar.bz2', tarball)
     utils.extract_tarball_to_dir(tarball, 'src')
     os.chdir(srcdir)
     utils.configure('--without-readline --without-zlib --enable-debug --prefix=%s/pgsql' % topdir)
