@@ -1729,6 +1729,23 @@ variants:
         kill_vm = yes
         number_of_files = 900
 
+    - qemu_io_blkdebug:
+        only qcow2
+        type = qemu_io_blkdebug
+        vms = ""
+        images = "blk"
+        image_name_blk = "blkdebug"
+        image_size_blk = 1G
+        image_format_blk = qcow2
+        remove_image_blk = yes
+        cluster_size = 512
+        err_command = "write -b 0 1G"
+        err_event = "refblock_update_part"
+        errn_list = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28"
+        re_std_msg = "error\s+code\s+\d+:\s+([a-zA-Z\/\-\s]+)$"
+        test_timeout = 720
+        blkdebug_default = blkdebug/qemu_io_default.conf
+
     # system_powerdown, system_reset and shutdown *must* be the last ones
     # defined (in this order), since the effect of such tests can leave
     # the VM on a bad state.
