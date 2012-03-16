@@ -398,7 +398,6 @@ variants:
                 create_image_stg = yes
                 image_size_stg = 10M
 
-
     - virsh_migrate: install setup image_copy unattended_install.cdrom
         type = virsh_migrate
         # Migrating non-started VM causes undefined behavior
@@ -416,21 +415,24 @@ variants:
         # virsh_migrate_destuser = root
         # virsh_migrate_destpwd = ""
         virsh_migrate_dest_state = running
+        virsh_migrate_src_state = running
+        virsh_migrate_libvirtd_state = 'on'
+        connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
+        status_error = 'no'
+        virsh_migrate_delay = 60
+        virsh_migrate_back = 'no'
         variants:
             - there_and_back:
-                virsh_migrate_delay = 60
                 # After migrating, migrate the guest back.
                 virsh_migrate_back = 'yes'
                 # By 'default', use same options and extra with the
                 # virsh_migrate_back_desturi set to the original connect_uri
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
                 # virsh_migrate_back_options = 'default'
                 # virsh_migrate_back_extra = 'default'
                 # virsh_migrate_back_desturi = 'default'
             - there_and_back_a_lot:
                 iterations = 100
                 virsh_migrate_back = 'yes'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
                 # don't kill anything inbetween iterations, you'll need to
                 # shut it down manually or by including a shutdown test
                 kill_vm = no
@@ -441,35 +443,149 @@ variants:
             - there_live:
                 # Uni-direction migration with option --live.
                 virsh_migrate_options = "--live"
-                virsh_migrate_delay = 60
-                virsh_migrate_back = 'no'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
             - there_p2p:
                 # Uni-direction migration with option --p2p.
                 virsh_migrate_options = "--live --p2p"
-                virsh_migrate_delay = 60
-                virsh_migrate_back = 'no'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
             - there_p2p_tunnelled:
                 # Uni-direction migration with option --tunnelled.
                 # --tunnelled should be used with --p2p.
                 virsh_migrate_options = "--live --p2p --tunnelled"
-                virsh_migrate_delay = 60
-                virsh_migrate_back = 'no'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
             - there_direct:
                 # Uni-direction migration with option --direct.
                 virsh_migrate_options = "--live --direct"
-                virsh_migrate_delay = 60
-                virsh_migrate_back = 'no'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
             - there_suspend:
                 # Uni-direction migration with option --suspend.
                 virsh_migrate_options = "--live --suspend"
-                virsh_migrate_delay = 60
-                virsh_migrate_back = 'no'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
                 virsh_migrate_dest_state = paused
+            - there_persistent:
+                # Uni-direction migration with option --persistent.
+                virsh_migrate_options = "--live --persistent"
+            - there_undefinesource:
+                # Uni-direction migration with option --undefinesource.
+                virsh_migrate_options = "--live --undefinesource"
+            - there_copy-storage-all:
+                # Uni-direction migration with option --copy-storage-all.
+                virsh_migrate_options = "--live --copy-storage-all"
+            - there_copy-storage-inc:
+                # Uni-direction migration with option --copy-storage-inc.
+                virsh_migrate_options = "--live --copy-storage-inc"
+            - there_change-protection:
+                # Uni-direction migration with option --change-protection.
+                virsh_migrate_options = "--live --change-protection"
+            - there_verbose:
+                # Uni-direction migration with option --verbose.
+                virsh_migrate_options = "--live --verbose"
+            - there_timeout:
+                # Uni-direction migration with option --timeout.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--timeout 30"
+            - there_migrateuri:
+                # Uni-direction migration with option --migrateuri.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--migrateuri PROTO://DEST_HOSTNAME.EXAMPLE.COM:PORT"
+            - there_dname:
+                # Uni-direction migration with option --dname.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--dname xyz"
+                virsh_migrate_dname = xyz
+            - there_xml:
+                # Uni-direction migration with option --xml.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--xml /tmp/virsh_migrate.xml"
+                virsh_migrate_xml = /tmp/virsh_migrate.xml
+            # ERROR
+            - there_domain_nonexist:
+                # Uni-direction migration with non-exist domain.
+                virsh_migrate_options = "--live"
+                vm_ref = xyz
+                status_error = 'yes'
+            - there_domain_missing:
+                # Uni-direction migration without option --domain.
+                virsh_migrate_options = "--live"
+                vm_ref = ""
+                status_error = 'yes'
+            - there_desturi_nonexist:
+                # Uni-direction migration with non-exist desturi.
+                virsh_migrate_options = "--live"
+                dest_uri_ref = xyz
+                status_error = 'yes'
+            - there_desturi_missing:
+                # Uni-direction migration without option --desturi.
+                virsh_migrate_options = "--live"
+                dest_uri_ref = ""
+                status_error = 'yes'
+            - there_migrateuri_nonexist:
+                # Uni-direction migration with non-exist migrateuri.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--migrateuri xyz"
+                status_error = 'yes'
+            - there_timeout_invalid:
+                # Uni-direction migration with an invalid timeout.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--timeout -1"
+                status_error = 'yes'
+            - there_timeout_short:
+                # Uni-direction migration with a very short timeout.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--timeout 1"
+                status_error = 'yes'
+            - there_timeout_offline:
+                # Uni-direction offline migration with option --timeout.
+                virsh_migrate_options = ""
+                virsh_migrate_extra = "--timeout 60"
+                status_error = 'yes'
+            - there_dname_exist:
+                # Uni-direction migration with an existing dname.
+                virsh_migrate_options = "--live"
+                # Here, xxx is an existing VM name on destination.
+                virsh_migrate_extra = "--dname xxx"
+                status_error = 'yes'
+            - there_xml_nonexist:
+                # Uni-direction migration with a non-existing xmlfile.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--xml xyz"
+                status_error = 'yes'
+            # VBI
+            - there_offline:
+                # Uni-direction offline migration.
+                virsh_migrate_options = ""
+                virsh_migrate_extra = ""
+            - there_vm_suspend_live:
+                # Uni-direction live migration with VM suspend.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = ""
+                virsh_migrate_src_state = paused
+                virsh_migrate_dest_state = paused
+            - there_vm_suspend_offline:
+                # Uni-direction offline migration with VM suspend.
+                virsh_migrate_options = ""
+                virsh_migrate_extra = ""
+                virsh_migrate_src_state = paused
+                virsh_migrate_dest_state = paused
+            - there_vm_shutdown_live:
+                # Uni-direction live migration with VM shutdown.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = ""
+                virsh_migrate_src_state = "shut off"
+                status_error = 'yes'
+            - there_vm_shutdown_offline:
+                # Uni-direction offline migration with VM shutdown.
+                virsh_migrate_options = ""
+                virsh_migrate_extra = ""
+                virsh_migrate_src_state = "shut off"
+                status_error = 'yes'
+            - there_libvirtd_stop:
+                # Uni-direction live migration with libvirtd stop.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = ""
+                virsh_migrate_libvirtd_state = 'off'
+                status_error = 'yes'
+            - there_libvirtd_stop_offline:
+                # Uni-direction offline migration with libvirtd stop.
+                virsh_migrate_options = ""
+                virsh_migrate_extra = ""
+                virsh_migrate_libvirtd_state = 'off'
+                status_error = 'yes'
 
     - migrate: install setup image_copy unattended_install.cdrom
         type = migration
