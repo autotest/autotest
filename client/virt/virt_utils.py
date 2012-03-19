@@ -1474,71 +1474,6 @@ def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
     tarball.close()
 
 
-class Thread(threading.Thread):
-    """
-    Run a function in a background thread.
-    """
-    def __init__(self, target, args=(), kwargs={}):
-        """
-        Initialize the instance.
-
-        @param target: Function to run in the thread.
-        @param args: Arguments to pass to target.
-        @param kwargs: Keyword arguments to pass to target.
-        """
-        threading.Thread.__init__(self)
-        self._target = target
-        self._args = args
-        self._kwargs = kwargs
-
-
-    def run(self):
-        """
-        Run target (passed to the constructor).  No point in calling this
-        function directly.  Call start() to make this function run in a new
-        thread.
-        """
-        self._e = None
-        self._retval = None
-        try:
-            try:
-                self._retval = self._target(*self._args, **self._kwargs)
-            except Exception:
-                self._e = sys.exc_info()
-                raise
-        finally:
-            # Avoid circular references (start() may be called only once so
-            # it's OK to delete these)
-            del self._target, self._args, self._kwargs
-
-
-    def join(self, timeout=None, suppress_exception=False):
-        """
-        Join the thread.  If target raised an exception, re-raise it.
-        Otherwise, return the value returned by target.
-
-        @param timeout: Timeout value to pass to threading.Thread.join().
-        @param suppress_exception: If True, don't re-raise the exception.
-        """
-        threading.Thread.join(self, timeout)
-        try:
-            if self._e:
-                if not suppress_exception:
-                    # Because the exception was raised in another thread, we
-                    # need to explicitly insert the current context into it
-                    s = error.exception_context(self._e[1])
-                    s = error.join_contexts(error.get_context(), s)
-                    error.set_exception_context(self._e[1], s)
-                    raise self._e[0], self._e[1], self._e[2]
-            else:
-                return self._retval
-        finally:
-            # Avoid circular references (join() may be called multiple times
-            # so we can't delete these)
-            self._e = None
-            self._retval = None
-
-
 def parallel(targets):
     """
     Run multiple functions in parallel.
@@ -1553,9 +1488,9 @@ def parallel(targets):
     threads = []
     for target in targets:
         if isinstance(target, tuple) or isinstance(target, list):
-            t = Thread(*target)
+            t = utils.InterruptedThread(*target)
         else:
-            t = Thread(target)
+            t = utils.InterruptedThread(target)
         threads.append(t)
         t.start()
     return [t.join() for t in threads]
