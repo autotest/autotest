@@ -47,6 +47,7 @@ class VM(virt_vm.BaseVM):
             self.process = None
             self.serial_console = None
             self.redirs = {}
+            self.spice_options = {}
             self.vnc_port = 5900
             self.monitors = []
             self.pci_assignable = None
@@ -58,7 +59,6 @@ class VM(virt_vm.BaseVM):
             self.vhost_threads = []
 
 
-        self.spice_port = 8000
         self.name = name
         self.params = params
         self.root_dir = root_dir
@@ -457,25 +457,135 @@ class VM(virt_vm.BaseVM):
         def add_pcidevice(help, host):
             return " -pcidevice host='%s'" % host
 
-        def add_spice(help, port, param):
-            if has_option(help,"spice"):
-                return " -spice port=%s,%s" % (port, param)
-            else:
-                return ""
+        def add_spice(spice_options):
+            """
+            processes spice parameters
+            @param help
+            @param spice_options - dict with spice keys/values
+            """
+            spice_opts = [] # will be used for ",".join()
+            tmp = None
 
-        def add_qxl_vga(help, qxl, vga, qxl_dev_nr=None):
-            str = ""
-            if has_option(help, "qxl"):
-                if qxl and qxl_dev_nr is not None:
-                    str += " -qxl %s" % qxl_dev_nr
-                if has_option(help, "vga") and vga and vga != "qxl":
-                    str += " -vga %s" % vga
-            elif has_option(help, "vga"):
-                if qxl:
-                    str += " -vga qxl"
-                elif vga:
-                    str += " -vga %s" % vga
-            return str
+            def optget(opt):
+                """a helper function"""
+                return spice_options.get(opt)
+
+            tmp = optget("spice_port")
+            if not (tmp):
+                tmp = virt_utils.find_free_port(3000, 3199)
+
+            spice_opts.append("port=%d" % (int(tmp)))
+
+            tmp = optget("spice_password")
+            if tmp:
+                spice_opts.append("password=%s" % (tmp))
+            else:
+                spice_opts.append("disable-ticketing")
+
+            tmp = optget("spice_addr")
+            if tmp:
+                spice_opts.append("addr=%s" % (tmp))
+
+            if optget("spice_ssl") == "yes":
+                # SSL only part
+
+                tmp = optget("spice_tls_ciphers")
+                if tmp:
+                    spice_opts.append("tls-ciphers=%s" % (tmp))
+
+                tmp = optget("spice_tls_port")
+                if not tmp:
+                    tmp = virt_utils.find_free_port(3200, 3399)
+
+                spice_opts.append("tls-port=%d" % (int(tmp)))
+
+                prefix = optget("spice_x509_prefix")
+                if optget("spice_gen_x509") == "yes":
+                    c_subj = optget("spice_x509_cacert_subj")
+                    s_subj = optget("spice_x509_server_subj")
+                    passwd = optget("spice_x509_key_password")
+                    secure = optget("spice_x509_secure")
+
+                    virt_utils.create_x509_dir(prefix, c_subj, s_subj, passwd, \
+                        secure)
+
+                tmp = optget("spice_x509_dir")
+                if tmp == "yes":
+                    spice_opts.append("x509-dir=%s" % (prefix))
+
+                elif tmp == "no":
+                    cacert = optget("spice_x509_cacert_file")
+                    server_key = optget("spice_x509_key_file")
+                    server_cert = optget("spice_x509_cert_file")
+                    spice_opts.append("x509-key-file=%s,x509-cacert-file=%s,"\
+                    "x509-cert-file=%s" % (os.path.join(prefix, server_key), \
+                    os.path.join(prefix, cacert), \
+                    os.path.join(prefix, server_cert)))
+
+                if optget("spice_x509_secure") == "yes":
+                    spice_opts.append("x509-key-password=%s" % \
+                        (optget("spice_x509_key_password")))
+
+                tmp = optget("spice_secure_channels")
+                if tmp:
+                    for item in tmp.split(","):
+                        spice_opts.append("tls-channel=%s" % (item.strip()))
+
+            # Less common options
+            tmp = optget("spice_image_compression")
+            if tmp:
+                spice_opts.append("image-compression=%s" % (tmp))
+
+            tmp = optget("spice_jpeg_wan_compression")
+            if tmp:
+                spice_opts.append("jpeg-wan-compression=%s" % (tmp))
+
+            tmp = optget("spice_zlib_glz_wan_compression")
+            if tmp:
+                spice_opts.append("zlib-glz-wan-compression=%s" % (tmp))
+
+            tmp = optget("spice_streaming_video")
+            if tmp:
+                spice_opts.append("streaming-video=%s" % (tmp))
+
+            tmp = optget("spice_agent_mouse=%s" % (tmp))
+            if tmp:
+                spice_opts.append("agent-mouse=%s" % (tmp))
+
+            tmp = optget("playback_compression")
+            if tmp:
+                spice_opts.append("plaback-compression=%s" % (tmp))
+
+            if optget("spice_ipv4") == "yes":
+                spice_opts.append("ipv4")
+
+            if optget("spice_ipv6") == "yes":
+                spice_opts.append("ipv6")
+
+            return " -spice %s" % (",".join(spice_opts))
+
+        def add_qxl(qxl_nr, qxl_memory):
+            """
+            adds extra qxl devices + sets memory to -vga qxl and extra qxls
+            @param help
+            @param qxl_nr total number of qxl devices
+            @param qxl_memory sets memory to individual devices
+            """
+            mystr = ""
+            start_addr = 0x5
+            vram_help = ""
+
+            if qxl_memory:
+                vram_help = "vram_size=%d" % (qxl_memory)
+                mystr += " -global qxl-vga.%s" % (vram_help)
+
+            for index in range(1, qxl_nr):
+                mystr += " -device qxl,id=video%d,bus=pci.0,addr=%s,%s"\
+                        % (index, hex(start_addr + index), vram_help)
+            return mystr
+
+        def add_vga(vga):
+            return " -vga %s" % vga
 
         def add_kernel(help, filename):
             return " -kernel '%s'" % filename
@@ -606,7 +716,6 @@ class VM(virt_vm.BaseVM):
         defaults = params.get("defaults", "no")
         if has_option(help,"nodefaults") and defaults != "yes":
             qemu_cmd += " -nodefaults"
-            qemu_cmd += " -vga std"
         # Add monitors
         for monitor_name in params.objects("monitors"):
             monitor_params = params.object_params(monitor_name)
@@ -796,18 +905,16 @@ class VM(virt_vm.BaseVM):
         elif params.get("display") == "nographic":
             qemu_cmd += add_nographic(help)
         elif params.get("display") == "spice":
-            qemu_cmd += add_spice(help, self.spice_port, params.get("spice"))
+            qemu_cmd += add_spice(vm.spice_options)
 
-        qxl = ""
-        vga = ""
-        if params.get("qxl"):
-            qxl = params.get("qxl")
-        if params.get("vga"):
-            vga = params.get("vga")
-        if qxl or vga:
-            if params.get("display") == "spice":
-                qxl_dev_nr = params.get("qxl_dev_nr", None)
-                qemu_cmd += add_qxl_vga(help, qxl, vga, qxl_dev_nr)
+        vga = params.get("vga", None)
+        if vga:
+            qemu_cmd += add_vga(vga)
+
+            if vga == "qxl":
+                qxl_dev_memory = int(params.get("qxl_dev_memory", 0))
+                qxl_dev_nr = int(params.get("qxl_dev_nr", 1))
+                qemu_cmd += add_qxl(qxl_dev_nr, qxl_dev_memory)
 
         if params.get("uuid") == "random":
             qemu_cmd += add_uuid(help, vm.uuid)
@@ -983,9 +1090,25 @@ class VM(virt_vm.BaseVM):
             if params.get("display") == "vnc":
                 self.vnc_port = virt_utils.find_free_port(5900, 6100)
 
-            # Find available spice port, if needed
-            if params.get("spice"):
-                self.spice_port = virt_utils.find_free_port(8000, 8100)
+            # Get all SPICE options
+            if params.get("display") == "spice":
+                spice_keys = (
+                "spice_port", "spice_password", "spice_addr", "spice_ssl", \
+                "spice_tls_port", "spice_tls_ciphers", "spice_gen_x509", \
+                "spice_x509_dir", "spice_x509_prefix", "spice_x509_key_file", \
+                "spice_x509_cacert_file", "spice_x509_key_password", \
+                "spice_x509_secure", "spice_x509_cacert_subj", \
+                "spice_x509_server_subj", "spice_secure_channels", \
+                "spice_image_compression", "spice_jpeg_wan_compression", \
+                "spice_zlib_glz_wan_compression", "spice_streaming_video", \
+                "spice_agent_mouse", "spice_playback_compression", \
+                "spice_ipv4", "spice_ipv6", "spice_x509_cert_file", \
+                )
+
+                for skey in spice_keys:
+                    value = params.get(skey, None)
+                    if value:
+                        self.spice_options[skey] = value
 
             # Find random UUID if specified 'uuid = random' in config file
             if params.get("uuid") == "random":
