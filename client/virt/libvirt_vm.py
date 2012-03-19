@@ -431,6 +431,39 @@ def virsh_migrate(options, name, dest_uri, extra, uri = ""):
         return False
     return True
 
+def virsh_attach_interface(name, type, extra = "", uri = ""):
+    """
+    Attach a nic to VM.
+    """
+    cmd = "attach-interface --domain %s " % name
+    if type not in ('bridge', 'network', 'user', 'ethernet', 'direct', \
+                    'hostdev', 'mcast', 'server', 'client', ''):
+        logging.error("Unknown interface type.")
+        return False
+    cmd += "--type %s %s" % (type, extra)
+    try:
+        virsh_cmd(cmd, uri)
+        return True
+    except error.CmdError, detail:
+        logging.error("Attaching interface to %s failed.\n%s" % (name, detail))
+        return False
+
+def virsh_detach_interface(name, type, extra = "", uri = ""):
+    """
+    Detach a nic from VM.
+    """
+    cmd = "detach-interface --domain %s " % name
+    if type not in ('bridge', 'network', 'user', 'ethernet', 'direct', \
+                    'hostdev', 'mcast', 'server', 'client', ''):
+        logging.error("Unknown interface type.")
+        return False
+    cmd += "--type %s %s" % (type, extra)
+    try:
+        virsh_cmd(cmd, uri)
+        return True
+    except error.CmdError, detail:
+        logging.error("Detaching interface from %s failed.\n%s" % (name, detail))
+        return False
 
 def virsh_attach_device(name, xml_file, extra = "", uri = ""):
     """
@@ -555,6 +588,14 @@ class VM(virt_vm.BaseVM):
         else:
             return False
 
+    def define(self, path):
+        """
+        Define the VM.
+        """
+        if not os.path.exists(path):
+            logging.error("File %s not found." % path)
+            return False
+        return virsh_define(path, self.connect_uri)
 
     def undefine(self):
         """
@@ -1212,6 +1253,17 @@ class VM(virt_vm.BaseVM):
             self.connect_uri = dest_uri
         return result
 
+    def attach_interface(self, type, extra = ""):
+        """
+        Attach a nic to VM.
+        """
+        return virsh_attach_interface(self.name, type, extra, self.connect_uri)
+
+    def detach_interface(self, type, extra = ""):
+        """
+        Detach a nic from VM.
+        """
+        return virsh_detach_interface(self.name, type, extra, self.connect_uri)
 
     def attach_device(self, xml_file, extra = ""):
         """
