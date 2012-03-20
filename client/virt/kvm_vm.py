@@ -1168,7 +1168,8 @@ class VM(virt_vm.BaseVM):
                 "nc -U %s" % self.get_serial_console_filename(),
                 auto_close=False,
                 output_func=virt_utils.log_line,
-                output_params=("serial-%s.log" % name,))
+                output_params=("serial-%s.log" % name,),
+                prompt=self.params.get("shell_prompt", "[\#\$]"))
 
         finally:
             fcntl.lockf(lockfile, fcntl.LOCK_UN)
