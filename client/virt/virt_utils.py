@@ -3716,3 +3716,52 @@ class NumaNode(object):
         logging.info("Numa Node record dict:")
         for i in self.cpus:
             logging.info("    %s: %s" % (i, self.dict[i]))
+
+def create_x509_dir(path, cacert_subj, server_subj, passphrase, \
+                    secure=False, bits=1024, days=1095):
+    """
+    Creates directory with freshly generated:
+    ca-cart.pem, ca-key.pem, server-cert.pem, server-key.pem,
+
+    @param path: defines path to directory which will be created
+    @param cacert_subj: ca-cert.pem subject
+    @param server_key.csr subject
+    @param passphrase - passphrase to ca-key.pem
+    @param secure = False - defines if the server-key.pem will use a passphrase
+    @param bits = 1024: bit length of keys
+    @param days = 1095: cert expiration
+
+    @raise ValueError: openssl not found or rc != 0
+    @raise OSError: if os.makedirs() failes
+    """
+
+    ssl_cmd = os_dep.command("openssl")
+    path = path + os.path.sep # Add separator to the path
+    shutil.rmtree(path, ignore_errors = True)
+    os.makedirs(path)
+
+    server_key = "server-key.pem.secure"
+    if secure:
+        server_key = "server-key.pem"
+
+    cmd_set = [
+    '%s genrsa -des3 -passout pass:%s -out %sca-key.pem %d' % (ssl_cmd,\
+    passphrase, path, bits),
+    '%s req -new -x509 -days %d -key %sca-key.pem -passin pass:%s -out '\
+    '%sca-cert.pem -subj "%s"' \
+    % (ssl_cmd, days, path, passphrase, path, cacert_subj),
+    '%s genrsa -out %s %d' % (ssl_cmd, path + server_key, bits),
+    '%s req -new -key %s -out %s/server-key.csr '\
+    '-subj "%s"' % (ssl_cmd, path + server_key, path, server_subj),
+    '%s x509 -req -passin pass:%s -days %d -in %sserver-key.csr -CA '\
+    '%sca-cert.pem -CAkey %sca-key.pem -set_serial 01 -out %sserver-cert.pem' \
+     % (ssl_cmd, passphrase, days, path, path, path, path),
+    ]
+
+    if not secure:
+        cmd_set.append('%s rsa -in %s -out %sserver-key.pem' \
+        % (ssl_cmd, path + server_key, path))
+
+    for cmd in cmd_set:
+        utils.run(cmd)
+        logging.info(cmd)
