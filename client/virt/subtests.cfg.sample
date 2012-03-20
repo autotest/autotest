@@ -1184,6 +1184,7 @@ variants:
                 # client =
 
     - ntttcp:
+        only Windows
         type = ntttcp
         image_snapshot = yes
         check_ntttcp_cmd = "cmd /c dir C:\NTttcp"
