@@ -241,3 +241,6 @@ netdev_peer_re = "\s{2,}(.*?): .*?\\\s(.*?):"
 # netdev_peer_re = "\s{2,}(.*?): .*?\s{2,}(.*?):"
 # for RHEL6 host, the regex should be:
 # netdev_peer_re = "\s{2,}(.*?):.*?peer=(.*?)\n"
+
+image_clone_commnad = 'cp --reflink=auto %s %s'
+image_remove_commnad = 'rm -rf %s'
