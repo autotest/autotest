@@ -320,8 +320,21 @@ def preprocess(test, params, env):
                         int(params.get("pre_command_timeout", "600")),
                         params.get("pre_command_noncritical") == "yes")
 
+    #Clone master image from vms.
+    if params.get("master_images_clone"):
+        for vm_name in params.get("vms").split():
+            vm = env.get_vm(vm_name)
+            if vm:
+                vm.destroy(free_mac_addresses=False)
+                env.unregister_vm(vm_name)
+
+            vm_params = params.object_params(vm_name)
+            for image in vm_params.get("master_images_clone").split():
+                virt_vm.clone_image(params, vm_name, image, test.bindir)
+
     # Preprocess all VMs and images
-    process(test, params, env, preprocess_image, preprocess_vm)
+    if params.get("not_preprocess","no") == "no":
+        process(test, params, env, preprocess_image, preprocess_vm)
 
     # Start the screendump thread
     if params.get("take_regular_screendumps") == "yes":
