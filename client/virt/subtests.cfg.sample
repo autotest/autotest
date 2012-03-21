@@ -527,6 +527,8 @@ variants:
 
     - migrate_multi_host: install setup image_copy unattended_install.cdrom
         type = migration_multi_host
+        vms = "vm1"
+        start_vm = no
         migration_test_command = help
         migration_bg_command = "cd /tmp; nohup tcpdump -q -i any -t ip host localhost"
         migration_bg_check_command = pgrep tcpdump
@@ -534,9 +536,10 @@ variants:
         kill_vm_on_error = yes
         iterations = 2
         used_mem = 1024
-        mig_timeout = 3600
+        mig_timeout = 4800
+        disk_prepare_timeout = 360
         comm_port = 13234
-        regain_ip_cmd = dhclient
+        regain_ip_cmd = killall dhclient; sleep 10; dhclient;
 
     - boot_savevm: install setup image_copy unattended_install.cdrom
         type = boot_savevm
@@ -1699,13 +1702,18 @@ variants:
     - cpuflags_multi_host:
         type = cpuflags
         test_type = test_multi_host_migration
-        #Disable all unnecessary vms.
-        vms = ""
+        vms = "vm1"
+        start_vm = no
         #Try to start guest with all flags which are supported by host.
         all_host_supported_flags = "no"
         cpu_model = "core2duo:sse3"
         guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
+        mig_timeout = 4800
+        kill_vm_on_error = yes
+        disk_prepare_timeout = 360
+        comm_port = 13234
+        regain_ip_cmd = killall dhclient; sleep 10; dhclient;
 
     - cpu_hotplug_test:
         type = cpu_hotplug
