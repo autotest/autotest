@@ -155,7 +155,7 @@ def run_ntttcp(test, params, env):
         return list
 
     try:
-        bg = virt_utils.Thread(receiver, ())
+        bg = utils.InterruptedThread(receiver, ())
         bg.start()
         if bg.isAlive():
             sender()
