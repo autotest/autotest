@@ -26,8 +26,9 @@ def run_nic_promisc(test, params, env):
                                               vm.get_mac_address(0))
 
     try:
-        transfer_thread = virt_utils.Thread(file_transfer.run_file_transfer,
-                                           (test, params, env))
+        transfer_thread = utils.InterruptedThread(
+                                               file_transfer.run_file_transfer,
+                                               (test, params, env))
         transfer_thread.start()
         while transfer_thread.isAlive():
             session_serial.cmd("ip link set %s promisc on" % ethname)
