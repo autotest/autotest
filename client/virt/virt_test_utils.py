@@ -607,7 +607,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
                 mig_timeout = float(params.get("mig_timeout", "3600"))
                 mig_protocol = params.get("migration_protocol", "tcp")
 
-                bg = virt_utils.Thread(session.cmd_output,
+                bg = utils.InterruptedThread(session.cmd_output,
                                       kwargs={'cmd': "bin/autotest control",
                                               'timeout': timeout,
                                               'print_func': logging.info})

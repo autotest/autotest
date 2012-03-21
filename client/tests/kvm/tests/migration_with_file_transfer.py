@@ -56,13 +56,13 @@ def run_migration_with_file_transfer(test, params, env):
 
         error.context("transferring file to guest while migrating",
                       logging.info)
-        bg = virt_utils.Thread(vm.copy_files_to, (host_path, guest_path),
-                              dict(verbose=True, timeout=transfer_timeout))
+        bg = utils.InterruptedThread(vm.copy_files_to, (host_path, guest_path),
+                                 dict(verbose=True, timeout=transfer_timeout))
         run_and_migrate(bg)
 
         error.context("transferring file back to host while migrating",
                       logging.info)
-        bg = virt_utils.Thread(vm.copy_files_from,
+        bg = utils.InterruptedThread(vm.copy_files_from,
                               (guest_path, host_path_returned),
                               dict(verbose=True, timeout=transfer_timeout))
         run_and_migrate(bg)
