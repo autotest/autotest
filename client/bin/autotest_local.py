@@ -29,6 +29,10 @@ class AutotestLocalApp:
     Point it to a control file and let it rock
     '''
     def __init__(self):
+        self._set_parsers()
+
+
+    def _set_parsers(self):
         self.opt_parser = optparser.AutotestLocalOptionParser()
         self.cmd_parser = cmdparser.CommandParser()
 

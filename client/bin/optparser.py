@@ -34,52 +34,63 @@ class AutotestLocalOptionParser(optparse.OptionParser):
                 )
 
 
-        self.add_option("-a", "--args", dest='args',
-                          help="additional args to pass to control file")
+        general = optparse.OptionGroup(self, 'GENERAL JOB CONTROL')
+        general.add_option("-a", "--args", dest='args',
+                           help="additional args to pass to control file")
 
-        self.add_option("-c", "--continue", dest="cont",
-                          action="store_true", default=False,
-                          help="continue previously started job")
+        general.add_option("-c", "--continue", dest="cont",
+                           action="store_true", default=False,
+                           help="continue previously started job")
 
-        self.add_option("-t", "--tag", dest="tag", type="string",
+        general.add_option("-H", "--harness", dest="harness", type="string",
+                           default='', help="set the harness type")
+
+        general.add_option("-P", "--harness_args", dest="harness_args",
+                           type="string", default='',
+                           help="arguments delivered to harness")
+
+        general.add_option('--client_test_setup', dest='client_test_setup',
+                           type='string', default=None, action='store',
+                           help=('a comma seperated list of client tests to '
+                                 'prebuild on the server. Use all to prebuild '
+                                 'all of them.'))
+        self.add_option_group(general)
+
+        job_id = optparse.OptionGroup(self, 'JOB IDENTIFICATION')
+        job_id.add_option("-t", "--tag", dest="tag", type="string",
                           default="default",  help="set the job tag")
 
-        self.add_option("-H", "--harness", dest="harness", type="string",
-                          default='', help="set the harness type")
+        job_id.add_option('--hostname', dest='hostname', type='string',
+                          default=None, action='store',
+                          help=('Take this as the hostname of this machine '
+                                '(given by autoserv)'))
 
-        self.add_option("-P", "--harness_args", dest="harness_args",
-                        type="string", default='',
-                        help="arguments delivered to harness")
+        job_id.add_option("-U", "--user", dest="user", type="string",
+                          default='', help="set the job username")
+        self.add_option_group(job_id)
 
-        self.add_option("-U", "--user", dest="user", type="string",
-                        default='', help="set the job username")
+        verbosity = optparse.OptionGroup(self, 'VERBOSITY')
+        verbosity.add_option('--verbose', dest='verbose', action='store_true',
+                             help='Include DEBUG messages in console output')
 
-        self.add_option("-l", "--external_logging", dest="log",
-                        action="store_true", default=False,
-                        help="enable external logging")
+        verbosity.add_option('--quiet', dest='verbose', action='store_false',
+                             help='Not include DEBUG messages in console '
+                             'output')
+        self.add_option_group(verbosity)
 
-        self.add_option('--verbose', dest='verbose', action='store_true',
-                        help='Include DEBUG messages in console output')
+        output = optparse.OptionGroup(self, 'OUTPUT LOCATION AND FORMAT')
+        output.add_option("-l", "--external_logging", dest="log",
+                          action="store_true", default=False,
+                          help="Enable external logging. This only makes any "
+                          "difference if you have a site_job.py file that "
+                          "implements the custom logging functionality ")
 
-        self.add_option('--quiet', dest='verbose', action='store_false',
-                          help='Not include DEBUG messages in console output')
-
-        self.add_option('--hostname', dest='hostname', type='string',
-                        default=None, action='store',
-                        help=('Take this as the hostname of this machine '
-                              '(given by autoserv)'))
-
-        self.add_option('--output_dir', dest='output_dir',
+        output.add_option('--output_dir', dest='output_dir',
                         type='string', default="", action='store',
                         help=('Specify an alternate path to store test result '
                               'logs'))
 
-        self.add_option('--client_test_setup', dest='client_test_setup',
-                          type='string', default=None, action='store',
-                          help=('a comma seperated list of client tests to '
-                                'prebuild on the server. Use all to prebuild '
-                                'all of them.'))
-
-        self.add_option('--tap', dest='tap_report', action='store_true',
+        output.add_option('--tap', dest='tap_report', action='store_true',
                           default=None, help='Output TAP (Test anything '
                           'protocol) reports')
+        self.add_option_group(output)
