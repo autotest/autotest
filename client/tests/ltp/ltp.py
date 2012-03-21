@@ -67,7 +67,8 @@ class ltp(test.test):
         for line in result.stdout.splitlines():
             if set(('TFAIL', 'TBROK', 'TWARN')).intersection(line.split()):
                 test_name = line.strip().split(' ')[0]
-                if not test_name in ignore_tests:
+                if (not test_name in ignore_tests and
+                    not test_name in failed_tests):
                     failed_tests.append(test_name)
 
         if failed_tests:
