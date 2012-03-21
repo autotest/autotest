@@ -323,6 +323,57 @@ def get_image_filename(params, root_dir):
     return image_filename
 
 
+def clone_image(params, vm_name, image_name, root_dir):
+    """
+    Clone master image to vm specific file.
+
+    @param params: Dictionary containing the test parameters.
+    @param vm_name: Vm name.
+    @param image_name: Master image name.
+    @param root_dir: Base directory for relative filenames.
+    """
+    if not params.get("image_name_%s_%s" % (image_name, vm_name)):
+        m_image_name = params.get("image_name", "image")
+        vm_image_name = "%s_%s" % (m_image_name, vm_name)
+        if params.get("clone_master", "yes") == "yes":
+            image_params = params.object_params(image_name)
+            image_params["image_name"] = vm_image_name
+
+            m_image_fn = get_image_filename(params, root_dir)
+            image_fn = get_image_filename(image_params, root_dir)
+
+            logging.info("Clone master image for vms.")
+            utils.run(params.get("image_clone_commnad") % (m_image_fn,
+                                                           image_fn))
+
+        params["image_name_%s_%s" % (image_name, vm_name)] = vm_image_name
+
+
+def rm_image(params, vm_name, image_name, root_dir):
+    """
+    Remove vm specific file.
+
+    @param params: Dictionary containing the test parameters.
+    @param vm_name: Vm name.
+    @param image_name: Master image name.
+    @param root_dir: Base directory for relative filenames.
+    """
+    if params.get("image_name_%s_%s" % (image_name, vm_name)):
+        m_image_name = params.get("image_name", "image")
+        vm_image_name = "%s_%s" % (m_image_name, vm_name)
+        if params.get("clone_master", "yes") == "yes":
+            image_params = params.object_params(image_name)
+            image_params["image_name"] = vm_image_name
+
+            image_fn = get_image_filename(image_params, root_dir)
+
+            logging.debug("Removing vm specific image file %s", image_fn)
+            if os.path.exists(image_fn):
+                utils.run(params.get("image_remove_commnad") % (image_fn))
+            else:
+                logging.debug("Image file %s not found", image_fn)
+
+
 def create_image(params, root_dir):
     """
     Create an image using qemu_image.
@@ -685,7 +736,7 @@ class BaseVM(object):
                 raise VMDeadKernelCrashError(match.group(0))
 
 
-    def verify_illegal_instructonn(self):
+    def verify_illegal_instruction(self):
         """
         Find illegal instruction code on VM serial console output.
 
