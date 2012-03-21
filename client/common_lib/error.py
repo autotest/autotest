@@ -297,6 +297,16 @@ class BarrierAbortError(BarrierError):
     pass
 
 
+class NetCommunicationError(JobError):
+    """Indicate that network communication was broken."""
+    pass
+
+
+class DataSyncError(NetCommunicationError):
+    """Indicates problem during synchronization data over network."""
+    pass
+
+
 class InstallError(JobError):
     """Indicates an installation error which Terminates and fails the job."""
     pass
