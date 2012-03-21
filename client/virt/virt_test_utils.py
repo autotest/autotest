@@ -493,7 +493,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
         dirname = os.path.dirname(remote_path)
         session.cmd("cd %s" % dirname)
         session.cmd("mkdir -p %s" % os.path.dirname(dest_dir))
-        e_cmd = "tar xjvf %s -C %s" % (basename, os.path.dirname(dest_dir))
+        e_cmd = "bzcat %s | tar -C %s -xvf -" % (basename, os.path.dirname(dest_dir))
         output = session.cmd(e_cmd, timeout=120)
         autotest_dirname = ""
         for line in output.splitlines():
@@ -547,8 +547,19 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
         mig_protocol = params.get("migration_protocol", "tcp")
 
     compressed_autotest_path = "/tmp/autotest.tar.bz2"
-    destination_autotest_path = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                            'autotest_top_path')
+    default_autotest_path = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                           'autotest_top_path')
+    try:
+        session.cmd('test -e /bin/busybox')
+        busybox_system = True
+    except aexpect.ShellCmdError:
+        busybox_system = False
+
+    if busybox_system:
+        # Our embedded images have some space on /tmpfs, not so much in root
+        destination_autotest_path = '/tmp/autotest'
+    else:
+        destination_autotest_path = default_autotest_path
 
     # To avoid problems, let's make the test use the current AUTODIR
     # (autotest client path) location

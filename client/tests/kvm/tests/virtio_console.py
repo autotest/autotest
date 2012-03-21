@@ -10,7 +10,7 @@ from threading import Thread
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import utils
-from autotest_lib.client.virt import virt_utils, virt_test_utils, kvm_monitor
+from autotest_lib.client.virt import virt_test_utils, kvm_monitor
 from autotest_lib.client.virt import virt_env_process, aexpect
 
 
@@ -32,6 +32,10 @@ def run_virtio_console(test, params, env):
     @param params: Dictionary with the test parameters
     @param env: Dictionary with test environment
     """
+    virt_dir = os.path.join(os.environ['AUTODIR'], 'virt')
+    vksmd_src = os.path.join(virt_dir, "scripts", "virtio_console_guest.py")
+    dst_dir = "/tmp"
+
     class SubTest(object):
         """
         Collect result of subtest of main test.
@@ -547,25 +551,26 @@ def run_virtio_console(test, params, env):
         @param timeout: Timeout that will be used to verify if the script
                 started properly.
         """
+        vm[0].copy_files_to(vksmd_src, dst_dir)
         logging.debug("compile virtio_console_guest.py on guest %s",
                       vm[0].name)
 
-        (match, data) = _on_guest("python -OO /tmp/virtio_console_guest.py -c"
+        (match, _) = _on_guest("python -OO /tmp/virtio_console_guest.py -c"
                        "&& echo -n 'PASS: Compile virtio_guest finished' ||"
                        "echo -n 'FAIL: Compile virtio_guest failed'",
                         vm, timeout)
 
         if match != 0:
-            raise error.TestFail("Command console_switch.py on guest %s "
-                                 "failed.\nreturn code: %s\n output:\n%s" %
-                                 (vm[0].name, match, data))
+            cmd = "python /tmp/virtio_console_guest.py"
+        else:
+            cmd = "python /tmp/virtio_console_guest.pyo"
+
         logging.debug("Starting virtio_console_guest.py on guest %s",
                       vm[0].name)
         vm[1].sendline()
-        (match, data) = _on_guest("python /tmp/virtio_console_guest.pyo &&"
-                       "echo -n 'PASS: virtio_guest finished' ||"
-                       "echo -n 'FAIL: virtio_guest failed'",
-                       vm, timeout)
+        (match, data) = _on_guest("%s && echo -n 'PASS: virtio_guest finished' "
+                                 "|| echo -n 'FAIL: virtio_guest failed'" % cmd,
+                                 vm, timeout)
         if match != 0:
             raise error.TestFail("Command console_switch.py on guest %s "
                                  "failed.\nreturn code: %s\n output:\n%s" %
@@ -2133,13 +2138,6 @@ def run_virtio_console(test, params, env):
                              "configuration in tests_base.cfg")
 
     vm, consoles = _vm_create(no_consoles, no_serialports)
-
-    # Copy virtio_console_guest.py into guests
-    virt_dir = os.path.join(os.environ['AUTODIR'], 'virt')
-    vksmd_src = os.path.join(virt_dir, "scripts", "virtio_console_guest.py")
-    dst_dir = "/tmp"
-
-    vm[0].copy_files_to(vksmd_src, dst_dir)
 
     # ACTUAL TESTING
     # Defines all available consoles; tests udev and sysfs

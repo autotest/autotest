@@ -99,6 +99,25 @@ variants:
                 #image_name = /dev/mapper/vg_some_label
                 #image_type_raw = yes
 
+            - JeOS:
+                username = root
+                password = 123456
+                usbs =
+                usb(_.*)? ?= ""
+                shell_prompt = "#"
+                shutdown_command = poweroff
+                reboot_command = reboot
+                migration_bg_check_command = ps -ef | grep -v grep | grep tcpdump
+                migration_bg_kill_command = killall tcpdump
+                variants:
+                    - intel_64:
+                        kernel = images/jeos_x86_64/bzImage
+                        image_name = jeos_x86_64/rootfs.ext2
+                        kernel_params += ' root=/dev/vda console=tty0 console=ttyS0,115200'
+                        migrate..with_file_transfer:
+                            file_size = 100
+                            timeout = 25
+
             - Fedora:
                 no setup
                 shell_prompt = "^\[.*\][\#\$]\s*$"

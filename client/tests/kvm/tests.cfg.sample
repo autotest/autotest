@@ -128,5 +128,22 @@ variants:
         only CustomGuestLinux
         only migrate
 
+    - @qemu_intel_64_jeos:
+        mem = 256
+        qemu_binary = /usr/bin/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        only buildroot
+        only virtio_net
+        only virtio_blk
+        only smp2
+        only no_9p_export
+        only no_pci_assignable
+        only smallpages
+        only JeOS.intel_64
+        # Tests supported so far
+        #only boot, reboot, migrate..default, migrate..with_file_transfer, timedrift, autotest.sleeptest, virtio_console, ping, iofuzz shutdown
+        only boot, reboot, migrate..default, shutdown
+
 # Choose your test list from the testsets defined
-only qemu_kvm_f16_quick
+only qemu_intel_64_jeos

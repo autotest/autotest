@@ -36,6 +36,8 @@ variants:
             # Device selection for the NDISTest server machine
             dp_regex_servermsgdev = VirtIO Ethernet Adapter$
             dp_regex_serversupportdev = VirtIO Ethernet Adapter #2$
+    - smc91c111:
+        nic_model = smc91c111
     -xennet:
         # placeholder
 
@@ -89,6 +91,9 @@ variants:
     - qed:
         no ioquit
         image_format = qed
+    # Buildroot images have to be used as is
+    - buildroot:
+        image_format =
 
 variants:
     - @no_pci_assignable:
