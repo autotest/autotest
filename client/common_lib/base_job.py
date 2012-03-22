@@ -1,7 +1,9 @@
 import os, copy, logging, errno, fcntl, time, re, weakref, traceback
 import tarfile
 import cPickle as pickle
-from autotest_lib.client.common_lib import autotemp, error, log
+from autotest_lib.client.common_lib import autotemp, error, log, global_config
+
+GLOBAL_CONFIG = global_config.global_config
 
 
 class job_directory(object):
@@ -1027,12 +1029,19 @@ class base_job(object):
         self._pkgdir = readwrite_dir(self.clientdir, 'packages')
         self._toolsdir = readonly_dir(self.clientdir, 'tools')
 
+        tmpdir_config = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                        'test_tmp_dir',
+                                                        default="")
         # directories which are in serverdir on a server, clientdir on a client
         if self.serverdir:
             root = self.serverdir
         else:
             root = self.clientdir
-        self._tmpdir = readwrite_dir(root, 'tmp')
+
+        if tmpdir_config:
+            self._tmpdir = readwrite_dir(tmpdir_config)
+        else:
+            self._tmpdir = readwrite_dir(root, 'tmp')
         self._testdir = readwrite_dir(root, 'tests')
         self._site_testdir = readwrite_dir(root, 'site_tests')
 
