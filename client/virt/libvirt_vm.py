@@ -174,7 +174,7 @@ def virsh_screenshot(name, filename, uri = ""):
         virsh_cmd("screenshot %s %s" % (name, filename), uri)
     except error.CmdError, detail:
         logging.error("Error taking VM %s screenshot. You might have to set "
-                      "take_regular_screenshots=no on your tests.cfg config "
+                      "take_regular_screendumps=no on your tests.cfg config "
                       "file \n%s", name, detail)
     return filename
 
