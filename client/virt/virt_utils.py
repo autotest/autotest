@@ -3564,7 +3564,21 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
             logging.debug("Creating config file %s from sample", dst_file)
             shutil.copyfile(src_file, dst_file)
         else:
-            logging.debug("Config file %s exists, not touching" % dst_file)
+            diff_result = utils.run("diff -Naur %s %s" % (src_file, dst_file),
+                                    ignore_status=True, verbose=False)
+            if diff_result.exit_status != 0:
+                logging.debug("%s result:\n %s" %
+                              (diff_result.command, diff_result.stdout))
+                answer = utils.ask("Config file  %s differs from %s. Overwrite?"
+                                   % (dst_file,src_file))
+                if answer == "y":
+                    logging.debug("Restoring config file %s from sample" %
+                                  dst_file)
+                    shutil.copyfile(src_file, dst_file)
+                else:
+                    logging.debug("Preserving existing %s file" % dst_file)
+            else:
+                logging.debug("Config file %s exists, not touching" % dst_file)
 
     logging.info("")
     step += 1
