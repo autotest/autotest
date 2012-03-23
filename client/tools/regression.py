@@ -33,7 +33,7 @@ class Sample():
     def getSDRate(self, sds_dict):
         return self._process_files(sds_dict, self._get_rate)
 
-    def getTtestPvalue(self, fs_dict1, fs_dict2):
+    def getTtestPvalue(self, fs_dict1, fs_dict2, paired=None):
         """
         scipy lib is used to compute p-value of Ttest
         scipy: http://www.scipy.org/
@@ -62,7 +62,10 @@ class Sample():
                     sample1 = np.array(s1[line][col])
                     sample2 = np.array(s2[line][col])
                     warnings.simplefilter("ignore", RuntimeWarning)
-                    (t, p) = stats.ttest_ind(sample1, sample2)
+                    if (paired):
+                        (t, p) = stats.ttest_rel(sample1, sample2)
+                    else:
+                        (t, p) = stats.ttest_ind(sample1, sample2)
                     flag = " "
                     if p <= 0.05:
                        flag = "+"
@@ -164,8 +167,8 @@ class Sample():
         return ret_lines
 
 
-def display(lists, rates, f, ignore_col, sum="Augment Rate",prefix0=None,
-            prefix1=None, prefix2=None):
+def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
+            prefix0=None, prefix1=None, prefix2=None, prefix3=None):
     """
     Display lists data to standard format
 
@@ -177,6 +180,7 @@ def display(lists, rates, f, ignore_col, sum="Augment Rate",prefix0=None,
     param prefix0: output prefix in head lines
     param prefix1: output prefix in Avg/SD lines
     param prefix2: output prefix in Diff Avg/P-value lines
+    param prefix3: output prefix in total Sign line
     """
 
     for l in range(len(lists[0])):
@@ -184,6 +188,7 @@ def display(lists, rates, f, ignore_col, sum="Augment Rate",prefix0=None,
             break
     tee("\n== %s " % sum + "==", f)
 
+    category = 0
     for i in range(len(lists[0])):
         for n in range(len(lists)):
             is_diff = False
@@ -192,17 +197,31 @@ def display(lists, rates, f, ignore_col, sum="Augment Rate",prefix0=None,
                     is_diff = True
                 if len(lists) == 1 and not re.findall("[a-zA-Z]", lists[j][i]):
                     is_diff = True
+
+            pfix = prefix1[0]
+            if len(prefix1) != 1:
+                pfix = prefix1[n]
             if is_diff:
-                tee(prefix1[n] + lists[n][i], f)
+                tee(pfix + lists[n][i], f)
             if not is_diff and n == 0:
                 if '|' in lists[n][i]:
                     tee(prefix0 + lists[n][i], f)
+                elif "Category:" in lists[n][i]:
+                    if category != 0 and prefix3:
+                        tee("", f)
+                        tee(prefix3 + allpvalues[category-1][0], f)
+                    category += 1
+                    tee(lists[n][i], f)
                 else:
                     tee(lists[n][i], f)
         for n in range(len(rates)):
             if lists[0][i] != rates[n][i] and not re.findall("[a-zA-Z]",
                                                              rates[n][i]):
                 tee(prefix2[n] + rates[n][i], f)
+
+    if prefix3:
+        tee("", f)
+        tee(prefix3 + allpvalues[category-1][0], f)
 
 def analyze(test, sample_list1, sample_list2, configfile):
     """ Compute averages/p-vales of two samples, print results nicely """
@@ -224,16 +243,36 @@ def analyze(test, sample_list1, sample_list2, configfile):
     sd2 = s1.getSDRate([avg2, sd2])
     avgs_rate = s1.getAvgPercent([avg1, avg2])
 
-    pvalues = s1.getTtestPvalue(s1.files_dict, s2.files_dict)
+    navg1 = []
+    navg2 = []
+    allpvalues = []
+    tmp1 = []
+    tmp2 = []
+    for i in range(len(avg1)):
+        if not re.findall("[a-zA-Z]", avg1[i]):
+            tmp1.append([avg1[i]])
+            tmp2.append([avg2[i]])
+        elif not "|" in avg1[i] and i != 0:
+            navg1.append(tmp1)
+            navg2.append(tmp2)
+            tmp1 = []
+            tmp2 = []
+    navg1.append(tmp1)
+    navg2.append(tmp2)
+
+    for i in range(len(navg1)):
+        allpvalues.append(s1.getTtestPvalue(navg1[i], navg2[i], True))
+
+    pvalues = s1.getTtestPvalue(s1.files_dict, s2.files_dict, False)
     rlist = [avgs_rate]
     if pvalues:
         # p-value list isn't null
         rlist.append(pvalues)
-    display([avg1, sd1, avg2, sd2], rlist, test+".txt", ignore_col,
-            sum="Regression Testing", prefix0="#||",
+    display([avg1, sd1, avg2, sd2], rlist, allpvalues, test+".txt",
+            ignore_col, sum="Regression Testing", prefix0="#||",
             prefix1=["1|Avg|", " |%SD|", "2|Avg|", " |%SD|"],
-            prefix2=["-|%Diff between Avg|", "-|Significance|"])
-
+            prefix2=["-|%Diff between Avg|", "-|Significance|"],
+            prefix3="-|Total Significance|")
 
 def compare(testname, olddir, curdir, configfile='perf.conf'):
     """ Find result files from directories """
