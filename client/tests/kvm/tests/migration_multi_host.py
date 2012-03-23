@@ -19,8 +19,9 @@ def run_migration_multi_host(test, params, env):
         def migration_scenario(self):
             srchost = self.params.get("hosts")[0]
             dsthost = self.params.get("hosts")[1]
+            vms = params.get("vms").split()
 
-            self.migrate_wait(["vm1"], srchost, dsthost)
+            self.migrate_wait(vms, srchost, dsthost)
 
     mig = TestMultihostMigration(test, params, env)
     mig.run()
