@@ -230,7 +230,7 @@ def analyze(test, sample_list1, sample_list2, configfile):
     ignore_col = int(config.get(test, "ignore_col"))
     avg_update = config.get(test, "avg_update")
 
-    commands.getoutput("rm -f %s.txt" % test)
+    commands.getoutput("rm -f %s.txt %s.avg" % (test, test))
     s1 = Sample(sample_list1.split())
     avg1 = s1.getAvg(avg_update=avg_update)
     sd1 = s1.getSD()
@@ -273,6 +273,16 @@ def analyze(test, sample_list1, sample_list2, configfile):
             prefix1=["1|Avg|", " |%SD|", "2|Avg|", " |%SD|"],
             prefix2=["-|%Diff between Avg|", "-|Significance|"],
             prefix3="-|Total Significance|")
+
+    display(s1.files_dict, [avg1], [], test+".avg", ignore_col,
+            sum="Raw data of sample 1", prefix0="#|    |",
+            prefix1=[" |    |"],
+            prefix2=["-|Avg |"], prefix3="")
+
+    display(s2.files_dict, [avg2], [], test+".avg", ignore_col,
+            sum="Raw data of sample 2", prefix0="#|    |",
+            prefix1=[" |    |"],
+            prefix2=["-|Avg |"], prefix3="")
 
 def compare(testname, olddir, curdir, configfile='perf.conf'):
     """ Find result files from directories """
