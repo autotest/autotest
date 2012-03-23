@@ -3435,7 +3435,7 @@ def bring_up_ifname(ifname):
     @param ifname: Name of the interface
     """
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-    ifr = struct.pack("16si", ifname, IFF_UP)
+    ifr = struct.pack("16sh", ifname, IFF_UP)
     try:
         fcntl.ioctl(ctrl_sock, SIOCSIFFLAGS, ifr)
     except IOError:
