@@ -460,8 +460,8 @@ class KojiInstaller(BaseInstaller):
         self.koji_cmd = params.get("%s_cmd" % self.param_key_prefix, None)
         if self.tag is not None:
             virt_utils.set_default_koji_tag(self.tag)
-        self.koji_pkgs = eval(params.get("%s_pkgs" % self.param_key_prefix,
-                                         "[]"))
+        self.koji_pkgs = params.get("%s_pkgs" % self.param_key_prefix,
+                                    "").split()
         if self.install_debug_info:
             self._expand_koji_pkgs_with_debuginfo()
 
