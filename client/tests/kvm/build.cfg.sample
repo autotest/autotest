@@ -57,7 +57,7 @@ variants:
 
         # QEMU (KVM) installation from koji/brew
         # koji_qemu_kvm_tag = dist-f15
-        # koji_qemu_kvm_pkgs = [':qemu:qemu-common,qemu-img,qemu-kvm,qemu-system-x86,qemu-kvm-tools', 'seabios', 'vgabios', ':gpxe:gpxe-roms-qemu', ':spice:spice-server']
+        # koji_qemu_kvm_pkgs = :qemu:qemu-common,qemu-img,qemu-kvm,qemu-system-x86,qemu-kvm-tools seabios vgabios :gpxe:gpxe-roms-qemu :spice:spice-server
 
         ######################################################################
         # INSTALLERS SELECTION
