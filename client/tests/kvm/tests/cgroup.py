@@ -1951,15 +1951,13 @@ def run_cgroup(test, params, env):
                          "processes might occur.")
             sessions[0].sendline('dd if=/dev/zero of=/dev/null bs=%dM '
                                  'iflag=fullblock' % size)
-            time.sleep(2)
 
             i = 0
-            sessions[1].cmd('killall -SIGUSR1 dd')
+            sessions[1].cmd('killall -SIGUSR1 dd ; true')
             t_stop = time.time() + test_time
             while time.time() < t_stop:
                 i += 1
                 assign_vm_into_cgroup(vm, cgroup, i % 2)
-            time.sleep(2)
             sessions[1].cmd('killall -SIGUSR1 dd; true')
             try:
                 out = sessions[0].read_until_output_matches(
