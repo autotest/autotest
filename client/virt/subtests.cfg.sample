@@ -1349,6 +1349,9 @@ variants:
             - cpuset_cpus_switching:
                 cgroup_test = "cpuset_cpus_switching"
                 # cgroup_test_time
+            - cpuset_mems_switching:
+                cgroup_test = "cpuset_mems_switching"
+                # cgroup_test_time, cgroup_cpuset_mems_mb
             - devices_access:
                 cgroup_test = "devices_access"
             - freezer:
@@ -1366,6 +1369,7 @@ variants:
                 # cgroup_memory_limit_kb = 2097152
             - memory_move:
                 cgroup_test = "memory_move"
+                restart_vm = "yes"
                 # cgroup_test_time, cgroup_memory_move_mb
                 # cgroup_memory_move_mb = 2048
 
