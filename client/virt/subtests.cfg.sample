@@ -1349,6 +1349,9 @@ variants:
             - cpuset_cpus_switching:
                 cgroup_test = "cpuset_cpus_switching"
                 # cgroup_test_time
+            - cpuset_mems_switching:
+                cgroup_test = "cpuset_mems_switching"
+                # cgroup_test_time, cgroup_cpuset_mems_mb
             - devices_access:
                 cgroup_test = "devices_access"
             - freezer:
