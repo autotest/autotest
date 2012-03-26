@@ -182,12 +182,35 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
     param prefix2: output prefix in Diff Avg/P-value lines
     param prefix3: output prefix in total Sign line
     """
+    def str_ignore(str, split=False):
+        str = str.split("|")
+        for i in range(ignore_col):
+            str[i] = " "
+        if split:
+            return "|".join(str[ignore_col:])
+        return "|".join(str)
+
+    def tee_line(content, file, n=None):
+        fd = open(file, "a")
+        print content
+        str = ""
+        str += "<TR ALIGN=CENTER>"
+        content = content.split("|")
+        for i in range(len(content)):
+            if n and i >= 2 and i < ignore_col+2:
+                str += "<TD ROWSPAN=%d WIDTH=1%% >%s</TD>" % (n, content[i])
+            else:
+                str += "<TD WIDTH=1%% >%s</TD>" % content[i]
+        str += "</TR>"
+        fd.write(str + "\n")
+        fd.close()
 
     for l in range(len(lists[0])):
         if not re.findall("[a-zA-Z]", lists[0][l]):
             break
-    tee("\n== %s " % sum + "==", f)
-
+    tee("<TABLE BORDER=1 CELLSPACING=1 CELLPADDING=1 width=10%><TBODY>",
+        f)
+    tee("<h3>== %s " % sum + "==</h3>", f)
     category = 0
     for i in range(len(lists[0])):
         for n in range(len(lists)):
@@ -202,26 +225,32 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
             if len(prefix1) != 1:
                 pfix = prefix1[n]
             if is_diff:
-                tee(pfix + lists[n][i], f)
+                if n == 0:
+                    tee_line(pfix + lists[n][i], f, n=len(lists)+len(rates))
+                else:
+                    tee_line(pfix + str_ignore(lists[n][i], True), f)
             if not is_diff and n == 0:
                 if '|' in lists[n][i]:
-                    tee(prefix0 + lists[n][i], f)
+                    tee_line(prefix0 + lists[n][i], f)
                 elif "Category:" in lists[n][i]:
                     if category != 0 and prefix3:
-                        tee("", f)
-                        tee(prefix3 + allpvalues[category-1][0], f)
+                        tee_line(prefix3 + str_ignore(
+                                 allpvalues[category-1][0]), f)
+                        tee("</TBODY></TABLE>", f)
+                        tee("<br>", f)
+                        tee("<TABLE BORDER=1 CELLSPACING=1 CELLPADDING=1 "
+                            "width=10%><TBODY>", f)
                     category += 1
-                    tee(lists[n][i], f)
+                    tee("<TH colspan=3 >%s</TH>" % lists[n][i], f)
                 else:
-                    tee(lists[n][i], f)
+                    tee("<TH colspan=3 >%s</TH>" % lists[n][i], f)
         for n in range(len(rates)):
             if lists[0][i] != rates[n][i] and not re.findall("[a-zA-Z]",
                                                              rates[n][i]):
-                tee(prefix2[n] + rates[n][i], f)
-
+                tee_line(prefix2[n] +  str_ignore(rates[n][i], True), f)
     if prefix3:
-        tee("", f)
-        tee(prefix3 + allpvalues[category-1][0], f)
+        tee_line(prefix3 + str_ignore(allpvalues[category-1][0]), f)
+    tee("</TBODY></TABLE>", f)
 
 def analyze(test, sample_list1, sample_list2, configfile):
     """ Compute averages/p-vales of two samples, print results nicely """
@@ -230,7 +259,7 @@ def analyze(test, sample_list1, sample_list2, configfile):
     ignore_col = int(config.get(test, "ignore_col"))
     avg_update = config.get(test, "avg_update")
 
-    commands.getoutput("rm -f %s.txt %s.avg" % (test, test))
+    commands.getoutput("rm -f %s.*html" % test)
     s1 = Sample(sample_list1.split())
     avg1 = s1.getAvg(avg_update=avg_update)
     sd1 = s1.getSD()
@@ -268,19 +297,19 @@ def analyze(test, sample_list1, sample_list2, configfile):
     if pvalues:
         # p-value list isn't null
         rlist.append(pvalues)
-    display([avg1, sd1, avg2, sd2], rlist, allpvalues, test+".txt",
-            ignore_col, sum="Regression Testing", prefix0="#||",
+    display([avg1, sd1, avg2, sd2], rlist, allpvalues, test+".html",
+            ignore_col, sum="Regression Testing: %s" % test, prefix0="#|Tile|",
             prefix1=["1|Avg|", " |%SD|", "2|Avg|", " |%SD|"],
             prefix2=["-|%Diff between Avg|", "-|Significance|"],
             prefix3="-|Total Significance|")
 
-    display(s1.files_dict, [avg1], [], test+".avg", ignore_col,
-            sum="Raw data of sample 1", prefix0="#|    |",
+    display(s1.files_dict, [avg1], [], test+".avg.html", ignore_col,
+            sum="Raw data of sample 1", prefix0="#|Tile|",
             prefix1=[" |    |"],
             prefix2=["-|Avg |"], prefix3="")
 
-    display(s2.files_dict, [avg2], [], test+".avg", ignore_col,
-            sum="Raw data of sample 2", prefix0="#|    |",
+    display(s2.files_dict, [avg2], [], test+".avg.html", ignore_col,
+            sum="Raw data of sample 2", prefix0="#|Tile|",
             prefix1=[" |    |"],
             prefix2=["-|Avg |"], prefix3="")
 
@@ -313,6 +342,7 @@ def tee(content, file):
     fd.write(content + "\n")
     fd.close()
     print content
+
 
 
 if __name__ == "__main__":
