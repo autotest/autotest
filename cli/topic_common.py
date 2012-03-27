@@ -382,9 +382,10 @@ class atest(object):
 
 
     def _get_usage(self):
-        return "atest %s %s [options] %s" % (self.msg_topic.lower(),
-                                             self.usage_action,
-                                             self.msg_items)
+        return ("%s %s %s [options] %s" % (os.path.basename(sys.argv[0]),
+                                           self.msg_topic.lower(),
+                                           self.usage_action,
+                                           self.msg_items))
 
 
     def backward_compatibility(self, action, argv):
