@@ -56,7 +56,7 @@ High Level Algorithm:
 """
 
 import getpass, optparse, os, pwd, re, socket, sys, textwrap, traceback
-import socket, string, urllib2
+import socket, string, urllib2, inspect
 from autotest_lib.cli import rpc
 from autotest_lib.frontend.afe.json_rpc import proxy
 from autotest_lib.client.common_lib.test_utils import mock
@@ -382,9 +382,10 @@ class atest(object):
 
 
     def _get_usage(self):
-        return "atest %s %s [options] %s" % (self.msg_topic.lower(),
-                                             self.usage_action,
-                                             self.msg_items)
+        return "%s %s %s [options] %s" % (os.path.basename(inspect.stack()[-1][1]),
+                                          self.msg_topic.lower(),
+                                          self.usage_action,
+                                          self.msg_items)
 
 
     def backward_compatibility(self, action, argv):
