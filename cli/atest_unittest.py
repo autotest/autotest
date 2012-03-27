@@ -45,7 +45,7 @@ class main_unittest(cli_mock.cli_unittest):
 
     def test_main_help_action(self):
         """Action level help"""
-        self._test_help(argv=['atest:', 'host', 'mod'],
+        self._test_help(argv=['atest', 'host', 'mod'],
                         out_words_ok=['atest host mod [options]'],
                         err_words_ok=[])
 
