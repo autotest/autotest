@@ -186,6 +186,16 @@ class VMIPAddressMissingError(VMAddressError):
     def __str__(self):
         return "No DHCP lease for MAC %s" % self.mac
 
+class VMUnknownNetTypeError(VMError):
+    def __init__(self, vmname, nicname, nettype):
+        super(VMUnknownNetTypeError, self).__init__()
+        self.vmname = vmname
+        self.nicname = nicname
+        self.nettype = nettype
+
+    def __str__(self):
+        return "Unknown nettype '%s' requested for NIC %s on VM %s" % (
+            self.nettype, self.nicname, self.vmname)
 
 class VMAddNetDevError(VMError):
     pass
@@ -333,7 +343,6 @@ class BaseVM(object):
     def __init__(self, name, params):
         self.name = name
         self.params = params
-
         #
         # Assuming all low-level hypervisors will have a serial (like) console
         # connection to the guest. libvirt also supports serial (like) consoles
@@ -343,7 +352,9 @@ class BaseVM(object):
         self.serial_console = None
 
         self._generate_unique_id()
-
+        self.virtnet = virt_utils.VirtNet(self.params,
+                                          self.name,
+                                          self.instance)
 
     def _generate_unique_id(self):
         """
@@ -351,7 +362,7 @@ class BaseVM(object):
         """
         while True:
             self.instance = (time.strftime("%Y%m%d-%H%M%S-") +
-                             virt_utils.generate_random_string(4))
+                             virt_utils.generate_random_string(8))
             if not glob.glob("/tmp/*%s" % self.instance):
                 break
 
@@ -381,13 +392,108 @@ class BaseVM(object):
         @raise VMMACAddressMissingError: If no MAC address is defined for the
                 requested NIC
         """
-        nic_name = self.params.objects("nics")[nic_index]
-        nic_params = self.params.object_params(nic_name)
-        mac = (nic_params.get("nic_mac") or
-               virt_utils.get_mac_address(self.instance, nic_index))
-        if not mac:
+        try:
+            mac = self.virtnet[nic_index].mac
+            return mac
+        except KeyError:
             raise VMMACAddressMissingError(nic_index)
-        return mac
+
+
+    def get_address(self, index=0):
+        """
+        Return the IP address of a NIC or guest (in host space).
+
+        @param index: Name or index of the NIC whose address is requested.
+        @return: 'localhost': Port redirection is in use
+        @return: IP address of NIC if valid in arp cache.
+        @raise VMMACAddressMissingError: If no MAC address is defined for the
+                requested NIC
+        @raise VMIPAddressMissingError: If no IP address is found for the the
+                NIC's MAC address
+        @raise VMAddressVerificationError: If the MAC-IP address mapping cannot
+                be verified (using arping)
+        """
+        nic = self.virtnet[index]
+        # TODO: Determine port redirection in use w/o checking nettype
+        if nic.nettype != 'bridge':
+            return "localhost"
+        if not nic.has_key('mac'):
+            raise VMMACAddressMissingError(index)
+        else:
+            # Get the IP address from arp cache, try upper and lower case
+            arp_ip = self.address_cache.get(nic.mac.upper())
+            if not arp_ip:
+                arp_ip = self.address_cache.get(nic.mac.lower())
+            if not arp_ip:
+                raise VMIPAddressMissingError(nic.mac)
+            # Make sure the IP address is assigned to one or more macs
+            # for this guest
+            macs = self.virtnet.mac_list()
+            if not virt_utils.verify_ip_address_ownership(arp_ip, macs):
+                raise VMAddressVerificationError(nic.mac, arp_ip)
+            logging.debug('Found/Verified IP %s for VM %s NIC %s' % (
+                            arp_ip, self.name, str(index)))
+            return arp_ip
+
+
+    def free_mac_address(self, nic_index_or_name=0):
+        """
+        Free a NIC's MAC address.
+
+        @param nic_index: Index of the NIC
+        """
+        self.virtnet.free_mac_address(nic_index_or_name)
+
+
+    # Adding/setup networking devices methods split between 'add_*' for
+    # setting up virtnet, and 'activate_' for performing actions based
+    # on settings.
+    def add_nic(self, **params):
+        """
+        Add new or setup existing NIC with optional model type and mac address
+
+        @param: **params: Additional NIC parameters to set.
+        @param: nic_name: Name for device
+        @param: mac: Optional MAC address, None to randomly generate.
+        @param: ip: Optional IP address to register in address_cache
+        @return: Dict with new NIC's info.
+        """
+        if not params.has_key('nic_name'):
+            params['nic_name'] = virt_utils.generate_random_id()
+        nic_name = params['nic_name']
+        if nic_name in self.virtnet.nic_name_list():
+            self.virtnet[nic_name].update(**params)
+        else:
+            self.virtnet.append(params)
+        nic = self.virtnet[nic_name]
+        if not nic.has_key('mac'): # generate random mac
+            logging.debug("Generating random mac address for nic")
+            self.virtnet.generate_mac_address(nic_name)
+        # mac of '' or invaid format results in not setting a mac
+        if nic.has_key('ip') and nic.has_key('mac'):
+            if not self.address_cache.has_key(nic.mac):
+                logging.debug("(address cache) Adding static "
+                              "cache entry: %s ---> %s" % (nic.mac, nic.ip))
+            else:
+                logging.debug("(address cache) Updating static "
+                              "cache entry from: %s ---> %s"
+                              " to: %s ---> %s" % (nic.mac,
+                              self.address_cache[nic.mac], nic.mac, nic.ip))
+            self.address_cache[nic.mac] = nic.ip
+        return nic
+
+
+    def del_nic(self, nic_index_or_name):
+        """
+        Remove the nic specified by name, or index number
+        """
+        nic = self.virtnet[nic_index_or_name]
+        self.free_mac_address(nic.mac)
+        try:
+            del self.address_cache[nic.mac]
+            del self.virtnet[nic_index_or_name]
+        except IndexError:
+            pass # continue to not exist
 
 
     def verify_kernel_crash(self):
@@ -703,17 +809,19 @@ class BaseVM(object):
         raise NotImplementedError
 
 
-    def get_address(self, index=0):
+    def activate_nic(self, nic_index_or_name):
         """
-        Return the IP address of a NIC of the guest
+        Activate an inactive network device
 
-        @param index: Index of the NIC whose address is requested.
-        @raise VMMACAddressMissingError: If no MAC address is defined for the
-                requested NIC
-        @raise VMIPAddressMissingError: If no IP address is found for the the
-                NIC's MAC address
-        @raise VMAddressVerificationError: If the MAC-IP address mapping cannot
-                be verified (using arping)
+        @param: nic_index_or_name: name or index number for existing NIC
+        """
+        raise NotImplementedError
+
+    def deactivate_nic(self, nic_index_or_name):
+        """
+        Deactivate an active network device
+
+        @param: nic_index_or_name: name or index number for existing NIC
         """
         raise NotImplementedError
 
