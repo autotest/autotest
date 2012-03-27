@@ -167,6 +167,15 @@ def run_ntttcp(test, params, env):
             f = open("%s.RHS" % results_path, "w")
             raw = "  buf(k)| throughput(Mbit/s)"
             logging.info(raw)
+            fd.write("#ver# %s\n#ver# host kernel: %s%s\n" % (
+                     commands.getoutput("rpm -q qemu-kvm"),
+                     os.uname()[2]))
+            desc = """#desc# The tests are sessions of "NTttcp", send buf number is %s. 'throughput' was taken from ntttcp's report.
+#desc# How to read the results:
+#desc# - The Throughput is measured in Mbit/sec.
+#desc#
+""" % (buf_num)
+            f.write(desc)
             f.write(raw + "\n")
             for j in parse_file(i):
                 raw = "%8s| %8s" % (j[0], j[1])
