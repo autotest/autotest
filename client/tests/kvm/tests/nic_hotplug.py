@@ -16,11 +16,12 @@ def run_nic_hotplug(test, params, env):
     7) Delete nic device and netdev
     8) Re-enable primary link of guest
 
-    BEWARE OF THE NETWORK BRIDGE DEVICE USED FOR THIS TEST ("bridge" param).
-    The KVM autotest default bridge virbr0, leveraging libvirt, works fine
-    for the purpose of this test. When using other bridges, the timeouts
-    which usually happen when the bridge topology changes (that is, devices
-    get added and removed) may cause random failures.
+    BEWARE OF THE NETWORK BRIDGE DEVICE USED FOR THIS TEST ("nettype=bridge"
+    and "netdst=<bridgename>" param).  The KVM autotest default bridge virbr0,
+    leveraging libvirt, works fine for the purpose of this test. When using
+    other bridges, the timeouts which usually happen when the bridge
+    topology changes (that is, devices get added and removed) may cause random
+    failures.
 
     @param test:   KVM test object.
     @param params: Dictionary with the test parameters.
@@ -55,7 +56,7 @@ def run_nic_hotplug(test, params, env):
             session.get_command_output("modprobe %s" % module)
 
     # hot-add the nic
-    nic_info = vm.add_nic(model=pci_model)
+    nic_info = vm.add_nic(model=pci_model, nic_name='hotadded')
 
     # Only run dhclient if explicitly set and guest is not running Windows.
     # Most modern Linux guests run NetworkManager, and thus do not need this.
@@ -65,7 +66,7 @@ def run_nic_hotplug(test, params, env):
         session_serial.cmd("dhclient %s &" % ifname)
 
     logging.info("Shutting down the primary link")
-    vm.monitor.cmd("set_link %s off" % vm.netdev_id[0])
+    vm.monitor.cmd("set_link %s off" % nic_info.netdev_id)
 
     try:
         logging.info("Waiting for new nic's ip address acquisition...")
@@ -94,7 +95,7 @@ def run_nic_hotplug(test, params, env):
     finally:
         vm.free_mac_address(1)
         logging.info("Re-enabling the primary link")
-        vm.monitor.cmd("set_link %s on" % vm.netdev_id[0])
+        vm.monitor.cmd("set_link %s on" % nic_info.netdev_id)
 
     # Attempt to put back udev network naming rules, even if the command to
     # disable the rules failed. We may be undoing what was done in a previous
