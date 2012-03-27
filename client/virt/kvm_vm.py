@@ -39,7 +39,7 @@ class VM(virt_vm.BaseVM):
         @param address_cache: A dict that maps MAC addresses to IP addresses
         @param state: If provided, use this as self.__dict__
         """
-        virt_vm.BaseVM.__init__(self, name, params)
+        super(VM, self).__init__(name, params)
 
         if state:
             self.__dict__ = state
@@ -51,9 +51,10 @@ class VM(virt_vm.BaseVM):
             self.vnc_port = 5900
             self.monitors = []
             self.pci_assignable = None
-            self.netdev_id = []
-            self.device_id = []
-            self.tapfds = []
+            # replaced with self.virtnet[nic_index].netdev_id or .device_id
+            # was self.netdev_id = []
+            # was self.device_id = []
+            # self.tapfds = []
             self.uuid = None
             self.vcpu_threads = []
             self.vhost_threads = []
@@ -765,6 +766,7 @@ class VM(virt_vm.BaseVM):
                     image_params.get("logical_block_size"),
                     image_params.get("image_readonly"))
 
+        # Networking
         redirs = []
         for redir_name in params.objects("redirs"):
             redir_params = params.object_params(redir_name)
@@ -772,41 +774,38 @@ class VM(virt_vm.BaseVM):
             host_port = vm.redirs.get(guest_port)
             redirs += [(host_port, guest_port)]
 
-        vlan = 0
-        for nic_name in params.objects("nics"):
-            nic_params = params.object_params(nic_name)
-            try:
-                netdev_id = vm.netdev_id[vlan]
-                device_id = vm.device_id[vlan]
-            except IndexError:
-                netdev_id = None
-                device_id = None
-            # Handle the '-net nic' part
-            try:
-                mac = vm.get_mac_address(vlan)
-            except virt_vm.VMAddressError:
-                mac = None
-            qemu_cmd += add_nic(help, vlan, nic_params.get("nic_model"), mac,
-                                device_id, netdev_id, nic_params.get("nic_extra_params"))
-            # Handle the '-net tap' or '-net user' or '-netdev' part
-            tftp = nic_params.get("tftp")
-            if tftp:
-                tftp = virt_utils.get_path(root_dir, tftp)
-            if nic_params.get("nic_mode") == "tap":
-                try:
-                    tapfd = vm.tapfds[vlan]
-                except Exception:
-                    tapfd = None
+        for nic in vm.virtnet:
+            # setup nic parameters as needed
+            nic = vm.add_nic(**dict(nic)) # implied add_netdev
+            logging.debug("__make_qemu_cmd() setting up command for nic: %s"
+                          % str(nic))
+            # gather set values or None if unset
+            vlan = int(nic.get('vlan'))
+            netdev_id = nic.get('netdev_id')
+            device_id = nic.get('device_id')
+            mac = nic.get('mac')
+            nic_model = nic.get("nic_model")
+            nic_extra = nic.get("nic_extra_params")
+            netdev_extra = nic.get("netdev_extra_params")
+            bootp = nic.get("bootp")
+            if nic.get("tftp"):
+                tftp = virt_utils.get_path(root_dir, nic.get("tftp"))
+            else:
+                tftp = None
+            mode = nic.get("nic_mode", "tap")
+            # don't force conversion of add_nic()/add_net() optional parameter
+            if nic.has_key('tapfd'):
+                tapfd = int(nic.tapfd)
             else:
                 tapfd = None
-            qemu_cmd += add_net(help, vlan,
-                                nic_params.get("nic_mode", "user"),
-                                vm.get_ifname(vlan), tftp,
-                                nic_params.get("bootp"), redirs, netdev_id,
-                                nic_params.get("netdev_extra_params"),
+            ifname = nic.get('ifname')
+            # Handle the '-net nic' part
+            qemu_cmd += add_nic(help, vlan, nic_model, mac,
+                                device_id, netdev_id, nic_extra)
+            # Handle the '-net tap' or '-net user' or '-netdev' part
+            qemu_cmd += add_net(help, vlan, mode, ifname, tftp,
+                                bootp, redirs, netdev_id, netdev_extra,
                                 tapfd)
-            # Proceed to next NIC
-            vlan += 1
 
         mem = params.get("mem")
         if mem:
@@ -965,6 +964,7 @@ class VM(virt_vm.BaseVM):
         if extra_params:
             qemu_cmd += " %s" % extra_params
 
+        #logging.debug("Produced qemu commandline: %s", qemu_cmd)
         return qemu_cmd
 
 
@@ -1065,22 +1065,23 @@ class VM(virt_vm.BaseVM):
                 guest_port = int(redir_params.get("guest_port"))
                 self.redirs[guest_port] = host_ports[i]
 
-            # Generate netdev IDs for all NICs and create TAP fd
-            self.netdev_id = []
-            self.tapfds = []
-            vlan = 0
-            for nic in params.objects("nics"):
-                self.netdev_id.append(virt_utils.generate_random_id())
-                self.device_id.append(virt_utils.generate_random_id())
-                nic_params = params.object_params(nic)
-                if nic_params.get("nic_mode") == "tap":
-                    ifname = self.get_ifname(vlan)
-                    brname = nic_params.get("bridge")
-                    tapfd = virt_utils.open_tap("/dev/net/tun", ifname)
-                    virt_utils.add_to_bridge(ifname, brname)
-                    virt_utils.bring_up_ifname(ifname)
-                    self.tapfds.append(tapfd)
-                vlan += 1
+            # Generate basic parameter values for all NICs and create TAP fd
+            for nic in self.virtnet:
+                # fill in key values, validate nettype
+                nic = self.add_nic(**dict(nic)) # implied add_netdev
+                logging.debug('VM.create activating nic %s' % nic)
+                if nic.nettype == 'bridge':
+                    if not nic.get('tapfd'):
+                        nic.tapfd = str(virt_utils.open_tap("/dev/net/tun",
+                                                            nic.ifname,
+                                                            vnet_hdr=False))
+                        virt_utils.add_to_bridge(nic.ifname, nic.netdst)
+                        virt_utils.bring_up_ifname(nic.ifname)
+                elif nic.nettype == 'user':
+                    logging.info("Assuming dependencies met for "
+                                 "user mode nic %s, and ready to go"
+                                 % nic.nic_name)
+                    pass # assume prep. manually performed
 
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
@@ -1111,23 +1112,6 @@ class VM(virt_vm.BaseVM):
                 f = open("/proc/sys/kernel/random/uuid")
                 self.uuid = f.read().strip()
                 f.close()
-
-            # Generate or copy MAC addresses for all NICs
-            num_nics = len(params.objects("nics"))
-            for vlan in range(num_nics):
-                nic_name = params.objects("nics")[vlan]
-                nic_params = params.object_params(nic_name)
-                mac = (nic_params.get("nic_mac") or
-                       mac_source and mac_source.get_mac_address(vlan))
-                if mac:
-                    virt_utils.set_mac_address(self.instance, vlan, mac)
-                else:
-                    mac = virt_utils.generate_mac_address(self.instance, vlan)
-
-                if nic_params.get("ip"):
-                    self.address_cache[mac] = nic_params.get("ip")
-                    logging.debug("(address cache) Adding static cache entry: "
-                                  "%s ---> %s" % (mac, nic_params.get("ip")))
 
             # Assign a PCI assignable device
             self.pci_assignable = None
@@ -1215,12 +1199,17 @@ class VM(virt_vm.BaseVM):
             logging.info("Running qemu command:\n%s", qemu_command)
             self.process = aexpect.run_bg(qemu_command, None,
                                           logging.info, "[qemu output] ")
-            for tapfd in self.tapfds:
-                try:
-                    os.close(tapfd)
-                # File descriptor is already closed
-                except OSError:
-                    pass
+
+            # test doesn't need to hold tapfd's open
+            for nic in self.virtnet:
+                if nic.has_key('tapfd_id'): # implies bridge/tap
+                    try:
+                        os.close(int(nic.tapfd))
+                        # retain qemu-internal reference via tapfd_id
+                        del nic['tapfd']
+                    # File descriptor is already closed
+                    except OSError:
+                        pass
 
             # Make sure the process was started successfully
             if not self.process.is_alive():
@@ -1382,9 +1371,8 @@ class VM(virt_vm.BaseVM):
                 except OSError:
                     pass
             if free_mac_addresses:
-                num_nics = len(self.params.objects("nics"))
-                for vlan in range(num_nics):
-                    self.free_mac_address(vlan)
+                for nic_index in xrange(0,len(self.virtnet)):
+                    self.free_mac_address(nic_index)
 
 
     @property
@@ -1418,39 +1406,6 @@ class VM(virt_vm.BaseVM):
                 self.params.objects("monitors")]
 
 
-    def get_address(self, index=0):
-        """
-        Return the address of a NIC of the guest, in host space.
-
-        If port redirection is used, return 'localhost' (the NIC has no IP
-        address of its own).  Otherwise return the NIC's IP address.
-
-        @param index: Index of the NIC whose address is requested.
-        @raise VMMACAddressMissingError: If no MAC address is defined for the
-                requested NIC
-        @raise VMIPAddressMissingError: If no IP address is found for the the
-                NIC's MAC address
-        @raise VMAddressVerificationError: If the MAC-IP address mapping cannot
-                be verified (using arping)
-        """
-        nics = self.params.objects("nics")
-        nic_name = nics[index]
-        nic_params = self.params.object_params(nic_name)
-        if nic_params.get("nic_mode") == "tap":
-            mac = self.get_mac_address(index).lower()
-            # Get the IP address from the cache
-            ip = self.address_cache.get(mac)
-            if not ip:
-                raise virt_vm.VMIPAddressMissingError(mac)
-            # Make sure the IP address is assigned to this guest
-            macs = [self.get_mac_address(i) for i in range(len(nics))]
-            if not virt_utils.verify_ip_address_ownership(ip, macs):
-                raise virt_vm.VMAddressVerificationError(mac, ip)
-            return ip
-        else:
-            return "localhost"
-
-
     def get_port(self, port, nic_index=0):
         """
         Return the port in host space corresponding to port in guest space.
@@ -1462,9 +1417,7 @@ class VM(virt_vm.BaseVM):
         @raise VMPortNotRedirectedError: If an unredirected port is requested
                 in user mode
         """
-        nic_name = self.params.objects("nics")[nic_index]
-        nic_params = self.params.object_params(nic_name)
-        if nic_params.get("nic_mode") == "tap":
+        if self.virtnet[nic_index].nettype == "bridge":
             return port
         else:
             try:
@@ -1505,47 +1458,11 @@ class VM(virt_vm.BaseVM):
 
     def get_ifname(self, nic_index=0):
         """
-        Return the ifname of a tap device associated with a NIC.
+        Return the ifname of a bridge/tap device associated with a NIC.
 
         @param nic_index: Index of the NIC
         """
-        nics = self.params.objects("nics")
-        try:
-            nic_name = nics[nic_index]
-            nic_params = self.params.object_params(nic_name)
-        except IndexError:
-            nic_params = {}
-
-        if nic_params.get("nic_ifname"):
-            return nic_params.get("nic_ifname")
-        else:
-            return "t%d-%s" % (nic_index, self.instance[-11:])
-
-
-    def get_mac_address(self, nic_index=0):
-        """
-        Return the MAC address of a NIC.
-
-        @param nic_index: Index of the NIC
-        @raise VMMACAddressMissingError: If no MAC address is defined for the
-                requested NIC
-        """
-        nic_name = self.params.objects("nics")[nic_index]
-        nic_params = self.params.object_params(nic_name)
-        mac = (nic_params.get("nic_mac") or
-               virt_utils.get_mac_address(self.instance, nic_index))
-        if not mac:
-            raise virt_vm.VMMACAddressMissingError(nic_index)
-        return mac
-
-
-    def free_mac_address(self, nic_index=0):
-        """
-        Free a NIC's MAC address.
-
-        @param nic_index: Index of the NIC
-        """
-        virt_utils.free_mac_address(self.instance, nic_index)
+        return self.virtnet[nic_index].ifname
 
 
     def get_pid(self):
@@ -1607,128 +1524,192 @@ class VM(virt_vm.BaseVM):
         return self.spice_options.get(spice_var, None)
 
     @error.context_aware
-    def add_netdev(self, netdev_id=None, extra_params=None):
+    def add_netdev(self, **params):
         """
         Hotplug a netdev device.
 
-        @param netdev_id: Optional netdev id.
+        @param: **params: NIC info. dict.
+        @return: netdev_id
         """
-        brname = self.params.get("bridge")
-        if netdev_id is None:
-            netdev_id = virt_utils.generate_random_id()
-        vlan_index = len(self.tapfds)
-        ifname = self.get_ifname(vlan_index)
-        logging.debug("interface name is %s" % ifname)
-        tapfd = virt_utils.open_tap("/dev/net/tun", ifname, vnet_hdr=False)
-        virt_utils.add_to_bridge(ifname, brname)
-        virt_utils.bring_up_ifname(ifname)
-        self.tapfds.append(tapfd)
-        tapfd_id = virt_utils.generate_random_id()
-        self.monitor.getfd(tapfd, tapfd_id)
-        attach_cmd = "netdev_add tap,id=%s,fd=%s" % (netdev_id, tapfd_id)
-        if extra_params is not None:
-            attach_cmd += ",%s" % extra_params
-        error.context("adding netdev id %s to vm %s" % (netdev_id, self.name))
+        nic_name = params['nic_name']
+        nic = self.virtnet[nic_name]
+        nic_index = self.virtnet.nic_name_index(nic_name)
+        nic.set_if_none('netdev_id', virt_utils.generate_random_id())
+        nic.set_if_none('ifname', self.virtnet.generate_ifname(nic_index))
+        if nic.nettype == 'bridge': # implies tap
+            # destination is required, hard-code reasonable default if unset
+            nic.set_if_none('netdst', 'virbr0')
+            # tapfd allocated/set in activate because requires system resources
+            nic.set_if_none('tapfd_id', virt_utils.generate_random_id())
+        elif nic.nettype == 'user':
+            pass # nothing to do
+        else: # unsupported nettype
+            raise virt_vm.VMUnknownNetTypeError(self.name, nic_name,
+                                                nic.nettype)
+        return nic.netdev_id
+
+    @error.context_aware
+    def del_netdev(self, nic_index_or_name):
+        """
+        Remove netdev info. from nic on VM, does not deactivate.
+
+        @param: netdev_id: ID set/returned from activate_netdev()
+        """
+        nic = self.virtnet[nic_index_or_name]
+        error.context("removing netdev info from nic %s from vm %s" % (
+                      nic, self.name))
+        for propertea in ['netdev_id', 'ifname', 'tapfd', 'tapfd_id']:
+            if nic.has_key(propertea):
+                del nic[propertea]
+
+    def add_nic(self, **params):
+        """
+        Add new or setup existing NIC, optionally creating netdev if None
+
+        @param: **params: Parameters to set
+        @param: nic_name: Name for existing or new device
+        @param: nic_model: Model name to emulate
+        @param: netdev_id: Existing qemu net device ID name, None to create new
+        @param: mac: Optional MAC address, None to randomly generate.
+        """
+        # returns existing or new nic object
+        nic = super(VM, self).add_nic(**params)
+        nic_index = self.virtnet.nic_name_index(nic.nic_name)
+        nic.set_if_none('vlan', str(nic_index))
+        nic.set_if_none('device_id', virt_utils.generate_random_id())
+        nic.set_if_none('netdev_id', self.add_netdev(**params))
+        return nic
+
+
+    @error.context_aware
+    def activate_netdev(self, nic_index_or_name):
+        """
+        Activate an inactive host-side networking device
+
+        @raises: IndexError if nic doesn't exist
+        @raises: VMUnknownNetTypeError: if nettype is unset/unsupported
+        @raises: IOError if TAP device node cannot be opened
+        @raises: VMAddNetDevError: if operation failed
+        """
+        nic = self.virtnet[nic_index_or_name]
+        error.context("Activating netdev for %s based on %s" % (self.name, nic))
+        msg_sfx = "nic %s on vm %s with attach_cmd " % (
+                self.virtnet[nic_index_or_name], self.name)
+        attach_cmd = "netdev_add "
+        if nic.nettype == 'bridge': # implies tap
+            error.context("Opening tap device node for %s " % nic.ifname)
+            nic.set_if_none('tapfd', str(virt_utils.open_tap("/dev/net/tun",
+                                                nic.ifname, vnet_hdr=False)))
+            error.context("Registering tap id %s for FD %d" % (
+                            nic.tapfd_id, int(nic.tapfd)))
+            self.monitor.getfd(int(nic.tapfd), nic.tapfd_id)
+            attach_cmd += "tap,id=%s,fd=%s" % (nic.device_id, nic.tapfd_id)
+            error.context("Raising interface for " + msg_sfx + attach_cmd)
+            virt_utils.bring_up_ifname(nic.ifname)
+            error.context("Raising bridge for " + msg_sfx + attach_cmd)
+            # assume this will puke if netdst unset
+            virt_utils.add_to_bridge(nic.ifname, nic.netdst)
+        elif nic.nettype == 'user':
+            attach_cmd += "user,name=%s," % nic.ifname
+        else: # unsupported nettype
+            raise virt_vm.VMUnknownNetTypeError(self.name, nic_index_or_name,
+                                        nic.nettype)
+        # always terminate with vlan to prevent trailing ','s
+        attach_cmd += "vlan=%d" % int(nic.vlan)
+        if nic.has_key('netdev_extra_params'):
+            attach_cmd += nic.netdev_extra_params
+        error.context("Hotplugging " + msg_sfx + attach_cmd)
         self.monitor.cmd(attach_cmd)
-
         network_info = self.monitor.info("network")
-        if netdev_id not in network_info:
-            raise virt_vm.VMAddNetDevError("Failed to add netdev: %s" %
-                                           netdev_id)
-
-        return netdev_id
+        if nic.netdev_id not in network_info:
+            # Don't leave resources dangling
+            self.deactivate_netdev(nic_index_or_name)
+            raise virt_vm.VMAddNetDevError(("Failed to add netdev: %s for " %
+                                    nic.netdev_id
+                                    ) + msg_sfx + attach_cmd)
 
 
     @error.context_aware
-    def del_netdev(self, netdev_id):
+    def activate_nic(self, nic_index_or_name):
         """
-        Hot unplug a netdev device.
+        Activate an VM's inactive NIC device and verify state
+
+        @param: nic_index_or_name: name or index number for existing NIC
         """
-        error.context("removing netdev id %s from vm %s" %
-                      (netdev_id, self.name))
-        self.monitor.cmd("netdev_del %s" % netdev_id)
-
-        network_info = self.monitor.info("network")
-        if netdev_id in network_info:
-            raise virt_vm.VMDelNetDevError("Fail to remove netdev %s" %
-                                           netdev_id)
-
-
-    @error.context_aware
-    def add_nic(self, model='rtl8139', nic_id=None, netdev_id=None, mac=None,
-                romfile=None):
-        """
-        Hotplug a nic.
-
-        @param model: Optional nic model.
-        @param nic_id: Optional nic ID.
-        @param netdev_id: Optional id of netdev.
-        @param mac: Optional Mac address of new nic.
-        @param rom: Optional Rom file.
-
-        @return: Dict with added nic info. Keys:
-                netdev_id = netdev id
-                nic_id = nic id
-                model = nic model
-                mac = mac address
-        """
-        nic_info = {}
-        nic_info['model'] = model
-
-        if nic_id is None:
-            nic_id = virt_utils.generate_random_id()
-        nic_info['nic_id'] = nic_id
-
-        if netdev_id is None:
-            netdev_id = self.add_netdev()
-        nic_info['netdev_id'] = netdev_id
-
-        if mac is None:
-            mac = virt_utils.generate_mac_address(self.instance, 1)
-        nic_info['mac'] = mac
-
-        device_add_cmd = "device_add driver=%s,netdev=%s,mac=%s,id=%s" % (model,
-                                                                          netdev_id,
-                                                                          mac, nic_id)
-
-        if romfile is not None:
-            device_add_cmd += ",romfile=%s" % romfile
-        nic_info['romfile'] = romfile
-
-        error.context("adding nic %s to vm %s" % (nic_info, self.name))
+        error.context("Retrieving info for NIC %s on VM %s" % (
+                    nic_index_or_name, self.name))
+        nic = self.virtnet[nic_index_or_name]
+        device_add_cmd = "device_add "
+        if nic.has_key('nic_model'):
+            device_add_cmd += 'model=%s' % nic.nic_model
+        device_add_cmd += ",netdev=%s" % nic.netdev_id
+        if nic.has_key('mac'):
+            device_add_cmd += ",macaddr=%s" % nic.mac
+        device_add_cmd += ",id=%s" % nic.nic_name
+        device_add_cmd += nic.get('nic_extra_params', '')
+        if nic.has_key('romfile'):
+            device_add_cmd += ",romfile=%s" % nic.romfile
+        error.context("Activating nic on VM %s with monitor command %s" % (
+                    self.name, device_add_cmd))
         self.monitor.cmd(device_add_cmd)
-
+        error.context("Verifying nic %s shows in qtree" % nic.nic_name)
         qtree = self.monitor.info("qtree")
-        if not nic_id in qtree:
+        if not nic.nic_name in qtree:
             logging.error(qtree)
             raise virt_vm.VMAddNicError("Device %s was not plugged into qdev"
-                                        "tree" % nic_id)
+                                        "tree" % nic.nic_name)
 
-        return nic_info
 
 
     @error.context_aware
-    def del_nic(self, nic_info, wait=20):
+    def deactivate_nic(self, nic_index_or_name, wait=20):
         """
-        Remove the nic from pci tree.
+        Reverses what activate_nic did
 
-        @vm: VM object
-        @nic_info: Dictionary with nic info
-        @wait: Time test will wait for the guest to unplug the device
+        @param: nic_index_or_name: name or index number for existing NIC
+        @param: wait: Time test will wait for the guest to unplug the device
         """
-        error.context("")
-        nic_del_cmd = "device_del %s" % nic_info['nic_id']
+        nic = self.virtnet[nic_index_or_name]
+        error.context("Removing nic %s from VM %s" % (nic_index_or_name, 
+                                        self.name))
+        nic_del_cmd = "device_del %s" % (nic.nic_name)
         self.monitor.cmd(nic_del_cmd)
         if wait:
             logging.info("waiting for the guest to finish the unplug")
-            if not virt_utils.wait_for(lambda: nic_info['nic_id'] not in
+            if not virt_utils.wait_for(lambda: nic.nic_name not in
                                        self.monitor.info("qtree"),
                                        wait, 5 ,1):
                 raise virt_vm.VMDelNicError("Device is not unplugged by "
                                             "guest, please check whether the "
                                             "hotplug module was loaded in "
                                             "guest")
-        self.del_netdev(nic_info['netdev_id'])
+
+
+    @error.context_aware
+    def deactivate_netdev(self, netdev_id):
+        """
+        Reverses what activate_netdev() did
+
+        @param: netdev_id: ID set/returned from activate_netdev()
+        """
+        # FIXME: Need to down interface & remove from bridge????
+        error.context("removing netdev id %s from vm %s" %
+                      (netdev_id, self.name))
+        self.monitor.cmd("netdev_del %s" % netdev_id)
+        network_info = self.monitor.info("network")
+        if netdev_id in network_info:
+            raise virt_vm.VMDelNetDevError("Fail to remove netdev %s" %
+                                           netdev_id)
+
+    @error.context_aware
+    def del_nic(self, nic_index_or_name):
+        """
+        Undefine nic prameters, reverses what add_nic did.
+
+        @param: nic_index_or_name: name or index number for existing NIC
+        @param: wait: Time test will wait for the guest to unplug the device
+        """
+        super(VM, self).del_nic(nic_index_or_name)
 
 
     @error.context_aware
@@ -2047,9 +2028,13 @@ class VM(virt_vm.BaseVM):
         Verifies whether the current qemu commandline matches the requested
         one, based on the test parameters.
         """
-        return (self.__make_qemu_command() !=
-                self.__make_qemu_command(name, params, basedir))
-
+        if (self.__make_qemu_command() !=
+                self.__make_qemu_command(name, params, basedir)):
+            logging.debug("VM params in env don't match requested, restarting.")
+            return True
+        else:
+            logging.debug("VM params in env do match requested, continuing.")
+            return False
 
     def pause(self):
         """

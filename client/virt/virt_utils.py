@@ -1,12 +1,12 @@
 """
-KVM test utility functions.
+Virtualization test utility functions.
 
 @copyright: 2008-2009 Red Hat Inc.
 """
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
 import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect, tarfile
-import struct, shutil, glob, HTMLParser, urllib
+import struct, shutil, glob, HTMLParser, urllib, traceback
 from autotest.client import utils, os_dep
 from autotest.client.shared import error, logging_config
 from autotest.client.shared import logging_manager, git
@@ -56,13 +56,13 @@ else:
     IFF_UP = 0x1
 
 
-def _lock_file(filename):
+def lock_file(filename, mode=fcntl.LOCK_EX):
     f = open(filename, "w")
-    fcntl.lockf(f, fcntl.LOCK_EX)
+    fcntl.lockf(f, mode)
     return f
 
 
-def _unlock_file(f):
+def unlock_file(f):
     fcntl.lockf(f, fcntl.LOCK_UN)
     f.close()
 
@@ -154,6 +154,27 @@ class HwAddrGetError(NetError):
     def __str__(self):
         return "Can not get mac of interface %s" % self.ifname
 
+class PropCanKeyError(KeyError, AttributeError):
+    def __init__(self, key, slots):
+        self.key = key
+        self.slots = slots
+    def __str__(self):
+        return "Unsupported key name %s (supported keys: %s)" % (
+                    str(self.key), str(self.slots))
+
+class PropCanValueError(PropCanKeyError):
+    def __str__(self):
+        return "Instance contains None value for valid key '%s'" % (
+                    str(self.key))
+
+class VMNetError(NetError):
+    def __str__(self):
+        return ("VMNet instance items must be dict-like and contain "
+                "a 'nic_name' mapping")
+
+class DbNoLockError(NetError):
+    def __str__(self):
+        return "Attempt made to access database with improper locking"
 
 class Env(UserDict.IterableUserDict):
     """
@@ -186,13 +207,17 @@ class Env(UserDict.IterableUserDict):
                         self.data = empty
                 else:
                     # No previous env file found, proceed...
+                    logging.warn("Creating new, empty env file")
                     self.data = empty
             # Almost any exception can be raised during unpickling, so let's
             # catch them all
-            except Exception, e:
-                logging.warn(e)
+            except:
+                logging.warn("Exception thrown while loading env")
+                traceback.print_last()
+                logging.warn("Creating new, empty env file")
                 self.data = empty
         else:
+            logging.warn("Creating new, empty env file")
             self.data = empty
 
 
@@ -203,6 +228,9 @@ class Env(UserDict.IterableUserDict):
         @param filename: Filename to pickle the dict into.  If not supplied,
                 use the filename from which the dict was loaded.
         """
+        if self.has_key('vm__vm1'):
+            logging.debug("Saving state to env file, networking info: %s"
+                          % self['vm__vm1'].virtnet)
         filename = filename or self._filename
         f = open(filename, "w")
         cPickle.dump(self.data, f)
@@ -325,112 +353,810 @@ class Params(UserDict.IterableUserDict):
                 new_dict[new_key] = self[key]
         return new_dict
 
+# subclassed dict wouldn't honor __slots__ on python 2.4 when __slots__ gets
+# overridden by a subclass. This class also changes behavior of dict
+# WRT to None value being the same as non-existant "key".
+class PropCan(object):
+    """
+    Allow container-like access to fixed set of items (__slots__)
+
+    raise: KeyError if requested container-like index isn't in set (__slots__)
+    """
+    __slots__ = []
+
+    def __init__(self, properties={}):
+        """
+        Initialize, optionally with pre-defined key values.
+
+        param: properties: Mapping of fixed (from __slots__) keys to values
+        """
+        for propertea in self.__slots__:
+            value = properties.get(propertea, None)
+            self[propertea] = value
+
+    def __getattribute__(self, propertea):
+        try:
+            value = super(PropCan, self).__getattribute__(propertea)
+        except:
+            raise PropCanKeyError(propertea, self.__slots__)
+        if value != None:
+            return value
+        else:
+            raise PropCanValueError(propertea, self.__slots__)
+
+    def __getitem__(self, propertea):
+        try:
+            return getattr(self, propertea)
+        except:
+            raise PropCanKeyError(propertea, self.__slots__)
+
+    def __setitem__(self, propertea, value):
+        try:
+            setattr(self, propertea, value)
+        except AttributeError:
+            raise PropCanKeyError(propertea, self.__slots__)
+
+    def __delitem__(self, propertea):
+        try:
+            delattr(self, propertea)
+        except AttributeError:
+            raise PropCanKeyError(propertea, self.__slots__)
+
+    def __len__(self):
+        length = 0
+        for propertea in self.__slots__:
+            if self.__contains__(propertea):
+                length += 1
+        return length
+
+    def __contains__(self, propertea):
+        try:
+            value = getattr(self, propertea)
+        except PropCanKeyError:
+            return False
+        if value:
+            return True
+
+    def keys(self):
+        keylist = []
+        for propertea in self.__slots__:
+            if self.__contains__(propertea):
+                keylist.append(propertea)
+        return keylist
+
+    def has_key(self, propertea):
+        return self.__contains__(propertea)
+
+    def set_if_none(self, propertea, value):
+        """
+        Set the value of propertea, only if it's not set or None
+        """
+        if propertea not in self.keys():
+            self[propertea] = value
+
+    def get(self, propertea, default=None):
+        """
+        Mimics get method on python dictionaries
+        """
+        if self.has_key(propertea):
+            return self[propertea]
+        else:
+            return default
+
+    def update(self, **otherdict):
+        for propertea in self.__slots__:
+            if otherdict.has_key(propertea):
+                self[propertea] = otherdict[propertea]
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        """
+        Guarantee return of string format dictionary representation
+        """
+        d = {}
+        for propertea in self.__slots__:
+            value = getattr(self, propertea, None)
+            # only print printable stuff
+            if value != None and (
+                        isinstance(value, str) or isinstance(value, int) or
+                        isinstance(value, float) or isinstance(value, long) or
+                        isinstance(value, unicode)):
+                d[propertea] = value
+            else:
+                continue
+        return str(d)
 
 # Functions related to MAC/IP addresses
 
 def _open_mac_pool(lock_mode):
-    lock_file = open("/tmp/mac_lock", "w+")
-    fcntl.lockf(lock_file, lock_mode)
-    pool = shelve.open("/tmp/address_pool")
-    return pool, lock_file
+    raise DeprecationWarning
 
-
-def _close_mac_pool(pool, lock_file):
-    pool.close()
-    fcntl.lockf(lock_file, fcntl.LOCK_UN)
-    lock_file.close()
-
+def __close_mac_pool(pool, lock_file):
+    raise DeprecationWarning
 
 def _generate_mac_address_prefix(mac_pool):
-    """
-    Generate a random MAC address prefix and add it to the MAC pool dictionary.
-    If there's a MAC prefix there already, do not update the MAC pool and just
-    return what's in there. By convention we will set KVM autotest MAC
-    addresses to start with 0x9a.
-
-    @param mac_pool: The MAC address pool object.
-    @return: The MAC address prefix.
-    """
-    if "prefix" in mac_pool:
-        prefix = mac_pool["prefix"]
-    else:
-        r = random.SystemRandom()
-        prefix = "9a:%02x:%02x:%02x:" % (r.randint(0x00, 0xff),
-                                         r.randint(0x00, 0xff),
-                                         r.randint(0x00, 0xff))
-        mac_pool["prefix"] = prefix
-    return prefix
-
+    raise DeprecationWarning
 
 def generate_mac_address(vm_instance, nic_index):
-    """
-    Randomly generate a MAC address and add it to the MAC address pool.
-
-    Try to generate a MAC address based on a randomly generated MAC address
-    prefix and add it to a persistent dictionary.
-    key = VM instance + NIC index, value = MAC address
-    e.g. {'20100310-165222-Wt7l:0': '9a:5d:94:6a:9b:f9'}
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
-    @return: MAC address string.
-    """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_EX)
-    key = "%s:%s" % (vm_instance, nic_index)
-    if key in mac_pool:
-        mac = mac_pool[key]
-    else:
-        prefix = _generate_mac_address_prefix(mac_pool)
-        r = random.SystemRandom()
-        while key not in mac_pool:
-            mac = prefix + "%02x:%02x" % (r.randint(0x00, 0xff),
-                                          r.randint(0x00, 0xff))
-            if mac in mac_pool.values():
-                continue
-            mac_pool[key] = mac
-    _close_mac_pool(mac_pool, lock_file)
-    return mac
-
+    raise DeprecationWarning
 
 def free_mac_address(vm_instance, nic_index):
-    """
-    Remove a MAC address from the address pool.
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
-    """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_EX)
-    key = "%s:%s" % (vm_instance, nic_index)
-    if key in mac_pool:
-        del mac_pool[key]
-    _close_mac_pool(mac_pool, lock_file)
-
+    raise DeprecationWarning
 
 def set_mac_address(vm_instance, nic_index, mac):
+    raise DeprecationWarning                                         
+
+class VirtIface(PropCan):
     """
-    Set a MAC address in the pool.
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
+    Networking information for single guest interface and host connection.
     """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_EX)
-    mac_pool["%s:%s" % (vm_instance, nic_index)] = mac
-    _close_mac_pool(mac_pool, lock_file)
+    __slots__ = ['nic_name', 'mac', 'nic_model', 'ip', 'nettype', 'netdst']
+    # Make sure first byte generated is always zero
+    LASTBYTE = random.SystemRandom().randint(0x00, 0xff)
+
+    def __getstate__(self):
+        state = {}
+        for key in VirtIface.__slots__:
+            if self.has_key(key):
+                state[key] = self[key]
+        return state
+
+    def __setstate__(self, state):
+        self.__init__(state)
+
+    @classmethod
+    def name_is_valid(cls, nic_name):
+        try:
+            return isinstance(nic_name, str) and len(nic_name) > 1
+        except TypeError: # object does not impliment len()
+            return False
+        except PropCanKeyError: #unset name
+            return False
+
+    @classmethod
+    def mac_is_valid(cls, mac):
+        try:
+            mac = cls.mac_str_to_int_list(mac)
+        except TypeError:
+            return False
+        return True # Though may be less than 6 bytes
+
+    @classmethod
+    def mac_str_to_int_list(cls, mac):
+        """
+        Convert list of string bytes to int list
+        """
+        if isinstance(mac, str):
+            mac = mac.split(':')
+        # strip off any trailing empties
+        for rindex in xrange(len(mac), 0, -1):
+            if not mac[rindex-1].strip():
+                del mac[rindex-1]
+            else:
+                break
+        try:
+            assert len(mac) < 7
+            for byte_str_index in xrange(0,len(mac)):
+                byte_str = mac[byte_str_index]
+                assert isinstance(byte_str, str)
+                assert len(byte_str) > 0
+                try:
+                    value = eval("0x%s" % byte_str, {}, {})
+                except SyntaxError:
+                    raise AssertionError
+                assert value >= 0x00
+                assert value <= 0xFF
+                mac[byte_str_index] = value
+        except AssertionError:
+            raise TypeError, ("%s %s is not a valid MAC format "
+                              "string or list" % (str(mac.__class__),
+                              str(mac)))
+        return mac
+
+    @classmethod
+    def int_list_to_mac_str(cls, mac_bytes):
+        """
+        Return string formatting of int mac_bytes
+        """
+        for byte_index in xrange(0,len(mac_bytes)):
+            mac = mac_bytes[byte_index]
+            if mac < 16:
+                mac_bytes[byte_index] = "0%X" % mac
+            else:
+                mac_bytes[byte_index] = "%X" % mac
+        return mac_bytes
+
+    @classmethod
+    def generate_bytes(cls):
+        """
+        Return next byte from ring
+        """
+        cls.LASTBYTE += 1
+        if cls.LASTBYTE > 0xff:
+            cls.LASTBYTE = 0
+        yield cls.LASTBYTE
+
+    @classmethod
+    def complete_mac_address(cls, mac):
+        """
+        Append randomly generated byte strings to make mac complete
+
+        @param: mac: String or list of mac bytes (possibly incomplete)
+        @raise: TypeError if mac is not a string or a list
+        """
+        mac = cls.mac_str_to_int_list(mac)
+        if len(mac) == 6:
+            return ":".join(cls.int_list_to_mac_str(mac))
+        for rand_byte in cls.generate_bytes():
+            mac.append(rand_byte)
+            return cls.complete_mac_address(cls.int_list_to_mac_str(mac))
 
 
-def get_mac_address(vm_instance, nic_index):
+
+class LibvirtIface(VirtIface):
     """
-    Return a MAC address from the pool.
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
-    @return: MAC address string.
+    Networking information specific to libvirt
     """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_SH)
-    mac = mac_pool.get("%s:%s" % (vm_instance, nic_index))
-    _close_mac_pool(mac_pool, lock_file)
-    return mac
+    __slots__ = VirtIface.__slots__ + []
 
+
+
+class KVMIface(VirtIface):
+    """
+    Networking information specific to KVM
+    """
+    __slots__ = VirtIface.__slots__ + ['vlan', 'device_id', 'ifname', 'tapfd',
+                                       'tapfd_id', 'netdev_id', 'tftp',
+                                       'romfile', 'nic_extra_params',
+                                       'netdev_extra_params']
+
+class VMNet(list):
+    """
+    Collection of networking information.
+    """
+
+    def __init__(self, container_class=VirtIface, virtiface_list=[]):
+        """
+        Initialize from list-like virtiface_list using container_class
+        """
+        if container_class != VirtIface and (
+                        not issubclass(container_class, VirtIface)):
+            raise TypeError, ("Container class must be Base_VirtIface "
+                              "or subclass not a %s" % str(container_class))
+        self.container_class = container_class
+        super(VMNet, self).__init__([])
+        if isinstance(virtiface_list, list):
+            for virtiface in virtiface_list:
+                self.append(virtiface)
+        else:
+            raise VMNetError
+
+    def __getstate__(self):
+        return [nic for nic in self]
+
+    def __setstate__(self, state):
+        logging.debug("\n*****Current state:\n%s\n*****New State:\n%s"
+                      % (str(self), str(state)))
+        VMNet.__init__(self, self.container_class, state)
+
+    def __getitem__(self, index_or_name):
+        if isinstance(index_or_name, str):
+            index_or_name = self.nic_name_index(index_or_name)
+        return super(VMNet, self).__getitem__(index_or_name)
+        
+    def __setitem__(self, index_or_name, value):
+        if not isinstance(value, dict):
+            raise VMNetError
+        if self.container_class.name_is_valid(value['nic_name']):
+            if isinstance(index_or_name, str):
+                index_or_name = self.nic_name_index(index_or_name)
+            self.process_mac(value)
+            super(VMNet, self).__setitem__(index_or_name,
+                                           self.container_class(value))
+        else:
+            raise VMNetError
+
+    def process_mac(self, value):
+        """
+        Strips 'mac' key from value if it's not valid
+        """
+        mac = value.get('mac')
+        if mac:
+            mac = value['mac'] = value['mac'].upper()
+            if len(mac.split(':')
+                            ) == 6 and self.container_class.mac_is_valid(mac):
+                return
+            else:
+                #logging.debug('Not storing incomplete or malformed '
+                #                'mac %s from %s' % (value['mac'], str(value)))
+                del value['mac'] # don't store invalid macs
+
+    def mac_list(self):
+        """
+        Return a list of all mac addresses used by defined interfaces
+        """
+        return [nic.mac for nic in self if hasattr(nic, 'mac')]
+
+    def append(self, value):
+        newone = self.container_class(value)
+        newone_name = newone['nic_name']
+        if newone.name_is_valid(newone_name) and (
+                          newone_name not in self.nic_name_list()):
+            self.process_mac(newone)
+            super(VMNet, self).append(newone)
+        else:
+            raise VMNetError
+
+    def nic_name_index(self, name):
+        """
+        Return the index number for name, or raise KeyError
+        """
+        if not isinstance(name, str):
+            raise TypeError, "nic_name_index()'s nic_name must be a string"
+        nic_name_list = self.nic_name_list()
+        try:
+            return nic_name_list.index(name)
+        except ValueError:
+            raise IndexError, "Can't find nic named '%s' among '%s'" % (
+                            name, nic_name_list)
+
+    def nic_name_list(self):
+        """
+        Obtain list of nic names from lookup of contents 'nic_name' key.
+        """
+        namelist = []
+        for item in self:
+            # Rely on others to throw exceptions on 'None' names
+            namelist.append(item['nic_name'])
+        return namelist
+
+    def nic_lookup(self, prop_name, prop_value):
+        """
+        Return the first index with prop_name key matching prop_valie or None
+        """
+        for nic_index in xrange(0, len(self)):
+            if self[nic_index].has_key(prop_name):
+                if self[nic_index][prop_name] == prop_value:
+                    return nic_index
+        return None
+
+class VMNetStyle(dict):
+    """
+    Make decisions about needed info from vm_type and driver_type params.
+    """
+
+    #TODO: Update these to use '00:16:3e' for xen and '52:54:00' for KVM/QEMU
+    VMNet_Style_Map = {
+        'default':{ 
+            'default':{
+                'mac_prefix':'9a',
+                'container_class': KVMIface,
+            }
+        },
+        'libvirt':{
+            'default':{
+                'mac_prefix':'9a',
+                'container_class': LibvirtIface,
+            }
+        }
+    }
+
+    def __new__(cls, vm_type, driver_type):
+        return cls.get_style(vm_type, driver_type)
+
+    @classmethod
+    def get_vm_type_map(cls, vm_type):
+        return cls.VMNet_Style_Map.get(vm_type,
+                                        cls.VMNet_Style_Map['default'])
+
+    @classmethod
+    def get_driver_type_map(cls, vm_type_map, driver_type):
+        return vm_type_map.get(driver_type,
+                               vm_type_map['default'])
+
+    @classmethod
+    def get_style(cls, vm_type, driver_type):
+        return cls.get_driver_type_map( cls.get_vm_type_map(vm_type), 
+                                         driver_type )
+
+
+
+class ParamsNet(VMNet):
+    """
+    Networking information from Params
+
+        Params contents specification-
+            vms = <vm names...>
+            nics = <nic names...>         
+            nics_<vm name> = <nic names...>
+            # attr: mac, ip, model, nettype, netdst, etc.
+            <attr> = value
+            <attr>_<nic name> = value
+
+    """
+
+    _INITIALIZED = False
+    params = {}
+    vm_type = 'default'
+    driver_type = 'default'
+
+    def __init__(self, params, vm_name):
+        self.params = params
+        self.vm_name = vm_name
+        self.vm_type = params.get('vm_type', self.vm_type)
+        self.driver_type = params.get('driver_type', self.driver_type)
+        if not hasattr(self, 'container_class'):
+            for key,value in VMNetStyle(self.vm_type,
+                                        self.driver_type).items():
+                setattr(self, key, value)
+        # use temporary list to initialize 
+        result_list = []
+        vm_name_params = self.params.object_params(vm_name)
+        nic_name_list = vm_name_params.objects('nics')
+        for nic_name in nic_name_list:
+            # nic name is only in params scope
+            nic_dict = {'nic_name':nic_name}
+            nic_params = self.params.object_params(nic_name)
+            # avoid processing unsupported properties
+            proplist = list(self.container_class.__slots__)
+            # nic_name was already set, remove from __slots__ list copy
+            del proplist[proplist.index('nic_name')]
+            for propertea in proplist:
+                # Merge existing propertea values if they exist
+                try:
+                    existing_value = getattr(self[nic_name], propertea, None)
+                except ValueError:
+                    existing_value = None
+                except IndexError:
+                    existing_value = None
+                nic_dict[propertea] = nic_params.get(propertea, existing_value)
+            result_list.append(nic_dict)
+        VMNet.__init__(self, self.container_class, result_list)
+
+    def mac_index(self):
+        """Generator over mac addresses found in params"""
+        for nic_name in self.params.get('nics'):
+            nic_obj_params = self.params.object_params(nic_name)
+            mac = nic_obj_params.get('mac')
+            if mac:
+                yield mac
+            else:
+                continue
+
+    def reset_mac(self, index_or_name):
+        """Reset to mac from params if defined and valid, or undefine."""
+        nic = self[index_or_name]
+        nic_name = nic.nic_name
+        nic_params = self.params.object_params(nic_name)
+        params_mac = nic_params.get('mac')
+        old_mac = nic.get('mac')
+        if params_mac and self.container_class.mac_is_valid(params_mac):
+            new_mac = params_mac.upper()
+        else:
+            new_mac = None
+        logging.debug("Resetting nic %s mac from '%s' to '%s'" % (
+                        nic_name, str(old_mac), str(new_mac)))
+        nic.mac = new_mac
+
+    def reset_ip(self, index_or_name):
+        """Reset to ip from params if defined and valid, or undefine."""
+        nic = self[index_or_name]
+        nic_name = nic.nic_name
+        nic_params = self.params.object_params(nic_name)
+        params_ip = nic_params.get('ip')
+        old_ip = nic.get('ip')
+        if params_ip:
+            new_ip = params_ip
+        else:
+            new_ip = None
+        logging.debug("Resetting nic %s ip from '%s' to '%s'" % (
+                        nic_name, str(old_ip), str(new_ip)))
+        nic.ip = new_ip
+
+class DbNet(VMNet):
+    """
+    Networking information from database
+
+        Database specification-
+            database values are python string-formatted lists of dictionaries
+
+    """
+    
+    _INITIALIZED = False
+    params = {}
+    vm_type = 'default'
+    driver_type = 'default'
+
+    def __init__(self, params, db_filename, db_key):
+        self.db_key = db_key
+        self.db_filename = db_filename
+        self.db_lockfile = db_filename + ".lock"
+        vm_type = params.get('vm_type', self.vm_type)
+        driver_type = params.get('driver_type', self.driver_type)
+        if not hasattr(self, 'container_class'):
+            for key,value in VMNetStyle(self.vm_type,
+                                        self.driver_type).items():
+                setattr(self, key, value)
+        self.lock_db()
+        try:
+            entry = self.db_entry()
+        except KeyError:
+            entry = []
+        # Merge existing propertea values if they exist
+        for nic_name in self.nic_name_list():
+            proplist = list(self.container_class.__slots__)
+            # nic_name was already set, remove from __slots__ list copy
+            del proplist[proplist.index('nic_name')]
+            for propertea in proplist:
+                try:
+                    existing_value = getattr(self[nic_name], propertea, None)
+                except ValueError:
+                    existing_value = None
+                except IndexError:
+                    existing_value = None
+            entry[nic_name].update(**(propertea, existing_value))
+        self.unlock_db()
+        if entry:
+            VMNet.__init__(self, self.container_class, entry)
+
+    def __setitem__(self, index, value):
+        super(DbNet, self).__setitem__(index, value)
+        if self._INITIALIZED:
+            self.update_db()
+
+    def __getitem__(self, index_or_name):
+        # container class attributes are read-only, hook
+        # update_db here is only alternative
+        if self._INITIALIZED:
+            self.update_db()
+        return super(DbNet, self).__getitem__(index_or_name)
+
+    def __delitem__(self, index_or_name):
+        if isinstance(index_or_name, str):
+                index_or_name = self.nic_name_index(index_or_name)
+        super(DbNet, self).__delitem__(index_or_name)
+        if self._INITIALIZED:
+            self.update_db()
+
+    def append(self, value):
+        super(DbNet, self).append(value)
+        if self._INITIALIZED:
+            self.update_db()
+
+    def lock_db(self):
+        if not hasattr(self, 'lock'):
+            self.lock = lock_file(self.db_lockfile)
+            if not hasattr(self, 'db'):
+                self.db = shelve.open(self.db_filename)
+            else:
+                raise DbNoLockError
+        else:
+            raise DbNoLockError
+
+    def unlock_db(self):
+        if hasattr(self, 'db'):
+            self.db.close()
+            del self.db
+            if hasattr(self, 'lock'):
+                unlock_file(self.lock)
+                del self.lock
+            else:
+                raise DbNoLockError
+        else:
+            raise DbNoLockError
+
+    def db_entry(self, db_key=None):
+        """
+        Returns a python list of dictionaries from locked DB string-format entry
+        """
+        if not db_key:
+            db_key = self.db_key
+        try:
+            db_entry = self.db[db_key]
+        except AttributeError:
+            raise DbNoLockError
+        # Always wear protection
+        try:
+            eval_result = eval(db_entry,{},{})
+        except SyntaxError:
+            raise ValueError, ("Error parsing entry for %s from "
+                               "database '%s'" % (self.db_key, 
+                                                  self.db_filename))
+        if not isinstance(eval_result, list):
+            raise ValueError, "Unexpected database data: %s" % (
+                                    str(eval_result))
+        result = []
+        for result_dict in eval_result:
+            if not isinstance(result_dict, dict):
+                raise ValueError, "Unexpected database sub-entry data %s" % (
+                                    str(result_dict))
+            result.append(result_dict)
+        return result
+        
+    def save_to_db(self, db_key=None):
+        """Writes string representation out to database"""
+        if db_key == None:
+            db_key = self.db_key
+        data = str(self)
+        # Avoid saving empty entries
+        if len(data) > 3:
+            try:
+                self.db[self.db_key] = data
+            except AttributeError:
+                raise DbNoLockError
+        else:
+            try:
+                # make sure old db entry is removed
+                del self.db[db_key]
+            except KeyError:
+                pass
+
+    def update_db(self):
+        self.lock_db()
+        self.save_to_db()
+        self.unlock_db()
+
+    def mac_index(self):
+        """Generator of mac addresses found in database"""
+        try:
+            for db_key in self.db.keys():
+                for nic in self.db_entry(db_key):
+                    mac = nic.get('mac')
+                    if mac:
+                        yield mac
+                    else:
+                        continue
+        except AttributeError:
+            raise DbNoLockError
+
+
+
+class VirtNet(DbNet, ParamsNet):
+    """
+    Persistent collection of VM's networking information.
+    """
+
+    _INITIALIZED = False
+    params = {}
+    vm_type = 'default'
+    driver_type = 'default'
+
+    def __init__(self, params, vm_name, db_key, 
+                                        db_filename="/tmp/address_pool"):
+        """
+        Load networking info. from db, then from params, then update db.
+
+        @param: params: Params instance using specification above
+        @param: vm_name: Name of the VM as might appear in Params
+        @param: db_key: database key uniquely identifying VM instance
+        """
+        # Params always overrides database content
+        DbNet.__init__(self, params, db_filename, db_key)
+        ParamsNet.__init__(self, params, vm_name)
+        self._INITIALIZED = False
+        self.lock_db()
+        # keep database updated in case of problems
+        self.save_to_db()
+        self.unlock_db()
+        # signal runtime content handling to methods
+        self._INITIALIZED = True
+        # Alter container-class to updateDb on __setitem__
+
+    # Delegating get/setstate() details more to ancestor classes
+    # doesn't play well with multi-inheritence.  While possibly
+    # more difficult to maintain, hard-coding important property
+    # names for pickling works. The possibility also remains open
+    # for extensions via style-class updates.
+    def __getstate__(self):
+        self.INITIALIZED = False # prevent database updates
+        state = {'container_items':VMNet.__getstate__(self)}
+        for attrname in ['params', 'vm_name', 'db_key', 'db_filename',
+                         'vm_type', 'driver_type', 'db_lockfile']: 
+            state[attrname] = getattr(self, attrname)
+        for style_attr in VMNetStyle(self.vm_type, self.driver_type).keys():
+                state[style_attr] = getattr(self, style_attr)
+        # logging.debug('Returning Current State: %s', str(state))
+        return state
+
+    def __setstate__(self, state):
+        # logging.debug('Initializing and consuming state: %s', str(state))
+        self._INITIALIZED = False # prevent db updates during unpickling
+        for key in state.keys():
+            if key == 'container_items':
+                continue # handle outside loop
+            setattr(self, key, state.pop(key))
+        VMNet.__setstate__(self, state.pop('container_items'))
+        self._INITIALIZED = True
+
+    def mac_index(self):
+        """
+        Generator for all allocated mac addresses (requires db lock)
+        """
+        for mac in DbNet.mac_index(self):
+            yield mac
+        for mac in ParamsNet.mac_index(self):
+            yield mac
+
+    def generate_mac_address(self, nic_index_or_name, attempts=1024):
+        """
+        Set & return valid mac address for nic_index_or_name or raise NetError
+
+        @param: nic_index_or_name: index number or name of NIC
+        @return: MAC address string 
+        @raise: NetError if mac generation failed
+        """
+        nic = self[nic_index_or_name]
+        if nic.has_key('mac'):
+            logging.warning("Overwriting mac %s for nic %s with random"
+                                % (nic.mac, str(nic_index_or_name)))
+        self.free_mac_address(nic_index_or_name)
+        self.lock_db()
+        attempts_remaining = attempts
+        while attempts_remaining > 0:
+            mac_attempt = nic.complete_mac_address(self.mac_prefix)
+            if mac_attempt not in self.mac_index():
+                nic.mac = mac_attempt
+                self.unlock_db()
+                return self[nic_index_or_name].mac # calls update_db
+            else:
+                attempts_remaining -= 1
+        self.unlock_db()
+        raise NetError, ("MAC generation failed after %d "
+                         "attempts for NIC %s on VM %s (%s)" % (
+                            attempts,
+                            str(nic_index_or_name),
+                            self.vm_name,
+                            self.db_key))
+
+    def free_mac_address(self, nic_index_or_name):
+        """
+        Remove the mac value from nic_index_or_name and cache unless static
+
+        @param: nic_index_or_name: index number or name of NIC 
+        """
+        nic = self[nic_index_or_name]
+        if nic.has_key('mac'):
+            # Reset to params definition if any, or None
+            self.reset_mac(nic_index_or_name)
+        self.update_db()
+
+    def set_mac_address(self, nic_index_or_name, mac):
+        """
+        Set a MAC address to value specified
+
+        @param: nic_index_or_name: index number or name of NIC 
+        @raise: NetError if mac already assigned
+        """
+        nic = self[nic_index_or_name]
+        if nic.has_key('mac'):
+            logging.warning("Overwriting mac %s for nic %s with %s"
+                            % (nic.mac, str(nic_index_or_name), mac))
+        nic.mac = mac
+        self.update_db()
+
+    def get_mac_address(self, nic_index_or_name):
+        """
+        Return a MAC address for nic_index_or_name
+
+        @param: nic_index_or_name: index number or name of NIC 
+        @return: MAC address string.
+        """
+        return self[nic_index_or_name].mac
+
+    def generate_ifname(self, nic_index_or_name):
+        """
+        Return and set network interface name
+        """
+        nic_index = self.nic_name_index(self[nic_index_or_name].nic_name)
+        prefix = "t%d-" % nic_index
+        # Preserving previous naming, not sure if this is required:
+        # assume db_key is at least one character
+        # Ensure postfix is always exactly 11 characters
+        postfix = (self.db_key + generate_random_string(10))[-11:]
+        self[nic_index_or_name].ifname = prefix + postfix
+        return self[nic_index_or_name].ifname # forces update_db
 
 def verify_ip_address_ownership(ip, macs, timeout=10.0):
     """
@@ -439,7 +1165,7 @@ def verify_ip_address_ownership(ip, macs, timeout=10.0):
 
     @param ip: An IP address.
     @param macs: A list or tuple of MAC addresses.
-    @return: True iff ip is assigned to a MAC address in macs.
+    @return: True if ip is assigned to a MAC address in macs.
     """
     # Compile a regex that matches the given IP address and any of the given
     # MAC addresses
