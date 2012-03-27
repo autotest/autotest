@@ -17,13 +17,10 @@ import os, sys, imp
 
 #
 # This performs some import magic, to import the boottool cli as a module
-# For now, the boottool cli is named boottool.py, but once it gets feature
-# complete and boottool(.pl) gets removed, then we'll renamed it boottool
-# and this import code will be even more necessary
 #
 CURRENT_DIRECTORY = os.path.dirname(sys.modules[__name__].__file__)
 CLIENT_DIRECTORY = os.path.abspath(os.path.join(CURRENT_DIRECTORY, ".."))
-BOOTTOOL_CLI_PATH = os.path.join(CLIENT_DIRECTORY, "tools", "boottool.py")
+BOOTTOOL_CLI_PATH = os.path.join(CLIENT_DIRECTORY, "tools", "boottool")
 imp.load_source("boottool_cli", BOOTTOOL_CLI_PATH)
 from boottool_cli import Grubby
 
