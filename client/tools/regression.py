@@ -12,13 +12,36 @@ class Sample():
     """ Collect test results in same environment to a sample """
     def __init__(self, files):
         self.files_dict = []
+        self.desc = ""
+        self.version = ""
         for i in range(len(files)):
             fd = open(files[i], "r")
             f = []
+            desc = []
+            ver = []
             for l in fd.readlines():
-                f.append(l.strip())
+                if "#desc#" in l:
+                    desc.append(l[6:])
+                elif "#ver#" in l:
+                    ver.append(l[5:])
+                else:
+                    f.append(l.strip())
+
             self.files_dict.append(f)
             fd.close()
+
+        nrepeat = len(self.files_dict)
+        nrepeat_re = '\$repeat_n'
+        self.desc = "".join(desc) + """ - Every Avg line represents the average value based on *$repeat_n* repetitions of the same test,
+   and the following SD line represents the Standard Deviation between the *$repeat_n* repetitions.
+ - The Standard deviation is displayed as a percentage of the average.
+ - The significance of the differences between the two averages is calculated using unpaired T-test that
+   takes into account the SD of the averages.
+ - The paired t-test is computed for the averages of same category.
+
+"""
+        self.desc = re.sub(nrepeat_re, str(nrepeat), self.desc)
+        self.version = "".join(ver)
 
     def getAvg(self, avg_update=None):
         return self._process_files(self.files_dict, self._get_list_avg,
@@ -297,6 +320,13 @@ def analyze(test, sample_list1, sample_list2, configfile):
     if pvalues:
         # p-value list isn't null
         rlist.append(pvalues)
+
+    tee("<pre>####1. Description of setup#1\n" + s1.version + "</pre>",
+        test+".html")
+    tee("<pre>####2. Description of setup#2\n" + s2.version + "</pre>",
+        test+".html")
+    tee("<pre>" + s1.desc + "</pre>", test+".html")
+
     display([avg1, sd1, avg2, sd2], rlist, allpvalues, test+".html",
             ignore_col, sum="Regression Testing: %s" % test, prefix0="#|Tile|",
             prefix1=["1|Avg|", " |%SD|", "2|Avg|", " |%SD|"],
