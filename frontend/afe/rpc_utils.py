@@ -394,6 +394,7 @@ def _get_metahost_counts(metahost_objects):
 
 def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
     hosts = []
+    profiles = []
     one_time_hosts = []
     meta_hosts = []
     atomic_group = None
@@ -413,6 +414,7 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
                 one_time_hosts.append(queue_entry.host)
             else:
                 hosts.append(queue_entry.host)
+                profiles.append(queue_entry.profile)
         elif queue_entry.meta_host:
             meta_hosts.append(queue_entry.meta_host)
         else:
@@ -432,6 +434,7 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
     info = dict(dependencies=[label.name for label
                               in job.dependency_labels.all()],
                 hosts=hosts,
+                profiles=profiles,
                 meta_hosts=meta_hosts,
                 meta_host_counts=meta_host_counts,
                 one_time_hosts=one_time_hosts,

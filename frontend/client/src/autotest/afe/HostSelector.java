@@ -179,6 +179,33 @@ public class HostSelector implements ClickHandler {
         });
     }
 
+    public void setSelectedHostnames(final List<String> hosts, final List<String> profiles, final boolean allowOneTimeHosts) {
+        // figure out which hosts exist in the system and which should be one-time hosts
+        JSONObject params = new JSONObject();
+        params.put("hostname__in", Utils.stringsToJSON(hosts));
+        hostDataSource.query(params, new DefaultDataCallback () {
+            @Override
+            public void onQueryReady(Query query) {
+                query.getPage(null, null, null, this);
+            }
+
+            @Override
+            public void handlePage(List<JSONObject> data) {
+               /* when cloning, we have the original array of profiles that
+                * needs to be put back into the objects so the select box gets
+                * populated correctly */
+                JSONObject o;
+                int i;
+                for (i = 0; i < data.size(); i++) {
+                    o = data.get(i);
+                    o.put("profile", new JSONString(profiles.get(i)));
+                    data.set(i, o);
+                }
+                processAddByHostname(hosts, data, allowOneTimeHosts);
+            }
+        });
+    }
+
     private List<String> findOneTimeHosts(List<String> requestedHostnames,
                                           List<JSONObject> foundHosts) {
         Set<String> existingHosts = new HashSet<String>();

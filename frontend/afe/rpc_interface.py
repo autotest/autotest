@@ -631,12 +631,13 @@ def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
                                       queue_entry_filter_data)
 
     host_dicts = []
-    for host in job_info['hosts']:
+    for host,profile in zip(job_info['hosts'],job_info['profiles']):
         host_dict = get_hosts(id=host.id)[0]
         other_labels = host_dict['labels']
         if host_dict['platform']:
             other_labels.remove(host_dict['platform'])
         host_dict['other_labels'] = ', '.join(other_labels)
+        host_dict['profile'] = profile
         host_dicts.append(host_dict)
 
     for host in job_info['one_time_hosts']:
