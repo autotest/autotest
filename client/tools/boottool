@@ -440,6 +440,38 @@ def parse_entry(entry_str, separator='='):
     return entry
 
 
+def install_grubby_if_missing():
+    '''
+    Installs grubby if it's missing on this system
+
+    Or if the required version is not sufficient for the needs of boottool
+    '''
+    executable = find_executable('grubby', '/sbin')
+    if executable is not None:
+        required_version = (8, 9)
+        grubby = Grubby(executable)
+        current_version = grubby.get_grubby_version()
+        if current_version is None:
+            logging.error('Could not version for grubby executable "%s"',
+                          executable)
+            sys.exit(-1)
+
+        if current_version < required_version:
+            logging.info('Installing grubby because currently installed '
+                         'version (%s.%s) is not recent enough',
+                         current_version[0], current_version[1])
+            grubby.grubby_install()
+    else:
+        logging.info('Installing grubby because it was not found on this '
+                     'system')
+        grubby = Grubby()
+        grubby.grubby_install()
+
+    grubby = Grubby()
+    installed_version = grubby.get_grubby_version_raw()
+    logging.info('Installed grubby version: %s', installed_version)
+
+
 class Grubby(object):
     '''
     Grubby wrapper
@@ -1504,42 +1536,10 @@ class BoottoolApp(object):
                             format="%(levelname)s: %(message)s")
 
 
-    def _install_grubby_if_missing(self):
-        '''
-        Installs grubby if it's missing on this system
-
-        Or if the required version is not sufficient for the needs of boottool
-        '''
-        executable = find_executable('grubby', '/sbin')
-        if executable is not None:
-            required_version = (8, 9)
-            grubby = Grubby(executable)
-            current_version = grubby.get_grubby_version()
-            if current_version is None:
-                logging.error('Could not version for grubby executable "%s"',
-                              executable)
-                sys.exit(-1)
-
-            if current_version < required_version:
-                logging.info('Installing grubby because currently installed '
-                             'version (%s.%s) is not recent enough',
-                             current_version[0], current_version[1])
-                grubby.grubby_install()
-        else:
-            logging.info('Installing grubby because it was not found on this '
-                         'system')
-            grubby = Grubby()
-            grubby.grubby_install()
-
-        grubby = Grubby()
-        installed_version = grubby.get_grubby_version_raw()
-        logging.info('Installed grubby version: %s', installed_version)
-
-
     def run(self):
         self._parse_command_line()
         self._configure_logging()
-        self._install_grubby_if_missing()
+        install_grubby_if_missing()
 
         # if we made this far, the command line checking succeeded
         if self.opts.grubby_path:

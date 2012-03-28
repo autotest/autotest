@@ -22,7 +22,7 @@ CURRENT_DIRECTORY = os.path.dirname(sys.modules[__name__].__file__)
 CLIENT_DIRECTORY = os.path.abspath(os.path.join(CURRENT_DIRECTORY, ".."))
 BOOTTOOL_CLI_PATH = os.path.join(CLIENT_DIRECTORY, "tools", "boottool")
 imp.load_source("boottool_cli", BOOTTOOL_CLI_PATH)
-from boottool_cli import Grubby
+from boottool_cli import Grubby, install_grubby_if_missing
 
 
 class boottool(Grubby):
@@ -32,4 +32,5 @@ class boottool(Grubby):
     Inherits all functionality from boottool(.py) CLI app
     """
     def __init__(self, path='/sbin/grubby'):
+        install_grubby_if_missing()
         Grubby.__init__(self, path)
