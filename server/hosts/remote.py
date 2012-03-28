@@ -82,10 +82,10 @@ class RemoteHost(base_classes.Host):
         """
         server_info = get_install_server_info()
         if install_server_is_configured():
-            if profile == 'Do_not_install':
-                return
             if profile is None:
                 profile = self.profile
+            if profile == 'Do_not_install':
+                return
             ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
             server_interface = ServerInterface(**server_info)
             server_interface.install_host(self, profile=profile,
