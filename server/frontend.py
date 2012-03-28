@@ -180,6 +180,7 @@ class AFE(RpcClient):
             server = xmlrpclib.ServerProxy(remote.get_install_server_info().get('xmlrpc_url', None))
             for host in hosts:
                 host['profiles'] = server.find_profile({"comment":"*" + host['platform'] + "*"})
+                host['profiles'].insert(0, 'Do_not_install')
                 host['current_profile'] = server.find_system({"name":host['hostname']},True)[0]['profile']
         else:
             for host in hosts:
