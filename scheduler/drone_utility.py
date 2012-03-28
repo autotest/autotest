@@ -158,7 +158,7 @@ class DroneUtility(object):
                 'check_parse', lambda x: False)
         results = {
             'pidfiles' : self._read_pidfiles(pidfile_paths),
-            'autoserv_processes' : self._refresh_processes('autoserv'),
+            'autoserv_processes' : self._refresh_processes('autotest-remote'),
             'parse_processes' : self._refresh_processes(
                     'parse', site_check_parse=site_check_parse),
             'pidfiles_second_read' : self._read_pidfiles(pidfile_paths),
