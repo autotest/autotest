@@ -1,6 +1,6 @@
 from autotest_lib.client.common_lib import utils, error, global_config
 from autotest_lib.server import autotest_remote, utils as server_utils
-from autotest_lib.server.hosts import site_factory, installable_host, ssh_host, serial
+from autotest_lib.server.hosts import site_factory, installable_host, ssh_host, serial, remote
 from autotest_lib.server.hosts import logfile_monitor
 
 DEFAULT_FOLLOW_PATH = '/var/log/kern.log'
