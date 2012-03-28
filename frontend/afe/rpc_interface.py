@@ -495,7 +495,7 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
 
 
 def create_job(name, priority, control_file, control_type,
-               hosts=(), meta_hosts=(), one_time_hosts=(),
+               hosts=(), profiles=(), meta_hosts=(), one_time_hosts=(),
                atomic_group_name=None, synch_count=None, is_template=False,
                timeout=None, max_runtime_hrs=None, run_verify=True,
                email_list='', dependencies=(), reboot_before=None,
@@ -525,6 +525,7 @@ def create_job(name, priority, control_file, control_type,
     @param keyvals dict of keyvals to associate with the job
 
     @param hosts List of hosts to run job on.
+    @param profiles List of profiles to use, in sync with @hosts list
     @param meta_hosts List where each entry is a label name, and for each entry
     one host will be chosen from that label to run the job on.
     @param one_time_hosts List of hosts not in the database to run the job on.
