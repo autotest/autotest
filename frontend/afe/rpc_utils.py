@@ -454,7 +454,7 @@ def check_for_duplicate_hosts(host_objects):
                  % ', '.join(duplicate_hostnames)})
 
 
-def create_new_job(owner, options, host_objects, metahost_objects,
+def create_new_job(owner, options, host_objects, profiles, metahost_objects,
                    atomic_group=None):
     labels_by_name = dict((label.name, label)
                           for label in models.Label.objects.all())
@@ -507,7 +507,7 @@ def create_new_job(owner, options, host_objects, metahost_objects,
 
     job = models.Job.create(owner=owner, options=options,
                             hosts=all_host_objects)
-    job.queue(all_host_objects, atomic_group=atomic_group,
+    job.queue(all_host_objects, profiles=profiles, atomic_group=atomic_group,
               is_template=options.get('is_template', False))
     return job.id
 
@@ -636,7 +636,7 @@ def get_create_job_common_args(local_args):
 
 
 def create_job_common(name, priority, control_type, control_file=None,
-                      hosts=(), meta_hosts=(), one_time_hosts=(),
+                      hosts=(), profiles=(), meta_hosts=(), one_time_hosts=(),
                       atomic_group_name=None, synch_count=None,
                       is_template=False, timeout=None, max_runtime_hrs=None,
                       run_verify=True, email_list='', dependencies=(),
@@ -749,5 +749,6 @@ def create_job_common(name, priority, control_type, control_file=None,
     return create_new_job(owner=owner,
                           options=options,
                           host_objects=host_objects,
+                          profiles=profiles,
                           metahost_objects=metahost_objects,
                           atomic_group=atomic_group)

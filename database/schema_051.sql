@@ -174,6 +174,7 @@ CREATE TABLE `afe_host_queue_entries` (
   `id` int(11) NOT NULL auto_increment,
   `job_id` int(11) default NULL,
   `host_id` int(11) default NULL,
+  `profile` varchar(255) default NULL,
   `status` varchar(255) default NULL,
   `meta_host` int(11) default NULL,
   `active` tinyint(1) default '0',

@@ -29,7 +29,7 @@ See doctests/001_rpc_test.txt for (lots) more examples.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import datetime
+import datetime, xmlrpclib
 try:
     import autotest.common as common
 except ImportError:
@@ -38,6 +38,7 @@ from autotest_lib.frontend.afe import models, model_logic, model_attributes
 from autotest_lib.frontend.afe import control_file, rpc_utils
 from autotest_lib.client.common_lib import global_config
 
+GLOBAL_CONFIG = global_config.global_config
 
 # labels
 
@@ -192,6 +193,10 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
                                                'acl_list')
     models.Host.objects.populate_relationships(hosts, models.HostAttribute,
                                                'attribute_list')
+    xmlrpc_url = GLOBAL_CONFIG.get_config_value('INSTALL_SERVER', 'xmlrpc_url')
+    if xmlrpc_url:
+        server = xmlrpclib.ServerProxy(xmlrpc_url)
+
     host_dicts = []
     for host_obj in hosts:
         host_dict = host_obj.get_object_dict()
@@ -201,6 +206,10 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
         host_dict['acls'] = [acl.name for acl in host_obj.acl_list]
         host_dict['attributes'] = dict((attribute.attribute, attribute.value)
                                        for attribute in host_obj.attribute_list)
+        if xmlrpc_url:
+            for label in host_obj.label_list:
+                host_dict['profiles'] = server.find_profile({"comment":"*" + label.name + "*"})
+            host_dict['current_profile'] = server.find_system({"name":host_dict['hostname']},True)[0]['profile']
         host_dicts.append(host_dict)
     return rpc_utils.prepare_for_serialization(host_dicts)
 
@@ -487,7 +496,7 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
 
 
 def create_job(name, priority, control_file, control_type,
-               hosts=(), meta_hosts=(), one_time_hosts=(),
+               hosts=(), profiles=(), meta_hosts=(), one_time_hosts=(),
                atomic_group_name=None, synch_count=None, is_template=False,
                timeout=None, max_runtime_hrs=None, run_verify=True,
                email_list='', dependencies=(), reboot_before=None,
@@ -517,6 +526,7 @@ def create_job(name, priority, control_file, control_type,
     @param keyvals dict of keyvals to associate with the job
 
     @param hosts List of hosts to run job on.
+    @param profiles List of profiles to use, in sync with @hosts list
     @param meta_hosts List where each entry is a label name, and for each entry
     one host will be chosen from that label to run the job on.
     @param one_time_hosts List of hosts not in the database to run the job on.

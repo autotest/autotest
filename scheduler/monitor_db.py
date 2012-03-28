@@ -68,7 +68,7 @@ def _get_pidfile_timeout_secs():
     return pidfile_timeout_mins * 60
 
 
-def _autoserv_command_line(machines, extra_args, job=None,
+def _autoserv_command_line(machines, profiles, extra_args, job=None,
                            queue_entry=None, verbose=True):
     """
     @returns The autoserv command line as a list of executable + parameters.
@@ -84,7 +84,10 @@ def _autoserv_command_line(machines, extra_args, job=None,
     autoserv_argv = [_autoserv_path, '-p',
                      '-r', drone_manager.WORKING_DIRECTORY]
     if machines:
-        autoserv_argv += ['-m', machines]
+        if profiles:
+            autoserv_argv += ['-m', ','.join([machine + '#' + profile for machine,profile in zip(machines,profiles)])]
+        else:
+            autoserv_argv += ['-m', ','.join(machines)]
     if job or queue_entry:
         if not job:
             job = queue_entry.job
@@ -1450,7 +1453,7 @@ class SpecialAgentTask(AgentTask, TaskWithJobKeyvals):
 
 
     def _command_line(self):
-        return _autoserv_command_line(self.host.hostname,
+        return _autoserv_command_line([self.host.hostname], [],
                                       self._extra_command_args,
                                       queue_entry=self.queue_entry)
 
@@ -1714,13 +1717,17 @@ class AbstractQueueTask(AgentTask, TaskWithJobKeyvals):
     def _command_line(self):
         execution_path = self.queue_entries[0].execution_path()
         control_path = self._write_control_file(execution_path)
-        hostnames = ','.join(entry.host.hostname
+        hostnames = [entry.host.hostname
                              for entry in self.queue_entries
-                             if not entry.is_hostless())
+                             if not entry.is_hostless()]
+        profiles = [entry.profile
+                             for entry in self.queue_entries
+                             if not entry.is_hostless() and entry.profile]
 
         execution_tag = self.queue_entries[0].execution_tag()
         params = _autoserv_command_line(
             hostnames,
+            profiles,
             ['-P', execution_tag, '-n',
              _drone_manager.absolute_path(control_path)],
             job=self.job, verbose=False)

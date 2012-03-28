@@ -535,7 +535,7 @@ public class TableView extends ConditionTabView
         return getGroupingFromFields(savedColumns());
     }
 
-    public Widget createWidget(int row, int cell, JSONObject rowObject) {
+    public Widget createWidget(int row, int cell, JSONObject rowObject, int type) {
         assert getActiveGrouping() == GroupingType.STATUS_COUNTS;
         StatusSummary statusSummary = StatusSummary.getStatusSummary(rowObject);
         SimplePanel panel = new SimplePanel();

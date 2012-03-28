@@ -261,10 +261,14 @@ def parse_machine(machine, user='root', password='', port=22):
         machine, port = machine.split(':', 1)
         port = int(port)
 
+    profile = ''
+    if '#' in machine:
+        machine, profile = machine.split('#', 1)
+
     if not machine or not user:
         raise ValueError
 
-    return machine, user, password, port
+    return machine, user, password, port, profile
 
 
 def get_public_key():

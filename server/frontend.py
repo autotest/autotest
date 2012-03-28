@@ -14,7 +14,7 @@ For docs, see:
     http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
-import getpass, os, time, traceback, re
+import getpass, os, time, traceback, re, xmlrpclib
 try:
     import autotest.common as common
 except ImportError:
@@ -175,6 +175,13 @@ class AFE(RpcClient):
                                                     status=status,
                                                     label=label))
         hosts = self.run('get_hosts', **query_args)
+        xmlrpc_url = GLOBAL_CONFIG.get_config_value('INSTALL_SERVER', 'xmlrpc_url')
+        if xmlrpc_url:
+            server = xmlrpclib.ServerProxy(xmlrpc_url)
+            for host in hosts:
+                for label in host['labels']:
+                    host['profiles'] = server.find_profile({"comment":"*" + label + "*"})
+                host['current_profile'] = server.find_system({"name":host['hostname']},True)[0]['profile']
         return [Host(self, h) for h in hosts]
 
 
