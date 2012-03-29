@@ -2184,11 +2184,19 @@ class VM(virt_vm.BaseVM):
         """
         error.base_context("rebooting '%s'" % self.name, logging.info)
         error.context("before reboot")
-        session = session or self.login()
         error.context()
 
         if method == "shell":
+            session = session or self.login()
             session.sendline(self.params.get("reboot_command"))
+            error.context("waiting for guest to go down", logging.info)
+            if not virt_utils.wait_for(
+                lambda:
+                    not session.is_responsive(timeout=self.CLOSE_SESSION_TIMEOUT),
+                timeout / 2, 0, 1):
+                raise virt_vm.VMRebootError("Guest refuses to go down")
+            session.close()
+
         elif method == "system_reset":
             # Clear the event list of all QMP monitors
             qmp_monitors = [m for m in self.monitors if m.protocol == "qmp"]
@@ -2207,14 +2215,6 @@ class VM(virt_vm.BaseVM):
                                                 "(monitor '%s')" % m.name)
         else:
             raise virt_vm.VMRebootError("Unknown reboot method: %s" % method)
-
-        error.context("waiting for guest to go down", logging.info)
-        if not virt_utils.wait_for(
-            lambda:
-                not session.is_responsive(timeout=self.CLOSE_SESSION_TIMEOUT),
-            timeout / 2, 0, 1):
-            raise virt_vm.VMRebootError("Guest refuses to go down")
-        session.close()
 
         error.context("logging in after reboot", logging.info)
         return self.wait_for_login(nic_index, timeout=timeout)
