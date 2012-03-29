@@ -8,7 +8,8 @@ except ImportError:
 
 from autotest_lib.client.bin import job, boottool, config, sysinfo, harness
 from autotest_lib.client.bin import test, xen, kernel, utils
-from autotest_lib.client.common_lib import packages, error, log
+from autotest_lib.client.common_lib import packages, error, log, global_config
+from autotest_lib.client.common_lib.global_config import global_config
 from autotest_lib.client.common_lib import logging_manager, logging_config
 from autotest_lib.client.common_lib import base_job_unittest
 from autotest_lib.client.common_lib.test_utils import mock, unittest
@@ -574,16 +575,21 @@ class test_base_job(unittest.TestCase):
         self.god.check_playback()
 
 
-    def _setup_check_post_reboot(self, mount_info, cpu_count):
+    def _setup_check_post_reboot(self, mount_info, cpu_count, abort_value):
         # setup
         self.god.stub_function(job.partition_lib, "get_partition_list")
         self.god.stub_function(utils, "count_cpus")
+        self.god.stub_function(global_config, "get_config_value")
 
         part_list = [self.get_partition_mock("/dev/hda1"),
                      self.get_partition_mock("/dev/hdb1")]
         mount_list = ["/mnt/hda1", "/mnt/hdb1"]
 
         # record
+        global_config.get_config_value.expect_call('CLIENT',
+                                                   'abort_on_mismatch',
+                                                   default=False,
+                                              type=bool).and_return(abort_value)
         job.partition_lib.get_partition_list.expect_call(
                 self.job, exclude_swap=False).and_return(part_list)
         for i in xrange(len(part_list)):
@@ -599,7 +605,18 @@ class test_base_job(unittest.TestCase):
 
         mount_info = set([("/dev/hda1", "/mnt/hda1"),
                           ("/dev/hdb1", "/mnt/hdb1")])
-        self._setup_check_post_reboot(mount_info, 8)
+        self._setup_check_post_reboot(mount_info, 8, False)
+
+        # playback
+        self.job._check_post_reboot("sub")
+        self.god.check_playback()
+
+
+    def test_check_post_reboot_mounts_warning(self):
+        self.construct_job(True)
+
+        mount_info = set([("/dev/hda1", "/mnt/hda1")])
+        self._setup_check_post_reboot(mount_info, 8, False)
 
         # playback
         self.job._check_post_reboot("sub")
@@ -610,7 +627,7 @@ class test_base_job(unittest.TestCase):
         self.construct_job(True)
 
         mount_info = set([("/dev/hda1", "/mnt/hda1")])
-        self._setup_check_post_reboot(mount_info, None)
+        self._setup_check_post_reboot(mount_info, None, True)
 
         self.god.stub_function(self.job, "_record_reboot_failure")
         self.job._record_reboot_failure.expect_call("sub",
@@ -623,12 +640,24 @@ class test_base_job(unittest.TestCase):
         self.god.check_playback()
 
 
+    def test_check_post_reboot_cpu_warning(self):
+        self.construct_job(True)
+
+        mount_info = set([("/dev/hda1", "/mnt/hda1"),
+                          ("/dev/hdb1", "/mnt/hdb1")])
+        self._setup_check_post_reboot(mount_info, 4, False)
+
+        # playback
+        self.job._check_post_reboot("sub")
+        self.god.check_playback()
+
+
     def test_check_post_reboot_cpu_failure(self):
         self.construct_job(True)
 
         mount_info = set([("/dev/hda1", "/mnt/hda1"),
                           ("/dev/hdb1", "/mnt/hdb1")])
-        self._setup_check_post_reboot(mount_info, 4)
+        self._setup_check_post_reboot(mount_info, 4, True)
 
         self.god.stub_function(self.job, "_record_reboot_failure")
         self.job._record_reboot_failure.expect_call(
