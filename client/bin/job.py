@@ -745,6 +745,10 @@ class base_client_job(base_job.base_job):
         @raise JobError: Raised if the current configuration does not match the
             pre-reboot configuration.
         """
+        abort_on_mismatch = GLOBAL_CONFIG.get_config_value('CLIENT',
+                                                           'abort_on_mismatch',
+                                                           type=bool,
+                                                           default=False)
         # check to see if any partitions have changed
         partition_list = partition_lib.get_partition_list(self,
                                                           exclude_swap=False)
@@ -756,9 +760,12 @@ class base_client_job(base_job.base_job):
             description = ("mounted partitions are different after reboot "
                            "(old entries: %s, new entries: %s)" %
                            (old_entries, new_entries))
-            self._record_reboot_failure(subdir, "reboot.verify_config",
-                                        description, running_id=running_id)
-            raise error.JobError("Reboot failed: %s" % description)
+            if abort_on_mismatch:
+                self._record_reboot_failure(subdir, "reboot.verify_config",
+                                            description, running_id=running_id)
+                raise error.JobError("Reboot failed: %s" % description)
+            else:
+                logging.warning(description)
 
         # check to see if any CPUs have changed
         cpu_count = utils.count_cpus()
@@ -767,9 +774,12 @@ class base_client_job(base_job.base_job):
             description = ('Number of CPUs changed after reboot '
                            '(old count: %d, new count: %d)' %
                            (old_count, cpu_count))
-            self._record_reboot_failure(subdir, 'reboot.verify_config',
-                                        description, running_id=running_id)
-            raise error.JobError('Reboot failed: %s' % description)
+            if abort_on_mismatch:
+                self._record_reboot_failure(subdir, 'reboot.verify_config',
+                                            description, running_id=running_id)
+                raise error.JobError('Reboot failed: %s' % description)
+            else:
+                logging.warning(description)
 
 
     def end_reboot(self, subdir, kernel, patches, running_id=None):
