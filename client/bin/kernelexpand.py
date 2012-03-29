@@ -23,20 +23,26 @@ import sys, re, os, urllib2
 GLOBAL_CONFIG = global_config.global_config
 
 KERNEL_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'kernel_mirror', default='')
+GITWEB_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'kernel_gitweb', default='')
+STABLE_GITWEB_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'stable_kernel_gitweb', default='')
 
 MAPPINGS_2X = [
         [ r'^\d+\.\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split())
+                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
         ],
         [ r'^\d+\.\d+\.\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split())
+                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
         ],
         [ r'^\d+\.\d+\.\d+\.\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split())
+                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
         ],
         [ r'-rc\d+$', '%(minor-prev)s', True,
                 map(lambda x : x + 'v%(major)s/testing/v%(minor)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
-                map(lambda x : x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split())
+                map(lambda x : x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
         ],
         [ r'-(git|bk)\d+$', '%(base)s', False,
                 map(lambda x : x + 'v%(major)s/snapshots/old/patch-%(full)s.bz2', KERNEL_BASE_URL.split()) +
@@ -52,13 +58,16 @@ MAPPINGS_2X = [
 
 MAPPINGS_POST_2X = [
         [ r'^\d+\.\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split())
+                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
         ],
         [ r'^\d+\.\d+\.\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split())
+                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
         ],
         [ r'-rc\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split())
+                map(lambda x : x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
         ],
 ];
 
