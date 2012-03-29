@@ -50,7 +50,7 @@ class listen_server(object):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind((self.address, self.port))
-        sock.listen(10)
+        sock.listen(100)
 
         return sock
 

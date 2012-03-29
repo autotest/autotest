@@ -42,8 +42,8 @@ def run_nicdriver_unload(test, params, env):
     try:
         threads = []
         for t in range(int(params.get("sessions_num", "10"))):
-            thread = virt_utils.Thread(file_transfer.run_file_transfer,
-                                      (test, params, env))
+            thread = utils.InterruptedThread(file_transfer.run_file_transfer,
+                                             (test, params, env))
             thread.start()
             threads.append(thread)
 
