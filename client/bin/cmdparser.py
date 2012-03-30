@@ -6,9 +6,15 @@ Autotest command parser
 
 import os, re, sys
 from autotest_lib.client.bin import os_dep
+from autotest_lib.client.common_lib import global_config
+
+GLOBAL_CONFIG = global_config.global_config
 
 LOCALDIRTEST = "tests"
-GLOBALDIRTEST = "/opt/autotest/tests"
+GLOBALDIRTEST = GLOBAL_CONFIG.get_config_value('COMMON',
+                                               'test_src_dir',
+                                                default="")
+
 DEBUG = False
 
 
@@ -93,16 +99,18 @@ class CommandParser(object):
         # Walk local ./tests directory
         dirtest = os.path.join(os.path.abspath(os.path.curdir), LOCALDIRTEST)
         # Don't repeat autodirtest results
-        if not dirtest == os.environ['AUTODIRTEST']:
+        if not os.environ['AUTODIRTEST']:
+            dirtest = os.environ['AUTODIRTEST']
             pipe.write("Local tests (%s)\n" % dirtest)
             cls._print_control_list(pipe, dirtest)
             pipe.write("\n")
 
         # Walk globaldirtests directory
-        dirtest = GLOBALDIRTEST
-        pipe.write("Globally imported tests (%s)\n" % dirtest)
-        cls._print_control_list(pipe, dirtest)
-        pipe.write("\n")
+        if GLOBALDIRTEST and os.path.isdir(GLOBALDIRTEST):
+            dirtest = GLOBALDIRTEST
+            pipe.write("Globally imported tests (%s)\n" % dirtest)
+            cls._print_control_list(pipe, dirtest)
+            pipe.write("\n")
 
         # Walk autodirtest directory
         dirtest = os.environ['AUTODIRTEST']
@@ -164,8 +172,10 @@ class CommandParser(object):
         autodir = os.environ['AUTODIRTEST']
 
         for dirtest in [localdir, globaldir, autodir]:
-            if os.path.isfile(dirtest + "/" + test):
-                args.insert(0, dirtest + "/" + test)
+            d = os.path.join(dirtest, test)
+            if os.path.isfile(d):
+                print d
+                args.insert(0, d)
                 return args
 
         print "Can not find test %s" % test

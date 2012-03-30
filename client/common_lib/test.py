@@ -18,8 +18,11 @@
 
 import fcntl, getpass, os, re, sys, shutil, tempfile, time, traceback, logging
 
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, global_config
 from autotest_lib.client.bin import utils
+
+
+GLOBAL_CONFIG = global_config.global_config
 
 
 class base_test(object):
@@ -852,7 +855,6 @@ def runtest(job, url, tag, args, dargs,
         (testgroup, testname) = _installtest(job, url)
         bindir = os.path.join(job.testdir, 'download', testgroup, testname)
         importdir = os.path.join(job.testdir, 'download')
-        site_bindir = None
         modulename = '%s.%s' % (re.sub('/', '.', testgroup), testname)
         classname = '%s.%s' % (modulename, testname)
         path = testname
@@ -872,16 +874,22 @@ def runtest(job, url, tag, args, dargs,
             try:
                 bindir = os.path.join(job.testdir, testname)
                 job.install_pkg(testname, 'test', bindir)
-            except error.PackageInstallError, e:
+            except error.PackageInstallError:
                 # continue as a fall back mechanism and see if the test code
                 # already exists on the machine
                 pass
 
-        bindir = testdir = None
-        for dir in [job.testdir, getattr(job, 'site_testdir', None)]:
-            if dir is not None and os.path.exists(os.path.join(dir, path)):
-                testdir = dir
-                importdir = bindir = os.path.join(dir, path)
+        testdir_list = [job.testdir, getattr(job, 'site_testdir', None)]
+        bindir_config = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                        'test_src_dir',
+                                                        default="")
+        if bindir_config:
+            testdir_list.append(bindir_config)
+
+        bindir = None
+        for t_dir in testdir_list:
+            if t_dir is not None and os.path.exists(os.path.join(t_dir, path)):
+                importdir = bindir = os.path.join(t_dir, path)
         if not bindir:
             raise error.TestError(testname + ': test does not exist')
 
@@ -891,8 +899,8 @@ def runtest(job, url, tag, args, dargs,
         outputdir += '.' + tag
 
     local_namespace['job'] = job
-    local_namespace['bindir'] = bindir
     local_namespace['outputdir'] = outputdir
+    local_namespace['bindir'] = bindir
 
     sys.path.insert(0, importdir)
     try:
