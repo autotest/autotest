@@ -18,8 +18,11 @@
 
 import fcntl, getpass, os, re, sys, shutil, tempfile, time, traceback, logging
 
-from autotest_lib.client.common_lib import error
+from autotest_lib.client.common_lib import error, global_config
 from autotest_lib.client.bin import utils
+
+
+GLOBAL_CONFIG = global_config.global_config
 
 
 class base_test(object):
@@ -890,9 +893,16 @@ def runtest(job, url, tag, args, dargs,
     if tag:
         outputdir += '.' + tag
 
+    bindir_config = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                    'test_src_dir',
+                                                    default="")
     local_namespace['job'] = job
-    local_namespace['bindir'] = bindir
     local_namespace['outputdir'] = outputdir
+
+    if bindir_config:
+        local_namespace['bindir'] = os.path.join(bindir_config, path)
+    else:
+        local_namespace['bindir'] = bindir
 
     sys.path.insert(0, importdir)
     try:
