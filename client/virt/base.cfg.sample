@@ -210,6 +210,10 @@ start_vm = yes
 kill_vm = no
 kill_vm_gracefully = yes
 kill_unresponsive_vms = yes
+# Don't kill vm via monitor until it becomes paused
+kill_vm_only_when_paused = yes
+# Wait time before kill vm
+kill_timeout = 60
 
 # Screendump thread params
 convert_ppm_files_to_png_on_error = yes
