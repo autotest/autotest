@@ -171,7 +171,7 @@ public class CreateJobViewPresenter implements TestSelectorListener {
         List<String> profiles = new ArrayList<String>();
         for (JSONObject host : new JSONArrayList<JSONObject>(hostInfo)) {
             hostnames.add(Utils.jsonToString(host.get("hostname")));
-            profiles.add(Utils.josnToString(host.get("profile")));
+            profiles.add(Utils.jsonToString(host.get("profile")));
         }
         hostSelector.setSelectedHostnames(hostnames, profiles, true);
 
