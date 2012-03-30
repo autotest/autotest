@@ -12,48 +12,71 @@ http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.1.tar.bz2
 @license: GPL v2
 @see: Inspired by kernelexpand by Martin J. Bligh, 2003
 """
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+
+from autotest_lib.client.common_lib import global_config
 import sys, re, os, urllib2
 
+GLOBAL_CONFIG = global_config.global_config
 
-KERNEL_BASE_URL = 'http://www.kernel.org/pub/linux/kernel/'
+KERNEL_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'kernel_mirror', default='')
+GITWEB_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'kernel_gitweb', default='')
+STABLE_GITWEB_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'stable_kernel_gitweb', default='')
 
 MAPPINGS_2X = [
-        [ r'^\d+\.\d+$', '', True, [
-                KERNEL_BASE_URL + 'v%(major)s/linux-%(full)s.tar.bz2'
-        ]],
-        [ r'^\d+\.\d+\.\d+$', '', True, [
-                KERNEL_BASE_URL + 'v%(major)s/linux-%(full)s.tar.bz2'
-        ]],
-        [ r'^\d+\.\d+\.\d+\.\d+$', '', True, [
-                KERNEL_BASE_URL + 'v%(major)s/linux-%(full)s.tar.bz2'
-        ]],
-        [ r'-rc\d+$', '%(minor-prev)s', True, [
-                KERNEL_BASE_URL + 'v%(major)s/testing/v%(minor)s/linux-%(full)s.tar.bz2',
-                KERNEL_BASE_URL + 'v%(major)s/testing/linux-%(full)s.tar.bz2',
-        ]],
-        [ r'-(git|bk)\d+$', '%(base)s', False, [
-                KERNEL_BASE_URL + 'v%(major)s/snapshots/old/patch-%(full)s.bz2',
-                KERNEL_BASE_URL + 'v%(major)s/snapshots/patch-%(full)s.bz2',
-        ]],
-        [ r'-mm\d+$', '%(base)s', False, [
-                KERNEL_BASE_URL + 'people/akpm/patches/' +
-                        '%(major)s/%(base)s/%(full)s/%(full)s.bz2'
-        ]],
-        [ r'-mjb\d+$', '%(base)s', False, [
-                KERNEL_BASE_URL + 'people/mbligh/%(base)s/patch-%(full)s.bz2'
-        ]]
+        [ r'^\d+\.\d+$', '', True,
+                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
+        ],
+        [ r'^\d+\.\d+\.\d+$', '', True,
+                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
+        ],
+        [ r'^\d+\.\d+\.\d+\.\d+$', '', True,
+                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
+        ],
+        [ r'-rc\d+$', '%(minor-prev)s', True,
+                map(lambda x : x + 'v%(major)s/testing/v%(minor)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
+        ],
+        [ r'-(git|bk)\d+$', '%(base)s', False,
+                map(lambda x : x + 'v%(major)s/snapshots/old/patch-%(full)s.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + 'v%(major)s/snapshots/patch-%(full)s.bz2', KERNEL_BASE_URL.split())
+        ],
+        [ r'-mm\d+$', '%(base)s', False,
+                map(lambda x : x + 'people/akpm/patches/' + '%(major)s/%(base)s/%(full)s/%(full)s.bz2', KERNEL_BASE_URL.split())
+        ],
+        [ r'-mjb\d+$', '%(base)s', False,
+                map(lambda x : x + 'people/mbligh/%(base)s/patch-%(full)s.bz2', KERNEL_BASE_URL.split())
+        ],
+        [ r'[a-f0-9]{7,40}$', '', True,
+                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', GITWEB_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
+	]
 ];
 
 MAPPINGS_POST_2X = [
-        [ r'^\d+\.\d+$', '', True, [
-                KERNEL_BASE_URL + 'v%(major)s/linux-%(full)s.tar.bz2'
-        ]],
-        [ r'^\d+\.\d+\.\d+$', '', True, [
-                KERNEL_BASE_URL + 'v%(major)s/linux-%(full)s.tar.bz2'
-        ]],
-        [ r'-rc\d+$', '%(minor-prev)s', True, [
-                KERNEL_BASE_URL + 'v%(major)s/testing/linux-%(full)s.tar.bz2',
-        ]],
+        [ r'^\d+\.\d+$', '', True,
+                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
+        ],
+        [ r'^\d+\.\d+\.\d+$', '', True,
+                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
+        ],
+        [ r'-rc\d+$', '', True,
+                map(lambda x : x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
+        ],
+        [ r'[a-f0-9]{7,40}$', '', True,
+                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', GITWEB_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
+	]
 ];
 
 
@@ -129,7 +152,9 @@ def decompose_kernel_post_2x_once(kernel):
         if not match:
             match = re.search(r'^(\d+\.\d+)', kernel)
             if not match:
-                raise NameError("Unable to determine major/minor version for "
+                match = re.search(r'^([a-f0-9]{7,40})', kernel)
+                if not match:
+                    raise NameError("Unable to determine major/minor version for "
                                 "kernel %s" % kernel)
             else:
                 params['minor'] = 0
@@ -162,12 +187,17 @@ def decompose_kernel_post_2x_once(kernel):
 def decompose_kernel(kernel):
     match = re.search(r'^(\d+\.\d+)', kernel)
     if not match:
-        raise NameError("Unable to determine major/minor version for "
+        match = re.search(r'^([a-f0-9]{7,40})', kernel)
+        if not match:
+            raise NameError("Unable to determine major/minor version for "
                         "kernel %s" % kernel)
-    if int(match.group(1).split('.')[0]) == 2:
-        decompose_func = decompose_kernel_2x_once
-    elif int(match.group(1).split('.')[0]) > 2:
-        decompose_func = decompose_kernel_post_2x_once
+        else:
+            decompose_func = decompose_kernel_post_2x_once
+    else:
+        if int(match.group(1).split('.')[0]) == 2:
+            decompose_func = decompose_kernel_2x_once
+        elif int(match.group(1).split('.')[0]) > 2:
+            decompose_func = decompose_kernel_post_2x_once
 
     kernel_patches = []
     done = False
