@@ -55,6 +55,10 @@ def get_mappings_2x():
         [ r'-mjb\d+$', '%(base)s', False,
                 map(lambda x : x + 'people/mbligh/%(base)s/patch-%(full)s.bz2', KERNEL_BASE_URL.split())
         ],
+        [ r'[a-f0-9]{7,40}$', '', True,
+                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', GITWEB_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
+	]
     ];
 
     return MAPPINGS_2X
@@ -78,6 +82,10 @@ def get_mappings_post_2x():
                 map(lambda x : x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
                 map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
         ],
+        [ r'[a-f0-9]{7,40}$', '', True,
+                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', GITWEB_BASE_URL.split()) +
+                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
+	]
     ];
 
     return MAPPINGS_POST_2X
@@ -155,7 +163,9 @@ def decompose_kernel_post_2x_once(kernel):
         if not match:
             match = re.search(r'^(\d+\.\d+)', kernel)
             if not match:
-                raise NameError("Unable to determine major/minor version for "
+                match = re.search(r'^([a-f0-9]{7,40})', kernel)
+                if not match:
+                    raise NameError("Unable to determine major/minor version for "
                                 "kernel %s" % kernel)
             else:
                 params['minor'] = 0
@@ -188,12 +198,17 @@ def decompose_kernel_post_2x_once(kernel):
 def decompose_kernel(kernel):
     match = re.search(r'^(\d+\.\d+)', kernel)
     if not match:
-        raise NameError("Unable to determine major/minor version for "
+        match = re.search(r'^([a-f0-9]{7,40})', kernel)
+        if not match:
+            raise NameError("Unable to determine major/minor version for "
                         "kernel %s" % kernel)
-    if int(match.group(1).split('.')[0]) == 2:
-        decompose_func = decompose_kernel_2x_once
-    elif int(match.group(1).split('.')[0]) > 2:
-        decompose_func = decompose_kernel_post_2x_once
+        else:
+            decompose_func = decompose_kernel_post_2x_once
+    else:
+        if int(match.group(1).split('.')[0]) == 2:
+            decompose_func = decompose_kernel_2x_once
+        elif int(match.group(1).split('.')[0]) > 2:
+            decompose_func = decompose_kernel_post_2x_once
 
     kernel_patches = []
     done = False
