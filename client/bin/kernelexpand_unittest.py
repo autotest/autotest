@@ -1,11 +1,20 @@
 #!/usr/bin/python
 
 import unittest
+try:
+    import autotest.common as common
+except ImportError:
+    import common
 from kernelexpand import decompose_kernel
 from kernelexpand import mirror_kernel_components
+from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib.global_config import global_config
+from autotest_lib.client.common_lib.test_utils import mock
 
 km = 'http://www.kernel.org/pub/linux/kernel/'
 akpm = km + 'people/akpm/patches/'
+gw = 'http://git.kernel.org/?p=linux/kernel/git/torvalds/linux.git'
+sgw = 'http://git.kernel.org/?p=linux/kernel/git/stable/linux-stable.git'
 
 kml = 'http://www.example.com/mirror/kernel.org/'
 akpml = 'http://www.example.com/mirror/akpm/'
@@ -16,6 +25,14 @@ mirrorA = [
 ]
 
 class kernelexpandTest(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god(ut=self)
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
     def test_decompose_simple(self):
         correct = [ [ km + 'v2.6/linux-2.6.23.tar.bz2' ] ]
         sample = decompose_kernel('2.6.23')
@@ -78,6 +95,26 @@ class kernelexpandTest(unittest.TestCase):
 
         if success:
             self.fail('expected NameError, was successful')
+
+
+    def test_decompose_gitweb(self):
+        self.god.stub_function(global_config, "get_config_value")
+        global_config.get_config_value.expect_call('CLIENT', 'kernel_mirror', default='').and_return(km)
+        global_config.get_config_value.expect_call('CLIENT', 'kernel_gitweb', default='').and_return(gw)
+        global_config.get_config_value.expect_call('CLIENT', 'stable_kernel_gitweb', default='').and_return(sgw)
+        correct = [ [ km + 'v3.x/linux-3.0.tar.bz2', gw + ';a=snapshot;h=refs/tags/v3.0;sf=tgz' ] ]
+        sample = decompose_kernel('3.0')
+        self.assertEqual(sample, correct)
+
+
+    def test_decompose_sha1(self):
+        self.god.stub_function(global_config, "get_config_value")
+        global_config.get_config_value.expect_call('CLIENT', 'kernel_mirror', default='').and_return(km)
+        global_config.get_config_value.expect_call('CLIENT', 'kernel_gitweb', default='').and_return(gw)
+        global_config.get_config_value.expect_call('CLIENT', 'stable_kernel_gitweb', default='').and_return(sgw)
+        correct = [ [ gw + ';a=snapshot;h=02f8c6aee8df3cdc935e9bdd4f2d020306035dbe;sf=tgz', sgw + ';a=snapshot;h=02f8c6aee8df3cdc935e9bdd4f2d020306035dbe;sf=tgz' ] ]
+        sample = decompose_kernel('02f8c6aee8df3cdc935e9bdd4f2d020306035dbe')
+        self.assertEqual(sample, correct)
 
 
     def test_decompose_fail(self):
