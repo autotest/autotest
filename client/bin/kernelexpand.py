@@ -58,7 +58,7 @@ def get_mappings_2x():
         [ r'[a-f0-9]{7,40}$', '', True,
                 map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', GITWEB_BASE_URL.split()) +
                 map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
-	]
+        ]
     ];
 
     return MAPPINGS_2X
@@ -85,7 +85,7 @@ def get_mappings_post_2x():
         [ r'[a-f0-9]{7,40}$', '', True,
                 map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', GITWEB_BASE_URL.split()) +
                 map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
-	]
+        ]
     ];
 
     return MAPPINGS_POST_2X
