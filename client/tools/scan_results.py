@@ -90,9 +90,11 @@ def main(resfiles):
 
 
 if __name__ == "__main__":
-    import sys, glob
+    import sys, glob, os
+    dirname = os.path.dirname(sys.modules[__name__].__file__)
+    client_dir = os.path.abspath(os.path.join(dirname, ".."))
+    resfiles = glob.glob(os.path.join(client_dir, 'results', 'default', 'status*'))
 
-    resfiles = glob.glob("../../results/default/status*")
     if len(sys.argv) > 1:
         if sys.argv[1] == "-h" or sys.argv[1] == "--help":
             print "Usage: %s [result files]" % sys.argv[0]
