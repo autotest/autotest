@@ -17,7 +17,8 @@ try:
     old_host = old.get_hosts(hostname=hostname)[0]
     print old_host
 except Exception:
-    print "Usage: atest_migrate_host <old_server> <new_server> <hostname>"
+    print ("Usage: %s <old_server> <new_server> <hostname>" %
+           os.path.basename(sys.argv[0]))
     raise
     sys.exit(1)
 
