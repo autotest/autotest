@@ -1339,13 +1339,19 @@ class Flag(str):
         else:
             return False
 
+    def __str__(self):
+        return self.split("|")[0]
+
+    def __repr__(self):
+        return self.split("|")[0]
+
     def __hash__(self, *args, **kwargs):
         return 0
 
 
 kvm_map_flags_to_test = {
             Flag('avx')                        :set(['avx']),
-            Flag('sse3')                       :set(['sse3']),
+            Flag('sse3|pni')                   :set(['sse3']),
             Flag('ssse3')                      :set(['ssse3']),
             Flag('sse4.1|sse4_1|sse4.2|sse4_2'):set(['sse4']),
             Flag('aes')                        :set(['aes','pclmul']),

@@ -389,13 +389,13 @@ def run_cpuflags(test, params, env):
 
             if all_host_supported_flags == "yes":
                 for fadd in flags.cpumodel_unsupport_flags:
-                    cpuf_model += ",+" + fadd
+                    cpuf_model += ",+" + str(fadd)
             else:
                 for fadd in extra_flags:
-                    cpuf_model += ",+" + fadd
+                    cpuf_model += ",+" + str(fadd)
 
             for fdel in flags.host_unsupported_flags:
-                cpuf_model += ",-" + fdel
+                cpuf_model += ",-" + str(fdel)
 
             if all_host_supported_flags == "yes":
                 guest_flags = flags.all_possible_guest_flags
@@ -443,7 +443,7 @@ def run_cpuflags(test, params, env):
 
             # Add unsupported flags.
             for fadd in flags.host_all_unsupported_flags:
-                cpuf_model += ",+" + fadd
+                cpuf_model += ",+" + str(fadd)
 
             vnc_port = virt_utils.find_free_port(5900, 6100) - 5900
             cmd = "%s -cpu %s -vnc :%d" % (qemu_binary, cpuf_model, vnc_port)
@@ -479,7 +479,7 @@ def run_cpuflags(test, params, env):
 
             # Add unsupported flags.
             for fadd in flags.host_all_unsupported_flags:
-                cpuf_model += ",+" + fadd
+                cpuf_model += ",+" + str(fadd)
 
             vnc_port = virt_utils.find_free_port(5900, 6100) - 5900
             cmd = "%s -cpu %s -vnc :%d" % (qemu_binary, cpuf_model, vnc_port)
@@ -514,10 +514,10 @@ def run_cpuflags(test, params, env):
 
             # Add unsupported flags.
             for fadd in flags.cpumodel_unsupport_flags:
-                cpuf_model += ",+" + fadd
+                cpuf_model += ",+" + str(fadd)
 
             for fdel in flags.host_unsupported_flags:
-                cpuf_model += ",-" + fdel
+                cpuf_model += ",-" + str(fdel)
 
             (self.vm, _) = start_guest_with_cpuflags(cpuf_model, smp)
 
@@ -583,10 +583,10 @@ def run_cpuflags(test, params, env):
 
             # Add unsupported flags.
             for fadd in flags.cpumodel_unsupport_flags:
-                cpuf_model += ",+" + fadd
+                cpuf_model += ",+" + str(fadd)
 
             for fdel in flags.host_unsupported_flags:
-                cpuf_model += ",-" + fdel
+                cpuf_model += ",-" + str(fdel)
 
             (self.vm, _) = start_guest_with_cpuflags(cpuf_model, smp)
 
@@ -667,10 +667,10 @@ def run_cpuflags(test, params, env):
             cpuf_model = cpu_model
 
             for fadd in extra_flags:
-                cpuf_model += ",+" + fadd
+                cpuf_model += ",+" + str(fadd)
 
             for fdel in flags.host_unsupported_flags:
-                cpuf_model += ",-" + fdel
+                cpuf_model += ",-" + str(fdel)
 
             install_path = "/tmp"
 
