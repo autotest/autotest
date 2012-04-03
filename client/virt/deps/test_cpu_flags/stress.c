@@ -45,7 +45,6 @@ void stress(inst in) {
 		b[i] = rand();
 	}
 	omp_set_num_threads(in.num_threads);
-	printf("Stress round.\n");
 	#pragma omp parallel
 	while (1){
 		AddTwo(a, b, in.num_threads); // call AddTwo function}
@@ -69,6 +68,7 @@ void stress(inst in) {
 			xop();
 		if (in.sse4a)
 			sse4a();
+		printf("Stress round.\n");
 	}
 	free(a);
 	free(b);
