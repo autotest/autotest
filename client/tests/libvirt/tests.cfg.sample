@@ -10,6 +10,7 @@ variants:
     - @libvirt_f16_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
+        hvm_or_pv = hvm
         only raw
         only virtio_net
         only ide
@@ -58,6 +59,7 @@ variants:
     - @libvirt_rhel60_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
+        hvm_or_pv = hvm
         only raw
         only virtio_net
         only virtio_blk
