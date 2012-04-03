@@ -598,7 +598,7 @@ def run_virtio_console(test, params, env):
 
         @return: Kernel crash log or None.
         """
-        data = vm_port.read_nonblocking()
+        data = vm_port.read_nonblocking(0.1, timeout)
         match = re.search("BUG:", data, re.MULTILINE)
         if match is None:
             return None
