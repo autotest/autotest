@@ -1661,7 +1661,7 @@ variants:
                 dd_timeout = 900
                 check_cmd_timeout = 900
 
-    - cpuflags:
+    - cpuflags: install setup image_copy unattended_install.cdrom
         type = cpuflags
         extra_params += " -snapshot"
         #Disable all unnecessary vms.
@@ -1715,7 +1715,7 @@ variants:
         comm_port = 13234
         regain_ip_cmd = killall dhclient; sleep 10; dhclient;
 
-    - cpu_hotplug_test:
+    - cpu_hotplug_test: install setup image_copy unattended_install.cdrom
         type = cpu_hotplug
         cpu_hotplug_timeout = 600
         n_cpus_add = 1
@@ -1723,7 +1723,7 @@ variants:
         iterations = 5
         onoff_iterations = 100
 
-    - hdparm:
+    - hdparm: install setup image_copy unattended_install.cdrom
         only Linux
         type = hdparm
         get_disk_cmd = \ls /dev/[vhs]da
