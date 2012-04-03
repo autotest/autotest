@@ -320,6 +320,7 @@ class db_sql(object):
             self.delete('tko_test_attributes', where)
             self.delete('tko_test_labels_tests', {'test_id': test_idx})
         where = {'job_idx' : job_idx}
+        self.delete('tko_job_keyvals', {'job_id' : job_idx})
         self.delete('tko_tests', where)
         self.delete('tko_jobs', where)
 
