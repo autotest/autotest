@@ -200,7 +200,7 @@ def run_ksm_overcommit(test, params, env):
                                       free_mem, (i - 1))
                         last_vm = i
                         break
-                    out = session.read_nonblocking(0.1)
+                    out = session.read_nonblocking(0.1, 1)
                     time.sleep(2)
             except OSError:
                 logging.debug("Only %s host free memory, killing %d guests",
