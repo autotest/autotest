@@ -206,13 +206,23 @@ public class RecurringView extends TabView implements TableActionsListener {
     }
 
     private void resetCreate() {
-        getServerTime();
+        getServerUTCTime();
         loopDelay.setText(Integer.toString(DEFAULT_LOOP_DELAY));
         loopCount.setText(Integer.toString(DEFAULT_LOOP_COUNT));
     }
 
     private void getServerTime() {
         rpcProxy.rpcCall("get_server_time", null, new JsonRpcCallback() {
+            @Override
+            public void onSuccess(JSONValue result) {
+                String sTime = result.isString().stringValue();
+                startDate.setText(sTime);
+            }
+        });
+    }
+
+    private void getServerUTCTime() {
+        rpcProxy.rpcCall("get_server_utctime", null, new JsonRpcCallback() {
             @Override
             public void onSuccess(JSONValue result) {
                 String sTime = result.isString().stringValue();
