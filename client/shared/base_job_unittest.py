@@ -992,9 +992,9 @@ class test_status_log_entry(unittest.TestCase):
         self.assertEqual(parts[-1], msg)
         fields = dict(f.split('=', 1) for f in parts[3:-1])
         self.assertEqual(int(fields['timestamp']), timestamp)
-        self.assert_('localtime' in fields)  # too flaky to do an exact check
+        self.assert_('utctime' in fields)  # too flaky to do an exact check
         del fields['timestamp']
-        del fields['localtime']
+        del fields['utctime']
         self.assertEqual(fields, extra_fields)
 
 

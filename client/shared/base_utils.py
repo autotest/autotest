@@ -1988,7 +1988,7 @@ def ask(question, auto=False):
         logging.info("%s (y/n) y" % question)
         return "y"
     return raw_input("%s INFO | %s (y/n) " %
-                     (time.strftime("%H:%M:%S", time.localtime()), question))
+                     (time.strftime("%H:%M:%S UTC", time.gmtime()), question))
 
 
 def display_data_size(size):
