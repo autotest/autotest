@@ -885,6 +885,11 @@ class UnattendedInstallConfig(object):
             cleanup(self.nfs_mount)
 
 
+    def setup_import(self):
+        self.unattended_file = None
+        self.params['kernel_params'] = None
+
+
     def setup(self):
         """
         Configure the environment for unattended install.
@@ -902,6 +907,8 @@ class UnattendedInstallConfig(object):
             self.setup_url()
         elif self.medium == "nfs":
             self.setup_nfs()
+        elif self.medium == "import":
+            self.setup_import()
         else:
             raise ValueError("Unexpected installation method %s" %
                              self.medium)
@@ -958,6 +965,15 @@ def run_unattended_install(test, params, env):
         if params.get("wait_no_ack", "no") == "no" and\
             post_finish_str in finish_signal:
             break
+
+        # Due to libvirt automatically start guest after import
+        # we only need to wait for successful login.
+        if params.get("medium") == "import":
+            try:
+                vm.login()
+                break
+            except (virt_utils.LoginError, Exception), e:
+                pass
 
         if migrate_background:
             vm.migrate(timeout=mig_timeout, protocol=mig_protocol)

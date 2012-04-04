@@ -74,6 +74,10 @@ variants:
             - kernel_initrd:
                 only Linux
                 medium = kernel_initrd
+            - import:
+                medium = import
+                force_create_image = no
+                create_image = no
 
     - qemu_iotests:
         type = qemu_iotests
