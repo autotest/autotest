@@ -702,6 +702,12 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
+        def add_import(help):
+            if has_option(help, "import"):
+                return " --import"
+            else:
+                return ""
+
         def add_drive(help, filename, pool=None, vol=None, device=None,
                       bus=None, perms=None, size=None, sparse=False,
                       cache=None, format=None):
@@ -886,6 +892,9 @@ class VM(virt_vm.BaseVM):
                                  pxeboot_link)
                     shutil.rmtree(pxeboot_link)
                 os.symlink(kernel_dir, pxeboot_link)
+
+        elif params.get("medium") == "import":
+            virt_install_cmd += add_import(help)
 
         if location:
             virt_install_cmd += add_location(help, location)
@@ -1075,6 +1084,8 @@ class VM(virt_vm.BaseVM):
 
         # Verify the md5sum of the ISO images
         for cdrom in params.objects("cdroms"):
+            if params.get("medium") == "import":
+                break
             cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
             if ((self.driver_type == 'xen') and
