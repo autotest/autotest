@@ -310,7 +310,7 @@ class VM(virt_vm.BaseVM):
                       boot=False, blkdebug=None, bus=None, port=None,
                       bootindex=None, removable=None, min_io_size=None,
                       opt_io_size=None, physical_block_size=None,
-                      logical_block_size=None):
+                      logical_block_size=None, readonly=False):
             name = None
             dev = ""
             if format == "ahci":
@@ -362,6 +362,7 @@ class VM(virt_vm.BaseVM):
             cmd += _add_option("snapshot", snapshot, bool)
             cmd += _add_option("boot", boot, bool)
             cmd += _add_option("id", name)
+            cmd += _add_option("readonly", readonly, bool)
             return cmd + dev
 
         def add_nic(help, vlan, model=None, mac=None, device_id=None, netdev_id=None,
@@ -758,7 +759,8 @@ class VM(virt_vm.BaseVM):
                     image_params.get("min_io_size"),
                     image_params.get("opt_io_size"),
                     image_params.get("physical_block_size"),
-                    image_params.get("logical_block_size"))
+                    image_params.get("logical_block_size"),
+                    image_params.get("image_readonly"))
 
         redirs = []
         for redir_name in params.objects("redirs"):
