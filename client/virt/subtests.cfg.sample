@@ -398,6 +398,41 @@ variants:
                 create_image_stg = yes
                 image_size_stg = 10M
 
+    - dd_test: install setup image_copy unattended_install.cdrom
+        type = dd_test
+        images += " stg1"
+        image_name_stg1 = "sgt1"
+        image_size_stg1 = 1M
+        image_snapshot_stg1 = no
+        drive_index_stg1 = 3
+        dd_count = 1
+        # last input and output disk
+        dd_if_select = -1
+        dd_of_select = -1
+        variants:
+            - readwrite:
+                dd_stat = 0
+                variants:
+                    - zero2disk:
+                        dd_if = ZERO
+                        dd_of = /dev/[shv]d?
+                    - disk2null:
+                        dd_if = /dev/[shv]d?
+                        dd_of = NULL
+            - readonly:
+                # ide, ahci don't support readonly disks
+                no ide, ahci
+                image_readonly_stg1 = yes
+                variants:
+                    - zero2disk:
+                        dd_if = ZERO
+                        dd_of = /dev/[shv]d?
+                        dd_stat = 1
+                    - disk2null:
+                        dd_if = /dev/[shv]d?
+                        dd_of = NULL
+                        dd_stat = 0
+
 
     - virsh_migrate: install setup image_copy unattended_install.cdrom
         type = virsh_migrate
