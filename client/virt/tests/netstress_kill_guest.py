@@ -90,7 +90,7 @@ def run_netstress_kill_guest(test, params, env):
 
         server_netperf_cmd = params.get("netperf_cmd") % (netperf_dir, "TCP_STREAM",
                                         guest_ip, params.get("packet_size", "1500"))
-        quest_netperf_cmd = params.get("netperf_cmd") % ("/tmp", "TCP_STREAM",
+        guest_netperf_cmd = params.get("netperf_cmd") % ("/tmp", "TCP_STREAM",
                                        server_ip, params.get("packet_size", "1500"))
 
         tcpdump = env.get("tcpdump")
@@ -106,7 +106,7 @@ def run_netstress_kill_guest(test, params, env):
 
         try:
             logging.info("Start heavy network load host <=> guest.")
-            session_serial.sendline(quest_netperf_cmd)
+            session_serial.sendline(guest_netperf_cmd)
             utils.BgJob(server_netperf_cmd)
 
             #Wait for create big network usage.
