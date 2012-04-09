@@ -601,6 +601,9 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
+        def add_machine_type(help, machine_type):
+            return " -M %s" % machine_type
+
         def add_usb(help, usb_id, usb_type, multifunction=False,
                     masterbus=None, firstport=None, freq=None):
             if not has_option(help, "device"):
@@ -813,6 +816,10 @@ class VM(virt_vm.BaseVM):
             vendor = params.get("cpu_model_vendor")
             flags = params.get("cpu_model_flags")
             qemu_cmd += add_cpu_flags(help, cpu_model, vendor, flags)
+
+        machine_type = params.get("machine_type")
+        if machine_type:
+            qemu_cmd += add_machine_type(help, machine_type)
 
         for cdrom in params.objects("cdroms"):
             cd_format = params.get("cd_format", "")

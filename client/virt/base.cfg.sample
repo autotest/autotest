@@ -38,6 +38,10 @@ usb_type_tablet1 = usb-tablet
 # USB Controller type which device uses.
 usb_controller_tablet1 = uhci
 
+# Emulated machine type, run following command to see supported machine type.
+# qemu-kvm -M ?
+# machine_type = pc
+
 
 
 ##### Low-level parameters for platform, networking, block, and usb devices.
