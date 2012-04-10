@@ -99,6 +99,18 @@ class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return path
 
 
+    def address_string(self):
+        '''
+        This HTTP server does not care about name resolution for the requests
+
+        The first reason is that most of the times our clients are going to be
+        virtual machines without a proper name resolution setup. Also, by not
+        resolving names, we should be a bit faster and be resilient about
+        misconfigured or resilient name servers.
+        '''
+        return self.client_address[0]
+
+
     def log_message(self, format, *args):
         logging.debug("builtin http server handling request from %s: %s" %
                       (self.address_string(), format%args))
