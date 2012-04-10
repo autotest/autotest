@@ -3535,7 +3535,7 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
             logging.debug("Creating config file %s from sample", dst_file)
             shutil.copyfile(src_file, dst_file)
         else:
-            diff_result = utils.run("diff -Naur %s %s" % (src_file, dst_file),
+            diff_result = utils.run("diff -Naur %s %s" % (dst_file, src_file),
                                     ignore_status=True, verbose=False)
             if diff_result.exit_status != 0:
                 logging.debug("%s result:\n %s" %
