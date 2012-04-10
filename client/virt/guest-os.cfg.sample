@@ -389,6 +389,20 @@ variants:
                             md5sum_cd1 = bb38ea1fe4b2fc69e7a6e15cf1c69c91
                             md5sum_1m_cd1 = e25ea147176f24239d38a46f501bd25e
 
+                    - 16.ppc64:
+                        image_name = f16-ppc64
+                        machine_type = pseries
+                        unattended_install:
+                            unattended_file = unattended/Fedora-16.ks
+                            cdrom_unattended = images/f16-ppc64/ks.iso
+                            kernel = images/f16-ppc64/vmlinuz
+                            initrd = images/f16-ppc64/initrd.img
+                        unattended_install.cdrom:
+                            boot_path = ppc/ppc64
+                            cdrom_cd1 = isos/linux/Fedora-16-ppc64-DVD.iso
+                            md5sum_cd1 = ffc0674f87e4f7e5739605dc80f4ffce
+                            md5sum_1m_cd1 = 23be25f6a04a78f6dc7cb6ad9e691988
+                            kernel_cmdline = "root=live:CDLABEL=Fedora-16-ppc64 ks=cdrom:/ks.cfg console=hvc0 serial rd_NO_PLYMOUTH"
 
             - RHEL:
                 no setup
@@ -804,7 +818,7 @@ variants:
                             initrd = images/rhel62-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.2-i386-DVD.iso
-                            md5sum_cd1 = 31f3ef3825fbde428bf3ab49ce2b99db 
+                            md5sum_cd1 = 31f3ef3825fbde428bf3ab49ce2b99db
                             md5sum_1m_cd1 = 46ef65cdab3c0164b43011813a319755
 
                     - 6.2.x86_64:
@@ -822,7 +836,7 @@ variants:
                             initrd = images/rhel62-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.2-x86_64-DVD.iso
-                            md5sum_cd1 = 7525d7ea1b1fd074538c7505bccd143d 
+                            md5sum_cd1 = 7525d7ea1b1fd074538c7505bccd143d
                             md5sum_1m_cd1 = 19b99519559067656193e5e2146a81a4
 
             - OpenSUSE:
