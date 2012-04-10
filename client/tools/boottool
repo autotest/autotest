@@ -480,7 +480,7 @@ def install_grubby_if_missing():
 
     grubby = Grubby()
     installed_version = grubby.get_grubby_version_raw()
-    log.info('Installed grubby version: %s', installed_version)
+    log.debug('Installed: %s', installed_version)
 
 
 class Grubby(object):
