@@ -1773,4 +1773,3 @@ if __name__ == '__main__':
 else:
     logging.basicConfig(level=logging.INFO,
                         format=LOGGING_FORMAT)
-
