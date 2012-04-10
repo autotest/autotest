@@ -25,28 +25,28 @@ def run_virsh_capabilities(test, params, env):
         # check that host has a non-empty UUID tag.
         uuid = host.getElementsByTagName('uuid')[0]
         host_uuid_output = uuid.firstChild.data
-        logging.info("The host uuid in capabilities_xml:%s", host_uuid_output)
+        logging.info("Host uuid (capabilities_xml):%s", host_uuid_output)
         if host_uuid_output == "":
-           raise error.TestFail("The host uuid in capabilities_xml is none!")
+            raise error.TestFail("The host uuid in capabilities_xml is none!")
 
         # check the host arch.
         arch = host.getElementsByTagName('arch')[0]
         host_arch_output = arch.firstChild.data
-        logging.info("The host arch in capabilities_xml:%s", host_arch_output)
+        logging.info("Host arch (capabilities_xml):%s", host_arch_output)
         cmd_result = utils.run("arch", ignore_status=True)
         if cmp(host_arch_output, cmd_result.stdout.strip()) != 0:
-           raise error.TestFail("The host arch in capabilities_xml is wrong!")
+            raise error.TestFail("The host arch in capabilities_xml is wrong!")
 
         # check the host cpus num.
         cpus = dom.getElementsByTagName('cpus')[0]
         host_cpus_output = cpus.getAttribute('num')
-        logging.info("The host cpus num in capabilities_xml:%s",\
+        logging.info("Host cpus num (capabilities_xml):%s",
                       host_cpus_output)
         cmd = "less /proc/cpuinfo | grep processor | wc -l"
         cmd_result = utils.run(cmd, ignore_status=True)
         if cmp(host_cpus_output, cmd_result.stdout.strip()) != 0:
-           raise error.TestFail("The host cpus num in capabilities_xml is\
-                                   wrong")
+            raise error.TestFail("Host cpus num (capabilities_xml) is "
+                                 "wrong")
 
         # check the arch of guest supported.
         cmd = "/usr/libexec/qemu-kvm  --cpu ? | grep qemu"
@@ -56,21 +56,21 @@ def run_virsh_capabilities(test, params, env):
         for i in range(length):
             element = guest_wordsize_array[i]
             guest_wordsize = element.firstChild.data
-            logging.info("The arch of guest supported in capabilities_xml:%s",\
-                          guest_wordsize)
+            logging.info("Arch of guest supported (capabilities_xml):%s",
+                         guest_wordsize)
             if not re.search(guest_wordsize, cmd_result.stdout.strip()):
-                raise error.TestFail("The capabilities_xml gives an extra arch \
-                                        of guest to support! ")
+                raise error.TestFail("The capabilities_xml gives an extra arch "
+                                     "of guest to support!")
 
         # check the type of hyperviosr.
         guest_domain_type = dom.getElementsByTagName('domain')[0]
         guest_domain_type_output = guest_domain_type.getAttribute('type')
-        logging.info("The hyperviosr in capabilities_xml:%s", \
-                      guest_domain_type_output)
+        logging.info("Hypervisor (capabilities_xml):%s",
+                     guest_domain_type_output)
         cmd_result = utils.run("virsh uri", ignore_status=True)
         if not re.search(guest_domain_type_output, cmd_result.stdout.strip()):
-            raise error.TestFail("The capabilities_xml gives an different\
-                                   hyperviosr")
+            raise error.TestFail("The capabilities_xml gives an different "
+                                 "hypervisor")
 
     # Prepare libvirtd service
     check_libvirtd = params.has_key("libvirtd")
@@ -92,11 +92,11 @@ def run_virsh_capabilities(test, params, env):
     if status_error == "yes":
         if status == 0:
             if libvirtd == "off":
-                raise error.TestFail("Command 'virsh capabilities' succeeded\
-                                      with libvirtd service stopped, incorrect")
+                raise error.TestFail("Command 'virsh capabilities' succeeded "
+                                     "with libvirtd service stopped, incorrect")
             else:
-                raise error.TestFail("Command 'virsh capabilities %s' succeeded"
-                                 "(incorrect command)" % option)
+                raise error.TestFail("Command 'virsh capabilities %s' succeeded "
+                                     "(incorrect command)" % option)
     elif status_error == "no":
         compare_capabilities_xml(output)
         if status != 0:
