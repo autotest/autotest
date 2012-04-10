@@ -8,7 +8,6 @@ except ImportError:
 
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.common_lib import boottool
-from autotest_lib.client.tools import boottool as t_boottool
 
 class TestEfiSys(unittest.TestCase):
     def setUp(self):
@@ -26,7 +25,7 @@ class TestEfiSys(unittest.TestCase):
         sys.exit.expect_call(-1)
 
         # Run
-        self.efi_tool = t_boottool.EfiToolSys()
+        self.efi_tool = boottool.EfiToolSys()
         self.god.check_playback()
 
 
