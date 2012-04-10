@@ -460,7 +460,7 @@ def install_grubby_if_missing():
     '''
     executable = find_executable('grubby', '/sbin')
     if executable is not None:
-        required_version = (8, 9)
+        required_version = (8, 11)
         grubby = Grubby(executable)
         current_version = grubby.get_grubby_version()
         if current_version is None:
@@ -1146,9 +1146,8 @@ class Grubby(object):
             o.close()
 
         topdir = tempfile.mkdtemp()
-        tarball_uri = ('http://pkgs.fedoraproject.org/repo/pkgs/grubby/'
-                       'grubby-8.9.tar.bz2/f0f27d7e78ad1452e7d0bf0bf4ca'
-                       '0fc6/grubby-8.9.tar.bz2')
+        tarball_uri = ('http://cloud.github.com/downloads/autotest/grubby/'
+                       'grubby-8.11-autotest.tar.bz2')
         tarball_name = os.path.basename(tarball_uri)
         tarball = os.path.join(topdir, tarball_name)
 
