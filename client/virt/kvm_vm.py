@@ -238,7 +238,7 @@ class VM(virt_vm.BaseVM):
                 usb_dev = self.usb_dev_dict.get(usb)
 
                 controller = usb
-                max_port = int(usb_params.get("usb_max_port"))
+                max_port = int(usb_params.get("usb_max_port", 6))
                 if len(usb_dev) < max_port:
                     bus = "%s.0" % usb
                     self.usb_dev_dict[usb].append(dev)
