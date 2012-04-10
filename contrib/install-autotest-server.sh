@@ -147,7 +147,7 @@ fi
 
 if [ -f /etc/redhat-release ]
 then
-  
+
     if [ ! -f /etc/yum.repos.d/epel.repo ]
     then
         if [ "`grep 'release 6' /etc/redhat-release`" != "" ]
@@ -310,20 +310,20 @@ else
 fi
 
 print_log "INFO" "Starting the scheduler"
-if [ -x /etc/init.d/httpd ]
+if [ ! -d /etc/systemd ]
 then
     cp $ATHOME/utils/autotest-rh.init /etc/init.d/autotest >> $LOG
     chmod +x /etc/init.d/autotest >> $LOG
     chkconfig --level 2345 autotest on >> $LOG
     /etc/init.d/autotest stop >> $LOG
-    rm -f $ATHOME/monitor_db_babysitter.pid $ATHOME/monitor_db.pid
+    rm -f $ATHOME/autotest-scheduler.pid $ATHOME/autotest-scheduler-watcher.pid
     /etc/init.d/autotest start >> $LOG
 else
     cp $ATHOME/utils/autotestd.service /etc/systemd/system/ >> $LOG
     systemctl daemon-reload >> $LOG
     systemctl enable autotestd.service >> $LOG
     systemctl stop autotestd.service >> $LOG
-    rm -f $ATHOME/monitor_db_babysitter.pid $ATHOME/monitor_db.pid
+    rm -f $ATHOME/autotest-scheduler.pid $ATHOME/autotest-scheduler-watcher.pid
     systemctl start autotestd.service >> $LOG
 fi
 
@@ -354,5 +354,5 @@ cd $ATHOME/client/common_lib/
 VERSION="$(./version.py)"
 print_log "INFO" "Finished installing autotest server $VERSION at: $(date)"
 
-IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | grep -v 192.168.122 | cut -d: -f2 | awk '{ print $1}')"
+IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | grep -v 192.168.122.1 | cut -d: -f2 | awk '{ print $1}')"
 print_log "INFO" "You can access your server on http://$IP/afe"
