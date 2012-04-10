@@ -46,6 +46,17 @@ ACTIONS_OPT_METHOD_NAME = [act.replace('-', '_') for act in ACTIONS]
 ACTIONS_REQUIRE_TITLE = ['boot_once', ]
 
 
+#
+# Include the logger (logging channel) name on the default logging config
+#
+LOGGING_FORMAT = "%(levelname)s: %(name)s: %(message)s"
+
+#
+# Default log object
+#
+log = logging.getLogger('boottool')
+
+
 class EfiVar(object):
     '''
     Helper class to manipulate EFI firmware variables
@@ -166,6 +177,7 @@ class EfiToolSys(object):
     def __init__(self):
         if not os.path.exists(self.BASE_PATH):
             sys.exit(-1)
+        self.log = logging.getLogger(self.__class__.__name__)
 
 
     def create_variable(self, name, data, guid=None, attributes=None):
@@ -222,18 +234,18 @@ class EfiToolSys(object):
         '''
         status = True
         if not os.path.isdir(self.BASE_PATH):
-            logging.error('Could not find the base directory interface for '
-                         'EFI variables: "%s"', self.BASE_PATH)
+            self.log.error('Could not find the base directory interface for '
+                           'EFI variables: "%s"', self.BASE_PATH)
             status = False
 
         if not os.path.exists(self.NEW_VAR):
-            logging.error('Could not find the file interface for creating new'
-                         'EFI variables: "%s"', self.NEW_VAR)
+            self.log.error('Could not find the file interface for creating new'
+                           ' EFI variables: "%s"', self.NEW_VAR)
             status = False
 
         if not os.path.exists(self.DEL_VAR):
-            logging.error('Could not find the file interface for deleting '
-                         'EFI variables: "%s"', self.DEL_VAR)
+            self.log.error('Could not find the file interface for deleting '
+                           'EFI variables: "%s"', self.DEL_VAR)
             status = False
 
         return status
@@ -452,24 +464,23 @@ def install_grubby_if_missing():
         grubby = Grubby(executable)
         current_version = grubby.get_grubby_version()
         if current_version is None:
-            logging.error('Could not version for grubby executable "%s"',
-                          executable)
+            log.error('Could not version for grubby executable "%s"',
+                      executable)
             sys.exit(-1)
 
         if current_version < required_version:
-            logging.info('Installing grubby because currently installed '
-                         'version (%s.%s) is not recent enough',
-                         current_version[0], current_version[1])
+            log.info('Installing grubby because currently installed '
+                     'version (%s.%s) is not recent enough',
+                     current_version[0], current_version[1])
             grubby.grubby_install()
     else:
-        logging.info('Installing grubby because it was not found on this '
-                     'system')
+        log.info('Installing grubby because it was not found on this system')
         grubby = Grubby()
         grubby.grubby_install()
 
     grubby = Grubby()
     installed_version = grubby.get_grubby_version_raw()
-    logging.info('Installed grubby version: %s', installed_version)
+    log.info('Installed grubby version: %s', installed_version)
 
 
 class Grubby(object):
@@ -488,6 +499,7 @@ class Grubby(object):
         self.path = path
         self.bootloader = None
         self.opts = opts
+        self.log = logging.getLogger(self.__class__.__name__)
         self._set_bootloader()
 
 
@@ -500,7 +512,7 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns command output
         '''
-        logging.debug('Grubby::_run_get_output args: %s', arguments)
+        self.log.debug('_run_get_output args: %s', arguments)
         result = None
         try:
             result = subprocess.Popen(arguments, shell=False,
@@ -512,9 +524,9 @@ class Grubby(object):
 
         if result is not None:
             result = result.strip()
-            logging.debug('Grubby::_run_get_output returnig: %s', result)
+            self.log.debug('_run_get_output returning: %s', result)
         else:
-            logging.debug('Grubby::_run_get_output error')
+            self.log.debug('_run_get_output error')
         return result
 
 
@@ -522,7 +534,7 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns command output
         '''
-        logging.debug('Grubby::_run_get_output args: %s', arguments)
+        self.log.debug('_run_get_output_err args: %s', arguments)
         result = None
         try:
             result = subprocess.Popen(arguments, shell=False,
@@ -535,9 +547,9 @@ class Grubby(object):
 
         if result is not None:
             result = result.strip()
-            logging.debug('Grubby::_run_get_output_err returnig: %s', result)
+            self.log.debug('_run_get_output_err returning: %s', result)
         else:
-            logging.debug('Grubby::_run_get_output_err error')
+            self.log.debug('_run_get_output_err error')
         return result
 
 
@@ -545,15 +557,15 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns status code
         '''
-        logging.debug('Grubby::_run_get_output args: %s', arguments)
+        self.log.debug('_run_get_return args: %s', arguments)
         result = None
         try:
             result = subprocess.call(arguments)
         except OSError:
             result = -1
-            logging.debug('Caught OSError, returning %s', result)
+            self.log.debug('caught OSError, returning %s', result)
 
-        logging.debug('Grubby::_run_get_return returnig: %s', result)
+        self.log.debug('_run_get_return returnig: %s', result)
         return result
 
 
@@ -661,8 +673,6 @@ class Grubby(object):
         @param title: the title of the entry
         @returns: the index of the given entry or None
         '''
-        logging.debug('Grubby::_index_for_title %s', title)
-
         if self._is_number(title):
             return title
 
@@ -938,7 +948,6 @@ class Grubby(object):
         @param entry: entry description, usually an index starting from 0
         @returns: set of lines
         '''
-        logging.debug('Grubby::get_info')
         command = '--info=%s' % entry
         info = self._run_grubby_get_output([command])
         if info:
@@ -1050,9 +1059,9 @@ class Grubby(object):
         """
         entry_selection = self._get_entry_selection(kernel)
         if entry_selection is None:
-            logging.debug('No kernel found for title "%s". Assuming no entry'
-                          'exists, and emulating boottool(.pl) behavior being '
-                          'silent about it.', kernel)
+            self.log.debug('No kernel found for title "%s". Assuming no entry'
+                           ' exists, and emulating boottool(.pl) behavior'
+                           ' and being silent about it.', kernel)
             return 0
 
         command_arguments = ['--remove-kernel=%s' % entry_selection]
@@ -1096,7 +1105,7 @@ class Grubby(object):
         '''
         output = self.get_grubby_version_raw()
         if output is None:
-            logging.warn('Could not run grubby to fetch its version')
+            self.log.warn('Could not run grubby to fetch its version')
             return None
 
         match = re.match('(grubby version)?(\s)?(\d)\.(\d)(.*)', output)
@@ -1173,30 +1182,30 @@ class Grubby(object):
         This is not implemented by grubby, but directly implemented here, via
         the 'boot_once_<bootloader>' method.
         '''
-        logging.debug('Title chosen to boot once: %s', title)
+        self.log.debug('Title chosen to boot once: %s', title)
 
         available_titles = self.get_titles()
         if title not in available_titles:
-            logging.error('Entry with title "%s" was not found', title)
+            self.log.error('Entry with title "%s" was not found', title)
             return -1
 
         default_title = self.get_default_title()
-        logging.debug('Title actually set as default: %s', default_title)
+        self.log.debug('Title actually set as default: %s', default_title)
 
         if default_title == title:
-            logging.info('Doing nothing: entry to boot once is the same as '
-                         'default entry')
+            self.log.info('Doing nothing: entry to boot once is the same as '
+                          'default entry')
             return
         else:
-            logging.debug('Setting boot once for entry: %s', title)
+            self.log.debug('Setting boot once for entry: %s', title)
 
 
         bootloader = self.get_bootloader()
         if bootloader in ('grub', 'grub2', 'elilo'):
             entry_index = self._index_for_title(title)
             if entry_index is None:
-                logging.error('Could not find index for entry with title "%s"',
-                              title)
+                self.log.error('Could not find index for entry with title '
+                               '"%s"', title)
                 return -1
 
         if bootloader == 'grub':
@@ -1208,7 +1217,7 @@ class Grubby(object):
         elif bootloader == 'elilo':
             return self.boot_once_elilo(entry_index)
         else:
-            logging.error("Detected bootloader does not implement boot once")
+            self.log.error("Detected bootloader does not implement boot once")
             return -1
 
 
@@ -1235,11 +1244,11 @@ class Grubby(object):
             err_harmful = [l for l in err_lines if l and l not in harmless]
 
             if err_harmful:
-                logging.error("Error while running grub to set boot once: %s",
-                              "\n".join(err_harmful))
+                self.log.error("Error while running grub to set boot once: %s",
+                               "\n".join(err_harmful))
                 return False
 
-        logging.debug('No error detected while running grub to set boot once')
+        self.log.debug('No error detected while running grub to set boot once')
         return 0
 
 
@@ -1259,8 +1268,8 @@ class Grubby(object):
                 break
 
         if executable is None:
-            logging.error('Could not find executable among searched names: %s',
-                          ' ,'.join(grub_reboot_names))
+            self.log.error('Could not find executable among searched names: '
+                           '%s',' ,'.join(grub_reboot_names))
             return -1
 
         return self._run_get_return([executable,
@@ -1501,6 +1510,7 @@ class BoottoolApp(object):
         self.args = None
         self.option_parser = OptionParser()
         self.grubby = None
+        self.log = logging.getLogger(self.__class__.__name__)
 
 
     def _parse_command_line(self):
@@ -1533,7 +1543,7 @@ class BoottoolApp(object):
 
         logging_level = log_map.get(level)
         logging.basicConfig(level=logging_level,
-                            format="%(levelname)s: %(message)s")
+                            format=LOGGING_FORMAT)
 
 
     def run(self):
@@ -1548,11 +1558,11 @@ class BoottoolApp(object):
             self.grubby = Grubby(opts=self.opts)
 
         if self.opts.bootloader:
-            logging.debug('Forcing bootloader "%s"', self.opts.bootloader)
+            self.log.debug('Forcing bootloader "%s"', self.opts.bootloader)
             try:
                 self.grubby._set_bootloader(self.opts.bootloader)
             except ValueError, msg:
-                logging.error(msg)
+                self.log.error(msg)
                 sys.exit(-1)
 
         #
@@ -1587,7 +1597,6 @@ class BoottoolApp(object):
         '''
         Prints the of grubby that is installed on this machine
         '''
-        logging.debug('BoottoolApp::action_grubby_version')
         version = self.grubby.get_grubby_version()
         if version is not None:
             print "%s.%s" % version
@@ -1602,11 +1611,9 @@ class BoottoolApp(object):
         '''
         Prints the of grubby that is installed on this machine
         '''
-        logging.debug('BoottoolApp::action_grubby_version_check')
-
         current_version = self.grubby.get_grubby_version()
         if current_version is None:
-            logging.warn('Could not get version numbers from grubby')
+            self.log.warn('Could not get version numbers from grubby')
             return -1
 
         required_version = self.opts.grubby_version_check.split('.', 1)
@@ -1627,7 +1634,6 @@ class BoottoolApp(object):
         '''
         Attempts to install a recent enough version of grubby
         '''
-        logging.debug('BoottoolApp::action_grubby_install')
         return self.grubby.grubby_install()
 
 
@@ -1638,17 +1644,15 @@ class BoottoolApp(object):
         boottool is frequently called with 'all' lowercase, but
         grubby expects it to be uppercase
         '''
-        logging.debug('BoottoolApp::action_info')
-
         if not self.opts.info:
-            logging.error('Kernel title to update is required')
+            self.log.error('Kernel title to update is required')
             return -1
 
         info_index = self.opts.info
         if not ((info_index.lower() == 'all') or
                 (self.opts.info.isdigit())):
-            logging.error('Parameter to info should be either "all", "ALL" '
-                          'or an integer index')
+            self.log.error('Parameter to info should be either "all", "ALL" '
+                           'or an integer index')
             return -1
 
         if info_index == 'all':
@@ -1680,18 +1684,16 @@ class BoottoolApp(object):
         @param opts: parsed command line options
         @returns:
         '''
-        logging.debug('BoottoolApp::action_add_kernel')
-
         if not self.opts.add_kernel:
-            logging.error("Kernel to add is required")
+            self.log.error("Kernel to add is required")
             return -1
 
         if not self.opts.title:
-            logging.error("Kernel title is required")
+            self.log.error("Kernel title is required")
             return -1
 
         if not self.opts.initrd:
-            logging.error("initrd is required")
+            self.log.error("initrd is required")
             return -1
 
         return self.grubby.add_kernel(self.opts.add_kernel,
@@ -1704,10 +1706,8 @@ class BoottoolApp(object):
         '''
         Updates a kernel entry
         '''
-        logging.debug('Grubby::action_update_kernel')
-
         if not self.opts.update_kernel:
-            logging.error("Kernel title to update is required")
+            self.log.error("Kernel title to update is required")
             return -1
 
         args = []
@@ -1732,10 +1732,8 @@ class BoottoolApp(object):
         boottool expects: title
         grubby expects: kernel path or special syntax (eg, TITLE=)
         '''
-        logging.debug('BoottoolApp::action_remove_kernel')
-
         if not self.opts.remove_kernel:
-            logging.error("Kernel title to remove is required")
+            self.log.error("Kernel title to remove is required")
             return -1
 
         return self.grubby.remove_kernel(self.opts.remove_kernel)
@@ -1747,10 +1745,8 @@ class BoottoolApp(object):
 
         The subsequent boots will use the default kernel
         """
-        logging.debug('BoottoolApp::action_boot_once')
-
         if not self.opts.boot_once:
-            logging.error("Kernel to boot once is required")
+            self.log.error("Kernel to boot once is required")
 
         return self.grubby.boot_once(self.opts.title)
 
@@ -1766,10 +1762,8 @@ class BoottoolApp(object):
         """
         Sets the given entry number to be the default on every next boot
         """
-        logging.debug('BoottoolApp::action_set_default')
-
         if not self.opts.set_default:
-            logging.error("Entry index is required")
+            self.log.error("Entry index is required")
 
         return self.grubby.set_default_by_index(self.opts.set_default)
 
@@ -1777,3 +1771,7 @@ class BoottoolApp(object):
 if __name__ == '__main__':
     app = BoottoolApp()
     app.run()
+else:
+    logging.basicConfig(level=logging.INFO,
+                        format=LOGGING_FORMAT)
+
