@@ -18,7 +18,7 @@ def run_virsh_migrate(test, params, env):
 
     def cleanup_dest(vm, src_uri = ""):
         """
-        Clean up the destination host environment 
+        Clean up the destination host environment
         when doing the uni-direction migration.
         """
         vm_state = vm.state()
