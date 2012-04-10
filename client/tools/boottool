@@ -1108,7 +1108,7 @@ class Grubby(object):
             self.log.warn('Could not run grubby to fetch its version')
             return None
 
-        match = re.match('(grubby version)?(\s)?(\d)\.(\d)(.*)', output)
+        match = re.match('(grubby version)?(\s)?(\d+)\.(\d+)(.*)', output)
         if match:
             groups = match.groups()
             return (int(groups[2]), int(groups[3]))
