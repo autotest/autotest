@@ -17,10 +17,17 @@ import os, sys, imp
 
 #
 # This performs some import magic, to import the boottool cli as a module
-#
-CURRENT_DIRECTORY = os.path.dirname(sys.modules[__name__].__file__)
-CLIENT_DIRECTORY = os.path.abspath(os.path.join(CURRENT_DIRECTORY, ".."))
-BOOTTOOL_CLI_PATH = os.path.join(CLIENT_DIRECTORY, "tools", "boottool")
+try:
+    import autotest.common as common
+    CURRENT_DIRECTORY = os.path.dirname(common.__file__)
+    BOOTTOOL_CLI_PATH = os.path.join(CURRENT_DIRECTORY, "client", "tools", "boottool")
+except ImportError:
+    import common
+    CURRENT_DIRECTORY = os.path.dirname(sys.modules[__name__].__file__)
+    CLIENT_DIRECTORY = os.path.abspath(os.path.join(CURRENT_DIRECTORY, ".."))
+    BOOTTOOL_CLI_PATH = os.path.join(CLIENT_DIRECTORY, "tools", "boottool")
+
+
 imp.load_source("boottool_cli", BOOTTOOL_CLI_PATH)
 from boottool_cli import Grubby, install_grubby_if_missing, EfiToolSys
 
