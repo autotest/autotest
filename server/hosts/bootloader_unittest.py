@@ -51,7 +51,7 @@ class test_bootloader(unittest.TestCase):
         SERVERDIR = "/unittest/server"
         BOOTTOOL_SRC = os.path.join(SERVERDIR, bootloader.BOOTTOOL_CLI_PATH)
         BOOTTOOL_SRC = os.path.abspath(BOOTTOOL_SRC)
-        BOOTTOOL_DST = os.path.join(TMPDIR, "boottool.py")
+        BOOTTOOL_DST = os.path.join(TMPDIR, "boottool")
         # set up the recording
         host = self.create_mock_host()
         host.get_tmp_dir.expect_call().and_return(TMPDIR)
