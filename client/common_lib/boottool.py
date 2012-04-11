@@ -35,4 +35,5 @@ class boottool(Grubby):
     Inherits all functionality from boottool(.py) CLI app
     """
     def __init__(self, path='/sbin/grubby'):
+        install_grubby_if_missing()
         Grubby.__init__(self, path)
