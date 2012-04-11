@@ -228,6 +228,42 @@ class Bootloader(object):
                                               utils.sh_escape(args))
 
 
+    def add_kernel(self, path, title='autoserv', root=None, args=None,
+                   initrd=None, default=False, position='end'):
+        """
+        Add a kernel entry to the bootloader (or replace if one exists
+        already with the same title).
+
+        @param path: string path to the kernel image file
+        @param title: title of this entry in the bootloader config
+        @param root: string of the root device
+        @param args: string with cmdline args
+        @param initrd: string path to the initrd file
+        @param default: set to True to make this entry the default one
+                (default False)
+        @param position: where to insert the new entry in the bootloader
+                config file (default 'end', other valid input 'start', or
+                # of the title)
+        """
+        parameters = ['--add-kernel=%s' % path, '--title=%s' % title]
+
+        if args:
+            parameters.append('--args=%s' % args)
+
+        if initrd:
+            parameters.append('--initrd=%s' % initrd)
+
+        if default:
+            parameters.append('--make-default')
+
+        return self._run_boottool_exit_status(parameters)
+
+
+    def remove_kernel(self, kernel):
+        parameters = ['--remove-kernel=%s' % kernel]
+        return self._run_boottool_exit_status(parameters)
+
+
     def boot_once(self, title):
         if self._host().job:
             self._host().job.last_boot_tag = title
