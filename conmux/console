@@ -24,6 +24,10 @@ use Getopt::Long qw(:config no_auto_abbrev);
 my $CONMUX = $FindBin::Bin;
 my $CONMUX = $ENV{'CONMUX_ROOT'} if ($ENV{'CONMUX_ROOT'});
 
+use lib "/usr/lib/";
+use lib "/usr/lib64/";
+use lib "/lib/";
+use lib "/lib64/";
 # Find our internal libraries.
 use lib $FindBin::Bin;
 use lib "$FindBin::Bin/../lib/";
