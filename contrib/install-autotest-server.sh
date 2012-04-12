@@ -370,6 +370,7 @@ fi
 }
 
 setup_firewall() {
+[ -f /etc/sysconfig/iptables ] || return;
 if [ "$(grep -- '--dport 80 -j ACCEPT' /etc/sysconfig/iptables)" = "" ]
 then
     echo "Opening firewall for http traffic" >> $LOG
