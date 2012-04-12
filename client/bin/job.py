@@ -242,7 +242,7 @@ class base_client_job(base_job.base_job):
         self._config = config.config(self)
         self.profilers = profilers.profilers(self)
 
-        self._init_bootloader()
+        self.bootloader = None
 
         self.machines = [options.hostname]
         self.hosts = set([local_host.LocalHost(hostname=options.hostname,
@@ -294,7 +294,11 @@ class base_client_job(base_job.base_job):
         Perform boottool initialization.
         """
         tool = self.config_get('boottool.executable')
-        self.bootloader = boottool.boottool(tool)
+        try:
+            self.bootloader = boottool.boottool(tool)
+        except Exception, err:
+            logging.error(err)
+            self.bootloader = None
 
 
     def _init_packages(self):
@@ -891,6 +895,9 @@ class base_client_job(base_job.base_job):
         self.reboot_setup()
         self.harness.run_reboot()
         default = self.config_get('boot.set_default')
+        self._init_bootloader()
+        if self.bootloader is None:
+            raise error.JobError("Unable to instantiate bootloader")
         if default:
             self.bootloader.set_default(tag)
         else:
