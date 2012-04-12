@@ -163,18 +163,23 @@ fi
 }
 
 install_packages() {
-print_log "INFO" "Installing utility packages"
-yum install -y unzip wget >> $LOG 2>&1
-print_log "INFO" "Installing webserver packages"
-yum install -y httpd mod_python Django >> $LOG 2>&1
-print_log "INFO" "Installing py-mysql packages"
-yum install -y mysql-server MySQL-python >> $LOG 2>&1
-print_log "INFO" "Installing development packages"
-yum install -y git java-1.6.0-openjdk-devel >> $LOG 2>&1
-print_log "INFO" "Installing python libraries"
-yum install -y python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib python-atfork >> $LOG 2>&1
-print_log "INFO" "Installing/updating selinux policy"
-yum install -y selinux-policy selinux-policy-targeted policycoreutils-python >> $LOG 2>&1
+PACKAGES_UTILITY=(unzip wget)
+PACAKGES_WEBSERVER=(httpd mod_python Django)
+PACKAGES_MYSQL=(mysql-server MySQL-python)
+PACKAGES_DEVELOPMENT=(git java-1.6.0-openjdk-devel)
+PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib python-atfork)
+PACKAGES_SELINUX=(selinux-policy selinux-policy-targeted policycoreutils-python)
+PACKAGES_ALL=( \
+    ${PACKAGES_UTILITY[*]}
+    ${PACAKGES_WEBSERVER[*]}
+    ${PACKAGES_MYSQL[*]}
+    ${PACKAGES_DEVELOPMENT[*]}
+    ${PACKAGES_PYTHON_LIBS[*]}
+    ${PACKAGES_SELINUX[*]}
+)
+
+print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
+yum install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
 }
 
 setup_selinux() {
