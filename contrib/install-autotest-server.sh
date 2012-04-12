@@ -185,8 +185,15 @@ PACKAGES_ALL=( \
     ${PACKAGES_SELINUX[*]}
 )
 
-print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
-yum install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
+PKG_COUNT=$(echo ${PACKAGES_ALL[*]} | wc -w)
+INSTALLED_PKG_COUNT=$(rpm -q ${PACKAGES_ALL[*]} | grep -v 'not installed' | wc -l)
+
+if [ $PKG_COUNT == $INSTALLED_PKG_COUNT ]; then
+    print_log "INFO" "All packages already installed"
+else
+    print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
+    yum install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
+fi
 }
 
 setup_selinux() {
