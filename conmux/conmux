@@ -21,6 +21,11 @@ use IPC::Open3;
 use URI::Escape;
 use Net::Domain;
 
+use lib "/usr/lib/";
+use lib "/usr/lib64/";
+use lib "/lib/";
+use lib "/lib64/";
+
 # Find our internal libraries.
 use lib $FindBin::Bin;
 use lib "$FindBin::Bin/../lib/";
