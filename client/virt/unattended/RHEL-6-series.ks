@@ -27,6 +27,8 @@ poweroff
 NetworkManager
 ntpdate
 watchdog
+coreutils
+usbutils
 
 %post --interpreter /usr/bin/python
 import os
