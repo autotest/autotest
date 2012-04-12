@@ -97,6 +97,16 @@ class CobblerInterface(object):
             # reinstalled)
             self.server.modify_system(system_handle, 'netboot_enabled', 'True',
                                       self.token)
+            try:
+                # Cobbler only generates the DHCP configuration for netboot enabled
+                # machines, so we need to synchronize the dhcpd file after changing
+                # the value above
+                self.server.sync_dhcp(self.token)
+            except xmlrpclib.Fault, err:
+                # older Cobbler will not recognize the above command
+                if not "unknown remote method" in err.faultString:
+                    logging.error("DHCP sync failed, error code: %s, error string: %s",
+                                  err.faultCode, err.faultString)
             # Now, let's just restart the machine (machine has to have
             # power management data properly set up).
             self.server.save_system(system_handle, self.token)
