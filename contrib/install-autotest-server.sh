@@ -400,7 +400,7 @@ cd $ATHOME/client/common_lib/
 VERSION="$(./version.py)"
 print_log "INFO" "Finished installing autotest server $VERSION at: $(date)"
 
-IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | grep -v 192.168.122.1 | cut -d: -f2 | awk '{ print $1}')"
+IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | grep -v '192.168.122.1$' | cut -d: -f2 | awk '{ print $1}')"
 print_log "INFO" "You can access your server on http://$IP/afe"
 }
 
