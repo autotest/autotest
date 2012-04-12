@@ -6,6 +6,7 @@ BASENAME=$(echo $(basename $0) | cut -f1 -d '.')
 LOG="/tmp/$BASENAME-$DATETIMESTAMP.log"
 ATPASSWD=
 MYSQLPW=
+INSTALL_PACKAGES_ONLY=0
 
 print_log() {
 echo $(date "+%H:%M:%S") $1 '|' $2 | tee -a $LOG
@@ -17,14 +18,17 @@ usage: $0 [options]
 
 This script installs the autotest server on a given Fedora 16 system.
 
-OPTIONS:
+GENERAL OPTIONS:
    -h      Show this message
    -u      Autotest user password
    -d      Autotest MySQL database password
+
+INSTALLATION STEP SELECTION:
+   -p      Only install packages
 EOF
 }
 
-while getopts "hu:d:" OPTION
+while getopts "hu:d:p" OPTION
 do
      case $OPTION in
          h)
@@ -36,6 +40,9 @@ do
              ;;
          d)
              MYSQLPW=$OPTARG
+             ;;
+         p)
+             INSTALL_PACKAGES_ONLY=1
              ;;
          ?)
              usage
@@ -415,23 +422,26 @@ full_install() {
     setup_substitute
     setup_epel_repo
     install_packages
-    setup_selinux
-    setup_mysql_service
-    isntall_autotest
-    check_mysql_password
-    create_autotest_database
-    build_external_packages
-    configure_webserver
-    configure_autotest
-    setup_databse_schema
-    restart_mysql
-    patch_python27_bug
-    build_web_rpc_client
-    import_tests
-    restart_httpd
-    start_scheduler
-    setup_firewall
-    print_install_status
+
+    if [ $INSTALL_PACKAGES_ONLY == 0 ]; then
+	setup_selinux
+	setup_mysql_service
+	isntall_autotest
+	check_mysql_password
+	create_autotest_database
+	build_external_packages
+	configure_webserver
+	configure_autotest
+	setup_databse_schema
+	restart_mysql
+	patch_python27_bug
+	build_web_rpc_client
+	import_tests
+	restart_httpd
+	start_scheduler
+	setup_firewall
+	print_install_status
+    fi
 }
 
 full_install
