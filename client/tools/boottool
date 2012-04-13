@@ -928,14 +928,16 @@ class Grubby(object):
         @return: a dictionary of index -> entry where entry is a dictionary
                 of entry information as described for get_entry().
         """
-        info = self.get_info_lines()
+        raw = self.get_info()
 
         entries = {}
-        for i in self._get_entry_indexes(info):
-            entries[i] = self.get_entry(i)
+        for entry_str in raw.split("\nindex"):
+            if len(entry_str.strip()) == 0:
+                continue
+            entry = parse_entry("index" + entry_str)
+            entries[entry["index"]] = entry
 
         return entries
-
 
     def get_info(self, entry='ALL'):
         '''
