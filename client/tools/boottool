@@ -15,6 +15,11 @@ __all__ = ['Grubby', 'OptionParser', 'App', 'EfiVar', 'EfiToolSys',
 
 
 #
+# Mininum supported version of grubby
+#
+GRUBBY_REQ_VERSION = (8, 11)
+
+#
 # All options that are first class actions
 # One of them should be given on the command line
 #
@@ -465,7 +470,6 @@ def install_grubby_if_missing():
     '''
     executable = find_executable('grubby', '/sbin')
     if executable is not None:
-        required_version = (8, 11)
         grubby = Grubby(executable)
         current_version = grubby.get_grubby_version()
         if current_version is None:
@@ -473,7 +477,7 @@ def install_grubby_if_missing():
                       executable)
             sys.exit(-1)
 
-        if current_version < required_version:
+        if current_version < GRUBBY_REQ_VERSION:
             log.info('Installing grubby because currently installed '
                      'version (%s.%s) is not recent enough',
                      current_version[0], current_version[1])
@@ -505,6 +509,8 @@ class Grubby(object):
         self.bootloader = None
         self.opts = opts
         self.log = logging.getLogger(self.__class__.__name__)
+
+        self._check_grubby_version()
         self._set_bootloader()
 
 
@@ -513,6 +519,18 @@ class Grubby(object):
     # most of these class methods, such as methods for running commands
     # and preparing grubby command line switches.
     #
+    def _check_grubby_version(self):
+        '''
+        Checks the version of grubby in use and warns if it's not good enough
+        '''
+        current_version = self.get_grubby_version()
+        if current_version < GRUBBY_REQ_VERSION:
+            self.log.warn('version %s.%s being used is not guaranteed to '
+                          'work properly. Mininum required version is %s.%s.',
+                          current_version[0], current_version[1],
+                          GRUBBY_REQ_VERSION[0], GRUBBY_REQ_VERSION[1])
+
+
     def _run_get_output(self, arguments):
         '''
         Utility function that runs a command and returns command output
