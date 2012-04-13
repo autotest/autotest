@@ -14,7 +14,7 @@ Released under the GPL v2
 '''
 
 import os, sys, imp
-
+from autotest_lib.client.common_lib import error
 #
 # This performs some import magic, to import the boottool cli as a module
 try:
@@ -36,8 +36,23 @@ class boottool(Grubby):
     """
     Client site side boottool wrapper.
 
-    Inherits all functionality from boottool(.py) CLI app
+    Inherits all functionality from boottool(.py) CLI app (lazily).
     """
     def __init__(self, path='/sbin/grubby'):
-        install_grubby_if_missing()
-        Grubby.__init__(self, path)
+        self.instantiated = False
+        self.path = path
+
+
+    def _init_on_demand(self):
+        if not self.instantiated:
+            try:
+                install_grubby_if_missing()
+                Grubby.__init__(self, self.path)
+                self.instantiated = True
+            except Exception:
+                raise error.JobError("Unable to instantiate boottool")
+
+
+    def __getattr__(self, name):
+        self._init_on_demand()
+        return Grubby.__getattr__(self, name)
