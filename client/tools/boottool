@@ -473,6 +473,8 @@ def install_grubby_if_necessary(path=None):
 
     Or if the required version is not sufficient for the needs of boottool
     '''
+    installed_grubby = False
+
     if path is None:
         if find_executable(GRUBBY_DEFAULT_USER_PATH):
             executable = GRUBBY_DEFAULT_USER_PATH
@@ -485,6 +487,7 @@ def install_grubby_if_necessary(path=None):
         log.info('Installing grubby because it was not found on this system')
         grubby = Grubby()
         path = grubby.grubby_install()
+        installed_grubby = True
     else:
         grubby = Grubby(executable)
         current_version = grubby.get_grubby_version()
@@ -492,16 +495,19 @@ def install_grubby_if_necessary(path=None):
             log.error('Could not find version for grubby executable "%s"',
                       executable)
             path = grubby.grubby_install()
+            installed_grubby = True
 
         elif current_version < GRUBBY_REQ_VERSION:
             log.info('Installing grubby because currently installed '
                      'version (%s.%s) is not recent enough',
                      current_version[0], current_version[1])
             path = grubby.grubby_install()
+            installed_grubby = True
 
-    grubby = Grubby(path)
-    installed_version = grubby.get_grubby_version_raw()
-    log.debug('Installed: %s', installed_version)
+    if installed_grubby:
+        grubby = Grubby(path)
+        installed_version = grubby.get_grubby_version_raw()
+        log.debug('Installed: %s', installed_version)
 
 
 class GrubbyInstallException(Exception):
