@@ -7,7 +7,7 @@ A boottool clone, but written in python and relying mostly on grubby[1].
 '''
 
 import os, re, sys, optparse, logging, subprocess
-import urllib, tarfile, tempfile, shutil, struct
+import urllib, tarfile, tempfile, shutil, struct, md5
 
 
 __all__ = ['Grubby', 'OptionParser', 'App', 'EfiVar', 'EfiToolSys',
@@ -15,9 +15,14 @@ __all__ = ['Grubby', 'OptionParser', 'App', 'EfiVar', 'EfiToolSys',
 
 
 #
-# Mininum supported version of grubby
+# Information on default requirements and installation for grubby
 #
 GRUBBY_REQ_VERSION = (8, 11)
+GRUBBY_TARBALL_URI = ('http://cloud.github.com/downloads/autotest/'
+                      'grubby/grubby-8.11-autotest.tar.bz2')
+GRUBBY_TARBALL_MD5 = '56695ec865460b25f20427b5329ef641'
+GRUBBY_DEFAULT_SYSTEM_PATH = '/sbin/grubby'
+GRUBBY_DEFAULT_USER_PATH = '/tmp/grubby'
 
 #
 # All options that are first class actions
@@ -462,34 +467,48 @@ def parse_entry(entry_str, separator='='):
     return entry
 
 
-def install_grubby_if_missing():
+def install_grubby_if_necessary(path=None):
     '''
-    Installs grubby if it's missing on this system
+    Installs grubby if it's necessary on this system
 
     Or if the required version is not sufficient for the needs of boottool
     '''
-    executable = find_executable('grubby', '/sbin')
-    if executable is not None:
+    if path is None:
+        if find_executable(GRUBBY_DEFAULT_USER_PATH):
+            executable = GRUBBY_DEFAULT_USER_PATH
+        else:
+            executable = find_executable(GRUBBY_DEFAULT_SYSTEM_PATH)
+    else:
+        executable = find_executable(path)
+
+    if executable is None:
+        log.info('Installing grubby because it was not found on this system')
+        grubby = Grubby()
+        path = grubby.grubby_install()
+    else:
         grubby = Grubby(executable)
         current_version = grubby.get_grubby_version()
         if current_version is None:
-            log.error('Could not version for grubby executable "%s"',
+            log.error('Could not find version for grubby executable "%s"',
                       executable)
-            sys.exit(-1)
+            path = grubby.grubby_install()
 
-        if current_version < GRUBBY_REQ_VERSION:
+        elif current_version < GRUBBY_REQ_VERSION:
             log.info('Installing grubby because currently installed '
                      'version (%s.%s) is not recent enough',
                      current_version[0], current_version[1])
-            grubby.grubby_install()
-    else:
-        log.info('Installing grubby because it was not found on this system')
-        grubby = Grubby()
-        grubby.grubby_install()
+            path = grubby.grubby_install()
 
-    grubby = Grubby()
+    grubby = Grubby(path)
     installed_version = grubby.get_grubby_version_raw()
     log.debug('Installed: %s', installed_version)
+
+
+class GrubbyInstallException(Exception):
+    '''
+    Exception that signals failure when doing grubby installation
+    '''
+    pass
 
 
 class Grubby(object):
@@ -504,8 +523,15 @@ class Grubby(object):
     SUPPORTED_BOOTLOADERS = ('lilo', 'grub2', 'grub', 'extlinux', 'yaboot',
                              'elilo')
 
-    def __init__(self, path='/sbin/grubby', opts=None):
-        self.path = path
+    def __init__(self, path=None, opts=None):
+        if path is None:
+            if os.path.exists(GRUBBY_DEFAULT_USER_PATH):
+                self.path = GRUBBY_DEFAULT_USER_PATH
+            else:
+                self.path = GRUBBY_DEFAULT_SYSTEM_PATH
+        else:
+            self.path = path
+
         self.bootloader = None
         self.opts = opts
         self.log = logging.getLogger(self.__class__.__name__)
@@ -524,7 +550,11 @@ class Grubby(object):
         Checks the version of grubby in use and warns if it's not good enough
         '''
         current_version = self.get_grubby_version()
-        if current_version < GRUBBY_REQ_VERSION:
+        if current_version is None:
+            self.log.warn('Could not detect current grubby version. It may '
+                          'be that you are running an unsupported version '
+                          'of grubby')
+        elif current_version < GRUBBY_REQ_VERSION:
             self.log.warn('version %s.%s being used is not guaranteed to '
                           'work properly. Mininum required version is %s.%s.',
                           current_version[0], current_version[1],
@@ -1143,7 +1173,94 @@ class Grubby(object):
             return None
 
 
-    def grubby_install(self):
+    def grubby_install_patch_makefile(self):
+        '''
+        Patch makefile, making CFLAGS more forgivable to older toolchains
+        '''
+        cflags_line = 'CFLAGS += $(RPM_OPT_FLAGS) -std=gnu99 -ggdb\n'
+        libs_line = 'grubby_LIBS = -lblkid -lpopt -luuid\n'
+        shutil.move('Makefile', 'Makefile.boottool.bak')
+        o = open('Makefile', 'w')
+        for l in open('Makefile.boottool.bak').readlines():
+            if l.startswith('CFLAGS += '):
+                o.write(cflags_line)
+            elif l.startswith('grubby_LIBS = -lblkid -lpopt'):
+                o.write(libs_line)
+            else:
+                o.write(l)
+        o.close()
+
+
+    def grubby_install_backup(self, path):
+        '''
+        Backs up the current grubby binary to make room the one we'll build
+
+        @type path: string
+        @param path: path to the binary that should be backed up
+        '''
+        backup_path = '%s.boottool.bkp' % path
+        if (os.path.exists(path)
+            and not os.path.exists(backup_path)):
+            try:
+                shutil.move(path, backup_path)
+            except:
+                self.log.warn('Failed to backup the current grubby binary')
+
+
+    def grubby_install_fetch_tarball(self, topdir):
+        '''
+        Fetches and verifies the grubby source tarball
+        '''
+        tarball_name = os.path.basename(GRUBBY_TARBALL_URI)
+        tarball = os.path.join(topdir, tarball_name)
+
+        try:
+            urllib.urlretrieve(GRUBBY_TARBALL_URI, tarball)
+        except:
+            return False
+
+        tarball_md5 = md5.md5(open(tarball).read()).hexdigest()
+        if tarball_md5 != GRUBBY_TARBALL_MD5:
+            return False
+
+        return True
+
+
+    def grubby_build(self, topdir, tarball):
+        '''
+        Attempts to build grubby from the source tarball
+        '''
+        def log_lines(lines):
+            for line in lines:
+                self.log.debug(line.strip())
+
+        tarball_name = os.path.basename(tarball)
+
+        srcdir = os.path.join(topdir, 'src')
+        srcdir = self._extract_tarball(tarball, srcdir)
+        os.chdir(srcdir)
+        self.grubby_install_patch_makefile()
+        result = subprocess.Popen(['make'],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+        if result.wait() != 0:
+            self.log.debug('Failed to build grubby during "make" step')
+            log_lines(result.stderr.read().splitlines())
+            return False
+
+        install_root = os.path.join(topdir, 'install_root')
+        os.environ['DESTDIR'] = install_root
+        result = subprocess.Popen(['make', 'install'],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+        if result.wait() != 0:
+            self.log.debug('Failed to build grubby during "make install" step')
+            log_lines(result.stderr.read().splitlines())
+            return False
+        return True
+
+
+    def grubby_install(self, path=None):
         '''
         Attempts to install a recent enough version of grubby
 
@@ -1155,50 +1272,41 @@ class Grubby(object):
            * RHEL 5 on ia64
            * RHEL 6 on ppc64
         '''
-        def patch_makefile():
-            '''
-            Patch makefile, making CFLAGS more forgivable to older toolchains
-            '''
-            cflags_line = 'CFLAGS += $(RPM_OPT_FLAGS) -std=gnu99 -ggdb\n'
-            libs_line = 'grubby_LIBS = -lblkid -lpopt -luuid\n'
-            shutil.move('Makefile', 'Makefile.boottool.bak')
-            o = open('Makefile', 'w')
-            for l in open('Makefile.boottool.bak').readlines():
-                if l.startswith('CFLAGS += '):
-                    o.write(cflags_line)
-                elif l.startswith('grubby_LIBS = -lblkid -lpopt'):
-                    o.write(libs_line)
-                else:
-                    o.write(l)
-            o.close()
+        if path is None:
+            if os.geteuid() == 0:
+                path = GRUBBY_DEFAULT_SYSTEM_PATH
+            else:
+                path = GRUBBY_DEFAULT_USER_PATH
 
         topdir = tempfile.mkdtemp()
-        tarball_uri = ('http://cloud.github.com/downloads/autotest/grubby/'
-                       'grubby-8.11-autotest.tar.bz2')
-        tarball_name = os.path.basename(tarball_uri)
-        tarball = os.path.join(topdir, tarball_name)
 
-        urllib.urlretrieve(tarball_uri, tarball)
+        if not self.grubby_install_fetch_tarball(topdir):
+            raise GrubbyInstallException('Failed to fetch grubby tarball')
+
+        tarball_name = os.path.basename(GRUBBY_TARBALL_URI)
+        tarball = os.path.join(topdir, tarball_name)
 
         srcdir = os.path.join(topdir, 'src')
         install_root = os.path.join(topdir, 'install_root')
         os.mkdir(install_root)
 
-        srcdir = self._extract_tarball(tarball, srcdir)
-        os.chdir(srcdir)
-        patch_makefile()
-        os.system('make 2>&1 >/dev/null')
-        os.environ['DESTDIR'] = install_root
-        os.system('make install 2>&1 >/dev/null')
+        if not self.grubby_build(topdir, tarball):
+            raise GrubbyInstallException('Failed to build grubby')
 
-        grubby_system_path = '/sbin/grubby'
-        grubby_backup_path = '/sbin/grubby.boottool.bkp'
-        if (os.path.exists(grubby_system_path)
-            and not os.path.exists(grubby_backup_path)):
-            shutil.move(grubby_system_path, grubby_backup_path)
+        self.grubby_install_backup(path)
 
         grubby_bin = os.path.join(install_root, 'sbin', 'grubby')
-        shutil.copy(grubby_bin, grubby_system_path)
+        inst_dir = os.path.dirname(path)
+        if not os.access(inst_dir, os.W_OK):
+            raise GrubbyInstallException('No permission to copy grubby '
+                                         'binary to directory "%s"' % inst_dir)
+        try:
+            shutil.copy(grubby_bin, path)
+        except:
+            raise GrubbyInstallException('Failed to copy grubby binary to '
+                                         'directory "%s"' % inst_dir)
+
+        return path
 
 
     def boot_once(self, title=None):
@@ -1574,12 +1682,12 @@ class BoottoolApp(object):
     def run(self):
         self._parse_command_line()
         self._configure_logging()
-        install_grubby_if_missing()
 
         # if we made this far, the command line checking succeeded
         if self.opts.grubby_path:
             self.grubby = Grubby(self.opts.grubby_path, self.opts)
         else:
+            install_grubby_if_necessary()
             self.grubby = Grubby(opts=self.opts)
 
         if self.opts.bootloader:
