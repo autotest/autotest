@@ -1646,7 +1646,7 @@ class BoottoolApp(object):
         grubby expects it to be uppercase
         '''
         if not self.opts.info:
-            self.log.error('Kernel title to update is required')
+            self.log.error('Parameter to info is required')
             return -1
 
         info_index = self.opts.info
