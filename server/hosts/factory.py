@@ -1,4 +1,4 @@
-from autotest.client.common_lib import utils, error, global_config
+from autotest.client.shared import utils, error, global_config
 from autotest.server import autotest_remote, utils as server_utils
 from autotest.server.hosts import site_factory, ssh_host, serial
 from autotest.server.hosts import logfile_monitor

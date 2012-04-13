@@ -1,5 +1,5 @@
 from autotest.client import test, utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 import re, os, logging
 
 class hwclock(test.test):

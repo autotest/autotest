@@ -5,7 +5,7 @@ try:
 except ImportError:
     import common
 import logging
-from autotest.client.common_lib import global_config, utils
+from autotest.client.shared import global_config, utils
 from autotest.scheduler import drone_utility
 
 class BaseResultsArchiver(object):

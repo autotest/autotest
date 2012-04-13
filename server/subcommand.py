@@ -2,7 +2,7 @@ __author__ = """Copyright Andy Whitcroft, Martin J. Bligh - 2006, 2007"""
 
 import sys, os, subprocess, time, signal, cPickle, logging
 
-from autotest.client.common_lib import error, utils
+from autotest.client.shared import error, utils
 
 
 # entry points that use subcommand must set this to their logging manager

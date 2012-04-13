@@ -10,7 +10,7 @@ from autotest.frontend.afe import frontend_test_utils
 from django.db import connection
 from autotest.frontend.afe import models, rpc_interface, frontend_test_utils
 from autotest.frontend.afe import model_logic, model_attributes
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 
 _hqe_status = models.HostQueueEntry.Status

@@ -6,7 +6,7 @@ try:
 except ImportError:
     import common
 from autotest.utils import parallel
-from autotest.client.common_lib.test_utils import unittest as custom_unittest
+from autotest.client.shared.test_utils import unittest as custom_unittest
 
 parser = optparse.OptionParser()
 parser.add_option("-r", action="store", type="string", dest="start",

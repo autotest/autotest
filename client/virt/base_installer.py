@@ -8,7 +8,7 @@ custom logic for each virtualization hypervisor/software.
 
 import os, logging
 from autotest.client import utils, os_dep
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client.virt import virt_utils
 
 class VirtInstallException(Exception):

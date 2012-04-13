@@ -4,8 +4,8 @@ import unittest, logging
 import common
 from autotest.client.virt import virt_utils
 from autotest.client import utils
-from autotest.client.common_lib.test_utils import mock
-from autotest.client.common_lib import cartesian_config
+from autotest.client.shared.test_utils import mock
+from autotest.client.shared import cartesian_config
 
 class virt_utils_test(unittest.TestCase):
 

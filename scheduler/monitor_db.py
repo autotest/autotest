@@ -13,8 +13,8 @@ from autotest.frontend import setup_django_environment
 
 import django.db
 
-from autotest.client.common_lib import global_config, logging_manager
-from autotest.client.common_lib import host_protections, utils
+from autotest.client.shared import global_config, logging_manager
+from autotest.client.shared import host_protections, utils
 from autotest.database import database_connection
 from autotest.frontend.afe import models, rpc_utils, readonly_connection
 from autotest.frontend.afe import model_attributes

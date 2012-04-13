@@ -839,7 +839,7 @@ class Grubby(object):
     #
     # The following methods implement a form of "API" that action methods
     # can rely on. Another goal is to maintain compatibility with the current
-    # client side API in autotest (client/common_lib/boottool.py)
+    # client side API in autotest (client/shared/boottool.py)
     #
     def get_bootloader(self):
         '''

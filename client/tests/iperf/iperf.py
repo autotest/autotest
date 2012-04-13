@@ -1,7 +1,7 @@
 import os, re, socket, time, logging
 from autotest.client import test, utils
 from autotest.client.net import net_utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 MPSTAT_IX = 0
 IPERF_IX = 1
@@ -149,7 +149,7 @@ class iperf(test.test):
             """ Catch errors due to timeout, but raise others
             The actual error string is:
               "Command did not complete within %d seconds"
-            called in function join_bg_job in the file common_lib/utils.py
+            called in function join_bg_job in the file shared/utils.py
 
             Looking for 'within' is probably not the best way to do this but
             works for now"""

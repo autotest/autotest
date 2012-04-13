@@ -4,7 +4,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import control_data
+from autotest.client.shared import control_data
 
 if len(sys.argv) != 2:
     print "Usage %s <control file>" % os.path.basename(sys.argv[0])

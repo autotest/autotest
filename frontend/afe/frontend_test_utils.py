@@ -6,8 +6,8 @@ except ImportError:
 from autotest.frontend import setup_test_environment
 from autotest.frontend import thread_local
 from autotest.frontend.afe import models, model_attributes
-from autotest.client.common_lib import global_config
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared import global_config
+from autotest.client.shared.test_utils import mock
 
 class FrontendTestMixin(object):
     def _fill_in_test_data(self):

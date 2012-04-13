@@ -5,7 +5,7 @@ try:
     import autotest.common
 except ImportError:
     import common
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 from autotest.client import utils
 from autotest.frontend.afe.json_rpc import serviceHandler
 

@@ -1,6 +1,6 @@
 import re, os
 
-from autotest.client.common_lib import utils as common_utils
+from autotest.client.shared import utils as common_utils
 from autotest.tko import utils as tko_utils, models, status_lib
 from autotest.tko.parsers import base
 

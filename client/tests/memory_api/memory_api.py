@@ -1,6 +1,6 @@
 import os, subprocess, re, commands, logging
 from autotest.client import utils, test
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 class memory_api(test.test):
     version = 1

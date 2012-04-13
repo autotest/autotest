@@ -34,8 +34,8 @@ except ImportError:
 import logging, re, os, sys, optparse, compiler
 from autotest.frontend import setup_django_environment
 from autotest.frontend.afe import models
-from autotest.client.common_lib import control_data, utils
-from autotest.client.common_lib import logging_config, logging_manager
+from autotest.client.shared import control_data, utils
+from autotest.client.shared import logging_config, logging_manager
 
 
 class TestImporterLoggingConfig(logging_config.LoggingConfig):

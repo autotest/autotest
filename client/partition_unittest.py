@@ -10,7 +10,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared.test_utils import mock
 from autotest.client import partition
 
 

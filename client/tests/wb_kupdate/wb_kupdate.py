@@ -1,6 +1,6 @@
 import datetime, logging, os, time
 from autotest.client import test, utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 class wb_kupdate(test.test):
     version = 1

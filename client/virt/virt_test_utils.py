@@ -22,7 +22,7 @@ More specifically:
 """
 
 import time, os, logging, re, signal, imp, tempfile
-from autotest.client.common_lib import error, global_config
+from autotest.client.shared import error, global_config
 from autotest.client import utils
 from autotest.client.tools import scan_results
 import aexpect, virt_utils, virt_vm

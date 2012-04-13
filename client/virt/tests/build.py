@@ -1,4 +1,4 @@
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client.virt import installer
 from autotest.client.virt import base_installer
 

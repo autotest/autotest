@@ -5,7 +5,7 @@ Utilities to perform automatic guest installation using step files.
 """
 
 import os, time, shutil, logging
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client.virt import virt_utils, ppm_utils, kvm_monitor
 
 try:

@@ -1,5 +1,5 @@
 import logging, re
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client import utils
 from autotest.client.virt import virt_test_utils, virt_utils, aexpect
 

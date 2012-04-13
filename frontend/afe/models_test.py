@@ -8,7 +8,7 @@ except ImportError:
 from autotest.frontend import setup_django_environment
 from autotest.frontend.afe import frontend_test_utils
 from autotest.frontend.afe import models, model_attributes, model_logic
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 
 class AclGroupTest(unittest.TestCase,

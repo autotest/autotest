@@ -10,7 +10,7 @@ try:
 except ImportError:
     import common
 from autotest.cli import rpc
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 from autotest.frontend.afe import rpc_client_lib
 from autotest.frontend.afe.json_rpc import proxy
 

@@ -7,7 +7,7 @@ try:
 except ImportError:
     import common
 import MySQLdb, MySQLdb.constants.ER
-from autotest.client.common_lib import global_config, utils
+from autotest.client.shared import global_config, utils
 from autotest.database import database_connection
 
 MIGRATE_TABLE = 'migrate_info'

@@ -5,8 +5,8 @@ try:
 except ImportError:
     import common
 from autotest.tko import db
-from autotest.client.common_lib import global_config
-from autotest.client.common_lib import logging_manager, logging_config
+from autotest.client.shared import global_config
+from autotest.client.shared import logging_manager, logging_config
 from autotest.client import utils
 
 GLOBAL_CONFIG = global_config.global_config

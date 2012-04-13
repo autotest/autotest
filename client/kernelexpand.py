@@ -17,7 +17,7 @@ try:
 except ImportError:
     import common
 
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 import sys, re, os, urllib2
 
 GLOBAL_CONFIG = global_config.global_config

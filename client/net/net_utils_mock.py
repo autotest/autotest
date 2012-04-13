@@ -5,7 +5,7 @@ for the network libraries.
 """
 
 import socket
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared.test_utils import mock
 from autotest.client.net import net_utils
 
 

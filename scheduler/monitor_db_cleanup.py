@@ -7,7 +7,7 @@ import datetime, time, logging, random
 from autotest.database import database_connection
 from autotest.frontend.afe import models
 from autotest.scheduler import email_manager, scheduler_config
-from autotest.client.common_lib import host_protections
+from autotest.client.shared import host_protections
 
 
 class PeriodicCleanup(object):

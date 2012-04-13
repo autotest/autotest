@@ -5,7 +5,7 @@ Utility classes and functions to handle Virtual Machine creation using libvirt.
 """
 
 import time, os, logging, fcntl, re, commands, shutil, urlparse
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client import utils, os_dep
 from xml.dom import minidom
 import virt_utils, virt_vm, aexpect

@@ -1,4 +1,4 @@
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 
 
 def run_migration_with_reboot(test, params, env):

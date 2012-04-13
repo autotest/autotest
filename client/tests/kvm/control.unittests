@@ -14,7 +14,7 @@ Runs the unittests available for a given KVM build.
 """
 
 import sys, os, logging
-from autotest.client.common_lib import cartesian_config
+from autotest.client.shared import cartesian_config
 from autotest.client.virt import virt_utils
 
 parser = cartesian_config.Parser()

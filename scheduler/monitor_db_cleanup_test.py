@@ -9,7 +9,7 @@ from autotest.frontend import setup_django_environment
 from autotest.database import database_connection
 from autotest.frontend.afe import frontend_test_utils, models
 from autotest.scheduler import monitor_db_cleanup, scheduler_config
-from autotest.client.common_lib import host_protections
+from autotest.client.shared import host_protections
 
 class UserCleanupTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
     def setUp(self):

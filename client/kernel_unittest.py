@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared.test_utils import mock
 from autotest.client import kernel, job, utils, kernelexpand
 from autotest.client import kernel_config, boottool, os_dep
 

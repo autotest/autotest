@@ -22,7 +22,7 @@ or
 
 import os, shutil, time
 from autotest.client import utils, profiler
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 class lttng(profiler.profiler):
     version = 1

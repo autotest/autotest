@@ -11,7 +11,7 @@ You should import the "hosts" package instead of importing each type of host.
 """
 
 import sys, re, traceback, logging, subprocess, os
-from autotest.client.common_lib import error, pxssh
+from autotest.client.shared import error, pxssh
 from autotest.server import utils
 from autotest.server.hosts import abstract_ssh
 
@@ -101,7 +101,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             connect_timeout=30, options='', stdin=None, verbose=True, args=()):
         """
         Run a command on the remote host.
-        @see common_lib.hosts.host.run()
+        @see shared.hosts.host.run()
 
         @param connect_timeout: connection timeout (in seconds)
         @param options: string with additional ssh command options
@@ -264,7 +264,7 @@ class AsyncSSHMixin(object):
         # Start a master SSH connection if necessary.
         self.start_master_ssh()
 
-        self.send_file(os.path.join(self.job.clientdir, "common_lib", "hosts",
+        self.send_file(os.path.join(self.job.clientdir, "shared", "hosts",
                         "scripts", "run_helper.py"),
                        os.path.join(self.job.tmpdir, "run_helper.py"))
 

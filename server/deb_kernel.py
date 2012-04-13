@@ -7,7 +7,7 @@ This module defines the Kernel class
 """
 
 import os, os.path, time
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.server import kernel, utils
 
 

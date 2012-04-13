@@ -1,6 +1,6 @@
 import os, time, re, pwd
 from autotest.client import test, utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 class sysbench(test.test):

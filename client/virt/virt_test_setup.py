@@ -2,7 +2,7 @@
 Library to perform pre/post test setup for KVM autotest.
 """
 import os, logging, time, re, random
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client import utils
 
 

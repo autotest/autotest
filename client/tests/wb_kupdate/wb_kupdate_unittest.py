@@ -8,8 +8,8 @@ import time
 import unittest
 from autotest.client import test
 from autotest.client import utils
-from autotest.client.common_lib import error
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared import error
+from autotest.client.shared.test_utils import mock
 from autotest.client.tests.wb_kupdate import wb_kupdate
 
 class WbKupdateUnitTest(unittest.TestCase):

@@ -3,7 +3,7 @@ Run iostat with a default interval of 1 second.
 """
 import time, os, subprocess
 from autotest.client import profiler
-from autotest.client.common_lib import utils, error
+from autotest.client.shared import utils, error
 
 
 class iostat(profiler.profiler):

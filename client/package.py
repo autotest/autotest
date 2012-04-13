@@ -8,7 +8,7 @@ __author__ = 'lucasmr@br.ibm.com (Lucas Meneghel Rodrigues)'
 
 import os, re, logging
 from autotest.client import os_dep, utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 # As more package methods are implemented, this list grows up
 KNOWN_PACKAGE_MANAGERS = ['rpm', 'dpkg']

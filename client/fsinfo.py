@@ -8,7 +8,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import error, utils
+from autotest.client.shared import error, utils
 
 
 def opt_string2dict(opt_string):
