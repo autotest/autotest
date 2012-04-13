@@ -257,6 +257,7 @@ variants:
         login_timeout = 240
 
     - boot_with_usb:
+        only Linux
         type = boot
         restart_vm = yes
         kill_vm_on_error = yes
@@ -333,6 +334,7 @@ variants:
         login_timeout = 240
 
     - reboot_with_usb:
+        only Linux
         type = boot
         reboot_method = shell
         kill_vm_on_error = yes
