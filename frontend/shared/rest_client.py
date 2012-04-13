@@ -1,8 +1,8 @@
 import copy, getpass, logging, pprint, re, urllib, urlparse
 import httplib2
 from django.utils import datastructures, simplejson
-from autotest_lib.frontend.afe import rpc_client_lib
-from autotest_lib.client.common_lib import utils
+from autotest.frontend.afe import rpc_client_lib
+from autotest.client.common_lib import utils
 
 
 _request_headers = {}
@@ -134,7 +134,7 @@ class Resource(object):
             logging.debug(entity_body)
 
         site_verify = utils.import_site_function(
-                __file__, 'autotest_lib.frontend.shared.site_rest_client',
+                __file__, 'autotest.frontend.shared.site_rest_client',
                 'site_verify_response', _site_verify_response_default)
         headers, response_body = self._http.request(
                 full_uri, method, body=entity_body,

@@ -9,8 +9,8 @@ try:
     import hashlib
 except ImportError:
     import md5, sha
-from autotest_lib.client.common_lib import error, logging_manager, global_config
-from autotest_lib.client.common_lib import progressbar
+from autotest.client.common_lib import error, logging_manager, global_config
+from autotest.client.common_lib import progressbar
 
 GLOBAL_CONFIG = global_config.global_config
 

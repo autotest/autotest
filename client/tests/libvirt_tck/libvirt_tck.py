@@ -1,7 +1,7 @@
 import os, re, shutil, logging
 
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import utils, test
+from autotest.client.common_lib import error
+from autotest.client import utils, test
 
 
 class libvirt_tck(test.test):

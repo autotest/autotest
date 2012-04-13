@@ -10,8 +10,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import error, test
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.client.common_lib import error, test
+from autotest.client.common_lib.test_utils import mock
 
 class TestTestCase(unittest.TestCase):
     class _neutered_base_test(test.base_test):

@@ -6,9 +6,9 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.server import server_job
-from autotest_lib.client.common_lib import base_job_unittest
-from autotest_lib.client.common_lib.test_utils import mock, unittest
+from autotest.server import server_job
+from autotest.client.common_lib import base_job_unittest
+from autotest.client.common_lib.test_utils import mock, unittest
 
 
 class test_find_base_directories(

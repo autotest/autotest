@@ -1,9 +1,9 @@
 import os, pickle, datetime, itertools, operator
 from django.db import models as dbmodels
-from autotest_lib.frontend.afe import rpc_utils, model_logic
-from autotest_lib.frontend.afe import models as afe_models, readonly_connection
-from autotest_lib.frontend.tko import models, tko_rpc_utils, graphing_utils
-from autotest_lib.frontend.tko import preconfigs
+from autotest.frontend.afe import rpc_utils, model_logic
+from autotest.frontend.afe import models as afe_models, readonly_connection
+from autotest.frontend.tko import models, tko_rpc_utils, graphing_utils
+from autotest.frontend.tko import preconfigs
 
 # table/spreadsheet view support
 

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-"""Tests for autotest_lib.client.partition."""
+"""Tests for autotest.client.partition."""
 
 __author__ = 'gps@google.com (Gregory P. Smith)'
 
@@ -10,8 +10,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client import partition
+from autotest.client.common_lib.test_utils import mock
+from autotest.client import partition
 
 
 class FsOptions_common(object):
@@ -136,28 +136,28 @@ class get_partition_list_common(object):
 # non site specific code
 class FSOptions_base_test(FsOptions_common, unittest.TestCase):
     def setUp(self):
-        sys.modules['autotest_lib.client.site_partition'] = None
+        sys.modules['autotest.client.site_partition'] = None
         reload(partition)
 
 
 class get_partition_list_base_test(get_partition_list_common, unittest.TestCase):
     def setUp(self):
-        sys.modules['autotest_lib.client.site_partition'] = None
+        sys.modules['autotest.client.site_partition'] = None
         reload(partition)
         get_partition_list_common.setUp(self)
 
 
 class FSOptions_test(FsOptions_common, unittest.TestCase):
     def setUp(self):
-        if 'autotest_lib.client.site_partition' in sys.modules:
-            del sys.modules['autotest_lib.client.site_partition']
+        if 'autotest.client.site_partition' in sys.modules:
+            del sys.modules['autotest.client.site_partition']
         reload(partition)
 
 
 class get_partition_list_test(get_partition_list_common, unittest.TestCase):
     def setUp(self):
-        if 'autotest_lib.client.site_partition' in sys.modules:
-            del sys.modules['autotest_lib.client.site_partition']
+        if 'autotest.client.site_partition' in sys.modules:
+            del sys.modules['autotest.client.site_partition']
         reload(partition)
         get_partition_list_common.setUp(self)
 

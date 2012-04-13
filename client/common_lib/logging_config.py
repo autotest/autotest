@@ -1,5 +1,5 @@
 import logging, os, sys, time
-from autotest_lib.client.common_lib import global_config
+from autotest.client.common_lib import global_config
 
 GLOBAL_CONFIG = global_config.global_config
 

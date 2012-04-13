@@ -87,7 +87,7 @@ import sys, time, urllib, urlparse
 try:
     import autotest.common   
 except ImportError:
-    import common   # Magic autotest_lib module and sys.path setup code.
+    import common   # Magic autotest module and sys.path setup code.
 import MySQLdb  # After common so that we check our site-packages first.
 from common_lib import error
 

@@ -6,7 +6,7 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.client.common_lib import version
+from autotest.client.common_lib import version
 
 #mostly needed when called one level up
 scheduler_dir = os.path.dirname(sys.modules[__name__].__file__) or '.'

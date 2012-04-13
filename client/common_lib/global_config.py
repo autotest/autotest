@@ -6,7 +6,7 @@ provides access to global configuration file
 __author__ = 'raphtee@google.com (Travis Miller)'
 
 import os, sys, ConfigParser, logging
-from autotest_lib.client.common_lib import error
+from autotest.client.common_lib import error
 
 
 class ConfigError(error.AutotestError):

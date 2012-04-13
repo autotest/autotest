@@ -1,6 +1,6 @@
 import logging, os
-from autotest_lib.client import utils
-from autotest_lib.client.tests.iozone import postprocessing
+from autotest.client import utils
+from autotest.client.tests.iozone import postprocessing
 
 
 def run_iozone_windows(test, params, env):

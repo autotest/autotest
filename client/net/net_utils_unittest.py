@@ -5,9 +5,9 @@ try:
 except ImportError:
     import common
 import utils
-from autotest_lib.client.net import net_utils, net_utils_mock
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib import error
+from autotest.client.net import net_utils, net_utils_mock
+from autotest.client.common_lib.test_utils import mock
+from autotest.client.common_lib import error
 
 
 class TestNetUtils(unittest.TestCase):

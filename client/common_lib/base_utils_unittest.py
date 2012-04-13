@@ -6,8 +6,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import base_utils, autotemp
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.client.common_lib import base_utils, autotemp
+from autotest.client.common_lib.test_utils import mock
 
 
 class test_read_one_line(unittest.TestCase):

@@ -1,7 +1,7 @@
 import os, time, re, logging
-from autotest_lib.client import test, utils
-from autotest_lib.client.net import net_utils
-from autotest_lib.client.common_lib import error
+from autotest.client import test, utils
+from autotest.client.net import net_utils
+from autotest.client.common_lib import error
 
 MPSTAT_IX = 0
 NETPERF_IX = 1

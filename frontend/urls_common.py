@@ -21,7 +21,7 @@ def generate_patterns(django_name, gwt_name):
     debug_pattern_list = defaults.patterns('',
             # for GWT hosted mode
             (r'^(?P<forward_addr>autotest.*)',
-             'autotest_lib.frontend.afe.views.gwt_forward'),
+             'autotest.frontend.afe.views.gwt_forward'),
 
             # for GWT compiled files
             (r'^client/(?P<path>.*)$', 'django.views.static.serve',

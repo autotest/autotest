@@ -6,9 +6,9 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.client.common_lib.test_utils import mock, unittest
-from autotest_lib.client.common_lib import autotemp
-from autotest_lib.client import local_host
+from autotest.client.common_lib.test_utils import mock, unittest
+from autotest.client.common_lib import autotemp
+from autotest.client import local_host
 
 
 class test_local_host_class(unittest.TestCase):

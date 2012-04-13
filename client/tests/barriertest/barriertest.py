@@ -1,8 +1,8 @@
 # This is used directly by server/tests/barriertest/control.srv
 
 import logging, time
-from autotest_lib.client import test
-from autotest_lib.client.common_lib import barrier, error
+from autotest.client import test
+from autotest.client.common_lib import barrier, error
 
 
 class barriertest(test.test):

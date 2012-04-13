@@ -5,7 +5,7 @@ from various disconnected pieces of code that should not depend on everything
 that frontend.afe.models depends on such as RPC clients.
 """
 
-from autotest_lib.client.common_lib import enum
+from autotest.client.common_lib import enum
 
 Status = enum.Enum('Queued', 'Starting', 'Verifying', 'Pending', 'Waiting',
                    'Running', 'Gathering', 'Parsing', 'Archiving', 'Aborted',

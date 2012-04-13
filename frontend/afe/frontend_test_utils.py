@@ -3,11 +3,11 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.frontend import setup_test_environment
-from autotest_lib.frontend import thread_local
-from autotest_lib.frontend.afe import models, model_attributes
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.frontend import setup_test_environment
+from autotest.frontend import thread_local
+from autotest.frontend.afe import models, model_attributes
+from autotest.client.common_lib import global_config
+from autotest.client.common_lib.test_utils import mock
 
 class FrontendTestMixin(object):
     def _fill_in_test_data(self):

@@ -8,7 +8,7 @@ from django.db import models as dbmodels, backend, connection
 from django.db.models.sql import query
 import django.db.models.sql.where
 from django.utils import datastructures
-from autotest_lib.frontend.afe import readonly_connection
+from autotest.frontend.afe import readonly_connection
 
 class ValidationError(Exception):
     """\

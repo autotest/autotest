@@ -18,8 +18,8 @@
 
 import fcntl, getpass, os, re, sys, shutil, tempfile, time, traceback, logging
 
-from autotest_lib.client.common_lib import error, global_config
-from autotest_lib.client import utils
+from autotest.client.common_lib import error, global_config
+from autotest.client import utils
 
 
 GLOBAL_CONFIG = global_config.global_config

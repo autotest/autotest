@@ -4,8 +4,8 @@ This library is to release in the public repository.
 """
 
 import commands, os, re, socket, sys, time, struct
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import utils as client_utils
+from autotest.client.common_lib import error
+from autotest.client import utils as client_utils
 import utils
 
 TIMEOUT = 10 # Used for socket timeout and barrier timeout
@@ -103,7 +103,7 @@ class network_utils(object):
 
 def network():
     try:
-        from autotest_lib.client.net import site_net_utils
+        from autotest.client.net import site_net_utils
         return site_net_utils.network_utils()
     except Exception:
         return network_utils()
@@ -386,7 +386,7 @@ class network_interface(object):
 
 def netif(name):
     try:
-        from autotest_lib.client.net import site_net_utils
+        from autotest.client.net import site_net_utils
         return site_net_utils.network_interface(name)
     except Exception:
         return network_interface(name)
@@ -451,7 +451,7 @@ class bonding(object):
 
 def bond():
     try:
-        from autotest_lib.client.net import site_net_utils
+        from autotest.client.net import site_net_utils
         return site_net_utils.bonding()
     except Exception:
         return bonding()
@@ -745,7 +745,7 @@ class ethernet(object):
 
 def ethernet_packet():
     try:
-        from autotest_lib.client.net import site_net_utils
+        from autotest.client.net import site_net_utils
         return site_net_utils.ethernet()
     except Exception:
         return ethernet()

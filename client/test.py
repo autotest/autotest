@@ -20,9 +20,9 @@
 
 import os, traceback, sys, shutil, logging, resource, glob
 
-from autotest_lib.client.common_lib import error, utils
-from autotest_lib.client.common_lib import test as common_test
-from autotest_lib.client import sysinfo, os_dep
+from autotest.client.common_lib import error, utils
+from autotest.client.common_lib import test as common_test
+from autotest.client import sysinfo, os_dep
 
 
 class test(common_test.base_test):

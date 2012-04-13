@@ -156,7 +156,7 @@ if not params.get("mode") == "noinstall":
 # ----------------------------------------------------------
 # Get test set (dictionary list) from the configuration file
 # ----------------------------------------------------------
-from autotest_lib.client.common_lib import cartesian_config
+from autotest.client.common_lib import cartesian_config
 
 str = """
 # This string will be parsed after tests.cfg.  Make any desired changes to the
@@ -174,8 +174,8 @@ tests = list(parser.get_dicts())
 # -------------
 # Run the tests
 # -------------
-from autotest_lib.client.virt import virt_scheduler
-from autotest_lib.client import utils
+from autotest.client.virt import virt_scheduler
+from autotest.client import utils
 
 # total_cpus defaults to the number of CPUs reported by /proc/cpuinfo
 total_cpus = utils.count_cpus()

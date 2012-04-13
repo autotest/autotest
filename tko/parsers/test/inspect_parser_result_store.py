@@ -11,7 +11,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.tko.parsers.test import scenario_base
+from autotest.tko.parsers.test import scenario_base
 
 
 usage = 'usage: %prog [options] scenario_dirpath'

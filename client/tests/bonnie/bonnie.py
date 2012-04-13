@@ -1,5 +1,5 @@
 import os, re
-from autotest_lib.client import test, os_dep, utils
+from autotest.client import test, os_dep, utils
 
 
 def convert_size(values):

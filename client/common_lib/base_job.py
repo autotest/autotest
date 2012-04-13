@@ -1,7 +1,7 @@
 import os, copy, logging, errno, fcntl, time, re, weakref, traceback
 import tarfile
 import cPickle as pickle
-from autotest_lib.client.common_lib import autotemp, error, log, global_config
+from autotest.client.common_lib import autotemp, error, log, global_config
 
 GLOBAL_CONFIG = global_config.global_config
 
@@ -432,7 +432,7 @@ class status_log_entry(object):
         """Construct a status.log entry.
 
         @param status_code: A message status code. Must match the codes
-            accepted by autotest_lib.common_lib.log.is_valid_status.
+            accepted by autotest.common_lib.log.is_valid_status.
         @param subdir: A valid job subdirectory, or None.
         @param operation: Description of the operation, or None.
         @param message: A printable string describing event to be recorded.

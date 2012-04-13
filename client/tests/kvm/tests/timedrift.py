@@ -1,6 +1,6 @@
 import logging, time, commands
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_test_utils, aexpect
+from autotest.client.common_lib import error
+from autotest.client.virt import virt_test_utils, aexpect
 
 
 def run_timedrift(test, params, env):

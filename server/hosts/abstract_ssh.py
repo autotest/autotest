@@ -1,8 +1,8 @@
 import os, time, types, socket, shutil, glob, logging, traceback, tempfile
-from autotest_lib.client.common_lib import autotemp, error, logging_manager
-from autotest_lib.server import utils, autotest_remote
-from autotest_lib.server.hosts import remote
-from autotest_lib.client.common_lib.global_config import global_config
+from autotest.client.common_lib import autotemp, error, logging_manager
+from autotest.server import utils, autotest_remote
+from autotest.server.hosts import remote
+from autotest.client.common_lib.global_config import global_config
 
 
 get_value = global_config.get_config_value

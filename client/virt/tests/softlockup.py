@@ -1,6 +1,6 @@
 import logging, os, socket, time
-from autotest_lib.client import utils
-from autotest_lib.client.common_lib import error
+from autotest.client import utils
+from autotest.client.common_lib import error
 
 def run_softlockup(test, params, env):
     """

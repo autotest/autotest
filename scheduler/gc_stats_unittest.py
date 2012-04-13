@@ -7,9 +7,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib.test_utils import unittest
-from autotest_lib.scheduler import gc_stats
+from autotest.client.common_lib.test_utils import mock
+from autotest.client.common_lib.test_utils import unittest
+from autotest.scheduler import gc_stats
 
 
 class TestGcStats(unittest.TestCase):

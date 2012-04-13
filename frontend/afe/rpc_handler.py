@@ -6,10 +6,10 @@ defined in rpc_interface.py.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import traceback, pydoc, re, urllib, logging, logging.handlers, inspect
-from autotest_lib.frontend.afe.json_rpc import serviceHandler
-from autotest_lib.frontend.afe import models, rpc_utils
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.frontend.afe import rpcserver_logging
+from autotest.frontend.afe.json_rpc import serviceHandler
+from autotest.frontend.afe import models, rpc_utils
+from autotest.client.common_lib import global_config
+from autotest.frontend.afe import rpcserver_logging
 
 LOGGING_REGEXPS = [r'.*add_.*',
                    r'delete_.*',

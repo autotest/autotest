@@ -6,8 +6,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.tko import db, plotgraph, perf
-from autotest_lib.client.common_lib import kernel_versions
+from autotest.tko import db, plotgraph, perf
+from autotest.client.common_lib import kernel_versions
 
 
 def add_kernel_jobs(label_pattern):

@@ -14,8 +14,8 @@ stutsman@google.com (Ryan Stutsman)"""
 
 
 import os, time
-from autotest_lib.client.common_lib import error
-from autotest_lib.server import kernel, utils
+from autotest.client.common_lib import error
+from autotest.server import kernel, utils
 
 
 class RPMKernel(kernel.Kernel):

@@ -5,8 +5,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client import fsinfo
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.client import fsinfo
+from autotest.client.common_lib.test_utils import mock
 
 class fsionfo_test(unittest.TestCase):
 

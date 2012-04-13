@@ -1,6 +1,6 @@
 import os
-from autotest_lib.client.common_lib import utils, error
-from autotest_lib.client.common_lib import boottool as common_boottool
+from autotest.client.common_lib import utils, error
+from autotest.client.common_lib import boottool as common_boottool
 
 class boottool(common_boottool.boottool):
     def __init__(self, boottool_exec=None):

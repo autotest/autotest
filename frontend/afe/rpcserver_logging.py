@@ -3,7 +3,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import global_config
+from autotest.client.common_lib import global_config
 
 
 config = global_config.global_config

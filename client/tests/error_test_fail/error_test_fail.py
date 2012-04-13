@@ -1,5 +1,5 @@
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import test
+from autotest.client.common_lib import error
+from autotest.client import test
 
 class error_test_fail(test.test):
     version = 1

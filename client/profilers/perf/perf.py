@@ -7,7 +7,7 @@ supports functionality similar to oprofile and more.
 
 import time, os, stat, subprocess, signal
 import logging
-from autotest_lib.client import profiler, os_dep, utils
+from autotest.client import profiler, os_dep, utils
 
 
 class perf(profiler.profiler):

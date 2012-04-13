@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import autotemp
+from autotest.client.common_lib import autotemp
 
 
 class tempfile_test(unittest.TestCase):

@@ -4,9 +4,9 @@ try:
 except ImportError:
     import common
 import logging
-from autotest_lib.client.common_lib import error, global_config
-from autotest_lib.scheduler import email_manager, drone_utility, drones
-from autotest_lib.scheduler import scheduler_config
+from autotest.client.common_lib import error, global_config
+from autotest.scheduler import email_manager, drone_utility, drones
+from autotest.scheduler import scheduler_config
 
 
 # results on drones will be placed under the drone_installation_directory in a

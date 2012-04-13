@@ -29,7 +29,7 @@ cycles        - Number of times to repeat each test. Each cycle takes about 6
                 minutes to complete.
 """
 
-from autotest_lib.server import utils
+from autotest.server import utils
 
 # Buffer sizes should not be less than 131072, as this will cause netpipe
 # to hang. 

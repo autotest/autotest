@@ -3,7 +3,7 @@
 __author__ = """Copyright Andy Whitcroft 2006"""
 
 import sys, logging, os, pickle, traceback, gc, time
-from autotest_lib.client.common_lib import error, utils
+from autotest.client.common_lib import error, utils
 
 def fork_start(tmp, l):
     sys.stdout.flush()

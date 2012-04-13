@@ -2,7 +2,7 @@
 
 import logging, os, shutil, sys, tempfile, time, urllib2
 import subprocess, re
-from autotest_lib.client.common_lib import utils
+from autotest.client.common_lib import utils
 
 _READ_SIZE = 64*1024
 _MAX_PACKAGE_SIZE = 100*1024*1024

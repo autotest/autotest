@@ -8,8 +8,8 @@ Helpers for cgroup testing.
 """
 import logging, os, shutil, subprocess, time
 from tempfile import mkdtemp
-from autotest_lib.client import utils
-from autotest_lib.client.common_lib import error
+from autotest.client import utils
+from autotest.client.common_lib import error
 
 class Cgroup(object):
     """

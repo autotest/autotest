@@ -1,9 +1,9 @@
 import os, sys, time, signal, socket, re, fnmatch, logging, threading
 import paramiko
 
-from autotest_lib.client.common_lib import utils, error, global_config
-from autotest_lib.server import subcommand
-from autotest_lib.server.hosts import abstract_ssh
+from autotest.client.common_lib import utils, error, global_config
+from autotest.server import subcommand
+from autotest.server.hosts import abstract_ssh
 
 
 class ParamikoHost(abstract_ssh.AbstractSSHHost):

@@ -5,8 +5,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.utils import parallel
-from autotest_lib.client.common_lib.test_utils import unittest as custom_unittest
+from autotest.utils import parallel
+from autotest.client.common_lib.test_utils import unittest as custom_unittest
 
 parser = optparse.OptionParser()
 parser.add_option("-r", action="store", type="string", dest="start",
@@ -143,7 +143,7 @@ def scan_for_modules(start, options):
                 path_no_py = os.path.join(dirpath, fname).rstrip('.py')
                 assert path_no_py.startswith(ROOT)
                 names = path_no_py[len(ROOT)+1:].split('/')
-                modules.append(['autotest_lib'] + names)
+                modules.append(['autotest'] + names)
                 if options.debug:
                     print 'testing', path_no_py
     return modules

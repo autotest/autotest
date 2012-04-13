@@ -1,6 +1,6 @@
 import sys, socket, errno, logging
 from time import time, sleep
-from autotest_lib.client.common_lib import error
+from autotest.client.common_lib import error
 
 # default barrier port
 _DEFAULT_PORT = 11922

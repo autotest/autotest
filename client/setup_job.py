@@ -8,12 +8,12 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.client import client_logging_config
-from autotest_lib.client import job as client_job
-from autotest_lib.client.common_lib import base_job
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import logging_manager
-from autotest_lib.client.common_lib import packages
+from autotest.client import client_logging_config
+from autotest.client import job as client_job
+from autotest.client.common_lib import base_job
+from autotest.client.common_lib import error
+from autotest.client.common_lib import logging_manager
+from autotest.client.common_lib import packages
 
 
 class setup_job(client_job.job):
