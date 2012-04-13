@@ -1536,10 +1536,9 @@ class BoottoolApp(object):
         We do not have as many levels as the original boottool(.pl) had, but
         we accept the same range of parameters and adjust it to our levels.
         '''
-        log_map = {0 : logging.ERROR,
-                   1 : logging.WARNING,
-                   2 : logging.INFO,
-                   3 : logging.DEBUG}
+        log_map = {0 : logging.WARNING,
+                   1 : logging.INFO,
+                   2 : logging.DEBUG}
         try:
             level = int(self.opts.debug)
         except ValueError:
