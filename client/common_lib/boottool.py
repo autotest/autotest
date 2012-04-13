@@ -29,7 +29,7 @@ except ImportError:
 
 
 imp.load_source("boottool_cli", BOOTTOOL_CLI_PATH)
-from boottool_cli import Grubby, install_grubby_if_missing, EfiToolSys
+from boottool_cli import Grubby, install_grubby_if_necessary, EfiToolSys
 
 
 class boottool(Grubby):
@@ -46,7 +46,7 @@ class boottool(Grubby):
     def _init_on_demand(self):
         if not self.instantiated:
             try:
-                install_grubby_if_missing()
+                install_grubby_if_necessary()
                 Grubby.__init__(self, self.path)
                 self.instantiated = True
             except Exception:
