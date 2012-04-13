@@ -144,11 +144,7 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         RESULT = entry_0 + entry_1 + entry_2
         entry_indexes = [0, 1, 2]
         # run the test
-        self.bt_mock.get_info_lines.expect_call().and_return(RESULT)
-        self.bt_mock._get_entry_indexes.expect_call(RESULT).and_return(entry_indexes)
-        self.bt_mock.get_info.expect_call(0).and_return(entry_0)
-        self.bt_mock.get_info.expect_call(1).and_return(entry_1)
-        self.bt_mock.get_info.expect_call(2).and_return(entry_2)
+        self.bt_mock.get_info.expect_call().and_return(RESULT)
 
         actual_info = self.bt_mock.get_entries()
         expected_info = {0: {'args': '"ro quiet rhgb SYSFONT=latarcyrheb-sun16 LANG=en_US.UTF-8 KEYTABLE=us-acentos"',
