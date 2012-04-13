@@ -571,7 +571,6 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns command output
         '''
-        self.log.debug('_run_get_output args: %s', arguments)
         result = None
         try:
             result = subprocess.Popen(arguments, shell=False,
@@ -583,9 +582,9 @@ class Grubby(object):
 
         if result is not None:
             result = result.strip()
-            self.log.debug('_run_get_output returning: %s', result)
         else:
-            self.log.debug('_run_get_output error')
+            self.log.error('_run_get_output error while running: "%s"',
+                           ' '.join(arguments))
         return result
 
 
@@ -593,7 +592,6 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns command output
         '''
-        self.log.debug('_run_get_output_err args: %s', arguments)
         result = None
         try:
             result = subprocess.Popen(arguments, shell=False,
@@ -606,9 +604,9 @@ class Grubby(object):
 
         if result is not None:
             result = result.strip()
-            self.log.debug('_run_get_output_err returning: %s', result)
         else:
-            self.log.debug('_run_get_output_err error')
+            self.log.error('_run_get_output_err error while running: "%s"',
+                           ' '.join(arguments))
         return result
 
 
@@ -616,15 +614,13 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns status code
         '''
-        self.log.debug('_run_get_return args: %s', arguments)
         result = None
         try:
             result = subprocess.call(arguments)
         except OSError:
             result = -1
-            self.log.debug('caught OSError, returning %s', result)
+            self.log.error('caught OSError, returning %s', result)
 
-        self.log.debug('_run_get_return returnig: %s', result)
         return result
 
 
