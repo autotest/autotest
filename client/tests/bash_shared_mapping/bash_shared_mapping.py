@@ -1,5 +1,5 @@
 import signal, os
-from autotest_lib.client.bin import utils, test
+from autotest_lib.client import utils, test
 
 class bash_shared_mapping(test.test):
     version = 3

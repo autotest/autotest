@@ -1,5 +1,5 @@
 import os
-from autotest_lib.client.bin import test, utils
+from autotest_lib.client import test, utils
 
 
 # Dbt-2 is a fair-use implementation of the TPC-C benchmark.  The test is

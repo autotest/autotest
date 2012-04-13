@@ -1,6 +1,6 @@
 import logging, time, random, math, os
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 from autotest_lib.client.virt import virt_utils, virt_test_utils, aexpect
 from autotest_lib.client.virt import virt_env_process
 

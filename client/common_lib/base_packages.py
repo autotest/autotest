@@ -6,7 +6,7 @@ should inherit this class.
 """
 
 import fcntl, logging, os, re, shutil
-from autotest_lib.client.bin import os_dep
+from autotest_lib.client import os_dep
 from autotest_lib.client.common_lib import error, utils, global_config
 
 

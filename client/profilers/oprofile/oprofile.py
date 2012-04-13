@@ -10,7 +10,7 @@ More Info: http://oprofile.sourceforge.net/
 Will need some libaries to compile. Do 'apt-get build-dep oprofile'
 """
 import os, shutil, time
-from autotest_lib.client.bin import utils, profiler
+from autotest_lib.client import utils, profiler
 from autotest_lib.client.common_lib import error
 import logging
 

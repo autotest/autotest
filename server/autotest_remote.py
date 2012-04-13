@@ -440,7 +440,7 @@ class _BaseRun(object):
 
 
     def verify_machine(self):
-        binary = os.path.join(self.autodir, 'bin/autotest')
+        binary = os.path.join(self.autodir, 'autotest')
         try:
             self.host.run('ls %s > /dev/null 2>&1' % binary)
         except:
@@ -471,14 +471,14 @@ class _BaseRun(object):
 
 
     def get_background_cmd(self, section):
-        cmd = ['nohup', os.path.join(self.autodir, 'bin/autotest_client')]
+        cmd = ['nohup', os.path.join(self.autodir, 'autotest_client')]
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
 
 
     def get_daemon_cmd(self, section, monitor_dir):
-        cmd = ['nohup', os.path.join(self.autodir, 'bin/autotestd'),
+        cmd = ['nohup', os.path.join(self.autodir, 'autotestd'),
                monitor_dir, '-H autoserv']
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
@@ -486,7 +486,7 @@ class _BaseRun(object):
 
 
     def get_monitor_cmd(self, monitor_dir, stdout_read, stderr_read):
-        cmd = [os.path.join(self.autodir, 'bin', 'autotestd_monitor'),
+        cmd = [os.path.join(self.autodir, 'autotestd_monitor'),
                monitor_dir, str(stdout_read), str(stderr_read)]
         return ' '.join(cmd)
 
@@ -657,7 +657,7 @@ class _BaseRun(object):
 
     def execute_section(self, section, timeout, stderr_redirector,
                         client_disconnect_timeout):
-        logging.info("Executing %s/bin/autotest %s/control phase %d",
+        logging.info("Executing %s/autotest %s/control phase %d",
                      self.autodir, self.autodir, section)
 
         if self.background:

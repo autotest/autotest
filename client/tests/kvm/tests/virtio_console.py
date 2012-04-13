@@ -9,7 +9,7 @@ from collections import deque
 from threading import Thread
 
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 from autotest_lib.client.virt import virt_utils, virt_test_utils, kvm_monitor
 from autotest_lib.client.virt import virt_env_process, aexpect
 
