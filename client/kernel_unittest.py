@@ -5,9 +5,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client import kernel, job, utils, kernelexpand
-from autotest_lib.client import kernel_config, boottool, os_dep
+from autotest.client.common_lib.test_utils import mock
+from autotest.client import kernel, job, utils, kernelexpand
+from autotest.client import kernel_config, boottool, os_dep
 
 
 class TestAddKernelToBootLoader(unittest.TestCase):

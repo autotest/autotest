@@ -5,8 +5,8 @@ __author__ = "duanes (Duane Sand), pdahl (Peter Dahl)"
 #   for use on kernels not running some site-specific container manager
 
 import os, sys, re, glob, fcntl, logging
-from autotest_lib.client import utils
-from autotest_lib.client.common_lib import error
+from autotest.client import utils
+from autotest.client.common_lib import error
 
 SUPER_ROOT = ''      # root of all containers or cgroups
 NO_LIMIT = (1 << 63) - 1   # containername/memory.limit_in_bytes if no limit

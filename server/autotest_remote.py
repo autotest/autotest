@@ -2,10 +2,10 @@
 
 import re, os, sys, traceback, subprocess, time, pickle, glob, tempfile
 import logging, getpass
-from autotest_lib.server import installable_object, prebuild, utils
-from autotest_lib.client.common_lib import base_job, log, error, autotemp
-from autotest_lib.client.common_lib import global_config, packages
-from autotest_lib.client.common_lib import utils as client_utils
+from autotest.server import installable_object, prebuild, utils
+from autotest.client.common_lib import base_job, log, error, autotemp
+from autotest.client.common_lib import global_config, packages
+from autotest.client.common_lib import utils as client_utils
 
 
 get_value = global_config.global_config.get_config_value
@@ -1033,12 +1033,12 @@ class client_logger(object):
 
 
 SiteAutotest = client_utils.import_site_class(
-    __file__, "autotest_lib.server.site_autotest", "SiteAutotest",
+    __file__, "autotest.server.site_autotest", "SiteAutotest",
     BaseAutotest)
 
 
 _SiteRun = client_utils.import_site_class(
-    __file__, "autotest_lib.server.site_autotest", "_SiteRun", _BaseRun)
+    __file__, "autotest.server.site_autotest", "_SiteRun", _BaseRun)
 
 
 class Autotest(SiteAutotest):

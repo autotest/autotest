@@ -8,10 +8,10 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import utils, autotemp
-from autotest_lib.tko import status_lib
-from autotest_lib.tko.parsers.test import templates
-from autotest_lib.tko.parsers.test import unittest_hotfix
+from autotest.client.common_lib import utils, autotemp
+from autotest.tko import status_lib
+from autotest.tko.parsers.test import templates
+from autotest.tko.parsers.test import unittest_hotfix
 
 TEMPLATES_DIRPATH = templates.__path__[0]
 # Set TZ used to UTC

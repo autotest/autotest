@@ -3,7 +3,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.frontend import settings
+from autotest.frontend import settings
 
 management.setup_environ(settings)
 

@@ -8,8 +8,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import error, barrier, base_barrier
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.client.common_lib import error, barrier, base_barrier
+from autotest.client.common_lib.test_utils import mock
 
 
 class listen_server_test(unittest.TestCase):

@@ -5,7 +5,7 @@ try:
     import autotest.common
 except ImportError:
     import common
-from autotest_lib.server import frontend
+from autotest.server import frontend
 
 try:
     old = frontend.AFE(web_server='http://' + sys.argv[1])

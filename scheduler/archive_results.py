@@ -5,8 +5,8 @@ try:
 except ImportError:
     import common
 import logging
-from autotest_lib.client.common_lib import global_config, utils
-from autotest_lib.scheduler import drone_utility
+from autotest.client.common_lib import global_config, utils
+from autotest.scheduler import drone_utility
 
 class BaseResultsArchiver(object):
     def archive_results(self, path):
@@ -24,5 +24,5 @@ class BaseResultsArchiver(object):
 
 
 ResultsArchiver = utils.import_site_class(
-        __file__, 'autotest_lib.scheduler.site_archive_results',
+        __file__, 'autotest.scheduler.site_archive_results',
         'SiteResultsArchiver', BaseResultsArchiver)

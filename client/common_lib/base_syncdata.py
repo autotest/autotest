@@ -1,9 +1,9 @@
 import pickle, time, socket, errno, threading, logging, signal
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import barrier
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.common_lib import autotemp
-from autotest_lib.client import parallel
+from autotest.client.common_lib import error
+from autotest.client.common_lib import barrier
+from autotest.client.common_lib import utils
+from autotest.client.common_lib import autotemp
+from autotest.client import parallel
 
 _DEFAULT_PORT = 13234
 _DEFAULT_TIMEOUT = 10

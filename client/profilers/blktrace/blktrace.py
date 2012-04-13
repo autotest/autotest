@@ -3,8 +3,8 @@ Autotest profiler for blktrace
 blktrace - generate traces of the i/o traffic on block devices
 """
 import os
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import profiler, utils
+from autotest.client.common_lib import error
+from autotest.client import profiler, utils
 
 
 class blktrace(profiler.profiler):

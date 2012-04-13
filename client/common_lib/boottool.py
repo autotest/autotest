@@ -14,7 +14,7 @@ Released under the GPL v2
 '''
 
 import os, sys, imp
-from autotest_lib.client.common_lib import error
+from autotest.client.common_lib import error
 #
 # This performs some import magic, to import the boottool cli as a module
 try:

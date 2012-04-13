@@ -3,7 +3,7 @@ try:
 except ImportError:
     import common
 import logging
-from autotest_lib.client.common_lib import logging_config
+from autotest.client.common_lib import logging_config
 
 class WatcherLoggingConfig(logging_config.LoggingConfig):
     def __init__(self, use_console=True):

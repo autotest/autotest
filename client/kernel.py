@@ -1,7 +1,7 @@
 import os, shutil, copy, pickle, re, glob, time, logging
-from autotest_lib.client import kernel_config, os_dep, kernelexpand, test
-from autotest_lib.client import utils
-from autotest_lib.client.common_lib import log, error, packages
+from autotest.client import kernel_config, os_dep, kernelexpand, test
+from autotest.client import utils
+from autotest.client.common_lib import log, error, packages
 
 
 def tee_output_logdir_mark(fn):
@@ -841,7 +841,7 @@ def _preprocess_path_dummy(path):
 
 # pull in some optional site-specific path pre-processing
 preprocess_path = utils.import_site_function(__file__,
-    "autotest_lib.client.site_kernel", "preprocess_path",
+    "autotest.client.site_kernel", "preprocess_path",
     _preprocess_path_dummy)
 
 

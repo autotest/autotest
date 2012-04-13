@@ -1,6 +1,6 @@
 import os, sys, getopt, optparse
 
-from autotest_lib.client.common_lib import host_protections, utils
+from autotest.client.common_lib import host_protections, utils
 
 
 class base_autoserv_parser(object):
@@ -141,7 +141,7 @@ class base_autoserv_parser(object):
 
 
 site_autoserv_parser = utils.import_site_class(
-    __file__, "autotest_lib.server.site_autoserv_parser",
+    __file__, "autotest.server.site_autoserv_parser",
     "site_autoserv_parser", base_autoserv_parser)
 
 class autoserv_parser(site_autoserv_parser):

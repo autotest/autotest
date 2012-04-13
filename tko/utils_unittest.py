@@ -6,8 +6,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.tko import utils
+from autotest.client.common_lib.test_utils import mock
+from autotest.tko import utils
 
 
 class get_timestamp_test(unittest.TestCase):

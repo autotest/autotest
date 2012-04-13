@@ -2,8 +2,8 @@
 # the repo.
 
 import shutil, os
-from autotest_lib.client import utils
-from autotest_lib.client.common_lib import error, kernel_versions
+from autotest.client import utils
+from autotest.client.common_lib import error, kernel_versions
 
 def apply_overrides(orig_file, changes_file, output_file):
     override = dict()

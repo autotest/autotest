@@ -1,6 +1,6 @@
 import logging, os, sys, fcntl
 kvm_test_dir = "/usr/local/autotest/client/tests/kvm"
-from autotest_lib.client.common_lib import cartesian_config
+from autotest.client.common_lib import cartesian_config
 
 def get_control(params, custom_cfg, kernel_install=True):
     control = '''
@@ -8,8 +8,8 @@ import sys, os, logging
 os.environ['LANG'] = 'en_US.UTF-8'
 kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'kvm')
 sys.path.append(kvm_test_dir)
-from autotest_lib.client.common_lib import cartesian_config
-from autotest_lib.client.virt import virt_utils
+from autotest.client.common_lib import cartesian_config
+from autotest.client.virt import virt_utils
 
 kernel_install_params = %s
 custom_cfg = %s

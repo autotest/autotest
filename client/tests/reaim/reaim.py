@@ -1,6 +1,6 @@
 # Needs autoconf & automake & libtool to be installed. Ewwwwwwwwwwwwwwwwwwwwww
 import re, os
-from autotest_lib.client import test, utils, os_dep
+from autotest.client import test, utils, os_dep
 
 
 class reaim(test.test):

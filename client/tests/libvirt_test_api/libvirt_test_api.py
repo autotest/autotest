@@ -1,7 +1,7 @@
 import os, re, shutil, glob, logging
 
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import utils, test, os_dep
+from autotest.client.common_lib import error
+from autotest.client import utils, test, os_dep
 
 
 class libvirt_test_api(test.test):

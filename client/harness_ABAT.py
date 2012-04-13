@@ -5,7 +5,7 @@ The interface as required for ABAT.
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-from autotest_lib.client import utils
+from autotest.client import utils
 import os, harness, time, re
 
 def autobench_load(fn):

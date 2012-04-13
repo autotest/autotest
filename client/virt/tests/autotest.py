@@ -1,5 +1,5 @@
 import os
-from autotest_lib.client.virt import virt_test_utils
+from autotest.client.virt import virt_test_utils
 
 
 def run_autotest(test, params, env):

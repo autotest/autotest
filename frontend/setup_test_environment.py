@@ -12,11 +12,11 @@ except ImportError:
 # from it before we set stuff on it.
 getattr(settings, 'DATABASES')
 settings.DATABASES['default']['ENGINE'] = (
-    'autotest_lib.frontend.db.backends.afe_sqlite')
+    'autotest.frontend.db.backends.afe_sqlite')
 settings.DATABASES['default']['NAME'] = ':memory:'
 
 from django.db import connection
-from autotest_lib.frontend.afe import readonly_connection
+from autotest.frontend.afe import readonly_connection
 
 def run_syncdb(verbosity=0):
     management.call_command('syncdb', verbosity=verbosity, interactive=False)

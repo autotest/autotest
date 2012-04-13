@@ -7,8 +7,8 @@ This module defines the Kernel class
 """
 
 import os, os.path, time
-from autotest_lib.client.common_lib import error
-from autotest_lib.server import kernel, utils
+from autotest.client.common_lib import error
+from autotest.server import kernel, utils
 
 
 class DEBKernel(kernel.Kernel):

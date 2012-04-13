@@ -1,4 +1,4 @@
-from autotest_lib.client.virt import virt_test
+from autotest.client.virt import virt_test
 
 
 class kvm(virt_test.virt_test):

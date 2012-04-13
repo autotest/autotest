@@ -1,6 +1,6 @@
 import os, logging, time, glob, re, shutil
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import utils
+from autotest.client.common_lib import error
+from autotest.client import utils
 import virt_utils
 
 class VMError(Exception):

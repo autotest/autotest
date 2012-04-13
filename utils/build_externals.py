@@ -18,12 +18,12 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import logging_config, logging_manager
-from autotest_lib.client.common_lib import utils
-from autotest_lib.utils import external_packages
+from autotest.client.common_lib import logging_config, logging_manager
+from autotest.client.common_lib import utils
+from autotest.utils import external_packages
 
 # bring in site packages as well
-utils.import_site_module(__file__, 'autotest_lib.utils.site_external_packages')
+utils.import_site_module(__file__, 'autotest.utils.site_external_packages')
 
 # Where package source be fetched to relative to the top of the autotest tree.
 PACKAGE_DIR = 'ExternalSource'

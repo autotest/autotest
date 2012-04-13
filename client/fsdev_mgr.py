@@ -4,7 +4,7 @@ implementation of the 'fsdev' helper API; site specific extensions
 to any of these methods should inherit this class.
 """
 
-from autotest_lib.client import utils
+from autotest.client import utils
 
 class BaseFsdevManager(object):
 
@@ -43,7 +43,7 @@ class BaseFsdevManager(object):
 
 
 SiteFsdevManager = utils.import_site_class(
-    __file__, "autotest_lib.client.site_fsdev", "SiteFsdevManager",
+    __file__, "autotest.client.site_fsdev", "SiteFsdevManager",
     BaseFsdevManager)
 
 # Wrap whatever SiteFsdevManager class we've found above in a class

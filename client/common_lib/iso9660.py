@@ -12,7 +12,7 @@ __all__ = ['iso9660', 'Iso9660IsoInfo', 'Iso9660IsoRead', 'Iso9660Mount']
 
 import os, logging, tempfile, shutil
 import common
-from autotest_lib.client.common_lib import utils
+from autotest.client.common_lib import utils
 
 
 def has_userland_tool(executable):

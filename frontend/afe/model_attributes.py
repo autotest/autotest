@@ -2,7 +2,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import enum
+from autotest.client.common_lib import enum
 
 
 # common enums for Job attributes

@@ -4,8 +4,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client import harness, harness_standalone, harness_ABAT
+from autotest.client.common_lib.test_utils import mock
+from autotest.client import harness, harness_standalone, harness_ABAT
 
 
 class harness_unittest(unittest.TestCase):

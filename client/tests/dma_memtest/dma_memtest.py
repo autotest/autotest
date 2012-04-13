@@ -1,6 +1,6 @@
 import os, time, re, subprocess, shutil, logging
-from autotest_lib.client import utils, test
-from autotest_lib.client.common_lib import error
+from autotest.client import utils, test
+from autotest.client.common_lib import error
 
 
 class dma_memtest(test.test):

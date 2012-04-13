@@ -14,8 +14,8 @@ dicts for the multi host test.
 """
 
 import sys, os, commands, glob, shutil, logging, random
-from autotest_lib.server import utils
-from autotest_lib.client.common_lib import cartesian_config, error
+from autotest.server import utils
+from autotest.client.common_lib import cartesian_config, error
 
 # Specify the directory of autotest before you start this test
 AUTOTEST_DIR = job.clientdir

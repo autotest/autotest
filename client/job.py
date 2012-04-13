@@ -8,23 +8,23 @@ Copyright Andy Whitcroft, Martin J. Bligh 2006
 import copy, os, platform, re, shutil, sys, time, traceback, types, glob
 import logging, getpass, errno, weakref
 import cPickle as pickle
-from autotest_lib.client import client_logging_config
-from autotest_lib.client import utils, parallel, kernel, xen
-from autotest_lib.client import profilers, boottool, harness
-from autotest_lib.client import config, sysinfo, test, local_host
-from autotest_lib.client import partition as partition_lib
-from autotest_lib.client.common_lib import base_job
-from autotest_lib.client.common_lib import error, barrier, log, logging_manager
-from autotest_lib.client.common_lib import base_packages, packages
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.tools import html_report
+from autotest.client import client_logging_config
+from autotest.client import utils, parallel, kernel, xen
+from autotest.client import profilers, boottool, harness
+from autotest.client import config, sysinfo, test, local_host
+from autotest.client import partition as partition_lib
+from autotest.client.common_lib import base_job
+from autotest.client.common_lib import error, barrier, log, logging_manager
+from autotest.client.common_lib import base_packages, packages
+from autotest.client.common_lib import global_config
+from autotest.client.tools import html_report
 
 GLOBAL_CONFIG = global_config.global_config
 
 LAST_BOOT_TAG = object()
 JOB_PREAMBLE = """
-from autotest_lib.client.common_lib.error import *
-from autotest_lib.client.utils import *
+from autotest.client.common_lib.error import *
+from autotest.client.utils import *
 """
 
 
@@ -1349,7 +1349,7 @@ def runjob(control, drop_caches, options):
 
 
 site_job = utils.import_site_class(
-    __file__, "autotest_lib.client.site_job", "site_job", base_client_job)
+    __file__, "autotest.client.site_job", "site_job", base_client_job)
 
 class job(site_job):
     pass

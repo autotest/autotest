@@ -9,7 +9,7 @@ precedence order defined there
 """
 import os, shutil, sys, signal, commands, pickle, glob, statvfs
 import math, re, string, fnmatch, logging
-from autotest_lib.client.common_lib import error, utils, magic
+from autotest.client.common_lib import error, utils, magic
 
 
 def grep(pattern, file):

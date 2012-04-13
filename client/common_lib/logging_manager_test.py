@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import logging_manager, logging_config
+from autotest.client.common_lib import logging_manager, logging_config
 
 
 class PipedStringIO(object):

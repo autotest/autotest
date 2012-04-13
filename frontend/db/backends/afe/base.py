@@ -11,7 +11,7 @@ except ImportError, e:
 
 
 class DatabaseOperations(MySQLOperations):
-    compiler_module = "autotest_lib.frontend.db.backends.afe.compiler"
+    compiler_module = "autotest.frontend.db.backends.afe.compiler"
 
 
 class DatabaseWrapper(MySQLDatabaseWrapper):

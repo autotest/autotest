@@ -2,8 +2,8 @@
 
 import os, re, time, urllib2, urlparse, HTMLParser
 
-from autotest_lib.mirror import database
-from autotest_lib.client.common_lib import utils
+from autotest.mirror import database
+from autotest.client.common_lib import utils
 
 
 class source(object):

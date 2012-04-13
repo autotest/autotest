@@ -1,6 +1,6 @@
 import email, os, re, smtplib
 
-from autotest_lib.server import frontend
+from autotest.server import frontend
 
 class trigger(object):
     """

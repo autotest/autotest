@@ -94,7 +94,7 @@ def select(which, job, harness_args):
 
     harness_name = 'harness_%s' % which
     harness_module = common.setup_modules.import_module(harness_name,
-                                                        'autotest_lib.client')
+                                                        'autotest.client')
     harness_instance = getattr(harness_module, harness_name)(job, harness_args)
 
     return harness_instance

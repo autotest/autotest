@@ -6,8 +6,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import base_job, error
-from autotest_lib.client.common_lib.test_utils import unittest
+from autotest.client.common_lib import base_job, error
+from autotest.client.common_lib.test_utils import unittest
 
 
 class stub_job_directory(object):

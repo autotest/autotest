@@ -5,9 +5,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.database import database_connection
+from autotest.client.common_lib import global_config
+from autotest.client.common_lib.test_utils import mock
+from autotest.database import database_connection
 
 _CONFIG_SECTION = 'AUTOTEST_WEB'
 _HOST = 'myhost'

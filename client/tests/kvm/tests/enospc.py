@@ -1,7 +1,7 @@
 import logging, time, re, os
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import utils
-from autotest_lib.client.virt import virt_vm, virt_utils
+from autotest.client.common_lib import error
+from autotest.client import utils
+from autotest.client.virt import virt_vm, virt_utils
 
 
 class EnospcConfig(object):

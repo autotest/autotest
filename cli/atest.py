@@ -22,7 +22,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.cli import topic_common
+from autotest.cli import topic_common
 
 
 def main():
@@ -65,7 +65,7 @@ def main():
     elif not os.path.exists(os.path.join(cli_dir, '%s.py' % topic)):
         syntax_obj.invalid_syntax('Invalid topic %s' % topic)
     topic_module = common.setup_modules.import_module(topic,
-                                                      'autotest_lib.cli')
+                                                      'autotest.cli')
 
     # If we have a syntax error now, it should
     # refer to the topic class.

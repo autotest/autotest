@@ -6,9 +6,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.tko import models
-from autotest_lib.tko.parsers import version_0
+from autotest.client.common_lib.test_utils import mock
+from autotest.tko import models
+from autotest.tko.parsers import version_0
 
 
 class test_job_load_from_dir(unittest.TestCase):

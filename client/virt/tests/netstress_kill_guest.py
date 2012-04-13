@@ -1,7 +1,7 @@
 import logging, os, signal, re, time
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import utils
-from autotest_lib.client.virt import aexpect, virt_utils
+from autotest.client.common_lib import error
+from autotest.client import utils
+from autotest.client.virt import aexpect, virt_utils
 
 
 def run_netstress_kill_guest(test, params, env):

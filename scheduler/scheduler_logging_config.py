@@ -3,7 +3,7 @@ try:
 except ImportError:
     import common
 import logging, os
-from autotest_lib.client.common_lib import logging_config
+from autotest.client.common_lib import logging_config
 
 class SchedulerLoggingConfig(logging_config.LoggingConfig):
     GLOBAL_LEVEL = logging.INFO

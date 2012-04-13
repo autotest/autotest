@@ -10,9 +10,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import logging_manager
-from autotest_lib.client import utils
-from autotest_lib.client.virt import virt_utils
+from autotest.client.common_lib import logging_manager
+from autotest.client import utils
+from autotest.client.virt import virt_utils
 
 
 if __name__ == "__main__":

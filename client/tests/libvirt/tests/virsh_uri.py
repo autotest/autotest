@@ -1,6 +1,6 @@
 import logging
-from autotest_lib.client.common_lib import utils, error
-from autotest_lib.client.virt import libvirt_vm
+from autotest.client.common_lib import utils, error
+from autotest.client.virt import libvirt_vm
 
 def run_virsh_uri(test, params, env):
     """

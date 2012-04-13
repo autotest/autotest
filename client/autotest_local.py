@@ -10,9 +10,9 @@ except ImportError:
     autodir = os.path.dirname(autodirbin)
     sys.path.insert(0, autodirbin)
 
-from autotest_lib.client import job
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client import cmdparser, optparser
+from autotest.client import job
+from autotest.client.common_lib import global_config
+from autotest.client import cmdparser, optparser
 
 autodirtest = os.path.join(autodir, "tests")
 
@@ -61,7 +61,7 @@ class AutotestLocalApp:
                                                                    default=True)
 
         if self.options.client_test_setup:
-            from autotest_lib.client import setup_job
+            from autotest.client import setup_job
             exit_code = 0
             try:
                 setup_job.setup_tests(self.options)

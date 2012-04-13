@@ -21,11 +21,11 @@ if not os.path.exists(pylintrc_path):
     open(pylintrc_path, 'w').close()
 
 
-# patch up the logilab module lookup tools to understand autotest_lib.* trash
+# patch up the logilab module lookup tools to understand autotest.* trash
 import logilab.common.modutils
 _ffm = logilab.common.modutils.file_from_modpath
 def file_from_modpath(modpath, path=None, context_file=None):
-    if modpath[0] == "autotest_lib":
+    if modpath[0] == "autotest":
         return _ffm(modpath[1:], path, context_file)
     else:
         return _ffm(modpath, path, context_file)
@@ -35,7 +35,7 @@ logilab.common.modutils.file_from_modpath = file_from_modpath
 import pylint.lint
 from pylint.checkers import imports
 
-ROOT_MODULE = 'autotest_lib.'
+ROOT_MODULE = 'autotest.'
 
 # need to put autotest root dir on sys.path so pylint will be happy
 autotest_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))

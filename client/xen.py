@@ -2,8 +2,8 @@ __author__ = """Copyright Martin J. Bligh, 2006,
                 Copyright IBM Corp. 2006, Ryan Harper <ryanh@us.ibm.com>"""
 
 import os, shutil, copy, pickle, re, glob
-from autotest_lib.client import kernel, kernel_config, os_dep, test
-from autotest_lib.client import utils
+from autotest.client import kernel, kernel_config, os_dep, test
+from autotest.client import utils
 
 
 class xen(kernel.kernel):

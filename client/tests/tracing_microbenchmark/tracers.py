@@ -1,5 +1,5 @@
 import os
-from autotest_lib.client import utils
+from autotest.client import utils
 
 import base_tracer
 try:

@@ -1,6 +1,6 @@
 import logging, os, shutil, glob, ConfigParser
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_utils, virt_env_process
+from autotest.client.common_lib import error
+from autotest.client.virt import virt_utils, virt_env_process
 
 
 def run_unittest(test, params, env):

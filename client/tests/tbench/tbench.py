@@ -1,5 +1,5 @@
 import time, os, signal, re
-from autotest_lib.client import test, utils
+from autotest.client import test, utils
 
 
 class tbench(test.test):

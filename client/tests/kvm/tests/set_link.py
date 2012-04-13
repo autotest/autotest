@@ -1,7 +1,7 @@
 import logging
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt.tests import file_transfer
-from autotest_lib.client.virt import virt_test_utils
+from autotest.client.common_lib import error
+from autotest.client.virt.tests import file_transfer
+from autotest.client.virt import virt_test_utils
 
 
 def run_set_link(test, params, env):

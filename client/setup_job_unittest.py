@@ -6,12 +6,12 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.client import job, setup_job
-from autotest_lib.client import utils
-from autotest_lib.client.common_lib import base_job, error, log, packages
-from autotest_lib.client.common_lib import logging_manager, logging_config
-from autotest_lib.client.common_lib import base_job_unittest
-from autotest_lib.client.common_lib.test_utils import mock, unittest
+from autotest.client import job, setup_job
+from autotest.client import utils
+from autotest.client.common_lib import base_job, error, log, packages
+from autotest.client.common_lib import logging_manager, logging_config
+from autotest.client.common_lib import base_job_unittest
+from autotest.client.common_lib.test_utils import mock, unittest
 
 
 class setup_job_test_case(unittest.TestCase):

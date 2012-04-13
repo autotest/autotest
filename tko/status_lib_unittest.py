@@ -5,8 +5,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.tko import status_lib
-from autotest_lib.client.common_lib import log
+from autotest.tko import status_lib
+from autotest.client.common_lib import log
 
 
 class clean_raw_line_test(unittest.TestCase):

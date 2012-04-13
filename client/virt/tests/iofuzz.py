@@ -1,6 +1,6 @@
 import logging, re, random
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import aexpect
+from autotest.client.common_lib import error
+from autotest.client.virt import aexpect
 
 
 def run_iofuzz(test, params, env):

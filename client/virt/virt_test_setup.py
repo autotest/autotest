@@ -2,8 +2,8 @@
 Library to perform pre/post test setup for KVM autotest.
 """
 import os, logging, time, re, random
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import utils
+from autotest.client.common_lib import error
+from autotest.client import utils
 
 
 class THPError(Exception):
