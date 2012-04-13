@@ -1,6 +1,6 @@
 import os, re, time
 
-from autotest_lib.client import utils, test
+from autotest.client import utils, test
 
 class asynctest(test.test):
     version = 1

@@ -1,4 +1,4 @@
-from autotest_lib.server import utils
+from autotest.server import utils
 
 
 class InstallableObject(object):

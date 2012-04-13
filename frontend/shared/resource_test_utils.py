@@ -1,7 +1,7 @@
 import operator, unittest
 import simplejson
 from django.test import client
-from autotest_lib.frontend.afe import frontend_test_utils, models as afe_models
+from autotest.frontend.afe import frontend_test_utils, models as afe_models
 
 class ResourceTestCase(unittest.TestCase,
                        frontend_test_utils.FrontendTestMixin):

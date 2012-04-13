@@ -19,9 +19,9 @@ stutsman@google.com (Ryan Stutsman)
 
 import os
 
-from autotest_lib.client.common_lib import hosts
-from autotest_lib.server import utils
-from autotest_lib.server.hosts import bootloader
+from autotest.client.common_lib import hosts
+from autotest.server import utils
+from autotest.server.hosts import bootloader
 
 
 class Host(hosts.Host):

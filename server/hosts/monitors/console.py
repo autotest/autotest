@@ -5,7 +5,7 @@
 
 import gzip, optparse, os, signal, sys, time
 import common
-from autotest_lib.server.hosts.monitors import monitors_util
+from autotest.server.hosts.monitors import monitors_util
 
 PATTERNS_PATH = os.path.join(os.path.dirname(__file__), 'console_patterns')
 

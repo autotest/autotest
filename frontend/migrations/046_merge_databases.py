@@ -2,10 +2,10 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.database import db_utils, migrate
+from autotest.database import db_utils, migrate
 
 TKO_MIGRATION_NAME = '031_rename_tko_tables'
-migrations_module = __import__('autotest_lib.tko.migrations', globals(),
+migrations_module = __import__('autotest.tko.migrations', globals(),
                                locals(), [TKO_MIGRATION_NAME])
 tko_migration = getattr(migrations_module, TKO_MIGRATION_NAME)
 

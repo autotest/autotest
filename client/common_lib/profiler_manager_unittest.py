@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import profiler_manager
+from autotest.client.common_lib import profiler_manager
 
 
 # simple job stub for using in tests

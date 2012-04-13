@@ -9,10 +9,10 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import utils as client_utils
-from autotest_lib.client.common_lib import global_config, error
-from autotest_lib.client.common_lib import base_packages, packages
-from autotest_lib.server import utils as server_utils
+from autotest.client.common_lib import utils as client_utils
+from autotest.client.common_lib import global_config, error
+from autotest.client.common_lib import base_packages, packages
+from autotest.server import utils as server_utils
 
 c = global_config.global_config
 logging.basicConfig(level=logging.DEBUG)

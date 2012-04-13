@@ -14,7 +14,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import barrier
+from autotest.client.common_lib import barrier
 
 # Client control file snippet used to synchronize profiler start & stop.
 _RUNTEST_PATTERN = ("job.run_test('profiler_sync', timeout_sync=%r,\n"

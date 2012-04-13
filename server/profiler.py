@@ -47,7 +47,7 @@ class profiler_proxy(object):
 
         # does the profiler support rebooting?
         profiler_module = common.setup_modules.import_module(
-            profiler_name, "autotest_lib.client.profilers.%s" % profiler_name)
+            profiler_name, "autotest.client.profilers.%s" % profiler_name)
         profiler_class = getattr(profiler_module, profiler_name)
         self.supports_reboot = profiler_class.supports_reboot
 

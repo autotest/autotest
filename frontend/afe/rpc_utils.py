@@ -7,7 +7,7 @@ __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime, os, sys, inspect
 import django.http
-from autotest_lib.frontend.afe import models, model_logic, model_attributes
+from autotest.frontend.afe import models, model_logic, model_attributes
 
 NULL_DATETIME = datetime.datetime.max
 NULL_DATE = datetime.date.max

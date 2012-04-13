@@ -9,7 +9,7 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.client.common_lib.global_config import global_config
+from autotest.client.common_lib.global_config import global_config
 require_atfork = global_config.get_config_value(
         'AUTOSERV', 'require_atfork_module', type=bool, default=True)
 
@@ -23,17 +23,17 @@ try:
     warnings.filterwarnings('ignore', 'logging module already imported')
     atfork.stdlib_fixer.fix_logging_module()
 except ImportError, e:
-    from autotest_lib.client.common_lib import global_config
+    from autotest.client.common_lib import global_config
     if global_config.global_config.get_config_value(
             'AUTOSERV', 'require_atfork_module', type=bool, default=False):
         print >>sys.stderr, 'Please run utils/build_externals.py'
         print e
         sys.exit(1)
 
-from autotest_lib.server import server_logging_config
-from autotest_lib.server import server_job, utils, autoserv_parser
-from autotest_lib.server import autotest_remote
-from autotest_lib.client.common_lib import pidfile, logging_manager
+from autotest.server import server_logging_config
+from autotest.server import server_job, utils, autoserv_parser
+from autotest.server import autotest_remote
+from autotest.client.common_lib import pidfile, logging_manager
 
 def run_autoserv(pid_file_manager, results, parser):
     # send stdin to /dev/null

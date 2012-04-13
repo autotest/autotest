@@ -1,6 +1,6 @@
 import logging, time, os
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_utils, virt_test_utils, rss_client
+from autotest.client.common_lib import error
+from autotest.client.virt import virt_utils, virt_test_utils, rss_client
 
 
 def run_whql_client_install(test, params, env):

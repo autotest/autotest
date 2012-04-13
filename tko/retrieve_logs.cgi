@@ -5,9 +5,9 @@ try:
     import autotest.common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client import utils
-from autotest_lib.frontend.afe.json_rpc import serviceHandler
+from autotest.client.common_lib import global_config
+from autotest.client import utils
+from autotest.frontend.afe.json_rpc import serviceHandler
 
 _PAGE = """\
 Status: 302 Found
@@ -20,11 +20,11 @@ def _retrieve_logs_dummy(job_path):
     pass
 
 site_retrieve_logs = utils.import_site_function(__file__,
-    "autotest_lib.tko.site_retrieve_logs", "site_retrieve_logs",
+    "autotest.tko.site_retrieve_logs", "site_retrieve_logs",
     _retrieve_logs_dummy)
 
 site_find_repository_host = utils.import_site_function(__file__,
-    "autotest_lib.tko.site_retrieve_logs", "site_find_repository_host",
+    "autotest.tko.site_retrieve_logs", "site_find_repository_host",
     _retrieve_logs_dummy)
 
 

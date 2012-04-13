@@ -7,7 +7,7 @@ This module defines the SourceKernel class
 """
 
 
-from autotest_lib.server import kernel, autotest_remote
+from autotest.server import kernel, autotest_remote
 
 
 class SourceKernel(kernel.Kernel):

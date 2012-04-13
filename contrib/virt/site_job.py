@@ -1,10 +1,10 @@
 import os, re, sys, pwd, time, socket, getpass
 import inspect, new, logging, string, tempfile
 
-from autotest_lib.cli import topic_common, action_common
-from autotest_lib.cli import job
-from autotest_lib.client.common_lib import logging_config
-from autotest_lib.client.virt import virt_utils
+from autotest.cli import topic_common, action_common
+from autotest.cli import job
+from autotest.client.common_lib import logging_config
+from autotest.client.virt import virt_utils
 
 logging_config.LoggingConfig().configure_logging(verbose=True)
 

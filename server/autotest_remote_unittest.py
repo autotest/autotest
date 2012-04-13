@@ -5,11 +5,11 @@ __author__ = "raphtee@google.com (Travis Miller)"
 import unittest, os, tempfile, logging
 
 import common
-from autotest_lib.server import autotest_remote, utils, hosts, server_job, profilers
-from autotest_lib.client import sysinfo
-from autotest_lib.client.common_lib import utils as client_utils, packages
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.server import autotest_remote, utils, hosts, server_job, profilers
+from autotest.client import sysinfo
+from autotest.client.common_lib import utils as client_utils, packages
+from autotest.client.common_lib import error
+from autotest.client.common_lib.test_utils import mock
 
 
 class TestBaseAutotest(unittest.TestCase):

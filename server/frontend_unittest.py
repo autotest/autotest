@@ -11,11 +11,11 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.frontend.afe import rpc_client_lib
-from autotest_lib.server import frontend
+from autotest.client.common_lib import global_config
+from autotest.client.common_lib import utils
+from autotest.client.common_lib.test_utils import mock
+from autotest.frontend.afe import rpc_client_lib
+from autotest.server import frontend
 
 GLOBAL_CONFIG = global_config.global_config
 

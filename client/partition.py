@@ -7,8 +7,8 @@ and formatting.
 """
 
 import os, re, string, sys, fcntl, logging
-from autotest_lib.client import os_dep, utils
-from autotest_lib.client.common_lib import error
+from autotest.client import os_dep, utils
+from autotest.client.common_lib import error
 
 
 class FsOptions(object):
@@ -996,6 +996,6 @@ class virtual_partition:
 
 # import a site partition module to allow it to override functions
 try:
-    from autotest_lib.client.site_partition import *
+    from autotest.client.site_partition import *
 except ImportError:
     pass

@@ -7,8 +7,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.mirror import source
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.mirror import source
+from autotest.client.common_lib.test_utils import mock
 
 
 class common_source(unittest.TestCase):

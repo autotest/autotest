@@ -6,10 +6,10 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.server import utils
-from autotest_lib.server.hosts import base_classes, bootloader
+from autotest.client.common_lib import global_config
+from autotest.client.common_lib.test_utils import mock
+from autotest.server import utils
+from autotest.server.hosts import base_classes, bootloader
 
 
 class test_host_class(unittest.TestCase):

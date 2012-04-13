@@ -1,8 +1,8 @@
 import os, sys, logging, imp
 
-from autotest_lib.client import test
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_utils, virt_env_process
+from autotest.client import test
+from autotest.client.common_lib import error
+from autotest.client.virt import virt_utils, virt_env_process
 
 
 class virt_test(test.test):

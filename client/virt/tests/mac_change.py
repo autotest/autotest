@@ -1,6 +1,6 @@
 import logging
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_utils, virt_test_utils
+from autotest.client.common_lib import error
+from autotest.client.virt import virt_utils, virt_test_utils
 
 
 def run_mac_change(test, params, env):

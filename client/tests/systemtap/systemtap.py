@@ -1,6 +1,6 @@
 import os, shutil, re
-from autotest_lib.client import test, utils
-from autotest_lib.client.common_lib import error
+from autotest.client import test, utils
+from autotest.client.common_lib import error
 
 
 class systemtap(test.test):

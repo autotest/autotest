@@ -4,7 +4,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client import kernel_versions
+from autotest.client import kernel_versions
 
 
 class kernel_versions_test(unittest.TestCase):

@@ -5,8 +5,8 @@ This file contains the implementation of a host object for the local machine.
 """
 
 import glob, os, platform
-from autotest_lib.client.common_lib import hosts, error
-from autotest_lib.client import utils
+from autotest.client.common_lib import hosts, error
+from autotest.client import utils
 
 class LocalHost(hosts.Host):
     def _initialize(self, hostname=None, bootloader=None, *args, **dargs):

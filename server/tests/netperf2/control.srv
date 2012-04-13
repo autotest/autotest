@@ -22,7 +22,7 @@ stream_list   - A list containing the number of streams to run the test for. If
 cycles        - The number of times to run each test.
 """
 
-from autotest_lib.server import utils
+from autotest.server import utils
 
 
 def run(pair):

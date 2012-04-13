@@ -6,8 +6,8 @@ should inherit this class.
 """
 
 import fcntl, logging, os, re, shutil
-from autotest_lib.client import os_dep
-from autotest_lib.client.common_lib import error, utils, global_config
+from autotest.client import os_dep
+from autotest.client.common_lib import error, utils, global_config
 
 
 # the name of the checksum file that stores the packages' checksums
@@ -309,7 +309,7 @@ class BasePackageManager(object):
         '''
         Clean up custom upload/download areas
         '''
-        from autotest_lib.server import subcommand
+        from autotest.server import subcommand
         if not custom_repos:
             # Not all package types necessarily require or allow custom repos
             try:
@@ -471,7 +471,7 @@ class BasePackageManager(object):
 
     def upload_pkg(self, pkg_path, upload_path=None, update_checksum=False,
                    timeout=300):
-        from autotest_lib.server import subcommand
+        from autotest.server import subcommand
         if upload_path:
             upload_path_list = [upload_path]
             self.upkeep(upload_path_list)

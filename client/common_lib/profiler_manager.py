@@ -4,7 +4,7 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.client.common_lib import error, utils, packages
+from autotest.client.common_lib import error, utils, packages
 
 
 class ProfilerNotPresentError(error.JobError):

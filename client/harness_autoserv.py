@@ -1,7 +1,7 @@
 import os, logging, ConfigParser
-from autotest_lib.client.common_lib import autotemp, base_packages, error
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client import harness
+from autotest.client.common_lib import autotemp, base_packages, error
+from autotest.client.common_lib import global_config
+from autotest.client import harness
 
 
 class harness_autoserv(harness.harness):

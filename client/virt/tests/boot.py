@@ -2,7 +2,7 @@ import time
 import sys
 import re
 
-from autotest_lib.client.common_lib import error
+from autotest.client.common_lib import error
 
 
 def _get_function(func_name):

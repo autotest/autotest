@@ -14,7 +14,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.server import frontend
+from autotest.server import frontend
 
 
 def main():

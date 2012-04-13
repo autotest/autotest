@@ -1,4 +1,4 @@
-from autotest_lib.client.virt import virt_utils
+from autotest.client.virt import virt_utils
 
 
 def run_migration_multi_host(test, params, env):

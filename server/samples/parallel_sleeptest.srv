@@ -17,7 +17,7 @@ To run a different set of tests do the following:
    server/autoserv <this control file path> -m <machines> -r <subdir to contain the run results>
 """
 
-from autotest_lib.client.common_lib import utils
+from autotest.client.common_lib import utils
 
 # Specify the path to the client control files and the tag names
 # for the respective jobs here.

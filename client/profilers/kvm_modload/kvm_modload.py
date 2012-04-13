@@ -7,7 +7,7 @@ author: jsmiller@google.com
 """
 
 import os, subprocess
-from autotest_lib.client import kvm_control, profiler, utils
+from autotest.client import kvm_control, profiler, utils
 
 
 class kvm_modload(profiler.profiler):

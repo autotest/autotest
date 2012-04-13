@@ -18,12 +18,12 @@ _drone_manager: reference to global DroneManager instance.
 
 import datetime, itertools, logging, os, re, sys, time, weakref
 from django.db import connection
-from autotest_lib.client.common_lib import global_config, host_protections
-from autotest_lib.client.common_lib import global_config, utils
-from autotest_lib.frontend.afe import models, model_attributes
-from autotest_lib.database import database_connection
-from autotest_lib.scheduler import drone_manager, email_manager
-from autotest_lib.scheduler import scheduler_config
+from autotest.client.common_lib import global_config, host_protections
+from autotest.client.common_lib import global_config, utils
+from autotest.frontend.afe import models, model_attributes
+from autotest.database import database_connection
+from autotest.scheduler import drone_manager, email_manager
+from autotest.scheduler import scheduler_config
 
 _notify_email_statuses = []
 _base_url = None

@@ -5,7 +5,7 @@ try:
     import autotest.common
 except ImportError:
     import common
-from autotest_lib.frontend.afe.json_rpc import serviceHandler
+from autotest.frontend.afe.json_rpc import serviceHandler
 
 script = """\
 Content-Type: text/javascript

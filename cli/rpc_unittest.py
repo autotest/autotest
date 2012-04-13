@@ -9,10 +9,10 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.cli import rpc
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.frontend.afe import rpc_client_lib
-from autotest_lib.frontend.afe.json_rpc import proxy
+from autotest.cli import rpc
+from autotest.client.common_lib import global_config
+from autotest.frontend.afe import rpc_client_lib
+from autotest.frontend.afe.json_rpc import proxy
 
 GLOBAL_CONFIG = global_config.global_config
 

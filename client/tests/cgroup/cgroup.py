@@ -10,8 +10,8 @@ import os, sys, logging
 import time
 from tempfile import NamedTemporaryFile
 
-from autotest_lib.client import test, utils
-from autotest_lib.client.common_lib import error
+from autotest.client import test, utils
+from autotest.client.common_lib import error
 from cgroup_common import Cgroup, CgroupModules, get_load_per_cpu
 
 class cgroup(test.test):

@@ -57,9 +57,9 @@ High Level Algorithm:
 
 import getpass, optparse, os, pwd, re, socket, sys, textwrap, traceback
 import socket, string, urllib2
-from autotest_lib.cli import rpc
-from autotest_lib.frontend.afe.json_rpc import proxy
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.cli import rpc
+from autotest.frontend.afe.json_rpc import proxy
+from autotest.client.common_lib.test_utils import mock
 
 
 # Maps the AFE keys to printable names.

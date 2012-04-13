@@ -32,10 +32,10 @@ try:
 except ImportError:
     import common
 import logging, re, os, sys, optparse, compiler
-from autotest_lib.frontend import setup_django_environment
-from autotest_lib.frontend.afe import models
-from autotest_lib.client.common_lib import control_data, utils
-from autotest_lib.client.common_lib import logging_config, logging_manager
+from autotest.frontend import setup_django_environment
+from autotest.frontend.afe import models
+from autotest.client.common_lib import control_data, utils
+from autotest.client.common_lib import logging_config, logging_manager
 
 
 class TestImporterLoggingConfig(logging_config.LoggingConfig):
@@ -218,7 +218,7 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
             (see global_config.ini, COMMON, autotest_top_path).
     """
     site_set_attributes_module = utils.import_site_module(
-        __file__, 'autotest_lib.utils.site_test_importer_attributes')
+        __file__, 'autotest.utils.site_test_importer_attributes')
 
     for test in tests:
         new_test = models.Test.objects.get_or_create(

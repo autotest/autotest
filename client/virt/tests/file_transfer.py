@@ -1,7 +1,7 @@
 import logging, time, os
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import utils
-from autotest_lib.client.virt import virt_utils
+from autotest.client.common_lib import error
+from autotest.client import utils
+from autotest.client.virt import virt_utils
 
 
 def run_file_transfer(test, params, env):

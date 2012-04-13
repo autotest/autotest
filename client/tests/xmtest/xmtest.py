@@ -4,7 +4,7 @@
 #       Autotest script for running Xen xm-test
 #       This should be run from a Xen domain0
 import os
-from autotest_lib.client import test, utils
+from autotest.client import test, utils
 
 
 class xmtest(test.test):

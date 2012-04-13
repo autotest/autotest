@@ -7,9 +7,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib.test_utils import mock, unittest
-from autotest_lib.client.common_lib import error, base_syncdata, barrier
-from autotest_lib.client.common_lib import utils
+from autotest.client.common_lib.test_utils import mock, unittest
+from autotest.client.common_lib import error, base_syncdata, barrier
+from autotest.client.common_lib import utils
 syncdata = base_syncdata
 
 

@@ -1,10 +1,10 @@
 import logging, time, socket, re, os, shutil, tempfile, glob, ConfigParser
 import threading
 import xml.dom.minidom
-from autotest_lib.client.common_lib import error, iso9660
-from autotest_lib.client import utils
-from autotest_lib.client.virt import virt_vm, virt_utils, virt_http_server
-from autotest_lib.client.virt import libvirt_vm, kvm_monitor
+from autotest.client.common_lib import error, iso9660
+from autotest.client import utils
+from autotest.client.virt import virt_vm, virt_utils, virt_http_server
+from autotest.client.virt import libvirt_vm, kvm_monitor
 
 
 # Whether to print all shell commands called

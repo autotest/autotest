@@ -1,7 +1,7 @@
 import os, shutil, re, glob, subprocess, logging, gzip
 
-from autotest_lib.client.common_lib import log, global_config
-from autotest_lib.client import utils, package
+from autotest.client.common_lib import log, global_config
+from autotest.client import utils, package
 
 GLOBAL_CONFIG = global_config.global_config
 

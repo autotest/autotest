@@ -7,8 +7,8 @@ Example
     import autotest.common as common
 except ImportError:
     import common
-  from autotest_lib.client.net.net_tc import *
-  from autotest_lib.client.net.net_utils import *
+  from autotest.client.net.net_tc import *
+  from autotest.client.net.net_utils import *
 
   class mock_netif(object):
 
@@ -45,8 +45,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.net import net_utils
+from autotest.client.common_lib import error
+from autotest.client.net import net_utils
 
 # TODO (chavey) clean up those global here and new_handle()
 handle_counter = 0

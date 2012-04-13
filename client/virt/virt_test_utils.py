@@ -22,9 +22,9 @@ More specifically:
 """
 
 import time, os, logging, re, signal, imp, tempfile
-from autotest_lib.client.common_lib import error, global_config
-from autotest_lib.client import utils
-from autotest_lib.client.tools import scan_results
+from autotest.client.common_lib import error, global_config
+from autotest.client import utils
+from autotest.client.tools import scan_results
 import aexpect, virt_utils, virt_vm
 
 GLOBAL_CONFIG = global_config.global_config

@@ -7,10 +7,10 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client import utils
-from autotest_lib.client.net import net_tc, net_utils, net_utils_mock
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib import error
+from autotest.client import utils
+from autotest.client.net import net_tc, net_utils, net_utils_mock
+from autotest.client.common_lib.test_utils import mock
+from autotest.client.common_lib import error
 
 class TestNetUtils(unittest.TestCase):
     def setUp(self):

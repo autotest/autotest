@@ -1,8 +1,8 @@
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client import base_sysinfo
+from autotest.client.common_lib import utils
+from autotest.client import base_sysinfo
 
 sysinfo = utils.import_site_class(__file__,
-                                  "autotest_lib.client.site_sysinfo",
+                                  "autotest.client.site_sysinfo",
                                   "site_sysinfo", base_sysinfo.base_sysinfo)
 
 # pull in some data stucture stubs from base_sysinfo, for convenience

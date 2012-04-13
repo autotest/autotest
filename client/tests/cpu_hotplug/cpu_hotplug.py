@@ -1,6 +1,6 @@
 import time, os, logging, re, sys
-from autotest_lib.client import test, utils, os_dep
-from autotest_lib.client.common_lib import error
+from autotest.client import test, utils, os_dep
+from autotest.client.common_lib import error
 
 class cpu_hotplug(test.test):
     version = 2

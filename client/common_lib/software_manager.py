@@ -24,9 +24,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client import os_dep, utils
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import logging_config, logging_manager
+from autotest.client import os_dep, utils
+from autotest.client.common_lib import error
+from autotest.client.common_lib import logging_config, logging_manager
 
 
 def generate_random_string(length):

@@ -1,5 +1,5 @@
 import time, logging
-from autotest_lib.client.common_lib import error
+from autotest.client.common_lib import error
 
 
 @error.context_aware

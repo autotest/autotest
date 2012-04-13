@@ -7,17 +7,17 @@ except ImportError:
 import unittest
 
 # This has to be done very early.
-from autotest_lib.client.common_lib import global_config
+from autotest.client.common_lib import global_config
 global_config.global_config.override_config_value(
     'HOSTS', 'default_protection',
     'NO_PROTECTION')
-from autotest_lib.client.common_lib import host_protections
+from autotest.client.common_lib import host_protections
 
-from autotest_lib.frontend import setup_django_environment
-from autotest_lib.frontend import setup_test_environment
+from autotest.frontend import setup_django_environment
+from autotest.frontend import setup_test_environment
 from django.test import client
-from autotest_lib.frontend.shared import resource_test_utils
-from autotest_lib.frontend.afe import control_file, models, model_attributes
+from autotest.frontend.shared import resource_test_utils
+from autotest.frontend.afe import control_file, models, model_attributes
 
 class AfeResourceTestCase(resource_test_utils.ResourceTestCase):
     URI_PREFIX = 'http://testserver/afe/server/resources'

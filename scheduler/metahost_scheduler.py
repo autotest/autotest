@@ -1,4 +1,4 @@
-from autotest_lib.client.common_lib import utils
+from autotest.client.common_lib import utils
 
 class HostSchedulingUtility(object):
     """Interface to host availability information from the scheduler."""

@@ -3,11 +3,11 @@
 from django.db.models import signals
 from django.contrib import auth
 # In this file, it is critical that we import models *just like this*.  In
-# particular, we *cannot* do import common; from autotest_lib... import models.
+# particular, we *cannot* do import common; from autotest... import models.
 # This is because when we pass the models module to signal.connect(), it
 # calls id() on the module, and the id() of a module can differ depending on how
 # it was imported.  For that reason, we must import models as Django does -- not
-# through the autotest_lib magic set up through common.py.  If you do that, the
+# through the autotest magic set up through common.py.  If you do that, the
 # connection won't work and the dispatcher will simply never call the method.
 from frontend.afe import models
 

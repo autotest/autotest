@@ -1,9 +1,9 @@
-# This "test" is used by autotest_lib.server.standalone_profilers to start
+# This "test" is used by autotest.server.standalone_profilers to start
 # and stop profilers on a collection of hosts at approximately the same
 # time by synchronizing using barriers.
 
-from autotest_lib.client import test
-from autotest_lib.client.common_lib import barrier
+from autotest.client import test
+from autotest.client.common_lib import barrier
 
 class profiler_sync(test.test):
     version = 1

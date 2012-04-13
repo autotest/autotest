@@ -17,7 +17,7 @@ See topic_common.py for a High Level Design and Algorithm.
 """
 
 import os, sys
-from autotest_lib.cli import topic_common, action_common
+from autotest.cli import topic_common, action_common
 
 
 class label(topic_common.atest):

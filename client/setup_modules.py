@@ -123,16 +123,16 @@ def setup(base_path, root_module_name=""):
     or on a test machine that just has the client directories installed.
     """
     # Hack... Any better ideas?
-    if (root_module_name == 'autotest_lib.client' and
+    if (root_module_name == 'autotest.client' and
         os.path.exists(os.path.join(os.path.dirname(__file__),
                                     '..', 'server'))):
-        root_module_name = 'autotest_lib'
+        root_module_name = 'autotest'
         base_path = os.path.abspath(os.path.join(base_path, '..'))
 
     _create_module_and_parents(root_module_name)
     _import_children_into_module(root_module_name, base_path)
 
-    if root_module_name == 'autotest_lib':
+    if root_module_name == 'autotest':
         # Allow locally installed third party packages to be found
         # before any that are installed on the system itself when not.
         # running as a client.

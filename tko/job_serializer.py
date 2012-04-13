@@ -17,9 +17,9 @@ import random
 import re
 
 # import autotest libraries
-from autotest_lib.tko import models
-from autotest_lib.tko import tko_pb2
-from autotest_lib.tko import utils
+from autotest.tko import models
+from autotest.tko import tko_pb2
+from autotest.tko import utils
 
 __author__ = 'darrenkuo@google.com (Darren Kuo)'
 

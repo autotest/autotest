@@ -14,7 +14,7 @@ import unittest
 
 import common
 
-from autotest_lib.server import utils
+from autotest.server import utils
 
 
 class UtilsTestCase(unittest.TestCase):

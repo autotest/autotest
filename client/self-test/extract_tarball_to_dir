@@ -3,7 +3,7 @@ import sys, os, os.path
 
 autodir = os.environ['AUTODIR']
 sys.path.insert(0, autodir + '/bin')
-from autotest_lib.client import utils
+from autotest.client import utils
 
 os.chdir('/tmp')
 utils.extract_tarball_to_dir(autodir +

@@ -7,7 +7,7 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.client import autotest_local
+from autotest.client import autotest_local
 
 if __name__ == '__main__':
     app = autotest_local.AutotestLocalApp()

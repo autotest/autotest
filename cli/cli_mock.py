@@ -9,11 +9,11 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.cli import atest, topic_common, rpc
-from autotest_lib.frontend.afe import rpc_client_lib
-from autotest_lib.frontend.afe.json_rpc import proxy
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib import autotemp
+from autotest.cli import atest, topic_common, rpc
+from autotest.frontend.afe import rpc_client_lib
+from autotest.frontend.afe.json_rpc import proxy
+from autotest.client.common_lib.test_utils import mock
+from autotest.client.common_lib import autotemp
 
 CLI_USING_PDB = False
 CLI_UT_DEBUG = False

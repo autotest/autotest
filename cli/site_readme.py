@@ -11,7 +11,7 @@ The following example would prevent the creation of platform labels.
 
 import inspect, new, sys
 
-from autotest_lib.cli import topic_common, label
+from autotest.cli import topic_common, label
 
 
 class site_label(label.label):

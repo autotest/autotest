@@ -10,7 +10,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.cli import cli_mock, host
+from autotest.cli import cli_mock, host
 
 
 class host_ut(cli_mock.cli_unittest):

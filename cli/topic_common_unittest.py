@@ -10,8 +10,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.cli import cli_mock, topic_common, rpc
-from autotest_lib.frontend.afe.json_rpc import proxy
+from autotest.cli import cli_mock, topic_common, rpc
+from autotest.frontend.afe.json_rpc import proxy
 
 
 class topic_common_misc_tests(unittest.TestCase):

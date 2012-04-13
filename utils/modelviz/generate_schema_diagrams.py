@@ -21,11 +21,11 @@ PROJECTS = (
 
 def main():
     for project, app in PROJECTS:
-        settings = 'autotest_lib.%s.settings' % project
+        settings = 'autotest.%s.settings' % project
         os.environ['DJANGO_SETTINGS_MODULE'] = settings
 
         # import after setting DJANGO_SETTINGS_MODULE
-        from autotest_lib.contrib import modelviz
+        from autotest.contrib import modelviz
 
         # hack to force reload of settings and app list
         import django.conf

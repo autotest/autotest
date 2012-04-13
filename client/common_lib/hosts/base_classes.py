@@ -17,9 +17,9 @@ stutsman@google.com (Ryan Stutsman)
 
 import cPickle, cStringIO, logging, os, re, time
 
-from autotest_lib.client.common_lib import global_config, error, utils
-from autotest_lib.client.common_lib import host_protections
-from autotest_lib.client import partition
+from autotest.client.common_lib import global_config, error, utils
+from autotest.client.common_lib import host_protections
+from autotest.client import partition
 
 
 class Host(object):

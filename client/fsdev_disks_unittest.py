@@ -9,7 +9,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client import fsdev_disks
+from autotest.client import fsdev_disks
 
 class fsdev_disks_test(unittest.TestCase):
     def test_legacy_str_to_test_flags(self):

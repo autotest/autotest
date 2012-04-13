@@ -1,8 +1,8 @@
 import logging, threading, os, time
-from autotest_lib.client.common_lib import error
-from autotest_lib.client import utils
-from autotest_lib.client.virt.tests import file_transfer
-from autotest_lib.client.virt import virt_test_utils, virt_utils
+from autotest.client.common_lib import error
+from autotest.client import utils
+from autotest.client.virt.tests import file_transfer
+from autotest.client.virt import virt_test_utils, virt_utils
 
 
 def run_nicdriver_unload(test, params, env):
