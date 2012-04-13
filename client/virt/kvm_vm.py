@@ -6,7 +6,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 
 import time, os, logging, fcntl, re, commands, glob
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 import virt_utils, virt_vm, virt_test_setup, kvm_monitor, aexpect
 
 

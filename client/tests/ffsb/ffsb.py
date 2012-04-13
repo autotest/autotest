@@ -1,5 +1,5 @@
 import os, string, logging, re, random, shutil
-from autotest_lib.client.bin import test, os_dep, utils
+from autotest_lib.client import test, os_dep, utils
 from autotest_lib.client.common_lib import error
 
 

@@ -10,7 +10,7 @@ try:
 except ImportError:
     import common
 from autotest_lib.client.common_lib import logging_manager
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 from autotest_lib.client.virt import virt_utils
 
 test_name = "kvm"

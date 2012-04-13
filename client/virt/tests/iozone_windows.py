@@ -1,5 +1,5 @@
 import logging, os
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 from autotest_lib.client.tests.iozone import postprocessing
 
 

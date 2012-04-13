@@ -1,6 +1,6 @@
 import logging, time, os
 from autotest_lib.client.common_lib import utils, error
-from autotest_lib.client.bin import utils as client_utils
+from autotest_lib.client import utils as client_utils
 from autotest_lib.client.virt import virt_utils
 
 

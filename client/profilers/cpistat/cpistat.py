@@ -5,7 +5,7 @@ Defaults options:
 job.profilers.add('cpistat', interval=1)
 """
 import time, os, subprocess
-from autotest_lib.client.bin import profiler
+from autotest_lib.client import profiler
 
 class cpistat(profiler.profiler):
     version = 1

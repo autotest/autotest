@@ -9,7 +9,7 @@ procedure, calculated as a ratio between the number of ticks and the length of
 the procedure. The output is filled with blanks to ease readability.
 """
 import os, shutil
-from autotest_lib.client.bin import utils, profiler
+from autotest_lib.client import utils, profiler
 from autotest_lib.client.common_lib import error
 
 class readprofile(profiler.profiler):

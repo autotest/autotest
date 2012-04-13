@@ -1,5 +1,5 @@
 import os, sys, logging
-from autotest_lib.client.bin import test
+from autotest_lib.client import test
 from autotest_lib.client.common_lib import error
 
 

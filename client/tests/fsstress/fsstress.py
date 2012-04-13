@@ -1,5 +1,5 @@
 import os
-from autotest_lib.client.bin import test, utils
+from autotest_lib.client import test, utils
 
 
 class fsstress(test.test):

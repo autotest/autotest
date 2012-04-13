@@ -2,7 +2,7 @@
 # and stop profilers on a collection of hosts at approximately the same
 # time by synchronizing using barriers.
 
-from autotest_lib.client.bin import test
+from autotest_lib.client import test
 from autotest_lib.client.common_lib import barrier
 
 class profiler_sync(test.test):

@@ -1023,7 +1023,7 @@ class base_job(object):
             return self._job_directory(os.path.join(*args), True)
 
         # various client-specific directories
-        self._bindir = readonly_dir(self.clientdir, 'bin')
+        self._bindir = readonly_dir(self.clientdir)
         self._configdir = readonly_dir(self.clientdir, 'config')
         self._profdir = readonly_dir(self.clientdir, 'profilers')
         self._pkgdir = readwrite_dir(self.clientdir, 'packages')

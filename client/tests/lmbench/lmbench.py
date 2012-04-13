@@ -1,6 +1,6 @@
 # This will need more work on the configuration stuff before it will function
 import os
-from autotest_lib.client.bin import test, utils
+from autotest_lib.client import test, utils
 from autotest_lib.client.common_lib import error
 
 

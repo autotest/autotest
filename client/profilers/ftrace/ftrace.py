@@ -4,7 +4,7 @@ Function tracer profiler for autotest.
 @author: David Sharp (dhsharp@google.com)
 """
 import logging, os, signal, time
-from autotest_lib.client.bin import profiler, utils
+from autotest_lib.client import profiler, utils
 from autotest_lib.client.common_lib import error
 
 
