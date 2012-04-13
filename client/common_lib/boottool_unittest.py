@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest, os, sys
+import unittest, os, sys, logging
 try:
     import autotest.common as common
 except ImportError:
@@ -336,6 +336,7 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         self.god.stub_function(self.bt_mock, 'get_bootloader')
         self.god.stub_function(self.bt_mock, '_index_for_title')
         self.god.stub_function(self.bt_mock, 'get_default_title')
+        self.god.stub_function(boottool, 'install_grubby_if_missing')
         # set up the recording
         title = 'autotest'
         entry_index = 1
@@ -346,6 +347,8 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         bootloaders = ('grub2', 'grub', 'yaboot', 'elilo')
         for bootloader in bootloaders:
             self.god.stub_function(self.bt_mock, 'boot_once_%s' % bootloader)
+            self.god.stub_function(self.bt_mock, '_init_on_demand')
+            self.bt_mock.log = logging
             self.bt_mock.get_info_lines.expect_call().and_return(info_lines)
             self.bt_mock.get_default_title.expect_call().and_return(default_title)
             self.bt_mock.get_bootloader.expect_call().and_return(bootloader)
