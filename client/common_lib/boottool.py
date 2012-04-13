@@ -55,4 +55,4 @@ class boottool(Grubby):
 
     def __getattr__(self, name):
         self._init_on_demand()
-        return Grubby.__getattr__(self, name)
+        return Grubby.__getattribute__(self, name)
