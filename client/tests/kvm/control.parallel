@@ -175,7 +175,7 @@ tests = list(parser.get_dicts())
 # Run the tests
 # -------------
 from autotest_lib.client.virt import virt_scheduler
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 
 # total_cpus defaults to the number of CPUs reported by /proc/cpuinfo
 total_cpus = utils.count_cpus()

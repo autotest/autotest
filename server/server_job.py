@@ -8,7 +8,7 @@ Copyright Martin J. Bligh, Andy Whitcroft 2007
 
 import getpass, os, sys, re, stat, tempfile, time, select, subprocess, platform
 import traceback, shutil, warnings, fcntl, pickle, logging, itertools, errno
-from autotest_lib.client.bin import sysinfo
+from autotest_lib.client import sysinfo
 from autotest_lib.client.common_lib import base_job
 from autotest_lib.client.common_lib import error, log, utils, packages
 from autotest_lib.client.common_lib import logging_manager

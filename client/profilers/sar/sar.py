@@ -5,7 +5,7 @@ Default options:
 sar -A -f
 """
 import os, shutil, subprocess, time
-from autotest_lib.client.bin import utils, profiler, os_dep
+from autotest_lib.client import utils, profiler, os_dep
 
 
 class sar(profiler.profiler):

@@ -5,7 +5,7 @@ Code that helps to deal with content from git repositories
 
 import os, logging
 import error
-from autotest_lib.client.bin import utils, os_dep
+from autotest_lib.client import utils, os_dep
 
 
 __all__ = ["GitRepoHelper", "get_repo"]

@@ -1,6 +1,6 @@
 import os, re
 
-from autotest_lib.client.bin import utils, test
+from autotest_lib.client import utils, test
 
 class dbench(test.test):
     version = 3

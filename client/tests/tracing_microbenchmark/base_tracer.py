@@ -1,5 +1,5 @@
 import os
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 
 
 class Tracer(object):

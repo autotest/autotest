@@ -9,7 +9,7 @@ import re
 import time
 from random import random
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 from autotest_lib.client.tests.cgroup.cgroup_common import Cgroup
 from autotest_lib.client.tests.cgroup.cgroup_common import CgroupModules
 from autotest_lib.client.tests.cgroup.cgroup_common import get_load_per_cpu

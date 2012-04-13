@@ -1,6 +1,6 @@
 import re, tempfile, xml.dom.minidom, logging
 import virt_utils, aexpect
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 
 
 class VirshMonitor:

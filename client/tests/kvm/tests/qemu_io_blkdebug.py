@@ -3,7 +3,7 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.virt import qemu_io
 from autotest_lib.client.virt import virt_vm
 from autotest_lib.client.virt import virt_utils
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 
 @error.context_aware
 def run_qemu_io_blkdebug(test, params, env):

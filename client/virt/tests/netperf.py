@@ -1,6 +1,6 @@
 import logging, os, commands, sys, threading, re, glob
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 from autotest_lib.client.virt import aexpect, virt_utils
 from autotest_lib.client.virt import virt_test_utils
 from autotest_lib.server.hosts.ssh_host import SSHHost

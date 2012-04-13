@@ -2,7 +2,7 @@
 Sets up a subprocess to run mpstat on a specified interval, default 1 second
 """
 import time, os, subprocess
-from autotest_lib.client.bin import profiler
+from autotest_lib.client import profiler
 
 
 class mpstat(profiler.profiler):

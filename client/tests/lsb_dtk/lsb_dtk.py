@@ -1,6 +1,6 @@
 import os, glob, re, logging
-from autotest_lib.client.bin import test, utils, package
-from autotest_lib.client.bin.test_config import config_loader
+from autotest_lib.client import test, utils, package
+from autotest_lib.client.test_config import config_loader
 from autotest_lib.client.common_lib import error
 
 class lsb_dtk(test.test):

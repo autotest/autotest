@@ -1,5 +1,5 @@
 import os, re, logging
-from autotest_lib.client.bin import test, utils
+from autotest_lib.client import test, utils
 from autotest_lib.client.common_lib import error
 
 class tsc(test.test):

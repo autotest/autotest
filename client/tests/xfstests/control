@@ -63,7 +63,7 @@ Make sure you have them or a real spare device to test things.
 # Here, by default we use the concept of virtual partition (a partition of 1GB
 # of size), to avoid setup by the user. However, you'll most likely use a real
 # block device for your tests.
-from autotest_lib.client.bin import partition
+from autotest_lib.client import partition
 file_img = os.path.join(job.tmpdir, 'xfstests.img')
 vp = partition.virtual_partition(file_img=file_img, file_size=1024*1024)
 device = vp.device

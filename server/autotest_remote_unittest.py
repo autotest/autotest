@@ -6,7 +6,7 @@ import unittest, os, tempfile, logging
 
 import common
 from autotest_lib.server import autotest_remote, utils, hosts, server_job, profilers
-from autotest_lib.client.bin import sysinfo
+from autotest_lib.client import sysinfo
 from autotest_lib.client.common_lib import utils as client_utils, packages
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib.test_utils import mock
@@ -254,8 +254,8 @@ class TestBaseAutotest(unittest.TestCase):
     def test_get_installed_autodir(self):
         self._stub_get_client_autodir_paths()
         self.host.get_autodir.expect_call().and_return(None)
-        self._expect_failed_run('test -x /some/path/bin/autotest')
-        self.host.run.expect_call('test -x /another/path/bin/autotest')
+        self._expect_failed_run('test -x /some/path/autotest')
+        self.host.run.expect_call('test -x /another/path/autotest')
         self.host.run.expect_call('test -w /another/path')
 
         autodir = autotest_remote.Autotest.get_installed_autodir(self.host)
@@ -265,8 +265,8 @@ class TestBaseAutotest(unittest.TestCase):
     def test_get_install_dir(self):
         self._stub_get_client_autodir_paths()
         self.host.get_autodir.expect_call().and_return(None)
-        self._expect_failed_run('test -x /some/path/bin/autotest')
-        self._expect_failed_run('test -x /another/path/bin/autotest')
+        self._expect_failed_run('test -x /some/path/autotest')
+        self._expect_failed_run('test -x /another/path/autotest')
         self._expect_failed_run('mkdir -p /some/path')
         self.host.run.expect_call('mkdir -p /another/path')
         self.host.run.expect_call('test -w /another/path')

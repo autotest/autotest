@@ -3,7 +3,7 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import barrier
 from autotest_lib.client.common_lib import utils
 from autotest_lib.client.common_lib import autotemp
-from autotest_lib.client.bin import parallel
+from autotest_lib.client import parallel
 
 _DEFAULT_PORT = 13234
 _DEFAULT_TIMEOUT = 10

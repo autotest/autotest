@@ -6,8 +6,8 @@ import logging
 import os
 import time
 import unittest
-from autotest_lib.client.bin import test
-from autotest_lib.client.bin import utils
+from autotest_lib.client import test
+from autotest_lib.client import utils
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.tests.wb_kupdate import wb_kupdate

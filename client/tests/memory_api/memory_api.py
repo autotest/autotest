@@ -1,5 +1,5 @@
 import os, subprocess, re, commands, logging
-from autotest_lib.client.bin import utils, test
+from autotest_lib.client import utils, test
 from autotest_lib.client.common_lib import error
 
 class memory_api(test.test):

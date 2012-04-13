@@ -1,5 +1,5 @@
 import os, re
-from autotest_lib.client.bin import utils, test
+from autotest_lib.client import utils, test
 from autotest_lib.client.common_lib import error
 
 # test requires at least 2.6.26, will skip otherwise (check is internal)

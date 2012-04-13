@@ -1,5 +1,5 @@
 import os, time, commands, re, logging, glob, threading, shutil
-from autotest_lib.client.bin import utils
+from autotest_lib.client import utils
 from autotest_lib.client.common_lib import error
 import aexpect, virt_utils, kvm_monitor, ppm_utils, virt_test_setup
 import virt_vm, kvm_vm, libvirt_vm, virt_video_maker
