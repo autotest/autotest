@@ -440,7 +440,12 @@ def parse_entry(entry_str, separator='='):
     for line in entry_str.splitlines():
         if len(line) == 0:
             continue
-        name, value = line.split(separator, 1)
+
+        try:
+            name, value = line.split(separator, 1)
+        except ValueError:
+            continue
+
         name = name.strip()
         value = value.strip()
 
@@ -933,6 +938,8 @@ class Grubby(object):
         entries = {}
         for entry_str in raw.split("\nindex"):
             if len(entry_str.strip()) == 0:
+                continue
+            if entry_str.startswith('boot='):
                 continue
             entry = parse_entry("index" + entry_str)
             entries[entry["index"]] = entry
