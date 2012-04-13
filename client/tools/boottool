@@ -1666,20 +1666,18 @@ class BoottoolApp(object):
         if info_index == 'all':
             info_index = 'ALL'
 
-        info = self.grubby.get_info_lines(info_index)
-        if info:
-            for line in info:
-                if line.startswith('index='):
-                    print
-                # for now, omit boot. boottool prints a grub device (hd0,0)
-                elif line.startswith('boot='):
-                    continue
+        if info_index == 'ALL':
+            entries = self.grubby.get_entries()
+        else:
+            entries = { info_index : self.grubby.get_entry(info_index) }
 
-                key, val = line.split('=', 1)
-
+        for index, entry in entries.items():
+            print
+            for key, val in entry.items():
                 # remove quotes
-                if val.startswith('"') and val.endswith('"'):
-                    val = val[1:-1]
+                if isinstance(val, str):
+                    if val.startswith('"') and val.endswith('"'):
+                        val = val[1:-1]
 
                 print '%-8s: %s' % (key, val)
 
