@@ -2,7 +2,7 @@
 
 import logging, time
 from autotest.client import test
-from autotest.client.common_lib import barrier, error
+from autotest.client.shared import barrier, error
 
 
 class barriertest(test.test):

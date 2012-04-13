@@ -4,7 +4,7 @@ try:
 except ImportError:
     import common
 
-from autotest.client.common_lib import utils, error, profiler_manager
+from autotest.client.shared import utils, error, profiler_manager
 
 
 class profilers(profiler_manager.profiler_manager):

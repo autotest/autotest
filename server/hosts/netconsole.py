@@ -1,6 +1,6 @@
 import os, re, sys, subprocess, socket
 
-from autotest.client.common_lib import utils, error
+from autotest.client.shared import utils, error
 from autotest.server.hosts import remote
 
 

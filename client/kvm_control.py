@@ -3,7 +3,7 @@ Utilities useful to client control files that test KVM.
 """
 
 from autotest.client import utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 def get_kvm_arch():
     """

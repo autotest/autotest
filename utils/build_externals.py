@@ -18,8 +18,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import logging_config, logging_manager
-from autotest.client.common_lib import utils
+from autotest.client.shared import logging_config, logging_manager
+from autotest.client.shared import utils
 from autotest.utils import external_packages
 
 # bring in site packages as well

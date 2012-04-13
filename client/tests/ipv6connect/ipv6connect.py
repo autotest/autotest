@@ -1,7 +1,7 @@
 import os, re, sys
 
 from autotest.client import test
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 
 
 class ipv6connect(test.test):

@@ -1,6 +1,6 @@
 import os, re, logging
 from autotest.client import test, utils, os_dep
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 class qemu_iotests(test.test):

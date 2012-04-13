@@ -8,7 +8,7 @@ and formatting.
 
 import os, re, string, sys, fcntl, logging
 from autotest.client import os_dep, utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 class FsOptions(object):

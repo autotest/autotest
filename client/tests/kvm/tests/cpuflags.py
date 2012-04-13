@@ -1,5 +1,5 @@
 import logging, re, random, os, time, socket, pickle, sys, traceback
-from autotest.client.common_lib import error, utils
+from autotest.client.shared import error, utils
 from autotest.client.virt import kvm_vm
 from autotest.client.virt import virt_utils, aexpect
 

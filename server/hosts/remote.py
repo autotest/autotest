@@ -2,7 +2,7 @@
 if it is available."""
 
 import os, logging, urllib
-from autotest.client.common_lib import error, global_config
+from autotest.client.shared import error, global_config
 from autotest.server import utils
 from autotest.server.hosts import base_classes, install_server
 

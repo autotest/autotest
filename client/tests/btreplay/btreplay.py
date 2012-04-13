@@ -1,6 +1,6 @@
 import time, os
 from autotest.client import test, os_dep, utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 class btreplay(test.test):

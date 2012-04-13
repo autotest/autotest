@@ -25,7 +25,7 @@ try:
 except ImportError:
     import common
 from autotest.tko.parsers.test import scenario_base
-from autotest.client.common_lib import autotemp
+from autotest.client.shared import autotemp
 
 usage = 'usage: %prog [options] results_dirpath scenerios_dirpath'
 parser = optparse.OptionParser(usage=usage)

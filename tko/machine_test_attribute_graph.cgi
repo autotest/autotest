@@ -11,7 +11,7 @@ try:
 except ImportError:
     import common
 from autotest.tko import db, display, frontend, plotgraph
-from autotest.client.common_lib import kernel_versions
+from autotest.client.shared import kernel_versions
 
 db = db.db()
 

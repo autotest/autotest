@@ -23,7 +23,7 @@ See topic_common.py for a High Level Design and Algorithm.
 
 import os, sys, socket
 from autotest.cli import topic_common, action_common
-from autotest.client.common_lib import host_protections
+from autotest.client.shared import host_protections
 
 
 class host(topic_common.atest):

@@ -8,7 +8,7 @@ try:
 except ImportError:
     import common
 from autotest.mirror import trigger
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared.test_utils import mock
 
 
 class map_action_unittest(unittest.TestCase):

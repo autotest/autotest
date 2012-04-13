@@ -1,6 +1,6 @@
 import os, sys, subprocess, logging
 
-from autotest.client.common_lib import utils, error
+from autotest.client.shared import utils, error
 from autotest.server import utils as server_utils
 from autotest.server.hosts import remote
 

@@ -36,7 +36,7 @@ except ImportError:
     import common
 from autotest.frontend.afe import models, model_logic, model_attributes
 from autotest.frontend.afe import control_file, rpc_utils
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 
 # labels

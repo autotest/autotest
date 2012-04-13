@@ -1,5 +1,5 @@
 import logging, time
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 def run_linux_s3(test, params, env):

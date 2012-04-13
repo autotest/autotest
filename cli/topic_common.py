@@ -59,7 +59,7 @@ import getpass, optparse, os, pwd, re, socket, sys, textwrap, traceback
 import socket, string, urllib2
 from autotest.cli import rpc
 from autotest.frontend.afe.json_rpc import proxy
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared.test_utils import mock
 
 
 # Maps the AFE keys to printable names.

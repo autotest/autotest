@@ -5,8 +5,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib.test_utils import mock
-from autotest.client.common_lib import utils as common_utils
+from autotest.client.shared.test_utils import mock
+from autotest.client.shared import utils as common_utils
 from autotest.server import deb_kernel, utils, hosts
 from autotest.server.hosts import bootloader
 

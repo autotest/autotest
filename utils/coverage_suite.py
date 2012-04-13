@@ -2,7 +2,7 @@
 
 import os, sys
 import unittest_suite
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 
 
 root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -12,7 +12,7 @@ invalid_dirs = ['client/tests/', 'client/site_tests/', 'tko/migrations/',
                 'server/tests/', 'server/site_tests/', 'server/self-test/',
                 'contrib/', 'utils/', 'ui/', 'frontend/migrations',
                 'frontend/afe/simplejson/', 'metrics/', 'old_cli/',
-                'client/common_lib/test_utils/', 'client/profilers/',
+                'client/shared/test_utils/', 'client/profilers/',
                 'site_packages']
 # append site specific invalid_dirs list, if any
 invalid_dirs.extend(utils.import_site_symbol(

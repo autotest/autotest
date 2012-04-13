@@ -6,7 +6,7 @@ try:
 except ImportError:
     import common
 from autotest.client import fsinfo
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared.test_utils import mock
 
 class fsionfo_test(unittest.TestCase):
 

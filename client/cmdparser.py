@@ -6,7 +6,7 @@ Autotest command parser
 
 import os, re, sys
 from autotest.client import os_dep
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 GLOBAL_CONFIG = global_config.global_config
 

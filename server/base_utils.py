@@ -10,7 +10,7 @@ import that instead
 
 import atexit, os, re, shutil, textwrap, sys, tempfile, types
 
-from autotest.client.common_lib import barrier, utils
+from autotest.client.shared import barrier, utils
 from autotest.server import subcommand
 
 

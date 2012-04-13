@@ -4,7 +4,7 @@ Configurable on-guest dd test.
 @copyright: 2012 Red Hat, Inc.
 """
 import logging
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client.virt.aexpect import ShellCmdError
 from autotest.client.virt.aexpect import ShellTimeoutError
 

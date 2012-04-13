@@ -8,7 +8,7 @@ except ImportError:
 from autotest.frontend import setup_django_environment
 from autotest.frontend import setup_test_environment
 from autotest.frontend.afe import test, readonly_connection
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 _APP_DIR = os.path.join(os.path.dirname(__file__), 'afe')
 

@@ -6,7 +6,7 @@ wish to install virtualization software components.
 The most common use case is to simply call make_installer() inside your tests.
 '''
 
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client.virt import base_installer, kvm_installer
 
 __all__ = ['InstallerRegistry', 'INSTALLER_REGISTRY', 'make_installer',

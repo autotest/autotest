@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 c = global_config.global_config
 _section = 'AUTOTEST_WEB'

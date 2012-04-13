@@ -2,7 +2,7 @@
 Install server interfaces, for autotest client machine OS provisioning.
 """
 import os, xmlrpclib, logging, time
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 def remove_hosts_file():

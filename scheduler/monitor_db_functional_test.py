@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import enum, global_config, host_protections
+from autotest.client.shared import enum, global_config, host_protections
 from autotest.database import database_connection
 from autotest.frontend import setup_django_environment
 from autotest.frontend.afe import frontend_test_utils, models

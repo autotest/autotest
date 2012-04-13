@@ -1,6 +1,6 @@
 import time
 from autotest.server import test
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 class reinstall(test.test):
     version = 1

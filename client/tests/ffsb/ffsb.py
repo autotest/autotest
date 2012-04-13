@@ -1,6 +1,6 @@
 import os, string, logging, re, random, shutil
 from autotest.client import test, os_dep, utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 def find_mnt_pt(path):

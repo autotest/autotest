@@ -5,7 +5,7 @@ This file contains the implementation of a host object for the local machine.
 """
 
 import glob, os, platform
-from autotest.client.common_lib import hosts, error
+from autotest.client.shared import hosts, error
 from autotest.client import utils
 
 class LocalHost(hosts.Host):
@@ -29,7 +29,7 @@ class LocalHost(hosts.Host):
             stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
             stdin=None, args=()):
         """
-        @see common_lib.hosts.Host.run()
+        @see shared.hosts.Host.run()
         """
         try:
             result = utils.run(

@@ -3,7 +3,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import log
+from autotest.client.shared import log
 
 
 statuses = log.job_statuses

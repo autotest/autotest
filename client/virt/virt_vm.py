@@ -1,5 +1,5 @@
 import os, logging, time, glob, re, shutil
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client import utils
 import virt_utils
 

@@ -3,7 +3,7 @@ import httplib2, sys, traceback, cgi
 from django.http import HttpResponse, HttpResponsePermanentRedirect
 from django.http import HttpResponseServerError
 from django.template import Context, loader
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 from autotest.frontend import views_common
 from autotest.frontend.afe import models, rpc_handler, rpc_interface
 from autotest.frontend.afe import rpc_utils

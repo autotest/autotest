@@ -57,7 +57,7 @@ blacklist = ['/contrib/*', '/frontend/afe/management.py']
 
 # only show errors
 # there are three major sources of E1101/E1103/E1120 false positives:
-# * common_lib.enum.Enum objects
+# * shared.enum.Enum objects
 # * DB model objects (scheduler models are the worst, but Django models also
 #   generate some errors)
 if pylint_version >= 0.21:

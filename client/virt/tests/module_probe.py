@@ -1,5 +1,5 @@
 import re, commands, logging, os
-from autotest.client.common_lib import error, utils
+from autotest.client.shared import error, utils
 from autotest.client.virt import base_installer
 
 

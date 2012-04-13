@@ -1,6 +1,6 @@
 import os
 
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 from autotest.tko import utils as tko_utils
 
 

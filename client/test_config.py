@@ -8,7 +8,7 @@ from ConfigParser import ConfigParser
 from StringIO import StringIO
 from os import path
 import types, re, string
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 
 __all__ = ['config_loader']
 

@@ -3,7 +3,7 @@
 import cStringIO, logging, os, sys, unittest
 
 # direct imports; autotest has not been setup while testing this.
-from common_lib.test_utils import mock
+from shared.test_utils import mock
 import setup_modules
 
 

@@ -10,10 +10,10 @@ except ImportError:
 
 from autotest.client import client_logging_config
 from autotest.client import job as client_job
-from autotest.client.common_lib import base_job
-from autotest.client.common_lib import error
-from autotest.client.common_lib import logging_manager
-from autotest.client.common_lib import packages
+from autotest.client.shared import base_job
+from autotest.client.shared import error
+from autotest.client.shared import logging_manager
+from autotest.client.shared import packages
 
 
 class setup_job(client_job.job):
@@ -94,7 +94,7 @@ def load_all_client_tests(options):
     """
     Load and instantiate all client tests.
 
-    This function is inspired from runtest() on client/common_lib/test.py.
+    This function is inspired from runtest() on client/shared/test.py.
 
     @param options: an object passed in from command line OptionParser.
                     See all options defined on client/autotest.
@@ -142,7 +142,7 @@ def setup_test(client_test):
             client_test.setup()
 
             # Touch .version file under src to prevent further setup on client
-            # host. See client/common_lib/utils.py update_version()
+            # host. See client/shared/utils.py update_version()
             if os.path.exists(client_test.srcdir):
                 versionfile = os.path.join(client_test.srcdir, '.version')
                 pickle.dump(client_test.version, open(versionfile, 'w'))
@@ -161,7 +161,7 @@ def setup_tests(options):
     """
     Load and instantiate all client tests.
 
-    This function is inspired from runtest() on client/common_lib/test.py.
+    This function is inspired from runtest() on client/shared/test.py.
 
     @param options: an object passed in from command line OptionParser.
                     See all options defined on client/autotest.

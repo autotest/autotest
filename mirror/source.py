@@ -3,7 +3,7 @@
 import os, re, time, urllib2, urlparse, HTMLParser
 
 from autotest.mirror import database
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 
 
 class source(object):

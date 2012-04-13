@@ -15,7 +15,7 @@
 
 
 import sys, string, re
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 
 def usage():
     print "\nUsage: \n\

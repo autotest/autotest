@@ -3,7 +3,7 @@
 # time by synchronizing using barriers.
 
 from autotest.client import test
-from autotest.client.common_lib import barrier
+from autotest.client.shared import barrier
 
 class profiler_sync(test.test):
     version = 1

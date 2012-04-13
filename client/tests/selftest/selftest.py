@@ -1,6 +1,6 @@
 import os, sys, logging
 from autotest.client import test
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 class selftest(test.test):

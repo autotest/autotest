@@ -5,7 +5,7 @@ try:
 except ImportError:
     import common
 import unittest
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared.test_utils import mock
 from autotest.frontend import setup_django_environment
 from autotest.frontend import setup_test_environment
 from autotest.scheduler import metahost_scheduler, scheduler_models

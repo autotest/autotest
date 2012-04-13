@@ -12,7 +12,7 @@ try:
 except ImportError:
     import common
 from autotest.cli import cli_mock, topic_common, job
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared.test_utils import mock
 
 
 class job_unittest(cli_mock.cli_unittest):

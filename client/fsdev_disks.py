@@ -1,6 +1,6 @@
 import sys, os, re, string
 from autotest.client import utils, fsinfo, fsdev_mgr, partition
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 fd_mgr = fsdev_mgr.FsdevManager()

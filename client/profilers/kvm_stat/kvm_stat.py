@@ -8,7 +8,7 @@ will try to mount it so it's possible to proceed.
 """
 import time, os, subprocess, commands, logging
 from autotest.client import utils, profiler, os_dep
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 class kvm_stat(profiler.profiler):

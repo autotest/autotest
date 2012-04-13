@@ -8,7 +8,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import utils, autotemp
+from autotest.client.shared import utils, autotemp
 from autotest.tko import status_lib
 from autotest.tko.parsers.test import templates
 from autotest.tko.parsers.test import unittest_hotfix

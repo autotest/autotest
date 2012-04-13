@@ -6,7 +6,7 @@ __author__ = "duanes (Duane Sand), pdahl (Peter Dahl)"
 
 import os, sys, re, glob, fcntl, logging
 from autotest.client import utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 SUPER_ROOT = ''      # root of all containers or cgroups
 NO_LIMIT = (1 << 63) - 1   # containername/memory.limit_in_bytes if no limit

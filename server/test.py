@@ -5,7 +5,7 @@
 
 import os, tempfile, logging
 
-from autotest.client.common_lib import log, utils, test as common_test
+from autotest.client.shared import log, utils, test as common_test
 
 
 class test(common_test.base_test):

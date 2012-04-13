@@ -3,9 +3,9 @@
 import re, os, sys, traceback, subprocess, time, pickle, glob, tempfile
 import logging, getpass
 from autotest.server import installable_object, prebuild, utils
-from autotest.client.common_lib import base_job, log, error, autotemp
-from autotest.client.common_lib import global_config, packages
-from autotest.client.common_lib import utils as client_utils
+from autotest.client.shared import base_job, log, error, autotemp
+from autotest.client.shared import global_config, packages
+from autotest.client.shared import utils as client_utils
 
 
 get_value = global_config.global_config.get_config_value

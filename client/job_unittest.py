@@ -8,11 +8,11 @@ except ImportError:
 
 from autotest.client import job, boottool, config, sysinfo, harness
 from autotest.client import test, xen, kernel, utils
-from autotest.client.common_lib import packages, error, log, global_config
-from autotest.client.common_lib.global_config import global_config
-from autotest.client.common_lib import logging_manager, logging_config
-from autotest.client.common_lib import base_job_unittest
-from autotest.client.common_lib.test_utils import mock, unittest
+from autotest.client.shared import packages, error, log, global_config
+from autotest.client.shared.global_config import global_config
+from autotest.client.shared import logging_manager, logging_config
+from autotest.client.shared import base_job_unittest
+from autotest.client.shared.test_utils import mock, unittest
 
 
 class job_test_case(unittest.TestCase):

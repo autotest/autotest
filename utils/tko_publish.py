@@ -14,7 +14,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 from autotest.server import frontend
 
 options = optparse.Values()
