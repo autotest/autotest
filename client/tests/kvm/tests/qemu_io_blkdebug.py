@@ -1,5 +1,5 @@
 import re, logging, ConfigParser
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client.virt import qemu_io
 from autotest.client.virt import virt_vm
 from autotest.client.virt import virt_utils

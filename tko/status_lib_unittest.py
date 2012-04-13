@@ -6,7 +6,7 @@ try:
 except ImportError:
     import common
 from autotest.tko import status_lib
-from autotest.client.common_lib import log
+from autotest.client.shared import log
 
 
 class clean_raw_line_test(unittest.TestCase):

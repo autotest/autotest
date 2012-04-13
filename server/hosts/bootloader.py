@@ -8,7 +8,7 @@ This module defines the Bootloader class.
 """
 
 import os, sys, imp, weakref
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.server import utils
 
 #

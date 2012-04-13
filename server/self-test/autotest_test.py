@@ -17,7 +17,7 @@ import common
 from autotest.server import utils
 from autotest.server import autotest_remote
 from autotest.server import hosts
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 
 _GLOBAL_CONFIG = global_config.global_config

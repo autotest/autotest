@@ -2,7 +2,7 @@
 
 import sys, os, re, logging
 import common
-from autotest.client.common_lib import logging_manager
+from autotest.client.shared import logging_manager
 from autotest.client.virt import virt_utils
 
 

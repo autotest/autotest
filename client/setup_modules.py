@@ -3,11 +3,11 @@ __author__ = "jadmanski@google.com (John Admanski)"
 import os, sys
 
 try:
-    import autotest.client.common_lib.check_version as check_version
+    import autotest.client.shared.check_version as check_version
 except ImportError:
     # This must run on Python versions less than 2.4.
     dirname = os.path.dirname(sys.modules[__name__].__file__)
-    common_dir = os.path.abspath(os.path.join(dirname, "common_lib"))
+    common_dir = os.path.abspath(os.path.join(dirname, "shared"))
     sys.path.insert(0, common_dir)
     import check_version
     sys.path.pop(0)
@@ -95,7 +95,7 @@ def _autotest_logging_handle_error(self, record):
 
 def _monkeypatch_logging_handle_error():
     # Hack out logging.py*
-    logging_py = os.path.join(os.path.dirname(__file__), "common_lib",
+    logging_py = os.path.join(os.path.dirname(__file__), "shared",
                               "logging.py*")
     if glob.glob(logging_py):
         os.system("rm -f %s" % logging_py)

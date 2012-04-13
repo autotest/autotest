@@ -9,8 +9,8 @@ except ImportError:
     import common
 from autotest.client import utils
 from autotest.client.net import net_tc, net_utils, net_utils_mock
-from autotest.client.common_lib.test_utils import mock
-from autotest.client.common_lib import error
+from autotest.client.shared.test_utils import mock
+from autotest.client.shared import error
 
 class TestNetUtils(unittest.TestCase):
     def setUp(self):

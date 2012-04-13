@@ -52,15 +52,15 @@ Modules should be lumped together on the same line.
 Wildcard imports (from x import *) should be avoided if possible.
 Classes should not be imported from modules, but modules may be imported
  from packages, i.e.:
-from common_lib import error
+from shared import error
 and not
-from common_lib.error import AutoservError
+from shared.error import AutoservError
 
 For example:
 import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
 import sys, time, urllib, urlparse
 import MySQLdb
-from common_lib import error
+from shared import error
 
 
 Importing modules
@@ -77,9 +77,9 @@ Modules should be lumped together on the same line.
 Wildcard imports (from x import *) should be avoided if possible.
 Classes should not be imported from modules, but modules may be imported
  from packages, i.e.:
-from common_lib import error
+from shared import error
 and not
-from common_lib.error import AutoservError
+from shared.error import AutoservError
 
 For example:
 import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
@@ -89,7 +89,7 @@ try:
 except ImportError:
     import common   # Magic autotest module and sys.path setup code.
 import MySQLdb  # After common so that we check our site-packages first.
-from common_lib import error
+from shared import error
 
 Testing None
 
@@ -182,10 +182,10 @@ raise FooException('Exception Message')
 Please don't raise string exceptions, as they're deprecated and will be removed
 from future versions of python. If you're in doubt about what type of exception
 you will raise, please look at http://docs.python.org/lib/module-exceptions.html
-and client/common_lib/error.py, the former is a list of python built in
+and client/shared/error.py, the former is a list of python built in
 exceptions and the later is a list of autotest/autoserv internal exceptions. Of
 course, if you really need to, you can extend the exception definitions on
-client/common_lib/error.py.
+client/shared/error.py.
 
 
 Submitting patches

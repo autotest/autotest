@@ -8,7 +8,7 @@ import os
 import re
 import time
 from random import random
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client import utils
 from autotest.client.tests.cgroup.cgroup_common import Cgroup
 from autotest.client.tests.cgroup.cgroup_common import CgroupModules

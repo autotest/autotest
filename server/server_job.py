@@ -9,9 +9,9 @@ Copyright Martin J. Bligh, Andy Whitcroft 2007
 import getpass, os, sys, re, stat, tempfile, time, select, subprocess, platform
 import traceback, shutil, warnings, fcntl, pickle, logging, itertools, errno
 from autotest.client import sysinfo
-from autotest.client.common_lib import base_job
-from autotest.client.common_lib import error, log, utils, packages
-from autotest.client.common_lib import logging_manager
+from autotest.client.shared import base_job
+from autotest.client.shared import error, log, utils, packages
+from autotest.client.shared import logging_manager
 from autotest.server import test, subcommand, profilers
 from autotest.server.hosts import abstract_ssh
 from autotest.tko import db as tko_db, status_lib, utils as tko_utils
@@ -767,7 +767,7 @@ class base_server_job(base_job.base_job):
         """Record a summary test result.
 
         @param status_code: status code string, see
-                common_lib.log.is_valid_status()
+                shared.log.is_valid_status()
         @param test_name: name of the test
         @param reason: (optional) string providing detailed reason for test
                 outcome
@@ -970,8 +970,8 @@ class base_server_job(base_job.base_job):
                       ('parallel', 'parallel_simple', 'subcommand'))
         _import_names('autotest.server.utils',
                       ('run', 'get_tmp_dir', 'sh_escape', 'parse_machine'))
-        _import_names('autotest.client.common_lib.error')
-        _import_names('autotest.client.common_lib.barrier', ('barrier',))
+        _import_names('autotest.client.shared.error')
+        _import_names('autotest.client.shared.barrier', ('barrier',))
 
         # Inject ourself as the job object into other classes within the API.
         # (Yuck, this injection is a gross thing be part of a public API. -gps)

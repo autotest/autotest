@@ -2,7 +2,7 @@ import copy, getpass, logging, pprint, re, urllib, urlparse
 import httplib2
 from django.utils import datastructures, simplejson
 from autotest.frontend.afe import rpc_client_lib
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 
 
 _request_headers = {}

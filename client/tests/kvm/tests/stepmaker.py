@@ -12,7 +12,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client.virt import virt_utils, ppm_utils, virt_step_editor
 from autotest.client.virt import kvm_monitor
 pygtk.require('2.0')

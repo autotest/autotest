@@ -159,7 +159,7 @@ def step_test(kernel_version):
         job.automatic_test_tag = host.get_kernel_ver()
     pass
 """
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 at = autotest_remote.Autotest()
 def install_kernel(machine, kernel_info):
     host = hosts.create_host(machine)
@@ -237,7 +237,7 @@ def step_test(kernel_version):
         job.automatic_test_tag = host.get_kernel_ver()
     pass
 """
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 at = autotest_remote.Autotest()
 def upload_kernel_config(host, kernel_info):
     """
@@ -248,7 +248,7 @@ def upload_kernel_config(host, kernel_info):
     dictionary.
     """
     import os
-    from autotest.client.common_lib import autotemp, utils
+    from autotest.client.shared import autotemp, utils
     config_orig = kernel_info.get('config_file')
     # if the file is not an URL then we assume it's a local client path
     if not config_orig or not utils.is_url(config_orig):

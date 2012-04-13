@@ -4,7 +4,7 @@ try:
 except ImportError:
     import common
 from autotest.scheduler import drone_utility, email_manager
-from autotest.client.common_lib import error, global_config
+from autotest.client.shared import error, global_config
 
 
 AUTOTEST_INSTALL_DIR = global_config.global_config.get_config_value('SCHEDULER',

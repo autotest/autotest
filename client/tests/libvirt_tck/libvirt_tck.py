@@ -1,6 +1,6 @@
 import os, re, shutil, logging
 
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client import utils, test
 
 

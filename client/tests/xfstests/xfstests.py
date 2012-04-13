@@ -1,5 +1,5 @@
 import os, re, glob, logging
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client import test, utils, os_dep
 
 class xfstests(test.test):

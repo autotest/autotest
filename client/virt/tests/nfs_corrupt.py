@@ -1,5 +1,5 @@
 import logging, os, re
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client import utils, os_dep
 from autotest.client.virt import virt_utils
 from autotest.client.virt import virt_env_process

@@ -16,7 +16,7 @@ libvirt code.
 """
 
 import sys, os, logging
-from autotest.client.common_lib import cartesian_config
+from autotest.client.shared import cartesian_config
 from autotest.client.virt import virt_utils
 
 # set English environment (command output might be localized, need to be safe)

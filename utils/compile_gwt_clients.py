@@ -4,8 +4,8 @@ try:
 except ImportError:
     import common
 import sys, os, shutil, errno, optparse, logging
-from autotest.client.common_lib import error, utils
-from autotest.client.common_lib import logging_config, logging_manager
+from autotest.client.shared import error, utils
+from autotest.client.shared import logging_config, logging_manager
 """
 Compile All Autotest GWT Clients Living in autotest/frontend/client/src
 """

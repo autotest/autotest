@@ -15,7 +15,7 @@ stutsman@google.com (Ryan Stutsman)
 
 import os
 
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.server import hypervisor, utils, hosts
 
 

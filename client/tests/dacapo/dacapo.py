@@ -1,7 +1,7 @@
 import os, re, logging, shutil
 from autotest.client import utils, package, test
 from autotest.client.test_config import config_loader
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 class dacapo(test.test):

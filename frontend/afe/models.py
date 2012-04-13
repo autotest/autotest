@@ -8,8 +8,8 @@ except ImportError:
     import common
 from autotest.frontend.afe import model_logic, model_attributes
 from autotest.frontend import settings, thread_local
-from autotest.client.common_lib import enum, host_protections, global_config
-from autotest.client.common_lib import host_queue_entry_states
+from autotest.client.shared import enum, host_protections, global_config
+from autotest.client.shared import host_queue_entry_states
 
 # job options and user preferences
 DEFAULT_REBOOT_BEFORE = model_attributes.RebootBefore.IF_DIRTY

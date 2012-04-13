@@ -1,4 +1,4 @@
-from autotest.client.common_lib import global_config, host_protections
+from autotest.client.shared import global_config, host_protections
 
 def migrate_up(manager):
     manager.execute_script(ADD_PROTECTION_COLUMN)

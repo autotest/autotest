@@ -7,7 +7,7 @@ except ImportError:
     import common
 from autotest.frontend import setup_django_environment
 from autotest.frontend import setup_test_environment
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared.test_utils import mock
 from django.db import connection
 from autotest.frontend.tko import models, rpc_interface
 

@@ -5,7 +5,7 @@ Autotest scheduling utility.
 
 import logging
 
-from autotest.client.common_lib import global_config, utils
+from autotest.client.shared import global_config, utils
 from autotest.frontend.afe import models
 from autotest.scheduler import metahost_scheduler, scheduler_config
 from autotest.scheduler import scheduler_models

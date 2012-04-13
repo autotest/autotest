@@ -11,7 +11,7 @@ Will need some libaries to compile. Do 'apt-get build-dep oprofile'
 """
 import os, shutil, time
 from autotest.client import utils, profiler
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 import logging
 
 class oprofile(profiler.profiler):

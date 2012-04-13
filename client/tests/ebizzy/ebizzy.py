@@ -1,6 +1,6 @@
 import os
 from autotest.client import utils, test
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 class ebizzy(test.test):
     version = 3

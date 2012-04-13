@@ -1,5 +1,5 @@
 import os
-from autotest.client.common_lib import git, error
+from autotest.client.shared import git, error
 from autotest.client import utils
 from autotest.client.virt import virt_utils
 

@@ -1,5 +1,5 @@
 import logging, time
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 def run_system_reset_bootable(test, params, env):
     """

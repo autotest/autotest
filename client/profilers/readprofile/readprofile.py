@@ -10,7 +10,7 @@ the procedure. The output is filled with blanks to ease readability.
 """
 import os, shutil
 from autotest.client import utils, profiler
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 class readprofile(profiler.profiler):
     version = 1

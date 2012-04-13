@@ -9,8 +9,8 @@ try:
 except ImportError:
     import common
 from autotest.scheduler import watcher_logging_config
-from autotest.client.common_lib import error, global_config, utils
-from autotest.client.common_lib import logging_manager
+from autotest.client.shared import error, global_config, utils
+from autotest.client.shared import logging_manager
 from autotest.scheduler import scheduler_logging_config
 from autotest.scheduler import monitor_db
 

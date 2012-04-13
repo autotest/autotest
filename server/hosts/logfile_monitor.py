@@ -1,7 +1,7 @@
 import logging, os, sys, subprocess, tempfile, traceback
 import time, threading
 
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 from autotest.server import utils as server_utils
 from autotest.server.hosts import abstract_ssh, monitors
 

@@ -11,7 +11,7 @@ try:
 except ImportError:
     import common
 from autotest.tko import db, display, frontend, plotgraph
-from autotest.client.common_lib import kernel_versions
+from autotest.client.shared import kernel_versions
 
 released_kernel = re.compile('2\.\d\.\d+(-smp-)[0-9]{3}\.[0-9]$')
 rc_kernel = re.compile('2\.\d\.\d+(-smp-)[0-9]{3}\.[0-9]_rc[0-9]$')

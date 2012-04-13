@@ -12,8 +12,8 @@ except ImportError:
 from autotest.cli import atest, topic_common, rpc
 from autotest.frontend.afe import rpc_client_lib
 from autotest.frontend.afe.json_rpc import proxy
-from autotest.client.common_lib.test_utils import mock
-from autotest.client.common_lib import autotemp
+from autotest.client.shared.test_utils import mock
+from autotest.client.shared import autotemp
 
 CLI_USING_PDB = False
 CLI_UT_DEBUG = False

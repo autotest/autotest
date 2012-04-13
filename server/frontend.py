@@ -20,8 +20,8 @@ try:
 except ImportError:
     import common
 from autotest.frontend.afe import rpc_client_lib
-from autotest.client.common_lib import global_config
-from autotest.client.common_lib import utils
+from autotest.client.shared import global_config
+from autotest.client.shared import utils
 try:
     from autotest.server.site_common import site_utils as server_utils
 except:

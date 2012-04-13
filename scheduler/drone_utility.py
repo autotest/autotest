@@ -6,7 +6,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import utils, global_config, error
+from autotest.client.shared import utils, global_config, error
 from autotest.server import hosts, subcommand
 from autotest.scheduler import email_manager, scheduler_config
 

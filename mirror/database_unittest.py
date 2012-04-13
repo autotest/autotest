@@ -8,7 +8,7 @@ try:
 except ImportError:
     import common
 from autotest.mirror import database
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared.test_utils import mock
 
 class dict_database_unittest(unittest.TestCase):
     _path = 'somepath.db'

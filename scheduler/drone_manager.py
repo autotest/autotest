@@ -4,7 +4,7 @@ try:
 except ImportError:
     import common
 import logging
-from autotest.client.common_lib import error, global_config
+from autotest.client.shared import error, global_config
 from autotest.scheduler import email_manager, drone_utility, drones
 from autotest.scheduler import scheduler_config
 

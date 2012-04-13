@@ -7,11 +7,11 @@ except ImportError:
 import unittest
 
 # This has to be done very early.
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 global_config.global_config.override_config_value(
     'HOSTS', 'default_protection',
     'NO_PROTECTION')
-from autotest.client.common_lib import host_protections
+from autotest.client.shared import host_protections
 
 from autotest.frontend import setup_django_environment
 from autotest.frontend import setup_test_environment

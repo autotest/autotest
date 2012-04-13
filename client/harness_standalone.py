@@ -5,7 +5,7 @@ The default interface as required for the standalone reboot helper.
 
 __author__ = """Copyright Andy Whitcroft 2007"""
 
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client import utils
 import os, harness, shutil, logging
 

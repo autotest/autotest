@@ -19,7 +19,7 @@ stutsman@google.com (Ryan Stutsman)
 
 import os
 
-from autotest.client.common_lib import hosts
+from autotest.client.shared import hosts
 from autotest.server import utils
 from autotest.server.hosts import bootloader
 

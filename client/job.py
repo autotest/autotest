@@ -13,17 +13,17 @@ from autotest.client import utils, parallel, kernel, xen
 from autotest.client import profilers, boottool, harness
 from autotest.client import config, sysinfo, test, local_host
 from autotest.client import partition as partition_lib
-from autotest.client.common_lib import base_job
-from autotest.client.common_lib import error, barrier, log, logging_manager
-from autotest.client.common_lib import base_packages, packages
-from autotest.client.common_lib import global_config
+from autotest.client.shared import base_job
+from autotest.client.shared import error, barrier, log, logging_manager
+from autotest.client.shared import base_packages, packages
+from autotest.client.shared import global_config
 from autotest.client.tools import html_report
 
 GLOBAL_CONFIG = global_config.global_config
 
 LAST_BOOT_TAG = object()
 JOB_PREAMBLE = """
-from autotest.client.common_lib.error import *
+from autotest.client.shared.error import *
 from autotest.client.utils import *
 """
 
@@ -629,7 +629,7 @@ class base_client_job(base_job.base_job):
             to the subdir name.
 
         @returns Test status
-        @see: client/common_lib/error.py, exit_status
+        @see: client/shared/error.py, exit_status
         """
         (subdir, testname, group_func, timeout) = self._run_test_base(url,
                                                                       *args,

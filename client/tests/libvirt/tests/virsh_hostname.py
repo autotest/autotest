@@ -1,5 +1,5 @@
 import logging
-from autotest.client.common_lib import utils, error
+from autotest.client.shared import utils, error
 from autotest.client.virt import libvirt_vm
 
 def run_virsh_hostname(test, params, env):

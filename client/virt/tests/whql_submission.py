@@ -1,5 +1,5 @@
 import logging, os, re
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client.virt import virt_utils, rss_client, aexpect
 
 

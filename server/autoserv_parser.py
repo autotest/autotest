@@ -1,6 +1,6 @@
 import os, sys, getopt, optparse
 
-from autotest.client.common_lib import host_protections, utils
+from autotest.client.shared import host_protections, utils
 
 
 class base_autoserv_parser(object):

@@ -6,7 +6,7 @@ try:
 except ImportError:
     import common
 
-from autotest.client.common_lib import version
+from autotest.client.shared import version
 
 # Mostly needed when called one level up
 client_dir = os.path.dirname(sys.modules[__name__].__file__) or '.'
@@ -49,9 +49,9 @@ setup(name='autotest',
                    'autotest' : autotest_dir,
                   },
       package_data={'autotest.client' : pd_filelist },
-      packages=['autotest.client.common_lib',
-                'autotest.client.common_lib.hosts',
-                'autotest.client.common_lib.test_utils',
+      packages=['autotest.client.shared',
+                'autotest.client.shared.hosts',
+                'autotest.client.shared.test_utils',
                 'autotest.client.bin',
                 'autotest.client.net',
                 'autotest.client.tools',

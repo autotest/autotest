@@ -5,8 +5,8 @@
 import cPickle
 
 import common
-from autotest.client.common_lib import utils
-from autotest.client.common_lib.test_utils import mock, unittest
+from autotest.client.shared import utils
+from autotest.client.shared.test_utils import mock, unittest
 from autotest.scheduler import drones
 from autotest.server.hosts import ssh_host
 

@@ -7,8 +7,8 @@ except ImportError:
     import common
 from autotest.frontend import setup_django_environment
 from autotest.frontend.afe import frontend_test_utils
-from autotest.client.common_lib.test_utils import mock
-from autotest.client.common_lib.test_utils import unittest
+from autotest.client.shared.test_utils import mock
+from autotest.client.shared.test_utils import unittest
 from autotest.database import database_connection
 from autotest.frontend.afe import models
 from autotest.scheduler import monitor_db, drone_manager, email_manager

@@ -19,7 +19,7 @@ import time
 from autotest.tko import tko_pb2
 from autotest.tko import job_serializer
 from autotest.tko import models
-from autotest.client.common_lib.test_utils import unittest
+from autotest.client.shared.test_utils import unittest
 
 NamedTemporaryFile = tempfile.NamedTemporaryFile
 datetime = datetime.datetime

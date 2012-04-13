@@ -5,8 +5,8 @@
 import os, shutil, signal, StringIO, tempfile
 
 import common
-from autotest.client.common_lib.test_utils import mock
-from autotest.client.common_lib.test_utils import unittest
+from autotest.client.shared.test_utils import mock
+from autotest.client.shared.test_utils import unittest
 from autotest.server.hosts.monitors import console
 
 class console_test(unittest.TestCase):

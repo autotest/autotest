@@ -6,9 +6,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.common_lib import mail, pidfile
+from autotest.client.shared import mail, pidfile
 from autotest.tko import db as tko_db, utils as tko_utils, status_lib, models
-from autotest.client.common_lib import utils
+from autotest.client.shared import utils
 
 
 def parse_args():

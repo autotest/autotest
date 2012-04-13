@@ -410,7 +410,7 @@ fi
 print_install_status() {
 print_log "INFO" "$(systemctl status autotestd.service)"
 
-cd $ATHOME/client/common_lib/
+cd $ATHOME/client/shared/
 VERSION="$(./version.py)"
 print_log "INFO" "Finished installing autotest server $VERSION at: $(date)"
 

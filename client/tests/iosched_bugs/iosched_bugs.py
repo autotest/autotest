@@ -1,7 +1,7 @@
 import os, time
 import subprocess
 from autotest.client import test
-from autotest.client.common_lib import utils, error
+from autotest.client.shared import utils, error
 
 
 class iosched_bugs(test.test):

@@ -27,7 +27,7 @@
 >>> test_path = os.path.abspath(test_path)
 
 # disable logging
->>> from autotest.client.common_lib import logging_manager
+>>> from autotest.client.shared import logging_manager
 >>> logging_manager.logger.setLevel(100)
 
 >>> drone_set = models.DroneSet.default_drone_set_name()
@@ -914,7 +914,7 @@ ValidationError: {'hosts': u'Host(s) "ahost1, ahost2" are atomic group hosts but
 ...         dependencies=['blue-label'])
 >>> peon_user = models.User(login='peon_user')
 >>> peon_user.access_level = 0
->>> from autotest.client.common_lib.test_utils import mock
+>>> from autotest.client.shared.test_utils import mock
 >>> god = mock.mock_god()
 >>> god.stub_function(models.User, "current_user")
 >>> models.User.current_user.expect_call().and_return(peon_user)

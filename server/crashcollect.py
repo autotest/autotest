@@ -1,6 +1,6 @@
 import os, time, pickle, logging, shutil, gzip
 
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 from autotest.server import utils
 
 

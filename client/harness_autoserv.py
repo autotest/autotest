@@ -1,6 +1,6 @@
 import os, logging, ConfigParser
-from autotest.client.common_lib import autotemp, base_packages, error
-from autotest.client.common_lib import global_config
+from autotest.client.shared import autotemp, base_packages, error
+from autotest.client.shared import global_config
 from autotest.client import harness
 
 
@@ -86,7 +86,7 @@ class harness_autoserv(harness.harness):
         """Request a package from the remote autoserv.
 
         @param pkg_name: The name of the package, as generally used by the
-                client.common_lib.packages infrastructure.
+                client.shared.packages infrastructure.
         @param dest_path: The path the package should be copied to.
         """
         self._send_and_wait('AUTOTEST_FETCH_PACKAGE', pkg_name, dest_path)

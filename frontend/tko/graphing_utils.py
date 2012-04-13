@@ -23,7 +23,7 @@ import StringIO, colorsys, PIL.Image, PIL.ImageChops
 from autotest.frontend.afe import readonly_connection
 from autotest.frontend.afe.model_logic import ValidationError
 from simplejson import encoder
-from autotest.client.common_lib import global_config
+from autotest.client.shared import global_config
 from autotest.frontend.tko import models, tko_rpc_utils
 
 _FIGURE_DPI = 100

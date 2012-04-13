@@ -1,6 +1,6 @@
 import os, time, logging
 from autotest.client import test, utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 
 
 class netpipe(test.test):
@@ -85,7 +85,7 @@ class netpipe(test.test):
             """ Catch errors due to timeout, but raise others
             The actual error string is:
               "Command did not complete within %d seconds"
-            called in function join_bg_job in the file common_lib/utils.py
+            called in function join_bg_job in the file shared/utils.py
 
             Looking for 'within' is probably not the best way to do this but
             works for now"""

@@ -1,5 +1,5 @@
 import logging, os, shutil, glob, ConfigParser
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client.virt import virt_utils, virt_env_process
 
 

@@ -1,5 +1,5 @@
 import logging
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 from autotest.client.virt import aexpect
 
 def run_pxe(test, params, env):

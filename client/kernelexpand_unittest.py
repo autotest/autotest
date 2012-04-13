@@ -7,9 +7,9 @@ except ImportError:
     import common
 from kernelexpand import decompose_kernel
 from kernelexpand import mirror_kernel_components
-from autotest.client.common_lib import global_config
-from autotest.client.common_lib.global_config import global_config
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared import global_config
+from autotest.client.shared.global_config import global_config
+from autotest.client.shared.test_utils import mock
 
 km = 'http://www.kernel.org/pub/linux/kernel/'
 akpm = km + 'people/akpm/patches/'

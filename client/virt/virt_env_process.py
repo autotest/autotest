@@ -1,6 +1,6 @@
 import os, time, commands, re, logging, glob, threading, shutil
 from autotest.client import utils
-from autotest.client.common_lib import error
+from autotest.client.shared import error
 import aexpect, virt_utils, kvm_monitor, ppm_utils, virt_test_setup
 import virt_vm, kvm_vm, libvirt_vm, virt_video_maker
 try:

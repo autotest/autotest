@@ -7,9 +7,9 @@ import unittest, os, tempfile, logging
 import common
 from autotest.server import autotest_remote, utils, hosts, server_job, profilers
 from autotest.client import sysinfo
-from autotest.client.common_lib import utils as client_utils, packages
-from autotest.client.common_lib import error
-from autotest.client.common_lib.test_utils import mock
+from autotest.client.shared import utils as client_utils, packages
+from autotest.client.shared import error
+from autotest.client.shared.test_utils import mock
 
 
 class TestBaseAutotest(unittest.TestCase):

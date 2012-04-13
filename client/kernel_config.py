@@ -3,7 +3,7 @@
 
 import shutil, os
 from autotest.client import utils
-from autotest.client.common_lib import error, kernel_versions
+from autotest.client.shared import error, kernel_versions
 
 def apply_overrides(orig_file, changes_file, output_file):
     override = dict()

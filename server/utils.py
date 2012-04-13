@@ -8,7 +8,7 @@ There's no really good way to do this, as this isn't a class we can do
 inheritance with, just a collection of static methods.
 """
 
-from autotest.client.common_lib.utils import *
+from autotest.client.shared.utils import *
 from autotest.server.base_utils import *
 if os.path.exists(os.path.join(os.path.dirname(__file__), 'site_utils.py')):
     from autotest.server.site_utils import *

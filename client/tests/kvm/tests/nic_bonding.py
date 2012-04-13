@@ -1,7 +1,7 @@
 import logging, time
 from autotest.client.virt.tests import file_transfer
 from autotest.client.virt import virt_test_utils, aexpect
-from autotest.client.common_lib import error, utils
+from autotest.client.shared import error, utils
 
 
 def run_nic_bonding(test, params, env):

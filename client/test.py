@@ -20,8 +20,8 @@
 
 import os, traceback, sys, shutil, logging, resource, glob
 
-from autotest.client.common_lib import error, utils
-from autotest.client.common_lib import test as common_test
+from autotest.client.shared import error, utils
+from autotest.client.shared import test as common_test
 from autotest.client import sysinfo, os_dep
 
 
