@@ -17,6 +17,13 @@ def get_install_server_info():
     return server_info
 
 
+def install_server_is_configured():
+    server_info = get_install_server_info()
+    if server_info.get('xmlrpc_url', None):
+        return True
+    return False
+
+
 class RemoteHost(base_classes.Host):
     """
     This class represents a remote machine on which you can run
@@ -74,7 +81,11 @@ class RemoteHost(base_classes.Host):
         @param profile: Profile name inside the install server database.
         """
         server_info = get_install_server_info()
-        if server_info.get('xmlrpc_url', None) is not None:
+        if install_server_is_configured():
+            if profile is None:
+                profile = self.profile
+            if profile == 'Do_not_install':
+                return
             ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
             server_interface = ServerInterface(**server_info)
             server_interface.install_host(self, profile=profile,

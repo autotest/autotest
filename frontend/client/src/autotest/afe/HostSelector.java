@@ -45,6 +45,7 @@ public class HostSelector implements ClickHandler {
 
     public static class HostSelection {
         public List<String> hosts = new ArrayList<String>();
+        public List<String> profiles = new ArrayList<String>();
         public List<String> metaHosts = new ArrayList<String>();
         public List<String> oneTimeHosts = new ArrayList<String>();
     }
@@ -71,7 +72,7 @@ public class HostSelector implements ClickHandler {
     private HostTable availableTable = new HostTable(new HostDataSource());
     private HostTableDecorator availableDecorator =
         new HostTableDecorator(availableTable, TABLE_SIZE);
-    private HostTable selectedTable = new HostTable(selectedHostData);
+    private ProfileSelectHostTable selectedTable = new ProfileSelectHostTable(selectedHostData);
     private TableDecorator selectedDecorator = new TableDecorator(selectedTable);
     private boolean enabled = true;
 
@@ -140,6 +141,8 @@ public class HostSelector implements ClickHandler {
         display.getAddByHostnameButton().addClickHandler(this);
         display.getAddByLabelButton().addClickHandler(this);
         display.addTables(availableDecorator, selectedDecorator);
+        availableTable.setWidgetFactory(availableSelection);
+        selectedTable.setWidgetFactory(availableSelection);
 
         populateLabels(display.getLabelList());
     }
@@ -171,6 +174,33 @@ public class HostSelector implements ClickHandler {
 
             @Override
             public void handlePage(List<JSONObject> data) {
+                processAddByHostname(hosts, data, allowOneTimeHosts);
+            }
+        });
+    }
+
+    public void setSelectedHostnames(final List<String> hosts, final List<String> profiles, final boolean allowOneTimeHosts) {
+        // figure out which hosts exist in the system and which should be one-time hosts
+        JSONObject params = new JSONObject();
+        params.put("hostname__in", Utils.stringsToJSON(hosts));
+        hostDataSource.query(params, new DefaultDataCallback () {
+            @Override
+            public void onQueryReady(Query query) {
+                query.getPage(null, null, null, this);
+            }
+
+            @Override
+            public void handlePage(List<JSONObject> data) {
+               /* when cloning, we have the original array of profiles that
+                * needs to be put back into the objects so the select box gets
+                * populated correctly */
+                JSONObject o;
+                int i;
+                for (i = 0; i < data.size(); i++) {
+                    o = data.get(i);
+                    o.put("profile", new JSONString(profiles.get(i)));
+                    data.set(i, o);
+                }
                 processAddByHostname(hosts, data, allowOneTimeHosts);
             }
         });
@@ -274,6 +304,10 @@ public class HostSelector implements ClickHandler {
         }
     }
 
+    private String getProfile(JSONObject row) {
+        return row.get("profile").isString().stringValue();
+    }
+
     private String getHostname(JSONObject row) {
         return row.get("hostname").isString().stringValue();
     }
@@ -317,6 +351,7 @@ public class HostSelector implements ClickHandler {
                     selection.oneTimeHosts.add(hostname);
                 } else {
                     selection.hosts.add(hostname);
+                    selection.profiles.add(getProfile(row));
                 }
             }
         }
