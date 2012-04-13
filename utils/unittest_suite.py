@@ -72,6 +72,7 @@ LONG_RUNTIME = set((
 # This particular KVM autotest test is not a unittest
 SKIP = set((
     'guest_test.py',
+    'dd_test.py',
     ))
 
 LONG_TESTS = (REQUIRES_DJANGO |
