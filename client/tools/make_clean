@@ -7,6 +7,12 @@ def purge_src(top_dir):
     for dir in os.listdir(top_dir):
         if dir.startswith('.'):
             continue
+        envfile = os.path.join(top_dir, dir, 'env')
+        try:
+            os.unlink(envfile)
+            print "Cleaned environment file %s" % envfile
+        except OSError:
+            pass # ignore non-existing files
         py = os.path.join (top_dir, dir, dir + '.py')
         if not os.path.exists(py):
             continue
@@ -27,3 +33,13 @@ if os.path.isdir('tmp'):
 
 for dir in ['site_tests', 'site_profilers', 'tests', 'profilers', 'deps']:
     purge_src(dir)
+
+for filename in ['/tmp/address_pool', '/tmp/address_pool.lock',
+                '/tmp/kvm-autotest-vm-create.lock',
+                '/tmp/libvirt-autotest-vm-create.lock',
+                 '/tmp/mac_lock']:
+    try:
+        os.unlink(filename)
+        print "Cleaned temporary file %s" % filename
+    except OSError:
+        continue
