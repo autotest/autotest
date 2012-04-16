@@ -22,7 +22,7 @@ Usage: check_patch.py -p [/path/to/patch]
 @author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 """
 
-import os, stat, logging, sys, optparse, re
+import os, stat, logging, sys, optparse, re, urllib
 try:
     import autotest.common as common
 except ImportError:
@@ -568,7 +568,7 @@ class PatchChecker(object):
         """
         patch_url = "https://github.com/autotest/autotest/pull/%s.patch" % id
         patch_dest = os.path.join(self.base_dir, 'github-%s.patch' % id)
-        utils.run("curl %s > %s" % (patch_url, patch_dest))
+        urllib.urlretrieve(patch_url, patch_dest)
         return patch_dest
 
 
