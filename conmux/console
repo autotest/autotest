@@ -25,6 +25,8 @@ my $CONMUX = $FindBin::Bin;
 my $CONMUX = $ENV{'CONMUX_ROOT'} if ($ENV{'CONMUX_ROOT'});
 
 # Find our internal libraries.
+use lib "/usr/lib/";
+use lib "/usr/lib64/";
 use lib $FindBin::Bin;
 use lib "$FindBin::Bin/../lib/";
 use lib "$FindBin::Bin/lib/";

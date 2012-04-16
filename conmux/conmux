@@ -22,6 +22,10 @@ use URI::Escape;
 use Net::Domain;
 
 # Find our internal libraries.
+use lib "/usr/lib/";
+use lib "/usr/lib64/";
+use lib "/lib/";
+use lib "/lib64/";
 use lib $FindBin::Bin;
 use lib "$FindBin::Bin/../lib/";
 use lib "$FindBin::Bin/lib/";

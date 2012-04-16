@@ -7,21 +7,37 @@
 #
 # The Console Multiplexor is released under the GNU Public License V2
 #
+#
+### BEGIN INIT INFO
+# Provides:       conmuxd
+# Required-Start: $remote_fs
+# Required-Stop:  $remote_fs
+# Should-Start:   $null
+# Should-Stop:    $null
+# Default-Start:  3 5 S
+# Default-Stop:   0 1 2 6
+# Short-Description:    console multiplexing deamon
+# Description:          deamon to multiplex ipmi and bladecenter sol sessions
+### END INIT INFO
+
+
 if [ -f ~/.gmm.conf ]; then
 	. ~/.gmm.conf
 fi
-CONMUX=${CONMUX:-/usr/local/conmux}
+CONMUX=${CONMUX:-/usr/}
 
 cmd="start"
 if [ "$1" != "" ]; then
 	cmd="$1"
 fi
 
-PATH=$CONMUX/bin:$CONMUX/sbin:$CONMUX/lib/drivers:$CONMUX/lib/helpers:$PATH
+PATH=$CONMUX/bin:$CONMUX/sbin:$CONMUX/lib/conmux/drivers:$CONMUX/lib/helpers:$PATH
+MY_LOG=/var/log/conmux
+MY_ETC=/etc/conmux
 
 function start() {
         typeset name="$1"
-        typeset pf="$CONMUX/log/$name.pid"
+        typeset pf="${MY_LOG}/$name.pid"
 
         shift
 
@@ -33,14 +49,14 @@ function start() {
         fi
 
 	echo "starting $name ..."
-        "$@" >"$CONMUX/log/$name.log" 2>&1 &
+        "$@" >"${MY_LOG}/$name.log" 2>&1 &
         echo "$!" >"$pf"
 
 	return 0
 }
 function stop() {
         typeset name="$1"
-        typeset pf="$CONMUX/log/$name.pid"
+        typeset pf="${MY_LOG}/$name.pid"
 
 	echo "stopping $name ..."
         # Kill it and clear up
@@ -49,10 +65,10 @@ function stop() {
 }
 
 existing=""
-for i in $CONMUX/log/*.pid
+for i in ${MY_LOG}/*.pid
 do
 	n=${i%.pid}
-	n=${n#$CONMUX/log/}
+	n=${n#${MY_LOG}/}
 
 	if [ "$n" != "*" ]; then
 		existing="$existing $n"
@@ -61,21 +77,21 @@ done
 
 if [ "$cmd" = "start" ]; then
 	autoboot=""
-	[ -f $CONMUX/etc/registry ] || touch $CONMUX/etc/registry
-	start registry $CONMUX/sbin/conmux-registry 63000 $CONMUX/etc/registry
+	[ -f ${MY_ETC}/registry ] || touch ${MY_ETC}/registry
+	start registry $CONMUX/sbin/conmux-registry 63000 ${MY_ETC}/registry
 	if [ "$?" -eq 0 ]; then
 		sleep 1
 	fi
 	started="registry"
 	pause=0
-	for i in $CONMUX/etc/*.cf
+	for i in ${MY_ETC}/*.cf
 	do
 		n=${i%.cf}
-		n=${n#$CONMUX/etc/}
+		n=${n#${MY_ETC}}
 
 		if [ "$n" != "*" ]; then
-			if [ -f "$CONMUX/log/$n.cf" ]; then
-				if ! cmp -s "$i" "$CONMUX/log/$n.cf"; then
+			if [ -f "${MY_LOG}/$n.cf" ]; then
+				if ! cmp -s "$i" "${MY_LOG}/$n.cf"; then
 					stop $n
 				fi
 			fi
@@ -86,7 +102,7 @@ if [ "$cmd" = "start" ]; then
 			started="$started $n"
 
 			# Preserve the orginal configuration file.
-			cp "$i" "$CONMUX/log/$n.cf"
+			cp "$i" "${MY_LOG}/$n.cf"
 
 			if grep -q TYPE:numaq "$i"; then
 				autoboot="$autoboot $n"
