@@ -280,7 +280,7 @@ class GitBackend(object):
         try:
             utils.run('git add %s' % file)
         except error.CmdError, e:
-            logging.error("Problem adding file %s to svn: %s", file, e)
+            logging.error("Problem adding file %s to git: %s", file, e)
             sys.exit(1)
 
 
