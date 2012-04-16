@@ -1631,10 +1631,13 @@ variants:
 
     - cdrom_test: install setup image_copy unattended_install.cdrom
         only Linux
-        start_vm = no
         type = cdrom
         cdrom_cd1 = orig.iso
+        start_vm = no
+        kill_vm_on_error = yes
         max_times = 20
+        workaround_locked_cdrom = yes
+        workaround_eject_time = 2
 
     - floppy_test: install setup image_copy unattended_install.cdrom
         only Linux
