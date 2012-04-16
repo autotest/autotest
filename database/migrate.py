@@ -210,9 +210,6 @@ class MigrationManager(object):
                 dict(username=self._database.get_database_info()['username']))
         self.execute_script(migration_script)
 
-        self.create_migrate_table()
-        self.set_db_version(51)
-
 
     def confirm_initialization(self):
         if not self.force:
