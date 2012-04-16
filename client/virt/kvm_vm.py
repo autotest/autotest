@@ -1591,6 +1591,13 @@ class VM(virt_vm.BaseVM):
         # statm stores informations in pages, translate it to MB
         return shm * 4.0 / 1024
 
+    def get_spice_var(self, spice_var):
+        """
+        Returns string value of spice variable of choice or None
+        @param spice_var - spice related variable 'spice_port', ...
+        """
+
+        return self.spice_options.get(spice_var, None)
 
     @error.context_aware
     def add_netdev(self, netdev_id=None, extra_params=None):
