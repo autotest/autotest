@@ -485,10 +485,10 @@ class VM(virt_vm.BaseVM):
                 """just a helper function"""
                 tmp = optget(key)
 
-                if not tmp and fallback:
-                    spice_opts.append(fallback)
-                else:
+                if tmp:
                     spice_opts.append(opt_string % tmp)
+                elif fallback:
+                    spice_opts.append(fallback)
             s_port = str(virt_utils.find_free_port(*port_range))
             set_value("port=%s", "spice_port", "port=%s" % s_port)
 
