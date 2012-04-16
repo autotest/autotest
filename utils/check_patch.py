@@ -417,7 +417,11 @@ class FileChecker(object):
             non_py_ended = " (filename has no .py)"
         else:
             path = self.path
-        c_cmd = 'run_pylint.py %s' % path
+
+        this_path = os.path.abspath(sys.modules['__main__'].__file__)
+        pylint_path = os.path.join(os.path.dirname(this_path),
+                                   'run_pylint.py')
+        c_cmd = '%s %s' % (pylint_path, path)
         try:
             utils.run(c_cmd, verbose=False)
         except error.CmdError, e:
