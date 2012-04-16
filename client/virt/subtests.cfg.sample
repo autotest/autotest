@@ -1710,7 +1710,17 @@ variants:
         vms = ""
         #Try to start guest with all flags which are supported by host.
         all_host_supported_flags = "no"
-        cpu_model = "core2duo"
+
+        #If cpu_model is "" or isn't defined test try test all cpu models,
+        #which host supports.
+        cpu_model = ""
+
+        #Cpumodels defined in blacklist are not tested.
+        #Works only if cpu_model is not defined.
+        cpu_model_blacklist = ""
+        64:
+            cpu_model_blacklist += " 486 kvm32 qemu32 pentium pentium2"
+            cpu_model_blacklist += " pentium3 coreduo n270"
         guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
         variants:
