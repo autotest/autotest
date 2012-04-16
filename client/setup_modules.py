@@ -1,6 +1,6 @@
 __author__ = "jadmanski@google.com (John Admanski)"
 
-import os, sys
+import os, sys, imp
 
 try:
     import autotest.client.shared.check_version as check_version
@@ -122,22 +122,31 @@ def setup(base_path, root_module_name=""):
     The setup must be different if you are running on an Autotest server
     or on a test machine that just has the client directories installed.
     """
-    # Hack... Any better ideas?
-    if (root_module_name == 'autotest.client' and
-        os.path.exists(os.path.join(os.path.dirname(__file__),
-                                    '..', 'server'))):
-        root_module_name = 'autotest'
-        base_path = os.path.abspath(os.path.join(base_path, '..'))
+    setup_client_only = False
+    try:
+        sys.modules[root_module_name]
+    except KeyError:
+        # Hack... Any better ideas?
+        if root_module_name == 'autotest.client':
+            serverdir = os.path.join(os.path.dirname(__file__), '..', 'server')
+            full_source = os.path.exists(serverdir)
+            if full_source:
+                root_module_name = 'autotest'
+                base_path = os.path.abspath(os.path.join(base_path, '..'))
+            else:
+                setup_client_only = True
 
-    _create_module_and_parents(root_module_name)
-    _import_children_into_module(root_module_name, base_path)
+        if setup_client_only:
+            _create_module_and_parents(root_module_name)
+            imp.load_package(root_module_name, base_path)
+        else:
+            _create_module_and_parents(root_module_name)
+            _import_children_into_module(root_module_name, base_path)
+            # Allow locally installed third party packages to be found
+            # before any that are installed on the system itself when not.
+            # running as a client.
+            # This is primarily for the benefit of frontend and tko so that they
+            # may use libraries other than those available as system packages.
+            sys.path.insert(0, os.path.join(base_path, "site-packages"))
 
-    if root_module_name == 'autotest':
-        # Allow locally installed third party packages to be found
-        # before any that are installed on the system itself when not.
-        # running as a client.
-        # This is primarily for the benefit of frontend and tko so that they
-        # may use libraries other than those available as system packages.
-        sys.path.insert(0, os.path.join(base_path, "site-packages"))
-
-    _monkeypatch_logging_handle_error()
+        _monkeypatch_logging_handle_error()
