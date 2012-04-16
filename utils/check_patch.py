@@ -384,14 +384,18 @@ class FileChecker(object):
         else:
             path = self.path
 
+        this_path = os.path.abspath(sys.modules['__main__'].__file__)
+        reindent_path = os.path.join(os.path.dirname(this_path),
+                                     'reindent.py')
         try:
-            cmdstatus = utils.run(('reindent.py -v -d %s' % path), verbose=False)
+            cmdstatus = utils.run('%s -v -d %s' % (reindent_path,
+                                                   path), verbose=False)
         except error.CmdError, e:
             logging.error("Error executing reindent.py: %s" % e)
 
         if not "unchanged" in cmdstatus.stdout:
             logging.info("File %s will be reindented" % self.path)
-            utils.run("reindent.py -v %s" % path, verbose=False)
+            utils.run("%s -v %s" % (reindent_path, path), verbose=False)
             if self.path != path:
                 utils.run("mv %s %s" % (path, self.path), verbose=False)
             utils.run("rm %s.bak" % path, verbose=False)
