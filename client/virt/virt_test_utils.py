@@ -608,7 +608,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
                 mig_protocol = params.get("migration_protocol", "tcp")
 
                 bg = utils.InterruptedThread(session.cmd_output,
-                                      kwargs={'cmd': "autotest control",
+                                      kwargs={'cmd': "./autotest control",
                                               'timeout': timeout,
                                               'print_func': logging.info})
 
@@ -619,7 +619,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
                                  "migration")
                     vm.migrate(timeout=mig_timeout, protocol=mig_protocol)
             else:
-                session.cmd_output("autotest control", timeout=timeout,
+                session.cmd_output("./autotest control", timeout=timeout,
                                    print_func=logging.info)
         finally:
             logging.info("------------- End of test output ------------")
