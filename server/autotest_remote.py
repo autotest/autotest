@@ -163,6 +163,13 @@ class BaseAutotest(installable_object.InstallableObject):
                        if f not in dirs_to_exclude]
         host.send_file(light_files, autodir, delete_dest=True)
 
+        profilers_autodir = os.path.join(autodir, 'profilers')
+        profilers_init = os.path.join(self.source_material, 'profilers',
+                                      '__init__.py')
+        host.run("mkdir -p %s" % profilers_autodir)
+        host.send_file(profilers_init, profilers_autodir, delete_dest=True)
+        dirs_to_exclude.discard("profilers")
+
         # create empty dirs for all the stuff we excluded
         commands = []
         for path in dirs_to_exclude:
