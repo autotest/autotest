@@ -1,4 +1,4 @@
-import logging, re, random, os, time, socket, pickle
+import logging, re, random, os, time, socket, pickle, sys, traceback
 from autotest_lib.client.common_lib import error, utils
 from autotest_lib.client.virt import kvm_vm
 from autotest_lib.client.virt import virt_utils, aexpect
@@ -23,6 +23,8 @@ def run_cpuflags(test, params, env):
     mig_timeout = float(params.get("mig_timeout", "3600"))
     mig_protocol = params.get("migration_protocol", "tcp")
     mig_speed = params.get("mig_speed", "100M")
+
+    cpu_model_black_list = params.get("cpu_model_blacklist", "").split(" ")
 
     multi_host_migration = params.get("multi_host_migration", "no")
 
@@ -196,6 +198,19 @@ def run_cpuflags(test, params, env):
         logging.debug("Flags on guest not defined by host: %s", (gf - rf))
         return rf - gf
 
+    def get_cpu_models_supported_by_host():
+        """
+        Get all cpumodels which set of flags is subset of hosts flags.
+
+        @return: [cpumodels]
+        """
+        cpumodels = []
+        for cpumodel in get_cpu_models():
+            flags = HgFlags(cpumodel)
+            if flags.host_unsupported_flags == set([]):
+                cpumodels.append(cpumodel)
+        return cpumodels
+
     def disable_cpu(vm_session, cpu, disable=True):
         """
         Disable cpu in guest system.
@@ -314,6 +329,16 @@ def run_cpuflags(test, params, env):
                 if hasattr(self, "clean"):
                     self.clean()
             return ret
+
+    def print_exception(called_object):
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        logging.error("In function (" + called_object.__name__ + "):")
+        logging.error("Call from:\n" +
+                      traceback.format_stack()[-2][:-1])
+        logging.error("Exception from:\n" +
+                      "".join(traceback.format_exception(
+                                              exc_type, exc_value,
+                                              exc_traceback.tb_next)))
 
     class Test_temp(MiniSubtest):
         def clean(self):
@@ -472,10 +497,10 @@ def run_cpuflags(test, params, env):
             cpu_model, extra_flags = parse_cpu_model()
 
             flags = HgFlags(cpu_model, extra_flags)
+            cpuf_model = cpu_model + ",enforce"
 
             logging.debug("Unsupported flags %s.",
                           str(flags.host_all_unsupported_flags))
-            cpuf_model = cpu_model + ",enforce"
 
             # Add unsupported flags.
             for fadd in flags.host_all_unsupported_flags:
@@ -506,18 +531,21 @@ def run_cpuflags(test, params, env):
 
             flags = HgFlags(cpu_model, extra_flags)
 
-            logging.debug("Cpu mode flags %s.",
-                          str(flags.quest_cpu_model_flags))
-            logging.debug("Added flags %s.",
-                          str(flags.cpumodel_unsupport_flags))
             cpuf_model = cpu_model
 
-            # Add unsupported flags.
-            for fadd in flags.cpumodel_unsupport_flags:
-                cpuf_model += ",+" + str(fadd)
+            logging.debug("Cpu mode flags %s.",
+                          str(flags.quest_cpu_model_flags))
 
-            for fdel in flags.host_unsupported_flags:
-                cpuf_model += ",-" + str(fdel)
+            if all_host_supported_flags == "yes":
+                logging.debug("Added flags %s.",
+                              str(flags.cpumodel_unsupport_flags))
+
+                # Add unsupported flags.
+                for fadd in flags.cpumodel_unsupport_flags:
+                    cpuf_model += ",+" + str(fadd)
+
+                for fdel in flags.host_unsupported_flags:
+                    cpuf_model += ",-" + str(fdel)
 
             (self.vm, _) = start_guest_with_cpuflags(cpuf_model, smp)
 
@@ -751,7 +779,23 @@ def run_cpuflags(test, params, env):
     test_type = params.get("test_type")
     if (test_type in locals()):
         tests_group = locals()[test_type]
-        tests_group()
+        if params.get("cpu_model"):
+            tests_group()
+        else:
+            cpu_models = (set(get_cpu_models_supported_by_host()) -
+                          set(cpu_model_black_list))
+            logging.info("Start test with cpu models %s" % (str(cpu_models)))
+            failed = []
+            for cpumodel in cpu_models:
+                params["cpu_model"] = cpumodel
+                try:
+                    tests_group()
+                except:
+                    print_exception(tests_group)
+                    failed.append(cpumodel)
+            if failed != []:
+                raise error.TestFail("Test of cpu models %s failed." %
+                                     (str(failed)))
     else:
         raise error.TestFail("Test group '%s' is not defined in"
                              " cpuflags test" % test_type)
