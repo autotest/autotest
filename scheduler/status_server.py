@@ -1,4 +1,4 @@
-import os, BaseHTTPServer, cgi, threading, urllib, fcntl, logging
+import BaseHTTPServer, cgi, threading, urllib, fcntl, logging
 try:
     import autotest.common as common
 except ImportError:

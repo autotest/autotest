@@ -7,7 +7,7 @@ except ImportError:
     import common
 from autotest.client.shared import global_config
 from autotest.client.shared.test_utils import mock
-from autotest.scheduler import drone_manager, drone_utility, drones
+from autotest.scheduler import drone_manager, drones
 from autotest.scheduler import scheduler_config
 
 class MockDrone(drones._AbstractDrone):

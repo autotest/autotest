@@ -3,8 +3,7 @@ Autotest AFE Cleanup used by the scheduler
 """
 
 
-import datetime, time, logging, random
-from autotest.database import database_connection
+import time, logging, random
 from autotest.frontend.afe import models
 from autotest.scheduler import email_manager, scheduler_config
 from autotest.client.shared import host_protections

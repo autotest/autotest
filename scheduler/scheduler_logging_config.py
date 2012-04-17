@@ -2,7 +2,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import logging, os
+import logging
 from autotest.client.shared import logging_config
 
 class SchedulerLoggingConfig(logging_config.LoggingConfig):
