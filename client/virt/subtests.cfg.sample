@@ -43,6 +43,28 @@ variants:
         # Set migrate_background to yes to run migration in parallel
         # migrate_background = yes
 
+        # Way of delivering ks file into the guest
+        variants:
+            # Additional iso with kickstart is attached into the guest
+            - extra_cdrom_ks:
+                only Linux
+                unattended_delivery_method = cdrom
+                cdroms += " unattended"
+                drive_index_unattended = 1
+                drive_index_cd1 = 2
+            # Kickstart is packed into the installation iso
+            - in_cdrom_ks:
+                only Linux, unattended_install.cdrom
+                unattended_delivery_method = integrated
+            # Autotest starts simple http server providing kickstart 
+            - http_ks:
+                only Linux
+                unattended_delivery_method = url
+            # Image with kickstart is attached into the guest as floppy drive
+            - floppy_ks:
+                only Linux
+                unattended_delivery_method = floppy
+
         variants:
             # Install guest from cdrom
             - cdrom:
