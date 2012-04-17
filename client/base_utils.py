@@ -7,8 +7,8 @@ Convenience functions for use by tests or whomever.
 Note that this file is mixed in by utils.py - note very carefully the
 precedence order defined there
 """
-import os, shutil, sys, signal, commands, pickle, glob, statvfs
-import math, re, string, fnmatch, logging
+import os, shutil, commands, pickle, glob
+import math, re, fnmatch, logging
 from autotest.client.shared import error, utils, magic
 
 

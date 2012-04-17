@@ -6,7 +6,7 @@ The interface as required for ABAT.
 __author__ = """Copyright Andy Whitcroft 2006"""
 
 from autotest.client import utils
-import os, harness, time, re
+import os, harness, re
 
 def autobench_load(fn):
     disks = re.compile(r'^\s*DATS_FREE_DISKS\s*=(.*\S)\s*$')

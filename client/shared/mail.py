@@ -1,4 +1,4 @@
-import os, email, smtplib
+import email, smtplib
 
 
 def send(from_address, to_addresses, cc_addresses, subject, message_body):

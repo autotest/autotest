@@ -11,7 +11,6 @@ __all__ = ['iso9660', 'Iso9660IsoInfo', 'Iso9660IsoRead', 'Iso9660Mount']
 
 
 import os, logging, tempfile, shutil
-import common
 from autotest.client.shared import utils
 
 

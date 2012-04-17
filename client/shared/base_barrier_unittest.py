@@ -2,8 +2,7 @@
 
 __author__ = """Ashwin Ganti (aganti@google.com)"""
 
-import os, sys, socket, errno, unittest, threading
-from time import time, sleep
+import socket, unittest, threading
 try:
     import autotest.common as common
 except ImportError:

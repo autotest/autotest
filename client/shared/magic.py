@@ -18,7 +18,7 @@ API Usage:
 @see: http://www.jsnp.net/code/magic.py
 """
 
-import logging, optparse, os, re, sys, string, struct
+import logging, optparse, os, sys, string, struct
 import logging_config, logging_manager
 
 

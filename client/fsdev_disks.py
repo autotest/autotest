@@ -1,4 +1,4 @@
-import sys, os, re, string
+import sys, os, re
 from autotest.client import utils, fsinfo, fsdev_mgr, partition
 from autotest.client.shared import error
 

@@ -5,12 +5,11 @@
 __author__ = 'gps@google.com (Gregory P. Smith)'
 
 import unittest
-from cStringIO import StringIO
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import error, test
+from autotest.client.shared import test
 from autotest.client.shared.test_utils import mock
 
 class TestTestCase(unittest.TestCase):

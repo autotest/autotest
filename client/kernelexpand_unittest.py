@@ -7,7 +7,6 @@ except ImportError:
     import common
 from kernelexpand import decompose_kernel
 from kernelexpand import mirror_kernel_components
-from autotest.client.shared import global_config
 from autotest.client.shared.global_config import global_config
 from autotest.client.shared.test_utils import mock
 

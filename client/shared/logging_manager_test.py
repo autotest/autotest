@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import logging, os, select, StringIO, subprocess, sys, unittest
+import logging, os, StringIO, subprocess, unittest, select
 try:
     import autotest.common as common
 except ImportError:

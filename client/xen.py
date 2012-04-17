@@ -1,8 +1,8 @@
 __author__ = """Copyright Martin J. Bligh, 2006,
                 Copyright IBM Corp. 2006, Ryan Harper <ryanh@us.ibm.com>"""
 
-import os, shutil, copy, pickle, re, glob
-from autotest.client import kernel, kernel_config, os_dep, test
+import os
+from autotest.client import kernel, os_dep
 from autotest.client import utils
 
 

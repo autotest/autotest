@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, sys, unittest, types
+import os, unittest, types
 try:
     import autotest.common as common
 except ImportError:

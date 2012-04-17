@@ -8,8 +8,7 @@ except ImportError:
 
 from autotest.client import job, setup_job
 from autotest.client import utils
-from autotest.client.shared import base_job, error, log, packages
-from autotest.client.shared import logging_manager, logging_config
+from autotest.client.shared import base_job, logging_manager, logging_config
 from autotest.client.shared import base_job_unittest
 from autotest.client.shared.test_utils import mock, unittest
 

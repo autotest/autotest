@@ -2,7 +2,7 @@
 # Copyright Martin J. Bligh (mbligh@google.com)
 # Released under the GPL, v2
 
-import os, sys, re
+import sys, re
 
 results_per_sign = 10
 

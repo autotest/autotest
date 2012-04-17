@@ -1,4 +1,4 @@
-import sys, re, string, time, commands, os, random
+import sys, re, time, commands
 
 def tee(content, filename):
     """ Write content to standard output and file """
@@ -7,7 +7,7 @@ def tee(content, filename):
     fd.close()
     print content
 
-class samples():
+class samples(object):
     def __init__(self, files):
         self.files_dict = []
         for i in range(len(files)):

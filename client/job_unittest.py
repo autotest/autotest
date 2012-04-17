@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
-import logging, os, shutil, sys, time, StringIO
+import logging, os, shutil, sys, StringIO
 try:
     import autotest.common as common
 except ImportError:
     import common
 
 from autotest.client import job, boottool, config, sysinfo, harness
-from autotest.client import test, xen, kernel, utils
-from autotest.client.shared import packages, error, log, global_config
+from autotest.client import xen, kernel, utils
+from autotest.client.shared import error
 from autotest.client.shared.global_config import global_config
 from autotest.client.shared import logging_manager, logging_config
 from autotest.client.shared import base_job_unittest
