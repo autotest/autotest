@@ -1,4 +1,4 @@
-import sys, socket, errno, logging
+import socket, errno, logging
 from time import time, sleep
 from autotest.client.shared import error
 

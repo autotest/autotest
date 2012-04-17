@@ -2,7 +2,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import logging, os
+
+import os
 from autotest.client.shared import logging_config, global_config
 
 class ClientLoggingConfig(logging_config.LoggingConfig):

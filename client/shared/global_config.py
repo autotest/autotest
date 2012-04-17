@@ -5,7 +5,7 @@ provides access to global configuration file
 
 __author__ = 'raphtee@google.com (Travis Miller)'
 
-import os, sys, ConfigParser, logging
+import os, sys, ConfigParser
 from autotest.client.shared import error
 
 

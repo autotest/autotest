@@ -1,4 +1,3 @@
-import logging
 from autotest.client.shared import enum, global_config
 
 # Changing this file has consequences that need to be understood.

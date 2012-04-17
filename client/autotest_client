@@ -4,9 +4,7 @@ try:
 except ImportError:
     import common
 
-import sys, os, time, subprocess
-
-from autotest.client.shared import utils
+import sys, os, subprocess
 
 # We want to set the output (stdout&stderr) of the autotest binary onto our
 # stdout channel. We went to get the status stream of autotest back on our

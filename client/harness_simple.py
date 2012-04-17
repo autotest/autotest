@@ -4,7 +4,7 @@ The simple harness interface
 
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
-import os, harness, time
+import os, harness
 
 class harness_simple(harness.harness):
     """

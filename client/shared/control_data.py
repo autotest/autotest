@@ -1,7 +1,7 @@
 #
 # Copyright 2008 Google Inc. Released under the GPL v2
 
-import compiler, textwrap, types
+import compiler, textwrap
 
 
 REQUIRED_VARS = set(['author', 'doc', 'name', 'time', 'test_class',

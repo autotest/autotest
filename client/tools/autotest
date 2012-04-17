@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import sys,os
+import sys, os
 
 autodir = None
 autotest_conf = os.path.realpath('/etc/autotest.conf')

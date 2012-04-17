@@ -1,5 +1,5 @@
 import os
-from autotest.client.shared import utils, error
+from autotest.client.shared import utils
 from autotest.client.shared import boottool as common_boottool
 
 class boottool(common_boottool.boottool):

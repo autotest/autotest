@@ -18,11 +18,11 @@
 #       src             eg. tests/<test>/src
 #       tmpdir          eg. tmp/<testname.tag>
 
-import os, traceback, sys, shutil, logging, resource, glob
+import os, logging, resource, glob
 
-from autotest.client.shared import error, utils
+from autotest.client.shared import utils
 from autotest.client.shared import test as common_test
-from autotest.client import sysinfo, os_dep
+from autotest.client import os_dep
 
 
 class test(common_test.base_test):

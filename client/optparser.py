@@ -4,7 +4,6 @@ Autotest client/local option parser
 
 import sys, optparse
 
-import common
 from autotest.client.cmdparser import CommandParser
 
 
