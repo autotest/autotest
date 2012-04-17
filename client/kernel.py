@@ -453,7 +453,7 @@ class kernel(BootableKernel):
                                 "kernel version %s under /lib/modules", version)
             version = os.path.basename(real_version_list[0])
 
-        if vendor in ['Red Hat', 'Fedora Core']:
+        if vendor in ['Red Hat', 'Fedora']:
             try:
                 cmd = os_dep.command('dracut')
                 full_cmd = '%s -f %s %s' % (cmd, initrd, version)
