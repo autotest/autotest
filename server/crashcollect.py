@@ -1,4 +1,4 @@
-import os, time, pickle, logging, shutil, gzip
+import os, time, logging, shutil, gzip
 
 from autotest.client.shared import global_config
 from autotest.server import utils

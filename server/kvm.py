@@ -16,7 +16,7 @@ stutsman@google.com (Ryan Stutsman)
 import os
 
 from autotest.client.shared import error
-from autotest.server import hypervisor, utils, hosts
+from autotest.server import hypervisor, utils
 
 
 _qemu_ifup_script= """\

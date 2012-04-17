@@ -1,7 +1,6 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-import re, os, sys, traceback, subprocess, time, pickle, glob, tempfile
-import logging, getpass
+import re, os, sys, traceback, time, glob, tempfile, logging
 from autotest.server import installable_object, prebuild, utils
 from autotest.client.shared import base_job, log, error, autotemp
 from autotest.client.shared import global_config, packages

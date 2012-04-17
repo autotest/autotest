@@ -6,7 +6,7 @@ This module defines the Kernel class
         Kernel: an os kernel
 """
 
-import os, os.path, time
+import os
 from autotest.client.shared import error
 from autotest.server import kernel, utils
 
