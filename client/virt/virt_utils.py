@@ -1802,6 +1802,57 @@ class KojiDirIndexParser(HTMLParser.HTMLParser):
                     self.package_file_names.append(v)
 
 
+class RPMFileNameInfo:
+    '''
+    Simple parser for RPM based on information present on the filename itself
+    '''
+    def __init__(self, filename):
+        '''
+        Initializes a new RpmInfo instance based on a filename
+        '''
+        self.filename = filename
+
+
+    def get_filename_without_suffix(self):
+        '''
+        Returns the filename without the default RPM suffix
+        '''
+        assert self.filename.endswith('.rpm')
+        return self.filename[0:-4]
+
+
+    def get_filename_without_arch(self):
+        '''
+        Returns the filename without the architecture
+
+        This also excludes the RPM suffix, that is, removes the leading arch
+        and RPM suffix.
+        '''
+        wo_suffix = self.get_filename_without_suffix()
+        arch_sep = wo_suffix.rfind('.')
+        return wo_suffix[:arch_sep]
+
+
+    def get_arch(self):
+        '''
+        Returns just the architecture as present on the RPM filename
+        '''
+        wo_suffix = self.get_filename_without_suffix()
+        arch_sep = wo_suffix.rfind('.')
+        return wo_suffix[arch_sep+1:]
+
+
+    def get_nvr_info(self):
+        '''
+        Returns a dictionary with the name, version and release components
+
+        If koji is not installed, this returns None
+        '''
+        if not KOJI_INSTALLED:
+            return None
+        return koji.util.koji.parse_NVR(self.get_filename_without_arch())
+
+
 class KojiClient(object):
     """
     Stablishes a connection with the build system, either koji or brew.
