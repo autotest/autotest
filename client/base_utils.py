@@ -223,28 +223,31 @@ def list_grep(list, pattern):
 
 
 def get_os_vendor():
-    """Try to guess what's the os vendor
     """
+    Try to guess what's the os vendor.
+    """
+    vendor = 'Unknown'
     if os.path.isfile('/etc/SuSE-release'):
         return 'SUSE'
 
     issue = '/etc/issue'
 
     if not os.path.isfile(issue):
-        return 'Unknown'
+        return vendor
 
     if file_contains_pattern(issue, 'Red Hat'):
-        return 'Red Hat'
+        vendor = 'Red Hat'
     elif file_contains_pattern(issue, 'Fedora'):
-        return 'Fedora'
+        vendor = 'Fedora'
     elif file_contains_pattern(issue, 'SUSE'):
-        return 'SUSE'
+        vendor = 'SUSE'
     elif file_contains_pattern(issue, 'Ubuntu'):
-        return 'Ubuntu'
+        vendor = 'Ubuntu'
     elif file_contains_pattern(issue, 'Debian'):
-        return 'Debian'
-    else:
-        return 'Unknown'
+        vendor = 'Debian'
+
+    logging.debug("Detected OS vendor: %s", vendor)
+    return vendor
 
 
 def get_cc():
