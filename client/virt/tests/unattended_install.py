@@ -669,48 +669,43 @@ class UnattendedInstallConfig(object):
         elif self.unattended_file.endswith('.ks'):
             # Red Hat kickstart install
             dest_fname = 'ks.cfg'
-            if ((self.params.get('vm_type') == 'libvirt') and
-                (self.vm.driver_type == 'xen')):
-                if self.params.get('hvm_or_pv') == 'hvm':
-                    ks_param = 'ks=cdrom:/isolinux/%s' % dest_fname
-                    kernel_params = getattr(self, 'kernel_params')
-                    if 'ks=' in kernel_params:
-                        kernel_params = re.sub('ks\=[\w\d\:\.\/]+',
-                                               ks_param,
-                                               kernel_params)
-                    else:
-                        kernel_params = '%s %s' % (kernel_params, ks_param)
-                    self.params['kernel_params'] = ''
-                    boot_disk = CdromInstallDisk(self.cdrom_unattended,
-                                                 self.tmpdir,
-                                                 self.cdrom_cd1_mount,
-                                                 kernel_params)
-                # TODO: for pv guest create http server with ks file
-                # TODO: for hvm guest create boot.iso with boot params with
-                # ks and xen_emunl_unplug=never
-                if self.params.get('hvm_or_pv') == 'pv':
-                    if self.unattended_server_port is None:
-                        self.unattended_server_port = virt_utils.find_free_port(
-                            8000,
-                            8099,
-                            self.url_auto_content_ip)
-                    path = os.path.join(os.path.dirname(self.cdrom_unattended),
-                                        'ks')
-                    boot_disk = RemoteInstall(path, self.url_auto_content_ip,
-                                              self.unattended_server_port,
-                                              dest_fname)
-                    ks_param = 'ks=%s' % boot_disk.get_url()
-                    kernel_params = getattr(self, 'kernel_params')
-                    if 'ks=' in kernel_params:
-                        kernel_params = re.sub('ks\=[\w\d\:\.\/]+',
-                                              ks_param,
-                                              kernel_params)
-                    else:
-                        kernel_params = '%s %s' % (kernel_params, ks_param)
-                    self.params['kernel_params'] = kernel_params
-            elif self.cdrom_unattended:
+            if self.params.get('unattended_delivery_method') == 'integrated':
+                ks_param = 'ks=cdrom:/isolinux/%s' % dest_fname
+                kernel_params = getattr(self, 'kernel_params')
+                if 'ks=' in kernel_params:
+                    kernel_params = re.sub('ks\=[\w\d\:\.\/]+',
+                                           ks_param,
+                                           kernel_params)
+                else:
+                    kernel_params = '%s %s' % (kernel_params, ks_param)
+                self.params['kernel_params'] = ''
+                boot_disk = CdromInstallDisk(self.cdrom_unattended,
+                                             self.tmpdir,
+                                             self.cdrom_cd1_mount,
+                                             kernel_params)
+            elif self.params.get('unattended_delivery_method') == 'url':
+                if self.unattended_server_port is None:
+                    self.unattended_server_port = virt_utils.find_free_port(
+                        8000,
+                        8099,
+                        self.url_auto_content_ip)
+                path = os.path.join(os.path.dirname(self.cdrom_unattended),
+                                    'ks')
+                boot_disk = RemoteInstall(path, self.url_auto_content_ip,
+                                          self.unattended_server_port,
+                                          dest_fname)
+                ks_param = 'ks=%s' % boot_disk.get_url()
+                kernel_params = getattr(self, 'kernel_params')
+                if 'ks=' in kernel_params:
+                    kernel_params = re.sub('ks\=[\w\d\:\.\/]+',
+                                          ks_param,
+                                          kernel_params)
+                else:
+                    kernel_params = '%s %s' % (kernel_params, ks_param)
+                self.params['kernel_params'] = kernel_params
+            elif self.params.get('unattended_delivery_method') == 'cdrom':
                 boot_disk = CdromDisk(self.cdrom_unattended, self.tmpdir)
-            elif self.floppy:
+            elif self.params.get('unattended_delivery_method') == 'floppy':
                 boot_disk = FloppyDisk(self.floppy, self.qemu_img_binary,
                                        self.tmpdir)
             else:
@@ -763,20 +758,20 @@ class UnattendedInstallConfig(object):
         if not os.path.isdir(self.image_path):
             os.makedirs(self.image_path)
 
-        if self.vm.driver_type == 'xen':
+        if self.params.get('unattended_delivery_method') in \
+                           ['integrated','url']:
             i = iso9660.Iso9660Mount(self.cdrom_cd1)
             self.cdrom_cd1_mount = i.mnt_dir
         else:
             i = iso9660.iso9660(self.cdrom_cd1)
-            if i is None:
-                raise error.TestFail("Could not instantiate an iso9660 class")
+
+        if i is None:
+            raise error.TestFail("Could not instantiate an iso9660 class")
 
         i.copy(os.path.join(self.boot_path, os.path.basename(self.kernel)),
                self.kernel)
         i.copy(os.path.join(self.boot_path, os.path.basename(self.initrd)),
                self.initrd)
-        if self.vm.driver_type != 'xen':
-            i.close()
 
         if self.unattended_file.endswith('.preseed'):
             self.preseed_initrd()
@@ -791,7 +786,10 @@ class UnattendedInstallConfig(object):
                     utils.run("mv %s vmlinuz" % base_kernel, verbose=DEBUG)
                 if base_initrd != 'initrd.img':
                     utils.run("mv %s initrd.img" % base_initrd, verbose=DEBUG)
-                cleanup(self.cdrom_cd1_mount)
+                if self.params.get('unattended_delivery_method') \
+                                   != 'integrated':
+                     i.close()
+                     cleanup(self.cdrom_cd1_mount)
             elif ((self.vm.driver_type == 'xen') and
                   (self.params.get('hvm_or_pv') == 'pv')):
                 logging.debug("starting unattended content web server")
