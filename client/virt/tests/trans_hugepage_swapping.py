@@ -109,5 +109,6 @@ def run_trans_hugepage_swapping(test, params, env):
         logging.info("Swapping test succeed")
 
     finally:
-        session.close()
+        if session is not None:
+            session.close()
         test_config.cleanup()
