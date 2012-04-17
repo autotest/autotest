@@ -112,7 +112,7 @@ class harness_ABAT(harness.harness):
         # For RedHat installs we do not load up the module.conf
         # as they cannot be builtin.  Pass them as arguments.
         vendor = utils.get_os_vendor()
-        if vendor in ['Red Hat', 'Fedora Core'] and 'modules' in conf:
+        if vendor in ['Red Hat', 'Fedora'] and 'modules' in conf:
             args = '--allow-missing'
             for mod in conf['modules']:
                 args += " --with " + mod
