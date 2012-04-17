@@ -73,7 +73,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Fedora.16.64
-        only unattended_install.cdrom, boot, shutdown
+        only unattended_install.cdrom.extra_cdrom_ks, boot, shutdown
         # qemu needs -enable-kvm on the cmdline
         extra_params += ' -enable-kvm'
 
@@ -91,7 +91,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Fedora.16.64
-        only unattended_install.cdrom, boot, shutdown
+        only unattended_install.cdrom.extra_cdrom_ks, boot, shutdown
 
     # Runs qemu-kvm, f16 64 bit guest OS, install, starts qemu-kvm
     # with 9P support and runs 9P CI tests
@@ -107,7 +107,7 @@ variants:
         only smallpages
         only 9p_export
         only Fedora.16.64
-        only unattended_install.cdrom, boot, 9p.9p_ci, shutdown
+        only unattended_install.cdrom.extra_cdrom_ks, boot, 9p.9p_ci, shutdown
 
     # Runs your own guest image (qcow2, can be adjusted), all migration tests
     # (on a core2 duo laptop with HD and 4GB RAM, F15 host took 3 hours to run)
