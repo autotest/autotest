@@ -1,7 +1,7 @@
-import os, shutil, copy, pickle, re, glob, time, logging
-from autotest.client import kernel_config, os_dep, kernelexpand, test
+import os, copy, pickle, re, glob, time, logging
+from autotest.client import kernel_config, os_dep, kernelexpand
 from autotest.client import utils
-from autotest.client.shared import log, error, packages
+from autotest.client.shared import log, error
 
 
 def tee_output_logdir_mark(fn):

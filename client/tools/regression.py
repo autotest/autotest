@@ -1,4 +1,4 @@
-import ConfigParser, sys, commands, os
+import ConfigParser, sys, commands
 import analyzer
 
 def compare(testname, olddir, curdir, config_file='perf.conf', output_dir="./result.txt"):

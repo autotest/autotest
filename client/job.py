@@ -5,16 +5,15 @@ This is the core infrastructure.
 Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
-import copy, os, platform, re, shutil, sys, time, traceback, types, glob
-import logging, getpass, errno, weakref
-import cPickle as pickle
+import copy, os, re, shutil, sys, time, traceback, types, glob
+import logging, getpass, weakref
 from autotest.client import client_logging_config
 from autotest.client import utils, parallel, kernel, xen
 from autotest.client import profilers, boottool, harness
 from autotest.client import config, sysinfo, test, local_host
 from autotest.client import partition as partition_lib
 from autotest.client.shared import base_job
-from autotest.client.shared import error, barrier, log, logging_manager
+from autotest.client.shared import error, barrier, logging_manager
 from autotest.client.shared import base_packages, packages
 from autotest.client.shared import global_config
 from autotest.client.tools import html_report

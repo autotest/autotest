@@ -5,7 +5,7 @@ Simple crash handling application for autotest
 @copyright Red Hat Inc 2009
 @author Lucas Meneghel Rodrigues <lmr@redhat.com>
 """
-import sys, os, commands, glob, shutil, syslog, re, time, random, string
+import sys, os, commands, glob, syslog, re, time, random, string
 
 
 def generate_random_string(length):

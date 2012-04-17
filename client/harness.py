@@ -5,7 +5,7 @@ The interface between the client and the server when hosted.
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-import os, sys, logging
+import os, logging
 try:
     import autotest.common as common
 except ImportError:

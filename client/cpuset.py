@@ -4,7 +4,7 @@ __author__ = "duanes (Duane Sand), pdahl (Peter Dahl)"
 # A basic cpuset/cgroup container manager for limiting memory use during tests
 #   for use on kernels not running some site-specific container manager
 
-import os, sys, re, glob, fcntl, logging
+import os, re, glob, fcntl, logging
 from autotest.client import utils
 from autotest.client.shared import error
 

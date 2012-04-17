@@ -3,7 +3,7 @@
 #
 __author__ = """Copyright Andy Whitcroft 2007"""
 
-import sys, re
+import re
 
 #
 # Sort key for ordering versions chronologically.  The key ordering

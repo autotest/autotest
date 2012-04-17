@@ -1,10 +1,10 @@
-import os, sys
+import os
 try:
     import autotest.common as common
 except ImportError:
     import common
 
-from autotest.client.shared import error, utils, packages
+from autotest.client.shared import error
 
 
 class ProfilerNotPresentError(error.JobError):
