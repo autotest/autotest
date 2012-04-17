@@ -6,4 +6,3 @@ import setup_modules
 sys.path.pop(0)
 setup_modules.setup(base_path=client_dir,
                     root_module_name="autotest.client")
-
