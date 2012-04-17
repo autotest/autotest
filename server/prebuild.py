@@ -2,7 +2,7 @@
 #
 # Eric Li <ericli@google.com>
 
-import logging, os, pickle, re, sys
+import logging, os
 try:
     import autotest.common as common
 except ImportError:

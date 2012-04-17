@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import tempfile
 try:
     import autotest.common as common
 except ImportError:

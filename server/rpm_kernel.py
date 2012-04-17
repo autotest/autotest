@@ -13,7 +13,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)"""
 
 
-import os, time
+import os
 from autotest.client.shared import error
 from autotest.server import kernel, utils
 

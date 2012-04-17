@@ -6,11 +6,11 @@ This is the core infrastructure. Derived from the client side job.py
 Copyright Martin J. Bligh, Andy Whitcroft 2007
 """
 
-import getpass, os, sys, re, stat, tempfile, time, select, subprocess, platform
+import getpass, os, sys, re, tempfile, time, select, platform
 import traceback, shutil, warnings, fcntl, pickle, logging, itertools, errno
 from autotest.client import sysinfo
 from autotest.client.shared import base_job
-from autotest.client.shared import error, log, utils, packages
+from autotest.client.shared import error, utils, packages
 from autotest.client.shared import logging_manager
 from autotest.server import test, subcommand, profilers
 from autotest.server.hosts import abstract_ssh

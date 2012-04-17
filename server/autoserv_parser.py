@@ -1,4 +1,4 @@
-import os, sys, getopt, optparse
+import os, sys, optparse
 
 from autotest.client.shared import host_protections, utils
 
