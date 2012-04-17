@@ -1,4 +1,4 @@
-import traceback, socket, os, time, smtplib, re, sys, getpass, logging
+import traceback, socket, os, time, smtplib, re, getpass, logging
 try:
     import autotest.common as common
 except ImportError:

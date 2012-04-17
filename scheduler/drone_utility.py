@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-import pickle, subprocess, os, shutil, socket, sys, time, signal, getpass
-import datetime, traceback, tempfile, itertools, logging
+import pickle, subprocess, os, shutil, sys, time, signal, getpass
+import datetime, traceback, tempfile, itertools
 try:
     import autotest.common as common
 except ImportError:
