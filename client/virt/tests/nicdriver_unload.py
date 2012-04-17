@@ -1,7 +1,6 @@
 import logging, threading, os, time
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt.tests import file_transfer
 from autotest.client.virt import virt_test_utils, virt_utils
 
 
@@ -42,7 +41,7 @@ def run_nicdriver_unload(test, params, env):
     try:
         threads = []
         for t in range(int(params.get("sessions_num", "10"))):
-            thread = utils.InterruptedThread(file_transfer.run_file_transfer,
+            thread = utils.InterruptedThread(virt_test_utils.run_file_transfer,
                                              (test, params, env))
             thread.start()
             threads.append(thread)
