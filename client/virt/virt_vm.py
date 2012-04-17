@@ -310,8 +310,30 @@ def get_image_filename(params, root_dir):
     @note: params should contain:
            image_name -- the name of the image file, without extension
            image_format -- the format of the image (qcow2, raw etc)
+    @raise VMDeviceError: When no matching disk found (in indirect method).
     """
     image_name = params.get("image_name", "image")
+    indirect_image_select = params.get("indirect_image_select")
+    if indirect_image_select:
+        re_name = image_name
+        indirect_image_select = int(indirect_image_select)
+        matching_images = utils.system_output("ls -1d %s" % re_name)
+        matching_images = sorted(matching_images.split('\n'))
+        if matching_images[-1] == '':
+            matching_images = matching_images[:-1]
+        try:
+            image_name = matching_images[indirect_image_select]
+        except IndexError:
+            raise VMDeviceError("No matching disk found for name = '%s', "
+                                "matching = '%s' and selector = '%s'" %
+                                (re_name, matching_images,
+                                 indirect_image_select))
+        for protected in params.get('indirect_image_blacklist', '').split(' '):
+            if re.match(protected, image_name):
+                raise VMDeviceError("Matching disk is in blacklist. name = '%s"
+                                    "', matching = '%s' and selector = '%s'" %
+                                    (re_name, matching_images,
+                                     indirect_image_select))
     image_format = params.get("image_format", "qcow2")
     if params.get("image_raw_device") == "yes":
         return image_name
