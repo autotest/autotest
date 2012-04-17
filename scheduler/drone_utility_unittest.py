@@ -2,7 +2,7 @@
 
 """Tests for drone_utility."""
 
-import os, sys, unittest
+import unittest
 from cStringIO import StringIO
 
 try:
