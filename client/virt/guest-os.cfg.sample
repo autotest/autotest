@@ -16,12 +16,6 @@ variants:
         mem_chk_cmd = dmidecode -t 17 | awk -F: '/Size/ {print $2}'
         mem_chk_cur_cmd = grep MemTotal /proc/meminfo
         cpu_chk_cmd = grep -c processor /proc/cpuinfo
-        unattended_install:
-            # If you want to use floppy to hold kickstarts,
-            # comment the 3 lines below
-            cdroms += " unattended"
-            drive_index_unattended = 1
-            drive_index_cd1 = 2
         timedrift:
             extra_params += " -no-kvm-pit-reinjection"
             time_command = date +'TIME: %a %m/%d/%Y %H:%M:%S.%N'

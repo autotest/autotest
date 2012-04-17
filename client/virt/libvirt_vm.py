@@ -876,8 +876,7 @@ class VM(virt_vm.BaseVM):
         elif params.get("medium") == 'cdrom':
             if params.get("use_libvirt_cdrom_switch") == 'yes':
                 virt_install_cmd += add_cdrom(help, params.get("cdrom_cd1"))
-            elif ((self.driver_type == 'xen') and
-                  (params.get('hvm_or_pv') == 'hvm')):
+            elif params.get("unattended_delivery_method") == "integrated":
                 virt_install_cmd += add_cdrom(help,
                                               params.get("cdrom_unattended"))
             else:
@@ -959,7 +958,8 @@ class VM(virt_vm.BaseVM):
                                   image_params.get("drive_cache"),
                                   image_params.get("image_format"))
 
-        if self.driver_type == 'qemu':
+        if (params.get('unattended_delivery_method') != 'integrated' and
+            not (self.driver_type == 'xen' and params.get('hvm_or_pv') == 'pv')):
             for cdrom in params.objects("cdroms"):
                 cdrom_params = params.object_params(cdrom)
                 iso = cdrom_params.get("cdrom")
