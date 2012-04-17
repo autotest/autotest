@@ -68,7 +68,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
         for path in Autotest.get_client_autodir_paths(host):
             try:
-                autotest_binary = os.path.join(path, 'bin', 'autotest')
+                autotest_binary = os.path.join(path, 'autotest')
                 host.run('test -x %s' % utils.sh_escape(autotest_binary))
                 host.run('test -w %s' % utils.sh_escape(path))
                 logging.debug('Found existing autodir at %s', path)
