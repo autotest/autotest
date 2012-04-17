@@ -6,7 +6,7 @@ KVM test utility functions.
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
 import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect, tarfile
-import struct, shutil, glob
+import struct, shutil, glob, HTMLParser
 from autotest_lib.client.bin import utils, os_dep
 from autotest_lib.client.common_lib import error, logging_config
 from autotest_lib.client.common_lib import logging_manager, git
@@ -1776,6 +1776,30 @@ class PciAssignable(object):
                     logging.info("Released device %s successfully", pci_id)
         except Exception:
             return
+
+
+class KojiDirIndexParser(HTMLParser.HTMLParser):
+    '''
+    Parser for HTML directory index pages, specialized to look for RPM links
+    '''
+    def __init__(self):
+        '''
+        Initializes a new KojiDirListParser instance
+        '''
+        HTMLParser.HTMLParser.__init__(self)
+        self.package_file_names = []
+
+
+    def handle_starttag(self, tag, attrs):
+        '''
+        Handle tags during the parsing
+
+        This just looks for links ('a' tags) for files ending in .rpm
+        '''
+        if tag == 'a':
+            for k, v in attrs:
+                if k == 'href' and v.endswith('.rpm'):
+                    self.package_file_names.append(v)
 
 
 class KojiClient(object):
