@@ -1,5 +1,4 @@
 import logging, time
-from autotest.client.virt.tests import file_transfer
 from autotest.client.virt import virt_test_utils, aexpect
 from autotest.client.shared import error, utils
 
@@ -51,7 +50,7 @@ def run_nic_bonding(test, params, env):
 
     try:
         logging.info("Test file transfering:")
-        file_transfer.run_file_transfer(test, params, env)
+        virt_test_utils.run_file_transfer(test, params, env)
 
         logging.info("Failover test with file transfer")
         transfer_thread = utils.InterruptedThread(

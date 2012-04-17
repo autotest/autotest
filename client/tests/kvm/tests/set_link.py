@@ -1,6 +1,5 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt.tests import file_transfer
 from autotest.client.virt import virt_test_utils
 
 
@@ -50,5 +49,5 @@ def run_set_link(test, params, env):
     logging.info("Issue set_link commands for network devics")
     set_link_test(device_id)
 
-    file_transfer.run_file_transfer(test, params, env)
+    virt_test_utils.run_file_transfer(test, params, env)
     session.close()
