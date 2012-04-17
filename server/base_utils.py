@@ -8,7 +8,7 @@ DO NOT import this file directly - it is mixed in by server/utils.py,
 import that instead
 """
 
-import atexit, os, re, shutil, textwrap, sys, tempfile, types
+import atexit, os, re, shutil, sys, tempfile, types
 
 from autotest.client.shared import barrier, utils
 from autotest.server import subcommand

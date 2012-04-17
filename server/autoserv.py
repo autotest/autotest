@@ -31,7 +31,7 @@ except ImportError, e:
         sys.exit(1)
 
 from autotest.server import server_logging_config
-from autotest.server import server_job, utils, autoserv_parser
+from autotest.server import server_job, autoserv_parser
 from autotest.server import autotest_remote
 from autotest.client.shared import pidfile, logging_manager
 
