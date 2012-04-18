@@ -9,8 +9,7 @@ import setup_modules
 
 class LoggingErrorStderrTests(unittest.TestCase):
     def setUp(self):
-        autotest_dir = os.path.abspath(os.path.join(setup_modules.dirname,
-                                                    '..'))
+        autotest_dir = os.path.dirname(sys.modules[__name__].__file__)
         setup_modules.setup(autotest_dir, root_module_name='autotest')
         self.god = mock.mock_god()
         self.test_stderr = cStringIO.StringIO()
