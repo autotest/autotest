@@ -71,23 +71,22 @@ def run_trans_hugepage_swapping(test, params, env):
 
             # Set the memory size of vm
             # To ignore the oom killer set it to the free swap size
-            vm = virt_test_utils.get_living_vm(env, params.get("main_vm"))
+            vm = env.get_vm(params.get("main_vm"))
+            vm.verify_alive()
             if int(params['mem']) > swap_free[0]:
                 vm.destroy()
                 vm_name = 'vmsw'
                 vm0 =  params.get("main_vm")
-                vm0_key = virt_utils.env_get_vm(env, vm0)
+                vm0_key = env.get_vm(vm0)
                 params['vms'] = params['vms'] + " " + vm_name
                 params['mem'] = str(swap_free[0])
                 vm_key = vm0_key.clone(vm0, params)
                 virt_utils.env_register_vm(env, vm_name, vm_key)
                 virt_env_process.preprocess_vm(test, params, env, vm_name)
                 vm_key.create()
-                session = virt_utils.wait_for(vm_key.remote_login,
-                                              timeout=login_timeout)
+                session = vm_key.wait_for_login(timeout=login_timeout)
             else:
-                session = virt_test_utils.wait_for_login(vm,
-                                                        timeout=login_timeout)
+                session = vm.wait_for_login(timeout=login_timeout)
 
             error.context("making guest to swap memory")
             cmd = ("dd if=/dev/zero of=%s/zero bs=%s000000 count=%s" %
