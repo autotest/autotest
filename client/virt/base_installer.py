@@ -462,6 +462,9 @@ class KojiInstaller(BaseInstaller):
             virt_utils.set_default_koji_tag(self.tag)
         self.koji_pkgs = params.get("%s_pkgs" % self.param_key_prefix,
                                     "").split()
+        self.koji_scratch_pkgs = params.get("%s_scratch_pkgs" %
+                                            self.param_key_prefix,
+                                            "").split()
         if self.install_debug_info:
             self._expand_koji_pkgs_with_debuginfo()
 
@@ -502,6 +505,13 @@ class KojiInstaller(BaseInstaller):
             pkg = virt_utils.KojiPkgSpec(pkg_text)
             rpm_names = koji_client.get_pkg_rpm_names(pkg)
             all_rpm_names += rpm_names
+        for scratch_pkg_text in self.koji_scratch_pkgs:
+            pkg = virt_utils.KojiScratchPkgSpec(scratch_pkg_text)
+            rpm_urls = koji_client.get_scratch_pkg_urls(pkg)
+            file_names = map(os.path.basename, rpm_urls)
+            for f in file_names:
+                r = virt_utils.RPMFileNameInfo(f)
+                all_rpm_names.append(r.get_nvr_info()['name'])
         return all_rpm_names
 
 
@@ -512,6 +522,11 @@ class KojiInstaller(BaseInstaller):
             pkg = virt_utils.KojiPkgSpec(pkg_text)
             rpm_file_names = koji_client.get_pkg_rpm_file_names(pkg)
             all_rpm_file_names += rpm_file_names
+        for scratch_pkg_text in self.koji_scratch_pkgs:
+            pkg = virt_utils.KojiScratchPkgSpec(scratch_pkg_text)
+            rpm_urls = koji_client.get_scratch_pkg_urls(pkg)
+            file_names = map(os.path.basename, rpm_urls)
+            all_rpm_file_names += file_names
         return all_rpm_file_names
 
 
@@ -529,6 +544,9 @@ class KojiInstaller(BaseInstaller):
             else:
                 logging.error('Package specification (%s) is invalid: %s' %
                               (pkg, pkg.describe_invalid()))
+        for pkg_text in self.koji_scratch_pkgs:
+            pkg = virt_utils.KojiScratchPkgSpec(pkg_text)
+            koji_client.get_scratch_pkgs(pkg, dst_dir=self.test_srcdir)
 
 
     def _install_phase_install(self):
