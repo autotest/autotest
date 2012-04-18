@@ -663,6 +663,12 @@ class VM(virt_vm.BaseVM):
         def add_name(help, name):
             return " --name '%s'" % name
 
+        def add_machine_type(help, machine_type):
+            if has_option(help, "machine"):
+                return " --machine %s" % machine_type
+            else:
+                return ""
+
         def add_hvm_or_pv(help, hvm_or_pv):
             if hvm_or_pv == "hvm":
                 return " --hvm --accelerate"
@@ -845,6 +851,10 @@ class VM(virt_vm.BaseVM):
 
         # Add the VM's name
         virt_install_cmd += add_name(help, name)
+
+        machine_type = params.get("machine_type")
+        if machine_type:
+            virt_install_cmd += add_machine_type(help, machine_type)
 
         mem = params.get("mem")
         if mem:
