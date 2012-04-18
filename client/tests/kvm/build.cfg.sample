@@ -59,6 +59,20 @@ variants:
         # koji_qemu_kvm_tag = dist-f15
         # koji_qemu_kvm_pkgs = :qemu:qemu-common,qemu-img,qemu-kvm,qemu-system-x86,qemu-kvm-tools seabios vgabios :gpxe:gpxe-roms-qemu :spice:spice-server
 
+        # Koji/brew scratch builds notes:
+        #
+        # Packages from scratch builds have a different syntax:
+        #
+        #  user:task_id[:pkg1,pkg2]
+        #
+        # If you include a subset of packages and want to have debuginfo packages
+        # you must *manually* add it to the list, as there's no way to know for
+        # sure the main package name for scratch builds. If you set only the
+        # user name and task id, all packages, including -debuginfo will be
+        # installed.
+        #
+        # koji_qemu_kvm_scratch_pkgs = jdoe:1000:qemu-kvm,qemu-system-x86,qemu-kvm-tools,qemu-img,qemu-kvm-debuginfo
+
         ######################################################################
         # INSTALLERS SELECTION
         # Choose here what components you want to install

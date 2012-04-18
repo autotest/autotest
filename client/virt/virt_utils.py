@@ -6,7 +6,7 @@ KVM test utility functions.
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
 import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect, tarfile
-import struct, shutil, glob
+import struct, shutil, glob, HTMLParser, urllib
 from autotest_lib.client.bin import utils, os_dep
 from autotest_lib.client.common_lib import error, logging_config
 from autotest_lib.client.common_lib import logging_manager, git
@@ -1778,6 +1778,81 @@ class PciAssignable(object):
             return
 
 
+class KojiDirIndexParser(HTMLParser.HTMLParser):
+    '''
+    Parser for HTML directory index pages, specialized to look for RPM links
+    '''
+    def __init__(self):
+        '''
+        Initializes a new KojiDirListParser instance
+        '''
+        HTMLParser.HTMLParser.__init__(self)
+        self.package_file_names = []
+
+
+    def handle_starttag(self, tag, attrs):
+        '''
+        Handle tags during the parsing
+
+        This just looks for links ('a' tags) for files ending in .rpm
+        '''
+        if tag == 'a':
+            for k, v in attrs:
+                if k == 'href' and v.endswith('.rpm'):
+                    self.package_file_names.append(v)
+
+
+class RPMFileNameInfo:
+    '''
+    Simple parser for RPM based on information present on the filename itself
+    '''
+    def __init__(self, filename):
+        '''
+        Initializes a new RpmInfo instance based on a filename
+        '''
+        self.filename = filename
+
+
+    def get_filename_without_suffix(self):
+        '''
+        Returns the filename without the default RPM suffix
+        '''
+        assert self.filename.endswith('.rpm')
+        return self.filename[0:-4]
+
+
+    def get_filename_without_arch(self):
+        '''
+        Returns the filename without the architecture
+
+        This also excludes the RPM suffix, that is, removes the leading arch
+        and RPM suffix.
+        '''
+        wo_suffix = self.get_filename_without_suffix()
+        arch_sep = wo_suffix.rfind('.')
+        return wo_suffix[:arch_sep]
+
+
+    def get_arch(self):
+        '''
+        Returns just the architecture as present on the RPM filename
+        '''
+        wo_suffix = self.get_filename_without_suffix()
+        arch_sep = wo_suffix.rfind('.')
+        return wo_suffix[arch_sep+1:]
+
+
+    def get_nvr_info(self):
+        '''
+        Returns a dictionary with the name, version and release components
+
+        If koji is not installed, this returns None
+        '''
+        if not KOJI_INSTALLED:
+            return None
+        return koji.util.koji.parse_NVR(self.get_filename_without_arch())
+
+
 class KojiClient(object):
     """
     Stablishes a connection with the build system, either koji or brew.
@@ -2080,6 +2155,25 @@ class KojiClient(object):
         return rpm_names
 
 
+    def get_pkg_base_url(self):
+        '''
+        Gets the base url for packages in Koji
+        '''
+        if self.config_options.has_key('pkgurl'):
+            return self.config_options['pkgurl']
+        else:
+            return "%s/%s" % (self.config_options['topurl'],
+                              'packages')
+
+
+    def get_scratch_base_url(self):
+        '''
+        Gets the base url for scratch builds in Koji
+        '''
+        one_level_up = os.path.dirname(self.get_pkg_base_url())
+        return "%s/%s" % (one_level_up, 'scratch')
+
+
     def get_pkg_urls(self, pkg, arch=None):
         '''
         Gets the urls for the packages specified in pkg
@@ -2093,12 +2187,7 @@ class KojiClient(object):
         info = self.get_pkg_info(pkg)
         rpms = self.get_pkg_rpm_info(pkg, arch)
         rpm_urls = []
-
-        if self.config_options.has_key('pkgurl'):
-            base_url = self.config_options['pkgurl']
-        else:
-            base_url = "%s/%s" % (self.config_options['topurl'],
-                                  'packages')
+        base_url = self.get_pkg_base_url()
 
         for rpm in rpms:
             rpm_name = koji.pathinfo.rpm(rpm)
@@ -2124,6 +2213,63 @@ class KojiClient(object):
                 architecture independent (noarch) packages
         '''
         rpm_urls = self.get_pkg_urls(pkg, arch)
+        for url in rpm_urls:
+            utils.get_file(url,
+                           os.path.join(dst_dir, os.path.basename(url)))
+
+
+    def get_scratch_pkg_urls(self, pkg, arch=None):
+        '''
+        Gets the urls for the scratch packages specified in pkg
+
+        @type pkg: KojiScratchPkgSpec
+        @param pkg: a scratch package specification
+        @type arch: string
+        @param arch: packages built for this architecture, but also including
+                architecture independent (noarch) packages
+        '''
+        rpm_urls = []
+
+        if arch is None:
+            arch = utils.get_arch()
+        arches = [arch, 'noarch']
+
+        index_url = "%s/%s/task_%s" % (self.get_scratch_base_url(),
+                                       pkg.user,
+                                       pkg.task)
+        index_parser = KojiDirIndexParser()
+        index_parser.feed(urllib.urlopen(index_url).read())
+
+        if pkg.subpackages:
+            for p in pkg.subpackages:
+                for pfn in index_parser.package_file_names:
+                    r = RPMFileNameInfo(pfn)
+                    info = r.get_nvr_info()
+                    if (p == info['name'] and
+                        r.get_arch() in arches):
+                        rpm_urls.append("%s/%s" % (index_url, pfn))
+        else:
+            for pfn in index_parser.package_file_names:
+                if (RPMFileNameInfo(pfn).get_arch() in arches):
+                    rpm_urls.append("%s/%s" % (index_url, pfn))
+
+        return rpm_urls
+
+
+    def get_scratch_pkgs(self, pkg, dst_dir, arch=None):
+        '''
+        Download the packages from a scratch build
+
+        @type pkg: KojiScratchPkgSpec
+        @param pkg: a scratch package specification
+        @type dst_dir: string
+        @param dst_dir: the destination directory, where the downloaded
+                packages will be saved on
+        @type arch: string
+        @param arch: packages built for this architecture, but also including
+                architecture independent (noarch) packages
+        '''
+        rpm_urls = self.get_scratch_pkg_urls(pkg, arch)
         for url in rpm_urls:
             utils.get_file(url,
                            os.path.join(dst_dir, os.path.basename(url)))
@@ -2418,6 +2564,96 @@ class KojiPkgSpec(object):
         return ("<KojiPkgSpec tag=%s build=%s pkg=%s subpkgs=%s>" %
                 (self.tag, self.build, self.package,
                  ", ".join(self.subpackages)))
+
+
+class KojiScratchPkgSpec(object):
+    '''
+    A package specification syntax parser for Koji scratch builds
+
+    This holds information on user, task and subpackages to be fetched
+    from koji and possibly installed (features external do this class).
+
+    New objects can be created either by providing information in the textual
+    format or by using the actual parameters for user, task and subpackages.
+    The textual format is useful for command line interfaces and configuration
+    files, while using parameters is better for using this in a programatic
+    fashion.
+
+    This package definition has a special behaviour: if no subpackages are
+    specified, all packages of the chosen architecture (plus noarch packages)
+    will match.
+
+    The following sets of examples are interchangeable. Specifying all packages
+    from a scratch build (whose task id is 1000) sent by user jdoe:
+
+        >>> from kvm_utils import KojiScratchPkgSpec
+        >>> pkg = KojiScratchPkgSpec('jdoe:1000')
+
+        >>> pkg = KojiScratchPkgSpec(user=jdoe, task=1000)
+
+    Specifying some packages from a scratch build whose task id is 1000, sent
+    by user jdoe:
+
+        >>> pkg = KojiScratchPkgSpec('jdoe:1000:kernel,kernel-devel')
+
+        >>> pkg = KojiScratchPkgSpec(user=jdoe, task=1000,
+                                     subpackages=['kernel', 'kernel-devel'])
+    '''
+
+    SEP = ':'
+
+    def __init__(self, text='', user=None, task=None, subpackages=[]):
+        '''
+        Instantiates a new KojiScratchPkgSpec object
+
+        @type text: string
+        @param text: a textual representation of a scratch build on Koji that
+                will be parsed
+        @type task: number
+        @param task: a koji task id, example: 1001
+        @type subpackages: list of strings
+        @param subpackages: a list of package names, usually a subset of
+                the RPM packages generated by a given build
+        '''
+        # Set to None to indicate 'not set' (and be able to use 'is')
+        self.user = None
+        self.task = None
+        self.subpackages = []
+
+        # Textual representation takes precedence (most common use case)
+        if text:
+            self.parse(text)
+        else:
+            self.user = user
+            self.task = task
+            self.subpackages = subpackages
+
+
+    def parse(self, text):
+        '''
+        Parses a textual representation of a package specification
+
+        @type text: string
+        @param text: textual representation of a package in koji
+        '''
+        parts = text.count(self.SEP) + 1
+        if parts == 1:
+            raise ValueError('KojiScratchPkgSpec requires a user and task id')
+        elif parts == 2:
+            self.user, self.task = text.split(self.SEP)
+        elif parts >= 3:
+            # Instead of erroring on more arguments, we simply ignore them
+            # This makes the parser suitable for future syntax additions, such
+            # as specifying the package architecture
+            part1, part2, part3 = text.split(self.SEP)[0:3]
+            self.user = part1
+            self.task = part2
+            self.subpackages = part3.split(',')
+
+
+    def __repr__(self):
+        return ("<KojiScratchPkgSpec user=%s task=%s subpkgs=%s>" %
+                (self.user, self.task, ", ".join(self.subpackages)))
 
 
 def umount(src, mount_point, type):
