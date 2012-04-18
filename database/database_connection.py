@@ -83,7 +83,11 @@ class _MySqlBackend(_GenericBackend):
 
 class _SqliteBackend(_GenericBackend):
     def __init__(self):
-        from pysqlite2 import dbapi2
+        try:
+            from pysqlite2 import dbapi2
+        except ImportError:
+            from sqlite3 import dbapi2
+
         super(_SqliteBackend, self).__init__(dbapi2)
         self._last_insert_id_re = re.compile(r'\sLAST_INSERT_ID\(\)',
                                              re.IGNORECASE)
