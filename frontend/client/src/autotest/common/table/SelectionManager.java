@@ -212,6 +212,7 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
                     break;
                 }
             }
+            attachedTable.setRow(row, rowObject);
             return new TableClickWidget(listBox, this, row, cell);
         }
     }
@@ -224,6 +225,7 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
             ListBox l = (ListBox)widget.getContainedWidget();
             JSONObject row = attachedTable.getRow(widget.getRow());
             row.put("profile", new JSONString(l.getItemText(l.getSelectedIndex())));
+            attachedTable.setRow(widget.getRow(), row);
         }
     }
     
