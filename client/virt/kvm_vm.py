@@ -603,7 +603,10 @@ class VM(virt_vm.BaseVM):
                 return ""
 
         def add_machine_type(help, machine_type):
-            return " -M %s" % machine_type
+            if has_option(help, "machine") or has_option(help, "M"):
+                return " -M %s" % machine_type
+            else:
+                return ""
 
         def add_usb(help, usb_id, usb_type, multifunction=False,
                     masterbus=None, firstport=None, freq=None):
