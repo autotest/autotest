@@ -951,7 +951,7 @@ class VM(virt_vm.BaseVM):
 
         for image_name in params.objects("images"):
             image_params = params.object_params(image_name)
-            filename = virt_vm.get_image_filename(image_params, root_dir)
+            filename = virt_utils.get_image_filename(image_params, root_dir)
             if image_params.get("use_storage_pool") == "yes":
                 filename = None
             if image_params.get("boot_drive") == "no":
