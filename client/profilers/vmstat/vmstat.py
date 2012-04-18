@@ -5,7 +5,7 @@ Defaults options:
 job.profilers.add('vmstat', interval=1)
 """
 import time, os, subprocess
-from autotest_lib.client.bin import profiler
+from autotest.client import profiler
 
 
 class vmstat(profiler.profiler):

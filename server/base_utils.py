@@ -8,10 +8,10 @@ DO NOT import this file directly - it is mixed in by server/utils.py,
 import that instead
 """
 
-import atexit, os, re, shutil, textwrap, sys, tempfile, types
+import atexit, os, re, shutil, sys, tempfile, types
 
-from autotest_lib.client.common_lib import barrier, utils
-from autotest_lib.server import subcommand
+from autotest.client.shared import barrier, utils
+from autotest.server import subcommand
 
 
 # A dictionary of pid and a list of tmpdirs for that pid
@@ -176,7 +176,7 @@ def unarchive(host, source_material):
 
 
 def get_server_dir():
-    path = os.path.dirname(sys.modules['autotest_lib.server.utils'].__file__)
+    path = os.path.dirname(sys.modules['autotest.server.utils'].__file__)
     return os.path.abspath(path)
 
 

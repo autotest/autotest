@@ -1,6 +1,6 @@
 import os, re, glob, logging
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import test, utils, os_dep
+from autotest.client.shared import error
+from autotest.client import test, utils, os_dep
 
 class xfstests(test.test):
 

@@ -17,7 +17,7 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 
-from autotest_lib.server.hosts import ssh_host
+from autotest.server.hosts import ssh_host
 
 
 class Guest(ssh_host.SSHHost):

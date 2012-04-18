@@ -8,8 +8,8 @@ try:
     import autotest.common
 except ImportError:
     import common
-from autotest_lib.cli import rpc
-from autotest_lib.database import database_connection
+from autotest.cli import rpc
+from autotest.database import database_connection
 
 
 # First do all the options parsing

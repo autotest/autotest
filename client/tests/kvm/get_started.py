@@ -9,9 +9,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import logging_manager
-from autotest_lib.client.bin import utils
-from autotest_lib.client.virt import virt_utils
+from autotest.client.shared import logging_manager
+from autotest.client import utils
+from autotest.client.virt import virt_utils
 
 test_name = "kvm"
 test_dir = os.path.dirname(sys.modules[__name__].__file__)

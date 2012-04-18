@@ -4,9 +4,9 @@ Configurable on-guest dd test.
 @copyright: 2012 Red Hat, Inc.
 """
 import logging
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt.aexpect import ShellCmdError
-from autotest_lib.client.virt.aexpect import ShellTimeoutError
+from autotest.client.shared import error
+from autotest.client.virt.aexpect import ShellCmdError
+from autotest.client.virt.aexpect import ShellTimeoutError
 
 
 def run_dd_test(test, params, env):

@@ -1,4 +1,4 @@
-from autotest_lib.client.common_lib import host_protections
+from autotest.client.shared import host_protections
 
 
 def _call_repair(machine):

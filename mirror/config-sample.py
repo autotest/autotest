@@ -25,8 +25,8 @@ be executed for the new kernels (by default the list is empty and nothing
 will happen with the new kernels other than being included in the known
 kernels database so future lookups will not consider them new again)
 """
-from autotest_lib.mirror import database, source as source_module
-from autotest_lib.mirror import trigger as trigger_module
+from autotest.mirror import database, source as source_module
+from autotest.mirror import trigger as trigger_module
 
 # create a database object where to store information about known files
 db = database.dict_database('rsync.kernel.org.db')

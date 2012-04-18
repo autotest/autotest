@@ -5,7 +5,7 @@ try:
 except ImportError:
     import common
 import cStringIO, os, unittest
-from autotest_lib.server.hosts.monitors import monitors_util
+from autotest.server.hosts.monitors import monitors_util
 
 class _MockWarnFile(object):
     def __init__(self):

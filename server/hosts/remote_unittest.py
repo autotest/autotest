@@ -6,7 +6,7 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.server.hosts import remote
+from autotest.server.hosts import remote
 
 
 class test_remote_host(unittest.TestCase):

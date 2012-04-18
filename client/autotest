@@ -1,0 +1,14 @@
+#!/usr/bin/python -u
+#
+# autotest <control file> - run the autotest control file specified.
+#
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+
+from autotest.client import autotest_local
+
+if __name__ == '__main__':
+    app = autotest_local.AutotestLocalApp()
+    app.main()

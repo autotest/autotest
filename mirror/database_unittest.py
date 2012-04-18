@@ -7,8 +7,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.mirror import database
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.mirror import database
+from autotest.client.shared.test_utils import mock
 
 class dict_database_unittest(unittest.TestCase):
     _path = 'somepath.db'

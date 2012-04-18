@@ -1,6 +1,6 @@
 import re
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_utils, virt_vm, aexpect
+from autotest.client.shared import error
+from autotest.client.virt import virt_utils, virt_vm, aexpect
 
 
 def run_pci_hotplug(test, params, env):

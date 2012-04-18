@@ -1,15 +1,15 @@
-import os, time, pickle, logging, shutil, gzip
+import os, time, logging, shutil, gzip
 
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.server import utils
+from autotest.client.shared import global_config
+from autotest.server import utils
 
 
 # import any site hooks for the crashdump and crashinfo collection
 get_site_crashdumps = utils.import_site_function(
-    __file__, "autotest_lib.server.site_crashcollect", "get_site_crashdumps",
+    __file__, "autotest.server.site_crashcollect", "get_site_crashdumps",
     lambda host, test_start_time: None)
 get_site_crashinfo = utils.import_site_function(
-    __file__, "autotest_lib.server.site_crashcollect", "get_site_crashinfo",
+    __file__, "autotest.server.site_crashcollect", "get_site_crashinfo",
     lambda host, test_start_time: None)
 
 

@@ -1,7 +1,7 @@
 import logging, commands, re
 from  xml.dom.minidom import parse, parseString
-from autotest_lib.client.common_lib import utils, error
-from autotest_lib.client.virt import libvirt_vm
+from autotest.client.shared import utils, error
+from autotest.client.virt import libvirt_vm
 
 def run_virsh_capabilities(test, params, env):
     """

@@ -2,7 +2,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.database import migrate
+from autotest.database import migrate
 
 UP_SQL = """\
 BEGIN;

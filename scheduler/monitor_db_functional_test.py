@@ -5,13 +5,13 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import enum, global_config, host_protections
-from autotest_lib.database import database_connection
-from autotest_lib.frontend import setup_django_environment
-from autotest_lib.frontend.afe import frontend_test_utils, models
-from autotest_lib.frontend.afe import model_attributes
-from autotest_lib.scheduler import drone_manager, email_manager, host_scheduler
-from autotest_lib.scheduler import monitor_db, scheduler_models
+from autotest.client.shared import enum, global_config, host_protections
+from autotest.database import database_connection
+from autotest.frontend import setup_django_environment
+from autotest.frontend.afe import frontend_test_utils, models
+from autotest.frontend.afe import model_attributes
+from autotest.scheduler import drone_manager, email_manager, host_scheduler
+from autotest.scheduler import monitor_db, scheduler_models
 
 # translations necessary for scheduler queries to work with SQLite
 _re_translator = database_connection.TranslatingDatabase.make_regexp_translator

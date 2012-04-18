@@ -1,5 +1,5 @@
 import logging, time
-from autotest_lib.client.common_lib import error
+from autotest.client.shared import error
 
 def run_virsh_migrate(test, params, env):
     """

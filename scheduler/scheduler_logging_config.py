@@ -2,8 +2,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import logging, os
-from autotest_lib.client.common_lib import logging_config
+import logging
+from autotest.client.shared import logging_config
 
 class SchedulerLoggingConfig(logging_config.LoggingConfig):
     GLOBAL_LEVEL = logging.INFO

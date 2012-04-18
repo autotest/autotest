@@ -2,12 +2,12 @@
 #
 # Eric Li <ericli@google.com>
 
-import logging, os, pickle, re, sys
+import logging, os
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.bin import setup_job as client_setup_job
+from autotest.client import setup_job as client_setup_job
 
 
 def touch_init(parent_dir, child_dir):

@@ -20,44 +20,21 @@ pylintrc_path = os.path.expanduser('~/.pylintrc')
 if not os.path.exists(pylintrc_path):
     open(pylintrc_path, 'w').close()
 
-
-# patch up the logilab module lookup tools to understand autotest_lib.* trash
-import logilab.common.modutils
-_ffm = logilab.common.modutils.file_from_modpath
-def file_from_modpath(modpath, path=None, context_file=None):
-    if modpath[0] == "autotest_lib":
-        return _ffm(modpath[1:], path, context_file)
-    else:
-        return _ffm(modpath, path, context_file)
-logilab.common.modutils.file_from_modpath = file_from_modpath
-
-
 import pylint.lint
 from pylint.checkers import imports
 
-ROOT_MODULE = 'autotest_lib.'
+ROOT_MODULE = 'autotest.'
 
 # need to put autotest root dir on sys.path so pylint will be happy
 autotest_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, autotest_root)
-
-# patch up pylint import checker to handle our importing magic
-RealImportsChecker = imports.ImportsChecker
-
-class CustomImportsChecker(imports.ImportsChecker):
-    def visit_from(self, node):
-        if node.modname.startswith(ROOT_MODULE):
-            node.modname = node.modname[len(ROOT_MODULE):]
-        return RealImportsChecker.visit_from(self, node)
-
-imports.ImportsChecker = CustomImportsChecker
 
 # some files make pylint blow up, so make sure we ignore them
 blacklist = ['/contrib/*', '/frontend/afe/management.py']
 
 # only show errors
 # there are three major sources of E1101/E1103/E1120 false positives:
-# * common_lib.enum.Enum objects
+# * shared.enum.Enum objects
 # * DB model objects (scheduler models are the worst, but Django models also
 #   generate some errors)
 if pylint_version >= 0.21:

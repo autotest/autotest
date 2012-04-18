@@ -1,9 +1,9 @@
-import traceback, socket, os, time, smtplib, re, sys, getpass, logging
+import traceback, socket, os, time, smtplib, re, getpass, logging
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 CONFIG_SECTION = 'SCHEDULER'
 

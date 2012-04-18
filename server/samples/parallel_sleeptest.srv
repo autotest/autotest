@@ -17,7 +17,7 @@ To run a different set of tests do the following:
    server/autoserv <this control file path> -m <machines> -r <subdir to contain the run results>
 """
 
-from autotest_lib.client.common_lib import utils
+from autotest.client.shared import utils
 
 # Specify the path to the client control files and the tag names
 # for the respective jobs here.
@@ -31,7 +31,7 @@ def run_client(at, machine_name, machine_num, instance):
     The get_sync_control_file method basically does the setup of the barriers
     required to start these multiple tests at the same time and returns the
     modified control file (that contains the barrier code added to it)
-    Check client/common_lib/utils.py for detailed documentation of how this
+    Check client/shared/utils.py for detailed documentation of how this
     method sets up the barriers.
     '''
     control_new = utils.get_sync_control_file(control, machine_name,

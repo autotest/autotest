@@ -5,7 +5,7 @@
 
 import os, tempfile, logging
 
-from autotest_lib.client.common_lib import log, utils, test as common_test
+from autotest.client.shared import log, utils, test as common_test
 
 
 class test(common_test.base_test):
@@ -15,7 +15,7 @@ class test(common_test.base_test):
 
 _sysinfo_before_test_script = """\
 import pickle
-from autotest_lib.client.bin import test
+from autotest.client import test
 mytest = test.test(job, '', %r)
 job.sysinfo.log_before_each_test(mytest)
 sysinfo_pickle = os.path.join(mytest.outputdir, 'sysinfo.pickle')
@@ -25,7 +25,7 @@ job.record('GOOD', '', 'sysinfo.before')
 
 _sysinfo_after_test_script = """\
 import pickle
-from autotest_lib.client.bin import test
+from autotest.client import test
 mytest = test.test(job, '', %r)
 sysinfo_pickle = os.path.join(mytest.outputdir, 'sysinfo.pickle')
 if os.path.exists(sysinfo_pickle):
@@ -41,7 +41,7 @@ job.record('GOOD', '', 'sysinfo.after')
 # _sysinfo_after_test_script to pick it up later
 _sysinfo_iteration_script = """\
 import pickle
-from autotest_lib.client.bin import test
+from autotest.client import test
 mytest = test.test(job, '', %r)
 sysinfo_pickle = os.path.join(mytest.outputdir, 'sysinfo.pickle')
 if os.path.exists(sysinfo_pickle):
@@ -86,7 +86,7 @@ class _sysinfo_logger(object):
 
     def _install(self):
         if not self.host:
-            from autotest_lib.server import hosts, autotest_remote
+            from autotest.server import hosts, autotest_remote
             self.host = hosts.create_host(self.job.machines[0],
                                           auto_monitor=False)
             try:

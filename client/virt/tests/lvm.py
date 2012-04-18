@@ -1,5 +1,5 @@
 import logging, os
-from autotest_lib.client.common_lib import error
+from autotest.client.shared import error
 
 
 @error.context_aware

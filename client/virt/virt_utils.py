@@ -7,11 +7,11 @@ KVM test utility functions.
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
 import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect, tarfile
 import struct, shutil, glob
-from autotest_lib.client.bin import utils, os_dep
-from autotest_lib.client.common_lib import error, logging_config
-from autotest_lib.client.common_lib import logging_manager, git
-from autotest_lib.client.virt import virt_env_process, virt_vm
-from autotest_lib.client.common_lib.syncdata import SyncData, SyncListenServer
+from autotest.client import utils, os_dep
+from autotest.client.shared import error, logging_config
+from autotest.client.shared import logging_manager, git
+from autotest.client.virt import virt_env_process, virt_vm
+from autotest.client.shared.syncdata import SyncData, SyncListenServer
 import rss_client, aexpect
 import platform
 

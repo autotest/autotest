@@ -1,6 +1,6 @@
 import os, re
-from autotest_lib.client.bin import utils, test
-from autotest_lib.client.common_lib import error
+from autotest.client import utils, test
+from autotest.client.shared import error
 
 # test requires at least 2.6.26, will skip otherwise (check is internal)
 class perfmon(test.test):

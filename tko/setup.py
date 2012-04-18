@@ -7,7 +7,7 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.client.common_lib import version
+from autotest.client.shared import version
 
 # Mostly needed when called one level up
 tko_dir = os.path.dirname(sys.modules[__name__].__file__) or '.'

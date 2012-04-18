@@ -1,7 +1,7 @@
 import os
 
-from autotest_lib.client.common_lib import utils
-from autotest_lib.tko import utils as tko_utils
+from autotest.client.shared import utils
+from autotest.tko import utils as tko_utils
 
 
 class job(object):

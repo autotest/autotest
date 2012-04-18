@@ -3,13 +3,13 @@ import httplib2, sys, traceback, cgi
 from django.http import HttpResponse, HttpResponsePermanentRedirect
 from django.http import HttpResponseServerError
 from django.template import Context, loader
-from autotest_lib.client.common_lib import utils
-from autotest_lib.frontend import views_common
-from autotest_lib.frontend.afe import models, rpc_handler, rpc_interface
-from autotest_lib.frontend.afe import rpc_utils
+from autotest.client.shared import utils
+from autotest.frontend import views_common
+from autotest.frontend.afe import models, rpc_handler, rpc_interface
+from autotest.frontend.afe import rpc_utils
 
 site_rpc_interface = utils.import_site_module(
-        __file__, 'autotest_lib.frontend.afe.site_rpc_interface',
+        __file__, 'autotest.frontend.afe.site_rpc_interface',
         dummy=object())
 
 # since site_rpc_interface is later in the list, its methods will override those

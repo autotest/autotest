@@ -21,8 +21,8 @@ or
 """
 
 import os, shutil, time
-from autotest_lib.client.bin import utils, profiler
-from autotest_lib.client.common_lib import error
+from autotest.client import utils, profiler
+from autotest.client.shared import error
 
 class lttng(profiler.profiler):
     version = 1

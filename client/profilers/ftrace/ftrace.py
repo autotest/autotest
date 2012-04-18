@@ -4,8 +4,8 @@ Function tracer profiler for autotest.
 @author: David Sharp (dhsharp@google.com)
 """
 import logging, os, signal, time
-from autotest_lib.client.bin import profiler, utils
-from autotest_lib.client.common_lib import error
+from autotest.client import profiler, utils
+from autotest.client.shared import error
 
 
 class ftrace(profiler.profiler):

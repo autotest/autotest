@@ -1,6 +1,6 @@
 import os
-from autotest_lib.client.bin import test
-from autotest_lib.client.common_lib import utils
+from autotest.client import test
+from autotest.client.shared import utils
 
 
 class cyclictest(test.test):

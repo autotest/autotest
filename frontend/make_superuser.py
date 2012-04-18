@@ -6,7 +6,7 @@ except ImportError:
     import common
 import MySQLdb
 import sys
-from autotest_lib.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 if (len(sys.argv) < 2 or
     [arg for arg in sys.argv[1:] if arg.startswith('-')]):

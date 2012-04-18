@@ -8,8 +8,8 @@ This module defines the Bootloader class.
 """
 
 import os, sys, imp, weakref
-from autotest_lib.client.common_lib import error
-from autotest_lib.server import utils
+from autotest.client.shared import error
+from autotest.server import utils
 
 #
 # This performs some import magic, to import the boottool cli as a module

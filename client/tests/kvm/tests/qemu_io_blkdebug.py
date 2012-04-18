@@ -1,9 +1,9 @@
 import re, logging, ConfigParser
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import qemu_io
-from autotest_lib.client.virt import virt_vm
-from autotest_lib.client.virt import virt_utils
-from autotest_lib.client.bin import utils
+from autotest.client.shared import error
+from autotest.client.virt import qemu_io
+from autotest.client.virt import virt_vm
+from autotest.client.virt import virt_utils
+from autotest.client import utils
 
 @error.context_aware
 def run_qemu_io_blkdebug(test, params, env):

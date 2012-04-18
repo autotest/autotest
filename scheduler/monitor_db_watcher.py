@@ -8,11 +8,11 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.scheduler import watcher_logging_config
-from autotest_lib.client.common_lib import error, global_config, utils
-from autotest_lib.client.common_lib import logging_manager
-from autotest_lib.scheduler import scheduler_logging_config
-from autotest_lib.scheduler import monitor_db
+from autotest.scheduler import watcher_logging_config
+from autotest.client.shared import error, global_config, utils
+from autotest.client.shared import logging_manager
+from autotest.scheduler import scheduler_logging_config
+from autotest.scheduler import monitor_db
 
 
 PAUSE_LENGTH = 60
@@ -57,7 +57,7 @@ signal.signal(signal.SIGTERM, handle_sigterm)
 
 
 SiteMonitorProc = utils.import_site_class(
-    __file__, 'autotest_lib.scheduler.site_monitor_db_watcher',
+    __file__, 'autotest.scheduler.site_monitor_db_watcher',
     'SiteMonitorProc', object)
 
 

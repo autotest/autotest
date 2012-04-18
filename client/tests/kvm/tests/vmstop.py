@@ -1,6 +1,6 @@
 import logging, time, os
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
+from autotest.client.shared import error
+from autotest.client import utils
 
 
 def run_vmstop(test, params, env):

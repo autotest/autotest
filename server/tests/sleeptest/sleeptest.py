@@ -1,5 +1,5 @@
 import time
-from autotest_lib.server import test
+from autotest.server import test
 
 class sleeptest(test.test):
     version = 1

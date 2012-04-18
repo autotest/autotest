@@ -7,8 +7,8 @@ will try to mount it so it's possible to proceed.
 @author: Lucas Meneghel Rodrigues (lmr@redhat.com)
 """
 import time, os, subprocess, commands, logging
-from autotest_lib.client.bin import utils, profiler, os_dep
-from autotest_lib.client.common_lib import error
+from autotest.client import utils, profiler, os_dep
+from autotest.client.shared import error
 
 
 class kvm_stat(profiler.profiler):

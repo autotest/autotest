@@ -1,5 +1,5 @@
 import os
-from autotest_lib.client.bin import test, utils
+from autotest.client import test, utils
 
 
 class interbench(test.test):

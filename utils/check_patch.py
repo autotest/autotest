@@ -27,8 +27,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import utils, error, logging_config
-from autotest_lib.client.common_lib import logging_manager
+from autotest.client.shared import utils, error, logging_config
+from autotest.client.shared import logging_manager
 
 
 class CheckPatchLoggingConfig(logging_config.LoggingConfig):

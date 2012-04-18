@@ -1,5 +1,5 @@
 import re, pickle, os, logging
-from autotest_lib.client.bin import utils, test
+from autotest.client import utils, test
 
 
 class kernbench(test.test):

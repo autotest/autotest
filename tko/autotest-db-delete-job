@@ -4,10 +4,10 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.tko import db
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.common_lib import logging_manager, logging_config
-from autotest_lib.client.bin import utils
+from autotest.tko import db
+from autotest.client.shared import global_config
+from autotest.client.shared import logging_manager, logging_config
+from autotest.client import utils
 
 GLOBAL_CONFIG = global_config.global_config
 ERROR_NO_RESULTS_AVAILABLE = 1

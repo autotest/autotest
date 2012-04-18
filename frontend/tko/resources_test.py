@@ -5,11 +5,11 @@ try:
 except ImportError:
     import common
 import unittest
-from autotest_lib.frontend import setup_django_environment
-from autotest_lib.frontend import setup_test_environment
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.frontend.shared import resource_test_utils
-from autotest_lib.frontend.tko import models, rpc_interface_unittest
+from autotest.frontend import setup_django_environment
+from autotest.frontend import setup_test_environment
+from autotest.client.shared.test_utils import mock
+from autotest.frontend.shared import resource_test_utils
+from autotest.frontend.tko import models, rpc_interface_unittest
 
 
 class TkoResourceTestCase(resource_test_utils.ResourceTestCase,

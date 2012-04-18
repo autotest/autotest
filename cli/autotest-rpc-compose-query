@@ -8,8 +8,8 @@ try:
     import autotest.common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import kernel_versions
-from autotest_lib.tko import display, frontend, db, query_lib
+from autotest.client.shared import kernel_versions
+from autotest.tko import display, frontend, db, query_lib
 
 # First do all the options parsing
 parser = optparse.OptionParser()

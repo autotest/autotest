@@ -14,8 +14,8 @@ Runs the unittests available for a given KVM build.
 """
 
 import sys, os, logging
-from autotest_lib.client.common_lib import cartesian_config
-from autotest_lib.client.virt import virt_utils
+from autotest.client.shared import cartesian_config
+from autotest.client.virt import virt_utils
 
 parser = cartesian_config.Parser()
 kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests/kvm')

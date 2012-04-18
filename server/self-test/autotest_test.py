@@ -14,10 +14,10 @@ import logging
 
 import common
 
-from autotest_lib.server import utils
-from autotest_lib.server import autotest_remote
-from autotest_lib.server import hosts
-from autotest_lib.client.common_lib import global_config
+from autotest.server import utils
+from autotest.server import autotest_remote
+from autotest.server import hosts
+from autotest.client.shared import global_config
 
 
 _GLOBAL_CONFIG = global_config.global_config

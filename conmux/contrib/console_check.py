@@ -16,7 +16,7 @@ _author_ = 'Scott Zawalski (scottz@google.com)'
 
 import sys,  pexpect, commands, os
 from optparse import OptionParser
-from autotest_lib.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 
 GLOBAL_CONFIG = global_config.global_config

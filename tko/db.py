@@ -4,8 +4,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.tko import utils
+from autotest.client.shared import global_config
+from autotest.tko import utils
 
 
 class MySQLTooManyRows(Exception):
@@ -544,7 +544,7 @@ def _get_db_type():
 def _get_error_class(class_name):
     """Retrieves the appropriate error class by name from the database
     module."""
-    db_module = __import__("autotest_lib.tko." + _get_db_type(),
+    db_module = __import__("autotest.tko." + _get_db_type(),
                            globals(), locals(), ["driver"])
     return getattr(db_module.driver, class_name)
 
@@ -554,7 +554,7 @@ def db(*args, **dargs):
     provided in args and dargs, using the database type specified by
     the global configuration (defaulting to mysql)."""
     db_type = _get_db_type()
-    db_module = __import__("autotest_lib.tko." + db_type, globals(),
+    db_module = __import__("autotest.tko." + db_type, globals(),
                            locals(), [db_type])
     db = getattr(db_module, db_type)(*args, **dargs)
     return db

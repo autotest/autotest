@@ -4,8 +4,8 @@ from django import forms
 from django.contrib import admin
 from django.db import models as dbmodels
 
-from autotest_lib.frontend import settings
-from autotest_lib.frontend.afe import model_logic, models
+from autotest.frontend import settings
+from autotest.frontend.afe import model_logic, models
 
 
 class SiteAdmin(admin.ModelAdmin):

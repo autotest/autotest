@@ -4,9 +4,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import utils, error, profiler_manager
-from autotest_lib.server import profiler, autotest_remote, standalone_profiler
-from autotest_lib.server import hosts
+from autotest.client.shared import utils, error, profiler_manager
+from autotest.server import profiler, autotest_remote, standalone_profiler
+from autotest.server import hosts
 
 
 PROFILER_TMPDIR = '/tmp/profilers'

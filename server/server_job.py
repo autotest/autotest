@@ -6,15 +6,15 @@ This is the core infrastructure. Derived from the client side job.py
 Copyright Martin J. Bligh, Andy Whitcroft 2007
 """
 
-import getpass, os, sys, re, stat, tempfile, time, select, subprocess, platform
+import getpass, os, sys, re, tempfile, time, select, platform
 import traceback, shutil, warnings, fcntl, pickle, logging, itertools, errno
-from autotest_lib.client.bin import sysinfo
-from autotest_lib.client.common_lib import base_job
-from autotest_lib.client.common_lib import error, log, utils, packages
-from autotest_lib.client.common_lib import logging_manager
-from autotest_lib.server import test, subcommand, profilers
-from autotest_lib.server.hosts import abstract_ssh
-from autotest_lib.tko import db as tko_db, status_lib, utils as tko_utils
+from autotest.client import sysinfo
+from autotest.client.shared import base_job
+from autotest.client.shared import error, utils, packages
+from autotest.client.shared import logging_manager
+from autotest.server import test, subcommand, profilers
+from autotest.server.hosts import abstract_ssh
+from autotest.tko import db as tko_db, status_lib, utils as tko_utils
 
 
 def _control_segment_path(name):
@@ -767,7 +767,7 @@ class base_server_job(base_job.base_job):
         """Record a summary test result.
 
         @param status_code: status code string, see
-                common_lib.log.is_valid_status()
+                shared.log.is_valid_status()
         @param test_name: name of the test
         @param reason: (optional) string providing detailed reason for test
                 outcome
@@ -963,15 +963,15 @@ class base_server_job(base_job.base_job):
         # This is the equivalent of prepending a bunch of import statements to
         # the front of the control script.
         namespace.update(os=os, sys=sys, logging=logging)
-        _import_names('autotest_lib.server',
+        _import_names('autotest.server',
                 ('hosts', 'autotest_remote', 'kvm', 'standalone_profiler',
                  'source_kernel', 'rpm_kernel', 'deb_kernel', 'git_kernel'))
-        _import_names('autotest_lib.server.subcommand',
+        _import_names('autotest.server.subcommand',
                       ('parallel', 'parallel_simple', 'subcommand'))
-        _import_names('autotest_lib.server.utils',
+        _import_names('autotest.server.utils',
                       ('run', 'get_tmp_dir', 'sh_escape', 'parse_machine'))
-        _import_names('autotest_lib.client.common_lib.error')
-        _import_names('autotest_lib.client.common_lib.barrier', ('barrier',))
+        _import_names('autotest.client.shared.error')
+        _import_names('autotest.client.shared.barrier', ('barrier',))
 
         # Inject ourself as the job object into other classes within the API.
         # (Yuck, this injection is a gross thing be part of a public API. -gps)
@@ -1137,12 +1137,12 @@ class warning_manager(object):
 
 # load up site-specific code for generating site-specific job data
 get_site_job_data = utils.import_site_function(__file__,
-    "autotest_lib.server.site_server_job", "get_site_job_data",
+    "autotest.server.site_server_job", "get_site_job_data",
     _get_site_job_data_dummy)
 
 
 site_server_job = utils.import_site_class(
-    __file__, "autotest_lib.server.site_server_job", "site_server_job",
+    __file__, "autotest.server.site_server_job", "site_server_job",
     base_server_job)
 
 

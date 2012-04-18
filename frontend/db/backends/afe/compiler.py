@@ -1,5 +1,5 @@
 from django.db.backends.mysql import compiler as mysql_compiler
-from autotest_lib.frontend.afe.model_logic import _quote_name
+from autotest.frontend.afe.model_logic import _quote_name
 
 class SQLCompiler(mysql_compiler.SQLCompiler):
     def get_from_clause(self):

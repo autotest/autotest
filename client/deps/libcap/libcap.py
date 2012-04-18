@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import os
-from autotest_lib.client.bin import utils
+from autotest.client import utils
 
 version = 2
 
