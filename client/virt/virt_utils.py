@@ -3790,11 +3790,12 @@ def postprocess_images(bindir, params):
 
 
 class MigrationData(object):
-    def __init__(self, params, srchost, dsthost, vms_name):
+    def __init__(self, params, srchost, dsthost, vms_name, params_append):
         """
         Class that contains data needed for one migration.
         """
-        self.params = params
+        self.params = params.copy()
+        self.params.update(params_append)
 
         self.source = False
         if params.get("hostid") == srchost:
@@ -4106,7 +4107,7 @@ class MultihostMigration(object):
 
 
     def migrate(self, vms_name, srchost, dsthost, start_work=None,
-                check_work=None):
+                check_work=None, mig_mode="tcp", params_append=None):
         """
         Migrate machine from srchost to dsthost. It executes start_work on
         source machine before migration and executes check_work on dsthost
@@ -4134,19 +4135,22 @@ class MultihostMigration(object):
         @param dsthost: dst host id.
         @param start_work: Function started before migration.
         @param check_work: Function started after migration.
+        @param mig_mode: Migration mode.
+        @param params_append: Append params to self.params only for migration.
         """
         def migrate_wrap(vms_name, srchost, dsthost, start_work=None,
-                check_work=None):
+                check_work=None, params_append=None):
             logging.info("Starting migrate vms %s from host %s to %s" %
                          (vms_name, srchost, dsthost))
             error = None
-            mig_data = MigrationData(self.params, srchost, dsthost, vms_name)
+            mig_data = MigrationData(self.params, srchost, dsthost,
+                                     vms_name, params_append)
             try:
                 try:
                     if mig_data.is_src():
                         self.prepare_for_migration(mig_data, None)
                     elif self.hostid == dsthost:
-                        self.prepare_for_migration(mig_data, "tcp")
+                        self.prepare_for_migration(mig_data, mig_mode)
                     else:
                         return
 
@@ -4178,7 +4182,8 @@ class MultihostMigration(object):
                                         self.finish_timeout)
 
         def wait_wrap(vms_name, srchost, dsthost):
-            mig_data = MigrationData(self.params, srchost, dsthost, vms_name)
+            mig_data = MigrationData(self.params, srchost, dsthost, vms_name,
+                                     None)
             timeout = (self.login_timeout + self.mig_timeout +
                        self.finish_timeout)
 
@@ -4190,7 +4195,8 @@ class MultihostMigration(object):
                                                                 srchost,
                                                                 dsthost,
                                                                 start_work,
-                                                                check_work))
+                                                                check_work,
+                                                                params_append))
         else:
             mig_thread = utils.InterruptedThread(wait_wrap, (vms_name,
                                                              srchost,
@@ -4200,7 +4206,7 @@ class MultihostMigration(object):
 
 
     def migrate_wait(self, vms_name, srchost, dsthost, start_work=None,
-                     check_work=None):
+                      check_work=None, mig_mode="tcp", params_append=None):
         """
         Migrate machine from srchost to dsthost and wait for finish.
         It executes start_work on source machine before migration and executes
@@ -4213,7 +4219,8 @@ class MultihostMigration(object):
         @param check_work: Function which is started after
                            done of migration.
         """
-        self.migrate(vms_name, srchost, dsthost, start_work, check_work).join()
+        self.migrate(vms_name, srchost, dsthost, start_work, check_work,
+                     mig_mode, params_append).join()
 
 
     def cleanup(self):
