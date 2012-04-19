@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """
 Program that parses standard format results,
 compute and check regression bug.
@@ -63,8 +64,8 @@ class Sample():
         t-test: http://en.wikipedia.org/wiki/Student's_t-test
         """
         try:
-           from scipy import stats
-           import numpy as np
+            from scipy import stats
+            import numpy as np
         except ImportError:
             print "No python scipy/numpy library installed!"
             return None
@@ -91,9 +92,9 @@ class Sample():
                         (t, p) = stats.ttest_ind(sample1, sample2)
                     flag = " "
                     if p <= 0.05:
-                       flag = "+"
-                       if avg1 > avg2 :
-                           flag = "-"
+                        flag = "+"
+                        if avg1 > avg2 :
+                            flag = "-"
                     tmp.append(flag + "%.3f" % (1 - p ))
                 tmp = "|".join(tmp)
             ret.append(tmp)
