@@ -6,7 +6,7 @@ compute and check regression bug.
 @copyright: Red Hat 2011-2012
 @author: Amos Kong <akong@redhat.com>
 """
-import sys, re, commands, warnings, ConfigParser
+import os, sys, re, commands, warnings, ConfigParser
 
 
 class Sample():
@@ -378,6 +378,7 @@ def tee(content, file):
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print 'Usage: python %s $testname $dir1 $dir2' % sys.argv[0]
+        this = os.path.basename(sys.argv[0])
+        print 'Usage: %s <testname> <dir1> <dir>' % this
         sys.exit(1)
     compare(sys.argv[1], sys.argv[2], sys.argv[3])
