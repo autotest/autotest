@@ -964,7 +964,7 @@ class base_server_job(base_job.base_job):
         # the front of the control script.
         namespace.update(os=os, sys=sys, logging=logging)
         _import_names('autotest.server',
-                ('hosts', 'autotest_remote', 'kvm', 'standalone_profiler',
+                ('hosts', 'autotest_remote', 'standalone_profiler',
                  'source_kernel', 'rpm_kernel', 'deb_kernel', 'git_kernel'))
         _import_names('autotest.server.subcommand',
                       ('parallel', 'parallel_simple', 'subcommand'))
