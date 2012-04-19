@@ -99,7 +99,8 @@ def preprocess_vm(test, params, env, name):
         else:
             # Start the VM (or restart it if it's already up)
             vm.create(name, params, test.bindir,
-                      migration_mode=params.get("migration_mode"))
+                      migration_mode=params.get("migration_mode"),
+                      migration_fd=params.get("migration_fd"))
     else:
         # Don't start the VM, just update its params
         vm.params = params

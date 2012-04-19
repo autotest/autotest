@@ -556,6 +556,8 @@ variants:
                 migration_protocol = "unix"
             - exec:
                 migration_protocol = "exec"
+            - fd:
+                migration_protocol = "fd"
             - mig_cancel:
                 migration_protocol = "tcp"
                 mig_cancel = yes
