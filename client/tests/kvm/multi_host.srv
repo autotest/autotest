@@ -22,6 +22,15 @@ AUTOTEST_DIR = job.clientdir
 
 KVM_DIR = os.path.join(AUTOTEST_DIR, 'tests', 'kvm')
 
+CONTROL_MAIN_PART = """
+testname = "kvm"
+bindir = os.path.join(job.testdir, testname)
+job.install_pkg(testname, 'test', bindir)
+
+kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'kvm')
+sys.path.append(kvm_test_dir)
+"""
+
 try:
     import autotest.common
 except ImportError:
@@ -67,17 +76,10 @@ def run(machines):
     ips = []
     for machine in machines:
         host = _hosts[machine]
-        host.control = """
-testname = "kvm"
-bindir = os.path.join(job.testdir, testname)
-job.install_pkg(testname, 'test', bindir)
-
-kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'kvm')
-sys.path.append(kvm_test_dir)
-"""
         ips.append(host.host.ip)
 
     for params in test_dicts:
+
         params['hosts'] = ips
 
         params['not_preprocess'] = "yes"
@@ -105,6 +107,10 @@ sys.path.append(kvm_test_dir)
         keys.sort()
         for key in keys:
             logging.debug("    %s = %s", key, params[key])
+
+        for machine in machines:
+            host = _hosts[machine]
+            host.control = CONTROL_MAIN_PART
 
         for machine in machines:
             host = _hosts[machine]
