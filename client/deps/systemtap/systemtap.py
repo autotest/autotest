@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import os
-import shutil
 from autotest.client import utils
 
 version = 1

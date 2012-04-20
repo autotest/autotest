@@ -40,13 +40,11 @@ except ImportError:
 
 """
 
-import commands, os, re
 try:
     import autotest.common as common
 except ImportError:
     import common
 from autotest.client.shared import error
-from autotest.client.net import net_utils
 
 # TODO (chavey) clean up those global here and new_handle()
 handle_counter = 0
