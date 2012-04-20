@@ -4,7 +4,7 @@ Uses perf_events to count cycles and instructions
 Defaults options:
 job.profilers.add('cpistat', interval=1)
 """
-import time, os, subprocess
+import os, subprocess
 from autotest.client import profiler
 
 class cpistat(profiler.profiler):

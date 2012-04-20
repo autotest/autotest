@@ -1,7 +1,7 @@
 """
 Sets up a subprocess to run mpstat on a specified interval, default 1 second
 """
-import time, os, subprocess
+import os, subprocess
 from autotest.client import profiler
 
 

@@ -6,7 +6,7 @@ will try to mount it so it's possible to proceed.
 @copyright: Red Hat 2010
 @author: Lucas Meneghel Rodrigues (lmr@redhat.com)
 """
-import time, os, subprocess, commands, logging
+import os, subprocess, logging
 from autotest.client import utils, profiler, os_dep
 from autotest.client.shared import error
 

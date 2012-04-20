@@ -20,9 +20,8 @@ or
     localmachine$ lttv-gui -t /home/tmp/lttng &
 """
 
-import os, shutil, time
+import os, time
 from autotest.client import utils, profiler
-from autotest.client.shared import error
 
 class lttng(profiler.profiler):
     version = 1

@@ -3,7 +3,7 @@
 This library is to release in the public repository.
 """
 
-import commands, os, re, socket, sys, time, struct
+import os, re, socket, time, struct
 from autotest.client.shared import error
 from autotest.client import utils as client_utils
 import utils

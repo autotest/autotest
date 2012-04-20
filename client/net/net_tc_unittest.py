@@ -2,15 +2,13 @@
 
 # TODO(chavey) complete all the unit test in this file
 
-import unittest, os, socket, time, sys
+import unittest, os
 try:
     import autotest.common as common
 except ImportError:
     import common
 from autotest.client import utils
-from autotest.client.net import net_tc, net_utils, net_utils_mock
 from autotest.client.shared.test_utils import mock
-from autotest.client.shared import error
 
 class TestNetUtils(unittest.TestCase):
     def setUp(self):
