@@ -1346,7 +1346,7 @@ class VM(virt_vm.BaseVM):
 
                 # Virtual Functions (VF) assignable devices
                 if pa_type == "vf":
-                    self.pci_assignable = virt_utils.PciAssignable(
+                    self.pci_assignable = virt_test_setup.PciAssignable(
                         type=pa_type,
                         driver=params.get("driver"),
                         driver_option=params.get("driver_option"),
@@ -1356,7 +1356,7 @@ class VM(virt_vm.BaseVM):
                         net_restart_cmd = params.get("net_restart_cmd"))
                 # Physical NIC (PF) assignable devices
                 elif pa_type == "pf":
-                    self.pci_assignable = virt_utils.PciAssignable(
+                    self.pci_assignable = virt_test_setup.PciAssignable(
                         type=pa_type,
                         names=params.get("device_names"),
                         devices_requested=pa_devices_requested,
@@ -1365,7 +1365,7 @@ class VM(virt_vm.BaseVM):
                         net_restart_cmd = params.get("net_restart_cmd"))
                 # Working with both VF and PF
                 elif pa_type == "mixed":
-                    self.pci_assignable = virt_utils.PciAssignable(
+                    self.pci_assignable = virt_test_setup.PciAssignable(
                         type=pa_type,
                         driver=params.get("driver"),
                         driver_option=params.get("driver_option"),
