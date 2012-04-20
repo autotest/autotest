@@ -15,7 +15,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import cPickle, cStringIO, logging, os, re, time
+import cPickle, cStringIO, logging, os, re
 
 from autotest.client.shared import global_config, error, utils
 from autotest.client.shared import host_protections

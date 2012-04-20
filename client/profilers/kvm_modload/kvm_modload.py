@@ -6,7 +6,7 @@ tests with and without this "profiler".
 author: jsmiller@google.com
 """
 
-import os, subprocess
+import os
 from autotest.client import kvm_control, profiler, utils
 
 
