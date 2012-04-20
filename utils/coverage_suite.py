@@ -36,7 +36,7 @@ def is_valid_directory(dirpath):
 
 
 def is_test_filename(filename):
-    return (filename.endswith('_unittest.py') or filename.endswith('_test.py'))
+    return filename.endswith('_unittest.py')
 
 
 def is_valid_filename(f):
