@@ -103,11 +103,7 @@ public class HostListView extends TabView implements TableActionsListener {
             return;
         }
 
-        JSONArray array = new JSONArray();
-        for (JSONObject host : selectedSet) {
-            array.set(array.size(), host.get("hostname"));
-        }
-        AfeUtils.scheduleReinstall(array, "Hosts", jobCreateListener);
+        AfeUtils.scheduleReinstall(selectedSet, "Hosts", jobCreateListener);
     }
 
     private Set<JSONObject> getSelectedHosts() {
