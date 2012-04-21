@@ -277,6 +277,10 @@ variants:
         restart_vm = yes
         kill_vm_on_error = yes
         login_timeout = 240
+        # those two scripts are used to setup test env for guest/host
+        # before performance testing
+        # stop_services_script = scripts/rh_stop_services.sh
+        # off_services_script = scripts/rh_off_services.sh
 
     - boot_with_usb:
         only Linux

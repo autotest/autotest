@@ -3,6 +3,7 @@ import sys
 import re
 
 from autotest.client.shared import error
+from autotest.client.virt import virt_test_utils
 
 
 def _get_function(func_name):
@@ -96,5 +97,7 @@ def run_boot(test, params, env):
         if check_func:
             error.context("Verify device(s) after rebooting.")
             _check_device(check_func)
+
+    virt_test_utils.service_setup(vm, session, test.virtdir)
 
     session.close()

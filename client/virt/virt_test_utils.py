@@ -21,7 +21,7 @@ More specifically:
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, re, signal, imp, tempfile
+import time, os, logging, re, signal, imp, tempfile, commands
 from autotest.client.shared import error, global_config
 from autotest.client import utils
 from autotest.client.tools import scan_results
@@ -914,3 +914,23 @@ def pin_vm_threads(vm, node):
         logging.info("pin vhost thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
     for i in vm.vcpu_threads:
         logging.info("pin vcpu thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
+
+def service_setup(vm, session, dir):
+
+    params = vm.get_params()
+    stop_services_script = params.get("stop_services_script")
+    off_services_script = params.get("off_services_script")
+
+    if stop_services_script:
+        src = os.path.join(dir, stop_services_script)
+        vm.copy_files_to(src, "/tmp/stop_services.sh")
+        commands.getoutput("bash %s" % src)
+        session.cmd("bash /tmp/stop_services.sh")
+
+    if off_services_script:
+        src = os.path.join(dir, stop_services_script)
+        vm.copy_files_to(src, "/tmp/off_services.sh")
+        # host reboot is needed, but it's not supported in client tests
+        commands.getoutput("bash %s" % src)
+        session.cmd("bash /tmp/off_services.sh")
+        vm.reboot(session)
