@@ -1308,7 +1308,7 @@ class ShellSession(Expect):
         return s
 
 
-    def cmd(self, cmd, timeout=60, internal_timeout=None, print_func=None):
+    def cmd(self, cmd, timeout=60, internal_timeout=None, print_func=None, ok_status=[0,]):
         """
         Send a command and return its output. If the command's exit status is
         nonzero, raise an exception.
@@ -1319,6 +1319,8 @@ class ShellSession(Expect):
         @param internal_timeout: The timeout to pass to read_nonblocking
         @param print_func: A function to be used to print the data being read
                 (should take a string parameter)
+        @param ok_status: do not raise ShellCmdError in case that exit status
+                          is one of ok_status. (default is [0,])
 
         @return: The output of cmd
         @raise ShellTimeoutError: Raised if timeout expires
@@ -1332,7 +1334,7 @@ class ShellSession(Expect):
         """
         s, o = self.cmd_status_output(cmd, timeout, internal_timeout,
                                       print_func)
-        if s != 0:
+        if s not in ok_status:
             raise ShellCmdError(cmd, s, o)
         return o
 
