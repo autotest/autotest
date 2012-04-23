@@ -770,8 +770,10 @@ class UnattendedInstallConfig(object):
 
         i.copy(os.path.join(self.boot_path, os.path.basename(self.kernel)),
                self.kernel)
+        assert(os.path.getsize(self.kernel) > 0)
         i.copy(os.path.join(self.boot_path, os.path.basename(self.initrd)),
                self.initrd)
+        assert(os.path.getsize(self.initrd) > 0)
 
         if self.unattended_file.endswith('.preseed'):
             self.preseed_initrd()
