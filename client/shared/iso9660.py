@@ -10,7 +10,7 @@ either in userspace tools or on the Linux kernel itself (via mount).
 __all__ = ['iso9660', 'Iso9660IsoInfo', 'Iso9660IsoRead', 'Iso9660Mount']
 
 
-import os, logging, tempfile, shutil
+import os, logging, tempfile, shutil, re
 from autotest.client.shared import utils
 
 
@@ -121,6 +121,22 @@ class Iso9660IsoInfo(BaseIso9660):
     '''
     def __init__(self, path):
         super(Iso9660IsoInfo, self).__init__(path)
+        self.joliet = False
+        self.rock_ridge = False
+        self.el_torito = False
+        self._get_extensions(path)
+
+
+    def _get_extensions(self, path):
+        cmd = 'isoinfo -i %s -d' % self.path
+        output = utils.system_output(cmd)
+
+        if re.findall("\nJoliet", output):
+            self.joliet = True
+        if re.findall("\nRock Ridge signatures", output):
+            self.rock_ridge = True
+        if re.findall("\nEl Torito", output):
+            self.el_torito = True
 
 
     def _normalize_path(self, path):
@@ -129,10 +145,33 @@ class Iso9660IsoInfo(BaseIso9660):
         return path
 
 
+    def _get_filename_in_iso(self, path):
+        cmd = 'isoinfo -i %s -f' % self.path
+        flist = utils.system_output(cmd)
+
+        fname = re.findall("(%s.*)" % self._normalize_path(path), flist, re.I)
+        if fname:
+            return fname[0]
+        return None
+
+
     def read(self, path):
-        cmd = 'isoinfo -i %s -x %s' % (self.path,
-                                       self._normalize_path(path))
-        result = utils.run(cmd)
+        cmd = ['isoinfo']
+        cmd.append("-i %s" % self.path)
+
+        fname = self._normalize_path(path)
+        if self.joliet:
+            cmd.append("-J")
+        elif self.rock_ridge:
+            cmd.append("-R")
+        else:
+            fname = self._get_filename_in_iso(path)
+            if not fname:
+                logging.warn("Could not find '%s' in iso '%s'", path, self.path)
+                return ""
+
+        cmd.append("-x %s" % fname)
+        result = utils.run(" ".join(cmd))
         return result.stdout
 
 
