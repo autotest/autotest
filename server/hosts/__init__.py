@@ -18,8 +18,6 @@ except ImportError, e:
 
 # host implementation classes
 from ssh_host import SSHHost
-from guest import Guest
-from kvm_guest import KVMGuest
 
 # extra logger classes
 from serial import SerialHost
