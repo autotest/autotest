@@ -332,10 +332,16 @@ fi
 }
 
 patch_python27_bug() {
-# Patch up a python 2.7 problem
-if [ "$(grep '^CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py)" != "" ]
+#
+# We may not be on python 2.7
+#
+if [ -d  /usr/lib64/python2.7 ]
 then
-    /usr/local/bin/substitute 'CFUNCTYPE(c_int)(lambda: None)' '# CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py
+    # Patch up a python 2.7 problem
+    if [ "$(grep '^CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py)" != "" ]
+    then
+        /usr/local/bin/substitute 'CFUNCTYPE(c_int)(lambda: None)' '# CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py
+    fi
 fi
 }
 
