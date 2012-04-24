@@ -99,6 +99,8 @@ class global_config(object):
                 object.
         @return: ConfigParser() object containing all the contents of sections.
         """
+        self._ensure_config_parsed()
+
         if isinstance(sections, str):
             sections = (sections)
         cfgparser = ConfigParser.ConfigParser()
