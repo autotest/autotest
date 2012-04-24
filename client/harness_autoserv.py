@@ -27,9 +27,9 @@ class harness_autoserv(harness.harness):
         # config items. To avoid that happening silently, the check below
         # was written.
         try:
-            cfg = global_config.global_config.get_section_values("CLIENT")
+            global_config.global_config.get_section_values(["CLIENT", "COMMON"])
         except ConfigParser.NoSectionError:
-            logging.error("Empty CLIENT configuration session. "
+            logging.error("Empty CLIENT or COMMON configuration session. "
                           "global_config.ini missing. This probably means "
                           "a bug on the server code. Please verify.")
 
