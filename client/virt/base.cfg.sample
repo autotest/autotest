@@ -203,8 +203,7 @@ keep_video_files_on_error = yes
 # Default remote shell port (SSH under linux)
 shell_port = 22
 # If you need more ports to be available for comm between host and guest,
-# please add them here
-priv_bridge_ports = 53 67
+# please see https://github.com/autotest/autotest/wiki/KVMAutotest-Networking
 
 # Default scheduler params
 used_cpus = 1
