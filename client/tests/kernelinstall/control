@@ -1,0 +1,23 @@
+AUTHOR = 'ypu@redhat.com'
+TIME = 'LONG'
+NAME = 'Kernel install'
+TEST_TYPE = 'client'
+TEST_CLASS = 'Kernel'
+TEST_CATEGORY = 'Functional'
+
+DOC = '''
+Builds and install Linux kernels from source. Need update boot loader
+manually.
+'''
+
+params = {
+    "kernel_base_tree": "http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.2.tar.bz2",
+    "kernel_patch_list": ["http://www.kernel.org/pub/linux/kernel/v3.0/patch-3.2.7.bz2"],
+    "kernel_config": "http://foo/bar/test_src/config",
+}
+
+job.run_test("kernelinstall",
+             install_type="tar",
+             params=params,
+             tag='3.2.7')
+
