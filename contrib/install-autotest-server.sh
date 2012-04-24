@@ -408,7 +408,12 @@ fi
 }
 
 print_install_status() {
-print_log "INFO" "$(systemctl status autotestd.service)"
+if [ -x /etc/init.d/autotest ]
+then
+    print_log "INFO" "$(service autotest status)"
+else
+    print_log "INFO" "$(systemctl status autotestd.service)"
+fi
 
 cd $ATHOME/client/shared/
 VERSION="$(./version.py)"
