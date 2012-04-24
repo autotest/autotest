@@ -17,6 +17,13 @@ def get_install_server_info():
     return server_info
 
 
+def install_server_is_configured():
+    server_info = get_install_server_info()
+    if server_info.get('xmlrpc_url', None):
+        return True
+    return False
+
+
 class RemoteHost(base_classes.Host):
     """
     This class represents a remote machine on which you can run
