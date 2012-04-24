@@ -102,7 +102,7 @@ class global_config(object):
         self._ensure_config_parsed()
 
         if isinstance(sections, str):
-            sections = (sections)
+            sections = [sections]
         cfgparser = ConfigParser.ConfigParser()
         for section in sections:
             cfgparser.add_section(section)
