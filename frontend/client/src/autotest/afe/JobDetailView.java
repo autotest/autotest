@@ -40,7 +40,7 @@ import java.util.Set;
 public class JobDetailView extends DetailView implements TableWidgetFactory, TableActionsListener {
     private static final String[][] JOB_HOSTS_COLUMNS = {
         {DataTable.CLICKABLE_WIDGET_COLUMN, ""}, // selection checkbox
-        {"hostname", "Host"}, {"full_status", "Status"},
+        {"hostname", "Host"}, {"profile", "Profile"}, {"full_status", "Status"},
         {"host_status", "Host Status"}, {"host_locked", "Host Locked"},
         // columns for status log and debug log links
         {DataTable.CLICKABLE_WIDGET_COLUMN, ""}, {DataTable.CLICKABLE_WIDGET_COLUMN, ""}
