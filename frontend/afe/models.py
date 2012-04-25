@@ -1124,6 +1124,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
     job = dbmodels.ForeignKey(Job)
     host = dbmodels.ForeignKey(Host, blank=True, null=True)
+    profile = dbmodels.CharField(max_length=255, blank=True, default='')
     status = dbmodels.CharField(max_length=255)
     meta_host = dbmodels.ForeignKey(Label, blank=True, null=True,
                                     db_column='meta_host')
