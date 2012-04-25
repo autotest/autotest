@@ -35,7 +35,7 @@ public class HostListView extends TabView implements TableActionsListener {
         return "hosts";
     }
 
-    protected HostTable table;
+    protected SelectableProfileStaticHostTable table;
     protected HostTableDecorator hostTableDecorator;
     protected SelectionManager selectionManager;
 
@@ -43,7 +43,7 @@ public class HostListView extends TabView implements TableActionsListener {
     public void initialize() {
         super.initialize();
 
-        table = new HostTable(new HostDataSource(), true);
+        table = new SelectableProfileStaticHostTable(new HostDataSource());
         hostTableDecorator = new HostTableDecorator(table, HOSTS_PER_PAGE);
 
         selectionManager = hostTableDecorator.addSelectionManager(false);
@@ -103,11 +103,7 @@ public class HostListView extends TabView implements TableActionsListener {
             return;
         }
 
-        JSONArray array = new JSONArray();
-        for (JSONObject host : selectedSet) {
-            array.set(array.size(), host.get("hostname"));
-        }
-        AfeUtils.scheduleReinstall(array, "Hosts", jobCreateListener);
+        AfeUtils.scheduleReinstall(selectedSet, "Hosts", jobCreateListener);
     }
 
     private Set<JSONObject> getSelectedHosts() {
