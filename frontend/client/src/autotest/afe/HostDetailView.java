@@ -37,8 +37,8 @@ public class HostDetailView extends DetailView
                             implements DataCallback, TableActionsListener, SelectableRowFilter {
     private static final String[][] HOST_JOBS_COLUMNS = {
             {DataTable.WIDGET_COLUMN, ""}, {"type", "Type"}, {"job__id", "Job ID"},
-            {"job_owner", "Job Owner"}, {"job_name", "Job Name"}, {"started_on", "Time started"},
-            {"status", "Status"}
+            {"job_owner", "Job Owner"}, {"job_name", "Job Name"}, {"profile", "Profile"},
+            {"started_on", "Time started"}, {"status", "Status"}
     };
     public static final int JOBS_PER_PAGE = 20;
 
@@ -222,6 +222,7 @@ public class HostDetailView extends DetailView
         showField(currentHostObject, HostDataSource.OTHER_LABELS, "view_host_labels");
         showText(lockedText, "view_host_locked");
         showField(currentHostObject, "protection", "view_host_protection");
+        showField(currentHostObject, "current_profile", "view_host_current_profile");
         String pageTitle = "Host " + hostname;
         updateLockButton();
         displayObjectData(pageTitle);
