@@ -16,11 +16,12 @@ def run_nic_hotplug(test, params, env):
     7) Delete nic device and netdev
     8) Re-enable primary link of guest
 
-    BEWARE OF THE NETWORK BRIDGE DEVICE USED FOR THIS TEST ("bridge" param).
-    The KVM autotest default bridge virbr0, leveraging libvirt, works fine
-    for the purpose of this test. When using other bridges, the timeouts
-    which usually happen when the bridge topology changes (that is, devices
-    get added and removed) may cause random failures.
+    BEWARE OF THE NETWORK BRIDGE DEVICE USED FOR THIS TEST ("nettype=bridge"
+    and "netdst=<bridgename>" param).  The KVM autotest default bridge virbr0,
+    leveraging libvirt, works fine for the purpose of this test. When using
+    other bridges, the timeouts which usually happen when the bridge
+    topology changes (that is, devices get added and removed) may cause random
+    failures.
 
     @param test:   KVM test object.
     @param params: Dictionary with the test parameters.

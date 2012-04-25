@@ -32,7 +32,7 @@ def run_nic_bonding(test, params, env):
     session_serial.cmd("ifconfig bond0 up")
     ifnames = [virt_test_utils.get_linux_ifname(session_serial,
                                                vm.get_mac_address(vlan))
-               for vlan, nic in enumerate(params.get("nics").split())]
+               for vlan, nic in enumerate(vm.virtnet)]
     setup_cmd = "ifenslave bond0 " + " ".join(ifnames)
     session_serial.cmd(setup_cmd)
     #do a pgrep to check if dhclient has already been running
@@ -59,7 +59,7 @@ def run_nic_bonding(test, params, env):
         try:
             transfer_thread.start()
             while transfer_thread.isAlive():
-                for vlan, nic in enumerate(params.get("nics").split()):
+                for vlan, nic in enumerate(vm.virtnet):
                     device_id = vm.get_peer(vm.netdev_id[vlan])
                     if not device_id:
                         raise error.TestError("Could not find peer device for"
