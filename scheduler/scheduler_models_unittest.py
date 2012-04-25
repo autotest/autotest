@@ -158,7 +158,7 @@ class DBObjectTest(BaseSchedulerModelsTest):
         self.god.stub_with(scheduler_models, 'Job', MockJob)
         hqe = scheduler_models.HostQueueEntry(
                 new_record=True,
-                row=[0, 1, 2, 'Queued', None, 0, 0, 0, '.', None, False, None])
+                row=[0, 1, 2, 'rhel6', 'Queued', None, 0, 0, 0, '.', None, False, None])
         hqe.save()
         new_id = hqe.id
         # Force a re-query and verify that the correct data was stored.
@@ -167,6 +167,7 @@ class DBObjectTest(BaseSchedulerModelsTest):
         self.assertEqual(hqe.id, new_id)
         self.assertEqual(hqe.job_id, 1)
         self.assertEqual(hqe.host_id, 2)
+        self.assertEqual(hqe.profile, 'rhel6')
         self.assertEqual(hqe.status, 'Queued')
         self.assertEqual(hqe.meta_host, None)
         self.assertEqual(hqe.active, False)
