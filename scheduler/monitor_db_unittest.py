@@ -1338,31 +1338,51 @@ class TopLevelFunctionsTest(unittest.TestCase):
 
 
     def test_autoserv_command_line(self):
-        machines = 'abcd12,efgh34'
+        machines_s = 'abcd12,efgh34'
+        machines = ('abcd12', 'efgh34')
+        profiles = ('fedora17', 'fedora18')
+        machines_profiles = 'abcd12#fedora17,efgh34#fedora18'
         extra_args = ['-Z', 'hello']
-        expected_command_line_base = set((monitor_db._autoserv_path, '-p',
-                                          '-m', machines, '-r',
-                                          drone_manager.WORKING_DIRECTORY))
 
-        expected_command_line = expected_command_line_base.union(
-                ['--verbose']).union(extra_args)
-        command_line = set(
-                monitor_db._autoserv_command_line(machines, extra_args))
-        self.assertEqual(expected_command_line, command_line)
+        # ecl is our expected command line
+        # cl is our actual command line
+        ecl_base = set((monitor_db._autoserv_path, '-p', '-m', machines_s, '-r',
+                        drone_manager.WORKING_DIRECTORY))
+        ecl_profiles = set((monitor_db._autoserv_path, '-p', '-m',
+                            machines_profiles, '-r',
+                            drone_manager.WORKING_DIRECTORY))
+        ecl = ecl_base.union(['--verbose']).union(extra_args)
+        ecl_profiles = ecl_profiles.union(['--verbose']).union(extra_args)
+        cl = set(monitor_db._autoserv_command_line(machines, [], extra_args))
+        cl_profiles = set(
+              monitor_db._autoserv_command_line(machines, profiles, extra_args))
+
+        self.assertEqual(ecl, cl)
+        self.assertEqual(ecl_profiles, cl_profiles)
 
         class FakeJob(object):
             owner = 'Bob'
             name = 'fake job name'
-            id = 1337
 
         class FakeHQE(object):
             job = FakeJob
 
-        expected_command_line = expected_command_line_base.union(
-                ['-u', FakeJob.owner, '-l', FakeJob.name])
-        command_line = set(monitor_db._autoserv_command_line(
-                machines, extra_args=[], queue_entry=FakeHQE, verbose=False))
-        self.assertEqual(expected_command_line, command_line)
+        ecl = ecl_base.union(['-u', FakeJob.owner, '-l', FakeJob.name])
+        ecl_profiles = ecl_profiles.union(['-u', FakeJob.owner, '-l',
+                                           FakeJob.name])
+        cl = set(monitor_db._autoserv_command_line(machines, profiles=[],
+                                                   extra_args=[], job=FakeJob,
+                                                   queue_entry=FakeHQE,
+                                                   verbose=False))
+        cl_profiles = set(monitor_db._autoserv_command_line(machines,
+                                                            profiles=profiles,
+                                                            extra_args=extra_args,
+                                                            job=FakeJob,
+                                                            queue_entry=FakeHQE,
+                                                            verbose=True))
+
+        self.assertEqual(ecl, cl)
+        self.assertEqual(ecl_profiles, cl_profiles)
 
 
 class AgentTaskTest(unittest.TestCase,
