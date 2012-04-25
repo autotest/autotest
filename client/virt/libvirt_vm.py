@@ -469,12 +469,12 @@ class VM(virt_vm.BaseVM):
 
         @param name: The name of the object
         @param params: A dict containing VM params
-                (see method make_qemu_command for a full description)
+                (see method __make_libvirt_command for a full description)
         @param root_dir: Base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         @param state: If provided, use this as self.__dict__
         """
-        virt_vm.BaseVM.__init__(self, name, params)
+        super(VM, self).__init__(name, params)
 
         if state:
             self.__dict__ = state
@@ -496,16 +496,11 @@ class VM(virt_vm.BaseVM):
         self.params = params
         self.root_dir = root_dir
         self.address_cache = address_cache
-        self.vnclisten = "0.0.0.0"
-        # TODO: Impliment monitor class & property
-        self.monitor = None
-        # TODO: The monitor class should do this
         self.connect_uri = params.get("connect_uri", "default")
         if self.connect_uri == 'default':
             self.connect_uri = virsh_uri()
         else: # Validate and canonicalize uri early to catch problems
             self.connect_uri = virsh_uri(uri = self.connect_uri)
-        # TODO: The monitor class should do this also
         self.driver_type = virsh_driver(uri = self.connect_uri)
 
         logging.info("Libvirt VM '%s', driver '%s', uri '%s'",
@@ -597,7 +592,7 @@ class VM(virt_vm.BaseVM):
         @param root_dir: Optional new base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         @param copy_state: If True, copy the original VM's state to the clone.
-                Mainly useful for make_qemu_command().
+                Mainly useful for __make_libvirt_command().
         """
         if name is None:
             name = self.name
@@ -814,6 +809,38 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
+        def add_nic(help, nic_params):
+            """
+            Return additional command line params based on dict-like nic_params
+            """
+            mac = nic_params.get('mac')
+            nettype = nic_params.get('nettype')
+            netdst = nic_params.get('netdst')
+            nic_model = nic_params.get('nic_model')
+            if nettype:
+                result = " --network=%s" % nettype
+            else:
+                result = ""
+            if has_option(help, "bridge"):
+                # older libvirt (--network=NATdev --bridge=bridgename --mac=mac)
+                if nettype != 'user':
+                    result += ':%s' % netdst
+                if mac: # possible to specify --mac w/o --network
+                    result += " --mac=%s" % mac
+            else:
+                # newer libvirt (--network=mynet,model=virtio,mac=00:11)
+                if nettype != 'user':
+                    result += '=%s' % netdst
+                if nettype and nic_model: # only supported along with nettype
+                    result += ",model=%s" % nic_model
+                if nettype and mac:
+                    result += ',mac=%s' % mac
+                elif mac: # possible to specify --mac w/o --network
+                    result += " --mac=%s" % mac
+            logging.debug("vm.__make_libvirt_command.add_nic returning: %s"
+                             % result)
+            return result
+
         # End of command line option wrappers
 
         if name is None:
@@ -1014,19 +1041,13 @@ class VM(virt_vm.BaseVM):
                               None,
                               None)
 
-        # FIXME: for now in the pilot always add mac address to virt-install
-        vlan = 0
-        mac = vm.get_mac_address(vlan)
-        if mac:
-            virt_install_cmd += " --mac %s" % mac
-            self.nic_mac = mac
-
-        if self.driver_type == 'xen':
-            virt_install_cmd += (" --network=%s" % params.get("virsh_network"))
-        elif self.driver_type == 'qemu':
-            virt_install_cmd += (" --network=%s,model=%s" %
-                                 (params.get("virsh_network"),
-                                  params.get("nic_model")))
+        # setup networking parameters
+        for nic in vm.virtnet:
+            # __make_libvirt_command can be called w/o vm.create()
+            nic = vm.add_nic(**dict(nic))
+            logging.debug("__make_libvirt_command() setting up command for"
+                          " nic: %s" % str(nic))
+            virt_install_cmd += add_nic(help,nic)
 
         if params.get("use_no_reboot") == "yes":
             virt_install_cmd += " --noreboot"
@@ -1147,13 +1168,6 @@ class VM(virt_vm.BaseVM):
                 guest_port = int(redir_params.get("guest_port"))
                 self.redirs[guest_port] = host_ports[i]
 
-            # Generate netdev/device IDs for all NICs
-            self.netdev_id = []
-            self.device_id = []
-            for nic in params.objects("nics"):
-                self.netdev_id.append(virt_utils.generate_random_id())
-                self.device_id.append(virt_utils.generate_random_id())
-
             # Find available PCI devices
             self.pci_devices = []
             for device in params.objects("pci_devices"):
@@ -1174,16 +1188,18 @@ class VM(virt_vm.BaseVM):
                 f.close()
 
             # Generate or copy MAC addresses for all NICs
-            num_nics = len(params.objects("nics"))
-            for vlan in range(num_nics):
-                nic_name = params.objects("nics")[vlan]
-                nic_params = params.object_params(nic_name)
-                mac = (nic_params.get("nic_mac") or
-                       mac_source and mac_source.get_mac_address(vlan))
-                if mac:
-                    virt_utils.set_mac_address(self.instance, vlan, mac)
-                else:
-                    virt_utils.generate_mac_address(self.instance, vlan)
+            for nic in self.virtnet:
+                nic_params = dict(nic)
+                if mac_source:
+                    # Will raise exception if source doesn't
+                    # have cooresponding nic
+                    logging.debug("Copying mac for nic %s from VM %s"
+                                    % (nic.nic_name, mac_source.nam))
+                    nic_params['mac'] = mac_source.get_mac_address(nic.nic_name)
+                # __make_libvirt_command() calls vm.add_nic (i.e. on a copy)
+                nic = self.add_nic(**nic_params)
+                logging.debug('VM.create activating nic %s' % nic)
+                self.activate_nic(nic.nic_name)
 
             # Make qemu command
             install_command = self.__make_libvirt_command()
@@ -1303,9 +1319,8 @@ class VM(virt_vm.BaseVM):
                 except OSError:
                     pass
             if free_mac_addresses:
-                num_nics = len(self.params.objects("nics"))
-                for vlan in range(num_nics):
-                    self.free_mac_address(vlan)
+                for nic_index in xrange(0,len(self.virtnet)):
+                    self.free_mac_address(nic_index)
 
 
     def remove(self):
@@ -1326,75 +1341,12 @@ class VM(virt_vm.BaseVM):
         return virsh_uuid(self.name, self.connect_uri)
 
 
-    def get_address(self, index=0):
-        """
-        Return the address of a NIC of the guest, in host space.
-
-        If port redirection is used, return 'localhost' (the NIC has no IP
-        address of its own).  Otherwise return the NIC's IP address.
-
-        @param index: Index of the NIC whose address is requested.
-        @raise VMMACAddressMissingError: If no MAC address is defined for the
-                requested NIC
-        @raise VMIPAddressMissingError: If no IP address is found for the the
-                NIC's MAC address
-        @raise VMAddressVerificationError: If the MAC-IP address mapping cannot
-                be verified (using arping)
-        """
-        nics = self.params.objects("nics")
-        nic_name = nics[index]
-        nic_params = self.params.object_params(nic_name)
-        if nic_params.get("nic_mode") == "tap":
-            mac = self.get_mac_address(index).lower()
-            # Get the IP address from the cache
-            ip = self.address_cache.get(mac)
-            if not ip:
-                raise virt_vm.VMIPAddressMissingError(mac)
-            # Make sure the IP address is assigned to this guest
-            macs = [self.get_mac_address(i) for i in range(len(nics))]
-            if not virt_utils.verify_ip_address_ownership(ip, macs):
-                raise virt_vm.VMAddressVerificationError(mac, ip)
-            return ip
-        else:
-            return "localhost"
-
-
     def get_port(self, port, nic_index=0):
-        """
-        Return the port in host space corresponding to port in guest space.
-
-        @param port: Port number in host space.
-        @param nic_index: Index of the NIC.
-        @return: If port redirection is used, return the host port redirected
-                to guest port port. Otherwise return port.
-        @raise VMPortNotRedirectedError: If an unredirected port is requested
-                in user mode
-        """
-        nic_name = self.params.objects("nics")[nic_index]
-        nic_params = self.params.object_params(nic_name)
-        if nic_params.get("nic_mode") == "tap":
-            return port
-        else:
-            try:
-                return self.redirs[port]
-            except KeyError:
-                raise virt_vm.VMPortNotRedirectedError(port)
+        raise NotImplementedError
 
 
     def get_ifname(self, nic_index=0):
-        """
-        Return the ifname of a tap device associated with a NIC.
-
-        @param nic_index: Index of the NIC
-        """
-        nics = self.params.objects("nics")
-        nic_name = nics[nic_index]
-        nic_params = self.params.object_params(nic_name)
-        if nic_params.get("nic_ifname"):
-            return nic_params.get("nic_ifname")
-        else:
-            return "t%d-%s" % (nic_index, self.instance[-11:])
-
+        raise NotImplementedError
 
     def get_virsh_mac_address(self, nic_index=0):
         """
@@ -1414,36 +1366,6 @@ class VM(virt_vm.BaseVM):
                 return x.value
             count += 1
         raise virt_vm.VMMACAddressMissingError(nic_index)
-
-
-    def get_mac_address(self, nic_index=0):
-        """
-        Return the MAC address of a NIC.
-
-        @param nic_index: Index of the NIC
-        @raise VMMACAddressMissingError: If no MAC address is defined for the
-                requested NIC
-        """
-        nic_name = self.params.objects("nics")[nic_index]
-        nic_params = self.params.object_params(nic_name)
-        if self.params.get("type") != 'unattended_install':
-            mac = self.get_virsh_mac_address(nic_index)
-        else:
-            mac = (nic_params.get("nic_mac") or
-                   virt_utils.get_mac_address(self.instance, nic_index))
-        if not mac:
-            raise virt_vm.VMMACAddressMissingError(nic_index)
-        return mac
-
-
-    def free_mac_address(self, nic_index=0):
-        """
-        Free a NIC's MAC address.
-
-        @param nic_index: Index of the NIC
-        """
-        virt_utils.free_mac_address(self.instance, nic_index)
-
 
     def get_pid(self):
         """
@@ -1489,6 +1411,13 @@ class VM(virt_vm.BaseVM):
         # statm stores informations in pages, translate it to MB
         return shm * 4.0 / 1024
 
+    def activate_nic(self, nic_index_or_name):
+        #TODO: Impliment nic hotplugging
+        raise NotImplementedError
+
+    def deactivate_nic(self, nic_index_or_name)
+        #TODO: Impliment nic hot un-plugging
+        raise NotImplementedError
 
     @error.context_aware
     def reboot(self, session=None, method="shell", nic_index=0, timeout=240):
@@ -1530,8 +1459,13 @@ class VM(virt_vm.BaseVM):
         Verifies whether the current virt_install commandline matches the
         requested one, based on the test parameters.
         """
-        return (self.__make_libvirt_command() !=
-                self.__make_libvirt_command(name, params, basedir))
+        if (self.__make_libvirt_command() !=
+                self.__make_libvirt_command(name, params, basedir)):
+            logging.debug("VM params in env don't match requested, restarting.")
+            return True
+        else:
+            logging.debug("VM params in env do match requested, continuing.")
+            return False
 
 
     def screendump(self, filename, debug=False):
