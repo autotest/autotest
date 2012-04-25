@@ -996,3 +996,16 @@ class QMPMonitor(Monitor):
         @return: The response to the command
         """
         return self.send_args_cmd("set_link name=%s,up=%s" % (name, str(up)))
+
+
+    def migrate_set_downtime(self, value):
+        """
+        Set maximum tolerated downtime (in seconds) for migration.
+
+        @param: value: maximum downtime (in seconds)
+
+        @return: The command's output
+        """
+        val = value * 10**9
+        args = {"value": val}
+        return self.cmd("migrate_set_downtime", args)
