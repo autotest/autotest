@@ -1,6 +1,6 @@
 from autotest.client.shared import utils, error, global_config
 from autotest.server import autotest_remote, utils as server_utils
-from autotest.server.hosts import site_factory, ssh_host, serial
+from autotest.server.hosts import site_factory, installable_host, ssh_host, serial, remote
 from autotest.server.hosts import logfile_monitor
 
 DEFAULT_FOLLOW_PATH = '/var/log/kern.log'
@@ -15,12 +15,21 @@ _started_hostnames = set()
 def create_host(
     hostname, auto_monitor=True, follow_paths=None, pattern_paths=None,
     netconsole=False, **args):
+    # parse out the profile up-front, if it's there, or else console monitoring
+    # will not work
+    hostname, args['user'], args['password'], args['port'], args['profile'] = \
+            server_utils.parse_machine(hostname, ssh_user, ssh_pass, ssh_port)
+
     # by default assume we're using SSH support
     if SSH_ENGINE == 'paramiko':
         from autotest.server.hosts import paramiko_host
         classes = [paramiko_host.ParamikoHost]
     elif SSH_ENGINE == 'raw_ssh':
-        classes = [ssh_host.SSHHost, ssh_host.AsyncSSHMixin]
+        if remote.install_server_is_configured():
+            classes = [installable_host.InstallableHost]
+        else:
+            classes = [ssh_host.SSHHost]
+        classes.append(ssh_host.AsyncSSHMixin)
     else:
         raise error.AutoServError("Unknown SSH engine %s. Please verify the "
                                   "value of the configuration key 'ssh_engine' "
@@ -67,9 +76,6 @@ def create_host(
     # do any site-specific processing of the classes list
     site_factory.postprocess_classes(classes, hostname,
                                      auto_monitor=auto_monitor, **args)
-
-    hostname, args['user'], args['password'], args['port'] = \
-            server_utils.parse_machine(hostname, ssh_user, ssh_pass, ssh_port)
 
     # create a custom host class for this machine and return an instance of it
     host_class = type("%s_host" % hostname, tuple(classes), {})
