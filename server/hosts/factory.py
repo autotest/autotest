@@ -15,6 +15,11 @@ _started_hostnames = set()
 def create_host(
     hostname, auto_monitor=True, follow_paths=None, pattern_paths=None,
     netconsole=False, **args):
+    # parse out the profile up-front, if it's there, or else console monitoring
+    # will not work
+    hostname, args['user'], args['password'], args['port'], args['profile'] = \
+            server_utils.parse_machine(hostname, ssh_user, ssh_pass, ssh_port)
+
     # by default assume we're using SSH support
     if SSH_ENGINE == 'paramiko':
         from autotest.server.hosts import paramiko_host
@@ -67,9 +72,6 @@ def create_host(
     # do any site-specific processing of the classes list
     site_factory.postprocess_classes(classes, hostname,
                                      auto_monitor=auto_monitor, **args)
-
-    hostname, args['user'], args['password'], args['port'], args['profile'] = \
-            server_utils.parse_machine(hostname, ssh_user, ssh_pass, ssh_port)
 
     # create a custom host class for this machine and return an instance of it
     host_class = type("%s_host" % hostname, tuple(classes), {})

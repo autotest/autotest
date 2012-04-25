@@ -244,13 +244,12 @@ def form_ntuples_from_machines(machines, n=2, mapping_func=default_mappings):
     return (ntuples, failures)
 
 
-def parse_machine(machine, user='root', password='', port=22):
+def parse_machine(machine, user='root', password='', port=22, profile=''):
     """
     Parse the machine string user:pass@host:port and return it separately,
     if the machine string is not complete, use the default parameters
     when appropriate.
     """
-
     if '@' in machine:
         user, machine = machine.split('@', 1)
 
@@ -259,12 +258,19 @@ def parse_machine(machine, user='root', password='', port=22):
 
     if ':' in machine:
         machine, port = machine.split(':', 1)
-        port = int(port)
+        try:
+            port = int(port)
+        except ValueError:
+            port, profile = port.split('#', 1)
+            port = int(port)
+
+    if '#' in machine:
+        machine, profile = machine.split('#', 1)
 
     if not machine or not user:
         raise ValueError
 
-    return machine, user, password, port
+    return machine, user, password, port, profile
 
 
 def get_public_key():
