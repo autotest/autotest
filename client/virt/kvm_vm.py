@@ -462,8 +462,10 @@ class VM(virt_vm.BaseVM):
              tls_port_range=(3200, 3399)):
             """
             processes spice parameters
-            @param help
             @param spice_options - dict with spice keys/values
+            @param port_range - tuple with port range, default: (3000, 3199)
+            @param tls_port_range - tuple with tls port range,
+                                    default: (3200, 3399)
             """
             spice_opts = [] # will be used for ",".join()
             tmp = None
