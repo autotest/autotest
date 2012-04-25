@@ -68,23 +68,40 @@ def _get_pidfile_timeout_secs():
     return pidfile_timeout_mins * 60
 
 
-def _autoserv_command_line(machines, extra_args, job=None,
+def _autoserv_command_line(machines, profiles, extra_args, job=None,
                            queue_entry=None, verbose=True):
     """
-    @returns The autoserv command line as a list of executable + parameters.
+    Builds an autoserv command line composed of the executable and parameters
 
-    @param machines - string - A machine or comma separated list of machines
-            for the (-m) flag.
-    @param extra_args - list - Additional arguments to pass to autoserv.
-    @param job - Job object - If supplied, -u owner and -l name parameters
-            will be added.
-    @param queue_entry - A HostQueueEntry object - If supplied and no Job
-            object was supplied, this will be used to lookup the Job object.
+    @type machines: list
+    @param machines: List of machines for the (-m) flag
+
+    @type profiles: list
+    @param profiles: List of profiles to set for machines (will be added to
+                     machine names with the machine#host syntax)
+
+    @type extra_args: list
+    @param extra_args: Additional arguments to pass to autoserv.
+
+    @type job: Job object
+    @param job: If supplied, -u owner and -l name parameters will be added.
+
+    @type queue_entry: HostQueueEntry object
+    @param queue_entry: If supplied and no Job object was supplied, this will
+                        be used to lookup the Job object.
+
+    @type verbose: boolean
+    @param verbose: Add the '--verbose' argument to the autoserv command line
+
+    @returns: The autoserv command line as a list of executable + parameters.
     """
     autoserv_argv = [_autoserv_path, '-p',
                      '-r', drone_manager.WORKING_DIRECTORY]
     if machines:
-        autoserv_argv += ['-m', machines]
+        if profiles:
+            # add profiles using the host#profile notation
+            machines = ['%s#%s' % (m, p) for (m, p) in zip(machines, profiles)]
+        autoserv_argv += ['-m', ','.join(machines)]
     if job or queue_entry:
         if not job:
             job = queue_entry.job
@@ -1450,7 +1467,7 @@ class SpecialAgentTask(AgentTask, TaskWithJobKeyvals):
 
 
     def _command_line(self):
-        return _autoserv_command_line(self.host.hostname,
+        return _autoserv_command_line([self.host.hostname], [],
                                       self._extra_command_args,
                                       queue_entry=self.queue_entry)
 
@@ -1714,13 +1731,17 @@ class AbstractQueueTask(AgentTask, TaskWithJobKeyvals):
     def _command_line(self):
         execution_path = self.queue_entries[0].execution_path()
         control_path = self._write_control_file(execution_path)
-        hostnames = ','.join(entry.host.hostname
+        hostnames = [entry.host.hostname
                              for entry in self.queue_entries
-                             if not entry.is_hostless())
+                             if not entry.is_hostless()]
+        profiles = [entry.profile
+                             for entry in self.queue_entries
+                             if not entry.is_hostless() and entry.profile]
 
         execution_tag = self.queue_entries[0].execution_tag()
         params = _autoserv_command_line(
             hostnames,
+            profiles,
             ['-P', execution_tag, '-n',
              _drone_manager.absolute_path(control_path)],
             job=self.job, verbose=False)
