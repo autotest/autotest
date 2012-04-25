@@ -777,7 +777,7 @@ class VM(virt_vm.BaseVM):
         for nic in vm.virtnet:
             # setup nic parameters as needed
             nic = vm.add_nic(**dict(nic)) # implied add_netdev
-            logging.debug("__make_qemu_cmd() setting up command for nic: %s"
+            logging.debug("__make_qemu_command() setting up command for nic: %s"
                           % str(nic))
             # gather set values or None if unset
             vlan = int(nic.get('vlan'))
@@ -1068,7 +1068,14 @@ class VM(virt_vm.BaseVM):
             # Generate basic parameter values for all NICs and create TAP fd
             for nic in self.virtnet:
                 # fill in key values, validate nettype
+                # note: __make_qemu_command() calls vm.add_nic (i.e. on a copy)
                 nic = self.add_nic(**dict(nic)) # implied add_netdev
+                if mac_source:
+                    # Will raise exception if source doesn't
+                    # have cooresponding nic
+                    logging.debug("Copying mac for nic %s from VM %s"
+                                    % (nic.nic_name, mac_source.nam))
+                    nic.mac = mac_source.get_mac_address(nic.nic_name)
                 logging.debug('VM.create activating nic %s' % nic)
                 if nic.nettype == 'bridge':
                     if not nic.get('tapfd'):
