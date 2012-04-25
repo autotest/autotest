@@ -14,7 +14,7 @@ For docs, see:
     http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
-import getpass, os, time, traceback, re
+import getpass, os, time, traceback, re, xmlrpclib
 try:
     import autotest.common as common
 except ImportError:
