@@ -240,6 +240,13 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
         return jsonObjects.get(rowIndex);
     }
 
+    /**
+     * Set the JSONObject corresponding to the indexed row.
+     */
+    public void setRow(int rowIndex, JSONObject row) {
+        jsonObjects.set(rowIndex, row);
+    }
+
     public List<JSONObject> getAllRows() {
         return Collections.unmodifiableList(jsonObjects);
     }

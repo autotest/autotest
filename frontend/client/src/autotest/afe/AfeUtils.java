@@ -199,10 +199,11 @@ public class AfeUtils {
         });
     }
 
-    private static void scheduleReinstallHelper(JSONArray hosts, JSONObject controlInfo,
+    private static void scheduleReinstallHelper(Set<JSONObject> hosts, JSONObject controlInfo,
                                                 final String messagePrefix,
                                                 final JobCreateListener listener) {
-        String name = "reinstall_" + hosts.get(0).isString().stringValue();
+        JSONArray hostnames, profiles;
+        String name = "reinstall_" + hosts.iterator().next().get("hostname").isString().stringValue();
         if (hosts.size() > 1) {
             name += "_etc";
         }
@@ -223,7 +224,14 @@ public class AfeUtils {
         args.put("parse_failed_repair", JSONBoolean.getInstance(true));
         args.put("reboot_before", rebootBefore);
         args.put("reboot_after", rebootAfter);
-        args.put("hosts", hosts);
+        hostnames = new JSONArray();
+        profiles = new JSONArray();
+        for (JSONObject h : hosts) {
+            hostnames.set(hostnames.size(), h.get("hostname"));
+            profiles.set(profiles.size(), h.get("current_profile"));
+        }
+        args.put("hosts", hostnames);
+        args.put("profiles", profiles);
 
         JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
         rpcProxy.rpcCall("create_job", args, new JsonRpcCallback() {
@@ -237,7 +245,7 @@ public class AfeUtils {
         });
     }
 
-    public static void scheduleReinstall(final JSONArray hosts, final String messagePrefix,
+    public static void scheduleReinstall(final Set<JSONObject> hosts, final String messagePrefix,
                                          final JobCreateListener listener) {
         // Find the test
         JSONArray tests = staticData.getData("tests").isArray();
