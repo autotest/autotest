@@ -443,7 +443,8 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
 
 
 def create_parameterized_job(name, priority, test, parameters, kernel=None,
-                             label=None, profilers=(), profiler_parameters=None,
+                             label=None, profiles=(), profilers=(),
+                             profiler_parameters=None,
                              use_container=False, profile_only=None,
                              upload_kernel_config=False, hosts=(),
                              meta_hosts=(), one_time_hosts=(),
@@ -529,7 +530,7 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
 
 
 def create_job(name, priority, control_file, control_type,
-               hosts=(), meta_hosts=(), one_time_hosts=(),
+               hosts=(), profiles=(), meta_hosts=(), one_time_hosts=(),
                atomic_group_name=None, synch_count=None, is_template=False,
                timeout=None, max_runtime_hrs=None, run_verify=True,
                email_list='', dependencies=(), reboot_before=None,
@@ -559,6 +560,7 @@ def create_job(name, priority, control_file, control_type,
     @param keyvals dict of keyvals to associate with the job
 
     @param hosts List of hosts to run job on.
+    @param profiles List of profiles to use, in sync with @hosts list
     @param meta_hosts List where each entry is a label name, and for each entry
     one host will be chosen from that label to run the job on.
     @param one_time_hosts List of hosts not in the database to run the job on.
@@ -663,12 +665,13 @@ def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
                                       queue_entry_filter_data)
 
     host_dicts = []
-    for host in job_info['hosts']:
+    for host,profile in zip(job_info['hosts'],job_info['profiles']):
         host_dict = get_hosts(id=host.id)[0]
         other_labels = host_dict['labels']
         if host_dict['platform']:
             other_labels.remove(host_dict['platform'])
         host_dict['other_labels'] = ', '.join(other_labels)
+        host_dict['profile'] = profile
         host_dicts.append(host_dict)
 
     for host in job_info['one_time_hosts']:
