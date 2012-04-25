@@ -47,8 +47,8 @@ variants:
             file_system = "ext3 ext2"
             mount_command = mkdir /mnt/%s && mount /dev/%s /mnt/%s
             umount_command = umount /dev/%s && rmdir /mnt/%s
-            list_volume_command = cd /dev && \ls [vhs]d?
-            re_str = "[vhs]d[a-z]"
+            list_volume_command = cd /dev && \ls [vhs]d*
+            re_str = "[vhs]d[a-z]*"
             format_command = echo y | mkfs -t %s /dev/%s
             copy_to_command = \cp -rf /bin/ls /mnt/%s
             copy_from_command = \cp -rf /mnt/%s/ls /tmp/ls
@@ -57,7 +57,7 @@ variants:
             max_disk:
                  stg_image_num = 27
                  list_volume_command = cd /dev && \ls vd*
-                 re_str = "[vhs]d[a-z][^0-9]"
+                 re_str = "[vhs]d[a-z]*[^0-9]"
         usb_multi_disk:
             show_mount_cmd = mount|gawk '/mnt/{print $1}'
             clean_cmd = "\rm -rf /mnt/*"

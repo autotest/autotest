@@ -1584,13 +1584,13 @@ variants:
 
     - multi_disk: install setup image_copy unattended_install.cdrom
         type = multi_disk
-        usbs = ""
         force_create_image = yes
         force_create_image_image1 = no
         remove_image = yes
         remove_image_image1 = no
         cmd_timeout = 1000
         block_list = C: D: vda vda1 vda2 hda hda1 hda2 sda sda1 sda2
+        start_vm = no
         variants:
             - signal_repeat:
                 images += " stg"
@@ -1607,7 +1607,52 @@ variants:
                 # other variants.
                 # stg_image_format = qcow2
                 # stg_drive_format = virtio
-                # stg_assign_index = yes
+            - all_drive_format_types:
+                stg_image_size = 1M
+                stg_params = "drive_format:ide,scsi,virtio,scsi-hd,usb2"
+                usbs += " default-ehci"
+                usb_type_default-ehci = usb-ehci
+            - virtio_scsi_variants:
+                # Decrease length of the command
+                stg_image_name = '/tmp/%s'
+                stg_image_size = 1M
+                stg_params = "drive_format:scsi-disk "
+                variants:
+                    - @passthrough:
+                        # We need to unload scsi_debug modules used by VM
+                        kill_vm = yes
+                        force_create_image = no
+                        pre_command = "modprobe scsi_debug && echo 9 > /sys/bus/pseudo/drivers/scsi_debug/add_host"
+                        post_command = "rmmod scsi_debug"
+                        stg_params += "image_raw_device:yes "
+                        stg_params += "image_format:raw "
+                        stg_params += "indirect_image_select:range(-9,0) "
+                        variants:
+                            - block:
+                                stg_params += "image_name:/dev/sd* "
+                            - generic:
+                                stg_params += "drive_format:scsi-generic "
+                                stg_params += "image_name:/dev/sg* "
+                    - multi_lun:
+                        stg_params += "drive_lun:range(0,16383,63) "
+                    - multi_scsiid_lun:
+                        stg_params += "drive_scsiid:range(0,255,1,3) "
+                        stg_params += "drive_lun:range(0,16383,8191) "
+                    - multi_bus_scsiid_lun:
+                        stg_params += "drive_bus:range(0,15,1,9) "
+                        stg_params += "drive_scsiid:range(0,255,127,3) "
+                        stg_params += "drive_lun:range(0,16383,8191) "
+            - debug_params:
+                # Remove this to execute this test-params-devel test
+                no multi_disk
+                # Dont run the actual test, only show the disk setup
+                multi_disk_params_only = yes
+                stg_image_name = '/tmp/%s'
+                stg_image_size = 1M
+                stg_params += "list_params:item1,item2,item3 "
+                stg_params += "simplerange:range(55) "
+                stg_params += "fullrange:range(first,last,step,multiple_items) "
+                stg_params += "range_0-all_disk:range(n) "
 
     - clock_getres: install setup image_copy unattended_install.cdrom
         only Linux
