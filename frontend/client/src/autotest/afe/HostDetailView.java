@@ -10,6 +10,7 @@ import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.DataTable;
 import autotest.common.table.DynamicTable;
 import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.table.JSONObjectSet;
 import autotest.common.table.RpcDataSource;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.SelectionManager.SelectableRowFilter;
@@ -32,6 +33,7 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 
 import java.util.List;
+import java.util.Set;
 
 public class HostDetailView extends DetailView
                             implements DataCallback, TableActionsListener, SelectableRowFilter {
@@ -290,9 +292,9 @@ public class HostDetailView extends DetailView
 
         reinstallButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
-                JSONArray array = new JSONArray();
-                array.set(0, new JSONString(hostname));
-                AfeUtils.scheduleReinstall(array, hostname, jobCreateListener);
+                Set<JSONObject> set = new JSONObjectSet<JSONObject>();
+                set.add(currentHostObject);
+                AfeUtils.scheduleReinstall(set, hostname, jobCreateListener);
             }
         });
         addWidget(reinstallButton, "view_host_reinstall_button");
