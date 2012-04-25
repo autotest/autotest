@@ -436,9 +436,9 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         this.jobId = newJobId;
     }
 
-    public Widget createWidget(int row, int cell, JSONObject hostQueueEntry) {
+    public Widget createWidget(int row, int cell, JSONObject hostQueueEntry, DataTable.WidgetType type) {
         if (cell == 0) {
-            return selectionManager.createWidget(row, cell, hostQueueEntry);
+            return selectionManager.createWidget(row, cell, hostQueueEntry, type);
         }
 
         String executionSubdir = Utils.jsonToString(hostQueueEntry.get("execution_subdir"));
