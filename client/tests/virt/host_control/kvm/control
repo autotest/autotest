@@ -1,0 +1,69 @@
+AUTHOR = """
+uril@redhat.com (Uri Lublin)
+drusso@redhat.com (Dror Russo)
+mgoldish@redhat.com (Michael Goldish)
+dhuff@redhat.com (David Huff)
+aeromenk@redhat.com (Alexey Eromenko)
+mburns@redhat.com (Mike Burns)
+"""
+TIME = 'MEDIUM'
+NAME = 'KVM Test'
+TEST_TYPE = 'client'
+TEST_CLASS = 'Virtualization'
+TEST_CATEGORY = 'Functional'
+
+DOC = """
+Executes the KVM test framework on a given host. This module is separated in
+minor functions, that execute different tests for doing Quality Assurance on
+KVM (both kernelspace and userspace) code.
+
+For online docs, please refer to http://www.linux-kvm.org/page/KVM-Autotest
+"""
+
+import sys, os, logging
+from autotest.client.tests.virt import cartesian_config
+from autotest.client.tests.virt import virt_utils
+
+# set English environment (command output might be localized, need to be safe)
+os.environ['LANG'] = 'en_US.UTF-8'
+
+str = """
+# This string will be parsed after build.cfg.  Make any desired changes to the
+# build configuration here.  For example (to install from koji/brew):
+# installers = koji_qemu_kvm
+"""
+
+parser = cartesian_config.Parser()
+kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests/virt')
+parser.parse_file(os.path.join(kvm_test_dir, "build.cfg"))
+parser.parse_string(str)
+if not virt_utils.run_tests(parser, job):
+    logging.error("KVM build step failed, exiting.")
+    sys.exit(1)
+
+str = """
+# This string will be parsed after tests.cfg.  Make any desired changes to the
+# test configuration here.  For example:
+#display = sdl
+#install, setup: timeout_multiplier = 3
+"""
+
+parser = cartesian_config.Parser()
+parser.parse_file(os.path.join(kvm_test_dir, "tests.cfg"))
+
+if args:
+    # We get test parameters from command line
+    for arg in args:
+        try:
+            (key, value) = re.findall("^(\w+)=(.*)", arg)[0]
+            if key == "only":
+                str += "only %s\n" % value
+            elif key == "no":
+                str += "no %s\n" % value
+            else:
+                str += "%s = %s\n" % (key, value)
+        except IndexError:
+            pass
+parser.parse_string(str)
+
+virt_utils.run_tests(parser, job)
