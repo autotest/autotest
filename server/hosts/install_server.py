@@ -38,6 +38,7 @@ class CobblerInterface(object):
         if self.xmlrpc_url:
             self.server = xmlrpclib.Server(self.xmlrpc_url)
             self.token = self.server.login(self.user, self.password)
+        self.num_attempts = int(kwargs.get('num_attempts', 2))
 
 
     def get_system_handle(self, host):
@@ -60,82 +61,109 @@ class CobblerInterface(object):
         return (system, system_handle)
 
 
-    def install_host(self, host, profile=None, timeout=None):
+    def _set_host_profile(self, host, profile=None):
+        system, system_handle = self.get_system_handle(host)
+        system_info = self.server.get_system(system)
+
+        # If no fallback profile is enabled, we don't want to mess
+        # with the currently profile set for that machine.
+        if profile is not None:
+            self.server.modify_system(system_handle, 'profile', profile,
+                                      self.token)
+            self.server.save_system(system_handle, self.token)
+
+        # Enable netboot for that machine (next time it'll reboot and be
+        # reinstalled)
+        self.server.modify_system(system_handle, 'netboot_enabled', 'True',
+                                  self.token)
+        try:
+            # Cobbler only generates the DHCP configuration for netboot enabled
+            # machines, so we need to synchronize the dhcpd file after changing
+            # the value above
+            self.server.sync_dhcp(self.token)
+        except xmlrpclib.Fault, err:
+            # older Cobbler will not recognize the above command
+            if not "unknown remote method" in err.faultString:
+                logging.error("DHCP sync failed, error code: %s, error string: %s",
+                              err.faultCode, err.faultString)
+
+        self.server.save_system(system_handle, self.token)
+
+
+    def install_host(self, host, profile=None, timeout=None, num_attempts=2):
         """
         Install a host object with profile name defined by distro.
 
         @param host: Autotest host object.
         @param profile: String with cobbler profile name.
         @param timeout: Amount of time to wait for the install.
+        @param num_attempts: Maximum number of install attempts.
         """
-        if self.xmlrpc_url:
+        if not self.xmlrpc_url:
+            return
 
-            step_time = 60
-            if timeout is None:
-                # 1 hour of timeout by default
-                timeout = 1 * 3600
+        installations_attempted = 1
 
-            logging.info("Setting up machine %s install", host.hostname)
-            remove_hosts_file()
+        step_time = 60
+        if timeout is None:
+            # 1 hour of timeout by default
+            timeout = 3600
 
+        host.record("START", None, "install", host.hostname)
+        host.record("GOOD", None, "install.start", host.hostname)
+        logging.info("Installing machine %s with profile %s (timeout %s s)",
+                     host.hostname, profile, timeout)
+        install_start = time.time()
+        time_elapsed = 0
+
+        install_successful = False
+        while ((not install_successful) and
+               (installations_attempted <= self.num_attempts) and
+               (time_elapsed < timeout)):
+
+            self._set_host_profile(host, profile)
             system, system_handle = self.get_system_handle(host)
+            self.server.power_system(system_handle,
+                                     'reboot', self.token)
+            installations_attempted += 1
 
-            if profile is None:
-                profile = self.fallback_profile
-
-            system_info = self.server.get_system(system)
-            current_profile = system_info.get('profile')
-            # If no fallback profile is enabled, we don't want to mess
-            # with the currently profile set for that machine.
-            if profile and (profile != current_profile):
-                self.server.modify_system(system_handle, 'profile', profile,
-                                          self.token)
-            else:
-                profile = current_profile
-
-            # Enable netboot for that machine (next time it'll reboot and be
-            # reinstalled)
-            self.server.modify_system(system_handle, 'netboot_enabled', 'True',
-                                      self.token)
-            try:
-                # Cobbler only generates the DHCP configuration for netboot enabled
-                # machines, so we need to synchronize the dhcpd file after changing
-                # the value above
-                self.server.sync_dhcp(self.token)
-            except xmlrpclib.Fault, err:
-                # older Cobbler will not recognize the above command
-                if not "unknown remote method" in err.faultString:
-                    logging.error("DHCP sync failed, error code: %s, error string: %s",
-                                  err.faultCode, err.faultString)
-            # Now, let's just restart the machine (machine has to have
-            # power management data properly set up).
-            self.server.save_system(system_handle, self.token)
-            self.server.power_system(system_handle, 'reboot', self.token)
-            host.record("START", None, "install", host.hostname)
-            host.record("GOOD", None, "install.start", host.hostname)
-            logging.info("Installing machine %s with profile %s (timeout %s s)",
-                         host.hostname, profile, timeout)
-            install_start = time.time()
-            time_elapsed = 0
-            install_successful = False
             while time_elapsed < timeout:
+
                 time.sleep(step_time)
-                system_info = self.server.get_system(system)
-                install_successful = not system_info.get('netboot_enabled')
-                if install_successful:
+
+                # Cobbler signals that installation if finished by running
+                # a %post script that unsets netboot_enabled. So, if it's
+                # still set, installation has not finished. Loop and sleep.
+                if not self.server.get_system(system).get('netboot_enabled'):
+                    logging.debug('Cobbler got signaled that host %s '
+                                  'installation is finished',
+                                  host.hostname)
                     break
-                time_elapsed = time.time() - install_start
 
-            if not install_successful:
-                e_msg = 'Host %s install timed out' % host.hostname
-                host.record("END FAIL", None, "install", e_msg)
-                raise error.HostInstallTimeoutError(e_msg)
+            # Check if the installed profile matches what we asked for
+            installed_profile = self.server.get_system(system).get('profile')
+            install_successful = (installed_profile == profile)
 
-            host.wait_for_restart()
-            host.record("END GOOD", None, "install", host.hostname)
+            if install_successful:
+                logging.debug('Host %s installation successful', host.hostname)
+                break
+            else:
+                logging.info('Host %s installation resulted in different '
+                             'profile', host.hostname)
+
             time_elapsed = time.time() - install_start
-            logging.info("Machine %s installed successfuly after %d s (%d min)",
-                         host.hostname, time_elapsed, time_elapsed/60)
+
+        if not install_successful:
+            e_msg = 'Host %s install timed out' % host.hostname
+            host.record("END FAIL", None, "install", e_msg)
+            raise error.HostInstallTimeoutError(e_msg)
+
+        remove_hosts_file()
+        host.wait_for_restart()
+        host.record("END GOOD", None, "install", host.hostname)
+        time_elapsed = time.time() - install_start
+        logging.info("Machine %s installed successfuly after %d s (%d min)",
+                     host.hostname, time_elapsed, time_elapsed/60)
 
 
     def power_host(self, host, state='reboot'):
