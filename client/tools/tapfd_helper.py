@@ -3,7 +3,7 @@
 import sys, os, re, logging
 import common
 from autotest.client.shared import logging_manager
-from autotest.client.virt import virt_utils
+from autotest.client.tests.virt import virt_utils
 
 
 def destroy_tap(tapfd_list):

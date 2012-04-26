@@ -30,7 +30,7 @@ pd_filelist.extend(get_data_files(os.path.join(client_dir, 'profilers')))
 pd_filelist.extend(get_data_files(os.path.join(client_dir, 'samples')))
 pd_filelist.extend(get_data_files(os.path.join(client_dir, 'tests')))
 pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'autoit')))
-pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'autotest_control')))
+pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'guest_control')))
 pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'blkdebug')))
 pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'deps')))
 pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'steps')))
@@ -56,7 +56,7 @@ setup(name='autotest',
                 'autotest.client.tools',
                 'autotest.client.profilers',
                 'autotest.client.tests',
-                'autotest.client.virt',
+                'autotest.client.tests.virt',
                 'autotest.client',
                 'autotest',
                ],
