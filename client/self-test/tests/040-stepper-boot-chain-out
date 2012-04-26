@@ -1,0 +1,9 @@
+--SELFTEST-- loading test
+--STEPTEST-- step_init called
+--SELFTEST-- exit 5
+--SELFTEST-- loading test
+--STEPTEST-- step_two called
+--SELFTEST-- exit 5
+--SELFTEST-- loading test
+--STEPTEST-- step_three called
+--SELFTEST-- exit 0

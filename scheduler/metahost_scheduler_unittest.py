@@ -5,10 +5,10 @@ try:
 except ImportError:
     import common
 import unittest
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.frontend import setup_django_environment
-from autotest_lib.frontend import setup_test_environment
-from autotest_lib.scheduler import metahost_scheduler, scheduler_models
+from autotest.client.shared.test_utils import mock
+from autotest.frontend import setup_django_environment
+from autotest.frontend import setup_test_environment
+from autotest.scheduler import metahost_scheduler, scheduler_models
 
 class LabelMetahostSchedulerTest(unittest.TestCase):
     def setUp(self):

@@ -1,5 +1,5 @@
 import os
-from autotest_lib.client.bin import test, utils, kernel
+from autotest.client import test, utils, kernel
 
 
 class sparse(test.test):

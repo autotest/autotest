@@ -4,8 +4,8 @@ Sets up a subprocess to run sar from the sysstat suite
 Default options:
 sar -A -f
 """
-import os, shutil, subprocess, time
-from autotest_lib.client.bin import utils, profiler, os_dep
+import os, subprocess, time
+from autotest.client import utils, profiler, os_dep
 
 
 class sar(profiler.profiler):

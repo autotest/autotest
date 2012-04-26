@@ -7,8 +7,8 @@ try:
 except ImportError:
     import common
 import MySQLdb, MySQLdb.constants.ER
-from autotest_lib.client.common_lib import global_config, utils
-from autotest_lib.database import database_connection
+from autotest.client.shared import global_config, utils
+from autotest.database import database_connection
 
 MIGRATE_TABLE = 'migrate_info'
 
@@ -205,13 +205,10 @@ class MigrationManager(object):
         self.confirm_initialization()
 
         migration_script = utils.read_file(
-                os.path.join(os.path.dirname(__file__), 'schema_051.sql'))
+                os.path.join(os.path.dirname(__file__), 'schema_068.sql'))
         migration_script = migration_script % (
                 dict(username=self._database.get_database_info()['username']))
         self.execute_script(migration_script)
-
-        self.create_migrate_table()
-        self.set_db_version(51)
 
 
     def confirm_initialization(self):

@@ -1,0 +1,13 @@
+README
+======
+
+This directory is the holding area for storing libraries which are common
+to both client and server. Libraries which are client-specific should live
+in client/bin and libraries which are server-specific should live in
+server.
+
+This directory is a sub-directory of client because AutoTest doesn't install 
+anything but the client directory.
+
+Libraries in this directory should only rely on other libraries in this
+directory. In other words, they should not reach out in client/bin or server.

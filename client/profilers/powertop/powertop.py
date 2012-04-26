@@ -4,7 +4,7 @@ hours? Which software component causes the most power to be burned?
 These are important questions without a good answer... until now.
 """
 import time, os
-from autotest_lib.client.bin import utils, profiler
+from autotest.client import utils, profiler
 
 class powertop(profiler.profiler):
     version = 1

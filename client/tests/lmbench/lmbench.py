@@ -1,7 +1,7 @@
 # This will need more work on the configuration stuff before it will function
 import os
-from autotest_lib.client.bin import test, utils
-from autotest_lib.client.common_lib import error
+from autotest.client import test, utils
+from autotest.client.shared import error
 
 
 class lmbench(test.test):

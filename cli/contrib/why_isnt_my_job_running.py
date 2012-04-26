@@ -5,8 +5,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.cli import rpc, host
-from autotest_lib.client.common_lib import host_queue_entry_states
+from autotest.cli import rpc, host
+from autotest.client.shared import host_queue_entry_states
 
 parser = optparse.OptionParser(
     usage='Usage: %prog [options] <job id> [<hostname>]\n\n'

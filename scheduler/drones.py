@@ -1,10 +1,10 @@
-import cPickle, os, tempfile, logging
+import cPickle, os, logging
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.scheduler import drone_utility, email_manager
-from autotest_lib.client.common_lib import error, global_config
+from autotest.scheduler import drone_utility, email_manager
+from autotest.client.shared import global_config
 
 
 AUTOTEST_INSTALL_DIR = global_config.global_config.get_config_value('SCHEDULER',

@@ -4,7 +4,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.frontend.afe import rpc_utils
+from autotest.frontend.afe import rpc_utils
 
 class CsvEncoder(object):
     def __init__(self, request, response):

@@ -6,9 +6,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import mail, pidfile
-from autotest_lib.tko import db as tko_db, utils as tko_utils, status_lib, models
-from autotest_lib.client.common_lib import utils
+from autotest.client.shared import mail, pidfile
+from autotest.tko import db as tko_db, utils as tko_utils, status_lib, models
+from autotest.client.shared import utils
 
 
 def parse_args():
@@ -163,15 +163,15 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
 
     # Serializing job into a binary file
     try:
-        from autotest_lib.tko import tko_pb2
-        from autotest_lib.tko import job_serializer
+        from autotest.tko import tko_pb2
+        from autotest.tko import job_serializer
 
         serializer = job_serializer.JobSerializer()
         binary_file_name = os.path.join(path, "job.serialize")
         serializer.serialize_to_binary(job, jobname, binary_file_name)
 
         if reparse:
-            site_export_file = "autotest_lib.tko.site_export"
+            site_export_file = "autotest.tko.site_export"
             site_export = utils.import_site_function(__file__,
                                                      site_export_file,
                                                      "site_export",

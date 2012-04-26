@@ -5,8 +5,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.database import migrate, db_utils
+from autotest.client.shared.test_utils import mock
+from autotest.database import migrate, db_utils
 
 class UtilsTest(unittest.TestCase):
 

@@ -1,7 +1,7 @@
 import logging, os, glob, re, commands
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.virt import virt_utils, aexpect, virt_test_utils
+from autotest.client.shared import error
+from autotest.client.shared import utils
+from autotest.client.virt import virt_utils, aexpect, virt_test_utils
 
 _receiver_ready = False
 
@@ -155,7 +155,7 @@ def run_ntttcp(test, params, env):
         return list
 
     try:
-        bg = virt_utils.Thread(receiver, ())
+        bg = utils.InterruptedThread(receiver, ())
         bg.start()
         if bg.isAlive():
             sender()
@@ -167,6 +167,15 @@ def run_ntttcp(test, params, env):
             f = open("%s.RHS" % results_path, "w")
             raw = "  buf(k)| throughput(Mbit/s)"
             logging.info(raw)
+            fd.write("#ver# %s\n#ver# host kernel: %s%s\n" % (
+                     commands.getoutput("rpm -q qemu-kvm"),
+                     os.uname()[2]))
+            desc = """#desc# The tests are sessions of "NTttcp", send buf number is %s. 'throughput' was taken from ntttcp's report.
+#desc# How to read the results:
+#desc# - The Throughput is measured in Mbit/sec.
+#desc#
+""" % (buf_num)
+            f.write(desc)
             f.write(raw + "\n")
             for j in parse_file(i):
                 raw = "%8s| %8s" % (j[0], j[1])

@@ -8,16 +8,16 @@ import os
 import re
 import time
 from random import random
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-from autotest_lib.client.tests.cgroup.cgroup_common import Cgroup
-from autotest_lib.client.tests.cgroup.cgroup_common import CgroupModules
-from autotest_lib.client.tests.cgroup.cgroup_common import get_load_per_cpu
-from autotest_lib.client.virt.virt_env_process import preprocess
-from autotest_lib.client.virt import kvm_monitor
-from autotest_lib.client.virt.aexpect import ExpectTimeoutError
-from autotest_lib.client.virt.aexpect import ExpectProcessTerminatedError
-from autotest_lib.client.virt.aexpect import ShellTimeoutError
+from autotest.client.shared import error
+from autotest.client import utils
+from autotest.client.tests.cgroup.cgroup_common import Cgroup
+from autotest.client.tests.cgroup.cgroup_common import CgroupModules
+from autotest.client.tests.cgroup.cgroup_common import get_load_per_cpu
+from autotest.client.virt.virt_env_process import preprocess
+from autotest.client.virt import kvm_monitor
+from autotest.client.virt.aexpect import ExpectTimeoutError
+from autotest.client.virt.aexpect import ExpectProcessTerminatedError
+from autotest.client.virt.aexpect import ShellTimeoutError
 
 
 @error.context_aware
@@ -1293,6 +1293,105 @@ def run_cgroup(test, params, env):
             return ("VM survived %d cgroup switches" % i)
 
     @error.context_aware
+    def cpuset_mems_switching():
+        """
+        Tests the cpuset.mems pinning. It changes cgroups with different
+        mem nodes while stressing memory.
+        @param cfg: cgroup_test_time - test duration '60'
+        @param cfg: cgroup_cpuset_mems_mb - override the size of memory blocks
+                    'by default 1/2 of VM memory'
+        """
+        error.context("Init")
+        test_time = int(params.get('cgroup_test_time', 10))
+        vm = env.get_all_vms()[0]
+
+        error.context("Prepare")
+        modules = CgroupModules()
+        if (modules.init(['cpuset']) != 1):
+            raise error.TestFail("Can't mount cpuset cgroup modules")
+        cgroup = Cgroup('cpuset', '')
+        cgroup.initialize(modules)
+
+        mems = cgroup.get_property("cpuset.mems")[0]
+        mems = mems.split('-')
+        no_mems = len(mems)
+        if no_mems < 2:
+            raise error.TestNAError("This test needs at least 2 memory nodes, "
+                                    "detected only %s" % mems)
+        # Create cgroups
+        all_cpus = cgroup.get_property("cpuset.cpus")[0]
+        mems = range(int(mems[0]), int(mems[1]) + 1)
+        for i in range(no_mems):
+            cgroup.mk_cgroup()
+            cgroup.set_property('cpuset.mems', mems[i], -1)
+            cgroup.set_property('cpuset.cpus', all_cpus, -1)
+            cgroup.set_property('cpuset.memory_migrate', 1)
+
+        timeout = int(params.get("login_timeout", 360))
+        sessions = []
+        sessions.append(vm.wait_for_login(timeout=timeout))
+        sessions.append(vm.wait_for_login(timeout=30))
+
+        # Don't allow to specify more than 1/2 of the VM's memory
+        size = int(params.get('mem', 1024)) / 2
+        if params.get('cgroup_cpuset_mems_mb') is not None:
+            size = min(size, int(params.get('cgroup_cpuset_mems_mb')))
+
+        error.context("Test")
+        err = ""
+        try:
+            logging.info("Some harmless IOError messages of non-existing "
+                         "processes might occur.")
+            sessions[0].sendline('dd if=/dev/zero of=/dev/null bs=%dM '
+                                 'iflag=fullblock' % size)
+
+            i = 0
+            sessions[1].cmd('killall -SIGUSR1 dd')
+            t_stop = time.time() + test_time
+            while time.time() < t_stop:
+                i += 1
+                assign_vm_into_cgroup(vm, cgroup, i % no_mems)
+            sessions[1].cmd('killall -SIGUSR1 dd; true')
+            try:
+                out = sessions[0].read_until_output_matches(
+                                                ['(\d+)\+\d records out'])[1]
+                if len(re.findall(r'(\d+)\+\d records out', out)) < 2:
+                    out += sessions[0].read_until_output_matches(
+                                                ['(\d+)\+\d records out'])[1]
+            except ExpectTimeoutError:
+                err = ("dd didn't produce expected output: %s" % out)
+
+            if not err:
+                sessions[1].cmd('killall dd; true')
+                dd_res = re.findall(r'(\d+)\+(\d+) records in', out)
+                dd_res += re.findall(r'(\d+)\+(\d+) records out', out)
+                dd_res = [int(_[0]) + int(_[1]) for _ in dd_res]
+                if dd_res[1] <= dd_res[0] or dd_res[3] <= dd_res[2]:
+                    err = ("dd stoped sending bytes: %s..%s, %s..%s" %
+                           (dd_res[0], dd_res[1], dd_res[2], dd_res[3]))
+            if err:
+                logging.error(err)
+            else:
+                out = ("Guest moved %stimes in %s seconds while moving %d "
+                       "blocks of %dMB each" % (i, test_time, dd_res[3], size))
+                logging.info(out)
+        finally:
+            error.context("Cleanup")
+            del(cgroup)
+            del(modules)
+
+            for session in sessions:
+                # try whether all sessions are clean
+                session.cmd("true")
+                session.close()
+
+        error.context("Results")
+        if err:
+            raise error.TestFail(err)
+        else:
+            return ("VM survived %d cgroup switches" % i)
+
+    @error.context_aware
     def devices_access():
         """
         Tests devices.list capability. It tries hot-adding disk with different
@@ -1852,15 +1951,13 @@ def run_cgroup(test, params, env):
                          "processes might occur.")
             sessions[0].sendline('dd if=/dev/zero of=/dev/null bs=%dM '
                                  'iflag=fullblock' % size)
-            time.sleep(2)
 
             i = 0
-            sessions[1].cmd('killall -SIGUSR1 dd')
+            sessions[1].cmd('killall -SIGUSR1 dd ; true')
             t_stop = time.time() + test_time
             while time.time() < t_stop:
                 i += 1
                 assign_vm_into_cgroup(vm, cgroup, i % 2)
-            time.sleep(2)
             sessions[1].cmd('killall -SIGUSR1 dd; true')
             try:
                 out = sessions[0].read_until_output_matches(

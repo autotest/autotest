@@ -5,14 +5,14 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.frontend import setup_django_environment
-from autotest_lib.frontend.afe import frontend_test_utils
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib.test_utils import unittest
-from autotest_lib.database import database_connection
-from autotest_lib.frontend.afe import models, model_attributes
-from autotest_lib.scheduler import monitor_db_functional_test
-from autotest_lib.scheduler import scheduler_models
+from autotest.frontend import setup_django_environment
+from autotest.frontend.afe import frontend_test_utils
+from autotest.client.shared.test_utils import mock
+from autotest.client.shared.test_utils import unittest
+from autotest.database import database_connection
+from autotest.frontend.afe import models, model_attributes
+from autotest.scheduler import monitor_db_functional_test
+from autotest.scheduler import scheduler_models
 
 _DEBUG = False
 

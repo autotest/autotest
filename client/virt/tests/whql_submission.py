@@ -1,6 +1,6 @@
 import logging, os, re
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_utils, rss_client, aexpect
+from autotest.client.shared import error
+from autotest.client.virt import virt_utils, rss_client, aexpect
 
 
 def run_whql_submission(test, params, env):

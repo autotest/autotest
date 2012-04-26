@@ -22,13 +22,13 @@ Usage: check_patch.py -p [/path/to/patch]
 @author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 """
 
-import os, stat, logging, sys, optparse, re
+import os, stat, logging, sys, optparse, re, urllib
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import utils, error, logging_config
-from autotest_lib.client.common_lib import logging_manager
+from autotest.client.shared import utils, error, logging_config
+from autotest.client.shared import logging_manager
 
 
 class CheckPatchLoggingConfig(logging_config.LoggingConfig):
@@ -280,7 +280,7 @@ class GitBackend(object):
         try:
             utils.run('git add %s' % file)
         except error.CmdError, e:
-            logging.error("Problem adding file %s to svn: %s", file, e)
+            logging.error("Problem adding file %s to git: %s", file, e)
             sys.exit(1)
 
 
@@ -384,14 +384,18 @@ class FileChecker(object):
         else:
             path = self.path
 
+        this_path = os.path.abspath(sys.modules['__main__'].__file__)
+        reindent_path = os.path.join(os.path.dirname(this_path),
+                                     'reindent.py')
         try:
-            cmdstatus = utils.run(('reindent.py -v -d %s' % path), verbose=False)
+            cmdstatus = utils.run('%s -v -d %s' % (reindent_path,
+                                                   path), verbose=False)
         except error.CmdError, e:
             logging.error("Error executing reindent.py: %s" % e)
 
         if not "unchanged" in cmdstatus.stdout:
             logging.info("File %s will be reindented" % self.path)
-            utils.run("reindent.py -v %s" % path, verbose=False)
+            utils.run("%s -v %s" % (reindent_path, path), verbose=False)
             if self.path != path:
                 utils.run("mv %s %s" % (path, self.path), verbose=False)
             utils.run("rm %s.bak" % path, verbose=False)
@@ -413,7 +417,11 @@ class FileChecker(object):
             non_py_ended = " (filename has no .py)"
         else:
             path = self.path
-        c_cmd = 'run_pylint.py %s' % path
+
+        this_path = os.path.abspath(sys.modules['__main__'].__file__)
+        pylint_path = os.path.join(os.path.dirname(this_path),
+                                   'run_pylint.py')
+        c_cmd = '%s %s' % (pylint_path, path)
         try:
             utils.run(c_cmd, verbose=False)
         except error.CmdError, e:
@@ -568,7 +576,7 @@ class PatchChecker(object):
         """
         patch_url = "https://github.com/autotest/autotest/pull/%s.patch" % id
         patch_dest = os.path.join(self.base_dir, 'github-%s.patch' % id)
-        utils.run("curl %s > %s" % (patch_url, patch_dest))
+        urllib.urlretrieve(patch_url, patch_dest)
         return patch_dest
 
 

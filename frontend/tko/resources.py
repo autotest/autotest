@@ -1,5 +1,5 @@
-from autotest_lib.frontend.shared import query_lib, resource_lib
-from autotest_lib.frontend.tko import models
+from autotest.frontend.shared import query_lib, resource_lib
+from autotest.frontend.tko import models
 
 class TestResult(resource_lib.InstanceEntry):
     model = models.Test

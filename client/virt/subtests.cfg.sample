@@ -43,6 +43,28 @@ variants:
         # Set migrate_background to yes to run migration in parallel
         # migrate_background = yes
 
+        # Way of delivering ks file into the guest
+        variants:
+            # Additional iso with kickstart is attached into the guest
+            - extra_cdrom_ks:
+                only Linux
+                unattended_delivery_method = cdrom
+                cdroms += " unattended"
+                drive_index_unattended = 1
+                drive_index_cd1 = 2
+            # Kickstart is packed into the installation iso
+            - in_cdrom_ks:
+                only Linux, unattended_install.cdrom
+                unattended_delivery_method = integrated
+            # Autotest starts simple http server providing kickstart 
+            - http_ks:
+                only Linux
+                unattended_delivery_method = url
+            # Image with kickstart is attached into the guest as floppy drive
+            - floppy_ks:
+                only Linux
+                unattended_delivery_method = floppy
+
         variants:
             # Install guest from cdrom
             - cdrom:
@@ -74,6 +96,10 @@ variants:
             - kernel_initrd:
                 only Linux
                 medium = kernel_initrd
+            - import:
+                medium = import
+                force_create_image = no
+                create_image = no
 
     - qemu_iotests:
         type = qemu_iotests
@@ -253,6 +279,7 @@ variants:
         login_timeout = 240
 
     - boot_with_usb:
+        only Linux
         type = boot
         restart_vm = yes
         kill_vm_on_error = yes
@@ -329,6 +356,7 @@ variants:
         login_timeout = 240
 
     - reboot_with_usb:
+        only Linux
         type = boot
         reboot_method = shell
         kill_vm_on_error = yes
@@ -397,6 +425,43 @@ variants:
                 drive_index_stg = 1
                 create_image_stg = yes
                 image_size_stg = 10M
+
+    - dd_test: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = dd_test
+        images += " stg1"
+        create_image_stg1 = yes
+        image_name_stg1 = stg1
+        image_size_stg1 = 1M
+        image_snapshot_stg1 = no
+        drive_index_stg1 = 3
+        dd_count = 1
+        # last input and output disk
+        dd_if_select = -1
+        dd_of_select = -1
+        variants:
+            - readwrite:
+                dd_stat = 0
+                variants:
+                    - zero2disk:
+                        dd_if = ZERO
+                        dd_of = /dev/[shv]d?
+                    - disk2null:
+                        dd_if = /dev/[shv]d?
+                        dd_of = NULL
+            - readonly:
+                # ide, ahci don't support readonly disks
+                no ide, ahci
+                image_readonly_stg1 = yes
+                variants:
+                    - zero2disk:
+                        dd_if = ZERO
+                        dd_of = /dev/[shv]d?
+                        dd_stat = 1
+                    - disk2null:
+                        dd_if = /dev/[shv]d?
+                        dd_of = NULL
+                        dd_stat = 0
 
 
     - virsh_migrate: install setup image_copy unattended_install.cdrom
@@ -491,6 +556,8 @@ variants:
                 migration_protocol = "unix"
             - exec:
                 migration_protocol = "exec"
+            - fd:
+                migration_protocol = "fd"
             - mig_cancel:
                 migration_protocol = "tcp"
                 mig_cancel = yes
@@ -527,6 +594,8 @@ variants:
 
     - migrate_multi_host: install setup image_copy unattended_install.cdrom
         type = migration_multi_host
+        vms = "vm1"
+        start_vm = no
         migration_test_command = help
         migration_bg_command = "cd /tmp; nohup tcpdump -q -i any -t ip host localhost"
         migration_bg_check_command = pgrep tcpdump
@@ -534,9 +603,16 @@ variants:
         kill_vm_on_error = yes
         iterations = 2
         used_mem = 1024
-        mig_timeout = 3600
+        mig_timeout = 4800
+        disk_prepare_timeout = 360
         comm_port = 13234
-        regain_ip_cmd = dhclient
+        regain_ip_cmd = killall dhclient; sleep 10; dhclient;
+        variants:
+            #Migration protocol.
+            -tcp:
+                type = migration_multi_host
+            -fd:
+                type = migration_multi_host_fd
 
     - boot_savevm: install setup image_copy unattended_install.cdrom
         type = boot_savevm
@@ -1349,6 +1425,9 @@ variants:
             - cpuset_cpus_switching:
                 cgroup_test = "cpuset_cpus_switching"
                 # cgroup_test_time
+            - cpuset_mems_switching:
+                cgroup_test = "cpuset_mems_switching"
+                # cgroup_test_time, cgroup_cpuset_mems_mb
             - devices_access:
                 cgroup_test = "devices_access"
             - freezer:
@@ -1366,6 +1445,7 @@ variants:
                 # cgroup_memory_limit_kb = 2097152
             - memory_move:
                 cgroup_test = "memory_move"
+                restart_vm = "yes"
                 # cgroup_test_time, cgroup_memory_move_mb
                 # cgroup_memory_move_mb = 2048
 
@@ -1559,10 +1639,13 @@ variants:
 
     - cdrom_test: install setup image_copy unattended_install.cdrom
         only Linux
-        start_vm = no
         type = cdrom
         cdrom_cd1 = orig.iso
+        start_vm = no
+        kill_vm_on_error = yes
         max_times = 20
+        workaround_locked_cdrom = yes
+        workaround_eject_time = 2
 
     - floppy_test: install setup image_copy unattended_install.cdrom
         only Linux
@@ -1654,14 +1737,24 @@ variants:
                 dd_timeout = 900
                 check_cmd_timeout = 900
 
-    - cpuflags:
+    - cpuflags: install setup image_copy unattended_install.cdrom
         type = cpuflags
         extra_params += " -snapshot"
         #Disable all unnecessary vms.
         vms = ""
         #Try to start guest with all flags which are supported by host.
         all_host_supported_flags = "no"
-        cpu_model = "core2duo"
+
+        #If cpu_model is "" or isn't defined test try test all cpu models,
+        #which host supports.
+        cpu_model = ""
+
+        #Cpumodels defined in blacklist are not tested.
+        #Works only if cpu_model is not defined.
+        cpu_model_blacklist = ""
+        64:
+            cpu_model_blacklist += " 486 kvm32 qemu32 pentium pentium2"
+            cpu_model_blacklist += " pentium3 coreduo n270"
         guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
         variants:
@@ -1695,15 +1788,20 @@ variants:
     - cpuflags_multi_host:
         type = cpuflags
         test_type = test_multi_host_migration
-        #Disable all unnecessary vms.
-        vms = ""
+        vms = "vm1"
+        start_vm = no
         #Try to start guest with all flags which are supported by host.
         all_host_supported_flags = "no"
         cpu_model = "core2duo:sse3"
         guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
+        mig_timeout = 4800
+        kill_vm_on_error = yes
+        disk_prepare_timeout = 360
+        comm_port = 13234
+        regain_ip_cmd = killall dhclient; sleep 10; dhclient;
 
-    - cpu_hotplug_test:
+    - cpu_hotplug_test: install setup image_copy unattended_install.cdrom
         type = cpu_hotplug
         cpu_hotplug_timeout = 600
         n_cpus_add = 1
@@ -1711,7 +1809,7 @@ variants:
         iterations = 5
         onoff_iterations = 100
 
-    - hdparm:
+    - hdparm: install setup image_copy unattended_install.cdrom
         only Linux
         type = hdparm
         get_disk_cmd = \ls /dev/[vhs]da

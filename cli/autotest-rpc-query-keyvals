@@ -1,0 +1,78 @@
+#!/usr/bin/python
+
+import sys, optparse
+try:
+    import autotest.common
+except ImportError:
+    import common
+from autotest.cli import rpc
+
+
+def parse_options():
+    usage = "usage: %prog [options] job_id"
+    parser = optparse.OptionParser(usage=usage)
+    parser.add_option("-m", "--machine", dest="machine")
+    parser.add_option("-t", "--test", dest="test")
+    parser.add_option("-T", "--type", dest="type", type="choice",
+                      choices=["all", "test", "iteration", "attr", "perf"])
+    parser.add_option("-k", "--key", dest="key")
+    parser.set_defaults(type="all")
+    options, args = parser.parse_args()
+    options.show_test_keyvals = options.type in ("all", "test")
+    options.show_attr_keyvals = options.type in ("all", "iteration", "attr")
+    options.show_perf_keyvals = options.type in ("all", "iteration", "perf")
+    options.show_iter_keyvals = (
+        options.show_perf_keyvals or options.show_attr_keyvals)
+    return parser, options, args
+
+
+def print_keyvals(keyval, format_string, options):
+    for key, value in keyval.iteritems():
+        if not options.key or key == options.key:
+            print format_string % (key, value)
+
+
+def print_views(test_views, options):
+    for view in test_views:
+        if not options.machine:
+            print "Machine: %s" % view["hostname"]
+        if not options.test:
+            print "Test: %s" % view["test_name"]
+        if options.show_test_keyvals:
+            print "Test Attributes:"
+            print_keyvals(view["attributes"], "\t%s = %s", options)
+        if options.show_iter_keyvals:
+            print "Iteration Attributes:"
+            for i, iteration in enumerate(view["iterations"]):
+                print "\tIteration #%d:" % (i + 1)
+                if options.show_attr_keyvals:
+                    print_keyvals(iteration["attr"], "\t\t%s(attr) = %s",
+                                  options)
+                if options.show_perf_keyvals:
+                    print_keyvals(iteration["perf"], "\t\t%s(perf) = %s",
+                                  options)
+        print
+
+
+def main():
+    parser, options, args = parse_options()
+    if not args:
+        parser.print_help()
+        return
+
+    query_filter = {}
+    if options.machine:
+        query_filter["hostname"] = options.machine
+    if options.test:
+        query_filter["test_name"] = options.test
+
+    comm = rpc.tko_comm()
+    test_views = []
+    for job_id in args:
+        query_filter["job_tag__startswith"] = "%s-" % job_id
+        test_views += comm.run("get_detailed_test_views", **query_filter)
+    print_views(test_views, options)
+
+
+if __name__ == "__main__":
+    main()

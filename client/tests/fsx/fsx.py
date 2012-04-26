@@ -4,7 +4,7 @@
 # NOTE - this should also have the ability to mount a filesystem,
 # run the tests, unmount it, then fsck the filesystem
 import os
-from autotest_lib.client.bin import test, utils
+from autotest.client import test, utils
 
 
 class fsx(test.test):

@@ -1,11 +1,10 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-import re, os, sys, traceback, subprocess, time, pickle, glob, tempfile
-import logging, getpass
-from autotest_lib.server import installable_object, prebuild, utils
-from autotest_lib.client.common_lib import base_job, log, error, autotemp
-from autotest_lib.client.common_lib import global_config, packages
-from autotest_lib.client.common_lib import utils as client_utils
+import re, os, sys, traceback, time, glob, tempfile, logging
+from autotest.server import installable_object, prebuild, utils
+from autotest.client.shared import base_job, log, error, autotemp
+from autotest.client.shared import global_config, packages
+from autotest.client.shared import utils as client_utils
 
 
 get_value = global_config.global_config.get_config_value
@@ -68,7 +67,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
         for path in Autotest.get_client_autodir_paths(host):
             try:
-                autotest_binary = os.path.join(path, 'bin', 'autotest')
+                autotest_binary = os.path.join(path, 'autotest')
                 host.run('test -x %s' % utils.sh_escape(autotest_binary))
                 host.run('test -w %s' % utils.sh_escape(path))
                 logging.debug('Found existing autodir at %s', path)
@@ -162,6 +161,13 @@ class BaseAutotest(installable_object.InstallableObject):
                        for f in os.listdir(self.source_material)
                        if f not in dirs_to_exclude]
         host.send_file(light_files, autodir, delete_dest=True)
+
+        profilers_autodir = os.path.join(autodir, 'profilers')
+        profilers_init = os.path.join(self.source_material, 'profilers',
+                                      '__init__.py')
+        host.run("mkdir -p %s" % profilers_autodir)
+        host.send_file(profilers_init, profilers_autodir, delete_dest=True)
+        dirs_to_exclude.discard("profilers")
 
         # create empty dirs for all the stuff we excluded
         commands = []
@@ -440,7 +446,7 @@ class _BaseRun(object):
 
 
     def verify_machine(self):
-        binary = os.path.join(self.autodir, 'bin/autotest')
+        binary = os.path.join(self.autodir, 'autotest')
         try:
             self.host.run('ls %s > /dev/null 2>&1' % binary)
         except:
@@ -471,14 +477,14 @@ class _BaseRun(object):
 
 
     def get_background_cmd(self, section):
-        cmd = ['nohup', os.path.join(self.autodir, 'bin/autotest_client')]
+        cmd = ['nohup', os.path.join(self.autodir, 'autotest_client')]
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
 
 
     def get_daemon_cmd(self, section, monitor_dir):
-        cmd = ['nohup', os.path.join(self.autodir, 'bin/autotestd'),
+        cmd = ['nohup', os.path.join(self.autodir, 'autotestd'),
                monitor_dir, '-H autoserv']
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
@@ -486,7 +492,7 @@ class _BaseRun(object):
 
 
     def get_monitor_cmd(self, monitor_dir, stdout_read, stderr_read):
-        cmd = [os.path.join(self.autodir, 'bin', 'autotestd_monitor'),
+        cmd = [os.path.join(self.autodir, 'autotestd_monitor'),
                monitor_dir, str(stdout_read), str(stderr_read)]
         return ' '.join(cmd)
 
@@ -657,7 +663,7 @@ class _BaseRun(object):
 
     def execute_section(self, section, timeout, stderr_redirector,
                         client_disconnect_timeout):
-        logging.info("Executing %s/bin/autotest %s/control phase %d",
+        logging.info("Executing %s/autotest %s/control phase %d",
                      self.autodir, self.autodir, section)
 
         if self.background:
@@ -1033,12 +1039,12 @@ class client_logger(object):
 
 
 SiteAutotest = client_utils.import_site_class(
-    __file__, "autotest_lib.server.site_autotest", "SiteAutotest",
+    __file__, "autotest.server.site_autotest", "SiteAutotest",
     BaseAutotest)
 
 
 _SiteRun = client_utils.import_site_class(
-    __file__, "autotest_lib.server.site_autotest", "_SiteRun", _BaseRun)
+    __file__, "autotest.server.site_autotest", "_SiteRun", _BaseRun)
 
 
 class Autotest(SiteAutotest):

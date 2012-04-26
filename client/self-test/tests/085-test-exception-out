@@ -1,0 +1,12 @@
+FAIL selftest.test1 running test selftest
+Traceback (most recent call last):
+  File "SRC/bin/test.py", line N, in __exec
+    self.execute(*parameters)
+  File "SRC/tests/selftest/selftest.py", line N, in execute
+    self.__throw(*args)
+  File "SRC/tests/selftest/selftest.py", line N, in __throw
+    __does_not_exist = __does_not_exist_either
+NameError: global name '_selftest__does_not_exist_either' is not defined
+
+
+--SELFTEST-- exit 0

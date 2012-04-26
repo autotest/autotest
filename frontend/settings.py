@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 c = global_config.global_config
 _section = 'AUTOTEST_WEB'
@@ -26,7 +26,7 @@ def _get_config(config_key, default=None):
     return c.get_config_value(_section, config_key, default=default)
 
 AUTOTEST_DEFAULT = {
-    'ENGINE': 'autotest_lib.frontend.db.backends.afe',
+    'ENGINE': 'autotest.frontend.db.backends.afe',
     'PORT': '',
     'HOST': _get_config("host"),
     'NAME': _get_config("database"),

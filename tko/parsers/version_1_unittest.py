@@ -6,8 +6,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import utils
-from autotest_lib.tko.parsers import version_1
+from autotest.client.shared import utils
+from autotest.tko.parsers import version_1
 
 
 class test_status_line(unittest.TestCase):

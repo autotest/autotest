@@ -1,7 +1,7 @@
 import logging, os, signal, re, time
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-from autotest_lib.client.virt import aexpect, virt_utils
+from autotest.client.shared import error
+from autotest.client import utils
+from autotest.client.virt import aexpect, virt_utils
 
 
 def run_netstress_kill_guest(test, params, env):
@@ -90,7 +90,7 @@ def run_netstress_kill_guest(test, params, env):
 
         server_netperf_cmd = params.get("netperf_cmd") % (netperf_dir, "TCP_STREAM",
                                         guest_ip, params.get("packet_size", "1500"))
-        quest_netperf_cmd = params.get("netperf_cmd") % ("/tmp", "TCP_STREAM",
+        guest_netperf_cmd = params.get("netperf_cmd") % ("/tmp", "TCP_STREAM",
                                        server_ip, params.get("packet_size", "1500"))
 
         tcpdump = env.get("tcpdump")
@@ -106,7 +106,7 @@ def run_netstress_kill_guest(test, params, env):
 
         try:
             logging.info("Start heavy network load host <=> guest.")
-            session_serial.sendline(quest_netperf_cmd)
+            session_serial.sendline(guest_netperf_cmd)
             utils.BgJob(server_netperf_cmd)
 
             #Wait for create big network usage.

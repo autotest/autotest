@@ -16,12 +16,6 @@ variants:
         mem_chk_cmd = dmidecode -t 17 | awk -F: '/Size/ {print $2}'
         mem_chk_cur_cmd = grep MemTotal /proc/meminfo
         cpu_chk_cmd = grep -c processor /proc/cpuinfo
-        unattended_install:
-            # If you want to use floppy to hold kickstarts,
-            # comment the 3 lines below
-            cdroms += " unattended"
-            drive_index_unattended = 1
-            drive_index_cd1 = 2
         timedrift:
             extra_params += " -no-kvm-pit-reinjection"
             time_command = date +'TIME: %a %m/%d/%Y %H:%M:%S.%N'
@@ -389,6 +383,20 @@ variants:
                             md5sum_cd1 = bb38ea1fe4b2fc69e7a6e15cf1c69c91
                             md5sum_1m_cd1 = e25ea147176f24239d38a46f501bd25e
 
+                    - 16.ppc64:
+                        image_name = f16-ppc64
+                        machine_type = pseries
+                        unattended_install:
+                            unattended_file = unattended/Fedora-16.ks
+                            cdrom_unattended = images/f16-ppc64/ks.iso
+                            kernel = images/f16-ppc64/vmlinuz
+                            initrd = images/f16-ppc64/initrd.img
+                        unattended_install.cdrom:
+                            boot_path = ppc/ppc64
+                            cdrom_cd1 = isos/linux/Fedora-16-ppc64-DVD.iso
+                            md5sum_cd1 = ffc0674f87e4f7e5739605dc80f4ffce
+                            md5sum_1m_cd1 = 23be25f6a04a78f6dc7cb6ad9e691988
+                            kernel_cmdline = "root=live:CDLABEL=Fedora-16-ppc64 ks=cdrom:/ks.cfg console=hvc0 serial rd_NO_PLYMOUTH"
 
             - RHEL:
                 no setup
@@ -804,7 +812,7 @@ variants:
                             initrd = images/rhel62-32/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.2-i386-DVD.iso
-                            md5sum_cd1 = 31f3ef3825fbde428bf3ab49ce2b99db 
+                            md5sum_cd1 = 31f3ef3825fbde428bf3ab49ce2b99db
                             md5sum_1m_cd1 = 46ef65cdab3c0164b43011813a319755
 
                     - 6.2.x86_64:
@@ -822,7 +830,7 @@ variants:
                             initrd = images/rhel62-64/initrd.img
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.2-x86_64-DVD.iso
-                            md5sum_cd1 = 7525d7ea1b1fd074538c7505bccd143d 
+                            md5sum_cd1 = 7525d7ea1b1fd074538c7505bccd143d
                             md5sum_1m_cd1 = 19b99519559067656193e5e2146a81a4
 
             - OpenSUSE:
@@ -1345,20 +1353,6 @@ variants:
                 variants:
                     - 32:
                         image_name += -32
-                        install:
-                            cdrom_cd1 = isos/windows/WindowsXP-sp2-vlk.iso
-                            md5sum_cd1 = 743450644b1d9fe97b3cf379e22dceb0
-                            md5sum_1m_cd1 = b473bf75af2d1269fec8958cf0202bfd
-                            user = user
-                            steps = steps/WinXP-32.steps
-                        setup:
-                            steps = steps/WinXP-32-rss.steps
-                        unattended_install.cdrom, whql.support_vm_install:
-                            cdrom_cd1 = isos/windows/WindowsXP-sp2-vlk.iso
-                            md5sum_cd1 = 743450644b1d9fe97b3cf379e22dceb0
-                            md5sum_1m_cd1 = b473bf75af2d1269fec8958cf0202bfd
-                            unattended_file = unattended/winxp32.sif
-                            floppy = images/winXP-32/answer.vfd
                         whql.submission:
                             desc_path_desc1 = $\WDK\Logo Type\Device Logo\Windows XP
                             desc_path_desc2 = $\WDK\Logo Type\Systems Logo\Windows XP
@@ -1372,6 +1366,37 @@ variants:
                         multi_disk, usb_multi_disk:
                             list_volume_command = fsutil fsinfo drives
 
+                        variants:
+                            - sp2:
+                                install:
+                                    cdrom_cd1 = isos/windows/WindowsXP-sp2-vlk.iso
+                                    md5sum_cd1 = 743450644b1d9fe97b3cf379e22dceb0
+                                    md5sum_1m_cd1 = b473bf75af2d1269fec8958cf0202bfd
+                                    user = user
+                                    steps = steps/WinXP-32.steps
+                                setup:
+                                    steps = steps/WinXP-32-rss.steps
+                                unattended_install.cdrom, whql.support_vm_install:
+                                    cdrom_cd1 = isos/windows/WindowsXP-sp2-vlk.iso
+                                    md5sum_cd1 = 743450644b1d9fe97b3cf379e22dceb0
+                                    md5sum_1m_cd1 = b473bf75af2d1269fec8958cf0202bfd
+                                    unattended_file = unattended/winxp32.sif
+                                    floppy = images/winXP-32/answer.vfd
+                            - sp3:
+                                install:
+                                    cdrom_cd1 = isos/windows/en_windows_xp_professional_with_service_pack_3_x86_cd_x14-80428.iso
+                                    md5sum_cd1 = f424a52153e6e5ed4c0d44235cf545d5
+                                    md5sum_1m_cd1 = ffe6bd8747f5a90e58710d28529e2c85
+                                    user = user
+                                    steps = steps/WinXP-32.steps
+                                setup:
+                                    steps = steps/WinXP-32-rss.steps
+                                unattended_install.cdrom, whql.support_vm_install:
+                                    cdrom_cd1 = isos/windows/en_windows_xp_professional_with_service_pack_3_x86_cd_x14-80428.iso
+                                    md5sum_cd1 = f424a52153e6e5ed4c0d44235cf545d5
+                                    md5sum_1m_cd1 = ffe6bd8747f5a90e58710d28529e2c85
+                                    unattended_file = unattended/winxp32.sif
+                                    floppy = images/winXP-32/answer.vfd
 
                     - 64:
                         image_name += -64

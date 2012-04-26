@@ -1,9 +1,9 @@
 import logging, os, sys, subprocess, tempfile, traceback
 import time, threading
 
-from autotest_lib.client.common_lib import utils
-from autotest_lib.server import utils as server_utils
-from autotest_lib.server.hosts import abstract_ssh, monitors
+from autotest.client.shared import utils
+from autotest.server import utils as server_utils
+from autotest.server.hosts import abstract_ssh, monitors
 
 MONITORDIR = monitors.__path__[0]
 SUPPORTED_PYTHON_VERS = ('2.4', '2.5', '2.6', '2.7')

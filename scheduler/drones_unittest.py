@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
-"""Tests for autotest_lib.scheduler.drones."""
+"""Tests for autotest.scheduler.drones."""
 
 import cPickle
 
 import common
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.common_lib.test_utils import mock, unittest
-from autotest_lib.scheduler import drones
-from autotest_lib.server.hosts import ssh_host
+from autotest.client.shared import utils
+from autotest.client.shared.test_utils import mock, unittest
+from autotest.scheduler import drones
+from autotest.server.hosts import ssh_host
 
 
 class RemoteDroneTest(unittest.TestCase):

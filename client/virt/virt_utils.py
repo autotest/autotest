@@ -6,10 +6,12 @@ KVM test utility functions.
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
 import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect, tarfile
-import struct, shutil, glob
-from autotest_lib.client.bin import utils, os_dep
-from autotest_lib.client.common_lib import error, logging_config
-from autotest_lib.client.common_lib import logging_manager, git
+import struct, shutil, glob, HTMLParser, urllib
+from autotest.client import utils, os_dep
+from autotest.client.shared import error, logging_config
+from autotest.client.shared import logging_manager, git
+from autotest.client.virt import virt_env_process
+from autotest.client.shared.syncdata import SyncData, SyncListenServer
 import rss_client, aexpect
 import platform
 
@@ -240,6 +242,34 @@ class Env(UserDict.IterableUserDict):
         @param name: VM name.
         """
         del self["vm__%s" % name]
+
+
+    def register_syncserver(self, port, server):
+        """
+        Register a Sync Server in this Env object.
+
+        @param port: Sync Server port.
+        @param server: Sync Server object.
+        """
+        self["sync__%s" % port] = server
+
+
+    def unregister_syncserver(self, port):
+        """
+        Remove a given Sync Server.
+
+        @param port: Sync Server port.
+        """
+        del self["sync__%s" % port]
+
+
+    def get_syncserver(self, port):
+        """
+        Return a Sync Server object by its port.
+
+        @param port: Sync Server port.
+        """
+        return self.get("sync__%s" % port)
 
 
     def register_installer(self, installer):
@@ -509,6 +539,361 @@ def check_kvm_source_dir(source_dir):
         return 2
     else:
         raise error.TestError("Unknown source dir layout, cannot proceed.")
+
+
+# Functions for handling virtual machine image files
+
+def get_image_blkdebug_filename(params, root_dir):
+    """
+    Generate an blkdebug file path from params and root_dir.
+
+    blkdebug files allow error injection in the block subsystem.
+
+    @param params: Dictionary containing the test parameters.
+    @param root_dir: Base directory for relative filenames.
+
+    @note: params should contain:
+           blkdebug -- the name of the debug file.
+    """
+    blkdebug_name = params.get("drive_blkdebug", None)
+    if blkdebug_name is not None:
+        blkdebug_filename = get_path(root_dir, blkdebug_name)
+    else:
+        blkdebug_filename = None
+    return blkdebug_filename
+
+
+def get_image_filename(params, root_dir):
+    """
+    Generate an image path from params and root_dir.
+
+    @param params: Dictionary containing the test parameters.
+    @param root_dir: Base directory for relative filenames.
+
+    @note: params should contain:
+           image_name -- the name of the image file, without extension
+           image_format -- the format of the image (qcow2, raw etc)
+    @raise VMDeviceError: When no matching disk found (in indirect method).
+    """
+    image_name = params.get("image_name", "image")
+    indirect_image_select = params.get("indirect_image_select")
+    if indirect_image_select:
+        re_name = image_name
+        indirect_image_select = int(indirect_image_select)
+        matching_images = utils.system_output("ls -1d %s" % re_name)
+        matching_images = sorted(matching_images.split('\n'))
+        if matching_images[-1] == '':
+            matching_images = matching_images[:-1]
+        try:
+            image_name = matching_images[indirect_image_select]
+        except IndexError:
+            raise VMDeviceError("No matching disk found for name = '%s', "
+                                "matching = '%s' and selector = '%s'" %
+                                (re_name, matching_images,
+                                 indirect_image_select))
+        for protected in params.get('indirect_image_blacklist', '').split(' '):
+            if re.match(protected, image_name):
+                raise VMDeviceError("Matching disk is in blacklist. name = '%s"
+                                    "', matching = '%s' and selector = '%s'" %
+                                    (re_name, matching_images,
+                                     indirect_image_select))
+    image_format = params.get("image_format", "qcow2")
+    if params.get("image_raw_device") == "yes":
+        return image_name
+    if image_format:
+        image_filename = "%s.%s" % (image_name, image_format)
+    else:
+        image_filename = image_name
+    image_filename = get_path(root_dir, image_filename)
+    return image_filename
+
+
+def clone_image(params, vm_name, image_name, root_dir):
+    """
+    Clone master image to vm specific file.
+
+    @param params: Dictionary containing the test parameters.
+    @param vm_name: Vm name.
+    @param image_name: Master image name.
+    @param root_dir: Base directory for relative filenames.
+    """
+    if not params.get("image_name_%s_%s" % (image_name, vm_name)):
+        m_image_name = params.get("image_name", "image")
+        vm_image_name = "%s_%s" % (m_image_name, vm_name)
+        if params.get("clone_master", "yes") == "yes":
+            image_params = params.object_params(image_name)
+            image_params["image_name"] = vm_image_name
+
+            m_image_fn = get_image_filename(params, root_dir)
+            image_fn = get_image_filename(image_params, root_dir)
+
+            logging.info("Clone master image for vms.")
+            utils.run(params.get("image_clone_commnad") % (m_image_fn,
+                                                           image_fn))
+
+        params["image_name_%s_%s" % (image_name, vm_name)] = vm_image_name
+
+
+def rm_image(params, vm_name, image_name, root_dir):
+    """
+    Remove vm specific file.
+
+    @param params: Dictionary containing the test parameters.
+    @param vm_name: Vm name.
+    @param image_name: Master image name.
+    @param root_dir: Base directory for relative filenames.
+    """
+    if params.get("image_name_%s_%s" % (image_name, vm_name)):
+        m_image_name = params.get("image_name", "image")
+        vm_image_name = "%s_%s" % (m_image_name, vm_name)
+        if params.get("clone_master", "yes") == "yes":
+            image_params = params.object_params(image_name)
+            image_params["image_name"] = vm_image_name
+
+            image_fn = get_image_filename(image_params, root_dir)
+
+            logging.debug("Removing vm specific image file %s", image_fn)
+            if os.path.exists(image_fn):
+                utils.run(params.get("image_remove_commnad") % (image_fn))
+            else:
+                logging.debug("Image file %s not found", image_fn)
+
+
+def create_image(params, root_dir):
+    """
+    Create an image using qemu_image.
+
+    @param params: Dictionary containing the test parameters.
+    @param root_dir: Base directory for relative filenames.
+
+    @note: params should contain:
+           image_name -- the name of the image file, without extension
+           image_format -- the format of the image (qcow2, raw etc)
+           image_cluster_size (optional) -- the cluster size for the image
+           image_size -- the requested size of the image (a string
+           qemu-img can understand, such as '10G')
+           create_with_dd -- use dd to create the image (raw format only)
+    """
+    format = params.get("image_format", "qcow2")
+    image_filename = get_image_filename(params, root_dir)
+    size = params.get("image_size", "10G")
+    if params.get("create_with_dd") == "yes" and format == "raw":
+        # maps K,M,G,T => (count, bs)
+        human = {'K': (1, 1),
+                 'M': (1, 1024),
+                 'G': (1024, 1024),
+                 'T': (1024, 1048576),
+                }
+        if human.has_key(size[-1]):
+            block_size = human[size[-1]][1]
+            size = int(size[:-1]) * human[size[-1]][0]
+        qemu_img_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
+                        % (image_filename, size, block_size))
+    else:
+        qemu_img_cmd = get_path(root_dir,
+                                params.get("qemu_img_binary", "qemu-img"))
+        qemu_img_cmd += " create"
+
+        qemu_img_cmd += " -f %s" % format
+
+        image_cluster_size = params.get("image_cluster_size", None)
+        if image_cluster_size is not None:
+            qemu_img_cmd += " -o cluster_size=%s" % image_cluster_size
+
+        qemu_img_cmd += " %s" % image_filename
+
+        qemu_img_cmd += " %s" % size
+
+    utils.system(qemu_img_cmd)
+    return image_filename
+
+
+def remove_image(params, root_dir):
+    """
+    Remove an image file.
+
+    @param params: A dict
+    @param root_dir: Base directory for relative filenames.
+
+    @note: params should contain:
+           image_name -- the name of the image file, without extension
+           image_format -- the format of the image (qcow2, raw etc)
+    """
+    image_filename = get_image_filename(params, root_dir)
+    logging.debug("Removing image file %s", image_filename)
+    if os.path.exists(image_filename):
+        os.unlink(image_filename)
+    else:
+        logging.debug("Image file %s not found", image_filename)
+
+
+def check_image(params, root_dir):
+    """
+    Check an image using the appropriate tools for each virt backend.
+
+    @param params: Dictionary containing the test parameters.
+    @param root_dir: Base directory for relative filenames.
+
+    @note: params should contain:
+           image_name -- the name of the image file, without extension
+           image_format -- the format of the image (qcow2, raw etc)
+
+    @raise VMImageCheckError: In case qemu-img check fails on the image.
+    """
+    vm_type = params.get("vm_type")
+    if vm_type == 'kvm':
+        image_filename = get_image_filename(params, root_dir)
+        logging.debug("Checking image file %s", image_filename)
+        qemu_img_cmd = get_path(root_dir,
+                                params.get("qemu_img_binary", "qemu-img"))
+        image_is_qcow2 = params.get("image_format") == 'qcow2'
+        if os.path.exists(image_filename) and image_is_qcow2:
+            # Verifying if qemu-img supports 'check'
+            q_result = utils.run(qemu_img_cmd, ignore_status=True)
+            q_output = q_result.stdout
+            check_img = True
+            if not "check" in q_output:
+                logging.error("qemu-img does not support 'check', "
+                              "skipping check")
+                check_img = False
+            if not "info" in q_output:
+                logging.error("qemu-img does not support 'info', "
+                              "skipping check")
+                check_img = False
+            if check_img:
+                try:
+                    utils.system("%s info %s" % (qemu_img_cmd, image_filename))
+                except error.CmdError:
+                    logging.error("Error getting info from image %s",
+                                  image_filename)
+
+                cmd_result = utils.run("%s check %s" %
+                                       (qemu_img_cmd, image_filename),
+                                       ignore_status=True)
+                # Error check, large chances of a non-fatal problem.
+                # There are chances that bad data was skipped though
+                if cmd_result.exit_status == 1:
+                    for e_line in cmd_result.stdout.splitlines():
+                        logging.error("[stdout] %s", e_line)
+                    for e_line in cmd_result.stderr.splitlines():
+                        logging.error("[stderr] %s", e_line)
+                    if params.get("backup_image_on_check_error", "no") == "yes":
+                        backup_image(params, root_dir, 'backup', False)
+                    raise error.TestWarn("qemu-img check error. Some bad data "
+                                         "in the image may have gone unnoticed")
+                # Exit status 2 is data corruption for sure, so fail the test
+                elif cmd_result.exit_status == 2:
+                    for e_line in cmd_result.stdout.splitlines():
+                        logging.error("[stdout] %s", e_line)
+                    for e_line in cmd_result.stderr.splitlines():
+                        logging.error("[stderr] %s", e_line)
+                    if params.get("backup_image_on_check_error", "no") == "yes":
+                        backup_image(params, root_dir, 'backup', False)
+                    raise VMImageCheckError(image_filename)
+                # Leaked clusters, they are known to be harmless to data
+                # integrity
+                elif cmd_result.exit_status == 3:
+                    raise error.TestWarn("Leaked clusters were noticed during "
+                                         "image check. No data integrity "
+                                         "problem was found though.")
+
+                # Just handle normal operation
+                if params.get("backup_image", "no") == "yes":
+                    backup_image(params, root_dir, 'backup', True)
+
+        else:
+            if not os.path.exists(image_filename):
+                logging.debug("Image file %s not found, skipping check",
+                              image_filename)
+            elif not image_is_qcow2:
+                logging.debug("Image file %s not qcow2, skipping check",
+                              image_filename)
+
+
+def backup_image(params, root_dir, action, good=True):
+    """
+    Backup or restore a disk image, depending on the action chosen.
+
+    @param params: Dictionary containing the test parameters.
+    @param root_dir: Base directory for relative filenames.
+    @param action: Whether we want to backup or restore the image.
+    @param good: If we are backing up a good image(we want to restore it) or
+            a bad image (we are saving a bad image for posterior analysis).
+
+    @note: params should contain:
+           image_name -- the name of the image file, without extension
+           image_format -- the format of the image (qcow2, raw etc)
+    """
+    def backup_raw_device(src, dst):
+        utils.system("dd if=%s of=%s bs=4k conv=sync" % (src, dst))
+
+    def backup_image_file(src, dst):
+        logging.debug("Copying %s -> %s", src, dst)
+        shutil.copy(src, dst)
+
+    def get_backup_name(filename, backup_dir, good):
+        if not os.path.isdir(backup_dir):
+            os.makedirs(backup_dir)
+        basename = os.path.basename(filename)
+        if good:
+            backup_filename = "%s.backup" % basename
+        else:
+            backup_filename = ("%s.bad.%s" %
+                               (basename, generate_random_string(4)))
+        return os.path.join(backup_dir, backup_filename)
+
+
+    image_filename = get_image_filename(params, root_dir)
+    backup_dir = params.get("backup_dir")
+    if params.get('image_raw_device') == 'yes':
+        iname = "raw_device"
+        iformat = params.get("image_format", "qcow2")
+        ifilename = "%s.%s" % (iname, iformat)
+        ifilename = get_path(root_dir, ifilename)
+        image_filename_backup = get_backup_name(ifilename, backup_dir, good)
+        backup_func = backup_raw_device
+    else:
+        image_filename_backup = get_backup_name(image_filename, backup_dir,
+                                                good)
+        backup_func = backup_image_file
+
+    if action == 'backup':
+        image_dir = os.path.dirname(image_filename)
+        image_dir_disk_free = utils.freespace(image_dir)
+        image_filename_size = os.path.getsize(image_filename)
+        image_filename_backup_size = 0
+        if os.path.isfile(image_filename_backup):
+            image_filename_backup_size = os.path.getsize(image_filename_backup)
+        disk_free = image_dir_disk_free + image_filename_backup_size
+        minimum_disk_free = 1.2 * image_filename_size
+        if disk_free < minimum_disk_free:
+            image_dir_disk_free_gb = float(image_dir_disk_free) / 10**9
+            minimum_disk_free_gb = float(minimum_disk_free) / 10**9
+            logging.error("Dir %s has %.1f GB free, less than the minimum "
+                          "required to store a backup, defined to be 120%% "
+                          "of the backup size, %.1f GB. Skipping backup...",
+                          image_dir, image_dir_disk_free_gb,
+                          minimum_disk_free_gb)
+            return
+        if good:
+            # In case of qemu-img check return 1, we will make 2 backups, one
+            # for investigation and other, to use as a 'pristine' image for
+            # further tests
+            state = 'good'
+        else:
+            state = 'bad'
+        logging.info("Backing up %s image file %s", state, image_filename)
+        src, dst = image_filename, image_filename_backup
+    elif action == 'restore':
+        if not os.path.isfile(image_filename_backup):
+            logging.error('Image backup %s not found, skipping restore...',
+                          image_filename_backup)
+            return
+        logging.info("Restoring image file %s from backup",
+                     image_filename)
+        src, dst = image_filename_backup, image_filename
+
+    backup_func(src, dst)
 
 
 # Functions and classes used for logging into guests and transferring files
@@ -1309,13 +1694,19 @@ class Flag(str):
         else:
             return False
 
+    def __str__(self):
+        return self.split("|")[0]
+
+    def __repr__(self):
+        return self.split("|")[0]
+
     def __hash__(self, *args, **kwargs):
         return 0
 
 
 kvm_map_flags_to_test = {
             Flag('avx')                        :set(['avx']),
-            Flag('sse3')                       :set(['sse3']),
+            Flag('sse3|pni')                   :set(['sse3']),
             Flag('ssse3')                      :set(['ssse3']),
             Flag('sse4.1|sse4_1|sse4.2|sse4_2'):set(['sse4']),
             Flag('aes')                        :set(['aes','pclmul']),
@@ -1444,71 +1835,6 @@ def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
     tarball.close()
 
 
-class Thread(threading.Thread):
-    """
-    Run a function in a background thread.
-    """
-    def __init__(self, target, args=(), kwargs={}):
-        """
-        Initialize the instance.
-
-        @param target: Function to run in the thread.
-        @param args: Arguments to pass to target.
-        @param kwargs: Keyword arguments to pass to target.
-        """
-        threading.Thread.__init__(self)
-        self._target = target
-        self._args = args
-        self._kwargs = kwargs
-
-
-    def run(self):
-        """
-        Run target (passed to the constructor).  No point in calling this
-        function directly.  Call start() to make this function run in a new
-        thread.
-        """
-        self._e = None
-        self._retval = None
-        try:
-            try:
-                self._retval = self._target(*self._args, **self._kwargs)
-            except Exception:
-                self._e = sys.exc_info()
-                raise
-        finally:
-            # Avoid circular references (start() may be called only once so
-            # it's OK to delete these)
-            del self._target, self._args, self._kwargs
-
-
-    def join(self, timeout=None, suppress_exception=False):
-        """
-        Join the thread.  If target raised an exception, re-raise it.
-        Otherwise, return the value returned by target.
-
-        @param timeout: Timeout value to pass to threading.Thread.join().
-        @param suppress_exception: If True, don't re-raise the exception.
-        """
-        threading.Thread.join(self, timeout)
-        try:
-            if self._e:
-                if not suppress_exception:
-                    # Because the exception was raised in another thread, we
-                    # need to explicitly insert the current context into it
-                    s = error.exception_context(self._e[1])
-                    s = error.join_contexts(error.get_context(), s)
-                    error.set_exception_context(self._e[1], s)
-                    raise self._e[0], self._e[1], self._e[2]
-            else:
-                return self._retval
-        finally:
-            # Avoid circular references (join() may be called multiple times
-            # so we can't delete these)
-            self._e = None
-            self._retval = None
-
-
 def parallel(targets):
     """
     Run multiple functions in parallel.
@@ -1523,9 +1849,9 @@ def parallel(targets):
     threads = []
     for target in targets:
         if isinstance(target, tuple) or isinstance(target, list):
-            t = Thread(*target)
+            t = utils.InterruptedThread(*target)
         else:
-            t = Thread(target)
+            t = utils.InterruptedThread(target)
         threads.append(t)
         t.start()
     return [t.join() for t in threads]
@@ -1805,6 +2131,81 @@ class PciAssignable(object):
                     logging.info("Released device %s successfully", pci_id)
         except Exception:
             return
+
+
+class KojiDirIndexParser(HTMLParser.HTMLParser):
+    '''
+    Parser for HTML directory index pages, specialized to look for RPM links
+    '''
+    def __init__(self):
+        '''
+        Initializes a new KojiDirListParser instance
+        '''
+        HTMLParser.HTMLParser.__init__(self)
+        self.package_file_names = []
+
+
+    def handle_starttag(self, tag, attrs):
+        '''
+        Handle tags during the parsing
+
+        This just looks for links ('a' tags) for files ending in .rpm
+        '''
+        if tag == 'a':
+            for k, v in attrs:
+                if k == 'href' and v.endswith('.rpm'):
+                    self.package_file_names.append(v)
+
+
+class RPMFileNameInfo:
+    '''
+    Simple parser for RPM based on information present on the filename itself
+    '''
+    def __init__(self, filename):
+        '''
+        Initializes a new RpmInfo instance based on a filename
+        '''
+        self.filename = filename
+
+
+    def get_filename_without_suffix(self):
+        '''
+        Returns the filename without the default RPM suffix
+        '''
+        assert self.filename.endswith('.rpm')
+        return self.filename[0:-4]
+
+
+    def get_filename_without_arch(self):
+        '''
+        Returns the filename without the architecture
+
+        This also excludes the RPM suffix, that is, removes the leading arch
+        and RPM suffix.
+        '''
+        wo_suffix = self.get_filename_without_suffix()
+        arch_sep = wo_suffix.rfind('.')
+        return wo_suffix[:arch_sep]
+
+
+    def get_arch(self):
+        '''
+        Returns just the architecture as present on the RPM filename
+        '''
+        wo_suffix = self.get_filename_without_suffix()
+        arch_sep = wo_suffix.rfind('.')
+        return wo_suffix[arch_sep+1:]
+
+
+    def get_nvr_info(self):
+        '''
+        Returns a dictionary with the name, version and release components
+
+        If koji is not installed, this returns None
+        '''
+        if not KOJI_INSTALLED:
+            return None
+        return koji.util.koji.parse_NVR(self.get_filename_without_arch())
 
 
 class KojiClient(object):
@@ -2109,6 +2510,25 @@ class KojiClient(object):
         return rpm_names
 
 
+    def get_pkg_base_url(self):
+        '''
+        Gets the base url for packages in Koji
+        '''
+        if self.config_options.has_key('pkgurl'):
+            return self.config_options['pkgurl']
+        else:
+            return "%s/%s" % (self.config_options['topurl'],
+                              'packages')
+
+
+    def get_scratch_base_url(self):
+        '''
+        Gets the base url for scratch builds in Koji
+        '''
+        one_level_up = os.path.dirname(self.get_pkg_base_url())
+        return "%s/%s" % (one_level_up, 'scratch')
+
+
     def get_pkg_urls(self, pkg, arch=None):
         '''
         Gets the urls for the packages specified in pkg
@@ -2122,12 +2542,7 @@ class KojiClient(object):
         info = self.get_pkg_info(pkg)
         rpms = self.get_pkg_rpm_info(pkg, arch)
         rpm_urls = []
-
-        if self.config_options.has_key('pkgurl'):
-            base_url = self.config_options['pkgurl']
-        else:
-            base_url = "%s/%s" % (self.config_options['topurl'],
-                                  'packages')
+        base_url = self.get_pkg_base_url()
 
         for rpm in rpms:
             rpm_name = koji.pathinfo.rpm(rpm)
@@ -2153,6 +2568,63 @@ class KojiClient(object):
                 architecture independent (noarch) packages
         '''
         rpm_urls = self.get_pkg_urls(pkg, arch)
+        for url in rpm_urls:
+            utils.get_file(url,
+                           os.path.join(dst_dir, os.path.basename(url)))
+
+
+    def get_scratch_pkg_urls(self, pkg, arch=None):
+        '''
+        Gets the urls for the scratch packages specified in pkg
+
+        @type pkg: KojiScratchPkgSpec
+        @param pkg: a scratch package specification
+        @type arch: string
+        @param arch: packages built for this architecture, but also including
+                architecture independent (noarch) packages
+        '''
+        rpm_urls = []
+
+        if arch is None:
+            arch = utils.get_arch()
+        arches = [arch, 'noarch']
+
+        index_url = "%s/%s/task_%s" % (self.get_scratch_base_url(),
+                                       pkg.user,
+                                       pkg.task)
+        index_parser = KojiDirIndexParser()
+        index_parser.feed(urllib.urlopen(index_url).read())
+
+        if pkg.subpackages:
+            for p in pkg.subpackages:
+                for pfn in index_parser.package_file_names:
+                    r = RPMFileNameInfo(pfn)
+                    info = r.get_nvr_info()
+                    if (p == info['name'] and
+                        r.get_arch() in arches):
+                        rpm_urls.append("%s/%s" % (index_url, pfn))
+        else:
+            for pfn in index_parser.package_file_names:
+                if (RPMFileNameInfo(pfn).get_arch() in arches):
+                    rpm_urls.append("%s/%s" % (index_url, pfn))
+
+        return rpm_urls
+
+
+    def get_scratch_pkgs(self, pkg, dst_dir, arch=None):
+        '''
+        Download the packages from a scratch build
+
+        @type pkg: KojiScratchPkgSpec
+        @param pkg: a scratch package specification
+        @type dst_dir: string
+        @param dst_dir: the destination directory, where the downloaded
+                packages will be saved on
+        @type arch: string
+        @param arch: packages built for this architecture, but also including
+                architecture independent (noarch) packages
+        '''
+        rpm_urls = self.get_scratch_pkg_urls(pkg, arch)
         for url in rpm_urls:
             utils.get_file(url,
                            os.path.join(dst_dir, os.path.basename(url)))
@@ -2447,6 +2919,96 @@ class KojiPkgSpec(object):
         return ("<KojiPkgSpec tag=%s build=%s pkg=%s subpkgs=%s>" %
                 (self.tag, self.build, self.package,
                  ", ".join(self.subpackages)))
+
+
+class KojiScratchPkgSpec(object):
+    '''
+    A package specification syntax parser for Koji scratch builds
+
+    This holds information on user, task and subpackages to be fetched
+    from koji and possibly installed (features external do this class).
+
+    New objects can be created either by providing information in the textual
+    format or by using the actual parameters for user, task and subpackages.
+    The textual format is useful for command line interfaces and configuration
+    files, while using parameters is better for using this in a programatic
+    fashion.
+
+    This package definition has a special behaviour: if no subpackages are
+    specified, all packages of the chosen architecture (plus noarch packages)
+    will match.
+
+    The following sets of examples are interchangeable. Specifying all packages
+    from a scratch build (whose task id is 1000) sent by user jdoe:
+
+        >>> from kvm_utils import KojiScratchPkgSpec
+        >>> pkg = KojiScratchPkgSpec('jdoe:1000')
+
+        >>> pkg = KojiScratchPkgSpec(user=jdoe, task=1000)
+
+    Specifying some packages from a scratch build whose task id is 1000, sent
+    by user jdoe:
+
+        >>> pkg = KojiScratchPkgSpec('jdoe:1000:kernel,kernel-devel')
+
+        >>> pkg = KojiScratchPkgSpec(user=jdoe, task=1000,
+                                     subpackages=['kernel', 'kernel-devel'])
+    '''
+
+    SEP = ':'
+
+    def __init__(self, text='', user=None, task=None, subpackages=[]):
+        '''
+        Instantiates a new KojiScratchPkgSpec object
+
+        @type text: string
+        @param text: a textual representation of a scratch build on Koji that
+                will be parsed
+        @type task: number
+        @param task: a koji task id, example: 1001
+        @type subpackages: list of strings
+        @param subpackages: a list of package names, usually a subset of
+                the RPM packages generated by a given build
+        '''
+        # Set to None to indicate 'not set' (and be able to use 'is')
+        self.user = None
+        self.task = None
+        self.subpackages = []
+
+        # Textual representation takes precedence (most common use case)
+        if text:
+            self.parse(text)
+        else:
+            self.user = user
+            self.task = task
+            self.subpackages = subpackages
+
+
+    def parse(self, text):
+        '''
+        Parses a textual representation of a package specification
+
+        @type text: string
+        @param text: textual representation of a package in koji
+        '''
+        parts = text.count(self.SEP) + 1
+        if parts == 1:
+            raise ValueError('KojiScratchPkgSpec requires a user and task id')
+        elif parts == 2:
+            self.user, self.task = text.split(self.SEP)
+        elif parts >= 3:
+            # Instead of erroring on more arguments, we simply ignore them
+            # This makes the parser suitable for future syntax additions, such
+            # as specifying the package architecture
+            part1, part2, part3 = text.split(self.SEP)[0:3]
+            self.user = part1
+            self.task = part2
+            self.subpackages = part3.split(',')
+
+
+    def __repr__(self):
+        return ("<KojiScratchPkgSpec user=%s task=%s subpkgs=%s>" %
+                (self.user, self.task, ", ".join(self.subpackages)))
 
 
 def umount(src, mount_point, type):
@@ -3435,7 +3997,7 @@ def bring_up_ifname(ifname):
     @param ifname: Name of the interface
     """
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-    ifr = struct.pack("16si", ifname, IFF_UP)
+    ifr = struct.pack("16sh", ifname, IFF_UP)
     try:
         fcntl.ioctl(ctrl_sock, SIOCSIFFLAGS, ifr)
     except IOError:
@@ -3564,7 +4126,21 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
             logging.debug("Creating config file %s from sample", dst_file)
             shutil.copyfile(src_file, dst_file)
         else:
-            logging.debug("Config file %s exists, not touching" % dst_file)
+            diff_result = utils.run("diff -Naur %s %s" % (dst_file, src_file),
+                                    ignore_status=True, verbose=False)
+            if diff_result.exit_status != 0:
+                logging.debug("%s result:\n %s" %
+                              (diff_result.command, diff_result.stdout))
+                answer = utils.ask("Config file  %s differs from %s. Overwrite?"
+                                   % (dst_file,src_file))
+                if answer == "y":
+                    logging.debug("Restoring config file %s from sample" %
+                                  dst_file)
+                    shutil.copyfile(src_file, dst_file)
+                else:
+                    logging.debug("Preserving existing %s file" % dst_file)
+            else:
+                logging.debug("Config file %s exists, not touching" % dst_file)
 
     logging.info("")
     step += 1
@@ -3766,3 +4342,497 @@ class NumaNode(object):
         logging.info("Numa Node record dict:")
         for i in self.cpus:
             logging.info("    %s: %s" % (i, self.dict[i]))
+
+
+def generate_mac_address_simple():
+    r = random.SystemRandom()
+    mac = "9a:%02x:%02x:%02x:%02x:%02x" % (r.randint(0x00, 0xff),
+                                           r.randint(0x00, 0xff),
+                                           r.randint(0x00, 0xff),
+                                           r.randint(0x00, 0xff),
+                                           r.randint(0x00, 0xff))
+    return mac
+
+
+def guest_active(vm):
+    o = vm.monitor.info("status")
+    if isinstance(o, str):
+        return "status: running" in o
+    else:
+        return o.get("status") == "running"
+
+
+def preprocess_images(bindir, params, env):
+    # Clone master image form vms.
+    for vm_name in params.get("vms").split():
+        vm = env.get_vm(vm_name)
+        if vm:
+            vm.destroy(free_mac_addresses=False)
+        vm_params = params.object_params(vm_name)
+        for image in vm_params.get("master_images_clone").split():
+            clone_image(params, vm_name, image, bindir)
+
+
+def postprocess_images(bindir, params):
+    for vm in params.get("vms").split():
+        vm_params = params.object_params(vm)
+        for image in vm_params.get("master_images_clone").split():
+            rm_image(params, vm, image, bindir)
+
+
+class MigrationData(object):
+    def __init__(self, params, srchost, dsthost, vms_name, params_append):
+        """
+        Class that contains data needed for one migration.
+        """
+        self.params = params.copy()
+        self.params.update(params_append)
+
+        self.source = False
+        if params.get("hostid") == srchost:
+            self.source = True
+
+        self.destination = False
+        if params.get("hostid") == dsthost:
+            self.destination = True
+
+        self.src = srchost
+        self.dst = dsthost
+        self.hosts = [srchost, dsthost]
+        self.mig_id = {'src': srchost, 'dst': dsthost, "vms": vms_name}
+        self.vms_name = vms_name
+        self.vms = []
+        self.vm_ports = None
+
+
+    def is_src(self):
+        """
+        @return: True if host is source.
+        """
+        return self.source
+
+
+    def is_dst(self):
+        """
+        @return: True if host is destination.
+        """
+        return self.destination
+
+
+class MultihostMigration(object):
+    """
+    Class that provides a framework for multi-host migration.
+
+    Migration can be run both synchronously and asynchronously.
+    To specify what is going to happen during the multi-host
+    migration, it is necessary to reimplement the method
+    migration_scenario. It is possible to start multiple migrations
+    in separate threads, since self.migrate is thread safe.
+
+    Only one test using multihost migration framework should be
+    started on one machine otherwise it is necessary to solve the
+    problem with listen server port.
+
+    Multihost migration starts SyncListenServer through which
+    all messages are transfered, since the multiple hosts can
+    be in diferent states.
+
+    Class SyncData is used to transfer data over network or
+    synchronize the migration process. Synchronization sessions
+    are recognized by session_id.
+
+    It is important to note that, in order to have multi-host
+    migration, one needs shared guest image storage. The simplest
+    case is when the guest images are on an NFS server.
+
+    Example:
+        class TestMultihostMigration(virt_utils.MultihostMigration):
+            def __init__(self, test, params, env):
+                super(testMultihostMigration, self).__init__(test, params, env)
+
+            def migration_scenario(self):
+                srchost = self.params.get("hosts")[0]
+                dsthost = self.params.get("hosts")[1]
+
+                def worker(mig_data):
+                    vm = env.get_vm("vm1")
+                    session = vm.wait_for_login(timeout=self.login_timeout)
+                    session.sendline("nohup dd if=/dev/zero of=/dev/null &")
+                    session.cmd("killall -0 dd")
+
+                def check_worker(mig_data):
+                    vm = env.get_vm("vm1")
+                    session = vm.wait_for_login(timeout=self.login_timeout)
+                    session.cmd("killall -9 dd")
+
+                # Almost synchronized migration, waiting to end it.
+                # Work is started only on first VM.
+                self.migrate_wait(["vm1", "vm2"], srchost, dsthost,
+                                  worker, check_worker)
+
+                # Migration started in different threads.
+                # It allows to start multiple migrations simultaneously.
+                mig1 = self.migrate(["vm1"], srchost, dsthost,
+                                    worker, check_worker)
+                mig2 = self.migrate(["vm2"], srchost, dsthost)
+                mig2.join()
+                mig1.join()
+
+    mig = TestMultihostMigration(test, params, env)
+    mig.run()
+    """
+    def __init__(self, test, params, env, preprocess_env=True):
+        self.test = test
+        self.params = params
+        self.env = env
+        self.hosts = params.get("hosts")
+        self.hostid = params.get('hostid', "")
+        self.comm_port = int(params.get("comm_port", 13234))
+        vms_count = len(params["vms"].split())
+
+        self.login_timeout = int(params.get("login_timeout", 360))
+        self.disk_prepare_timeout = int(params.get("disk_prepare_timeout",
+                                              160 * vms_count))
+        self.finish_timeout = int(params.get("finish_timeout",
+                                              120 * vms_count))
+
+        self.new_params = None
+
+        if params.get("clone_master") == "yes":
+            self.clone_master = True
+        else:
+            self.clone_master = False
+
+        self.mig_timeout = int(params.get("mig_timeout"))
+        # Port used to communicate info between source and destination
+        self.regain_ip_cmd = params.get("regain_ip_cmd", "dhclient")
+
+        self.vm_lock = threading.Lock()
+
+        self.sync_server = None
+        if self.clone_master:
+            self.sync_server = SyncListenServer()
+
+        if preprocess_env:
+            self.preprocess_env()
+            self._hosts_barrier(self.hosts, self.hosts, 'disk_prepared',
+                                 self.disk_prepare_timeout)
+
+
+    def migration_scenario(self):
+        """
+        Multi Host migration_scenario is started from method run where the
+        exceptions are checked. It is not necessary to take care of
+        cleaning up after test crash or finish.
+        """
+        raise NotImplementedError
+
+
+    def migrate_vms_src(self, mig_data):
+        """
+        Migrate vms source.
+
+        @param mig_Data: Data for migration.
+
+        For change way how machine migrates is necessary
+        re implement this method.
+        """
+        def mig_wrapper(vm, dsthost, vm_ports):
+            vm.migrate(dest_host=dsthost, remote_port=vm_ports[vm.name])
+
+        logging.info("Start migrating now...")
+        multi_mig = []
+        for vm in mig_data.vms:
+            multi_mig.append((mig_wrapper, (vm, mig_data.dst,
+                                            mig_data.vm_ports)))
+        parallel(multi_mig)
+
+
+    def migrate_vms_dest(self, mig_data):
+        """
+        Migrate vms destination. This function is started on dest host during
+        migration.
+
+        @param mig_Data: Data for migration.
+        """
+        pass
+
+
+    def __del__(self):
+        if self.sync_server:
+            self.sync_server.close()
+
+
+    def master_id(self):
+        return self.hosts[0]
+
+
+    def _hosts_barrier(self, hosts, session_id, tag, timeout):
+        logging.debug("Barrier timeout: %d tags: %s" % (timeout, tag))
+        tags = SyncData(self.master_id(), self.hostid, hosts,
+                        "%s,%s,barrier" % (str(session_id), tag),
+                        self.sync_server).sync(tag, timeout)
+        logging.debug("Barrier tag %s" % (tags))
+
+
+    def preprocess_env(self):
+        """
+        Prepare env to start vms.
+        """
+        preprocess_images(self.test.bindir, self.params, self.env)
+
+
+    def _check_vms_source(self, mig_data):
+        for vm in mig_data.vms:
+            vm.wait_for_login(timeout=self.login_timeout)
+
+        sync = SyncData(self.master_id(), self.hostid, mig_data.hosts,
+                        mig_data.mig_id, self.sync_server)
+        mig_data.vm_ports = sync.sync(timeout=120)[mig_data.dst]
+        logging.info("Received from destination the migration port %s",
+                     str(mig_data.vm_ports))
+
+
+    def _check_vms_dest(self, mig_data):
+        mig_data.vm_ports = {}
+        for vm in mig_data.vms:
+            logging.info("Communicating to source migration port %s",
+                         vm.migration_port)
+            mig_data.vm_ports[vm.name] = vm.migration_port
+
+        SyncData(self.master_id(), self.hostid,
+                 mig_data.hosts, mig_data.mig_id,
+                 self.sync_server).sync(mig_data.vm_ports, timeout=120)
+
+
+    def _prepare_params(self, mig_data):
+        """
+        Prepare separate params for vm migration.
+
+        @param vms_name: List of vms.
+        """
+        new_params = mig_data.params.copy()
+        new_params["vms"] = " ".join(mig_data.vms_name)
+        return new_params
+
+
+    def _check_vms(self, mig_data):
+        """
+        Check if vms are started correctly.
+
+        @param vms: list of vms.
+        @param source: Must be True if is source machine.
+        """
+        logging.info("Try check vms %s" % (mig_data.vms_name))
+        for vm in mig_data.vms_name:
+            if not self.env.get_vm(vm) in mig_data.vms:
+                mig_data.vms.append(self.env.get_vm(vm))
+        for vm in mig_data.vms:
+            logging.info("Check vm %s on host %s" % (vm.name, self.hostid))
+            vm.verify_alive()
+
+        if mig_data.is_src():
+            self._check_vms_source(mig_data)
+        else:
+            self._check_vms_dest(mig_data)
+
+
+    def prepare_for_migration(self, mig_data, migration_mode):
+        """
+        Prepare destination of migration for migration.
+
+        @param mig_data: Class with data necessary for migration.
+        @param migration_mode: Migration mode for prepare machine.
+        """
+        new_params = self._prepare_params(mig_data)
+
+        new_params['migration_mode'] = migration_mode
+        new_params['start_vm'] = 'yes'
+        self.vm_lock.acquire()
+        virt_env_process.process(self.test, new_params, self.env,
+                                 virt_env_process.preprocess_image,
+                                 virt_env_process.preprocess_vm)
+        self.vm_lock.release()
+
+        self._check_vms(mig_data)
+
+
+    def migrate_vms(self, mig_data):
+        """
+        Migrate vms.
+        """
+        if mig_data.is_src():
+            self.migrate_vms_src(mig_data)
+        else:
+            self.migrate_vms_dest(mig_data)
+
+
+    def check_vms(self, mig_data):
+        """
+        Check vms after migrate.
+
+        @param mig_data: object with migration data.
+        """
+        for vm in mig_data.vms:
+            if not guest_active(vm):
+                raise error.TestFail("Guest not active after migration")
+
+        logging.info("Migrated guest appears to be running")
+
+        logging.info("Logging into migrated guest after migration...")
+        for vm in mig_data.vms:
+            session_serial = vm.wait_for_serial_login(timeout=
+                                                      self.login_timeout)
+            #There is sometime happen that system sends some message on
+            #serial console and IP renew command block test. Because
+            #there must be added "sleep" in IP renew command.
+            session_serial.cmd(self.regain_ip_cmd)
+            vm.wait_for_login(timeout=self.login_timeout)
+
+
+    def postprocess_env(self):
+        """
+        Kill vms and delete cloned images.
+        """
+        postprocess_images(self.test.bindir, self.params)
+
+
+    def migrate(self, vms_name, srchost, dsthost, start_work=None,
+                check_work=None, mig_mode="tcp", params_append=None):
+        """
+        Migrate machine from srchost to dsthost. It executes start_work on
+        source machine before migration and executes check_work on dsthost
+        after migration.
+
+        Migration execution progress:
+
+        source host                   |   dest host
+        --------------------------------------------------------
+           prepare guest on both sides of migration
+            - start machine and check if machine works
+            - synchronize transfer data needed for migration
+        --------------------------------------------------------
+        start work on source guests   |   wait for migration
+        --------------------------------------------------------
+                     migrate guest to dest host.
+              wait on finish migration synchronization
+        --------------------------------------------------------
+                                      |   check work on vms
+        --------------------------------------------------------
+                    wait for sync on finish migration
+
+        @param vms_name: List of vms.
+        @param srchost: src host id.
+        @param dsthost: dst host id.
+        @param start_work: Function started before migration.
+        @param check_work: Function started after migration.
+        @param mig_mode: Migration mode.
+        @param params_append: Append params to self.params only for migration.
+        """
+        def migrate_wrap(vms_name, srchost, dsthost, start_work=None,
+                check_work=None, params_append=None):
+            logging.info("Starting migrate vms %s from host %s to %s" %
+                         (vms_name, srchost, dsthost))
+            error = None
+            mig_data = MigrationData(self.params, srchost, dsthost,
+                                     vms_name, params_append)
+            try:
+                try:
+                    if mig_data.is_src():
+                        self.prepare_for_migration(mig_data, None)
+                    elif self.hostid == dsthost:
+                        self.prepare_for_migration(mig_data, mig_mode)
+                    else:
+                        return
+
+                    if mig_data.is_src():
+                        if start_work:
+                            start_work(mig_data)
+
+                    self.migrate_vms(mig_data)
+
+                    timeout = 30
+                    if not mig_data.is_src():
+                        timeout = self.mig_timeout
+                    self._hosts_barrier(mig_data.hosts, mig_data.mig_id,
+                                        'mig_finished', timeout)
+
+                    if mig_data.is_dst():
+                        self.check_vms(mig_data)
+                        if check_work:
+                            check_work(mig_data)
+
+                except:
+                    error = True
+                    raise
+            finally:
+                if not error:
+                    self._hosts_barrier(self.hosts,
+                                        mig_data.mig_id,
+                                        'test_finihed',
+                                        self.finish_timeout)
+
+        def wait_wrap(vms_name, srchost, dsthost):
+            mig_data = MigrationData(self.params, srchost, dsthost, vms_name,
+                                     None)
+            timeout = (self.login_timeout + self.mig_timeout +
+                       self.finish_timeout)
+
+            self._hosts_barrier(self.hosts, mig_data.mig_id,
+                                'test_finihed', timeout)
+
+        if (self.hostid in [srchost, dsthost]):
+            mig_thread = utils.InterruptedThread(migrate_wrap, (vms_name,
+                                                                srchost,
+                                                                dsthost,
+                                                                start_work,
+                                                                check_work,
+                                                                params_append))
+        else:
+            mig_thread = utils.InterruptedThread(wait_wrap, (vms_name,
+                                                             srchost,
+                                                             dsthost))
+        mig_thread.start()
+        return mig_thread
+
+
+    def migrate_wait(self, vms_name, srchost, dsthost, start_work=None,
+                      check_work=None, mig_mode="tcp", params_append=None):
+        """
+        Migrate machine from srchost to dsthost and wait for finish.
+        It executes start_work on source machine before migration and executes
+        check_work on dsthost after migration.
+
+        @param vms_name: List of vms.
+        @param srchost: src host id.
+        @param dsthost: dst host id.
+        @param start_work: Function which is started before migration.
+        @param check_work: Function which is started after
+                           done of migration.
+        """
+        self.migrate(vms_name, srchost, dsthost, start_work, check_work,
+                     mig_mode, params_append).join()
+
+
+    def cleanup(self):
+        """
+        Cleanup env after test.
+        """
+        if self.clone_master:
+            self.sync_server.close()
+            self.postprocess_env()
+
+
+    def run(self):
+        """
+        Start multihost migration scenario.
+        After scenario is finished or if scenario crashed it calls postprocess
+        machines and cleanup env.
+        """
+        try:
+            self.migration_scenario()
+
+            self._hosts_barrier(self.hosts, self.hosts, 'all_test_finihed',
+                                self.finish_timeout)
+        finally:
+            self.cleanup()

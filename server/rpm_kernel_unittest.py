@@ -5,10 +5,10 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import utils as common_utils
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.server import rpm_kernel, utils, hosts
-from autotest_lib.server.hosts import bootloader
+from autotest.client.shared import utils as common_utils
+from autotest.client.shared.test_utils import mock
+from autotest.server import rpm_kernel, utils, hosts
+from autotest.server.hosts import bootloader
 
 
 class TestRpmKernel(unittest.TestCase):

@@ -45,7 +45,7 @@ public class JobOwnerFilter extends FieldFilter
         parentPanel.add(allUsersRadio);
         parentPanel.add(selectUserPanel);
 
-        selectUserRadio.setValue(true);
+        allUsersRadio.setValue(true);
     }
 
     @Override

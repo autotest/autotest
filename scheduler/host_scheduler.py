@@ -5,14 +5,14 @@ Autotest scheduling utility.
 
 import logging
 
-from autotest_lib.client.common_lib import global_config, utils
-from autotest_lib.frontend.afe import models
-from autotest_lib.scheduler import metahost_scheduler, scheduler_config
-from autotest_lib.scheduler import scheduler_models
+from autotest.client.shared import global_config, utils
+from autotest.frontend.afe import models
+from autotest.scheduler import metahost_scheduler, scheduler_config
+from autotest.scheduler import scheduler_models
 
 
 get_site_metahost_schedulers = utils.import_site_function(
-        __file__, 'autotest_lib.scheduler.site_metahost_scheduler',
+        __file__, 'autotest.scheduler.site_metahost_scheduler',
         'get_metahost_schedulers', lambda : ())
 
 
@@ -416,7 +416,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
 
 
 site_host_scheduler = utils.import_site_class(
-        __file__, 'autotest_lib.scheduler.site_host_scheduler',
+        __file__, 'autotest.scheduler.site_host_scheduler',
         'site_host_scheduler', BaseHostScheduler)
 
 

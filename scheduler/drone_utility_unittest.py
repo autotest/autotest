@@ -2,16 +2,16 @@
 
 """Tests for drone_utility."""
 
-import os, sys, unittest
+import unittest
 from cStringIO import StringIO
 
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.scheduler import drone_utility
+from autotest.client.shared import global_config
+from autotest.client.shared.test_utils import mock
+from autotest.scheduler import drone_utility
 
 
 class TestDroneUtility(unittest.TestCase):

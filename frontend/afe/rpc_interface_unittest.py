@@ -5,12 +5,12 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.frontend import setup_django_environment
-from autotest_lib.frontend.afe import frontend_test_utils
+from autotest.frontend import setup_django_environment
+from autotest.frontend.afe import frontend_test_utils
 from django.db import connection
-from autotest_lib.frontend.afe import models, rpc_interface, frontend_test_utils
-from autotest_lib.frontend.afe import model_logic, model_attributes
-from autotest_lib.client.common_lib import global_config
+from autotest.frontend.afe import models, rpc_interface, frontend_test_utils
+from autotest.frontend.afe import model_logic, model_attributes
+from autotest.client.shared import global_config
 
 
 _hqe_status = models.HostQueueEntry.Status

@@ -1,0 +1,7 @@
+--SELFTEST-- loading test
+--STEPTEST-- payload1 start
+barrier: 127.0.0.1#P2 tag=here port=63000 timeout=15 start=NNN
+barrier: 127.0.0.1#P2 members: 127.0.0.1#P1,127.0.0.1#P2
+barrier: 127.0.0.1#P2 selected as slave, master=127.0.0.1
+JOB ERROR: timeout waiting for barrier
+--SELFTEST-- exit 1

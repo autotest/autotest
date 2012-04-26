@@ -8,20 +8,20 @@ except ImportError:
 import datetime, optparse, os, signal, sys, time, traceback, urllib
 import logging, gc
 
-from autotest_lib.scheduler import scheduler_logging_config
-from autotest_lib.frontend import setup_django_environment
+from autotest.scheduler import scheduler_logging_config
+from autotest.frontend import setup_django_environment
 
 import django.db
 
-from autotest_lib.client.common_lib import global_config, logging_manager
-from autotest_lib.client.common_lib import host_protections, utils
-from autotest_lib.database import database_connection
-from autotest_lib.frontend.afe import models, rpc_utils, readonly_connection
-from autotest_lib.frontend.afe import model_attributes
-from autotest_lib.scheduler import drone_manager, drones, email_manager
-from autotest_lib.scheduler import gc_stats, host_scheduler, monitor_db_cleanup
-from autotest_lib.scheduler import status_server, scheduler_config
-from autotest_lib.scheduler import scheduler_models
+from autotest.client.shared import global_config, logging_manager
+from autotest.client.shared import host_protections, utils
+from autotest.database import database_connection
+from autotest.frontend.afe import models, rpc_utils, readonly_connection
+from autotest.frontend.afe import model_attributes
+from autotest.scheduler import drone_manager, drones, email_manager
+from autotest.scheduler import gc_stats, host_scheduler, monitor_db_cleanup
+from autotest.scheduler import status_server, scheduler_config
+from autotest.scheduler import scheduler_models
 
 WATCHER_PID_FILE_PREFIX = 'autotest-scheduler-watcher'
 PID_FILE_PREFIX = 'autotest-scheduler'
@@ -56,7 +56,7 @@ _drone_manager = None
 def _parser_path_default(install_dir):
     return os.path.join(install_dir, 'tko', 'parse')
 _parser_path_func = utils.import_site_function(
-        __file__, 'autotest_lib.scheduler.site_monitor_db',
+        __file__, 'autotest.scheduler.site_monitor_db',
         'parser_path', _parser_path_default)
 _parser_path = _parser_path_func(drones.AUTOTEST_INSTALL_DIR)
 
@@ -196,7 +196,7 @@ def main_without_exception_handling():
     RESULTS_DIR = args[0]
 
     site_init = utils.import_site_function(__file__,
-        "autotest_lib.scheduler.site_monitor_db", "site_init_monitor_db",
+        "autotest.scheduler.site_monitor_db", "site_init_monitor_db",
         _site_init_monitor_db_dummy)
     site_init()
 

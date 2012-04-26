@@ -14,13 +14,22 @@ dicts for the multi host test.
 """
 
 import sys, os, commands, glob, shutil, logging, random
-from autotest_lib.server import utils
-from autotest_lib.client.common_lib import cartesian_config, error
+from autotest.server import utils
+from autotest.client.shared import cartesian_config, error
 
 # Specify the directory of autotest before you start this test
 AUTOTEST_DIR = job.clientdir
 
 KVM_DIR = os.path.join(AUTOTEST_DIR, 'tests', 'kvm')
+
+CONTROL_MAIN_PART = """
+testname = "kvm"
+bindir = os.path.join(job.testdir, testname)
+job.install_pkg(testname, 'test', bindir)
+
+kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'kvm')
+sys.path.append(kvm_test_dir)
+"""
 
 try:
     import autotest.common
@@ -37,14 +46,22 @@ def generate_mac_address():
     return mac
 
 
-def run(pair):
-    logging.info("KVM test running on source host [%s] and destination "
-                 "host [%s]\n", pair[0], pair[1])
+def run(machines):
+    logging.info("KVM test running on hosts %s\n", machines)
+    class Machines(object):
+        def __init__(self, host):
+            self.host = host
+            self.at = None
+            self.params = None
+            self.control = None
 
-    source = hosts.create_host(pair[0])
-    dest = hosts.create_host(pair[1])
-    source_at = autotest_remote.Autotest(source)
-    dest_at = autotest_remote.Autotest(dest)
+    _hosts = {}
+    for machine in machines:
+        _hosts[machine] = Machines(hosts.create_host(machine))
+
+    ats = []
+    for host in _hosts.itervalues():
+        host.at = autotest_remote.Autotest(host.host)
 
     cfg_file = os.path.join(KVM_DIR, "multi-host-tests.cfg")
 
@@ -56,29 +73,33 @@ def run(pair):
     parser.parse_file(cfg_file)
     test_dicts = parser.get_dicts()
 
-    source_control_file = dest_control_file = """
-testname = "kvm"
-bindir = os.path.join(job.testdir, testname)
-job.install_pkg(testname, 'test', bindir)
-
-kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'kvm')
-sys.path.append(kvm_test_dir)
-"""
-    import sys
+    ips = []
+    for machine in machines:
+        host = _hosts[machine]
+        ips.append(host.host.ip)
 
     for params in test_dicts:
-        params['srchost'] = source.ip
-        params['dsthost'] = dest.ip
 
-        for nic in params.get('nics',"").split():
-            params['nic_mac_%s' % nic] = generate_mac_address()
+        params['hosts'] = ips
 
-        source_params = params.copy()
-        source_params['role'] = "source"
+        params['not_preprocess'] = "yes"
+        for vm in params.get("vms").split():
+            for nic in params.get('nics',"").split():
+                params['nic_mac_%s_%s' % (nic, vm)] = generate_mac_address()
 
-        dest_params = params.copy()
-        dest_params['role'] = "destination"
-        dest_params['migration_mode'] = "tcp"
+        params['master_images_clone'] = "image1"
+        params['kill_vm'] = "yes"
+
+        s_host = _hosts[machines[0]]
+        s_host.params = params.copy()
+        s_host.params['clone_master'] = "yes"
+        s_host.params['hostid'] = machines[0]
+
+        for machine in machines[1:]:
+            host = _hosts[machine]
+            host.params = params.copy()
+            host.params['clone_master'] = "no"
+            host.params['hostid'] = machine
 
         # Report the parameters we've received
         print "Test parameters:"
@@ -87,27 +108,38 @@ sys.path.append(kvm_test_dir)
         for key in keys:
             logging.debug("    %s = %s", key, params[key])
 
-        source_control_file += ("job.run_test('kvm', tag='%s', params=%s)" %
-                                (source_params['shortname'], source_params))
-        dest_control_file += ("job.run_test('kvm', tag='%s', params=%s)" %
-                              (dest_params['shortname'], dest_params))
+        for machine in machines:
+            host = _hosts[machine]
+            host.control = CONTROL_MAIN_PART
 
-        logging.info('Source control file:\n%s', source_control_file)
-        logging.info('Destination control file:\n%s', dest_control_file)
-        dest_command = subcommand(dest_at.run,
-                                  [dest_control_file, dest.hostname])
+        for machine in machines:
+            host = _hosts[machine]
+            host.control += ("job.run_test('kvm', tag='%s', params=%s)" %
+                             (host.params['shortname'], host.params))
 
-        source_command = subcommand(source_at.run,
-                                    [source_control_file, source.hostname])
+        logging.info('Master control file:\n%s', _hosts[machines[0]].control)
+        for machine in machines[1:]:
+            host = _hosts[machine]
+            logging.info('Slave control file:\n%s', host.control)
 
-        parallel([dest_command, source_command])
+        commands = []
+        for machine in machines:
+            host = _hosts[machine]
+            commands.append(subcommand(host.at.run,
+                                       [host.control, host.host.hostname]))
 
-# Grab the pairs (and failures)
-(pairs, failures) = utils.form_ntuples_from_machines(machines, 2)
+        parallel(commands)
 
-# Log the failures
-for failure in failures:
-    job.record("FAIL", failure[0], "kvm", failure[1])
+if 'all' in args:
+    # Run test with all machines at once.
+    run(machines)
+else:
+    # Grab the pairs (and failures)
+    (pairs, failures) = utils.form_ntuples_from_machines(machines, 2)
 
-# Now run through each pair and run
-job.parallel_simple(run, pairs, log=False)
+    # Log the failures
+    for failure in failures:
+        job.record("FAIL", failure[0], "kvm", failure[1])
+
+    # Now run through each pair and run
+    job.parallel_simple(run, pairs, log=False)

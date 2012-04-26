@@ -8,26 +8,26 @@
 #                             'http://hostname:8000/afe/server/rpc/')
 # )
 >>> if 'rpc_interface' not in globals():
-...   from autotest_lib.frontend.afe import rpc_interface, models
-...   from autotest_lib.frontend import thread_local
+...   from autotest.frontend.afe import rpc_interface, models
+...   from autotest.frontend import thread_local
 ...   # set up a user for us to "login" as
 ...   user = models.User(login='debug_user')
 ...   user.access_level = 100
 ...   user.save()
 ...   thread_local.set_user(user)
 ...
->>> from autotest_lib.frontend.afe import model_logic
+>>> from autotest.frontend.afe import model_logic
 
 # get directory of this test file; we'll need it later
 >>> import common
->>> from autotest_lib.frontend.afe import test
+>>> from autotest.frontend.afe import test
 >>> import os, datetime
 >>> test_path = os.path.join(os.path.dirname(test.__file__),
 ...                                          'doctests')
 >>> test_path = os.path.abspath(test_path)
 
 # disable logging
->>> from autotest_lib.client.common_lib import logging_manager
+>>> from autotest.client.shared import logging_manager
 >>> logging_manager.logger.setLevel(100)
 
 >>> drone_set = models.DroneSet.default_drone_set_name()
@@ -914,7 +914,7 @@ ValidationError: {'hosts': u'Host(s) "ahost1, ahost2" are atomic group hosts but
 ...         dependencies=['blue-label'])
 >>> peon_user = models.User(login='peon_user')
 >>> peon_user.access_level = 0
->>> from autotest_lib.client.common_lib.test_utils import mock
+>>> from autotest.client.shared.test_utils import mock
 >>> god = mock.mock_god()
 >>> god.stub_function(models.User, "current_user")
 >>> models.User.current_user.expect_call().and_return(peon_user)

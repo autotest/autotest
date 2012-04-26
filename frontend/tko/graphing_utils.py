@@ -20,11 +20,11 @@ matplotlib.use('Agg')
 
 import matplotlib.figure, matplotlib.backends.backend_agg
 import StringIO, colorsys, PIL.Image, PIL.ImageChops
-from autotest_lib.frontend.afe import readonly_connection
-from autotest_lib.frontend.afe.model_logic import ValidationError
+from autotest.frontend.afe import readonly_connection
+from autotest.frontend.afe.model_logic import ValidationError
 from simplejson import encoder
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.frontend.tko import models, tko_rpc_utils
+from autotest.client.shared import global_config
+from autotest.frontend.tko import models, tko_rpc_utils
 
 _FIGURE_DPI = 100
 _FIGURE_WIDTH_IN = 10

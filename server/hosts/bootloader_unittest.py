@@ -6,10 +6,10 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib import error
-from autotest_lib.server import utils, hosts
-from autotest_lib.server.hosts import bootloader
+from autotest.client.shared.test_utils import mock
+from autotest.client.shared import error
+from autotest.server import utils, hosts
+from autotest.server.hosts import bootloader
 
 
 class test_bootloader(unittest.TestCase):
@@ -49,7 +49,7 @@ class test_bootloader(unittest.TestCase):
     def test_installs_to_tmpdir(self):
         TMPDIR = "/unittest/tmp"
         SERVERDIR = "/unittest/server"
-        BOOTTOOL_SRC = os.path.join(SERVERDIR, bootloader.BOOTTOOL_SRC)
+        BOOTTOOL_SRC = os.path.join(SERVERDIR, bootloader.BOOTTOOL_CLI_PATH)
         BOOTTOOL_SRC = os.path.abspath(BOOTTOOL_SRC)
         BOOTTOOL_DST = os.path.join(TMPDIR, "boottool")
         # set up the recording

@@ -901,20 +901,25 @@ class Expect(Tail):
         return Tail.__getinitargs__(self)
 
 
-    def read_nonblocking(self, timeout=None):
+    def read_nonblocking(self, internal_timeout=None, timeout=None):
         """
         Read from child until there is nothing to read for timeout seconds.
 
-        @param timeout: Time (seconds) to wait before we give up reading from
-                the child process, or None to use the default value.
+        @param internal_timeout: Time (seconds) to wait before we give up
+                                 reading from the child process, or None to
+                                 use the default value.
+        @param timeout: Timeout for reading child process output.
         """
-        if timeout is None:
-            timeout = 0.1
+        if internal_timeout is None:
+            internal_timeout = 0.1
+        end_time = None
+        if timeout:
+            end_time = time.time() + timeout
         fd = self._get_fd("expect")
         data = ""
         while True:
             try:
-                r, w, x = select.select([fd], [], [], timeout)
+                r, w, x = select.select([fd], [], [], internal_timeout)
             except Exception:
                 return data
             if fd in r:
@@ -923,6 +928,8 @@ class Expect(Tail):
                     return data
                 data += new_data
             else:
+                return data
+            if end_time and time.time() > end_time:
                 return data
 
 
@@ -980,7 +987,8 @@ class Expect(Tail):
             if not r:
                 raise ExpectTimeoutError(patterns, o)
             # Read data from child
-            data = self.read_nonblocking(internal_timeout)
+            data = self.read_nonblocking(internal_timeout,
+                                         end_time - time.time())
             if not data:
                 break
             # Print it if necessary
@@ -1157,14 +1165,14 @@ class ShellSession(Expect):
         """
         # Read all output that's waiting to be read, to make sure the output
         # we read next is in response to the newline sent
-        self.read_nonblocking(timeout=0)
+        self.read_nonblocking(internal_timeout=0, timeout=timeout)
         # Send a newline
         self.sendline()
         # Wait up to timeout seconds for some output from the child
         end_time = time.time() + timeout
         while time.time() < end_time:
             time.sleep(0.5)
-            if self.read_nonblocking(timeout=0).strip():
+            if self.read_nonblocking(0, end_time-time.time()).strip():
                 return True
         # No output -- report unresponsive
         return False
@@ -1224,7 +1232,7 @@ class ShellSession(Expect):
             return "".join(str.rstrip().splitlines(True)[:-1])
 
         logging.debug("Sending command: %s" % cmd)
-        self.read_nonblocking(timeout=0)
+        self.read_nonblocking(0, timeout)
         self.sendline(cmd)
         try:
             o = self.read_up_to_prompt(timeout, internal_timeout, print_func)
@@ -1300,7 +1308,7 @@ class ShellSession(Expect):
         return s
 
 
-    def cmd(self, cmd, timeout=60, internal_timeout=None, print_func=None):
+    def cmd(self, cmd, timeout=60, internal_timeout=None, print_func=None, ok_status=[0,]):
         """
         Send a command and return its output. If the command's exit status is
         nonzero, raise an exception.
@@ -1311,6 +1319,8 @@ class ShellSession(Expect):
         @param internal_timeout: The timeout to pass to read_nonblocking
         @param print_func: A function to be used to print the data being read
                 (should take a string parameter)
+        @param ok_status: do not raise ShellCmdError in case that exit status
+                          is one of ok_status. (default is [0,])
 
         @return: The output of cmd
         @raise ShellTimeoutError: Raised if timeout expires
@@ -1324,7 +1334,7 @@ class ShellSession(Expect):
         """
         s, o = self.cmd_status_output(cmd, timeout, internal_timeout,
                                       print_func)
-        if s != 0:
+        if s not in ok_status:
             raise ShellCmdError(cmd, s, o)
         return o
 

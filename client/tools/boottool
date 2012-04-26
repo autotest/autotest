@@ -1,2827 +1,1909 @@
-#!/usr/bin/perl
-=head1 NAME
+#!/usr/bin/env python
 
-Linux::Bootloader - Base class interacting with Linux bootloaders
+'''
+A boottool clone, but written in python and relying mostly on grubby[1].
 
-=head1 SYNOPSIS
+[1] - http://git.fedorahosted.org/git/?p=grubby.git
+'''
 
-	
-	my $bootloader = new Linux::Bootloader();
-        my $config_file='/boot/grub/menu.lst';
-	
-	$bootloader->read($config_file);
-	$bootloader->print_info('all');
-	$bootloader->add(%hash);
-	$bootloader->update(%hash);
-	$bootloader->remove(2);
-	$bootloader->get_default();
-	$bootloader->set_default(2);
-	%hash = $bootloader->read_entry(0);
-	$bootloader->write($config_file);
+import os, re, sys, optparse, logging, subprocess
+import urllib, tarfile, tempfile, shutil, struct, md5
 
-  
-=head1 DESCRIPTION
 
-This module provides base functions for working with bootloader configuration files.
+__all__ = ['Grubby', 'OptionParser', 'App', 'EfiVar', 'EfiToolSys',
+           'EliloConf', 'find_executable', 'parse_entry']
 
-=head1 FUNCTIONS
 
-=head2 new()
-
-	Creates a new Linux::Bootloader object.
-
-=head2 read()
-
-	Reads configuration file into an array.
-	Takes: string.
-	Returns: undef on error.
-
-=head2 write()
-
-	Writes configuration file.
-	Takes: string.
-	Returns: undef on error.
-
-=head2 print_info()
-
-	Prints information from config.
-	Takes: string.
-	Returns: undef on error.
-
-=head2 _info()
-
-	Parse config into array of hashes.
-	Takes: nothing.
-	Returns: array of hashes.
-
-=head2 get_default()
-
-	Determine current default kernel.
-	Takes: nothing.
-	Returns: integer, undef on error.
-
-=head2 set_default()
-
-	Set new default kernel.
-	Takes: integer.
-	Returns: undef on error.
-
-=head2 add()
-
-	Add new kernel to config.
-	Takes: hash.
-	Returns: undef on error.
-
-=head2 update()
-
-	Update args of an existing kernel entry.
-	Takes: hash.
-	Returns: undef on error.
-
-=head2 remove()
-
-	Remove kernel from config.
-	Takes: string.
-	Returns: undef on error.
-
-=head2 read_entry()
-
-        Read an existing entry into a hash suitable to add or update from.
-	Takes: integer or title
-	Returns: undef or hash
-
-=head2 debug($level)
-
-        Sets or gets the current debug level, 0-5.
-        Returns:  Debug level
-
-=head2 _check_config()
-
-        Conducts a basic check for kernel validity
-        Returns:  true if checks out okay,
-                  false if not okay,
-                  undef on error
-
-=head2 _lookup()
-
-        Converts title into position.
-	Takes: string.
-        Returns:  integer,
-                  undef on error
-
-=cut
-
-
-package Linux::Bootloader;
-
-use strict;
-use warnings;
-
-use vars qw( $VERSION );
-
-
-sub new {
-    my $this = shift;
-    my $class = ref($this) || $this;
-    if ( defined $class and $class  eq 'Linux::Bootloader' ){
-        my $detected_bootloader = Linux::Bootloader::Detect::detect_bootloader();
-        unless (defined $detected_bootloader) { return undef; }
-        $class = "Linux::Bootloader::" . "\u$detected_bootloader";
-        eval" require $class; ";
-    } 
-    my $self = bless ({}, $class);
-    $self->{config_file} = shift;
-    unless (defined $self->{'config_file'}){
-        $self->_set_config_file(); 
-    }
-
-    $self->{config}	= [];
-    $self->{debug}	= 0;
-    $self->{'entry'}    = {};
-
-    return $self;
-}
-
-
-### Generic Functions ###
-
-# Read config file into array
-
-sub read {
-  my $self=shift;
-  my $config_file=shift || $self->{config_file};
-  print ("Reading $config_file.\n") if $self->debug()>1;
-
-  open(CONFIG, "$config_file")
-    || warn ("ERROR:  Can't open $config_file.\n") && return undef;
-  @{$self->{config}}=<CONFIG>;
-  close(CONFIG);
-
-  print ("Current config:\n @{$self->{config}}") if $self->debug()>4;
-  print ("Closed $config_file.\n") if $self->debug()>2;
-  return 1;
-}
-
-
-# Write new config
-
-sub write {
-  my $self=shift;
-  my $config_file=shift || $self->{config_file};
-  my @config=@{$self->{config}};
-
-  return undef unless $self->_check_config();
-
-  print ("Writing $config_file.\n") if $self->debug()>1;
-  print join("",@config) if $self->debug() > 4;
-
-  if (-w $config_file) {
-    system("cp","$config_file","$config_file.bak.boottool");
-    if ($? != 0) {
-      warn "ERROR:  Cannot backup $config_file.\n"; 
-      return undef;
-    } else {
-      print "Backed up config to $config_file.bak.boottool.\n";
-    }
-
-    open(CONFIG, ">$config_file")
-      || warn ("ERROR:  Can't open config file.\n") && return undef;
-    print CONFIG join("",@config);
-    close(CONFIG);
-    return 0;
-  } else {
-    print join("",@config) if $self->debug() > 2;
-    warn "WARNING:  You do not have write access to $config_file.\n";
-    return 1;
-  }
-}
-
-
-# Parse config into array of hashes
-
-sub _info {
-  my $self=shift;
-
-  return undef unless $self->_check_config();
-  my @config=@{$self->{config}};
-
-  # remove garbarge - comments, blank lines
-  @config=grep(!/^#|^\n/, @config);
-
-  my %matches = ( default => '^\s*default[\s+\=]+(\S+)',
-                  timeout => '^\s*timeout[\s+\=]+(\S+)',
-                  title   => '^\s*label[\s+\=]+(\S+)',
-                  root    => '^\s*root[\s+\=]+(\S+)',
-                  args    => '^\s*append[\s+\=]+(.*)',
-                  initrd  => '^\s*initrd[\s+\=]+(\S+)',
-                );
-
-  my @sections;
-  my $index=0;
-  foreach (@config) {
-    if ($_ =~ /^\s*(image|other)[\s+\=]+(\S+)/i) {
-      $index++;
-      $sections[$index]{'kernel'} = $2;
-    }
-    foreach my $key (keys %matches) {
-      if ($_ =~ /$matches{$key}/i) {
-        $sections[$index]{$key} = $1;
-	$sections[$index]{$key} =~ s/\"|\'//g if ($key eq 'args');
-      }
-    }
-  }
-
-  # sometimes config doesn't have a default, so goes to first
-  if (!(defined $sections[0]{'default'})) {
-    $sections[0]{'default'} = '0';
-
-  # if default is label name, we need position
-  } else {
-    foreach my $index (1..$#sections) {
-      if ($sections[$index]{'title'} eq $sections[0]{'default'}) {
-        $sections[0]{'default'} = $index-1;
-        last;
-      }
-    }
-  }
-
-  # if still no valid default, set to first
-  if ( $sections[0]{'default'} !~ m/^\d+$/ ) {
-    $sections[0]{'default'} = 0;
-  }
-
-  # return array of hashes
-  return @sections;
-}
-
-
-# Determine current default kernel
-
-sub get_default {
-  my $self = shift;
-
-  print ("Getting default.\n") if $self->debug()>1;
-  return undef unless $self->_check_config();
-
-  my @sections = $self->_info();
-  my $default = $sections[0]{'default'};
-  if ($default =~ /^\d+$/) {
-      return 0+$default;
-  }
-
-}
-
-# Find the template entry.
-sub get_template {
-  my ($self) = @_;
-
-  print ("Getting template.\n") if $self->debug()>1;
-  return undef unless $self->_check_config();
-
-  my @sections = $self->_info();
-  my $default = $sections[0]{'default'} + 1;
-
-  if (defined $sections[$default]{'kernel'}) {
-    return $default - 1;
-  }
-  for ($default = 1; $default <= $#sections; $default++) {
-    if (defined $sections[$default]->{'kernel'}) {
-      return $default - 1;
-    }
-  }
-  return undef;
-}
-
-
-# Set new default kernel
-
-sub set_default {
-  my $self=shift;
-  my $newdefault=shift;
-  my $defaultfound=0;
-
-  print ("Setting default.\n") if $self->debug()>1;
-
-  return undef unless defined $newdefault;
-  return undef unless $self->_check_config();
-
-  my @config=@{$self->{config}};
-  my @sections=$self->_info();
-
-  # if not a number, do title lookup
-  if ($newdefault !~ /^\d+$/) {
-    $newdefault = $self->_lookup($newdefault);
-  }
-
-  my $kcount = $#sections-1;
-  if ((!defined $newdefault) || ($newdefault < 0) || ($newdefault > $kcount)) {
-    warn "ERROR:  Enter a default between 0 and $kcount.\n";
-    return undef;
-  }
-
-  # convert position to title
-  $newdefault = $sections[++$newdefault]{title};
- 
-  foreach my $index (0..$#config) {
-    if ($config[$index] =~ /^\s*default/i) { 
-      $config[$index] = "default=$newdefault	# set by $0\n"; 
-      $defaultfound=1;
-      last;
-    }
-  }
-  if (!$defaultfound) {
-    unshift(@config, "default=$newdefault    # set by $0\n");
-  }
-  @{$self->{config}} = @config;
-}
-
-
-# Add new kernel to config
-
-sub add {
-  my $self=shift;
-  my %param=@_;
-
-  print ("Adding kernel.\n") if $self->debug()>1;
-
-  if (!defined $param{'add-kernel'} && defined $param{'kernel'}) {
-    $param{'add-kernel'} = $param{'kernel'};
-  } elsif (!defined $param{'add-kernel'} || !defined $param{'title'}) {
-    warn "ERROR:  kernel path (--add-kernel), title (--title) required.\n";
-    return undef;
-  } elsif (!(-f "$param{'add-kernel'}")) {
-    warn "ERROR:  kernel $param{'add-kernel'} not found!\n";
-    return undef;
-  } elsif (defined $param{'initrd'} && !(-f "$param{'initrd'}")) {
-    warn "ERROR:  initrd $param{'initrd'} not found!\n";
-    return undef;
-  }
-
-  return undef unless $self->_check_config();
-
-  # remove title spaces and truncate if more than 15 chars
-  $param{title} =~ s/\s+//g;
-  $param{title} = substr($param{title}, 0, 15) if length($param{title}) > 15;
-
-  my @sections=$self->_info();
-
-  # check if title already exists
-  if (defined $self->_lookup($param{title})) {
-    warn ("WARNING:  Title already exists.\n");
-    if (defined $param{force}) {
-      $self->remove($param{title});
-    } else {
-      return undef;
-    }
-  }
-
-  my @config = @{$self->{config}};
-  @sections=$self->_info();
- 
-  # Use default kernel to fill in missing info
-  my $default=$self->get_template();
-  $default++;
-
-  foreach my $p ('args', 'root') {
-    if (! defined $param{$p}) {
-      $param{$p} = $sections[$default]{$p};
-    }
-  }
-
-  # use default entry to determine if path (/boot) should be removed
-  my $bootpath = $sections[$default]{'kernel'};
-  $bootpath =~ s@[^/]*$@@;
-
-  $param{'add-kernel'} =~ s@^/boot/@$bootpath@;
-  $param{'initrd'} =~ s@^/boot/@$bootpath@ unless !defined $param{'initrd'};
-
-  my @newkernel;
-  push (@newkernel, "image=$param{'add-kernel'}\n", "\tlabel=$param{title}\n");
-  push (@newkernel, "\tappend=\"$param{args}\"\n") if defined $param{args};
-  push (@newkernel, "\tinitrd=$param{initrd}\n") if defined $param{initrd};
-  push (@newkernel, "\troot=$param{root}\n") if defined $param{root};
-  ##push (@newkernel, "\tread-only\n\n");
-
-  if (!defined $param{position} || $param{position} !~ /end|\d+/) {
-    $param{position}=0;
-  }
-
-  my @newconfig;
-  if ($param{position}=~/end/ || $param{position} >= $#sections) { 
-    $param{position}=$#sections;
-    push (@newconfig,@config);
-    if ($newconfig[$#newconfig] =~ /\S/) {
-      push (@newconfig, "\n");
-    }
-    push (@newconfig,@newkernel);
-  } else {
-    my $index=0;
-    foreach (@config) {
-      if ($_ =~ /^\s*(image|other)/i) { 
-        if ($index==$param{position}) {
-          push (@newconfig, @newkernel);
-        }
-        $index++;
-      }
-      push (@newconfig, $_);
-    }
-  }
-
-  @{$self->{config}} = @newconfig;
-
-  if (defined $param{'make-default'}) { 
-    $self->set_default($param{position});
-  } 
-}
-
-
-# Update kernel args
-
-sub update {
-  my $self=shift;
-  my %params=@_;
-
-  print ("Updating kernel.\n") if $self->debug()>1;
-
-  if (!defined $params{'update-kernel'} || (!defined $params{'args'} && !defined $params{'remove-args'})) {
-    warn "ERROR:  kernel position or title (--update-kernel) and args (--args or --remove-args) required.\n";
-    return undef;
-  }
-
-  return undef unless $self->_check_config();
-
-  my @config = @{$self->{config}};
-  my @sections=$self->_info();
-
-  # if not a number, do title lookup
-  if ($params{'update-kernel'} !~ /^\d+$/) {
-    $params{'update-kernel'} = $self->_lookup($params{'update-kernel'});
-  }
-
-  my $kcount = $#sections-1;
-  if ($params{'update-kernel'} !~ /^\d+$/ || $params{'update-kernel'} < 0 || $params{'update-kernel'} > $kcount) {
-    warn "ERROR:  Enter a default between 0 and $kcount.\n";
-    return undef;
-  }
-
-  my $index=-1;
-  foreach (@config) {
-    if ($_ =~ /^\s*(image|other)/i) {
-      $index++;
-    }
-    if ($index==$params{'update-kernel'}) {
-      if ($_ =~ /(^\s*append[\s\=]+)(.*)\n/i) {
-        my $append = $1;
-        my $args = $2;
-        $args =~ s/\"|\'//g;
-	$args = $self->_build_args($args, $params{'remove-args'}, $params{'args'});
-        if ($_ eq "$append\"$args\"\n") {
-          warn "WARNING:  No change made to args.\n";
-          return undef;
-        } else {
-          $_ = "$append\"$args\"\n";
-        }
-        next;
-      }
-    }
-  }
-  @{$self->{config}} = @config;
-}
-
-
-# Remove kernel from config
-
-sub remove {
-  my $self=shift;
-  my $position=shift;
-  my @newconfig;
-
-  return undef unless defined $position;
-  return undef unless $self->_check_config();
-
-  my @config=@{$self->{config}};
-  my @sections=$self->_info();
-
-  if ($position=~/^end$/i) {
-    $position=$#sections-1;
-  } elsif ($position=~/^start$/i) {
-    $position=0;
-  }
-
-  print ("Removing kernel $position.\n") if $self->debug()>1;
-
-  # remove based on title
-  if ($position !~ /^\d+$/) {
-    my $removed=0;
-    for (my $index=$#sections; $index > 0; $index--) {
-      if (defined $sections[$index]{title} && $position eq $sections[$index]{title}) {
-        $removed++ if $self->remove($index-1);
-      }
-    }
-    if (! $removed) {
-      warn "ERROR:  No kernel with specified title.\n";
-      return undef;
-    }
-
-  # remove based on position
-  } elsif ($position =~ /^\d+$/) {
-
-    if ($position < 0 || $position > $#sections) {
-      warn "ERROR:  Enter a position between 0 and $#sections.\n";
-      return undef;
-    }
-
-    my $index=-1;
-    foreach (@config) {
-      if ($_ =~ /^\s*(image|other|title)/i) {
-        $index++
-      }
-      # add everything to newconfig, except removed kernel (keep comments)
-      if ($index != $position || $_ =~ /^#/) {
-        push (@newconfig, $_)
-      }
-    }
-    @{$self->{config}} = @newconfig;
-
-
-    # if we removed the default, set new default to first
-    $self->set_default(0) if $position == $sections[0]{'default'};
-
-    print "Removed kernel $position.\n";
-    return 1;
-
-  } else {
-    warn "WARNING:  problem removing entered position.\n";
-    return undef;
-  }
-
-}
-
-
-# Print info from config
-
-sub print_info {
-  my $self=shift;
-  my $info=shift;
-
-  return undef unless defined $info; 
-  return undef unless $self->_check_config();
-
-  print ("Printing config info.\n") if $self->debug()>1;
-
-  my @config=@{$self->{config}};
-  my @sections=$self->_info();
-
-  my ($start,$end);
-  if ($info =~ /default/i) {
-    $start=$end=$self->get_default()
-  } elsif ($info =~ /all/i) {
-    $start=0; $end=$#sections-1
-  } elsif ($info =~ /^\d+/) {
-    $start=$end=$info
-  } else {
-    my $index = $self->_lookup($info);
-    if (!defined $index) {
-      warn "ERROR:  input should be: #, default, all, or a valid title.\n";
-      return undef;
-    }
-    $start=$end=$index;
-  }
-
-  if ($start < 0 || $end > $#sections-1) {
-    warn "ERROR:  No kernels with that index.\n";
-    return undef;
-  }
-
-  for my $index ($start..$end) {
-    print "\nindex\t: $index\n";
-    $index++;
-    foreach ( sort keys(%{$sections[$index]}) ) {
-      print "$_\t: $sections[$index]{$_}\n";
-    }
-  }
-}
-
-
-# Set/get debug level
-
-sub debug {
-  my $self=shift;
-  if (@_) {
-      $self->{debug} = shift;
-  }
-  return $self->{debug} || 0;
-}
-
-# Get a bootloader entry as a hash to edit or update.
-sub read_entry {
-  my $self=shift;
-  my $entry=shift;
-
-  if ($entry !~ /^\d+$/) {
-    $entry = $self->_lookup($entry);
-  }
-  my @sections=$self->_info();
-
-  my $index = $entry + 1;
-  if ((defined $sections[$index]{'title'})) {
-    $self->{'entry'}->{'index'} = $index;
-    foreach my $key ( keys %{$sections[$index]} ){
-      $self->{'entry'}->{'data'}->{ $key } = $sections[$index]{$key};
-    }
-    return $self->{'entry'}->{'data'};
-  } else {
-    return undef;
-  }
-}
-
-# Basic check for valid config
-
-sub _check_config {
-  my $self=shift;
-
-  print ("Verifying config.\n") if $self->debug()>3;
-
-  if ($#{$self->{config}} < 5) {
-    warn "ERROR:  you must read a valid config file first.\n";
-    return undef;
-  }
-  return 1;
-}
-
-
-# lookup position using title
-
-sub _lookup {
-  my $self=shift;
-  my $title=shift;
-  
-  unless ( defined $title ){ return undef; }
-
-  my @sections=$self->_info();
-
-  for my $index (1..$#sections) {
-    my $tmp = $sections[$index]{title};
-    if (defined $tmp and $title eq $tmp) {
-      return $index-1;
-    }
-  }
-  return undef;
-}
-
-sub _build_args {
-  my ($self, $args, $toremove, $toadd) = @_;
-
-  if (defined $toremove) {
-    my $base;
-    foreach my $remove (split(' ', $toremove)) {
-      $base = $remove; $base =~ s/\=.*//;
-      $args =~ s/(^|\s+)$base(\=\S+|\s+|$)/$1/ig;
-    }
-  }
-
-  if (defined $toadd) {
-    my $base;
-    foreach my $add (split(' ', $toadd)) {
-      $base = $add; $base =~ s/\=.*//;
-      if (!($args =~ s/(^|\s+)$base(\=\S+)?(\s+|$)/$1$add$3/ig)) {
-        $args .= " $add";
-      }
-    }
-  }
-
-  $args =~ s/\s+/ /g;
-  return $args;
-}
-
-
-=head1 AUTHOR
-
-Jason N., Open Source Development Labs, Engineering Department <eng@osdl.org>
-
-=head1 COPYRIGHT
-
-Copyright (C) 2006 Open Source Development Labs
-All Rights Reserved.
-
-This script is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
-
-=head1 SEE ALSO
-
-L<boottool>, L<Linux::Bootloader::Grub>, L<Linux::Bootloader::Lilo>, 
-L<Linux::Bootloader::Elilo>, L<Linux::Bootloader::Yaboot>
-
-=cut
-
-
-1;
-package Linux::Bootloader::Detect;
-
-=head1 NAME
-
-Linux::Bootloader::Detect - detects the bootloader and architecture of the system.
-
-=head1 SYNOPSIS
-
-Attempts to determine the bootloader by checking for configuration files
-for grub, lilo, elilo and yaboot then searching the master boot record
-for GRUB, LILO, ELILO and YABOOT.
-
-Determines the architecture by running uname -m.
-
-=head1 DESCRIPTION
-
-To attempt to discover the bootloader being used by the system
-detect_bootloader first calls detect_bootloader_from_conf attempts to locate
-/boot/grub/menu.lst, /etc/lilo.conf, /boot/efi/elilo.conf and
-/etc/yaboot.conf and returns the corresponding bootloader name. If
-either undef of multiple are returned because no configuration files or
-multiple configuration files were found detect_bootloader calls
-detect_bootloader_from_mbr which generates a list of all devices accessable from
-the /dev directory reading in the first 512 bytes from each hd and sd
-device using head then redirects the output to grep to determine if
-"GRUB", "LILO", "ELILO" or "YABOOT" is present returning the
-corresponding value if exactly one mbr on the system contained a
-bootloader or multiple if more than one was found and undef if none were
-found. detect_bootloader returns either grub, lilo, elilo, yaboot or
-undef.
-
-To attempt to discover the architecture of the system
-detect_architecture makes a uname -m system call returning x86, ppc,
-ia64 or undef.
-
-=head1 FUNCTIONS
-
-=cut
-
-use strict;
-use warnings;
-
-use vars qw( $VERSION );
-
-=head3 detect_architecture([style])
-
-Input:
-Output: string
-
-This function determines the architecture by calling uname -m.  By
-default it will report back exactly what uname -m reports, but if you
-specify a "style", detect_architecture will do some mappings.  Possible
-styles include:
-
- Style    Example return values (not an exhaustive list...)
- [none]   i386, i686, sparc, sun4u, ppc64, s390x, x86_64, parisc64
- linux    i386, i386, sparc, sparc, ppc64, s390,  x86_64, parisc
- gentoo    x86,  x86, sparc, sparc, ppc64,         amd64, hppa
-
-Returns undef on error.
-
-=cut
-
-sub detect_architecture {
-    my $arch_style = shift || 'uname';
-
-    my $arch;
-    if ($arch_style eq 'linux') {
-        $arch = `uname -m | sed -e s/i.86/i386/ -e s/sun4u/sparc64/ -e s/arm.*/arm/ -e s/sa110/arm/ -e s/s390x/s390/ -e s/parisc64/parisc/`;
-        chomp $arch;
-    } elsif ($arch_style eq 'gentoo') {
-        $arch = `uname -m | sed -e s/i.86/x86/ -e s/sun4u/sparc/ -e s/arm.*/arm/ -e s/sa110/arm/ -e s/x86_64/amd64/ -e s/sparc.*/sparc/ -e s/parisc.*/hppa/`;
-        chomp $arch;
-    } else {
-        $arch = `uname -m`;
-        chomp $arch;
-    }
-    return $arch;
-}
-
-=head3 detect_os_vendor()
-
-Input:
-Output: string
-
-This function determines the OS vendor (linux distribution breed).
-
-Return values: "Red Hat", "Fedora", "SUSE", "Ubuntu", "Debian", or
-"Unknown" if none of the predefined patterns could be found on the
-issue file.
-
-=cut
-
-sub detect_os_vendor {
-    my $vendor = "";
-    my $issue_file = '/etc/issue';
-    if ( not system("egrep 'Red Hat' $issue_file") ){
-       $vendor = 'Red Hat';
-    } elsif ( not system("egrep 'Fedora' $issue_file") ){
-       $vendor = 'Fedora';
-    } elsif ( not system("egrep 'SUSE' $issue_file") ){
-       $vendor = 'SUSE';
-    } elsif ( not system("egrep 'Ubuntu' $issue_file") ){
-       $vendor = 'Ubuntu';
-    } elsif ( not system("egrep 'Debian' $issue_file") ){
-       $vendor = 'Debian';
-    } else {
-       $vendor = 'Unknown';
-    }
-    return $vendor;
-}
-
-=head3 detect_bootloader(['device1', 'device2', ...])
-
-Input:  devices to detect against (optional)
-Output: string
-
-This function attempts to determine the bootloader being used on the
-system by first checking for conf files and then falling back to check
-the master boot record.
-
-Possible return values:     
-
-    grub        grub was determined to be the bootloader in use
-    lilo        lilo was determined to be is the bootloader in use
-    elilo       elilo was determined to be the bootloader in use
-    yaboot      yaboot was determined to be the bootloader in use
-    undef       it was impossible to determine which bootloader was being used
-                due either to configuration files for multiple bootloaders or
-                bootloader on multiple hard disks
-
-=cut
-
-sub detect_bootloader {
-    return detect_bootloader_from_conf(@_) 
-        || detect_bootloader_from_mbr(@_);
-}
-
-=head2 detect_bootloader_from_conf()
-
-Detects bootloaders by the presence of config files.  This is not as
-reliable of a mechanism as looking in the MBR, but tends to be
-significantly faster.  
-
-If called in list context, it will return a list of the bootloaders that
-it found.
-
-If called in scalar context and only a single bootloader config file is
-present it will return the name of that bootloader.  Otherwise, if
-multiple (or no) bootloaders are detected, it will return undef.
-
-=cut
-
-sub detect_bootloader_from_conf {
-    my @boot_loader = ();
-
-    my %boot_list = ( grub   => '/boot/grub/menu.lst', 
-                      lilo   => '/etc/lilo.conf', 
-                      elilo  => '/etc/elilo.conf', 
-                      yaboot => '/etc/yaboot.conf',
-                      zipl   => '/etc/zipl.conf',
-                      );
-
-    foreach my $key ( sort keys %boot_list ) {
-        if ( -f $boot_list{$key} ) {
-            push ( @boot_loader, $key ); 
-        }
-    }
-
-    if (wantarray()) {
-        return @boot_loader;
-    } elsif (@boot_loader == 1) {
-        return pop( @boot_loader );
-    } elsif (@boot_loader == 2) {
-	if ($boot_loader[0] eq 'lilo' && $boot_loader[1] eq 'yaboot') {
-		return 'lilo';
-	}
-    }
-
-    if (scalar(@boot_loader) > 1) {
-        warn "Warning: Multiple bootloader configs; not certain which is in use.\n";
-	warn "         " . join(' ', @boot_loader) . "\n";
-    }
-    return undef;
-}
-
-=head2 detect_bootloader_from_mbr([@devices])
-
-Detects the bootloader by scanning the master boot record (MBR) of the
-specified devices (or all devices if not indicated).  
-
-The device arguments must be relative to the /dev/ directory.  I.e.,
-('hda', 'sdb', 'cdroms/cdrom0', etc.)
-
-=cut
-
-sub detect_bootloader_from_mbr {
-    my @filelist = @_;
-    my @boot_loader = ();
-
-    my %map = (
-        "GRUB"   => 'grub',
-        "LILO"   => 'lilo',
-        "EFI"    => 'elilo',
-        "yaboot" => 'yaboot',
-    );
-
-    if ( ! @filelist && opendir( DIRH, "/sys/block" ) ) {
-        @filelist = grep { /^[sh]d.$/ } readdir(DIRH);
-        closedir(DIRH);
-    }
-
-    foreach my $dev ( @filelist ) {
-        if ( -b "/dev/$dev" ) {
-            my $strings = `dd if=/dev/$dev bs=512 count=1 2>/dev/null`;
-            if ($?) {
-                warn "Error:  Could not read MBR on /dev/$dev (are you root?)\n";
-            } else {
-                $strings = `echo $strings | strings`;
-                foreach my $loader (keys %map) {
-                    if ($strings =~ /$loader/ms) {
-                        push @boot_loader, $map{$loader};
-                    }
-                }
-            }
-        }
-    }
-
-    if (wantarray()) {
-        # Show them all
-        return @boot_loader;
-    } elsif (@boot_loader == 1) {
-        # Found exactly one
-        return pop @boot_loader;
-    } elsif (@boot_loader == 2) {
-        # This is the Lilo/Grub exception
-        # Grub on MBR with previous Lilo install
-        # Are they lilo and grub in that order?
-        if ($boot_loader[0] eq 'lilo' and $boot_loader[1] eq 'grub'){
-            warn "Warning:  Grub appears to be used currently, but Lilo was in past.\n";
-            return $boot_loader[1];
-        }
-    } else {
-        warn "Warning: Multiple MBR's present; not certain which is in use.\n";
-	warn "         " . join(' ', @boot_loader) . "\n";
-        return undef;
-    }
-
-    # Either none or too many to choose from
-    return undef;
-}
-
-1;
-
-=head1 AUTHOR
-
-Open Source Development Labs, Engineering Department <eng@osdl.org>
-
-=head1 COPYRIGHT
-
-Copyright (C) 2006 Open Source Development Labs
-All Rights Reserved.
-
-This script is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
-
-=head1 SEE ALSO
-
-L<Linux::Bootloader>
-
-=cut
-
-package Linux::Bootloader::Elilo;
-
-=head1 NAME
-
-Linux::Bootloader::Elilo - Parse and modify ELILO configuration files.
-
-=head1 SYNOPSIS
-
-	
-	my $bootloader = Linux::Bootloader::Elilo->new();
-	my $config_file='/etc/elilo.conf';
-
-	$bootloader->read($config_file)
-
-	# add a kernel	
-	$bootloader->add(%hash)
-
-	# remove a kernel
-	$bootloader->remove(2)
-
-	# set new default
-	$bootloader->set_default(1)
-
-	$bootloader->write($config_file)
-
-
-=head1 DESCRIPTION
-
-This module provides functions for working with ELILO configuration files.
-
-	Adding a kernel:
-	- add kernel at start, end, or any index position.
-	- kernel path and title are required.
-	- root, kernel args, initrd are optional.
-	- any options not specified are copied from default.
-	- remove any conflicting kernels if force is specified.
-	
-	Removing a kernel:
-	- remove by index position
-	- or by title/label
-
-
-=head1 FUNCTIONS
-
-Also see L<Linux::Bootloader> for functions available from the base class.
-
-=head2 new()
-
-	Creates a new Linux::Bootloader::Elilo object.
-
-=head2 install()
-
-        Attempts to install bootloader.
-        Takes: nothing.
-        Returns: undef on error.
-
-=cut
-
-
-use strict;
-use warnings;
-
-@Linux::Bootloader::Elilo::ISA = qw(Linux::Bootloader);
-use base 'Linux::Bootloader';
-
-
-use vars qw( $VERSION );
-
-
-sub _set_config_file {
-    my $self=shift;
-    $self->{'config_file'}='/etc/elilo.conf';
-}
-
-
-### ELILO functions ###
-
-
-# Run command to install bootloader
-
-sub install {
-  my $self=shift;
-
-  my $elilo = '';
-  $elilo = '/sbin/elilo' if (-f '/sbin/elilo');
-  $elilo = '/usr/sbin/elilo' if (-f '/usr/sbin/elilo');
-  if ($elilo ne '') {
-      system($elilo);
-      if ($? != 0) { 
-	warn ("ERROR:  Failed to run elilo.\n") && return undef; 
-      }
-  }
-  return 1;
-}
-
-# Set kernel to be booted once
-
-sub boot_once {
-    my $self=shift;
-    my $label = shift;
-
-    return undef unless defined $label;
-
-    $self->read( '/etc/elilo.conf' );
-    my @config=@{$self->{config}};
-
-    if ( ! grep( /^checkalt/i, @config ) ) {
-        warn("ERROR:  Failed to set boot-once.\n");
-        warn("Please add 'checkalt' to global config.\n");
-        return undef;
-    }
-
-    my @sections = $self->_info();
-    my $position = $self->_lookup($label);
-    $position++;
-    my $efiroot = `grep ^EFIROOT /usr/sbin/elilo | cut -d '=' -f 2`;
-    chomp($efiroot);
-
-    my $kernel = $efiroot . $sections[$position]{kernel};
-    my $root = $sections[$position]{root};
-    my $args = $sections[$position]{args};
-
-    #system( "/usr/sbin/eliloalt", "-d" );
-    if ( system( "/usr/sbin/eliloalt", "-s", "$kernel root=$root $args" ) ) {
-        warn("ERROR:  Failed to set boot-once.\n");
-        warn("1) Check that EFI var support is compiled into kernel.\n");
-        warn("2) Verify eliloalt works.  You may need to patch it to support sysfs EFI vars.\n");
-        return undef;
-    }
-    return 1;
-}
-
-
-1;
-
-
-=head1 AUTHOR
-
-Open Source Development Labs, Engineering Department <eng@osdl.org>
-
-=head1 COPYRIGHT
-
-Copyright (C) 2006 Open Source Development Labs
-All Rights Reserved.
-
-This script is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
-
-=head1 SEE ALSO
-
-L<Linux::Bootloader>
-
-=cut
-
-
-package Linux::Bootloader::Grub;
-
-=head1 NAME
-
-Linux::Bootloader::Grub - Parse and modify GRUB configuration files.
-
-=head1 SYNOPSIS
-
-
-        my $config_file='/boot/grub/menu.lst';
-	$bootloader = Linux::Bootloader::Grub->new($config_file);
-
-        $bootloader->read();
-
-	# add a kernel	
-	$bootloader->add(%hash)
-
-	# remove a kernel
-	$bootloader->remove(2)
-
-	# print config info
-	$bootloader->print_info('all')
-
-	# set new default
-	$bootloader->set_default(1)
-
-        $bootloader->write();
-
-
-=head1 DESCRIPTION
-
-This module provides functions for working with GRUB configuration files.
-
-	Adding a kernel:
-	- add kernel at start, end, or any index position.
-	- kernel path and title are required.
-	- root, kernel args, initrd, savedefault, module are optional.
-	- any options not specified are copied from default.
-	- remove any conflicting kernels first if force is specified.
-	
-	Removing a kernel:
-	- remove by index position
-	- or by title/label
-
-
-=head1 FUNCTIONS
-
-Also see L<Linux::Bootloader> for functions available from the base class.
-
-=head2 new()
-
-	Creates a new Linux::Bootloader::Grub object.
-
-=head2 _info()
-
-	Parse config into array of hashes.
-	Takes: nothing.
-	Returns: array of hashes containing config file options and boot entries,
-                 undef on error.
-
-=head2 set_default()
-
-	Set new default kernel.
-	Takes: integer or string, boot menu position or title.
-	Returns: undef on error.
-
-=head2 add()
-
-	Add new kernel to config.
-	Takes: hash containing kernel path, title, etc.
-	Returns: undef on error.
-
-=head2 update()
-
-        Update args of an existing kernel entry.
-        Takes: hash containing args and entry to update.
-        Returns: undef on error.
-
-=head2 install()
-
-        Prints message on how to re-install grub.
-        Takes: nothing.
-        Returns: nothing.
-
-=head2 update_main_options()
-
-	This updates or adds a general line anywhere before the first 'title' line.
-	it is called with the 'update' and 'option' options, when no 'update-kernel'
-	is specified.
-
-=head2 boot_once()
-
-	This is a special case of using 'fallback'.   This function makes the current 
-	default the fallback kernel and sets the passed argument to be the default 
-	kernel which saves to the fallback kernel after booting.  The file 
-	'/boot/grub/default' is created if it does not exist.
-
-	This only works with grub versions 0.97 or better.
-
-=head2 _get_bootloader_version()
-
-        Prints detected grub version.
-        Takes: nothing.
-        Returns: nothing.
-
-=cut
-
-use strict;
-use warnings;
-
-@Linux::Bootloader::Grub::ISA = qw(Linux::Bootloader);
-use base 'Linux::Bootloader';
-
-
-use vars qw( $VERSION );
-
-
-sub _set_config_file {
-    my $self=shift;
-    $self->{'config_file'}='/boot/grub/menu.lst';
-}
-
-
-### GRUB functions ###
-
-# Parse config into array of hashes
-
-sub _info {
-  my $self=shift;
-
-  return undef unless $self->_check_config();
-
-  my @config=@{$self->{config}};
-  @config=grep(!/^#|^\n/, @config);
-
-  my %matches = ( default => '^\s*default\s*\=*\s*(\S+)',
-		  timeout => '^\s*timeout\s*\=*\s*(\S+)',
-		  fallback => '^\s*fallback\s*\=*\s*(\S+)',
-		  kernel => '^\s*kernel\s+(\S+)',
-		  root 	=> '^\s*kernel\s+.*\s+.*root=(\S+)',
-		  args 	=> '^\s*kernel\s+\S+\s+(.*)\n',
-		  boot 	=> '^\s*root\s+(.*)',
-		  initrd => '^\s*initrd\s+(.*)',
-		  savedefault => '^\s*savedefault\s+(.*)',
-		  module      => '^\s*module\s+(.+)',
-		);
-
-  my @sections;
-  my $index=0;
-  foreach (@config) {
-      if ($_ =~ /^\s*title\s+(.*)/i) {
-        $index++;
-        $sections[$index]{title} = $1;
-      }
-      foreach my $key (keys %matches) {
-        if ($_ =~ /$matches{$key}/i) {
-          $key .= '2' if exists $sections[$index]{$key};
-          $sections[$index]{$key} = $1;
-          if ($key eq 'args') {
-	    $sections[$index]{$key} =~ s/root=\S+\s*//i;
-	    delete $sections[$index]{$key} if ($sections[$index]{$key} !~ /\S/);
-          }
-        }
-      }
-  }
-
-  # sometimes config doesn't have a default, so goes to first
-  if (!(defined $sections[0]{'default'})) { 
-    $sections[0]{'default'} = '0'; 
-
-  # if default is 'saved', read from grub default file
-  } elsif ($sections[0]{'default'} =~ m/^saved$/i) {
-    open(DEFAULT_FILE, '/boot/grub/default')
-      || warn ("ERROR:  cannot read grub default file.\n") && return undef;
-    my @default_config = <DEFAULT_FILE>;
-    close(DEFAULT_FILE);
-    $default_config[0] =~ /^(\d+)/;
-    $sections[0]{'default'} = $1;
-  }
-
-  # return array of hashes
-  return @sections;
-}
-
-
-# Set new default kernel
-
-sub set_default {
-  my $self=shift;
-  my $newdefault=shift;
-
-  return undef unless defined $newdefault;
-  return undef unless $self->_check_config();
-
-  my @config=@{$self->{config}};
-  my @sections=$self->_info();
-
-  # if not a number, do title lookup
-  if ($newdefault !~ /^\d+$/ && $newdefault !~ m/^saved$/) {
-    $newdefault = $self->_lookup($newdefault);
-    return undef unless (defined $newdefault);
-  }
-
-  my $kcount = $#sections-1;
-  if ($newdefault !~ m/saved/) {
-    if (($newdefault < 0) || ($newdefault > $kcount)) {
-      warn "ERROR:  Enter a default between 0 and $kcount.\n";
-      return undef;
-    }
-  }
-
-  foreach my $index (0..$#config) {
-
-    if ($config[$index] =~ /(^\s*default\s*\=*\s*)\d+/i) { 
-      $config[$index] = "$1$newdefault\n";
-      last;
-    } elsif ($config[$index] =~ /^\s*default\s*\=*\s*saved/i) {
-      my @default_config;
-      my $default_config_file='/boot/grub/default';
-
-      open(DEFAULT_FILE, $default_config_file) 
-        || warn ("ERROR:  cannot open default file.\n") && return undef;
-      @default_config = <DEFAULT_FILE>;
-      close(DEFAULT_FILE);
-
-      if ($newdefault eq 'saved') {
-          warn "WARNING:  Setting new default to '0'\n";
-          $newdefault = 0;
-      }
-
-      $default_config[0] = "$newdefault\n";
-
-      open(DEFAULT_FILE, ">$default_config_file") 
-        || warn ("ERROR:  cannot open default file.\n") && return undef;
-      print DEFAULT_FILE join("",@default_config);
-      close(DEFAULT_FILE);
-      last;
-    }
-  }
-  @{$self->{config}} = @config;
-}
-
-
-# Add new kernel to config
-
-sub add {
-  my $self=shift;
-  my %param=@_;
-
-  print ("Adding kernel.\n") if $self->debug()>1;
-
-  if (!defined $param{'add-kernel'} || !defined $param{'title'}) { 
-    warn "ERROR:  kernel path (--add-kernel), title (--title) required.\n";
-    return undef; 
-  } elsif (!(-f "$param{'add-kernel'}")) { 
-    warn "ERROR:  kernel $param{'add-kernel'} not found!\n";
-    return undef; 
-  } elsif (defined $param{'initrd'} && !(-f "$param{'initrd'}")) { 
-    warn "ERROR:  initrd $param{'initrd'} not found!\n";
-    return undef; 
-  }
-
-  return undef unless $self->_check_config();
-
-  my @sections=$self->_info();
-
-  # check if title already exists
-  if (defined $self->_lookup($param{title})) {
-    warn ("WARNING:  Title already exists.\n");
-    if (defined $param{force}) {
-      $self->remove($param{title});
-    } else {
-      return undef;
-    }
-  }
-
-  my @config = @{$self->{config}};
-  @sections=$self->_info();
-
-  # Use default kernel to fill in missing info
-  my $default=$self->get_template();
-  $default++;
-
-  foreach my $p ('args', 'root', 'boot', 'savedefault') {
-    if (! defined $param{$p}) {
-      $param{$p} = $sections[$default]{$p};
-    }
-  }
-
-  # use default entry to determine if path (/boot) should be removed
-  my $bootpath = $sections[$default]{'kernel'};
-  $bootpath =~ s@[^/]*$@@;
-
-  $param{'add-kernel'} =~ s@^/boot/@$bootpath@;
-  $param{'initrd'} =~ s@^/boot/@$bootpath@ unless !defined $param{'initrd'};
-
-  my @newkernel;
-  push(@newkernel, "title\t$param{title}\n") if defined $param{title};
-  push(@newkernel, "\troot $param{boot}\n") if defined $param{boot};
-
-  my $line;
-  if ( defined $param{xen} ) {
-      $line = "\tkernel $sections[$default]{kernel}";
-      $line .= " $sections[$default]{root}" if defined $sections[$default]{root};
-      $line .= " $sections[$default]{args}" if defined $sections[$default]{args};
-      push( @newkernel, "$line\n" );
-      push( @newkernel, "\tinitrd $sections[$default]{'initrd'}\n" ) if defined $sections[$default]{'initrd'};
-      $line = "\tmodule $param{'add-kernel'}" if defined $param{'add-kernel'};
-      $line .= " root=$param{root}"    if defined $param{root};
-      $line .= " $param{args}"         if defined $param{args};
-      push( @newkernel, "$line\n" );
-      push( @newkernel, "\tmodule $param{initrd}\n" ) if defined $param{initrd};
-  } else {
-      $line = "\tkernel $param{'add-kernel'}" if defined $param{'add-kernel'};
-      $line .= " root=$param{root}"    if defined $param{root};
-      $line .= " $param{args}"         if defined $param{args};
-      push( @newkernel, "$line\n" );
-      push( @newkernel, "\tinitrd $param{initrd}\n" ) if defined $param{initrd};
-  }
-
-  push(@newkernel, "\tsavedefault $param{savedefault}\n") if defined $param{savedefault};
-
-  foreach my $module (@{$param{'module'}}) {
-     push(@newkernel, "\tmodule " . $module . "\n");
-  }
-
-  push(@newkernel, "\n");
-
-  if (!defined $param{position} || $param{position} !~ /end|\d+/) { 
-    $param{position}=0 
-  }
-
-  my @newconfig;
-  if ($param{position}=~/end/ || $param{position} >= $#sections) { 
-    $param{position}=$#sections;
-    push (@newconfig,@config);
-    if ($newconfig[$#newconfig] =~ /\S/) { 
-      push (@newconfig, "\n"); 
-    }
-    push (@newconfig,@newkernel);
-  } else {
-    my $index=0;
-    foreach (@config) {
-      if ($_ =~ /^\s*title/i) { 
-        if ($index==$param{position}) { 
-          push (@newconfig, @newkernel); 
-        }
-        $index++;
-      }
-      push (@newconfig, $_);
-    }
-  }
-
-  @{$self->{config}} = @newconfig;
-
-  if (defined $param{'make-default'} || defined $param{'boot-once'}) { 
-    $self->set_default($param{position});
-  }
-  print "Added: $param{'title'}.\n";
-}
-
-
-# Update kernel args
-
-sub update {
-  my $self=shift;
-  my %params=@_;
-
-  print ("Updating kernel.\n") if $self->debug()>1;
-
-  if (defined $params{'option'} && !defined $params{'update-kernel'}) {
-    return $self->update_main_options(%params);
-  } elsif (!defined $params{'update-kernel'} || (!defined $params{'args'} && !defined $params{'remove-args'} && !defined $params{'option'})) { 
-    warn "ERROR:  kernel position or title (--update-kernel) and args (--args or --remove-args) required.\n";
-    return undef; 
-  }
-
-  return undef unless $self->_check_config();
-
-#  my @config = @{$self->{config}};
-  my @sections=$self->_info();
-
-  # if not a number, do title lookup
-  if (defined $params{'update-kernel'} and $params{'update-kernel'} !~ /^\d+$/) {
-    $params{'update-kernel'} = $self->_lookup($params{'update-kernel'});
-  }
-
-  my $kcount = $#sections-1;
-  if ($params{'update-kernel'} !~ /^\d+$/ || $params{'update-kernel'} < 0 || $params{'update-kernel'} > $kcount) {
-    warn "ERROR:  Enter a default between 0 and $kcount.\n";
-    return undef;
-  }
-
-  my $kregex = '(^\s*kernel\s+\S+)(.*)';
-  $kregex = '(^\s*module\s+\S+vmlinuz\S+)(.*)' if defined $params{'xen'};
-
-  my $index=-1;
-  my $config_line = -1;
-  my $line = '';
-  foreach $line (@{$self->{config}}) {
-    $config_line = $config_line + 1;
-    if ($line =~ /^\s*title/i) {
-      $index++;
-    }
-    if ($index==$params{'update-kernel'}) {
-      if (defined $params{'args'} or defined $params{'remove-args'}){
-        if ( $line =~ /$kregex/i ) {
-          my $kernel = $1;
-          my $args = $self->_build_args($2, $params{'remove-args'}, $params{'args'});
-          if ($line eq $kernel . $args . "\n") {
-            warn "WARNING:  No change made to args.\n";
-            return undef;
-          } else {
-            $line = $kernel . $args . "\n";
-          }
-          next;
-        }
-      } elsif (defined $params{'option'}){
-        foreach my $val ( keys %params){
-          if ($line =~ m/^\s*$val.*/i) {
-            splice @{$self->{config}},$config_line,1,"$val $params{$val}\n";
-            delete $params{$val};
-            $config_line += 1;
-          }
-        }
-      }
-    } elsif ($index > $params{'update-kernel'}){
-      last;
-    }
-  }
-  # Add any leftover parameters
-  delete $params{'update-kernel'};
-  if (defined $params{'option'}){
-    delete $params{'option'};
-    $config_line -= 1;
-    foreach my $val ( keys %params){
-      splice @{$self->{config}},$config_line,0,"$val $params{$val}\n";
-      $config_line += 1;
-    }
-  }
-}
-
-
-# Run command to install bootloader
-
-sub install {
-  my $self=shift;
-  my $device;
-
-  warn "Re-installing grub is currently unsupported.\n";
-  warn "If you really need to re-install grub, use 'grub-install <device>'.\n";
-  return undef;
-
-  #system("grub-install $device");
-  #if ($? != 0) {
-  #  warn ("ERROR:  Failed to run grub-install.\n") && return undef;
-  #}
-  #return 1;
-}
-
-
-sub update_main_options{
-  my $self=shift;
-  my %params=@_;
-  delete $params{'option'};
-  foreach my $val (keys %params){
-    my $x=0;
-    foreach my $line ( @{$self->{config}} ) {
-      # Replace 
-      if ($line =~ m/^\s*$val/) {
-	splice (@{$self->{config}},$x,1,"$val $params{$val}\n");
-        last;
-      }
-      # Add
-      if ($line =~ /^\s*title/i) {
-        #  This is a new option, add it before here
-        print "Your option is not in current configuration.  Adding.\n";
-	splice @{$self->{config}},$x,0,"$val $params{$val}\n";
-        last;
-      }
-      $x+=1;
-    }
-  }
-}
-
-
-sub boot_once {
-  my $self=shift;
-  my $entry_to_boot_once = shift;
-  my $detected_os_vendor = Linux::Bootloader::Detect::detect_os_vendor();
-
-  unless ( $entry_to_boot_once ) { print "No kernel\n"; return undef;}
-  $self->read();
-  my $default=$self->get_default();
-
-  if ( $self->_get_bootloader_version() < 0.97 ){
-     warn "This function works for grub version 0.97 and up.  No action taken.  \nUpgrade, then re-try.\n";
-     return undef;
-  }
-
-  if ( $detected_os_vendor eq "Red Hat" or $detected_os_vendor eq "Fedora" ) {
-    # if not a number, do title lookup
-    if ( $entry_to_boot_once !~ /^\d+$/ ) {
-      $entry_to_boot_once = $self->_lookup($entry_to_boot_once);
-      return undef unless ( defined $entry_to_boot_once );
-    }
-
-    return `echo "savedefault --default=$entry_to_boot_once" --once | grub --batch`;
-  } else {
-  if ( $default == $self->_lookup($entry_to_boot_once)){
-     warn "The default and once-boot kernels are the same.  No action taken.  \nSet default to something else, then re-try.\n";
-     return undef;
-  }
-
-  $self->set_default('saved');
-  if ( ! -f '/boot/grub/default' ){
-     open FH, '>/boot/grub/default'; 
-     my $file_contents="default
 #
+# Information on default requirements and installation for grubby
 #
+GRUBBY_REQ_VERSION = (8, 11)
+GRUBBY_TARBALL_URI = ('http://cloud.github.com/downloads/autotest/'
+                      'grubby/grubby-8.11-autotest.tar.bz2')
+GRUBBY_TARBALL_MD5 = '56695ec865460b25f20427b5329ef641'
+GRUBBY_DEFAULT_SYSTEM_PATH = '/sbin/grubby'
+GRUBBY_DEFAULT_USER_PATH = '/tmp/grubby'
+
 #
+# All options that are first class actions
+# One of them should be given on the command line
 #
+ACTIONS = ['bootloader-probe',
+           'arch-probe',
+           'add-kernel',
+           'boot-once',
+           'install',
+           'remove-kernel',
+           'info',
+           'set-default',
+           'default',
+           'update-kernel',
+           # Commands not available in the old boottool
+           'grubby-version',
+           'grubby-version-check',
+           'grubby-install']
+
 #
+# When the command line is parsed, 'opts' gets attributes that are named
+# after the command line options, but with slight changes
 #
+ACTIONS_OPT_METHOD_NAME = [act.replace('-', '_') for act in ACTIONS]
+
+
 #
+# Actions (as a opt/method name) that require a --title parameter
 #
+ACTIONS_REQUIRE_TITLE = ['boot_once', ]
+
+
 #
+# Include the logger (logging channel) name on the default logging config
 #
-# WARNING: If you want to edit this file directly, do not remove any line
-# from this file, including this warning. Using `grub-set-default\' is
-# strongly recommended.
-";
-    print FH $file_contents;
-    close FH;
-  }
-  $self->set_default( "$entry_to_boot_once" );
-  $self->update( 'option'=>'','fallback' => $default );
-  $self->update( 'update-kernel'=>"$entry_to_boot_once",'option'=>'','savedefault' => 'fallback' );
-  $self->update( 'update-kernel'=>"$default",'option'=>'', 'savedefault' => '' );
-  $self->write();
-  }
-}
-
-sub _get_bootloader_version {
-  my $self = shift;
-  return `grub --version | sed 's/grub (GNU GRUB //' | sed 's/)//'`;
-}
-
-
-1;
-
-
-=head1 AUTHOR
-
-Open Source Development Labs, Engineering Department <eng@osdl.org>
-
-=head1 COPYRIGHT
-
-Copyright (C) 2006 Open Source Development Labs
-All Rights Reserved.
-
-This script is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
-
-=head1 SEE ALSO
-
-L<Linux::Bootloader>
-
-=cut
-
-package Linux::Bootloader::Lilo;
-
-=head1 NAME
-
-Linux::Bootloader::Lilo - Parse and modify LILO configuration files.
-
-=head1 SYNOPSIS
-
-	
-	my $bootloader = Linux::Bootloader::Lilo->new();
-	my $config_file='/etc/lilo.conf';
-
-	$bootloader->read($config_file)
-
-	# add a kernel	
-	$bootloader->add(%hash)
-
-	# remove a kernel
-	$bootloader->remove(2)
-
-	# set new default
-	$bootloader->set_default(1)
-
-	$bootloader->write($config_file)
-
-
-=head1 DESCRIPTION
-
-This module provides functions for working with LILO configuration files.
-
-	Adding a kernel:
-	- add kernel at start, end, or any index position.
-	- kernel path and title are required.
-	- root, kernel args, initrd are optional.
-	- any options not specified are copied from default.
-	- remove any conflicting kernels if force is specified.
-	
-	Removing a kernel:
-	- remove by index position
-	- or by title/label
-
-
-=head1 FUNCTIONS
-
-Also see L<Linux::Bootloader> for functions available from the base class.
-
-=head2 new()
-
-	Creates a new Linux::Bootloader::Lilo object.
-
-=head2 install()
-
-        Attempts to install bootloader.
-        Takes: nothing.
-        Returns: undef on error.
-
-=head2 boot-once()
-
-        Attempts to set a kernel as default for one boot only.
-        Takes: string.
-        Returns: undef on error.
-
-=cut
-
-
-use strict;
-use warnings;
-
-@Linux::Bootloader::Lilo::ISA = qw(Linux::Bootloader);
-use base 'Linux::Bootloader';
-
-
-use vars qw( $VERSION );
-
-
-sub _set_config_file {
-    my $self=shift;
-    $self->{'config_file'}='/etc/lilo.conf';
-}
-
-
-
-### LILO functions ###
-
-
-# Run command to install bootloader
-
-sub install {
-  my $self=shift;
-
-  system("/sbin/lilo");
-  if ($? != 0) { 
-    warn ("ERROR:  Failed to run lilo.\n") && return undef; 
-  }
-  return 1;
-}
-
-
-# Set kernel to be booted once
-
-sub boot_once {
-  my $self=shift;
-  my $label=shift;
-
-  return undef unless defined $label;
-  
-  if (system("/sbin/lilo","-R","$label")) {
-    warn ("ERROR:  Failed to set boot-once.\n") && return undef; 
-  }
-  return 1;
-}
-
-
-1;
-
-
-=head1 AUTHOR
-
-Open Source Development Labs, Engineering Department <eng@osdl.org>
-
-=head1 COPYRIGHT
-
-Copyright (C) 2006 Open Source Development Labs
-All Rights Reserved.
-
-This script is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
-
-=head1 SEE ALSO
-
-L<Linux::Bootloader>
-
-=cut
-
-package Linux::Bootloader::Yaboot;
-
-=head1 NAME
-
-Linux::Bootloader::Yaboot - Parse and modify YABOOT configuration files.
-
-=head1 SYNOPSIS
-
-	
-	my $bootloader = Linux::Bootloader::Yaboot->new();
-	my $config_file='/etc/yaboot.conf';
-
-	$bootloader->read($config_file)
-
-	# add a kernel	
-	$bootloader->add(%hash)
-
-	# remove a kernel
-	$bootloader->remove(2)
-
-	# set new default
-	$bootloader->set_default(1)
-
-	$bootloader->write($config_file)
-
-
-=head1 DESCRIPTION
-
-This module provides functions for working with YABOOT configuration files.
-
-	Adding a kernel:
-	- add kernel at start, end, or any index position.
-	- kernel path and title are required.
-	- root, kernel args, initrd are optional.
-	- any options not specified are copied from default.
-	- remove any conflicting kernels if force is specified.
-	
-	Removing a kernel:
-	- remove by index position
-	- or by title/label
-
-
-=head1 FUNCTIONS
-
-Also see L<Linux::Bootloader> for functions available from the base class.
-
-=head2 new()
-
-	Creates a new Linux::Bootloader::Yaboot object.
-
-=head2 install()
-
-        Attempts to install bootloader.
-        Takes: nothing.
-        Returns: undef on error.
-
-=cut
-
-
-use strict;
-use warnings;
-
-@Linux::Bootloader::Yaboot::ISA = qw(Linux::Bootloader);
-use base 'Linux::Bootloader';
-
-
-use vars qw( $VERSION );
-
-
-sub _set_config_file {
-    my $self=shift;
-    $self->{'config_file'}='/etc/yaboot.conf';
-}
-
-### YABOOT functions ###
-
-
-# Run command to install bootloader
-
-sub install {
-	my $self=shift;
-	my $cmd="";
-	# ybin currently returns an error even when it succeeds, but by
-	# dumb luck ybin -v does the right thing
-	if (-f "/usr/sbin/ybin") {
-		$cmd="/usr/sbin/ybin -v > /dev/null";
-	} elsif (-f "/sbin/ybin") {
-		$cmd="/sbin/ybin -v > /dev/null";
-	} else {
-		print("Not installing bootloader.\n");
-	}
-
-	system($cmd);
-	if ( $? != 0 ) {
-		warn("ERROR:  Failed to run ybin.\n") && return undef;
-	}
-	return 1;
-}
-
-
-1;
-
-
-=head1 AUTHOR
-
-IBM, Linux Technology Centre, Andy Whitcroft <apw@uk.ibm.com>
-
-=head1 COPYRIGHT
-
-Copyright (C) 2006 IBM Corperation
-All Rights Reserved.
-
-This script is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
-
-=head1 SEE ALSO
-
-L<Linux::Bootloader>
-
-=cut
-
-package Linux::Bootloader::Zipl;
-
-=head1 NAME
-
-Linux::Bootloader::Zipl - Parse and modify ZIPL configuration files.
-
-=cut
-
-use strict;
-use warnings;
-
-@Linux::Bootloader::Zipl::ISA = qw(Linux::Bootloader);
-use base 'Linux::Bootloader';
-
-
-use vars qw( $VERSION );
-
-
-sub _set_config_file {
-    my $self=shift;
-    $self->{'config_file'}='/etc/zipl.conf';
-}
-
-
-### ZIPL functions ###
-
-# Parse config into array of hashes
-sub _info {
-  my $self=shift;
-
-  return undef unless $self->_check_config();
-
-  my @config=@{$self->{config}};
-  @config=grep(!/^#|^\s*$/, @config);
-
-  my %matches = (
-		  target => '^\s*target\s*=\s*(.*)',
-		  kernel => '^\s*image\s*=\s*(\S+)',
-		  initrd => '^\s*ramdisk\s*=\s*(.*)',
-		  args => '^\s*parameters\s*=\s*"?\s*(.*[^"])"?',
-		);
-
-  my %sect_title;
-  my $menu_name;
-  my $title;
-  my @sections;
-  foreach (@config) {
-    chomp($_);
-
-    # Note the menu and switch mode.
-    if ($_ =~ /^:(menu\S*)/) {
-      $menu_name = $1;
-
-    # An entry starts [name]
-    } elsif ($_ =~ /^\s*\[(\S+)\]/i) {
-      $title = $1;
-      $sect_title{$title}{title} = $title;
-    }
-
-    # Decode the entry fields
-    if (!defined $menu_name) {
-      foreach my $key (keys %matches) {
-	if ($_ =~ /$matches{$key}/i) {
-	  $key .= '2' if exists $sect_title{$title}{$key};
-	  $sect_title{$title}{$key} = $1;
-	}
-      }
-
-    # This is the menu, pull it in
-    } else {
-        # If this is an entry specified copy entry in to the result.
-	if ($_ =~ /^\s+(\d+)\s*=\s*(\S*)/) {
-	  $sections[$1] = $sect_title{$2};
-
-	# record all the other attributes here, pick out the default
-	# if we see it.
-	} else {
-	  if ($_ =~ /^\s+(\S+)\s*=\s*(.*\S)\s*/) {
-	    $sections[0]{$1} = $2;
-	  }
-	}
-     }
-  }
-  $sections[0]{'menu'} = $menu_name;
-  if (defined $sections[0]{'default'}) {
-    $sections[0]{'default'}--;
-  }
-
-  # sometimes config doesn't have a default, so goes to first
-  if (!(defined $sections[0]{'default'})) {
-    $sections[0]{'default'} = '0';
-
-  # if default is label name, we need position
-  } elsif ($sections[0]{'default'} !~ m/^\d+$/) {
-    foreach my $index (1..$#sections) {
-      if ($sections[$index]{'title'} eq $sections[0]{'default'}) {
-        $sections[0]{'default'} = $index-1;
-        last;
-      }
-    }
-    $sections[0]{'default'} = 0 if (!defined $sections[0]{'default'});
-  }
-
-  # return array of hashes
-  return @sections;
-}
-
-# Set new default kernel
-
-sub set_default {
-  my $self=shift;
-  my $newdefault=shift;
-
-  return undef unless defined $newdefault;
-  return undef unless $self->_check_config();
-
-  my @config=@{$self->{config}};
-  my @sections=$self->_info();
-
-  # if not a number, do title lookup
-  if ($newdefault !~ /^\d+$/) {
-    $newdefault = $self->_lookup($newdefault);
-    return undef unless (defined $newdefault);
-  }
-
-  my $kcount = $#sections-1;
-  if (($newdefault < 0) || ($newdefault > $kcount)) {
-    warn "ERROR: Enter a default between 0 and $kcount.\n";
-    return undef;
-  }
-
-  # Look up the actual title of this section.
-  my $title = $sections[$newdefault + 1]{'title'};
-
-  # Look through the config file for the specifier,
-  # note there are two, one the name and one the number
-  # go figure.  Note that ZIPL numbering is 1..N.
-  foreach my $index (0..$#config) {
-    if ($config[$index] =~ /(^\s*default\s*\=*\s*)\d+\s*$/i) {
-      $config[$index] = $1 . ($newdefault + 1) . "\n";
-
-    } elsif ($config[$index] =~ /(^\s*default\s*\=*\s*)/i) {
-      $config[$index] = "$1$title\n";
-    }
-  }
-  @{$self->{config}} = @config;
-}
-
-
-# Add new kernel to config
-sub add {
-  my $self=shift;
-  my %param=@_;
-
-  print ("Adding kernel.\n") if $self->debug()>1;
-
-  if (!defined $param{'add-kernel'} || !defined $param{'title'}) {
-    warn "ERROR:  kernel path (--add-kernel), title (--title) required.\n";
-    return undef;
-  } elsif (!(-f "$param{'add-kernel'}")) {
-    warn "ERROR:  kernel $param{'add-kernel'} not found!\n";
-    return undef;
-  } elsif (defined $param{'initrd'} && !(-f "$param{'initrd'}")) {
-    warn "ERROR:  initrd $param{'initrd'} not found!\n";
-    return undef;
-  }
-
-  return undef unless $self->_check_config();
-
-  my @sections=$self->_info();
-
-  # check if title already exists
-  if (defined $self->_lookup($param{title})) {
-    warn ("WARNING:  Title already exists.\n");
-    if (defined $param{force}) {
-      $self->remove($param{title});
-    } else {
-      return undef;
-    }
-  }
-
-  my @config = @{$self->{config}};
-  @sections=$self->_info();
-
-  # Use default kernel to fill in missing info
-  my $default=$self->get_template();
-  $default++;
-
-  foreach my $p ('args', 'target') {
-    if (! defined $param{$p}) {
-      $param{$p} = $sections[$default]{$p};
-    }
-  }
-
-  # use default entry to determine if path (/boot) should be removed
-  my $bootpath = $sections[$default]{'kernel'};
-  $bootpath =~ s@[^/]*$@@;
-
-  $param{'add-kernel'} =~ s@^/boot/@$bootpath@;
-  $param{'initrd'} =~ s@^/boot/@$bootpath@ unless !defined $param{'initrd'};
-
-  my $line;
-  my @newkernel;
-  push(@newkernel, "[$param{'title'}]\n");
-  push(@newkernel, "\ttarget=$param{'target'}\n") if (defined $param{'target'});
-  push(@newkernel, "\timage=$param{'add-kernel'}\n");
-  push(@newkernel, "\tramdisk=$param{'initrd'}\n") if (defined $param{'initrd'});
-  $line = '';
-  $line .= "root=$param{root} " if (defined $param{'root'});
-  $line .= "$param{args} " if (defined $param{'args'});
-  chop($line);
-  push(@newkernel, "\tparameters=\"$line\"\n");
-
-  push(@newkernel, "\n");
-
-  if (!defined $param{position} || $param{position} !~ /end|\d+/) {
-    $param{position} = 0;
-  }
-
-  my @newconfig;
-  my $index=0;
-  my $menu=0;
-  my @list;
-  foreach (@config) {
-    if ($_ !~ /^\s*\[defaultboot]/i && $_ =~ /^\s*\[(\S+)]/i) {
-      if ($param{'position'} ne 'end' && $index == $param{position}) {
-	push(@newconfig, @newkernel);
-        push(@list, $param{'title'});
-      }
-      $index++;
-      push(@list, $1);
-
-    } elsif (/^:menu\S*/) {
-      if ($param{'position'} eq 'end' || $index < $param{'position'}) {
-	push(@newconfig, @newkernel);
-        push(@list, $param{'title'});
-	$param{position} = $index;
-      }
-      # Rebuild the menu entries.
-      push(@newconfig, $_);
-      for (my $n = 0; $n <= $#list; $n++) {
-        push(@newconfig, "\t" . ($n+1) . "=$list[$n]\n");
-      }
-      $menu = 1;
-      next;
-    }
-    if ($menu) {
-      if (/^\s+\d+=/) {
-	next;
-      } else {
-	$menu = 0;
-      }
-    }
-    push(@newconfig, $_);
-  }
-
-  @{$self->{config}} = @newconfig;
-
-  if (defined $param{'make-default'} || defined $param{'boot-once'}) {
-    $self->set_default($param{position});
-  }
-  print "Added: $param{'title'}.\n";
-}
-
-
-# Remove a kernel from config
-sub remove {
-  my $self=shift;
-  my $position=shift;
-
-  return undef unless defined $position;
-  return undef unless $self->_check_config();
-
-  my @config=@{$self->{config}};
-  my @sections=$self->_info();
-  my $default = $self->get_default();
-
-  if ($position=~/^end$/i) {
-    $position=$#sections-1;
-  } elsif ($position=~/^start$/i) {
-    $position=0;
-  }
-
-  print ("Removing kernel $position.\n") if $self->debug()>1;
-
-  # if not a number, do title lookup
-  if ($position !~ /^\d+$/) {
-    $position = $self->_lookup($position);
-  }
-  if ($position !~ /^\d+$/) {
-    warn "ERROR: $position: should be # or title\n";
-    return undef;
-  }
-
-  my $title = $sections[$position + 1]{'title'};
-
-  my $keep = 1;
-  my @newconfig;
-  my @list;
-  my $index = 0;
-  my $menu;
-  foreach (@config) {
-    if ($_ !~ /^\s*\[defaultboot]/i && $_ =~ /^\s*\[(\S+)]/i) {
-      if ($index == $position) {
-        $keep = 0;
-      } else {
-        push(@list, $1);
-	$keep = 1;
-      }
-      $index++;
-
-    } elsif (/^:menu\S*/) {
-      # Rebuild the menu entries.
-      push(@newconfig, $_);
-      for (my $n = 0; $n <= $#list; $n++) {
-        push(@newconfig, "\t" . ($n+1) . "=$list[$n]\n");
-      }
-      $menu = 1;
-      $keep = 1;
-      next;
-    }
-    if ($menu) {
-      if (/^\s+\d+=/) {
-	next;
-      } else {
-	$menu = 0;
-      }
-    }
-    push(@newconfig, $_) if ($keep);
-  }
-
-  @{$self->{config}} = @newconfig;
-
-  # Update the default.
-  my $new = $default;
-  if ($default == $position) {
-    $new = 0;
-  } elsif ($default > $position) {
-    $new = $default - 1;
-  }
-  if ($default != $new) {
-    $self->set_default($new);
-  }
-
-  print "Removed: $title\n";
-}
-
-
-# Update kernel args
-sub update {
-  my $self=shift;
-  my %params=@_;
-
-  print ("Updating kernel.\n") if $self->debug()>1;
-
-  if (defined $params{'option'} && !defined $params{'update-kernel'}) {
-    return $self->update_main_options(%params);
-  } elsif (!defined $params{'update-kernel'} || (!defined $params{'args'} && !defined $params{'remove-args'} && !defined $params{'option'})) {
-    warn "ERROR:  kernel position or title (--update-kernel) and args (--args or --remove-args) required.\n";
-    return undef;
-  }
-
-  return undef unless $self->_check_config();
-
-#  my @config = @{$self->{config}};
-  my @sections=$self->_info();
-
-  # if not a number, do title lookup
-  if (defined $params{'update-kernel'} and $params{'update-kernel'} !~ /^\d+$/) {
-    $params{'update-kernel'} = $self->_lookup($params{'update-kernel'});
-  }
-
-  my $kcount = $#sections-1;
-  if ($params{'update-kernel'} !~ /^\d+$/ || $params{'update-kernel'} < 0 || $params{'update-kernel'} > $kcount) {
-    warn "ERROR: Enter a default between 0 and $kcount.\n";
-    return undef;
-  }
-
-  # Convert to a title to find the relevant section.
-  my $title = $sections[$params{'update-kernel'} + 1]{'title'};
-
-  my $seen = '';
-  my $config_line = -1;
-  my $line = '';
-  foreach $line (@{$self->{config}}) {
-    $config_line = $config_line + 1;
-    if ($line =~ /^\s*\[(\S+)]/i) {
-      $seen = $1;
-    }
-    if ($title eq $seen) {
-      if (defined $params{'args'} or defined $params{'remove-args'}){
-        if ($line =~ /^\s*parameters="(.*[^"])"/i) {
-	  my $oargs = $1;
-	  my $args = $self->_build_args($oargs, $params{'remove-args'}, $params{'args'});
-          if ($args eq $oargs) {
-            warn "WARNING:  No change made to args.\n";
-            return undef;
-          }
-	  # Note that updating line updates the _real_ lines in @config.
-	  $line = "\tparameters=\"$args\"\n";
-          next;
-        }
-      } elsif (defined $params{'option'}){
-        foreach my $val ( keys %params){
-          if ($line =~ m/^\s*$val.*/i) {
-            splice @{$self->{config}},$config_line,1,"$val $params{$val}\n";
-            delete $params{$val};
-            $config_line += 1;
-          }
-        }
-      }
-    }
-  }
-  # Add any leftover parameters
-  delete $params{'update-kernel'};
-  if (defined $params{'option'}){
-    delete $params{'option'};
-    $config_line -= 1;
-    foreach my $val ( keys %params){
-      splice @{$self->{config}},$config_line,0,"\t$val $params{$val}\n";
-      $config_line += 1;
-    }
-  }
-}
-
-
-# Run command to install bootloader
-sub install {
-  my $self=shift;
-  my $device;
-
-  my @sections=$self->_info();
-
-  warn "ZIPL: needs to run zipl -m $sections[0]{'menu'}\n";
-  system("/sbin/zipl -m $sections[0]{'menu'}");
-  if ($? != 0) {
-    warn ("ERROR:  Failed to run grub-install.\n") && return undef;
-  }
-  return 1;
-}
-
-
-sub update_main_options{
-  # XXX: the main options are probabally those on the menu object.
-  die "ERROR: unable to update main options\n";
-}
-
-
-sub boot_once {
-  warn "ZIPL does not support boot-once\n";
-  return undef;
-}
-
-1;
-
-=head1 AUTHOR
-
-Open Source Development Labs, Engineering Department <eng@osdl.org>
-
-=head1 COPYRIGHT
-
-Copyright (C) 2006 Open Source Development Labs
-All Rights Reserved.
-
-This script is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
-
-=head1 SEE ALSO
-
-L<Linux::Bootloader>
-
-=cut
-
-#!/usr/bin/perl -I ../lib
-
-use lib '../lib';
-use Getopt::Long;
-use Pod::Usage;
-
-
-my %params;
-
-GetOptions(
-           \%params,
-           "bootloader-probe",      # Prints the bootloader in use on the system
-           "arch-probe:s",          # Prints the arch of the system
-           "bootloader=s",
-           "config_file=s",
-           "add-kernel=s",
-           "remove-kernel=s",
-           "update-kernel=s",
-           "title=s",
-           "args=s",
-           "remove-args=s",
-           "initrd=s",
-           "root=s",
-           "savedefault=s",
-           "position=s",
-           "info=s",
-           "debug=i",
-           "set-default=s",
-           "make-default",
-           "force",
-           "boot-once",
-           "install",
-	   "module=s@", 
-           "default",
-           "help",
-           "man",
-           "version|V",
-           "xen",
-           ) or pod2usage(-verbose => 1, -exitstatus => 0);
-
-pod2usage(-verbose => 2, -exitstatus => 0) if ($params{man});
-pod2usage(-verbose => 1, -exitstatus => 0) if ($params{help});
-pod2usage(-verbose => 0, -exitstatus => 0) if ! %params;
-
-if ($params{version}) {
-    print "$0 version 1.1\n";
-}
-
-### Bootloader / Arch Detection ###
-
-my $detected_bootloader;
-my $detected_architecture;
-
-if (defined $params{'bootloader-probe'}) {
-  our $opt_bootloader      = 0;
-  $detected_bootloader = Linux::Bootloader::Detect::detect_bootloader()
-    || warn "Could not detect bootloader\n";
-  print "$detected_bootloader\n";
-  exit 0;
-} elsif (defined $params{'arch-probe'}) {
-  our $opt_arch    = 0;
-  $detected_architecture = Linux::Bootloader::Detect::detect_architecture( $params{'arch-probe'} )
-    || warn "Could not detect architecture\n";
-  print "$detected_architecture\n";
-  exit 0;
-} elsif (defined $params{bootloader}) {
-  $detected_bootloader = $params{bootloader};
-} else {
-  #$detected_bootloader = 'grub';
-  $detected_bootloader = Linux::Bootloader::Detect::detect_bootloader()
-    || warn "Could not detect bootloader\n";
-}
-
-
-### Load Module ###
-
-my $bootloader;
-if ($detected_bootloader =~ m/^(grub|elilo|lilo|yaboot|zipl)$/) {
-  my $class = "Linux::Bootloader::" . "\u$detected_bootloader";
-  eval "require $class";
-  $bootloader = eval "new $class(\$params{config_file});";
-
-} else { 
-  die "ERROR: Bootloader $detected_bootloader not recognized!\n";
-}
-
-
-### Check Config ###
-
-if (! -r $bootloader->{config_file}) { die "Can't read config file.\n"; }
-
-if (defined $params{'debug'}) {
-  $bootloader->debug($params{'debug'});
-}
-
-if (defined $params{'install'}) {
-  $bootloader->read();
-  $bootloader->install() unless $detected_bootloader eq 'grub' 
-                             or $detected_bootloader eq 'pxe' ;
-} elsif (defined $params{'add-kernel'}) {
-  $bootloader->read();
-  $bootloader->add(%params);
-  $bootloader->write();
-  $bootloader->install() unless $detected_bootloader eq 'grub';
-
-} elsif (defined $params{'remove-kernel'}) {
-  $bootloader->read();
-  $bootloader->remove($params{'remove-kernel'});
-  $bootloader->write();
-  $bootloader->install() unless $detected_bootloader eq 'grub';
-
-} elsif (defined $params{'update-kernel'}) {
-  $bootloader->read();
-  $bootloader->update(%params);
-  $bootloader->write();
-  $bootloader->install() unless $detected_bootloader eq 'grub';
-
-} elsif (defined $params{info}) {
-  $bootloader->read();
-  $bootloader->print_info($params{info});
-
-} elsif (defined $params{'set-default'}) {
-  $bootloader->read();
-  $bootloader->set_default($params{'set-default'});
-  $bootloader->write();
-  $bootloader->install() unless $detected_bootloader eq 'grub';
-
-} elsif (defined $params{'default'}) {
-  $bootloader->read();
-  print $bootloader->get_default() . "\n";
-
-} elsif (defined $params{'boot-once'} && defined $params{'title'}) {
-  if ($detected_bootloader =~ /^lilo|^elilo|^grub/) {
-    $bootloader->boot_once($params{title});
-  } else {
-    warn "WARNING: $detected_bootloader does not have boot-once support.\n";
-    warn "Setting as default instead.\n";
-    $bootloader->read();
-    $bootloader->set_default($params{'title'});
-    $bootloader->write();
-  } 
-}
-
- 
-__END__
-
-
-=head1 NAME
-
-boottool - tool for modifying bootloader configuration
-
-=head1 SYNOPSIS
-
-boottool [--bootloader-probe] [--arch-probe]
-         [--add-kernel=<kernel_path>] [--title=<kernel_title>] [--position=<#|start|end>]
-         [--root=<root_path>] [--args=<kernel_args>] [--initrd=<initrd_path>]
-         [--make-default] [--force] [--boot-once] [--install]
-         [--bootloader=<grub|lilo|elilo|yaboot|zipl>] [--config-file=</path/to/config>]
-         [--remove-kernel=<#|title|start|end>] [--module=<module>]
-         [--update-kernel=<#|title>] [--remove-args=<args>]
-         [--info=<all|default|#>] [--default]
-         [--help] [--debug=<0..5>] [--set-default=<#>]
-
-=head1 DESCRIPTION
-
-Boottool allows scripted modification of bootloader configuration files.
-Grub, Lilo, Elilo, and Yaboot are currently supported.
-When adding a kernel, any options not specified are copied from default.
-
-=head1 OPTIONS
-
-=head2 GENERAL OPTIONS
-
-These can be used with any of the commands to override defaults or
-autodetection.  They are not typically needed.
-
-=over 8
-
-=item B<--bootloader>=I<string>
-
-Manually specify the bootloader to use.  By default, boottool will
-automatically try to detect the bootloader being used.
-
-=item B<--config_file>=I<string>
-
-Specifies the path and name of the bootloader config file, overriding
-autodetection of this file.
-
-=back
-
-=head2 INFORMATIONAL OPERATIONS
-
-These operations return information about the system, without making
-alterations to any files.
-
-=over 8
-
-=item B<--bootloader-probe>
-
-Prints the bootloader in use on the system and exits.
-
-=item B<--arch-probe>
-
-Prints the arch of the system and exits.
-
-=item B<--info>=I<string>
-
-Display information about the bootloader entry at the given position number.
-Also accepts 'all' or 'default'.
-
-=item B<--default>
-
-Prints the current default kernel for the bootloader.
-
-=back
-
-=head2 KERNEL OPERATIONS
-
-These operations result in modifications to system configuration files.
-Only one of these operations may be called.  See KERNEL MODIFICATION
-PARAMETERS (below) for specifying what the operations should do.
-
-=over 8
-
-=item B<--add-kernel>=I<string>
-
-Adds a new kernel with the given path.
-
-=item B<--update-kernel>=I<string>
-
-Updates an existing kernel with the given position number or title.
-Used with --args or --remove-args.
-
-=item B<--module>=I<string>
-
-This option adds modules to the new kernel. It only works with Grub Bootloader.
-For more module options just add another --module parameter
-
-=item B<--remove-kernel>=I<string>
-
-Removes the bootloader entry with the given position or title.
-Also accepts 'start' or 'end'.
-
-=item B<--set-default>=I<integer>
-
-Updates the bootloader to set the default boot entry to given given
-position or title.
-
-=item B<--boot-once>
-
-Causes the bootloader to boot the kernel specified by --title just one
-time, then fall back to the default.  This option doesn't work
-identically on all architectures.
-
-=back
-
-=head2 KERNEL MODIFICATION PARAMETERS
-
-These parameters can be used with the kernel operations listed above, to 
-specify how the operations should work.
-
-=over 8
-
-=item B<--title>=I<string>
-
-The title or label to use for the bootloader entry.
-
-=item B<--args>=I<string>
-
-Arguments to be passed to the kernel at boot.
-
-=item B<--remove-args>=I<string>
-
-Arguments to be removed from an existing entry.
-Used with --update-kernel.
-
-=item B<--initrd>=I<string>
-
-The initrd image path to use in the bootloader entry.
-
-=item B<--root>=I<string>
-
-The device where the root partition is located.
-
-=item B<--savedefault>=I<string>
-
-The number to use in the savedefault section
-
-=item B<--position>=I<string>
-
-Insert bootloader entry at the given position number, counting from 0.
-Also accepts 'start' or 'end'.  This is only useful when using the
---add-kernel operation.
-
-=item B<--make-default>
-
-Specifies that the bootloader entry being added should be set to the
-default.
-
-=item B<--install>
-
-Causes bootloader to update and re-install the bootloader file.
-
-=back
-
-
-=head2 OTHER OPTIONS
-
-=over 8
-
-=item B<-V, --version>
-
-Prints the version and exits.
-
-=item B<-h, --help>
-
-Prints a brief help message with option summary.
-
-=item B<--man>
-
-Prints a manual page (detailed help).  Same as `perdoc tgen`
-
-=item B<-D, --debug N>
-
-Prints debug messages.  This expects a numerical argument corresponding
-to the debug message verbosity.
-
-=back
-
-=head1 PREREQUISITES
-
-C<Linux::Bootloader>
-
-C<Getopt::Long>
-
-C<Pod::Usage>
-
-=head1 COREQUISITES
-
-boottool works with any bootloader supported by Linux::Bootloader,
-including the following:
-
-C<Lilo>
-
-C<Grub>
-
-C<Yaboot>
-
-C<Elilo>
-
-Obviously, at least one bootloader must be installed for this to be of
-any use.  ;-)
-
-=head1 BUGS
-
-Send bug reports to L<http://sourceforge.net/projects/crucible/>
-
-=head1 VERSION
-
-1.0
-
-=head1 SEE ALSO
-
-L<crucible>, L<WWW::PkgFind>, L<Test::Parser>, L<Linux::Distribution>
-
-=head1 AUTHOR
-
-Jason N.
-
-L<http://www.osdl.org/|http://www.osdl.org/>
-
-=head1 COPYRIGHT
-
-Copyright (C) 2006 Open Source Development Labs
-All Rights Reserved.
-
-This script is free software; you can redistribute it and/or
-modify it under the same terms as Perl itself.
-
-=head1 REVISION
-
-Revision: $Revision: 1.10 $
-
-=cut
+LOGGING_FORMAT = "%(levelname)s: %(name)s: %(message)s"
+
+#
+# Default log object
+#
+log = logging.getLogger('boottool')
+
+
+class EfiVar(object):
+    '''
+    Helper class to manipulate EFI firmware variables
+
+    This class has no notion of the EFI firmware variables interface, that is,
+    where it should read from or write to in order to create or delete EFI
+    variables.
+
+    On systems with kernel >= 2.6, that interface is a directory structure
+    under /sys/firmware/efi/vars.
+
+    On systems with kernel <= 2.4, that interface is going to be a directory
+    structure under /proc/efi/vars. But be advised: this has not been tested
+    yet on kernels <= 2.4.
+    '''
+
+    GUID_FMT = '16B'
+    GUID_CONTENT = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+
+    ATTR_NON_VOLATILE =  0x0000000000000001
+    ATTR_BOOTSERVICE_ACCESS = 0x0000000000000002
+    ATTR_RUNTIME_ACCESS = 0x0000000000000004
+
+    DEFAULT_ATTRIBUTES = (ATTR_NON_VOLATILE |
+                          ATTR_BOOTSERVICE_ACCESS |
+                          ATTR_RUNTIME_ACCESS)
+
+    FMT = ('512H' +
+           GUID_FMT +
+           '1L' +
+           '512H' +
+           '1L' +
+           '1I')
+
+
+    def __init__(self, name, data, guid=None, attributes=None):
+        '''
+        Instantiates a new EfiVar
+
+        @type name: string
+        @param name: the name of the variable that will be created
+        @type data: string
+        @param data: user data that will populate the variable
+        @type guid: tuple
+        @param guid: content for the guid value that composes the full variable
+                     name
+        @param attributes: integer
+        @param attributes: bitwise AND of the EFI attributes this variable will
+                           have set
+        '''
+        self.data = data
+        self.name = name
+
+        if guid is None:
+            guid = self.GUID_CONTENT
+        self.guid = guid
+
+        if attributes is None:
+            attributes = self.DEFAULT_ATTRIBUTES
+        self.attributes = attributes
+
+
+    def get_name(self):
+        '''
+        Returns the variable name in a list ready for struct.pack()
+        '''
+        l = []
+        for i in range(512):
+            l.append(0)
+
+        for i in range(len(self.name)):
+            l[i] = ord(self.name[i])
+        return l
+
+
+    def get_data(self):
+        '''
+        Returns the variable data in a list ready for struct.pack()
+        '''
+        l = []
+        for i in range(512):
+            l.append(0)
+
+        for i in range(len(self.data)):
+            l[i] = ord(self.data[i])
+        return l
+
+
+    def get_packed(self):
+        '''
+        Returns the EFI variable raw data packed by struct.pack()
+
+        This data should be written to the appropriate interface to create
+        an EFI variable
+        '''
+        params = self.get_name()
+        params += self.guid
+        params.append((len(self.data) * 2) + 2)
+        params += self.get_data()
+        params.append(0)
+        params.append(self.attributes)
+
+        return struct.pack(self.FMT, *params)
+
+
+class EfiToolSys(object):
+    '''
+    Interfaces with /sys/firmware/efi/vars provided by the kernel
+
+    This interface is present on kernels >= 2.6 with CONFIG_EFI and
+    CONFIG_EFI_VARS options set.
+    '''
+
+    BASE_PATH = '/sys/firmware/efi/vars'
+    NEW_VAR = os.path.join(BASE_PATH, 'new_var')
+    DEL_VAR = os.path.join(BASE_PATH, 'del_var')
+
+    def __init__(self):
+        if not os.path.exists(self.BASE_PATH):
+            sys.exit(-1)
+        self.log = logging.getLogger(self.__class__.__name__)
+
+
+    def create_variable(self, name, data, guid=None, attributes=None):
+        '''
+        Creates a new EFI variable
+
+        @type name: string
+        @param name: the name of the variable that will be created
+        @type data: string
+        @param data: user data that will populate the variable
+        @type guid: tuple
+        @param guid: content for the guid value that composes the full variable
+                     name
+        @param attributes: integer
+        @param attributes: bitwise AND of the EFI attributes this variable will
+                           have set
+        '''
+        if not self.check_basic_structure():
+            return False
+
+        var = EfiVar(name, data, guid, attributes)
+        f = open(self.NEW_VAR, 'w')
+        f.write(var.get_packed())
+        return True
+
+
+    def delete_variable(self, name, data, guid=None, attributes=None):
+        '''
+        Delets an existing EFI variable
+
+        @type name: string
+        @param name: the name of the variable that will be deleted
+        @type data: string
+        @param data: user data that will populate the variable
+        @type guid: tuple
+        @param guid: content for the guid value that composes the full variable
+                     name
+        @param attributes: integer
+        @param attributes: bitwise AND of the EFI attributes this variable will
+                           have set
+        '''
+        if not self.check_basic_structure():
+            return False
+
+        var = EfiVar(name, data, guid, attributes)
+        f = open(self.DEL_VAR, 'w')
+        f.write(var.get_packed())
+        return True
+
+
+    def check_basic_structure(self):
+        '''
+        Checks the basic directory structure for the /sys/.../vars interface
+        '''
+        status = True
+        if not os.path.isdir(self.BASE_PATH):
+            self.log.error('Could not find the base directory interface for '
+                           'EFI variables: "%s"', self.BASE_PATH)
+            status = False
+
+        if not os.path.exists(self.NEW_VAR):
+            self.log.error('Could not find the file interface for creating new'
+                           ' EFI variables: "%s"', self.NEW_VAR)
+            status = False
+
+        if not os.path.exists(self.DEL_VAR):
+            self.log.error('Could not find the file interface for deleting '
+                           'EFI variables: "%s"', self.DEL_VAR)
+            status = False
+
+        return status
+
+
+class EliloConf(object):
+    '''
+    A simple parser for elilo configuration file
+
+    Has simple features to add and remove global options only, as this is all
+    we need. grubby takes care of manipulating the boot entries themselves.
+    '''
+    def __init__(self, path='/etc/elilo.conf'):
+        '''
+        Instantiates a new EliloConf
+
+        @type path: string
+        @param path: path to elilo.conf
+        '''
+        self.path = path
+        self.global_options_to_add = {}
+        self.global_options_to_remove = {}
+
+        self._follow_symlink()
+
+
+    def _follow_symlink(self):
+        '''
+        Dereference the path if it's a symlink and make it absolute
+
+        elilo.conf usually is a symlink to the EFI boot partition, so we
+        better follow it to the proper location.
+        '''
+        if os.path.islink(self.path):
+            self.path_link = self.path
+            self.path = os.path.realpath(self.path_link)
+
+        self.path = os.path.abspath(self.path)
+
+
+    def add_global_option(self, key, val=None):
+        '''
+        Adds a global option to the updated elilo configuration file
+
+        @type key: string
+        @param key: option name
+        @type val: string or None
+        @param key: option value or None for options with no values
+        @returns: None
+        '''
+        self.global_options_to_add[key] = val
+
+
+    def remove_global_option(self, key, val=None):
+        '''
+        Removes a global option to the updated elilo configuration file
+
+        @type key: string
+        @param key: option name
+        @type val: string or None
+        @param key: option value or None for options with no values
+        @returns: None
+        '''
+        self.global_options_to_remove[key] = val
+
+
+    def line_to_keyval(self, line):
+        '''
+        Transforms a text line from the configuration file into a tuple
+
+        @type line: string
+        @param line: line of text from the configuration file
+        @returns: a tuple with key and value
+        '''
+        parts = line.split('=', 1)
+        key = parts[0].rstrip()
+        if len(parts) == 1:
+            val = None
+        elif len(parts) == 2:
+            val = parts[1].strip()
+        return (key, val)
+
+
+    def keyval_to_line(self, keyval):
+        '''
+        Transforms a tuple into a text line suitable for the config file
+
+        @type keyval: tuple
+        @param keyval: a tuple containing key and value
+        @returns: a text line suitable for the config file
+        '''
+        key, val = keyval
+        if val is None:
+            return '%s\n' % key
+        else:
+            return '%s=%s\n' % (key, val)
+
+
+    def matches_global_option_to_remove(self, line):
+        '''
+        Utility method to check if option is to be removed
+
+        @type line: string
+        @param line: line of text from the configuration file
+        @returns: True or False
+        '''
+        key, val = self.line_to_keyval(line)
+        if key in self.global_options_to_remove:
+            return True
+        else:
+            return False
+
+
+    def matches_global_option_to_add(self, line):
+        '''
+        Utility method to check if option is to be added
+
+        @type line: string
+        @param line: line of text from the configuration file
+        @returns: True or False
+        '''
+        key, val = self.line_to_keyval(line)
+        if key in self.global_options_to_add:
+            return True
+        else:
+            return False
+
+
+    def get_updated_content(self):
+        '''
+        Returns the config file content with options to add and remove applied
+        '''
+        output = ''
+
+        for key, val in self.global_options_to_add.items():
+            output += self.keyval_to_line((key, val))
+
+        eliloconf = open(self.path, 'r')
+        for line in eliloconf.readlines():
+            if self.matches_global_option_to_remove(line):
+                continue
+            if self.matches_global_option_to_add(line):
+                continue
+            else:
+                output += line
+
+        eliloconf.close()
+        return output
+
+
+    def update(self):
+        '''
+        Writes the updated content to the configuration file
+        '''
+        content = self.get_updated_content()
+        eliloconf_write = open(self.path, 'w')
+        eliloconf_write.write(content)
+        eliloconf_write.close()
+
+
+def find_executable(executable, favorite_path=None):
+    '''
+    Returns whether the system has a given executable
+
+    @type executable: string
+    @param executable: the name of a file that can be read and executed
+    '''
+    if os.path.isabs(executable):
+        paths = [os.path.basename(executable)]
+    else:
+        paths = os.environ['PATH'].split(':')
+        if favorite_path is not None and favorite_path not in paths:
+            paths.insert(0, favorite_path)
+
+    for d in paths:
+        f = os.path.join(d, executable)
+        if os.path.exists(f) and os.access(f, os.R_OK | os.X_OK):
+            return f
+    return None
+
+
+def parse_entry(entry_str, separator='='):
+    """
+    Parse entry as returned by boottool.
+
+    @param entry_str: one entry information as returned by boottool
+    @return: dictionary of key -> value where key is the string before
+            the first ":" in an entry line and value is the string after
+            it
+    """
+    entry = {}
+    for line in entry_str.splitlines():
+        if len(line) == 0:
+            continue
+
+        try:
+            name, value = line.split(separator, 1)
+        except ValueError:
+            continue
+
+        name = name.strip()
+        value = value.strip()
+
+        if name == 'index':
+            # index values are integrals
+            value = int(value)
+        entry[name] = value
+
+    return entry
+
+
+def install_grubby_if_necessary(path=None):
+    '''
+    Installs grubby if it's necessary on this system
+
+    Or if the required version is not sufficient for the needs of boottool
+    '''
+    installed_grubby = False
+
+    if path is None:
+        if find_executable(GRUBBY_DEFAULT_USER_PATH):
+            executable = GRUBBY_DEFAULT_USER_PATH
+        else:
+            executable = find_executable(GRUBBY_DEFAULT_SYSTEM_PATH)
+    else:
+        executable = find_executable(path)
+
+    if executable is None:
+        log.info('Installing grubby because it was not found on this system')
+        grubby = Grubby()
+        path = grubby.grubby_install()
+        installed_grubby = True
+    else:
+        grubby = Grubby(executable)
+        current_version = grubby.get_grubby_version()
+        if current_version is None:
+            log.error('Could not find version for grubby executable "%s"',
+                      executable)
+            path = grubby.grubby_install()
+            installed_grubby = True
+
+        elif current_version < GRUBBY_REQ_VERSION:
+            log.info('Installing grubby because currently installed '
+                     'version (%s.%s) is not recent enough',
+                     current_version[0], current_version[1])
+            path = grubby.grubby_install()
+            installed_grubby = True
+
+    if installed_grubby:
+        grubby = Grubby(path)
+        installed_version = grubby.get_grubby_version_raw()
+        log.debug('Installed: %s', installed_version)
+
+
+class GrubbyInstallException(Exception):
+    '''
+    Exception that signals failure when doing grubby installation
+    '''
+    pass
+
+
+class Grubby(object):
+    '''
+    Grubby wrapper
+
+    This class calls the grubby binary for most commands, but also
+    adds some functionality that is not really suited to be included
+    in int, such as boot-once.
+    '''
+
+    SUPPORTED_BOOTLOADERS = ('lilo', 'grub2', 'grub', 'extlinux', 'yaboot',
+                             'elilo')
+
+    def __init__(self, path=None, opts=None):
+        if path is None:
+            if os.path.exists(GRUBBY_DEFAULT_USER_PATH):
+                self.path = GRUBBY_DEFAULT_USER_PATH
+            else:
+                self.path = GRUBBY_DEFAULT_SYSTEM_PATH
+        else:
+            self.path = path
+
+        self.bootloader = None
+        self.opts = opts
+        self.log = logging.getLogger(self.__class__.__name__)
+
+        self._check_grubby_version()
+        self._set_bootloader()
+
+
+    #
+    # The following block contain utility functions that are used to build
+    # most of these class methods, such as methods for running commands
+    # and preparing grubby command line switches.
+    #
+    def _check_grubby_version(self):
+        '''
+        Checks the version of grubby in use and warns if it's not good enough
+        '''
+        current_version = self.get_grubby_version()
+        if current_version is None:
+            self.log.warn('Could not detect current grubby version. It may '
+                          'be that you are running an unsupported version '
+                          'of grubby')
+        elif current_version < GRUBBY_REQ_VERSION:
+            self.log.warn('version %s.%s being used is not guaranteed to '
+                          'work properly. Mininum required version is %s.%s.',
+                          current_version[0], current_version[1],
+                          GRUBBY_REQ_VERSION[0], GRUBBY_REQ_VERSION[1])
+
+
+    def _run_get_output(self, arguments):
+        '''
+        Utility function that runs a command and returns command output
+        '''
+        result = None
+        try:
+            result = subprocess.Popen(arguments, shell=False,
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      close_fds=True).stdout.read()
+        except:
+            pass
+
+        if result is not None:
+            result = result.strip()
+        else:
+            self.log.error('_run_get_output error while running: "%s"',
+                           ' '.join(arguments))
+        return result
+
+
+    def _run_get_output_err(self, arguments):
+        '''
+        Utility function that runs a command and returns command output
+        '''
+        result = None
+        try:
+            result = subprocess.Popen(arguments, shell=False,
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      close_fds=True).stdout.read()
+        except:
+            pass
+
+        if result is not None:
+            result = result.strip()
+        else:
+            self.log.error('_run_get_output_err error while running: "%s"',
+                           ' '.join(arguments))
+        return result
+
+
+    def _run_get_return(self, arguments):
+        '''
+        Utility function that runs a command and returns status code
+        '''
+        result = None
+        try:
+            result = subprocess.call(arguments)
+        except OSError:
+            result = -1
+            self.log.error('caught OSError, returning %s', result)
+
+        return result
+
+
+    def _set_bootloader(self, bootloader=None):
+        '''
+        Attempts to detect what bootloader is installed on the system
+
+        The result of this method is used in all other calls to grubby,
+        so that it acts accordingly to the bootloader detected.
+        '''
+        if bootloader is None:
+            result = self.get_bootloader()
+            if result is not None:
+                self.bootloader = result
+        else:
+            if bootloader in self.SUPPORTED_BOOTLOADERS:
+                self.bootloader = bootloader
+            else:
+                raise ValueError('Bootloader "%s" is not supported' %
+                                 bootloader)
+
+
+    def _run_grubby_prepare_args(self, arguments, include_bootloader=True):
+        '''
+        Prepares the argument list when running a grubby command
+        '''
+        args = []
+        args.append(self.path)
+
+        # If a bootloader has been detected, that is, a mode has been set,
+        # it's passed as the first command line argument to grubby
+        if include_bootloader and self.bootloader is not None:
+            args.append('--%s' % self.bootloader)
+
+        # Override configuration file
+        if self.opts is not None and self.opts.config_file:
+            args.append('--config-file=%s' % self.opts.config_file)
+
+        args += arguments
+        return args
+
+
+    def _run_grubby_get_output(self, arguments, include_bootloader=True):
+        '''
+        Utility function that runs grubby with arguments and returns output
+        '''
+        args = self._run_grubby_prepare_args(arguments, include_bootloader)
+        return self._run_get_output(args)
+
+
+    def _run_grubby_get_return(self, arguments, include_bootloader=True):
+        '''
+        Utility function that runs grubby with and returns status code
+        '''
+        args = self._run_grubby_prepare_args(arguments, include_bootloader)
+        return self._run_get_return(args)
+
+
+    def _extract_tarball(self, tarball, directory):
+        '''
+        Extract tarball into the an directory
+
+        This code assume the first (or only) entry is the main directory
+
+        @type tarball: string
+        @param tarball: tarball file path
+        @type directory: string
+        @param directory: directory path
+        @return: path of toplevel directory as extracted from tarball
+        '''
+        f = tarfile.open(tarball)
+        members = f.getmembers()
+        topdir = members[0]
+        assert topdir.isdir()
+        # we can not use extractall() because it is not available on python 2.4
+        for m in members:
+            f.extract(m, directory)
+        return os.path.join(directory, topdir.name)
+
+
+    def _get_entry_indexes(self, info):
+        '''
+        Returns the indexes found in a get_info() output
+
+        @type info: list of lines
+        @param info: result of utility method get_info()
+        @returns: maximum index number
+        '''
+        indexes = []
+        for line in self.get_info_lines():
+            try:
+                key, value = line.split("=")
+                if key == 'index':
+                    indexes.append(int(value))
+            except ValueError:
+                pass
+        return indexes
+
+
+    def _index_for_title(self, title):
+        '''
+        Returns the index of an entry based on the title of the entry
+
+        @type title: string
+        @param title: the title of the entry
+        @returns: the index of the given entry or None
+        '''
+        if self._is_number(title):
+            return title
+
+        info = self.get_info_lines()
+
+        for i in self._get_entry_indexes(info):
+            info = self.get_info(i)
+            if info is None:
+                continue
+            lines = info.splitlines()
+            looking_for = ('title=%s' % title,
+                           'label=%s' % title)
+            for line in lines:
+                if line in looking_for:
+                    return i
+        return None
+
+
+    def _info_filter(self, info, key, value=None):
+        '''
+        Filters info, looking for keys, optionally set with a given value
+
+        @type info: list of lines
+        @param info: result of utility method get_info()
+        @type key: string
+        @param key: filter based on this key
+        @type value: string
+        @param value: filter based on this value
+        @returns: value or None
+        '''
+        for line in info:
+            if value is not None:
+                looking_for = '%s=%s' % (key, value)
+                if line == looking_for:
+                    return line.split("=")[1]
+            else:
+                if line.startswith("%s=" % key):
+                    return line.split("=")[1]
+        return None
+
+
+    def _kernel_for_title(self, title):
+        '''
+        Returns the kernel path for an entry based on its title
+
+        @type title: string
+        @param title: the title of the entry
+        @returns: the kernel path of None
+        '''
+        index = self._index_for_title(title)
+        if index is not None:
+            info = self.get_info_lines(index)
+            kernel = self._info_filter(info, 'kernel')
+            return kernel
+        else:
+            return None
+
+
+    def _is_number(self, data):
+        '''
+        Returns true if supplied data is an int or string with digits
+        '''
+        if isinstance(data, int):
+            return True
+        elif isinstance(data, str) and data.isdigit():
+            return True
+        return False
+
+
+    def _get_entry_selection(self, data):
+        '''
+        Returns a valid grubby parameter for commands such as --update-kernel
+        '''
+        if self._is_number(data):
+            return data
+        elif isinstance(data, str) and data.startswith('/'):
+            # assume it's the kernel filename
+            return data
+        elif isinstance(data, str):
+            return self._kernel_for_title(data)
+        else:
+            raise ValueError("Bad value for 'kernel' parameter. Expecting "
+                             "either and int (index) or string (kernel or "
+                             "title)")
+
+
+    def _remove_duplicate_cmdline_args(self, cmdline):
+        """
+        Remove the duplicate entries in cmdline making sure that the first
+        duplicate occurances are the ones removed and the last one remains
+        (this is in order to not change the semantics of the "console"
+        parameter where the last occurance has special meaning)
+
+        @param cmdline: a space separate list of kernel boot parameters
+            (ex. 'console=ttyS0,57600n8 nmi_watchdog=1')
+        @return: a space separated list of kernel boot parameters without
+            duplicates
+        """
+        copied = set()
+        new_args = []
+
+        for arg in reversed(cmdline.split()):
+            if arg not in copied:
+                new_args.insert(0, arg)
+                copied.add(arg)
+        return ' '.join(new_args)
+
+
+    #
+    # The following methods implement a form of "API" that action methods
+    # can rely on. Another goal is to maintain compatibility with the current
+    # client side API in autotest (client/shared/boottool.py)
+    #
+    def get_bootloader(self):
+        '''
+        Get the bootloader name that is detected on this machine
+
+        This module performs the same action as client side boottool.py
+        get_type() method, but with a better name IMHO.
+
+        @returns: name of detected bootloader
+        '''
+        args = [self.path, '--bootloader-probe']
+        output = self._run_get_output_err(args)
+        if output is None:
+            return None
+        if output.startswith('grubby: bad argument'):
+            return None
+        elif output not in self.SUPPORTED_BOOTLOADERS:
+            return None
+        return output
+
+
+    # Alias for client side boottool.py API
+    get_type = get_bootloader
+
+    # Alias for boottool app
+    bootloader_probe = get_bootloader
+
+
+    def get_architecture(self):
+        '''
+        Get the system architecture
+
+        This is much simpler version then the original boottool version, that
+        does not attempt to filter the result of the command / system call
+        that returns the archicture.
+
+        @returns: string with system archicteture, such as x86_64, ppc64, etc
+        '''
+        return os.uname()[4]
+
+
+    # Alias for boottool app
+    arch_probe = get_architecture
+
+
+    def get_titles(self):
+        '''
+        Get the title of all boot entries.
+
+        @returns: list with titles of boot entries
+        '''
+        titles = []
+        for line in self.get_info_lines():
+            try:
+                key, value = line.split("=")
+                if key in ['title', 'label']:
+                    titles.append(value)
+            except ValueError:
+                pass
+        return titles
+
+
+    def get_default_index(self):
+        '''
+        Get the default entry index.
+
+        This module performs the same action as client side boottool.py
+        get_default() method, but with a better name IMHO.
+
+        @returns: an integer with the the default entry.
+        '''
+        default_index = self._run_grubby_get_output(['--default-index'])
+        if default_index is not None and default_index:
+            default_index = int(default_index)
+        return default_index
+
+
+    # Alias for client side boottool.py API
+    get_default = get_default_index
+
+    # Alias for boottool app
+    default = get_default_index
+
+
+    def set_default_by_index(self, index):
+        """
+        Sets the given entry number to be the default on every next boot
+
+        To set a default only for the next boot, use boot_once() instead.
+
+        This module performs the same action as client side boottool.py
+        set_default() method, but with a better name IMHO.
+
+        Note: both --set-default=<kernel> and --set-default-index=<index>
+        on grubby returns no error when it doesn't find the kernel or
+        index. So this method will, until grubby gets fixed, always return
+        success.
+
+        @param index: entry index number to set as the default.
+        """
+        return self._run_grubby_get_return(['--set-default-index=%s' % index])
+
+
+    # Alias for client side boottool.py API
+    set_default = set_default_by_index
+
+
+    def get_default_title(self):
+        '''
+        Get the default entry title.
+
+        Conforms to the client side boottool.py API, but rely directly on
+        grubby functionality.
+
+        @returns: a string of the default entry title.
+        '''
+        return self._run_grubby_get_output(['--default-title'])
+
+
+    def get_entry(self, search_info):
+        """
+        Get a single bootloader entry information.
+
+        NOTE: if entry is "fallback" and bootloader is grub
+        use index instead of kernel title ("fallback") as fallback is
+        a special option in grub
+
+        @param search_info: can be 'default', position number or title
+        @return a dictionary of key->value where key is the type of entry
+                information (ex. 'title', 'args', 'kernel', etc) and value
+                is the value for that piece of information.
+        """
+        info = self.get_info(search_info)
+        return parse_entry(info)
+
+
+    def get_entries(self):
+        """
+        Get all entries information.
+
+        @return: a dictionary of index -> entry where entry is a dictionary
+                of entry information as described for get_entry().
+        """
+        raw = self.get_info()
+
+        entries = {}
+        for entry_str in raw.split("\nindex"):
+            if len(entry_str.strip()) == 0:
+                continue
+            if entry_str.startswith('boot='):
+                continue
+            entry = parse_entry("index" + entry_str)
+            entries[entry["index"]] = entry
+
+        return entries
+
+    def get_info(self, entry='ALL'):
+        '''
+        Returns information on a given entry, or all of them if not specified
+
+        The information is returned as a set of lines, that match the output
+        of 'grubby --info=<entry>'
+
+        @type entry: string
+        @param entry: entry description, usually an index starting from 0
+        @returns: set of lines
+        '''
+        command = '--info=%s' % entry
+        info = self._run_grubby_get_output([command])
+        if info:
+            return info
+
+
+    def get_title_for_kernel(self, path):
+        """
+        Returns a title for a particular kernel.
+
+        @param path: path of the kernel image configured in the boot config
+        @return: if the given kernel path is found it will return a string
+                with the title for the found entry, otherwise returns None
+        """
+        entries = self.get_entries()
+        for entry in entries.itervalues():
+            if entry.get('kernel') == path:
+                return entry['title']
+        return None
+
+
+    def add_args(self, kernel, args):
+        """
+        Add cmdline arguments for the specified kernel.
+
+        @param kernel: can be a position number (index) or title
+        @param args: argument to be added to the current list of args
+        """
+        entry_selection = self._get_entry_selection(kernel)
+        command_arguments = ['--update-kernel=%s' % entry_selection,
+                             '--args=%s' % args]
+        self._run_grubby_get_return(command_arguments)
+
+
+    def remove_args(self, kernel, args):
+        """
+        Removes specified cmdline arguments.
+
+        @param kernel: can be a position number (index) or title
+        @param args: argument to be removed of the current list of args
+        """
+        entry_selection = self._get_entry_selection(kernel)
+        command_arguments = ['--update-kernel=%s' % entry_selection,
+                             '--remove-args=%s' % args]
+        self._run_grubby_get_return(command_arguments)
+
+
+    def add_kernel(self, path, title='autoserv', root=None, args=None,
+                   initrd=None, default=False, position='end'):
+        """
+        Add a kernel entry to the bootloader (or replace if one exists
+        already with the same title).
+
+        @param path: string path to the kernel image file
+        @param title: title of this entry in the bootloader config
+        @param root: string of the root device
+        @param args: string with cmdline args
+        @param initrd: string path to the initrd file
+        @param default: set to True to make this entry the default one
+                (default False)
+        @param position: where to insert the new entry in the bootloader
+                config file (default 'end', other valid input 'start', or
+                # of the title)
+        @param xen_hypervisor: xen hypervisor image file (valid only when
+                xen mode is enabled)
+        """
+        if title in self.get_titles():
+            self.remove_kernel(title)
+
+        parameters = ['--add-kernel=%s' % path, '--title=%s' % title]
+
+        # FIXME: grubby takes no --root parameter
+        # if root:
+        #     parameters.append('--root=%s' % root)
+
+        if args:
+            parameters.append('--args=%s' %
+                              self._remove_duplicate_cmdline_args(args))
+
+        if initrd:
+            parameters.append('--initrd=%s' % initrd)
+
+        if default:
+            parameters.append('--make-default')
+
+        # There's currently an issue with grubby '--add-to-bottom' feature.
+        # Because it uses the tail instead of the head of the list to add
+        # a new entry, when copying a default entry as a template
+        # (--copy-default), it usually copies the "recover" entries that
+        # usually go along a regular boot entry, specially on grub2.
+        #
+        # So, for now, until I fix grubby, we'll *not* respect the position
+        # (--position=end) command line option.
+        #
+        # if opts.position == 'end':
+        #     parameters.append('--add-to-bottom')
+
+        parameters.append("--copy-default")
+        return self._run_grubby_get_return(parameters)
+
+
+    def remove_kernel(self, kernel):
+        """
+        Removes a specific entry from the bootloader configuration.
+
+        @param kernel: entry position or entry title.
+
+        FIXME: param kernel should also take 'start' or 'end'.
+        """
+        entry_selection = self._get_entry_selection(kernel)
+        if entry_selection is None:
+            self.log.debug('No kernel found for title "%s". Assuming no entry'
+                           ' exists, and emulating boottool(.pl) behavior'
+                           ' and being silent about it.', kernel)
+            return 0
+
+        command_arguments = ['--remove-kernel=%s' % entry_selection]
+        return self._run_grubby_get_return(command_arguments)
+
+
+    #
+    # The following methods are not present in the original client side
+    # boottool.py
+    #
+    def get_info_lines(self, entry='ALL'):
+        '''
+        Returns information on a given entry, or all of them if not specified
+
+        The information is returned as a set of lines, that match the output
+        of 'grubby --info=<entry>'
+
+        @type entry: string
+        @param entry: entry description, usually an index starting from 0
+        @returns: set of lines
+        '''
+        info = self.get_info(entry)
+        if info:
+            return info.splitlines()
+
+
+    def get_grubby_version_raw(self):
+        '''
+        Get the version of grubby that is installed on this machine as is
+
+        @returns: string with raw output from grubby --version
+        '''
+        return self._run_grubby_get_output(['--version'], False)
+
+
+    def get_grubby_version(self):
+        '''
+        Get the version of grubby that is installed on this machine
+
+        @returns: tuple with (major, minor) grubby version
+        '''
+        output = self.get_grubby_version_raw()
+        if output is None:
+            self.log.warn('Could not run grubby to fetch its version')
+            return None
+
+        match = re.match('(grubby version)?(\s)?(\d+)\.(\d+)(.*)', output)
+        if match:
+            groups = match.groups()
+            return (int(groups[2]), int(groups[3]))
+        else:
+            return None
+
+
+    def grubby_install_patch_makefile(self):
+        '''
+        Patch makefile, making CFLAGS more forgivable to older toolchains
+        '''
+        cflags_line = 'CFLAGS += $(RPM_OPT_FLAGS) -std=gnu99 -ggdb\n'
+        libs_line = 'grubby_LIBS = -lblkid -lpopt -luuid\n'
+        shutil.move('Makefile', 'Makefile.boottool.bak')
+        o = open('Makefile', 'w')
+        for l in open('Makefile.boottool.bak').readlines():
+            if l.startswith('CFLAGS += '):
+                o.write(cflags_line)
+            elif l.startswith('grubby_LIBS = -lblkid -lpopt'):
+                o.write(libs_line)
+            else:
+                o.write(l)
+        o.close()
+
+
+    def grubby_install_backup(self, path):
+        '''
+        Backs up the current grubby binary to make room the one we'll build
+
+        @type path: string
+        @param path: path to the binary that should be backed up
+        '''
+        backup_path = '%s.boottool.bkp' % path
+        if (os.path.exists(path)
+            and not os.path.exists(backup_path)):
+            try:
+                shutil.move(path, backup_path)
+            except:
+                self.log.warn('Failed to backup the current grubby binary')
+
+
+    def grubby_install_fetch_tarball(self, topdir):
+        '''
+        Fetches and verifies the grubby source tarball
+        '''
+        tarball_name = os.path.basename(GRUBBY_TARBALL_URI)
+        tarball = os.path.join(topdir, tarball_name)
+
+        try:
+            urllib.urlretrieve(GRUBBY_TARBALL_URI, tarball)
+        except:
+            return False
+
+        tarball_md5 = md5.md5(open(tarball).read()).hexdigest()
+        if tarball_md5 != GRUBBY_TARBALL_MD5:
+            return False
+
+        return True
+
+
+    def grubby_build(self, topdir, tarball):
+        '''
+        Attempts to build grubby from the source tarball
+        '''
+        def log_lines(lines):
+            for line in lines:
+                self.log.debug(line.strip())
+
+        tarball_name = os.path.basename(tarball)
+
+        srcdir = os.path.join(topdir, 'src')
+        srcdir = self._extract_tarball(tarball, srcdir)
+        os.chdir(srcdir)
+        self.grubby_install_patch_makefile()
+        result = subprocess.Popen(['make'],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+        if result.wait() != 0:
+            self.log.debug('Failed to build grubby during "make" step')
+            log_lines(result.stderr.read().splitlines())
+            return False
+
+        install_root = os.path.join(topdir, 'install_root')
+        os.environ['DESTDIR'] = install_root
+        result = subprocess.Popen(['make', 'install'],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+        if result.wait() != 0:
+            self.log.debug('Failed to build grubby during "make install" step')
+            log_lines(result.stderr.read().splitlines())
+            return False
+        return True
+
+
+    def grubby_install(self, path=None):
+        '''
+        Attempts to install a recent enough version of grubby
+
+        So far tested on:
+           * Fedora 16 x86_64
+           * Debian 6 x86_64
+           * SuSE 12.1 x86_64
+           * RHEL 4 on ia64 (with updated python 2.4)
+           * RHEL 5 on ia64
+           * RHEL 6 on ppc64
+        '''
+        if path is None:
+            if os.geteuid() == 0:
+                path = GRUBBY_DEFAULT_SYSTEM_PATH
+            else:
+                path = GRUBBY_DEFAULT_USER_PATH
+
+        topdir = tempfile.mkdtemp()
+
+        if not self.grubby_install_fetch_tarball(topdir):
+            raise GrubbyInstallException('Failed to fetch grubby tarball')
+
+        tarball_name = os.path.basename(GRUBBY_TARBALL_URI)
+        tarball = os.path.join(topdir, tarball_name)
+
+        srcdir = os.path.join(topdir, 'src')
+        install_root = os.path.join(topdir, 'install_root')
+        os.mkdir(install_root)
+
+        if not self.grubby_build(topdir, tarball):
+            raise GrubbyInstallException('Failed to build grubby')
+
+        self.grubby_install_backup(path)
+
+        grubby_bin = os.path.join(install_root, 'sbin', 'grubby')
+        inst_dir = os.path.dirname(path)
+        if not os.access(inst_dir, os.W_OK):
+            raise GrubbyInstallException('No permission to copy grubby '
+                                         'binary to directory "%s"' % inst_dir)
+        try:
+            shutil.copy(grubby_bin, path)
+        except:
+            raise GrubbyInstallException('Failed to copy grubby binary to '
+                                         'directory "%s"' % inst_dir)
+
+        return path
+
+
+    def boot_once(self, title=None):
+        '''
+        Configures the bootloader to boot an entry only once
+
+        This is not implemented by grubby, but directly implemented here, via
+        the 'boot_once_<bootloader>' method.
+        '''
+        self.log.debug('Title chosen to boot once: %s', title)
+
+        available_titles = self.get_titles()
+        if title not in available_titles:
+            self.log.error('Entry with title "%s" was not found', title)
+            return -1
+
+        default_title = self.get_default_title()
+        self.log.debug('Title actually set as default: %s', default_title)
+
+        if default_title == title:
+            self.log.info('Doing nothing: entry to boot once is the same as '
+                          'default entry')
+            return
+        else:
+            self.log.debug('Setting boot once for entry: %s', title)
+
+
+        bootloader = self.get_bootloader()
+        if bootloader in ('grub', 'grub2', 'elilo'):
+            entry_index = self._index_for_title(title)
+            if entry_index is None:
+                self.log.error('Could not find index for entry with title '
+                               '"%s"', title)
+                return -1
+
+        if bootloader == 'grub':
+            return self.boot_once_grub(entry_index)
+        elif bootloader == 'grub2':
+            return self.boot_once_grub2(entry_index)
+        elif bootloader == 'yaboot':
+            return self.boot_once_yaboot(title)
+        elif bootloader == 'elilo':
+            return self.boot_once_elilo(entry_index)
+        else:
+            self.log.error("Detected bootloader does not implement boot once")
+            return -1
+
+
+    def boot_once_grub(self, entry_index):
+        '''
+        Implements the boot once feature for the grub bootloader
+        '''
+        # XXX: check the type of default set (numeric or "saved")
+        grub_instructions = ['savedefault --default=%s --once' % entry_index,
+                             'quit']
+        grub_instructions_text = '\n'.join(grub_instructions)
+        grub_binary = '/sbin/grub'
+
+        p = subprocess.Popen([grub_binary, '--batch'],
+                             stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        out, err = p.communicate(grub_instructions_text)
+
+        if err is not None:
+            harmless = ['Probing devices to guess BIOS drives. '
+                        'This may take a long time.']
+            err_lines = err.splitlines()
+            err_harmful = [l for l in err_lines if l and l not in harmless]
+
+            if err_harmful:
+                self.log.error("Error while running grub to set boot once: %s",
+                               "\n".join(err_harmful))
+                return False
+
+        self.log.debug('No error detected while running grub to set boot once')
+        return 0
+
+
+    def boot_once_grub2(self, entry_index):
+        '''
+        Implements the boot once feature for the grub2 bootloader
+
+        Caveat: this assumes the default set is of type "saved", and not a
+        numeric value.
+        '''
+        grub_reboot_names = ['grub-reboot',
+                             'grub2-reboot']
+        executable = None
+        for grub_reboot in grub_reboot_names:
+            executable = find_executable(grub_reboot)
+            if executable is not None:
+                break
+
+        if executable is None:
+            self.log.error('Could not find executable among searched names: '
+                           '%s',' ,'.join(grub_reboot_names))
+            return -1
+
+        return self._run_get_return([executable,
+                                     '%s' % entry_index])
+
+
+    def boot_once_yaboot(self, entry_title):
+        '''
+        Implements the boot once feature for the yaboot bootloader
+        '''
+        return self._run_get_return(['/usr/sbin/nvsetenv',
+                                     'boot-once',
+                                     entry_title])
+
+
+    def boot_once_elilo(self, entry_index):
+        '''
+        Implements boot once for machines with kernel >= 2.6
+
+        This manipulates EFI variables via the interface available at
+        /sys/firmware/efi/vars
+        '''
+        info = self.get_entry(entry_index)
+        kernel = os.path.basename(info['kernel'])
+
+        # remove quotes
+        args = info['args']
+        if args[0] == '"':
+            args = args[1:]
+        if args[-1] == '"':
+            args = args[:-1]
+
+        params = "root=%s %s" % (info['root'], args)
+        data = "%s %s" % (kernel, params)
+
+        efi = EfiToolSys()
+        if not (efi.create_variable('EliloAlt', data)):
+            return -1
+
+        eliloconf = EliloConf()
+        eliloconf.add_global_option('checkalt')
+        eliloconf.add_global_option('initrd', os.path.basename(info['initrd']))
+        eliloconf.remove_global_option('prompt')
+        eliloconf.update()
+        return 0
+
+
+class OptionParser(optparse.OptionParser):
+    '''
+    Command line option parser
+
+    Aims to maintain compatibility at the command line level with boottool
+    '''
+
+    option_parser_usage = '''%prog [options]'''
+
+    def __init__(self, **kwargs):
+        optparse.OptionParser.__init__(self,
+                                       usage=self.option_parser_usage,
+                                       **kwargs)
+
+        misc = self.add_option_group('MISCELLANEOUS OPTIONS')
+        misc.add_option('--config-file',
+                        help='Specifies the path and name of the bootloader '
+                        'config file, overriding autodetection of this file')
+
+        misc.add_option('--force', action='store_true',
+                        help='If specified, any conflicting kernels will be '
+                        'removed')
+
+        misc.add_option('--bootloader',
+                        help='Manually specify the bootloader to use.  By '
+                        'default, boottool will automatically try to detect '
+                        'the bootloader being used')
+
+        misc.add_option('--root',
+                        help='The device where the root partition is located')
+
+        misc.add_option('--debug', default=0,
+                        help='Prints debug messages. This expects a numerical '
+                        'argument corresponding to the debug message '
+                        'verbosity')
+
+        probe = self.add_option_group('SYSTEM PROBING')
+        probe.add_option('--bootloader-probe', action='store_true',
+                         help='Prints the bootloader in use on the system '
+                         'and exits')
+
+        probe.add_option('--arch-probe', action='store_true',
+                         help='Prints the arch of the system and exits')
+
+        actions = self.add_option_group('ACTIONS ON BOOT ENTRIES')
+        actions.add_option('--add-kernel',
+                           help='Adds a new kernel with the given path')
+
+        actions.add_option('--remove-kernel',
+                           help='Removes the bootloader entry with the given '
+                           'position or title. Also accepts \'start\' or '
+                           '\'end\'')
+
+        actions.add_option('--update-kernel',
+                           help='Updates an existing kernel with the given '
+                           'position number or title. Useful options when '
+                           'modifying a kernel include --args and '
+                           '--remove-args')
+
+        actions.add_option('--info',
+                        help='Display information about the bootloader entry '
+                        'at the given position number. Also accepts \'all\' '
+                        'or \'default\'')
+
+        actions.add_option('--default', action='store_true',
+                           help='Prints the current default kernel for the '
+                           'bootloader')
+
+        actions.add_option('--set-default',
+                           help='Updates the bootloader to set the default '
+                           'boot entry to given given position or title')
+
+        actions.add_option('--install', action='store_true',
+                           help='Causes bootloader to update and re-install '
+                           'the bootloader file')
+
+        actions.add_option('--boot-once', action='store_true',
+                           help='Causes the bootloader to boot the kernel '
+                           'specified by --title just one time, then fall back'
+                           ' to the default entry. This option does not work '
+                           'identically on all architectures')
+
+        act_args = self.add_option_group('ACTION PARAMETERS')
+        act_args.add_option('--title',
+                            help='The title or label to use for the '
+                            'bootloader entry. Required when adding a new '
+                            'entry.')
+
+        act_args.add_option('--position',
+                            help='Insert bootloader entry at the given '
+                            'position number, counting from 0. Also accepts '
+                            '\'start\' or \'end\'. Optional when adding a new '
+                            'entry.')
+
+        act_args.add_option('--make-default', action='store_true',
+                            help='Specifies that the bootloader entry being '
+                            'added should be the new default')
+
+        kernel = self.add_option_group('LINUX KERNEL PARAMETERS',
+                                       'Options specific to manage boot '
+                                       'entries with Linux')
+        kernel.add_option('--args',
+                          help='Add arguments to be passed to the kernel at '
+                          'boot. Use when adding a new entry or when '
+                          'modifying an existing entry.')
+
+        kernel.add_option('--remove-args',
+                          help='Arguments to be removed from an existing entry'
+                          '. Use when modifying an existing entry with '
+                          '--update-kernel action.')
+
+        kernel.add_option('--initrd',
+                          help='The initrd image path to use in the bootloader '
+                          'entry')
+
+        kernel.add_option('--module',
+                          help='This option adds modules to the new kernel. It'
+                          ' only works with Grub Bootloader. For more module '
+                          'options just add another --module parameter')
+
+        grubby = self.add_option_group('GRUBBY',
+                                       'Manage grubby, the tool that drives '
+                                       'most of boottool functionality')
+        grubby.add_option('--grubby-version', action='store_true',
+                          help='Prints the version of grubby installed on '
+                          'this machine')
+
+        grubby.add_option('--grubby-version-check',
+                          help='Checks if the installed version of grubby is '
+                          'recent enough')
+
+        grubby.add_option('--grubby-install', action='store_true',
+                          help='Attempts to install a recent enought version '
+                          'of grubby')
+
+        grubby.add_option('--grubby-path',
+                          help='Use a different grubby binary, located at the '
+                          'given path')
+
+
+    def opts_has_action(self, opts):
+        '''
+        Checks if (parsed) opts has a first class action
+        '''
+        global ACTIONS_OPT_METHOD_NAME
+        has_action = False
+        for action in ACTIONS_OPT_METHOD_NAME:
+            value = getattr(opts, action)
+            if value is not None:
+                has_action = True
+        return has_action
+
+
+    def opts_get_action(self, opts):
+        '''
+        Gets the selected action from the parsed opts
+        '''
+        global ACTIONS_OPT_METHOD_NAME
+        for action in ACTIONS_OPT_METHOD_NAME:
+            value = getattr(opts, action)
+            if value is not None:
+                return action
+        return None
+
+
+    def check_values(self, opts, args):
+        '''
+        Validate the option the user has supplied
+        '''
+        # check if an action has been selected
+        if not self.opts_has_action(opts):
+            self.print_help()
+            raise SystemExit
+
+        # check if action needs a --title option
+        action = self.opts_get_action(opts)
+        if action in ACTIONS_REQUIRE_TITLE:
+            if opts.title is None:
+                print 'Action %s requires a --title parameter' % action
+                raise SystemExit
+
+        return (opts, args)
+
+
+class BoottoolApp(object):
+    '''
+    The boottool application itself
+    '''
+    def __init__(self):
+        self.opts = None
+        self.args = None
+        self.option_parser = OptionParser()
+        self.grubby = None
+        self.log = logging.getLogger(self.__class__.__name__)
+
+
+    def _parse_command_line(self):
+        '''
+        Parsers the command line arguments
+        '''
+        (self.opts,
+         self.args) = self.option_parser.parse_args()
+
+
+    def _configure_logging(self):
+        '''
+        Configures logging based on --debug= command line switch
+
+        We do not have as many levels as the original boottool(.pl) had, but
+        we accept the same range of parameters and adjust it to our levels.
+        '''
+        log_map = {0 : logging.WARNING,
+                   1 : logging.INFO,
+                   2 : logging.DEBUG}
+        try:
+            level = int(self.opts.debug)
+        except ValueError:
+            level = 0
+
+        max_level = max(log_map.keys())
+        if level > max_level:
+            level = max_level
+
+        logging_level = log_map.get(level)
+        logging.basicConfig(level=logging_level,
+                            format=LOGGING_FORMAT)
+
+
+    def run(self):
+        self._parse_command_line()
+        self._configure_logging()
+
+        # if we made this far, the command line checking succeeded
+        if self.opts.grubby_path:
+            self.grubby = Grubby(self.opts.grubby_path, self.opts)
+        else:
+            install_grubby_if_necessary()
+            self.grubby = Grubby(opts=self.opts)
+
+        if self.opts.bootloader:
+            self.log.debug('Forcing bootloader "%s"', self.opts.bootloader)
+            try:
+                self.grubby._set_bootloader(self.opts.bootloader)
+            except ValueError, msg:
+                self.log.error(msg)
+                sys.exit(-1)
+
+        #
+        # The following implements a simple action -> method dispatcher
+        # First, we look for a method named action_ + action_name on the
+        # app instance itself. If not found, we try to find a method with
+        # the same name as the action in the grubby instance.
+        #
+        action_name = self.option_parser.opts_get_action(self.opts)
+        try:
+            action_method = getattr(self, "action_%s" % action_name)
+        except AttributeError:
+            action_method = getattr(self.grubby, action_name)
+
+        if action_method:
+            result = action_method()
+            if result is None:
+                result = 0
+            elif isinstance(result, str):
+                print result
+                result = 0
+            sys.exit(result)
+
+
+    #
+    # The following block implements actions. Actions are methods that will be
+    # called because of user supplied parameters on the command line. Most
+    # actions, such as the ones that query information, are built around the
+    # "API" methods defined in the previous block
+    #
+    def action_grubby_version(self):
+        '''
+        Prints the of grubby that is installed on this machine
+        '''
+        version = self.grubby.get_grubby_version()
+        if version is not None:
+            print "%s.%s" % version
+            return
+
+        version = self.grubby.get_grubby_version_raw()
+        if version is not None:
+            print version
+
+
+    def action_grubby_version_check(self):
+        '''
+        Prints the of grubby that is installed on this machine
+        '''
+        current_version = self.grubby.get_grubby_version()
+        if current_version is None:
+            self.log.warn('Could not get version numbers from grubby')
+            return -1
+
+        required_version = self.opts.grubby_version_check.split('.', 1)
+        required_version_major = required_version[0]
+        if len(required_version) == 1:
+            req_version = (int(required_version_major), 0)
+        else:
+            req_version = (int(required_version_major),
+                           int(required_version[1]))
+
+        if current_version >= req_version:
+            return 0
+        else:
+            return -1
+
+
+    def action_grubby_install(self):
+        '''
+        Attempts to install a recent enough version of grubby
+        '''
+        return self.grubby.grubby_install()
+
+
+    def action_info(self):
+        '''
+        Prints boot entry information
+
+        boottool is frequently called with 'all' lowercase, but
+        grubby expects it to be uppercase
+        '''
+        if not self.opts.info:
+            self.log.error('Parameter to info is required')
+            return -1
+
+        info_index = self.opts.info
+        if not ((info_index.lower() == 'all') or
+                (self.opts.info.isdigit())):
+            self.log.error('Parameter to info should be either "all", "ALL" '
+                           'or an integer index')
+            return -1
+
+        if info_index == 'all':
+            info_index = 'ALL'
+
+        if info_index == 'ALL':
+            entries = self.grubby.get_entries()
+        else:
+            entries = { info_index : self.grubby.get_entry(info_index) }
+
+        for index, entry in entries.items():
+            print
+            for key, val in entry.items():
+                # remove quotes
+                if isinstance(val, str):
+                    if val.startswith('"') and val.endswith('"'):
+                        val = val[1:-1]
+
+                print '%-8s: %s' % (key, val)
+
+
+    def action_add_kernel(self):
+        '''
+        Adds a new boot entry based on the values of other command line options
+
+        @type opts: object
+        @param opts: parsed command line options
+        @returns:
+        '''
+        if not self.opts.add_kernel:
+            self.log.error("Kernel to add is required")
+            return -1
+
+        if not self.opts.title:
+            self.log.error("Kernel title is required")
+            return -1
+
+        if not self.opts.initrd:
+            self.log.error("initrd is required")
+            return -1
+
+        return self.grubby.add_kernel(self.opts.add_kernel,
+                                      self.opts.title,
+                                      args=self.opts.args,
+                                      initrd=self.opts.initrd)
+
+
+    def action_update_kernel(self):
+        '''
+        Updates a kernel entry
+        '''
+        if not self.opts.update_kernel:
+            self.log.error("Kernel title to update is required")
+            return -1
+
+        args = []
+
+        kernel = self.grubby._get_entry_selection(self.opts.update_kernel)
+        if kernel is not None:
+            args.append("--update-kernel=%s" % kernel)
+
+        if self.opts.args:
+            args.append("--args=%s" % self.opts.args)
+
+        if self.opts.remove_args:
+            args.append("--remove-args=%s" % self.opts.remove_args)
+
+        return self.grubby._run_grubby_get_return(args)
+
+
+    def action_remove_kernel(self):
+        '''
+        Removes a boot entry by the specified title
+
+        boottool expects: title
+        grubby expects: kernel path or special syntax (eg, TITLE=)
+        '''
+        if not self.opts.remove_kernel:
+            self.log.error("Kernel title to remove is required")
+            return -1
+
+        return self.grubby.remove_kernel(self.opts.remove_kernel)
+
+
+    def action_boot_once(self):
+        """
+        Sets a specific entry for the next boot only
+
+        The subsequent boots will use the default kernel
+        """
+        if not self.opts.boot_once:
+            self.log.error("Kernel to boot once is required")
+
+        return self.grubby.boot_once(self.opts.title)
+
+
+    def action_default(self):
+        """
+        Get the default entry index
+        """
+        print self.grubby.get_default_index()
+
+
+    def action_set_default(self):
+        """
+        Sets the given entry number to be the default on every next boot
+        """
+        if not self.opts.set_default:
+            self.log.error("Entry index is required")
+
+        return self.grubby.set_default_by_index(self.opts.set_default)
+
+
+if __name__ == '__main__':
+    app = BoottoolApp()
+    app.run()
+else:
+    logging.basicConfig(level=logging.INFO,
+                        format=LOGGING_FORMAT)

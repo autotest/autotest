@@ -1,6 +1,6 @@
 import os
-from autotest_lib.client.bin import utils
-from autotest_lib.client.common_lib import error
+from autotest.client import utils
+from autotest.client.shared import error
 
 
 def run_unittest_kvmctl(test, params, env):

@@ -1,0 +1,160 @@
+#!/usr/bin/python
+import os, sys, shutil, glob, optparse, logging
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+from autotest.tko import db
+from autotest.client.shared import global_config
+from autotest.client.shared import logging_manager, logging_config
+from autotest.client import utils
+
+GLOBAL_CONFIG = global_config.global_config
+ERROR_NO_RESULTS_AVAILABLE = 1
+ERROR_WRONG_INPUT = 2
+ERROR_USER_ABORT = 3
+
+class DeleteJobLoggingConfig(logging_config.LoggingConfig):
+    """
+    Used with the sole purpose of providing convenient logging setup
+    for this program.
+    """
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(DeleteJobLoggingConfig, self).configure_logging(use_console=True,
+                                                              verbose=verbose)
+
+
+def get_results_dir():
+    results_dir = ""
+    results_dir_list = []
+    tko_dir_relative = os.path.dirname(os.path.abspath(sys.argv[0]))
+    results_dir_relative = os.path.abspath(os.path.join(tko_dir_relative, '..',
+                                                        'results'))
+
+    top_path = GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path',
+                                              default='/usr/local/autotest')
+    results_dir_absolute = os.path.abspath(os.path.join(top_path, 'results'))
+
+    if results_dir_absolute == results_dir_relative:
+        results_dir_list = [results_dir_absolute]
+    else:
+        results_dir_list = [results_dir_absolute, results_dir_relative]
+
+    for d in results_dir_list:
+        if glob.glob(os.path.join(d, '*')):
+            results_dir = d
+            break
+
+    if not results_dir:
+        logging.error("No results available under %s", results_dir_list)
+        sys.exit(ERROR_NO_RESULTS_AVAILABLE)
+
+    return results_dir
+
+
+def get_tags_by_range(range):
+    tag_list = []
+    results_dir = get_results_dir()
+    for job_index in range:
+        base_dir = '%d-autotest' % job_index
+        os.chdir(results_dir)
+        subdirs = glob.glob(os.path.join(base_dir, "*"))
+        for subdir in subdirs:
+            if os.path.isdir(subdir):
+                tag_list.append(subdir)
+
+    return tag_list
+
+
+def get_tags_list(option):
+    tag_list = []
+    if option.isdigit():
+        tag_list = get_tags_by_range([int(option)])
+    else:
+        range = option.split("-")
+        if len(range) != 2:
+            logging.error("Wrong range format, expected int-int string")
+            sys.exit(ERROR_WRONG_INPUT)
+        try:
+            inf = int(range[0])
+            sup = int(range[1])
+        except ValueError:
+            logging.error("Wrong range format, expected int-int string")
+            sys.exit(ERROR_WRONG_INPUT)
+        if not sup > inf:
+            logging.error("Job range has to be an increasing sequence")
+            sys.exit(ERROR_WRONG_INPUT)
+        range = xrange(int(range[0]), int(range[1]) + 1)
+        tag_list = get_tags_by_range(range)
+
+    return tag_list
+
+
+if __name__ == '__main__':
+    logging_manager.configure_logging(DeleteJobLoggingConfig(), verbose=True)
+    parser = optparse.OptionParser(usage="%prog [options]")
+    parser.add_option("-r", action="store", type="string",
+                      dest="range",
+                      default="",
+                      help="range of jobs you want to delete. ex: 1-100")
+    parser.add_option("-t", action="store", type="string",
+                      dest="tag",
+                      default="",
+                      help=("specific job tag you want to delete. ex: "
+                            "112-autotest/test.foobar.com"))
+    parser.add_option("-d", action="store_true",
+                      dest="dry_run",
+                      default=False,
+                      help=("Just simulate deletion"))
+    parser.add_option("-y", action="store_true",
+                      dest="auto",
+                      default=False,
+                      help=("Don't ask for confirmation before deleting"))
+
+
+    options, args = parser.parse_args()
+    if args:
+        parser.print_help()
+        sys.exit(ERROR_WRONG_INPUT)
+
+    if not options:
+        parser.print_help()
+        sys.exit(ERROR_WRONG_INPUT)
+
+    if not options.range and not options.tag:
+        parser.print_help()
+        sys.exit(ERROR_WRONG_INPUT)
+
+    if options.range:
+        tag_list = get_tags_list(options.range)
+
+    elif options.tag:
+        tag_list = [options.tag]
+
+    db = db.db()
+
+    logging.info("The following job tags were found:")
+    for tag in tag_list:
+        logging.info("    %s" % tag)
+    answer = utils.ask("Do you want to delete them?", auto=options.auto)
+
+    if answer == 'y':
+        for tag in tag_list:
+            if not db.find_job(tag):
+                logging.error("Job tag %s does not exist in database" % tag)
+            else:
+                logging.info("Deleting job tag %s" % tag)
+                if not options.dry_run:
+                    db.delete_job(tag)
+
+            results_dir = get_results_dir()
+            results_dir = os.path.abspath(os.path.join(results_dir, tag))
+            if not os.path.isdir(results_dir):
+                logging.error("Job directory %s does not exist" % results_dir)
+            else:
+                logging.info("Deleting job directory %s" % results_dir)
+                if not options.dry_run:
+                    shutil.rmtree(results_dir)
+    else:
+        logging.info("Aborting...")
+        sys.exit(ERROR_USER_ABORT)

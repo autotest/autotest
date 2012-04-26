@@ -38,6 +38,10 @@ usb_type_tablet1 = usb-tablet
 # USB Controller type which device uses.
 usb_controller_tablet1 = uhci
 
+# Emulated machine type, run following command to see supported machine type.
+# qemu-kvm -M ?
+# machine_type = pc
+
 
 
 ##### Low-level parameters for platform, networking, block, and usb devices.
@@ -199,8 +203,7 @@ keep_video_files_on_error = yes
 # Default remote shell port (SSH under linux)
 shell_port = 22
 # If you need more ports to be available for comm between host and guest,
-# please add them here
-priv_bridge_ports = 53 67
+# please see https://github.com/autotest/autotest/wiki/KVMAutotest-Networking
 
 # Default scheduler params
 used_cpus = 1
@@ -241,3 +244,8 @@ netdev_peer_re = "\s{2,}(.*?): .*?\\\s(.*?):"
 # netdev_peer_re = "\s{2,}(.*?): .*?\s{2,}(.*?):"
 # for RHEL6 host, the regex should be:
 # netdev_peer_re = "\s{2,}(.*?):.*?peer=(.*?)\n"
+
+image_clone_commnad = 'cp --reflink=auto %s %s'
+image_remove_commnad = 'rm -rf %s'
+
+indirect_image_blacklist = "/dev/hda.* /dev/sda.* /dev/sg0 /dev/md0"

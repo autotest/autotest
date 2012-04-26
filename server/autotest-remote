@@ -10,7 +10,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.server import autoserv
+from autotest.server import autoserv
 
 
 if __name__ == '__main__':

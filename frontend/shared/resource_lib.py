@@ -4,8 +4,8 @@ import django.core.exceptions
 from django.core import urlresolvers
 from django.utils import datastructures
 import simplejson
-from autotest_lib.frontend.shared import exceptions, query_lib
-from autotest_lib.frontend.afe import model_logic
+from autotest.frontend.shared import exceptions, query_lib
+from autotest.frontend.afe import model_logic
 
 
 _JSON_CONTENT_TYPE = 'application/json'

@@ -1,6 +1,6 @@
 import logging
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_utils
+from autotest.client.shared import error
+from autotest.client.virt import virt_utils
 
 
 def run_kdump(test, params, env):

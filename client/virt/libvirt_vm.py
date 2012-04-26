@@ -5,8 +5,8 @@ Utility classes and functions to handle Virtual Machine creation using libvirt.
 """
 
 import time, os, logging, fcntl, re, commands, shutil, urlparse
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils, os_dep
+from autotest.client.shared import error
+from autotest.client import utils, os_dep
 from xml.dom import minidom
 import virt_utils, virt_vm, aexpect
 
@@ -663,6 +663,12 @@ class VM(virt_vm.BaseVM):
         def add_name(help, name):
             return " --name '%s'" % name
 
+        def add_machine_type(help, machine_type):
+            if has_option(help, "machine"):
+                return " --machine %s" % machine_type
+            else:
+                return ""
+
         def add_hvm_or_pv(help, hvm_or_pv):
             if hvm_or_pv == "hvm":
                 return " --hvm --accelerate"
@@ -699,6 +705,12 @@ class VM(virt_vm.BaseVM):
         def add_pxe(help):
             if has_option(help, "pxe"):
                 return " --pxe"
+            else:
+                return ""
+
+        def add_import(help):
+            if has_option(help, "import"):
+                return " --import"
             else:
                 return ""
 
@@ -840,6 +852,10 @@ class VM(virt_vm.BaseVM):
         # Add the VM's name
         virt_install_cmd += add_name(help, name)
 
+        machine_type = params.get("machine_type")
+        if machine_type:
+            virt_install_cmd += add_machine_type(help, machine_type)
+
         mem = params.get("mem")
         if mem:
             virt_install_cmd += add_mem(help, mem)
@@ -870,8 +886,7 @@ class VM(virt_vm.BaseVM):
         elif params.get("medium") == 'cdrom':
             if params.get("use_libvirt_cdrom_switch") == 'yes':
                 virt_install_cmd += add_cdrom(help, params.get("cdrom_cd1"))
-            elif ((self.driver_type == 'xen') and
-                  (params.get('hvm_or_pv') == 'hvm')):
+            elif params.get("unattended_delivery_method") == "integrated":
                 virt_install_cmd += add_cdrom(help,
                                               params.get("cdrom_unattended"))
             else:
@@ -886,6 +901,9 @@ class VM(virt_vm.BaseVM):
                                  pxeboot_link)
                     shutil.rmtree(pxeboot_link)
                 os.symlink(kernel_dir, pxeboot_link)
+
+        elif params.get("medium") == "import":
+            virt_install_cmd += add_import(help)
 
         if location:
             virt_install_cmd += add_location(help, location)
@@ -933,7 +951,7 @@ class VM(virt_vm.BaseVM):
 
         for image_name in params.objects("images"):
             image_params = params.object_params(image_name)
-            filename = virt_vm.get_image_filename(image_params, root_dir)
+            filename = virt_utils.get_image_filename(image_params, root_dir)
             if image_params.get("use_storage_pool") == "yes":
                 filename = None
             if image_params.get("boot_drive") == "no":
@@ -950,7 +968,8 @@ class VM(virt_vm.BaseVM):
                                   image_params.get("drive_cache"),
                                   image_params.get("image_format"))
 
-        if self.driver_type == 'qemu':
+        if (params.get('unattended_delivery_method') != 'integrated' and
+            not (self.driver_type == 'xen' and params.get('hvm_or_pv') == 'pv')):
             for cdrom in params.objects("cdroms"):
                 cdrom_params = params.object_params(cdrom)
                 iso = cdrom_params.get("cdrom")
@@ -1075,6 +1094,8 @@ class VM(virt_vm.BaseVM):
 
         # Verify the md5sum of the ISO images
         for cdrom in params.objects("cdroms"):
+            if params.get("medium") == "import":
+                break
             cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
             if ((self.driver_type == 'xen') and

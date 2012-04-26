@@ -7,7 +7,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.server import utils
+from autotest.server import utils
 
 
 class UtilsTest(unittest.TestCase):

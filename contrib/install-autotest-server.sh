@@ -4,6 +4,9 @@ ATHOME=/usr/local/autotest
 DATETIMESTAMP=$(date "+%m-%d-%Y-%H-%M-%S")
 BASENAME=$(echo $(basename $0) | cut -f1 -d '.')
 LOG="/tmp/$BASENAME-$DATETIMESTAMP.log"
+ATPASSWD=
+MYSQLPW=
+INSTALL_PACKAGES_ONLY=0
 
 print_log() {
 echo $(date "+%H:%M:%S") $1 '|' $2 | tee -a $LOG
@@ -15,16 +18,17 @@ usage: $0 [options]
 
 This script installs the autotest server on a given Fedora 16 system.
 
-OPTIONS:
+GENERAL OPTIONS:
    -h      Show this message
    -u      Autotest user password
    -d      Autotest MySQL database password
+
+INSTALLATION STEP SELECTION:
+   -p      Only install packages
 EOF
 }
 
-ATPASSWD=
-MYSQLPW=
-while getopts "hu:d:" OPTION
+while getopts "hu:d:p" OPTION
 do
      case $OPTION in
          h)
@@ -37,6 +41,9 @@ do
          d)
              MYSQLPW=$OPTARG
              ;;
+         p)
+             INSTALL_PACKAGES_ONLY=1
+             ;;
          ?)
              usage
              exit
@@ -44,16 +51,15 @@ do
      esac
 done
 
+check_command_line_params() {
 if [[ -z $ATPASSWD ]] || [[ -z $MYSQLPW ]]
 then
      usage
      exit 1
 fi
+}
 
-print_log "INFO" "Installing the Autotest server"
-print_log "INFO" "A log of operation is kept in $LOG"
-print_log "INFO" "Install started at: $(date)"
-
+check_disk_space() {
 LOCALFREE=$(df -kP /usr/local | awk '{ print $4 }' | grep -v Avai)
 VARFREE=$(df -kP /var | awk '{ print $4 }' | grep -v Avai)
 
@@ -73,7 +79,9 @@ then
     print_log "ERROR" "You should have more free space in /var"
     exit 1
 fi
+}
 
+setup_substitute() {
 if [ ! -x /usr/local/bin/substitute ]
 then
     mkdir -p /usr/local/bin
@@ -144,10 +152,12 @@ EOF
     chmod +x /usr/local/bin/substitute
 
 fi
+}
 
+setup_epel_repo() {
 if [ -f /etc/redhat-release ]
 then
-  
+
     if [ ! -f /etc/yum.repos.d/epel.repo ]
     then
         if [ "`grep 'release 6' /etc/redhat-release`" != "" ]
@@ -157,20 +167,36 @@ then
         fi
     fi
 fi
+}
 
-print_log "INFO" "Installing utility packages"
-yum install -y unzip wget >> $LOG 2>&1
-print_log "INFO" "Installing webserver packages"
-yum install -y httpd mod_python Django >> $LOG 2>&1
-print_log "INFO" "Installing py-mysql packages"
-yum install -y mysql-server MySQL-python >> $LOG 2>&1
-print_log "INFO" "Installing development packages"
-yum install -y git java-1.6.0-openjdk-devel >> $LOG 2>&1
-print_log "INFO" "Installing python libraries"
-yum install -y python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib python-atfork >> $LOG 2>&1
-print_log "INFO" "Installing/updating selinux policy"
-yum install -y selinux-policy selinux-policy-targeted policycoreutils-python >> $LOG 2>&1
+install_packages() {
+PACKAGES_UTILITY=(unzip wget)
+PACAKGES_WEBSERVER=(httpd mod_python Django)
+PACKAGES_MYSQL=(mysql-server MySQL-python)
+PACKAGES_DEVELOPMENT=(git java-1.6.0-openjdk-devel)
+PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib python-atfork)
+PACKAGES_SELINUX=(selinux-policy selinux-policy-targeted policycoreutils-python)
+PACKAGES_ALL=( \
+    ${PACKAGES_UTILITY[*]}
+    ${PACAKGES_WEBSERVER[*]}
+    ${PACKAGES_MYSQL[*]}
+    ${PACKAGES_DEVELOPMENT[*]}
+    ${PACKAGES_PYTHON_LIBS[*]}
+    ${PACKAGES_SELINUX[*]}
+)
 
+PKG_COUNT=$(echo ${PACKAGES_ALL[*]} | wc -w)
+INSTALLED_PKG_COUNT=$(rpm -q ${PACKAGES_ALL[*]} | grep -v 'not installed' | wc -l)
+
+if [ $PKG_COUNT == $INSTALLED_PKG_COUNT ]; then
+    print_log "INFO" "All packages already installed"
+else
+    print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
+    yum install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
+fi
+}
+
+setup_selinux() {
 # Turns out the problem "AttributeError: 'module' object has no attribute 'default'"
 # is in fact an SELinux problem. I did try to fix it, but couldn't, this needs to
 # be investigated more carefully.
@@ -180,7 +206,9 @@ then
     echo 0 > /selinux/enforce
 fi
 setenforce 0
+}
 
+setup_mysql_service() {
 print_log "INFO" "Starting MySQL server"
 if [ -x /etc/init.d/mysqld ]
 then
@@ -190,7 +218,9 @@ else
     systemctl enable mysqld.service >> $LOG
     systemctl restart mysqld.service >> $LOG
 fi
+}
 
+isntall_autotest() {
 print_log "INFO" "Installing autotest"
 if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
 then
@@ -216,7 +246,9 @@ fi
 
 print_log "INFO" "Setting proper permissions for the autotest directory"
 chown -R autotest:autotest $ATHOME
+}
 
+check_mysql_password() {
 print_log "INFO" "Verifying MySQL root password"
 mysqladmin -u root password $MYSQLPW > /dev/null 2>&1
 
@@ -226,6 +258,9 @@ then
     print_log "ERROR" "MySQL already has a different root password"
     exit 1
 fi
+}
+
+create_autotest_database() {
 if [ "$(echo $DB | grep 'Unknown database')" != "" ]
 then
     print_log "INFO" "Creating MySQL databases for autotest"
@@ -236,12 +271,16 @@ grant SELECT on autotest_web.* TO 'nobody'@'%';
 grant SELECT on autotest_web.* TO 'nobody'@'localhost';
 SQLEOF
 fi
+}
 
+build_external_packages() {
 print_log "INFO" "Running autotest dependencies build (may take a while since it might download files)"
 cat << EOF | su - autotest >> $LOG 2>&1
 /usr/local/autotest/utils/build_externals.py
 EOF
+}
 
+configure_webserver() {
 print_log "INFO" "Configuring Web server"
 if [ ! -e  /etc/httpd/conf.d/autotest.conf ]
 then
@@ -254,7 +293,9 @@ then
 else
     systemctl enable httpd.service >> $LOG
 fi
+}
 
+configure_autotest() {
 print_log "INFO" "Setting up the autotest configuration files"
 
 # TODO: notify_email in [SCHEDULER] section of global_config.ini
@@ -262,7 +303,9 @@ print_log "INFO" "Setting up the autotest configuration files"
 cat << EOF | su - autotest >> $LOG 2>&1
 /usr/local/bin/substitute please_set_this_password "$MYSQLPW" $ATHOME/global_config.ini
 EOF
+}
 
+setup_databse_schema() {
 TABLES=$(echo "use autotest_web; show tables;" | mysql --user=root --password=$MYSQLPW 2>&1)
 
 if [ "$(echo $TABLES | grep tko_test_view_outer_joins)" = "" ]
@@ -276,7 +319,9 @@ EOF
 else
     print_log "INFO" "Database schemas are already in place"
 fi
+}
 
+restart_mysql() {
 print_log "INFO" "Re-starting MySQL server"
 if [ -x /etc/init.d/mysqld ]
 then
@@ -284,23 +329,31 @@ then
 else
     systemctl restart mysqld.service >> $LOG
 fi
+}
 
+patch_python27_bug() {
 # Patch up a python 2.7 problem
 if [ "$(grep '^CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py)" != "" ]
 then
     /usr/local/bin/substitute 'CFUNCTYPE(c_int)(lambda: None)' '# CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py
 fi
+}
 
+build_web_rpc_client() {
 print_log "INFO" "Building the web rpc client (may take up to 10 minutes)"
 cat << EOF | su - autotest >> $LOG
 /usr/local/autotest/utils/compile_gwt_clients.py -a
 EOF
+}
 
+import_tests() {
 print_log "INFO" "Import the base tests and profilers"
 cat << EOF | su - autotest >> $LOG
 /usr/local/autotest/utils/test_importer.py -A
 EOF
+}
 
+restart_httpd() {
 print_log "INFO" "Restarting web server"
 if [ -x /etc/init.d/httpd ]
 then
@@ -308,25 +361,30 @@ then
 else
     systemctl restart httpd.service
 fi
+}
 
+start_scheduler() {
 print_log "INFO" "Starting the scheduler"
-if [ -x /etc/init.d/httpd ]
+if [ ! -d /etc/systemd ]
 then
     cp $ATHOME/utils/autotest-rh.init /etc/init.d/autotest >> $LOG
     chmod +x /etc/init.d/autotest >> $LOG
     chkconfig --level 2345 autotest on >> $LOG
     /etc/init.d/autotest stop >> $LOG
-    rm -f $ATHOME/monitor_db_babysitter.pid $ATHOME/monitor_db.pid
+    rm -f $ATHOME/autotest-scheduler.pid $ATHOME/autotest-scheduler-watcher.pid
     /etc/init.d/autotest start >> $LOG
 else
     cp $ATHOME/utils/autotestd.service /etc/systemd/system/ >> $LOG
     systemctl daemon-reload >> $LOG
     systemctl enable autotestd.service >> $LOG
     systemctl stop autotestd.service >> $LOG
-    rm -f $ATHOME/monitor_db_babysitter.pid $ATHOME/monitor_db.pid
+    rm -f $ATHOME/autotest-scheduler.pid $ATHOME/autotest-scheduler-watcher.pid
     systemctl start autotestd.service >> $LOG
 fi
+}
 
+setup_firewall() {
+[ -f /etc/sysconfig/iptables ] || return;
 if [ "$(grep -- '--dport 80 -j ACCEPT' /etc/sysconfig/iptables)" = "" ]
 then
     echo "Opening firewall for http traffic" >> $LOG
@@ -347,12 +405,50 @@ then
         systemctl restart iptables.service >> $LOG
     fi
 fi
+}
 
+print_install_status() {
 print_log "INFO" "$(systemctl status autotestd.service)"
 
-cd $ATHOME/client/common_lib/
+cd $ATHOME/client/shared/
 VERSION="$(./version.py)"
 print_log "INFO" "Finished installing autotest server $VERSION at: $(date)"
 
-IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | grep -v 192.168.122 | cut -d: -f2 | awk '{ print $1}')"
+IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | grep -v '192.168.122.1$' | cut -d: -f2 | awk '{ print $1}')"
 print_log "INFO" "You can access your server on http://$IP/afe"
+}
+
+full_install() {
+    check_command_line_params
+
+    print_log "INFO" "Installing the Autotest server"
+    print_log "INFO" "A log of operation is kept in $LOG"
+    print_log "INFO" "Install started at: $(date)"
+
+    check_disk_space
+    setup_substitute
+    setup_epel_repo
+    install_packages
+
+    if [ $INSTALL_PACKAGES_ONLY == 0 ]; then
+	setup_selinux
+	setup_mysql_service
+	isntall_autotest
+	check_mysql_password
+	create_autotest_database
+	build_external_packages
+	configure_webserver
+	configure_autotest
+	setup_databse_schema
+	restart_mysql
+	patch_python27_bug
+	build_web_rpc_client
+	import_tests
+	restart_httpd
+	start_scheduler
+	setup_firewall
+	print_install_status
+    fi
+}
+
+full_install

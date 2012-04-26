@@ -5,8 +5,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.utils import parallel
-from autotest_lib.client.common_lib.test_utils import unittest as custom_unittest
+from autotest.utils import parallel
+from autotest.client.shared.test_utils import unittest as custom_unittest
 
 parser = optparse.OptionParser()
 parser.add_option("-r", action="store", type="string", dest="start",
@@ -24,19 +24,19 @@ parser.set_defaults(module_list=None)
 
 REQUIRES_DJANGO = set((
         'monitor_db_unittest.py',
-        'monitor_db_functional_test.py',
-        'monitor_db_cleanup_test.py',
+        'monitor_db_functional_unittest.py',
+        'monitor_db_cleanup_unittest.py',
         'frontend_unittest.py',
         'csv_encoder_unittest.py',
         'rpc_interface_unittest.py',
-        'models_test.py',
+        'models_unittest.py',
         'scheduler_models_unittest.py',
         'metahost_scheduler_unittest.py',
         'site_metahost_scheduler_unittest.py',
         'rpc_utils_unittest.py',
         'site_rpc_utils_unittest.py',
         'execution_engine_unittest.py',
-        'service_proxy_lib_test.py',
+        'service_proxy_lib_unittest.py',
         ))
 
 REQUIRES_MYSQLDB = set((
@@ -49,7 +49,7 @@ REQUIRES_GWT = set((
         ))
 
 REQUIRES_SIMPLEJSON = set((
-        'resources_test.py',
+        'resources_unittest.py',
         'serviceHandler_unittest.py',
         ))
 
@@ -57,28 +57,19 @@ REQUIRES_AUTH = set ((
     'trigger_unittest.py',
     ))
 
-REQUIRES_HTTPLIB2 = set((
-        ))
-
 REQUIRES_PROTOBUFS = set((
         'job_serializer_unittest.py',
         ))
 
 LONG_RUNTIME = set((
     'base_barrier_unittest.py',
-    'logging_manager_test.py',
-    ))
-
-# This particular KVM autotest test is not a unittest
-SKIP = set((
-    'guest_test.py',
+    'logging_manager_unittest.py',
     ))
 
 LONG_TESTS = (REQUIRES_DJANGO |
               REQUIRES_MYSQLDB |
               REQUIRES_GWT |
               REQUIRES_SIMPLEJSON |
-              REQUIRES_HTTPLIB2 |
               REQUIRES_AUTH |
               REQUIRES_PROTOBUFS |
               LONG_RUNTIME)
@@ -116,7 +107,7 @@ def run_test(mod_names, options):
 def scan_for_modules(start, options):
     modules = []
 
-    skip_tests = SKIP
+    skip_tests = []
     if options.skip_tests:
         skip_tests.update(options.skip_tests.split())
 
@@ -135,7 +126,7 @@ def scan_for_modules(start, options):
 
         # Look for unittest files.
         for fname in filenames:
-            if fname.endswith('_unittest.py') or fname.endswith('_test.py'):
+            if fname.endswith('_unittest.py'):
                 if not options.full and fname in LONG_TESTS:
                     continue
                 if fname in skip_tests:
@@ -143,7 +134,7 @@ def scan_for_modules(start, options):
                 path_no_py = os.path.join(dirpath, fname).rstrip('.py')
                 assert path_no_py.startswith(ROOT)
                 names = path_no_py[len(ROOT)+1:].split('/')
-                modules.append(['autotest_lib'] + names)
+                modules.append(['autotest'] + names)
                 if options.debug:
                     print 'testing', path_no_py
     return modules

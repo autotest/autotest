@@ -1,8 +1,8 @@
 import os, time, commands, re, logging, glob, threading, shutil
-from autotest_lib.client.bin import utils
-from autotest_lib.client.common_lib import error
+from autotest.client import utils
+from autotest.client.shared import error
 import aexpect, virt_utils, kvm_monitor, ppm_utils, virt_test_setup
-import virt_vm, kvm_vm, libvirt_vm, virt_video_maker
+import virt_vm, kvm_vm, libvirt_vm, virt_video_maker, virt_utils
 try:
     import PIL.Image
 except ImportError:
@@ -24,7 +24,7 @@ def preprocess_image(test, params):
     @param params: A dict containing image preprocessing parameters.
     @note: Currently this function just creates an image if requested.
     """
-    image_filename = virt_vm.get_image_filename(params, test.bindir)
+    image_filename = virt_utils.get_image_filename(params, test.bindir)
 
     create_image = False
 
@@ -35,7 +35,7 @@ def preprocess_image(test, params):
           os.path.exists(image_filename)):
         create_image = True
 
-    if create_image and not virt_vm.create_image(params, test.bindir):
+    if create_image and not virt_utils.create_image(params, test.bindir):
         raise error.TestError("Could not create image")
 
 
@@ -99,7 +99,8 @@ def preprocess_vm(test, params, env, name):
         else:
             # Start the VM (or restart it if it's already up)
             vm.create(name, params, test.bindir,
-                      migration_mode=params.get("migration_mode"))
+                      migration_mode=params.get("migration_mode"),
+                      migration_fd=params.get("migration_fd"))
     else:
         # Don't start the VM, just update its params
         vm.params = params
@@ -114,13 +115,13 @@ def postprocess_image(test, params):
     """
     if params.get("check_image") == "yes":
         try:
-            virt_vm.check_image(params, test.bindir)
+            virt_utils.check_image(params, test.bindir)
         except Exception, e:
             if params.get("restore_image_on_check_error", "no") == "yes":
-                virt_vm.backup_image(params, test.bindir, 'restore', True)
+                virt_utils.backup_image(params, test.bindir, 'restore', True)
             raise e
     if params.get("remove_image") == "yes":
-        virt_vm.remove_image(params, test.bindir)
+        virt_utils.remove_image(params, test.bindir)
 
 
 def postprocess_vm(test, params, env, name):
@@ -320,8 +321,21 @@ def preprocess(test, params, env):
                         int(params.get("pre_command_timeout", "600")),
                         params.get("pre_command_noncritical") == "yes")
 
+    #Clone master image from vms.
+    if params.get("master_images_clone"):
+        for vm_name in params.get("vms").split():
+            vm = env.get_vm(vm_name)
+            if vm:
+                vm.destroy(free_mac_addresses=False)
+                env.unregister_vm(vm_name)
+
+            vm_params = params.object_params(vm_name)
+            for image in vm_params.get("master_images_clone").split():
+                virt_vm.clone_image(params, vm_name, image, test.bindir)
+
     # Preprocess all VMs and images
-    process(test, params, env, preprocess_image, preprocess_vm)
+    if params.get("not_preprocess","no") == "no":
+        process(test, params, env, preprocess_image, preprocess_vm)
 
     # Start the screendump thread
     if params.get("take_regular_screendumps") == "yes":

@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# test -- run a client self test.
+#
+P="test"
+
+fix=`/bin/pwd`
+fix=`dirname $fix`
+fix=`dirname $fix`
+
+me="../autotest"
+
+# XXX: the exit status that indicates a rerun ...
+rerun=5
+
+function runtests {
+	for i in \
+		"$@"
+	do
+		case "$i" in
+		*-filter|*-out|*-tmp|*.state)	continue ;;
+		esac
+
+		##echo "*** $i ...."
+		{
+			"$me" "$i"
+			rc="$?"
+			echo "--SELFTEST-- exit $rc"
+			while [ "$rc" = "$rerun" ]; do
+				"$me" --continue "$i"
+				rc="$?"
+				echo "--SELFTEST-- exit $rc"
+			done
+		} 2>&1 | `dirname "$i"`/NNN-filter "$i" | \
+			sed -e "s@$fix@SRC@" -e "s@, line [0-9]*@, line N@" \
+			>"$i-tmp" 2>&1
+
+		if [ ! -f "$i-out" ]; then
+			echo "$P: WARNING: $i: no results for test"
+			cat "$i-tmp"
+
+		elif ! cmp "$i-out" "$i-tmp"; then
+			echo "$P: ERROR: $i: test failed"
+			diff -u "$i-out" "$i-tmp"
+
+		else
+			echo "$P: PASS: $i: test passed"
+		fi
+	done
+}
+
+# Run all of the tests.
+case "$1" in
+clean)		rm -rf tests/*-tmp tests/*.state ;;
+test)		runtests tests/* ;;
+*)		runtests "$@" ;;
+esac

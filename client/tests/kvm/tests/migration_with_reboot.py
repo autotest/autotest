@@ -1,4 +1,4 @@
-from autotest_lib.client.virt import virt_utils
+from autotest.client.shared import utils
 
 
 def run_migration_with_reboot(test, params, env):
@@ -27,7 +27,7 @@ def run_migration_with_reboot(test, params, env):
 
     try:
         # Reboot the VM in the background
-        bg = virt_utils.Thread(vm.reboot, (session,))
+        bg = utils.InterruptedThread(vm.reboot, (session,))
         bg.start()
         try:
             while bg.isAlive():

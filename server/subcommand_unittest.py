@@ -7,8 +7,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.server import subcommand
+from autotest.client.shared.test_utils import mock
+from autotest.server import subcommand
 
 
 def _create_subcommand(func, args):

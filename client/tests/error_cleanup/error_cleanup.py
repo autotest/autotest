@@ -1,4 +1,4 @@
-from autotest_lib.client.bin import test
+from autotest.client import test
 
 class error_cleanup(test.test):
     version = 1

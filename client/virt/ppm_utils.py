@@ -5,7 +5,7 @@ Utility functions to deal with ppm (qemu screendump format) files.
 """
 
 import os, struct, time, re
-from autotest_lib.client.bin import utils
+from autotest.client import utils
 
 # Some directory/filename utils, for consistency
 

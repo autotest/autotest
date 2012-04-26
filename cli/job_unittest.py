@@ -11,8 +11,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.cli import cli_mock, topic_common, job
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.cli import cli_mock, topic_common, job
+from autotest.client.shared.test_utils import mock
 
 
 class job_unittest(cli_mock.cli_unittest):
