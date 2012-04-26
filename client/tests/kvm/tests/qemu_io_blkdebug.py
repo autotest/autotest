@@ -45,9 +45,14 @@ def run_qemu_io_blkdebug(test, params, env):
         template.set("inject-error", "event", '"%s"' % err_event)
         template.set("inject-error", "errno", '"%s"' % errn)
 
-        with open(blkdebug_cfg, 'w') as blkdebug:
+        error.context("Write blkdebug config file", logging.info)
+        blkdebug = None
+        try:
+            blkdebug = open(blkdebug_cfg, 'w')
             template.write(blkdebug)
-            blkdebug.close()
+        finally:
+            if blkdebug is not None:
+                blkdebug.close()
 
         error.context("Operate in qemu-io to trigger the error", logging.info)
         session = qemu_io.QemuIOShellSession(test, params, image_name,
