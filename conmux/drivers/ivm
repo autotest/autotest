@@ -316,7 +316,7 @@ if {$version < 3} {
 		# See if the lpar is up, if so shut it down.
 		if {[string compare [state $lpar] "Ready"] != 0} {
 			note "shutting down lpar"
-			if {[runit "chsysstate -r lpar -n $lpar -o shutdown\r" out] != 0} {
+			if {[runit "chsysstate -r lpar -n $lpar -o shutdown --immed\r" out] != 0} {
 				winge "$lpar: power off failed\n$out"
 				exit 2
 			}
