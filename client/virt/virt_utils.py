@@ -727,7 +727,7 @@ class VMNetStyle(dict):
     Make decisions about needed info from vm_type and driver_type params.
     """
 
-    #TODO: Update these to use '00:16:3e' for xen and '52:54:00' for KVM/QEMU
+    # Keyd first by vm_type, then by driver_type.
     VMNet_Style_Map = {
         'default':{ 
             'default':{
@@ -739,6 +739,15 @@ class VMNetStyle(dict):
             'default':{
                 'mac_prefix':'9a',
                 'container_class': LibvirtIface,
+            },
+            'kvm':{
+                'mac_prefix':'52:54:00',
+                'container_class': LibvirtIface,
+            },
+            'xen':{
+                'mac_prefix':'00:16:3e',
+                #TODO: add Custom class for xen specialness
+                'container_class': LibvirtIface, 
             }
         }
     }
