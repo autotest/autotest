@@ -178,7 +178,6 @@ def virsh_screenshot(name, filename, uri = ""):
                       "file \n%s", name, detail)
     return filename
 
-
 def virsh_dumpxml(name, uri = ""):
     """
     Return the domain information as an XML dump.
@@ -186,7 +185,6 @@ def virsh_dumpxml(name, uri = ""):
     @param name: VM name
     """
     return virsh_cmd("dumpxml %s" % name, uri)
-
 
 def virsh_is_alive(name, uri = ""):
     """
@@ -496,6 +494,7 @@ class VM(virt_vm.BaseVM):
         self.params = params
         self.root_dir = root_dir
         self.address_cache = address_cache
+        self.vnclisten = "0.0.0.0"
         self.connect_uri = params.get("connect_uri", "default")
         if self.connect_uri == 'default':
             self.connect_uri = virsh_uri()
@@ -536,20 +535,13 @@ class VM(virt_vm.BaseVM):
         """
         Return True if VM is persistent.
         """
-        if not virsh_domain_exists(self.name, self.connect_uri):
-            logging.warning("VM does not exist on uri %s" % self.connect_uri)
+        try:
+            persistent = bool(re.search(r"^Persistent:\s+[Yy]es",
+                          virsh_dominfo(self.name, self.connect_uri), 
+                          re.MULTILINE))
+        except error.CmdError:
             return False
-        dom_info = virsh_dominfo(self.name, self.connect_uri).split("\n")
-        persistent_info = ""
-        for tmp_info in dom_info:
-            if tmp_info.count('Persistent'):
-                persistent_info = tmp_info
-                break
-        if persistent_info.count('yes'):
-            return True
-        else:
-            return False
-
+        return persistent
 
     def undefine(self):
         """
@@ -1210,6 +1202,8 @@ class VM(virt_vm.BaseVM):
             virt_utils.wait_for(func=self.is_alive, timeout=60,
                                 text=("waiting for domain %s to start" %
                                       self.name))
+            
+            self.uuid = virsh_uuid(self.name, self.connect_uri)
 
             # Establish a session with the serial console
             if self.only_pty == True:
@@ -1274,35 +1268,32 @@ class VM(virt_vm.BaseVM):
         @param gracefully: If True, an attempt will be made to end the VM
                 using a shell command before trying to end the qemu process
                 with a 'quit' or a kill signal.
-        @param free_mac_addresses: If True, the MAC addresses used by the VM
-                will be freed.
+        @param free_mac_addresses: If vm is undefined with libvirt, also
+                                   release/reset associated mac address
         """
         try:
             # Is it already dead?
-            if self.is_dead():
-                return
-
-            logging.debug("Destroying VM")
-            if gracefully and self.params.get("shutdown_command"):
-                # Try to destroy with shell command
-                logging.debug("Trying to shutdown VM with shell command")
-                try:
-                    session = self.login()
-                except (virt_utils.LoginError, virt_vm.VMError), e:
-                    logging.debug(e)
-                else:
+            if self.is_alive():
+                logging.debug("Destroying VM")
+                if gracefully and self.params.get("shutdown_command"):
+                    # Try to destroy with shell command
+                    logging.debug("Trying to shutdown VM with shell command")
                     try:
-                        # Send the shutdown command
-                        session.sendline(self.params.get("shutdown_command"))
-                        logging.debug("Shutdown command sent; waiting for VM "
-                                      "to go down...")
-                        if virt_utils.wait_for(self.is_dead, 60, 1, 1):
-                            logging.debug("VM is down")
-                            return
-                    finally:
-                        session.close()
-
-            virsh_destroy(self.name, self.connect_uri)
+                        session = self.login()
+                    except (virt_utils.LoginError, virt_vm.VMError), e:
+                        logging.debug(e)
+                    else:
+                        try:
+                            # Send the shutdown command
+                            session.sendline(self.params.get("shutdown_command"))
+                            logging.debug("Shutdown command sent; waiting for VM "
+                                          "to go down...")
+                            if virt_utils.wait_for(self.is_dead, 60, 1, 1):
+                                logging.debug("VM is down")
+                                return
+                        finally:
+                            session.close()
+                virsh_destroy(self.name, self.connect_uri)
 
         finally:
             if self.serial_console:
@@ -1318,19 +1309,22 @@ class VM(virt_vm.BaseVM):
                     os.unlink(self.migration_file)
                 except OSError:
                     pass
-            if free_mac_addresses:
-                for nic_index in xrange(0,len(self.virtnet)):
-                    self.free_mac_address(nic_index)
+
+        if free_mac_addresses:
+            if self.is_persistent():
+                logging.warning("Requested MAC address release from "
+                                "persistent vm %s. Ignoring." % self.name)
+            else:
+                logging.debug("Releasing MAC addresses for vm %s." % self.name)
+                for nic_name in self.virtnet.nic_name_list():
+                    self.virtnet.free_mac_address(nic_name)
 
 
     def remove(self):
-        if self.is_alive():
-            if not virsh_destroy(self.name, self.connect_uri):
-                raise virt_vm.VMRemoveError("VM '%s'can not be destroyed" % self.name)
-
-        if not virsh_undefine(self.name, self.connect_uri):
+        self.destroy(gracefully=True, free_mac_addresses=False)
+        if not self.undefine():
             raise virt_vm.VMRemoveError("VM '%s' undefine error" % self.name)
-
+        self.destroy(gracefully=False, free_mac_addresses=True)
         logging.debug("VM '%s' was removed", self.name)
 
 
@@ -1342,7 +1336,23 @@ class VM(virt_vm.BaseVM):
 
 
     def get_port(self, port, nic_index=0):
-        raise NotImplementedError
+        """
+        Return the port in host space corresponding to port in guest space.
+
+        @param port: Port number in host space.
+        @param nic_index: Index of the NIC.
+        @return: If port redirection is used, return the host port redirected
+                to guest port port. Otherwise return port.
+        @raise VMPortNotRedirectedError: If an unredirected port is requested
+                in user mode
+        """
+        if self.virtnet[nic_index].nettype == "bridge":
+            return port
+        else:
+            try:
+                return self.redirs[port]
+            except KeyError:
+                raise virt_vm.VMPortNotRedirectedError(port)
 
 
     def get_ifname(self, nic_index=0):
@@ -1413,11 +1423,11 @@ class VM(virt_vm.BaseVM):
 
     def activate_nic(self, nic_index_or_name):
         #TODO: Impliment nic hotplugging
-        raise NotImplementedError
+        pass # Just a stub for now
 
-    def deactivate_nic(self, nic_index_or_name)
+    def deactivate_nic(self, nic_index_or_name):
         #TODO: Impliment nic hot un-plugging
-        raise NotImplementedError
+        pass # Just a stub for now
 
     @error.context_aware
     def reboot(self, session=None, method="shell", nic_index=0, timeout=240):
@@ -1486,6 +1496,11 @@ class VM(virt_vm.BaseVM):
             if has_started is None:
                 raise virt_vm.VMStartError(self.name, "libvirt domain not "
                                                       "active after start")
+            # FIXME: if vm is persistent, then self.virtnet should get
+            #        populated from vm's definition.  Otherwise, it's
+            #        initialized from params which may not match
+            #        libvirt's definition.
+            self.uuid = virsh_uuid(self.name, self.connect_uri)
         else:
             raise virt_vm.VMStartError(self.name, "libvirt domain failed "
                                                   "to start")

@@ -19,6 +19,10 @@ variants:
         only no_pci_assignable
         only smallpages
         only Fedora.16.64
+        # NOTE: For older libvirt (i.e. RHEL 5) use:
+        #     unattended_install.cdrom.http_ks
+        #     and set 
+        #     take_regular_screendumps = no
         only unattended_install.cdrom.extra_cdrom_ks, boot, reboot, shutdown, remove_guest.with_disk
 
     # Runs virt-install, f16 64 as a 64 bit PV guest OS, install, boot, shutdown
