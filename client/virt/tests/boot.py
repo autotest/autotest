@@ -88,6 +88,9 @@ def run_boot(test, params, env):
         error.context("Verify device(s) before rebooting.")
         _check_device(check_func)
 
+    if params.get("rh_perf_envsetup_script"):
+        virt_test_utils.service_setup(vm, session, test.virtdir)
+
     if params.get("reboot_method"):
         error.context("Reboot guest.")
         if params["reboot_method"] == "system_reset":
@@ -97,7 +100,5 @@ def run_boot(test, params, env):
         if check_func:
             error.context("Verify device(s) after rebooting.")
             _check_device(check_func)
-
-    virt_test_utils.service_setup(vm, session, test.virtdir)
 
     session.close()
