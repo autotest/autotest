@@ -918,19 +918,13 @@ def pin_vm_threads(vm, node):
 def service_setup(vm, session, dir):
 
     params = vm.get_params()
-    stop_services_script = params.get("stop_services_script")
-    off_services_script = params.get("off_services_script")
+    rh_perf_envsetup_script = params.get("rh_perf_envsetup_script")
+    rebooted = params.get("rebooted", "rebooted")
 
-    if stop_services_script:
-        src = os.path.join(dir, stop_services_script)
-        vm.copy_files_to(src, "/tmp/stop_services.sh")
-        commands.getoutput("bash %s" % src)
-        session.cmd("bash /tmp/stop_services.sh")
-
-    if off_services_script:
-        src = os.path.join(dir, stop_services_script)
-        vm.copy_files_to(src, "/tmp/off_services.sh")
-        # host reboot is needed, but it's not supported in client tests
-        commands.getoutput("bash %s" % src)
-        session.cmd("bash /tmp/off_services.sh")
-        vm.reboot(session)
+    if rh_perf_envsetup_script:
+        src = os.path.join(dir, rh_perf_envsetup_script)
+        vm.copy_files_to(src, "/tmp/rh_perf_envsetup.sh")
+        logging.info("setup perf environment for host")
+        commands.getoutput("bash %s host %s" % (src, rebooted))
+        logging.info("setup perf environment for guest")
+        session.cmd("bash /tmp/rh_perf_envsetup.sh guest %s" % rebooted)
