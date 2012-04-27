@@ -144,7 +144,11 @@ if __name__ == '__main__':
                     db.delete_afe_job(tag)
 
             results_dir = get_results_dir()
-            results_dir = os.path.abspath(os.path.join(results_dir, tag))
+            parent_tagdir = os.path.dirname(tag)
+            if not parent_tagdir:
+                parent_tagdir = tag
+            results_dir = os.path.abspath(os.path.join(results_dir,
+                                                       parent_tagdir))
             if not os.path.isdir(results_dir):
                 logging.error("Job directory %s does not exist" % results_dir)
             else:
