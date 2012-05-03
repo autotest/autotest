@@ -1026,7 +1026,6 @@ class base_job(object):
         self._bindir = readonly_dir(self.clientdir)
         self._configdir = readonly_dir(self.clientdir, 'config')
         self._profdir = readonly_dir(self.clientdir, 'profilers')
-        self._pkgdir = readwrite_dir(self.clientdir, 'packages')
         self._toolsdir = readonly_dir(self.clientdir, 'tools')
 
         tmpdir_config = GLOBAL_CONFIG.get_config_value('COMMON',
@@ -1042,6 +1041,15 @@ class base_job(object):
             self._tmpdir = readwrite_dir(tmpdir_config)
         else:
             self._tmpdir = readwrite_dir(root, 'tmp')
+
+        pkgdir_config = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                        'pkg_dir',
+                                                        default="")
+        if pkgdir_config:
+            self._pkgdir = readwrite_dir(pkgdir_config)
+        else:
+            self._pkgdir = readwrite_dir(self.clientdir, 'packages')
+
         self._testdir = readwrite_dir(root, 'tests')
         self._site_testdir = readwrite_dir(root, 'site_tests')
 
