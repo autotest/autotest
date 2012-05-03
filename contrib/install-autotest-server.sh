@@ -16,7 +16,8 @@ usage() {
 cat << EOF
 usage: $0 [options]
 
-This script installs the autotest server on a given Fedora 16 system.
+This script installs the autotest server on a given system.
+Currently supported systems: Fedora 16 and RHEL 6.2.
 
 GENERAL OPTIONS:
    -h      Show this message
@@ -220,7 +221,7 @@ else
 fi
 }
 
-isntall_autotest() {
+install_autotest() {
 print_log "INFO" "Installing autotest"
 if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
 then
@@ -444,7 +445,7 @@ full_install() {
     if [ $INSTALL_PACKAGES_ONLY == 0 ]; then
 	setup_selinux
 	setup_mysql_service
-	isntall_autotest
+	install_autotest
 	check_mysql_password
 	create_autotest_database
 	build_external_packages
