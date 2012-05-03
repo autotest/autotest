@@ -331,7 +331,7 @@ def preprocess(test, params, env):
 
             vm_params = params.object_params(vm_name)
             for image in vm_params.get("master_images_clone").split():
-                virt_vm.clone_image(params, vm_name, image, test.bindir)
+                virt_utils.clone_image(params, vm_name, image, test.bindir)
 
     # Preprocess all VMs and images
     if params.get("not_preprocess","no") == "no":
