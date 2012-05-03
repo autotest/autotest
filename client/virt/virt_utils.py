@@ -1235,7 +1235,7 @@ def remote_scp(command, password_list, log_filename=None, transfer_timeout=600,
 
 
 def scp_to_remote(host, port, username, password, local_path, remote_path,
-                  log_filename=None, timeout=600):
+                  limit="", log_filename=None, timeout=600):
     """
     Copy files to a remote host (guest) through scp.
 
@@ -1244,22 +1244,26 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
     @param password: Password (if required)
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
+    @param limit: Speed limit of file transfer.
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
     @raise: Whatever remote_scp() raises
     """
+    if (limit):
+        limit = "-l %s" % (limit)
+
     command = ("scp -v -o UserKnownHostsFile=/dev/null "
-               "-o PreferredAuthentications=password -r -P %s %s %s@%s:%s" %
-               (port, local_path, username, host, remote_path))
+               "-o PreferredAuthentications=password -r %s "
+               "-P %s %s %s@%s:%s" %
+               (limit, port, local_path, username, host, remote_path))
     password_list = []
     password_list.append(password)
     return remote_scp(command, password_list, log_filename, timeout)
 
 
-
 def scp_from_remote(host, port, username, password, remote_path, local_path,
-                    log_filename=None, timeout=600):
+                    limit="", log_filename=None, timeout=600, ):
     """
     Copy files from a remote host (guest).
 
@@ -1268,21 +1272,27 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
     @param password: Password (if required)
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
+    @param limit: Speed limit of file transfer.
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
     @raise: Whatever remote_scp() raises
     """
+    if (limit):
+        limit = "-l %s" % (limit)
+
     command = ("scp -v -o UserKnownHostsFile=/dev/null "
-               "-o PreferredAuthentications=password -r -P %s %s@%s:%s %s" %
-               (port, username, host, remote_path, local_path))
+               "-o PreferredAuthentications=password -r %s "
+               "-P %s %s@%s:%s %s" %
+               (limit, port, username, host, remote_path, local_path))
     password_list = []
     password_list.append(password)
     remote_scp(command, password_list, log_filename, timeout)
 
 
 def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
-                        s_path, d_path, log_filename=None, timeout=600):
+                        s_path, d_path, limit="", log_filename=None,
+                        timeout=600):
     """
     Copy files from a remote host (guest) to another remote host (guest).
 
@@ -1291,15 +1301,20 @@ def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
     @param s_passwd/d_passwd: Password (if required)
     @param s_path/d_path: Path on the remote machine where we are copying
                          from/to
+    @param limit: Speed limit of file transfer.
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
 
     @return: True on success and False on failure.
     """
+    if (limit):
+        limit = "-l %s" % (limit)
+
     command = ("scp -v -o UserKnownHostsFile=/dev/null -o "
-               "PreferredAuthentications=password -r -P %s %s@%s:%s %s@%s:%s" %
-               (port, s_name, src, s_path, d_name, dst, d_path))
+               "PreferredAuthentications=password -r %s -P %s"
+               " %s@%s:%s %s@%s:%s" %
+               (limit, port, s_name, src, s_path, d_name, dst, d_path))
     password_list = []
     password_list.append(s_passwd)
     password_list.append(d_passwd)
@@ -1307,7 +1322,8 @@ def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
 
 
 def copy_files_to(address, client, username, password, port, local_path,
-                  remote_path, log_filename=None, verbose=False, timeout=600):
+                  remote_path, limit="", log_filename=None,
+                  verbose=False, timeout=600):
     """
     Copy files to a remote host (guest) using the selected client.
 
@@ -1317,6 +1333,7 @@ def copy_files_to(address, client, username, password, port, local_path,
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
     @param address: Address of remote host(guest)
+    @param limit: Speed limit of file transfer.
     @param log_filename: If specified, log all output to this file (SCP only)
     @param verbose: If True, log some stats using logging.debug (RSS only)
     @param timeout: The time duration (in seconds) to wait for the transfer to
@@ -1325,7 +1342,7 @@ def copy_files_to(address, client, username, password, port, local_path,
     """
     if client == "scp":
         scp_to_remote(address, port, username, password, local_path,
-                      remote_path, log_filename, timeout)
+                      remote_path, limit, log_filename, timeout)
     elif client == "rss":
         log_func = None
         if verbose:
@@ -1336,7 +1353,8 @@ def copy_files_to(address, client, username, password, port, local_path,
 
 
 def copy_files_from(address, client, username, password, port, remote_path,
-                    local_path, log_filename=None, verbose=False, timeout=600):
+                    local_path, limit="", log_filename=None,
+                    verbose=False, timeout=600):
     """
     Copy files from a remote host (guest) using the selected client.
 
@@ -1346,6 +1364,7 @@ def copy_files_from(address, client, username, password, port, remote_path,
     @param remote_path: Path on the remote machine where we are copying from
     @param local_path: Path on the local machine where we are copying to
     @param address: Address of remote host(guest)
+    @param limit: Speed limit of file transfer.
     @param log_filename: If specified, log all output to this file (SCP only)
     @param verbose: If True, log some stats using logging.debug (RSS only)
     @param timeout: The time duration (in seconds) to wait for the transfer to
@@ -1354,7 +1373,7 @@ def copy_files_from(address, client, username, password, port, remote_path,
     """
     if client == "scp":
         scp_from_remote(address, port, username, password, remote_path,
-                        local_path, log_filename, timeout)
+                        local_path, limit, log_filename, timeout)
     elif client == "rss":
         log_func = None
         if verbose:
