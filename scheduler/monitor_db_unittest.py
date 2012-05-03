@@ -13,7 +13,7 @@ from autotest.database import database_connection
 from autotest.frontend.afe import models
 from autotest.scheduler import monitor_db, drone_manager, email_manager
 from autotest.scheduler import scheduler_config, gc_stats, host_scheduler
-from autotest.scheduler import monitor_db_functional_test
+from autotest.scheduler import monitor_db_functional_unittest
 from autotest.scheduler import scheduler_models
 
 _DEBUG = False

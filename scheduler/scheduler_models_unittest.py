@@ -11,7 +11,7 @@ from autotest.client.shared.test_utils import mock
 from autotest.client.shared.test_utils import unittest
 from autotest.database import database_connection
 from autotest.frontend.afe import models, model_attributes
-from autotest.scheduler import monitor_db_functional_test
+from autotest.scheduler import monitor_db_functional_unittest
 from autotest.scheduler import scheduler_models
 
 _DEBUG = False
