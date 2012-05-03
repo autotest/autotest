@@ -96,7 +96,7 @@ class BaseSchedulerTest(unittest.TestCase,
 
         self._database = (
             database_connection.TranslatingDatabase.get_test_database(
-                translators=monitor_db_functional_test._DB_TRANSLATORS))
+                translators=monitor_db_functional_unittest._DB_TRANSLATORS))
         self._database.connect(db_type='django')
         self._database.debug = _DEBUG
 
