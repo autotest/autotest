@@ -225,10 +225,6 @@ class base_client_job(base_job.base_job):
         self._load_sysinfo_state()
 
         if not options.cont:
-            download = os.path.join(self.testdir, 'download')
-            if not os.path.exists(download):
-                os.mkdir(download)
-
             shutil.copyfile(self.control,
                             os.path.join(self.resultdir, 'control'))
 
