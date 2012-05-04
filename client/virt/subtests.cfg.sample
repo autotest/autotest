@@ -617,6 +617,25 @@ variants:
             -fd:
                 type = migration_multi_host_fd
 
+    - migration_multi_host_with_file_transfer: install setup image_copy unattended_install.cdrom
+        type = migration_multi_host_with_file_transfer
+        vms = "vm1"
+        start_vm = no
+        kill_vm_on_error = yes
+        used_mem = 1024
+        mig_timeout = 4800
+        disk_prepare_timeout = 360
+        comm_port = 13234
+        #path where file is stored on guest.
+        guest_path = "/tmp/file"
+        #size of generated file.
+        file_size = 500
+        transfer_timeout = 240
+        #Transfer speed in Mb
+        transfer_speed = 100
+        #Count of migration during file transfer.
+        migrate_count = 3
+
     - boot_savevm: install setup image_copy unattended_install.cdrom
         type = boot_savevm
         savevm_delay = 0.3
