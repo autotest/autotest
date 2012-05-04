@@ -181,7 +181,6 @@ class barrier(object):
             timeout = self._timeout_secs - (time() - self._start_time)
             if timeout <= 0:
                 errmsg = "timeout waiting for barrier: %s" % self._tag
-                logging.error(error)
                 raise error.BarrierError(errmsg)
         else:
             timeout = self._timeout_secs
