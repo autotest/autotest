@@ -1,4 +1,0 @@
---SELFTEST-- loading test
---STEPTEST-- step_init called
---STEPTEST-- step_two called
---SELFTEST-- exit 0

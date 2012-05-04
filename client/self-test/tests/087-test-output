@@ -1,2 +1,0 @@
-job.run_test('selftest', 'print', "stdout hello\n", tag='test1')
-job.run_test('selftest', 'warn', "stderr hello\n", tag='test2')
