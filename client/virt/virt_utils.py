@@ -4836,3 +4836,25 @@ class MultihostMigration(object):
                                 self.finish_timeout)
         finally:
             self.cleanup()
+
+def get_ip_address_by_interface(ifname):
+    """
+    returns ip address by interface
+    @param ifname - interface name
+    @raise NetError - When failed to fetch IP address (ioctl raised IOError.).
+
+    Retrieves interface address from socket fd trough ioctl call
+    and transforms it into string from 32-bit packed binary
+    by using socket.inet_ntoa().
+
+    """
+    SIOCGIFADDR = 0x8915 # Get interface address <bits/ioctls.h>
+    mysocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        return socket.inet_ntoa(fcntl.ioctl(
+                    mysocket.fileno(),
+                    SIOCGIFADDR,
+                    struct.pack('256s', ifname[:15]) # ifname to binary IFNAMSIZ == 16
+                )[20:24])
+    except IOError:
+        raise NetError("Error while retrieving IP address from interface %s." % ifname)
