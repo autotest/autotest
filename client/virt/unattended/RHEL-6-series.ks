@@ -24,11 +24,17 @@ poweroff
 @additional-devel
 @debugging-tools
 @network-tools
+@x11
+@basic-desktop
 NetworkManager
 ntpdate
 watchdog
 coreutils
 usbutils
+spice-xpi
+virt-viewer
+spice-vdagent
+usbredir
 
 %post --interpreter /usr/bin/python
 import os
