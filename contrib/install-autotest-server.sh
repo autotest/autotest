@@ -7,6 +7,7 @@ LOG="/tmp/$BASENAME-$DATETIMESTAMP.log"
 ATPASSWD=
 MYSQLPW=
 INSTALL_PACKAGES_ONLY=0
+export LANG=en_US.utf8
 
 print_log() {
 echo $(date "+%H:%M:%S") $1 '|' $2 | tee -a $LOG
@@ -22,7 +23,7 @@ Currently supported systems: Fedora 16 and RHEL 6.2.
 GENERAL OPTIONS:
    -h      Show this message
    -u      Autotest user password
-   -d      Autotest MySQL database password
+   -d      MySQL database root password
 
 INSTALLATION STEP SELECTION:
    -p      Only install packages
@@ -226,7 +227,7 @@ print_log "INFO" "Installing autotest"
 if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
 then
     print_log "INFO" "Adding user autotest"
-    useradd autotest
+    useradd -b /usr/local autotest
     print_log "INFO" "Setting autotest user password"
     echo "$ATPASSWD
 $ATPASSWD" | passwd --stdin autotest >> $LOG
