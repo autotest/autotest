@@ -363,7 +363,7 @@ def postprocess(test, params, env):
 
     # Terminate the screendump thread
     global _screendump_thread, _screendump_thread_termination_event
-    if _screendump_thread:
+    if _screendump_thread is not None:
         logging.debug("Terminating screendump thread")
         _screendump_thread_termination_event.set()
         _screendump_thread.join(10)
@@ -542,7 +542,8 @@ def _take_screendumps(test, params, env):
                 except NameError:
                     pass
             os.unlink(temp_filename)
-        if _screendump_thread_termination_event.isSet():
+        if (_screendump_thread_termination_event is not None and
+            _screendump_thread_termination_event.isSet()):
             _screendump_thread_termination_event = None
             break
         _screendump_thread_termination_event.wait(delay)
