@@ -2081,8 +2081,6 @@ class VM(virt_vm.BaseVM):
         Verifies whether the current qemu commandline matches the requested
         one, based on the test parameters.
         """
-        logging.debug("current qemu: %s", self.__make_qemu_command())
-        logging.debug("new qemu: %s", self.__make_qemu_command(name, params, basedir))
         return (self.__make_qemu_command() !=
                 self.__make_qemu_command(name, params, basedir))
 
