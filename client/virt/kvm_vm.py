@@ -458,21 +458,19 @@ class VM(virt_vm.BaseVM):
         def add_pcidevice(help, host):
             return " -pcidevice host='%s'" % host
 
-        def add_spice(spice_options, port_range=(3000, 3199),
+        def add_spice(port_range=(3000, 3199),
              tls_port_range=(3200, 3399)):
             """
             processes spice parameters
-            @param spice_options - dict with spice keys/values
             @param port_range - tuple with port range, default: (3000, 3199)
             @param tls_port_range - tuple with tls port range,
                                     default: (3200, 3399)
             """
             spice_opts = [] # will be used for ",".join()
             tmp = None
-
             def optget(opt):
                 """a helper function"""
-                return spice_options.get(opt)
+                return self.spice_options.get(opt)
 
             def set_yes_no_value(key, yes_value=None, no_value=None):
                 """just a helper function"""
@@ -486,13 +484,15 @@ class VM(virt_vm.BaseVM):
             def set_value(opt_string, key, fallback=None):
                 """just a helper function"""
                 tmp = optget(key)
-
                 if tmp:
                     spice_opts.append(opt_string % tmp)
                 elif fallback:
                     spice_opts.append(fallback)
+
             s_port = str(virt_utils.find_free_port(*port_range))
             set_value("port=%s", "spice_port", "port=%s" % s_port)
+            if optget("spice_port") == None:
+               self.spice_options['spice_port'] = s_port
 
             set_value("password=%s", "spice_password", "disable-ticketing")
             set_value("addr=%s", "spice_addr")
@@ -502,6 +502,8 @@ class VM(virt_vm.BaseVM):
                 t_port = str(virt_utils.find_free_port(*tls_port_range))
                 set_value("tls-port=%s", "spice_tls_port",
                           "tls-port=%s" % t_port)
+                if optget("spice_tls_port") == None:
+                    self.spice_options['spice_tls_port'] = t_port
 
                 prefix = optget("spice_x509_prefix")
                 if optget("spice_gen_x509") == "yes":
@@ -903,7 +905,25 @@ class VM(virt_vm.BaseVM):
         elif params.get("display") == "nographic":
             qemu_cmd += add_nographic(help)
         elif params.get("display") == "spice":
-            qemu_cmd += add_spice(vm.spice_options)
+            spice_keys = (
+                "spice_port", "spice_password", "spice_addr", "spice_ssl",
+                "spice_tls_port", "spice_tls_ciphers", "spice_gen_x509",
+                "spice_x509_dir", "spice_x509_prefix", "spice_x509_key_file",
+                "spice_x509_cacert_file", "spice_x509_key_password",
+                "spice_x509_secure", "spice_x509_cacert_subj",
+                "spice_x509_server_subj", "spice_secure_channels",
+                "spice_image_compression", "spice_jpeg_wan_compression",
+                "spice_zlib_glz_wan_compression", "spice_streaming_video",
+                "spice_agent_mouse", "spice_playback_compression",
+                "spice_ipv4", "spice_ipv6", "spice_x509_cert_file",
+            )
+
+            for skey in spice_keys:
+                value = params.get(skey, None)
+                if value:
+                    self.spice_options[skey] = value
+
+            qemu_cmd += add_spice()
 
         vga = params.get("vga", None)
         if vga:
@@ -1089,26 +1109,6 @@ class VM(virt_vm.BaseVM):
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
                 self.vnc_port = virt_utils.find_free_port(5900, 6100)
-
-            # Get all SPICE options
-            if params.get("display") == "spice":
-                spice_keys = (
-                "spice_port", "spice_password", "spice_addr", "spice_ssl",
-                "spice_tls_port", "spice_tls_ciphers", "spice_gen_x509",
-                "spice_x509_dir", "spice_x509_prefix", "spice_x509_key_file",
-                "spice_x509_cacert_file", "spice_x509_key_password",
-                "spice_x509_secure", "spice_x509_cacert_subj",
-                "spice_x509_server_subj", "spice_secure_channels",
-                "spice_image_compression", "spice_jpeg_wan_compression",
-                "spice_zlib_glz_wan_compression", "spice_streaming_video",
-                "spice_agent_mouse", "spice_playback_compression",
-                "spice_ipv4", "spice_ipv6", "spice_x509_cert_file",
-                )
-
-                for skey in spice_keys:
-                    value = params.get(skey, None)
-                    if value:
-                        self.spice_options[skey] = value
 
             # Find random UUID if specified 'uuid = random' in config file
             if params.get("uuid") == "random":
@@ -1607,7 +1607,6 @@ class VM(virt_vm.BaseVM):
         Returns string value of spice variable of choice or None
         @param spice_var - spice related variable 'spice_port', ...
         """
-
         return self.spice_options.get(spice_var, None)
 
     @error.context_aware
@@ -2051,6 +2050,8 @@ class VM(virt_vm.BaseVM):
         Verifies whether the current qemu commandline matches the requested
         one, based on the test parameters.
         """
+        logging.debug("current qemu: %s", self.__make_qemu_command())
+        logging.debug("new qemu: %s", self.__make_qemu_command(name, params, basedir))
         return (self.__make_qemu_command() !=
                 self.__make_qemu_command(name, params, basedir))
 
