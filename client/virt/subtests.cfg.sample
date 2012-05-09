@@ -1886,6 +1886,25 @@ variants:
                 test_control_file = 9p-ci.control
                 test_timeout = 1800
 
+    - rv_connect:
+        type = rv_connect
+        vms = vm1 vm2
+        guest_vm = vm1
+        client_vm = vm2
+        image_name_vm2 = client_vm
+        display_vm2 = vnc
+        vga_vm2 = cirrus
+
+        variants:
+            - RHEL:
+                variants:
+                    # This is current solution of handling
+                    # multiple guests running exact same OS
+                    -6.3.beta.x86_64:
+                        image_name_vm2 = rhel63-64_client
+                    -6.3.beta.i386:
+                        image_name_vm2 = rhel63-32_client
+
     - shutdown: install setup image_copy unattended_install.cdrom
         type = shutdown
         shutdown_method = shell
