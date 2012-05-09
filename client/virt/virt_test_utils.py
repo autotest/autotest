@@ -21,7 +21,7 @@ More specifically:
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, re, signal, imp, tempfile
+import time, os, logging, re, signal, imp, tempfile, commands
 from autotest.client.shared import error, global_config
 from autotest.client import utils
 from autotest.client.tools import scan_results
@@ -914,3 +914,17 @@ def pin_vm_threads(vm, node):
         logging.info("pin vhost thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
     for i in vm.vcpu_threads:
         logging.info("pin vcpu thread(%s) to cpu(%s)" % (i, node.pin_cpu(i)))
+
+def service_setup(vm, session, dir):
+
+    params = vm.get_params()
+    rh_perf_envsetup_script = params.get("rh_perf_envsetup_script")
+    rebooted = params.get("rebooted", "rebooted")
+
+    if rh_perf_envsetup_script:
+        src = os.path.join(dir, rh_perf_envsetup_script)
+        vm.copy_files_to(src, "/tmp/rh_perf_envsetup.sh")
+        logging.info("setup perf environment for host")
+        commands.getoutput("bash %s host %s" % (src, rebooted))
+        logging.info("setup perf environment for guest")
+        session.cmd("bash /tmp/rh_perf_envsetup.sh guest %s" % rebooted)

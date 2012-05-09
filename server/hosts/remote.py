@@ -75,10 +75,12 @@ class RemoteHost(base_classes.Host):
         """
         server_info = get_install_server_info()
         if server_info.get('xmlrpc_url', None) is not None:
+            num_attempts = int(server_info.get('num_attempts', 2))
             ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
             server_interface = ServerInterface(**server_info)
             server_interface.install_host(self, profile=profile,
-                                          timeout=timeout)
+                                          timeout=timeout,
+                                          num_attempts=num_attempts)
         else:
             raise error.AutoservUnsupportedError("Empty install server setup "
                                                  "on global_config.ini")

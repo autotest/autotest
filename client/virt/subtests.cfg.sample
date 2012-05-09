@@ -354,6 +354,9 @@ variants:
         reboot_method = shell
         kill_vm_on_error = yes
         login_timeout = 240
+        # this script is used to setup test env for (linux)guest/host
+        # before performance testing
+        # rh_perf_envsetup_script = scripts/rh_perf_envsetup.sh
 
     - reboot_with_usb:
         only Linux
@@ -1248,6 +1251,9 @@ variants:
         # sizes = "64 256 512 1024"
         # sizes_rr = "64 256 512 1024"
         numa_node = -1
+        # this script is used to setup test env for (linux)guest/host
+        # before performance testing
+        # rh_perf_envsetup_script = scripts/rh_perf_envsetup.sh
         variants:
             - guest_guest:
                 vms += " vm2"

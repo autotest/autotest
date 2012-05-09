@@ -32,7 +32,7 @@ def run_qemu_io_blkdebug(test, params, env):
     blkdebug_default = params.get("blkdebug_default")
 
     error.context("Create image", logging.info)
-    image_name = virt_vm.create_image(params.object_params(image), test.bindir)
+    image_name = virt_utils.create_image(params.object_params(image), test.bindir)
 
     template_name =  virt_utils.get_path(test.virtdir, blkdebug_default)
     template = ConfigParser.ConfigParser()
@@ -45,9 +45,14 @@ def run_qemu_io_blkdebug(test, params, env):
         template.set("inject-error", "event", '"%s"' % err_event)
         template.set("inject-error", "errno", '"%s"' % errn)
 
-        with open(blkdebug_cfg, 'w') as blkdebug:
+        error.context("Write blkdebug config file", logging.info)
+        blkdebug = None
+        try:
+            blkdebug = open(blkdebug_cfg, 'w')
             template.write(blkdebug)
-            blkdebug.close()
+        finally:
+            if blkdebug is not None:
+                blkdebug.close()
 
         error.context("Operate in qemu-io to trigger the error", logging.info)
         session = qemu_io.QemuIOShellSession(test, params, image_name,

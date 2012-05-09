@@ -1,9 +1,0 @@
-print "--SELFTEST-- loading test"
-
-def step_init():
-	job.next_step([step_test, 1])
-	job.next_step([step_test, 2])
-	print "--STEPTEST-- step_init called"
-	
-def step_test(iteration):
-	print "--STEPTEST-- step_test called iteration=%d" % iteration

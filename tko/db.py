@@ -158,6 +158,9 @@ class db_sql(object):
                 quoted_field = self._quote(field)
                 if value is None:
                     keys.append(quoted_field + ' is null')
+                elif '%' in str(value):
+                    keys.append(quoted_field + 'like %s')
+                    values.append(value)
                 else:
                     keys.append(quoted_field + '=%s')
                     values.append(value)
@@ -309,6 +312,25 @@ class db_sql(object):
         self.dprint('%s %s' % (cmd, values))
 
         self._exec_sql_with_commit(cmd, values, commit)
+
+
+    def delete_afe_job(self, tag, commit = None):
+        job_idx = self.find_job(tag)
+        afe_job_idx = self.find_afe_job(tag)
+        for test_idx in self.find_tests(job_idx):
+            where = {'test_idx' : test_idx}
+            self.delete('tko_iteration_result', where)
+            self.delete('tko_iteration_attributes', where)
+            self.delete('tko_test_attributes', where)
+            self.delete('tko_test_labels_tests', {'test_id': test_idx})
+        where = {'job_idx' : job_idx}
+        self.delete('tko_job_keyvals', {'job_id' : job_idx})
+        self.delete('tko_tests', where)
+        self.delete('tko_jobs', where)
+        self.delete('afe_aborted_host_queue_entries', {'queue_entry_id' : afe_job_idx})
+        self.delete('afe_special_tasks', {'queue_entry_id' : afe_job_idx})
+        self.delete('afe_host_queue_entries', {'id' : afe_job_idx})
+        self.delete('afe_jobs', {'id' : afe_job_idx})
 
 
     def delete_job(self, tag, commit = None):
@@ -529,6 +551,22 @@ class db_sql(object):
 
     def find_job(self, tag):
         rows = self.select('job_idx', 'tko_jobs', {'tag': tag})
+        if rows:
+            return rows[0][0]
+        else:
+            return None
+
+
+    def find_afe_job(self, tag):
+        rows = self.select('afe_job_id', 'tko_jobs', {'tag': tag})
+        if rows:
+            return rows[0][0]
+        else:
+            return None
+
+
+    def find_tag(self, tag_pattern):
+        rows = self.select('tag', 'tko_jobs', {'tag': tag_pattern})
         if rows:
             return rows[0][0]
         else:

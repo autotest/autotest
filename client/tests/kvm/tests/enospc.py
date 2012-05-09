@@ -145,7 +145,7 @@ def run_enospc(test, params, env):
             for image_name in vm.params.objects("images"):
                 image_params = vm.params.object_params(image_name)
                 try:
-                    virt_vm.check_image(image_params, test.bindir)
+                    virt_utils.check_image(image_params, test.bindir)
                 except (virt_vm.VMError, error.TestWarn), e:
                     logging.error(e)
             logging.info("Guest paused, extending Logical Volume size")

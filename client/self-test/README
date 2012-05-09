@@ -1,9 +1,0 @@
-Function Test Suite
-===================
-To run the function test suite:
-
-	sh test test
-
-To clean up afterwards:
-
-	sh test clean

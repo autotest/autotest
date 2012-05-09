@@ -12,7 +12,7 @@ class QemuIOParamError(Exception):
     pass
 
 
-class QemuIO():
+class QemuIO(object):
     """
     A class for execute qemu-io command
     """

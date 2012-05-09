@@ -56,12 +56,9 @@ def get_tags_by_range(range):
     tag_list = []
     results_dir = get_results_dir()
     for job_index in range:
-        base_dir = '%d-autotest' % job_index
-        os.chdir(results_dir)
-        subdirs = glob.glob(os.path.join(base_dir, "*"))
-        for subdir in subdirs:
-            if os.path.isdir(subdir):
-                tag_list.append(subdir)
+        job = db.find_tag("%s-%%" % job_index)
+        if job:
+            tag_list.append(job)
 
     return tag_list
 
@@ -111,6 +108,7 @@ if __name__ == '__main__':
                       default=False,
                       help=("Don't ask for confirmation before deleting"))
 
+    db = db.db()
 
     options, args = parser.parse_args()
     if args:
@@ -131,8 +129,6 @@ if __name__ == '__main__':
     elif options.tag:
         tag_list = [options.tag]
 
-    db = db.db()
-
     logging.info("The following job tags were found:")
     for tag in tag_list:
         logging.info("    %s" % tag)
@@ -145,10 +141,14 @@ if __name__ == '__main__':
             else:
                 logging.info("Deleting job tag %s" % tag)
                 if not options.dry_run:
-                    db.delete_job(tag)
+                    db.delete_afe_job(tag)
 
             results_dir = get_results_dir()
-            results_dir = os.path.abspath(os.path.join(results_dir, tag))
+            parent_tagdir = os.path.dirname(tag)
+            if not parent_tagdir:
+                parent_tagdir = tag
+            results_dir = os.path.abspath(os.path.join(results_dir,
+                                                       parent_tagdir))
             if not os.path.isdir(results_dir):
                 logging.error("Job directory %s does not exist" % results_dir)
             else:

@@ -11,7 +11,7 @@ from autotest.client.shared.test_utils import mock
 from autotest.client.shared.test_utils import unittest
 from autotest.database import database_connection
 from autotest.frontend.afe import models, model_attributes
-from autotest.scheduler import monitor_db_functional_test
+from autotest.scheduler import monitor_db_functional_unittest
 from autotest.scheduler import scheduler_models
 
 _DEBUG = False
@@ -31,7 +31,7 @@ class BaseSchedulerModelsTest(unittest.TestCase,
 
         self._database = (
             database_connection.TranslatingDatabase.get_test_database(
-                translators=monitor_db_functional_test._DB_TRANSLATORS))
+                translators=monitor_db_functional_unittest._DB_TRANSLATORS))
         self._database.connect(db_type='django')
         self._database.debug = _DEBUG
 

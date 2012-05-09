@@ -1,4 +1,0 @@
-try:
-	system('false')
-except CmdError, instance:
-	print "--SELFTEST-- CmdError Thrown: " + instance.__str__()

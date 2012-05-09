@@ -7,6 +7,7 @@ LOG="/tmp/$BASENAME-$DATETIMESTAMP.log"
 ATPASSWD=
 MYSQLPW=
 INSTALL_PACKAGES_ONLY=0
+export LANG=en_US.utf8
 
 print_log() {
 echo $(date "+%H:%M:%S") $1 '|' $2 | tee -a $LOG
@@ -16,12 +17,13 @@ usage() {
 cat << EOF
 usage: $0 [options]
 
-This script installs the autotest server on a given Fedora 16 system.
+This script installs the autotest server on a given system.
+Currently supported systems: Fedora 16 and RHEL 6.2.
 
 GENERAL OPTIONS:
    -h      Show this message
    -u      Autotest user password
-   -d      Autotest MySQL database password
+   -d      MySQL password (both mysql root and autotest_web db)
 
 INSTALLATION STEP SELECTION:
    -p      Only install packages
@@ -220,12 +222,12 @@ else
 fi
 }
 
-isntall_autotest() {
+install_autotest() {
 print_log "INFO" "Installing autotest"
 if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
 then
     print_log "INFO" "Adding user autotest"
-    useradd autotest
+    useradd -b /usr/local autotest
     print_log "INFO" "Setting autotest user password"
     echo "$ATPASSWD
 $ATPASSWD" | passwd --stdin autotest >> $LOG
@@ -332,10 +334,16 @@ fi
 }
 
 patch_python27_bug() {
-# Patch up a python 2.7 problem
-if [ "$(grep '^CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py)" != "" ]
+#
+# We may not be on python 2.7
+#
+if [ -d  /usr/lib64/python2.7 ]
 then
-    /usr/local/bin/substitute 'CFUNCTYPE(c_int)(lambda: None)' '# CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py
+    # Patch up a python 2.7 problem
+    if [ "$(grep '^CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py)" != "" ]
+    then
+        /usr/local/bin/substitute 'CFUNCTYPE(c_int)(lambda: None)' '# CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py
+    fi
 fi
 }
 
@@ -408,7 +416,12 @@ fi
 }
 
 print_install_status() {
-print_log "INFO" "$(systemctl status autotestd.service)"
+if [ -x /etc/init.d/autotest ]
+then
+    print_log "INFO" "$(service autotest status)"
+else
+    print_log "INFO" "$(systemctl status autotestd.service)"
+fi
 
 cd $ATHOME/client/shared/
 VERSION="$(./version.py)"
@@ -433,7 +446,7 @@ full_install() {
     if [ $INSTALL_PACKAGES_ONLY == 0 ]; then
 	setup_selinux
 	setup_mysql_service
-	isntall_autotest
+	install_autotest
 	check_mysql_password
 	create_autotest_database
 	build_external_packages

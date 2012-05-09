@@ -1,3 +1,0 @@
-job.run_test('selftest', 'mark', 1, tag='test1')
-job.run_test('selftest', 'mark', 3, tag='test3')
-job.run_test('selftest', 'mark', 2, tag='test2')
