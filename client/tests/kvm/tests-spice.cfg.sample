@@ -34,7 +34,7 @@ variants:
                 spice_ssl = yes
                 spice_tls_port = 3200
                 spice_tls_ciphers = DEFAULT
-                ice_x509_dirice_x509_dir = yes
+                spice_x509_dir = yes
                 spice_x509_prefix = /tmp/spice_x509d
                 spice_x509_key_file = server-key.pem
                 spice_x509_cacert_file = ca-cert.pem
