@@ -542,8 +542,9 @@ def _take_screendumps(test, params, env):
                 except NameError:
                     pass
             os.unlink(temp_filename)
-        if (_screendump_thread_termination_event is not None and
-            _screendump_thread_termination_event.isSet()):
-            _screendump_thread_termination_event = None
-            break
-        _screendump_thread_termination_event.wait(delay)
+
+        if _screendump_thread_termination_event is not None:
+            if _screendump_thread_termination_event.isSet():
+                _screendump_thread_termination_event = None
+                break
+            _screendump_thread_termination_event.wait(delay)
