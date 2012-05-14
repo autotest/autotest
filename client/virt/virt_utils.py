@@ -10,7 +10,7 @@ import struct, shutil, glob, HTMLParser, urllib
 from autotest.client import utils, os_dep
 from autotest.client.shared import error, logging_config
 from autotest.client.shared import logging_manager, git
-from autotest.client.virt import virt_env_process
+from autotest.client.virt import virt_env_process, virt_vm
 from autotest.client.shared.syncdata import SyncData, SyncListenServer
 import rss_client, aexpect
 import platform
@@ -587,16 +587,18 @@ def get_image_filename(params, root_dir):
         try:
             image_name = matching_images[indirect_image_select]
         except IndexError:
-            raise VMDeviceError("No matching disk found for name = '%s', "
-                                "matching = '%s' and selector = '%s'" %
-                                (re_name, matching_images,
-                                 indirect_image_select))
+            raise virt_vm.VMDeviceError("No matching disk found for "
+                                        "name = '%s', matching = '%s' and "
+                                        "selector = '%s'" %
+                                        (re_name, matching_images,
+                                         indirect_image_select))
         for protected in params.get('indirect_image_blacklist', '').split(' '):
             if re.match(protected, image_name):
-                raise VMDeviceError("Matching disk is in blacklist. name = '%s"
-                                    "', matching = '%s' and selector = '%s'" %
-                                    (re_name, matching_images,
-                                     indirect_image_select))
+                raise virt_vm.VMDeviceError("Matching disk is in blacklist. "
+                                            "name = '%s', matching = '%s' and "
+                                            "selector = '%s'" %
+                                            (re_name, matching_images,
+                                             indirect_image_select))
     image_format = params.get("image_format", "qcow2")
     if params.get("image_raw_device") == "yes":
         return image_name
@@ -789,7 +791,7 @@ def check_image(params, root_dir):
                         logging.error("[stderr] %s", e_line)
                     if params.get("backup_image_on_check_error", "no") == "yes":
                         backup_image(params, root_dir, 'backup', False)
-                    raise VMImageCheckError(image_filename)
+                    raise virt_vm.VMImageCheckError(image_filename)
                 # Leaked clusters, they are known to be harmless to data
                 # integrity
                 elif cmd_result.exit_status == 3:
@@ -1235,7 +1237,7 @@ def remote_scp(command, password_list, log_filename=None, transfer_timeout=600,
 
 
 def scp_to_remote(host, port, username, password, local_path, remote_path,
-                  log_filename=None, timeout=600):
+                  limit="", log_filename=None, timeout=600):
     """
     Copy files to a remote host (guest) through scp.
 
@@ -1244,22 +1246,26 @@ def scp_to_remote(host, port, username, password, local_path, remote_path,
     @param password: Password (if required)
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
+    @param limit: Speed limit of file transfer.
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
     @raise: Whatever remote_scp() raises
     """
+    if (limit):
+        limit = "-l %s" % (limit)
+
     command = ("scp -v -o UserKnownHostsFile=/dev/null "
-               "-o PreferredAuthentications=password -r -P %s %s %s@%s:%s" %
-               (port, local_path, username, host, remote_path))
+               "-o PreferredAuthentications=password -r %s "
+               "-P %s %s %s@%s:%s" %
+               (limit, port, local_path, username, host, remote_path))
     password_list = []
     password_list.append(password)
     return remote_scp(command, password_list, log_filename, timeout)
 
 
-
 def scp_from_remote(host, port, username, password, remote_path, local_path,
-                    log_filename=None, timeout=600):
+                    limit="", log_filename=None, timeout=600, ):
     """
     Copy files from a remote host (guest).
 
@@ -1268,21 +1274,27 @@ def scp_from_remote(host, port, username, password, remote_path, local_path,
     @param password: Password (if required)
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
+    @param limit: Speed limit of file transfer.
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
     @raise: Whatever remote_scp() raises
     """
+    if (limit):
+        limit = "-l %s" % (limit)
+
     command = ("scp -v -o UserKnownHostsFile=/dev/null "
-               "-o PreferredAuthentications=password -r -P %s %s@%s:%s %s" %
-               (port, username, host, remote_path, local_path))
+               "-o PreferredAuthentications=password -r %s "
+               "-P %s %s@%s:%s %s" %
+               (limit, port, username, host, remote_path, local_path))
     password_list = []
     password_list.append(password)
     remote_scp(command, password_list, log_filename, timeout)
 
 
 def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
-                        s_path, d_path, log_filename=None, timeout=600):
+                        s_path, d_path, limit="", log_filename=None,
+                        timeout=600):
     """
     Copy files from a remote host (guest) to another remote host (guest).
 
@@ -1291,15 +1303,20 @@ def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
     @param s_passwd/d_passwd: Password (if required)
     @param s_path/d_path: Path on the remote machine where we are copying
                          from/to
+    @param limit: Speed limit of file transfer.
     @param log_filename: If specified, log all output to this file
     @param timeout: The time duration (in seconds) to wait for the transfer
             to complete.
 
     @return: True on success and False on failure.
     """
+    if (limit):
+        limit = "-l %s" % (limit)
+
     command = ("scp -v -o UserKnownHostsFile=/dev/null -o "
-               "PreferredAuthentications=password -r -P %s %s@%s:%s %s@%s:%s" %
-               (port, s_name, src, s_path, d_name, dst, d_path))
+               "PreferredAuthentications=password -r %s -P %s"
+               " %s@%s:%s %s@%s:%s" %
+               (limit, port, s_name, src, s_path, d_name, dst, d_path))
     password_list = []
     password_list.append(s_passwd)
     password_list.append(d_passwd)
@@ -1307,7 +1324,8 @@ def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
 
 
 def copy_files_to(address, client, username, password, port, local_path,
-                  remote_path, log_filename=None, verbose=False, timeout=600):
+                  remote_path, limit="", log_filename=None,
+                  verbose=False, timeout=600):
     """
     Copy files to a remote host (guest) using the selected client.
 
@@ -1317,6 +1335,7 @@ def copy_files_to(address, client, username, password, port, local_path,
     @param local_path: Path on the local machine where we are copying from
     @param remote_path: Path on the remote machine where we are copying to
     @param address: Address of remote host(guest)
+    @param limit: Speed limit of file transfer.
     @param log_filename: If specified, log all output to this file (SCP only)
     @param verbose: If True, log some stats using logging.debug (RSS only)
     @param timeout: The time duration (in seconds) to wait for the transfer to
@@ -1325,7 +1344,7 @@ def copy_files_to(address, client, username, password, port, local_path,
     """
     if client == "scp":
         scp_to_remote(address, port, username, password, local_path,
-                      remote_path, log_filename, timeout)
+                      remote_path, limit, log_filename, timeout)
     elif client == "rss":
         log_func = None
         if verbose:
@@ -1336,7 +1355,8 @@ def copy_files_to(address, client, username, password, port, local_path,
 
 
 def copy_files_from(address, client, username, password, port, remote_path,
-                    local_path, log_filename=None, verbose=False, timeout=600):
+                    local_path, limit="", log_filename=None,
+                    verbose=False, timeout=600):
     """
     Copy files from a remote host (guest) using the selected client.
 
@@ -1346,6 +1366,7 @@ def copy_files_from(address, client, username, password, port, remote_path,
     @param remote_path: Path on the remote machine where we are copying from
     @param local_path: Path on the local machine where we are copying to
     @param address: Address of remote host(guest)
+    @param limit: Speed limit of file transfer.
     @param log_filename: If specified, log all output to this file (SCP only)
     @param verbose: If True, log some stats using logging.debug (RSS only)
     @param timeout: The time duration (in seconds) to wait for the transfer to
@@ -1354,7 +1375,7 @@ def copy_files_from(address, client, username, password, port, remote_path,
     """
     if client == "scp":
         scp_from_remote(address, port, username, password, remote_path,
-                        local_path, log_filename, timeout)
+                        local_path, limit, log_filename, timeout)
     elif client == "rss":
         log_func = None
         if verbose:
@@ -4836,3 +4857,25 @@ class MultihostMigration(object):
                                 self.finish_timeout)
         finally:
             self.cleanup()
+
+def get_ip_address_by_interface(ifname):
+    """
+    returns ip address by interface
+    @param ifname - interface name
+    @raise NetError - When failed to fetch IP address (ioctl raised IOError.).
+
+    Retrieves interface address from socket fd trough ioctl call
+    and transforms it into string from 32-bit packed binary
+    by using socket.inet_ntoa().
+
+    """
+    SIOCGIFADDR = 0x8915 # Get interface address <bits/ioctls.h>
+    mysocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        return socket.inet_ntoa(fcntl.ioctl(
+                    mysocket.fileno(),
+                    SIOCGIFADDR,
+                    struct.pack('256s', ifname[:15]) # ifname to binary IFNAMSIZ == 16
+                )[20:24])
+    except IOError:
+        raise NetError("Error while retrieving IP address from interface %s." % ifname)
