@@ -6,15 +6,14 @@ multi_disk test for Autotest framework.
 import logging
 import re
 import random
-import os
 from autotest.client.shared import error
 from autotest.client.virt.virt_env_process import preprocess
 from autotest.client.shared import utils
-from autotest.client.virt.virt_utils import get_image_filename
+from client.virt import kvm_qtree
 
-re_range1 = re.compile(r'range\([ ]*([-]?\d+|n).*\)')
-re_range2 = re.compile(r',[ ]*([-]?\d+|n)')
-re_blanks = re.compile(r'^([ ]*)')
+_RE_RANGE1 = re.compile(r'range\([ ]*([-]?\d+|n).*\)')
+_RE_RANGE2 = re.compile(r',[ ]*([-]?\d+|n)')
+_RE_BLANKS = re.compile(r'^([ ]*)')
 
 
 @error.context_aware
@@ -29,11 +28,11 @@ def _range(buf, n=None):
     @return: List of int values. In case it can't substitute 'n'
              it returns the original string.
     """
-    out = re_range1.match(buf)
+    out = _RE_RANGE1.match(buf)
     if not out:
         return False
     out = [out.groups()[0]]
-    out.extend(re_range2.findall(buf))
+    out.extend(_RE_RANGE2.findall(buf))
     if 'n' in out:
         if n is None:
             # Don't know what to substitute, return the original
@@ -70,154 +69,6 @@ def _range(buf, n=None):
         raise ValueError("More than 4 parameters in _range()")
     return out
 
-@error.context_aware
-def _qtree_check(vm, session, params, root_dir):
-    """
-    Tries to find differences between qemu qtree+info vs. /proc/scsi/scsi and
-    vm params.
-
-    @param vm: VM object
-    @param session: ssh session to VM
-    @param params: Dictionary with the test parameters
-    @param root_dir: vm's root_dir (for get_image_name function)
-    """
-    err = 0
-    # check [params_names, qtree search pattern]
-    check = [['name', 'channel', 'scsiid', 'lun'],
-             ['dev-prop: drive = ', 'bus-prop: channel = ',
-              'bus-prop: scsi-id = ', 'bus-prop: lun = ']]
-    drive_formats = ['ide', 'scsi', 'virtio-blk-pci']
-
-    # Info about disks gathered from guest
-    disks = {}
-    no_virtio_disks = 0 # virtio-blk-pci disks are not in /proc/scsi/scsi
-
-    error.context("Gather info from 'info qtree'")
-    info = vm.monitor.info('qtree').split('\n')
-    current = None
-    line = info.pop(0)
-    offset = None
-    while len(info) > 0:
-        if current is not None:     # Get all info about disk
-            _offset = len(re_blanks.match(line).group(0))
-            if offset == None:
-                offset = _offset
-            elif offset != _offset:
-                # This line is about next device, store current and prepare
-                # for next one.
-                name = current.get('name')
-                if not name:
-                    logging.error("Skipping disk without a name: %s", current)
-                    err += 1
-                elif name in disks:
-                    logging.error("Disk %s present multiple times in qtree",
-                                   current)
-                else:
-                    if current['drive_format'] == 'virtio-blk-pci':
-                        no_virtio_disks += 1
-                    disks[name] = current
-                current = None
-                continue    # this line have to be proceeded in next round
-            line = line[offset:]
-            for i in xrange(len(check[1])):
-                if line.startswith(check[1][i]):
-                    current[check[0][i]] = line[len(check[1][i]):].strip()
-        else:       # Look for block with disk specification
-            line = line.strip()
-            for fmt in drive_formats:
-                if line.startswith('dev: %s' % fmt):
-                    current = {'drive_format': fmt}
-                    offset = None
-        line = info.pop(0)  # Next line
-
-    error.context("Gather info from 'info block'")
-    info = vm.monitor.info("block").split('\n')
-    for line in info:
-        if not line:
-            continue
-        line = line.split(':', 1)
-        name = line[0].strip()
-        if name not in disks:
-            logging.error("disk %s is in block but not in qtree", name)
-            err += 1
-            continue
-        item = {}
-        for _ in line[1].strip().split(' '):
-            _ = _.split('=')
-            item[_[0]] = _[1]
-        if item.get('backing_file'):
-            disks[name]['snapshot'] = 'yes'
-            disks[name]['image_name'] = os.path.realpath(
-                                                    item.get('backing_file'))
-        elif item.get('file'):
-            disks[name]['image_name'] = os.path.realpath(item.get('file'))
-        else:
-            logging.error("Can'T get info about %s disk file.", name)
-            err += 1
-        if item.get('ro') and item.get('ro') != '0':
-            disks[name]['readonly'] = 'yes'
-
-    error.context("Verify info from guest's /proc/scsi/scsi")
-    # host, channel, id, lun, vendor
-    scsis = re.findall(r'Host:\s+(\w+)\s+Channel:\s+(\d+)\s+Id:\s+(\d+)\s+'
-                        'Lun:\s+(\d+)\n\s+Vendor:\s+([a-zA-Z0-9_-]+)\s+Model: ',
-                        session.cmd_output('cat /proc/scsi/scsi'))
-    if len(scsis) + no_virtio_disks != len(disks):
-        logging.error("The number of disks in qtree and /proc/scsi/scsi is not"
-                      " equal.")
-        err += 1
-    _disks = {}
-    # Check only scsi disks
-    for disk in disks.copy().iteritems():
-        if disk[1]['drive_format'].startswith('scsi'):
-            _disks[disk[0]] = disk[1]
-    _ = []
-    for scsi in scsis:
-        if scsi[4].startswith('QEMU'):
-            _.append("%d-%d-%d" % (int(scsi[1]), int(scsi[2]), int(scsi[3])))
-    scsis = _
-    # Check only channel, id and lun for now
-    for disk in _disks.itervalues():
-        name = '%d-%d-%d' % (int(disk['channel']), int(disk['scsiid']),
-                             int(disk['lun']))
-        if name not in scsis:
-            logging.error('Disk %s is in qtree but not in /proc/scsi/scsi.',
-                          disk)
-            err += 1
-            continue
-        scsis.remove(name)
-
-    error.context("Verify the info from qtree+block vs. params.")
-    _disks = disks.copy()
-    for name in params.objects('images'):
-        current = None
-        image_params = params.object_params(name)
-        image_name = os.path.realpath(get_image_filename(image_params,
-                                                         root_dir))
-        for disk in disks.itervalues():
-            if disk.get('image_name') == image_name:
-                current = disk
-                qname = current.get('name')
-                current.pop('name')
-                break
-        if not current:
-            logging.error("Disk %s is not in qtree but is in params.", name)
-            err += 1
-            continue
-        for prop in check[0]:
-            if (image_params.get(prop) and current.get(prop) and
-                    image_params.get(prop) != current.get(prop)):
-                logging.error("Disk %s's property %s=%s doesn't math params %s",
-                              qname, prop, current.get(prop),
-                               image_params.get(prop))
-                err += 1
-        _disks.pop(qname)
-    if _disks:
-        logging.error('Some disks were in qtree but not in autotest params: %s',
-                      _disks)
-        err += 1
-
-    return err
 
 @error.context_aware
 def run_multi_disk(test, params, env):
@@ -274,7 +125,7 @@ def run_multi_disk(test, params, env):
         (cmd, parm) = stg_params[i].split(':', 1)
         if cmd == "image_name":
             has_name = True
-        if re_range1.match(parm):
+        if _RE_RANGE1.match(parm):
             parm = _range(parm)
             if parm == False:
                 raise error.TestError("Incorrect cfg: stg_params %s looks "
@@ -299,7 +150,7 @@ def run_multi_disk(test, params, env):
     stg_image_num = int(params.get('stg_image_num', stg_image_num))
     for cmd in rerange:
         param_matrix[cmd] = _range(param_matrix[cmd], stg_image_num)
-    # param_table is for pretty print of param_matrix
+    # param_table* are for pretty print of param_matrix
     param_table = []
     param_table_header = ['name']
     if not has_name:
@@ -320,7 +171,6 @@ def run_multi_disk(test, params, env):
             params['%s_%s' % (parm[0], name)] = str(parm[1][i % len(parm[1])])
             param_table[-1].append(params.get('%s_%s' % (parm[0], name)))
 
-
     if params.get("multi_disk_params_only") == 'yes':
         # Only print the test param_matrix and finish
         logging.info('Newly added disks:\n%s',
@@ -331,7 +181,6 @@ def run_multi_disk(test, params, env):
     preprocess(test, params, env)
     vm = env.get_vm(params["main_vm"])
     vm.create(timeout=max(10, stg_image_num))
-    #time.sleep(stg_image_num)  # Add some extra time
     session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
 
     images = params.get("images").split()
@@ -344,7 +193,18 @@ def run_multi_disk(test, params, env):
     block_list = params.get("block_list").split()
 
     error.context("verifying qtree vs. test params")
-    err = _qtree_check(vm, session, params, vm.root_dir)
+    err = 0
+    qtree = kvm_qtree.QtreeContainer()
+    qtree.parse_info_qtree(vm.monitor.info('qtree'))
+    disks = kvm_qtree.QtreeDisksContainer(qtree.get_nodes())
+    (tmp1, tmp2) = disks.parse_info_block(vm.monitor.info('block'))
+    err += tmp1 + tmp2
+    err += disks.generate_params()
+    err += disks.check_disk_params(params, vm.root_dir)
+    (tmp1, tmp2, _, _) = disks.check_guests_proc_scsi(
+                                    session.cmd_output('cat /proc/scsi/scsi'))
+    err += tmp1 + tmp2
+
     if err:
         raise error.TestFail("%s errors occurred while verifying qtree vs. "
                              "params" % err)
