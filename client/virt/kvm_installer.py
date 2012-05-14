@@ -209,7 +209,7 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
         if qemu_fs_proxy_bin is not None:
             os.symlink(qemu_fs_proxy_bin, qemu_fs_proxy_dst)
         else:
-            raise error.TestError('Invalid qemu fs proxy path')
+            logging.warning('Qemu fs proxy path %s not found on source dir')
 
 
     def _install_phase_init(self):
