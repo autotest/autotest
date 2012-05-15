@@ -207,6 +207,7 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
                                        for attribute in host_obj.attribute_list)
         if remote.install_server_is_configured():
             host_dict['profiles'] = server.find_profile({"comment":"*" + host_dict['platform'] + "*"})
+            host_dict['profiles'].insert(0, 'Do_not_install')
             host_dict['current_profile'] = server.find_system({"name":host_dict['hostname']},True)[0]['profile']
         else:
             host_dict['profiles'] = ['N/A']
