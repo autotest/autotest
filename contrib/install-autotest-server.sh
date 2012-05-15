@@ -237,8 +237,10 @@ mkdir -p /usr/local
 if [ ! -e $ATHOME/.git/config ]
 then
     print_log "INFO" "Cloning autotest repo in $ATHOME"
-    cd /usr/local
-    git clone git://github.com/autotest/autotest.git
+    cd $ATHOME
+    git init
+    git fetch -f -u -t git://github.com/autotest/autotest.git master:master
+    git checkout master
 else
     print_log "INFO" "Updating autotest repo in $ATHOME"
     cd $ATHOME
