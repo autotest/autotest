@@ -1,6 +1,6 @@
 from autotest.client.shared import utils, error, global_config
 from autotest.server import autotest_remote, utils as server_utils
-from autotest.server.hosts import site_factory, ssh_host, serial
+from autotest.server.hosts import site_factory, ssh_host, serial, remote
 from autotest.server.hosts import logfile_monitor
 
 DEFAULT_FOLLOW_PATH = '/var/log/kern.log'
@@ -68,7 +68,7 @@ def create_host(
     site_factory.postprocess_classes(classes, hostname,
                                      auto_monitor=auto_monitor, **args)
 
-    hostname, args['user'], args['password'], args['port'] = \
+    hostname, args['user'], args['password'], args['port'], args['profile'] = \
             server_utils.parse_machine(hostname, ssh_user, ssh_pass, ssh_port)
 
     # create a custom host class for this machine and return an instance of it
