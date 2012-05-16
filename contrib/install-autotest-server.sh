@@ -250,6 +250,7 @@ fi
 
 print_log "INFO" "Setting proper permissions for the autotest directory"
 chown -R autotest:autotest $ATHOME
+chmod 775 $ATHOME
 }
 
 check_mysql_password() {
