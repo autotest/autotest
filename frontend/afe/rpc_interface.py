@@ -205,10 +205,12 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
         host_dict['acls'] = [acl.name for acl in host_obj.acl_list]
         host_dict['attributes'] = dict((attribute.attribute, attribute.value)
                                        for attribute in host_obj.attribute_list)
-        if remote.install_server_is_configured():
+        system_list = server.find_system({"name":host_dict['hostname']},True)
+        if remote.install_server_is_configured() and host_dict['platform'] and system_list:
             host_dict['profiles'] = server.find_profile({"comment":"*" + host_dict['platform'] + "*"})
             host_dict['profiles'].insert(0, 'Do_not_install')
-            host_dict['current_profile'] = server.find_system({"name":host_dict['hostname']},True)[0]['profile']
+            # assume hostnames are unique systems
+            host_dict['current_profile'] = system_list[0]['profile']
         else:
             host_dict['profiles'] = ['N/A']
             host_dict['current_profile'] = 'N/A'
