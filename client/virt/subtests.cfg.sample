@@ -1985,6 +1985,10 @@ variants:
                 test_control_file = 9p-ci.control
                 test_timeout = 1800
 
+    - negative_create:
+        type = negative_create
+        start_vm = no
+
     - rv_connect:
         type = rv_connect
         vms = vm1 vm2
