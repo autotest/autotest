@@ -1879,7 +1879,7 @@ class VM(virt_vm.BaseVM):
         try:
             if protocol == "tcp":
                 if local:
-                    uri = "tcp:localhost:%d" % clone.migration_port
+                    uri = "tcp:0:%d" % clone.migration_port
                 else:
                     uri = "tcp:%s:%d" % (dest_host, remote_port)
             elif protocol == "unix":
