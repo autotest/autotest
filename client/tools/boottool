@@ -997,10 +997,12 @@ class Grubby(object):
         raw = self.get_info()
 
         entries = {}
-        for entry_str in raw.split("\nindex"):
+        for entry_str in re.split("^index", raw):
             if len(entry_str.strip()) == 0:
                 continue
             if entry_str.startswith('boot='):
+                continue
+            if 'non linux entry' in entry_str:
                 continue
             entry = parse_entry("index" + entry_str)
             entries[entry["index"]] = entry
