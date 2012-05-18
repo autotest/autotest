@@ -67,6 +67,17 @@ LOGGING_FORMAT = "%(levelname)s: %(name)s: %(message)s"
 log = logging.getLogger('boottool')
 
 
+def find_header(hdr):
+    """
+    Find a given header in the system.
+    """
+    for dir in ['/usr/include', '/usr/local/include']:
+        file = os.path.join(dir, hdr)
+        if os.path.exists(file):
+            return file
+    raise ValueError('Missing header: %s' % hdr)
+
+
 class EfiVar(object):
     '''
     Helper class to manipulate EFI firmware variables
@@ -1235,6 +1246,12 @@ class Grubby(object):
         def log_lines(lines):
             for line in lines:
                 self.log.debug(line.strip())
+
+        try:
+            find_header('popt.h')
+        except ValueError:
+            self.log.debug('No popt.h header present, skipping build')
+            return False
 
         tarball_name = os.path.basename(tarball)
 
