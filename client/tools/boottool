@@ -997,7 +997,7 @@ class Grubby(object):
         raw = self.get_info()
 
         entries = {}
-        for entry_str in re.split("^index", raw):
+        for entry_str in re.split("index", raw):
             if len(entry_str.strip()) == 0:
                 continue
             if entry_str.startswith('boot='):
