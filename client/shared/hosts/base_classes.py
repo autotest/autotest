@@ -652,12 +652,15 @@ class Host(object):
         @param boot_dir: boot directory path string, default '/boot'
         """
         # find all the vmlinuz images referenced by the bootloader
-        vmlinuz_prefix = os.path.join(boot_dir, 'vmlinuz-')
         boot_info = self.bootloader.get_entries()
-        used_kernver = [boot['kernel'][len('vmlinuz-'):]
-                        for boot in boot_info.itervalues()]
+        used_kernver = []
+        for boot in boot_info.itervalues():
+            k = os.path.basename(boot['kernel'])[len('vmlinuz-'):]
+            if k not in used_kernver:
+                used_kernver.append(k)
 
         # find all the unused vmlinuz images in /boot
+        vmlinuz_prefix = os.path.join(boot_dir, 'vmlinuz-')
         all_vmlinuz = self.list_files_glob(vmlinuz_prefix + '*')
         used_vmlinuz = self.symlink_closure(vmlinuz_prefix + kernver
                                             for kernver in used_kernver)
