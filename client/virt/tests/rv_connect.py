@@ -126,7 +126,30 @@ def launch_rv(client_vm, guest_vm, params):
         ticket = guest_vm.get_spice_var("spice_password")
 
         if guest_vm.get_spice_var("spice_ssl") == "yes":
-            raise NotImplementedError("spice-ssl")
+            host_port = guest_vm.get_spice_var("spice_tls_port")
+            cacert = "%s/%s" % (guest_vm.get_spice_var("spice_x509_prefix"),
+                               guest_vm.get_spice_var("spice_x509_cacert_file"))
+            #cacert subj is in format for create certificate(with '/' delimiter)
+            #remote-viewer needs ',' delimiter. And also is needed to remove 
+            #first character (it's '/')
+            host_subj = guest_vm.get_spice_var("spice_x509_server_subj")
+            host_subj = host_subj.replace('/',',')[1:]
+            
+            cmd += " spice://%s?tls-port=%s" % (host_ip, host_port)
+            cmd += " --spice-ca-file=%s" % cacert
+            
+            if params.get("spice_client_host_subject") == "yes":
+                cmd += " --spice-host-subject=\"%s\"" % host_subj
+    
+            #client needs cacert file
+            client_session.cmd("rm -rf %s && mkdir -p %s" % (
+                               guest_vm.get_spice_var("spice_x509_prefix"),
+                               guest_vm.get_spice_var("spice_x509_prefix")))
+            virt_utils.copy_files_to(client_vm.get_address(), 'scp', 
+                                     params.get("username"), 
+                                     params.get("password"),
+                                     params.get("shell_port"),
+                                     cacert, cacert)
         else:
             host_port = guest_vm.get_spice_var("spice_port")
             cmd += " spice://%s?port=%s" % (host_ip, host_port)
