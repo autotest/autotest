@@ -347,7 +347,7 @@ class kernel(BootableKernel):
             utils.system("sed '%s' < %s.old > %s" % (p, cfg, cfg))
             self.config(make='oldconfig')
         else:
-            self.config(make='defconfig')
+            self.config()
 
 
     @log.record

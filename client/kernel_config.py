@@ -69,6 +69,8 @@ class kernel_config(object):
                  defconfig=False, name=None, make=None):
         self.build_dir = build_dir
         self.config_dir = config_dir
+        self.orig_config = os.path.join(config_dir, 'config.orig')
+        self.running_config = utils.running_config()
 
         # 1. Get original config file
         self.build_config = os.path.join(build_dir, '.config')
@@ -81,10 +83,13 @@ class kernel_config(object):
                 defconf = job.config_get("kernel.default_config")
             if defconf:
                 orig_file = defconf
+            else:
+                if self.running_config is not None:
+                    orig_file = self.running_config
         if (orig_file == '' and not make and defconfig): # use defconfig
             make = 'defconfig'
         if (orig_file == '' and make): # use the config command
-            logging.debug("kernel_config: using %s to configure kernel" % make)
+            logging.debug("using %s to configure kernel" % make)
             os.chdir(build_dir)
             make_return = utils.system('make %s > /dev/null' % make)
             self.config_record(make)
@@ -92,11 +97,9 @@ class kernel_config(object):
                 raise error.TestError('make %s failed' % make)
         else:
             logging.debug("using %s to configure kernel", orig_file)
-            self.orig_config = os.path.join(config_dir, 'config.orig')
             utils.get_file(orig_file, self.orig_config)
             self.update_config(self.orig_config, self.orig_config + '.new')
             diff_configs(self.orig_config, self.orig_config + '.new')
-
 
         # 2. Apply overrides
         if overrides:

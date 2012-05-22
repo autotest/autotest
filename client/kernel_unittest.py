@@ -458,7 +458,7 @@ class TestKernel(unittest.TestCase):
         cfg = self.build_dir + '/.config'
         p = extraversion_sub + '"\\1-%s"/' % tag
         os.path.exists.expect_call(cfg).and_return(False)
-        self.kernel.config.expect_call(make='defconfig')
+        self.kernel.config.expect_call()
 
         # run and check
         self.kernel.extraversion(tag)
