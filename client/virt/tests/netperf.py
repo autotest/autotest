@@ -195,7 +195,7 @@ def launch_client(sessions, server, server_ctl, host, client, l, nf_args):
 
     client_path="/tmp/netperf-2.4.5/src/netperf"
     server_path="/tmp/netperf-2.4.5/src/netserver"
-    ssh_cmd(server_ctl, "pidof netserver || %s" % server_path)
+    ssh_cmd(server_ctl, "pidof netserver || %s -p 12865" % server_path)
     ncpu = ssh_cmd(server_ctl, "cat /proc/cpuinfo |grep processor |wc -l")
 
     def count_interrupt(name):
