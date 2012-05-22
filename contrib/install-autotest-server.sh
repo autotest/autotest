@@ -203,11 +203,17 @@ setup_selinux() {
 # is in fact an SELinux problem. I did try to fix it, but couldn't, this needs to
 # be investigated more carefully.
 print_log "INFO" "Disabling SELinux (sorry guys...)"
-if [ -x /selinux/enforce ]
+if [ -f /selinux/enforce ]
 then
     echo 0 > /selinux/enforce
 fi
+
 setenforce 0
+
+if [ -f /etc/selinux/config ]
+then
+    /usr/local/bin/substitute 'SELINUX=enforcing' 'SELINUX=permissive' /etc/selinux/config
+fi
 }
 
 setup_mysql_service() {
