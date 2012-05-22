@@ -269,11 +269,12 @@ class kernel(BootableKernel):
 
     @log.record
     @tee_output_logdir_mark
-    def config(self, config_file = '', config_list = None, defconfig = False, make = None):
+    def config(self, config_file='', config_list=None, defconfig=False,
+               make=None):
         self.set_cross_cc()
-        config = kernel_config.kernel_config(self.job, self.build_dir,
-                 self.config_dir, config_file, config_list,
-                 defconfig, self.base_tree_version, make)
+        kernel_config.kernel_config(self.job, self.build_dir, self.config_dir,
+                                    config_file, config_list, defconfig,
+                                    self.base_tree_version, make)
 
 
     def get_patches(self, patches):
@@ -351,7 +352,7 @@ class kernel(BootableKernel):
 
     @log.record
     @tee_output_logdir_mark
-    def build(self, make_opts = '', logfile = '', extraversion='autotest'):
+    def build(self, make_opts='', logfile ='', extraversion='autotest'):
         """build the kernel
 
         make_opts
@@ -381,19 +382,18 @@ class kernel(BootableKernel):
         kernel_version = re.sub('-autotest', '', kernel_version)
         self.logfile.write('BUILD VERSION: %s\n' % kernel_version)
 
-        utils.force_copy(self.build_dir+'/System.map',
-                                  self.results_dir)
+        utils.force_copy(self.build_dir + '/System.map', self.results_dir)
 
 
-    def build_timed(self, threads, timefile = '/dev/null', make_opts = '',
-                                                    output = '/dev/null'):
+    def build_timed(self, threads, timefile='/dev/null', make_opts='',
+                    output='/dev/null'):
         """time the bulding of the kernel"""
         os.chdir(self.build_dir)
         self.set_cross_cc()
 
         self.clean()
-        build_string = "/usr/bin/time -o %s make %s -j %s vmlinux" \
-                                        % (timefile, make_opts, threads)
+        build_string = ("/usr/bin/time -o %s make %s -j %s vmlinux" %
+                        (timefile, make_opts, threads))
         build_string += ' > %s 2>&1' % output
         print build_string
         utils.system(build_string)
@@ -482,7 +482,7 @@ class kernel(BootableKernel):
 
     @log.record
     @tee_output_logdir_mark
-    def install(self, tag='autotest', prefix = '/'):
+    def install(self, tag='autotest', prefix='/'):
         """make install in the kernel tree"""
 
         # Record that we have installed the kernel, and
