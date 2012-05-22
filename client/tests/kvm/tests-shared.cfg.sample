@@ -13,6 +13,10 @@ include virtio-win.cfg
 
 # Virtualization type (kvm or libvirt)
 vm_type = kvm
+
+# Additional directory for find virt type tests. Relative to client/tests
+other_tests_dirs = ""
+
 # The hypervisor uri (default, qemu://hostname/system, etc.)
 # where default or unset means derive from installed system
 connect_uri = default
