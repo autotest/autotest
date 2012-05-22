@@ -3884,9 +3884,9 @@ def install_host_kernel(job, params):
         koji_build = params.get('host_kernel_koji_build')
         koji_tag = params.get('host_kernel_koji_tag')
 
-        k_deps = KojiPkgSpec(tag=koji_tag, package='kernel',
+        k_deps = KojiPkgSpec(tag=koji_tag, build=koji_build, package='kernel',
                              subpackages=['kernel-devel', 'kernel-firmware'])
-        k = KojiPkgSpec(tag=koji_tag, package='kernel',
+        k = KojiPkgSpec(tag=koji_tag, build=koji_build, package='kernel',
                         subpackages=['kernel'])
 
         c = KojiClient(koji_cmd)
