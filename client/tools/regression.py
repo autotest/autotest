@@ -80,6 +80,8 @@ class Sample():
             if type(s1[line]) != list:
                 tmp = s1[line]
             else:
+                if len(s1[line][0]) < 2:
+                    continue
                 for col in range(len(s1[line])):
                     avg1 = self._get_list_avg(s1[line][col])
                     avg2 = self._get_list_avg(s2[line][col])
@@ -272,7 +274,7 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
             if lists[0][i] != rates[n][i] and not re.findall("[a-zA-Z]",
                                                              rates[n][i]):
                 tee_line(prefix2[n] +  str_ignore(rates[n][i], True), f)
-    if prefix3:
+    if prefix3 and len(allpvalues[0]) > 0:
         tee_line(prefix3 + str_ignore(allpvalues[category-1][0]), f)
     tee("</TBODY></TABLE>", f)
 
