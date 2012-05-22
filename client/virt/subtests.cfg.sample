@@ -1261,7 +1261,7 @@ variants:
         pci_model_nic2 = e1000
         nic_mode = tap
         netperf_files = netperf-2.4.5.tar.bz2 wait_before_data.patch
-        setup_cmd = "cd /tmp && rm -rf netperf-2.4.5 && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure && make"
+        setup_cmd = "cd /tmp && rm -rf netperf-2.4.5 && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure --enable-burst && make"
         # configure netperf test parameters
         # l = 60
         # protocols = "TCP_STREAM TCP_MAERTS TCP_RR"
