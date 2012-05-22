@@ -245,7 +245,8 @@ then
     print_log "INFO" "Cloning autotest repo in $ATHOME"
     cd $ATHOME
     git init
-    git fetch -f -u -t git://github.com/autotest/autotest.git master:master
+    git remote add origin git://github.com/autotest/autotest.git
+    git pull
     git checkout master
 else
     print_log "INFO" "Updating autotest repo in $ATHOME"
