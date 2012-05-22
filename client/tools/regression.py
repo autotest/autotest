@@ -93,7 +93,7 @@ class Sample():
                     flag = " "
                     if p <= 0.05:
                         flag = "+"
-                        if avg1 > avg2 :
+                        if float(avg1) > float(avg2):
                             flag = "-"
                     tmp.append(flag + "%.3f" % (1 - p ))
                 tmp = "|".join(tmp)
