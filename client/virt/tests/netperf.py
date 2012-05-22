@@ -84,14 +84,16 @@ def run_netperf(test, params, env):
                sizes_rr=params.get('sizes_rr'),
                sizes=params.get('sizes'),
                protocols=params.get('protocols'),
-               ver_cmd=params.get('ver_cmd', "rpm -q qemu-kvm"))
+               ver_cmd=params.get('ver_cmd', "rpm -q qemu-kvm"),
+               netserver_port=params.get('netserver_port', "12865"))
 
 
 def start_test(server, server_ctl, host, client, resultsdir, l=60,
                sessions_rr="50 100 250 500", sessions="1 2 4",
                sizes_rr="64 256 512 1024 2048",
                sizes="64 256 512 1024 2048 4096",
-               protocols="TCP_STREAM TCP_MAERTS TCP_RR", ver_cmd=None):
+               protocols="TCP_STREAM TCP_MAERTS TCP_RR", ver_cmd=None,
+               netserver_port=None):
     """
     Start to test with different kind of configurations
 
@@ -106,6 +108,8 @@ def start_test(server, server_ctl, host, client, resultsdir, l=60,
     @param sizes_rr: request/response sizes (TCP_RR, UDP_RR)
     @param sizes: send size (TCP_STREAM, UDP_STREAM)
     @param protocols: test type
+    @param ver_cmd: command to check kvm version
+    @param netserver_port: netserver listen port
     """
 
     def parse_file(file_prefix, raw=""):
@@ -154,11 +158,13 @@ def start_test(server, server_ctl, host, client, resultsdir, l=60,
             for j in sessions_test:
                 if (protocol == "TCP_RR"):
                     ret = launch_client(1, server, server_ctl, host, client, l,
-                    "-t %s -v 0 -P -0 -- -r %s,%s -b %s" % (protocol, i, i, j))
+                    "-t %s -v 0 -P -0 -- -r %s,%s -b %s" % (protocol, i, i, j),
+                    netserver_port)
                     thu = parse_file("/tmp/netperf.%s" % ret['pid'], 0)
                 else:
                     ret = launch_client(j, server, server_ctl, host, client, l,
-                                     "-C -c -t %s -- -m %s" % (protocol, i))
+                                     "-C -c -t %s -- -m %s" % (protocol, i),
+                                     netserver_port)
                     thu = parse_file("/tmp/netperf.%s" % ret['pid'], 4)
                 cpu = 100 - float(ret['mpstat'].split()[10])
                 normal = thu / cpu
@@ -190,12 +196,12 @@ def ssh_cmd(ip, cmd, user="root"):
     'UserKnownHostsFile=/dev/null %s@%s "%s"' % (user, ip, cmd))
 
 
-def launch_client(sessions, server, server_ctl, host, client, l, nf_args):
+def launch_client(sessions, server, server_ctl, host, client, l, nf_args, port):
     """ Launch netperf clients """
 
     client_path="/tmp/netperf-2.4.5/src/netperf"
     server_path="/tmp/netperf-2.4.5/src/netserver"
-    ssh_cmd(server_ctl, "pidof netserver || %s" % server_path)
+    ssh_cmd(server_ctl, "pidof netserver || %s -p %s" % (server_path, port))
     ncpu = ssh_cmd(server_ctl, "cat /proc/cpuinfo |grep processor |wc -l")
 
     def count_interrupt(name):
