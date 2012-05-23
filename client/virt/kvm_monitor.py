@@ -77,6 +77,7 @@ class Monitor:
         self._lock = threading.RLock()
         self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._passfd = None
+        self._supported_cmds = []
 
         try:
             self._socket.connect(filename)
@@ -146,6 +147,19 @@ class Monitor:
         return s
 
 
+    def _has_command(self, cmd):
+        """
+        Check wheter kvm monitor support 'cmd'.
+
+        @param cmd: command string which will be checked.
+
+        @return: True if cmd is supported, False if not supported.
+        """
+        if cmd and cmd in self._supported_cmds:
+            return True
+        return False
+
+
     def is_responsive(self):
         """
         Return True iff the monitor is responsive.
@@ -190,8 +204,7 @@ class HumanMonitor(Monitor):
                                            "after connecting to monitor. "
                                            "Output so far: %r" % o)
 
-            # Save the output of 'help' for future use
-            self._help_str = self.cmd("help", debug=False)
+            self._get_supported_cmds()
 
         except MonitorError, e:
             self._close_sock()
@@ -240,6 +253,19 @@ class HumanMonitor(Monitor):
 
         finally:
             self._lock.release()
+
+
+    def _get_supported_cmds(self):
+        """
+        Get supported human monitor cmds list.
+        """
+        cmds = self.cmd("help", debug=False)
+        if cmds:
+            cmd_list = re.findall("^(.*?) ", cmds, re.M)
+            self._supported_cmds = [c for c in cmd_list if c]
+
+        if not self._supported_cmds:
+            logging.warn("Could not get supported monitor cmds list")
 
 
     # Public methods
@@ -322,8 +348,8 @@ class HumanMonitor(Monitor):
     # Notes:
     # - All of the following commands raise exceptions in a similar manner to
     #   cmd().
-    # - A command wrapper should use self._help_str if it requires information
-    #   about the monitor's capabilities.
+    # - A command wrapper should use self._has_command if it requires
+    #    information about the monitor's capabilities.
     def send_args_cmd(self, cmdlines, timeout=CMD_TIMEOUT, convert=True):
         """
         Send a command with/without parameters and return its output.
@@ -576,6 +602,8 @@ class QMPMonitor(Monitor):
             # Issue qmp_capabilities
             self.cmd("qmp_capabilities")
 
+            self._get_supported_cmds()
+
         except MonitorError, e:
             self._close_sock()
             if suppress_exceptions:
@@ -663,6 +691,19 @@ class QMPMonitor(Monitor):
                         continue
                     if "return" in obj or "error" in obj:
                         return obj
+
+
+    def _get_supported_cmds(self):
+        """
+        Get supported qmp cmds list.
+        """
+        cmds = self.cmd("query-commands", debug=False)
+        if cmds:
+            self._supported_cmds = [n["name"] for n in cmds if
+                                    n.has_key("name")]
+
+        if not self._supported_cmds:
+            logging.warn("Could not get supported monitor cmds list")
 
 
     # Public methods
@@ -910,8 +951,7 @@ class QMPMonitor(Monitor):
         cmd_output = []
         for cmdline in cmdlines.split(";"):
             command = cmdline.split()[0]
-            commands = self.cmd("query-commands")
-            if command not in str(commands):
+            if self._has_command(command):
                 if "=" in cmdline:
                     command = cmdline.split()[0]
                     cmdargs = " ".join(cmdline.split()[1:]).split(",")
@@ -954,8 +994,7 @@ class QMPMonitor(Monitor):
         Request info about something and return the response.
         """
         cmd = "query-%s" % what
-        commands = self.cmd("query-commands")
-        if cmd in str(commands):
+        if self._has_command(cmd):
             return self.cmd("query-%s" % what)
         else:
             cmd = "info %s" % what
