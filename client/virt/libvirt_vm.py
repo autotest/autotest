@@ -1202,7 +1202,6 @@ class VM(virt_vm.BaseVM):
             virt_utils.wait_for(func=self.is_alive, timeout=60,
                                 text=("waiting for domain %s to start" %
                                       self.name))
-
             self.uuid = virsh_uuid(self.name, self.connect_uri)
 
             # Establish a session with the serial console
