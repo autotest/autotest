@@ -150,6 +150,47 @@ class test_open_write_close(unittest.TestCase):
         self.assertEqual(data, test_file.final_data)
 
 
+class test_Statisctic(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god(ut=self)
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def test_simple_functionality(self):
+        stat = base_utils.Statistic()
+        stat.record(5)
+        stat.record(15)
+        stat.record(10)
+        self.assertEqual(10, stat.get_average())
+        self.assertEqual(5, stat.get_min())
+        self.assertEqual(15, stat.get_max())
+
+
+class test_ConvertDataSize(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god(ut=self)
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    def test_simple_functionality(self):
+        size = 12
+        self.assertEqual(size, base_utils.convert_data_size('12'))
+        size *= 1024
+        self.assertEqual(size, base_utils.convert_data_size('12K'))
+        size *= 1024
+        self.assertEqual(size, base_utils.convert_data_size('12m'))
+        size *= 1024
+        self.assertEqual(size, base_utils.convert_data_size('12G'))
+        size *= 1024
+        self.assertEqual(size, base_utils.convert_data_size('12T'))
+
+
 class test_read_keyval(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god(ut=self)
