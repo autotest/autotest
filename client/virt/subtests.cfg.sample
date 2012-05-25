@@ -573,6 +573,16 @@ variants:
                 drive_werror_image1 = stop
                 vmstate_check = yes
                 migration_living_guest = no
+            - with_speed_measurement:
+                # migration speed in bytes. Default scaler is M (350 == 350M)
+                only Linux
+                mig_speed = 125M
+                # accuracy of mig_speed
+                # speed_range = (mig_speed+-(mig_speed*mig_speed_accuracy))
+                # if real_mig_speed is on in speed_range it raises Test warning.
+                mig_speed_accuracy = 0.3
+                pre_migrate = "set_speed_and_install"
+                type = migration_with_speed_measurement
             - with_set_speed:
                 mig_speed = 1G
                 pre_migrate = "mig_set_speed"
@@ -613,7 +623,13 @@ variants:
         variants:
             #Migration protocol.
             -tcp:
-                type = migration_multi_host
+                variants:
+                    - @default:
+                        type = migration_multi_host
+                    - measure_migration_speed:
+                        only Linux
+                        mig_speed = 1G
+                        type = migration_multi_host_with_speed_measurement
             -fd:
                 type = migration_multi_host_fd
 
