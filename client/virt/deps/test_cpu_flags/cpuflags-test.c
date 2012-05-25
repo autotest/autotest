@@ -14,8 +14,9 @@ void print_help(){
 			"  --pclmul                   test carry less multiplication.\n"
 			"  --rdrand                   test rdrand instruction.\n"
 			"  --fma4                     test fma4 instruction.\n"
-			"  --xop                     test fma4 instruction.\n"
-			"  --stress n_cpus,avx,aes    start stress on n_cpus.and cpuflags\n");
+			"  --xop                      test fma4 instruction.\n"
+			"  --stress n_cpus,avx,aes    start stress on n_cpus.and cpuflags.\n"
+			"  --stressmem mem_size       start stressmem with mem_size.\n");
 }
 
 
@@ -74,6 +75,7 @@ int main(int argc, char **argv) {
 		int option_index = 0;
 		static struct option long_options[] =
 				{{ "stress",required_argument, 0, 0 },
+				{ "stressmem", required_argument, 0, 0 },
 				{ "sse3",   no_argument, 0, 0 },
 				{ "ssse3",  no_argument, 0, 0 },
 				{ "sse4",   no_argument, 0, 0 },
@@ -100,35 +102,39 @@ int main(int argc, char **argv) {
 				stress(parse_Inst(optarg));
 				break;
 			case 1:
-				ret += sse3();
+				stressmem(atoi(optarg));
 				break;
 			case 2:
-				ret += ssse3();
+				ret += sse3();
 				break;
 			case 3:
-				ret += sse4();
+				ret += ssse3();
 				break;
 			case 4:
-				ret += sse4a();
+				ret += sse4();
 				break;
 			case 5:
-				ret += avx();
+				ret += sse4a();
 				break;
 			case 6:
-				ret += aes();
+				ret += avx();
 				break;
 			case 7:
-				ret += pclmul();
+				ret += aes();
 				break;
 			case 8:
-				ret += rdrand();
+				ret += pclmul();
 				break;
 			case 9:
-				ret += fma4();
+				ret += rdrand();
 				break;
 			case 10:
+				ret += fma4();
+				break;
+			case 11:
 				ret += xop();
 				break;
+
 			}
 			break;
 
