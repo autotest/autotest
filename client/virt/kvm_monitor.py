@@ -6,6 +6,7 @@ Interfaces to the QEMU monitor.
 
 import socket, time, threading, logging, select, re
 import virt_utils, virt_passfd_setup
+from autotest.client.shared import utils
 try:
     import json
 except ImportError:
@@ -966,6 +967,7 @@ class QMPMonitor(Monitor):
         @param value: Speed in bytes/sec
         @return: The response to the command
         """
+        value = utils.convert_data_size(value, "M")
         args = {"value": value}
         return self.cmd("migrate_set_speed", args)
 
