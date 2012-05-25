@@ -272,7 +272,7 @@ class VM(virt_vm.BaseVM):
         def add_smp(help, smp):
             return " -smp %s" % smp
 
-        def add_cdrom(help, filename, index=None, format=None):
+        def add_cdrom(help, filename, index=None, format=None, bus=None):
             if has_option(help, "drive"):
                 name = None;
                 dev = "";
@@ -290,8 +290,9 @@ class VM(virt_vm.BaseVM):
                 if format is not None and format.startswith("scsi-"):
                     # handles scsi-{hd, cd, disk, block, generic} targets
                     name = "virtio-scsi-cd%s" % index
-                    dev += (" -device %s,drive=%s,bus=virtio_scsi_pci.0" %
+                    dev += (" -device %s,drive=%s" %
                             (format, name))
+                    dev += _add_option("bus", "virtio_scsi_pci%d.0" % bus)
                     format = "none"
                     index = None
                 cmd = " -drive file='%s',media=cdrom" % filename
@@ -853,18 +854,11 @@ class VM(virt_vm.BaseVM):
             cd_format = params.get("cd_format", "")
             cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
+            bus = None
             if cd_format == "ahci" and not have_ahci:
                 qemu_cmd += " -device ahci,id=ahci"
                 have_ahci = True
-            if cd_format.startswith("scsi-"):
-                bus = cdrom_params.get("drive_bus")
-                if bus and bus not in virtio_scsi_pcis:
-                    qemu_cmd += " -device virtio-scsi,id=%s" % bus
-                    virtio_scsi_pcis.append(bus)
-                elif not virtio_scsi_pcis:
-                    qemu_cmd += " -device virtio-scsi,id=virtio_scsi_pci0"
-                    virtio_scsi_pcis.append("virtio_scsi_pci0")
-            if cd_format.startswith("scsi-"):
+            if cd_format and cd_format.startswith("scsi-"):
                 try:
                     bus = int(cdrom_params.get("drive_bus", 0))
                 except ValueError:
@@ -876,7 +870,7 @@ class VM(virt_vm.BaseVM):
             if iso:
                 qemu_cmd += add_cdrom(help, virt_utils.get_path(root_dir, iso),
                                       cdrom_params.get("drive_index"),
-                                      cd_format)
+                                      cd_format, bus)
 
         # We may want to add {floppy_otps} parameter for -fda
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
