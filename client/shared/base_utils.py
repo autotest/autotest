@@ -400,6 +400,41 @@ def matrix_to_string(matrix, header=None):
     return matrix_str
 
 
+class Statistic(object):
+    """
+    Class to display and collect average,
+    max and min values of a given data set.
+    """
+    def __init__(self):
+        self._sum = 0
+        self._count = 0
+        self._max = None
+        self._min = None
+
+    def get_average(self):
+        if self._count != 0:
+            return self._sum / self._count
+        else:
+            return None
+
+    def get_min(self):
+        return self._min
+
+    def get_max(self):
+        return self._max
+
+    def record(self, value):
+        """
+        Record new value to statistic.
+        """
+        self._count += 1
+        self._sum += value
+        if not self._max or self._max < value:
+            self._max = value
+        if not self._min or self._min > value:
+            self._min = value
+
+
 def read_keyval(path):
     """
     Read a key-value pair format file into a dictionary, and return it.
@@ -1970,6 +2005,29 @@ def display_data_size(size):
         size /= 1000.0
         i += 1
     return '%.2f %s' % (size, prefixes[i])
+
+
+def convert_data_size(size, default_sufix='B'):
+    '''
+    Convert data size from human readable units to an int of arbitrary size.
+
+    @param size: Human readable data size representation (string).
+    @param default_sufix: Default sufix used to represent data.
+    @return: Int with data size in the appropriate order of magnitude.
+    '''
+    orders = {'B': 1,
+              'K': 1024,
+              'M': 1024 * 1024,
+              'G': 1024 * 1024 * 1024,
+              'T': 1024 * 1024 * 1024 * 1024,
+              }
+
+    order = re.findall("([BbKkMmGgTt])", size[-1])
+    if not order:
+        size += default_sufix
+        order = [default_sufix]
+
+    return int(float(size[0:-1]) * orders[order[0].upper()])
 
 
 def interactive_download(url, output_file, title='', chunk_size=100*1024):
