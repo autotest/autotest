@@ -1214,7 +1214,6 @@ class VM(virt_vm.BaseVM):
             lockfile.close()
 
 
-
     def migrate(self, dest_uri, options="--live --timeout 60", extra=""):
         """
         Migrate a VM to a remote host.
