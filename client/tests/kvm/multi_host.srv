@@ -102,7 +102,7 @@ def run(machines):
             host.params['hostid'] = machine
 
         # Report the parameters we've received
-        print "Test parameters:"
+        logging.debug("Test parameters:")
         keys = params.keys()
         keys.sort()
         for key in keys:
@@ -117,18 +117,22 @@ def run(machines):
             host.control += ("job.run_test('kvm', tag='%s', params=%s)" %
                              (host.params['shortname'], host.params))
 
-        logging.info('Master control file:\n%s', _hosts[machines[0]].control)
+        logging.debug('Master control file:\n%s', _hosts[machines[0]].control)
         for machine in machines[1:]:
             host = _hosts[machine]
-            logging.info('Slave control file:\n%s', host.control)
+            logging.debug('Slave control file:\n%s', host.control)
 
         commands = []
+
         for machine in machines:
             host = _hosts[machine]
             commands.append(subcommand(host.at.run,
                                        [host.control, host.host.hostname]))
 
-        parallel(commands)
+        try:
+            parallel(commands)
+        except error.AutoservError as e:
+            logging.error(e)
 
 if 'all' in args:
     # Run test with all machines at once.
