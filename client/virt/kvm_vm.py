@@ -272,7 +272,8 @@ class VM(virt_vm.BaseVM):
         def add_smp(help, smp):
             return " -smp %s" % smp
 
-        def add_cdrom(help, filename, index=None, format=None, bus=None):
+        def add_cdrom(help, filename, index=None, format=None, bus=None,
+                      port=None):
             if has_option(help, "drive"):
                 name = None;
                 dev = "";
@@ -283,8 +284,10 @@ class VM(virt_vm.BaseVM):
                     index = None
                 if format == "usb2":
                     name = "usb2.%s" % index
-                    dev += " -device usb-storage,bus=ehci.0,drive=%s" % name
-                    dev += ",port=%d" % (int(index) + 1)
+                    dev += " -device usb-storage"
+                    dev += _add_option("bus", bus)
+                    dev += _add_option("port", port)
+                    dev += _add_option("drive", name)
                     format = "none"
                     index = None
                 if format is not None and format.startswith("scsi-"):
@@ -855,6 +858,9 @@ class VM(virt_vm.BaseVM):
             cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
             bus = None
+            port = None
+            if cd_format == "usb2":
+                bus, port = get_free_usb_port(image_name, "ehci")
             if cd_format == "ahci" and not have_ahci:
                 qemu_cmd += " -device ahci,id=ahci"
                 have_ahci = True
