@@ -35,9 +35,9 @@ try:
 except ImportError:
     import common
 from autotest.frontend.afe import models, model_logic, model_attributes
-from autotest.frontend.afe import control_file, rpc_utils
+from autotest.frontend.afe import control_file, rpc_utils, rpcserver_logging
 from autotest.client.shared import global_config
-from autotest.server.hosts import remote
+from autotest.server.hosts.remote import get_install_server_info
 
 
 # labels
@@ -193,8 +193,14 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
                                                'acl_list')
     models.Host.objects.populate_relationships(hosts, models.HostAttribute,
                                                'attribute_list')
-    if remote.install_server_is_configured():
-        server = xmlrpclib.ServerProxy(remote.get_install_server_info().get('xmlrpc_url', None))
+
+    install_server = None
+    install_server_info = get_install_server_info()
+    install_server_type = install_server_info.get('type', None)
+    install_server_url = install_server_info.get('xmlrpc_url', None)
+
+    if install_server_type == 'cobbler' and install_server_url is not None:
+        install_server = xmlrpclib.ServerProxy(install_server_url)
 
     host_dicts = []
     for host_obj in hosts:
@@ -205,16 +211,35 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
         host_dict['acls'] = [acl.name for acl in host_obj.acl_list]
         host_dict['attributes'] = dict((attribute.attribute, attribute.value)
                                        for attribute in host_obj.attribute_list)
-        system_list = server.find_system({"name":host_dict['hostname']},True)
-        if remote.install_server_is_configured() and host_dict['platform'] and system_list:
-            host_dict['profiles'] = server.find_profile({"comment":"*" + host_dict['platform'] + "*"})
-            host_dict['profiles'].insert(0, 'Do_not_install')
-            # assume hostnames are unique systems
-            host_dict['current_profile'] = system_list[0]['profile']
-        else:
-            host_dict['profiles'] = ['N/A']
-            host_dict['current_profile'] = 'N/A'
+
+        if install_server is not None:
+            system_params = {"name":host_dict['hostname']}
+            system_list = install_server.find_system(system_params, True)
+
+            if len(system_list) < 1:
+                msg = 'System "%s" not found on install server'
+                rpcserver_logging.rpc_logger.info(msg, host_dict['hostname'])
+
+            elif len(system_list) > 1:
+                msg = 'Found multiple systems on install server named %s'
+                if install_server_type == 'cobbler':
+                    msg = '%s. This should never happer on cobbler' % msg
+                rpcserver_logging.rpc_logger.error(msg, host_dict['hostname'])
+
+            else:
+                system = system_list[0]
+                if host_dict['platform']:
+                    profile_params = {"comment":"*%s*" % host_dict['platform']}
+                    profiles = install_server.find_profile(profile_params)
+                    profiles.insert(0, 'Do_not_install')
+                    host_dict['profiles'] = profiles
+                    host_dict['current_profile'] = system['profile']
+                else:
+                    host_dict['profiles'] = ['N/A']
+                    host_dict['current_profile'] = 'N/A'
+
         host_dicts.append(host_dict)
+
     return rpc_utils.prepare_for_serialization(host_dicts)
 
 
