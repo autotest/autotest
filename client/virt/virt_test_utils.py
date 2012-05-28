@@ -22,6 +22,8 @@ More specifically:
 """
 
 import time, os, logging, re, signal, imp, tempfile, commands
+import threading, shelve
+from Queue import Queue
 from autotest.client.shared import error, global_config
 from autotest.client import utils
 from autotest.client.tools import scan_results
@@ -928,3 +930,63 @@ def service_setup(vm, session, dir):
         commands.getoutput("bash %s host %s" % (src, rebooted))
         logging.info("setup perf environment for guest")
         session.cmd("bash /tmp/rh_perf_envsetup.sh guest %s" % rebooted)
+
+def cmd_runner_monitor(vm, monitor_cmd, test_cmd, guest_path, timeout=300):
+    """
+    For record the env information such as cpu utilization, meminfo while
+    run guest test in guest.
+    @vm: Guest Object
+    @monitor_cmd: monitor command running in backgroud
+    @test_cmd: test suit run command
+    @guest_path: path in guest to store the test result and monitor data
+    @timeout: longest time for monitor running
+    Return: tag the suffix of the results
+    """
+    def thread_kill(cmd, p_file):
+        fd = shelve.open(p_file)
+        s, o = commands.getstatusoutput("pstree -p %s" % fd["pid"])
+        tmp = re.split("\s+", cmd)[0]
+        pid = re.findall("%s.(\d+)" % tmp, o)[0]
+        s, o = commands.getstatusoutput("kill -9 %s" % pid)
+        fd.close()
+        return (s, o)
+
+    def monitor_thread(m_cmd, p_file, r_file):
+        fd = shelve.open(p_file)
+        fd["pid"] = os.getpid()
+        fd.close()
+        os.system("%s &> %s" % (m_cmd, r_file))
+
+    def test_thread(session, m_cmd, t_cmd, p_file, flag, timeout):
+        flag.put(True)
+        s, o = session.cmd_status_output(t_cmd, timeout)
+        if s != 0:
+            raise error.TestFail("Test failed or timeout: %s" % o)
+        if not flag.empty():
+            flag.get()
+            thread_kill(m_cmd, p_file)
+
+    kill_thread_flag = Queue(1)
+    session = wait_for_login(vm, 0, 300, 0, 2)
+    tag = vm.instance
+    pid_file = "/tmp/monitor_pid_%s" % tag
+    result_file = "/tmp/host_monitor_result_%s" % tag
+
+    monitor = threading.Thread(target=monitor_thread,args=(monitor_cmd,
+                              pid_file, result_file))
+    test_runner = threading.Thread(target=test_thread, args=(session,
+                                   monitor_cmd, test_cmd, pid_file,
+                                   kill_thread_flag, timeout))
+    monitor.start()
+    test_runner.start()
+    monitor.join(int(timeout))
+    if not kill_thread_flag.empty():
+        kill_thread_flag.get()
+        thread_kill(monitor_cmd, pid_file)
+        thread_kill("sh", pid_file)
+
+    guest_result_file = "/tmp/guest_result_%s" % tag
+    guest_monitor_result_file = "/tmp/guest_monitor_result_%s" % tag
+    vm.copy_files_from(guest_path, guest_result_file)
+    vm.copy_files_from("%s_monitor" % guest_path, guest_monitor_result_file)
+    return tag
