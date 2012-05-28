@@ -1084,10 +1084,16 @@ class QMPMonitor(Monitor):
         Request a screendump.
 
         @param filename: Location for the screendump
+        @param debug: Whether to print the commands being sent and responses
+
         @return: The response to the command
         """
-        args = {"filename": filename}
-        return self.cmd(cmd="screendump", args=args, debug=debug)
+        if self._has_command("screendump"):
+            args = {"filename": filename}
+            return self.cmd(cmd="screendump", args=args, debug=debug)
+        else:
+            cmdline = "screendump %s" % filename
+            return self.human_monitor_cmd(cmdline, debug=debug)
 
 
     def sendkey(self, keystr, hold_time=1):
