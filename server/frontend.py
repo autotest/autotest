@@ -22,7 +22,6 @@ except ImportError:
 from autotest.frontend.afe import rpc_client_lib
 from autotest.client.shared import global_config
 from autotest.client.shared import utils
-from autotest.server.hosts import remote
 try:
     from autotest.server.site_common import site_utils as server_utils
 except:
@@ -176,16 +175,6 @@ class AFE(RpcClient):
                                                     status=status,
                                                     label=label))
         hosts = self.run('get_hosts', **query_args)
-        if remote.install_server_is_configured():
-            server = xmlrpclib.ServerProxy(remote.get_install_server_info().get('xmlrpc_url', None))
-            for host in hosts:
-                host['profiles'] = server.find_profile({"comment":"*" + host['platform'] + "*"})
-                host['profiles'].insert(0, 'Do_not_install')
-                host['current_profile'] = server.find_system({"name":host['hostname']},True)[0]['profile']
-        else:
-            for host in hosts:
-                host['profiles'] = ['N/A']
-                host['current_profile'] = 'N/A'
         return [Host(self, h) for h in hosts]
 
 
