@@ -81,7 +81,7 @@ def run_trans_hugepage_swapping(test, params, env):
                 params['vms'] = params['vms'] + " " + vm_name
                 params['mem'] = str(swap_free[0])
                 vm_key = vm0_key.clone(vm0, params)
-                virt_utils.env_register_vm(env, vm_name, vm_key)
+                env.register_vm(vm_name, vm_key)
                 virt_env_process.preprocess_vm(test, params, env, vm_name)
                 vm_key.create()
                 session = vm_key.wait_for_login(timeout=login_timeout)

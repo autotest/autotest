@@ -3884,9 +3884,9 @@ def install_host_kernel(job, params):
         koji_build = params.get('host_kernel_koji_build')
         koji_tag = params.get('host_kernel_koji_tag')
 
-        k_deps = KojiPkgSpec(tag=koji_tag, package='kernel',
+        k_deps = KojiPkgSpec(tag=koji_tag, build=koji_build, package='kernel',
                              subpackages=['kernel-devel', 'kernel-firmware'])
-        k = KojiPkgSpec(tag=koji_tag, package='kernel',
+        k = KojiPkgSpec(tag=koji_tag, build=koji_build, package='kernel',
                         subpackages=['kernel'])
 
         c = KojiClient(koji_cmd)
@@ -3915,7 +3915,7 @@ def install_host_kernel(job, params):
         patch_list = params.get('host_kernel_patch_list')
         if patch_list:
             patch_list = patch_list.split()
-        kernel_config = params.get('host_kernel_config')
+        kernel_config = params.get('host_kernel_config', None)
 
         repodir = os.path.join("/tmp", 'kernel_src')
         r = git.get_repo(uri=repo, branch=branch, destination_dir=repodir,
@@ -3923,7 +3923,8 @@ def install_host_kernel(job, params):
         host_kernel = job.kernel(r)
         if patch_list:
             host_kernel.patch(patch_list)
-        host_kernel.config(kernel_config)
+        if kernel_config:
+            host_kernel.config(kernel_config)
         host_kernel.build()
         host_kernel.install()
         host_kernel.boot()

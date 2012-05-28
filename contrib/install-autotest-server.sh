@@ -203,11 +203,17 @@ setup_selinux() {
 # is in fact an SELinux problem. I did try to fix it, but couldn't, this needs to
 # be investigated more carefully.
 print_log "INFO" "Disabling SELinux (sorry guys...)"
-if [ -x /selinux/enforce ]
+if [ -f /selinux/enforce ]
 then
     echo 0 > /selinux/enforce
 fi
+
 setenforce 0
+
+if [ -f /etc/selinux/config ]
+then
+    /usr/local/bin/substitute 'SELINUX=enforcing' 'SELINUX=permissive' /etc/selinux/config
+fi
 }
 
 setup_mysql_service() {
@@ -237,8 +243,11 @@ mkdir -p /usr/local
 if [ ! -e $ATHOME/.git/config ]
 then
     print_log "INFO" "Cloning autotest repo in $ATHOME"
-    cd /usr/local
-    git clone git://github.com/autotest/autotest.git
+    cd $ATHOME
+    git init
+    git remote add origin git://github.com/autotest/autotest.git
+    git pull
+    git checkout master
 else
     print_log "INFO" "Updating autotest repo in $ATHOME"
     cd $ATHOME
@@ -248,6 +257,7 @@ fi
 
 print_log "INFO" "Setting proper permissions for the autotest directory"
 chown -R autotest:autotest $ATHOME
+chmod 775 $ATHOME
 }
 
 check_mysql_password() {

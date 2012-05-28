@@ -109,6 +109,10 @@ class CobblerInterface(object):
             # 1 hour of timeout by default
             timeout = 3600
 
+        system, system_handle = self.get_system_handle(host)
+        if profile is None:
+            profile = self.server.get_system(system).get('profile')
+
         host.record("START", None, "install", host.hostname)
         host.record("GOOD", None, "install.start", host.hostname)
         logging.info("Installing machine %s with profile %s (timeout %s s)",
@@ -122,7 +126,6 @@ class CobblerInterface(object):
                (time_elapsed < timeout)):
 
             self._set_host_profile(host, profile)
-            system, system_handle = self.get_system_handle(host)
             self.server.power_system(system_handle,
                                      'reboot', self.token)
             installations_attempted += 1
