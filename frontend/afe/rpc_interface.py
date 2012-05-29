@@ -29,7 +29,7 @@ See doctests/001_rpc_test.txt for (lots) more examples.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import datetime
+import datetime, re
 try:
     import autotest.common as common
 except ImportError:
@@ -643,6 +643,18 @@ def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
     info = dict(job=job.get_object_dict(),
                 meta_host_counts=meta_host_counts,
                 hosts=host_dicts)
+    kernel = ""
+    cmdline = ""
+    kernel_list = re.search("kernel_list\s*=\s*\[(.*?)\]", info['job']['control_file'])
+    if kernel_list is not None:
+        kernel_list = kernel_list.group(1)
+        cmdlineSearch = re.search("'cmdline':\s*'(.*?)'", kernel_list)
+        if cmdlineSearch is not None:
+            cmdline = cmdline.group(1)
+        if re.search("'version':\s*'(.*?)'", kernel_list) is not None:
+            kernel = " ".join(re.findall("'version':\s*'(.*?)'", kernel_list))
+    info['job']['kernel'] = kernel
+    info['job']['cmdline'] = cmdline
     info['job']['dependencies'] = job_info['dependencies']
     if job_info['atomic_group']:
         info['atomic_group_name'] = (job_info['atomic_group']).name

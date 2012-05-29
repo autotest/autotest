@@ -138,6 +138,8 @@ public class CreateJobViewPresenter implements TestSelectorListener {
         String priority = jobObject.get("priority").isString().stringValue();
         display.getPriorityList().selectByName(priority);
 
+        display.getKernel().setText(jobObject.get("kernel").isString().stringValue());
+        display.getKernelCmdline().setText(jobObject.get("cmdline").isString().stringValue());
         display.getTimeout().setText(Utils.jsonToString(jobObject.get("timeout")));
         display.getMaxRuntime().setText(Utils.jsonToString(jobObject.get("max_runtime_hrs")));
         display.getEmailList().setText(
