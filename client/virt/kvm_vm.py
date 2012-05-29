@@ -2189,3 +2189,28 @@ class VM(virt_vm.BaseVM):
                 if value in str(block):
                     return block['locked']
         return False
+
+
+    def live_snapshot(self, base_file, snapshot_file,
+                      snapshot_format="qcow2"):
+        """
+        Take a live disk snapshot.
+
+        @param base_file: base file name
+        @param snapshot_file: snapshot file name
+        @param snapshot_format: snapshot file format
+
+        @return: File name of disk snapshot.
+        """
+        device = self.get_block({"file": base_file})
+
+        output = self.monitor.live_snapshot(device, snapshot_file,
+                                            snapshot_format)
+        logging.debug(output)
+        device = self.get_block({"file": snapshot_file})
+        if device:
+            current_file = device
+        else:
+            current_file = None
+
+        return current_file
