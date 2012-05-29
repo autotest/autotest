@@ -18,22 +18,31 @@ def run_cdrom(test, params, env):
 
     1) Boot up a VM with one iso.
     2) Check if VM identifies correctly the iso file.
-    3) Eject cdrom using monitor and change with another iso several times.
-    4) Eject cdrom in guest and check tray status reporting.
-    5) Try to format cdrom and check the return string.
-    6) Mount cdrom device.
-    7) Copy file from cdrom and compare files using diff.
-    8) Umount and mount several times.
+    3) * If cdrom_test_autounlock is set, verifies that device is unlocked
+       <300s after boot
+    4) Eject cdrom using monitor and change with another iso several times.
+    5) Eject cdrom in guest and check tray status reporting.
+    6) Try to format cdrom and check the return string.
+    7) Mount cdrom device.
+    8) Copy file from cdrom and compare files using diff.
+    9) Umount and mount several times.
 
     @param test: kvm test object
     @param params: Dictionary with the test parameters
     @param env: Dictionary with test environment.
+
+    @param cfg: workaround_eject_time - Some versions of qemu are unable to
+                                        eject CDROM directly after insert
+    @param cfg: cdrom_test_autounlock - Test whether guest OS unlocks cdrom
+                                        after boot (<300s after VM is booted)
     """
     def master_cdroms(params):
         """ Creates 'new' cdrom with one file on it """
         error.context("creating test cdrom")
         os.chdir(test.tmpdir)
         cdrom_cd1 = params.get("cdrom_cd1")
+        if not os.path.isabs(cdrom_cd1):
+            cdrom_cd1 = os.path.join(test.bindir, cdrom_cd1)
         cdrom_dir = os.path.realpath(os.path.dirname(cdrom_cd1))
         utils.run("dd if=/dev/urandom of=orig bs=10M count=1")
         utils.run("dd if=/dev/urandom of=new bs=10M count=1")
@@ -41,44 +50,47 @@ def run_cdrom(test, params, env):
         utils.run("mkisofs -o %s/new.iso new" % cdrom_dir)
         return "%s/new.iso" % cdrom_dir
 
-
     def cleanup_cdroms(cdrom_dir):
         """ Removes created cdrom """
         error.context("cleaning up temp cdrom images")
         os.remove("%s/new.iso" % cdrom_dir)
 
-
-    def get_cdrom_info():
+    def get_block_info(re_device='[^\n][^:]+'):
         """ Gets device string and file from kvm-monitor """
         blocks = vm.monitor.info("block")
-        (device, file) = (None, None)
+        devices = []
+        files = []
         if isinstance(blocks, str):
-            try:
-                device = re.findall("(\w+\d+-cd\d+): .*", blocks)[0]
-            except IndexError:
-                device = None
-            try:
-                file = re.findall("\w+\d+-cd\d+: .*file=(\S*) ", blocks)[0]
-                file = os.path.realpath(file)
-            except IndexError:
-                file = None
+            devices = re.findall('(%s): .*' % re_device, blocks)
+            if devices:
+                for dev in devices:
+                    cdfile = re.findall('%s: .*file=(\S*) ' % dev, blocks)
+                    if cdfile:
+                        cdfile = os.path.realpath(cdfile[0])
+                    else:
+                        cdfile = None
+                    files.append(cdfile)
         else:
             for block in blocks:
-                d = block['device']
-                try:
-                    device = re.findall("(\w+\d+-cd\d+)", d)[0]
-                except IndexError:
-                    device = None
-                    continue
-                try:
-                    file = block['inserted']['file']
-                    file = os.path.realpath(file)
-                except KeyError:
-                    file = None
-                break
-        logging.debug("Device name: %s, ISO: %s", device, file)
-        return (device, file)
+                if re.match(re_device, block['device']):
+                    devices.append(block['device'])
+                    try:
+                        cdfile = block['inserted']['file']
+                        if cdfile:
+                            cdfile = os.path.realpath(cdfile)
+                    except KeyError:
+                        cdfile = None
+                    files.append(cdfile)
+        return (devices, files)
 
+    def get_cdrom_info(device):
+        """
+        @param device: qemu monitor device
+        @return: file associated with $device device
+        """
+        (_, cdfile) = get_block_info(device)
+        logging.debug("Device name: %s, ISO: %s", device, cdfile[0])
+        return cdfile[0]
 
     def check_cdrom_locked(cdrom):
         """ Checks whether the cdrom is locked """
@@ -94,7 +106,6 @@ def run_cdrom(test, params, env):
                     block['inserted']['file'] == cdrom):
                     return block['locked']
         return False
-
 
     def check_cdrom_tray(cdrom):
         """ Checks whether the tray is opend """
@@ -112,18 +123,12 @@ def run_cdrom(test, params, env):
                     return block['tray_open']
         raise error.TestNAError('cdrom tray reporting not supported')
 
-
     def eject_cdrom(device, monitor):
         """ Ejects the cdrom using kvm-monitor """
         if isinstance(monitor, kvm_monitor.HumanMonitor):
             monitor.cmd("eject %s" % device)
         elif isinstance(monitor, kvm_monitor.QMPMonitor):
-            try:
-                monitor.cmd("eject", args={'device': device})
-            except kvm_monitor.QMPCmdError, details:
-                if workaround_locked_cdrom == 1:    # no workaround, raise err
-                    raise details
-
+            monitor.cmd("eject", args={'device': device})
 
     def change_cdrom(device, target, monitor):
         """ Changes the medium using kvm-monitor """
@@ -132,27 +137,23 @@ def run_cdrom(test, params, env):
         elif isinstance(monitor, kvm_monitor.QMPMonitor):
             monitor.cmd("change", args={'device': device, 'target': target})
 
-
     cdrom_new = master_cdroms(params)
     cdrom_dir = os.path.dirname(cdrom_new)
     vm = env.get_vm(params["main_vm"])
-    if vm.is_dead() or vm.needs_restart(vm.name, params, vm.root_dir):
-        vm.create()
+    vm.create()
 
-    # Some versions of qemu won't unlock CDROM
-    if params.get('workaround_locked_cdrom', 'no') == 'yes':
-        workaround_locked_cdrom = 20
-    else:
-        workaround_locked_cdrom = 1
     # Some versions of qemu are unable to eject CDROM directly after insert
     workaround_eject_time = float(params.get('workaround_eject_time', 0))
 
     session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
-    cdrom_orig = os.path.realpath(params.get("cdrom_cd1"))
+    cdrom_orig = params.get("cdrom_cd1")
+    if not os.path.isabs(cdrom_orig):
+        cdrom_orig = os.path.join(test.bindir, cdrom_orig)
+    cdrom_orig = os.path.realpath(cdrom_orig)
     cdrom = cdrom_orig
     output = session.get_command_output("ls /dev/cdrom*")
     cdrom_dev_list = re.findall("/dev/cdrom-\w+|/dev/cdrom\d*", output)
-    logging.debug("cdrom_dev_list: %s" % cdrom_dev_list)
+    logging.debug("cdrom_dev_list: %s", cdrom_dev_list)
 
     cdrom_dev = ""
     test_cmd = "dd if=%s of=/dev/null bs=1 count=1"
@@ -167,26 +168,28 @@ def run_cdrom(test, params, env):
         raise error.TestFail("Could not find a valid cdrom device")
 
     error.context("Detecting the existence of a cdrom")
-    (device, file) = get_cdrom_info()
-    if file != cdrom:
+    cdfile = ''
+    (_device, _file) = get_block_info()
+    for i in range(len(_file)):
+        if _file[i] == cdrom:
+            cdfile = _file[i]
+            device = _device[i]
+    if cdfile != cdrom:
         raise error.TestFail("Could not find a valid cdrom device")
 
     session.get_command_output("umount %s" % cdrom_dev)
-    if workaround_locked_cdrom is not 1:
+    if params.get('cdrom_test_autounlock') == 'yes':
         error.context("Trying to unlock the cdrom")
-        if not virt_utils.wait_for(lambda: not check_cdrom_locked(file), 300):
+        if not virt_utils.wait_for(lambda: not check_cdrom_locked(cdfile),
+                                   300):
             raise error.TestFail("Device %s could not be unlocked" % device)
 
     max_times = int(params.get("max_times", 100))
     error.context("Eject the cdrom in monitor %s times" % max_times)
     for i in range(1, max_times):
-        for _ in range(workaround_locked_cdrom):
-            eject_cdrom(device, vm.monitor)
-            (device, file) = get_cdrom_info()
-            if file is None:
-                break
-            time.sleep(1)
-        if file is not None:
+        session.cmd('eject %s' % cdrom_dev)
+        eject_cdrom(device, vm.monitor)
+        if get_cdrom_info(device) is not None:
             raise error.TestFail("Device %s was not ejected (%s)" % (cdrom, i))
 
         cdrom = cdrom_new
@@ -194,10 +197,10 @@ def run_cdrom(test, params, env):
         if i % 2 == 0:
             cdrom = cdrom_orig
         change_cdrom(device, cdrom, vm.monitor)
-        (device, file) = get_cdrom_info()
-        if file != cdrom:
+        if get_cdrom_info(device) != cdrom:
             raise error.TestFail("It wasn't possible to change cdrom %s (%s)"
                                   % (cdrom, i))
+        time.sleep(workaround_eject_time)
 
     error.context('Eject the cdrom in guest %s times' % max_times)
     for i in range(1, max_times):
@@ -245,20 +248,16 @@ def run_cdrom(test, params, env):
 
     error.context("Cleanup")
     # Return the cdrom_orig
-    (device, file) = get_cdrom_info()
-    if file != cdrom_orig:
-        for _ in range(workaround_locked_cdrom):
-            eject_cdrom(device, vm.monitor)
-            (device, file) = get_cdrom_info()
-            if file is None:
-                break
-            time.sleep(1)
-        if file is not None:
+    cdfile = get_cdrom_info(device)
+    if cdfile != cdrom_orig:
+        time.sleep(workaround_eject_time)
+        session.cmd('eject %s' % cdrom_dev)
+        eject_cdrom(device, vm.monitor)
+        if get_cdrom_info(device) is not None:
             raise error.TestFail("Device %s was not ejected (%s)" % (cdrom, i))
 
         change_cdrom(device, cdrom_orig, vm.monitor)
-        (device, file) = get_cdrom_info()
-        if file != cdrom_orig:
+        if get_cdrom_info(device) != cdrom_orig:
             raise error.TestFail("It wasn't possible to change cdrom %s (%s)"
                                   % (cdrom, i))
 

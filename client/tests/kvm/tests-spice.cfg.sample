@@ -36,6 +36,7 @@ variants:
                 spice_ssl = yes
                 spice_tls_port = 3200
                 spice_tls_ciphers = DEFAULT
+                spice_gen_x509 = yes
                 spice_x509_dir = yes
                 spice_x509_prefix = /tmp/spice_x509d
                 spice_x509_key_file = server-key.pem
@@ -45,8 +46,7 @@ variants:
                 spice_x509_cacert_subj = /C=CZ/L=BRNO/O=SPICE/CN=my CA
                 spice_x509_server_subj = /C=CZ/L=BRNO/O=SPICE/CN=my Server
                 spice_secure_channels = main, inputs
-                spice_x509_prefix = /tmp/spice_x509d
-                spice_x509_key_file = server-key.pem
+                spice_client_host_subject = yes
                 variants:
                     - key_password:
                         spice_x509_secure = yes
