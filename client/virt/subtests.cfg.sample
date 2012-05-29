@@ -1833,6 +1833,7 @@ variants:
         thp_test_config = ""
         kill_vm = yes
         login_timeout = 360
+        setup_thp = yes
         variants:
             - base:
                 type = trans_hugepage
