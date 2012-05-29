@@ -1607,13 +1607,32 @@ def run_tests(parser, job):
 
     @return: True, if all tests ran passed, False if any of them failed.
     """
-    for i, d in enumerate(parser.get_dicts()):
+    test_dicts = list(parser.get_dicts())
+
+    # Add the parameter decide if setup host env in the test case
+    # For some sepical test we only setup host in the first and last case
+    if len(test_dicts) > 0:
+        if test_dicts[0]["host_setup_flag"]:
+            flag = int(test_dicts[0]["host_setup_flag"])
+            test_dicts[0]["host_setup_flag"] =  1 | flag
+        else:
+            test_dicts[0]["host_setup_flag"] = 1
+        if test_dicts[len(test_dicts) - 1]["host_setup_flag"]:
+            flag = int(test_dicts[len(test_dicts) - 1]["host_setup_flag"])
+            test_dicts[len(test_dicts) - 1]["host_setup_flag"] = 2 | flag
+        else:
+            test_dicts[len(test_dicts) - 1]["host_setup_flag"] = 2
+
+    for i, d in enumerate(test_dicts):
         logging.info("Test %4d:  %s" % (i + 1, d["shortname"]))
 
     status_dict = {}
     failed = False
 
-    for dict in parser.get_dicts():
+    for dict in test_dicts:
+        # Add kvm module status
+        dict["kvm_default"] = get_module_params(dict.get("sysfs_dir"), "kvm")
+
         if dict.get("skip") == "yes":
             continue
         dependencies_satisfied = True
@@ -1894,7 +1913,8 @@ class PciAssignable(object):
     PF (physical Functions) or VF (Virtual Functions).
     """
     def __init__(self, type="vf", driver=None, driver_option=None,
-                 names=None, devices_requested=None):
+                 names=None, devices_requested=None,
+                 host_set_flag=None, kvm_params=None):
         """
         Initialize parameter 'type' which could be:
         vf: Virtual Functions
@@ -1915,7 +1935,13 @@ class PciAssignable(object):
         @param names: Physical NIC cards correspondent network interfaces,
                 e.g.'eth1 eth2 ...'
         @param devices_requested: Number of devices being requested.
-        """
+        @param host_set_flag: Flag for if the test should setup host env:
+               0: do nothing
+               1: do setup env
+               2: do cleanup env
+               3: setup and cleanup env
+        @param kvm_params: a dict for kvm module parameters default value
+       """
         self.type = type
         self.driver = driver
         self.driver_option = driver_option
@@ -1925,6 +1951,18 @@ class PciAssignable(object):
             self.devices_requested = int(devices_requested)
         else:
             self.devices_requested = None
+        if host_set_flag is not None:
+            self.setup = host_set_flag & 1 == 1
+            self.cleanup = host_set_flag & 2 == 2
+        else:
+            self.setup = False
+            self.cleanup = False
+        self.kvm_params = kvm_params
+        self.auai_path = None
+        if self.kvm_params is not None:
+            for i in self.kvm_params:
+                if "allow_unsafe_assigned_interrupts" in i:
+                    self.auai_path = i
 
 
     def _get_pf_pci_id(self, name, search_str):
@@ -1980,8 +2018,9 @@ class PciAssignable(object):
 
         @return: List with all PCI IDs for the Virtual Functions avaliable
         """
-        if not self.sr_iov_setup():
-            return []
+        if self.setup:
+            if not self.sr_iov_setup():
+                return []
 
         cmd = "lspci | awk '/Virtual Function/ {print $1}'"
         return commands.getoutput(cmd).split()
@@ -2063,6 +2102,37 @@ class PciAssignable(object):
 
         @return: True, if the setup was completed successfuly, False otherwise.
         """
+        # Check if the host support interrupt remapping
+        kvm_re_probe = False
+        o = utils.system_output("cat /var/log/dmesg")
+        ecap = re.findall("ecap\s+(.\w+)", o)
+        if ecap and int(ecap[0], 16) & 8 == 0:
+            if self.kvm_params is not None:
+                if self.auai_path and self.kvm_params[self.auai_path] == "N":
+                    kvm_re_probe = True
+            else:
+                kvm_re_probe = True
+
+        # Try to re probe kvm module with interrupt remapping support
+        if kvm_re_probe:
+            kvm_arch = kvm_control.get_kvm_arch()
+            utils.system("modprobe -r %s" % kvm_arch)
+            utils.system("modprobe -r kvm")
+            cmd = "modprobe kvm allow_unsafe_assigned_interrupts=1"
+            if self.kvm_params is not None:
+                for i in self.kvm_params:
+                    if "allow_unsafe_assigned_interrupts" not in i:
+                        if self.kvm_params[i] == "Y":
+                            params_name = os.path.split(i)[1]
+                            cmd += " %s=1" % params_name
+            logging.info("Loading kvm with: %s" % cmd)
+
+            try:
+                utils.system(cmd)
+            except Exception:
+                logging.debug("Can not enable the interrupt remapping support")
+            utils.system("modprobe %s" % kvm_arch)
+
         re_probe = False
         s, o = commands.getstatusoutput('lsmod | grep %s' % self.driver)
         if s:
@@ -2079,6 +2149,64 @@ class PciAssignable(object):
             logging.info("Loading the driver '%s' with option '%s'",
                          self.driver, self.driver_option)
             s, o = commands.getstatusoutput(cmd)
+            utils.system("/etc/init.d/network restart", ignore_status=True)
+            if s:
+                return False
+            return True
+
+
+    def sr_iov_cleanup(self):
+        """
+        Clean up the sriov setup
+
+        Check if the PCI hardware device drive is loaded with the appropriate,
+        parameters (none of VFs), and if it's not, perform cleanup.
+
+        @return: True, if the setup was completed successfuly, False otherwise.
+        """
+        # Check if the host support interrupt remapping
+        kvm_re_probe = False
+        if self.kvm_params is not None:
+            if (self.auai_path and
+               open(self.auai_path, "r").read().strip() == "Y"):
+                if self.kvm_params and self.kvm_params[self.auai_path] == "N":
+                    kvm_re_probe = True
+        else:
+            kvm_re_probe = True
+
+        # Try to re probe kvm module with interrupt remapping support
+        if kvm_re_probe:
+            kvm_arch = kvm_control.get_kvm_arch()
+            utils.system("modprobe -r %s" % kvm_arch)
+            utils.system("modprobe -r kvm")
+            cmd = "modprobe kvm"
+            if self.kvm_params:
+                for i in self.kvm_params:
+                    if self.kvm_params[i] == "Y":
+                        params_name = os.path.split(i)[1]
+                        cmd += " %s=1" % params_name
+            logging.info("Loading kvm with: %s" % cmd)
+
+            try:
+                utils.system(cmd)
+            except Exception:
+                logging.debug("Failed to reload kvm")
+            utils.system("modprobe %s" % kvm_arch)
+
+        re_probe = False
+        s, o = commands.getstatusoutput('lsmod | grep %s' % self.driver)
+        if s:
+            os.system("modprobe -r %s" % self.driver)
+            re_probe = True
+        else:
+            return True
+
+        # Re-probe driver with proper number of VFs
+        if re_probe:
+            cmd = "modprobe %s" % self.driver
+            logging.info("Loading the driver '%s' without option", self.driver)
+            s, o = commands.getstatusoutput(cmd)
+            utils.system("/etc/init.d/network restart", ignore_status=True)
             if s:
                 return False
             return True
@@ -2150,6 +2278,9 @@ class PciAssignable(object):
                     logging.error("Failed to release device %s to host", pci_id)
                 else:
                     logging.info("Released device %s successfully", pci_id)
+            if self.cleanup:
+                logging.info("Clean up host env for PCI assign test")
+                self.sr_iov_cleanup()
         except Exception:
             return
 
@@ -4056,6 +4187,24 @@ def if_set_macaddress(ifname, mac):
     ctrl_sock.close()
 
 
+def get_module_params(sys_path, module_name):
+    """
+    Get the kvm module params
+    @param sys_path: sysfs path for modules info
+    @param module_name: module to check
+    """
+    dir_params = os.path.join(sys_path, "module", module_name, "parameters")`
+    module_params = {}
+    if os.path.isdir(dir_params):
+        for file in os.listdir(dir_params):
+            full_dir = os.path.join(dir_params, file)
+            tmp = open(full_dir, 'r').read().strip()
+            module_params[full_dir] = tmp
+    else:
+        return None
+    return module_params
+
+
 def check_iso(url, destination, iso_sha1):
     """
     Verifies if ISO that can be find on url is on destination with right hash.
@@ -4364,6 +4513,76 @@ class NumaNode(object):
         logging.info("Numa Node record dict:")
         for i in self.cpus:
             logging.info("    %s: %s" % (i, self.dict[i]))
+
+
+def get_cpu_model():
+    """
+    Get cpu model from host cpuinfo
+    """
+    vendor_re = "vendor_id\s+:\s+(\w+)"
+    cpu_flags_re = "flags\s+:\s+([\w\s]+)\n"
+
+    cpu_types = {"AuthenticAMD": ["Opteron_G4", "Opteron_G3", "Opteron_G2",
+                                 "Opteron_G1"],
+                 "GenuineIntel": ["SandyBridge", "Westmere", "Nehalem",
+                                  "Penryn", "Conroe"]}
+    cpu_type_re = {"Opteron_G4":
+                  "avx,xsave,aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3,sse4a",
+                   "Opteron_G3": "cx16,sse4a",
+                   "Opteron_G2": "cx16",
+                   "Opteron_G1": "",
+                   "SandyBridge":
+                   "avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,cx16,ssse3",
+                   "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
+                   "Nehalem": "sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
+                   "Penryn": "sse4.1|sse4_1,cx16,ssse3",
+                   "Conroe": "ssse3"}
+
+    def _cpu_flags_sort(cpu_flags):
+        """
+        Update the cpu flags get from host to a certain order and format
+        """
+        flag_list = re.split("\s+", cpu_flags.strip())
+        flag_list.sort()
+        cpu_flags = " ".join(flag_list)
+        return cpu_flags
+
+    def _make_up_pattern(flags):
+        """
+        Update the check pattern to a vertain order and format
+        """
+        pattern_list = re.split(",", flags.strip())
+        pattern = r""
+        pattern_list.sort()
+        pattern = r"(\b%s\b)" % pattern_list[0]
+        for i in pattern_list[1:]:
+            pattern += r".+(\b%s\b)" % i
+        return pattern
+
+    fd = open("/proc/cpuinfo")
+    cpu_info = fd.read()
+    fd.close()
+
+    vendor = re.findall(vendor_re, cpu_info)[0]
+    cpu_flags = re.findall(cpu_flags_re, cpu_info)
+
+    cpu_model = ""
+    if cpu_flags:
+        cpu_flags = _cpu_flags_sort(cpu_flags[0])
+        for cpu_type in cpu_types.get(vendor):
+            pattern = _make_up_pattern(cpu_type_re.get(cpu_type))
+            if re.findall(pattern, cpu_flags):
+                cpu_model = cpu_type
+                break
+    else:
+        logging.warn("Can not Get cpu flags from cpuinfo")
+
+    if cpu_model:
+        cpu_type_list = cpu_types.get(vendor)
+        cpu_support_model = cpu_type_list[cpu_type_list.index(cpu_model):]
+        cpu_model = ",".join(cpu_support_model)
+
+    return cpu_model
 
 
 def generate_mac_address_simple():
