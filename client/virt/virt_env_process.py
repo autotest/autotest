@@ -315,6 +315,10 @@ def preprocess(test, params, env):
         if params.get("vm_type") == "libvirt":
             libvirt_vm.libvirtd_restart()
 
+    if params.get("setup_thp") == "yes":
+        thp = virt_test_setup.TransparentHugePageConfig(test, params)
+        thp.setup()
+
     # Execute any pre_commands
     if params.get("pre_command"):
         process_command(test, params, env, params.get("pre_command"),
@@ -437,6 +441,10 @@ def postprocess(test, params, env):
         h.cleanup()
         if params.get("vm_type") == "libvirt":
             libvirt_vm.libvirtd_restart()
+
+    if params.get("setup_thp") == "yes":
+        thp = virt_test_setup.TransparentHugePageConfig(test, params)
+        thp.cleanup()
 
     # Execute any post_commands
     if params.get("post_command"):
