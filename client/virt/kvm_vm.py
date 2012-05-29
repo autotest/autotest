@@ -1132,7 +1132,7 @@ class VM(virt_vm.BaseVM):
                     # Will raise exception if source doesn't
                     # have cooresponding nic
                     logging.debug("Copying mac for nic %s from VM %s"
-                                    % (nic.nic_name, mac_source.nam))
+                                    % (nic.nic_name, mac_source.name))
                     nic.mac = mac_source.get_mac_address(nic.nic_name)
                 if nic.nettype == 'bridge' or nic.nettype == 'network':
                     if not nic.get('tapfd'):
