@@ -1,0 +1,5 @@
+--SELFTEST-- loading test
+--STEPTEST-- step_init called
+--STEPTEST-- step_test called iteration=1
+--STEPTEST-- step_test called iteration=2
+--SELFTEST-- exit 0

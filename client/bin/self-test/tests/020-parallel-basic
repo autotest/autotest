@@ -1,0 +1,20 @@
+import time
+
+print "--SELFTEST-- loading test"
+
+def payload1():
+	print "--STEPTEST-- payload1 start"
+	sys.stdout.flush()
+	time.sleep(2)
+	print "--STEPTEST-- payload1 complete"
+	sys.stdout.flush()
+
+def payload2():
+	time.sleep(1)
+	print "--STEPTEST-- payload2 start"
+	sys.stdout.flush()
+	time.sleep(2)
+	print "--STEPTEST-- payload2 complete"
+	sys.stdout.flush()
+
+job.parallel([payload1], [payload2])

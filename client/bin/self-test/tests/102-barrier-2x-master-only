@@ -1,0 +1,14 @@
+import time
+
+print "--SELFTEST-- loading test"
+
+us = [ '127.0.0.1#P1', '127.0.0.1#P2' ]
+
+print "--STEPTEST-- payload1 start"
+
+b = job.barrier('127.0.0.1#P1', 'here', 15)
+b.rendezvous(*us)
+
+print "--STEPTEST-- payload1 complete"
+
+print "--STEPTEST-- payload2 complete"

@@ -1,0 +1,11 @@
+#!/usr/bin/python -u
+
+import sys
+try:
+    import autotest.common
+except ImportError:
+    import common
+from autotest_lib.cli import atest
+
+
+sys.exit(atest.main())

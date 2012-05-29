@@ -1,0 +1,109 @@
+#!/usr/bin/python
+"""
+Selects all rows and columns that satisfy the condition specified
+and prints the matrix.
+"""
+import optparse
+try:
+    import autotest.common
+except ImportError:
+    import common
+from autotest_lib.cli import rpc
+from autotest_lib.database import database_connection
+
+
+# First do all the options parsing
+parser = optparse.OptionParser()
+parser.add_option(
+        '-C', '--columns', action='store', dest='columns',
+        default='test_name,reason,test_started_time,test_finished_time,job_tag,'
+                'job_name,hostname,platform,kernel,status',
+        help='Comma-separated list of column names to display')
+parser.add_option('-w', '--where', action='store', dest='condition',
+            help=("The WHERE condition for the query witten in the 'new style' "
+                  "condition syntax for new tko (see "
+                  "http://autotest.kernel.org/wiki/TkoHowTo for more info)"))
+parser.add_option(
+        '--test-attribute-field', action='append', default=[],
+        help='Specifies a test attribute to include as a field.  The attribute '
+             'value will be available as a field named attribute_<attribute '
+             'name>.  This option may be specified multiple times.  Filtering '
+             'must be done slightly differently -- see '
+             'http://autotest.kernel.org/wiki/TkoHowTo#attribute_filtering '
+             'for more details.')
+parser.add_option('--test-label-field', action='append', default=[],
+                  help='Specifies a test label to include as a field.  See '
+                       '--attribute-field for more details')
+parser.add_option('--iteration-result-field', action='append', default=[],
+                  help='Specifies an iteration result to include as a field.  '
+                       'See --attribute-field for more details.  Note that '
+                       'this causes the rows returned to represent iterations '
+                       'rather than plain test results.')
+parser.add_option('--machine-label-field', action='append', default=[],
+                  help='Specifies a machine label to include as a field.  See '
+                       '--attribute-field for more details')
+parser.add_option('--job-keyval-field', action='append', default=[],
+                  help='Specifies a job keyval to include as a field. See '
+                       '--attribute-field for more details')
+parser.add_option('--iteration-attribute-field', action='append', default=[],
+                  help='Specifies an iteration attribute to include as a '
+                       'field. See --attribute-field for more details.  Note '
+                       'that this causes the rows returned to represent '
+                       'iterations rather than plain test results.')
+parser.add_option('-s', '--separator', action='store', default = ' | ',
+            dest='separator', help = 'output separator')
+parser.add_option('-n', '--nocount', action='store_true', default=False,
+                  help='Do not display line counts before each line')
+parser.add_option('-l', '--logpath', action='store_true', default=False,
+                  help='Reformats the the tag column into a URL \
+                        like http://autotest/results/[tag]. \
+                        This will append the tag column if it isn\'t provided.')
+parser.add_option('--host-label', action='store', dest='host_label',
+                  help=('Return results only for machines currently '
+                        'in the specified label'))
+
+(options, args) = parser.parse_args()
+
+if not options.condition:
+    parser.error('You must specify a condition.')
+
+where = options.condition.replace('%', '%%')
+tag = 'job_tag'
+
+columns = options.columns.split(',')
+
+url_prefix = rpc.get_autotest_server() + '/results/'
+if options.logpath:
+    if tag not in columns:
+        columns.append(tag)
+    tag_index=columns.index(tag)
+
+if options.host_label:
+    database = database_connection.DatabaseConnection("AUTOTEST_WEB")
+    database.connect()
+    sql = ("SELECT hostname FROM afe_labels JOIN afe_hosts_labels "
+           "ON afe_labels.id=afe_hosts_labels.label_id JOIN afe_hosts "
+           "ON afe_hosts_labels.host_id=afe_hosts.id WHERE name=%s")
+    results = database.execute(sql, options.host_label)
+    hosts = [row[0] for row in results]
+    where += " AND hostname IN ('" + "','".join(hosts) + "')"
+
+# Grab the data
+tko = rpc.tko_comm()
+count = 0
+test_views = tko.run(
+        'get_test_views', extra_where=where,
+        test_attribute_fields=options.test_attribute_field,
+        test_label_fields=options.test_label_field,
+        iteration_result_fields=options.iteration_result_field,
+        machine_label_fields=options.machine_label_field,
+        job_keyval_fields=options.job_keyval_field,
+        iteration_attribute_fields=options.iteration_attribute_field)
+for test_view in test_views:
+    values = [str(test_view[column]) for column in columns]
+    if options.logpath:
+        values[tag_index] = url_prefix + values[tag_index]
+    if not options.nocount:
+        print '[%d] ' % count,
+        count += 1
+    print options.separator.join(values)

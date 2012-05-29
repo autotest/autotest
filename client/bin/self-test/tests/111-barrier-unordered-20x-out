@@ -1,0 +1,311 @@
+barrier: 127.0.0.1#P10 master said: ping
+barrier: 127.0.0.1#P10 master said: rlse
+barrier: 127.0.0.1#P10 master said: wait
+barrier: 127.0.0.1#P10 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P10 pong
+barrier: 127.0.0.1#P10 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P10 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P10 was released, waiting for close
+barrier: 127.0.0.1#P11 master said: ping
+barrier: 127.0.0.1#P11 master said: rlse
+barrier: 127.0.0.1#P11 master said: wait
+barrier: 127.0.0.1#P11 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P11 pong
+barrier: 127.0.0.1#P11 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P11 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P11 was released, waiting for close
+barrier: 127.0.0.1#P12 master said: ping
+barrier: 127.0.0.1#P12 master said: rlse
+barrier: 127.0.0.1#P12 master said: wait
+barrier: 127.0.0.1#P12 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P12 pong
+barrier: 127.0.0.1#P12 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P12 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P12 was released, waiting for close
+barrier: 127.0.0.1#P13 master said: ping
+barrier: 127.0.0.1#P13 master said: rlse
+barrier: 127.0.0.1#P13 master said: wait
+barrier: 127.0.0.1#P13 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P13 pong
+barrier: 127.0.0.1#P13 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P13 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P13 was released, waiting for close
+barrier: 127.0.0.1#P14 master said: ping
+barrier: 127.0.0.1#P14 master said: rlse
+barrier: 127.0.0.1#P14 master said: wait
+barrier: 127.0.0.1#P14 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P14 pong
+barrier: 127.0.0.1#P14 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P14 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P14 was released, waiting for close
+barrier: 127.0.0.1#P15 master said: ping
+barrier: 127.0.0.1#P15 master said: rlse
+barrier: 127.0.0.1#P15 master said: wait
+barrier: 127.0.0.1#P15 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P15 pong
+barrier: 127.0.0.1#P15 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P15 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P15 was released, waiting for close
+barrier: 127.0.0.1#P16 master said: ping
+barrier: 127.0.0.1#P16 master said: rlse
+barrier: 127.0.0.1#P16 master said: wait
+barrier: 127.0.0.1#P16 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P16 pong
+barrier: 127.0.0.1#P16 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P16 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P16 was released, waiting for close
+barrier: 127.0.0.1#P17 master said: ping
+barrier: 127.0.0.1#P17 master said: rlse
+barrier: 127.0.0.1#P17 master said: wait
+barrier: 127.0.0.1#P17 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P17 pong
+barrier: 127.0.0.1#P17 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P17 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P17 was released, waiting for close
+barrier: 127.0.0.1#P18 master said: ping
+barrier: 127.0.0.1#P18 master said: rlse
+barrier: 127.0.0.1#P18 master said: wait
+barrier: 127.0.0.1#P18 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P18 pong
+barrier: 127.0.0.1#P18 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P18 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P18 was released, waiting for close
+barrier: 127.0.0.1#P19 master said: ping
+barrier: 127.0.0.1#P19 master said: rlse
+barrier: 127.0.0.1#P19 master said: wait
+barrier: 127.0.0.1#P19 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P19 pong
+barrier: 127.0.0.1#P19 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P19 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P19 was released, waiting for close
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P10
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P11
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P12
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P13
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P14
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P15
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P16
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P17
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P18
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P19
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P2
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P20
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P3
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P4
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P5
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P6
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P7
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P8
+barrier: 127.0.0.1#P1 checking client present: 127.0.0.1#P9
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P10 (127.0.0.1:33427)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P11 (127.0.0.1:33437)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P12 (127.0.0.1:33422)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P13 (127.0.0.1:33430)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P14 (127.0.0.1:33431)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P15 (127.0.0.1:33425)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P16 (127.0.0.1:33423)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P17 (127.0.0.1:33421)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P18 (127.0.0.1:33428)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P19 (127.0.0.1:33438)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P20 (127.0.0.1:33429)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P2 (127.0.0.1:33432)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P3 (127.0.0.1:33433)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P4 (127.0.0.1:33426)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P5 (127.0.0.1:33424)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P6 (127.0.0.1:33420)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P7 (127.0.0.1:33434)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P8 (127.0.0.1:33435)
+barrier: 127.0.0.1#P1 client now waiting: 127.0.0.1#P9 (127.0.0.1:33436)
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P10
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P11
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P12
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P13
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P14
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P15
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P16
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P17
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P18
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P19
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P2
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P20
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P3
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P4
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P5
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P6
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P7
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P8
+barrier: 127.0.0.1#P1 closing client: 127.0.0.1#P9
+barrier: 127.0.0.1#P1 master seen 10 of 20
+barrier: 127.0.0.1#P1 master seen 11 of 20
+barrier: 127.0.0.1#P1 master seen 12 of 20
+barrier: 127.0.0.1#P1 master seen 13 of 20
+barrier: 127.0.0.1#P1 master seen 14 of 20
+barrier: 127.0.0.1#P1 master seen 15 of 20
+barrier: 127.0.0.1#P1 master seen 16 of 20
+barrier: 127.0.0.1#P1 master seen 17 of 20
+barrier: 127.0.0.1#P1 master seen 18 of 20
+barrier: 127.0.0.1#P1 master seen 19 of 20
+barrier: 127.0.0.1#P1 master seen 20 of 20
+barrier: 127.0.0.1#P1 master seen 2 of 20
+barrier: 127.0.0.1#P1 master seen 3 of 20
+barrier: 127.0.0.1#P1 master seen 4 of 20
+barrier: 127.0.0.1#P1 master seen 5 of 20
+barrier: 127.0.0.1#P1 master seen 6 of 20
+barrier: 127.0.0.1#P1 master seen 7 of 20
+barrier: 127.0.0.1#P1 master seen 8 of 20
+barrier: 127.0.0.1#P1 master seen 9 of 20
+barrier: 127.0.0.1#P1 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P10
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P11
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P12
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P13
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P14
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P15
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P16
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P17
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P18
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P19
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P2
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P20
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P3
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P4
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P5
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P6
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P7
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P8
+barrier: 127.0.0.1#P1 new client tag=here, name=127.0.0.1#P9
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P10
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P11
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P12
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P13
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P14
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P15
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P16
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P17
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P18
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P19
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P2
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P20
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P3
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P4
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P5
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P6
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P7
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P8
+barrier: 127.0.0.1#P1 releasing client: 127.0.0.1#P9
+barrier: 127.0.0.1#P1 selected as master
+barrier: 127.0.0.1#P1 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P20 master said: ping
+barrier: 127.0.0.1#P20 master said: rlse
+barrier: 127.0.0.1#P20 master said: wait
+barrier: 127.0.0.1#P20 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P20 pong
+barrier: 127.0.0.1#P20 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P20 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P20 was released, waiting for close
+barrier: 127.0.0.1#P2 master said: ping
+barrier: 127.0.0.1#P2 master said: rlse
+barrier: 127.0.0.1#P2 master said: wait
+barrier: 127.0.0.1#P2 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P2 pong
+barrier: 127.0.0.1#P2 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P2 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P2 was released, waiting for close
+barrier: 127.0.0.1#P3 master said: ping
+barrier: 127.0.0.1#P3 master said: rlse
+barrier: 127.0.0.1#P3 master said: wait
+barrier: 127.0.0.1#P3 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P3 pong
+barrier: 127.0.0.1#P3 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P3 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P3 was released, waiting for close
+barrier: 127.0.0.1#P4 master said: ping
+barrier: 127.0.0.1#P4 master said: rlse
+barrier: 127.0.0.1#P4 master said: wait
+barrier: 127.0.0.1#P4 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P4 pong
+barrier: 127.0.0.1#P4 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P4 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P4 was released, waiting for close
+barrier: 127.0.0.1#P5 master said: ping
+barrier: 127.0.0.1#P5 master said: rlse
+barrier: 127.0.0.1#P5 master said: wait
+barrier: 127.0.0.1#P5 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P5 pong
+barrier: 127.0.0.1#P5 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P5 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P5 was released, waiting for close
+barrier: 127.0.0.1#P6 master said: ping
+barrier: 127.0.0.1#P6 master said: rlse
+barrier: 127.0.0.1#P6 master said: wait
+barrier: 127.0.0.1#P6 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P6 pong
+barrier: 127.0.0.1#P6 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P6 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P6 was released, waiting for close
+barrier: 127.0.0.1#P7 master said: ping
+barrier: 127.0.0.1#P7 master said: rlse
+barrier: 127.0.0.1#P7 master said: wait
+barrier: 127.0.0.1#P7 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P7 pong
+barrier: 127.0.0.1#P7 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P7 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P7 was released, waiting for close
+barrier: 127.0.0.1#P8 master said: ping
+barrier: 127.0.0.1#P8 master said: rlse
+barrier: 127.0.0.1#P8 master said: wait
+barrier: 127.0.0.1#P8 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P8 pong
+barrier: 127.0.0.1#P8 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P8 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P8 was released, waiting for close
+barrier: 127.0.0.1#P9 master said: ping
+barrier: 127.0.0.1#P9 master said: rlse
+barrier: 127.0.0.1#P9 master said: wait
+barrier: 127.0.0.1#P9 members: 127.0.0.1#P1,127.0.0.1#P10,127.0.0.1#P11,127.0.0.1#P12,127.0.0.1#P13,127.0.0.1#P14,127.0.0.1#P15,127.0.0.1#P16,127.0.0.1#P17,127.0.0.1#P18,127.0.0.1#P19,127.0.0.1#P2,127.0.0.1#P20,127.0.0.1#P3,127.0.0.1#P4,127.0.0.1#P5,127.0.0.1#P6,127.0.0.1#P7,127.0.0.1#P8,127.0.0.1#P9
+barrier: 127.0.0.1#P9 pong
+barrier: 127.0.0.1#P9 selected as slave, master=127.0.0.1
+barrier: 127.0.0.1#P9 tag=here port=63000 timeout=60 start=NNN
+barrier: 127.0.0.1#P9 was released, waiting for close
+--SELFTEST-- exit 0
+--SELFTEST-- loading test
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 complete
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
+--STEPTEST-- payload1 start
