@@ -209,6 +209,10 @@ shell_port = 22
 used_cpus = 1
 used_mem = 512
 
+# Cpu model params
+auto_cpu_model = "yes"
+cpu_model_flags = ""
+
 # Port redirections
 redirs = remote_shell
 guest_port_remote_shell = 22

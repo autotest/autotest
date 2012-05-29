@@ -4366,6 +4366,76 @@ class NumaNode(object):
             logging.info("    %s: %s" % (i, self.dict[i]))
 
 
+def get_cpu_model():
+    """
+    Get cpu model from host cpuinfo
+    """
+    vendor_re = "vendor_id\s+:\s+(\w+)"
+    cpu_flags_re = "flags\s+:\s+([\w\s]+)\n"
+
+    cpu_types = {"AuthenticAMD": ["Opteron_G4", "Opteron_G3", "Opteron_G2",
+                                 "Opteron_G1"],
+                 "GenuineIntel": ["SandyBridge", "Westmere", "Nehalem",
+                                  "Penryn", "Conroe"]}
+    cpu_type_re = {"Opteron_G4":
+                  "avx,xsave,aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3,sse4a",
+                   "Opteron_G3": "cx16,sse4a",
+                   "Opteron_G2": "cx16",
+                   "Opteron_G1": "",
+                   "SandyBridge":
+                   "avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,cx16,ssse3",
+                   "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
+                   "Nehalem": "sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
+                   "Penryn": "sse4.1|sse4_1,cx16,ssse3",
+                   "Conroe": "ssse3"}
+
+    def _cpu_flags_sort(cpu_flags):
+        """
+        Update the cpu flags get from host to a certain order and format
+        """
+        flag_list = re.split("\s+", cpu_flags.strip())
+        flag_list.sort()
+        cpu_flags = " ".join(flag_list)
+        return cpu_flags
+
+    def _make_up_pattern(flags):
+        """
+        Update the check pattern to a vertain order and format
+        """
+        pattern_list = re.split(",", flags.strip())
+        pattern = r""
+        pattern_list.sort()
+        pattern = r"(\b%s\b)" % pattern_list[0]
+        for i in pattern_list[1:]:
+            pattern += r".+(\b%s\b)" % i
+        return pattern
+
+    fd = open("/proc/cpuinfo")
+    cpu_info = fd.read()
+    fd.close()
+
+    vendor = re.findall(vendor_re, cpu_info)[0]
+    cpu_flags = re.findall(cpu_flags_re, cpu_info)
+
+    cpu_model = ""
+    if cpu_flags:
+        cpu_flags = _cpu_flags_sort(cpu_flags[0])
+        for cpu_type in cpu_types.get(vendor):
+            pattern = _make_up_pattern(cpu_type_re.get(cpu_type))
+            if re.findall(pattern, cpu_flags):
+                cpu_model = cpu_type
+                break
+    else:
+        logging.warn("Can not Get cpu flags from cpuinfo")
+
+    if cpu_model:
+        cpu_type_list = cpu_types.get(vendor)
+        cpu_support_model = cpu_type_list[cpu_type_list.index(cpu_model):]
+        cpu_model = ",".join(cpu_support_model)
+
+    return cpu_model
+
+
 def generate_mac_address_simple():
     r = random.SystemRandom()
     mac = "9a:%02x:%02x:%02x:%02x:%02x" % (r.randint(0x00, 0xff),
