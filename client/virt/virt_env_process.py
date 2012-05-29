@@ -503,6 +503,7 @@ def _take_screendumps(test, params, env):
                 logging.warn(e)
                 continue
             except AttributeError, e:
+                logging.warn(e)
                 continue
             if not os.path.exists(temp_filename):
                 logging.warn("VM '%s' failed to produce a screendump", vm.name)
