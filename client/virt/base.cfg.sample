@@ -54,6 +54,9 @@ mem = 1024
 # Networking type (nic, user, tap, socket, vde, dump, none)
 nic_mode = tap
 
+# Host networking restart command line for PCI assign cases
+# net_restart_cmd = /etc/init.d/network restart
+
 # Size of file-based qcow2 image, if image_raw-device not used.
 image_size = 10G
 
