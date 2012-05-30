@@ -609,7 +609,7 @@ class VM(virt_vm.BaseVM):
 
         def add_cpu_flags(help, cpu_model, flags=None, vendor_id=None):
             if has_option(help, 'cpu'):
-                cmd = " -cpu %s" % cpu_model
+                cmd = " -cpu '%s'" % cpu_model
 
                 if vendor_id:
                     cmd += ",vendor=\"%s\"" % vendor_id
@@ -690,6 +690,7 @@ class VM(virt_vm.BaseVM):
         qemu_binary = virt_utils.get_path(root_dir, params.get("qemu_binary",
                                                               "qemu"))
         help = commands.getoutput("%s -help" % qemu_binary)
+        support_cpu_model = commands.getoutput("%s -cpu ?list" % qemu_binary)
 
         # Start constructing the qemu command
         qemu_cmd = ""
@@ -844,6 +845,17 @@ class VM(virt_vm.BaseVM):
             qemu_cmd += add_smp(help, smp)
 
         cpu_model = params.get("cpu_model")
+        use_default_cpu_model = True
+        if cpu_model:
+            for model in re.split(",", cpu_model):
+                if model in support_cpu_model:
+                    use_default_cpu_model = False
+                    cpu_model = model
+                    break
+
+        if use_default_cpu_model:
+            cpu_model = params.get("default_cpu_model")
+
         if cpu_model:
             vendor = params.get("cpu_model_vendor")
             flags = params.get("cpu_model_flags")
