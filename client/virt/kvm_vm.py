@@ -2107,3 +2107,104 @@ class VM(virt_vm.BaseVM):
         @param up: Bool value, True=set up this link, False=Set down this link
         """
         self.monitor.set_link(netdev_name, up)
+
+
+    def get_block(self, p_dict={}):
+        """
+        Get specified block device from monitor's info block command.
+        The block device is defined by parameter in p_dict.
+
+        @param p_dict: Dictionary that contains parameters and its value used
+                       to define specified block device.
+
+        @return: Matched block device name, None when not find any device.
+        """
+
+        blocks_info = self.monitor.info("block")
+        msg = "Block information get from monitor: %s" % blocks_info
+        logging.debug(msg)
+        if isinstance(blocks_info, str):
+            for block in blocks_info.splitlines():
+                match = True
+                for key, value in p_dict.iteritems():
+                    if value == True:
+                        check_str = "%s=1" % key
+                    elif value == False:
+                        check_str = "%s=0" % key
+                    else:
+                        check_str = "%s=%s" % (key, value)
+                    if check_str not in block:
+                        match = False
+                        break
+                if match:
+                    return block.split(":")[0]
+        else:
+            for block in blocks_info:
+                match = True
+                for key, value in p_dict.iteritems():
+                    if isinstance(value, bool):
+                        check_str = "u'%s': %s" % (key, value)
+                    else:
+                        check_str = "u'%s': u'%s'" % (key, value)
+                    if check_str not in str(block):
+                        match = False
+                        break
+                if match:
+                    return block['device']
+        return None
+
+
+    def check_block_locked(self, value):
+        """
+        Check whether specified block device is locked or not.
+        Return True, if device is locked, else False.
+
+        @param vm: VM object
+        @param value: Parameter that can specify block device.
+                      Can be any possible identification of a device,
+                      Such as device name/image file name/...
+
+        @return: True if device is locked, False if device is unlocked.
+        """
+        assert value, "Device identification not specified"
+
+        blocks_info = self.monitor.info("block")
+
+        assert value in str(blocks_info), \
+               "Device %s not listed in monitor's output" % value
+
+        if isinstance(blocks_info, str):
+            lock_str = "locked=1"
+            for block in blocks_info.splitlines():
+                if (value in block) and (lock_str in block):
+                    return True
+        else:
+            for block in blocks_info:
+                if value in str(block):
+                    return block['locked']
+        return False
+
+
+    def live_snapshot(self, base_file, snapshot_file,
+                      snapshot_format="qcow2"):
+        """
+        Take a live disk snapshot.
+
+        @param base_file: base file name
+        @param snapshot_file: snapshot file name
+        @param snapshot_format: snapshot file format
+
+        @return: File name of disk snapshot.
+        """
+        device = self.get_block({"file": base_file})
+
+        output = self.monitor.live_snapshot(device, snapshot_file,
+                                            snapshot_format)
+        logging.debug(output)
+        device = self.get_block({"file": snapshot_file})
+        if device:
+            current_file = device
+        else:
+            current_file = None
+
+        return current_file

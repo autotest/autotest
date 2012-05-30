@@ -420,6 +420,21 @@ class HumanMonitor(Monitor):
         return self.cmd("%s %s %s" % (set_link_cmd, name, status))
 
 
+    def live_snapshot(self, device, snapshot_file, snapshot_format="qcow2"):
+        """
+        Take a live disk snapshot.
+
+        @param device: device id of base image
+        @param snapshot_file: image file name of snapshot
+        @param snapshot_format: image format of snapshot
+
+        @return: The response to the command
+        """
+        cmd = ("snapshot_blkdev %s %s %s" %
+               (device, snapshot_file, snapshot_format))
+        return self.cmd(cmd)
+
+
     def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):
         """
         Migrate.
@@ -651,7 +666,7 @@ class QMPMonitor(Monitor):
 
     # Public methods
 
-    def cmd(self, cmd, args=None, timeout=CMD_TIMEOUT, debug=True):
+    def cmd(self, cmd, args=None, timeout=CMD_TIMEOUT, debug=True, fd=None):
         """
         Send a QMP monitor command and return the response.
 
@@ -661,13 +676,17 @@ class QMPMonitor(Monitor):
         @param cmd: Command to send
         @param args: A dict containing command arguments, or None
         @param timeout: Time duration to wait for response
+        @param debug: Whether to print the commands being sent and responses
+        @param fd: file object or file descriptor to pass
+
         @return: The response received
+
         @raise MonitorLockError: Raised if the lock cannot be acquired
         @raise MonitorSocketError: Raised if a socket error occurs
         @raise MonitorProtocolError: Raised if no response is received
         @raise QMPCmdError: Raised if the response is an error message
-                (the exception's args are (cmd, args, data) where data is the
-                error data)
+                            (the exception's args are (cmd, args, data)
+                             where data is the error data)
         """
         if debug:
             logging.debug("(monitor %s) Sending command '%s'",
@@ -681,7 +700,14 @@ class QMPMonitor(Monitor):
             self._read_objects()
             # Send command
             id = virt_utils.generate_random_string(8)
-            self._send(json.dumps(self._build_cmd(cmd, args, id)) + "\n")
+            cmdobj = self._build_cmd(cmd, args, id)
+            if fd is not None:
+                if self._passfd is None:
+                    self._passfd = virt_passfd_setup.import_passfd()
+                # If command includes a file descriptor, use passfd module
+                self._passfd.sendfd(self._socket, fd, json.dumps(cmdobj) + "\n")
+            else:
+                self._send(json.dumps(cmdobj) + "\n")
             # Read response
             r = self._get_response(id, timeout)
             if r is None:
@@ -824,14 +850,16 @@ class QMPMonitor(Monitor):
                 return e
 
 
-    def human_monitor_cmd(self, cmd=None):
+    def human_monitor_cmd(self, cmd=None, timeout=CMD_TIMEOUT):
         """
         Run human monitor command in QMP through human-monitor-command
 
         @param cmd: human monitor command.
+
+        @return: The response to the command
         """
         args = {"command-line": cmd}
-        self.cmd("human-monitor-command", args)
+        return self.cmd("human-monitor-command", args, timeout)
 
 
     def clear_events(self):
@@ -899,6 +927,8 @@ class QMPMonitor(Monitor):
                     try:
                         if re.match("^[0-9]+$", opt[1]):
                             value = int(opt[1])
+                        elif re.match("^[0-9]+.[0-9]*$", opt[1]):
+                            value = float(opt[1])
                         elif "True" in opt[1] or "true" in opt[1]:
                             value = True
                         elif "false" in opt[1] or "False" in opt[1]:
@@ -943,6 +973,18 @@ class QMPMonitor(Monitor):
         return self.cmd(cmd="screendump", args=args, debug=debug)
 
 
+    def sendkey(self, keystr, hold_time=1):
+        """
+        Send key combination to VM.
+
+        @param keystr: Key combination string
+        @param hold_time: Hold time in ms (should normally stay 1 ms)
+
+        @return: The response to the command
+        """
+        return self.human_monitor_cmd("sendkey %s %s" % (keystr, hold_time))
+
+
     def migrate(self, uri, full_copy=False, incremental_copy=False, wait=False):
         """
         Migrate.
@@ -980,3 +1022,45 @@ class QMPMonitor(Monitor):
         @return: The response to the command
         """
         return self.send_args_cmd("set_link name=%s,up=%s" % (name, str(up)))
+
+
+    def migrate_set_downtime(self, value):
+        """
+        Set maximum tolerated downtime (in seconds) for migration.
+
+        @param: value: maximum downtime (in seconds)
+
+        @return: The command's output
+        """
+        val = value * 10**9
+        args = {"value": val}
+        return self.cmd("migrate_set_downtime", args)
+
+
+    def live_snapshot(self, device, snapshot_file, snapshot_format="qcow2"):
+        """
+        Take a live disk snapshot.
+
+        @param device: device id of base image
+        @param snapshot_file: image file name of snapshot
+        @param snapshot_format: image format of snapshot
+
+        @return: The response to the command
+        """
+        args = {"device": device,
+                "snapshot-file": snapshot_file,
+                "format": snapshot_format}
+        return self.cmd("blockdev-snapshot-sync", args)
+
+
+    def getfd(self, fd, name):
+        """
+        Receives a file descriptor
+
+        @param fd: File descriptor to pass to QEMU
+        @param name: File descriptor name (internal to QEMU)
+
+        @return: The response to the command
+        """
+        args = {"fdname": name}
+        return self.cmd("getfd", args, fd=fd)
