@@ -285,6 +285,12 @@ def preprocess(test, params, env):
             vm.destroy()
             del env[key]
 
+    # Get Host cpu type
+    if params.get("auto_cpu_model") == "yes":
+       if not env.get("cpu_model"):
+           env["cpu_model"] = virt_utils.get_cpu_model()
+       params["cpu_model"] = env.get("cpu_model")
+
     # Get the KVM kernel module version and write it as a keyval
     if os.path.exists("/dev/kvm"):
         try:
