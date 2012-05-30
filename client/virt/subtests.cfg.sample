@@ -1767,6 +1767,8 @@ variants:
         max_times = 20
         # test whether cdrom is unlocked <300s after boot
         cdrom_test_autounlock = no
+        # test the tray status
+        cdrom_test_tray_status = yes
         # wait before eject $cdrom (let OS initialize cdrom ...)
         workaround_eject_time = 0
 
