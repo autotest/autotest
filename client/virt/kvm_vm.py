@@ -1188,13 +1188,19 @@ class VM(virt_vm.BaseVM):
                         type=pa_type,
                         driver=params.get("driver"),
                         driver_option=params.get("driver_option"),
-                        devices_requested=pa_devices_requested)
+                        devices_requested=pa_devices_requested,
+                        host_set_flag = params.get("host_setup_flag"),
+                        kvm_params = params.get("kvm_default"),
+                        net_restart_cmd = params.get("net_restart_cmd"))
                 # Physical NIC (PF) assignable devices
                 elif pa_type == "pf":
                     self.pci_assignable = virt_utils.PciAssignable(
                         type=pa_type,
                         names=params.get("device_names"),
-                        devices_requested=pa_devices_requested)
+                        devices_requested=pa_devices_requested,
+                        host_set_flag = params.get("host_setup_flag"),
+                        kvm_params = params.get("kvm_default"),
+                        net_restart_cmd = params.get("net_restart_cmd"))
                 # Working with both VF and PF
                 elif pa_type == "mixed":
                     self.pci_assignable = virt_utils.PciAssignable(
@@ -1202,7 +1208,10 @@ class VM(virt_vm.BaseVM):
                         driver=params.get("driver"),
                         driver_option=params.get("driver_option"),
                         names=params.get("device_names"),
-                        devices_requested=pa_devices_requested)
+                        devices_requested=pa_devices_requested,
+                        host_set_flag = params.get("host_setup_flag"),
+                        kvm_params = params.get("kvm_default"),
+                        net_restart_cmd = params.get("net_restart_cmd"))
                 else:
                     raise virt_vm.VMBadPATypeError(pa_type)
 
