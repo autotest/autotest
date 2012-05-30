@@ -125,7 +125,6 @@ def run_trans_hugepage_defrag(test, params, env):
     mem_path = os.path.join("/tmp", "thp_space")
 
     try:
-        test_config.setup()
         error.context("deactivating khugepaged defrag functionality")
         change_feature_status("off", "khugepaged/defrag", test_config)
         change_feature_status("off", "defrag", test_config)
@@ -161,4 +160,3 @@ def run_trans_hugepage_defrag(test, params, env):
     finally:
         logging.debug("Cleaning up libhugetlbfs on host")
         set_libhugetlbfs(0)
-        test_config.cleanup()
