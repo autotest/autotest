@@ -1,7 +1,7 @@
 import logging, os, re
 from autotest.client.shared import error
 from autotest.client.shared import utils
-from autotest.client.virt import virt_test_utils, aexpect, virt_test_setup
+from autotest.client.virt import aexpect, virt_test_utils
 
 
 @error.context_aware
@@ -42,14 +42,10 @@ def run_trans_hugepage(test, params, env):
             os.makedirs(debugfs_path)
         utils.run("mount -t debugfs none %s" % debugfs_path)
 
-    test_config = virt_test_setup.TransparentHugePageConfig(test, params)
     vm = virt_test_utils.get_living_vm(env, params.get("main_vm"))
     session = virt_test_utils.wait_for_login(vm, timeout=login_timeout)
 
     try:
-        # Check khugepage is used by guest
-        test_config.setup()
-
         logging.info("Smoke test start")
         error.context("smoke test")
 
@@ -119,7 +115,6 @@ def run_trans_hugepage(test, params, env):
         if os.path.isdir(debugfs_path):
             os.removedirs(debugfs_path)
         session.close()
-        test_config.cleanup()
 
     error.context("")
     if failures:
