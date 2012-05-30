@@ -2,7 +2,7 @@ import logging, os, re
 from autotest.client.shared import error
 from autotest.client import utils
 from autotest.client.virt import virt_utils, virt_test_utils
-from autotest.client.virt import virt_test_setup, virt_env_process
+from autotest.client.virt import virt_env_process
 
 
 @error.context_aware
@@ -26,9 +26,7 @@ def run_trans_hugepage_swapping(test, params, env):
                     args_list_tmp[key] = int(re.split('\s+', line)[1])
         return args_list_tmp
 
-    test_config = virt_test_setup.TransparentHugePageConfig(test, params)
     try:
-        test_config.setup()
         # Swapping test
         logging.info("Swapping test start")
         # Parameters of memory information
@@ -110,4 +108,3 @@ def run_trans_hugepage_swapping(test, params, env):
     finally:
         if session is not None:
             session.close()
-        test_config.cleanup()

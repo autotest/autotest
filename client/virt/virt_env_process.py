@@ -285,6 +285,12 @@ def preprocess(test, params, env):
             vm.destroy()
             del env[key]
 
+    # Get Host cpu type
+    if params.get("auto_cpu_model") == "yes":
+       if not env.get("cpu_model"):
+           env["cpu_model"] = virt_utils.get_cpu_model()
+       params["cpu_model"] = env.get("cpu_model")
+
     # Get the KVM kernel module version and write it as a keyval
     if os.path.exists("/dev/kvm"):
         try:
@@ -314,6 +320,10 @@ def preprocess(test, params, env):
         h.setup()
         if params.get("vm_type") == "libvirt":
             libvirt_vm.libvirtd_restart()
+
+    if params.get("setup_thp") == "yes":
+        thp = virt_test_setup.TransparentHugePageConfig(test, params)
+        thp.setup()
 
     # Execute any pre_commands
     if params.get("pre_command"):
@@ -438,6 +448,10 @@ def postprocess(test, params, env):
         if params.get("vm_type") == "libvirt":
             libvirt_vm.libvirtd_restart()
 
+    if params.get("setup_thp") == "yes":
+        thp = virt_test_setup.TransparentHugePageConfig(test, params)
+        thp.cleanup()
+
     # Execute any post_commands
     if params.get("post_command"):
         process_command(test, params, env, params.get("post_command"),
@@ -503,6 +517,7 @@ def _take_screendumps(test, params, env):
                 logging.warn(e)
                 continue
             except AttributeError, e:
+                logging.warn(e)
                 continue
             if not os.path.exists(temp_filename):
                 logging.warn("VM '%s' failed to produce a screendump", vm.name)

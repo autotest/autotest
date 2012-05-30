@@ -1849,6 +1849,7 @@ variants:
         thp_test_config = ""
         kill_vm = yes
         login_timeout = 360
+        setup_thp = yes
         variants:
             - base:
                 type = trans_hugepage
@@ -1863,6 +1864,7 @@ variants:
     - cpuflags: install setup image_copy unattended_install.cdrom
         type = cpuflags
         extra_params += " -snapshot"
+        auto_cpu_model = no
         #Disable all unnecessary vms.
         vms = ""
         #Try to start guest with all flags which are supported by host.
@@ -1923,6 +1925,7 @@ variants:
         disk_prepare_timeout = 360
         comm_port = 13234
         regain_ip_cmd = killall dhclient; sleep 10; dhclient;
+        auto_cpu_model = no
 
     - cpu_hotplug_test: install setup image_copy unattended_install.cdrom
         type = cpu_hotplug
