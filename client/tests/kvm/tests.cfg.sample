@@ -57,8 +57,8 @@ variants:
         # Subtest choice. You can modify that line to add more subtests
         only unattended_install.cdrom, boot, shutdown
 
-    # Runs qemu, f16 64 bit guest OS, install, boot, shutdown
-    - @qemu_f16_quick:
+    # Runs qemu, f17 64 bit guest OS, install, boot, shutdown
+    - @qemu_f17_quick:
         # We want qemu for this run
         qemu_binary = /usr/bin/qemu
         qemu_img_binary = /usr/bin/qemu-img
@@ -72,13 +72,13 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only Fedora.16.64
+        only Fedora.17.64
         only unattended_install.cdrom.extra_cdrom_ks, boot, shutdown
         # qemu needs -enable-kvm on the cmdline
         extra_params += ' -enable-kvm'
 
-    # Runs qemu-kvm, f16 64 bit guest OS, install, boot, shutdown
-    - @qemu_kvm_f16_quick:
+    # Runs qemu-kvm, f17 64 bit guest OS, install, boot, shutdown
+    - @qemu_kvm_f17_quick:
         # We want qemu-kvm for this run
         qemu_binary = /usr/bin/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
@@ -90,10 +90,10 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only Fedora.16.64
+        only Fedora.17.64
         only unattended_install.cdrom.extra_cdrom_ks, boot, shutdown
 
-    # Runs qemu-kvm, f16 64 bit guest OS, install, starts qemu-kvm
+    # Runs qemu-kvm, f17 64 bit guest OS, install, starts qemu-kvm
     # with 9P support and runs 9P CI tests
     - @qemu_kvm_9p_export:
         qemu_binary = /usr/bin/qemu-kvm
@@ -106,7 +106,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only 9p_export
-        only Fedora.16.64
+        only Fedora.17.64
         only unattended_install.cdrom.extra_cdrom_ks, boot, 9p.9p_ci, shutdown
 
     # Runs your own guest image (qcow2, can be adjusted), all migration tests
@@ -129,4 +129,4 @@ variants:
         only migrate
 
 # Choose your test list from the testsets defined
-only qemu_kvm_f16_quick
+only qemu_kvm_f17_quick
