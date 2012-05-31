@@ -1,5 +1,5 @@
 import django.http
-from django.contrib.syndication import feeds
+from django.contrib.syndication import views
 from autotest.frontend.afe import models
 
 
@@ -28,7 +28,7 @@ def feed_view(request, url, feed_dict=None):
         # this line is changed from the Django library version to pass
         # in request instead of request.path
         feedgen = f(slug, request).get_feed(param)
-    except feeds.FeedDoesNotExist:
+    except views.FeedDoesNotExist:
         raise Http404, "Invalid feed parameters. Slug %r is valid, but other parameters, or lack thereof, are not." % slug
 
     response = HttpResponse(mimetype=feedgen.mime_type)
@@ -36,7 +36,7 @@ def feed_view(request, url, feed_dict=None):
     return response
 # end copied code
 
-class JobFeed(feeds.Feed):
+class JobFeed(views.Feed):
     """\
     Common feed functionality.
     """
