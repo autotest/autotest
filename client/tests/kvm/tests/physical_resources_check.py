@@ -1,6 +1,6 @@
 import re, string, logging
 from autotest.client.shared import error
-from autotest.client.virt import kvm_monitor, virt_utils
+from autotest.client.virt import kvm_monitor, virt_image
 
 
 def run_physical_resources_check(test, params, env):
@@ -98,7 +98,7 @@ def run_physical_resources_check(test, params, env):
     n_fail = []
 
     # We will check HDs with the image name
-    image_name = virt_utils.get_image_filename(params, test.bindir)
+    image_name = virt_image.get_image_filename(params, test.bindir)
 
     # Check cpu count
     logging.info("CPU count check")

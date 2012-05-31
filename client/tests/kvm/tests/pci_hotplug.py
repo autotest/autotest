@@ -1,6 +1,6 @@
 import re
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, virt_vm, aexpect
+from autotest.client.virt import virt_utils, virt_vm, aexpect, virt_image
 
 
 def run_pci_hotplug(test, params, env):
@@ -66,7 +66,7 @@ def run_pci_hotplug(test, params, env):
             pci_add_cmd = "pci_add pci_addr=auto nic model=%s" % tested_model
         elif test_type == "block":
             image_params = params.object_params("stg")
-            image_filename = virt_utils.get_image_filename(image_params,
+            image_filename = virt_image.get_image_filename(image_params,
                                                        test.bindir)
             pci_add_cmd = ("pci_add pci_addr=auto storage file=%s,if=%s" %
                            (image_filename, tested_model))
@@ -89,7 +89,7 @@ def run_pci_hotplug(test, params, env):
 
         elif test_type == "block":
             image_params = params.object_params("stg")
-            image_filename = virt_utils.get_image_filename(image_params,
+            image_filename = virt_image.get_image_filename(image_params,
                                                        test.bindir)
             controller_model = None
             if tested_model == "virtio":

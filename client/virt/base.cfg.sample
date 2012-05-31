@@ -165,6 +165,7 @@ drive_werror_image1 =
 #    unattended_install. In all other tests, it should be no, so keep the global
 #    as is.
 backup_image = no
+backup_dir = /tmp
 # Enable backup_image_on_check_error = yes globally to allow isolate bad images
 #    for investigation purposes
 backup_image_on_check_error = no
