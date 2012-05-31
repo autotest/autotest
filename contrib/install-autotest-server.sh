@@ -175,7 +175,7 @@ install_packages() {
 PACKAGES_UTILITY=(unzip wget)
 PACAKGES_WEBSERVER=(httpd mod_python Django)
 PACKAGES_MYSQL=(mysql-server MySQL-python)
-PACKAGES_DEVELOPMENT=(git java-1.6.0-openjdk-devel)
+PACKAGES_DEVELOPMENT=(git java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel)
 PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib python-atfork)
 PACKAGES_SELINUX=(selinux-policy selinux-policy-targeted policycoreutils-python)
 PACKAGES_ALL=( \
