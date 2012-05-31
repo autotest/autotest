@@ -244,11 +244,11 @@ class HumanMonitor(Monitor):
 
     # Public methods
 
-    def cmd(self, command, timeout=CMD_TIMEOUT, debug=True, fd=None):
+    def cmd(self, cmd, timeout=CMD_TIMEOUT, debug=True, fd=None):
         """
         Send command to the monitor.
 
-        @param command: Command to send to the monitor
+        @param cmd: Command to send to the monitor
         @param timeout: Time duration to wait for the (qemu) prompt to return
         @param debug: Whether to print the commands being sent and responses
         @return: Output received from the monitor
@@ -259,10 +259,10 @@ class HumanMonitor(Monitor):
         """
         if debug:
             logging.debug("(monitor %s) Sending command '%s'",
-                          self.name, command)
+                          self.name, cmd)
         if not self._acquire_lock():
             raise MonitorLockError("Could not acquire exclusive lock to send "
-                                   "monitor command '%s'" % command)
+                                   "monitor command '%s'" % cmd)
 
         try:
             # Read any data that might be available
@@ -271,10 +271,10 @@ class HumanMonitor(Monitor):
                 if self._passfd is None:
                     self._passfd = virt_passfd_setup.import_passfd()
                 # If command includes a file descriptor, use passfd module
-                self._passfd.sendfd(self._socket, fd, "%s\n" % (command))
+                self._passfd.sendfd(self._socket, fd, "%s\n" % cmd)
             else:
                 # Send command
-                self._send(command)
+                self._send(cmd)
             # Read output
             s, o = self._read_up_to_qemu_prompt(timeout)
             # Remove command echo from output
@@ -284,13 +284,13 @@ class HumanMonitor(Monitor):
                 if debug and o:
                     logging.debug("(monitor %s) "
                                   "Response to '%s'", self.name,
-                                  command)
+                                  cmd)
                     for l in o.splitlines():
                         logging.debug("(monitor %s)    %s", self.name, l)
                 return o
             else:
                 msg = ("Could not find (qemu) prompt after command '%s'. "
-                       "Output so far: %r" % (command, o))
+                       "Output so far: %r" % (cmd, o))
                 raise MonitorProtocolError(msg)
 
         finally:
@@ -392,7 +392,7 @@ class HumanMonitor(Monitor):
         @param filename: Location for the screendump
         @return: The command's output
         """
-        return self.cmd(command="screendump %s" % filename, debug=debug)
+        return self.cmd(cmd="screendump %s" % filename, debug=debug)
 
 
     def set_link(self, name, up):
