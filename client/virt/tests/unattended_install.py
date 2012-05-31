@@ -670,7 +670,7 @@ class UnattendedInstallConfig(object):
             # Red Hat kickstart install
             dest_fname = 'ks.cfg'
             if self.params.get('unattended_delivery_method') == 'integrated':
-                ks_param = 'ks=cdrom:/isolinux/%s' % dest_fname
+                ks_param = 'ks=cdrom:/dev/sr0:/isolinux/%s' % dest_fname
                 kernel_params = getattr(self, 'kernel_params')
                 if 'ks=' in kernel_params:
                     kernel_params = re.sub('ks\=[\w\d\:\.\/]+',
@@ -678,6 +678,15 @@ class UnattendedInstallConfig(object):
                                            kernel_params)
                 else:
                     kernel_params = '%s %s' % (kernel_params, ks_param)
+
+                # Standard setting is kickstart disk in /dev/sr0 and 
+                # install cdrom in /dev/sr1. As we merge them together,
+                # we need to change repo configuration to /dev/sr0
+                if 'repo=cdrom' in kernel_params:
+                    kernel_params = re.sub('repo\=cdrom[\:\w\d\/]*',
+                                           'repo=cdrom:/dev/sr0',
+                                           kernel_params)
+
                 self.params['kernel_params'] = ''
                 boot_disk = CdromInstallDisk(self.cdrom_unattended,
                                              self.tmpdir,
