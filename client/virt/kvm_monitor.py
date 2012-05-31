@@ -953,7 +953,13 @@ class QMPMonitor(Monitor):
         """
         Request info about something and return the response.
         """
-        return self.cmd("query-%s" % what)
+        cmd = "query-%s" % what
+        commands = self.cmd("query-commands")
+        if cmd in str(commands):
+            return self.cmd("query-%s" % what)
+        else:
+            cmd = "info %s" % what
+            return self.human_monitor_cmd(cmd)
 
 
     def query(self, what):
