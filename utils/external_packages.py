@@ -556,10 +556,11 @@ class MySQLdbPackage(ExternalPackage):
 
 
 class DjangoPackage(ExternalPackage):
-    version = '1.3'
+    minimum_version = '1.3'
+    version = '1.4'
     local_filename = 'Django-%s.tar.gz' % version
     urls = ('http://www.djangoproject.com/download/%s/tarball/' % version,)
-    hex_sum = 'f8814d5e1412bb932318db5130260da5bf053ff7'
+    hex_sum = 'acc0b854bfbda29c74c1f818323139cf18b38eeb'
 
     _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
