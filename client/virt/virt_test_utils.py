@@ -990,3 +990,80 @@ def cmd_runner_monitor(vm, monitor_cmd, test_cmd, guest_path, timeout=300):
     vm.copy_files_from(guest_path, guest_result_file)
     vm.copy_files_from("%s_monitor" % guest_path, guest_monitor_result_file)
     return tag
+
+def aton(str):
+    """
+    Transform a string to a number(include float and int). If the string is
+    not in the form of number, just return false.
+
+    @str: string to transfrom
+    Return: float, int or False for failed transform
+    """
+    try:
+        return int(str)
+    except ValueError:
+        try:
+            return float(str)
+        except ValueError:
+            return False
+
+def summary_up_result(result_file, ignore, row_head, column_mark):
+    """
+    Use to summary the monitor or other kinds of results. Now it calculates
+    the average value for each item in the results. It fits to the records
+    that are in matrix form.
+
+    @result_file: files which need to calculate
+    @ignore: pattern for the comment in results which need to through away
+    @row_head: pattern for the items in row
+    @column_mark: pattern for the first line in matrix which used to generate
+    the items in column
+    Return: A dictionary with the average value of results
+    """
+    head_flag = False
+    result_dict = {}
+    column_list = {}
+    row_list = []
+    fd = open(result_file, "r")
+    for eachLine in fd:
+        if len(re.findall(ignore, eachLine)) == 0:
+            if len(re.findall(column_mark, eachLine)) != 0 and not head_flag:
+                column = 0
+                empty, row, eachLine = re.split(row_head, eachLine)
+                for i in re.split("\s+", eachLine):
+                    if i:
+                        result_dict[i] = {}
+                        column_list[column] = i
+                        column += 1
+                head_flag = True
+            elif len(re.findall(column_mark, eachLine)) == 0:
+                column = 0
+                empty, row, eachLine = re.split(row_head, eachLine)
+                row_flag = False
+                for i in row_list:
+                    if row == i:
+                        row_flag = True
+                if row_flag == False:
+                    row_list.append(row)
+                    for i in result_dict:
+                        result_dict[i][row] = []
+                for i in re.split("\s+", eachLine):
+                    if i:
+                        result_dict[column_list[column]][row].append(i)
+                        column += 1
+    fd.close()
+    # Calculate the average value
+    average_list = {}
+    for i in column_list:
+        average_list[column_list[i]] = {}
+        for j in row_list:
+            average_list[column_list[i]][j] = {}
+            check = result_dict[column_list[i]][j][0]
+            if aton(check) or aton(check) == 0.0:
+                count = 0
+                for k in result_dict[column_list[i]][j]:
+                    count += aton(k)
+                average_list[column_list[i]][j] = "%.2f" % (count /
+                                len(result_dict[column_list[i]][j]))
+
+    return average_list
