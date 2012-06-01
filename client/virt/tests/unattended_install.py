@@ -711,6 +711,15 @@ class UnattendedInstallConfig(object):
                                           kernel_params)
                 else:
                     kernel_params = '%s %s' % (kernel_params, ks_param)
+
+                # Standard setting is kickstart disk in /dev/sr0 and 
+                # install cdrom in /dev/sr1. When we get ks via http,
+                # we need to change repo configuration to /dev/sr0
+                if 'repo=cdrom' in kernel_params:
+                    kernel_params = re.sub('repo\=cdrom[\:\w\d\/]*',
+                                           'repo=cdrom:/dev/sr0',
+                                           kernel_params)
+
                 self.params['kernel_params'] = kernel_params
             elif self.params.get('unattended_delivery_method') == 'cdrom':
                 boot_disk = CdromDisk(self.cdrom_unattended, self.tmpdir)
