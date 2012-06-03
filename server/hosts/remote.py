@@ -50,16 +50,19 @@ class RemoteHost(base_classes.Host):
 
     INSTALL_SERVER_MAPPING = {'cobbler': install_server.CobblerInterface}
 
-    def _initialize(self, hostname, autodir=None, *args, **dargs):
+    def _initialize(self, hostname, autodir=None, profile=None,
+                    *args, **dargs):
         super(RemoteHost, self)._initialize(*args, **dargs)
 
         self.hostname = hostname
         self.autodir = autodir
+        self.profile = profile
         self.tmp_dirs = []
 
 
     def __repr__(self):
-        return "<remote host: %s>" % self.hostname
+        return "<remote host: %s, profile: %s>" % (self.hostname,
+                                                   self.profile)
 
 
     def close(self):
@@ -84,7 +87,7 @@ class RemoteHost(base_classes.Host):
         if install_server_is_configured():
             if profile is None:
                 profile = self.profile
-            if profile == 'Do_not_install':
+            if profile is None or profile == 'Do_not_install':
                 return
             num_attempts = int(server_info.get('num_attempts', 2))
             ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]

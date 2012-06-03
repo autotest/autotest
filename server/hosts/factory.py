@@ -1,6 +1,6 @@
 from autotest.client.shared import utils, error, global_config
 from autotest.server import autotest_remote, utils as server_utils
-from autotest.server.hosts import site_factory, installable_host, ssh_host, serial, remote
+from autotest.server.hosts import site_factory, ssh_host, serial, remote
 from autotest.server.hosts import logfile_monitor
 
 DEFAULT_FOLLOW_PATH = '/var/log/kern.log'
@@ -25,11 +25,7 @@ def create_host(
         from autotest.server.hosts import paramiko_host
         classes = [paramiko_host.ParamikoHost]
     elif SSH_ENGINE == 'raw_ssh':
-        if remote.install_server_is_configured():
-            classes = [installable_host.InstallableHost]
-        else:
-            classes = [ssh_host.SSHHost]
-        classes.append(ssh_host.AsyncSSHMixin)
+        classes = [ssh_host.SSHHost, ssh_host.AsyncSSHMixin]
     else:
         raise error.AutoServError("Unknown SSH engine %s. Please verify the "
                                   "value of the configuration key 'ssh_engine' "
