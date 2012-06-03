@@ -71,23 +71,37 @@ def _get_pidfile_timeout_secs():
 def _autoserv_command_line(machines, profiles, extra_args, job=None,
                            queue_entry=None, verbose=True):
     """
-    @returns The autoserv command line as a list of executable + parameters.
+    Builds an autoserv command line composed of the executable and parameters
 
-    @param machines - string - A machine or comma separated list of machines
-            for the (-m) flag.
-    @param extra_args - list - Additional arguments to pass to autoserv.
-    @param job - Job object - If supplied, -u owner and -l name parameters
-            will be added.
-    @param queue_entry - A HostQueueEntry object - If supplied and no Job
-            object was supplied, this will be used to lookup the Job object.
+    @type machines: list
+    @param machines: List of machines for the (-m) flag
+
+    @type profiles: list
+    @param profiles: List of profiles to set for machines (will be added to
+                     machine names with the machine#host syntax)
+
+    @type extra_args: list
+    @param extra_args: Additional arguments to pass to autoserv.
+
+    @type job: Job object
+    @param job: If supplied, -u owner and -l name parameters will be added.
+
+    @type queue_entry: HostQueueEntry object
+    @param queue_entry: If supplied and no Job object was supplied, this will
+                        be used to lookup the Job object.
+
+    @type verbose: boolean
+    @param verbose: Add the '--verbose' argument to the autoserv command line
+
+    @returns: The autoserv command line as a list of executable + parameters.
     """
     autoserv_argv = [_autoserv_path, '-p',
                      '-r', drone_manager.WORKING_DIRECTORY]
     if machines:
         if profiles:
-            autoserv_argv += ['-m', ','.join([machine + '#' + profile for machine,profile in zip(machines,profiles)])]
-        else:
-            autoserv_argv += ['-m', ','.join(machines)]
+            # add profiles using the host#profile notation
+            machines = ['%s#%s' % (m, p) for (m, p) in zip(machines, profiles)]
+        autoserv_argv += ['-m', ','.join(machines)]
     if job or queue_entry:
         if not job:
             job = queue_entry.job
