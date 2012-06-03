@@ -2,6 +2,7 @@ package autotest.common.table;
 
 import autotest.common.Utils;
 import autotest.common.table.DataTable.TableWidgetFactory;
+import autotest.common.table.DataTable.WidgetType;
 import autotest.common.table.TableClickWidget.TableWidgetClickListener;
 import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
 
@@ -175,18 +176,12 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
 
     // code for acting as a TableWidgetFactory/TableWidgetClickListener
     
-    public Widget createWidget(int row, int cell, JSONObject rowObject, int type) {
+    public Widget createWidget(int row, int cell, JSONObject rowObject, WidgetType type) {
         if (!isSelectable(rowObject)) {
             return null;
         }
 
-        if (type == 0) {
-            CheckBox checkBox = new CheckBox();
-            if(selectedObjects.contains(rowObject)) {
-                checkBox.setValue(true);
-            }
-            return new TableClickWidget(checkBox, this, row, cell);
-        } else {
+        if (type == DataTable.WidgetType.ListBox) {
             int i;
             ListBox listBox = new ListBox();
             listBox.setVisibleItemCount(1);
@@ -214,7 +209,15 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
             }
             attachedTable.setRow(row, rowObject);
             return new TableClickWidget(listBox, this, row, cell);
-        }
+	} else {
+	    // Should really check if type is CheckBox, but make this the default
+	    // scenario if type != DataTable.WidgetType.ListBox
+            CheckBox checkBox = new CheckBox();
+            if(selectedObjects.contains(rowObject)) {
+                checkBox.setValue(true);
+            }
+            return new TableClickWidget(checkBox, this, row, cell);
+	}
     }
 
     public void onClick(TableClickWidget widget) {
