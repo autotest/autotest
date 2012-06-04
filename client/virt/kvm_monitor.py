@@ -906,6 +906,15 @@ class QMPMonitor(Monitor):
         self.cmd(cmd="query-status", debug=False)
 
 
+    def get_status(self):
+        """
+        Get VM status.
+
+        @return: return VM status
+        """
+        return self.cmd(cmd="query-status", debug=False)
+
+
     def verify_status(self, status):
         """
         Verify VM status
