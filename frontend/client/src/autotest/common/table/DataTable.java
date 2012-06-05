@@ -60,7 +60,7 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
 
 
     public static interface TableWidgetFactory {
-        public Widget createWidget(int row, int cell, JSONObject rowObject);
+        public Widget createWidget(int row, int cell, JSONObject rowObject, int type);
     }
 
     /**
@@ -163,8 +163,10 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
     protected void addRowFromData(String[] rowData) {
         int row = table.getRowCount();
         for(int i = 0; i < columns.length; i++) {
-            if(isWidgetColumn(i)) {
-                table.setWidget(row, i, getWidgetForCell(row, i));
+            if (isProfileColumn(i)) {
+                table.setWidget(row, i, getWidgetForCell(row, i, 1));
+            } else if(isWidgetColumn(i)) {
+                table.setWidget(row, i, getWidgetForCell(row, i, 0));
             } else {
                 table.setText(row, i, rowData[i]);
             }
@@ -177,7 +179,11 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
     }
 
     protected boolean isClickableWidgetColumn(int column) {
-        return columns[column][COL_NAME].equals(CLICKABLE_WIDGET_COLUMN);
+        return columns[column][COL_NAME].equals(CLICKABLE_WIDGET_COLUMN) || isProfileColumn(column);
+    }
+
+    protected boolean isProfileColumn(int column) {
+        return columns[column][COL_NAME].equals("current_profile");
     }
 
     /**
@@ -229,6 +235,13 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
      */
     public JSONObject getRow(int rowIndex) {
         return jsonObjects.get(rowIndex);
+    }
+
+    /**
+     * Set the JSONObject corresponding to the indexed row.
+     */
+    public void setRow(int rowIndex, JSONObject row) {
+        jsonObjects.set(rowIndex, row);
     }
 
     public List<JSONObject> getAllRows() {
@@ -303,12 +316,15 @@ public class DataTable extends Composite implements ClickHandler, ContextMenuHan
                     continue;
                 }
                 table.clearCell(row, column);
-                table.setWidget(row, column, getWidgetForCell(row, column));
+                if (isProfileColumn(column))
+                    table.setWidget(row, column, getWidgetForCell(row, column, 1));
+                else if (isWidgetColumn(column))
+                    table.setWidget(row, column, getWidgetForCell(row, column, 0));
             }
         }
     }
 
-    private Widget getWidgetForCell(int row, int column) {
-        return widgetFactory.createWidget(row - 1, column, jsonObjects.get(row - 1));
+    private Widget getWidgetForCell(int row, int column, int type) {
+        return widgetFactory.createWidget(row - 1, column, jsonObjects.get(row - 1), type);
     }
 }

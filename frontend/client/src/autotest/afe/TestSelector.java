@@ -53,7 +53,7 @@ public class TestSelector extends Composite implements DataTableListener, Change
     // ad-hoc interface
     public static interface ISelectionManager {
         public void deselectAll();
-        public Widget createWidget(int row, int cell, JSONObject rowObject);
+        public Widget createWidget(int row, int cell, JSONObject rowObject, int type);
         public void addListener(SelectionListener listener);
 
         public static class SelectionManagerImpl extends SelectionManager
@@ -205,9 +205,9 @@ public class TestSelector extends Composite implements DataTableListener, Change
         display.getTestTable().refreshWidgets();
     }
 
-    public Widget createWidget(int row, int cell, JSONObject rowObject) {
+    public Widget createWidget(int row, int cell, JSONObject rowObject, int type) {
         TableClickWidget widget =
-            (TableClickWidget) display.getTestSelection().createWidget(row, cell, rowObject);
+            (TableClickWidget) display.getTestSelection().createWidget(row, cell, rowObject, type);
         if (!enabled) {
             widget.getContainedWidget().setEnabled(false);
         }

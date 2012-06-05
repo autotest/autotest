@@ -29,7 +29,7 @@ See doctests/001_rpc_test.txt for (lots) more examples.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import datetime
+import datetime, xmlrpclib
 try:
     import autotest.common as common
 except ImportError:
@@ -37,6 +37,7 @@ except ImportError:
 from autotest.frontend.afe import models, model_logic, model_attributes
 from autotest.frontend.afe import control_file, rpc_utils
 from autotest.client.shared import global_config
+from autotest.server.hosts import remote
 
 
 # labels
@@ -192,6 +193,9 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
                                                'acl_list')
     models.Host.objects.populate_relationships(hosts, models.HostAttribute,
                                                'attribute_list')
+    if remote.install_server_is_configured():
+        server = xmlrpclib.ServerProxy(remote.get_install_server_info().get('xmlrpc_url', None))
+
     host_dicts = []
     for host_obj in hosts:
         host_dict = host_obj.get_object_dict()
@@ -201,6 +205,15 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
         host_dict['acls'] = [acl.name for acl in host_obj.acl_list]
         host_dict['attributes'] = dict((attribute.attribute, attribute.value)
                                        for attribute in host_obj.attribute_list)
+        system_list = server.find_system({"name":host_dict['hostname']},True)
+        if remote.install_server_is_configured() and host_dict['platform'] and system_list:
+            host_dict['profiles'] = server.find_profile({"comment":"*" + host_dict['platform'] + "*"})
+            host_dict['profiles'].insert(0, 'Do_not_install')
+            # assume hostnames are unique systems
+            host_dict['current_profile'] = system_list[0]['profile']
+        else:
+            host_dict['profiles'] = ['N/A']
+            host_dict['current_profile'] = 'N/A'
         host_dicts.append(host_dict)
     return rpc_utils.prepare_for_serialization(host_dicts)
 
@@ -487,7 +500,7 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
 
 
 def create_job(name, priority, control_file, control_type,
-               hosts=(), meta_hosts=(), one_time_hosts=(),
+               hosts=(), profiles=(), meta_hosts=(), one_time_hosts=(),
                atomic_group_name=None, synch_count=None, is_template=False,
                timeout=None, max_runtime_hrs=None, run_verify=True,
                email_list='', dependencies=(), reboot_before=None,
@@ -517,6 +530,7 @@ def create_job(name, priority, control_file, control_type,
     @param keyvals dict of keyvals to associate with the job
 
     @param hosts List of hosts to run job on.
+    @param profiles List of profiles to use, in sync with @hosts list
     @param meta_hosts List where each entry is a label name, and for each entry
     one host will be chosen from that label to run the job on.
     @param one_time_hosts List of hosts not in the database to run the job on.
@@ -621,12 +635,13 @@ def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
                                       queue_entry_filter_data)
 
     host_dicts = []
-    for host in job_info['hosts']:
+    for host,profile in zip(job_info['hosts'],job_info['profiles']):
         host_dict = get_hosts(id=host.id)[0]
         other_labels = host_dict['labels']
         if host_dict['platform']:
             other_labels.remove(host_dict['platform'])
         host_dict['other_labels'] = ', '.join(other_labels)
+        host_dict['profile'] = profile
         host_dicts.append(host_dict)
 
     for host in job_info['one_time_hosts']:
