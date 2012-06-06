@@ -4098,6 +4098,17 @@ def install_cpuflags_util_on_vm(test, vm, dst_dir, extra_flags=None):
     session.close()
 
 
+def qemu_has_option(option, qemu_path):
+    """
+    Helper function for command line option wrappers
+
+    @param option: Option need check.
+    @param qemu_path: Path for qemu-kvm.
+    """
+    help = commands.getoutput("%s -help" % qemu_path)
+    return bool(re.search(r"^-%s(\s|$)" % option, help, re.MULTILINE))
+
+
 def if_nametoindex(ifname):
     """
     Map an interface name into its corresponding index.
