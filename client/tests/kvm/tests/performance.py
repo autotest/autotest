@@ -1,7 +1,8 @@
-import logging, time, os, re, commands, shutil
+import logging, time, os, re, commands, glob, string, sys, shutil
 from autotest.client.shared import error
 from autotest.client import utils
 from autotest.client.virt import virt_test_utils
+from autotest.client.virt.virt_test_utils import aton
 
 
 def run_performance(test, params, env):
@@ -29,6 +30,18 @@ def run_performance(test, params, env):
 
     # Prepare test environment in guest
     session = vm.wait_for_login(timeout=login_timeout)
+
+    prefix = test.outputdir.split(".performance.")[0]
+    summary_results = params.get("summary_results")
+    guest_ver = session.cmd_output("uname -r").strip()
+
+    if summary_results:
+        if params.get("test") == "ffsb":
+            ffsb_sum(os.path.dirname(test.outputdir), prefix, params, guest_ver,
+                     test.resultsdir)
+        session.close()
+        return
+
     guest_launcher = os.path.join(test.virtdir, "scripts/cmd_runner.py")
     vm.copy_files_to(guest_launcher, "/tmp")
     md5value = params.get("md5value")
@@ -111,3 +124,81 @@ def run_performance(test, params, env):
     session.cmd("rm -rf guest_test*")
     session.cmd("rm -rf pid_file*")
     session.close()
+
+def ffsb_sum(topdir, prefix, params, guest_ver, resultsdir):
+    marks = ["Transactions per Second",  "Read Throughput", "Write Throughput"]
+    matrix = []
+    sum_thro = 0
+    sum_hostcpu = 0
+
+    cmd = 'find %s|grep "%s.*guest_results/guest_result"|grep -v prepare|sort' \
+          % (topdir, prefix)
+    for guest_result_file in commands.getoutput(cmd).split():
+        sub_dir = os.path.dirname(guest_result_file)
+        content = open(guest_result_file, "r").readlines()
+        linestr = []
+        readthro = 0
+        writethro = 0
+
+        for line in content:
+            if marks[0] in line:
+                iops = "%8s" % re.split("\s+", line)[0]
+            elif marks[1] in line:
+                substr = re.findall("\d+(?:\.\d+)*", line)[0]
+                readthro = aton("%.2f" % float(substr))
+            elif marks[2] in line:
+                substr = re.findall("\d+(?:\.\d+)*", line)[0]
+                writethro = aton("%.2f" % float(substr))
+                break
+
+        throughput = readthro + writethro
+        linestr.append(iops)
+        linestr.append(throughput)
+        sum_thro += throughput
+
+        file = glob.glob(os.path.join(sub_dir, "guest_monitor_result*.sum"))[0]
+        str = open(file, "r").readlines()
+        linestr.append("%8.2f" % (100 - aton(str[1].split()[3])))
+        linestr.append("%8.2f" % (100 - aton(str[2].split()[3])))
+
+        file = glob.glob(os.path.join(sub_dir, "host_monitor_result*.sum"))[0]
+        str = open(file, "r").readlines()
+        hostcpu = 100 - aton(str[-1].split()[3])
+        linestr.append(hostcpu)
+        sum_hostcpu += hostcpu
+        linestr.append("%.2f" % (throughput/hostcpu))
+        matrix.append(linestr)
+
+    headstr = "threads|    IOPS|   Thro(MBps)|   Vcpu1|   Vcpu2|   Hostcpu|" \
+              " MBps/Hostcpu%"
+    categories = params.get("categories").split('|')
+    threads = params.get("threads").split()
+    kvm_ver = commands.getoutput(params.get('ver_cmd', "rpm -q qemu-kvm"))
+
+    fd = open("%s/ffsb-result.RHS" % resultsdir, "w")
+    fd.write("#ver# %s\n#ver# host kernel: %s\n#ver# guest kernel:%s\n" % (
+             kvm_ver, os.uname()[2], guest_ver))
+
+    desc = """#desc# The Flexible Filesystem Benchmark(FFSB) is a cross-platform
+#desc# filesystem performance measurement tool. It uses customizable profiles
+#desc# to measure of different workloads, and it supports multiple groups of
+#desc# threads across multiple filesystems.
+#desc# How to read the results:
+#desc# - The Throughput is measured in MBps/sec.
+#desc# - IOPS (Input/Output Operations Per Second, pronounced eye-ops)
+#desc# - Usage of Vcpu, Hostcpu are all captured
+#desc#
+"""
+    fd.write(desc)
+    fd.write("SUM\n   None|    MBps|      Hostcpu|MBps/Hostcpu%\n")
+    fd.write("      0|%8.2f|%13.2f|%8.2f\n" % (sum_thro, sum_hostcpu,
+                                               (sum_thro/sum_hostcpu)))
+    idx = 0
+    for i in range(len(matrix)):
+        if i % 3 == 0:
+            fd.write("%s\n%s\n" % (categories[idx], headstr))
+            idx += 1
+        fd.write("%7s|%8s|%13s|%8s|%8s|%10s|%14s\n" % (threads[i%3],
+                 matrix[i][0], matrix[i][1], matrix[i][2], matrix[i][3],
+                 matrix[i][4], matrix[i][5]))
+    fd.close()
