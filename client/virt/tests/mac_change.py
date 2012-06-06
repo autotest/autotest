@@ -23,8 +23,8 @@ def run_mac_change(test, params, env):
     session = vm.wait_for_login(timeout=timeout)
     old_mac = vm.get_mac_address(0)
     while True:
-        vm.free_mac_address(0)
-        new_mac = virt_utils.generate_mac_address(vm.instance, 0)
+        vm.virtnet.free_mac_address(0)
+        new_mac = vm.virtnet.generate_mac_address(0)
         if old_mac != new_mac:
             break
     logging.info("The initial MAC address is %s", old_mac)
