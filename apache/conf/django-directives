@@ -13,6 +13,10 @@ RewriteEngine On
 RewriteCond /usr/local/autotest/site-packages/django/contrib/admin/media -d
 RewriteRule /media/(css|img|js)(.*) /usr/local/autotest/site-packages/django/contrib/admin/media/$1/$2
 
+# Django 1.4 does change location of the admin css files
+RewriteCond /usr/local/autotest/site-packages/django/contrib/admin/static/admin -d
+RewriteRule /media/(css|img|js)(.*) /usr/local/autotest/site-packages/django/contrib/admin/static/admin/$1/$2
+
 RewriteCond /usr/lib/python2.4/site-packages/django/contrib/admin/media -d
 RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.4/site-packages/django/contrib/admin/media/$1/$2
 
@@ -24,6 +28,10 @@ RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.6/site-packages/django/cont
 
 RewriteCond /usr/lib/python2.7/site-packages/django/contrib/admin/media -d
 RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/media/$1/$2
+
+# Django 1.4 does change location of the admin css files
+RewriteCond /usr/lib/python2.7/site-packages/django/contrib/admin/static/admin -d
+RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/static/admin/$1/$2
 
 <Location ~ "/(afe|new_tko)/server">
     SetHandler python-program

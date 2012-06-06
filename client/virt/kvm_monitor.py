@@ -77,6 +77,8 @@ class Monitor:
         self._lock = threading.RLock()
         self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._passfd = None
+        self._supported_cmds = []
+        self.debug_log = False
 
         try:
             self._socket.connect(filename)
@@ -146,6 +148,32 @@ class Monitor:
         return s
 
 
+    def _has_command(self, cmd):
+        """
+        Check wheter kvm monitor support 'cmd'.
+
+        @param cmd: command string which will be checked.
+
+        @return: True if cmd is supported, False if not supported.
+        """
+        if cmd and cmd in self._supported_cmds:
+            return True
+        return False
+
+
+    def _log_command(self, cmd, debug=True, extra_str=""):
+        """
+        Print log message beening sent.
+
+        @param cmd: Command string.
+        @param debug: Whether to print the commands.
+        @param extra_str: Extra string would be printed in log.
+        """
+        if self.debug_log or debug:
+            logging.debug("(monitor %s) Sending command '%s' %s",
+                          self.name, cmd, extra_str)
+
+
     def is_responsive(self):
         """
         Return True iff the monitor is responsive.
@@ -190,8 +218,7 @@ class HumanMonitor(Monitor):
                                            "after connecting to monitor. "
                                            "Output so far: %r" % o)
 
-            # Save the output of 'help' for future use
-            self._help_str = self.cmd("help", debug=False)
+            self._get_supported_cmds()
 
         except MonitorError, e:
             self._close_sock()
@@ -242,13 +269,40 @@ class HumanMonitor(Monitor):
             self._lock.release()
 
 
+    def _get_supported_cmds(self):
+        """
+        Get supported human monitor cmds list.
+        """
+        cmds = self.cmd("help", debug=False)
+        if cmds:
+            cmd_list = re.findall("^(.*?) ", cmds, re.M)
+            self._supported_cmds = [c for c in cmd_list if c]
+
+        if not self._supported_cmds:
+            logging.warn("Could not get supported monitor cmds list")
+
+
+    def _log_response(self, cmd, resp, debug=True):
+        """
+        Print log message for monitor cmd's response.
+
+        @param cmd: Command string.
+        @param resp: Response from monitor command.
+        @param debug: Whether to print the commands.
+        """
+        if self.debug_log or debug:
+            logging.debug("(monitor %s) Response to '%s'", self.name, cmd)
+            for l in resp.splitlines():
+                logging.debug("(monitor %s)    %s", self.name, l)
+
+
     # Public methods
 
-    def cmd(self, command, timeout=CMD_TIMEOUT, debug=True, fd=None):
+    def cmd(self, cmd, timeout=CMD_TIMEOUT, debug=True, fd=None):
         """
         Send command to the monitor.
 
-        @param command: Command to send to the monitor
+        @param cmd: Command to send to the monitor
         @param timeout: Time duration to wait for the (qemu) prompt to return
         @param debug: Whether to print the commands being sent and responses
         @return: Output received from the monitor
@@ -257,12 +311,10 @@ class HumanMonitor(Monitor):
         @raise MonitorProtocolError: Raised if the (qemu) prompt cannot be
                 found after sending the command
         """
-        if debug:
-            logging.debug("(monitor %s) Sending command '%s'",
-                          self.name, command)
+        self._log_command(cmd, debug)
         if not self._acquire_lock():
             raise MonitorLockError("Could not acquire exclusive lock to send "
-                                   "monitor command '%s'" % command)
+                                   "monitor command '%s'" % cmd)
 
         try:
             # Read any data that might be available
@@ -271,26 +323,22 @@ class HumanMonitor(Monitor):
                 if self._passfd is None:
                     self._passfd = virt_passfd_setup.import_passfd()
                 # If command includes a file descriptor, use passfd module
-                self._passfd.sendfd(self._socket, fd, "%s\n" % (command))
+                self._passfd.sendfd(self._socket, fd, "%s\n" % cmd)
             else:
                 # Send command
-                self._send(command)
+                self._send(cmd)
             # Read output
             s, o = self._read_up_to_qemu_prompt(timeout)
             # Remove command echo from output
             o = "\n".join(o.splitlines()[1:])
             # Report success/failure
             if s:
-                if debug and o:
-                    logging.debug("(monitor %s) "
-                                  "Response to '%s'", self.name,
-                                  command)
-                    for l in o.splitlines():
-                        logging.debug("(monitor %s)    %s", self.name, l)
+                if o:
+                    self._log_response(cmd, o, debug)
                 return o
             else:
                 msg = ("Could not find (qemu) prompt after command '%s'. "
-                       "Output so far: %r" % (command, o))
+                       "Output so far: %r" % (cmd, o))
                 raise MonitorProtocolError(msg)
 
         finally:
@@ -322,8 +370,8 @@ class HumanMonitor(Monitor):
     # Notes:
     # - All of the following commands raise exceptions in a similar manner to
     #   cmd().
-    # - A command wrapper should use self._help_str if it requires information
-    #   about the monitor's capabilities.
+    # - A command wrapper should use self._has_command if it requires
+    #    information about the monitor's capabilities.
     def send_args_cmd(self, cmdlines, timeout=CMD_TIMEOUT, convert=True):
         """
         Send a command with/without parameters and return its output.
@@ -392,7 +440,7 @@ class HumanMonitor(Monitor):
         @param filename: Location for the screendump
         @return: The command's output
         """
-        return self.cmd(command="screendump %s" % filename, debug=debug)
+        return self.cmd(cmd="screendump %s" % filename, debug=debug)
 
 
     def set_link(self, name, up):
@@ -576,6 +624,8 @@ class QMPMonitor(Monitor):
             # Issue qmp_capabilities
             self.cmd("qmp_capabilities")
 
+            self._get_supported_cmds()
+
         except MonitorError, e:
             self._close_sock()
             if suppress_exceptions:
@@ -665,6 +715,63 @@ class QMPMonitor(Monitor):
                         return obj
 
 
+    def _get_supported_cmds(self):
+        """
+        Get supported qmp cmds list.
+        """
+        cmds = self.cmd("query-commands", debug=False)
+        if cmds:
+            self._supported_cmds = [n["name"] for n in cmds if
+                                    n.has_key("name")]
+
+        if not self._supported_cmds:
+            logging.warn("Could not get supported monitor cmds list")
+
+
+    def _log_response(self, cmd, resp, debug=True):
+        """
+        Print log message for monitor cmd's response.
+
+        @param cmd: Command string.
+        @param resp: Response from monitor command.
+        @param debug: Whether to print the commands.
+        """
+        def _log_output(o, indent=0):
+            logging.debug("(monitor %s)    %s%s",
+                          self.name, " " * indent, o)
+
+        def _dump_list(li, indent=0):
+            for l in li:
+                if isinstance(l, dict):
+                    _dump_dict(l, indent + 2)
+                else:
+                    _log_output(str(l), indent)
+
+        def _dump_dict(di, indent=0):
+            for k, v in di.iteritems():
+                o = "%s%s: " % (" " * indent, k)
+                if isinstance(v, dict):
+                    _log_output(o, indent)
+                    _dump_dict(v, indent + 2)
+                elif isinstance(v, list):
+                    _log_output(o, indent)
+                    _dump_list(v, indent + 2)
+                else:
+                    o += str(v)
+                    _log_output(o, indent)
+
+        if self.debug_log or debug:
+            logging.debug("(monitor %s) Response to '%s' "
+                          "(re-formated)", self.name, cmd)
+            if isinstance(resp, dict):
+                _dump_dict(resp)
+            elif isinstance(resp, list):
+                _dump_list(resp)
+            else:
+                for l in str(resp).splitlines():
+                    _log_output(l)
+
+
     # Public methods
 
     def cmd(self, cmd, args=None, timeout=CMD_TIMEOUT, debug=True, fd=None):
@@ -689,9 +796,7 @@ class QMPMonitor(Monitor):
                             (the exception's args are (cmd, args, data)
                              where data is the error data)
         """
-        if debug:
-            logging.debug("(monitor %s) Sending command '%s'",
-                          self.name, cmd)
+        self._log_command(cmd, debug)
         if not self._acquire_lock():
             raise MonitorLockError("Could not acquire exclusive lock to send "
                                    "QMP command '%s'" % cmd)
@@ -717,13 +822,10 @@ class QMPMonitor(Monitor):
                                            "response with an incorrect id"
                                            % cmd)
             if "return" in r:
-                if debug and r["return"]:
-                    logging.debug("(monitor %s) "
-                                  "Response to '%s'", self.name, cmd)
-                    o = str(r["return"])
-                    for l in o.splitlines():
-                        logging.debug("(monitor %s)    %s", self.name, l)
-                return r["return"]
+                ret = r["return"]
+                if ret:
+                    self._log_response(cmd, ret, debug)
+                return ret
             if "error" in r:
                 raise QMPCmdError(cmd, args, r["error"])
 
@@ -851,16 +953,26 @@ class QMPMonitor(Monitor):
                 return e
 
 
-    def human_monitor_cmd(self, cmd=None, timeout=CMD_TIMEOUT):
+    def human_monitor_cmd(self, cmd="", timeout=CMD_TIMEOUT,
+                          debug=True, fd=None):
         """
         Run human monitor command in QMP through human-monitor-command
 
         @param cmd: human monitor command.
+        @param timeout: Time duration to wait for response
+        @param debug: Whether to print the commands being sent and responses
+        @param fd: file object or file descriptor to pass
 
         @return: The response to the command
         """
+        self._log_command(cmd, extra_str="(via Human Monitor)")
+
         args = {"command-line": cmd}
-        return self.cmd("human-monitor-command", args, timeout)
+        ret = self.cmd("human-monitor-command", args, timeout, False, fd)
+
+        if ret:
+            self._log_response(cmd, ret, debug)
+        return ret
 
 
     def clear_events(self):
@@ -910,8 +1022,7 @@ class QMPMonitor(Monitor):
         cmd_output = []
         for cmdline in cmdlines.split(";"):
             command = cmdline.split()[0]
-            commands = self.cmd("query-commands")
-            if command not in str(commands):
+            if self._has_command(command):
                 if "=" in cmdline:
                     command = cmdline.split()[0]
                     cmdargs = " ".join(cmdline.split()[1:]).split(",")
@@ -953,7 +1064,12 @@ class QMPMonitor(Monitor):
         """
         Request info about something and return the response.
         """
-        return self.cmd("query-%s" % what)
+        cmd = "query-%s" % what
+        if self._has_command(cmd):
+            return self.cmd("query-%s" % what)
+        else:
+            cmd = "info %s" % what
+            return self.human_monitor_cmd(cmd)
 
 
     def query(self, what):
@@ -968,10 +1084,16 @@ class QMPMonitor(Monitor):
         Request a screendump.
 
         @param filename: Location for the screendump
+        @param debug: Whether to print the commands being sent and responses
+
         @return: The response to the command
         """
-        args = {"filename": filename}
-        return self.cmd(cmd="screendump", args=args, debug=debug)
+        if self._has_command("screendump"):
+            args = {"filename": filename}
+            return self.cmd(cmd="screendump", args=args, debug=debug)
+        else:
+            cmdline = "screendump %s" % filename
+            return self.human_monitor_cmd(cmdline, debug=debug)
 
 
     def sendkey(self, keystr, hold_time=1):
