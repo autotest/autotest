@@ -497,9 +497,10 @@ class BaseVM(object):
         Remove the nic specified by name, or index number
         """
         nic = self.virtnet[nic_index_or_name]
-        self.free_mac_address(nic.mac)
+        nic_mac = nic.mac.lower()
+        self.free_mac_address(nic_index_or_name)
         try:
-            del self.address_cache[nic.mac]
+            del self.address_cache[nic_mac]
             del self.virtnet[nic_index_or_name]
         except IndexError:
             pass # continue to not exist

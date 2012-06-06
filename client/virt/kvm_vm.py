@@ -1648,6 +1648,7 @@ class VM(virt_vm.BaseVM):
         nic.set_if_none('vlan', str(nic_index))
         nic.set_if_none('device_id', virt_utils.generate_random_id())
         nic.set_if_none('netdev_id', self.add_netdev(**params))
+        nic.set_if_none('nic_model', params['nic_model'])
         return nic
 
 
@@ -1663,40 +1664,46 @@ class VM(virt_vm.BaseVM):
         """
         nic = self.virtnet[nic_index_or_name]
         error.context("Activating netdev for %s based on %s" % (self.name, nic))
-        msg_sfx = "nic %s on vm %s with attach_cmd " % (
-                self.virtnet[nic_index_or_name], self.name)
-        attach_cmd = "netdev_add "
+        msg_sfx = ("nic %s on vm %s with attach_cmd " %
+                   (self.virtnet[nic_index_or_name], self.name))
+
+        attach_cmd = "netdev_add"
         if nic.nettype == 'bridge': # implies tap
-            error.context("Opening tap device node for %s " % nic.ifname)
+            error.context("Opening tap device node for %s " % nic.ifname,
+                          logging.debug)
             nic.set_if_none('tapfd', str(virt_utils.open_tap("/dev/net/tun",
-                                                nic.ifname, vnet_hdr=False)))
-            error.context("Registering tap id %s for FD %d" % (
-                            nic.tapfd_id, int(nic.tapfd)))
+                                                             nic.ifname,
+                                                             vnet_hdr=False)))
+            error.context("Registering tap id %s for FD %d" %
+                          (nic.tapfd_id, int(nic.tapfd)), logging.debug)
             self.monitor.getfd(int(nic.tapfd), nic.tapfd_id)
-            attach_cmd += "tap,id=%s,fd=%s" % (nic.device_id, nic.tapfd_id)
-            error.context("Raising interface for " + msg_sfx + attach_cmd)
+            attach_cmd += " tap,id=%s,fd=%s" % (nic.device_id, nic.tapfd_id)
+            error.context("Raising interface for " + msg_sfx + attach_cmd,
+                          logging.debug)
             virt_utils.bring_up_ifname(nic.ifname)
-            error.context("Raising bridge for " + msg_sfx + attach_cmd)
+            error.context("Raising bridge for " + msg_sfx + attach_cmd,
+                          logging.debug)
             # assume this will puke if netdst unset
             virt_utils.add_to_bridge(nic.ifname, nic.netdst)
         elif nic.nettype == 'user':
-            attach_cmd += "user,name=%s," % nic.ifname
+            attach_cmd += " user,name=%s" % nic.ifname
         else: # unsupported nettype
             raise virt_vm.VMUnknownNetTypeError(self.name, nic_index_or_name,
                                         nic.nettype)
+
         # always terminate with vlan to prevent trailing ','s
-        attach_cmd += "vlan=%d" % int(nic.vlan)
+        #attach_cmd += ",vlan=%d" % int(nic.vlan)
         if nic.has_key('netdev_extra_params'):
             attach_cmd += nic.netdev_extra_params
-        error.context("Hotplugging " + msg_sfx + attach_cmd)
+        error.context("Hotplugging " + msg_sfx + attach_cmd, logging.debug)
         self.monitor.cmd(attach_cmd)
         network_info = self.monitor.info("network")
-        if nic.netdev_id not in network_info:
+        if nic.device_id not in network_info:
             # Don't leave resources dangling
             self.deactivate_netdev(nic_index_or_name)
             raise virt_vm.VMAddNetDevError(("Failed to add netdev: %s for " %
-                                    nic.netdev_id
-                                    ) + msg_sfx + attach_cmd)
+                                            nic.netdev_id) + msg_sfx +
+                                           attach_cmd)
 
 
     @error.context_aware
@@ -1709,12 +1716,12 @@ class VM(virt_vm.BaseVM):
         error.context("Retrieving info for NIC %s on VM %s" % (
                     nic_index_or_name, self.name))
         nic = self.virtnet[nic_index_or_name]
-        device_add_cmd = "device_add "
+        device_add_cmd = "device_add"
         if nic.has_key('nic_model'):
-            device_add_cmd += 'model=%s' % nic.nic_model
-        device_add_cmd += ",netdev=%s" % nic.netdev_id
+            device_add_cmd += ' driver=%s' % nic.nic_model
+        device_add_cmd += ",netdev=%s" % nic.device_id
         if nic.has_key('mac'):
-            device_add_cmd += ",macaddr=%s" % nic.mac
+            device_add_cmd += ",mac=%s" % nic.mac
         device_add_cmd += ",id=%s" % nic.nic_name
         device_add_cmd += nic.get('nic_extra_params', '')
         if nic.has_key('romfile'):

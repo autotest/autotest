@@ -57,7 +57,7 @@ def run_nic_hotplug(test, params, env):
 
     # hot-add the nic
     nic_name = 'hotadded'
-    nic_info = vm.add_nic(model=pci_model, nic_name=nic_name)
+    nic_info = vm.add_nic(nic_model=pci_model, nic_name=nic_name)
     # Allocate device resources
     vm.activate_netdev(nic_name)
     # Bring up networking resources
@@ -71,20 +71,22 @@ def run_nic_hotplug(test, params, env):
         session_serial.cmd("dhclient %s &" % ifname)
 
     logging.info("Shutting down the primary link")
-    vm.monitor.cmd("set_link %s off" % nic_info.netdev_id)
+    vm.monitor.cmd("set_link %s off" % vm.virtnet[0].device_id)
 
     try:
         logging.info("Waiting for new nic's ip address acquisition...")
         if not virt_utils.wait_for(lambda:
-                                   (vm.address_cache.get(nic_info['mac'])
+                                   (vm.address_cache.get(nic_info['mac'].lower())
                                     is not None),
                                    10, 1):
             raise error.TestFail("Could not get ip address of new nic")
 
-        ip = vm.address_cache.get(nic_info['mac'])
+        ip = vm.address_cache.get(nic_info['mac'].lower())
 
-        if not virt_utils.verify_ip_address_ownership(ip, nic_info['mac']):
-            raise error.TestFail("Could not verify the ip address of new nic")
+        if not virt_utils.verify_ip_address_ownership(ip,
+                                                      nic_info['mac'].lower()):
+            raise error.TestFail("Could not verify the ip address of new nic: "
+                                 "%s", ip)
         else:
             logging.info("Got the ip address of new nic: %s", ip)
 
@@ -95,12 +97,13 @@ def run_nic_hotplug(test, params, env):
             raise error.TestFail("New nic failed ping test")
 
         logging.info("Detaching the previously attached nic from vm")
-        vm.del_nic(nic_info, guest_delay)
+        vm.deactivate_nic(nic_name)
+        vm.deactivate_netdev(nic_name)
+        vm.del_nic(nic_name)
 
     finally:
-        vm.virtnet.free_mac_address(1)
         logging.info("Re-enabling the primary link")
-        vm.monitor.cmd("set_link %s on" % nic_info.netdev_id)
+        vm.monitor.cmd("set_link %s on" % vm.virtnet[0].device_id)
 
     # Attempt to put back udev network naming rules, even if the command to
     # disable the rules failed. We may be undoing what was done in a previous

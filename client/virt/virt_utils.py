@@ -724,8 +724,8 @@ class VMNet(list):
         try:
             return nic_name_list.index(name)
         except ValueError:
-            raise IndexError("Can't find nic named '%s' among '%s'" % (
-                            name, nic_name_list))
+            raise IndexError("Can't find nic named '%s' among '%s'" %
+                             (name, nic_name_list))
 
     def nic_name_list(self):
         """
