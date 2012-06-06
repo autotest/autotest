@@ -743,6 +743,21 @@ variants:
                 test_control_file = systemtap.control
             - cpuflags-stress:
                 test_control_file = cpuflags.control
+            - scsi_testsuite:
+                images += " asd"
+                image_boot_image1 = yes
+                image_name_asd = scsidisk
+                image_format_asd = qcow2
+                image_boot_asd = no
+                drive_index_asd = 1
+                create_image_asd = yes
+                image_size_asd = 10M
+                drive_serial_asd = ATST001
+                pci_model = scsi
+                test_control_file = scsi_testsuite.control
+                variants:
+                    - scsi-disk:
+                        drive_format_asd = scsi-disk
 
     - qemu_img_commit:  install setup image_copy unattended_install.cdrom
         type = qemu_img
