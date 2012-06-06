@@ -22,6 +22,8 @@ More specifically:
 """
 
 import time, os, logging, re, signal, imp, tempfile, commands
+import threading, shelve
+from Queue import Queue
 from autotest.client.shared import error, global_config
 from autotest.client import utils
 from autotest.client.tools import scan_results
@@ -928,3 +930,140 @@ def service_setup(vm, session, dir):
         commands.getoutput("bash %s host %s" % (src, rebooted))
         logging.info("setup perf environment for guest")
         session.cmd("bash /tmp/rh_perf_envsetup.sh guest %s" % rebooted)
+
+def cmd_runner_monitor(vm, monitor_cmd, test_cmd, guest_path, timeout=300):
+    """
+    For record the env information such as cpu utilization, meminfo while
+    run guest test in guest.
+    @vm: Guest Object
+    @monitor_cmd: monitor command running in backgroud
+    @test_cmd: test suit run command
+    @guest_path: path in guest to store the test result and monitor data
+    @timeout: longest time for monitor running
+    Return: tag the suffix of the results
+    """
+    def thread_kill(cmd, p_file):
+        fd = shelve.open(p_file)
+        s, o = commands.getstatusoutput("pstree -p %s" % fd["pid"])
+        tmp = re.split("\s+", cmd)[0]
+        pid = re.findall("%s.(\d+)" % tmp, o)[0]
+        s, o = commands.getstatusoutput("kill -9 %s" % pid)
+        fd.close()
+        return (s, o)
+
+    def monitor_thread(m_cmd, p_file, r_file):
+        fd = shelve.open(p_file)
+        fd["pid"] = os.getpid()
+        fd.close()
+        os.system("%s &> %s" % (m_cmd, r_file))
+
+    def test_thread(session, m_cmd, t_cmd, p_file, flag, timeout):
+        flag.put(True)
+        s, o = session.cmd_status_output(t_cmd, timeout)
+        if s != 0:
+            raise error.TestFail("Test failed or timeout: %s" % o)
+        if not flag.empty():
+            flag.get()
+            thread_kill(m_cmd, p_file)
+
+    kill_thread_flag = Queue(1)
+    session = wait_for_login(vm, 0, 300, 0, 2)
+    tag = vm.instance
+    pid_file = "/tmp/monitor_pid_%s" % tag
+    result_file = "/tmp/host_monitor_result_%s" % tag
+
+    monitor = threading.Thread(target=monitor_thread,args=(monitor_cmd,
+                              pid_file, result_file))
+    test_runner = threading.Thread(target=test_thread, args=(session,
+                                   monitor_cmd, test_cmd, pid_file,
+                                   kill_thread_flag, timeout))
+    monitor.start()
+    test_runner.start()
+    monitor.join(int(timeout))
+    if not kill_thread_flag.empty():
+        kill_thread_flag.get()
+        thread_kill(monitor_cmd, pid_file)
+        thread_kill("sh", pid_file)
+
+    guest_result_file = "/tmp/guest_result_%s" % tag
+    guest_monitor_result_file = "/tmp/guest_monitor_result_%s" % tag
+    vm.copy_files_from(guest_path, guest_result_file)
+    vm.copy_files_from("%s_monitor" % guest_path, guest_monitor_result_file)
+    return tag
+
+def aton(str):
+    """
+    Transform a string to a number(include float and int). If the string is
+    not in the form of number, just return false.
+
+    @str: string to transfrom
+    Return: float, int or False for failed transform
+    """
+    try:
+        return int(str)
+    except ValueError:
+        try:
+            return float(str)
+        except ValueError:
+            return False
+
+def summary_up_result(result_file, ignore, row_head, column_mark):
+    """
+    Use to summary the monitor or other kinds of results. Now it calculates
+    the average value for each item in the results. It fits to the records
+    that are in matrix form.
+
+    @result_file: files which need to calculate
+    @ignore: pattern for the comment in results which need to through away
+    @row_head: pattern for the items in row
+    @column_mark: pattern for the first line in matrix which used to generate
+    the items in column
+    Return: A dictionary with the average value of results
+    """
+    head_flag = False
+    result_dict = {}
+    column_list = {}
+    row_list = []
+    fd = open(result_file, "r")
+    for eachLine in fd:
+        if len(re.findall(ignore, eachLine)) == 0:
+            if len(re.findall(column_mark, eachLine)) != 0 and not head_flag:
+                column = 0
+                empty, row, eachLine = re.split(row_head, eachLine)
+                for i in re.split("\s+", eachLine):
+                    if i:
+                        result_dict[i] = {}
+                        column_list[column] = i
+                        column += 1
+                head_flag = True
+            elif len(re.findall(column_mark, eachLine)) == 0:
+                column = 0
+                empty, row, eachLine = re.split(row_head, eachLine)
+                row_flag = False
+                for i in row_list:
+                    if row == i:
+                        row_flag = True
+                if row_flag == False:
+                    row_list.append(row)
+                    for i in result_dict:
+                        result_dict[i][row] = []
+                for i in re.split("\s+", eachLine):
+                    if i:
+                        result_dict[column_list[column]][row].append(i)
+                        column += 1
+    fd.close()
+    # Calculate the average value
+    average_list = {}
+    for i in column_list:
+        average_list[column_list[i]] = {}
+        for j in row_list:
+            average_list[column_list[i]][j] = {}
+            check = result_dict[column_list[i]][j][0]
+            if aton(check) or aton(check) == 0.0:
+                count = 0
+                for k in result_dict[column_list[i]][j]:
+                    count += aton(k)
+                average_list[column_list[i]][j] = "%.2f" % (count /
+                                len(result_dict[column_list[i]][j]))
+
+    return average_list
