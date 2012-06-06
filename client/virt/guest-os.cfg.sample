@@ -1280,6 +1280,8 @@ variants:
         mem_chk_cmd = wmic memphysical
         mem_chk_cur_cmd = wmic memphysical
 
+        rtc_base = localtime
+
         unattended_install.cdrom, whql.support_vm_install:
             timeout = 7200
             finish_program = deps/finish.bat

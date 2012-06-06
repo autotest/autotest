@@ -35,8 +35,6 @@ variants:
         shutdown_cleanly = yes
         shutdown_cleanly_timeout = 120
         force_create_image = yes
-        # TODO: is this needed for both kvm and libvirt?
-        extra_params += " -boot d"
         guest_port_unattended_install = 12323
         kernel = vmlinuz
         initrd = initrd.img
@@ -68,6 +66,10 @@ variants:
         variants:
             # Install guest from cdrom
             - cdrom:
+                # TODO: is this needed for both kvm and libvirt?
+                # This option is only used in windows installation case,
+                # since linux use kernel/initrd option of qemu.
+                boot_once = d
                 medium = cdrom
                 redirs += " unattended_install"
             # Install guest from http/ftp url
@@ -181,7 +183,7 @@ variants:
         image_size_pxe = 1G
         force_create_image_pxe = yes
         remove_image_pxe = yes
-        extra_params += ' -boot n'
+        boot_once = n
         kill_vm_on_error = yes
         network = bridge
         restart_vm = yes
@@ -772,6 +774,7 @@ variants:
         type = linux_s3
 
     - timedrift: install setup image_copy unattended_install.cdrom
+        rtc_drift = "slew"
         variants:
             - ntp:
                 variants:
@@ -963,7 +966,7 @@ variants:
                 # except for the image name which ends with '-supportvm'.
                 type = unattended_install
                 image_name += -supportvm
-                extra_params += " -boot d"
+                boot_once = d
                 force_create_image = yes
                 kill_vm = yes
                 nic_mode = user

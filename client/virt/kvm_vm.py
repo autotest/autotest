@@ -59,6 +59,7 @@ class VM(virt_vm.BaseVM):
             self.vhost_threads = []
 
 
+        self.init_pci_addr = int(params.get("init_pci_addr", 4))
         self.name = name
         self.params = params
         self.root_dir = root_dir
@@ -198,6 +199,31 @@ class VM(virt_vm.BaseVM):
         # parameter, and should add the requested command line option
         # accordingly.
 
+
+        def get_free_pci_addr(pci_addr=None):
+            """
+            return *hex* format free pci addr.
+
+            @param pci_addr: *decimal* formated, desired pci_add
+            """
+            if pci_addr is None:
+                pci_addr = self.init_pci_addr
+                while True:
+                    # actually when pci_addr > 20? errors may happen
+                    if pci_addr > 31:
+                        raise virt_vm.VMPCIOutOfRangeError(self.name, 31)
+                    if pci_addr in self.pci_addr_list:
+                        pci_addr += 1
+                    else:
+                        self.pci_addr_list.append(pci_addr)
+                        return hex(pci_addr)
+            elif int(pci_addr) in self.pci_addr_list:
+                raise virt_vm.VMPCISlotInUseError(self.name, pci_addr)
+            else:
+                self.pci_addr_list.append(int(pci_addr))
+                return hex(int(pci_addr))
+
+
         def _add_option(option, value, option_type=None):
             """
             Add option to qemu parameters.
@@ -254,23 +280,76 @@ class VM(virt_vm.BaseVM):
 
             return (bus, port)
 
+
         def add_name(help, name):
             return " -name '%s'" % name
 
-        def add_human_monitor(help, filename):
-            return " -monitor unix:'%s',server,nowait" % filename
 
-        def add_qmp_monitor(help, filename):
-            return " -qmp unix:'%s',server,nowait" % filename
+        def add_human_monitor(help, monitor_name, filename):
+            if not has_option(help, "chardev"):
+                return " -monitor unix:'%s',server,nowait" % filename
+
+            monitor_id = "human_monitor_id_%s" % monitor_name
+            cmd = " -chardev socket"
+            cmd += _add_option("id", monitor_id)
+            cmd += _add_option("path", filename)
+            cmd += _add_option("server", "NO_EQUAL_STRING")
+            cmd += _add_option("nowait", "NO_EQUAL_STRING")
+            cmd += " -mon chardev=%s" % monitor_id
+            cmd += _add_option("mode", "readline")
+            return cmd
+
+
+        def add_qmp_monitor(help, monitor_name, filename):
+            if not has_option(help, "qmp"):
+                logging.warn("Fallback to human monitor since qmp is"
+                             " unsupported")
+                return add_human_monitor(help, monitor_name, filename)
+
+            if not has_option(help, "chardev"):
+                return " -qmp unix:'%s',server,nowait" % filename
+
+            monitor_id = "qmp_monitor_id_%s" % monitor_name
+            cmd = " -chardev socket"
+            cmd += _add_option("id", monitor_id)
+            cmd += _add_option("path", filename)
+            cmd += _add_option("server", "NO_EQUAL_STRING")
+            cmd += _add_option("nowait", "NO_EQUAL_STRING")
+            cmd += " -mon chardev=%s" % monitor_id
+            cmd += _add_option("mode", "control")
+            return cmd
+
 
         def add_serial(help, filename):
-            return " -serial unix:'%s',server,nowait" % filename
+            if not has_option(help, "chardev"):
+                return " -serial unix:'%s',server,nowait" % filename
+
+            default_id = "serial_id_%s" % self.instance
+            cmd = " -chardev socket"
+            cmd += _add_option("id", default_id)
+            cmd += _add_option("path", filename)
+            cmd += _add_option("server", "NO_EQUAL_STRING")
+            cmd += _add_option("nowait", "NO_EQUAL_STRING")
+            cmd += " -device isa-serial"
+            cmd += _add_option("chardev", default_id)
+            return cmd
+
 
         def add_mem(help, mem):
             return " -m %s" % mem
 
-        def add_smp(help, smp):
-            return " -smp %s" % smp
+
+        def add_smp(help, smp, vcpu_cores=0, vcpu_threads=0, vcpu_sockets=0):
+            smp_str = " -smp %d" % int(smp)
+            # the value is not None, "", or "0"
+            if vcpu_cores:
+                smp_str += ",cores=%d" % int(vcpu_cores)
+            if vcpu_threads:
+                smp_str += ",threads=%d" % int(vcpu_threads)
+            if vcpu_sockets:
+                smp_str += ",sockets=%d" % int(vcpu_sockets)
+            return smp_str
+
 
         def add_cdrom(help, filename, index=None, format=None, bus=None,
                       port=None):
@@ -454,8 +533,15 @@ class VM(virt_vm.BaseVM):
             else:
                 return " -redir tcp:%s::%s" % (host_port, guest_port)
 
-        def add_vnc(help, vnc_port):
-            return " -vnc :%d" % (vnc_port - 5900)
+
+        def add_vnc(help, vnc_port, vnc_password='no', extra_params=None):
+            vnc_cmd = " -vnc :%d" % (vnc_port - 5900)
+            if vnc_password == "yes":
+                vnc_cmd += ",password"
+            if extra_params:
+                vnc_cmd += ",%s" % extra_params
+            return vnc_cmd
+
 
         def add_sdl(help):
             if has_option(help, "sdl"):
@@ -594,6 +680,21 @@ class VM(virt_vm.BaseVM):
         def add_initrd(help, filename):
             return " -initrd '%s'" % filename
 
+
+        def add_rtc(help):
+            # Pay attention that rtc-td-hack is for early version
+            # if "rtc " in help:
+            if has_option(help, "rtc"):
+                cmd = " -rtc base=%s" % params.get("rtc_base", "utc")
+                cmd += _add_option("clock", params.get("rtc_clock", "host"))
+                cmd += _add_option("driftfix", params.get("rtc_drift", "none"))
+                return cmd
+            elif has_option(help, "rtc-td-hack"):
+                return " -rtc-td-hack"
+            else:
+                return ""
+
+
         def add_kernel_cmdline(help, cmdline):
             return " -append '%s'" % cmdline
 
@@ -607,7 +708,8 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
-        def add_cpu_flags(help, cpu_model, flags=None, vendor_id=None):
+        def add_cpu_flags(help, cpu_model, flags=None, vendor_id=None,
+                          family=None):
             if has_option(help, 'cpu'):
                 cmd = " -cpu '%s'" % cpu_model
 
@@ -615,10 +717,25 @@ class VM(virt_vm.BaseVM):
                     cmd += ",vendor=\"%s\"" % vendor_id
                 if flags:
                     cmd += ",%s" % flags
-
+                if family is not None:
+                    cmd += ",family=%s" % family
                 return cmd
             else:
                 return ""
+
+
+        def add_boot(help, boot_order, boot_once, boot_menu):
+            cmd = "-boot "
+            pattern = "boot \[order=drives\]\[,once=drives\]\[,menu=on\|off\]"
+            if has_option(help, "boot \[a\|c\|d\|n\]"):
+                cmd += "%s" % boot_once
+            elif has_option(help, pattern):
+                cmd += ("order=%s,once=%s,menu=%s " %
+                        (boot_order, boot_once, boot_menu))
+            else:
+                cmd = ""
+            return cmd
+
 
         def add_machine_type(help, machine_type):
             if has_option(help, "machine") or has_option(help, "M"):
@@ -687,6 +804,10 @@ class VM(virt_vm.BaseVM):
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
 
+        # init value by default.
+        # PCI addr 0,1,2 are taken by PCI/ISA/IDE bridge and the sound device.
+        self.pci_addr_list = [0, 1, 2]
+
         qemu_binary = virt_utils.get_path(root_dir, params.get("qemu_binary",
                                                               "qemu"))
         help = commands.getoutput("%s -help" % qemu_binary)
@@ -731,9 +852,11 @@ class VM(virt_vm.BaseVM):
             monitor_params = params.object_params(monitor_name)
             monitor_filename = vm.get_monitor_filename(monitor_name)
             if monitor_params.get("monitor_type") == "qmp":
-                qemu_cmd += add_qmp_monitor(help, monitor_filename)
+                qemu_cmd += add_qmp_monitor(help, monitor_name,
+                                            monitor_filename)
             else:
-                qemu_cmd += add_human_monitor(help, monitor_filename)
+                qemu_cmd += add_human_monitor(help, monitor_name,
+                                              monitor_filename)
 
         # Add serial console redirection
         qemu_cmd += add_serial(help, vm.get_serial_console_filename())
@@ -840,9 +963,24 @@ class VM(virt_vm.BaseVM):
         if mem:
             qemu_cmd += add_mem(help, mem)
 
-        smp = params.get("smp")
+        smp = int(params.get("smp", 1))
         if smp:
-            qemu_cmd += add_smp(help, smp)
+            vcpu_threads = int(params.get("vcpu_threads", 1))
+            vcpu_cores = int(params.get("vcpu_cores", smp))
+            vcpu_sockets = int(params.get("vcpu_sockets", 1))
+
+            if smp > 8 and vcpu_threads == 1:
+                vcpu_threads = 2
+
+            if not vcpu_cores:
+                vcpu_cores = smp / vcpu_threads / vcpu_sockets
+            if not vcpu_threads:
+                vcpu_threads = smp / vcpu_cores / vcpu_sockets
+            if not vcpu_sockets:
+                vcpu_sockets = smp / vcpu_cores / vcpu_threads
+
+            qemu_cmd += add_smp(help, smp, vcpu_cores, vcpu_threads,
+                                vcpu_sockets)
 
         cpu_model = params.get("cpu_model")
         use_default_cpu_model = True
@@ -859,7 +997,9 @@ class VM(virt_vm.BaseVM):
         if cpu_model:
             vendor = params.get("cpu_model_vendor")
             flags = params.get("cpu_model_flags")
-            qemu_cmd += add_cpu_flags(help, cpu_model, vendor, flags)
+            family = params.get("cpu_family")
+            qemu_cmd += add_cpu_flags(help, cpu_model, flags,
+                                      vendor, family)
 
         machine_type = params.get("machine_type")
         if machine_type:
@@ -889,6 +1029,10 @@ class VM(virt_vm.BaseVM):
                 qemu_cmd += add_cdrom(help, virt_utils.get_path(root_dir, iso),
                                       cdrom_params.get("drive_index"),
                                       cd_format, bus)
+
+        soundhw = params.get("soundcards")
+        if soundhw:
+            qemu_cmd += " -soundhw %s" % soundhw
 
         # We may want to add {floppy_otps} parameter for -fda
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
@@ -942,7 +1086,10 @@ class VM(virt_vm.BaseVM):
             qemu_cmd += add_tcp_redir(help, host_port, guest_port)
 
         if params.get("display") == "vnc":
-            qemu_cmd += add_vnc(help, vm.vnc_port)
+            vnc_extra_params = params.get("vnc_extra_params")
+            vnc_password = params.get("vnc_password", "no")
+            qemu_cmd += add_vnc(help, self.vnc_port, vnc_password,
+                                vnc_extra_params)
         elif params.get("display") == "sdl":
             qemu_cmd += add_sdl(help)
         elif params.get("display") == "nographic":
@@ -994,6 +1141,15 @@ class VM(virt_vm.BaseVM):
             for pci_id in vm.pa_pci_ids:
                 qemu_cmd += add_pcidevice(help, pci_id)
 
+        qemu_cmd += add_rtc(help)
+
+        if has_option(help, "boot"):
+            boot_order = params.get("boot_order", "cdn")
+            boot_once = params.get("boot_once", "c")
+            boot_menu = params.get("boot_menu", "off")
+            qemu_cmd += " %s " % add_boot(help, boot_order, boot_once,
+                                          boot_menu)
+
         p9_export_dir = params.get("9p_export_dir")
         if p9_export_dir:
             qemu_cmd += " -fsdev"
@@ -1031,6 +1187,10 @@ class VM(virt_vm.BaseVM):
         extra_params = params.get("extra_params")
         if extra_params:
             qemu_cmd += " %s" % extra_params
+
+        if (has_option(help, "enable-kvm")
+            and params.get("enable-kvm", "yes") == "yes"):
+            qemu_cmd += " -enable-kvm "
 
         return qemu_cmd
 
@@ -1082,6 +1242,8 @@ class VM(virt_vm.BaseVM):
         name = self.name
         params = self.params
         root_dir = self.root_dir
+
+        self.init_pci_addr = int(params.get("init_pci_addr", 4))
 
         # Verify the md5sum of the ISO images
         for cdrom in params.objects("cdroms"):
@@ -1184,7 +1346,7 @@ class VM(virt_vm.BaseVM):
 
                 # Virtual Functions (VF) assignable devices
                 if pa_type == "vf":
-                    self.pci_assignable = virt_utils.PciAssignable(
+                    self.pci_assignable = virt_test_setup.PciAssignable(
                         type=pa_type,
                         driver=params.get("driver"),
                         driver_option=params.get("driver_option"),
@@ -1194,7 +1356,7 @@ class VM(virt_vm.BaseVM):
                         net_restart_cmd = params.get("net_restart_cmd"))
                 # Physical NIC (PF) assignable devices
                 elif pa_type == "pf":
-                    self.pci_assignable = virt_utils.PciAssignable(
+                    self.pci_assignable = virt_test_setup.PciAssignable(
                         type=pa_type,
                         names=params.get("device_names"),
                         devices_requested=pa_devices_requested,
@@ -1203,7 +1365,7 @@ class VM(virt_vm.BaseVM):
                         net_restart_cmd = params.get("net_restart_cmd"))
                 # Working with both VF and PF
                 elif pa_type == "mixed":
-                    self.pci_assignable = virt_utils.PciAssignable(
+                    self.pci_assignable = virt_test_setup.PciAssignable(
                         type=pa_type,
                         driver=params.get("driver"),
                         driver_option=params.get("driver_option"),
@@ -1295,10 +1457,18 @@ class VM(virt_vm.BaseVM):
                 while time.time() < end_time:
                     try:
                         if monitor_params.get("monitor_type") == "qmp":
-                            # Add a QMP monitor
-                            monitor = kvm_monitor.QMPMonitor(
-                                monitor_name,
-                                self.get_monitor_filename(monitor_name))
+                            if virt_utils.has_option("qmp"):
+                                # Add a QMP monitor
+                                monitor = kvm_monitor.QMPMonitor(
+                                    monitor_name,
+                                    self.get_monitor_filename(monitor_name))
+                            else:
+                                logging.warn("qmp monitor is unsupported, "
+                                             "using human monitor instead.")
+                                # Add a "human" monitor
+                                monitor = kvm_monitor.HumanMonitor(
+                                    monitor_name,
+                                    self.get_monitor_filename(monitor_name))
                         else:
                             # Add a "human" monitor
                             monitor = kvm_monitor.HumanMonitor(
@@ -1374,6 +1544,8 @@ class VM(virt_vm.BaseVM):
 
             logging.debug("Destroying VM with PID %s", self.get_pid())
 
+            kill_timeout = int(self.params.get("kill_timeout", "60"))
+
             if gracefully and self.params.get("shutdown_command"):
                 # Try to destroy with shell command
                 logging.debug("Trying to shutdown VM with shell command")
@@ -1387,7 +1559,8 @@ class VM(virt_vm.BaseVM):
                         session.sendline(self.params.get("shutdown_command"))
                         logging.debug("Shutdown command sent; waiting for VM "
                                       "to go down")
-                        if virt_utils.wait_for(self.is_dead, 60, 1, 1):
+                        if virt_utils.wait_for(self.is_dead, kill_timeout,
+                                               1, 1):
                             logging.debug("VM is down")
                             return
                     finally:
@@ -1396,6 +1569,15 @@ class VM(virt_vm.BaseVM):
             if self.monitor:
                 # Try to destroy with a monitor command
                 logging.debug("Trying to kill VM with monitor command")
+                if self.params.get("kill_vm_only_when_paused") == "yes":
+                    try:
+                        if virt_utils.wait_for(
+                                 lambda: self.monitor.verify_status("paused"),
+                                               kill_timeout, 1, 1):
+                            logging.debug("Killing already paused VM '%s'",
+                                          self.name)
+                    except:
+                        logging.info("Killing running VM '%s'", self.name)
                 try:
                     self.monitor.quit()
                 except kvm_monitor.MonitorError, e:
@@ -1627,6 +1809,14 @@ class VM(virt_vm.BaseVM):
         returns the PID of the parent shell process.
         """
         return self.process.get_pid()
+
+
+    def get_vnc_port(self):
+        """
+        Return self.vnc_port.
+        """
+
+        return self.vnc_port
 
 
     def get_vcpu_pids(self):
@@ -2004,11 +2194,19 @@ class VM(virt_vm.BaseVM):
         """
         error.base_context("rebooting '%s'" % self.name, logging.info)
         error.context("before reboot")
-        session = session or self.login()
         error.context()
 
         if method == "shell":
+            session = session or self.login()
             session.sendline(self.params.get("reboot_command"))
+            error.context("waiting for guest to go down", logging.info)
+            if not virt_utils.wait_for(
+                lambda:
+                    not session.is_responsive(timeout=self.CLOSE_SESSION_TIMEOUT),
+                timeout / 2, 0, 1):
+                raise virt_vm.VMRebootError("Guest refuses to go down")
+            session.close()
+
         elif method == "system_reset":
             # Clear the event list of all QMP monitors
             qmp_monitors = [m for m in self.monitors if m.protocol == "qmp"]
@@ -2027,14 +2225,6 @@ class VM(virt_vm.BaseVM):
                                                 "(monitor '%s')" % m.name)
         else:
             raise virt_vm.VMRebootError("Unknown reboot method: %s" % method)
-
-        error.context("waiting for guest to go down", logging.info)
-        if not virt_utils.wait_for(
-            lambda:
-                not session.is_responsive(timeout=self.CLOSE_SESSION_TIMEOUT),
-            timeout / 2, 0, 1):
-            raise virt_vm.VMRebootError("Guest refuses to go down")
-        session.close()
 
         error.context("logging in after reboot", logging.info)
         return self.wait_for_login(nic_index, timeout=timeout)
