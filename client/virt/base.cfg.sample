@@ -81,7 +81,9 @@ drive_cache = none
 # List of hypervisor-monitor object names (one per guest),
 #    used to communicate with hypervisor to control guests.
 #    Order cooresponds to 'vms' list above.
-monitors = humanmonitor1
+monitors = hmp1
+# hmp1 monitor type (protocol), if only hmp1 type is going to be set
+#monitor_type_hmp1 = human
 # Default monitor type (protocol), if multiple types to be used
 monitor_type = human
 # Pattern to get vcpu threads from monitor.
