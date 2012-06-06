@@ -476,6 +476,20 @@ class BaseVM(object):
         """
         self.virtnet.free_mac_address(nic_index_or_name)
 
+    @error.context_aware
+    def wait_for_get_address(self, nic_index_or_name, timeout=30, internal_timeout=1):
+        """
+        Wait for a nic to acquire an IP address, then return it.
+        """
+        # Don't let VMIPAddressMissingError/VMAddressVerificationError through
+        def _get_address():
+            try:
+                return self.get_address(nic_index_or_name)
+            except (VMIPAddressMissingError, VMAddressVerificationError):
+                return False
+        if not virt_utils.wait_for(_get_address, timeout, internal_timeout):
+            raise VMIPAddressMissingError(self.virtnet[nic_index_or_name].mac)
+        return self.get_address(nic_index_or_name)
 
     # Adding/setup networking devices methods split between 'add_*' for
     # setting up virtnet, and 'activate_' for performing actions based
@@ -520,9 +534,10 @@ class BaseVM(object):
         Remove the nic specified by name, or index number
         """
         nic = self.virtnet[nic_index_or_name]
-        self.free_mac_address(nic.mac)
+        nic_mac = nic.mac.lower()
+        self.free_mac_address(nic_index_or_name)
         try:
-            del self.address_cache[nic.mac]
+            del self.address_cache[nic_mac]
             del self.virtnet[nic_index_or_name]
         except IndexError:
             pass # continue to not exist

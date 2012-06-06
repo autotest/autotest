@@ -691,7 +691,7 @@ class VMNet(list):
         """
         mac = value.get('mac')
         if mac:
-            mac = value['mac'] = value['mac'].upper()
+            mac = value['mac'] = value['mac'].lower()
             if len(mac.split(':')
                             ) == 6 and self.container_class.mac_is_valid(mac):
                 return
@@ -724,8 +724,8 @@ class VMNet(list):
         try:
             return nic_name_list.index(name)
         except ValueError:
-            raise IndexError("Can't find nic named '%s' among '%s'" % (
-                            name, nic_name_list))
+            raise IndexError("Can't find nic named '%s' among '%s'" %
+                             (name, nic_name_list))
 
     def nic_name_list(self):
         """
@@ -862,7 +862,7 @@ class ParamsNet(VMNet):
         params_mac = nic_params.get('mac')
         old_mac = nic.get('mac')
         if params_mac and self.container_class.mac_is_valid(params_mac):
-            new_mac = params_mac.upper()
+            new_mac = params_mac.lower()
         else:
             new_mac = None
         nic.mac = new_mac
