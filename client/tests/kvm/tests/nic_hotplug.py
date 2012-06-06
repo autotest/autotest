@@ -1,6 +1,6 @@
 import logging, os
 from autotest.client.shared import error
-from autotest.client.virt import virt_test_utils, virt_utils, aexpect
+from autotest.client.virt import virt_test_utils, virt_utils, virt_vm, aexpect
 
 
 def run_nic_hotplug(test, params, env):
@@ -57,11 +57,7 @@ def run_nic_hotplug(test, params, env):
 
     # hot-add the nic
     nic_name = 'hotadded'
-    nic_info = vm.add_nic(model=pci_model, nic_name=nic_name)
-    # Allocate device resources
-    vm.activate_netdev(nic_name)
-    # Bring up networking resources
-    vm.activate_nic(nic_name)
+    nic_info = vm.hotplug_nic(nic_model=pci_model, nic_name=nic_name)
 
     # Only run dhclient if explicitly set and guest is not running Windows.
     # Most modern Linux guests run NetworkManager, and thus do not need this.
@@ -70,23 +66,20 @@ def run_nic_hotplug(test, params, env):
         ifname = virt_test_utils.get_linux_ifname(session, nic_info['mac'])
         session_serial.cmd("dhclient %s &" % ifname)
 
-    logging.info("Shutting down the primary link")
-    vm.monitor.cmd("set_link %s off" % nic_info.netdev_id)
+    logging.info("Shutting down the primary link(s)")
+    for nic in vm.virtnet:
+        if nic.nic_name == nic_name:
+            continue
+        else:
+            vm.monitor.cmd("set_link %s off" % nic.device_id)
 
     try:
         logging.info("Waiting for new nic's ip address acquisition...")
-        if not virt_utils.wait_for(lambda:
-                                   (vm.address_cache.get(nic_info['mac'])
-                                    is not None),
-                                   10, 1):
-            raise error.TestFail("Could not get ip address of new nic")
-
-        ip = vm.address_cache.get(nic_info['mac'])
-
-        if not virt_utils.verify_ip_address_ownership(ip, nic_info['mac']):
-            raise error.TestFail("Could not verify the ip address of new nic")
-        else:
-            logging.info("Got the ip address of new nic: %s", ip)
+        try:
+            ip = vm.wait_for_get_address(nic_name)
+        except virt_vm.VMIPAddressMissingError:
+            raise error.TestFail("Could not get or verify ip address of nic")
+        logging.info("Got the ip address of new nic: %s", ip)
 
         logging.info("Ping test the new nic ...")
         s, o = virt_test_utils.ping(ip, 100)
@@ -95,12 +88,15 @@ def run_nic_hotplug(test, params, env):
             raise error.TestFail("New nic failed ping test")
 
         logging.info("Detaching the previously attached nic from vm")
-        vm.del_nic(nic_info, guest_delay)
+        vm.hotunplug_nic(nic_name)
 
     finally:
-        vm.virtnet.free_mac_address(1)
-        logging.info("Re-enabling the primary link")
-        vm.monitor.cmd("set_link %s on" % nic_info.netdev_id)
+        logging.info("Re-enabling the primary link(s)")
+        for nic in vm.virtnet:
+            if nic.nic_name == nic_name:
+                continue
+            else:
+                vm.monitor.cmd("set_link %s on" % nic.device_id)
 
     # Attempt to put back udev network naming rules, even if the command to
     # disable the rules failed. We may be undoing what was done in a previous
