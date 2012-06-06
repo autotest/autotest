@@ -1,0 +1,33 @@
+AUTHOR = "Miroslav Rezanina <mrezanin@redhat.com>"
+NAME = "scsi_testsuit"
+TEST_CATEGORY = "Functional"
+TEST_CLASS = "Hardware"
+TEST_TYPE = "client"
+TIME = 'MEDIUM'
+DOC='''
+This is simple test suit for SCSI commands that uses the sg3_utils to issue 
+scsi commands.
+Test require SCSI device that does not contain any valuable data.
+'''
+
+# Tested disk is specified by its serial number
+disk_id_type = "serial"
+disk_id = "ATST001"
+
+# Executed tests 
+tests_to_run = [
+                '001', # Test sense data correctness
+                '002', # TEST handling INVALID FIELD IN {PARAMETR LIST, CDB}
+                '003', # Test handling zero allocation length CDBs
+                '004', # Test handling zero length READ/WRITE requests
+                '005', # Test INQUIRY for a page code without EVPD flag set
+                '006', # Test INQUIRY with EVPD flag for incorrect EVPD page
+                '007'  # Test support for mandatory VPD pages
+               ]
+
+# Run testsuit from tarball stored in autotest
+job.run_test('scsi_testsuit',
+              source_type='tar',
+              source_location='scsi_testsuit.tar',
+              disk_addr=(disk_id_type,disk_id),
+              run_tests=tests_to_run)
