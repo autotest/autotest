@@ -23,7 +23,7 @@ def run_stop_continue(test, params, env):
 
     try:
         logging.info("Stop the VM")
-        vm.monitor.cmd("stop")
+        vm.pause()
         logging.info("Verifying the status of VM is 'paused'")
         vm.verify_status("paused")
 
@@ -32,7 +32,7 @@ def run_stop_continue(test, params, env):
             raise error.TestFail("Session is still responsive after stop")
 
         logging.info("Try to resume the guest")
-        vm.monitor.cmd("cont")
+        vm.resume()
         logging.info("Verifying the status of VM is 'running'")
         vm.verify_status("running")
 
