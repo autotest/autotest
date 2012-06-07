@@ -52,9 +52,9 @@ def run_timedrift_with_stop(test, params, env):
             logging.info("Stop %s second: iteration %d of %d...",
                          stop_time, (i + 1), stop_iterations)
 
-            vm.monitor.cmd("stop")
+            vm.pause()
             time.sleep(stop_time)
-            vm.monitor.cmd("cont")
+            vm.resume()
 
             # Sleep for a while to wait the interrupt to be reinjected
             logging.info("Waiting for the interrupt to be reinjected ...")
