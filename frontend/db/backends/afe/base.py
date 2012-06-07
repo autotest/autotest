@@ -20,3 +20,14 @@ class DatabaseWrapper(MySQLDatabaseWrapper):
         self.creation = MySQLCreation(self)
         self.ops = DatabaseOperations()
         self.introspection = MySQLIntrospection(self)
+
+    def _valid_connection(self):
+        if self.connection is not None:
+            if self.connection.open:
+                try:
+                    self.connection.ping()
+                    return True
+                except DatabaseError:
+                    self.connection.close()
+                    self.connection = None
+        return False
