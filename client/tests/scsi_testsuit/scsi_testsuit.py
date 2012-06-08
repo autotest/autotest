@@ -6,22 +6,26 @@ class SCSIUtilNotAvailable(Exception):
     def __init__(self, name):
         self.util_name = name
 
+
     def __str__(self):
         return "%s not installed" % self.util_name
 
-class UnknownSourceType(Exception):
-   def __init__(self,source):
-       self.source = source
 
-   def __str__(self):
-       return "Unknown source type: %s" % self.source
+class UnknownSourceType(Exception):
+    def __init__(self,source):
+        self.source = source
+
+
+    def __str__(self):
+        return "Unknown source type: %s" % self.source
+
 
 class scsi_testsuit(test.test):
     version = 1
     scsi_testsuite_config = "/etc/scsi-testsuite.config"
 
 
-    def warmup(self,source_type, source_location,disk_addr,**kwargs):
+    def setup(self,source_type, source_location,disk_addr,**kwargs):
         if source_type == "tar":
             tarball = utils.unmap_url(self.bindir, source_location,self.tmpdir)
             self.repodir = os.path.join(self.tmpdir,"testsuit")
@@ -42,7 +46,7 @@ class scsi_testsuit(test.test):
 
         self.devname = ""
         if disk_addr[0] == "scsi":
-	    if not os.access('/usr/bin/lsscsi',os.X_OK):
+            if not os.access('/usr/bin/lsscsi',os.X_OK):
                 logging.debug("lsscsi missing - trying to install")
                 pckg = sm.provides('/usr/bin/lsscsi')
                 if pckg is None:
@@ -56,15 +60,15 @@ class scsi_testsuit(test.test):
                     disk_addr[1]["lun"])
 
             self.devname = utils.system_output(
-                           "lsscsi %d %d %d %d | sed -n 's,.*/dev,/dev,p' " % 
+                           "lsscsi %d %d %d %d | sed -n 's,.*/dev,/dev,p' " %
                            addr)
 
         elif disk_addr[0] == "serial":
             disklist = os.listdir("/dev/disk/by-id/")
             for diskfile in disklist:
-               if re.match("scsi-.*%s$" % disk_addr[1],diskfile) is not None:
-                  self.devname = os.path.join("/dev/disk/by-id",diskfile)
-                  break
+                if re.match("scsi-.*%s$" % disk_addr[1],diskfile) is not None:
+                    self.devname = os.path.join("/dev/disk/by-id",diskfile)
+                    break
         elif disk_addr[0] == "file":
             if os.access(disk_addr[1],os.F_OK) == True:
                 self.devname = disk_addr[1]
@@ -80,7 +84,7 @@ class scsi_testsuit(test.test):
             cf.close()
         except IOError:
             logging.warning("Can't write configuration file. Using defaults")
-        
+
 
     def run_once(self,run_tests,**kwargs):
         os.chdir(self.repodir)
@@ -105,7 +109,8 @@ class scsi_testsuit(test.test):
                 self.write_attr_keyval({testname:"Failed"})
 
         if failed > 0:
-           raise error.TestFail("Failed %d of %d tests" % (failed, run))
+            raise error.TestFail("Failed %d of %d tests" % (failed, run))
+
 
     def cleanup(self):
         shutil.rmtree(self.repodir)
