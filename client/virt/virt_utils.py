@@ -3771,6 +3771,7 @@ def vnet_hdr_probe(tapfd):
     try:
         r = fcntl.ioctl(tapfd, TUNGETFEATURES, u)
     except OverflowError:
+        logging.debug("Fail to get tun features!")
         return False
     flags = struct.unpack("I", r)[0]
     if flags & IFF_VNET_HDR:
