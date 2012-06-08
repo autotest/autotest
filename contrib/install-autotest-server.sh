@@ -173,14 +173,14 @@ fi
 
 install_packages() {
 PACKAGES_UTILITY=(unzip wget)
-PACAKGES_WEBSERVER=(httpd mod_python Django)
+PACKAGES_WEBSERVER=(httpd mod_wsgi Django)
 PACKAGES_MYSQL=(mysql-server MySQL-python)
 PACKAGES_DEVELOPMENT=(git java-1.6.0-openjdk-devel)
 PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib python-atfork)
 PACKAGES_SELINUX=(selinux-policy selinux-policy-targeted policycoreutils-python)
 PACKAGES_ALL=( \
     ${PACKAGES_UTILITY[*]}
-    ${PACAKGES_WEBSERVER[*]}
+    ${PACKAGES_WEBSERVER[*]}
     ${PACKAGES_MYSQL[*]}
     ${PACKAGES_DEVELOPMENT[*]}
     ${PACKAGES_PYTHON_LIBS[*]}
@@ -239,7 +239,7 @@ then
 $ATPASSWD" | passwd --stdin autotest >> $LOG
 fi
 
-mkdir -p /usr/local
+mkdir -p $ATHOME
 if [ ! -e $ATHOME/.git/config ]
 then
     print_log "INFO" "Cloning autotest repo in $ATHOME"
