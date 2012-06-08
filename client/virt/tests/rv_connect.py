@@ -15,7 +15,7 @@ class RVConnectError(Exception):
 
 def send_ticket(client_vm, ticket):
     """
-    sends spice_password trough vm.sendkey()
+    sends spice_password trough vm.send_key()
     @param client_session - vm() object
     @param ticket - use params.get("spice_password")
     """
