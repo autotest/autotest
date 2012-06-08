@@ -836,10 +836,10 @@ class VM(virt_vm.BaseVM):
             if numa_node < 0:
                 p = virt_utils.NumaNode(numa_node)
                 n = int(p.get_node_num()) + numa_node
-                qemu_cmd += "numactl -N %s -m %s " % (n, n)
+                qemu_cmd += "numactl -m %s " % n
             else:
                 n = numa_node - 1
-                qemu_cmd += "numactl -N %s -m %s " % (n, n)
+                qemu_cmd += "numactl -m %s " % n
         # Add the qemu binary
         qemu_cmd += qemu_binary
         # Add the VM's name
