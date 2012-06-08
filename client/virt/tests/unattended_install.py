@@ -399,7 +399,9 @@ class UnattendedInstallConfig(object):
         self.image_path = os.path.dirname(self.kernel)
 
         # Content server params
-        self.url_auto_content_ip = params.get('url_auto_ip', '192.168.122.1')
+        # lookup host ip address for first nic by interface name
+        auto_ip = virt_utils.get_ip_address_by_interface(vm.virtnet[0].netdst)
+        self.url_auto_content_ip = params.get('url_auto_ip', auto_ip)
         self.url_auto_content_port = None
 
         # Kickstart server params
