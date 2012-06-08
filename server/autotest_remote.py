@@ -160,6 +160,9 @@ class BaseAutotest(installable_object.InstallableObject):
         light_files = [os.path.join(self.source_material, f)
                        for f in os.listdir(self.source_material)
                        if f not in dirs_to_exclude]
+        # needs updating when grubby version is changed
+        light_files.append(os.path.join(self.source_material,
+                               "deps/grubby/grubby-8.11-autotest.tar.bz2"))
         host.send_file(light_files, autodir, delete_dest=True)
 
         profilers_autodir = os.path.join(autodir, 'profilers')
