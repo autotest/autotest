@@ -1227,18 +1227,34 @@ class Grubby(object):
         Fetches and verifies the grubby source tarball
         '''
         tarball_name = os.path.basename(GRUBBY_TARBALL_URI)
-        tarball = os.path.join(topdir, tarball_name)
 
+        # first look in the current directory
         try:
-            urllib.urlretrieve(GRUBBY_TARBALL_URI, tarball)
+            tarball = tarball_name
+            f = open(tarball)
         except:
-            return False
+            try:
+                # then the autotest source directory
+                from autotest.client.shared import global_config
+                GLOBAL_CONFIG = global_config.global_config
+                tarball = os.path.join(
+                   GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path'),
+                   tarball_name)
+                f = open(tarball)
+            except:
+                # then try to grab it from github
+                try:
+                    tarball = os.path.join(topdir, tarball_name)
+                    urllib.urlretrieve(GRUBBY_TARBALL_URI, tarball)
+                    f = open(tarball)
+                except:
+                    return None
 
-        tarball_md5 = md5.md5(open(tarball).read()).hexdigest()
+        tarball_md5 = md5.md5(f.read()).hexdigest()
         if tarball_md5 != GRUBBY_TARBALL_MD5:
-            return False
+            return None
 
-        return True
+        return tarball
 
 
     def grubby_build(self, topdir, tarball):
@@ -1301,11 +1317,9 @@ class Grubby(object):
 
         topdir = tempfile.mkdtemp()
 
-        if not self.grubby_install_fetch_tarball(topdir):
+        tarball = self.grubby_install_fetch_tarball(topdir)
+        if tarball is None:
             raise GrubbyInstallException('Failed to fetch grubby tarball')
-
-        tarball_name = os.path.basename(GRUBBY_TARBALL_URI)
-        tarball = os.path.join(topdir, tarball_name)
 
         srcdir = os.path.join(topdir, 'src')
         install_root = os.path.join(topdir, 'install_root')
