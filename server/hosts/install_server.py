@@ -61,13 +61,13 @@ class CobblerInterface(object):
         return (system, system_handle)
 
 
-    def _set_host_profile(self, host, profile=None):
+    def _set_host_profile(self, host, profile=''):
         system, system_handle = self.get_system_handle(host)
         system_info = self.server.get_system(system)
 
         # If no fallback profile is enabled, we don't want to mess
         # with the currently profile set for that machine.
-        if profile is not None:
+        if profile:
             self.server.modify_system(system_handle, 'profile', profile,
                                       self.token)
             self.server.save_system(system_handle, self.token)
@@ -90,7 +90,7 @@ class CobblerInterface(object):
         self.server.save_system(system_handle, self.token)
 
 
-    def install_host(self, host, profile=None, timeout=None, num_attempts=2):
+    def install_host(self, host, profile='', timeout=None, num_attempts=2):
         """
         Install a host object with profile name defined by distro.
 
@@ -110,7 +110,7 @@ class CobblerInterface(object):
             timeout = 3600
 
         system, system_handle = self.get_system_handle(host)
-        if profile is None:
+        if profile:
             profile = self.server.get_system(system).get('profile')
 
         host.record("START", None, "install", host.hostname)
