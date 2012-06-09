@@ -17,6 +17,13 @@ def get_install_server_info():
     return server_info
 
 
+def install_server_is_configured():
+    server_info = get_install_server_info()
+    if server_info.get('xmlrpc_url', None):
+        return True
+    return False
+
+
 class RemoteHost(base_classes.Host):
     """
     This class represents a remote machine on which you can run
@@ -43,16 +50,19 @@ class RemoteHost(base_classes.Host):
 
     INSTALL_SERVER_MAPPING = {'cobbler': install_server.CobblerInterface}
 
-    def _initialize(self, hostname, autodir=None, *args, **dargs):
+    def _initialize(self, hostname, autodir=None, profile=None,
+                    *args, **dargs):
         super(RemoteHost, self)._initialize(*args, **dargs)
 
         self.hostname = hostname
         self.autodir = autodir
+        self.profile = profile
         self.tmp_dirs = []
 
 
     def __repr__(self):
-        return "<remote host: %s>" % self.hostname
+        return "<remote host: %s, profile: %s>" % (self.hostname,
+                                                   self.profile)
 
 
     def close(self):
@@ -74,7 +84,11 @@ class RemoteHost(base_classes.Host):
         @param profile: Profile name inside the install server database.
         """
         server_info = get_install_server_info()
-        if server_info.get('xmlrpc_url', None) is not None:
+        if install_server_is_configured():
+            if profile is None:
+                profile = self.profile
+            if profile is None or profile == 'Do_not_install':
+                return
             num_attempts = int(server_info.get('num_attempts', 2))
             ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
             server_interface = ServerInterface(**server_info)

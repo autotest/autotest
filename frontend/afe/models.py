@@ -414,9 +414,9 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         logging.info(self.hostname + ' -> ' + self.status)
 
 
-    def enqueue_job(self, job, atomic_group=None, is_template=False):
+    def enqueue_job(self, job, profile, atomic_group=None, is_template=False):
         """Enqueue a job on this host."""
-        queue_entry = HostQueueEntry.create(host=self, job=job,
+        queue_entry = HostQueueEntry.create(host=self, job=job, profile=profile,
                                             is_template=is_template,
                                             atomic_group=atomic_group)
         # allow recovery of dead hosts from the frontend
@@ -1040,7 +1040,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         super(Job, self).save(*args, **kwargs)
 
 
-    def queue(self, hosts, atomic_group=None, is_template=False):
+    def queue(self, hosts, profiles, atomic_group=None, is_template=False):
         """Enqueue a job on the given hosts."""
         if not hosts:
             if atomic_group:
@@ -1053,8 +1053,10 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                 entry.save()
             return
 
-        for host in hosts:
-            host.enqueue_job(self, atomic_group=atomic_group,
+        if not profiles:
+            profiles = [None] * len(hosts)
+        for host,profile in zip(hosts,profiles):
+            host.enqueue_job(self, profile=profile, atomic_group=atomic_group,
                              is_template=is_template)
 
 
@@ -1137,6 +1139,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
     atomic_group = dbmodels.ForeignKey(AtomicGroup, blank=True, null=True)
     aborted = dbmodels.BooleanField(default=False)
     started_on = dbmodels.DateTimeField(null=True, blank=True)
+    profile = dbmodels.CharField(max_length=255, blank=True, default='')
 
     objects = model_logic.ExtendedManager()
 
@@ -1147,14 +1150,14 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
 
     @classmethod
-    def create(cls, job, host=None, meta_host=None, atomic_group=None,
+    def create(cls, job, host=None, profile=None, meta_host=None, atomic_group=None,
                  is_template=False):
         if is_template:
             status = cls.Status.TEMPLATE
         else:
             status = cls.Status.QUEUED
 
-        return cls(job=job, host=host, meta_host=meta_host,
+        return cls(job=job, host=host, profile=profile, meta_host=meta_host,
                    atomic_group=atomic_group, status=status)
 
 
