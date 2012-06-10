@@ -1,7 +1,7 @@
 import logging, time, re, os
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_vm, virt_utils
+from autotest.client.virt import virt_vm, virt_utils, virt_image
 
 
 class EnospcConfig(object):
@@ -145,7 +145,9 @@ def run_enospc(test, params, env):
             for image_name in vm.params.objects("images"):
                 image_params = vm.params.object_params(image_name)
                 try:
-                    virt_utils.check_image(image_params, test.bindir)
+                    image = virt_image.QemuImg(image_params, test.bindir,
+                                               image_name)
+                    image.check_image(image_params, test.bindir)
                 except (virt_vm.VMError, error.TestWarn), e:
                     logging.error(e)
             logging.info("Guest paused, extending Logical Volume size")

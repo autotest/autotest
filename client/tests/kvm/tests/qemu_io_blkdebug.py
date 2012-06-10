@@ -3,6 +3,7 @@ from autotest.client.shared import error
 from autotest.client.virt import qemu_io
 from autotest.client.virt import virt_vm
 from autotest.client.virt import virt_utils
+from autotest.client.virt import virt_image
 from autotest.client import utils
 
 @error.context_aware
@@ -32,7 +33,8 @@ def run_qemu_io_blkdebug(test, params, env):
     blkdebug_default = params.get("blkdebug_default")
 
     error.context("Create image", logging.info)
-    image_name = virt_utils.create_image(params.object_params(image), test.bindir)
+    image_io = virt_image.QemuImg(params.object_params(image), test.bindir, image)
+    image_name = image_io.create(params.object_params(image))
 
     template_name =  virt_utils.get_path(test.virtdir, blkdebug_default)
     template = ConfigParser.ConfigParser()

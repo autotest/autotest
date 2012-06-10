@@ -1,6 +1,7 @@
 import re, os, logging, commands
 from autotest.client.shared import utils, error
 from autotest.client.virt import virt_vm, virt_utils, virt_env_process
+from autotest.client.virt import virt_image
 
 
 def run_qemu_img(test, params, env):
@@ -18,7 +19,7 @@ def run_qemu_img(test, params, env):
         raise error.TestError("Binary of 'qemu-img' not found")
     image_format = params.get("image_format")
     image_size = params.get("image_size", "10G")
-    image_name = virt_utils.get_image_filename(params, test.bindir)
+    image_name = virt_image.get_image_filename(params, test.bindir)
 
 
     def _check(cmd, img):
