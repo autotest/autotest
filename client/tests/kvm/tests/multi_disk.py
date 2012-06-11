@@ -10,7 +10,7 @@ import os
 from autotest.client.shared import error
 from autotest.client.virt.virt_env_process import preprocess
 from autotest.client.shared import utils
-from autotest.client.virt.virt_utils import get_image_filename
+from autotest.client.virt.virt_storage import get_image_filename
 
 re_range1 = re.compile(r'range\([ ]*([-]?\d+|n).*\)')
 re_range2 = re.compile(r',[ ]*([-]?\d+|n)')

@@ -4,6 +4,7 @@ from autotest.client import test
 from autotest.client.shared import error
 from autotest.client.virt import virt_utils, virt_env_process
 
+VM_TYPE = ""
 
 class virt_test(test.test):
     """
@@ -22,11 +23,15 @@ class virt_test(test.test):
         if params.get("preserve_srcdir", "yes") == "yes":
             self.preserve_srcdir = True
         self.virtdir = os.path.dirname(sys.modules[__name__].__file__)
+        os.environ["VM_TYPE"] = params.get("vm_type")
 
 
     def run_once(self, params):
         # Convert params to a Params object
         params = virt_utils.Params(params)
+
+        # Set up vm_type
+        global VM_TYPE = params.get("vm_type")
 
         # If a dependency test prior to this test has failed, let's fail
         # it right away as TestNA.
