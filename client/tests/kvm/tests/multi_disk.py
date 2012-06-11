@@ -6,10 +6,8 @@ multi_disk test for Autotest framework.
 import logging
 import re
 import random
-from autotest.client.shared import error
-from autotest.client.virt.virt_env_process import preprocess
-from autotest.client.shared import utils
-from client.virt import kvm_qtree
+from autotest.client.shared import error, utils
+from autotest.client.virt import kvm_qtree, virt_storage, virt_env_process
 
 _RE_RANGE1 = re.compile(r'range\([ ]*([-]?\d+|n).*\)')
 _RE_RANGE2 = re.compile(r',[ ]*([-]?\d+|n)')
@@ -178,7 +176,7 @@ def run_multi_disk(test, params, env):
         return
 
     # Always recreate VM (disks are already marked for deletion
-    preprocess(test, params, env)
+    virt_env_process.preprocess(test, params, env)
     vm = env.get_vm(params["main_vm"])
     vm.create(timeout=max(10, stg_image_num))
     session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))

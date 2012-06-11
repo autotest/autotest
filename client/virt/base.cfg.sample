@@ -44,6 +44,9 @@ netdst = virbr0
 
 # List of block device object names (whitespace seperated)
 images = image1
+# List of block device object names with order (whitespace seperated)
+# Example: $base $sn1 $sn2
+image_chain = ""
 # List of optical device object names
 cdroms = cd1
 
@@ -213,6 +216,7 @@ drive_werror_image1 =
 #    unattended_install. In all other tests, it should be no, so keep the global
 #    as is.
 backup_image = no
+backup_dir = /tmp
 # Enable backup_image_on_check_error = yes globally to allow isolate bad images
 #    for investigation purposes
 backup_image_on_check_error = no
