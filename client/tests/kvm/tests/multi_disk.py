@@ -6,6 +6,7 @@ multi_disk test for Autotest framework.
 import logging
 import re
 import random
+import string
 from autotest.client.shared import error
 from autotest.client.virt.virt_env_process import preprocess
 from autotest.client.shared import utils
@@ -190,7 +191,7 @@ def run_multi_disk(test, params, env):
     fs_num = len(file_system)
     cmd_timeout = float(params.get("cmd_timeout", 360))
     re_str = params.get("re_str")
-    block_list = params.get("block_list").split()
+    black_list = params.get("black_list").split()
 
     error.context("verifying qtree vs. test params")
     err = 0
@@ -222,18 +223,23 @@ def run_multi_disk(test, params, env):
         cmd = params.get("list_volume_command")
         output = session.cmd_output(cmd, timeout=cmd_timeout)
         disks = re.findall(re_str, output)
+        disks = map(string.strip, disks)
         disks.sort()
-        logging.debug("Volume list that meets regular expressions: %s", disks)
+        logging.debug("Volume list that meets regular expressions: '%s'", disks)
         if len(disks) < image_num:
             raise error.TestFail("Fail to list all the volumes!")
 
-        tmp_list = []
-        for disk in disks:
-            if disk.strip() in block_list:
-                tmp_list.append(disk)
-        for disk in tmp_list:
-            logging.info("No need to check volume %s", disk)
-            disks.remove(disk)
+        if params.get("os_type") == "linux":
+            df_output = session.cmd_output("df")
+            li = re.findall("^/dev/(.*?)[ \d]", df_output, re.M)
+            if li:
+                black_list.extend(li)
+
+        exclude_list = [d for d in disks if d in black_list]
+        f = lambda d: logging.info("No need to check volume '%s'", d)
+        map(f, exclude_list)
+
+        disks = [d for d in disks if not d in exclude_list]
 
         for i in range(n_repeat):
             logging.info("iterations: %s", (i + 1))
