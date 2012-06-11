@@ -1788,7 +1788,7 @@ variants:
         remove_image = yes
         remove_image_image1 = no
         cmd_timeout = 1000
-        block_list = C: D: vda vda1 vda2 hda hda1 hda2 sda sda1 sda2
+        black_list = C: D:
         start_vm = no
         variants:
             - signal_repeat:
@@ -1935,7 +1935,8 @@ variants:
     - usb_multi_disk: install setup image_copy unattended_install.cdrom
         type = multi_disk
         cmd_timeout = 1000
-        block_list = C: D: vda vda1 vda2 hda hda1 hda2 sda sda1 sda2
+        black_list = C: D:
+        start_vm = no
         kill_vm = yes
         create_image = yes
         image_boot_image1 = yes
