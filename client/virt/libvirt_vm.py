@@ -86,13 +86,13 @@ def service_libvirtd_control(action):
         raise error.TestError("Unknown action: %s" % action)
 
 
-def virsh_cmd(cmd, uri = ""):
+def virsh_cmd(cmd, uri="", ignore_status=False):
     """
     Append cmd to 'virsh' and execute, optionally return full results.
 
     @param: cmd: Command line to append to virsh command
     @param: uri: hypervisor URI to connect to
-    @return: stdout of command
+    @return: CmdResult object
     """
     if VIRSH_EXEC is None:
         raise ValueError('Missing command: virsh')
@@ -101,29 +101,28 @@ def virsh_cmd(cmd, uri = ""):
     if uri:
         uri_arg = "-c " + uri
     cmd = "%s %s %s" % (VIRSH_EXEC, uri_arg, cmd)
-    cmd_result = utils.run(cmd, verbose=DEBUG)
-    return cmd_result.stdout.strip()
+    return utils.run(cmd, verbose=DEBUG, ignore_status=ignore_status)
 
 
 def virsh_uri(uri = ""):
     """
     Return the hypervisor canonical URI.
     """
-    return virsh_cmd("uri", uri)
+    return virsh_cmd("uri", uri).stdout.strip()
 
 
 def virsh_hostname(uri = ""):
     """
     Return the hypervisor hostname.
     """
-    return virsh_cmd("hostname", uri)
+    return virsh_cmd("hostname", uri).stdout.strip()
 
 
 def virsh_version(uri = ""):
     """
     Return the major version info about what this built from.
     """
-    return virsh_cmd("version", uri)
+    return virsh_cmd("version", uri).stdout.strip()
 
 
 def virsh_driver(uri = ""):
@@ -143,21 +142,21 @@ def virsh_domstate(name, uri = ""):
 
     @param name: VM name
     """
-    return virsh_cmd("domstate %s" % name, uri)
+    return virsh_cmd("domstate %s" % name, uri).stdout.strip()
 
 
 def virsh_domid(name, uri = ""):
     """
     Return VM's ID.
     """
-    return virsh_cmd("domid %s" % (name), uri)
+    return virsh_cmd("domid %s" % (name), uri).stdout.strip()
 
 
 def virsh_dominfo(name, uri = ""):
     """
     Return the VM information.
     """
-    return virsh_cmd("dominfo %s" % (name), uri)
+    return virsh_cmd("dominfo %s" % (name), uri).stdout.strip()
 
 
 def virsh_uuid(name, uri = ""):
@@ -166,7 +165,7 @@ def virsh_uuid(name, uri = ""):
 
     @param name: VM name
     """
-    return virsh_cmd("domuuid %s" % name, uri)
+    return virsh_cmd("domuuid %s" % name, uri).stdout.strip()
 
 
 def virsh_screenshot(name, filename, uri = ""):
@@ -184,7 +183,7 @@ def virsh_dumpxml(name, uri = ""):
 
     @param name: VM name
     """
-    return virsh_cmd("dumpxml %s" % name, uri)
+    return virsh_cmd("dumpxml %s" % name, uri).stdout.strip()
 
 def virsh_is_alive(name, uri = ""):
     """
