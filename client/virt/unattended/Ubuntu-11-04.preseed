@@ -25,6 +25,8 @@ d-i passwd/make-user boolean false
 d-i passwd/root-password password 12345678
 d-i passwd/root-password-again password 12345678
 
+d-i apt-setup/use_mirror boolean false
+
 tasksel tasksel/first multiselect standard
 
 d-i pkgsel/include string openssh-server build-essential
