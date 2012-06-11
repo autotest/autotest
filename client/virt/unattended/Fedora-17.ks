@@ -4,7 +4,7 @@ text
 reboot
 lang en_US
 keyboard us
-network --bootproto dhcp
+network --bootproto dhcp --hostname atest-guest
 rootpw 123456
 firewall --enabled --ssh
 selinux --enforcing
