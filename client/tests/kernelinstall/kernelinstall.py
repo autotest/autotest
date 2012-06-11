@@ -1,8 +1,7 @@
 import os, logging
 from autotest.client import test
 from autotest.client import utils
-from autotest.client.shared import git
-from autotest.client.shared import error
+from autotest.client.shared import git, error, software_manager
 from autotest.client.virt import virt_utils
 
 
@@ -43,7 +42,17 @@ class kernelinstall(test.test):
 
     def _kernel_install_koji(self, koji_tag, package="kernel", dep_pkgs=None,
                              need_reboot=True):
-        # First, download rpm packages via Koji tool.
+        sm = software_manager.SoftwareManager()
+        for utility in ['/usr/bin/koji', '/usr/bin/brew']:
+            if not os.access(utility, os.X_OK):
+                logging.debug("%s missing - trying to install", utility)
+                pkg = sm.provides(utility)
+                if pkg is not None:
+                    sm.install(pkg)
+                else:
+                    logging.error("No %s available on software sources" %
+                                  utility)
+        # First, download packages via koji/brew
         c = virt_utils.KojiClient()
         deps_rpms = ""
         if dep_pkgs:
