@@ -104,28 +104,28 @@ def virsh_cmd(cmd, uri="", ignore_status=False):
     return utils.run(cmd, verbose=DEBUG, ignore_status=ignore_status)
 
 
-def virsh_uri(uri = ""):
+def virsh_uri(uri=""):
     """
     Return the hypervisor canonical URI.
     """
     return virsh_cmd("uri", uri).stdout.strip()
 
 
-def virsh_hostname(uri = ""):
+def virsh_hostname(uri=""):
     """
     Return the hypervisor hostname.
     """
     return virsh_cmd("hostname", uri).stdout.strip()
 
 
-def virsh_version(uri = ""):
+def virsh_version(uri=""):
     """
     Return the major version info about what this built from.
     """
     return virsh_cmd("version", uri).stdout.strip()
 
 
-def virsh_driver(uri = ""):
+def virsh_driver(uri=""):
     """
     return the driver by asking libvirt
     """
@@ -136,7 +136,7 @@ def virsh_driver(uri = ""):
     return scheme.split('+', 2)[0]
 
 
-def virsh_domstate(name, uri = ""):
+def virsh_domstate(name, uri=""):
     """
     Return the state about a running domain.
 
@@ -145,21 +145,21 @@ def virsh_domstate(name, uri = ""):
     return virsh_cmd("domstate %s" % name, uri).stdout.strip()
 
 
-def virsh_domid(name, uri = ""):
+def virsh_domid(name, uri=""):
     """
     Return VM's ID.
     """
     return virsh_cmd("domid %s" % (name), uri).stdout.strip()
 
 
-def virsh_dominfo(name, uri = ""):
+def virsh_dominfo(name, uri=""):
     """
     Return the VM information.
     """
     return virsh_cmd("dominfo %s" % (name), uri).stdout.strip()
 
 
-def virsh_uuid(name, uri = ""):
+def virsh_uuid(name, uri=""):
     """
     Return the Converted domain name or id to the domain UUID.
 
@@ -168,7 +168,7 @@ def virsh_uuid(name, uri = ""):
     return virsh_cmd("domuuid %s" % name, uri).stdout.strip()
 
 
-def virsh_screenshot(name, filename, uri = ""):
+def virsh_screenshot(name, filename, uri=""):
     try:
         virsh_cmd("screenshot %s %s" % (name, filename), uri)
     except error.CmdError, detail:
@@ -177,7 +177,7 @@ def virsh_screenshot(name, filename, uri = ""):
                       "file \n%s", name, detail)
     return filename
 
-def virsh_dumpxml(name, uri = ""):
+def virsh_dumpxml(name, uri=""):
     """
     Return the domain information as an XML dump.
 
@@ -185,7 +185,7 @@ def virsh_dumpxml(name, uri = ""):
     """
     return virsh_cmd("dumpxml %s" % name, uri).stdout.strip()
 
-def virsh_is_alive(name, uri = ""):
+def virsh_is_alive(name, uri=""):
     """
     Return True if the domain is started/alive.
 
@@ -194,7 +194,7 @@ def virsh_is_alive(name, uri = ""):
     return not virsh_is_dead(name, uri)
 
 
-def virsh_is_dead(name, uri = ""):
+def virsh_is_dead(name, uri=""):
     """
     Return True if the domain is undefined or not started/dead.
 
@@ -210,7 +210,7 @@ def virsh_is_dead(name, uri = ""):
         return True
 
 
-def virsh_suspend(name, uri = ""):
+def virsh_suspend(name, uri=""):
     """
     Return True on successful domain suspention of VM.
 
@@ -230,7 +230,7 @@ def virsh_suspend(name, uri = ""):
         return False
 
 
-def virsh_resume(name, uri = ""):
+def virsh_resume(name, uri=""):
     """
     Return True on successful domain resumption of VM.
 
@@ -250,7 +250,7 @@ def virsh_resume(name, uri = ""):
         return False
 
 
-def virsh_save(name, path, uri = ""):
+def virsh_save(name, path, uri=""):
     """
     Store state of VM into named file.
 
@@ -269,7 +269,7 @@ def virsh_save(name, path, uri = ""):
         raise virt_vm.VMStatusError("VM not shut off after save")
 
 
-def virsh_restore(name, path, uri = ""):
+def virsh_restore(name, path, uri=""):
     """
     Load state of VM from named file and remove file.
 
@@ -290,7 +290,7 @@ def virsh_restore(name, path, uri = ""):
                 state)
 
 
-def virsh_start(name, uri = ""):
+def virsh_start(name, uri=""):
     """
     Return True on successful domain start.
 
@@ -308,7 +308,7 @@ def virsh_start(name, uri = ""):
         return False
 
 
-def virsh_shutdown(name, uri = ""):
+def virsh_shutdown(name, uri=""):
     """
     Return True on successful domain shutdown.
 
@@ -326,7 +326,7 @@ def virsh_shutdown(name, uri = ""):
         return False
 
 
-def virsh_destroy(name, uri = ""):
+def virsh_destroy(name, uri=""):
     """
     Return True on successful domain destroy.
 
@@ -345,7 +345,7 @@ def virsh_destroy(name, uri = ""):
         return False
 
 
-def virsh_define(xml_path, uri = ""):
+def virsh_define(xml_path, uri=""):
     """
     Return True on successful domain define.
 
@@ -359,7 +359,7 @@ def virsh_define(xml_path, uri = ""):
         return False
 
 
-def virsh_undefine(name, uri = ""):
+def virsh_undefine(name, uri=""):
     """
     Return True on successful domain undefine.
 
@@ -377,7 +377,7 @@ def virsh_undefine(name, uri = ""):
         return False
 
 
-def virsh_remove_domain(name, uri = ""):
+def virsh_remove_domain(name, uri=""):
     """
     Return True after forcefully removing a domain if it exists.
 
@@ -390,7 +390,7 @@ def virsh_remove_domain(name, uri = ""):
     return True
 
 
-def virsh_domain_exists(name, uri = ""):
+def virsh_domain_exists(name, uri=""):
     """
     Return True if a domain exits.
 
@@ -404,7 +404,7 @@ def virsh_domain_exists(name, uri = ""):
         return False
 
 
-def virsh_migrate(options, name, dest_uri, extra, uri = ""):
+def virsh_migrate(options, name, dest_uri, extra, uri=""):
     """
     Migrate a guest to another host.
 
@@ -429,7 +429,7 @@ def virsh_migrate(options, name, dest_uri, extra, uri = ""):
     return True
 
 
-def virsh_attach_device(name, xml_file, extra = "", uri = ""):
+def virsh_attach_device(name, xml_file, extra="", uri=""):
     """
     Attach a device to VM.
     """
@@ -442,7 +442,7 @@ def virsh_attach_device(name, xml_file, extra = "", uri = ""):
         return False
 
 
-def virsh_detach_device(name, xml_file, extra = "", uri = ""):
+def virsh_detach_device(name, xml_file, extra="", uri=""):
     """
     Detach a device from VM.
     """
@@ -1241,14 +1241,14 @@ class VM(virt_vm.BaseVM):
         return result
 
 
-    def attach_device(self, xml_file, extra = ""):
+    def attach_device(self, xml_file, extra=""):
         """
         Attach a device to VM.
         """
         return virsh_attach_device(self.name, xml_file, extra, self.connect_uri)
 
 
-    def detach_device(self, xml_file, extra = ""):
+    def detach_device(self, xml_file, extra=""):
         """
         Detach a device from VM.
         """
