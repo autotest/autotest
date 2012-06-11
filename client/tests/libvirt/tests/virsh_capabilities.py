@@ -1,5 +1,5 @@
-import logging, commands, re
-from  xml.dom.minidom import parse, parseString
+import logging, re
+from  xml.dom.minidom import parseString
 from autotest.client.shared import utils, error
 from autotest.client.virt import libvirt_vm
 

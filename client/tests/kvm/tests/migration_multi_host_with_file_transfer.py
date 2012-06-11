@@ -1,9 +1,9 @@
 import logging, threading
-from autotest.client.virt import virt_utils
 from autotest.client import utils as client_utils
 from autotest.client.shared import utils, error
 from autotest.client.shared.syncdata import SyncData
-from autotest.client.virt import virt_env_process
+from autotest.client.virt import virt_env_process, virt_utils
+
 
 @error.context_aware
 def run_migration_multi_host_with_file_transfer(test, params, env):

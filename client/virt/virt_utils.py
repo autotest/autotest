@@ -6,14 +6,12 @@ Virtualization test utility functions.
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
 import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect, tarfile
-import struct, shutil, glob, HTMLParser, urllib, traceback
+import struct, shutil, glob, HTMLParser, urllib, traceback, platform
 from autotest.client import utils, os_dep
 from autotest.client.shared import error, logging_config
 from autotest.client.shared import logging_manager, git
-from autotest.client.virt import virt_env_process, virt_vm
 from autotest.client.shared.syncdata import SyncData, SyncListenServer
-import rss_client, aexpect
-import platform
+import rss_client, aexpect, virt_env_process, virt_storage
 
 try:
     import koji
@@ -4707,7 +4705,7 @@ def preprocess_images(bindir, params, env):
             vm.destroy(free_mac_addresses=False)
         vm_params = params.object_params(vm_name)
         for image in vm_params.get("master_images_clone").split():
-            image_obj = virt_image.QemuImg(params, bindir, image)
+            image_obj = virt_storage.QemuImg(params, bindir, image)
             image_obj.clone_image(params, vm_name, image, bindir)
 
 
@@ -4715,7 +4713,7 @@ def postprocess_images(bindir, params):
     for vm in params.get("vms").split():
         vm_params = params.object_params(vm)
         for image in vm_params.get("master_images_clone").split():
-            image_obj = virt_image.QemuImg(params, bindir, image)
+            image_obj = virt_storage.QemuImg(params, bindir, image)
             image_obj.rm_clone_image(params, vm, image, bindir)
 
 

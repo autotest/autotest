@@ -1,7 +1,5 @@
-import logging, threading
-from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils, virt_utils
+from autotest.client.virt import virt_test_utils
 
 
 def run_nic_promisc(test, params, env):

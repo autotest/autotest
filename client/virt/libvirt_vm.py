@@ -8,7 +8,7 @@ import time, os, logging, fcntl, re, commands, shutil, urlparse
 from autotest.client.shared import error
 from autotest.client import utils, os_dep
 from xml.dom import minidom
-import virt_utils, virt_vm, aexpect, virt_storage
+import virt_utils, virt_vm, virt_storage, aexpect
 
 DEBUG = False
 try:

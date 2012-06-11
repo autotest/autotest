@@ -1,5 +1,5 @@
 import os, re, logging, time, socket
-from autotest.client.virt import virt_utils, kvm_monitor
+from autotest.client.virt import virt_utils
 from autotest.client.shared import error, utils
 from autotest.client.shared.barrier import listen_server
 from autotest.client.shared.syncdata import SyncData

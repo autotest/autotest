@@ -5,14 +5,6 @@ This exports:
   - two functions for get image/blkdebug filename
   - class for image operates and basic parameters
 """
-import logging
-import os
-import shutil
-import re
-from autotest.client.shared import error
-from autotest.client import utils
-import virt_utils
-import virt_vm
 import virt_storage
 
 

@@ -7,7 +7,7 @@ See BaseInstaller class in base_installer.py for interface details.
 import os, logging
 from autotest.client import utils
 from autotest.client.shared import error
-from autotest.client.virt import base_installer
+import base_installer
 
 
 __all__ = ['GitRepoInstaller', 'LocalSourceDirInstaller',

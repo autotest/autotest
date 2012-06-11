@@ -1,7 +1,6 @@
 import re, logging, ConfigParser
 from autotest.client.shared import error
 from autotest.client.virt import qemu_io
-from autotest.client.virt import virt_vm
 from autotest.client.virt import virt_utils
 from autotest.client.virt.kvm_storage import QemuImg
 from autotest.client import utils

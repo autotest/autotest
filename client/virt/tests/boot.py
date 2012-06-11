@@ -1,7 +1,4 @@
-import time
-import sys
-import re
-
+import time, sys, re
 from autotest.client.shared import error
 from autotest.client.virt import virt_test_utils
 

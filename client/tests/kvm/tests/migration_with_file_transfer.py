@@ -1,4 +1,4 @@
-import logging, time, os
+import logging, os
 from autotest.client.shared import utils, error
 from autotest.client import utils as client_utils
 from autotest.client.virt import virt_utils

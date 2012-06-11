@@ -5,7 +5,7 @@ multi_disk test for Autotest framework.
 """
 import logging, re, random, string
 from autotest.client.shared import error, utils
-from autotest.client.virt import kvm_qtree, virt_storage, virt_env_process
+from autotest.client.virt import kvm_qtree, virt_env_process
 
 _RE_RANGE1 = re.compile(r'range\([ ]*([-]?\d+|n).*\)')
 _RE_RANGE2 = re.compile(r',[ ]*([-]?\d+|n)')

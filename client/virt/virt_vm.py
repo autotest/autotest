@@ -1,7 +1,7 @@
-import os, logging, time, glob, re, shutil
+import logging, time, glob, re
 from autotest.client.shared import error
-from autotest.client import utils
 import virt_utils
+
 
 class VMError(Exception):
     pass

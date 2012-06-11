@@ -4,11 +4,10 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, fcntl, re, commands, glob
+import time, os, logging, fcntl, re, commands
 from autotest.client.shared import error
 from autotest.client import utils
-import virt_utils, virt_vm, virt_test_setup, kvm_monitor, aexpect
-import virt_storage
+import virt_utils, virt_vm, virt_test_setup, virt_storage, kvm_monitor, aexpect
 
 
 class VM(virt_vm.BaseVM):

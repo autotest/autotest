@@ -10,8 +10,8 @@ from threading import Thread
 
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_utils, virt_test_utils, kvm_monitor
-from autotest.client.virt import virt_env_process, aexpect
+from autotest.client.virt import virt_test_utils, kvm_monitor, virt_env_process
+from autotest.client.virt import aexpect
 
 
 def run_virtio_console(test, params, env):

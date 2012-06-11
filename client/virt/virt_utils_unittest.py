@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest, logging, time, sys, os, shelve
+import unittest, time, sys, os, shelve
 import common
 from autotest.client.virt import virt_utils
 from autotest.client import utils

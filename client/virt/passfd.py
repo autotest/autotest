@@ -37,7 +37,7 @@ For more information, see one of the R. Stevens' books:
 # Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import os, socket
+import socket
 import _passfd
 
 
