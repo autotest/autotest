@@ -54,4 +54,5 @@ setup(name='autotest',
                 'autotest.frontend.tko',
                 'autotest.frontend',
                ],
+      scripts=[os.path.join(fe_dir, 'autotest-manage-rpc-server')],
 )
