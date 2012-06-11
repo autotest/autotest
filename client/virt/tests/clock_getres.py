@@ -1,6 +1,5 @@
 import logging, os
 from autotest.client.shared import error
-from autotest.client import utils
 
 
 def run_clock_getres(test, params, env):

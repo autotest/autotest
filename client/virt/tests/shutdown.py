@@ -1,4 +1,4 @@
-import logging, time
+import time
 from autotest.client.shared import error
 from autotest.client.virt import virt_utils
 

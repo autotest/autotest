@@ -1,4 +1,4 @@
-import re, commands, logging, os
+import logging
 from autotest.client.shared import error, utils
 from autotest.client.virt import base_installer
 

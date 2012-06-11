@@ -5,15 +5,10 @@ This exports:
   - two functions for get image/blkdebug filename
   - class for image operates and basic parameters
 """
-import logging
-import os
-import shutil
-import re
+import logging, os
 from autotest.client.shared import error
 from autotest.client import utils
-import virt_utils
-import virt_vm
-import virt_storage
+import virt_utils, virt_vm, virt_storage
 
 
 class QemuImg(virt_storage.QemuImg):

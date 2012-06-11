@@ -1,5 +1,5 @@
 import os, re, logging, time
-from autotest.client.virt import virt_utils, kvm_monitor
+from autotest.client.virt import virt_utils
 from autotest.client.shared import error, utils
 
 

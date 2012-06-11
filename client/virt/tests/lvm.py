@@ -1,4 +1,4 @@
-import logging, os
+import os
 from autotest.client.shared import error
 
 

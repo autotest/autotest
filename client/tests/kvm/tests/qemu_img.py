@@ -1,7 +1,6 @@
 import re, os, logging, commands
 from autotest.client.shared import utils, error
-from autotest.client.virt import virt_vm, virt_utils, virt_env_process
-from autotest.client.virt import virt_storage
+from autotest.client.virt import virt_utils, virt_env_process, virt_storage
 
 
 def run_qemu_img(test, params, env):

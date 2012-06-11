@@ -1,7 +1,6 @@
-import logging, threading, os, time
-from autotest.client.shared import error
+import logging, os, time
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils, virt_utils
+from autotest.client.virt import virt_test_utils
 
 
 def run_nicdriver_unload(test, params, env):

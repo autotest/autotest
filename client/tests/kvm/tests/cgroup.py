@@ -3,11 +3,7 @@ cgroup autotest test (on KVM guest)
 @author: Lukas Doktor <ldoktor@redhat.com>
 @copyright: 2011 Red Hat, Inc.
 """
-import logging
-import os
-import re
-import time
-from random import random
+import logging, os, re, time
 from autotest.client.shared import error
 from autotest.client import utils
 from autotest.client.tests.cgroup.cgroup_common import Cgroup

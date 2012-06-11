@@ -4,10 +4,8 @@ Utility classes and functions to handle KVM Qtree parsing and verification.
 @author: Lukas Doktor <ldoktor@redhat.com>
 @copyright: 2012 Red Hat Inc.
 """
-import logging
-import os
-import re
-from autotest.client.virt import virt_storage
+import logging, os, re
+import virt_storage
 
 OFFSET_PER_LEVEL = 2
 

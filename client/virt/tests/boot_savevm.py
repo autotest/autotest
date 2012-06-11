@@ -1,6 +1,6 @@
-import logging, time, tempfile, os.path
+import logging, time, tempfile, os
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils
+
 
 def run_boot_savevm(test, params, env):
     """

@@ -1,5 +1,4 @@
 import os
-import logging
 from autotest.client.shared import error
 
 

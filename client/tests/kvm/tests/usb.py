@@ -163,7 +163,11 @@ def run_usb(test, params, env):
         session = _login()
         output = session.cmd("ls -l /dev/disk/by-path/* | grep usb").strip()
         devname = re.findall("sd\w", output)
-        cmd = "dmesg | grep %s" % devname[0] if devname else "sda"
+        if devname:
+            d = devname[0]
+        else:
+            d = "sda"
+        cmd = "dmesg | grep %s" % d
         output = session.cmd(cmd)
         _verify_string(expect_str, output, [expect_str])
         _do_io_test_guest(session)
@@ -190,12 +194,19 @@ def run_usb(test, params, env):
         session = _login()
         output = session.cmd("ls -l /dev/disk/by-path/* | grep usb").strip()
         devname = re.findall("sd\w", output)
-        cmd = "cat /sys/block/%s/queue/{minimum,optimal}_io_size" % \
-               (devname[0] if devname else "sda")
+        if devname:
+            d = devname[0]
+        else:
+            d = 'sda'
+        cmd = ("cat /sys/block/%s/queue/{minimum,optimal}_io_size" % d)
+
         output = session.cmd(cmd)
         # Note: If set min_io_size = 0, guest min_io_size would be set to
         # 512 by default.
-        expected_min_size = min_io_size if min_io_size != "0" else "512"
+        if min_io_size != "0":
+            expected_min_size = min_io_size
+        else:
+            expected_min_size = "512"
         _verify_string("(\d+)\n(\d+)", output, [expected_min_size, opt_io_size])
         _do_io_test_guest(session)
 

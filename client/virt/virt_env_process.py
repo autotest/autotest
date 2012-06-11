@@ -1,9 +1,8 @@
 import os, time, commands, re, logging, glob, threading, shutil
 from autotest.client import utils
 from autotest.client.shared import error
-import aexpect, virt_utils, kvm_monitor, ppm_utils, virt_test_setup
-import virt_vm, kvm_vm, libvirt_vm, virt_video_maker, virt_utils, virt_storage
-import kvm_storage
+import aexpect, kvm_monitor, ppm_utils, virt_test_setup, virt_vm, kvm_vm
+import libvirt_vm, virt_video_maker, virt_utils, virt_storage, kvm_storage
 
 try:
     import PIL.Image

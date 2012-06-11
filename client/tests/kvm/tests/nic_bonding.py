@@ -54,7 +54,7 @@ def run_nic_bonding(test, params, env):
 
         logging.info("Failover test with file transfer")
         transfer_thread = utils.InterruptedThread(
-                                               file_transfer.run_file_transfer,
+                                              virt_test_utils.run_file_transfer,
                                                (test, params, env))
         try:
             transfer_thread.start()

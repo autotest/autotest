@@ -1,9 +1,8 @@
-import logging, os, commands, sys, threading, re, glob
-from autotest.client.shared import error
-from autotest.client import utils
-from autotest.client.virt import aexpect, virt_utils
-from autotest.client.virt import virt_test_utils
+import logging, os, commands, threading, re, glob
 from autotest.server.hosts.ssh_host import SSHHost
+from autotest.client import utils
+from autotest.client.virt import virt_test_utils, virt_utils
+
 
 def run_netperf(test, params, env):
     """
