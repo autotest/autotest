@@ -48,11 +48,19 @@ usb_controller_tablet1 = uhci
 
 # Default number of processors for each VM
 smp = 1
+# Config for vcpu
+#vcpu_cores = 1
+#vcpu_threads = 1
+#vcpu_sockets = 1
+
 # Memory for each VM
 mem = 1024
 
 # Networking type (nic, user, tap, socket, vde, dump, none)
 nic_mode = tap
+
+# initial PCI address for guest.
+init_pci_addr = 4
 
 # Host networking restart command line for PCI assign cases
 # net_restart_cmd = /etc/init.d/network restart
@@ -73,7 +81,9 @@ drive_cache = none
 # List of hypervisor-monitor object names (one per guest),
 #    used to communicate with hypervisor to control guests.
 #    Order cooresponds to 'vms' list above.
-monitors = humanmonitor1
+monitors = hmp1
+# hmp1 monitor type (protocol), if only hmp1 type is going to be set
+#monitor_type_hmp1 = human
 # Default monitor type (protocol), if multiple types to be used
 monitor_type = human
 # Pattern to get vcpu threads from monitor.
@@ -87,6 +97,10 @@ display = vnc
 # Guest VGA type (cirrus,  std, vmware, qxl, xenfb, none)
 vga = std
 
+# Specify multiple sound cards seperated by comma,like 'sb16,adlib' or 'all'.
+# By default, it's 'ac97'.
+soundcards = ac97
+
 ###
 # Capture contents of display during each test
 take_regular_screendumps = yes
@@ -95,6 +109,12 @@ screendump_delay = 5
 # Encode video from vm screenshots
 encode_video_files = yes
 
+# Set boot order
+boot_order = cdn
+# Use the first hard disk for boot device once
+boot_once = c
+# Enable/Disable boot menu
+boot_menu = off
 
 
 #### SPICE related options valid if display == spice,
@@ -192,6 +212,10 @@ start_vm = yes
 kill_vm = no
 kill_vm_gracefully = yes
 kill_unresponsive_vms = yes
+# Don't kill vm via monitor until it becomes paused
+kill_vm_only_when_paused = yes
+# Wait time before kill vm
+kill_timeout = 60
 
 # Screendump thread params
 convert_ppm_files_to_png_on_error = yes

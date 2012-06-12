@@ -188,6 +188,18 @@ class TestNumaNode(unittest.TestCase):
         self.assertEqual(self.numa_node.dict["1"], "1231")
 
 
+    def test_bitlist_to_string(self):
+        string = 'foo'
+        bitlist = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1]
+        self.assertEqual(virt_utils.string_to_bitlist(string), bitlist)
+
+
+    def test_string_to_bitlist(self):
+        bitlist = [0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0]
+        string = 'bar'
+        self.assertEqual(virt_utils.bitlist_to_string(bitlist), string)
+
+
     def tearDown(self):
         self.god.unstub_all()
 

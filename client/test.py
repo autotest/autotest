@@ -15,8 +15,9 @@
 #       profdir         eg. results/<job>/<testname.tag>/profiling
 #       debugdir        eg. results/<job>/<testname.tag>/debug
 #       bindir          eg. tests/<test>
-#       src             eg. tests/<test>/src
+#       srcdir          eg. tests/<test>/src
 #       tmpdir          eg. tmp/<testname.tag>
+#       virtdir         eg. virt
 
 import os, logging, resource, glob
 
