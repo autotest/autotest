@@ -1,5 +1,5 @@
 import logging, socket, time, errno, os, fcntl
-from autotest.client.virt import virt_utils
+from autotest.client.virt import virt_test_utils, virt_utils
 from autotest.client.shared.syncdata import SyncData
 
 def run_migration_multi_host_fd(test, params, env):
@@ -14,7 +14,7 @@ def run_migration_multi_host_fd(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    class TestMultihostMigrationFd(virt_utils.MultihostMigration):
+    class TestMultihostMigrationFd(virt_test_utils.MultihostMigration):
         def __init__(self, test, params, env):
             super(TestMultihostMigrationFd, self).__init__(test, params, env)
 

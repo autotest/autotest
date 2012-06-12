@@ -1,8 +1,8 @@
 import os, re, logging, time, socket
-from autotest.client.virt import virt_utils
 from autotest.client.shared import error, utils
 from autotest.client.shared.barrier import listen_server
 from autotest.client.shared.syncdata import SyncData
+from autotest.client.virt import virt_test_utils, virt_utils
 
 
 def run_migration_multi_host_with_speed_measurement(test, params, env):
@@ -71,7 +71,7 @@ def run_migration_multi_host_with_speed_measurement(test, params, env):
 
         return mig_stat
 
-    class TestMultihostMigration(virt_utils.MultihostMigration):
+    class TestMultihostMigration(virt_test_utils.MultihostMigration):
         def __init__(self, test, params, env):
             super(TestMultihostMigration, self).__init__(test, params, env)
             self.mig_stat = None
@@ -117,7 +117,7 @@ def run_migration_multi_host_with_speed_measurement(test, params, env):
                 session = vm.wait_for_login(timeout=self.login_timeout)
 
                 virt_utils.install_cpuflags_util_on_vm(test, vm, install_path,
-                                               extra_flags="-msse3 -msse2")
+                                                    extra_flags="-msse3 -msse2")
 
                 cmd = ("%s/cpuflags-test --stressmem %d" %
                     (os.path.join(install_path, "test_cpu_flags"), vm_mem / 2))

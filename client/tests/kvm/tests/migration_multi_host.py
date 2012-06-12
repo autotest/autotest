@@ -1,4 +1,4 @@
-from autotest.client.virt import virt_utils
+from autotest.client.virt import virt_test_utils
 
 
 def run_migration_multi_host(test, params, env):
@@ -12,7 +12,7 @@ def run_migration_multi_host(test, params, env):
     @param params: Dictionary with test parameters.
     @param env: Dictionary with the test environment.
     """
-    class TestMultihostMigration(virt_utils.MultihostMigration):
+    class TestMultihostMigration(virt_test_utils.MultihostMigration):
         def __init__(self, test, params, env):
             super(TestMultihostMigration, self).__init__(test, params, env)
 
