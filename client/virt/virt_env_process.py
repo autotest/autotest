@@ -3,6 +3,7 @@ from autotest.client import utils
 from autotest.client.shared import error
 import aexpect, kvm_monitor, ppm_utils, virt_test_setup, virt_vm, kvm_vm
 import libvirt_vm, virt_video_maker, virt_utils, virt_storage, kvm_storage
+import virt_remote
 
 try:
     import PIL.Image
@@ -433,7 +434,7 @@ def postprocess(test, params, env):
                 try:
                     session = vm.login()
                     session.close()
-                except (virt_utils.LoginError, virt_vm.VMError), e:
+                except (virt_remote.LoginError, virt_vm.VMError), e:
                     logging.warn(e)
                     vm.destroy(gracefully=False)
 

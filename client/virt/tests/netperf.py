@@ -1,7 +1,7 @@
 import logging, os, commands, threading, re, glob
 from autotest.server.hosts.ssh_host import SSHHost
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils, virt_utils
+from autotest.client.virt import virt_test_utils, virt_utils, virt_remote
 
 
 def run_netperf(test, params, env):
@@ -66,8 +66,8 @@ def run_netperf(test, params, env):
 
         netperf_dir = os.path.join(os.environ['AUTODIR'], "tests/netperf2")
         for i in params.get("netperf_files").split():
-            virt_utils.scp_to_remote(ip, shell_port, username, password,
-                                     "%s/%s" % (netperf_dir, i), "/tmp/")
+            virt_remote.scp_to_remote(ip, shell_port, username, password,
+                                      "%s/%s" % (netperf_dir, i), "/tmp/")
         ssh_cmd(ip, params.get("setup_cmd"))
 
     logging.info("Prepare env of server/client/host")
