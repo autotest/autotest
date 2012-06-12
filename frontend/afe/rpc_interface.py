@@ -846,3 +846,7 @@ def get_static_data():
 
 def get_server_time():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+
+def get_server_utctime():
+    return datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M")

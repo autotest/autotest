@@ -44,7 +44,7 @@ def parse_results(text):
 
         # Found a FAIL/ERROR/GOOD line -- get failure/success info
         elif (len(parts) >= 6 and parts[3].startswith("timestamp") and
-              parts[4].startswith("localtime")):
+              parts[4].startswith("utctime")):
             info_list[-1] = parts[5]
 
     return result_list

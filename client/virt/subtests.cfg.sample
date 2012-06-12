@@ -743,6 +743,21 @@ variants:
                 test_control_file = systemtap.control
             - cpuflags-stress:
                 test_control_file = cpuflags.control
+            - scsi_testsuite:
+                images += " asd"
+                image_boot_image1 = yes
+                image_name_asd = scsidisk
+                image_format_asd = qcow2
+                image_boot_asd = no
+                drive_index_asd = 1
+                create_image_asd = yes
+                image_size_asd = 10M
+                drive_serial_asd = ATST001
+                pci_model = scsi
+                test_control_file = scsi_testsuite.control
+                variants:
+                    - scsi-disk:
+                        drive_format_asd = scsi-disk
 
     - qemu_img_commit:  install setup image_copy unattended_install.cdrom
         type = qemu_img
@@ -948,7 +963,6 @@ variants:
 
     - whql: install setup image_copy unattended_install.cdrom
         only Windows
-        nic_mode = tap
         # Replace this with the address of an installed DTM server
         server_address = 10.20.30.40
         # The server should run rss.exe like a regular Windows VM, preferably
@@ -969,7 +983,6 @@ variants:
                 boot_once = d
                 force_create_image = yes
                 kill_vm = yes
-                nic_mode = user
                 redirs += " unattended_install"
                 guest_port_unattended_install = 12323
                 medium = cdrom
@@ -1213,7 +1226,6 @@ variants:
         maximal = 4094
         listen_cmd = "nc -l %s > %s"
         send_cmd = "nc %s %s < %s"
-        nic_mode = tap
         vms += " vm2"
         image_snapshot = yes
         kill_vm_vm2 = yes
@@ -1240,7 +1252,6 @@ variants:
     - nicdriver_unload: install setup image_copy unattended_install.cdrom
         only Linux
         type = nicdriver_unload
-        nic_mode = tap
         filesize = 100
         transfer_timeout = 100
         transfer_type = remote
@@ -1256,7 +1267,6 @@ variants:
     - multicast: install setup image_copy unattended_install.cdrom
         only Linux
         type = multicast
-        nic_mode = tap
         mcast = 225.0.0.1
         mgroup_count = 20
         flood_minutes = 1
@@ -1397,7 +1407,6 @@ variants:
         pci_model_nic1 = virtio_net
         # bridge_nic2 = switch
         pci_model_nic2 = e1000
-        nic_mode = tap
         netperf_files = netperf-2.4.5.tar.bz2 wait_before_data.patch
         setup_cmd = "cd /tmp && rm -rf netperf-2.4.5 && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure --enable-burst && make"
         # configure netperf test parameters
@@ -1449,7 +1458,6 @@ variants:
         only Linux
         type = ethtool
         filesize = 512
-        nic_mode = tap
 
     - nic_bonding: install setup image_copy unattended_install.cdrom
         only Linux
@@ -1477,7 +1485,6 @@ variants:
         only Linux
         type = netstress_kill_guest
         image_snapshot = yes
-        nic_mode = tap
         # There should be enough vms for build topology.
         variants:
             -driver:
@@ -1781,7 +1788,7 @@ variants:
         remove_image = yes
         remove_image_image1 = no
         cmd_timeout = 1000
-        block_list = C: D: vda vda1 vda2 hda hda1 hda2 sda sda1 sda2
+        black_list = C: D:
         start_vm = no
         variants:
             - signal_repeat:
@@ -1928,7 +1935,8 @@ variants:
     - usb_multi_disk: install setup image_copy unattended_install.cdrom
         type = multi_disk
         cmd_timeout = 1000
-        block_list = C: D: vda vda1 vda2 hda hda1 hda2 sda sda1 sda2
+        black_list = C: D:
+        start_vm = no
         kill_vm = yes
         create_image = yes
         image_boot_image1 = yes
@@ -2152,6 +2160,40 @@ variants:
                         image_name_vm2 = rhel63-64_client
                     -6.3.beta.i386:
                         image_name_vm2 = rhel63-32_client
+    - kernel_install:
+        only Linux
+        type = kernel_install
+        variants:
+            ## Example for other installation methods
+            #- koji:
+            #    install_type = koji
+            #    kernel_dep_pkgs = "linux-firmware module-init-tools"
+            #    kernel_koji_tag = f16-updates
+            #- rpm:
+            #    install_type = rpm
+                 # These 2 parameters can be url.
+            #    kernel_rpm_path = "kernel-3.1.7-1.fc16.x86_64"
+            #    kernel_deps_rpms = "linux-firmware-20110731-2.fc16.noarch"
+            #    file_checklist = kernel_rpm_path kernel_deps_rpms
+            #- git:
+            #    install_type = git
+            #    kernel_git_repo = ""
+            #    kernel_git_repo_base = ""
+            #    kernel_git_branch = ""
+            #    kernel_git_commit = ""
+            #    kernel_patch_list = ""
+            #    kernel_config = ""
+            #    kerne_config_list = ""
+            - @tar:
+                install_type = tar
+                kernel_src_pkg = "http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.3.tar.bz2"
+                # Remember to update this config file to your own.
+                kernel_config = "/boot/config-3.3.4-5.fc17.x86_64"
+                kernel_patch_list = "http://www.kernel.org/pub/linux/kernel/v3.0/patch-3.3.4.bz2"
+                file_checklist = kerne_src_pkg kernel_config kernel_patch_list
+                kernel_tag = "3.3.4"
+                # The fedora default kernel config would take very long time to compile.
+                test_timeout_install = 3600
 
     - shutdown: install setup image_copy unattended_install.cdrom
         type = shutdown

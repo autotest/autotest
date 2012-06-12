@@ -10,15 +10,43 @@ vms = vm1
 # Default virtual machine to use, when not specified by test.
 main_vm = vm1
 
-# List of network device object names (whitespace seperated)
+# List of default network device object names (whitespace seperated)
+# All VMs get these by default, unless specific vm name references
+# are used, for example:
+#
+# vms = vm1 vm2 vm3 vm4
+# nics = nic1 nic2 nic3
+# nics_vm1 = nic2
+# nics_vm2 =
+# nics_vm3 = nic1 nic3
+#
+# Translates to:
+# VM 'vm1' uses only 'nic2'
+# VM 'vm2' uses no nics
+# VM 'vm3' uses 'nic1' and 'nic3'
+# VM 'vm4' uses all three nics
 nics = nic1
-# List of end-point bridges to connect NIC devices to on host
-bridge = virbr0
-# For libvirt, use following as argument to --network
-virsh_network = network=default
+# Assign random MAC by default, or specify per-nic values
+# mac_nic1 = 01:02:03:04:05:06
+# Use builtin dhcpd by default, or assign per-nic IP addresses
+# ip_nic1 = 192.168.122.100
+# Global defauot NIC Destination type (network, bridge (tap), user)
+# Add '_<nic_name>' postfix for heterogenious mapping (nettype_nic1 = bridge)
+nettype = bridge
+# Global default destination name (eth1, virbr0, default, etc.)
+# Add '_<nic_name>' postfix for heterogenious mapping (netdst_nic1 = virbr0)
+netdst = virbr0
+# Heterogenious models are also possible (default in guest-hw.cfg)
+# nic_model_nic1 = e1000
+# nic_model_nic2 = virtio
+# or based on vm
+# nic_model_vm1 = virtio
 
 # List of block device object names (whitespace seperated)
 images = image1
+# List of block device object names with order (whitespace seperated)
+# Example: $base $sn1 $sn2
+image_chain = ""
 # List of optical device object names
 cdroms = cd1
 
@@ -188,6 +216,7 @@ drive_werror_image1 =
 #    unattended_install. In all other tests, it should be no, so keep the global
 #    as is.
 backup_image = no
+backup_dir = /tmp
 # Enable backup_image_on_check_error = yes globally to allow isolate bad images
 #    for investigation purposes
 backup_image_on_check_error = no

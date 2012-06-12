@@ -1,12 +1,12 @@
 """
-KVM test utility functions.
+Virtualization test utility functions.
 
 @copyright: 2008-2009 Red Hat Inc.
 """
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
 import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect, tarfile
-import struct, shutil, glob, HTMLParser, urllib
+import struct, shutil, glob, HTMLParser, urllib, traceback
 from autotest.client import utils, os_dep
 from autotest.client.shared import error, logging_config
 from autotest.client.shared import logging_manager, git
@@ -56,13 +56,13 @@ else:
     IFF_UP = 0x1
 
 
-def _lock_file(filename):
+def lock_file(filename, mode=fcntl.LOCK_EX):
     f = open(filename, "w")
-    fcntl.lockf(f, fcntl.LOCK_EX)
+    fcntl.lockf(f, mode)
     return f
 
 
-def _unlock_file(f):
+def unlock_file(f):
     fcntl.lockf(f, fcntl.LOCK_UN)
     f.close()
 
@@ -154,6 +154,27 @@ class HwAddrGetError(NetError):
     def __str__(self):
         return "Can not get mac of interface %s" % self.ifname
 
+class PropCanKeyError(KeyError, AttributeError):
+    def __init__(self, key, slots):
+        self.key = key
+        self.slots = slots
+    def __str__(self):
+        return "Unsupported key name %s (supported keys: %s)" % (
+                    str(self.key), str(self.slots))
+
+class PropCanValueError(PropCanKeyError):
+    def __str__(self):
+        return "Instance contains None value for valid key '%s'" % (
+                    str(self.key))
+
+class VMNetError(NetError):
+    def __str__(self):
+        return ("VMNet instance items must be dict-like and contain "
+                "a 'nic_name' mapping")
+
+class DbNoLockError(NetError):
+    def __str__(self):
+        return "Attempt made to access database with improper locking"
 
 class Env(UserDict.IterableUserDict):
     """
@@ -186,13 +207,17 @@ class Env(UserDict.IterableUserDict):
                         self.data = empty
                 else:
                     # No previous env file found, proceed...
+                    logging.warn("Creating new, empty env file")
                     self.data = empty
             # Almost any exception can be raised during unpickling, so let's
             # catch them all
-            except Exception, e:
-                logging.warn(e)
+            except:
+                logging.warn("Exception thrown while loading env")
+                traceback.print_last()
+                logging.warn("Creating new, empty env file")
                 self.data = empty
         else:
+            logging.warn("Creating new, empty env file")
             self.data = empty
 
 
@@ -325,112 +350,833 @@ class Params(UserDict.IterableUserDict):
                 new_dict[new_key] = self[key]
         return new_dict
 
+# subclassed dict wouldn't honor __slots__ on python 2.4 when __slots__ gets
+# overridden by a subclass. This class also changes behavior of dict
+# WRT to None value being the same as non-existant "key".
+class PropCan(object):
+    """
+    Allow container-like access to fixed set of items (__slots__)
 
-# Functions related to MAC/IP addresses
+    raise: KeyError if requested container-like index isn't in set (__slots__)
+    """
+    __slots__ = []
 
+    def __init__(self, properties={}):
+        """
+        Initialize, optionally with pre-defined key values.
+
+        param: properties: Mapping of fixed (from __slots__) keys to values
+        """
+        for propertea in self.__slots__:
+            value = properties.get(propertea, None)
+            self[propertea] = value
+
+    def __getattribute__(self, propertea):
+        try:
+            value = super(PropCan, self).__getattribute__(propertea)
+        except:
+            raise PropCanKeyError(propertea, self.__slots__)
+        if value is not None:
+            return value
+        else:
+            raise PropCanValueError(propertea, self.__slots__)
+
+    def __getitem__(self, propertea):
+        try:
+            return getattr(self, propertea)
+        except AttributeError:
+            raise PropCanKeyError(propertea, self.__slots__)
+
+    def __setitem__(self, propertea, value):
+        try:
+            setattr(self, propertea, value)
+        except AttributeError:
+            raise PropCanKeyError(propertea, self.__slots__)
+
+    def __delitem__(self, propertea):
+        try:
+            delattr(self, propertea)
+        except AttributeError:
+            raise PropCanKeyError(propertea, self.__slots__)
+
+    def __len__(self):
+        length = 0
+        for propertea in self.__slots__:
+            if self.__contains__(propertea):
+                length += 1
+        return length
+
+    def __contains__(self, propertea):
+        try:
+            value = getattr(self, propertea)
+        except PropCanKeyError:
+            return False
+        if value:
+            return True
+
+    def keys(self):
+        keylist = []
+        for propertea in self.__slots__:
+            if self.__contains__(propertea):
+                keylist.append(propertea)
+        return keylist
+
+    def has_key(self, propertea):
+        return self.__contains__(propertea)
+
+    def set_if_none(self, propertea, value):
+        """
+        Set the value of propertea, only if it's not set or None
+        """
+        if propertea not in self.keys():
+            self[propertea] = value
+
+    def get(self, propertea, default=None):
+        """
+        Mimics get method on python dictionaries
+        """
+        if self.has_key(propertea):
+            return self[propertea]
+        else:
+            return default
+
+    def update(self, **otherdict):
+        for propertea in self.__slots__:
+            if otherdict.has_key(propertea):
+                self[propertea] = otherdict[propertea]
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        """
+        Guarantee return of string format dictionary representation
+        """
+        d = {}
+        for propertea in self.__slots__:
+            value = getattr(self, propertea, None)
+            # Avoid producing string conversions with python-specific or
+            # ambiguous meaning e.g. str(None) == 'None' and 
+            # str(<type>) == '<type "foo">' are all valid
+            # but demand interpretation on the receiving-side. Easier to
+            # just hard-code a common set of types known to convert to/from
+            # database strings easily.
+            if value is not None and (
+                        isinstance(value, str) or isinstance(value, int) or
+                        isinstance(value, float) or isinstance(value, long) or
+                        isinstance(value, unicode)):
+                d[propertea] = value
+            else:
+                continue
+        return str(d)
+
+# Legacy functions related to MAC/IP addresses should make noise
 def _open_mac_pool(lock_mode):
-    lock_file = open("/tmp/mac_lock", "w+")
-    fcntl.lockf(lock_file, lock_mode)
-    pool = shelve.open("/tmp/address_pool")
-    return pool, lock_file
-
+    raise RuntimeError("Please update your code to use the VirtNet class")
 
 def _close_mac_pool(pool, lock_file):
-    pool.close()
-    fcntl.lockf(lock_file, fcntl.LOCK_UN)
-    lock_file.close()
-
+    raise RuntimeError("Please update your code to use the VirtNet class")
 
 def _generate_mac_address_prefix(mac_pool):
-    """
-    Generate a random MAC address prefix and add it to the MAC pool dictionary.
-    If there's a MAC prefix there already, do not update the MAC pool and just
-    return what's in there. By convention we will set KVM autotest MAC
-    addresses to start with 0x9a.
-
-    @param mac_pool: The MAC address pool object.
-    @return: The MAC address prefix.
-    """
-    if "prefix" in mac_pool:
-        prefix = mac_pool["prefix"]
-    else:
-        r = random.SystemRandom()
-        prefix = "9a:%02x:%02x:%02x:" % (r.randint(0x00, 0xff),
-                                         r.randint(0x00, 0xff),
-                                         r.randint(0x00, 0xff))
-        mac_pool["prefix"] = prefix
-    return prefix
-
+    raise RuntimeError("Please update your code to use the VirtNet class")
 
 def generate_mac_address(vm_instance, nic_index):
-    """
-    Randomly generate a MAC address and add it to the MAC address pool.
-
-    Try to generate a MAC address based on a randomly generated MAC address
-    prefix and add it to a persistent dictionary.
-    key = VM instance + NIC index, value = MAC address
-    e.g. {'20100310-165222-Wt7l:0': '9a:5d:94:6a:9b:f9'}
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
-    @return: MAC address string.
-    """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_EX)
-    key = "%s:%s" % (vm_instance, nic_index)
-    if key in mac_pool:
-        mac = mac_pool[key]
-    else:
-        prefix = _generate_mac_address_prefix(mac_pool)
-        r = random.SystemRandom()
-        while key not in mac_pool:
-            mac = prefix + "%02x:%02x" % (r.randint(0x00, 0xff),
-                                          r.randint(0x00, 0xff))
-            if mac in mac_pool.values():
-                continue
-            mac_pool[key] = mac
-    _close_mac_pool(mac_pool, lock_file)
-    return mac
-
+    raise RuntimeError("Please update your code to use "
+                       "VirtNet.generate_mac_address()")
 
 def free_mac_address(vm_instance, nic_index):
-    """
-    Remove a MAC address from the address pool.
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
-    """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_EX)
-    key = "%s:%s" % (vm_instance, nic_index)
-    if key in mac_pool:
-        del mac_pool[key]
-    _close_mac_pool(mac_pool, lock_file)
-
+    raise RuntimeError("Please update your code to use "
+                       "VirtNet.free_mac_address()")
 
 def set_mac_address(vm_instance, nic_index, mac):
+    raise RuntimeError("Please update your code to use "
+                       "VirtNet.set_mac_address()")
+
+class VirtIface(PropCan):
     """
-    Set a MAC address in the pool.
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
+    Networking information for single guest interface and host connection.
     """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_EX)
-    mac_pool["%s:%s" % (vm_instance, nic_index)] = mac
-    _close_mac_pool(mac_pool, lock_file)
+    __slots__ = ['nic_name', 'mac', 'nic_model', 'ip', 'nettype', 'netdst']
+    # Make sure first byte generated is always zero
+    LASTBYTE = random.SystemRandom().randint(0x00, 0xff)
+
+    def __getstate__(self):
+        state = {}
+        for key in VirtIface.__slots__:
+            if self.has_key(key):
+                state[key] = self[key]
+        return state
+
+    def __setstate__(self, state):
+        self.__init__(state)
+
+    @classmethod
+    def name_is_valid(cls, nic_name):
+        """
+        Corner-case prevention where nic_name is not a sane string value
+        """
+        try:
+            return isinstance(nic_name, str) and len(nic_name) > 1
+        except TypeError: # object does not implement len()
+            return False
+        except PropCanKeyError: #unset name
+            return False
+
+    @classmethod
+    def mac_is_valid(cls, mac):
+        try:
+            mac = cls.mac_str_to_int_list(mac)
+        except TypeError:
+            return False
+        return True # Though may be less than 6 bytes
+
+    @classmethod
+    def mac_str_to_int_list(cls, mac):
+        """
+        Convert list of string bytes to int list
+        """
+        if isinstance(mac, str):
+            mac = mac.split(':')
+        # strip off any trailing empties
+        for rindex in xrange(len(mac), 0, -1):
+            if not mac[rindex-1].strip():
+                del mac[rindex-1]
+            else:
+                break
+        try:
+            assert len(mac) < 7
+            for byte_str_index in xrange(0,len(mac)):
+                byte_str = mac[byte_str_index]
+                assert isinstance(byte_str, str)
+                assert len(byte_str) > 0
+                try:
+                    value = eval("0x%s" % byte_str, {}, {})
+                except SyntaxError:
+                    raise AssertionError
+                assert value >= 0x00
+                assert value <= 0xFF
+                mac[byte_str_index] = value
+        except AssertionError:
+            raise TypeError("%s %s is not a valid MAC format "
+                            "string or list" % (str(mac.__class__),
+                             str(mac)))
+        return mac
+
+    @classmethod
+    def int_list_to_mac_str(cls, mac_bytes):
+        """
+        Return string formatting of int mac_bytes
+        """
+        for byte_index in xrange(0,len(mac_bytes)):
+            mac = mac_bytes[byte_index]
+            if mac < 16:
+                mac_bytes[byte_index] = "0%X" % mac
+            else:
+                mac_bytes[byte_index] = "%X" % mac
+        return mac_bytes
+
+    @classmethod
+    def generate_bytes(cls):
+        """
+        Return next byte from ring
+        """
+        cls.LASTBYTE += 1
+        if cls.LASTBYTE > 0xff:
+            cls.LASTBYTE = 0
+        yield cls.LASTBYTE
+
+    @classmethod
+    def complete_mac_address(cls, mac):
+        """
+        Append randomly generated byte strings to make mac complete
+
+        @param: mac: String or list of mac bytes (possibly incomplete)
+        @raise: TypeError if mac is not a string or a list
+        """
+        mac = cls.mac_str_to_int_list(mac)
+        if len(mac) == 6:
+            return ":".join(cls.int_list_to_mac_str(mac))
+        for rand_byte in cls.generate_bytes():
+            mac.append(rand_byte)
+            return cls.complete_mac_address(cls.int_list_to_mac_str(mac))
 
 
-def get_mac_address(vm_instance, nic_index):
+
+class LibvirtIface(VirtIface):
     """
-    Return a MAC address from the pool.
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
-    @return: MAC address string.
+    Networking information specific to libvirt
     """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_SH)
-    mac = mac_pool.get("%s:%s" % (vm_instance, nic_index))
-    _close_mac_pool(mac_pool, lock_file)
-    return mac
+    __slots__ = VirtIface.__slots__ + []
 
+
+
+class KVMIface(VirtIface):
+    """
+    Networking information specific to KVM
+    """
+    __slots__ = VirtIface.__slots__ + ['vlan', 'device_id', 'ifname', 'tapfd',
+                                       'tapfd_id', 'netdev_id', 'tftp',
+                                       'romfile', 'nic_extra_params',
+                                       'netdev_extra_params']
+
+class VMNet(list):
+    """
+    Collection of networking information.
+    """
+
+    # __init__ must not presume clean state, it should behave
+    # assuming there is existing properties/data on the instance
+    # and take steps to preserve or update it as appropriate.
+    def __init__(self, container_class=VirtIface, virtiface_list=[]):
+        """
+        Initialize from list-like virtiface_list using container_class
+        """
+        if container_class != VirtIface and (
+                        not issubclass(container_class, VirtIface)):
+            raise TypeError("Container class must be Base_VirtIface "
+                            "or subclass not a %s" % str(container_class))
+        self.container_class = container_class
+        super(VMNet, self).__init__([])
+        if isinstance(virtiface_list, list):
+            for virtiface in virtiface_list:
+                self.append(virtiface)
+        else:
+            raise VMNetError
+
+    def __getstate__(self):
+        return [nic for nic in self]
+
+    def __setstate__(self, state):
+        VMNet.__init__(self, self.container_class, state)
+
+    def __getitem__(self, index_or_name):
+        if isinstance(index_or_name, str):
+            index_or_name = self.nic_name_index(index_or_name)
+        return super(VMNet, self).__getitem__(index_or_name)
+
+    def __setitem__(self, index_or_name, value):
+        if not isinstance(value, dict):
+            raise VMNetError
+        if self.container_class.name_is_valid(value['nic_name']):
+            if isinstance(index_or_name, str):
+                index_or_name = self.nic_name_index(index_or_name)
+            self.process_mac(value)
+            super(VMNet, self).__setitem__(index_or_name,
+                                           self.container_class(value))
+        else:
+            raise VMNetError
+
+
+    def subclass_pre_init(self, params, vm_name):
+        """
+            Subclasses must establish style before calling VMNet. __init__()
+        """
+        #TODO: Get rid of this function.  it's main purpose is to provide
+        # a shared way to setup style (container_class) from params+vm_name
+        # so that unittests can run independantly for each subclass.
+        if not hasattr(self, 'vm_name'):
+            self.vm_name = vm_name
+        if not hasattr(self, 'prams'):
+            self.params = params.object_params(self.vm_name)
+        if not hasattr(self, 'container_class'):
+            self.vm_type = self.params.get('vm_type', 'default')
+            self.driver_type = self.params.get('driver_type', 'default')
+            for key,value in VMNetStyle(self.vm_type,
+                                        self.driver_type).items():
+                setattr(self, key, value)
+
+    def process_mac(self, value):
+        """
+        Strips 'mac' key from value if it's not valid
+        """
+        mac = value.get('mac')
+        if mac:
+            mac = value['mac'] = value['mac'].lower()
+            if len(mac.split(':')
+                            ) == 6 and self.container_class.mac_is_valid(mac):
+                return
+            else:
+                del value['mac'] # don't store invalid macs
+
+    def mac_list(self):
+        """
+        Return a list of all mac addresses used by defined interfaces
+        """
+        return [nic.mac for nic in self if hasattr(nic, 'mac')]
+
+    def append(self, value):
+        newone = self.container_class(value)
+        newone_name = newone['nic_name']
+        if newone.name_is_valid(newone_name) and (
+                          newone_name not in self.nic_name_list()):
+            self.process_mac(newone)
+            super(VMNet, self).append(newone)
+        else:
+            raise VMNetError
+
+    def nic_name_index(self, name):
+        """
+        Return the index number for name, or raise KeyError
+        """
+        if not isinstance(name, str):
+            raise TypeError("nic_name_index()'s nic_name must be a string")
+        nic_name_list = self.nic_name_list()
+        try:
+            return nic_name_list.index(name)
+        except ValueError:
+            raise IndexError("Can't find nic named '%s' among '%s'" %
+                             (name, nic_name_list))
+
+    def nic_name_list(self):
+        """
+        Obtain list of nic names from lookup of contents 'nic_name' key.
+        """
+        namelist = []
+        for item in self:
+            # Rely on others to throw exceptions on 'None' names
+            namelist.append(item['nic_name'])
+        return namelist
+
+    def nic_lookup(self, prop_name, prop_value):
+        """
+        Return the first index with prop_name key matching prop_value or None
+        """
+        for nic_index in xrange(0, len(self)):
+            if self[nic_index].has_key(prop_name):
+                if self[nic_index][prop_name] == prop_value:
+                    return nic_index
+        return None
+
+# TODO: Subclass VMNet into KVM/Libvirt variants and
+# pull them, along with ParmasNet and maybe DbNet based on
+# Style definitions.  i.e. libvirt doesn't need DbNet at all,
+# but could use some custom handling at the VMNet layer
+# for xen networking.  This will also enable further extensions
+# to network information handing in the future.
+class VMNetStyle(dict):
+    """
+    Make decisions about needed info from vm_type and driver_type params.
+    """
+
+    # Keyd first by vm_type, then by driver_type.
+    VMNet_Style_Map = {
+        'default':{
+            'default':{
+                'mac_prefix':'9a',
+                'container_class': KVMIface,
+            }
+        },
+        'libvirt':{
+            'default':{
+                'mac_prefix':'9a',
+                'container_class': LibvirtIface,
+            },
+            'qemu':{
+                'mac_prefix':'52:54:00',
+                'container_class': LibvirtIface,
+            },
+            'xen':{
+                'mac_prefix':'00:16:3e',
+                'container_class': LibvirtIface,
+            }
+        }
+    }
+
+    def __new__(cls, vm_type, driver_type):
+        return cls.get_style(vm_type, driver_type)
+
+    @classmethod
+    def get_vm_type_map(cls, vm_type):
+        return cls.VMNet_Style_Map.get(vm_type,
+                                        cls.VMNet_Style_Map['default'])
+
+    @classmethod
+    def get_driver_type_map(cls, vm_type_map, driver_type):
+        return vm_type_map.get(driver_type,
+                               vm_type_map['default'])
+
+    @classmethod
+    def get_style(cls, vm_type, driver_type):
+        style = cls.get_driver_type_map( cls.get_vm_type_map(vm_type),
+                                         driver_type )
+        return style
+
+
+class ParamsNet(VMNet):
+    """
+    Networking information from Params
+
+        Params contents specification-
+            vms = <vm names...>
+            nics = <nic names...>
+            nics_<vm name> = <nic names...>
+            # attr: mac, ip, model, nettype, netdst, etc.
+            <attr> = value
+            <attr>_<nic name> = value
+
+    """
+
+    # __init__ must not presume clean state, it should behave
+    # assuming there is existing properties/data on the instance
+    # and take steps to preserve or update it as appropriate.
+    def __init__(self, params, vm_name):
+        self.subclass_pre_init(params, vm_name)
+        # use temporary list to initialize
+        result_list = []
+        nic_name_list = self.params.objects('nics')
+        for nic_name in nic_name_list:
+            # nic name is only in params scope
+            nic_dict = {'nic_name':nic_name}
+            nic_params = self.params.object_params(nic_name)
+            # avoid processing unsupported properties
+            proplist = list(self.container_class.__slots__)
+            # nic_name was already set, remove from __slots__ list copy
+            del proplist[proplist.index('nic_name')]
+            for propertea in proplist:
+                # Merge existing propertea values if they exist
+                try:
+                    existing_value = getattr(self[nic_name], propertea, None)
+                except ValueError:
+                    existing_value = None
+                except IndexError:
+                    existing_value = None
+                nic_dict[propertea] = nic_params.get(propertea, existing_value)
+            result_list.append(nic_dict)
+        VMNet.__init__(self, self.container_class, result_list)
+
+    def mac_index(self):
+        """Generator over mac addresses found in params"""
+        for nic_name in self.params.get('nics'):
+            nic_obj_params = self.params.object_params(nic_name)
+            mac = nic_obj_params.get('mac')
+            if mac:
+                yield mac
+            else:
+                continue
+
+    def reset_mac(self, index_or_name):
+        """Reset to mac from params if defined and valid, or undefine."""
+        nic = self[index_or_name]
+        nic_name = nic.nic_name
+        nic_params = self.params.object_params(nic_name)
+        params_mac = nic_params.get('mac')
+        old_mac = nic.get('mac')
+        if params_mac and self.container_class.mac_is_valid(params_mac):
+            new_mac = params_mac.lower()
+        else:
+            new_mac = None
+        nic.mac = new_mac
+
+    def reset_ip(self, index_or_name):
+        """Reset to ip from params if defined and valid, or undefine."""
+        nic = self[index_or_name]
+        nic_name = nic.nic_name
+        nic_params = self.params.object_params(nic_name)
+        params_ip = nic_params.get('ip')
+        old_ip = nic.get('ip')
+        if params_ip:
+            new_ip = params_ip
+        else:
+            new_ip = None
+        nic.ip = new_ip
+
+class DbNet(VMNet):
+    """
+    Networking information from database
+
+        Database specification-
+            database values are python string-formatted lists of dictionaries
+
+    """
+
+    _INITIALIZED = False
+
+    # __init__ must not presume clean state, it should behave
+    # assuming there is existing properties/data on the instance
+    # and take steps to preserve or update it as appropriate.
+    def __init__(self, params, vm_name, db_filename, db_key):
+        self.subclass_pre_init(params, vm_name)
+        self.db_key = db_key
+        self.db_filename = db_filename
+        self.db_lockfile = db_filename + ".lock"
+        self.lock_db()
+        # Merge (don't overwrite) existing propertea values if they
+        # exist in db
+        try:
+            entry = self.db_entry()
+        except KeyError:
+            entry = []
+        proplist = list(self.container_class.__slots__)
+        # nic_name was already set, remove from __slots__ list copy
+        del proplist[proplist.index('nic_name')]
+        nic_name_list = self.nic_name_list()
+        for db_nic in entry:
+            nic_name = db_nic['nic_name']
+            if nic_name in nic_name_list:
+                for propertea in proplist:
+                    # only set properties in db but not in self
+                    if db_nic.has_key(propertea):
+                        self[nic_name].set_if_none(propertea, db_nic[propertea])
+        self.unlock_db()
+        if entry:
+            VMNet.__init__(self, self.container_class, entry)
+
+    def __setitem__(self, index, value):
+        super(DbNet, self).__setitem__(index, value)
+        if self._INITIALIZED:
+            self.update_db()
+
+    def __getitem__(self, index_or_name):
+        # container class attributes are read-only, hook
+        # update_db here is only alternative
+        if self._INITIALIZED:
+            self.update_db()
+        return super(DbNet, self).__getitem__(index_or_name)
+
+    def __delitem__(self, index_or_name):
+        if isinstance(index_or_name, str):
+            index_or_name = self.nic_name_index(index_or_name)
+        super(DbNet, self).__delitem__(index_or_name)
+        if self._INITIALIZED:
+            self.update_db()
+
+    def append(self, value):
+        super(DbNet, self).append(value)
+        if self._INITIALIZED:
+            self.update_db()
+
+    def lock_db(self):
+        if not hasattr(self, 'lock'):
+            self.lock = lock_file(self.db_lockfile)
+            if not hasattr(self, 'db'):
+                self.db = shelve.open(self.db_filename)
+            else:
+                raise DbNoLockError
+        else:
+            raise DbNoLockError
+
+    def unlock_db(self):
+        if hasattr(self, 'db'):
+            self.db.close()
+            del self.db
+            if hasattr(self, 'lock'):
+                unlock_file(self.lock)
+                del self.lock
+            else:
+                raise DbNoLockError
+        else:
+            raise DbNoLockError
+
+    def db_entry(self, db_key=None):
+        """
+        Returns a python list of dictionaries from locked DB string-format entry
+        """
+        if not db_key:
+            db_key = self.db_key
+        try:
+            db_entry = self.db[db_key]
+        except AttributeError:
+            raise DbNoLockError
+        # Always wear protection
+        try:
+            eval_result = eval(db_entry,{},{})
+        except SyntaxError:
+            raise ValueError("Error parsing entry for %s from "
+                             "database '%s'" % (self.db_key,
+                                                self.db_filename))
+        if not isinstance(eval_result, list):
+            raise ValueError("Unexpected database data: %s" % (
+                                    str(eval_result)))
+        result = []
+        for result_dict in eval_result:
+            if not isinstance(result_dict, dict):
+                raise ValueError("Unexpected database sub-entry data %s" % (
+                                    str(result_dict)))
+            result.append(result_dict)
+        return result
+
+    def save_to_db(self, db_key=None):
+        """Writes string representation out to database"""
+        if db_key == None:
+            db_key = self.db_key
+        data = str(self)
+        # Avoid saving empty entries
+        if len(data) > 3:
+            try:
+                self.db[self.db_key] = data
+            except AttributeError:
+                raise DbNoLockError
+        else:
+            try:
+                # make sure old db entry is removed
+                del self.db[db_key]
+            except KeyError:
+                pass
+
+    def update_db(self):
+        self.lock_db()
+        self.save_to_db()
+        self.unlock_db()
+
+    def mac_index(self):
+        """Generator of mac addresses found in database"""
+        try:
+            for db_key in self.db.keys():
+                for nic in self.db_entry(db_key):
+                    mac = nic.get('mac')
+                    if mac:
+                        yield mac
+                    else:
+                        continue
+        except AttributeError:
+            raise DbNoLockError
+
+
+
+class VirtNet(DbNet, ParamsNet):
+    """
+    Persistent collection of VM's networking information.
+    """
+
+    # __init__ must not presume clean state, it should behave
+    # assuming there is existing properties/data on the instance
+    # and take steps to preserve or update it as appropriate.
+    def __init__(self, params, vm_name, db_key,
+                                        db_filename="/tmp/address_pool"):
+        """
+        Load networking info. from db, then from params, then update db.
+
+        @param: params: Params instance using specification above
+        @param: vm_name: Name of the VM as might appear in Params
+        @param: db_key: database key uniquely identifying VM instance
+        @param: db_filename: database file to cache previously parsed params
+        """
+        # Prevent database updates during initialization
+        self._INITIALIZED = False
+        # Params always overrides database content
+        DbNet.__init__(self, params, vm_name, db_filename, db_key)
+        ParamsNet.__init__(self, params, vm_name)
+        self.lock_db()
+        # keep database updated in case of problems
+        self.save_to_db()
+        self.unlock_db()
+        # signal runtime content handling to methods
+        self._INITIALIZED = True
+
+    # Delegating get/setstate() details more to ancestor classes
+    # doesn't play well with multi-inheritence.  While possibly
+    # more difficult to maintain, hard-coding important property
+    # names for pickling works. The possibility also remains open
+    # for extensions via style-class updates.
+    def __getstate__(self):
+        self.INITIALIZED = False # prevent database updates
+        state = {'container_items':VMNet.__getstate__(self)}
+        for attrname in ['params', 'vm_name', 'db_key', 'db_filename',
+                         'vm_type', 'driver_type', 'db_lockfile']:
+            state[attrname] = getattr(self, attrname)
+        for style_attr in VMNetStyle(self.vm_type, self.driver_type).keys():
+            state[style_attr] = getattr(self, style_attr)
+        return state
+
+    def __setstate__(self, state):
+        self._INITIALIZED = False # prevent db updates during unpickling
+        for key in state.keys():
+            if key == 'container_items':
+                continue # handle outside loop
+            setattr(self, key, state.pop(key))
+        VMNet.__setstate__(self, state.pop('container_items'))
+        self._INITIALIZED = True
+
+    def mac_index(self):
+        """
+        Generator for all allocated mac addresses (requires db lock)
+        """
+        for mac in DbNet.mac_index(self):
+            yield mac
+        for mac in ParamsNet.mac_index(self):
+            yield mac
+
+    def generate_mac_address(self, nic_index_or_name, attempts=1024):
+        """
+        Set & return valid mac address for nic_index_or_name or raise NetError
+
+        @param: nic_index_or_name: index number or name of NIC
+        @return: MAC address string
+        @raise: NetError if mac generation failed
+        """
+        nic = self[nic_index_or_name]
+        if nic.has_key('mac'):
+            logging.warning("Overwriting mac %s for nic %s with random"
+                                % (nic.mac, str(nic_index_or_name)))
+        self.free_mac_address(nic_index_or_name)
+        self.lock_db()
+        attempts_remaining = attempts
+        while attempts_remaining > 0:
+            mac_attempt = nic.complete_mac_address(self.mac_prefix)
+            if mac_attempt not in self.mac_index():
+                nic.mac = mac_attempt
+                self.unlock_db()
+                return self[nic_index_or_name].mac # calls update_db
+            else:
+                attempts_remaining -= 1
+        self.unlock_db()
+        raise NetError("%s/%s MAC generation failed with prefix %s after %d "
+                         "attempts for NIC %s on VM %s (%s)" % (
+                            self.vm_type,
+                            self.driver_type,
+                            self.mac_prefix,
+                            attempts,
+                            str(nic_index_or_name),
+                            self.vm_name,
+                            self.db_key))
+
+    def free_mac_address(self, nic_index_or_name):
+        """
+        Remove the mac value from nic_index_or_name and cache unless static
+
+        @param: nic_index_or_name: index number or name of NIC
+        """
+        nic = self[nic_index_or_name]
+        if nic.has_key('mac'):
+            # Reset to params definition if any, or None
+            self.reset_mac(nic_index_or_name)
+        self.update_db()
+
+    def set_mac_address(self, nic_index_or_name, mac):
+        """
+        Set a MAC address to value specified
+
+        @param: nic_index_or_name: index number or name of NIC
+        @raise: NetError if mac already assigned
+        """
+        nic = self[nic_index_or_name]
+        if nic.has_key('mac'):
+            logging.warning("Overwriting mac %s for nic %s with %s"
+                            % (nic.mac, str(nic_index_or_name), mac))
+        nic.mac = mac
+        self.update_db()
+
+    def get_mac_address(self, nic_index_or_name):
+        """
+        Return a MAC address for nic_index_or_name
+
+        @param: nic_index_or_name: index number or name of NIC
+        @return: MAC address string.
+        """
+        return self[nic_index_or_name].mac
+
+    def generate_ifname(self, nic_index_or_name):
+        """
+        Return and set network interface name
+        """
+        nic_index = self.nic_name_index(self[nic_index_or_name].nic_name)
+        prefix = "t%d-" % nic_index
+        # Preserving previous naming, not sure if this is required:
+        # assume db_key is at least one character
+        # Ensure postfix is always exactly 11 characters
+        postfix = (self.db_key + generate_random_string(10))[-11:]
+        self[nic_index_or_name].ifname = prefix + postfix
+        return self[nic_index_or_name].ifname # forces update_db
 
 def verify_ip_address_ownership(ip, macs, timeout=10.0):
     """
@@ -439,7 +1185,7 @@ def verify_ip_address_ownership(ip, macs, timeout=10.0):
 
     @param ip: An IP address.
     @param macs: A list or tuple of MAC addresses.
-    @return: True iff ip is assigned to a MAC address in macs.
+    @return: True if ip is assigned to a MAC address in macs.
     """
     # Compile a regex that matches the given IP address and any of the given
     # MAC addresses
@@ -539,363 +1285,6 @@ def check_kvm_source_dir(source_dir):
         return 2
     else:
         raise error.TestError("Unknown source dir layout, cannot proceed.")
-
-
-# Functions for handling virtual machine image files
-
-def get_image_blkdebug_filename(params, root_dir):
-    """
-    Generate an blkdebug file path from params and root_dir.
-
-    blkdebug files allow error injection in the block subsystem.
-
-    @param params: Dictionary containing the test parameters.
-    @param root_dir: Base directory for relative filenames.
-
-    @note: params should contain:
-           blkdebug -- the name of the debug file.
-    """
-    blkdebug_name = params.get("drive_blkdebug", None)
-    if blkdebug_name is not None:
-        blkdebug_filename = get_path(root_dir, blkdebug_name)
-    else:
-        blkdebug_filename = None
-    return blkdebug_filename
-
-
-def get_image_filename(params, root_dir):
-    """
-    Generate an image path from params and root_dir.
-
-    @param params: Dictionary containing the test parameters.
-    @param root_dir: Base directory for relative filenames.
-
-    @note: params should contain:
-           image_name -- the name of the image file, without extension
-           image_format -- the format of the image (qcow2, raw etc)
-    @raise VMDeviceError: When no matching disk found (in indirect method).
-    """
-    image_name = params.get("image_name", "image")
-    indirect_image_select = params.get("indirect_image_select")
-    if indirect_image_select:
-        re_name = image_name
-        indirect_image_select = int(indirect_image_select)
-        matching_images = utils.system_output("ls -1d %s" % re_name)
-        matching_images = sorted(matching_images.split('\n'))
-        if matching_images[-1] == '':
-            matching_images = matching_images[:-1]
-        try:
-            image_name = matching_images[indirect_image_select]
-        except IndexError:
-            raise virt_vm.VMDeviceError("No matching disk found for "
-                                        "name = '%s', matching = '%s' and "
-                                        "selector = '%s'" %
-                                        (re_name, matching_images,
-                                         indirect_image_select))
-        for protected in params.get('indirect_image_blacklist', '').split(' '):
-            if re.match(protected, image_name):
-                raise virt_vm.VMDeviceError("Matching disk is in blacklist. "
-                                            "name = '%s', matching = '%s' and "
-                                            "selector = '%s'" %
-                                            (re_name, matching_images,
-                                             indirect_image_select))
-    image_format = params.get("image_format", "qcow2")
-    if params.get("image_raw_device") == "yes":
-        return image_name
-    if image_format:
-        image_filename = "%s.%s" % (image_name, image_format)
-    else:
-        image_filename = image_name
-    image_filename = get_path(root_dir, image_filename)
-    return image_filename
-
-
-def clone_image(params, vm_name, image_name, root_dir):
-    """
-    Clone master image to vm specific file.
-
-    @param params: Dictionary containing the test parameters.
-    @param vm_name: Vm name.
-    @param image_name: Master image name.
-    @param root_dir: Base directory for relative filenames.
-    """
-    if not params.get("image_name_%s_%s" % (image_name, vm_name)):
-        m_image_name = params.get("image_name", "image")
-        vm_image_name = "%s_%s" % (m_image_name, vm_name)
-        if params.get("clone_master", "yes") == "yes":
-            image_params = params.object_params(image_name)
-            image_params["image_name"] = vm_image_name
-
-            m_image_fn = get_image_filename(params, root_dir)
-            image_fn = get_image_filename(image_params, root_dir)
-
-            logging.info("Clone master image for vms.")
-            utils.run(params.get("image_clone_commnad") % (m_image_fn,
-                                                           image_fn))
-
-        params["image_name_%s_%s" % (image_name, vm_name)] = vm_image_name
-
-
-def rm_image(params, vm_name, image_name, root_dir):
-    """
-    Remove vm specific file.
-
-    @param params: Dictionary containing the test parameters.
-    @param vm_name: Vm name.
-    @param image_name: Master image name.
-    @param root_dir: Base directory for relative filenames.
-    """
-    if params.get("image_name_%s_%s" % (image_name, vm_name)):
-        m_image_name = params.get("image_name", "image")
-        vm_image_name = "%s_%s" % (m_image_name, vm_name)
-        if params.get("clone_master", "yes") == "yes":
-            image_params = params.object_params(image_name)
-            image_params["image_name"] = vm_image_name
-
-            image_fn = get_image_filename(image_params, root_dir)
-
-            logging.debug("Removing vm specific image file %s", image_fn)
-            if os.path.exists(image_fn):
-                utils.run(params.get("image_remove_commnad") % (image_fn))
-            else:
-                logging.debug("Image file %s not found", image_fn)
-
-
-def create_image(params, root_dir):
-    """
-    Create an image using qemu_image.
-
-    @param params: Dictionary containing the test parameters.
-    @param root_dir: Base directory for relative filenames.
-
-    @note: params should contain:
-           image_name -- the name of the image file, without extension
-           image_format -- the format of the image (qcow2, raw etc)
-           image_cluster_size (optional) -- the cluster size for the image
-           image_size -- the requested size of the image (a string
-           qemu-img can understand, such as '10G')
-           create_with_dd -- use dd to create the image (raw format only)
-    """
-    format = params.get("image_format", "qcow2")
-    image_filename = get_image_filename(params, root_dir)
-    size = params.get("image_size", "10G")
-    if params.get("create_with_dd") == "yes" and format == "raw":
-        # maps K,M,G,T => (count, bs)
-        human = {'K': (1, 1),
-                 'M': (1, 1024),
-                 'G': (1024, 1024),
-                 'T': (1024, 1048576),
-                }
-        if human.has_key(size[-1]):
-            block_size = human[size[-1]][1]
-            size = int(size[:-1]) * human[size[-1]][0]
-        qemu_img_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
-                        % (image_filename, size, block_size))
-    else:
-        qemu_img_cmd = get_path(root_dir,
-                                params.get("qemu_img_binary", "qemu-img"))
-        qemu_img_cmd += " create"
-
-        qemu_img_cmd += " -f %s" % format
-
-        image_cluster_size = params.get("image_cluster_size", None)
-        if image_cluster_size is not None:
-            qemu_img_cmd += " -o cluster_size=%s" % image_cluster_size
-
-        qemu_img_cmd += " %s" % image_filename
-
-        qemu_img_cmd += " %s" % size
-
-    utils.system(qemu_img_cmd)
-    return image_filename
-
-
-def remove_image(params, root_dir):
-    """
-    Remove an image file.
-
-    @param params: A dict
-    @param root_dir: Base directory for relative filenames.
-
-    @note: params should contain:
-           image_name -- the name of the image file, without extension
-           image_format -- the format of the image (qcow2, raw etc)
-    """
-    image_filename = get_image_filename(params, root_dir)
-    logging.debug("Removing image file %s", image_filename)
-    if os.path.exists(image_filename):
-        os.unlink(image_filename)
-    else:
-        logging.debug("Image file %s not found", image_filename)
-
-
-def check_image(params, root_dir):
-    """
-    Check an image using the appropriate tools for each virt backend.
-
-    @param params: Dictionary containing the test parameters.
-    @param root_dir: Base directory for relative filenames.
-
-    @note: params should contain:
-           image_name -- the name of the image file, without extension
-           image_format -- the format of the image (qcow2, raw etc)
-
-    @raise VMImageCheckError: In case qemu-img check fails on the image.
-    """
-    vm_type = params.get("vm_type")
-    if vm_type == 'kvm':
-        image_filename = get_image_filename(params, root_dir)
-        logging.debug("Checking image file %s", image_filename)
-        qemu_img_cmd = get_path(root_dir,
-                                params.get("qemu_img_binary", "qemu-img"))
-        image_is_qcow2 = params.get("image_format") == 'qcow2'
-        if os.path.exists(image_filename) and image_is_qcow2:
-            # Verifying if qemu-img supports 'check'
-            q_result = utils.run(qemu_img_cmd, ignore_status=True)
-            q_output = q_result.stdout
-            check_img = True
-            if not "check" in q_output:
-                logging.error("qemu-img does not support 'check', "
-                              "skipping check")
-                check_img = False
-            if not "info" in q_output:
-                logging.error("qemu-img does not support 'info', "
-                              "skipping check")
-                check_img = False
-            if check_img:
-                try:
-                    utils.system("%s info %s" % (qemu_img_cmd, image_filename))
-                except error.CmdError:
-                    logging.error("Error getting info from image %s",
-                                  image_filename)
-
-                cmd_result = utils.run("%s check %s" %
-                                       (qemu_img_cmd, image_filename),
-                                       ignore_status=True)
-                # Error check, large chances of a non-fatal problem.
-                # There are chances that bad data was skipped though
-                if cmd_result.exit_status == 1:
-                    for e_line in cmd_result.stdout.splitlines():
-                        logging.error("[stdout] %s", e_line)
-                    for e_line in cmd_result.stderr.splitlines():
-                        logging.error("[stderr] %s", e_line)
-                    if params.get("backup_image_on_check_error", "no") == "yes":
-                        backup_image(params, root_dir, 'backup', False)
-                    raise error.TestWarn("qemu-img check error. Some bad data "
-                                         "in the image may have gone unnoticed")
-                # Exit status 2 is data corruption for sure, so fail the test
-                elif cmd_result.exit_status == 2:
-                    for e_line in cmd_result.stdout.splitlines():
-                        logging.error("[stdout] %s", e_line)
-                    for e_line in cmd_result.stderr.splitlines():
-                        logging.error("[stderr] %s", e_line)
-                    if params.get("backup_image_on_check_error", "no") == "yes":
-                        backup_image(params, root_dir, 'backup', False)
-                    raise virt_vm.VMImageCheckError(image_filename)
-                # Leaked clusters, they are known to be harmless to data
-                # integrity
-                elif cmd_result.exit_status == 3:
-                    raise error.TestWarn("Leaked clusters were noticed during "
-                                         "image check. No data integrity "
-                                         "problem was found though.")
-
-                # Just handle normal operation
-                if params.get("backup_image", "no") == "yes":
-                    backup_image(params, root_dir, 'backup', True)
-
-        else:
-            if not os.path.exists(image_filename):
-                logging.debug("Image file %s not found, skipping check",
-                              image_filename)
-            elif not image_is_qcow2:
-                logging.debug("Image file %s not qcow2, skipping check",
-                              image_filename)
-
-
-def backup_image(params, root_dir, action, good=True):
-    """
-    Backup or restore a disk image, depending on the action chosen.
-
-    @param params: Dictionary containing the test parameters.
-    @param root_dir: Base directory for relative filenames.
-    @param action: Whether we want to backup or restore the image.
-    @param good: If we are backing up a good image(we want to restore it) or
-            a bad image (we are saving a bad image for posterior analysis).
-
-    @note: params should contain:
-           image_name -- the name of the image file, without extension
-           image_format -- the format of the image (qcow2, raw etc)
-    """
-    def backup_raw_device(src, dst):
-        utils.system("dd if=%s of=%s bs=4k conv=sync" % (src, dst))
-
-    def backup_image_file(src, dst):
-        logging.debug("Copying %s -> %s", src, dst)
-        shutil.copy(src, dst)
-
-    def get_backup_name(filename, backup_dir, good):
-        if not os.path.isdir(backup_dir):
-            os.makedirs(backup_dir)
-        basename = os.path.basename(filename)
-        if good:
-            backup_filename = "%s.backup" % basename
-        else:
-            backup_filename = ("%s.bad.%s" %
-                               (basename, generate_random_string(4)))
-        return os.path.join(backup_dir, backup_filename)
-
-
-    image_filename = get_image_filename(params, root_dir)
-    backup_dir = params.get("backup_dir")
-    if params.get('image_raw_device') == 'yes':
-        iname = "raw_device"
-        iformat = params.get("image_format", "qcow2")
-        ifilename = "%s.%s" % (iname, iformat)
-        ifilename = get_path(root_dir, ifilename)
-        image_filename_backup = get_backup_name(ifilename, backup_dir, good)
-        backup_func = backup_raw_device
-    else:
-        image_filename_backup = get_backup_name(image_filename, backup_dir,
-                                                good)
-        backup_func = backup_image_file
-
-    if action == 'backup':
-        image_dir = os.path.dirname(image_filename)
-        image_dir_disk_free = utils.freespace(image_dir)
-        image_filename_size = os.path.getsize(image_filename)
-        image_filename_backup_size = 0
-        if os.path.isfile(image_filename_backup):
-            image_filename_backup_size = os.path.getsize(image_filename_backup)
-        disk_free = image_dir_disk_free + image_filename_backup_size
-        minimum_disk_free = 1.2 * image_filename_size
-        if disk_free < minimum_disk_free:
-            image_dir_disk_free_gb = float(image_dir_disk_free) / 10**9
-            minimum_disk_free_gb = float(minimum_disk_free) / 10**9
-            logging.error("Dir %s has %.1f GB free, less than the minimum "
-                          "required to store a backup, defined to be 120%% "
-                          "of the backup size, %.1f GB. Skipping backup...",
-                          image_dir, image_dir_disk_free_gb,
-                          minimum_disk_free_gb)
-            return
-        if good:
-            # In case of qemu-img check return 1, we will make 2 backups, one
-            # for investigation and other, to use as a 'pristine' image for
-            # further tests
-            state = 'good'
-        else:
-            state = 'bad'
-        logging.info("Backing up %s image file %s", state, image_filename)
-        src, dst = image_filename, image_filename_backup
-    elif action == 'restore':
-        if not os.path.isfile(image_filename_backup):
-            logging.error('Image backup %s not found, skipping restore...',
-                          image_filename_backup)
-            return
-        logging.info("Restoring image file %s from backup",
-                     image_filename)
-        src, dst = image_filename_backup, image_filename
-
-    backup_func(src, dst)
 
 
 # Functions and classes used for logging into guests and transferring files
@@ -4318,14 +4707,16 @@ def preprocess_images(bindir, params, env):
             vm.destroy(free_mac_addresses=False)
         vm_params = params.object_params(vm_name)
         for image in vm_params.get("master_images_clone").split():
-            clone_image(params, vm_name, image, bindir)
+            image_obj = virt_image.QemuImg(params, bindir, image)
+            image_obj.clone_image(params, vm_name, image, bindir)
 
 
 def postprocess_images(bindir, params):
     for vm in params.get("vms").split():
         vm_params = params.object_params(vm)
         for image in vm_params.get("master_images_clone").split():
-            rm_image(params, vm, image, bindir)
+            image_obj = virt_image.QemuImg(params, bindir, image)
+            image_obj.rm_clone_image(params, vm, image, bindir)
 
 
 class MigrationData(object):

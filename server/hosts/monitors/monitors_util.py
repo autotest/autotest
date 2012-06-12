@@ -25,7 +25,7 @@ def prepend_timestamp(msg, format):
     Returns: str; 'timestamp\tmsg'
     """
     if type(format) is str:
-        timestamp = time.strftime(format, time.localtime())
+        timestamp = time.strftime(format, time.gmtime())
     elif callable(format):
         timestamp = str(format())
     else:

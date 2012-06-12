@@ -422,7 +422,7 @@ class status_log_entry(object):
 
     RENDERED_NONE_VALUE = '----'
     TIMESTAMP_FIELD = 'timestamp'
-    LOCALTIME_FIELD = 'localtime'
+    UTCTIME_FIELD = 'utctime'
 
     # non-space whitespace is forbidden in any fields
     BAD_CHAR_REGEX = re.compile(r'[\t\n\r\v\f]')
@@ -481,8 +481,8 @@ class status_log_entry(object):
         if timestamp is None:
             timestamp = int(time.time())
         self.fields[self.TIMESTAMP_FIELD] = str(timestamp)
-        self.fields[self.LOCALTIME_FIELD] = time.strftime(
-            '%b %d %H:%M:%S', time.localtime(timestamp))
+        self.fields[self.UTCTIME_FIELD] = time.strftime('%b %d %H:%M:%S',
+                                                        time.gmtime(timestamp))
 
 
     def is_start(self):
@@ -1206,7 +1206,7 @@ class base_job(object):
             entry, for example an error message or "completed successfully".
         @param optional_fields: An optional dictionary of addtional named fields
             to be included with the status message. Every time timestamp and
-            localtime entries are generated with the current time and added
+            utctime entries are generated with the current time and added
             to this dictionary.
         """
         entry = status_log_entry(status_code, subdir, operation, status,

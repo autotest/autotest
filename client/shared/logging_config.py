@@ -21,19 +21,26 @@ class AllowBelowSeverity(logging.Filter):
         return record.levelno < self.level
 
 
+class AutotestFormatter(logging.Formatter):
+    def __init__(self, fmt, datefmt):
+        logging.Formatter.__init__(self, fmt, datefmt)
+        self.converter = time.gmtime
+
+
 class LoggingConfig(object):
     global_level = logging.DEBUG
     stdout_level = logging.INFO
     stderr_level = logging.ERROR
 
-    file_formatter = logging.Formatter(
-        fmt='%(asctime)s %(levelname)-5.5s|%(module)10.10s:%(lineno)4.4d| '
+    file_formatter = AutotestFormatter(
+        fmt='%(asctime)s UTC %(levelname)-5.5s|%(module)10.10s:%(lineno)4.4d| '
             '%(message)s',
         datefmt='%m/%d %H:%M:%S')
 
-    console_formatter = logging.Formatter(
-        fmt='%(asctime)s %(levelname)-5.5s| %(message)s',
+    console_formatter = AutotestFormatter(
+        fmt='%(asctime)s UTC %(levelname)-5.5s| %(message)s',
         datefmt='%H:%M:%S')
+
 
     def __init__(self, use_console=True):
         self.logger = logging.getLogger()

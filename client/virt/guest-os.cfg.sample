@@ -74,7 +74,7 @@ variants:
             check_result_key_word = OK
             max_disk:
                 list_volume_command = cd /dev && \ls [vhs]d*
-                re_str = "[vhs]d[a-z][^0-9]"
+                re_str = "[vhs]d[a-z]"
         floppy_test:
             format_floppy_cmd = mkfs -t ext3 /dev/fd0
             test_floppy_cmd = (dd if=/dev/urandom of=/mnt/test_floppy bs=1M count=1) && (rm -f /mnt/test_floppy)
@@ -1354,7 +1354,7 @@ variants:
         vmstop:
             guest_path = C:\
         multi_disk:
-            block_list += " E:"
+            black_list += " E:"
             shell_port = 23
             shell_client = telnet
             post_cmd = del c:\cmd.exe
@@ -1372,7 +1372,7 @@ variants:
             max_disk:
                 pre_cmd = del diskpart.script && (for /L %i in (1 1 23) do echo select disk %i >> diskpart.script && echo create partition primary >> diskpart.script && echo assign >> diskpart.script) && echo select disk 0 >> diskpart.script && echo exit >> diskpart.script && diskpart /s diskpart.script
         usb_multi_disk:
-            block_list += " E:"
+            black_list += " E:"
             shell_port = 23
             shell_client = telnet
             post_cmd = del c:\cmd.exe

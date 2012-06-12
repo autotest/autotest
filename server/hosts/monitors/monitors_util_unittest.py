@@ -16,13 +16,13 @@ class WriteLoglineTestCase(unittest.TestCase):
         self.formatted_time_tuple = '[2008-10-31 18:58:17]'
         self.msg = 'testing testing'
 
-        # Stub out time.localtime()
-        self.orig_localtime = time.localtime
-        time.localtime = lambda: self.time_tuple
+        # Stub out time.gmtime()
+        self.orig_gmtime = time.gmtime
+        time.gmtime = lambda: self.time_tuple
 
 
     def tearDown(self):
-        time.localtime = self.orig_localtime
+        time.gmtime = self.orig_gmtime
 
 
     def test_prepend_timestamp(self):
