@@ -38,9 +38,6 @@ RewriteRule ^/(afe|new_tko)/server(.*)$ /$1/server$2 [QSA,PT,L]
 
 WSGISocketPrefix run/wsgi
 
-WSGIDaemonProcess apache processes=10 threads=1
-WSGIProcessGroup apache
-
 WSGIScriptAliasMatch /(afe|new_tko)/server.* /usr/local/autotest/frontend/frontend.wsgi
 
 <Directory /usr/local/autotest/frontend/>
