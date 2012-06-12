@@ -1,8 +1,11 @@
 import os, time, commands, re, logging, glob, threading, shutil
 from autotest.client import utils
 from autotest.client.shared import error
+
 import aexpect, virt_utils, kvm_monitor, ppm_utils, virt_test_setup
-import virt_vm, kvm_vm, libvirt_vm, virt_video_maker, virt_utils
+import virt_vm, kvm_vm, libvirt_vm, virt_video_maker, virt_utils, virt_storage
+import kvm_storage
+
 try:
     import PIL.Image
 except ImportError:
@@ -11,12 +14,23 @@ except ImportError:
                     'please install python-imaging or the equivalent for your '
                     'distro.')
 
-
 _screendump_thread = None
 _screendump_thread_termination_event = None
 
 
-def preprocess_image(test, params):
+class VMScreenInactiveError(virt_vm.VMError):
+    def __init__(self, vm, inactive_time):
+        virt_vm.VMError.__init__(self)
+        self.vm = vm
+        self.inactive_time = inactive_time
+
+    def __str__(self):
+        msg = ("%s screen is inactive for %d s (%d min)" %
+               (self.vm.name, self.inactive_time, self.inactive_time/60))
+        return msg
+
+
+def preprocess_image(test, params, image_name):
     """
     Preprocess a single QEMU image according to the instructions in params.
 
@@ -24,7 +38,7 @@ def preprocess_image(test, params):
     @param params: A dict containing image preprocessing parameters.
     @note: Currently this function just creates an image if requested.
     """
-    image_filename = virt_utils.get_image_filename(params, test.bindir)
+    image_filename = virt_storage.get_image_filename(params, test.bindir)
 
     create_image = False
 
@@ -35,8 +49,10 @@ def preprocess_image(test, params):
           os.path.exists(image_filename)):
         create_image = True
 
-    if create_image and not virt_utils.create_image(params, test.bindir):
-        raise error.TestError("Could not create image")
+    if create_image:
+        image = kvm_storage.QemuImg(params, test.bindir, image_name)
+        if not image.create(params):
+            raise error.TestError("Could not create image")
 
 
 def preprocess_vm(test, params, env, name):
@@ -106,22 +122,23 @@ def preprocess_vm(test, params, env, name):
         vm.params = params
 
 
-def postprocess_image(test, params):
+def postprocess_image(test, params, image_name):
     """
     Postprocess a single QEMU image according to the instructions in params.
 
     @param test: An Autotest test object.
     @param params: A dict containing image postprocessing parameters.
     """
+    image = kvm_storage.QemuImg(params, test.bindir, image_name)
     if params.get("check_image") == "yes":
         try:
-            virt_utils.check_image(params, test.bindir)
+            image.check_image(params, test.bindir)
         except Exception, e:
             if params.get("restore_image_on_check_error", "no") == "yes":
-                virt_utils.backup_image(params, test.bindir, 'restore', True)
+                image.backup_image(params, test.bindir, "restore", True)
             raise e
     if params.get("remove_image") == "yes":
-        virt_utils.remove_image(params, test.bindir)
+        image.remove()
 
 
 def postprocess_vm(test, params, env, name):
@@ -224,13 +241,13 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
                     # Call image_func for each image
                     if vm is not None and vm.is_alive():
                         vm.pause()
-                    image_func(test, image_params)
+                    image_func(test, image_params, image_name)
                     if vm is not None and vm.is_alive():
                         vm.resume()
         else:
             for image_name in params.objects("images"):
                 image_params = params.object_params(image_name)
-                image_func(test, image_params)
+                image_func(test, image_params, image_name)
 
     if not vm_first:
         _call_image_func()
@@ -341,7 +358,8 @@ def preprocess(test, params, env):
 
             vm_params = params.object_params(vm_name)
             for image in vm_params.get("master_images_clone").split():
-                virt_utils.clone_image(params, vm_name, image, test.bindir)
+                image_obj = kvm_storage.QemuImg(params, test.bindir, image)
+                image_obj.clone_image(params, vm_name, image, test.bindir)
 
     # Preprocess all VMs and images
     if params.get("not_preprocess","no") == "no":
@@ -501,14 +519,19 @@ def _take_screendumps(test, params, env):
                                  virt_utils.generate_random_string(6))
     delay = float(params.get("screendump_delay", 5))
     quality = int(params.get("screendump_quality", 30))
+    inactivity_treshold = float(params.get("inactivity_treshold", 1800))
+    inactivity_watcher = params.get("inactivity_watcher", "log")
 
     cache = {}
     counter = {}
+    inactivity = {}
 
     while True:
         for vm in env.get_all_vms():
             if vm not in counter.keys():
                 counter[vm] = 0
+            if vm not in inactivity.keys():
+                inactivity[vm] = time.time()
             if not vm.is_alive():
                 continue
             try:
@@ -535,19 +558,31 @@ def _take_screendumps(test, params, env):
             counter[vm] += 1
             screendump_filename = os.path.join(screendump_dir, "%04d.jpg" %
                                                counter[vm])
-            hash = utils.hash_file(temp_filename)
-            if hash in cache:
+            image_hash = utils.hash_file(temp_filename)
+            if image_hash in cache:
+                time_inactive = time.time() - inactivity[vm]
+                if time_inactive > inactivity_treshold:
+                    if inactivity_watcher == "error":
+                        try:
+                            raise VMScreenInactiveError(vm, time_inactive)
+                        except VMScreenInactiveError:
+                            test.background_errors.put(sys.exc_info())
+                    else:
+                        logging.debug("%s screen is inactive for more than "
+                                      "%d s (%d min)", vm.name, time_inactive,
+                                      time_inactive/60)
                 try:
-                    os.link(cache[hash], screendump_filename)
+                    os.link(cache[image_hash], screendump_filename)
                 except OSError:
                     pass
             else:
+                inactivity[vm] = time.time()
                 try:
                     try:
                         image = PIL.Image.open(temp_filename)
                         image.save(screendump_filename, format="JPEG",
                                    quality=quality)
-                        cache[hash] = screendump_filename
+                        cache[image_hash] = screendump_filename
                     except IOError, error_detail:
                         logging.warning("VM '%s' failed to produce a "
                                         "screendump: %s", vm.name, error_detail)

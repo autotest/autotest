@@ -8,7 +8,7 @@ import time, os, logging, fcntl, re, commands, shutil, urlparse
 from autotest.client.shared import error
 from autotest.client import utils, os_dep
 from xml.dom import minidom
-import virt_utils, virt_vm, aexpect
+import virt_utils, virt_vm, aexpect, virt_storage
 
 DEBUG = False
 try:
@@ -86,13 +86,13 @@ def service_libvirtd_control(action):
         raise error.TestError("Unknown action: %s" % action)
 
 
-def virsh_cmd(cmd, uri = ""):
+def virsh_cmd(cmd, uri="", ignore_status=False):
     """
     Append cmd to 'virsh' and execute, optionally return full results.
 
     @param: cmd: Command line to append to virsh command
     @param: uri: hypervisor URI to connect to
-    @return: stdout of command
+    @return: CmdResult object
     """
     if VIRSH_EXEC is None:
         raise ValueError('Missing command: virsh')
@@ -101,32 +101,31 @@ def virsh_cmd(cmd, uri = ""):
     if uri:
         uri_arg = "-c " + uri
     cmd = "%s %s %s" % (VIRSH_EXEC, uri_arg, cmd)
-    cmd_result = utils.run(cmd, verbose=DEBUG)
-    return cmd_result.stdout.strip()
+    return utils.run(cmd, verbose=DEBUG, ignore_status=ignore_status)
 
 
-def virsh_uri(uri = ""):
+def virsh_uri(uri=""):
     """
     Return the hypervisor canonical URI.
     """
-    return virsh_cmd("uri", uri)
+    return virsh_cmd("uri", uri).stdout.strip()
 
 
-def virsh_hostname(uri = ""):
+def virsh_hostname(uri=""):
     """
     Return the hypervisor hostname.
     """
-    return virsh_cmd("hostname", uri)
+    return virsh_cmd("hostname", uri).stdout.strip()
 
 
-def virsh_version(uri = ""):
+def virsh_version(uri=""):
     """
     Return the major version info about what this built from.
     """
-    return virsh_cmd("version", uri)
+    return virsh_cmd("version", uri).stdout.strip()
 
 
-def virsh_driver(uri = ""):
+def virsh_driver(uri=""):
     """
     return the driver by asking libvirt
     """
@@ -137,39 +136,39 @@ def virsh_driver(uri = ""):
     return scheme.split('+', 2)[0]
 
 
-def virsh_domstate(name, uri = ""):
+def virsh_domstate(name, uri=""):
     """
     Return the state about a running domain.
 
     @param name: VM name
     """
-    return virsh_cmd("domstate %s" % name, uri)
+    return virsh_cmd("domstate %s" % name, uri).stdout.strip()
 
 
-def virsh_domid(name, uri = ""):
+def virsh_domid(name, uri=""):
     """
     Return VM's ID.
     """
-    return virsh_cmd("domid %s" % (name), uri)
+    return virsh_cmd("domid %s" % (name), uri).stdout.strip()
 
 
-def virsh_dominfo(name, uri = ""):
+def virsh_dominfo(name, uri=""):
     """
     Return the VM information.
     """
-    return virsh_cmd("dominfo %s" % (name), uri)
+    return virsh_cmd("dominfo %s" % (name), uri).stdout.strip()
 
 
-def virsh_uuid(name, uri = ""):
+def virsh_uuid(name, uri=""):
     """
     Return the Converted domain name or id to the domain UUID.
 
     @param name: VM name
     """
-    return virsh_cmd("domuuid %s" % name, uri)
+    return virsh_cmd("domuuid %s" % name, uri).stdout.strip()
 
 
-def virsh_screenshot(name, filename, uri = ""):
+def virsh_screenshot(name, filename, uri=""):
     try:
         virsh_cmd("screenshot %s %s" % (name, filename), uri)
     except error.CmdError, detail:
@@ -178,17 +177,15 @@ def virsh_screenshot(name, filename, uri = ""):
                       "file \n%s", name, detail)
     return filename
 
-
-def virsh_dumpxml(name, uri = ""):
+def virsh_dumpxml(name, uri=""):
     """
     Return the domain information as an XML dump.
 
     @param name: VM name
     """
-    return virsh_cmd("dumpxml %s" % name, uri)
+    return virsh_cmd("dumpxml %s" % name, uri).stdout.strip()
 
-
-def virsh_is_alive(name, uri = ""):
+def virsh_is_alive(name, uri=""):
     """
     Return True if the domain is started/alive.
 
@@ -197,7 +194,7 @@ def virsh_is_alive(name, uri = ""):
     return not virsh_is_dead(name, uri)
 
 
-def virsh_is_dead(name, uri = ""):
+def virsh_is_dead(name, uri=""):
     """
     Return True if the domain is undefined or not started/dead.
 
@@ -213,7 +210,7 @@ def virsh_is_dead(name, uri = ""):
         return True
 
 
-def virsh_suspend(name, uri = ""):
+def virsh_suspend(name, uri=""):
     """
     Return True on successful domain suspention of VM.
 
@@ -233,7 +230,7 @@ def virsh_suspend(name, uri = ""):
         return False
 
 
-def virsh_resume(name, uri = ""):
+def virsh_resume(name, uri=""):
     """
     Return True on successful domain resumption of VM.
 
@@ -253,7 +250,7 @@ def virsh_resume(name, uri = ""):
         return False
 
 
-def virsh_save(name, path, uri = ""):
+def virsh_save(name, path, uri=""):
     """
     Store state of VM into named file.
 
@@ -272,7 +269,7 @@ def virsh_save(name, path, uri = ""):
         raise virt_vm.VMStatusError("VM not shut off after save")
 
 
-def virsh_restore(name, path, uri = ""):
+def virsh_restore(name, path, uri=""):
     """
     Load state of VM from named file and remove file.
 
@@ -293,7 +290,7 @@ def virsh_restore(name, path, uri = ""):
                 state)
 
 
-def virsh_start(name, uri = ""):
+def virsh_start(name, uri=""):
     """
     Return True on successful domain start.
 
@@ -311,7 +308,7 @@ def virsh_start(name, uri = ""):
         return False
 
 
-def virsh_shutdown(name, uri = ""):
+def virsh_shutdown(name, uri=""):
     """
     Return True on successful domain shutdown.
 
@@ -329,7 +326,7 @@ def virsh_shutdown(name, uri = ""):
         return False
 
 
-def virsh_destroy(name, uri = ""):
+def virsh_destroy(name, uri=""):
     """
     Return True on successful domain destroy.
 
@@ -348,7 +345,7 @@ def virsh_destroy(name, uri = ""):
         return False
 
 
-def virsh_define(xml_path, uri = ""):
+def virsh_define(xml_path, uri=""):
     """
     Return True on successful domain define.
 
@@ -362,7 +359,7 @@ def virsh_define(xml_path, uri = ""):
         return False
 
 
-def virsh_undefine(name, uri = ""):
+def virsh_undefine(name, uri=""):
     """
     Return True on successful domain undefine.
 
@@ -380,7 +377,7 @@ def virsh_undefine(name, uri = ""):
         return False
 
 
-def virsh_remove_domain(name, uri = ""):
+def virsh_remove_domain(name, uri=""):
     """
     Return True after forcefully removing a domain if it exists.
 
@@ -393,7 +390,7 @@ def virsh_remove_domain(name, uri = ""):
     return True
 
 
-def virsh_domain_exists(name, uri = ""):
+def virsh_domain_exists(name, uri=""):
     """
     Return True if a domain exits.
 
@@ -407,7 +404,7 @@ def virsh_domain_exists(name, uri = ""):
         return False
 
 
-def virsh_migrate(options, name, dest_uri, extra, uri = ""):
+def virsh_migrate(options, name, dest_uri, extra, uri=""):
     """
     Migrate a guest to another host.
 
@@ -432,7 +429,7 @@ def virsh_migrate(options, name, dest_uri, extra, uri = ""):
     return True
 
 
-def virsh_attach_device(name, xml_file, extra = "", uri = ""):
+def virsh_attach_device(name, xml_file, extra="", uri=""):
     """
     Attach a device to VM.
     """
@@ -445,7 +442,7 @@ def virsh_attach_device(name, xml_file, extra = "", uri = ""):
         return False
 
 
-def virsh_detach_device(name, xml_file, extra = "", uri = ""):
+def virsh_detach_device(name, xml_file, extra="", uri=""):
     """
     Detach a device from VM.
     """
@@ -469,12 +466,11 @@ class VM(virt_vm.BaseVM):
 
         @param name: The name of the object
         @param params: A dict containing VM params
-                (see method make_qemu_command for a full description)
+                (see method __make_libvirt_command for a full description)
         @param root_dir: Base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         @param state: If provided, use this as self.__dict__
         """
-        virt_vm.BaseVM.__init__(self, name, params)
 
         if state:
             self.__dict__ = state
@@ -497,17 +493,15 @@ class VM(virt_vm.BaseVM):
         self.root_dir = root_dir
         self.address_cache = address_cache
         self.vnclisten = "0.0.0.0"
-        # TODO: Impliment monitor class & property
-        self.monitor = None
-        # TODO: The monitor class should do this
         self.connect_uri = params.get("connect_uri", "default")
         if self.connect_uri == 'default':
             self.connect_uri = virsh_uri()
         else: # Validate and canonicalize uri early to catch problems
             self.connect_uri = virsh_uri(uri = self.connect_uri)
-        # TODO: The monitor class should do this also
         self.driver_type = virsh_driver(uri = self.connect_uri)
-
+        self.params['driver_type_'+self.name] = self.driver_type
+        # virtnet init depends on vm_type/driver_type being set w/in params
+        super(VM, self).__init__(name, params)
         logging.info("Libvirt VM '%s', driver '%s', uri '%s'",
                      self.name, self.driver_type, self.connect_uri)
 
@@ -541,20 +535,12 @@ class VM(virt_vm.BaseVM):
         """
         Return True if VM is persistent.
         """
-        if not virsh_domain_exists(self.name, self.connect_uri):
-            logging.warning("VM does not exist on uri %s" % self.connect_uri)
+        try:
+            return bool(re.search(r"^Persistent:\s+[Yy]es",
+                        virsh_dominfo(self.name, self.connect_uri),
+                        re.MULTILINE))
+        except error.CmdError:
             return False
-        dom_info = virsh_dominfo(self.name, self.connect_uri).split("\n")
-        persistent_info = ""
-        for tmp_info in dom_info:
-            if tmp_info.count('Persistent'):
-                persistent_info = tmp_info
-                break
-        if persistent_info.count('yes'):
-            return True
-        else:
-            return False
-
 
     def undefine(self):
         """
@@ -584,6 +570,13 @@ class VM(virt_vm.BaseVM):
         return virsh_dumpxml(self.name, self.connect_uri)
 
 
+    def verify_userspace_crash(self):
+        """
+        Doesn't do anything yet.
+        """
+        pass
+
+
     def clone(self, name=None, params=None, root_dir=None, address_cache=None,
               copy_state=False):
         """
@@ -597,7 +590,7 @@ class VM(virt_vm.BaseVM):
         @param root_dir: Optional new base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         @param copy_state: If True, copy the original VM's state to the clone.
-                Mainly useful for make_qemu_command().
+                Mainly useful for __make_libvirt_command().
         """
         if name is None:
             name = self.name
@@ -814,6 +807,38 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
+        def add_nic(help, nic_params):
+            """
+            Return additional command line params based on dict-like nic_params
+            """
+            mac = nic_params.get('mac')
+            nettype = nic_params.get('nettype')
+            netdst = nic_params.get('netdst')
+            nic_model = nic_params.get('nic_model')
+            if nettype:
+                result = " --network=%s" % nettype
+            else:
+                result = ""
+            if has_option(help, "bridge"):
+                # older libvirt (--network=NATdev --bridge=bridgename --mac=mac)
+                if nettype != 'user':
+                    result += ':%s' % netdst
+                if mac: # possible to specify --mac w/o --network
+                    result += " --mac=%s" % mac
+            else:
+                # newer libvirt (--network=mynet,model=virtio,mac=00:11)
+                if nettype != 'user':
+                    result += '=%s' % netdst
+                if nettype and nic_model: # only supported along with nettype
+                    result += ",model=%s" % nic_model
+                if nettype and mac:
+                    result += ',mac=%s' % mac
+                elif mac: # possible to specify --mac w/o --network
+                    result += " --mac=%s" % mac
+            logging.debug("vm.__make_libvirt_command.add_nic returning: %s"
+                             % result)
+            return result
+
         # End of command line option wrappers
 
         if name is None:
@@ -951,7 +976,7 @@ class VM(virt_vm.BaseVM):
 
         for image_name in params.objects("images"):
             image_params = params.object_params(image_name)
-            filename = virt_utils.get_image_filename(image_params, root_dir)
+            filename = virt_storage.get_image_filename(image_params, root_dir)
             if image_params.get("use_storage_pool") == "yes":
                 filename = None
             if image_params.get("boot_drive") == "no":
@@ -1014,19 +1039,13 @@ class VM(virt_vm.BaseVM):
                               None,
                               None)
 
-        # FIXME: for now in the pilot always add mac address to virt-install
-        vlan = 0
-        mac = vm.get_mac_address(vlan)
-        if mac:
-            virt_install_cmd += " --mac %s" % mac
-            self.nic_mac = mac
-
-        if self.driver_type == 'xen':
-            virt_install_cmd += (" --network=%s" % params.get("virsh_network"))
-        elif self.driver_type == 'qemu':
-            virt_install_cmd += (" --network=%s,model=%s" %
-                                 (params.get("virsh_network"),
-                                  params.get("nic_model")))
+        # setup networking parameters
+        for nic in vm.virtnet:
+            # __make_libvirt_command can be called w/o vm.create()
+            nic = vm.add_nic(**dict(nic))
+            logging.debug("__make_libvirt_command() setting up command for"
+                          " nic: %s" % str(nic))
+            virt_install_cmd += add_nic(help,nic)
 
         if params.get("use_no_reboot") == "yes":
             virt_install_cmd += " --noreboot"
@@ -1147,13 +1166,6 @@ class VM(virt_vm.BaseVM):
                 guest_port = int(redir_params.get("guest_port"))
                 self.redirs[guest_port] = host_ports[i]
 
-            # Generate netdev/device IDs for all NICs
-            self.netdev_id = []
-            self.device_id = []
-            for nic in params.objects("nics"):
-                self.netdev_id.append(virt_utils.generate_random_id())
-                self.device_id.append(virt_utils.generate_random_id())
-
             # Find available PCI devices
             self.pci_devices = []
             for device in params.objects("pci_devices"):
@@ -1174,16 +1186,18 @@ class VM(virt_vm.BaseVM):
                 f.close()
 
             # Generate or copy MAC addresses for all NICs
-            num_nics = len(params.objects("nics"))
-            for vlan in range(num_nics):
-                nic_name = params.objects("nics")[vlan]
-                nic_params = params.object_params(nic_name)
-                mac = (nic_params.get("nic_mac") or
-                       mac_source and mac_source.get_mac_address(vlan))
-                if mac:
-                    virt_utils.set_mac_address(self.instance, vlan, mac)
-                else:
-                    virt_utils.generate_mac_address(self.instance, vlan)
+            for nic in self.virtnet:
+                nic_params = dict(nic)
+                if mac_source:
+                    # Will raise exception if source doesn't
+                    # have cooresponding nic
+                    logging.debug("Copying mac for nic %s from VM %s"
+                                    % (nic.nic_name, mac_source.nam))
+                    nic_params['mac'] = mac_source.get_mac_address(nic.nic_name)
+                # __make_libvirt_command() calls vm.add_nic (i.e. on a copy)
+                nic = self.add_nic(**nic_params)
+                logging.debug('VM.create activating nic %s' % nic)
+                self.activate_nic(nic.nic_name)
 
             # Make qemu command
             install_command = self.__make_libvirt_command()
@@ -1194,6 +1208,7 @@ class VM(virt_vm.BaseVM):
             virt_utils.wait_for(func=self.is_alive, timeout=60,
                                 text=("waiting for domain %s to start" %
                                       self.name))
+            self.uuid = virsh_uuid(self.name, self.connect_uri)
 
             # Establish a session with the serial console
             if self.only_pty == True:
@@ -1233,14 +1248,14 @@ class VM(virt_vm.BaseVM):
         return result
 
 
-    def attach_device(self, xml_file, extra = ""):
+    def attach_device(self, xml_file, extra=""):
         """
         Attach a device to VM.
         """
         return virsh_attach_device(self.name, xml_file, extra, self.connect_uri)
 
 
-    def detach_device(self, xml_file, extra = ""):
+    def detach_device(self, xml_file, extra=""):
         """
         Detach a device from VM.
         """
@@ -1257,35 +1272,32 @@ class VM(virt_vm.BaseVM):
         @param gracefully: If True, an attempt will be made to end the VM
                 using a shell command before trying to end the qemu process
                 with a 'quit' or a kill signal.
-        @param free_mac_addresses: If True, the MAC addresses used by the VM
-                will be freed.
+        @param free_mac_addresses: If vm is undefined with libvirt, also
+                                   release/reset associated mac address
         """
         try:
             # Is it already dead?
-            if self.is_dead():
-                return
-
-            logging.debug("Destroying VM")
-            if gracefully and self.params.get("shutdown_command"):
-                # Try to destroy with shell command
-                logging.debug("Trying to shutdown VM with shell command")
-                try:
-                    session = self.login()
-                except (virt_utils.LoginError, virt_vm.VMError), e:
-                    logging.debug(e)
-                else:
+            if self.is_alive():
+                logging.debug("Destroying VM")
+                if gracefully and self.params.get("shutdown_command"):
+                    # Try to destroy with shell command
+                    logging.debug("Trying to shutdown VM with shell command")
                     try:
-                        # Send the shutdown command
-                        session.sendline(self.params.get("shutdown_command"))
-                        logging.debug("Shutdown command sent; waiting for VM "
-                                      "to go down...")
-                        if virt_utils.wait_for(self.is_dead, 60, 1, 1):
-                            logging.debug("VM is down")
-                            return
-                    finally:
-                        session.close()
-
-            virsh_destroy(self.name, self.connect_uri)
+                        session = self.login()
+                    except (virt_utils.LoginError, virt_vm.VMError), e:
+                        logging.debug(e)
+                    else:
+                        try:
+                            # Send the shutdown command
+                            session.sendline(self.params.get("shutdown_command"))
+                            logging.debug("Shutdown command sent; waiting for VM "
+                                          "to go down...")
+                            if virt_utils.wait_for(self.is_dead, 60, 1, 1):
+                                logging.debug("VM is down")
+                                return
+                        finally:
+                            session.close()
+                virsh_destroy(self.name, self.connect_uri)
 
         finally:
             if self.serial_console:
@@ -1301,20 +1313,22 @@ class VM(virt_vm.BaseVM):
                     os.unlink(self.migration_file)
                 except OSError:
                     pass
-            if free_mac_addresses:
-                num_nics = len(self.params.objects("nics"))
-                for vlan in range(num_nics):
-                    self.free_mac_address(vlan)
+
+        if free_mac_addresses:
+            if self.is_persistent():
+                logging.warning("Requested MAC address release from "
+                                "persistent vm %s. Ignoring." % self.name)
+            else:
+                logging.debug("Releasing MAC addresses for vm %s." % self.name)
+                for nic_name in self.virtnet.nic_name_list():
+                    self.virtnet.free_mac_address(nic_name)
 
 
     def remove(self):
-        if self.is_alive():
-            if not virsh_destroy(self.name, self.connect_uri):
-                raise virt_vm.VMRemoveError("VM '%s'can not be destroyed" % self.name)
-
-        if not virsh_undefine(self.name, self.connect_uri):
+        self.destroy(gracefully=True, free_mac_addresses=False)
+        if not self.undefine():
             raise virt_vm.VMRemoveError("VM '%s' undefine error" % self.name)
-
+        self.destroy(gracefully=False, free_mac_addresses=True)
         logging.debug("VM '%s' was removed", self.name)
 
 
@@ -1323,39 +1337,6 @@ class VM(virt_vm.BaseVM):
         Return VM's UUID.
         """
         return virsh_uuid(self.name, self.connect_uri)
-
-
-    def get_address(self, index=0):
-        """
-        Return the address of a NIC of the guest, in host space.
-
-        If port redirection is used, return 'localhost' (the NIC has no IP
-        address of its own).  Otherwise return the NIC's IP address.
-
-        @param index: Index of the NIC whose address is requested.
-        @raise VMMACAddressMissingError: If no MAC address is defined for the
-                requested NIC
-        @raise VMIPAddressMissingError: If no IP address is found for the the
-                NIC's MAC address
-        @raise VMAddressVerificationError: If the MAC-IP address mapping cannot
-                be verified (using arping)
-        """
-        nics = self.params.objects("nics")
-        nic_name = nics[index]
-        nic_params = self.params.object_params(nic_name)
-        if nic_params.get("nic_mode") == "tap":
-            mac = self.get_mac_address(index).lower()
-            # Get the IP address from the cache
-            ip = self.address_cache.get(mac)
-            if not ip:
-                raise virt_vm.VMIPAddressMissingError(mac)
-            # Make sure the IP address is assigned to this guest
-            macs = [self.get_mac_address(i) for i in range(len(nics))]
-            if not virt_utils.verify_ip_address_ownership(ip, macs):
-                raise virt_vm.VMAddressVerificationError(mac, ip)
-            return ip
-        else:
-            return "localhost"
 
 
     def get_port(self, port, nic_index=0):
@@ -1369,9 +1350,7 @@ class VM(virt_vm.BaseVM):
         @raise VMPortNotRedirectedError: If an unredirected port is requested
                 in user mode
         """
-        nic_name = self.params.objects("nics")[nic_index]
-        nic_params = self.params.object_params(nic_name)
-        if nic_params.get("nic_mode") == "tap":
+        if self.virtnet[nic_index].nettype == "bridge":
             return port
         else:
             try:
@@ -1381,19 +1360,7 @@ class VM(virt_vm.BaseVM):
 
 
     def get_ifname(self, nic_index=0):
-        """
-        Return the ifname of a tap device associated with a NIC.
-
-        @param nic_index: Index of the NIC
-        """
-        nics = self.params.objects("nics")
-        nic_name = nics[nic_index]
-        nic_params = self.params.object_params(nic_name)
-        if nic_params.get("nic_ifname"):
-            return nic_params.get("nic_ifname")
-        else:
-            return "t%d-%s" % (nic_index, self.instance[-11:])
-
+        raise NotImplementedError
 
     def get_virsh_mac_address(self, nic_index=0):
         """
@@ -1413,36 +1380,6 @@ class VM(virt_vm.BaseVM):
                 return x.value
             count += 1
         raise virt_vm.VMMACAddressMissingError(nic_index)
-
-
-    def get_mac_address(self, nic_index=0):
-        """
-        Return the MAC address of a NIC.
-
-        @param nic_index: Index of the NIC
-        @raise VMMACAddressMissingError: If no MAC address is defined for the
-                requested NIC
-        """
-        nic_name = self.params.objects("nics")[nic_index]
-        nic_params = self.params.object_params(nic_name)
-        if self.params.get("type") != 'unattended_install':
-            mac = self.get_virsh_mac_address(nic_index)
-        else:
-            mac = (nic_params.get("nic_mac") or
-                   virt_utils.get_mac_address(self.instance, nic_index))
-        if not mac:
-            raise virt_vm.VMMACAddressMissingError(nic_index)
-        return mac
-
-
-    def free_mac_address(self, nic_index=0):
-        """
-        Free a NIC's MAC address.
-
-        @param nic_index: Index of the NIC
-        """
-        virt_utils.free_mac_address(self.instance, nic_index)
-
 
     def get_pid(self):
         """
@@ -1488,6 +1425,13 @@ class VM(virt_vm.BaseVM):
         # statm stores informations in pages, translate it to MB
         return shm * 4.0 / 1024
 
+    def activate_nic(self, nic_index_or_name):
+        #TODO: Impliment nic hotplugging
+        pass # Just a stub for now
+
+    def deactivate_nic(self, nic_index_or_name):
+        #TODO: Impliment nic hot un-plugging
+        pass # Just a stub for now
 
     @error.context_aware
     def reboot(self, session=None, method="shell", nic_index=0, timeout=240):
@@ -1529,8 +1473,13 @@ class VM(virt_vm.BaseVM):
         Verifies whether the current virt_install commandline matches the
         requested one, based on the test parameters.
         """
-        return (self.__make_libvirt_command() !=
-                self.__make_libvirt_command(name, params, basedir))
+        if (self.__make_libvirt_command() !=
+                self.__make_libvirt_command(name, params, basedir)):
+            logging.debug("VM params in env don't match requested, restarting.")
+            return True
+        else:
+            logging.debug("VM params in env do match requested, continuing.")
+            return False
 
 
     def screendump(self, filename, debug=False):
@@ -1543,6 +1492,23 @@ class VM(virt_vm.BaseVM):
         """
         Starts this VM.
         """
+        self.uuid = virsh_uuid(self.name, self.connect_uri)
+        # Pull in mac addresses from libvirt guest definition
+        for index, nic in enumerate(self.virtnet):
+            try:
+                mac = self.get_virsh_mac_address(index)
+                if not nic.has_key('mac'):
+                    logging.debug("Updating nic %d with mac %s on vm %s"
+                                  % (index, mac, self.name))
+                    nic.mac = mac
+                elif nic.mac.upper() != mac:
+                    logging.warning("Requested mac %s doesn't match mac %s "
+                                    "as defined for vm %s" % (nic.mac, mac,
+                                    self.name))
+                #TODO: Checkout/Set nic_model, nettype, netdst also
+            except virt_vm.VMMACAddressMissingError:
+                logging.warning("Nic %d requested by test but not defined for"
+                                " vm %s" % (index, self.name))
         if virsh_start(self.name, self.connect_uri):
             # Wait for the domain to be created
             has_started = virt_utils.wait_for(func=self.is_alive, timeout=60,
@@ -1551,6 +1517,7 @@ class VM(virt_vm.BaseVM):
             if has_started is None:
                 raise virt_vm.VMStartError(self.name, "libvirt domain not "
                                                       "active after start")
+            self.uuid = virsh_uuid(self.name, self.connect_uri)
         else:
             raise virt_vm.VMStartError(self.name, "libvirt domain failed "
                                                   "to start")
