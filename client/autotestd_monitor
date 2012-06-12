@@ -1,61 +1,92 @@
 #!/usr/bin/python
+"""
+Watches the execution of autotestd, printing the logfiles to stdout and stderr.
+"""
+import sys, os, signal, time, fcntl, threading
 
-try:
-    import autotest.common
-except ImportError:
-    import common
-import sys, os, signal, time, subprocess, fcntl
+class AutotestdMonitorTimeoutError(Exception):
+    """
+    Exception thrown when autotestd cannot start after a given timeout.
+    """
+    def __init__(self, logdir, timeout):
+        self.logdir = logdir
+        self.timeout = timeout
 
-logdir = sys.argv[1]
-stdout_start = int(sys.argv[2])  # number of bytes we can skip on stdout
-stderr_start = int(sys.argv[3])  # nubmer of bytes we can skip on stderr
+    def __str__(self):
+        return ("Autotestd monitor failed to start on %s after %d s" %
+                (self.logdir, self.timeout))
 
-# if any of our tail processes die, the monitor should die too
-def kill_self(signum, frame):
-    os.kill(os.getpid(), signal.SIGTERM)
-signal.signal(signal.SIGCHLD, kill_self)
 
-devnull = open(os.devnull, 'w')
+def launch_tail(path, outstream, start):
+    """
+    Watches the given path printing the result to outstream.
 
-# launch some tail processes to pump the std* streams
-def launch_tail(filename, outstream, start):
-    path = os.path.join(logdir, filename)
-    argv = ['tail', '--retry', '--follow=name', '--bytes=+%d' % start, path]
-    # stdout=sys.stdout fails on pre-2.5 python (bug in subprocess module)
-    if outstream != subprocess.PIPE and outstream.fileno() == 1:
-        return subprocess.Popen(argv, stderr=devnull)
-    else:
-        return subprocess.Popen(argv, stdout=outstream, stderr=devnull)
-stdout_pump = launch_tail('stdout', sys.stdout, stdout_start)
-stderr_pump = launch_tail('stderr', sys.stderr, stderr_start)
+    @param path: Path that will be watched.
+    @param outstream: Output stream (sys.stdout, for example).
+    @param start: Skip [start] bytes from output.
+    """
+    global _thread_termination_event
+    while not os.path.isfile(path):
+        time.sleep(0.1)
+    log_file = open(path, 'r')
+    log_file.seek(start)
+    while True:
+        where = log_file.tell()
+        line = log_file.readline()
+        if not line:
+            log_file.seek(where)
+        else:
+            outstream.write(line)
+        if _thread_termination_event.isSet():
+            break
+        _thread_termination_event.wait(1)
 
-# wait for logdir/started to exist to be sure autotestd is started
-start_time = time.time()
-started_file_path = os.path.join(logdir, 'started')
-while not os.path.exists(started_file_path):
-    time.sleep(1)
-    if time.time() - start_time >= 30:
-        raise Exception("autotestd failed to start in %s" % logdir)
 
-# watch the exit code file for an exit
-exit_code_file = open(os.path.join(logdir, 'exit_code'))
-fcntl.flock(exit_code_file, fcntl.LOCK_EX)
-try:
-    exit_code = exit_code_file.read()
-    if len(exit_code) != 4:
-        exit_code = -signal.SIGKILL   # autotestd was nuked
-    else:
-        exit_code = int(exit_code)
-finally:
-    fcntl.flock(exit_code_file, fcntl.LOCK_UN)
-    exit_code_file.close()
+if __name__ == "__main__":
+    logdir = sys.argv[1]
+    stdout_start = int(sys.argv[2])  # number of bytes we can skip on stdout
+    stderr_start = int(sys.argv[3])  # nubmer of bytes we can skip on stderr
+    autotestd_monitor_timeout = 30   # monitor timeout
 
-# tail runs in 1s polling loop, so give them a chance to finish
-time.sleep(2)
-# clear the SIGCHLD handler so that killing the tails doesn't kill us
-signal.signal(signal.SIGCHLD, signal.SIG_DFL)
-os.kill(stdout_pump.pid, signal.SIGTERM)
-os.kill(stderr_pump.pid, signal.SIGTERM)
+    stdout_file_path = os.path.join(logdir, 'stdout')
+    stderr_file_path = os.path.join(logdir, 'stderr')
 
-# exit (with the same code as autotestd)
-sys.exit(exit_code)
+    _thread_termination_event = threading.Event()
+    _stdout_thread = threading.Thread(target=launch_tail,
+                                      args=(stdout_file_path, sys.stdout,
+                                            stdout_start))
+    _stderr_thread = threading.Thread(target=launch_tail,
+                                      args=(stderr_file_path, sys.stderr,
+                                            stderr_start))
+    _stdout_thread.start()
+    _stderr_thread.start()
+
+    # wait for logdir/started to exist to be sure autotestd is started
+    start_time = time.time()
+    started_file_path = os.path.join(logdir, 'started')
+    while not os.path.exists(started_file_path):
+        time.sleep(1)
+        time_elapsed = time.time() - start_time
+        if time_elapsed >= autotestd_monitor_timeout:
+            raise AutotestdMonitorTimeoutError(logdir,
+                                               autotestd_monitor_timeout)
+
+    # watch the exit code file for an exit
+    exit_code_file = open(os.path.join(logdir, 'exit_code'))
+    fcntl.flock(exit_code_file, fcntl.LOCK_EX)
+    try:
+        exit_code = exit_code_file.read()
+        if len(exit_code) != 4:
+            exit_code = -signal.SIGKILL   # autotestd was nuked
+        else:
+            exit_code = int(exit_code)
+    finally:
+        fcntl.flock(exit_code_file, fcntl.LOCK_UN)
+        exit_code_file.close()
+
+    _thread_termination_event.set()
+    _stdout_thread.join(2)
+    _stderr_thread.join(2)
+
+    # exit (with the same code as autotestd)
+    sys.exit(exit_code)
