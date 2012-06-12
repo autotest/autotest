@@ -493,7 +493,9 @@ class VirtIface(PropCan):
     Networking information for single guest interface and host connection.
     """
     __slots__ = ['nic_name', 'mac', 'nic_model', 'ip', 'nettype', 'netdst']
-    # Make sure first byte generated is always zero
+    # Make sure first byte generated is always zero and it follows
+    # the class definition.  This helps provide more predictable
+    # addressing while avoiding clashes between multiple NICs.
     LASTBYTE = random.SystemRandom().randint(0x00, 0xff)
 
     def __getstate__(self):
@@ -565,10 +567,11 @@ class VirtIface(PropCan):
         """
         for byte_index in xrange(0,len(mac_bytes)):
             mac = mac_bytes[byte_index]
+            # Project standardized on lower-case hex
             if mac < 16:
-                mac_bytes[byte_index] = "0%X" % mac
+                mac_bytes[byte_index] = "0%x" % mac
             else:
-                mac_bytes[byte_index] = "%X" % mac
+                mac_bytes[byte_index] = "%x" % mac
         return mac_bytes
 
     @classmethod
@@ -619,6 +622,9 @@ class VMNet(list):
     """
     Collection of networking information.
     """
+
+    # don't flood discard warnings
+    DISCARD_WARNINGS=10
 
     # __init__ must not presume clean state, it should behave
     # assuming there is existing properties/data on the instance
@@ -685,7 +691,7 @@ class VMNet(list):
         """
         Strips 'mac' key from value if it's not valid
         """
-        mac = value.get('mac')
+        original_mac = mac = value.get('mac')
         if mac:
             mac = value['mac'] = value['mac'].lower()
             if len(mac.split(':')
@@ -693,6 +699,14 @@ class VMNet(list):
                 return
             else:
                 del value['mac'] # don't store invalid macs
+                # Notify user about these, but don't go crazy
+                if self.__class__.DISCARD_WARNINGS >= 0:
+                    logging.warning('Discarded invalid mac "%s" for nic "%s" '
+                                    'from input, %d warnings remaining.'
+                                    % (original_mac,
+                                       value.get('nic_name'),
+                                       self.__class__.DISCARD_WARNINGS))
+                    self.__class__.DISCARD_WARNINGS -= 1
 
     def mac_list(self):
         """
@@ -1110,7 +1124,7 @@ class VirtNet(DbNet, ParamsNet):
         while attempts_remaining > 0:
             mac_attempt = nic.complete_mac_address(self.mac_prefix)
             if mac_attempt not in self.mac_index():
-                nic.mac = mac_attempt
+                nic.mac = mac_attempt.lower()
                 self.unlock_db()
                 return self[nic_index_or_name].mac # calls update_db
             else:
@@ -1149,7 +1163,7 @@ class VirtNet(DbNet, ParamsNet):
         if nic.has_key('mac'):
             logging.warning("Overwriting mac %s for nic %s with %s"
                             % (nic.mac, str(nic_index_or_name), mac))
-        nic.mac = mac
+        nic.mac = mac.lower()
         self.update_db()
 
     def get_mac_address(self, nic_index_or_name):
@@ -1159,7 +1173,7 @@ class VirtNet(DbNet, ParamsNet):
         @param: nic_index_or_name: index number or name of NIC
         @return: MAC address string.
         """
-        return self[nic_index_or_name].mac
+        return self[nic_index_or_name].mac.lower()
 
     def generate_ifname(self, nic_index_or_name):
         """

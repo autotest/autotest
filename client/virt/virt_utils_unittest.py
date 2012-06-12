@@ -215,6 +215,8 @@ class test_VirtIface(unittest.TestCase):
 
     def setUp(self):
         virt_utils.VirtIface.LASTBYTE = -1 # Restart count at zero
+        # These warnings are annoying during testing
+        virt_utils.VMNet.DISCARD_WARNINGS -1
 
     def loop_assert(self, virtiface, test_keys, what_func, string_val):
         for propertea in test_keys:
@@ -286,11 +288,15 @@ class test_KVMIface(test_VirtIface):
 
     def setUp(self):
         self.VirtIface = virt_utils.KVMIface
+        # These warnings are annoying during testing
+        virt_utils.VMNet.DISCARD_WARNINGS -1
 
 class test_LibvirtIface(test_VirtIface):
 
     def setUp(self):
         self.VirtIface = virt_utils.LibvirtIface
+        # These warnings are annoying during testing
+        virt_utils.VMNet.DISCARD_WARNINGS -1
 
 class test_VMNetStyle(unittest.TestCase):
 
@@ -315,6 +321,8 @@ class test_VMNet(unittest.TestCase):
 
     def setUp(self):
         virt_utils.VirtIface.LASTBYTE = -1 # Restart count at zero
+        # These warnings are annoying during testing
+        virt_utils.VMNet.DISCARD_WARNINGS -1
 
     def test_string_container(self):
         self.assertRaises(TypeError, virt_utils.VMNet, str, ["Foo"])
@@ -441,7 +449,7 @@ class test_VMNet_Subclasses(unittest.TestCase):
     """)
 
     mac_prefix="01:02:03:04:05:"
-    db_filename = '/tmp/UnitTest_AddressPool'
+    db_filename = '/dev/shm/UnitTest_AddressPool'
     db_item_count = 0
     counter = 0 # for printing dots
 
@@ -450,8 +458,11 @@ class test_VMNet_Subclasses(unittest.TestCase):
         Runs before every test
         """
         # MAC generator produces from incrementing byte list
+        # at random starting point (class property).
         # make sure it starts counting at zero before every test
         virt_utils.VirtIface.LASTBYTE = -1
+        # These warnings are annoying during testing
+        virt_utils.VMNet.DISCARD_WARNINGS -1
         parser = cartesian_config.Parser()
         parser.parse_string(self.nettests_cartesian)
         self.CartesianResult = []
@@ -615,6 +626,7 @@ class test_VMNet_Subclasses(unittest.TestCase):
         except OSError:
             pass
         self.zero_counter(25)
+        # setup() method already set LASTBYTE to '-1'
         for lastbyte in xrange(0, 0xFF):
             # test_07_VirtNet demands last byte in name and mac match
             vm_name = "vm%d" % lastbyte
@@ -632,6 +644,9 @@ class test_VMNet_Subclasses(unittest.TestCase):
             virtnet.mac_prefix = self.mac_prefix
             self.assertEqual(virtnet['nic1'].mac, mac)
             self.assertEqual(virtnet.get_mac_address(0), mac)
+            # Confirm only lower-case macs are stored
+            self.assertEqual(virtnet.get_mac_address(0).lower(),
+                             virtnet.get_mac_address(0))
             self.assertEqual(virtnet.mac_list(), [mac] )
             self.print_and_inc()
 
@@ -639,6 +654,8 @@ class test_VMNet_Subclasses(unittest.TestCase):
     def test_05_VirtNet(self):
         """
         Load max - 1 entries from db, overriding params.
+
+        DEPENDS ON test_04_VirtNet running first
         """
         self.zero_counter(25)
         # second loop forces db load from disk
@@ -663,6 +680,8 @@ class test_VMNet_Subclasses(unittest.TestCase):
     def test_06_VirtNet(self):
         """
         Generate last possibly mac and verify value.
+
+        DEPENDS ON test_05_VirtNet running first
         """
         self.zero_counter(25)
         # test two nics, second mac generation should fail (pool exhausted)
@@ -675,7 +694,7 @@ class test_VMNet_Subclasses(unittest.TestCase):
         virtnet.mac_prefix = self.mac_prefix
         self.assertRaises(virt_utils.PropCanKeyError,
                           virtnet.get_mac_address, 'nic1')
-        mac = mac = "%s%X" % (self.mac_prefix,255)
+        mac = "%s%x" % (self.mac_prefix,255)
         # This will grab the last available address
         # only try 300 times, guarantees LASTBYTE counter will loop once
         self.assertEqual(virtnet.generate_mac_address(0, 300), mac)
