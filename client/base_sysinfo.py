@@ -1,7 +1,7 @@
 import os, shutil, re, glob, subprocess, logging, gzip
 
-from autotest.client.shared import log, global_config
-from autotest.client import utils, package
+from autotest.client.shared import log, global_config, software_manager
+from autotest.client import utils
 
 GLOBAL_CONFIG = global_config.global_config
 
@@ -190,6 +190,7 @@ class base_sysinfo(object):
         self.boot_loggables.add(logfile('/proc/mounts', logf='proc_mounts'))
         self.boot_loggables.add(command("uname -a", logf="uname",
                                              log_in_keyval=True))
+        self.sm = software_manager.SoftwareManager()
 
 
     def serialize(self):
@@ -250,7 +251,7 @@ class base_sysinfo(object):
         if _LOG_INSTALLED_PACKAGES:
             # also log any installed packages
             installed_path = os.path.join(logdir, "installed_packages")
-            installed_packages = "\n".join(package.list_all()) + "\n"
+            installed_packages = "\n".join(self.sm.list_all()) + "\n"
             utils.open_write_close(installed_path, installed_packages)
 
 
@@ -258,7 +259,7 @@ class base_sysinfo(object):
     def log_before_each_test(self, test):
         """ Logging hook called before a test starts. """
         if _LOG_INSTALLED_PACKAGES:
-            self._installed_packages = package.list_all()
+            self._installed_packages = self.sm.list_all()
         if os.path.exists("/var/log/messages"):
             stat = os.stat("/var/log/messages")
             self._messages_size = stat.st_size
@@ -300,7 +301,7 @@ class base_sysinfo(object):
         if _LOG_INSTALLED_PACKAGES:
             # log any changes to installed packages
             old_packages = set(self._installed_packages)
-            new_packages = set(package.list_all())
+            new_packages = set(self.sm.list_all())
             added_path = os.path.join(test_sysinfodir, "added_packages")
             added_packages = "\n".join(new_packages - old_packages) + "\n"
             utils.open_write_close(added_path, added_packages)
