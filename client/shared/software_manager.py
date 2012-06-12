@@ -379,8 +379,9 @@ class YumBackend(RpmBackend):
         self.cfgparser = ConfigParser.ConfigParser()
         self.cfgparser.read(self.repo_file_path)
         y_cmd = executable + ' --version | head -1'
-        self.yum_version = utils.system_output(y_cmd, ignore_status=True)
-        logging.debug('Yum backend initialized')
+        cmd_result = utils.run(y_cmd, ignore_status=True,
+                               verbose=False)
+        self.yum_version = cmd_result.stdout.strip()
         logging.debug('Yum version: %s' % self.yum_version)
         self.yum_base = yum.YumBase()
 
@@ -504,8 +505,9 @@ class ZypperBackend(RpmBackend):
         super(ZypperBackend, self).__init__()
         self.base_command = os_dep.command('zypper') + ' -n'
         z_cmd = self.base_command + ' --version'
-        self.zypper_version = utils.system_output(z_cmd, ignore_status=True)
-        logging.debug('Zypper backend initialized')
+        cmd_result = utils.run(z_cmd, ignore_status=True,
+                               verbose=False)
+        self.zypper_version = cmd_result.stdout.strip()
         logging.debug('Zypper version: %s' % self.zypper_version)
 
 
@@ -622,9 +624,10 @@ class AptBackend(DpkgBackend):
         executable = os_dep.command('apt-get')
         self.base_command = executable + ' -y'
         self.repo_file_path = '/etc/apt/sources.list.d/autotest'
-        self.apt_version = utils.system_output('apt-get -v | head -1',
-                                               ignore_status=True)
-        logging.debug('Apt backend initialized')
+        cmd_result = utils.run('apt-get -v | head -1',
+                               ignore_status=True,
+                               verbose=False)
+        self.apt_version = cmd_result.stdout.strip()
         logging.debug('apt version: %s' % self.apt_version)
 
 
