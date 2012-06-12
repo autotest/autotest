@@ -9,7 +9,26 @@ import logging, os, shutil, re
 from autotest.client import utils
 import virt_utils, virt_vm
 
-# Functions for handling virtual machine image files
+
+def preprocess_images(bindir, params, env):
+    # Clone master image form vms.
+    for vm_name in params.get("vms").split():
+        vm = env.get_vm(vm_name)
+        if vm:
+            vm.destroy(free_mac_addresses=False)
+        vm_params = params.object_params(vm_name)
+        for image in vm_params.get("master_images_clone").split():
+            image_obj = QemuImg(params, bindir, image)
+            image_obj.clone_image(params, vm_name, image, bindir)
+
+
+def postprocess_images(bindir, params):
+    for vm in params.get("vms").split():
+        vm_params = params.object_params(vm)
+        for image in vm_params.get("master_images_clone").split():
+            image_obj = QemuImg(params, bindir, image)
+            image_obj.rm_clone_image(params, vm, image, bindir)
+
 
 def get_image_blkdebug_filename(params, root_dir):
     """

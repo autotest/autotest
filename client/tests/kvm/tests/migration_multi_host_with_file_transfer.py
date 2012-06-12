@@ -2,7 +2,8 @@ import logging, threading
 from autotest.client import utils as client_utils
 from autotest.client.shared import utils, error
 from autotest.client.shared.syncdata import SyncData
-from autotest.client.virt import virt_env_process, virt_utils, virt_remote
+from autotest.client.virt import virt_env_process, virt_test_utils, virt_remote
+from autotest.client.virt import virt_utils
 
 
 @error.context_aware
@@ -65,7 +66,7 @@ def run_migration_multi_host_with_file_transfer(test, params, env):
     #Count of migration during file transfer.
     migrate_count = int(params.get("migrate_count", "3"))
 
-    class TestMultihostMigration(virt_utils.MultihostMigration):
+    class TestMultihostMigration(virt_test_utils.MultihostMigration):
         def __init__(self, test, params, env):
             super(TestMultihostMigration, self).__init__(test, params, env)
             self.vm = None
@@ -85,7 +86,7 @@ def run_migration_multi_host_with_file_transfer(test, params, env):
             @param mig_data: object with migration data.
             """
             for vm in mig_data.vms:
-                if not virt_utils.guest_active(vm):
+                if not virt_test_utils.guest_active(vm):
                     raise error.TestFail("Guest not active after migration")
 
             logging.info("Migrated guest appears to be running")
