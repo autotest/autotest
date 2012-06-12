@@ -7,7 +7,7 @@ Requires: binaries remote-viewer, Xorg, netstat
 """
 import logging, os, time
 from autotest.client.virt.aexpect import ShellCmdError
-from autotest.client.virt import virt_utils
+from autotest.client.virt import virt_utils, virt_remote
 
 class RVConnectError(Exception):
     """Exception raised in case that remote-viewer fails to connect"""
@@ -145,11 +145,11 @@ def launch_rv(client_vm, guest_vm, params):
             client_session.cmd("rm -rf %s && mkdir -p %s" % (
                                guest_vm.get_spice_var("spice_x509_prefix"),
                                guest_vm.get_spice_var("spice_x509_prefix")))
-            virt_utils.copy_files_to(client_vm.get_address(), 'scp',
-                                     params.get("username"),
-                                     params.get("password"),
-                                     params.get("shell_port"),
-                                     cacert, cacert)
+            virt_remote.copy_files_to(client_vm.get_address(), 'scp',
+                                      params.get("username"),
+                                      params.get("password"),
+                                      params.get("shell_port"),
+                                      cacert, cacert)
         else:
             host_port = guest_vm.get_spice_var("spice_port")
             cmd += " spice://%s?port=%s" % (host_ip, host_port)

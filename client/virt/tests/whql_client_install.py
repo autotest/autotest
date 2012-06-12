@@ -1,6 +1,7 @@
 import logging, time, os
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, virt_test_utils, rss_client
+from autotest.client.virt import virt_utils, virt_test_utils, virt_remote
+from autotest.client.virt import rss_client
 
 
 def run_whql_client_install(test, params, env):
@@ -53,9 +54,9 @@ def run_whql_client_install(test, params, env):
                              timeout=60)
 
     # Open a shell session with server
-    server_session = virt_utils.remote_login("nc", server_address,
-                                            server_shell_port, "", "",
-                                            session.prompt, session.linesep)
+    server_session = virt_remote.remote_login("nc", server_address,
+                                              server_shell_port, "", "",
+                                              session.prompt, session.linesep)
     server_session.set_status_test_command(session.status_test_command)
 
     # Get server and client information

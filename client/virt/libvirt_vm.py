@@ -8,7 +8,7 @@ import time, os, logging, fcntl, re, commands, shutil, urlparse
 from autotest.client.shared import error
 from autotest.client import utils, os_dep
 from xml.dom import minidom
-import virt_utils, virt_vm, virt_storage, aexpect
+import virt_utils, virt_vm, virt_storage, aexpect, virt_remote
 
 DEBUG = False
 try:
@@ -1277,7 +1277,7 @@ class VM(virt_vm.BaseVM):
                     logging.debug("Trying to shutdown VM with shell command")
                     try:
                         session = self.login()
-                    except (virt_utils.LoginError, virt_vm.VMError), e:
+                    except (virt_remote.LoginError, virt_vm.VMError), e:
                         logging.debug(e)
                     else:
                         try:

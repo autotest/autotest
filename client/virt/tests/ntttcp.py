@@ -1,9 +1,11 @@
 import logging, os, glob, re, commands
 from autotest.client.shared import error
 from autotest.client.shared import utils
-from autotest.client.virt import virt_utils, aexpect, virt_test_utils
+from autotest.client.virt import virt_utils, virt_test_utils, virt_remote
+from autotest.client.virt import aexpect
 
 _receiver_ready = False
+
 
 def run_ntttcp(test, params, env):
     """
@@ -84,9 +86,9 @@ def run_ntttcp(test, params, env):
             port = int(params.get("shell_port"))
             log_filename = ("session-%s-%s.log" % (receiver_addr,
                             virt_utils.generate_random_string(4)))
-            session = virt_utils.remote_login(client, receiver_addr, port,
-                                             username, password, prompt,
-                                             linesep, log_filename, timeout)
+            session = virt_remote.remote_login(client, receiver_addr, port,
+                                               username, password, prompt,
+                                               linesep, log_filename, timeout)
             session.set_status_test_command("echo %errorlevel%")
         install_ntttcp(session)
         ntttcp_receiver_cmd = params.get("ntttcp_receiver_cmd")

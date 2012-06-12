@@ -1,7 +1,8 @@
 import logging, re
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils, virt_utils, aexpect
+from autotest.client.virt import virt_test_utils, virt_utils, virt_remote
+from autotest.client.virt import aexpect
 
 
 def run_ethtool(test, params, env):
@@ -140,7 +141,7 @@ def run_ethtool(test, params, env):
         logging.info("Transfering file %s from %s", filename, src)
         try:
             copy_files_func(filename, filename)
-        except virt_utils.SCPError, e:
+        except virt_remote.SCPError, e:
             return (False, "File transfer failed (%s)" % e)
 
         session.cmd("killall tcpdump")

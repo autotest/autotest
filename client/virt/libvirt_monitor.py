@@ -1,6 +1,6 @@
 import re, tempfile, xml.dom.minidom, logging
 from autotest.client import utils
-import virt_utils, aexpect
+import aexpect, virt_remote
 
 
 class VirshMonitor:
@@ -84,8 +84,8 @@ class VirshMonitor:
 
         if self.username is not None:
             try:
-                virt_utils._remote_login(session, self.username, self.password,
-                                         self.prompt, timeout)
+                virt_remote._remote_login(session, self.username, self.password,
+                                          self.prompt, timeout)
             except aexpect.ShellError:
                 session.close()
                 session = None
