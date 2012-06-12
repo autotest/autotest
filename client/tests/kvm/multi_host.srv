@@ -85,7 +85,7 @@ def run(machines):
         params['not_preprocess'] = "yes"
         for vm in params.get("vms").split():
             for nic in params.get('nics',"").split():
-                params['nic_mac_%s_%s' % (nic, vm)] = generate_mac_address()
+                params['mac_%s_%s' % (nic, vm)] = generate_mac_address()
 
         params['master_images_clone'] = "image1"
         params['kill_vm'] = "yes"
