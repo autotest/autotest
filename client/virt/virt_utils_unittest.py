@@ -619,9 +619,9 @@ class test_VMNet_Subclasses(unittest.TestCase):
             # test_07_VirtNet demands last byte in name and mac match
             vm_name = "vm%d" % lastbyte
             if lastbyte < 16:
-                mac = "%s0%X" % (self.mac_prefix,lastbyte)
+                mac = "%s0%x" % (self.mac_prefix,lastbyte)
             else:
-                mac = "%s%X" % (self.mac_prefix,lastbyte)
+                mac = "%s%x" % (self.mac_prefix,lastbyte)
             params = virt_utils.Params({
                 "nics":"nic1",
                 "vms":vm_name,
@@ -652,9 +652,9 @@ class test_VMNet_Subclasses(unittest.TestCase):
             virtnet = virt_utils.VirtNet(params, vm_name,
                                          vm_name, self.db_filename)
             if lastbyte < 16:
-                mac = "%s0%X" % (self.mac_prefix,lastbyte)
+                mac = "%s0%x" % (self.mac_prefix,lastbyte)
             else:
-                mac = "%s%X" % (self.mac_prefix,lastbyte)
+                mac = "%s%x" % (self.mac_prefix,lastbyte)
             self.assertEqual(virtnet['nic1'].mac, mac)
             self.assertEqual(virtnet.get_mac_address(0), mac)
             self.print_and_inc()
