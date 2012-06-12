@@ -27,7 +27,7 @@ def postprocess_images(bindir, params):
         vm_params = params.object_params(vm)
         for image in vm_params.get("master_images_clone").split():
             image_obj = QemuImg(params, bindir, image)
-            image_obj.rm_clone_image(params, vm, image, bindir)
+            image_obj.rm_cloned_image(params, vm, image, bindir)
 
 
 def get_image_blkdebug_filename(params, root_dir):
