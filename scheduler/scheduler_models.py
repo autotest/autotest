@@ -428,7 +428,7 @@ class Host(DBObject):
 
 class HostQueueEntry(DBObject):
     _table_name = 'afe_host_queue_entries'
-    _fields = ('id', 'job_id', 'host_id', 'status', 'meta_host',
+    _fields = ('id', 'job_id', 'host_id', 'profile', 'status', 'meta_host',
                'active', 'complete', 'deleted', 'execution_subdir',
                'atomic_group_id', 'aborted', 'started_on')
 

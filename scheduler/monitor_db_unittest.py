@@ -1338,17 +1338,26 @@ class TopLevelFunctionsTest(unittest.TestCase):
 
 
     def test_autoserv_command_line(self):
-        machines = 'abcd12,efgh34'
+        machines = ['abcd12', 'efgh34']
+        profiles = ['fedora17', 'fedora18']
+        machines_profiles = 'abcd12#fedora17,efgh34#fedora18'
         extra_args = ['-Z', 'hello']
         expected_command_line_base = set((monitor_db._autoserv_path, '-p',
                                           '-m', machines, '-r',
                                           drone_manager.WORKING_DIRECTORY))
+        expected_command_line_profiles = set((monitor_db._autoserv_path, '-p',
+                                          '-m', machines_profiles, '-r',
+                                          drone_manager.WORKING_DIRECTORY))
 
         expected_command_line = expected_command_line_base.union(
                 ['--verbose']).union(extra_args)
+
         command_line = set(
-                monitor_db._autoserv_command_line(machines, extra_args))
-        self.assertEqual(expected_command_line, command_line)
+                monitor_db._autoserv_command_line(machines, [], extra_args))
+
+        command_line_profiles = set(
+                monitor_db._autoserv_command_line(machines, profiles, extra_args))
+        self.assertEqual(expected_command_line_profiles, command_line_profiles)
 
         class FakeJob(object):
             owner = 'Bob'
