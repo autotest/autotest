@@ -1018,7 +1018,9 @@ class VM(virt_vm.BaseVM):
 
         # We may want to add {floppy_otps} parameter for -fda
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
-        floppy = params.get("floppy")
+        # Only support to add the main floppy if you want to add the second
+        # one please modify this part.
+        floppy = params.get("floppy_name")
         if floppy:
             floppy = virt_utils.get_path(root_dir, floppy)
             virt_install_cmd += add_drive(help, floppy,

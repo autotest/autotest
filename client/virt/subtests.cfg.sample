@@ -1905,7 +1905,8 @@ variants:
         only Linux
         type = floppy
         start_vm = no
-        floppy = images/test_floppy.img
+        floppies = "fl"
+        floppy_name = images/test_floppy.img
 
     - usb_storage: install setup image_copy unattended_install.cdrom
         only Linux

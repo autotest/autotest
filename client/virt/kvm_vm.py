@@ -226,11 +226,14 @@ class VM(virt_vm.BaseVM):
                 return hex(int(pci_addr))
 
 
-        def _add_option(option, value, option_type=None):
+        def _add_option(option, value, option_type=None, first=False):
             """
             Add option to qemu parameters.
             """
-            fmt = ",%s=%s"
+            if first:
+                fmt = " %s=%s"
+            else:
+                fmt = ",%s=%s"
             if option_type is bool:
                 # Decode value for bool parameter (supports True, False, None)
                 if value in ['yes', 'on', True]:
@@ -442,6 +445,13 @@ class VM(virt_vm.BaseVM):
                 format = "none"
                 dev += _add_option("drive", name)
                 index = None
+            if format == "floppy":
+                drivelist = ['driveA','driveB']
+                name ="fdc0-0-%s" % index
+                format = "none"
+                dev += " -global"
+                dev += _add_option("isa-fdc.%s" % drivelist[index], name,
+                                   first=True)
 
             if blkdebug is not None:
                 cmd = " -drive file=blkdebug:%s:%s" % (blkdebug, filename)
@@ -519,8 +529,10 @@ class VM(virt_vm.BaseVM):
                         cmd += ",hostfwd=tcp::%s-:%s" % (host_port, guest_port)
             return cmd
 
-        def add_floppy(help, filename):
-            return " -fda '%s'" % filename
+        def add_floppy(help, filename, index):
+            cmd_list = [" -fda '%s'"," -fdb '%s'"]
+            return cmd_list[index] % filename
+
 
         def add_tftp(help, filename):
             # If the new syntax is supported, don't add -tftp
@@ -1040,12 +1052,25 @@ class VM(virt_vm.BaseVM):
         if soundhw:
             qemu_cmd += " -soundhw %s" % soundhw
 
-        # We may want to add {floppy_otps} parameter for -fda
+        # We may want to add {floppy_otps} parameter for -fda, -fdb
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
-        floppy = params.get("floppy")
-        if floppy:
-            floppy = virt_utils.get_path(root_dir, floppy)
-            qemu_cmd += add_floppy(help, floppy)
+        for index, floppy_name in enumerate(params.objects("floppies")):
+            if index > 1:
+                logging.warn("At most support two floppy in qemu-kvm")
+            else:
+                floppy_params = params.object_params(floppy_name)
+                floppy_readonly = floppy_params.get("floppy_readonly", "no")
+                floppy_readonly = floppy_readonly == "yes"
+                floppy = floppy_params.get("floppy_name")
+                if has_option(help,"global"):
+                    qemu_cmd += add_drive(help,
+                                          virt_utils.get_path(root_dir,
+                                                              floppy),
+                                          format="floppy",
+                                          index=index,
+                                          readonly= floppy_readonly)
+                else:
+                    qemu_cmd += add_floppy(help, floppy, index)
 
         # Add usb devices
         for usb_dev in params.objects("usb_devices"):
