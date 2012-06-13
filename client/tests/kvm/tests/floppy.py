@@ -20,7 +20,7 @@ def run_floppy(test, params, env):
     """
     def master_floppy(params):
         error.context("creating test floppy")
-        floppy = os.path.abspath(params.get("floppy"))
+        floppy = os.path.abspath(params.get("floppy_name"))
         utils.run("dd if=/dev/zero of=%s bs=512 count=2880" % floppy)
 
 
