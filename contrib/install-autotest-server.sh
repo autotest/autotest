@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ATHOME=/usr/local/autotest
 DATETIMESTAMP=$(date "+%m-%d-%Y-%H-%M-%S")
@@ -18,7 +18,11 @@ cat << EOF
 usage: $0 [options]
 
 This script installs the autotest server on a given system.
-Currently supported systems: Fedora 16 and RHEL 6.2.
+Currently tested systems:
+ * Fedora 16
+ * Fedora 17
+ * RHEL 6.2
+ * Ubuntu 12.04
 
 GENERAL OPTIONS:
    -h      Show this message
@@ -171,7 +175,7 @@ then
 fi
 }
 
-install_packages() {
+install_packages_rh() {
 PACKAGES_UTILITY=(unzip wget)
 PACKAGES_WEBSERVER=(httpd mod_wsgi Django)
 PACKAGES_MYSQL=(mysql-server MySQL-python)
@@ -198,6 +202,24 @@ else
 fi
 }
 
+install_packages_deb() {
+PACKAGES_UTILITY=(unzip wget gnuplot makepasswd)
+PACKAGES_WEBSERVER=(apache2-mpm-prefork libapache2-mod-wsgi python-django)
+PACKAGES_MYSQL=(mysql-server python-mysqldb)
+PACKAGES_DEVELOPMENT=(git openjdk-7-jre-headless)
+PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 python-numpy python-matplotlib python-setuptools python-simplejson)
+PACKAGES_ALL=( \
+    ${PACKAGES_UTILITY[*]}
+    ${PACKAGES_WEBSERVER[*]}
+    ${PACKAGES_MYSQL[*]}
+    ${PACKAGES_DEVELOPMENT[*]}
+    ${PACKAGES_PYTHON_LIBS[*]}
+)
+
+print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
+apt-get install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
+}
+
 setup_selinux() {
 # Turns out the problem "AttributeError: 'module' object has no attribute 'default'"
 # is in fact an SELinux problem. I did try to fix it, but couldn't, this needs to
@@ -216,20 +238,34 @@ then
 fi
 }
 
-setup_mysql_service() {
-print_log "INFO" "Starting MySQL server"
+setup_mysql_service_deb() {
+print_log "INFO" "Enabling MySQL server on boot"
+update-rc.d mysql defaults >> $LOG
+}
+
+setup_mysql_service_rh() {
+print_log "INFO" "Enabling MySQL server on boot"
 if [ -x /etc/init.d/mysqld ]
 then
     chkconfig --level 2345 mysqld on >> $LOG
-    /etc/init.d/mysqld restart >> $LOG
 else
     systemctl enable mysqld.service >> $LOG
-    systemctl restart mysqld.service >> $LOG
 fi
 }
 
-install_autotest() {
-print_log "INFO" "Installing autotest"
+create_autotest_user_deb() {
+print_log "INFO" "Creating autotest user"
+if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
+then
+    print_log "INFO" "Adding user autotest"
+    echo $ATPASSWD > /tmp/pwd
+    useradd -d /usr/local/autotest autotest -p $(makepasswd --crypt-md5 --clearfrom=/tmp/pwd | awk '{print $2}')
+    rm -rf /tmp/pwd
+fi
+}
+
+create_autotest_user_rh() {
+print_log "INFO" "Creating autotest user"
 if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
 then
     print_log "INFO" "Adding user autotest"
@@ -238,7 +274,10 @@ then
     echo "$ATPASSWD
 $ATPASSWD" | passwd --stdin autotest >> $LOG
 fi
+}
 
+install_autotest() {
+print_log "INFO" "Installing autotest"
 mkdir -p $ATHOME
 if [ ! -e $ATHOME/.git/config ]
 then
@@ -292,12 +331,23 @@ cat << EOF | su - autotest >> $LOG 2>&1
 EOF
 }
 
-configure_webserver() {
+configure_webserver_deb() {
+print_log "INFO" "Configuring Web server"
+if [ ! -e  /etc/apache2/sites-enabled/001-autotest ]
+then
+    /usr/local/bin/substitute "WSGISocketPrefix run/wsgi" "#WSGISocketPrefix run/wsgi" /usr/local/autotest/apache/conf/django-directives
+    sudo rm /etc/apache2/sites-enabled/000-default
+    sudo ln -s /usr/local/autotest/apache/conf/apache-conf /etc/apache2/sites-enabled/001-autotest
+fi
+a2enmod rewrite
+update-rc.d apache2 defaults
+}
+
+configure_webserver_rh() {
 print_log "INFO" "Configuring Web server"
 if [ ! -e  /etc/httpd/conf.d/autotest.conf ]
 then
     ln -s /usr/local/autotest/apache/conf/all-directives /etc/httpd/conf.d/autotest.conf
-    service httpd configtest
 fi
 if [ -x /etc/init.d/httpd ]
 then
@@ -333,11 +383,16 @@ else
 fi
 }
 
-restart_mysql() {
+restart_mysql_deb() {
+print_log "INFO" "Re-starting MySQL server"
+service mysql restart >> $LOG
+}
+
+restart_mysql_rh() {
 print_log "INFO" "Re-starting MySQL server"
 if [ -x /etc/init.d/mysqld ]
 then
-    /etc/init.d/mysqld restart >> $LOG
+    service $1 restart >> $LOG
 else
     systemctl restart mysqld.service >> $LOG
 fi
@@ -371,26 +426,41 @@ cat << EOF | su - autotest >> $LOG
 EOF
 }
 
-restart_httpd() {
+restart_apache_deb() {
+print_log "INFO" "Restarting web server"
+service apache2 restart
+}
+
+restart_apache_rh() {
 print_log "INFO" "Restarting web server"
 if [ -x /etc/init.d/httpd ]
 then
-    /etc/init.d/httpd restart
+    service httpd restart
 else
     systemctl restart httpd.service
 fi
 }
 
-start_scheduler() {
-print_log "INFO" "Starting the scheduler"
+start_scheduler_deb() {
+print_log "INFO" "Installing/starting scheduler"
+cp $ATHOME/utils/autotest.init /etc/init.d/autotest >> $LOG
+chmod +x /etc/init.d/autotest >> $LOG
+update-rc.d autotest defaults >> $LOG
+service autotest stop >> $LOG
+rm -f $ATHOME/autotest-scheduler.pid $ATHOME/autotest-scheduler-watcher.pid
+service autotest start >> $LOG
+}
+
+start_scheduler_rh() {
+print_log "INFO" "Installing/starting scheduler"
 if [ ! -d /etc/systemd ]
 then
     cp $ATHOME/utils/autotest-rh.init /etc/init.d/autotest >> $LOG
     chmod +x /etc/init.d/autotest >> $LOG
     chkconfig --level 2345 autotest on >> $LOG
-    /etc/init.d/autotest stop >> $LOG
+    service autotest stop >> $LOG
     rm -f $ATHOME/autotest-scheduler.pid $ATHOME/autotest-scheduler-watcher.pid
-    /etc/init.d/autotest start >> $LOG
+    service autotest start >> $LOG
 else
     cp $ATHOME/utils/autotestd.service /etc/systemd/system/ >> $LOG
     systemctl daemon-reload >> $LOG
@@ -418,7 +488,7 @@ then
 
     if [ -x /etc/init.d/iptables ]
     then
-        /etc/init.d/iptables restart >> $LOG
+        service iptables restart >> $LOG
     else
         systemctl restart iptables.service >> $LOG
     fi
@@ -432,7 +502,9 @@ then
 else
     print_log "INFO" "$(systemctl status autotestd.service)"
 fi
+}
 
+print_version_and_url() {
 cd $ATHOME/client/shared/
 VERSION="$(./version.py)"
 print_log "INFO" "Finished installing autotest server $VERSION at: $(date)"
@@ -452,29 +524,67 @@ full_install() {
     print_log "INFO" "A log of operation is kept in $LOG"
     print_log "INFO" "Install started at: $(date)"
 
-    check_disk_space
-    setup_substitute
-    setup_epel_repo
-    install_packages
+    if [ -f /etc/redhat-release ]
+    then
+        check_disk_space
+        setup_substitute
+        setup_epel_repo
+        install_packages_rh
+    elif [ "$(grep 'Ubuntu' /etc/issue)" != "" ]
+    then
+        check_disk_space
+        setup_substitute
+        install_packages_deb
+    else
+        print_log "Sorry, I can't recognize your distro, exiting..."
+    fi
 
-    if [ $INSTALL_PACKAGES_ONLY == 0 ]; then
-	setup_selinux
-	setup_mysql_service
-	install_autotest
-	check_mysql_password
-	create_autotest_database
-	build_external_packages
-	configure_webserver
-	configure_autotest
-	setup_databse_schema
-	restart_mysql
-	patch_python27_bug
-	build_web_rpc_client
-	import_tests
-	restart_httpd
-	start_scheduler
-	setup_firewall
-	print_install_status
+    if [ $INSTALL_PACKAGES_ONLY == 0 ]
+    then
+        if [ -f /etc/redhat-release ]
+        then
+            setup_selinux
+            setup_mysql_service_rh
+            restart_mysql_rh
+            create_autotest_user_rh
+            install_autotest
+            check_mysql_password
+            create_autotest_database
+            build_external_packages
+            configure_webserver_rh
+            configure_autotest
+            setup_databse_schema
+            restart_mysql_rh
+            patch_python27_bug
+            build_web_rpc_client
+            import_tests
+            restart_apache_rh
+            start_scheduler_rh
+            setup_firewall
+            print_install_status
+            print_version_and_url
+        elif [ "$(grep 'Ubuntu' /etc/issue)" != "" ]
+        then
+            setup_mysql_service_deb
+            restart_mysql_deb
+            create_autotest_user_deb
+            install_autotest
+            check_mysql_password
+            create_autotest_database
+            build_external_packages
+            configure_webserver_deb
+            configure_autotest
+            setup_databse_schema
+            restart_mysql_deb
+            build_web_rpc_client
+            import_tests
+            restart_apache_deb
+            start_scheduler_deb
+            print_install_status
+            print_version_and_url
+        else
+            print_log "Sorry, I can't recognize your distro, exiting..."
+        fi
     fi
 }
 
