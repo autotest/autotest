@@ -49,7 +49,7 @@ class boottool(Grubby):
                 install_grubby_if_necessary()
                 Grubby.__init__(self, self.path)
                 self.instantiated = True
-            except Exception as e:
+            except Exception, e:
                 raise error.JobError("Unable to instantiate boottool: %s" % e)
 
 
