@@ -1181,11 +1181,9 @@ class VirtNet(DbNet, ParamsNet):
         """
         nic_index = self.nic_name_index(self[nic_index_or_name].nic_name)
         prefix = "t%d-" % nic_index
-        # Preserving previous naming, not sure if this is required:
-        # assume db_key is at least one character
-        # Ensure postfix is always exactly 11 characters
-        postfix = (self.db_key + generate_random_string(10))[-11:]
-        self[nic_index_or_name].ifname = prefix + postfix
+        postfix = generate_random_string(6)
+        # Ensure interface name doesn't excede 11 characters
+        self[nic_index_or_name].ifname = (prefix + postfix)[-11:]
         return self[nic_index_or_name].ifname # forces update_db
 
 def verify_ip_address_ownership(ip, macs, timeout=10.0):
