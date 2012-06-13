@@ -2,8 +2,6 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Autotest Frontend</title>
-    <script type='text/javascript' src='autotest.AfeClient.nocache.js'>
-    </script>
   </head>
 
   <body>
@@ -14,13 +12,9 @@
 
     <span class="links-box" style="float: right;">
       Frontend |
-      <a href="server/admin">Admin interface</a> |
-      <a href="/tko">Results database</a>
-      (<a href="/new_tko"><b>new</b> interface!</a>) |
-      <a href="https://github.com/autotest/autotest/wiki">Wiki</a> |
-      Feeds:
-      <a href="server/feeds/jobs/completed">Completed</a>,
-      <a href="server/feeds/jobs/failed">Failed</a>
+      <a href="server/admin">Admin</a> |
+      <a href="/new_tko">Results DB</a> |
+      <a href="https://github.com/autotest/autotest/wiki">Documentation</a>
       <div id="motd" class="motd"></div>
     </span>
     <img src="header.png" />
@@ -116,9 +110,9 @@
               <td id="create_priority"></td><td></td></tr>
           <tr><td class="field-name">Kernel(s):</td>
               <td id="create_kernel"></td>
-              <td class="help">Example: "2.6.18-rc3" or
-              "http://example.com/kernel-2.6.30.rpm"
-              Separate multiple kernels with a comma and/or space.
+              <td class="help">Example: 3.4-rc3 or
+              http://example.com/kernel-3.3.1.rpm.
+              Separate multiple with a comma or space.
               </td></tr>
           <tr><td class="field-name">Kernel "cmdline":</td>
               <td id="create_kernel_cmdline"></td></tr>
@@ -202,5 +196,7 @@
 
     <!--  for debugging only -->
     <div id="error_display"></div>
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type='text/javascript' src='autotest.AfeClient.nocache.js'></script>
   </body>
 </html>
