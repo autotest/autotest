@@ -936,7 +936,7 @@ class VM(virt_vm.BaseVM):
 
         for nic in vm.virtnet:
             # setup nic parameters as needed
-            nic = vm.add_nic(**dict(nic)) # implied add_netdev
+            nic = vm.add_nic(**dict(nic)) # add_netdev if netdev_id not set
             # gather set values or None if unset
             vlan = int(nic.get('vlan'))
             netdev_id = nic.get('netdev_id')
@@ -1316,6 +1316,9 @@ class VM(virt_vm.BaseVM):
                         nic.tapfd = str(virt_utils.open_tap("/dev/net/tun",
                                                             nic.ifname,
                                                             vnet_hdr=False))
+                        logging.debug("Adding VM %s NIC ifname %s"
+                                      " to bridge %s" % (self.name,
+                                            nic.ifname, nic.netdst))
                         if nic.nettype == 'bridge':
                             virt_utils.add_to_bridge(nic.ifname, nic.netdst)
                         virt_utils.bring_up_ifname(nic.ifname)
@@ -1864,7 +1867,8 @@ class VM(virt_vm.BaseVM):
         nic_index = self.virtnet.nic_name_index(nic.nic_name)
         nic.set_if_none('vlan', str(nic_index))
         nic.set_if_none('device_id', virt_utils.generate_random_id())
-        nic.set_if_none('netdev_id', self.add_netdev(**params))
+        if not nic.has_key('netdev_id'):
+            nic.netdev_id = self.add_netdev(**nic)
         nic.set_if_none('nic_model', params['nic_model'])
         return nic
 
