@@ -103,6 +103,13 @@ def virsh_cmd(cmd, uri="", ignore_status=False):
     cmd = "%s %s %s" % (VIRSH_EXEC, uri_arg, cmd)
     return utils.run(cmd, verbose=DEBUG, ignore_status=ignore_status)
 
+def virsh_nodeinfo(uri = "", ignore_status=False, extra = ""):
+    """
+    Returns basic information about the node,like number and type of CPU,
+    and size of the physical memory.
+    """
+    cmd_nodeinfo = "nodeinfo %s" % extra
+    return virsh_cmd(cmd_nodeinfo, uri, ignore_status)
 
 def virsh_uri(uri=""):
     """
