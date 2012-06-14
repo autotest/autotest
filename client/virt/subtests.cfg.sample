@@ -263,6 +263,22 @@ variants:
                 status_error = "yes"
                 libvirtd = "off"
 
+    - virsh_nodeinfo:
+        type = virsh_nodeinfo
+        vms = ''
+        variants:
+            - no_option:
+                virsh_node_options = ""
+                status_error = "no"
+                libvirtd = "on"
+            - unexpect_option:
+                virsh_node_options = "xyz"
+                status_error = "yes"
+                libvirtd = "on"
+            - with_libvirtd_stop:
+                virsh_node_options = ""
+                status_error = "yes"
+                libvirtd = "off"
 
     - module_probe:
         type = module_probe
