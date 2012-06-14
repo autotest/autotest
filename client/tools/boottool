@@ -17,10 +17,11 @@ __all__ = ['Grubby', 'OptionParser', 'App', 'EfiVar', 'EfiToolSys',
 #
 # Information on default requirements and installation for grubby
 #
-GRUBBY_REQ_VERSION = (8, 11)
-GRUBBY_TARBALL_URI = ('http://cloud.github.com/downloads/autotest/'
-                      'grubby/grubby-8.11-autotest.tar.bz2')
-GRUBBY_TARBALL_MD5 = '56695ec865460b25f20427b5329ef641'
+GRUBBY_REQ_VERSION = (8, 13)
+GRUBBY_TARBALL_URI = ('http://pkgs.fedoraproject.org/repo/pkgs/grubby/'
+                      'grubby-8.13.tar.bz2/75c4e7ea138cfc223d54e9aa33f2dbd6/'
+                      'grubby-8.13.tar.bz2')
+GRUBBY_TARBALL_MD5 = '75c4e7ea138cfc223d54e9aa33f2dbd6'
 GRUBBY_DEFAULT_SYSTEM_PATH = '/sbin/grubby'
 GRUBBY_DEFAULT_USER_PATH = '/tmp/grubby'
 
