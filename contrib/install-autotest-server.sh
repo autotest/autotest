@@ -246,6 +246,8 @@ then
     cd $ATHOME
     git init
     git remote add origin git://github.com/autotest/autotest.git
+    git config branch.master.remote origin
+    git config branch.master.merge refs/heads/master
     git pull
     git checkout master
 else
