@@ -718,9 +718,17 @@ class UnattendedInstallConfig(object):
                 # install cdrom in /dev/sr1. When we get ks via http,
                 # we need to change repo configuration to /dev/sr0
                 if 'repo=cdrom' in kernel_params:
-                    kernel_params = re.sub('repo\=cdrom[\:\w\d\/]*',
-                                           'repo=cdrom:/dev/sr0',
-                                           kernel_params)
+                    if ((self.vm.driver_type == 'xen') and
+                      (self.params.get('hvm_or_pv') == 'pv')):
+                        kernel_params = re.sub('repo\=[\:\w\d\/]*',
+                                               'repo=http://%s:%s' %
+                                                  (self.url_auto_content_ip,
+                                                   self.url_auto_content_port),
+                                               kernel_params)
+                    else:
+                        kernel_params = re.sub('repo\=cdrom[\:\w\d\/]*',
+                                               'repo=cdrom:/dev/sr0',
+                                               kernel_params)
 
                 self.params['kernel_params'] = kernel_params
             elif self.params.get('unattended_delivery_method') == 'cdrom':
