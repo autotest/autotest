@@ -18,7 +18,7 @@ def purge_src(top_dir):
             continue
         ret = os.system('grep -q "preserve_srcdir = " ' + py)
         src_path = os.path.abspath(os.path.join('tests', dir, 'src'))
-        if not os.path.exists(src_path):
+        if not os.path.exists(src_path) or not src_path.count('example'):
             continue
         if ret:                 # This should have a replaceable src dir
             cmd = 'rm -rf ' + src_path
