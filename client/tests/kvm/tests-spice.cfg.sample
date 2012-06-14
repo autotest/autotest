@@ -54,6 +54,7 @@ variants:
                         spice_x509_secure = no
         variants:
             - @default_ic:
+                spice_image_compression = auto_glz
             - auto_glz_ic:
                 spice_image_compression = auto_glz
             - auto_lz_ic:
@@ -71,6 +72,7 @@ variants:
 
         variants:
             - @default_jpeg_wc:
+                spice_jpeg_wan_compression = auto
             - auto_jpeg_wc:
                 spice_jpeg_wan_compression = auto
             - off_jpeg_wc:
@@ -82,6 +84,7 @@ variants:
 
         variants:
             - @default_zlib_wc:
+                spice_zlib_glz_wan_compression = auto
             - auto_zlib_wc:
                 spice_zlib_glz_wan_compression = auto
             - off_zlib_wc:
@@ -93,6 +96,7 @@ variants:
 
         variants:
             - @default_sv:
+                spice_streaming_video = filter
             - sv:
                 spice_streaming_video = all
             - filter_sv:
@@ -105,6 +109,7 @@ variants:
 
         variants:
             -@default_pc:
+                spice_playback_compression = on
             -pc:
                 spice_playback_compression = on
             -no_pc:
