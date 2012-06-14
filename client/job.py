@@ -982,7 +982,7 @@ class base_client_job(base_job.base_job):
 
     def _load_state(self):
         state_config = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                      'state_dir',
+                                                      'testout_dir',
                                                       default="")
         if state_config:
             if not os.path.isdir(state_config):

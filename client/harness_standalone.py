@@ -5,9 +5,11 @@ The default interface as required for the standalone reboot helper.
 
 __author__ = """Copyright Andy Whitcroft 2007"""
 
-from autotest.client.shared import error
+from autotest.client.shared import error, global_config
 from autotest.client import utils
 import os, harness, shutil, logging
+
+GLOBAL_CONFIG = global_config.global_config
 
 class harness_standalone(harness.harness):
     """The standalone server harness
@@ -25,8 +27,9 @@ class harness_standalone(harness.harness):
         self.autodir = os.path.abspath(os.environ['AUTODIR'])
         self.setup(job)
 
+        tests_dir = GLOBAL_CONFIG.get_config_value('COMMON', 'testout_dir', default=self.autodir)
         src = job.control_get()
-        dest = os.path.join(self.autodir, 'control')
+        dest = os.path.join(tests_dir, 'control')
         if os.path.abspath(src) != os.path.abspath(dest):
             shutil.copyfile(src, dest)
             job.control_set(dest)

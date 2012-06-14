@@ -1028,30 +1028,24 @@ class base_job(object):
         self._profdir = readonly_dir(self.clientdir, 'profilers')
         self._toolsdir = readonly_dir(self.clientdir, 'tools')
 
-        tmpdir_config = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                        'test_tmp_dir',
-                                                        default="")
         # directories which are in serverdir on a server, clientdir on a client
         if self.serverdir:
             root = self.serverdir
         else:
             root = self.clientdir
 
-        if tmpdir_config:
-            self._tmpdir = readwrite_dir(tmpdir_config)
-        else:
-            self._tmpdir = readwrite_dir(root, 'tmp')
+        tests_dir = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                        'testout_dir',
+                                                        default=root)
+        self._tmpdir = readwrite_dir(tests_dir, 'tmp')
+        self._testdir = readwrite_dir(tests_dir, 'tests')
+        self._site_testdir = readwrite_dir(tests_dir, 'site_tests')
 
-        pkgdir_config = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                        'pkg_dir',
-                                                        default="")
-        if pkgdir_config:
-            self._pkgdir = readwrite_dir(pkgdir_config)
-        else:
-            self._pkgdir = readwrite_dir(self.clientdir, 'packages')
-
-        self._testdir = readwrite_dir(root, 'tests')
-        self._site_testdir = readwrite_dir(root, 'site_tests')
+        # special case packages for backwards compatibility
+        pkg_dir = tests_dir
+        if pkg_dir == self.serverdir:
+            pkg_dir = self.clientdir
+        self._pkgdir = readwrite_dir(pkg_dir, 'packages')
 
         # various server-specific directories
         if self.serverdir:
