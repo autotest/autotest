@@ -619,6 +619,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.3-i386-DVD.iso
                             md5sum_cd1 = 371c62851611fd32ead440df6f24a296
                             md5sum_1m_cd1 = 242318dd44152210f6ff6cdda1bfbf51
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 5.3.x86_64:
                         no setup
@@ -639,6 +641,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.3-x86_64-DVD.iso
                             md5sum_cd1 = c5ed6b284410f4d8212cafc78fd7a8c5
                             md5sum_1m_cd1 = b999f437583098ea5bbd56fb1de1d011
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 5.4.i386:
                         no setup
@@ -654,6 +658,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.4-i386-DVD.iso
                             md5sum_cd1 = 7a12ec6599527e4f3d1790b51eadbfed
                             md5sum_1m_cd1 = 0dbeb8f58d213752d8c029e8601abfbb
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 5.4.x86_64:
                         no setup
@@ -669,6 +675,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.4-x86_64-DVD.iso
                             md5sum_cd1 = 04fe3c10202402d7b389528d2bad0210
                             md5sum_1m_cd1 = 3e74112003e88a966754849dbb8f5c3f
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 5.5.i386:
                         no setup
@@ -684,6 +692,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.5-i386-DVD.iso
                             md5sum_cd1 = 148858b157f275d9153797efddfc83c3
                             md5sum_1m_cd1 = 2502cc7ddb9d0684fe08c4a83d247902
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 5.5.x86_64:
                         no setup
@@ -699,6 +709,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.5-x86_64-DVD.iso
                             md5sum_cd1 = f3119f883257ef9041234feda2f1cad0
                             md5sum_1m_cd1 = a744084a03f6a08627f71527fc107a1e
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 5.6.i386:
                         no setup
@@ -714,6 +726,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.6-i386-DVD.iso
                             md5sum_cd1 = c214653d91b81c9a7a7f7249753d0f5d
                             md5sum_1m_cd1 = f299a881950bfec81fd5c74484e1b1d4
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 5.6.x86_64:
                         no setup
@@ -729,6 +743,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.6-x86_64-DVD.iso
                             md5sum_cd1 = d77d3815afb381a50148ba55ad930679
                             md5sum_1m_cd1 = 9dd97de110e391fcbed88b124a60f7a9
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 5.7.i386:
                         no setup
@@ -744,6 +760,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.7-i386-DVD.iso
                             md5sum_cd1 = d738dcaf8d65ebf03d6da32916ddde43
                             md5sum_1m_cd1 = 9d9061f652ff435cc4c57e9e9ff09076
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 5.7.x86_64:
                         no setup
@@ -759,6 +777,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.7-x86_64-DVD.iso
                             md5sum_cd1 = 1a3c5959e34612e91f4a1840b997b287
                             md5sum_1m_cd1 = c65d0a1b4d9a32da42aa5142c6e9a5b3
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
 
                     - 5.8.i386:
@@ -775,6 +795,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.8-i386-DVD.iso
                             md5sum_cd1 = 514e6ac28590e521402329da23220cc4
                             md5sum_1m_cd1 = fd680d61aaa7f257be81fa345a56216e
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 5.8.x86_64:
                         no setup
@@ -790,6 +812,8 @@ variants:
                             cdrom_cd1 = isos/linux/RHEL-5.8-x86_64-DVD.iso
                             md5sum_cd1 = e55f3a142ce6d36e8061be45f72b3c17
                             md5sum_1m_cd1 = a09aa0e6b9ab9bb1eb019e6838b19ad3
+                        usb_storage.check_options:
+                            check_io_size_option = no
 
                     - 6.0.i386:
                         no setup
