@@ -187,5 +187,21 @@ variants:
         only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.bad_port.no_password.1monitor, spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.bad_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.default_sv.default_zlib_wc.bad_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.default_sv.bad_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.bad_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.bad_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
         only negative_create
 
+    - @rv_disconnect_rhel63:
+        qemu_binary = /usr/libexec/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        rv_binary = /usr/bin/remote-viewer
+        only qcow2
+        only e1000
+        only ide
+        only up
+        only no_9p_export
+        only no_pci_assignable
+        only smallpages
+        only Linux.RHEL.6.3.beta.x86_64
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only start, rv_connect.RHEL.6.3.beta.x86_64, rv_disconnect.RHEL.6.3.beta.x86_64, shutdown
+
 # Choose your test list from the testsets defined
-only qemu_kvm_rhel63_install_guest, qemu_kvm_rhel63_install_client, remote_viewer_rhel63_quick, spice_negative_rhel63_all
+only qemu_kvm_rhel63_install_guest, qemu_kvm_rhel63_install_client, remote_viewer_rhel63_quick, rv_disconnect_rhel63, spice_negative_rhel63_all
