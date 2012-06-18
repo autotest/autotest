@@ -979,10 +979,8 @@ class VM(virt_vm.BaseVM):
             filename = virt_storage.get_image_filename(image_params, root_dir)
             if image_params.get("use_storage_pool") == "yes":
                 filename = None
-            if image_params.get("boot_drive") == "no":
-                continue
-            virt_install_cmd += add_drive(help,
-                             filename,
+                virt_install_cmd += add_drive(help,
+                                  filename,
                                   image_params.get("image_pool"),
                                   image_params.get("image_vol"),
                                   image_params.get("image_device"),
@@ -992,6 +990,21 @@ class VM(virt_vm.BaseVM):
                                   image_params.get("drive_sparse"),
                                   image_params.get("drive_cache"),
                                   image_params.get("image_format"))
+
+            if image_params.get("boot_drive") == "no":
+                continue
+            if filename:
+                virt_install_cmd += add_drive(help,
+                                    filename,
+                                    None,
+                                    None,
+                                    None,
+                                    image_params.get("drive_format"),
+                                    None,
+                                    image_params.get("image_size"),
+                                    image_params.get("drive_sparse"),
+                                    image_params.get("drive_cache"),
+                                    image_params.get("image_format"))
 
         if (params.get('unattended_delivery_method') != 'integrated' and
             not (self.driver_type == 'xen' and params.get('hvm_or_pv') == 'pv')):
