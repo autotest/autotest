@@ -52,7 +52,7 @@ def run_netperf(test, params, env):
         host = params["host"]
     else:
         cmd = "ifconfig %s|awk 'NR==2 {print $2}'|awk -F: '{print $2}'"
-        host = commands.getoutput(cmd % params["bridge"])
+        host = commands.getoutput(cmd % params["netdst"])
 
     shell_port = int(params["shell_port"])
     password = params["password"]
