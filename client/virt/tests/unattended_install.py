@@ -391,8 +391,9 @@ class UnattendedInstallConfig(object):
             self.nfs_mount = tempfile.mkdtemp(prefix='nfs_',
                                               dir=self.tmpdir)
 
-        if getattr(self, 'floppy_name'):
-            self.floppy = os.path.join(root_dir, self.floppy_name)
+        setattr(self, 'floppy', self.floppy_name)
+        if getattr(self, 'floppy'):
+            self.floppy = os.path.join(root_dir, self.floppy)
             if not os.path.isdir(os.path.dirname(self.floppy)):
                 os.makedirs(os.path.dirname(self.floppy))
 
