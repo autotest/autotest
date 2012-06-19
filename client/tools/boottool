@@ -1132,9 +1132,8 @@ class Grubby(object):
         """
         entry_selection = self._get_entry_selection(kernel)
         if entry_selection is None:
-            self.log.debug('No kernel found for title "%s". Assuming no entry'
-                           ' exists, and emulating boottool(.pl) behavior'
-                           ' and being silent about it.', kernel)
+            self.log.debug('remove_kernel for title "%s" did not find an '
+                           'entry. This is most probably NOT an error', kernel)
             return 0
 
         command_arguments = ['--remove-kernel=%s' % entry_selection]
