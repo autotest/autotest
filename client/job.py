@@ -981,23 +981,19 @@ class base_client_job(base_job.base_job):
 
 
     def _load_state(self):
+        autodir = os.path.abspath(os.environ['AUTODIR'])
+        tmpdir = os.path.join(autodir, 'tmp')
         state_config = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                      'state_dir',
-                                                      default="")
-        if state_config:
-            if not os.path.isdir(state_config):
-                os.makedirs(state_config)
-            init_state_file =  os.path.join(state_config,
-                                            ("%s.init.state" %
-                                             os.path.basename(self.control)))
-            self._state_file = os.path.join(state_config,
-                                            ("%s.state" %
-                                             os.path.basename(self.control)))
-        else:
-            # grab any initial state and set up $CONTROL.state as the backing
-            # file
-            init_state_file = self.control + '.init.state'
-            self._state_file = self.control + '.state'
+                                                      'test_output_dir',
+                                                      default=tmpdir)
+        if not os.path.isdir(state_config):
+            os.makedirs(state_config)
+        init_state_file =  os.path.join(state_config,
+                                        ("%s.init.state" %
+                                         os.path.basename(self.control)))
+        self._state_file = os.path.join(state_config,
+                                        ("%s.state" %
+                                         os.path.basename(self.control)))
 
         if os.path.exists(init_state_file):
             shutil.move(init_state_file, self._state_file)

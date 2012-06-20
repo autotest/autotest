@@ -446,7 +446,8 @@ class test_base_job(unittest.TestCase):
         tmp = 'tmp'
         build = 'xen'
         path = "somepath.rpm"
-        packages_dir = os.path.join("autodir/packages", path)
+        tmp_dir = os.path.dirname(self.job.tmpdir)
+        packages_dir = os.path.join(tmp_dir, 'packages', path)
 
         # record
         self.job.setup_dirs.expect_call(results,
