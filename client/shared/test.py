@@ -881,7 +881,7 @@ def runtest(job, url, tag, args, dargs,
 
         testdir_list = [job.testdir, getattr(job, 'site_testdir', None)]
         bindir_config = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                        'test_src_dir',
+                                                        'test_dir',
                                                         default="")
         if bindir_config:
             testdir_list.append(bindir_config)
