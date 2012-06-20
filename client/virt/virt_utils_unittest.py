@@ -757,7 +757,7 @@ class test_VMNet_Subclasses(unittest.TestCase):
                 result = virtnet.generate_ifname(virtnet_index)
                 self.assertEqual(result, virtnet[virtnet_index].ifname)
                 # assume less than 10 nics
-                self.assertEqual(14, len(result))
+                self.assert_(len(result) < 11)
             if len(virtnet) == 2:
                 break # no need to test every possible combination
 
