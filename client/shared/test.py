@@ -46,7 +46,15 @@ class base_test(object):
         else:
             self.crash_handling_enabled = False
         self.bindir = bindir
-        self.srcdir = os.path.join(self.bindir, 'src')
+        autodir = os.path.abspath(os.environ['AUTODIR'])
+        tmpdir = os.path.join(autodir, 'tmp')
+        output_config = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                       'test_output_dir',
+                                                       default=tmpdir)
+        self.srcdir = os.path.join(output_config, os.path.basename(self.bindir),
+                                   'src')
+        if not os.path.isdir(self.srcdir):
+            os.makedirs(self.srcdir)
         self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname,
                                        dir=job.tmpdir)
         self._keyvals = []
