@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Wrapper module to load native or included ElementTree module.
 """
