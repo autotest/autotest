@@ -8,6 +8,7 @@ import time, os, logging, fcntl, re, commands
 from autotest.client.shared import error
 from autotest.client import utils
 import virt_utils, virt_vm, virt_test_setup, virt_storage, kvm_monitor, aexpect
+import kvm_virtio_port
 import virt_remote
 
 
@@ -50,6 +51,7 @@ class VM(virt_vm.BaseVM):
             self.spice_options = {}
             self.vnc_port = 5900
             self.monitors = []
+            self.virtio_ports = []      # virtio_console / virtio_serialport
             self.pci_assignable = None
             self.uuid = None
             self.vcpu_threads = []
@@ -339,6 +341,18 @@ class VM(virt_vm.BaseVM):
             cmd += _add_option("nowait", "NO_EQUAL_STRING")
             cmd += " -device isa-serial"
             cmd += _add_option("chardev", default_id)
+            return cmd
+
+
+        def add_virtio_port(help, name, bus, filename, porttype):
+            cmd = (" -chardev socket,id=dev%s,path=%s,server,nowait" % (name,
+                                                                    filename))
+            if porttype in ("console", "virtio_console"):
+                cmd += " -device virtconsole"
+            else:
+                cmd += " -device virtserialport"
+            cmd += ",chardev=dev%s,name=%s,id=%s" % (name, name, name)
+            cmd += _add_option("bus", bus)
             return cmd
 
 
@@ -932,6 +946,27 @@ class VM(virt_vm.BaseVM):
 
         # Add serial console redirection
         qemu_cmd += add_serial(help, vm.get_serial_console_filename())
+
+        # Add virtio_serial ports
+        virtio_serial_pcis = []
+        virtio_port_spread = int(params.get('virtio_port_spread', 0))
+        for port_name in params.objects("virtio_ports"):
+            port_params = params.object_params(port_name)
+            bus = int(params.get('virtio_port_bus', 0))
+            # If ports should be spread across pcis add bus for every n-th port
+            if (virtio_port_spread and
+                    not len(self.virtio_ports) % virtio_port_spread):
+                bus = len(virtio_serial_pcis)
+            # Add virtio_serial_pcis
+            for i in range(len(virtio_serial_pcis), bus + 1):
+                qemu_cmd += (" -device virtio-serial-pci,id=virtio_serial_pci"
+                             "%d" % i)
+                virtio_serial_pcis.append("virtio_serial_pci%d" % i)
+            bus = "virtio_serial_pci%d.0" % bus
+            # Add actual ports
+            qemu_cmd += add_virtio_port(help, port_name, bus,
+                                    self.get_virtio_port_filename(port_name),
+                                    port_params.get('virtio_port_type'))
 
         # Add logging
         qemu_cmd += add_log_seabios(help)
@@ -1578,6 +1613,19 @@ class VM(virt_vm.BaseVM):
                 # Add this monitor to the list
                 self.monitors += [monitor]
 
+            # Create virtio_ports (virtio_serialports and virtio_consoles)
+            self.virtio_ports = []
+            for port_name in params.objects("virtio_ports"):
+                port_params = params.object_params(port_name)
+                filename = self.get_virtio_port_filename(port_name)
+                if port_params.get('virtio_port_type') in ("console",
+                                                           "virtio_console"):
+                    self.virtio_ports.append(
+                            kvm_virtio_port.VirtioConsole(port_name, filename))
+                else:
+                    self.virtio_ports.append(
+                            kvm_virtio_port.VirtioSerial(port_name, filename))
+
             # Get the output so far, to see if we have any problems with
             # KVM modules or with hugepage setup.
             output = self.process.get_output()
@@ -1749,6 +1797,13 @@ class VM(virt_vm.BaseVM):
         Return the filename corresponding to a given monitor name.
         """
         return "/tmp/monitor-%s-%s" % (monitor_name, self.instance)
+
+
+    def get_virtio_port_filename(self, port_name):
+        """
+        Return the filename corresponding to a givven monitor name.
+        """
+        return "/tmp/virtio_port-%s-%s" % (port_name, self.instance)
 
 
     def get_monitor_filenames(self):
