@@ -11,7 +11,7 @@ from threading import Thread
 from autotest.client.shared import error
 from autotest.client import utils
 from autotest.client.virt import virt_test_utils, kvm_monitor, virt_env_process
-from autotest.client.virt import aexpect
+from autotest.client.virt import aexpect, kvm_virtio_port
 
 
 def run_virtio_console(test, params, env):
@@ -195,81 +195,6 @@ def run_virtio_console(test, params, env):
             @return string with text form of result
             """
             return self._gen_res(lambda str: self.result_to_string(str))
-
-
-    class Port(object):
-        """
-        Define structure to keep information about used port.
-        """
-        def __init__(self, sock, name, port_type, path):
-            """
-            @param vm: virtual machine object that port owned
-            @param sock: Socket of port if port is open.
-            @param name: Name of port for guest side.
-            @param port_type: Type of port yes = console, no= serialport.
-            @param path: Path to port on host side.
-            """
-            self.sock = sock
-            self.name = name
-            self.port_type = port_type
-            self.path = path
-            self.is_open = False
-
-
-        def for_guest(self):
-            """
-            Format data for communication with guest side.
-            """
-            return [self.name, self.port_type]
-
-
-        def open(self):
-            """
-            Open port on host side.
-            """
-            attempt = 11
-            while attempt > 0:
-                try:
-                    self.sock = socket.socket(socket.AF_UNIX,
-                                              socket.SOCK_STREAM)
-                    self.sock.connect(self.path)
-                    self.sock.setsockopt(1,socket.SO_SNDBUF, 2048)
-                    self.is_open = True
-                    return
-                except Exception, inst:
-                    attempt -= 1
-                    time.sleep(1)
-            raise error.TestFail("Can't open the %s sock" % self.name)
-
-
-        def clean_port(self):
-            """
-            Clean all data from opened port on host side.
-            """
-            if self.is_open:
-                self.close()
-            self.open()
-            ret = select.select([self.sock], [], [], 1.0)
-            if ret[0]:
-                buf = self.sock.recv(1024)
-                logging.debug("Rest in socket: " + buf)
-
-
-        def close(self):
-            """
-            Close port.
-            """
-            self.sock.shutdown(socket.SHUT_RDWR)
-            self.sock.close()
-            self.is_open = False
-
-
-        def __str__(self):
-            """
-            Convert to text.
-            """
-            return ("%s,%s,%s,%s,%d" % ("Socket", self.name, self.port_type,
-                                        self.path, self.is_open))
 
 
     class ThSend(Thread):
@@ -756,11 +681,12 @@ def run_virtio_console(test, params, env):
 
         # connect the sockets
         for i in range(0, no_console):
-            consoles.append(Port(None ,"console-%d" % i,
-                                 "yes", "%s/%d" % (tmp_dir, i)))
+            consoles.append(kvm_virtio_port.VirtioConsole("console-%d" % i,
+                                                    "%s/%d" % (tmp_dir, i)))
         for i in range(no_console, no_console + no_serialport):
-            serialports.append(Port(None ,"serialport-%d" % i,
-                                    "no", "%s/%d" % (tmp_dir, i)))
+            serialports.append(kvm_virtio_port.VirtioSerial(
+                                                    "serialport-%d" % i,
+                                                    "%s/%d" % (tmp_dir, i)))
 
         kcrash = False
 
