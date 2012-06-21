@@ -381,6 +381,6 @@ def tee(content, file):
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         this = os.path.basename(sys.argv[0])
-        print 'Usage: %s <testname> <dir1> <dir>' % this
+        print 'Usage: %s <testname> <dir1> <dir2>' % this
         sys.exit(1)
     compare(sys.argv[1], sys.argv[2], sys.argv[3])
