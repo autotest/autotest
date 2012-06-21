@@ -260,8 +260,9 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
                     tee_line(prefix0 + lists[n][i], f)
                 elif "Category:" in lists[n][i]:
                     if category != 0 and prefix3:
-                        tee_line(prefix3 + str_ignore(
-                                 allpvalues[category-1][0]), f)
+                        if len(allpvalues[category-1]) > 0:
+                            tee_line(prefix3 + str_ignore(
+                                     allpvalues[category-1][0]), f)
                         tee("</TBODY></TABLE>", f)
                         tee("<br>", f)
                         tee("<TABLE BORDER=1 CELLSPACING=1 CELLPADDING=1 "
@@ -274,7 +275,7 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
             if lists[0][i] != rates[n][i] and not re.findall("[a-zA-Z]",
                                                              rates[n][i]):
                 tee_line(prefix2[n] +  str_ignore(rates[n][i], True), f)
-    if prefix3 and len(allpvalues[0]) > 0:
+    if prefix3 and len(allpvalues[-1]) > 0:
         tee_line(prefix3 + str_ignore(allpvalues[category-1][0]), f)
     tee("</TBODY></TABLE>", f)
 
@@ -304,10 +305,10 @@ def analyze(test, sample_list1, sample_list2, configfile):
     tmp1 = []
     tmp2 = []
     for i in range(len(avg1)):
-        if not re.findall("[a-zA-Z]", avg1[i]):
+        if not 'Category' in avg1[i]:
             tmp1.append([avg1[i]])
             tmp2.append([avg2[i]])
-        elif not "|" in avg1[i] and i != 0:
+        elif 'Category' in avg1[i] and i != 0:
             navg1.append(tmp1)
             navg2.append(tmp2)
             tmp1 = []
