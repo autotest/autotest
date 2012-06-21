@@ -225,6 +225,30 @@ class QemuImg(virt_storage.QemuImg):
         return self.snapshot_tag
 
 
+    def snapshot_del(self, blkdebug_cfg=""):
+        """
+        Delete a snapshot image.
+
+        @param blkdebug_cfg: The configure file of blkdebug
+
+        @note: params should contain:
+               snapshot_image_name -- the name of snapshot image file
+        """
+
+        cmd = self.image_cmd
+        if self.snapshot_tag:
+            cmd += " snapshot -d %s" % self.snapshot_image_filename
+        else:
+            raise error.TestError("Can not find the snapshot image"
+                                  " parameters")
+        if blkdebug:
+            cmd += " blkdebug:%s:%s" % (blkdebug, self.image_filename)
+        else:
+            cmd += " %s" % self.image_filename
+
+        utils.system_output(cmd)
+
+
     def remove(self):
         """
         Remove an image file.
