@@ -1363,6 +1363,8 @@ variants:
             guest_path = C:\tmpfile
         stress_boot:
             alive_test_cmd = systeminfo
+        block_stream:
+            alive_test_cmd = systeminfo
         timedrift:
             # Timedrift compensation on Windows with hpet does not happen
             disable_hpet = yes

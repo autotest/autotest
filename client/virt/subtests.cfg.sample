@@ -779,6 +779,10 @@ variants:
         type = qemu_img
         subcommand = commit
 
+    - block_stream:
+        type = block_stream
+        alive_test_cmd = uname -a
+
     - stop_continue: install setup image_copy unattended_install.cdrom
         type = stop_continue
         kill_vm_on_error = yes
