@@ -16,10 +16,8 @@ class _VirtioPort(object):
     """
     def __init__(self, name, hostfile):
         """
-        @param vm: virtual machine object that port owned
         @param name: Name of port for guest side.
         @param hostfile: Path to port on host side.
-        @param path: Path to port on host side.
         """
         self.name = name
         self.hostfile = hostfile
