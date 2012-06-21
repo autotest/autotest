@@ -1,5 +1,6 @@
 """
-Wrapper module to load native or included ElementTree module.
+    Utility module standardized on ElementTree 2.6 to minimize dependencies
+    in python 2.4 systems.
 """
 
 try:
@@ -7,7 +8,4 @@ try:
 except ImportError:
     import common
 
-try:
-    from xml.etree.ElementTree import *
-except ImportError:
-    from autotest_lib.client.shared.ElementTree import *
+from autotest.client.shared import ElementTree
