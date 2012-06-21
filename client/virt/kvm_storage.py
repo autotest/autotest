@@ -72,13 +72,13 @@ class QemuImg(virt_storage.QemuImg):
             encrypted = params.get("encrypted", "off")
 
             if preallocated != "off":
-                qemu_img_cmd += "-o preallocation=%s" % preallocated
+                qemu_img_cmd += " -o preallocation=%s" % preallocated
 
             if encrypted != "off":
-                qemu_img_cmd += ",encrypted=%s" % encrypted
+                qemu_img_cmd += " -o encrypted=%s" % encrypted
 
             if image_cluster_size is not None:
-                qemu_img_cmd += ",cluster_size=%s" % image_cluster_size
+                qemu_img_cmd += " -o cluster_size=%s" % image_cluster_size
 
             if self.base_tag:
                 qemu_img_cmd += " -b %s" % self.base_image_filename
