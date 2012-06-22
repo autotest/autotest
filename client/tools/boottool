@@ -1429,20 +1429,73 @@ class Grubby(object):
         Caveat: this assumes the default set is of type "saved", and not a
         numeric value.
         '''
-        grub_reboot_names = ['grub-reboot',
-                             'grub2-reboot']
-        executable = None
+        default_index_re = re.compile('\s*set\s+default\s*=\s*\"+(\d+)\"+')
+
+        grub_reboot_names = ['grub-reboot', 'grub2-reboot']
+        grub_reboot_exec = None
         for grub_reboot in grub_reboot_names:
-            executable = find_executable(grub_reboot)
-            if executable is not None:
+            grub_reboot_exec = find_executable(grub_reboot)
+            if grub_reboot_exec is not None:
                 break
 
-        if executable is None:
+        if grub_reboot_exec is None:
             self.log.error('Could not find executable among searched names: '
                            '%s',' ,'.join(grub_reboot_names))
             return -1
 
-        return self._run_get_return([executable,
+        grub_set_default_names = ['grub-set-default', 'grub2-set-default']
+        grub_set_default_exec = None
+        for grub_set_default in grub_set_default_names:
+            grub_set_default_exec = find_executable(grub_set_default)
+            if grub_set_default_exec is not None:
+                break
+
+        if grub_set_default_exec is None:
+            self.log.error('Could not find executable among searched names: '
+                           '%s',' ,'.join(grub_set_default_names))
+            return -1
+
+        # Make sure the "set default" entry in the configuration file is set
+        # to "${saved_entry}. Assuming the config file is at /boot/grub/grub.cfg
+        deb_grub_cfg_path = '/boot/grub/grub.cfg'
+        deb_grub_cfg_bkp_path = '%s.boottool.bak' % deb_grub_cfg_path
+
+        default_index = None
+        if os.path.exists(deb_grub_cfg_path):
+            shutil.move(deb_grub_cfg_path, deb_grub_cfg_bkp_path)
+            o = open(deb_grub_cfg_path, 'w')
+            for l in open(deb_grub_cfg_bkp_path).readlines():
+                m = default_index_re.match(l)
+                if m is not None:
+                    default_index = int(m.groups()[0])
+                    o.write('set default="${saved_entry}"\n')
+                else:
+                    o.write(l)
+            o.close()
+
+        # Make the current default entry the "previous saved entry"
+        if default_index is None:
+            default_index = self.get_default_index()
+        else:
+            # grubby adds entries to top. this assumes a new entry to boot once
+            # has already been added to the top, so fallback to the second
+            # entry (index 1) if the boot once entry fails to boot
+            if entry_index == 0:
+                default_index = 1
+            else:
+                default_index = 0
+
+        # A negative index is never acceptable
+        if default_index >= 0:
+            prev_saved_return = self._run_get_return([grub_set_default_exec,
+                                                      '%s' % default_index])
+            if prev_saved_return != 0:
+                self.log.error('Could not make entry %s the previous saved entry',
+                               default_index)
+                return prev_saved_return
+
+        # Finally set the boot once entry
+        return self._run_get_return([grub_reboot_exec,
                                      '%s' % entry_index])
 
 
