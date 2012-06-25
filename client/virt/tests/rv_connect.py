@@ -123,7 +123,7 @@ def launch_rv(client_vm, guest_vm, params):
     @param params
     """
     rv_binary = params.get("rv_binary", "remote-viewer")
-    host_ip = virt_utils.get_ip_address_by_interface(params.get("bridge"))
+    host_ip = virt_utils.get_ip_address_by_interface(params.get("netdst"))
     host_port = None
     display = params.get("display")
     cmd = rv_binary + " --display=:0.0"
