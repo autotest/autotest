@@ -142,7 +142,8 @@ class QemuIOShellSession(QemuIO):
         """
         Close the shell session for qemu-io
         """
-        self.session.close()
+        if not self.create_session:
+            self.session.close()
 
 
 class QemuIOSystem(QemuIO):

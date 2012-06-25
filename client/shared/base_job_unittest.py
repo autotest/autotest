@@ -9,6 +9,7 @@ except ImportError:
 from autotest.client.shared import base_job, error
 from autotest.client.shared.test_utils import unittest
 
+os.environ['AUTODIR'] = '/tmp/autotest'
 
 class stub_job_directory(object):
     """
@@ -179,10 +180,10 @@ class test_initialize_dir_properties(unittest.TestCase):
         self.sjob._initialize_dir_properties()
 
         # check all the context-specifc dir properties
-        self.assert_(self.cjob.tmpdir.startswith('/atest/client'))
+        self.assert_(self.cjob.tmpdir.startswith(os.environ['AUTODIR']))
         self.assert_(self.cjob.testdir.startswith('/atest/client'))
         self.assert_(self.cjob.site_testdir.startswith('/atest/client'))
-        self.assert_(self.sjob.tmpdir.startswith('/atest/server'))
+        self.assert_(self.sjob.tmpdir.startswith(os.environ['AUTODIR']))
         self.assert_(self.sjob.testdir.startswith('/atest/server'))
         self.assert_(self.sjob.site_testdir.startswith('/atest/server'))
 

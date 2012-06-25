@@ -12,7 +12,7 @@ GLOBAL_CONFIG = global_config.global_config
 
 LOCALDIRTEST = "tests"
 GLOBALDIRTEST = GLOBAL_CONFIG.get_config_value('COMMON',
-                                               'test_src_dir',
+                                               'test_dir',
                                                 default="")
 
 DEBUG = False

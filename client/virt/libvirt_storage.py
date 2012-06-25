@@ -75,6 +75,18 @@ class QemuImg(virt_storage.QemuImg):
         raise NotImplementedError
 
 
+    def snapshot_del(self, blkdebug_cfg=""):
+        """
+        Delete a snapshot image.
+
+        @param blkdebug_cfg: The configure file of blkdebug
+
+        @note: params should contain:
+               snapshot_image_name -- the name of snapshot image file
+        """
+        raise NotImplementedError
+
+
     def remove(self):
         """
         Remove an image file.

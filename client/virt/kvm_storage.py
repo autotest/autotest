@@ -72,13 +72,13 @@ class QemuImg(virt_storage.QemuImg):
             encrypted = params.get("encrypted", "off")
 
             if preallocated != "off":
-                qemu_img_cmd += "-o preallocation=%s" % preallocated
+                qemu_img_cmd += " -o preallocation=%s" % preallocated
 
             if encrypted != "off":
-                qemu_img_cmd += ",encrypted=%s" % encrypted
+                qemu_img_cmd += " -o encrypted=%s" % encrypted
 
             if image_cluster_size is not None:
-                qemu_img_cmd += ",cluster_size=%s" % image_cluster_size
+                qemu_img_cmd += " -o cluster_size=%s" % image_cluster_size
 
             if self.base_tag:
                 qemu_img_cmd += " -b %s" % self.base_image_filename
@@ -223,6 +223,30 @@ class QemuImg(virt_storage.QemuImg):
         utils.system_output(cmd)
 
         return self.snapshot_tag
+
+
+    def snapshot_del(self, blkdebug_cfg=""):
+        """
+        Delete a snapshot image.
+
+        @param blkdebug_cfg: The configure file of blkdebug
+
+        @note: params should contain:
+               snapshot_image_name -- the name of snapshot image file
+        """
+
+        cmd = self.image_cmd
+        if self.snapshot_tag:
+            cmd += " snapshot -d %s" % self.snapshot_image_filename
+        else:
+            raise error.TestError("Can not find the snapshot image"
+                                  " parameters")
+        if blkdebug:
+            cmd += " blkdebug:%s:%s" % (blkdebug, self.image_filename)
+        else:
+            cmd += " %s" % self.image_filename
+
+        utils.system_output(cmd)
 
 
     def remove(self):

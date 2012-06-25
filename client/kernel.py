@@ -42,34 +42,7 @@ def _add_kernel_to_bootloader(bootloader, base_args, tag, args, image, initrd):
     if base_args:
         args = ' '.join((base_args, args))
 
-    root_prefix = 'root='
-    # stores the last root= value
-    root = None
-    # a list with all arguments that don't start with root= so we give them
-    # later to bootloader.add_kernel()
-    arglist = []
-
-    for arg in args.split():
-        if arg.startswith(root_prefix):
-            # set the current root value with the one from the argument
-            # thus after processing all the arguments we keep the last
-            # root value (so root= options from args overrides any from
-            # base_args)
-            root = arg[len(root_prefix):]
-        else:
-            arglist.append(arg)
-
-    # Add the kernel entry. it will keep all arguments from the default entry.
-    # args='_dummy_' is used to workaround a boottool limitation of not being
-    # able to add arguments to a kernel that does not already have any of its
-    # own by way of its own append= section below the image= line in lilo.conf.
-    bootloader.add_kernel(image, tag, initrd=initrd, root=root, args='_dummy_')
-    # Now, for each argument in arglist, try to add it to the kernel that was
-    # just added. In each step, if the arg already existed on the args string,
-    # that particular arg will be skipped
-    for a in arglist:
-        bootloader.add_args(kernel=tag, args=a)
-    bootloader.remove_args(kernel=tag, args='_dummy_')
+    bootloader.add_kernel(path=image, title=tag, initrd=initrd, args=args)
 
 
 class BootableKernel(object):
