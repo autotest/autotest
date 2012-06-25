@@ -58,7 +58,7 @@ class VM(virt_vm.BaseVM):
 
         self.init_pci_addr = int(params.get("init_pci_addr", 4))
         self.name = name
-        self.params = params
+        self.params = params.copy()
         self.root_dir = root_dir
         # We need this to get to the blkdebug files
         self.virt_dir = os.path.abspath(os.path.join(root_dir, "..", "..",
@@ -1328,7 +1328,7 @@ class VM(virt_vm.BaseVM):
         if name is not None:
             self.name = name
         if params is not None:
-            self.params = params
+            self.params = params.copy()
         if root_dir is not None:
             self.root_dir = root_dir
         name = self.name
