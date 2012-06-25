@@ -12,20 +12,15 @@ from autotest.client import kernel_config, boottool, os_dep
 
 class TestAddKernelToBootLoader(unittest.TestCase):
 
-    def add_to_bootloader(self, base_args, args, bootloader_args,
-                          bootloader_root, tag='image', image='image',
-                          initrd='initrd'):
+    def add_to_bootloader(self, base_args, args, bootloader_args, tag='image',
+                          image='image', initrd='initrd'):
         god = mock.mock_god()
         bootloader = god.create_mock_class(boottool.boottool, "boottool")
 
         # record
         bootloader.remove_kernel.expect_call(tag)
-        bootloader.add_kernel.expect_call(image, tag, initrd=initrd,
-                                          args='_dummy_', root=bootloader_root)
-
-        for a in bootloader_args.split():
-            bootloader.add_args.expect_call(kernel=tag, args=a)
-        bootloader.remove_args.expect_call(kernel=tag, args='_dummy_')
+        bootloader.add_kernel.expect_call(path=image, title=tag, initrd=initrd,
+                                          args=bootloader_args)
 
         # run and check
         kernel._add_kernel_to_bootloader(bootloader, base_args, tag, args,
@@ -35,11 +30,9 @@ class TestAddKernelToBootLoader(unittest.TestCase):
 
     def test_add_kernel_to_bootloader(self):
         self.add_to_bootloader(base_args='baseargs', args='',
-                               bootloader_args='baseargs', bootloader_root=None)
-        self.add_to_bootloader(base_args='arg1 root=/dev/oldroot arg2',
-                               args='root=/dev/newroot arg3',
-                               bootloader_args='arg1 arg2 arg3',
-                               bootloader_root='/dev/newroot')
+                               bootloader_args='baseargs')
+        self.add_to_bootloader(base_args='arg1 arg2', args='arg3',
+                               bootloader_args='arg1 arg2 arg3')
 
 
 class TestBootableKernel(unittest.TestCase):
