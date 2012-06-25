@@ -70,7 +70,10 @@ class kernel_config(object):
         self.build_dir = build_dir
         self.config_dir = config_dir
         self.orig_config = os.path.join(config_dir, 'config.orig')
-        self.running_config = utils.running_config()
+        running_config = utils.running_config()
+        if running_config is None:
+            running_config = ''
+        self.running_config = running_config
 
         # 1. Get original config file
         self.build_config = os.path.join(build_dir, '.config')
@@ -84,7 +87,7 @@ class kernel_config(object):
             if defconf:
                 orig_file = defconf
             else:
-                if self.running_config is not None:
+                if self.running_config:
                     orig_file = self.running_config
         if (orig_file == '' and not make and defconfig): # use defconfig
             make = 'defconfig'
