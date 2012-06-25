@@ -40,7 +40,10 @@ def _add_kernel_to_bootloader(bootloader, base_args, tag, args, image, initrd):
     bootloader.remove_kernel(tag)
 
     if base_args:
-        args = ' '.join((base_args, args))
+        if args:
+            args = '%s %s' % (base_args, args)
+        else:
+            args = base_args
 
     bootloader.add_kernel(path=image, title=tag, initrd=initrd, args=args)
 
