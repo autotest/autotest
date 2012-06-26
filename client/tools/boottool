@@ -1419,18 +1419,16 @@ class Grubby(object):
             if out is not None:
                 complete_out = out
             if err is not None:
-                complete_out += err
+                complete_out += "\n%s" % err
 
+            grub_batch_err = []
             if complete_out:
-                harmless = [grub_instructions,
-                            'Probing devices to guess BIOS drives. '
-                            'This may take a long time.']
-                err_lines = complete_out.splitlines()
-                err_harmful = [l for l in err_lines if l and l not in harmless]
-
-                if err_harmful:
+                for l in complete_out.splitlines():
+                    if re.search('error', l, re.IGNORECASE):
+                        grub_batch_err.append(l)
+                if grub_batch_err:
                     self.log.error("Error while running grub to set boot "
-                                   "once: %s", "\n".join(err_harmful))
+                                   "once: %s", "\n".join(grub_batch_err))
                     return -1
 
             self.log.debug('No error detected while running grub to set boot '
