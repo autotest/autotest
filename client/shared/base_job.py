@@ -1028,7 +1028,12 @@ class base_job(object):
         self._profdir = readonly_dir(self.clientdir, 'profilers')
         self._toolsdir = readonly_dir(self.clientdir, 'tools')
 
-        autodir = os.path.abspath(os.environ['AUTODIR'])
+        try:
+            autodir = os.path.abspath(os.environ['AUTODIR'])
+        except KeyError:
+            autodir = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                     'autotest_top_path')
+
         tmpdir = os.path.join(autodir, 'tmp')
 
         tests_out_dir = GLOBAL_CONFIG.get_config_value('COMMON',
