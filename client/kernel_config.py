@@ -73,6 +73,12 @@ class kernel_config(object):
         running_config = utils.running_config()
         if running_config is None:
             running_config = ''
+        if running_config.endswith('.gz'):
+            tmp_running_config = '/tmp/running_config'
+            utils.system('cat %s | gunzip > %s' %
+                         (running_config, tmp_running_config))
+            running_config = tmp_running_config
+
         self.running_config = running_config
 
         # 1. Get original config file
