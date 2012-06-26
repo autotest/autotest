@@ -1401,13 +1401,16 @@ class Grubby(object):
         grub_instructions = ['savedefault --default=%s --once' % entry_index,
                              'quit']
         grub_instructions_text = '\n'.join(grub_instructions)
-        grub_binary = '/sbin/grub'
+        grub_binary = find_executable('grub')
+        if grub_binary is None:
+            self.log.error("Could not find the 'grub' binary, aborting")
+            return -1
 
         p = subprocess.Popen([grub_binary, '--batch'],
                              stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
-        out, err = p.communicate(grub_instructions_text)
+        _, err = p.communicate(grub_instructions_text)
 
         if err is not None:
             harmless = ['Probing devices to guess BIOS drives. '
@@ -1418,7 +1421,7 @@ class Grubby(object):
             if err_harmful:
                 self.log.error("Error while running grub to set boot once: %s",
                                "\n".join(err_harmful))
-                return False
+                return -1
 
         self.log.debug('No error detected while running grub to set boot once')
         return 0
