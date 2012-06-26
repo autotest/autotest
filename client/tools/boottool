@@ -1006,7 +1006,10 @@ class Grubby(object):
             if 'non linux entry' in entry_str:
                 continue
             entry = parse_entry("index" + entry_str)
-            entries[entry["index"]] = entry
+            try:
+                entries[entry["index"]] = entry
+            except KeyError:
+                continue
 
         return entries
 
