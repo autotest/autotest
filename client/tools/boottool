@@ -1397,41 +1397,53 @@ class Grubby(object):
         '''
         Implements the boot once feature for the grub bootloader
         '''
-        # XXX: check the type of default set (numeric or "saved")
-        grub_instructions = ['savedefault --default=%s --once' % entry_index,
-                             'quit']
-        grub_instructions_text = '\n'.join(grub_instructions)
-        grub_binary = find_executable('grub')
-        if grub_binary is None:
-            self.log.error("Could not find the 'grub' binary, aborting")
-            return -1
-
-        p = subprocess.Popen([grub_binary, '--batch'],
-                             stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        out, err = p.communicate(grub_instructions_text)
-
-        complete_out = ''
-        if out is not None:
-            complete_out = out
-        if err is not None:
-            complete_out += err
-
-        if complete_out:
-            harmless = [grub_instructions,
-                        'Probing devices to guess BIOS drives. '
-                        'This may take a long time.']
-            err_lines = complete_out.splitlines()
-            err_harmful = [l for l in err_lines if l and l not in harmless]
-
-            if err_harmful:
-                self.log.error("Error while running grub to set boot once: %s",
-                               "\n".join(err_harmful))
+        # grubonce is a hack present in distros like OpenSUSE
+        grubonce_cmd = find_executable('grubonce')
+        if grubonce_cmd is None:
+            # XXX: check the type of default set (numeric or "saved")
+            grub_instructions = ['savedefault --default=%s --once' %
+                                 entry_index, 'quit']
+            grub_instructions_text = '\n'.join(grub_instructions)
+            grub_binary = find_executable('grub')
+            if grub_binary is None:
+                self.log.error("Could not find the 'grub' binary, aborting")
                 return -1
 
-        self.log.debug('No error detected while running grub to set boot once')
-        return 0
+            p = subprocess.Popen([grub_binary, '--batch'],
+                                 stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            out, err = p.communicate(grub_instructions_text)
+
+            complete_out = ''
+            if out is not None:
+                complete_out = out
+            if err is not None:
+                complete_out += err
+
+            if complete_out:
+                harmless = [grub_instructions,
+                            'Probing devices to guess BIOS drives. '
+                            'This may take a long time.']
+                err_lines = complete_out.splitlines()
+                err_harmful = [l for l in err_lines if l and l not in harmless]
+
+                if err_harmful:
+                    self.log.error("Error while running grub to set boot "
+                                   "once: %s", "\n".join(err_harmful))
+                    return -1
+
+            self.log.debug('No error detected while running grub to set boot '
+                           'once')
+            return 0
+        else:
+            rc = self._run_get_return([grubonce_cmd, str(entry_index)])
+            if rc:
+                self.log.error('Error running %s', grubonce_cmd)
+            else:
+                self.log.debug('No error detected while running %s',
+                               grubonce_cmd)
+            return rc
 
 
     def boot_once_grub2(self, entry_index):
