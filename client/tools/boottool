@@ -1508,7 +1508,11 @@ class Grubby(object):
         '''
         Implements the boot once feature for the yaboot bootloader
         '''
-        return self._run_get_return(['/usr/sbin/nvsetenv',
+        nvsetenv_cmd = find_executable('nvsetenv')
+        if nvsetenv_cmd is None:
+            self.log.error("Could not find nvsetenv in PATH")
+            return -1
+        return self._run_get_return([nvsetenv_cmd,
                                      'boot-once',
                                      entry_title])
 
