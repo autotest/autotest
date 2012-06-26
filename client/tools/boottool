@@ -1410,12 +1410,19 @@ class Grubby(object):
                              stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
-        _, err = p.communicate(grub_instructions_text)
+        out, err = p.communicate(grub_instructions_text)
 
+        complete_out = ''
+        if out is not None:
+            complete_out = out
         if err is not None:
-            harmless = ['Probing devices to guess BIOS drives. '
+            complete_out += err
+
+        if complete_out:
+            harmless = [grub_instructions,
+                        'Probing devices to guess BIOS drives. '
                         'This may take a long time.']
-            err_lines = err.splitlines()
+            err_lines = complete_out.splitlines()
             err_harmful = [l for l in err_lines if l and l not in harmless]
 
             if err_harmful:
