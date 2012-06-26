@@ -112,6 +112,14 @@ class BaseAutotest(installable_object.InstallableObject):
                 ', '.join(client_autodir_paths))
 
 
+    def _create_test_output_dir(self, host, autodir):
+        tmpdir = os.path.join(autodir, 'tmp')
+        state_autodir = global_config.global_config.get_config_value('COMMON',
+                                                             'test_output_dir',
+                                                               default=tmpdir)
+        host.run('mkdir -p %s' % utils.sh_escape(state_autodir))
+
+
     def get_fetch_location(self):
         c = global_config.global_config
         repos = c.get_config_value("PACKAGES", 'fetch_location', type=list,
@@ -152,6 +160,8 @@ class BaseAutotest(installable_object.InstallableObject):
                  ' | xargs rm -rf && rm -rf .[^.]*' % autodir)
         pkgmgr.install_pkg('autotest', 'client', pkg_dir, autodir,
                            preserve_install_dir=True)
+        self._create_test_output_dir(host, autodir)
+        logging.info("Installation of autotest completed")
         self.installed = True
 
 
@@ -222,6 +232,9 @@ class BaseAutotest(installable_object.InstallableObject):
         if use_packaging:
             try:
                 self._install_using_packaging(host, autodir)
+                self._create_test_output_dir(host, autodir)
+                logging.info("Installation of autotest completed")
+                self.installed = True
                 return
             except (error.PackageInstallError, error.AutoservRunError,
                     global_config.ConfigError), e:
@@ -238,6 +251,7 @@ class BaseAutotest(installable_object.InstallableObject):
                 self._install_using_send_file(host, autodir)
             else:
                 host.send_file(self.source_material, autodir, delete_dest=True)
+            self._create_test_output_dir(host, autodir)
             logging.info("Installation of autotest completed")
             self.installed = True
             return
@@ -348,9 +362,9 @@ class BaseAutotest(installable_object.InstallableObject):
             pass
 
         delete_file_list = [atrun.remote_control_file,
-                            atrun.remote_control_file + '.state',
+                            atrun.remote_control_state,
                             atrun.manual_control_file,
-                            atrun.manual_control_file + '.state']
+                            atrun.manual_control_state]
         cmd = ';'.join('rm -f ' + control for control in delete_file_list)
         host.run(cmd, ignore_status=True)
 
@@ -390,7 +404,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # Create and copy state file to remote_control_file + '.state'
         state_file = host.job.preprocess_client_state()
-        host.send_file(state_file, atrun.remote_control_file + '.init.state')
+        host.send_file(state_file, atrun.remote_control_init_state)
         os.remove(state_file)
 
         # Copy control_file to remote_control_file on the host
@@ -443,8 +457,24 @@ class _BaseRun(object):
         control = os.path.join(self.autodir, 'control')
         if tag:
             control += '.' + tag
+
+        tmpdir = os.path.join(self.autodir, 'tmp')
+        state_dir = global_config.global_config.get_config_value('COMMON',
+                                                              'test_output_dir',
+                                                              default=tmpdir)
+
         self.manual_control_file = control
+        self.manual_control_init_state = os.path.join(state_dir,
+                          os.path.basename(control) + ".init.state")
+        self.manual_control_state = os.path.join(state_dir,
+                          os.path.basename(control) + ".state")
+
         self.remote_control_file = control + '.autoserv'
+        self.remote_control_init_state = os.path.join(state_dir,
+                          os.path.basename(control) + ".autoserv.init.state")
+        self.remote_control_state = os.path.join(state_dir,
+                          os.path.basename(control) + ".autoserv.state")
+
         self.config_file = os.path.join(self.autodir, 'global_config.ini')
 
 
@@ -776,8 +806,7 @@ class _BaseRun(object):
             if not self.background:
                 collector.collect_client_job_results()
                 collector.remove_redundant_client_logs()
-                state_file = os.path.basename(self.remote_control_file
-                                              + '.state')
+                state_file = os.path.basename(self.remote_control_state)
                 state_path = os.path.join(self.results_dir, state_file)
                 self.host.job.postprocess_client_state(state_path)
                 self.host.job.remove_client_log(hostname, remote_results,
