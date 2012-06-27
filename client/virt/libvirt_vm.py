@@ -116,6 +116,14 @@ def virsh_cmd(cmd, uri="", ignore_status=False, print_info=False):
     return ret
 
 
+def virsh_freecell(uri = "", ignore_status=False, extra = ""):
+    """
+    Prints the available amount of memory on the machine or within a NUMA cell.
+    """
+    cmd_freecell = "freecell %s" % extra
+    return virsh_cmd(cmd_freecell, uri, ignore_status)
+
+
 def virsh_nodeinfo(uri = "", ignore_status=False, extra = ""):
     """
     Returns basic information about the node,like number and type of CPU,
