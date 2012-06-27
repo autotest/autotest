@@ -124,6 +124,12 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.send_file.expect_call('source_material', 'autodir',
                                         delete_dest=True)
 
+        tmpdir = 'autodir/tmp'
+        c.get_config_value.expect_call('COMMON',
+                                       'test_output_dir',
+                                       default=tmpdir).and_return(tmpdir)
+        self.host.run.expect_call('mkdir -p %s' % tmpdir)
+
         # run and check
         self.base_autotest.install_full_client()
         self.god.check_playback()
@@ -141,6 +147,11 @@ class TestBaseAutotest(unittest.TestCase):
                                        type=bool).and_return(True)
         self.base_autotest._install_using_send_file.expect_call(self.host,
                                                                 'autodir')
+        tmpdir = 'autodir/tmp'
+        c.get_config_value.expect_call('COMMON',
+                                       'test_output_dir',
+                                       default=tmpdir).and_return(tmpdir)
+        self.host.run.expect_call('mkdir -p %s' % tmpdir)
         # run and check
         self.base_autotest.install()
         self.god.check_playback()
@@ -161,6 +172,17 @@ class TestBaseAutotest(unittest.TestCase):
         self.host.run.expect_call(cmd)
         pkgmgr.install_pkg.expect_call('autotest', 'client', pkg_dir,
                                        'autodir', preserve_install_dir=True)
+        tmpdir = 'autodir/tmp'
+        c.get_config_value.expect_call('COMMON',
+                                       'test_output_dir',
+                                       default=tmpdir).and_return(tmpdir)
+        self.host.run.expect_call('mkdir -p %s' % tmpdir)
+        c.get_config_value.expect_call('COMMON',
+                                       'test_output_dir',
+                                       default=tmpdir).and_return(tmpdir)
+        self.host.run.expect_call('mkdir -p %s' % tmpdir)
+
+
 
         # run and check
         self.base_autotest.install()
@@ -185,8 +207,15 @@ class TestBaseAutotest(unittest.TestCase):
         tag = None
         run_obj.manual_control_file = os.path.join('autodir',
                                                    'control.%s' % tag)
+        run_obj.manual_control_state = os.path.join('autodir',
+                                                   'control.%s.state' % tag)
         run_obj.remote_control_file = os.path.join('autodir',
                                                    'control.%s.autoserv' % tag)
+        run_obj.remote_control_state = os.path.join('autodir',
+                                              'control.%s.autoserv.state' % tag)
+        run_obj.remote_control_init_state = os.path.join('autodir',
+                                         'control.%s.autoserv.init.state' % tag)
+
         run_obj.tag = tag
         run_obj.autodir = 'autodir'
         run_obj.verify_machine.expect_call()
@@ -195,9 +224,9 @@ class TestBaseAutotest(unittest.TestCase):
         debug = os.path.join('.', 'debug')
         os.makedirs.expect_call(debug)
         delete_file_list = [run_obj.remote_control_file,
-                            run_obj.remote_control_file + '.state',
+                            run_obj.remote_control_state,
                             run_obj.manual_control_file,
-                            run_obj.manual_control_file + '.state']
+                            run_obj.manual_control_state]
         cmd = ';'.join('rm -f ' + control for control in delete_file_list)
         self.host.run.expect_call(cmd, ignore_status=True)
 
