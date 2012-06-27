@@ -15,6 +15,14 @@ import virt_test_utils
 import aexpect
 
 
+class VirtioPortException(Exception):
+    pass
+
+
+class VirtioPortFatalException(VirtioPortException):
+    pass
+
+
 class _VirtioPort(object):
     """
     Define structure to keep information about used port.
@@ -106,6 +114,186 @@ class VirtioConsole(_VirtioPort):
     def __init__(self, name, hostfile):
         super(VirtioConsole, self).__init__(name, hostfile)
         self.is_console = "yes"
+
+
+class GuestWorker(object):
+    """
+    Class for executing "virtio_console_guest" script on guest
+    """
+    def __init__(self, vm):
+        """ Initialize worker for use (including port init on guest) """
+        self.vm = vm
+        self.session = virt_test_utils.wait_for_login(self.vm)
+
+        timeout = 10
+        if self.session.cmd_status('ls /tmp/virtio_console_guest.pyo'):
+            # Copy virtio_console_guest.py into guests
+            virt_dir = os.path.join(os.environ['AUTODIR'], 'virt')
+            vksmd_src = os.path.join(virt_dir, "scripts",
+                                     "virtio_console_guest.py")
+            dst_dir = "/tmp"
+
+            self.vm.copy_files_to(vksmd_src, dst_dir)
+
+            # Compile and execute worker
+            logging.debug("compile virtio_console_guest.py on guest %s",
+                          self.vm.name)
+            self.cmd("python -OO /tmp/virtio_console_guest.py -c "
+                     "&& echo -n 'PASS: Compile virtio_guest finished' || "
+                     "echo -n 'FAIL: Compile virtio_guest failed'", timeout)
+            self.session.sendline()
+
+        logging.debug("Starting virtio_console_guest.py on guest %s",
+                      self.vm.name)
+        self._execute_worker(timeout)
+        self._init_guest(timeout)
+
+    def _execute_worker(self, timeout=10):
+        """ Execute worker on guest """
+        self.cmd("python /tmp/virtio_console_guest.pyo && "
+                 "echo -n 'PASS: virtio_guest finished' || "
+                 "echo -n 'FAIL: virtio_guest failed'", timeout)
+        # Let the system rest
+        # FIXME: Is this always necessarily?
+        time.sleep(2)
+
+    def _init_guest(self, timeout=10):
+        """ Initialize worker on guest """
+        ports = []
+        for port in self.vm.virtio_ports:
+            ports.append(port.for_guest())
+        self.cmd("virt.init(%s)" % (ports), timeout)
+
+    def reconnect(self, vm, timeout=10):
+        """
+        Reconnect to guest_worker (eg. after migration)
+        @param vm: New VM object
+        """
+        self.vm = vm
+        self.session = virt_test_utils.wait_for_login(self.vm)
+        self._execute_worker(timeout)
+
+    def cmd(self, cmd, timeout=10):
+        """
+        Wrapper around the self.cmd command which executes the command on
+        guest. Unlike self._cmd command when the command fails it raises the
+        test error.
+        @param command: Command that will be executed.
+        @param timeout: Timeout used to verify expected output.
+        @return: Tuple (match index, data)
+        """
+        match, data = self._cmd(cmd, timeout)
+        if match == 1 or match is None:
+            raise VirtioPortException("Failed to execute '%s' on"
+                                      " virtio_console_guest.py, "
+                                      "vm: %s, output:\n%s" %
+                                      (cmd, self.vm.name, data))
+        return (match, data)
+
+    def _cmd(self, cmd, timeout=10):
+        """
+        Execute given command inside the script's main loop.
+        @param command: Command that will be executed.
+        @param timeout: Timeout used to verify expected output.
+        @return: Tuple (match index, data)
+        """
+        logging.debug("Executing '%s' on virtio_console_guest.py,"
+                      " vm: %s, timeout: %s", cmd, self.vm.name, timeout)
+        self.session.sendline(cmd)
+        try:
+            (match, data) = self.session.read_until_last_line_matches(
+                                                ["PASS:", "FAIL:"], timeout)
+
+        except aexpect.ExpectError, inst:
+            match = None
+            data = "Cmd process timeout. Data in console: " + inst.output
+
+        self.vm.verify_kernel_crash()
+
+        return (match, data)
+
+    def _cleanup_ports(self):
+        """
+        Read all data from all ports, in both sides of each port.
+        """
+        for port in self.vm.virtio_ports:
+            openned = port.is_open()
+            port.clean_port()
+            self.cmd("virt.clean_port('%s'),1024" % port.name, 10)
+            if not openned:
+                port.close()
+                self.cmd("virt.close('%s'),1024" % port.name, 10)
+
+    def safe_exit_loopback_threads(self, send_pts, recv_pts):
+        """
+        Safely executes on_guest("virt.exit_threads()") using workaround of
+        the stuck thread in loopback in mode=virt.LOOP_NONE .
+        @param send_pts: list of possible send sockets we need to work around.
+        @param recv_pts: list of possible recv sockets we need to read-out.
+        """
+        # in LOOP_NONE mode it might stuck in read/write
+        match, tmp = self._cmd("virt.exit_threads()", 3)
+        if match is None:
+            logging.warn("Workaround the stuck thread on guest")
+            # Thread is stuck in read/write
+            for send_pt in send_pts:
+                send_pt.sock.sendall(".")
+        elif match != 0:
+            # Something else
+            raise VirtioPortException("Unexpected fail\nMatch: %s\nData:\n%s"
+                                      % (match, tmp))
+
+        # Read-out all remaining data
+        for recv_pt in recv_pts:
+            while select.select([recv_pt.sock], [], [], 0.1)[0]:
+                recv_pt.sock.recv(1024)
+
+        # This will cause fail in case anything went wrong.
+        self.cmd("print 'PASS: nothing'", 10)
+
+    def cleanup_ports(self):
+        """
+        Clean state of all ports and set port to default state.
+        Default state:
+           No data on port or in port buffer.
+           Read mode = blocking.
+        """
+        # Check if python is still alive
+        match, tmp = self._cmd("is_alive()", 10)
+        if (match is None) or (match != 0):
+            logging.error("Python died/is stuck/have remaining threads")
+            logging.debug(tmp)
+            try:
+                self.vm.verify_kernel_crash()
+
+                match, tmp = self._cmd("guest_exit()", 10)
+                if (match is None) or (match == 0):
+                    self.session.close()
+                    self.session = virt_test_utils.wait_for_login(self.vm)
+                self.cmd("killall -9 python "
+                         "&& echo -n PASS: python killed"
+                         "|| echo -n PASS: python was already dead", 10)
+
+                self._init_guest()
+                self._cleanup_ports()
+
+            except Exception, inst:
+                logging.error(inst)
+                raise VirtioPortFatalException("virtio-console driver is "
+                            "irreparably blocked, further tests might FAIL.")
+
+    def cleanup(self):
+        """ Cleanup ports and quit the worker """
+        # Verify that guest works
+        if self.session:
+            self.cleanup_ports()
+        if self.vm:
+            self.vm.verify_kernel_crash()
+        # Quit worker
+        if self.session and self.vm:
+            self.cmd("guest_exit()", 10)
+        self.session = None
+        self.vm = None
 
 
 class ThSend(Thread):
