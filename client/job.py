@@ -1291,7 +1291,19 @@ def runjob(control, drop_caches, options):
     @see base_job.__init__ for parameter info.
     """
     control = os.path.abspath(control)
-    state = control + '.state'
+
+    try:
+        autodir = os.path.abspath(os.environ['AUTODIR'])
+    except KeyError:
+        autodir = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                 'autotest_top_path')
+
+    tmpdir = os.path.join(autodir, 'tmp')
+    tests_out_dir = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                   'test_output_dir',
+                                                   default=tmpdir)
+    state = os.path.join(tests_out_dir, os.path.basename(control) + '.state')
+
     # Ensure state file is cleaned up before the job starts to run if autotest
     # is not running with the --continue flag
     if not options.cont and os.path.isfile(state):
