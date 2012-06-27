@@ -280,6 +280,33 @@ variants:
                 status_error = "yes"
                 libvirtd = "off"
 
+    - virsh_freecell:
+        type = virsh_freecell
+        vms = ''
+        variants:
+            - expected_options:
+                status_error = "no"
+                variants:
+                    - no_option:
+                        virsh_freecell_options = ""
+                    - expected_option_all:
+                        virsh_freecell_options = "--all"
+                    - expected_option_0:
+                        virsh_freecell_options = 0
+            - error_test:
+                status_error = "yes"
+                variants:
+                    - unexpected_option_xyz:
+                        virsh_freecell_options = "xyz"
+                    - unexpected_option_12345:
+                        virsh_freecell_options = 12345
+        variants:
+            - libvirton:
+                libvirtd = "on"
+            - libvirtoff:
+                libvirtd = "off"
+                status_error = "yes"
+
     - module_probe:
         type = module_probe
         # You can specify your own module list, though it is not needed usually.
