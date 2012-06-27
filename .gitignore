@@ -24,3 +24,7 @@ logs/*
 server/tmp
 tko/parsers/test/site_scenarios
 ExternalSource
+results/*
+site-packages/
+frontend/client/gwt-unitCache/
+frontend/client/www/
