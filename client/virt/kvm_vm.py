@@ -959,7 +959,7 @@ class VM(virt_vm.BaseVM):
 
         # Add virtio_serial ports
         virtio_serial_pcis = []
-        virtio_port_spread = int(params.get('virtio_port_spread', 0))
+        virtio_port_spread = int(params.get('virtio_port_spread', 2))
         for port_name in params.objects("virtio_ports"):
             port_params = params.object_params(port_name)
             bus = int(params.get('virtio_port_bus', 0))

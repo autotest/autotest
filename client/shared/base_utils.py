@@ -642,7 +642,8 @@ class FileFieldMonitor(object):
             for i in range(len(self.log) - 1):
                 self.log[i] = (map(lambda x, y: x - y,
                                    self.log[i + 1], self.log[i]))
-            self.log.pop()
+            if self.log:
+                self.log.pop()
         return (self.value, self.test_time, self.log, self.time_step)
 
 
