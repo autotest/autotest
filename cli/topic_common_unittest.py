@@ -343,10 +343,9 @@ class atest_unittest(cli_mock.cli_unittest):
 
 
     def test_invalid_arg_continue(self):
-        self.god.mock_io()
-        self.atest.invalid_arg('This is sort of ok')
-        (output, err) = self.god.unmock_io()
-        self.assert_(err.find('This is sort of ok') >= 0)
+        # The string will be placed into self.atest.failed
+        self.atest.invalid_arg('This is sort of ok')      
+        self.assert_('This is sort of ok' in self.atest.failed.keys())
 
 
     def test_failure_continue(self):

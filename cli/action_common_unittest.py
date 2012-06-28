@@ -111,9 +111,10 @@ class atest_list_unittest(cli_mock.cli_unittest):
                          mytest.execute(op='get_labels',
                                         filters=filters,
                                         check_results=check_results))
+        errors = mytest.failed
         (out, err) = self.god.unmock_io()
         self.god.check_playback()
-        return (out, err)
+        return (out, err, errors)
 
 
     def test_atest_list_execute_no_filters(self):
@@ -125,7 +126,7 @@ class atest_list_unittest(cli_mock.cli_unittest):
         check_results = {}
         filters['name__in'] = ['label0', 'label1']
         check_results['name__in'] = 'name'
-        (out, err) = self._atest_list_execute(filters, check_results)
+        (out, err, errors) = self._atest_list_execute(filters, check_results)
         self.assertEqual(err, '')
 
 
@@ -134,8 +135,11 @@ class atest_list_unittest(cli_mock.cli_unittest):
         check_results = {}
         filters['name__in'] = ['label0', 'label1', 'label2']
         check_results['name__in'] = 'name'
-        (out, err) = self._atest_list_execute(filters, check_results)
-        self.assertWords(err, ['Unknown', 'label2'])
+        (out, err, errors) = self._atest_list_execute(filters, check_results)
+        K = errors.keys()[0]
+        V = errors.values()[0].keys()[0]
+        self.assertIn('Unknown',K)
+        self.assertIn('label2',V)
 
 
     def test_atest_list_execute_items_good_and_bad_no_check(self):
@@ -143,7 +147,7 @@ class atest_list_unittest(cli_mock.cli_unittest):
         check_results = {}
         filters['name__in'] = ['label0', 'label1', 'label2']
         check_results['name__in'] = None
-        (out, err) = self._atest_list_execute(filters, check_results)
+        (out, err, errors) = self._atest_list_execute(filters, check_results)
         self.assertEqual(err, '')
 
 
