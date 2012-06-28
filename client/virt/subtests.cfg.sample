@@ -1802,77 +1802,120 @@ variants:
 
     - virtio_console: install setup image_copy unattended_install.cdrom
         only Linux
-        vms = ''
         type = virtio_console
+        # Console cleanup is not 100%, consider using kill_vm_on_error
+        kill_vm_on_error = yes
         # Default number of consoles
-        virtio_console_no_serialports = 0
-        virtio_console_no_consoles = 0
-
-        # BASIC INFO ABOUT VIRTIO_CONSOLE PARAMS
-        # smoke params - $console_type:data_string
-        # FIXME: test_smoke doesn't work with console yet (virtio_console bug)
-        # "serialport;console:Custom data"
-        #smoke_test = yes
-        #virtio_console_smoke = "serialport"
-        # loopback params - '$source_console_type@buffer_length:$destination_console_type1@buffer_length:...:$loopback_buffer_length;...'
-        #loopback_test = yes
-        #virtio_console_loopback = "serialport:serialport;serialport@1024:serialport@32:console@1024:console@8:16"
-        # perf params - $console_type@buffer_length:$test_duration
-        # FIXME: test_perf doesn't work with console yet (virtio_console bug)
-        # virtio_console_perf = "serialport;serialport@1000000:120;console@1024:60"
-        #perf_test = yes
-        #virtio_console_perf = "serialport;serialport@1000000:120"
-        # Enable destructive tests: "test_name  = yes"
-        # Disable test: change yes or delete key.
-        #rmmod_test = yes
-        #max_ports_test = yes
-        #shutdown_test = yes
-
-        # Offline migration params - '$console_type:$no_migrations:$send-:$recv-$loopback-buffer_length'
-        #migrate_offline_test = yes
-        #virtio_console_migration_offline = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
-
-        # Online migration params - '$console_type:$no_migrations:$send-:$recv-$loopback-buffer_length'
-        #migrate_online_test = yes
-        #virtio_console_migration_online = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
-
-        #hotplug_test = yes
-        #hotplug_serial_test = yes
-        #hotplug_console_test = no
-
-        # CASES SETUPS:
+        virtio_ports = "vc1 vc2 vc3 vc4 vs1 vs2 vs3 vs4"
+        virtio_port_type = "serialport"
+        virtio_port_type_vc1 = "console"
+        virtio_port_type_vc2 = "console"
+        virtio_port_type_vc3 = "console"
+        virtio_port_type_vc4 = "console"
+        virtio_console_test_time = 60
         variants:
-            - smoke:
-                # Very basic test of presence of virtio_console in system
+            # Tests which can run or serialport or console
+            # NOTE: By default VM have booth serialports and consoles. The difference is that it uses serialport or console as tested object. If you want to test pure VM without the other virtio_port devices change virtio_ports (or virtio_port_type) in 'virtserialport' resp 'virtconsole' variants.
+            - @specifiable:
                 variants:
-                    - serialport:
-                        smoke_test = yes
-                        virtio_console_smoke = "serialport"
-                    - console:
-                        # FIXME: test_smoke doesn't work with console due of virtio_console bug, disable this variant
-                        no virtio_console
-                        smoke_test = yes
-                        virtio_console_smoke = "console"
-            - basic:
-                # Basic virtio_console functionality tests
-                loopback_test = yes
-                virtio_console_loopback = "serialport:serialport;serialport@1024:serialport@32:console@1024:console@8:16"
-            - perf:
-                perf_test = yes
-                virtio_console_perf = "serialport;serialport@1000000:120"
-            - destructive:
-                rmmod_test = yes
-                max_ports_test = yes
-                shutdown_test = yes
-            - migration:
-                migrate_offline_test = yes
-                virtio_console_migration_offline = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
-                migrate_online_test = yes
-                virtio_console_migration_online = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
-            - hotplug:
-                hotplug_test = yes
-                hotplug_serial_test = yes
-                hotplug_console_test = no
+                    # Tests which uses preprocessed VM
+                    - @with_vm:
+                        variants:
+                            # Smoke tests
+                            - open:
+                               virtio_console_test = open
+                            - check_zero_sym:
+                                virtio_console_test = check_zero_sym
+                            - multi_open:
+                                virtio_console_test = multi_open
+                            - close:
+                                virtio_console_test = close
+                            - polling:
+                                virtio_console_test = polling
+                            - sigio:
+                                virtio_console_test = sigio
+                            - lseek:
+                                virtio_console_test = lseek
+                            - rw_host_offline:
+                                virtio_console_test = rw_host_offline
+                            - rw_host_offline_big_data:
+                                virtio_console_test = rw_host_offline_big_data
+                            - rw_blocking_mode:
+                                virtio_console_test = rw_blocking_mode
+                            - rw_nonblocking_mode:
+                                virtio_console_test = rw_nonblocking_mode
+                            - basic_loopback:
+                                virtio_console_test = basic_loopback
+                            # Destructive tests
+                            - rmmod:
+                                virtio_console_test = rmmod
+                            - migration:
+                                virtio_console_no_migrations = 5
+                                virtio_console_no_ports = 2
+                                virtio_console_blocklen = 4096
+                                variants:
+                                    - offline:
+                                        virtio_console_test = migrate_offline
+                                    - online:
+                                        virtio_console_test = migrate_online
+                            - poweroff:
+                                virtio_console_test = shutdown
+                    # Tests which creates own VMs
+                    - @without_vm:
+                        vms = ""
+                        variants:
+                            - hotplug:
+                                only spread_linear
+                                virtio_console_test = hotplug
+                                variants:
+                                    - timeout_0:
+                                        virtio_console_pause = 0
+                                    - timeout_1:
+                                        virtio_console_pause = 1
+                            # Destructive tests
+                            - rw_notconnect_guest:
+                                virtio_console_test = rw_notconnect_guest
+                            - max_ports:
+                                only spread_linear
+                                virtio_port_spread = 0
+                                virtio_console_test = max_ports
+                # Use serialport or console as the main virtioport fpr the tests above
+                variants:
+                    - virtserialport:
+                        # Uncomment this if you want to have VM only with serialports
+                        # virtio_ports = "vs1 vs2 vs3 vs4"
+                        virtio_console_params = serialport
+                    - virtconsole:
+                        # Uncomment this if you want to have VM only with consoles
+                        # virtio_ports = "vc1 vc2 vc3 vc4"
+                        virtio_console_params = console
+            # Tests with different setting of the used medium
+            - @unspecifiable:
+                variants:
+                    - loopback:
+                        virtio_console_test = loopback
+                        virtio_console_params = "serialport@1024:serialport@32:console@1024:console@8:16"
+                    - performance:
+                        virtio_console_test = perf
+                        virtio_console_params = "serialport;serialport@1000000"
+                    - hotplug_virtio_pci:
+                        only spread_linear
+                        virtio_console_test = hotplug_virtio_pci
+                        virtio_console_pause = 10
+                        virtio_console_loops = 2
+                    # Without VMS
+                    - max_serials_and_conosles:
+                        only spread_linear
+                        vms = ""
+                        virtio_port_spread = 0
+                        virtio_console_test = max_serials_and_conosles
+        variants:
+            # Use only single virtio-serial-pci
+            - spread_linear:
+                virtio_port_spread = 0
+            # Spread consoles across multiple virtio-serial-pcis
+            - spread_2:
+                virtio_port_spread = 2
 
     # This unit test module is for older branches of KVM that use the
     # kvmctl test harness (such as the code shipped with RHEL 5.x)
