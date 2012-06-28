@@ -3,23 +3,28 @@ Interfaces and helpers for the virtio_serial ports.
 
 @copyright: 2012 Red Hat Inc.
 """
-from client.shared import error
 from threading import Thread
+import aexpect
 import logging
+import os
 import random
 import select
 import socket
 import time
-import os
+from autotest.client.shared import error
 import virt_test_utils
-import aexpect
+
+
+SOCKET_SIZE = 2048
 
 
 class VirtioPortException(Exception):
+    """ General virtio_port exception """
     pass
 
 
 class VirtioPortFatalException(VirtioPortException):
+    """ Fatal virtio_port exception """
     pass
 
 
@@ -36,25 +41,33 @@ class _VirtioPort(object):
         self.hostfile = hostfile
         self.is_console = None  # "yes", "no"
         self.sock = None
-        self.is_open = False
+        self.port_was_opened = None
 
     def __str__(self):
         """
         Convert to text.
         """
         return ("%s,%s,%s,%s,%d" % ("Socket", self.name, self.is_console,
-                                    self.hostfile, self.is_open))
+                                    self.hostfile, self.is_open()))
 
     def __getstate__(self):
         """
         socket is unpickable so we need to remove it and say it's closed.
         Used by autotest env.
         """
-        if self.is_open:
+        # TODO: add port cleanup into kvm_vm.py
+        if self.is_open():
             logging.warn("Force closing virtio_port socket, FIX the code to "
                          " close the socket prior this to avoid possible err.")
             self.close()
         return self.__dict__.copy()
+
+    def is_open(self):
+        """ @return: host port status (open/closed) """
+        if self.sock:
+            return True
+        else:
+            return False
 
     def for_guest(self):
         """
@@ -66,16 +79,18 @@ class _VirtioPort(object):
         """
         Open port on host side.
         """
-        if self.is_open:
+        if self.is_open():
             return
         attempt = 11
         while attempt > 0:
             try:
                 self.sock = socket.socket(socket.AF_UNIX,
                                           socket.SOCK_STREAM)
+                self.sock.settimeout(1)
                 self.sock.connect(self.hostfile)
-                self.sock.setsockopt(1, socket.SO_SNDBUF, 2048)
-                self.is_open = True
+                self.sock.setsockopt(1, socket.SO_SNDBUF, SOCKET_SIZE)
+                self.sock.settimeout(None)
+                self.port_was_opened = True
                 return
             except Exception:
                 attempt -= 1
@@ -86,8 +101,14 @@ class _VirtioPort(object):
         """
         Clean all data from opened port on host side.
         """
-        if self.is_open:
+        if self.is_open():
             self.close()
+        elif not self.port_was_opened:
+            # BUG: Don't even try opening port which was never used. It
+            # hangs for ever... (virtio_console bug)
+            logging.debug("No need to clean port %s", self)
+            return
+        logging.debug("Cleaning port %s", self)
         self.open()
         ret = select.select([self.sock], [], [], 1.0)
         if ret[0]:
@@ -98,20 +119,36 @@ class _VirtioPort(object):
         """
         Close port.
         """
-        self.sock.shutdown(socket.SHUT_RDWR)
-        self.sock.close()
-        self.sock = None
-        self.is_open = False
+        if self.is_open():
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
+            self.sock = None
+
+    def mark_as_clean(self):
+        """
+        Mark port as cleaned
+        """
+        self.port_was_opened = False
 
 
 class VirtioSerial(_VirtioPort):
+    """ Class for handling virtio-serialport """
     def __init__(self, name, hostfile):
+        """
+        @param name: Name of port for guest side.
+        @param hostfile: Path to port on host side.
+        """
         super(VirtioSerial, self).__init__(name, hostfile)
         self.is_console = "no"
 
 
 class VirtioConsole(_VirtioPort):
+    """ Class for handling virtio-console """
     def __init__(self, name, hostfile):
+        """
+        @param name: Name of port for guest side.
+        @param hostfile: Path to port on host side.
+        """
         super(VirtioConsole, self).__init__(name, hostfile)
         self.is_console = "yes"
 
@@ -300,11 +337,11 @@ class ThSend(Thread):
     """
     Random data sender thread.
     """
-    def __init__(self, port, data, event, quiet=False):
+    def __init__(self, port, data, exit_event, quiet=False):
         """
         @param port: Destination port.
         @param data: The data intend to be send in a loop.
-        @param event: Exit event.
+        @param exit_event: Exit event.
         @param quiet: If true don't raise event when crash.
         """
         Thread.__init__(self)
@@ -315,7 +352,7 @@ class ThSend(Thread):
             logging.error("Data is too long, using only first %d bytes",
                           len(data))
         self.data = data
-        self.exitevent = event
+        self.exitevent = exit_event
         self.idx = 0
         self.quiet = quiet
 
@@ -336,12 +373,14 @@ class ThSendCheck(Thread):
     """
     Random data sender thread.
     """
-    def __init__(self, port, event, queues, blocklen=1024):
+    def __init__(self, port, exit_event, queues, blocklen=1024,
+                 migrate_event=None):
         """
         @param port: Destination port
-        @param event: Exit event
+        @param exit_event: Exit event
         @param queues: Queues for the control data (FIFOs)
         @param blocklen: Block length
+        @param migrate_event: Event indicating port was changed and is ready.
         """
         Thread.__init__(self)
         self.port = port
@@ -352,7 +391,8 @@ class ThSendCheck(Thread):
             logging.error("Data is too long, using blocklen = %d",
                           blocklen)
         self.blocklen = blocklen
-        self.exitevent = event
+        self.exitevent = exit_event
+        self.migrate_event = migrate_event
         self.idx = 0
 
     def run(self):
@@ -382,13 +422,24 @@ class ThSendCheck(Thread):
                     except Exception, inst:
                         # Broken pipe
                         if inst.errno == 32:
+                            if self.migrate_event is None:
+                                self.exitevent.set()
+                                raise error.TestFail("ThSendCheck %s: Broken "
+                                        "pipe. If this is expected behavior "
+                                        "set migrate_event to support "
+                                        "reconnection." % self.getName())
                             logging.debug("ThSendCheck %s: Broken pipe "
-                                          "(migration?), reconnecting",
-                                          self.getName())
+                                          ", reconnecting. ", self.getName())
                             attempt = 10
                             while (attempt > 1
                                    and not self.exitevent.isSet()):
-                                self.port.is_open = False
+                                # Wait until main thread sets the new self.port
+                                if not self.migrate_event.wait(30):
+                                    self.exitevent.set()
+                                    raise error.TestFail("ThSendCheck %s: "
+                                            "Timeout while waiting for "
+                                            "migrate_event" % self.getName())
+                                self.port.sock = False
                                 self.port.open()
                                 try:
                                     idx = self.port.sock.send(buf)
@@ -408,7 +459,7 @@ class ThSendCheck(Thread):
 
 class ThRecv(Thread):
     """
-    Recieves data and throws it away.
+    Receives data and throws it away.
     """
     def __init__(self, port, event, blocklen=1024, quiet=False):
         """
@@ -447,18 +498,21 @@ class ThRecvCheck(Thread):
     """
     Random data receiver/checker thread.
     """
-    def __init__(self, port, buff, event, blocklen=1024, sendlen=0):
+    def __init__(self, port, buff, exit_event, blocklen=1024, sendlen=0,
+                 migrate_event=None):
         """
         @param port: Source port.
         @param buff: Control data buffer (FIFO).
-        @param length: Amount of data we want to receive.
+        @param exit_event: Exit event.
         @param blocklen: Block length.
         @param sendlen: Block length of the send function (on guest)
+        @param migrate_event: Event indicating port was changed and is ready.
         """
         Thread.__init__(self)
         self.port = port
         self.buff = buff
-        self.exitevent = event
+        self.exitevent = exit_event
+        self.migrate_event = migrate_event
         self.blocklen = blocklen
         self.idx = 0
         self.sendlen = sendlen + 1  # >=
@@ -519,9 +573,14 @@ class ThRecvCheck(Thread):
                     # Broken socket
                     if attempt > 0:
                         attempt -= 1
+                        if self.migrate_event is None:
+                            self.exitevent.set()
+                            raise error.TestFail("ThRecvCheck %s: Broken pipe."
+                                    " If this is expected behavior set migrate"
+                                    "_event to support reconnection." %
+                                    self.getName())
                         logging.debug("ThRecvCheck %s: Broken pipe "
-                                      "(migration?), reconnecting. ",
-                                      self.getName())
+                                      ", reconnecting. ", self.getName())
                         # TODO BUG: data from the socket on host can be lost
                         if sendidx >= 0:
                             minsendidx = min(minsendidx, sendidx)
@@ -530,7 +589,14 @@ class ThRecvCheck(Thread):
                                           self.getName(),
                                           (self.sendlen - sendidx))
                         sendidx = self.sendlen
-                        self.port.is_open = False
+                        # Wait until main thread sets the new self.port
+                        if not self.migrate_event.wait(30):
+                            self.exitevent.set()
+                            raise error.TestFail("ThRecvCheck %s: Timeout "
+                                            "while waiting for migrate_event"
+                                            % self.getName())
+
+                        self.port.sock = False
                         self.port.open()
         if sendidx >= 0:
             minsendidx = min(minsendidx, sendidx)
