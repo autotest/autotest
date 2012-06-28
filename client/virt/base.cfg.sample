@@ -125,6 +125,9 @@ display = vnc
 # Guest VGA type (cirrus,  std, vmware, qxl, xenfb, none)
 vga = std
 
+# Add a sga device to guest.
+#enable_sga = yes
+
 # Specify multiple sound cards seperated by comma,like 'sb16,adlib' or 'all'.
 # By default, it's 'ac97'.
 soundcards = ac97

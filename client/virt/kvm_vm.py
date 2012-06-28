@@ -810,6 +810,14 @@ class VM(virt_vm.BaseVM):
 
             return cmd
 
+
+        def add_sga(help):
+            if not has_option(help, "device"):
+                return ""
+
+            return " -device sga"
+
+
         # End of command line option wrappers
 
         if name is None:
@@ -1222,6 +1230,9 @@ class VM(virt_vm.BaseVM):
         if (has_option(help, "enable-kvm")
             and params.get("enable-kvm", "yes") == "yes"):
             qemu_cmd += " -enable-kvm"
+
+        if params.get("enable_sga") == "yes":
+            qemu_cmd += add_sga(help)
 
         return qemu_cmd
 
