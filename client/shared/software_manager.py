@@ -208,7 +208,7 @@ class RpmBackend(BaseBackend):
         """
         List all installed packages.
         """
-        installed_packages = utils.system_output('rpm -qa').splitlines()
+        installed_packages = utils.system_output('rpm -qa | sort').splitlines()
         return installed_packages
 
 
@@ -271,6 +271,7 @@ class DpkgBackend(BaseBackend):
             parts = line.split()
             if parts[0] == "ii":  # only grab "installed" packages
                 installed_packages.append("%s-%s" % (parts[1], parts[2]))
+        return installed_packages
 
 
     def list_files(self, package):
@@ -414,7 +415,6 @@ class YumBackend(RpmBackend):
         d_provides = self.yum_base.searchPackageProvides(args=[name])
         provides_list = [key for key in d_provides]
         if provides_list:
-            logging.info("Package %s provides %s", provides_list[0], name)
             return str(provides_list[0])
         else:
             return None
@@ -708,9 +708,11 @@ if __name__ == '__main__':
     elif action == 'remove':
         software_manager.remove(args)
     if action == 'list-all':
-        software_manager.list_all()
+        for pkg in software_manager.list_all():
+            logging.info(pkg)
     elif action == 'list-files':
-        software_manager.list_files(args)
+        for f in software_manager.list_files(args):
+            logging.info(f)
     elif action == 'add-repo':
         software_manager.add_repo(args)
     elif action == 'remove-repo':
@@ -718,7 +720,9 @@ if __name__ == '__main__':
     elif action == 'upgrade':
         software_manager.upgrade()
     elif action == 'what-provides':
-        software_manager.provides(args)
+        provides = software_manager.provides(args)
+        if provides is not None:
+            logging.info(provides)
     elif action == 'install-what-provides':
         software_manager.install_what_provides(args)
     elif action == 'show-help':
