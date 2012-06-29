@@ -151,9 +151,10 @@ class BaseBackend(object):
         """
         provides = self.provides(file)
         if provides is not None:
-            self.install(provides)
+            return self.install(provides)
         else:
             logging.warning('No package seems to provide %s', file)
+            return False
 
 
 class RpmBackend(BaseBackend):
