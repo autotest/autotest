@@ -129,84 +129,11 @@ class SoftwareManager(object):
                                       'system: %s.' % backend_type)
 
 
-    def check_installed(self, name, version=None, arch=None):
-        """
-        Check whether a package is installed on this system.
-
-        @param name: Package name.
-        @param version: Package version.
-        @param arch: Package architecture.
-        """
-        return self.backend.check_installed(name, version, arch)
-
-
-    def list_all(self):
-        """
-        List all installed packages.
-        """
-        return self.backend.list_all()
-
-
-    def list_files(self, name):
-        """
-        Get a list of all files installed by package [name].
-
-        @param name: Package name.
-        """
-        return self.backend.list_files(name)
-
-
-    def install(self, name):
-        """
-        Install package [name].
-
-        @param name: Package name.
-        """
-        return self.backend.install(name)
-
-
-    def remove(self, name):
-        """
-        Remove package [name].
-
-        @param name: Package name.
-        """
-        return self.backend.remove(name)
-
-
-    def add_repo(self, url):
-        """
-        Add package repo described by [url].
-
-        @param name: URL of the package repo.
-        """
-        return self.backend.add_repo(url)
-
-
-    def remove_repo(self, url):
-        """
-        Remove package repo described by [url].
-
-        @param url: URL of the package repo.
-        """
-        return self.backend.remove_repo(url)
-
-
-    def upgrade(self):
-        """
-        Upgrade all packages available.
-        """
-        return self.backend.upgrade()
-
-
-    def provides(self, file):
-        """
-        Returns a list of packages that provides a given capability to the
-        system (be it a binary, a library).
-
-        @param file: Path to the file.
-        """
-        return self.backend.provides(file)
+    def __getattr__(self, name):
+        if name == "install_what_provides":
+            return self.install_what_provides(file)
+        else:
+            return self.backend.__getattribute__(self, name)
 
 
     def install_what_provides(self, file):
