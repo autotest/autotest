@@ -709,8 +709,8 @@ class AptBackend(DpkgBackend):
 
 if __name__ == '__main__':
     parser = optparse.OptionParser(
-    "usage: %prog [install|remove|list-all|list-files|add-repo|remove-repo|"
-    "upgrade|what-provides|install-what-provides] arguments")
+    "usage: %prog [install|remove|check-installed|list-all|list-files|add-repo|"
+    "remove-repo| upgrade|what-provides|install-what-provides] arguments")
     parser.add_option('--verbose', dest="debug", action='store_true',
                       help='include debug messages in console output')
 
@@ -737,7 +737,13 @@ if __name__ == '__main__':
         else:
             logging.error("Failed to remove %s", args)
 
-    if action == 'list-all':
+    elif action == 'check-installed':
+        if software_manager.check_installed(args):
+            logging.info("Package %s already installed", args)
+        else:
+            logging.info("Package %s not installed", args)
+
+    elif action == 'list-all':
         for pkg in software_manager.list_all():
             logging.info(pkg)
 
