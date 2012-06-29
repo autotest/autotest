@@ -111,25 +111,31 @@ class SoftwareManager(object):
     """
     def __init__(self):
         """
-        Class constructor.
+        Lazily instantiate the object
+        """
+        self.initialized = False
 
+    def _init_on_demand(self):
+        """
         Determines the best supported package management system for the given
         operating system running and initializes the appropriate backend.
         """
-        inspector = SystemInspector()
-        backend_type = inspector.get_package_management()
-        if backend_type == 'yum':
-            self.backend = YumBackend()
-        elif backend_type == 'zypper':
-            self.backend = ZypperBackend()
-        elif backend_type == 'apt-get':
-            self.backend = AptBackend()
-        else:
-            raise NotImplementedError('Unimplemented package management '
-                                      'system: %s.' % backend_type)
-
+        if not self.initialized:
+            inspector = SystemInspector()
+            backend_type = inspector.get_package_management()
+            if backend_type == 'yum':
+                self.backend = YumBackend()
+            elif backend_type == 'zypper':
+                self.backend = ZypperBackend()
+            elif backend_type == 'apt-get':
+                self.backend = AptBackend()
+            else:
+                raise NotImplementedError('Unimplemented package management '
+                                          'system: %s.' % backend_type)
+            self.initialized = True
 
     def __getattr__(self, name):
+        self._init_on_demand()
         return self.backend.__getattribute__(name)
 
 
