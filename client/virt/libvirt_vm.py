@@ -4,7 +4,7 @@ Utility classes and functions to handle Virtual Machine creation using libvirt.
 @copyright: 2011 Red Hat Inc.
 """
 
-import time, os, logging, fcntl, re, commands, shutil, urlparse
+import time, os, logging, fcntl, re, commands, shutil, urlparse, tempfile
 from autotest.client.shared import error
 from autotest.client import utils, os_dep
 from xml.dom import minidom
@@ -206,13 +206,20 @@ def virsh_screenshot(name, filename, uri=""):
                       "file \n%s", name, detail)
     return filename
 
-def virsh_dumpxml(name, uri=""):
+
+def virsh_dumpxml(name, to_file="", uri="", ignore_status=False, print_info=False):
     """
     Return the domain information as an XML dump.
 
     @param name: VM name
     """
-    return virsh_cmd("dumpxml %s" % name, uri).stdout.strip()
+    if to_file:
+        cmd = "dumpxml %s > %s" % (name, to_file)
+    else:
+        cmd = "dumpxml %s" % name
+
+    return virsh_cmd(cmd, uri, ignore_status, print_info).stdout.strip()
+
 
 def virsh_is_alive(name, uri=""):
     """
@@ -635,7 +642,25 @@ class VM(virt_vm.BaseVM):
         """
         Return VM's xml file.
         """
-        return virsh_dumpxml(self.name, self.connect_uri)
+        return virsh_dumpxml(self.name, uri=self.connect_uri)
+
+
+    def backup_xml(self):
+        """
+        Backup the guest's xmlfile.
+        """
+        # Since backup_xml() is not a function for testing,
+        # we have to handle the exception here.
+        try:
+            xml_file = tempfile.mktemp(dir="/tmp")
+
+            virsh_dumpxml(self.name, to_file=xml_file, uri=self.connect_uri)
+            return xml_file
+        except Exception, detail:
+            if os.path.exists(xml_file):
+                os.remove(xml_file)
+            logging.error("Failed to backup xml file:\n%s", detail)
+            return ""
 
 
     def clone(self, name=None, params=None, root_dir=None, address_cache=None,
@@ -1465,7 +1490,7 @@ class VM(virt_vm.BaseVM):
         @raise VMMACAddressMissingError: If no MAC address is defined for the
                 requested NIC
         """
-        thexml = virsh_dumpxml(self.name, self.connect_uri)
+        thexml = virsh_dumpxml(self.name, uri=self.connect_uri)
         dom = minidom.parseString(thexml)
         count = 0
         for node in dom.getElementsByTagName('interface'):
