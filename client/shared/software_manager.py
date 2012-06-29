@@ -116,6 +116,10 @@ class SoftwareManager(object):
         Lazily instantiate the object
         """
         self.initialized = False
+        self.backend = None
+        self.lowlevel_base_command = None
+        self.base_command = None
+        self.pm_version = None
 
     def _init_on_demand(self):
         """
@@ -324,8 +328,8 @@ class YumBackend(RpmBackend):
             ver = re.findall('\d*.\d*.\d*', out)[0]
         except IndexError:
             ver= out
-        self.yum_version = ver
-        logging.debug('Yum version: %s' % self.yum_version)
+        self.pm_version = ver
+        logging.debug('Yum version: %s' % self.pm_version)
 
         self.yum_base = yum.YumBase()
 
@@ -454,8 +458,8 @@ class ZypperBackend(RpmBackend):
             ver = re.findall('\d.\d*.\d*', out)[0]
         except IndexError:
             ver= out
-        self.zypper_version = ver
-        logging.debug('Zypper version: %s' % self.zypper_version)
+        self.pm_version = ver
+        logging.debug('Zypper version: %s' % self.pm_version)
 
 
     def install(self, name):
@@ -579,9 +583,9 @@ class AptBackend(DpkgBackend):
             ver = re.findall('\d\S*', out)[0]
         except IndexError:
             ver= out
-        self.apt_version = ver
+        self.pm_version = ver
 
-        logging.debug('apt-get version: %s' % self.apt_version)
+        logging.debug('apt-get version: %s' % self.pm_version)
 
 
     def install(self, name):
