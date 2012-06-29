@@ -2262,6 +2262,18 @@ variants:
                     -6.3.beta.i386:
                         image_name_vm2 = rhel63-32_client
 
+    - seabios: install setup image_copy unattended_install.cdrom
+        type = seabios
+        start_vm = no
+        restart_vm = no
+        kill_vm = yes
+        boot_menu = on
+        enable_sga = yes
+        boot_menu_key = "f12"
+        boot_menu_hint = "Press F12 for boot menu"
+        # Specify the boot device name which you want to test here.
+        boot_device = "iPXE"
+
     - shutdown: install setup image_copy unattended_install.cdrom
         type = shutdown
         shutdown_method = shell
