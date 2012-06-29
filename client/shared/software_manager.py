@@ -221,7 +221,10 @@ class RpmBackend(BaseBackend):
         """
         List all installed packages.
         """
-        installed_packages = utils.system_output('rpm -qa | sort').splitlines()
+        logging.debug("Listing all system packages (may take a while)")
+        cmd_result = utils.run('rpm -qa | sort', verbose=False)
+        out = cmd_result.stdout.strip()
+        installed_packages = out.splitlines()
         return installed_packages
 
 
@@ -278,8 +281,11 @@ class DpkgBackend(BaseBackend):
         """
         List all packages available in the system.
         """
+        logging.debug("Listing all system packages (may take a while)")
         installed_packages = []
-        raw_list = utils.system_output('dpkg -l').splitlines()[5:]
+        cmd_result = utils.run('dpkg -l', verbose=False)
+        out = cmd_result.stdout.strip()
+        raw_list = out.splitlines()[5:]
         for line in raw_list:
             parts = line.split()
             if parts[0] == "ii":  # only grab "installed" packages
