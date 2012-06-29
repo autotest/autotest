@@ -29,6 +29,9 @@ from autotest.client.shared import error
 from autotest.client.shared import logging_config, logging_manager
 
 
+SUPPORTED_PACKAGE_MANAGERS = ['apt-get', 'yum', 'zypper']
+
+
 def generate_random_string(length):
     """
     Return a random string using alphanumeric characters.
@@ -67,7 +70,6 @@ class SystemInspector(object):
         Probe system, and save information for future reference.
         """
         self.distro = utils.get_os_vendor()
-        self.high_level_pms = ['apt-get', 'yum', 'zypper']
 
 
     def get_package_management(self):
@@ -77,7 +79,7 @@ class SystemInspector(object):
         to find the best supported system.
         """
         list_supported = []
-        for high_level_pm in self.high_level_pms:
+        for high_level_pm in SUPPORTED_PACKAGE_MANAGERS:
             try:
                 os_dep.command(high_level_pm)
                 list_supported.append(high_level_pm)
