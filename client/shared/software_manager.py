@@ -310,8 +310,14 @@ class YumBackend(RpmBackend):
         y_cmd = executable + ' --version | head -1'
         cmd_result = utils.run(y_cmd, ignore_status=True,
                                verbose=False)
-        self.yum_version = cmd_result.stdout.strip()
+        out = cmd_result.stdout.strip()
+        try:
+            ver = re.findall('\d*.\d*.\d*', out)[0]
+        except IndexError:
+            ver= out
+        self.yum_version = ver
         logging.debug('Yum version: %s' % self.yum_version)
+
         self.yum_base = yum.YumBase()
 
 
@@ -373,8 +379,7 @@ class YumBackend(RpmBackend):
             if not self.cfgparser.has_section(section_name):
                 break
         self.cfgparser.add_section(section_name)
-        self.cfgparser.set(section_name, 'name',
-                           'Repository added by the autotest software manager.')
+        self.cfgparser.set(section_name, 'name', 'Autotest managed repository')
         self.cfgparser.set(section_name, 'url', url)
         self.cfgparser.set(section_name, 'enabled', 1)
         self.cfgparser.set(section_name, 'gpgcheck', 0)
@@ -435,7 +440,12 @@ class ZypperBackend(RpmBackend):
         z_cmd = self.base_command + ' --version'
         cmd_result = utils.run(z_cmd, ignore_status=True,
                                verbose=False)
-        self.zypper_version = cmd_result.stdout.strip()
+        out = cmd_result.stdout.strip()
+        try:
+            ver = re.findall('\d.\d*.\d*', out)[0]
+        except IndexError:
+            ver= out
+        self.zypper_version = ver
         logging.debug('Zypper version: %s' % self.zypper_version)
 
 
@@ -555,8 +565,14 @@ class AptBackend(DpkgBackend):
         cmd_result = utils.run('apt-get -v | head -1',
                                ignore_status=True,
                                verbose=False)
-        self.apt_version = cmd_result.stdout.strip()
-        logging.debug('apt version: %s' % self.apt_version)
+        out = cmd_result.stdout.strip()
+        try:
+            ver = re.findall('\d\S*', out)[0]
+        except IndexError:
+            ver= out
+        self.apt_version = ver
+
+        logging.debug('apt-get version: %s' % self.apt_version)
 
 
     def install(self, name):
@@ -704,26 +720,49 @@ if __name__ == '__main__':
         action = 'show-help'
 
     if action == 'install':
-        software_manager.install(args)
+        if software_manager.install(args):
+            logging.info("Packages %s installed successfuly", args)
+        else:
+            logging.error("Failed to install %s", args)
+
     elif action == 'remove':
-        software_manager.remove(args)
+        if software_manager.remove(args):
+            logging.info("Packages %s removed successfuly", args)
+        else:
+            logging.error("Failed to remove %s", args)
+
     if action == 'list-all':
         for pkg in software_manager.list_all():
             logging.info(pkg)
+
     elif action == 'list-files':
         for f in software_manager.list_files(args):
             logging.info(f)
+
     elif action == 'add-repo':
-        software_manager.add_repo(args)
+        if software_manager.add_repo(args):
+            logging.info("Repo %s added successfuly", args)
+        else:
+            logging.error("Failed to remove repo %s", args)
+
     elif action == 'remove-repo':
-        software_manager.remove_repo(args)
+        if software_manager.remove_repo(args):
+            logging.info("Repo %s removed successfuly", args)
+        else:
+            logging.error("Failed to remove repo %s", args)
+
     elif action == 'upgrade':
-        software_manager.upgrade()
+        if software_manager.upgrade():
+            logging.info("Package manager upgrade successful")
+
     elif action == 'what-provides':
         provides = software_manager.provides(args)
         if provides is not None:
-            logging.info(provides)
+            logging.info("Package %s provides %s", provides, args)
+
     elif action == 'install-what-provides':
-        software_manager.install_what_provides(args)
+        if software_manager.install_what_provides(args):
+            logging.info("Installed successfuly what provides %s", args)
+
     elif action == 'show-help':
         parser.print_help()
