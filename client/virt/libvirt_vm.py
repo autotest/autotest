@@ -485,6 +485,34 @@ def virsh_detach_device(name, xml_file, extra="", uri=""):
         return False
 
 
+def virsh_attach_interface(name, option="", uri="", ignore_status=False, print_info=False):
+    """
+    Attach a NIC to VM.
+    """
+    cmd = "attach-interface "
+
+    if name:
+        cmd += "--domain %s" % name
+    if option:
+        cmd += " %s" % option
+
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
+def virsh_detach_interface(name, option="", uri="", ignore_status=False, print_info=False):
+    """
+    Detach a NIC to VM.
+    """
+    cmd = "detach-interface "
+
+    if name:
+        cmd += "--domain %s" % name
+    if option:
+        cmd += " %s" % option
+
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
 class VM(virt_vm.BaseVM):
     """
     This class handles all basic VM operations for libvirt.
@@ -577,6 +605,16 @@ class VM(virt_vm.BaseVM):
         Undefine the VM.
         """
         return virsh_undefine(self.name, self.connect_uri)
+
+
+    def define(self, xml_file):
+        """
+        Define the VM.
+        """
+        if not os.path.exists(xml_file):
+            logging.error("File %s not found." % xml_file)
+            return False
+        return virsh_define(xml_file, self.connect_uri)
 
 
     def state(self):
@@ -1301,6 +1339,22 @@ class VM(virt_vm.BaseVM):
         Detach a device from VM.
         """
         return virsh_detach_device(self.name, xml_file, extra, self.connect_uri)
+
+
+    def attach_interface(self, option="", ignore_status=False, print_info=False):
+        """
+        Attach a NIC to VM.
+        """
+        return virsh_attach_interface(self.name, option, self.connect_uri,
+                                      ignore_status=False, print_info=False)
+
+
+    def detach_interface(self, option="", ignore_status=False, print_info=False):
+        """
+        Detach a NIC to VM.
+        """
+        return virsh_detach_interface(self.name, option, self.connect_uri,
+                                      ignore_status=False, print_info=False)
 
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
