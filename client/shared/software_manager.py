@@ -721,9 +721,12 @@ class AptBackend(DpkgBackend):
 
         @param file: File path.
         """
-        if not self.check_installed('apt-file'):
+        try:
+            command = os_dep.command('apt-file')
+        except ValueError:
             self.install('apt-file')
-        command = os_dep.command('apt-file')
+            command = os_dep.command('apt-file')
+
         cache_update_cmd = command + ' update'
         try:
             utils.system(cache_update_cmd, ignore_status=True)
