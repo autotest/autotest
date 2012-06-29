@@ -433,29 +433,30 @@ def virsh_domain_exists(name, uri=""):
         return False
 
 
-def virsh_migrate(options, name, dest_uri, extra, uri=""):
+def virsh_migrate(name="", dest_uri="", option="", extra="", uri="",
+                  ignore_status=False, print_info=False):
     """
     Migrate a guest to another host.
 
-    @param: options: Free-form string of options to virsh migrate
     @param: name: name of guest on uri
     @param: dest_uri: libvirt uri to send guest to
+    @param: option: Free-form string of options to virsh migrate
     @param: extra: Free-form string of options to follow <domain> <desturi>
+    @param: ignore_status: virsh_cmd() raises an exception when error if False
+    @param: print_info: virsh_cmd() print status, stdout and stderr if True
     @return: True if migration command was successful
     """
-    # Fail early with warning when simple to do so
-    if not virsh_domain_exists(name, uri) or virsh_is_dead(name, uri):
-        logging.warning("Domain doesn't exist or found dead, prior to migration")
-        return False
-    # Rely on test-code to verify guest state on receiving-end
-    migrate_cmd = "migrate %s %s %s %s" %\
-                (options, name, dest_uri, extra)
-    try:
-        virsh_cmd(migrate_cmd, uri)
-    except error.CmdError, detail:
-        logging.warning("Migration error: %s" % (detail))
-        return False
-    return True
+    cmd = "migrate"
+    if option:
+        cmd += " %s" % option
+    if name:
+        cmd += " --domain %s" % name
+    if dest_uri:
+        cmd += " --desturi %s" % dest_uri
+    if extra:
+        cmd += " %s" % extra
+
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
 
 
 def virsh_attach_device(name, xml_file, extra="", uri=""):
@@ -1266,21 +1267,24 @@ class VM(virt_vm.BaseVM):
             lockfile.close()
 
 
-    def migrate(self, dest_uri, options="--live --timeout 60", extra=""):
+    def migrate(self, dest_uri="", option="--live --timeout 60", extra="",
+                ignore_status=False, print_info=False):
         """
         Migrate a VM to a remote host.
 
         @param: dest_uri: Destination libvirt URI
-        @param: options: Migration options before <domain> <desturi>
+        @param: option: Migration options before <domain> <desturi>
         @param: extra: Migration options after <domain> <desturi>
         @return: True if command succeeded
         """
         logging.info("Migrating VM %s from %s to %s" %
                      (self.name, self.connect_uri, dest_uri))
-        result = virsh_migrate(options, self.name, dest_uri,
-                             extra, self.connect_uri)
-        # On successful migration, point to guests new hypervisor
-        if result == True:
+        result = virsh_migrate(self.name, dest_uri, option,
+                               extra, self.connect_uri,
+                               ignore_status, print_info)
+        # On successful migration, point to guests new hypervisor.
+        # Since dest_uri could be None, checking it is necessary.
+        if result.exit_status == 0 and dest_uri:
             self.connect_uri = dest_uri
         return result
 
