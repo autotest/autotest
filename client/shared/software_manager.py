@@ -130,12 +130,13 @@ class SoftwareManager(object):
 
 
     def __getattr__(self, name):
-        if name == "install_what_provides":
-            return self.install_what_provides(file)
-        else:
-            return self.backend.__getattribute__(self, name)
+        return self.backend.__getattribute__(name)
 
 
+class BaseBackend(object):
+    """
+    This class implements all common methods among backends.
+    """
     def install_what_provides(self, file):
         """
         Installs package that provides [file].
@@ -149,7 +150,7 @@ class SoftwareManager(object):
             logging.warning('No package seems to provide %s', file)
 
 
-class RpmBackend(object):
+class RpmBackend(BaseBackend):
     """
     This class implements operations executed with the rpm package manager.
 
@@ -234,7 +235,7 @@ class RpmBackend(object):
             return []
 
 
-class DpkgBackend(object):
+class DpkgBackend(BaseBackend):
     """
     This class implements operations executed with the dpkg package manager.
 
