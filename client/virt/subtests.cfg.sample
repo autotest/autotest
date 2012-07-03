@@ -1060,6 +1060,13 @@ variants:
         type = smbios_table
         start_vm = no
 
+    - perf_kvm: install setup image_copy unattended_install.cdrom
+	type = perf_kvm
+	kallsyms_cmd = "cat /proc/kallsyms > /tmp/guest_kallsyms"
+	modules_cmd = "cat /proc/modules > /tmp/geust_modules"
+	transfer_timeout = 100
+	perf_record_timeout =  100
+
     - softlockup: install setup unattended_install.cdrom
         only Linux
         type = softlockup
