@@ -543,8 +543,8 @@ class VM(virt_vm.BaseVM):
             self.process = None
             self.serial_console = None
             self.redirs = {}
-            self.vnc_port = 5900
-            self.vnclisten = "0.0.0.0"
+            self.vnc_port = None
+            self.vnc_autoport = True
             self.pci_assignable = None
             self.netdev_id = []
             self.device_id = []
@@ -823,8 +823,11 @@ class VM(virt_vm.BaseVM):
         def add_floppy(help, filename):
             return " --disk path=%s,device=floppy,ro" % filename
 
-        def add_vnc(help, vnc_port):
-            return " --vnc --vncport=%d" % (vnc_port)
+        def add_vnc(help, vnc_port=None):
+            if vnc_port:
+                return " --vnc --vncport=%d" % (vnc_port)
+            else:
+                return " --vnc"
 
         def add_vnclisten(help, vnclisten):
             if has_option(help, "vnclisten"):
@@ -1020,7 +1023,11 @@ class VM(virt_vm.BaseVM):
             virt_install_cmd += add_location(help, location)
 
         if params.get("display") == "vnc":
-            if params.get("vnc_port"):
+            if params.get("vnc_autoport") == "yes":
+                vm.vnc_autoport = True
+            else:
+                vm.vnc_autoport = False
+            if not vm.vnc_autoport and params.get("vnc_port"):
                 vm.vnc_port = int(params.get("vnc_port"))
             virt_install_cmd += add_vnc(help, vm.vnc_port)
             if params.get("vnclisten"):
@@ -1274,7 +1281,12 @@ class VM(virt_vm.BaseVM):
 
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
-                self.vnc_port = virt_utils.find_free_port(5900, 6100)
+                if params.get("vnc_autoport") == "yes":
+                    self.vnc_port = None
+                    self.vnc_autoport = True
+                else:
+                    self.vnc_port = virt_utils.find_free_port(5900, 6100)
+                    self.vnc_autoport = False
 
             # Find available spice port, if needed
             if params.get("spice"):

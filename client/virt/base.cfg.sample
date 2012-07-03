@@ -122,6 +122,9 @@ vcpu_thread_pattern = "thread_id=(\d+)"
 # Guest Display type (vnc, sdl, spice, or nographic)
 display = vnc
 
+# VNC autoport selection.
+vnc_autoport = yes
+
 # Guest VGA type (cirrus,  std, vmware, qxl, xenfb, none)
 vga = std
 
