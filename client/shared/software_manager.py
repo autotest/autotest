@@ -29,6 +29,9 @@ from autotest.client.shared import error
 from autotest.client.shared import logging_config, logging_manager
 
 
+SUPPORTED_PACKAGE_MANAGERS = ['apt-get', 'yum', 'zypper']
+
+
 def generate_random_string(length):
     """
     Return a random string using alphanumeric characters.
@@ -67,7 +70,6 @@ class SystemInspector(object):
         Probe system, and save information for future reference.
         """
         self.distro = utils.get_os_vendor()
-        self.high_level_pms = ['apt-get', 'yum', 'zypper']
 
 
     def get_package_management(self):
@@ -77,7 +79,7 @@ class SystemInspector(object):
         to find the best supported system.
         """
         list_supported = []
-        for high_level_pm in self.high_level_pms:
+        for high_level_pm in SUPPORTED_PACKAGE_MANAGERS:
             try:
                 os_dep.command(high_level_pm)
                 list_supported.append(high_level_pm)
@@ -111,104 +113,42 @@ class SoftwareManager(object):
     """
     def __init__(self):
         """
-        Class constructor.
+        Lazily instantiate the object
+        """
+        self.initialized = False
+        self.backend = None
+        self.lowlevel_base_command = None
+        self.base_command = None
+        self.pm_version = None
 
+    def _init_on_demand(self):
+        """
         Determines the best supported package management system for the given
         operating system running and initializes the appropriate backend.
         """
-        inspector = SystemInspector()
-        backend_type = inspector.get_package_management()
-        if backend_type == 'yum':
-            self.backend = YumBackend()
-        elif backend_type == 'zypper':
-            self.backend = ZypperBackend()
-        elif backend_type == 'apt-get':
-            self.backend = AptBackend()
-        else:
-            raise NotImplementedError('Unimplemented package management '
-                                      'system: %s.' % backend_type)
+        if not self.initialized:
+            inspector = SystemInspector()
+            backend_type = inspector.get_package_management()
+            if backend_type == 'yum':
+                self.backend = YumBackend()
+            elif backend_type == 'zypper':
+                self.backend = ZypperBackend()
+            elif backend_type == 'apt-get':
+                self.backend = AptBackend()
+            else:
+                raise NotImplementedError('Unimplemented package management '
+                                          'system: %s.' % backend_type)
+            self.initialized = True
+
+    def __getattr__(self, name):
+        self._init_on_demand()
+        return self.backend.__getattribute__(name)
 
 
-    def check_installed(self, name, version=None, arch=None):
-        """
-        Check whether a package is installed on this system.
-
-        @param name: Package name.
-        @param version: Package version.
-        @param arch: Package architecture.
-        """
-        return self.backend.check_installed(name, version, arch)
-
-
-    def list_all(self):
-        """
-        List all installed packages.
-        """
-        return self.backend.list_all()
-
-
-    def list_files(self, name):
-        """
-        Get a list of all files installed by package [name].
-
-        @param name: Package name.
-        """
-        return self.backend.list_files(name)
-
-
-    def install(self, name):
-        """
-        Install package [name].
-
-        @param name: Package name.
-        """
-        return self.backend.install(name)
-
-
-    def remove(self, name):
-        """
-        Remove package [name].
-
-        @param name: Package name.
-        """
-        return self.backend.remove(name)
-
-
-    def add_repo(self, url):
-        """
-        Add package repo described by [url].
-
-        @param name: URL of the package repo.
-        """
-        return self.backend.add_repo(url)
-
-
-    def remove_repo(self, url):
-        """
-        Remove package repo described by [url].
-
-        @param url: URL of the package repo.
-        """
-        return self.backend.remove_repo(url)
-
-
-    def upgrade(self):
-        """
-        Upgrade all packages available.
-        """
-        return self.backend.upgrade()
-
-
-    def provides(self, file):
-        """
-        Returns a list of packages that provides a given capability to the
-        system (be it a binary, a library).
-
-        @param file: Path to the file.
-        """
-        return self.backend.provides(file)
-
-
+class BaseBackend(object):
+    """
+    This class implements all common methods among backends.
+    """
     def install_what_provides(self, file):
         """
         Installs package that provides [file].
@@ -217,12 +157,13 @@ class SoftwareManager(object):
         """
         provides = self.provides(file)
         if provides is not None:
-            self.install(provides)
+            return self.install(provides)
         else:
             logging.warning('No package seems to provide %s', file)
+            return False
 
 
-class RpmBackend(object):
+class RpmBackend(BaseBackend):
     """
     This class implements operations executed with the rpm package manager.
 
@@ -280,7 +221,10 @@ class RpmBackend(object):
         """
         List all installed packages.
         """
-        installed_packages = utils.system_output('rpm -qa').splitlines()
+        logging.debug("Listing all system packages (may take a while)")
+        cmd_result = utils.run('rpm -qa | sort', verbose=False)
+        out = cmd_result.stdout.strip()
+        installed_packages = out.splitlines()
         return installed_packages
 
 
@@ -307,7 +251,7 @@ class RpmBackend(object):
             return []
 
 
-class DpkgBackend(object):
+class DpkgBackend(BaseBackend):
     """
     This class implements operations executed with the dpkg package manager.
 
@@ -337,12 +281,16 @@ class DpkgBackend(object):
         """
         List all packages available in the system.
         """
+        logging.debug("Listing all system packages (may take a while)")
         installed_packages = []
-        raw_list = utils.system_output('dpkg -l').splitlines()[5:]
+        cmd_result = utils.run('dpkg -l', verbose=False)
+        out = cmd_result.stdout.strip()
+        raw_list = out.splitlines()[5:]
         for line in raw_list:
             parts = line.split()
             if parts[0] == "ii":  # only grab "installed" packages
                 installed_packages.append("%s-%s" % (parts[1], parts[2]))
+        return installed_packages
 
 
     def list_files(self, package):
@@ -379,9 +327,16 @@ class YumBackend(RpmBackend):
         self.cfgparser = ConfigParser.ConfigParser()
         self.cfgparser.read(self.repo_file_path)
         y_cmd = executable + ' --version | head -1'
-        self.yum_version = utils.system_output(y_cmd, ignore_status=True)
-        logging.debug('Yum backend initialized')
-        logging.debug('Yum version: %s' % self.yum_version)
+        cmd_result = utils.run(y_cmd, ignore_status=True,
+                               verbose=False)
+        out = cmd_result.stdout.strip()
+        try:
+            ver = re.findall('\d*.\d*.\d*', out)[0]
+        except IndexError:
+            ver= out
+        self.pm_version = ver
+        logging.debug('Yum version: %s' % self.pm_version)
+
         self.yum_base = yum.YumBase()
 
 
@@ -443,8 +398,7 @@ class YumBackend(RpmBackend):
             if not self.cfgparser.has_section(section_name):
                 break
         self.cfgparser.add_section(section_name)
-        self.cfgparser.set(section_name, 'name',
-                           'Repository added by the autotest software manager.')
+        self.cfgparser.set(section_name, 'name', 'Autotest managed repository')
         self.cfgparser.set(section_name, 'url', url)
         self.cfgparser.set(section_name, 'enabled', 1)
         self.cfgparser.set(section_name, 'gpgcheck', 0)
@@ -485,7 +439,6 @@ class YumBackend(RpmBackend):
         d_provides = self.yum_base.searchPackageProvides(args=[name])
         provides_list = [key for key in d_provides]
         if provides_list:
-            logging.info("Package %s provides %s", provides_list[0], name)
             return str(provides_list[0])
         else:
             return None
@@ -504,9 +457,15 @@ class ZypperBackend(RpmBackend):
         super(ZypperBackend, self).__init__()
         self.base_command = os_dep.command('zypper') + ' -n'
         z_cmd = self.base_command + ' --version'
-        self.zypper_version = utils.system_output(z_cmd, ignore_status=True)
-        logging.debug('Zypper backend initialized')
-        logging.debug('Zypper version: %s' % self.zypper_version)
+        cmd_result = utils.run(z_cmd, ignore_status=True,
+                               verbose=False)
+        out = cmd_result.stdout.strip()
+        try:
+            ver = re.findall('\d.\d*.\d*', out)[0]
+        except IndexError:
+            ver= out
+        self.pm_version = ver
+        logging.debug('Zypper version: %s' % self.pm_version)
 
 
     def install(self, name):
@@ -622,10 +581,17 @@ class AptBackend(DpkgBackend):
         executable = os_dep.command('apt-get')
         self.base_command = executable + ' -y'
         self.repo_file_path = '/etc/apt/sources.list.d/autotest'
-        self.apt_version = utils.system_output('apt-get -v | head -1',
-                                               ignore_status=True)
-        logging.debug('Apt backend initialized')
-        logging.debug('apt version: %s' % self.apt_version)
+        cmd_result = utils.run('apt-get -v | head -1',
+                               ignore_status=True,
+                               verbose=False)
+        out = cmd_result.stdout.strip()
+        try:
+            ver = re.findall('\d\S*', out)[0]
+        except IndexError:
+            ver= out
+        self.pm_version = ver
+
+        logging.debug('apt-get version: %s' % self.pm_version)
 
 
     def install(self, name):
@@ -718,9 +684,12 @@ class AptBackend(DpkgBackend):
 
         @param file: File path.
         """
-        if not self.check_installed('apt-file'):
+        try:
+            command = os_dep.command('apt-file')
+        except ValueError:
             self.install('apt-file')
-        command = os_dep.command('apt-file')
+            command = os_dep.command('apt-file')
+
         cache_update_cmd = command + ' update'
         try:
             utils.system(cache_update_cmd, ignore_status=True)
@@ -753,8 +722,8 @@ class AptBackend(DpkgBackend):
 
 if __name__ == '__main__':
     parser = optparse.OptionParser(
-    "usage: %prog [install|remove|list-all|list-files|add-repo|remove-repo|"
-    "upgrade|what-provides|install-what-provides] arguments")
+    "usage: %prog [install|remove|check-installed|list-all|list-files|add-repo|"
+    "remove-repo| upgrade|what-provides|install-what-provides] arguments")
     parser.add_option('--verbose', dest="debug", action='store_true',
                       help='include debug messages in console output')
 
@@ -770,22 +739,55 @@ if __name__ == '__main__':
         action = 'show-help'
 
     if action == 'install':
-        software_manager.install(args)
+        if software_manager.install(args):
+            logging.info("Packages %s installed successfuly", args)
+        else:
+            logging.error("Failed to install %s", args)
+
     elif action == 'remove':
-        software_manager.remove(args)
-    if action == 'list-all':
-        software_manager.list_all()
+        if software_manager.remove(args):
+            logging.info("Packages %s removed successfuly", args)
+        else:
+            logging.error("Failed to remove %s", args)
+
+    elif action == 'check-installed':
+        if software_manager.check_installed(args):
+            logging.info("Package %s already installed", args)
+        else:
+            logging.info("Package %s not installed", args)
+
+    elif action == 'list-all':
+        for pkg in software_manager.list_all():
+            logging.info(pkg)
+
     elif action == 'list-files':
-        software_manager.list_files(args)
+        for f in software_manager.list_files(args):
+            logging.info(f)
+
     elif action == 'add-repo':
-        software_manager.add_repo(args)
+        if software_manager.add_repo(args):
+            logging.info("Repo %s added successfuly", args)
+        else:
+            logging.error("Failed to remove repo %s", args)
+
     elif action == 'remove-repo':
-        software_manager.remove_repo(args)
+        if software_manager.remove_repo(args):
+            logging.info("Repo %s removed successfuly", args)
+        else:
+            logging.error("Failed to remove repo %s", args)
+
     elif action == 'upgrade':
-        software_manager.upgrade()
+        if software_manager.upgrade():
+            logging.info("Package manager upgrade successful")
+
     elif action == 'what-provides':
-        software_manager.provides(args)
+        provides = software_manager.provides(args)
+        if provides is not None:
+            logging.info("Package %s provides %s", provides, args)
+
     elif action == 'install-what-provides':
-        software_manager.install_what_provides(args)
+        if software_manager.install_what_provides(args):
+            logging.info("Installed successfuly what provides %s", args)
+
     elif action == 'show-help':
         parser.print_help()

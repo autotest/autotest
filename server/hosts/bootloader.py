@@ -17,7 +17,7 @@ from autotest.server import utils
 CURRENT_DIRECTORY = os.path.dirname(sys.modules[__name__].__file__)
 CLIENT_DIRECTORY = os.path.abspath(os.path.join(CURRENT_DIRECTORY,
                                                 "..", "..", "client"))
-BOOTTOOL_CLI_PATH = os.path.join(CLIENT_DIRECTORY, "tools", "boottool")
+BOOTTOOL_CLI_PATH = os.path.join(CLIENT_DIRECTORY, "tools", "boottool.py")
 imp.load_source("boottool_cli", BOOTTOOL_CLI_PATH)
 from boottool_cli import parse_entry
 

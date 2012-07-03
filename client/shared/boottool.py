@@ -20,12 +20,12 @@ from autotest.client.shared import error
 try:
     import autotest.common as common
     CURRENT_DIRECTORY = os.path.dirname(common.__file__)
-    BOOTTOOL_CLI_PATH = os.path.join(CURRENT_DIRECTORY, "client", "tools", "boottool")
+    BOOTTOOL_CLI_PATH = os.path.join(CURRENT_DIRECTORY, "client", "tools", "boottool.py")
 except ImportError:
     import common
     CURRENT_DIRECTORY = os.path.dirname(sys.modules[__name__].__file__)
     CLIENT_DIRECTORY = os.path.abspath(os.path.join(CURRENT_DIRECTORY, ".."))
-    BOOTTOOL_CLI_PATH = os.path.join(CLIENT_DIRECTORY, "tools", "boottool")
+    BOOTTOOL_CLI_PATH = os.path.join(CLIENT_DIRECTORY, "tools", "boottool.py")
 
 
 imp.load_source("boottool_cli", BOOTTOOL_CLI_PATH)

@@ -10,6 +10,7 @@ import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.DataTable;
 import autotest.common.table.DynamicTable;
 import autotest.common.table.DynamicTable.DynamicTableListener;
+import autotest.common.table.JSONObjectSet;
 import autotest.common.table.RpcDataSource;
 import autotest.common.table.SelectionManager;
 import autotest.common.table.SelectionManager.SelectableRowFilter;
@@ -32,13 +33,14 @@ import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
 
 import java.util.List;
+import java.util.Set;
 
 public class HostDetailView extends DetailView
                             implements DataCallback, TableActionsListener, SelectableRowFilter {
     private static final String[][] HOST_JOBS_COLUMNS = {
             {DataTable.WIDGET_COLUMN, ""}, {"type", "Type"}, {"job__id", "Job ID"},
-            {"job_owner", "Job Owner"}, {"job_name", "Job Name"}, {"started_on", "Time started"},
-            {"status", "Status"}
+            {"job_owner", "Job Owner"}, {"job_name", "Job Name"}, {"profile", "Profile"},
+            {"started_on", "Time started"}, {"status", "Status"}
     };
     public static final int JOBS_PER_PAGE = 20;
 
@@ -222,6 +224,7 @@ public class HostDetailView extends DetailView
         showField(currentHostObject, HostDataSource.OTHER_LABELS, "view_host_labels");
         showText(lockedText, "view_host_locked");
         showField(currentHostObject, "protection", "view_host_protection");
+        showField(currentHostObject, "current_profile", "view_host_current_profile");
         String pageTitle = "Host " + hostname;
         updateLockButton();
         displayObjectData(pageTitle);
@@ -289,9 +292,9 @@ public class HostDetailView extends DetailView
 
         reinstallButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
-                JSONArray array = new JSONArray();
-                array.set(0, new JSONString(hostname));
-                AfeUtils.scheduleReinstall(array, hostname, jobCreateListener);
+                Set<JSONObject> set = new JSONObjectSet<JSONObject>();
+                set.add(currentHostObject);
+                AfeUtils.scheduleReinstall(set, hostname, jobCreateListener);
             }
         });
         addWidget(reinstallButton, "view_host_reinstall_button");

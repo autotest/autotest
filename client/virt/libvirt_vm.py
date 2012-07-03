@@ -86,12 +86,14 @@ def service_libvirtd_control(action):
         raise error.TestError("Unknown action: %s" % action)
 
 
-def virsh_cmd(cmd, uri="", ignore_status=False):
+def virsh_cmd(cmd, uri="", ignore_status=False, print_info=False):
     """
     Append cmd to 'virsh' and execute, optionally return full results.
 
     @param: cmd: Command line to append to virsh command
-    @param: uri: hypervisor URI to connect to
+    @param: uri: Hypervisor URI to connect to
+    @param: ignore_status: Raise an exception if False
+    @param: print_info: Print stdout and stderr if True
     @return: CmdResult object
     """
     if VIRSH_EXEC is None:
@@ -101,7 +103,26 @@ def virsh_cmd(cmd, uri="", ignore_status=False):
     if uri:
         uri_arg = "-c " + uri
     cmd = "%s %s %s" % (VIRSH_EXEC, uri_arg, cmd)
-    return utils.run(cmd, verbose=DEBUG, ignore_status=ignore_status)
+
+    if print_info:
+        logging.debug("Running command: %s" % cmd)
+
+    ret = utils.run(cmd, verbose=DEBUG, ignore_status=ignore_status)
+
+    if print_info:
+        logging.debug("status: %s" % ret.exit_status)
+        logging.debug("stdout: %s" % ret.stdout.strip())
+        logging.debug("stderr: %s" % ret.stderr.strip())
+    return ret
+
+
+def virsh_freecell(uri = "", ignore_status=False, extra = ""):
+    """
+    Prints the available amount of memory on the machine or within a NUMA cell.
+    """
+    cmd_freecell = "freecell %s" % extra
+    return virsh_cmd(cmd_freecell, uri, ignore_status)
+
 
 def virsh_nodeinfo(uri = "", ignore_status=False, extra = ""):
     """
@@ -110,6 +131,7 @@ def virsh_nodeinfo(uri = "", ignore_status=False, extra = ""):
     """
     cmd_nodeinfo = "nodeinfo %s" % extra
     return virsh_cmd(cmd_nodeinfo, uri, ignore_status)
+
 
 def virsh_uri(uri=""):
     """

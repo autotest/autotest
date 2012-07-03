@@ -280,6 +280,33 @@ variants:
                 status_error = "yes"
                 libvirtd = "off"
 
+    - virsh_freecell:
+        type = virsh_freecell
+        vms = ''
+        variants:
+            - expected_options:
+                status_error = "no"
+                variants:
+                    - no_option:
+                        virsh_freecell_options = ""
+                    - expected_option_all:
+                        virsh_freecell_options = "--all"
+                    - expected_option_0:
+                        virsh_freecell_options = 0
+            - error_test:
+                status_error = "yes"
+                variants:
+                    - unexpected_option_xyz:
+                        virsh_freecell_options = "xyz"
+                    - unexpected_option_12345:
+                        virsh_freecell_options = 12345
+        variants:
+            - libvirton:
+                libvirtd = "on"
+            - libvirtoff:
+                libvirtd = "off"
+                status_error = "yes"
+
     - module_probe:
         type = module_probe
         # You can specify your own module list, though it is not needed usually.
@@ -2234,6 +2261,18 @@ variants:
                         image_name_vm2 = rhel63-64_client
                     -6.3.beta.i386:
                         image_name_vm2 = rhel63-32_client
+
+    - seabios: install setup image_copy unattended_install.cdrom
+        type = seabios
+        start_vm = no
+        restart_vm = no
+        kill_vm = yes
+        boot_menu = on
+        enable_sga = yes
+        boot_menu_key = "f12"
+        boot_menu_hint = "Press F12 for boot menu"
+        # Specify the boot device name which you want to test here.
+        boot_device = "iPXE"
 
     - shutdown: install setup image_copy unattended_install.cdrom
         type = shutdown

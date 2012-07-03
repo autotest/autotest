@@ -109,6 +109,7 @@ class RpcInterfaceTest(unittest.TestCase,
                                           control_file='foo',
                                           control_type='Client',
                                           hosts=['host1'],
+                                          profiles=['debian'],
                                           keyvals=keyval_dict)
         jobs = rpc_interface.get_jobs(id=job_id)
         self.assertEquals(len(jobs), 1)
@@ -178,7 +179,8 @@ class RpcInterfaceTest(unittest.TestCase,
 
 
     def test_one_time_hosts(self):
-        job = self._create_job_helper(one_time_hosts=['testhost'])
+        job = self._create_job_helper(one_time_hosts=['testhost'],
+                                      profiles=['rhel6'])
         host = models.Host.objects.get(hostname='testhost')
         self.assertEquals(host.invalid, True)
         self.assertEquals(host.labels.count(), 0)
@@ -283,7 +285,7 @@ class RpcInterfaceTest(unittest.TestCase,
 
     def test_view_invalid_host(self):
         # RPCs used by View Host page should work for invalid hosts
-        self._create_job_helper(hosts=[1])
+        self._create_job_helper(hosts=[1], profiles=['N/A'])
         self.hosts[0].delete()
 
         self.assertEquals(1, rpc_interface.get_num_hosts(hostname='host1',
@@ -337,7 +339,7 @@ class RpcInterfaceTest(unittest.TestCase,
                 name='job', priority=models.Job.Priority.MEDIUM, test='test',
                 parameters=job_parameters, kernel=kernels, label='label1',
                 profilers=profilers, profiler_parameters=profiler_parameters,
-                profile_only=False, hosts=('host1',))
+                profile_only=False, hosts=('host1',), profiles=('rhel6',))
         parameterized_job = models.Job.smart_get(job_id).parameterized_job
 
         self.assertEqual(parameterized_job.test, test)
