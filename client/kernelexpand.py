@@ -217,7 +217,10 @@ def decompose_kernel(kernel):
         if patch_list:
             kernel_patches.insert(0, patch_list)
     if not len(kernel_patches):
-        raise NameError('Unknown kernel: %s' % kernel)
+        doc_url = 'https://github.com/autotest/autotest/wiki/KernelSpecification'
+        raise NameError("Kernel '%s' not found. "
+                        "Check %s for kernel spec docs." %
+                        (kernel, doc_url))
 
     return kernel_patches
 
