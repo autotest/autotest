@@ -374,6 +374,7 @@ class job_create(job_create_or_clone):
     def __init__(self):
         super(job_create, self).__init__()
         self.ctrl_file_data = {}
+        doc_url = 'https://github.com/autotest/autotest/wiki/KernelSpecification'
         self.parser.add_option('-y', '--synch_count', type=int,
                                help='Number of machines to use per autoserv '
                                     'execution')
@@ -387,7 +388,8 @@ class job_create(job_create_or_clone):
 
         self.parser.add_option('-k', '--kernel', help='A comma separated list'
                                ' of kernel versions/URLs/filenames to run the'
-                               ' job on')
+                               ' job on. Please check %s for more info' %
+                               doc_url)
         self.parser.add_option('--kernel-config', help='A comma separated list'
                                ' of kernel config URLs/filenames to run the'
                                ' job on.  Entries will be paired (in order)'
