@@ -11,9 +11,25 @@ manually.
 '''
 
 params = {
-    "kernel_base_tree": "http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.3.tar.bz2",
-    "kernel_patch_list": ["http://www.kernel.org/pub/linux/kernel/v3.0/patch-3.3.4.bz2"],
-    "kernel_config": "/boot/config-3.3.4-5.fc17.x86_64",
+## params for 'tar' method
+    "kernel_src_pkg": "http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.4.tar.bz2",
+    "kernel_patch_list": ["http://www.kernel.org/pub/linux/kernel/v3.0/patch-3.4.4.bz2"],
+    "kernel_config": "/boot/config--3.4.4-3.fc17.x86_64",
+## The following params are used for other install methods.
+## params for 'rpm' method
+#   "kernel_rpm_path": "http://kojipkgs.fedoraproject.org/packages/kernel/3.4.4/3.fc17/x86_64/kernel-3.4.4-3.fc17.x86_64.rpm",
+#   "kernel_deps_rpms": "http://kojipkgs.fedoraproject.org/packages/linux-firmware/20120510/0.3.git375e954.fc17/noarch/linux-firmware-20120510-0.3.git375e954.fc17.noarch.rpm",
+## params for 'koji' 'brew' method
+#    kernel_dep_pkgs = "linux-firmware module-init-tools",
+#    kernel_koji_tag = "f17-updates",
+## params for 'git' method
+#    kernel_git_repo = "",
+#    kernel_git_repo_base = "",
+#    kernel_git_branch = "",
+#    kernel_git_commit = "",
+#    kernel_patch_list = "",
+#    kernel_config = "",
+#    kerne_config_list = "",
 }
 
 job.run_test("kernelinstall",
