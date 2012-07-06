@@ -241,8 +241,8 @@ class QemuImg(virt_storage.QemuImg):
         else:
             raise error.TestError("Can not find the snapshot image"
                                   " parameters")
-        if blkdebug:
-            cmd += " blkdebug:%s:%s" % (blkdebug, self.image_filename)
+        if blkdebug_cfg:
+            cmd += " blkdebug:%s:%s" % (blkdebug_cfg, self.image_filename)
         else:
             cmd += " %s" % self.image_filename
 
