@@ -1941,7 +1941,8 @@ class VM(virt_vm.BaseVM):
         nic.set_if_none('vlan', str(nic_index))
         nic.set_if_none('device_id', virt_utils.generate_random_id())
         if not nic.has_key('netdev_id'):
-            nic.netdev_id = self.add_netdev(**nic)
+            # virtnet items are lists that act like dicts
+            nic.netdev_id = self.add_netdev(**dict(nic))
         nic.set_if_none('nic_model', params['nic_model'])
         return nic
 
