@@ -74,6 +74,8 @@ class VM(virt_vm.BaseVM):
         # }
         # This structure can used in usb hotplug/unplug test.
         self.usb_dev_dict = {}
+        self.logs = {}
+        self.logsessions = {}
         self.driver_type = 'kvm'
         self.params['driver_type_'+self.name] = self.driver_type
         # virtnet init depends on vm_type/driver_type being set w/in params
@@ -1563,6 +1565,15 @@ class VM(virt_vm.BaseVM):
                 output_func=virt_utils.log_line,
                 output_params=("serial-%s.log" % name,),
                 prompt=self.params.get("shell_prompt", "[\#\$]"))
+
+            for key, value in self.logs.items():
+                outfile = "%s-%s.log" % (key, name)
+                logging.info("add log: %s" % outfile)
+                self.logsessions[key] = aexpect.Tail(
+                    "nc -U %s" % value,
+                    auto_close=False,
+                    output_func=virt_utils.log_line,
+                    output_params=(outfile,))
 
         finally:
             fcntl.lockf(lockfile, fcntl.LOCK_UN)
