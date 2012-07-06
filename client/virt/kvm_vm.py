@@ -361,6 +361,25 @@ class VM(virt_vm.BaseVM):
             return cmd
 
 
+        def add_log_anaconda(help):
+            chardev_id = "anacondalog_chardev_%s" % self.instance
+            vioser_id = "anacondalog_vioser_%s" % self.instance
+            filename = "/tmp/anaconda-%s" % self.instance
+            self.logs["anaconda"] = filename
+            cmd = " -chardev socket"
+            cmd += _add_option("id", chardev_id)
+            cmd += _add_option("path", filename)
+            cmd += _add_option("server", "NO_EQUAL_STRING")
+            cmd += _add_option("nowait", "NO_EQUAL_STRING")
+            cmd += " -device virtio-serial-pci"
+            cmd += _add_option("id", vioser_id)
+            cmd += " -device virtserialport"
+            cmd += _add_option("bus", "%s.0" % vioser_id)
+            cmd += _add_option("chardev", chardev_id)
+            cmd += _add_option("name", "org.fedoraproject.anaconda.log.0")
+            return cmd
+
+
         def add_mem(help, mem):
             return " -m %s" % mem
 
@@ -915,6 +934,8 @@ class VM(virt_vm.BaseVM):
 
         # Add logging
         qemu_cmd += add_log_seabios(help)
+        if params.get("anaconda_log", "no") == "yes":
+            qemu_cmd += add_log_anaconda(help)
 
         # Add USB controllers
         for usb_name in params.objects("usbs"):

@@ -99,6 +99,7 @@ variants:
                 unattended_install:
                     boot_path = "images/pxeboot"
                     kernel_params = "ks=cdrom nicdelay=60 console=ttyS0,115200 console=tty0"
+                    anaconda_log = "yes"
                     # You have to use ks=floppy if you want to use floppies to
                     # hold your kickstart file
                     #kernel_params = "ks=floppy nicdelay=60 console=ttyS0,115200 console=tty0"
