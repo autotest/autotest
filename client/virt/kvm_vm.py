@@ -342,6 +342,25 @@ class VM(virt_vm.BaseVM):
             return cmd
 
 
+        def add_log_seabios(help):
+            device_help = commands.getoutput("%s -device \\?" % qemu_binary)
+            if not bool(re.search("isa-debugcon", device_help, re.M)):
+                return ""
+
+            default_id = "seabioslog_id_%s" % self.instance
+            filename = "/tmp/seabios-%s" % self.instance
+            self.logs["seabios"] = filename
+            cmd = " -chardev socket"
+            cmd += _add_option("id", default_id)
+            cmd += _add_option("path", filename)
+            cmd += _add_option("server", "NO_EQUAL_STRING")
+            cmd += _add_option("nowait", "NO_EQUAL_STRING")
+            cmd += " -device isa-debugcon"
+            cmd += _add_option("chardev", default_id)
+            cmd += _add_option("iobase", "0x402")
+            return cmd
+
+
         def add_mem(help, mem):
             return " -m %s" % mem
 
@@ -892,6 +911,9 @@ class VM(virt_vm.BaseVM):
 
         # Add serial console redirection
         qemu_cmd += add_serial(help, vm.get_serial_console_filename())
+
+        # Add logging
+        qemu_cmd += add_log_seabios(help)
 
         # Add USB controllers
         for usb_name in params.objects("usbs"):
