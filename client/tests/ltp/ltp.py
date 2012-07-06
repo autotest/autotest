@@ -1,4 +1,5 @@
 import os
+import shutil
 from autotest.client import utils, test
 from autotest.client.shared import error
 
@@ -31,7 +32,9 @@ class ltp(test.test):
         ltpbin_dir = os.path.join(self.srcdir, 'bin')
         os.mkdir(ltpbin_dir)
 
-        utils.system('cp ../scan.c pan/')   # saves having lex installed
+        # saves having lex installed
+        shutil.copy(os.path.join(self.bindir, 'scan.c'),
+                    os.path.join(self.srcdir, 'pan'))
         utils.configure('--prefix=%s' % ltpbin_dir)
         utils.make('-j %d all' % utils.count_cpus())
         utils.system('yes n | make SKIP_IDCHECK=1 install')
