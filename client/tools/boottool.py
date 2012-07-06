@@ -7,7 +7,16 @@ A boottool clone, but written in python and relying mostly on grubby[1].
 '''
 
 import os, re, sys, optparse, logging, subprocess
-import urllib, tarfile, tempfile, shutil, struct, md5
+import urllib, tarfile, tempfile, shutil, struct
+
+#
+# Get rid of DeprecationWarning messages on newer Python version while still
+# making it run on properly on Python 2.4
+#
+try:
+    import hashlib as md5
+except ImportError:
+    import md5
 
 
 __all__ = ['Grubby', 'OptionParser', 'App', 'EfiVar', 'EfiToolSys',
