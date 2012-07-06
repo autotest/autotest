@@ -8,13 +8,6 @@ from autotest.client.virt import virt_utils
 class kernelinstall(test.test):
     version = 1
 
-    def _copy_file_to_test_dir(file_name, dest_dir):
-        if not utils.is_url(file_name):
-            file_name = os.path.join(test.bindir, file_name)
-        dest = os.path.join(dest_dir, os.path.basename(file_name))
-        # return the absolute path of file.
-        return os.path.basename(utils.get_file(file_name, dest))
-
     def _kernel_install_rpm(self, rpm_file, kernel_deps_rpms=None,
                             need_reboot=True):
         """
