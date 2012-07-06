@@ -13,7 +13,7 @@ variants:
         hvm_or_pv = hvm
         only raw
         only virtio_net
-        only ide
+        only virtio_blk
         only smp2
         only no_9p_export
         only no_pci_assignable

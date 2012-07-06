@@ -64,9 +64,8 @@ variants:
         qemu_img_binary = /usr/bin/qemu-img
         qemu_io_binary = /usr/bin/qemu-io
         only qcow2
-        # The default nw card for qemu is e1000
-        only e1000
-        only ide
+        only virtio_net
+        only virtio_blk
         # qemu using kvm doesn't support smp yet
         only up
         only no_9p_export
@@ -84,8 +83,8 @@ variants:
         qemu_img_binary = /usr/bin/qemu-img
         qemu_io_binary = /usr/bin/qemu-io
         only qcow2
-        only rtl8139
-        only ide
+        only virtio_net
+        only virtio_blk
         only smp2
         only no_9p_export
         only no_pci_assignable
@@ -119,8 +118,8 @@ variants:
         qemu_img_binary = /usr/bin/qemu-img
         qemu_io_binary = /usr/bin/qemu-io
         only qcow2
-        only rtl8139
-        only ide
+        only virtio_net
+        only virtio_blk
         only smp2
         only no_9p_export
         only no_pci_assignable
