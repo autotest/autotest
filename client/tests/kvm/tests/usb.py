@@ -24,10 +24,24 @@ def run_usb(test, params, env):
         """
         Verify USB storage device in monitor
 
-        @params regex_str: regex for checking command output,
-                                search option,
-                                and expected string.
+        @param regex_str: Regex for checking command output
+        @param string: The string which will be checked
+        @param expect_result: The expected string
+        @param search_opt: Search option for re module.
         """
+        def _compare_str(act, exp, ignore_case):
+            str_func = lambda x: x
+            if ignore_case:
+                str_func = lambda x: x.lower()
+            if str_func(act) != str_func(exp):
+                return ("Expected: '%s', Actual: '%s'" %
+                        (str_func(exp), str_func(act)))
+            return ""
+
+        ignore_case = False
+        if search_opt & re.I == re.I:
+            ignore_case = True
+
         error.context("Finding matched sub-string with regex pattern %s" %
                       regex_str)
         m = re.findall(regex_str, string, search_opt)
@@ -36,16 +50,17 @@ def run_usb(test, params, env):
             raise error.TestError("Could not find matched sub-string")
 
         error.context("Verify matched string is same as expected")
+        actual_result = m[0]
         fail_log = []
-        if isinstance(m[0], tuple):
-            for i in xrange(len(expect_result)):
-                if m[0][i] != expect_result[i]:
-                    fail_log.append("Expected: '%s', Actual: '%s'" %
-                                    (expect_result[i], m[0][i]))
+        if isinstance(actual_result, tuple):
+            for i, v in enumerate(expect_result):
+                ret =  _compare_str(actual_result[i], v, ignore_case)
+                if ret:
+                    fail_log.append(ret)
         else:
-            if m[0] != expect_result[0]:
-                fail_log.append("Expected: '%s', Actual: '%s'" %
-                                (expect_result[0], m[0]))
+            ret =  _compare_str(actual_result, expect_result[0], ignore_case)
+            if ret:
+                fail_log.append(ret)
 
         if fail_log:
             logging.debug(string)
@@ -169,7 +184,7 @@ def run_usb(test, params, env):
             d = "sda"
         cmd = "dmesg | grep %s" % d
         output = session.cmd(cmd)
-        _verify_string(expect_str, output, [expect_str])
+        _verify_string(expect_str, output, [expect_str], re.I)
         _do_io_test_guest(session)
 
         session.close()

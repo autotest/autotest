@@ -2341,12 +2341,12 @@ variants:
             #- koji:
             #    install_type = koji
             #    kernel_dep_pkgs = "linux-firmware module-init-tools"
-            #    kernel_koji_tag = f16-updates
+            #    kernel_koji_tag = f17-updates
             #- rpm:
             #    install_type = rpm
                  # These 2 parameters can be url.
-            #    kernel_rpm_path = "kernel-3.1.7-1.fc16.x86_64"
-            #    kernel_deps_rpms = "linux-firmware-20110731-2.fc16.noarch"
+            #    kernel_rpm_path = "kernel-3.4.4-3.fc17.x86_64.rpm"
+            #    kernel_deps_rpms = "linux-firmware-20120510-0.3.git375e954.fc17.noarch.rpm"
             #    file_checklist = kernel_rpm_path kernel_deps_rpms
             #- git:
             #    install_type = git
@@ -2359,12 +2359,12 @@ variants:
             #    kerne_config_list = ""
             - @tar:
                 install_type = tar
-                kernel_src_pkg = "http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.3.tar.bz2"
+                kernel_src_pkg = "http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.4.tar.bz2"
                 # Remember to update this config file to your own.
-                kernel_config = "/boot/config-3.3.4-5.fc17.x86_64"
-                kernel_patch_list = "http://www.kernel.org/pub/linux/kernel/v3.0/patch-3.3.4.bz2"
+                kernel_config = "/boot/config--3.4.4-3.fc17.x86_64"
+                kernel_patch_list = "http://www.kernel.org/pub/linux/kernel/v3.0/patch-3.4.4.bz2"
                 file_checklist = kerne_src_pkg kernel_config kernel_patch_list
-                kernel_tag = "3.3.4"
+                kernel_tag = "3.4.4"
                 # The fedora default kernel config would take very long time to compile.
                 test_timeout_install = 3600
 
@@ -2399,14 +2399,6 @@ variants:
         # Specify the boot device name which you want to test here.
         boot_device = "iPXE"
 
-    - shutdown: install setup image_copy unattended_install.cdrom
-        type = shutdown
-        shutdown_method = shell
-        kill_vm = yes
-        kill_vm_gracefully = no
-
-    # Do not define test variants below shutdown
-
     - remove_guest: install setup image_copy unattended_install.cdrom
         type = remove_guest
         shutdown_method = shell
@@ -2420,6 +2412,14 @@ variants:
                 remove_image = no
             - with_disk:
                 remove_image = yes
+
+    - shutdown: install setup image_copy unattended_install.cdrom
+        type = shutdown
+        shutdown_method = shell
+        kill_vm = yes
+        kill_vm_gracefully = no
+
+    # Do not define test variants below shutdown
 
 whql.support_vm_install, whql.client_install.support_vm:
     image_name += -supportvm
