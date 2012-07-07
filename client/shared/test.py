@@ -880,7 +880,7 @@ def runtest(job, url, tag, args, dargs,
         # 'install_pkg' method will be present only if it's a client side job.
         if hasattr(job, 'install_pkg'):
             try:
-                bindir = os.path.join(job.testdir, testname)
+                bindir = os.path.join(job.site_testdir, testname)
                 job.install_pkg(testname, 'test', bindir)
             except error.PackageInstallError:
                 # continue as a fall back mechanism and see if the test code
