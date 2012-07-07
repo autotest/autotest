@@ -1056,7 +1056,7 @@ class base_job(object):
 
         # Now tests are read-only modules
         self._testdir = readonly_dir(root, 'tests')
-        self._site_testdir = readonly_dir(root, 'site_tests')
+        self._site_testdir = readwrite_dir(tests_out_dir, 'site_tests')
 
         # various server-specific directories
         if self.serverdir:

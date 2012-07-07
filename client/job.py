@@ -296,8 +296,11 @@ class base_client_job(base_job.base_job):
         """
         Perform the packages support initialization.
         """
+        tmpdir = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                'test_output_dir',
+                                                default=self.autodir)
         self.pkgmgr = packages.PackageManager(
-            self.autodir, run_function_dargs={'timeout':3600})
+            tmpdir, run_function_dargs={'timeout':3600})
 
 
     def _init_cmdline(self, extra_copy_cmdline):

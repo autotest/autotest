@@ -182,10 +182,10 @@ class test_initialize_dir_properties(unittest.TestCase):
         # check all the context-specifc dir properties
         self.assert_(self.cjob.tmpdir.startswith(os.environ['AUTODIR']))
         self.assert_(self.cjob.testdir.startswith('/atest/client'))
-        self.assert_(self.cjob.site_testdir.startswith('/atest/client'))
+        self.assert_(self.cjob.site_testdir.startswith(os.environ['AUTODIR']))
         self.assert_(self.sjob.tmpdir.startswith(os.environ['AUTODIR']))
         self.assert_(self.sjob.testdir.startswith('/atest/server'))
-        self.assert_(self.sjob.site_testdir.startswith('/atest/server'))
+        self.assert_(self.sjob.site_testdir.startswith(os.environ['AUTODIR']))
 
 
 class test_execution_context(unittest.TestCase):
