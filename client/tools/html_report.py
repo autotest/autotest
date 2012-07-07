@@ -1544,6 +1544,9 @@ def parse_result(dirname, line, results_data):
         results_data[parts[1]] = [stime, [], None]
         try:
             parent_test = re.findall(r".*/", parts[1])[0][:-1]
+            if not parent_test in results_data:
+                #create place holder
+                results_data[parent_test] = [0, [], None]
             results_data[parent_test][1].append(parts[1])
         except IndexError:
             results_data[""][1].append(parts[1])
