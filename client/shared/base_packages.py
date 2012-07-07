@@ -114,6 +114,19 @@ class RepositoryFetcher(object):
     url = None
 
 
+    def install_pkg_setup(self, name, fetch_dir, install):
+        """ Install setup for a package based on fetcher type.
+        @param name:  The filename to be munged
+        @param fetch_dir: The destination path to be munged
+        @install: Whether this is be called from the install path or not
+        """
+        if install:
+            if "test" in name:
+                name = self.pkgmgr.get_tarball_name(name, "test")
+            fetch_dir = os.path.join(fetch_dir, re.sub("/", "_", name))
+
+        return (name, fetch_dir)
+
     def fetch_pkg_file(self, filename, dest_path):
         """ Fetch a package file from a package repository.
 
@@ -123,6 +136,36 @@ class RepositoryFetcher(object):
         @raises PackageFetchError if the fetch failed
         """
         raise NotImplementedError()
+
+    def install_pkg_post(self, filename, fetch_dir, install_dir, preserve_install_dir=False):
+        """ Fetcher specific post install
+        @param filename: The filename of the package to install
+        @param fetch_dir: The fetched path of the package
+        @param install_dir: The path to install the package to
+        @preserve_install_dir: Preserve the install directory
+        """
+        # check to see if the install_dir exists and if it does
+        # then check to see if the .checksum file is the latest
+        install_dir_exists = False
+        try:
+            self.pkgmgr._run_command("ls %s" % install_dir)
+            install_dir_exists = True
+        except (error.CmdError, error.AutoservRunError):
+            pass
+
+        fetch_path = os.path.join(fetch_dir, re.sub("/","_",filename))
+        if (install_dir_exists and
+            not self.pkgmgr.untar_required(fetch_path, install_dir)):
+            return
+
+        # untar the package into install_dir and
+        # update the checksum in that directory
+        if not preserve_install_dir:
+            # Make sure we clean up the install_dir
+            self.pkgmgr._run_command('rm -rf %s' % install_dir)
+        self.pkgmgr._run_command('mkdir -p %s' % install_dir)
+
+        self.pkgmgr.untar_pkg(fetch_path, install_dir)
 
 
 class HttpFetcher(RepositoryFetcher):
@@ -135,6 +178,7 @@ class HttpFetcher(RepositoryFetcher):
         """
         self.run_command = package_manager._run_command
         self.url = repository_url
+        self.pkgmgr = package_manager
 
 
     def _quick_http_test(self):
@@ -187,10 +231,71 @@ class HttpFetcher(RepositoryFetcher):
                                                                   package_url))
 
 
+class GitFetcher(RepositoryFetcher):
+    #need remote_url, output file, <branch>:<file name>
+    git_archive_cmd_pattern = 'git archive --remote=%s -o %s %s'
+
+
+    def __init__(self, package_manager, repository_url):
+        """
+        @param repository_url: The base URL of the http repository
+        """
+
+        #do we have branch info in the repoistory_url?
+        branch = "master"
+        match = repository_url.split(":")
+        if len(match) > 2:
+            #we have a branch
+            branch = match[2]
+            repository_url = re.sub(":" + branch, "", repository_url)
+
+        logging.debug('GitFetcher initialized with repo=%s and branch=%s' % (repository_url, branch))
+        self.run_command = package_manager._run_command
+        self.url = repository_url
+        self.branch = branch
+        self.pkgmgr = package_manager
+
+
+    def fetch_pkg_file(self, filename, dest_path):
+        """git is an SCM, you can download the test directly.  No need to
+        fetch a bz2'd tarball file.  However 'filename' is <type>-<name>.tar.bz2
+        break this up and only fetch <name>
+        """
+        logging.info('Fetching %s from %s to %s', filename, self.url,
+                     dest_path)
+
+        # try to retrieve the package via http
+        package_path = self.branch + " " + filename
+        try:
+            cmd = self.git_archive_cmd_pattern % (self.url, dest_path, package_path)
+            result = self.run_command(cmd)
+
+            file_exists = self.run_command(
+                'ls %s' % dest_path,
+                _run_command_dargs={'ignore_status': True}).exit_status == 0
+            if not file_exists:
+                logging.error('git archive failed: %s', result)
+                raise error.CmdError(cmd, result)
+
+            logging.debug('Successfully fetched %s from %s', package_path,
+                          self.url)
+        except error.CmdError:
+            raise error.PackageFetchError('%s not found in %s' % (filename,
+                                                                  package_path))
+
+
+    def install_pkg_post(self, filename, fetch_dir, install_dir, preserve_install_dir=False):
+        install_path = re.sub(filename, "", install_dir)
+        pkg_name = "%s.tar" % re.sub("/","_", filename)
+        fetch_path = os.path.join(fetch_dir, pkg_name)
+        self.pkgmgr._run_command('tar -xf %s -C %s' % (fetch_path, install_path))
+
+
 class LocalFilesystemFetcher(RepositoryFetcher):
     def __init__(self, package_manager, local_dir):
         self.run_command = package_manager._run_command
         self.url = local_dir
+        self.pkgmgr = package_manager
 
 
     def fetch_pkg_file(self, filename, dest_path):
@@ -284,6 +389,8 @@ class BasePackageManager(object):
     def get_fetcher(self, url):
         if url.startswith('http://'):
             return HttpFetcher(self, url)
+        elif url.startswith('git://'):
+            return GitFetcher(self, url)
         else:
             return LocalFilesystemFetcher(self, url)
 
@@ -352,7 +459,7 @@ class BasePackageManager(object):
         # onto the client in which case fcntl stuff wont work as the code
         # will run on the server in that case..
         if self.do_locking:
-            lockfile_name = '.%s-%s-lock' % (name, pkg_type)
+            lockfile_name = '.%s-%s-lock' % (re.sub("/","_",name), pkg_type)
             lockfile = open(os.path.join(self.pkgmgr_dir, lockfile_name), 'w')
 
         try:
@@ -361,34 +468,12 @@ class BasePackageManager(object):
 
             self._run_command('mkdir -p %s' % fetch_dir)
 
-            pkg_name = self.get_tarball_name(name, pkg_type)
-            fetch_path = os.path.join(fetch_dir, pkg_name)
             try:
                 # Fetch the package into fetch_dir
-                self.fetch_pkg(pkg_name, fetch_path, use_checksum=True)
+                fetcher = self.fetch_pkg(name, fetch_dir, use_checksum=True,
+                                         repo_url=repo_url, install=True)
 
-                # check to see if the install_dir exists and if it does
-                # then check to see if the .checksum file is the latest
-                install_dir_exists = False
-                try:
-                    self._run_command("ls %s" % install_dir)
-                    install_dir_exists = True
-                except (error.CmdError, error.AutoservRunError):
-                    pass
-
-                if (install_dir_exists and
-                    not self.untar_required(fetch_path, install_dir)):
-                    return
-
-                # untar the package into install_dir and
-                # update the checksum in that directory
-                if not preserve_install_dir:
-                    # Make sure we clean up the install_dir
-                    self._run_command('rm -rf %s' % install_dir)
-                self._run_command('mkdir -p %s' % install_dir)
-
-                self.untar_pkg(fetch_path, install_dir)
-
+                fetcher.install_pkg_post(name, fetch_dir, install_dir, preserve_install_dir)
             except error.PackageFetchError, why:
                 raise error.PackageInstallError(
                     'Installation of %s(type:%s) failed : %s'
@@ -399,7 +484,7 @@ class BasePackageManager(object):
                 lockfile.close()
 
 
-    def fetch_pkg(self, pkg_name, dest_path, repo_url=None, use_checksum=False):
+    def fetch_pkg(self, pkg_name, dest_path, repo_url=None, use_checksum=False, install=False):
         '''
         Fetch the package into dest_dir from repo_url. By default repo_url
         is None and the package is looked in all the repositories specified.
@@ -413,6 +498,9 @@ class BasePackageManager(object):
                        checksum file itself. This is used internally by the
                        packaging system. It should be ignored by externals
                        callers of this method who use it fetch custom packages.
+        install      : install path has unique name and destination requirements
+                       that vary based on the fetcher that is used.  So call them
+                       here as opposed to install_pkg.
         '''
 
         try:
@@ -444,17 +532,20 @@ class BasePackageManager(object):
         # reverse order, assuming that the 'newest' repos are most desirable
         for fetcher in reversed(repositories):
             try:
+                #different fetchers have different install requirements
+                (name, dest) = fetcher.install_pkg_setup(pkg_name, dest_path, install)
+
                 # Fetch the package if it is not there, the checksum does
                 # not match, or checksums are disabled entirely
                 need_to_fetch = (
                         not use_checksum or not pkg_exists
-                        or not self.compare_checksum(dest_path, fetcher.url))
+                        or not self.compare_checksum(dest, fetcher.url))
                 if need_to_fetch:
-                    fetcher.fetch_pkg_file(pkg_name, dest_path)
+                    fetcher.fetch_pkg_file(pkg_name, dest)
                     # update checksum so we won't refetch next time.
                     if use_checksum:
-                        self.update_checksum(dest_path)
-                return
+                        self.update_checksum(dest)
+                return fetcher
             except (error.PackageFetchError, error.AutoservRunError):
                 # The package could not be found in this repo, continue looking
                 logging.debug('%s could not be fetched from %s', pkg_name,
