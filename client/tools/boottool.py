@@ -488,6 +488,149 @@ def parse_entry(entry_str, separator='='):
     return entry
 
 
+def detect_distro_type():
+    '''
+    Simple distro detection based on release/version files
+    '''
+    if os.path.exists('/etc/redhat-release'):
+        return 'redhat'
+    elif os.path.exists('/etc/debian_version'):
+        return 'debian'
+    else:
+        return None
+
+
+class DebianBuildDeps(object):
+    '''
+    Checks and install grubby build dependencies on Debian (like) systems
+
+    Tested on:
+       * Debian Squeeze (6.0)
+       * Ubuntu 12.04 LTS
+    '''
+
+
+    PKGS = ['gcc', 'make', 'libpopt-dev', 'libblkid-dev']
+
+
+    def check(self):
+        '''
+        Checks if necessary packages are already installed
+        '''
+        result = True
+        for p in self.PKGS:
+            args = ['dpkg-query', '--show', '--showformat=${Status}', p]
+            output = subprocess.Popen(args, shell=False,
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      close_fds=True).stdout.read()
+            if not output == 'install ok installed':
+                result = False
+        return result
+
+
+    def install(self):
+        '''
+        Attempt to install the build dependencies via a package manager
+        '''
+        if self.check():
+            return True
+        else:
+            try:
+                args = ['apt-get', 'update', '-qq']
+                subprocess.call(args,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+
+                args = ['apt-get', 'install', '-qq'] + self.PKGS
+                subprocess.call(args,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+            except OSError:
+                pass
+        return self.check()
+
+
+class RPMBuildDeps(object):
+    '''
+    Base class for RPM based systems
+    '''
+    def check(self):
+        '''
+        Checks if necessary packages are already installed
+        '''
+        result = True
+        for p in self.PKGS:
+            args = ['rpm', '-q', '--qf=%{NAME}', p]
+            output = subprocess.Popen(args, shell=False,
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      close_fds=True).stdout.read()
+            if not output.startswith(p):
+                result = False
+
+        return result
+
+
+class RedHatBuildDeps(RPMBuildDeps):
+    '''
+    Checks and install grubby build dependencies on RedHat (like) systems
+
+    Tested on:
+       * Fedora 17
+       * RHEL 5
+       * RHEL 6
+    '''
+
+
+    PKGS = ['gcc', 'make']
+    REDHAT_RELEASE_RE = re.compile('.*\srelease\s(\d)\.(\d)\s.*')
+
+
+    def __init__(self):
+        '''
+        Initializes a new dep installer, taking into account RHEL version
+        '''
+        match = self.REDHAT_RELEASE_RE.match(open('/etc/redhat-release').read())
+        if match:
+            major, minor = match.groups()
+            if int(major) <= 5:
+                self.PKGS += ['popt', 'e2fsprogs-devel']
+            else:
+                self.PKGS += ['popt-devel', 'libblkid-devel']
+
+
+    def install(self):
+        '''
+        Attempt to install the build dependencies via a package manager
+        '''
+        if self.check():
+            return True
+        else:
+            try:
+                args = ['yum', 'install', '-q', '-y'] + self.PKGS
+
+                # This is an extra safety step, to install the needed header
+                # in case the blkid headers package could not be detected
+                args += ['/usr/include/popt.h',
+                         '/usr/include/blkid/blkid.h']
+
+                result = subprocess.call(args,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+            except OSError:
+                pass
+        return self.check()
+
+
+DISTRO_DEPS_MAPPING = {
+    'debian' : DebianBuildDeps,
+    'redhat' : RedHatBuildDeps
+    }
+
+
 def install_grubby_if_necessary(path=None):
     '''
     Installs grubby if it's necessary on this system
@@ -1328,6 +1471,17 @@ class Grubby(object):
                 path = GRUBBY_DEFAULT_USER_PATH
 
         topdir = tempfile.mkdtemp()
+
+        deps_klass = DISTRO_DEPS_MAPPING.get(detect_distro_type(), None)
+        if deps_klass is not None:
+            deps = deps_klass()
+            if not deps.check():
+                self.log.warn('Installing distro build deps for grubby. This '
+                              'may take a while, depending on bandwidth and '
+                              'actual number of packages to install')
+                if not deps.install():
+                    self.log.error('Failed to install distro build deps for '
+                                   'grubby')
 
         tarball = self.grubby_install_fetch_tarball(topdir)
         if tarball is None:
