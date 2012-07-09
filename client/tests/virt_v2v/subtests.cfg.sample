@@ -1,0 +1,107 @@
+# Copy this file to subtests.cfg and edit it.
+#
+# Subtests
+
+variants:
+    - virsh_pool_create_as:
+        vm_type = libvirt
+        type = virsh_pool_create_as
+        vms = ""
+        # type in [ 'dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical' ]
+        pool_type = dir
+        pool_name = custom_pool_name
+        pool_target = /mnt
+
+    - convert_libvirt:
+        vm_type = virt_v2v
+        type = convert_libvirt
+        # add your VM name in here such as esx4.1-rhel6.2-x86_64
+        vms = custom_vm_name
+        # add esx no verify certification in here if you're converting a
+        # existing esx VM. Note that, the previous vms should be in the
+        # host, you may use virsh -c esx://<hostname>/?no_verify=1 list --all
+        # to check it.
+        netrc = machine xx.xx.xx.xx login root password 123456
+        target = libvirt
+        # hypervisor in [ 'esx', 'kvm', 'xen' ]
+        hypervisor = esx
+        hostname = xx.xx.xx.xx
+        # the previous defined pool name for libvirt
+        storage = custom_pool_name
+        network = virbr0
+
+    - linux_vm_check_local:
+        vm_type = virt_v2v
+        type = linux_vm_check
+        # add your VM name in here
+        vms = custom_vm_name
+        # add VM user name and password
+        username = root
+        password = 123456
+
+    - convert_ovirt:
+        vm_type = virt_v2v
+        type = convert_ovirt
+        # add your VM name in here
+        vms = custom_vm_name
+        # add esx no verify certification in here if you're converting a
+        # existing esx VM. Note that, the previous vms should be in the
+        # host, you may use virsh -c esx://<hostname>/?no_verify=1 list --all
+        # to check it.
+        netrc = machine xx.xx.xx.xx login root password 123456
+        target = ovirt
+        # VM doesn't exist and don't need to deal with it on the local
+        not_preprocess = yes
+        hypervisor = esx
+        hostname = xx.xx.xx.xx
+        # add ovirt-engine url, user name and password
+        ovirt_engine_url = https://xx.xx.xx.xx:8443/api
+        ovirt_engine_user = admin@internal
+        ovirt_engine_password = 123456
+        variants:
+            - NFS:
+                # add your NFS export path
+                storage = xx.xx.xx.xx:/nfs_path
+            - ISCSI:
+                # add your ISCSI export path
+                storage = xx.xx.xx.xx:/iscsi_path
+            - FC:
+                # add your FC export path
+                storage = xx.xx.xx.xx:/fc_path
+        # if you're using RHEL then 'rhevm' is a default network
+        network = ovirtmgmt
+
+    - ovirt:
+        vm_type = virt_v2v
+        type = ovirt
+        # add ovirt-engine url, user name and password
+        ovirt_engine_url = https://xx.xx.xx.xx:8443/api
+        ovirt_engine_user = admin@internal
+        ovirt_engine_password = 123456
+        # add your VM name in here
+        vms = custom_vm_name
+        export_name = export_storage_name
+        storage_name = master_storage_name
+        cluster_name = storage_cluster_name
+
+    - linux_vm_check_remote:
+        vm_type = virt_v2v
+        type = linux_vm_check
+        # add your VM name in here
+        vms = custom_vm_name
+        # need to get VM's IP on ovirt node not local
+        remote_preprocess = yes
+        target = ovirt
+        # VM is on ovirt-node not local
+        not_preprocess = yes
+        # add ovirt-engine url, user name and password
+        ovirt_engine_url = https://xx.xx.xx.xx:8443/api
+        ovirt_engine_user = admin@internal
+        ovirt_engine_password = 123456
+        # add VM user name and password
+        username = root
+        password = 123456
+        # add ovirt-node ip, user name and password
+        ovirt_node_address = xx.xx.xx.xx
+        ovirt_node_user = root
+        ovirt_node_password = 123456

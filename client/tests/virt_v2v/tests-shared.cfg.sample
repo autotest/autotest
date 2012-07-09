@@ -1,0 +1,41 @@
+# Copy this file to tests-shared.cfg and edit it.
+#
+# This file contains the base test set definitions, shared among single host
+# and multi host jobs.
+
+# Include the base config files.
+include base.cfg
+include guest-os.cfg
+include guest-hw.cfg
+include subtests.cfg
+#include build.cfg
+
+# Virtualization type (kvm, libvirt or virt_v2v)
+# vm_type = virt_v2v
+# The hypervisor uri (default, qemu://hostname/system, etc.)
+# where default or unset means derive from installed system
+connect_uri = default
+
+# Modify/comment the following lines if you wish to modify the paths of the
+# image files, ISO files or qemu binaries.
+#
+# As for the defaults:
+# * qemu and qemu-img are expected to be found under /usr/bin/qemu-kvm and
+#   /usr/bin/qemu-img respectively.
+# * All image files are expected under /tmp/virt_v2v_autotest_root/images/
+# * All install iso files are expected under /tmp/virt_v2v_autotest_root/isos/
+# * The parameters cdrom_unattended, floppy, kernel and initrd are generated
+#   by LIBVIRT autotest, so remember to put them under a writable location
+#   (for example, the cdrom share can be read only)
+image_name(_.*)? ?<= /tmp/virt_v2v_autotest_root/images/
+cdrom(_.*)? ?<= /tmp/virt_v2v_autotest_root/
+floppy ?<= /tmp/virt_v2v_autotest_root/
+image_dir = /tmp/virt_v2v_autotest_root/
+Linux..unattended_install:
+    kernel ?<= /tmp/virt_v2v_autotest_root/
+    initrd ?<= /tmp/virt_v2v_autotest_root/
+
+# Uncomment the following lines to enable abort-on-error mode:
+#abort_on_error = yes
+#kill_vm.* ?= no
+#kill_unresponsive_vms.* ?= no

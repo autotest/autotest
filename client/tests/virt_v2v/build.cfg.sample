@@ -1,0 +1,110 @@
+# Copy this file to build.cfg and edit it.
+
+vm_type = virt_v2v
+
+variants:
+    - build:
+        type = install
+        # Load modules built/installed by the build test?
+        load_modules = no
+        # Save the results of this build on test.resultsdir?
+        save_results = no
+        # Preserve the source code directory between tests?
+        preserve_srcdir = yes
+
+        ######################################################################
+        # INSTALLERS DEFINITION SECTION
+        # Many different components can be defined. The ones that will
+        # actually be run have to be defined in the 'installers'
+        ######################################################################
+        # QEMU installation from a local tarball
+        # local_tar_qemu_path = /tmp/qemu-0.15.1.tar.gz
+
+        # QEMU installation from a local source directory
+        # local_src_qemu_path = /tmp/qemu-0.15.1
+
+        # Guest Kernel installation from a GIT repo
+        # git_repo_guest_kernel_build_helper = linux_kernel
+        # git_repo_guest_kernel_uri = git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+        # git_repo_guest_kernel_branch = master
+        # git_repo_guest_kernel_patches = ['http://foo/bar.patch', 'http://foo/baz.patch']
+        # git_repo_guest_kernel_config =  http://foo/bar/kernel-config
+        # git_repo_guest_kernel_build_target = bzImage
+        # git_repo_guest_kernel_build_image  = arch/x86/boot/bzImage
+        # Should be same as the kernel variable defined in guest-os.cfg. Which is
+        # used to boot the guest.
+        # git_repo_guest_kernel_kernel_path = /tmp/kvm_autotest_root/images/bzImage
+
+        # QEMU installation from a GIT repo
+        # git_repo_qemu_uri = git://git.qemu.org/qemu.git
+        # git_repo_qemu_configure_options = --target-list=x86_64-softmmu --enable-spice
+
+        # virt-v2v installation from a GIT repo
+        # git_repo_virt_v2v_uri = git://git.fedorahosted.org/virt-v2v.git
+        # ovirt-engine-sdk installation from a GIT repo
+        git_repo_ovirt_engine_sdk_uri = git://gerrit.ovirt.org/ovirt-engine-sdk.git
+
+        # if you have a git repo that is closer to you, you may
+        # use it to fetch object first from it, and then later from "upstream"
+        # git_repo_qemu_base_uri = /home/user/code/qemu
+
+        # QEMU (KVM) installation from a GIT repo
+        # git_repo_qemu_kvm_uri = git://github.com/avikivity/qemu.git
+        # git_repo_qemu_kvm_configure_options = --enable-spice
+
+        # SPICE installation from a GIT repo
+        # git_repo_spice_uri = git://anongit.freedesktop.org/spice/spice
+
+        # spice-protocol installation from a GIT repo
+        # git_repo_spice_protocol_uri = git://anongit.freedesktop.org/spice/spice-protocol
+
+        # QEMU (KVM) installation from a YUM repo
+        # yum_qemu_kvm_pkgs = ['qemu-kvm', 'qemu-kvm-tools', 'qemu-system-x86', 'qemu-common', 'qemu-img']
+
+        # virt-v2v installation from a YUM repo
+        # yum_virt_v2v_pkgs = ['virt-v2v']
+
+        # Build virt-v2v and ovirt-engine-sdk dependency package installation from a YUM repo
+        # yum_perl_module_build_pkgs = ['perl-Module-Build', 'perl-Test-Simple']
+        # yum_ruby_pkgs = ['ruby', 'rubygem-rake', 'libssh2', 'ruby-dbus', 'rubygem-net-ssh', 'rubygem-gtk2', 'perl-XML-Writer', 'ruby-devel', 'libssh2-devel']
+        yum_rpm_build_pkgs = ['rpm-build']
+        yum_python_devel_pkgs = ['python-devel', 'python-setuptools','python-lxml']
+
+        # QEMU (KVM) installation from koji/brew
+        # koji_qemu_kvm_tag = dist-f15
+        # koji_qemu_kvm_pkgs = :qemu:qemu-common,qemu-img,qemu-kvm,qemu-system-x86,qemu-kvm-tools seabios vgabios :gpxe:gpxe-roms-qemu :spice:spice-server
+
+        # virt-v2v installation from koji/brew
+        koji_virt_v2v_tag =  f17-updates-testing
+        koji_virt_v2v_pkgs = :virt-v2v:virt-v2v
+
+        # Koji/brew scratch builds notes:
+        #
+        # Packages from scratch builds have a different syntax:
+        #
+        #  user:task_id[:pkg1,pkg2]
+        #
+        # If you include a subset of packages and want to have debuginfo packages
+        # you must *manually* add it to the list, as there's no way to know for
+        # sure the main package name for scratch builds. If you set only the
+        # user name and task id, all packages, including -debuginfo will be
+        # installed.
+        #
+        # koji_qemu_kvm_scratch_pkgs = jdoe:1000:qemu-kvm,qemu-system-x86,qemu-kvm-tools,qemu-img,qemu-kvm-debuginfo
+
+        ######################################################################
+        # INSTALLERS SELECTION
+        # Choose here what components you want to install
+        ######################################################################
+        # installers = git_repo_spice_protocol git_repo_spice git_repo_qemu
+        # installers = yum_perl_module_build yum_ruby yum_rpm_build git_repo_virt_v2v yum_python_devel git_repo_ovirt_engine_sdk
+        # installers = yum_perl_module_build yum_rpm_build yum_python_devel git_repo_ovirt_engine_sdk git_repo_virt_v2v
+        # installers = git_repo_ovirt_engine_sdk git_repo_virt_v2v
+        # installers = yum_rpm_build yum_python_devel git_repo_ovirt_engine_sdk
+
+        # Choose wether you want to include debug information/symbols
+        install_debug_info = no
+
+
+# Note that, please comment out the 'no build' line to enable the build test
+# no build

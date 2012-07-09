@@ -1,0 +1,26 @@
+# Copy this file to tests.cfg and edit it.
+#
+# This file contains the test set definitions. Define your test sets here.
+
+# Include the base config files.
+include tests-shared.cfg
+
+#only ide
+#only smp2
+#only raw
+#only RHEL.6.2.x86_64
+#no hugepages
+#no e1000
+#no virtio_net
+#no xennet
+#no 9p_export
+#no vf_assignable
+#no pf_assignable
+
+# Install virt-v2v and ovirt-engine-sdk.
+#only build
+# Simple testing for automatically converting/importing an existing foreign VM into libvirt.
+#only virsh_pool_create_as convert_libvirt linux_vm_check_local
+
+# Simple testing for automatically converting/importing an existing foreign VM into oVirt.
+#only convert_ovirt ovirt linux_vm_check_remote
