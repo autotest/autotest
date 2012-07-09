@@ -3,7 +3,7 @@ from autotest.client import utils
 from autotest.client.shared import error
 import aexpect, kvm_monitor, ppm_utils, virt_test_setup, virt_vm, kvm_vm
 import libvirt_vm, virt_video_maker, virt_utils, virt_storage, kvm_storage
-import virt_remote
+import virt_remote, virt_v2v, ovirt
 
 try:
     import PIL.Image
@@ -59,12 +59,18 @@ def preprocess_vm(test, params, env, name):
     logging.debug("Preprocessing VM '%s'", name)
     vm = env.get_vm(name)
     vm_type = params.get('vm_type')
+    target = params.get('target')
     if not vm:
         logging.debug("VM object for '%s' does not exist, creating it", name)
         if vm_type == 'kvm':
             vm = kvm_vm.VM(name, params, test.bindir, env.get("address_cache"))
         if vm_type == 'libvirt':
             vm = libvirt_vm.VM(name, params, test.bindir, env.get("address_cache"))
+        if vm_type == 'virt_v2v':
+            if target == 'libvirt' or target is None:
+                vm = libvirt_vm.VM(name, params, test.bindir, env.get("address_cache"))
+            if target == 'ovirt':
+                vm = ovirt.VMManager(name, params, test.bindir, env.get("address_cache"))
         env.register_vm(name, vm)
 
     remove_vm = False
@@ -86,7 +92,7 @@ def preprocess_vm(test, params, env, name):
         start_vm = True
     elif params.get("start_vm") == "yes":
         # need to deal with libvirt VM differently than qemu
-        if vm_type == 'libvirt':
+        if vm_type == 'libvirt' or vm_type == 'virt_v2v':
             if not vm.is_alive():
                 logging.debug("VM is not alive; starting it...")
                 start_vm = True
@@ -101,6 +107,9 @@ def preprocess_vm(test, params, env, name):
 
     if start_vm:
         if vm_type == "libvirt" and params.get("type") != "unattended_install":
+            vm.params = params
+            vm.start()
+        elif vm_type == "virt_v2v":
             vm.params = params
             vm.start()
         else:
