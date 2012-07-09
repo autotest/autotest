@@ -278,6 +278,11 @@ def preprocess(test, params, env):
     @param env: The environment (a dict-like object).
     """
     error.context("preprocessing")
+    port = params.get('shell_port')
+    prompt = params.get('shell_prompt')
+    address = params.get('ovirt_node_address')
+    username = params.get('ovirt_node_user')
+    password = params.get('ovirt_node_password')
 
     # Start tcpdump if it isn't already running
     if "address_cache" not in env:
@@ -287,11 +292,24 @@ def preprocess(test, params, env):
         del env["tcpdump"]
     if "tcpdump" not in env and params.get("run_tcpdump", "yes") == "yes":
         cmd = "%s -npvi any 'dst port 68'" % virt_utils.find_command("tcpdump")
-        logging.debug("Starting tcpdump '%s'", cmd)
-        env["tcpdump"] = aexpect.Tail(
-            command=cmd,
-            output_func=_update_address_cache,
-            output_params=(env["address_cache"],))
+        if params.get("remote_preprocess") == "yes":
+            logging.debug("Starting tcpdump '%s' on remote host", cmd)
+            login_cmd = ("ssh -o UserKnownHostsFile=/dev/null -o \
+                         PreferredAuthentications=password -p %s %s@%s" %
+                         (port, username, address))
+            env["tcpdump"] = aexpect.ShellSession(
+                login_cmd,
+                output_func=_update_address_cache,
+                output_params=(env["address_cache"],))
+            virt_remote._remote_login(env["tcpdump"], username, password, prompt)
+            env["tcpdump"].sendline(cmd)
+        else:
+            logging.debug("Starting tcpdump '%s' on local host", cmd)
+            env["tcpdump"] = aexpect.Tail(
+                command=cmd,
+                output_func=_update_address_cache,
+                output_params=(env["address_cache"],))
+
         if virt_utils.wait_for(lambda: not env["tcpdump"].is_alive(),
                               0.1, 0.1, 1.0):
             logging.warn("Could not start tcpdump")
