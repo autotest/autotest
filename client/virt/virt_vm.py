@@ -501,6 +501,26 @@ class BaseVM(object):
             return arp_ip
 
 
+    def get_port(self, port, nic_index=0):
+        """
+        Return the port in host space corresponding to port in guest space.
+
+        @param port: Port number in host space.
+        @param nic_index: Index of the NIC.
+        @return: If port redirection is used, return the host port redirected
+                to guest port port. Otherwise return port.
+        @raise VMPortNotRedirectedError: If an unredirected port is requested
+                in user mode
+        """
+        if self.virtnet[nic_index].nettype == "bridge":
+            return port
+        else:
+            try:
+                return self.redirs[port]
+            except KeyError:
+                raise virt_vm.VMPortNotRedirectedError(port)
+
+
     def free_mac_address(self, nic_index_or_name=0):
         """
         Free a NIC's MAC address.
