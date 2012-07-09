@@ -19,6 +19,9 @@ client/tests/kvm/env
 client/tests/kvm/*.cfg
 client/tests/libvirt/env
 client/tests/libvirt/*.cfg
+client/tests/virt_v2v/env
+client/tests/virt_v2v/*.cfg
+client/tests/virt_v2v/src
 client/tmp
 logs/*
 server/tmp
