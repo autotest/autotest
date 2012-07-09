@@ -362,7 +362,8 @@ class BaseInstaller(object):
             self.reload_modules()
 
 
-    def install(self):
+    def install(self, cleanup=True, download=True, prepare=True,
+                build=True, install=True, init=True):
         '''
         Performs the installation of the virtualization software
 
@@ -370,23 +371,29 @@ class BaseInstaller(object):
         be reimplemented completely, or simply implement one or many of the
         install  phases.
         '''
-        self._install_phase_cleanup()
-        self._install_phase_cleanup_verify()
+        if cleanup:
+            self._install_phase_cleanup()
+            self._install_phase_cleanup_verify()
 
-        self._install_phase_download()
-        self._install_phase_download_verify()
+        if download:
+            self._install_phase_download()
+            self._install_phase_download_verify()
 
-        self._install_phase_prepare()
-        self._install_phase_prepare_verify()
+        if prepare:
+            self._install_phase_prepare()
+            self._install_phase_prepare_verify()
 
-        self._install_phase_build()
-        self._install_phase_build_verify()
+        if build:
+            self._install_phase_build()
+            self._install_phase_build_verify()
 
-        self._install_phase_install()
-        self._install_phase_install_verify()
+        if install:
+            self._install_phase_install()
+            self._install_phase_install_verify()
 
-        self._install_phase_init()
-        self._install_phase_init_verify()
+        if init:
+            self._install_phase_init()
+            self._install_phase_init_verify()
 
         self.reload_modules_if_needed()
         if self.save_results:
