@@ -902,6 +902,15 @@ variants:
                 test_control_file = flail.control
             - systemtap:
                 test_control_file = systemtap.control
+            - ltp:
+                # This timeout has to be set inaccordance with timeout
+                # argument in ltp.control (-t 1h)file.
+                # Currently it is set to 1 hour and correspodingly this time
+                # has been kept (3600+1000) 4600 seconds.
+                # Inorder to run ltp for more time change the timeout here and
+                # ltp.control file appropriately.
+                test_timeout = 4600
+                test_control_file = ltp.control
             - cpuflags-stress:
                 test_control_file = cpuflags.control
             - scsi_testsuite:
