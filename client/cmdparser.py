@@ -4,9 +4,9 @@ Autotest command parser
 @copyright: Don Zickus <dzickus@redhat.com> 2011
 """
 
-import os, re, sys
+import os, re, sys, logging
 from autotest.client import os_dep, utils
-from autotest.client.shared import global_config
+from autotest.client.shared import global_config, logging_config, logging_manager
 from autotest.client.shared import base_packages, packages
 
 GLOBAL_CONFIG = global_config.global_config
@@ -28,6 +28,16 @@ if not os.path.isdir(FETCHDIRTEST):
 
 DEBUG = False
 
+class CmdParserLoggingConfig(logging_config.LoggingConfig):
+    """
+    Used with the sole purpose of providing convenient logging setup
+    for the KVM test auxiliary programs.
+    """
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(CmdParserLoggingConfig, self).configure_logging(use_console=True,
+                                                              verbose=False)
+
+logging_manager.configure_logging(CmdParserLoggingConfig())
 
 class CommandParser(object):
     """
@@ -87,7 +97,7 @@ class CommandParser(object):
 
         url = args.pop(0)
         if not utils.is_url(url):
-            print "Not a remote url, nothing to fetch (%s)" % url
+            logging.info("Not a remote url, nothing to fetch (%s)", url)
             self.help()
 
         if len(args):
@@ -95,7 +105,7 @@ class CommandParser(object):
         else:
             name = ""
 
-        print "fetching file %s:%s" % (url, name)
+        logging.info("Fetching file %s:%s", url, name)
         autodir = os.path.abspath(os.environ['AUTODIR'])
         tmpdir = os.path.join(autodir, 'tmp')
         tests_out_dir = GLOBAL_CONFIG.get_config_value('COMMON',
@@ -119,13 +129,13 @@ class CommandParser(object):
 
         @param args is not used here.
         """
-        print "Commands:"
-        print "fetch <url> [<file>]\tFetch a remote file/package and install it"
-        print "\tgit://...:[<branch>] [<file/directory>]"
-        print "\thttp://... [<file>]"
-        print "help\t\t\tOutput a list of supported commands"
-        print "list\t\t\tOutput a list of available tests"
-        print "run <test> [<args>]\tFind given <test> in path and run with args"
+        logging.info("Commands:")
+        logging.info("fetch <url> [<file>]\tFetch a remote file/package and install it")
+        logging.info("\tgit://...:[<branch>] [<file/directory>]")
+        logging.info("\thttp://... [<file>]")
+        logging.info("help\t\t\tOutput a list of supported commands")
+        logging.info("list\t\t\tOutput a list of available tests")
+        logging.info("run <test> [<args>]\tFind given <test> in path and run with args")
         raise SystemExit(0)
 
 
@@ -234,5 +244,5 @@ class CommandParser(object):
                 args.insert(0, d)
                 return args
 
-        print "Can not find test %s" % test
+        logging.error("Can not find test %s", test)
         raise SystemExit(1)
