@@ -5,7 +5,7 @@ Autotest command parser
 """
 
 import os, re, sys
-from autotest.client import os_dep
+from autotest.client import os_dep, utils
 from autotest.client.shared import global_config
 from autotest.client.shared import base_packages, packages
 
@@ -77,10 +77,6 @@ class CommandParser(object):
                     pipe.write(' %-50s %s\n' % (text, desc))
 
 
-    def is_url(self, url):
-        """Return true if path looks like a URL"""
-        return url.startswith('http://') or url.startswith('git://')
-
     def fetch(self, args):
         """
         fetch a remote control file or packages
@@ -90,7 +86,7 @@ class CommandParser(object):
             self.help()
 
         url = args.pop(0)
-        if not self.is_url(url):
+        if not utils.is_url(url):
             print "Not a remote url, nothing to fetch (%s)" % url
             self.help()
 

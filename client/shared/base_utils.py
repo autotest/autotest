@@ -651,7 +651,7 @@ def is_url(path):
     """Return true if path looks like a URL"""
     # for now, just handle http and ftp
     url_parts = urlparse.urlparse(path)
-    return (url_parts[0] in ('http', 'ftp'))
+    return (url_parts[0] in ('http', 'ftp', 'git'))
 
 
 def urlopen(url, data=None, timeout=5):
