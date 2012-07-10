@@ -965,11 +965,6 @@ class BasePackageManager(object):
         return name, pkg_type
 
 
-    def is_url(self, url):
-        """Return true if path looks like a URL"""
-        return url.startswith('http://')
-
-
     def get_package_name(self, url, pkg_type):
         '''
         Extract the group and test name for the url. This method is currently
@@ -983,7 +978,7 @@ class BasePackageManager(object):
 
 
     def _get_package_name(self, url, regex):
-        if not self.is_url(url):
+        if not utils.is_url(url):
             if url.endswith('.tar.bz2'):
                 testname = url.replace('.tar.bz2', '')
                 testname = re.sub(r'(\d*)\.', '', testname)
