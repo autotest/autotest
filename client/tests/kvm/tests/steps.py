@@ -200,7 +200,7 @@ def run_steps(test, params, env):
     lines = sf.readlines()
     sf.close()
 
-    vm.monitor.cmd("cont")
+    vm.resume()
 
     current_step_num = 0
     current_screendump = None

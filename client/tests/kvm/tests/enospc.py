@@ -155,7 +155,7 @@ def run_enospc(test, params, env):
                 utils.run("lvextend -L +200M %s" % logical_volume)
             except error.CmdError, e:
                 logging.debug(e.result_obj.stdout)
-            vm.monitor.cmd("cont")
+            vm.resume()
         elif not vm.monitor.verify_status("running"):
             status = str(vm.monitor.info("status"))
             raise error.TestError("Unexpected guest status: %s" % status)

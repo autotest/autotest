@@ -44,7 +44,7 @@ def run_vmstop(test, params, env):
             # wait for the transfer start
             time.sleep(5)
             logging.info("Stop the VM")
-            vm.monitor.cmd("stop")
+            vm.pause()
 
             # check with monitor
             logging.info("Check the status through monitor")
@@ -82,4 +82,4 @@ def run_vmstop(test, params, env):
                 os.remove(save1)
             if os.path.isfile(save2):
                 os.remove(save2)
-        vm.monitor.cmd("cont")
+        vm.resume()

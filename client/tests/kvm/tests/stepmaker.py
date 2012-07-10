@@ -88,7 +88,7 @@ class StepMaker(virt_step_editor.StepMakerWindow):
 
 
     def destroy(self, widget):
-        self.vm.monitor.cmd("cont")
+        self.vm.resume()
         self.steps_file.close()
         self.vars_file.close()
         virt_step_editor.StepMakerWindow.destroy(self, widget)
@@ -116,7 +116,7 @@ class StepMaker(virt_step_editor.StepMakerWindow):
         # Start the screendump timer
         self.redirect_timer(100, self.update)
         # Resume the VM
-        self.vm.monitor.cmd("cont")
+        self.vm.resume()
 
 
     def switch_to_step_mode(self):
@@ -131,7 +131,7 @@ class StepMaker(virt_step_editor.StepMakerWindow):
         # Start the screendump timer
         self.redirect_timer()
         # Stop the VM
-        self.vm.monitor.cmd("stop")
+        self.vm.pause()
 
 
     # Events in step mode
@@ -270,7 +270,7 @@ class StepMaker(virt_step_editor.StepMakerWindow):
                 self.event_capture_button_release,
                 self.event_capture_scroll)
         self.redirect_timer(10, self.update_capture)
-        self.vm.monitor.cmd("cont")
+        self.vm.resume()
 
     # Events in mouse capture mode
 
@@ -319,7 +319,7 @@ class StepMaker(virt_step_editor.StepMakerWindow):
                 None,
                 self.event_expose)
         self.redirect_timer()
-        self.vm.monitor.cmd("stop")
+        self.vm.pause()
         self.mouse_click_captured = True
         self.mouse_click_button = event.button
         self.set_image(self.image_width_backup, self.image_height_backup,

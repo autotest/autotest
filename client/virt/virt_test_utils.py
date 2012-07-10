@@ -268,7 +268,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                 uri = '"exec:nc localhost %s"' % dest_vm.migration_port
 
             if offline:
-                vm.monitor.cmd("stop")
+                vm.pause()
             vm.monitor.migrate(uri)
 
             if mig_cancel:
@@ -279,7 +279,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                                           "cancellation"):
                     raise error.TestFail("Failed to cancel migration")
                 if offline:
-                    vm.monitor.cmd("cont")
+                    vm.resume()
                 if dest_host == 'localhost':
                     dest_vm.destroy(gracefully=False)
                 return vm
@@ -301,7 +301,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                                              "and after migration")
 
                 if (dest_host == 'localhost') and offline:
-                    dest_vm.monitor.cmd("cont")
+                    dest_vm.resume()
         except Exception:
             if dest_host == 'localhost':
                 dest_vm.destroy()
@@ -326,7 +326,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
     if dest_host == 'localhost':
         if dest_vm.monitor.verify_status("paused"):
             logging.debug("Destination VM is paused, resuming it")
-            dest_vm.monitor.cmd("cont")
+            dest_vm.resume()
 
     # Kill the source VM
     vm.destroy(gracefully=False)
