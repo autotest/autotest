@@ -30,7 +30,7 @@ class DatabaseWrapper(MySQLDatabaseWrapper):
                 try:
                     self.connection.ping()
                     return True
-                except DatabaseError:
+                except Database.DatabaseError:
                     self.connection.close()
                     self.connection = None
         return False
