@@ -442,6 +442,10 @@ class VM(virt_vm.BaseVM):
                       lun=None):
             name = None
             dev = ""
+            if self.params.get("use_bootindex") in ['yes', 'on', True]:
+                if boot in ['yes', 'on', True]:
+                    bootindex = 1
+                boot = "unused"
             if format == "ahci":
                 name = "ahci%s" % index
                 dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
