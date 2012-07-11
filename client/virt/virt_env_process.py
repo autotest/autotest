@@ -55,7 +55,6 @@ def preprocess_vm(test, params, env, name):
     params = params.object_params(name)   
     logging.debug("Preprocessing VM '%s'", name)
     vm = env.get_vm(name)
-
     vm_type = params.get('vm_type')
     if not vm:
         logging.debug("VM object for '%s' does not exist, creating it", name)
