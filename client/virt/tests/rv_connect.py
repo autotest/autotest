@@ -75,7 +75,7 @@ def get_pid(job_string):
     @param job_string '[job_number] job_PID'
     @return PID
     """
-    return job_string.split("] ")[1]
+    return job_string.split("]")[1].splitlines()[0]
 
 def launch_gnome_session(client_session):
     """
