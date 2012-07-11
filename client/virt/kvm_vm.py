@@ -447,6 +447,13 @@ class VM(virt_vm.BaseVM):
                 dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
                 format = "none"
                 index = None
+            if format == "virtio":
+                name = "virtio%s" % index
+                dev += " -device virtio-blk-pci"
+                dev += _add_option("bootindex", bootindex)
+                dev += _add_option("drive", name)
+                format = "none"
+                index = None
             if format == "usb2":
                 name = "usb2.%s" % index
                 dev += " -device usb-storage"
