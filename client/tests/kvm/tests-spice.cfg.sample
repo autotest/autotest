@@ -174,7 +174,7 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-	only Linux.RHEL.6.3.beta.x86_64
+        only Linux.RHEL.6.3.beta.x86_64
         only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
         only rv_connect.RHEL.6.3.beta.x86_64, shutdown
 
