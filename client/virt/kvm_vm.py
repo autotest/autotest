@@ -445,6 +445,7 @@ class VM(virt_vm.BaseVM):
             if format == "ahci":
                 name = "ahci%s" % index
                 dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
+                dev += _add_option("bootindex", bootindex)
                 format = "none"
                 index = None
             if format == "virtio":
