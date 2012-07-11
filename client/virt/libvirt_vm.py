@@ -1383,7 +1383,7 @@ class VM(virt_vm.BaseVM):
         Attach a NIC to VM.
         """
         return virsh_attach_interface(self.name, option, self.connect_uri,
-                                      ignore_status=False, print_info=False)
+                                      ignore_status=ignore_status, print_info=print_info)
 
 
     def detach_interface(self, option="", ignore_status=False, print_info=False):
@@ -1391,7 +1391,7 @@ class VM(virt_vm.BaseVM):
         Detach a NIC to VM.
         """
         return virsh_detach_interface(self.name, option, self.connect_uri,
-                                      ignore_status=False, print_info=False)
+                                      ignore_status=ignore_status, print_info=print_info)
 
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
