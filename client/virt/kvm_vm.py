@@ -1116,11 +1116,10 @@ class VM(virt_vm.BaseVM):
                 floppy_params = params.object_params(floppy_name)
                 floppy_readonly = floppy_params.get("floppy_readonly", "no")
                 floppy_readonly = floppy_readonly == "yes"
-                floppy = floppy_params.get("floppy_name")
+                floppy = virt_utils.get_path(root_dir,
+                                             floppy_params.get("floppy_name"))
                 if has_option(help,"global"):
-                    qemu_cmd += add_drive(help,
-                                          virt_utils.get_path(root_dir,
-                                                              floppy),
+                    qemu_cmd += add_drive(help, floppy,
                                           format="floppy",
                                           index=index,
                                           readonly= floppy_readonly)
