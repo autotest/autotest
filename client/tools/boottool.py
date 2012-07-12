@@ -706,6 +706,11 @@ class Grubby(object):
         self.opts = opts
         self.log = logging.getLogger(self.__class__.__name__)
 
+        if os.environ.has_key('BOOTTOOL_DEBUG_RUN'):
+            self.debug_run = True
+        else:
+            self.debug_run = False
+
         self._check_grubby_version()
         self._set_bootloader()
 
@@ -735,6 +740,9 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns command output
         '''
+        if self.debug_run:
+            self.log.debug('running: "%s"', ' '.join(arguments))
+
         result = None
         try:
             result = subprocess.Popen(arguments, shell=False,
@@ -746,6 +754,8 @@ class Grubby(object):
 
         if result is not None:
             result = result.strip()
+            if self.debug_run:
+                logging.debug('previous command output: "%s"', result)
         else:
             self.log.error('_run_get_output error while running: "%s"',
                            ' '.join(arguments))
@@ -756,6 +766,9 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns command output
         '''
+        if self.debug_run:
+            self.log.debug('running: "%s"', ' '.join(arguments))
+
         result = None
         try:
             result = subprocess.Popen(arguments, shell=False,
@@ -768,6 +781,8 @@ class Grubby(object):
 
         if result is not None:
             result = result.strip()
+            if self.debug_run:
+                logging.debug('previous command output/error: "%s"', result)
         else:
             self.log.error('_run_get_output_err error while running: "%s"',
                            ' '.join(arguments))
@@ -778,9 +793,14 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns status code
         '''
+        if self.debug_run:
+            self.log.debug('running: "%s"', ' '.join(arguments))
+
         result = None
         try:
             result = subprocess.call(arguments)
+            if self.debug_run:
+                logging.debug('previous command result: %s', result)
         except OSError:
             result = -1
             self.log.error('caught OSError, returning %s', result)
@@ -1952,7 +1972,11 @@ class BoottoolApp(object):
         if level > max_level:
             level = max_level
 
-        logging_level = log_map.get(level)
+        if os.environ.has_key('BOOTTOOL_DEBUG_RUN'):
+            logging_level = logging.DEBUG
+        else:
+            logging_level = log_map.get(level)
+
         logging.basicConfig(level=logging_level,
                             format=LOGGING_FORMAT)
 
