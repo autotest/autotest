@@ -1030,8 +1030,10 @@ variants:
         type = time_manage
         kill_vm = yes
         extra_params +=" -rtc base=utc,driftfix=slew -snapshot"
-        # The stress command *must* be installed in the host
-        host_load_command = stress --vm 1 --vm-bytes 4G --vm-keep
+        # The stress command *must* be installed in the host.
+        # The aim is generate huge load on host so cpu, io, vm
+        # paramters values can be changed based on host configuration.
+        host_load_command = stress --cpu 4 --io 4 --vm 4 --vm-bytes 1G --vm-keep
         host_load_kill_command = killall stress
         reboot_method = shell
         alive_test_cmd = uname -a
