@@ -85,6 +85,52 @@ def run_physical_resources_check(test, params, env):
         return f_fail
 
 
+    def check_cpu_number(chk_type, expected_n, chk_timeout):
+        """
+        Checking cpu sockets/cores/threads number.
+
+        @param chk_type: Should be one of 'sockets', 'cores', 'threads'.
+        @param expected_n: Expected number of guest cpu number.
+        @param chk_timeout: timeout of running chk_cmd.
+
+        @return a list that contains fail report.
+        """
+        f_fail = []
+        chk_str = params.get("mem_chk_re_str")
+        chk_cmd = params.get("cpu_%s_chk_cmd" % chk_type)
+        if chk_cmd is None:
+            fail_log = "Unknown cpu number checking type: '%s'" % chk_type
+            logging.error(fail_log)
+            f_fail.append(fail_log)
+            return f_fail
+
+        if chk_cmd == "":
+            return f_fail
+
+        logging.info("CPU %s number check", string.capitalize(chk_type))
+        s, output = session.cmd_status_output(chk_cmd, timeout=chk_timeout)
+        num = re.findall(chk_str, output)
+        if s != 0 or not num:
+            fail_log = "Failed to get guest %s number, " % chk_type
+            fail_log += "guest output: '%s'" % output
+            f_fail.append(fail_log)
+            logging.error(fail_log)
+            return f_fail
+
+        actual_n = int(num[0])
+        if actual_n != expected_n:
+            fail_log = "%s output mismatch:\n" % string.capitalize(chk_type)
+            fail_log += "    Assigned to VM: '%s'\n" % expected_n
+            fail_log += "    Reported by OS: '%s'" % actual_n
+            f_fail.append(fail_log)
+            logging.error(fail_log)
+            return f_fail
+
+        logging.debug("%s check pass. Expected: '%s', Aucual: '%s'",
+                      string.capitalize(chk_type), expected_n, actual_n)
+        return f_fail
+
+
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
     timeout = int(params.get("login_timeout", 360))
@@ -103,14 +149,19 @@ def run_physical_resources_check(test, params, env):
 
     # Check cpu count
     logging.info("CPU count check")
-    expected_cpu_nr = int(params.get("smp"))
     actual_cpu_nr = vm.get_cpu_count()
-    if expected_cpu_nr != actual_cpu_nr:
+    if vm.cpuinfo.smp != actual_cpu_nr:
         fail_log =  "CPU count mismatch:\n"
-        fail_log += "    Assigned to VM: %s \n" % expected_cpu_nr
+        fail_log += "    Assigned to VM: %s \n" % vm.cpuinfo.smp
         fail_log += "    Reported by OS: %s" % actual_cpu_nr
         n_fail.append(fail_log)
         logging.error(fail_log)
+
+    n_fail.extend(check_cpu_number("cores", vm.cpuinfo.cores, chk_timeout))
+
+    n_fail.extend(check_cpu_number("threads", vm.cpuinfo.threads, chk_timeout))
+
+    n_fail.extend(check_cpu_number("sockets", vm.cpuinfo.sockets, chk_timeout))
 
     # Check the cpu vendor_id
     expected_vendor_id = params.get("cpu_model_vendor")
