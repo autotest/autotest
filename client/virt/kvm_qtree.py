@@ -295,7 +295,7 @@ class QtreeContainer(object):
                     current.set_qtree_prop('class_addr', line[1])
                     current.set_qtree_prop('class_pciid', line[2])
                     current.set_qtree_prop('class_sub', line[3])
-                    line = ['class', line[0]]
+                    line = ['class_name', line[0]]
                 elif '=' in line:
                     # bus-prop: addr = 02.0
                     line = line.split('=', 1)
