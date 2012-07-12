@@ -1447,6 +1447,7 @@ variants:
         physical_resources_check:
             catch_uuid_cmd =
             cpu_vendor_id_chk_cmd = "wmic cpu get Manufacturer | more +1"
+            vio_driver_chk_cmd = 'driverquery /si | find "Red Hat"'
         file_transfer:
             tmp_dir = C:\
             clean_cmd = del
