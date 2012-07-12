@@ -16,6 +16,7 @@ Released under the GPL v2
 import os, sys
 from autotest.client.shared import error
 from autotest.client.tools.boottool import Grubby, install_grubby_if_necessary, EfiToolSys
+from autotest.client.tools.boottool import GRUBBY_DEFAULT_SYSTEM_PATH
 
 
 class boottool(Grubby):
@@ -24,8 +25,10 @@ class boottool(Grubby):
 
     Inherits all functionality from boottool(.py) CLI app (lazily).
     """
-    def __init__(self, path='/sbin/grubby'):
+    def __init__(self, path=None):
         self.instantiated = False
+        if path is None:
+            path = GRUBBY_DEFAULT_SYSTEM_PATH
         self.path = path
 
 
