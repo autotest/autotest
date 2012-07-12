@@ -348,6 +348,13 @@ class HostInstallTimeoutError(JobError):
     pass
 
 
+class HostInstallProfileError(JobError):
+    """
+    Indicates the machine failed to have a profile assigned.
+    """
+    pass
+
+
 class AutotestHostRunError(HostRunErrorMixIn, AutotestError):
     pass
 
