@@ -866,6 +866,8 @@ class UnattendedInstallConfig(object):
         # it's only necessary to download kernel/initrd if running bare qemu
         if self.vm_type == 'kvm':
             error.context("downloading vmlinuz/initrd.img from %s" % self.url)
+            if not os.path.exists(self.image_path):
+                os.mkdir(self.image_path)
             os.chdir(self.image_path)
             kernel_cmd = "wget -q %s/%s/%s" % (self.url,
                                                self.boot_path,
