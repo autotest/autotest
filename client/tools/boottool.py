@@ -834,6 +834,16 @@ class Grubby(object):
         args = []
         args.append(self.path)
 
+        if self.path is None:
+            self.log.error('grubby executable currently set to None. this is '
+                           'a serious error condition')
+
+        if self.path is not None and not os.path.exists(self.path):
+            self.log.error('grubby executable does not exist: "%s"', self.path)
+            if not os.access(self.path, os.R_OK | os.X_OK):
+                self.log.error('insufficient permissions (read and execute) '
+                               'for grubby executable: "%s"', self.path)
+
         # If a bootloader has been detected, that is, a mode has been set,
         # it's passed as the first command line argument to grubby
         if include_bootloader and self.bootloader is not None:
