@@ -313,6 +313,35 @@ class VMUSBControllerPortFullError(VMUSBControllerError):
         return ("No available USB Controller port left for VM %s." % self.name)
 
 
+class CpuInfo(object):
+    """
+    A class for VM's cpu information.
+    """
+    def __init__(self, model=None, vendor=None, flags=None, family=None,
+                 smp=0, maxcpus=0, sockets=0, cores=0, threads=0):
+        """
+        @param model: CPU Model of VM (use 'qemu -cpu ?' for list)
+        @param vendor: CPU Vendor of VM
+        @param flags: CPU Flags of VM
+        @param flags: CPU Family of VM
+        @param smp: set the number of CPUs to 'n' [default=1]
+        @param maxcpus: maximum number of total cpus, including
+                        offline CPUs for hotplug, etc
+        @param cores: number of CPU cores on one socket
+        @param threads: number of threads on one CPU core
+        @param sockets: number of discrete sockets in the system
+        """
+        self.model = model
+        self.vendor = vendor
+        self.flags = flags
+        self.family = family
+        self.smp = smp
+        self.maxcpus = maxcpus
+        self.sockets = sockets
+        self.cores = cores
+        self.threads = threads
+
+
 class BaseVM(object):
     """
     Base class for all hypervisor specific VM subclasses.
@@ -387,6 +416,8 @@ class BaseVM(object):
             self.virtnet = virt_utils.VirtNet(self.params,
                                           self.name,
                                           self.instance)
+        if not hasattr(self, 'cpuinfo'):
+            self.cpuinfo = CpuInfo()
 
     def _generate_unique_id(self):
         """
