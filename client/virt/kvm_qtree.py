@@ -89,6 +89,10 @@ class QtreeNode(object):
         self.update_qtree_prop(prop, value)
 
     def update_qtree_prop(self, prop, value):
+        if prop.startswith("bus-prop: "):
+            prop = prop[10:]
+        if prop.startswith("dev-prop: "):
+            prop = prop[10:]
         self.qtree[prop] = value
 
     def get_qtree(self):
@@ -146,7 +150,7 @@ class QtreeDev(QtreeNode):
         super(QtreeDev, self).add_child(child)
 
     def guess_type(self):
-        if ('dev-prop: drive' in self.qtree and
+        if ('drive' in self.qtree and
                 self.qtree['type'] != 'usb-storage'):
             # ^^ HOOK when usb-storage-containter is detected as disk
             return QtreeDisk
@@ -175,6 +179,10 @@ class QtreeDisk(QtreeDev):
         self.update_block_prop(prop, value)
 
     def update_block_prop(self, prop, value):
+        if prop.startswith("bus-prop: "):
+            prop = prop[10:]
+        if prop.startswith("dev-prop: "):
+            prop = prop[10:]
         self.block[prop] = value
 
     def get_block(self):
@@ -198,7 +206,7 @@ class QtreeDisk(QtreeDev):
         self.params['drive_format'] = self.qtree.get('type')
 
     def get_qname(self):
-        return self.qtree.get('dev-prop: drive')
+        return self.qtree.get('drive')
 
 
 class QtreeContainer(object):
@@ -422,9 +430,9 @@ class QtreeDisksContainer(object):
             if (disk.get_qtree()['type'].startswith('scsi') or
                     disk.get_qtree()['type'].startswith('usb2')):
                 props = disk.get_qtree()
-                disks.add('%d-%d-%d' % (int(props.get('bus-prop: channel')),
-                                        int(props.get('bus-prop: scsi-id')),
-                                        int(props.get('bus-prop: lun'))))
+                disks.add('%d-%d-%d' % (int(props.get('channel')),
+                                        int(props.get('scsi-id')),
+                                        int(props.get('lun'))))
             else:
                 qtree_not_scsi += 1
         scsis = set()
