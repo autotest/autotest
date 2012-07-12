@@ -110,8 +110,11 @@ class CobblerInterface(object):
             timeout = 3600
 
         system, system_handle = self.get_system_handle(host)
-        if profile:
+        if not profile:
             profile = self.server.get_system(system).get('profile')
+        if not profile:
+            e_msg = 'Unable to determine profile for host %s' % host.hostname
+            raise error.HostInstallProfileError(e_msg)
 
         host.record("START", None, "install", host.hostname)
         host.record("GOOD", None, "install.start", host.hostname)
