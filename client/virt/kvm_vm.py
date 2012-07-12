@@ -384,15 +384,11 @@ class VM(virt_vm.BaseVM):
             return " -m %s" % mem
 
 
-        def add_smp(help, smp, vcpu_cores=0, vcpu_threads=0, vcpu_sockets=0):
-            smp_str = " -smp %d" % int(smp)
-            # the value is not None, "", or "0"
-            if vcpu_cores:
-                smp_str += ",cores=%d" % int(vcpu_cores)
-            if vcpu_threads:
-                smp_str += ",threads=%d" % int(vcpu_threads)
-            if vcpu_sockets:
-                smp_str += ",sockets=%d" % int(vcpu_sockets)
+        def add_smp(help):
+            smp_str = " -smp %d" % self.cpuinfo.smp
+            smp_str += ",cores=%d" % self.cpuinfo.cores
+            smp_str += ",threads=%d" % self.cpuinfo.threads
+            smp_str += ",sockets=%d" % self.cpuinfo.sockets
             return smp_str
 
 
@@ -1049,6 +1045,7 @@ class VM(virt_vm.BaseVM):
             qemu_cmd += add_mem(help, mem)
 
         smp = int(params.get("smp", 1))
+        self.cpuinfo.smp = smp
         if smp:
             vcpu_threads = int(params.get("vcpu_threads", 1))
             vcpu_cores = int(params.get("vcpu_cores", smp))
@@ -1063,9 +1060,10 @@ class VM(virt_vm.BaseVM):
                 vcpu_threads = smp / vcpu_cores / vcpu_sockets
             if not vcpu_sockets:
                 vcpu_sockets = smp / vcpu_cores / vcpu_threads
-
-            qemu_cmd += add_smp(help, smp, vcpu_cores, vcpu_threads,
-                                vcpu_sockets)
+            self.cpuinfo.cores = vcpu_cores
+            self.cpuinfo.thread = vcpu_cores
+            self.cpuinfo.socket = vcpu_sockets
+            qemu_cmd += add_smp(help)
 
         cpu_model = params.get("cpu_model")
         use_default_cpu_model = True
@@ -1083,6 +1081,10 @@ class VM(virt_vm.BaseVM):
             vendor = params.get("cpu_model_vendor")
             flags = params.get("cpu_model_flags")
             family = params.get("cpu_family")
+            self.cpuinfo.model = cpu_model
+            self.cpuinfo.vendor = vendor
+            self.cpuinfo.flags = flags
+            self.cpuinfo.family = family
             qemu_cmd += add_cpu_flags(help, cpu_model, flags,
                                       vendor, family)
 
