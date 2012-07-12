@@ -88,6 +88,7 @@ def run_physical_resources_check(test, params, env):
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
     timeout = int(params.get("login_timeout", 360))
+    chk_timeout = int(params.get("chk_timeout", 240))
     session = vm.wait_for_login(timeout=timeout)
 
     logging.info("Starting physical resources check test")
@@ -185,6 +186,17 @@ def run_physical_resources_check(test, params, env):
     f_fail = verify_device(params.get("drive_serial"), "Serial",
                            catch_serial_cmd)
     n_fail.extend(f_fail)
+
+    # only check if the MS Windows VirtIO driver is digital signed.
+    chk_cmd = params.get("vio_driver_chk_cmd")
+    if chk_cmd:
+        logging.info("Virtio Driver Check")
+        chk_output = session.cmd_output(chk_cmd, timeout=chk_timeout)
+        if "FALSE" in chk_output:
+            fail_log = "VirtIO driver is not digitally signed!"
+            fail_log += "    VirtIO driver check output: '%s'" % chk_output
+            n_fail.append(fail_log)
+            logging.error(fail_log)
 
     if n_fail:
         session.close()

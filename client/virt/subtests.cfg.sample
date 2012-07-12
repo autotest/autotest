@@ -1702,6 +1702,10 @@ variants:
         # be changed in guest-os.cfg file for different guest os type.
         catch_uuid_cmd = dmidecode | awk -F: '/UUID/ {print $2}'
         cpu_vendor_id_chk_cmd = "cat /proc/cpuinfo | grep 'vendor_id'"
+        # Parameter for checking virtio driver's signature in windows guest,
+        # useless for linux guest.
+        vio_driver_chk_cmd = ""
+        chk_timeout = 240
 
     - ksm_overcommit: install setup image_copy unattended_install.cdrom
         only Linux
