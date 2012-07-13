@@ -1570,7 +1570,7 @@ def run_tests(parser, job):
 
     @return: True, if all tests ran passed, False if any of them failed.
     """
-    last_index = 0
+    last_index = -1
     for i, d in enumerate(parser.get_dicts()):
         logging.info("Test %4d:  %s" % (i + 1, d["shortname"]))
         last_index += 1
@@ -1594,7 +1594,7 @@ def run_tests(parser, job):
                 dict["host_setup_flag"] = flag | setup_flag
             else:
                 dict["host_setup_flag"] = setup_flag
-        elif index == last_index:
+        if index == last_index:
             if dict.get("host_setup_flag", None) is not None:
                 flag = int(dict["host_setup_flag"])
                 dict["host_setup_flag"] = flag | cleanup_flag
