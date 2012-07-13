@@ -114,6 +114,8 @@ variants:
                 spice_playback_compression = on
             -no_pc:
                 spice_playback_compression = off
+            -bad_pc:
+                spice_playback_compression = bad_value
 
         variants:
             -ipv6:
@@ -128,7 +130,7 @@ variants:
 variants:
 
     - qemu_kvm_rhel63_install_client:
-        # Use this only when you need to create rhel62 image qcow
+        # Use this only when you need to create rhel63 image qcow
         qemu_binary = /usr/libexec/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
         qemu_io_binary = /usr/bin/qemu-io
@@ -140,12 +142,12 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only Linux.RHEL.6.3.beta.x86_64
+        only Linux.RHEL.6.3.x86_64
         only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
         only unattended_install.cdrom.extra_cdrom_ks
 
     - qemu_kvm_rhel63_install_guest:
-        # Use this only when you need to create rhel62 image qcow
+        # Use this only when you need to create rhel63 image qcow
         qemu_binary = /usr/libexec/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
         qemu_io_binary = /usr/bin/qemu-io
@@ -156,7 +158,7 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only RHEL.6.3.beta.x86_64
+        only Linux.RHEL.6.3.x86_64
         only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
         only unattended_install.cdrom.extra_cdrom_ks
 
@@ -172,9 +174,9 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only Linux.RHEL.6.3.beta.x86_64
+        only Linux.RHEL.6.3.x86_64
         only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
-        only rv_connect.RHEL.6.3.beta.x86_64, shutdown
+        only rv_connect.RHEL.6.3.x86_64, shutdown
 
     - @spice_negative_rhel63_all:
         qemu_binary = /usr/libexec/qemu-kvm
@@ -188,7 +190,7 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only Linux.RHEL.6.3.beta.x86_64
+        only Linux.RHEL.6.3.x86_64
         only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.bad_port.no_password.1monitor, spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.bad_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.default_sv.default_zlib_wc.bad_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.default_sv.bad_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.bad_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.bad_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
         only negative_create
 
@@ -204,9 +206,9 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only Linux.RHEL.6.3.beta.x86_64
+        only Linux.RHEL.6.3.x86_64
         only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
-        only start, rv_connect.RHEL.6.3.beta.x86_64, rv_disconnect.RHEL.6.3.beta.x86_64, shutdown
+        only start, rv_connect.RHEL.6.3.x86_64, rv_disconnect.RHEL.6.3.x86_64, shutdown
 
 # Choose your test list from the testsets defined
 only qemu_kvm_rhel63_install_guest, qemu_kvm_rhel63_install_client, remote_viewer_rhel63_quick, rv_disconnect_rhel63, spice_negative_rhel63_all
