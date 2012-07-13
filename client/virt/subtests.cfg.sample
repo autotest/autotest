@@ -2338,9 +2338,9 @@ variants:
                 variants:
                     # This is current solution of handling
                     # multiple guests running exact same OS
-                    -6.3.beta.x86_64:
+                    -6.3.x86_64:
                         image_name_vm2 = rhel63-64_client
-                    -6.3.beta.i386:
+                    -6.3.i386:
                         image_name_vm2 = rhel63-32_client
     - kernel_install:
         only Linux
@@ -2391,9 +2391,9 @@ variants:
                 variants:
                     # This is current solution of handling
                     # multiple guests running exact same OS
-                    -6.3.beta.x86_64:
+                    -6.3.x86_64:
                         image_name_vm2 = rhel63-64_client
-                    -6.3.beta.i386:
+                    -6.3.i386:
                         image_name_vm2 = rhel63-32_client
 
     - seabios: install setup image_copy unattended_install.cdrom
