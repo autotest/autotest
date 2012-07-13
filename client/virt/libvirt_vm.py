@@ -520,6 +520,33 @@ def virsh_detach_interface(name, option="", uri="", ignore_status=False, print_i
     return virsh_cmd(cmd, uri, ignore_status, print_info)
 
 
+def virsh_net_create(xml_file, extra="", uri="",
+                     ignore_status=False, print_info=False):
+    """
+    Create network from a XML file.
+    """
+    cmd = "net-create --file %s %s" % (xml_file, extra)
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
+def virsh_net_list(options, extra="", uri="",
+                   ignore_status=False, print_info=False):
+    """
+    List networks on host.
+    """
+    cmd = "net-list %s %s" % (options, extra)
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
+def virsh_net_destroy(name, extra="", uri="",
+                      ignore_status=False, print_info=False):
+    """
+    Destroy actived network on host.
+    """
+    cmd = "net-destroy --network %s %s" % (name, extra)
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
 class VM(virt_vm.BaseVM):
     """
     This class handles all basic VM operations for libvirt.
