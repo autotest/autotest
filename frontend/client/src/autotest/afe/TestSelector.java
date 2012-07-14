@@ -4,6 +4,7 @@ import autotest.common.JSONArrayList;
 import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.DataTable;
+import autotest.common.table.DataTable.WidgetType;
 import autotest.common.table.DataTable.DataTableListener;
 import autotest.common.table.DataTable.TableWidgetFactory;
 import autotest.common.table.SelectionManager;
@@ -53,7 +54,7 @@ public class TestSelector extends Composite implements DataTableListener, Change
     // ad-hoc interface
     public static interface ISelectionManager {
         public void deselectAll();
-        public Widget createWidget(int row, int cell, JSONObject rowObject);
+        public Widget createWidget(int row, int cell, JSONObject rowObject, WidgetType type);
         public void addListener(SelectionListener listener);
 
         public static class SelectionManagerImpl extends SelectionManager
@@ -205,9 +206,9 @@ public class TestSelector extends Composite implements DataTableListener, Change
         display.getTestTable().refreshWidgets();
     }
 
-    public Widget createWidget(int row, int cell, JSONObject rowObject) {
+    public Widget createWidget(int row, int cell, JSONObject rowObject, WidgetType type) {
         TableClickWidget widget =
-            (TableClickWidget) display.getTestSelection().createWidget(row, cell, rowObject);
+            (TableClickWidget) display.getTestSelection().createWidget(row, cell, rowObject, type);
         if (!enabled) {
             widget.getContainedWidget().setEnabled(false);
         }

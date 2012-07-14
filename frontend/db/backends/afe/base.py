@@ -11,12 +11,26 @@ except ImportError, e:
 
 
 class DatabaseOperations(MySQLOperations):
-    compiler_module = "autotest_lib.frontend.db.backends.afe.compiler"
+    compiler_module = "autotest.frontend.db.backends.afe.compiler"
 
 
 class DatabaseWrapper(MySQLDatabaseWrapper):
     def __init__(self, *args, **kwargs):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
         self.creation = MySQLCreation(self)
-        self.ops = DatabaseOperations()
+        try:
+            self.ops = DatabaseOperations()
+        except TypeError:
+            self.ops = DatabaseOperations(connection=kwargs.get('connection'))
         self.introspection = MySQLIntrospection(self)
+
+    def _valid_connection(self):
+        if self.connection is not None:
+            if self.connection.open:
+                try:
+                    self.connection.ping()
+                    return True
+                except Database.DatabaseError:
+                    self.connection.close()
+                    self.connection = None
+        return False

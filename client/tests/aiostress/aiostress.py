@@ -1,7 +1,7 @@
 # This requires aio headers to build.
 # Should work automagically out of deps now.
 import os
-from autotest_lib.client.bin import test, utils
+from autotest.client import test, utils
 
 
 class aiostress(test.test):

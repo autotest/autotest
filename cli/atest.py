@@ -12,6 +12,32 @@ on the command line and imports the site_<topic> or <topic> module.
 
 It then creates a <topic>_<action> object, and calls it parses),
 execute() and output() methods.
+
+There are three return values possible:
+0: the operation requested succeeded
+1: the operation requested failed
+2: the operation requested worked partially
+
+EXAMPLE:
+
+(1) host list goodsys badsys
+goodsys exists and its info is displayed
+badsys does not exist and a "host not found" message is displayed.
+
+this will exit with a value of 2.
+
+(2) host list badsys
+badsys does not exist and a "host not found" message is displayed.
+
+this will exit with a value of 1.
+
+(3) host list goodsys
+goodsys exists and its info is displayed
+
+this will exit 0
+
+(4) host list pattern
+this will exit 0 whether pattern displays anything or not
 """
 
 __author__ = 'jmeurin@google.com (Jean-Marc Eurin)'
@@ -22,7 +48,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.cli import topic_common
+from autotest.cli import topic_common
 
 
 def main():
@@ -65,7 +91,7 @@ def main():
     elif not os.path.exists(os.path.join(cli_dir, '%s.py' % topic)):
         syntax_obj.invalid_syntax('Invalid topic %s' % topic)
     topic_module = common.setup_modules.import_module(topic,
-                                                      'autotest_lib.cli')
+                                                      'autotest.cli')
 
     # If we have a syntax error now, it should
     # refer to the topic class.
@@ -93,6 +119,7 @@ def main():
     action_obj = action_class()
 
     action_obj.parse()
+    results = 0
     try:
         try:
             results = action_obj.execute()
@@ -107,4 +134,12 @@ def main():
             except Exception:
                 traceback.print_exc()
     finally:
-        return action_obj.show_all_failures()
+        # set rtn = 0 if there were no errors
+        # set rtn = 1 if there were only errors
+        # set rtn = 2 if there was both output and error
+        rtn = action_obj.show_all_failures()
+        if ( results ):
+            if ( rtn ):
+                #  we had errors and output
+                rtn = 2
+        return rtn

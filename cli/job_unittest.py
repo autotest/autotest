@@ -11,8 +11,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.cli import cli_mock, topic_common, job
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.cli import cli_mock, topic_common, job
+from autotest.client.shared.test_utils import mock
 
 
 class job_unittest(cli_mock.cli_unittest):
@@ -938,6 +938,61 @@ class job_create_unittest(cli_mock.cli_unittest):
                      out_words_ok=['test_job0', 'Created',
                                    'Uploading', 'Done'])
 
+    def test_execute_create_job_with_2kernels_and_2config(self):
+        data = self.data.copy()
+        data['control_file'] = self.kernel_ctrl_file
+        self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
+                           '-k', 'kernel1,kernel2',
+                           '--kernel-config', 'config1,config2',
+                           '--kernel-cmdline','arg1 arg2',
+                           'test_job0', '-m', 'host0', '--ignore_site_file'],
+                     rpcs=[('generate_control_file',
+                            {'tests': ['sleeptest'],
+                             'kernel': [{'version': 'kernel1',
+                                         'config_file': 'config1',
+                                         'cmdline': 'arg1 arg2'},
+                                        {'version': 'kernel2',
+                                         'config_file': 'config2',
+                                         'cmdline': 'arg1 arg2'}]
+                             },
+                            True,
+                            {'control_file' : self.kernel_ctrl_file,
+                             'synch_count' : 1,
+                             'is_server' : False,
+                             'dependencies' : []}),
+                           ('create_job', data, True, 180)],
+                     out_words_ok=['test_job0', 'Created',
+                                   'Uploading', 'Done'])
+
+
+    def test_execute_create_job_with_3kernels_and_explicit_none_config(self):
+        data = self.data.copy()
+        data['control_file'] = self.kernel_ctrl_file
+        self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
+                           '-k', 'kernel1,kernel2,kernel3',
+                           '--kernel-config', 'config1,none,config3',
+                           '--kernel-cmdline','arg1 arg2',
+                           'test_job0', '-m', 'host0', '--ignore_site_file'],
+                     rpcs=[('generate_control_file',
+                            {'tests': ['sleeptest'],
+                             'kernel': [{'version': 'kernel1',
+                                         'config_file': 'config1',
+                                         'cmdline': 'arg1 arg2'},
+                                        {'version': 'kernel2',
+                                         'cmdline': 'arg1 arg2'},
+                                        {'version': 'kernel3',
+                                         'config_file': 'config3',
+                                         'cmdline': 'arg1 arg2'}]
+                             },
+                            True,
+                            {'control_file' : self.kernel_ctrl_file,
+                             'synch_count' : 1,
+                             'is_server' : False,
+                             'dependencies' : []}),
+                           ('create_job', data, True, 180)],
+                     out_words_ok=['test_job0', 'Created',
+                                   'Uploading', 'Done'])
+
 
     def test_execute_create_job_with_kernel_spaces(self):
         data = self.data.copy()
@@ -1007,6 +1062,19 @@ class job_create_unittest(cli_mock.cli_unittest):
         testjob = job.job_create()
         sys.argv = ['atest', 'job', 'create', '-f', 'control_file', '-k',
                     'kernel', 'test_job0', '-m', 'host0', '--ignore_site_file']
+        self.god.mock_io()
+        (sys.exit.expect_call(mock.anything_comparator())
+         .and_raises(cli_mock.ExitException))
+        self.assertRaises(cli_mock.ExitException, testjob.parse)
+        self.god.unmock_io()
+        self.god.check_playback()
+
+
+    def test_execute_create_job_more_kernels_than_configs(self):
+        testjob = job.job_create()
+        sys.argv = ['atest', 'job', 'create', '-f', 'control_file', '-k',
+                    'kernel1,kernel2', '--kernel-config', 'config1',
+                    'test_job0', '-m', 'host0', '--ignore_site_file']
         self.god.mock_io()
         (sys.exit.expect_call(mock.anything_comparator())
          .and_raises(cli_mock.ExitException))

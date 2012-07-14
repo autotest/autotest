@@ -10,6 +10,7 @@ import autotest.common.table.SimpleFilter;
 import autotest.common.table.TableDecorator;
 import autotest.common.table.DataSource.SortDirection;
 import autotest.common.table.DataSource.SortSpec;
+import autotest.common.table.DataTable.WidgetType;
 import autotest.common.table.DataTable.TableWidgetFactory;
 import autotest.common.table.DynamicTable.DynamicTableListener;
 import autotest.common.ui.ContextMenu;
@@ -535,7 +536,7 @@ public class TableView extends ConditionTabView
         return getGroupingFromFields(savedColumns());
     }
 
-    public Widget createWidget(int row, int cell, JSONObject rowObject) {
+    public Widget createWidget(int row, int cell, JSONObject rowObject, WidgetType type) {
         assert getActiveGrouping() == GroupingType.STATUS_COUNTS;
         StatusSummary statusSummary = StatusSummary.getStatusSummary(rowObject);
         SimplePanel panel = new SimplePanel();

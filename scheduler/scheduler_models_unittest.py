@@ -5,14 +5,14 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.frontend import setup_django_environment
-from autotest_lib.frontend.afe import frontend_test_utils
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.client.common_lib.test_utils import unittest
-from autotest_lib.database import database_connection
-from autotest_lib.frontend.afe import models, model_attributes
-from autotest_lib.scheduler import monitor_db_functional_test
-from autotest_lib.scheduler import scheduler_models
+from autotest.frontend import setup_django_environment
+from autotest.frontend.afe import frontend_test_utils
+from autotest.client.shared.test_utils import mock
+from autotest.client.shared.test_utils import unittest
+from autotest.database import database_connection
+from autotest.frontend.afe import models, model_attributes
+from autotest.scheduler import monitor_db_functional_unittest
+from autotest.scheduler import scheduler_models
 
 _DEBUG = False
 
@@ -31,7 +31,7 @@ class BaseSchedulerModelsTest(unittest.TestCase,
 
         self._database = (
             database_connection.TranslatingDatabase.get_test_database(
-                translators=monitor_db_functional_test._DB_TRANSLATORS))
+                translators=monitor_db_functional_unittest._DB_TRANSLATORS))
         self._database.connect(db_type='django')
         self._database.debug = _DEBUG
 
@@ -158,7 +158,7 @@ class DBObjectTest(BaseSchedulerModelsTest):
         self.god.stub_with(scheduler_models, 'Job', MockJob)
         hqe = scheduler_models.HostQueueEntry(
                 new_record=True,
-                row=[0, 1, 2, 'Queued', None, 0, 0, 0, '.', None, False, None])
+                row=[0, 1, 2, 'rhel6', 'Queued', None, 0, 0, 0, '.', None, False, None])
         hqe.save()
         new_id = hqe.id
         # Force a re-query and verify that the correct data was stored.
@@ -167,6 +167,7 @@ class DBObjectTest(BaseSchedulerModelsTest):
         self.assertEqual(hqe.id, new_id)
         self.assertEqual(hqe.job_id, 1)
         self.assertEqual(hqe.host_id, 2)
+        self.assertEqual(hqe.profile, 'rhel6')
         self.assertEqual(hqe.status, 'Queued')
         self.assertEqual(hqe.meta_host, None)
         self.assertEqual(hqe.active, False)

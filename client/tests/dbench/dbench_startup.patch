@@ -6,11 +6,11 @@ diff -u old/ new/
  
  dbench: $(DB_OBJS)
 -	$(CC) -o $@ $(DB_OBJS) $(LIBS)
-+	$(CC) -lpthread -o $@ $(DB_OBJS) $(LIBS)
++	$(CC) -pthread -o $@ $(DB_OBJS) $(LIBS)
  
  tbench: $(TB_OBJS)
 -	$(CC) -o $@ $(TB_OBJS) $(LIBS)
-+	$(CC) -lpthread -o $@ $(TB_OBJS) $(LIBS)
++	$(CC) -pthread -o $@ $(TB_OBJS) $(LIBS)
  
  tbench_srv: $(SRV_OBJS)
  	$(CC) -o $@ $(SRV_OBJS) $(LIBS)

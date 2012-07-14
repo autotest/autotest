@@ -41,7 +41,7 @@ For 'atest label add':
 """
 
 import re, socket, types
-from autotest_lib.cli import topic_common
+from autotest.cli import topic_common
 
 
 #

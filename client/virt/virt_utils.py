@@ -1,17 +1,15 @@
 """
-KVM test utility functions.
+Virtualization test utility functions.
 
 @copyright: 2008-2009 Red Hat Inc.
 """
 
 import time, string, random, socket, os, signal, re, logging, commands, cPickle
-import fcntl, shelve, ConfigParser, threading, sys, UserDict, inspect, tarfile
-import struct, shutil, glob
-from autotest_lib.client.bin import utils, os_dep
-from autotest_lib.client.common_lib import error, logging_config
-from autotest_lib.client.common_lib import logging_manager, git
-import rss_client, aexpect
-import platform
+import fcntl, shelve, ConfigParser, sys, UserDict, inspect, tarfile
+import struct, shutil, glob, HTMLParser, urllib, traceback, platform
+from autotest.client import utils, os_dep
+from autotest.client.shared import error, logging_config
+from autotest.client.shared import logging_manager, git
 
 try:
     import koji
@@ -54,13 +52,13 @@ else:
     IFF_UP = 0x1
 
 
-def _lock_file(filename):
+def lock_file(filename, mode=fcntl.LOCK_EX):
     f = open(filename, "w")
-    fcntl.lockf(f, fcntl.LOCK_EX)
+    fcntl.lockf(f, mode)
     return f
 
 
-def _unlock_file(f):
+def unlock_file(f):
     fcntl.lockf(f, fcntl.LOCK_UN)
     f.close()
 
@@ -152,6 +150,27 @@ class HwAddrGetError(NetError):
     def __str__(self):
         return "Can not get mac of interface %s" % self.ifname
 
+class PropCanKeyError(KeyError, AttributeError):
+    def __init__(self, key, slots):
+        self.key = key
+        self.slots = slots
+    def __str__(self):
+        return "Unsupported key name %s (supported keys: %s)" % (
+                    str(self.key), str(self.slots))
+
+class PropCanValueError(PropCanKeyError):
+    def __str__(self):
+        return "Instance contains None value for valid key '%s'" % (
+                    str(self.key))
+
+class VMNetError(NetError):
+    def __str__(self):
+        return ("VMNet instance items must be dict-like and contain "
+                "a 'nic_name' mapping")
+
+class DbNoLockError(NetError):
+    def __str__(self):
+        return "Attempt made to access database with improper locking"
 
 class Env(UserDict.IterableUserDict):
     """
@@ -184,13 +203,17 @@ class Env(UserDict.IterableUserDict):
                         self.data = empty
                 else:
                     # No previous env file found, proceed...
+                    logging.warn("Creating new, empty env file")
                     self.data = empty
             # Almost any exception can be raised during unpickling, so let's
             # catch them all
-            except Exception, e:
-                logging.warn(e)
+            except:
+                logging.warn("Exception thrown while loading env")
+                traceback.print_last()
+                logging.warn("Creating new, empty env file")
                 self.data = empty
         else:
+            logging.warn("Creating new, empty env file")
             self.data = empty
 
 
@@ -240,6 +263,34 @@ class Env(UserDict.IterableUserDict):
         @param name: VM name.
         """
         del self["vm__%s" % name]
+
+
+    def register_syncserver(self, port, server):
+        """
+        Register a Sync Server in this Env object.
+
+        @param port: Sync Server port.
+        @param server: Sync Server object.
+        """
+        self["sync__%s" % port] = server
+
+
+    def unregister_syncserver(self, port):
+        """
+        Remove a given Sync Server.
+
+        @param port: Sync Server port.
+        """
+        del self["sync__%s" % port]
+
+
+    def get_syncserver(self, port):
+        """
+        Return a Sync Server object by its port.
+
+        @param port: Sync Server port.
+        """
+        return self.get("sync__%s" % port)
 
 
     def register_installer(self, installer):
@@ -295,112 +346,845 @@ class Params(UserDict.IterableUserDict):
                 new_dict[new_key] = self[key]
         return new_dict
 
+# subclassed dict wouldn't honor __slots__ on python 2.4 when __slots__ gets
+# overridden by a subclass. This class also changes behavior of dict
+# WRT to None value being the same as non-existant "key".
+class PropCan(object):
+    """
+    Allow container-like access to fixed set of items (__slots__)
 
-# Functions related to MAC/IP addresses
+    raise: KeyError if requested container-like index isn't in set (__slots__)
+    """
+    __slots__ = []
 
+    def __init__(self, properties={}):
+        """
+        Initialize, optionally with pre-defined key values.
+
+        param: properties: Mapping of fixed (from __slots__) keys to values
+        """
+        for propertea in self.__slots__:
+            value = properties.get(propertea, None)
+            self[propertea] = value
+
+    def __getattribute__(self, propertea):
+        try:
+            value = super(PropCan, self).__getattribute__(propertea)
+        except:
+            raise PropCanKeyError(propertea, self.__slots__)
+        if value is not None:
+            return value
+        else:
+            raise PropCanValueError(propertea, self.__slots__)
+
+    def __getitem__(self, propertea):
+        try:
+            return getattr(self, propertea)
+        except AttributeError:
+            raise PropCanKeyError(propertea, self.__slots__)
+
+    def __setitem__(self, propertea, value):
+        try:
+            setattr(self, propertea, value)
+        except AttributeError:
+            raise PropCanKeyError(propertea, self.__slots__)
+
+    def __delitem__(self, propertea):
+        try:
+            delattr(self, propertea)
+        except AttributeError:
+            raise PropCanKeyError(propertea, self.__slots__)
+
+    def __len__(self):
+        length = 0
+        for propertea in self.__slots__:
+            if self.__contains__(propertea):
+                length += 1
+        return length
+
+    def __contains__(self, propertea):
+        try:
+            value = getattr(self, propertea)
+        except PropCanKeyError:
+            return False
+        if value:
+            return True
+
+    def keys(self):
+        keylist = []
+        for propertea in self.__slots__:
+            if self.__contains__(propertea):
+                keylist.append(propertea)
+        return keylist
+
+    def has_key(self, propertea):
+        return self.__contains__(propertea)
+
+    def set_if_none(self, propertea, value):
+        """
+        Set the value of propertea, only if it's not set or None
+        """
+        if propertea not in self.keys():
+            self[propertea] = value
+
+    def get(self, propertea, default=None):
+        """
+        Mimics get method on python dictionaries
+        """
+        if self.has_key(propertea):
+            return self[propertea]
+        else:
+            return default
+
+    def update(self, **otherdict):
+        for propertea in self.__slots__:
+            if otherdict.has_key(propertea):
+                self[propertea] = otherdict[propertea]
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        """
+        Guarantee return of string format dictionary representation
+        """
+        d = {}
+        for propertea in self.__slots__:
+            value = getattr(self, propertea, None)
+            # Avoid producing string conversions with python-specific or
+            # ambiguous meaning e.g. str(None) == 'None' and
+            # str(<type>) == '<type "foo">' are all valid
+            # but demand interpretation on the receiving-side. Easier to
+            # just hard-code a common set of types known to convert to/from
+            # database strings easily.
+            if value is not None and (
+                        isinstance(value, str) or isinstance(value, int) or
+                        isinstance(value, float) or isinstance(value, long) or
+                        isinstance(value, unicode)):
+                d[propertea] = value
+            else:
+                continue
+        return str(d)
+
+# Legacy functions related to MAC/IP addresses should make noise
 def _open_mac_pool(lock_mode):
-    lock_file = open("/tmp/mac_lock", "w+")
-    fcntl.lockf(lock_file, lock_mode)
-    pool = shelve.open("/tmp/address_pool")
-    return pool, lock_file
-
+    raise RuntimeError("Please update your code to use the VirtNet class")
 
 def _close_mac_pool(pool, lock_file):
-    pool.close()
-    fcntl.lockf(lock_file, fcntl.LOCK_UN)
-    lock_file.close()
-
+    raise RuntimeError("Please update your code to use the VirtNet class")
 
 def _generate_mac_address_prefix(mac_pool):
-    """
-    Generate a random MAC address prefix and add it to the MAC pool dictionary.
-    If there's a MAC prefix there already, do not update the MAC pool and just
-    return what's in there. By convention we will set KVM autotest MAC
-    addresses to start with 0x9a.
-
-    @param mac_pool: The MAC address pool object.
-    @return: The MAC address prefix.
-    """
-    if "prefix" in mac_pool:
-        prefix = mac_pool["prefix"]
-    else:
-        r = random.SystemRandom()
-        prefix = "9a:%02x:%02x:%02x:" % (r.randint(0x00, 0xff),
-                                         r.randint(0x00, 0xff),
-                                         r.randint(0x00, 0xff))
-        mac_pool["prefix"] = prefix
-    return prefix
-
+    raise RuntimeError("Please update your code to use the VirtNet class")
 
 def generate_mac_address(vm_instance, nic_index):
-    """
-    Randomly generate a MAC address and add it to the MAC address pool.
-
-    Try to generate a MAC address based on a randomly generated MAC address
-    prefix and add it to a persistent dictionary.
-    key = VM instance + NIC index, value = MAC address
-    e.g. {'20100310-165222-Wt7l:0': '9a:5d:94:6a:9b:f9'}
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
-    @return: MAC address string.
-    """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_EX)
-    key = "%s:%s" % (vm_instance, nic_index)
-    if key in mac_pool:
-        mac = mac_pool[key]
-    else:
-        prefix = _generate_mac_address_prefix(mac_pool)
-        r = random.SystemRandom()
-        while key not in mac_pool:
-            mac = prefix + "%02x:%02x" % (r.randint(0x00, 0xff),
-                                          r.randint(0x00, 0xff))
-            if mac in mac_pool.values():
-                continue
-            mac_pool[key] = mac
-    _close_mac_pool(mac_pool, lock_file)
-    return mac
-
+    raise RuntimeError("Please update your code to use "
+                       "VirtNet.generate_mac_address()")
 
 def free_mac_address(vm_instance, nic_index):
-    """
-    Remove a MAC address from the address pool.
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
-    """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_EX)
-    key = "%s:%s" % (vm_instance, nic_index)
-    if key in mac_pool:
-        del mac_pool[key]
-    _close_mac_pool(mac_pool, lock_file)
-
+    raise RuntimeError("Please update your code to use "
+                       "VirtNet.free_mac_address()")
 
 def set_mac_address(vm_instance, nic_index, mac):
+    raise RuntimeError("Please update your code to use "
+                       "VirtNet.set_mac_address()")
+
+class VirtIface(PropCan):
     """
-    Set a MAC address in the pool.
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
+    Networking information for single guest interface and host connection.
     """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_EX)
-    mac_pool["%s:%s" % (vm_instance, nic_index)] = mac
-    _close_mac_pool(mac_pool, lock_file)
+    __slots__ = ['nic_name', 'mac', 'nic_model', 'ip', 'nettype', 'netdst']
+    # Make sure first byte generated is always zero and it follows
+    # the class definition.  This helps provide more predictable
+    # addressing while avoiding clashes between multiple NICs.
+    LASTBYTE = random.SystemRandom().randint(0x00, 0xff)
+
+    def __getstate__(self):
+        state = {}
+        for key in VirtIface.__slots__:
+            if self.has_key(key):
+                state[key] = self[key]
+        return state
+
+    def __setstate__(self, state):
+        self.__init__(state)
+
+    @classmethod
+    def name_is_valid(cls, nic_name):
+        """
+        Corner-case prevention where nic_name is not a sane string value
+        """
+        try:
+            return isinstance(nic_name, str) and len(nic_name) > 1
+        except TypeError: # object does not implement len()
+            return False
+        except PropCanKeyError: #unset name
+            return False
+
+    @classmethod
+    def mac_is_valid(cls, mac):
+        try:
+            mac = cls.mac_str_to_int_list(mac)
+        except TypeError:
+            return False
+        return True # Though may be less than 6 bytes
+
+    @classmethod
+    def mac_str_to_int_list(cls, mac):
+        """
+        Convert list of string bytes to int list
+        """
+        if isinstance(mac, str):
+            mac = mac.split(':')
+        # strip off any trailing empties
+        for rindex in xrange(len(mac), 0, -1):
+            if not mac[rindex-1].strip():
+                del mac[rindex-1]
+            else:
+                break
+        try:
+            assert len(mac) < 7
+            for byte_str_index in xrange(0,len(mac)):
+                byte_str = mac[byte_str_index]
+                assert isinstance(byte_str, str)
+                assert len(byte_str) > 0
+                try:
+                    value = eval("0x%s" % byte_str, {}, {})
+                except SyntaxError:
+                    raise AssertionError
+                assert value >= 0x00
+                assert value <= 0xFF
+                mac[byte_str_index] = value
+        except AssertionError:
+            raise TypeError("%s %s is not a valid MAC format "
+                            "string or list" % (str(mac.__class__),
+                             str(mac)))
+        return mac
+
+    @classmethod
+    def int_list_to_mac_str(cls, mac_bytes):
+        """
+        Return string formatting of int mac_bytes
+        """
+        for byte_index in xrange(0,len(mac_bytes)):
+            mac = mac_bytes[byte_index]
+            # Project standardized on lower-case hex
+            if mac < 16:
+                mac_bytes[byte_index] = "0%x" % mac
+            else:
+                mac_bytes[byte_index] = "%x" % mac
+        return mac_bytes
+
+    @classmethod
+    def generate_bytes(cls):
+        """
+        Return next byte from ring
+        """
+        cls.LASTBYTE += 1
+        if cls.LASTBYTE > 0xff:
+            cls.LASTBYTE = 0
+        yield cls.LASTBYTE
+
+    @classmethod
+    def complete_mac_address(cls, mac):
+        """
+        Append randomly generated byte strings to make mac complete
+
+        @param: mac: String or list of mac bytes (possibly incomplete)
+        @raise: TypeError if mac is not a string or a list
+        """
+        mac = cls.mac_str_to_int_list(mac)
+        if len(mac) == 6:
+            return ":".join(cls.int_list_to_mac_str(mac))
+        for rand_byte in cls.generate_bytes():
+            mac.append(rand_byte)
+            return cls.complete_mac_address(cls.int_list_to_mac_str(mac))
 
 
-def get_mac_address(vm_instance, nic_index):
+
+class LibvirtIface(VirtIface):
     """
-    Return a MAC address from the pool.
-
-    @param vm_instance: The instance attribute of a VM.
-    @param nic_index: The index of the NIC.
-    @return: MAC address string.
+    Networking information specific to libvirt
     """
-    mac_pool, lock_file = _open_mac_pool(fcntl.LOCK_SH)
-    mac = mac_pool.get("%s:%s" % (vm_instance, nic_index))
-    _close_mac_pool(mac_pool, lock_file)
-    return mac
+    __slots__ = VirtIface.__slots__ + []
 
+
+
+class KVMIface(VirtIface):
+    """
+    Networking information specific to KVM
+    """
+    __slots__ = VirtIface.__slots__ + ['vlan', 'device_id', 'ifname', 'tapfd',
+                                       'tapfd_id', 'netdev_id', 'tftp',
+                                       'romfile', 'nic_extra_params',
+                                       'netdev_extra_params']
+
+class VMNet(list):
+    """
+    Collection of networking information.
+    """
+
+    # don't flood discard warnings
+    DISCARD_WARNINGS=10
+
+    # __init__ must not presume clean state, it should behave
+    # assuming there is existing properties/data on the instance
+    # and take steps to preserve or update it as appropriate.
+    def __init__(self, container_class=VirtIface, virtiface_list=[]):
+        """
+        Initialize from list-like virtiface_list using container_class
+        """
+        if container_class != VirtIface and (
+                        not issubclass(container_class, VirtIface)):
+            raise TypeError("Container class must be Base_VirtIface "
+                            "or subclass not a %s" % str(container_class))
+        self.container_class = container_class
+        super(VMNet, self).__init__([])
+        if isinstance(virtiface_list, list):
+            for virtiface in virtiface_list:
+                self.append(virtiface)
+        else:
+            raise VMNetError
+
+    def __getstate__(self):
+        return [nic for nic in self]
+
+    def __setstate__(self, state):
+        VMNet.__init__(self, self.container_class, state)
+
+    def __getitem__(self, index_or_name):
+        if isinstance(index_or_name, str):
+            index_or_name = self.nic_name_index(index_or_name)
+        return super(VMNet, self).__getitem__(index_or_name)
+
+    def __setitem__(self, index_or_name, value):
+        if not isinstance(value, dict):
+            raise VMNetError
+        if self.container_class.name_is_valid(value['nic_name']):
+            if isinstance(index_or_name, str):
+                index_or_name = self.nic_name_index(index_or_name)
+            self.process_mac(value)
+            super(VMNet, self).__setitem__(index_or_name,
+                                           self.container_class(value))
+        else:
+            raise VMNetError
+
+
+    def subclass_pre_init(self, params, vm_name):
+        """
+            Subclasses must establish style before calling VMNet. __init__()
+        """
+        #TODO: Get rid of this function.  it's main purpose is to provide
+        # a shared way to setup style (container_class) from params+vm_name
+        # so that unittests can run independantly for each subclass.
+        if not hasattr(self, 'vm_name'):
+            self.vm_name = vm_name
+        if not hasattr(self, 'prams'):
+            self.params = params.object_params(self.vm_name)
+        if not hasattr(self, 'container_class'):
+            self.vm_type = self.params.get('vm_type', 'default')
+            self.driver_type = self.params.get('driver_type', 'default')
+            for key,value in VMNetStyle(self.vm_type,
+                                        self.driver_type).items():
+                setattr(self, key, value)
+
+    def process_mac(self, value):
+        """
+        Strips 'mac' key from value if it's not valid
+        """
+        original_mac = mac = value.get('mac')
+        if mac:
+            mac = value['mac'] = value['mac'].lower()
+            if len(mac.split(':')
+                            ) == 6 and self.container_class.mac_is_valid(mac):
+                return
+            else:
+                del value['mac'] # don't store invalid macs
+                # Notify user about these, but don't go crazy
+                if self.__class__.DISCARD_WARNINGS >= 0:
+                    logging.warning('Discarded invalid mac "%s" for nic "%s" '
+                                    'from input, %d warnings remaining.'
+                                    % (original_mac,
+                                       value.get('nic_name'),
+                                       self.__class__.DISCARD_WARNINGS))
+                    self.__class__.DISCARD_WARNINGS -= 1
+
+    def mac_list(self):
+        """
+        Return a list of all mac addresses used by defined interfaces
+        """
+        return [nic.mac for nic in self if hasattr(nic, 'mac')]
+
+    def append(self, value):
+        newone = self.container_class(value)
+        newone_name = newone['nic_name']
+        if newone.name_is_valid(newone_name) and (
+                          newone_name not in self.nic_name_list()):
+            self.process_mac(newone)
+            super(VMNet, self).append(newone)
+        else:
+            raise VMNetError
+
+    def nic_name_index(self, name):
+        """
+        Return the index number for name, or raise KeyError
+        """
+        if not isinstance(name, str):
+            raise TypeError("nic_name_index()'s nic_name must be a string")
+        nic_name_list = self.nic_name_list()
+        try:
+            return nic_name_list.index(name)
+        except ValueError:
+            raise IndexError("Can't find nic named '%s' among '%s'" %
+                             (name, nic_name_list))
+
+    def nic_name_list(self):
+        """
+        Obtain list of nic names from lookup of contents 'nic_name' key.
+        """
+        namelist = []
+        for item in self:
+            # Rely on others to throw exceptions on 'None' names
+            namelist.append(item['nic_name'])
+        return namelist
+
+    def nic_lookup(self, prop_name, prop_value):
+        """
+        Return the first index with prop_name key matching prop_value or None
+        """
+        for nic_index in xrange(0, len(self)):
+            if self[nic_index].has_key(prop_name):
+                if self[nic_index][prop_name] == prop_value:
+                    return nic_index
+        return None
+
+# TODO: Subclass VMNet into KVM/Libvirt variants and
+# pull them, along with ParmasNet and maybe DbNet based on
+# Style definitions.  i.e. libvirt doesn't need DbNet at all,
+# but could use some custom handling at the VMNet layer
+# for xen networking.  This will also enable further extensions
+# to network information handing in the future.
+class VMNetStyle(dict):
+    """
+    Make decisions about needed info from vm_type and driver_type params.
+    """
+
+    # Keyd first by vm_type, then by driver_type.
+    VMNet_Style_Map = {
+        'default':{
+            'default':{
+                'mac_prefix':'9a',
+                'container_class': KVMIface,
+            }
+        },
+        'libvirt':{
+            'default':{
+                'mac_prefix':'9a',
+                'container_class': LibvirtIface,
+            },
+            'qemu':{
+                'mac_prefix':'52:54:00',
+                'container_class': LibvirtIface,
+            },
+            'xen':{
+                'mac_prefix':'00:16:3e',
+                'container_class': LibvirtIface,
+            }
+        }
+    }
+
+    def __new__(cls, vm_type, driver_type):
+        return cls.get_style(vm_type, driver_type)
+
+    @classmethod
+    def get_vm_type_map(cls, vm_type):
+        return cls.VMNet_Style_Map.get(vm_type,
+                                        cls.VMNet_Style_Map['default'])
+
+    @classmethod
+    def get_driver_type_map(cls, vm_type_map, driver_type):
+        return vm_type_map.get(driver_type,
+                               vm_type_map['default'])
+
+    @classmethod
+    def get_style(cls, vm_type, driver_type):
+        style = cls.get_driver_type_map( cls.get_vm_type_map(vm_type),
+                                         driver_type )
+        return style
+
+
+class ParamsNet(VMNet):
+    """
+    Networking information from Params
+
+        Params contents specification-
+            vms = <vm names...>
+            nics = <nic names...>
+            nics_<vm name> = <nic names...>
+            # attr: mac, ip, model, nettype, netdst, etc.
+            <attr> = value
+            <attr>_<nic name> = value
+
+    """
+
+    # __init__ must not presume clean state, it should behave
+    # assuming there is existing properties/data on the instance
+    # and take steps to preserve or update it as appropriate.
+    def __init__(self, params, vm_name):
+        self.subclass_pre_init(params, vm_name)
+        # use temporary list to initialize
+        result_list = []
+        nic_name_list = self.params.objects('nics')
+        for nic_name in nic_name_list:
+            # nic name is only in params scope
+            nic_dict = {'nic_name':nic_name}
+            nic_params = self.params.object_params(nic_name)
+            # avoid processing unsupported properties
+            proplist = list(self.container_class.__slots__)
+            # nic_name was already set, remove from __slots__ list copy
+            del proplist[proplist.index('nic_name')]
+            for propertea in proplist:
+                # Merge existing propertea values if they exist
+                try:
+                    existing_value = getattr(self[nic_name], propertea, None)
+                except ValueError:
+                    existing_value = None
+                except IndexError:
+                    existing_value = None
+                nic_dict[propertea] = nic_params.get(propertea, existing_value)
+            result_list.append(nic_dict)
+        VMNet.__init__(self, self.container_class, result_list)
+
+    def mac_index(self):
+        """Generator over mac addresses found in params"""
+        for nic_name in self.params.get('nics'):
+            nic_obj_params = self.params.object_params(nic_name)
+            mac = nic_obj_params.get('mac')
+            if mac:
+                yield mac
+            else:
+                continue
+
+    def reset_mac(self, index_or_name):
+        """Reset to mac from params if defined and valid, or undefine."""
+        nic = self[index_or_name]
+        nic_name = nic.nic_name
+        nic_params = self.params.object_params(nic_name)
+        params_mac = nic_params.get('mac')
+        old_mac = nic.get('mac')
+        if params_mac and self.container_class.mac_is_valid(params_mac):
+            new_mac = params_mac.lower()
+        else:
+            new_mac = None
+        nic.mac = new_mac
+
+    def reset_ip(self, index_or_name):
+        """Reset to ip from params if defined and valid, or undefine."""
+        nic = self[index_or_name]
+        nic_name = nic.nic_name
+        nic_params = self.params.object_params(nic_name)
+        params_ip = nic_params.get('ip')
+        old_ip = nic.get('ip')
+        if params_ip:
+            new_ip = params_ip
+        else:
+            new_ip = None
+        nic.ip = new_ip
+
+class DbNet(VMNet):
+    """
+    Networking information from database
+
+        Database specification-
+            database values are python string-formatted lists of dictionaries
+
+    """
+
+    _INITIALIZED = False
+
+    # __init__ must not presume clean state, it should behave
+    # assuming there is existing properties/data on the instance
+    # and take steps to preserve or update it as appropriate.
+    def __init__(self, params, vm_name, db_filename, db_key):
+        self.subclass_pre_init(params, vm_name)
+        self.db_key = db_key
+        self.db_filename = db_filename
+        self.db_lockfile = db_filename + ".lock"
+        self.lock_db()
+        # Merge (don't overwrite) existing propertea values if they
+        # exist in db
+        try:
+            entry = self.db_entry()
+        except KeyError:
+            entry = []
+        proplist = list(self.container_class.__slots__)
+        # nic_name was already set, remove from __slots__ list copy
+        del proplist[proplist.index('nic_name')]
+        nic_name_list = self.nic_name_list()
+        for db_nic in entry:
+            nic_name = db_nic['nic_name']
+            if nic_name in nic_name_list:
+                for propertea in proplist:
+                    # only set properties in db but not in self
+                    if db_nic.has_key(propertea):
+                        self[nic_name].set_if_none(propertea, db_nic[propertea])
+        self.unlock_db()
+        if entry:
+            VMNet.__init__(self, self.container_class, entry)
+
+    def __setitem__(self, index, value):
+        super(DbNet, self).__setitem__(index, value)
+        if self._INITIALIZED:
+            self.update_db()
+
+    def __getitem__(self, index_or_name):
+        # container class attributes are read-only, hook
+        # update_db here is only alternative
+        if self._INITIALIZED:
+            self.update_db()
+        return super(DbNet, self).__getitem__(index_or_name)
+
+    def __delitem__(self, index_or_name):
+        if isinstance(index_or_name, str):
+            index_or_name = self.nic_name_index(index_or_name)
+        super(DbNet, self).__delitem__(index_or_name)
+        if self._INITIALIZED:
+            self.update_db()
+
+    def append(self, value):
+        super(DbNet, self).append(value)
+        if self._INITIALIZED:
+            self.update_db()
+
+    def lock_db(self):
+        if not hasattr(self, 'lock'):
+            self.lock = lock_file(self.db_lockfile)
+            if not hasattr(self, 'db'):
+                self.db = shelve.open(self.db_filename)
+            else:
+                raise DbNoLockError
+        else:
+            raise DbNoLockError
+
+    def unlock_db(self):
+        if hasattr(self, 'db'):
+            self.db.close()
+            del self.db
+            if hasattr(self, 'lock'):
+                unlock_file(self.lock)
+                del self.lock
+            else:
+                raise DbNoLockError
+        else:
+            raise DbNoLockError
+
+    def db_entry(self, db_key=None):
+        """
+        Returns a python list of dictionaries from locked DB string-format entry
+        """
+        if not db_key:
+            db_key = self.db_key
+        try:
+            db_entry = self.db[db_key]
+        except AttributeError:
+            raise DbNoLockError
+        # Always wear protection
+        try:
+            eval_result = eval(db_entry,{},{})
+        except SyntaxError:
+            raise ValueError("Error parsing entry for %s from "
+                             "database '%s'" % (self.db_key,
+                                                self.db_filename))
+        if not isinstance(eval_result, list):
+            raise ValueError("Unexpected database data: %s" % (
+                                    str(eval_result)))
+        result = []
+        for result_dict in eval_result:
+            if not isinstance(result_dict, dict):
+                raise ValueError("Unexpected database sub-entry data %s" % (
+                                    str(result_dict)))
+            result.append(result_dict)
+        return result
+
+    def save_to_db(self, db_key=None):
+        """Writes string representation out to database"""
+        if db_key == None:
+            db_key = self.db_key
+        data = str(self)
+        # Avoid saving empty entries
+        if len(data) > 3:
+            try:
+                self.db[self.db_key] = data
+            except AttributeError:
+                raise DbNoLockError
+        else:
+            try:
+                # make sure old db entry is removed
+                del self.db[db_key]
+            except KeyError:
+                pass
+
+    def update_db(self):
+        self.lock_db()
+        self.save_to_db()
+        self.unlock_db()
+
+    def mac_index(self):
+        """Generator of mac addresses found in database"""
+        try:
+            for db_key in self.db.keys():
+                for nic in self.db_entry(db_key):
+                    mac = nic.get('mac')
+                    if mac:
+                        yield mac
+                    else:
+                        continue
+        except AttributeError:
+            raise DbNoLockError
+
+
+
+class VirtNet(DbNet, ParamsNet):
+    """
+    Persistent collection of VM's networking information.
+    """
+
+    # __init__ must not presume clean state, it should behave
+    # assuming there is existing properties/data on the instance
+    # and take steps to preserve or update it as appropriate.
+    def __init__(self, params, vm_name, db_key,
+                                        db_filename="/tmp/address_pool"):
+        """
+        Load networking info. from db, then from params, then update db.
+
+        @param: params: Params instance using specification above
+        @param: vm_name: Name of the VM as might appear in Params
+        @param: db_key: database key uniquely identifying VM instance
+        @param: db_filename: database file to cache previously parsed params
+        """
+        # Prevent database updates during initialization
+        self._INITIALIZED = False
+        # Params always overrides database content
+        DbNet.__init__(self, params, vm_name, db_filename, db_key)
+        ParamsNet.__init__(self, params, vm_name)
+        self.lock_db()
+        # keep database updated in case of problems
+        self.save_to_db()
+        self.unlock_db()
+        # signal runtime content handling to methods
+        self._INITIALIZED = True
+
+    # Delegating get/setstate() details more to ancestor classes
+    # doesn't play well with multi-inheritence.  While possibly
+    # more difficult to maintain, hard-coding important property
+    # names for pickling works. The possibility also remains open
+    # for extensions via style-class updates.
+    def __getstate__(self):
+        self.INITIALIZED = False # prevent database updates
+        state = {'container_items':VMNet.__getstate__(self)}
+        for attrname in ['params', 'vm_name', 'db_key', 'db_filename',
+                         'vm_type', 'driver_type', 'db_lockfile']:
+            state[attrname] = getattr(self, attrname)
+        for style_attr in VMNetStyle(self.vm_type, self.driver_type).keys():
+            state[style_attr] = getattr(self, style_attr)
+        return state
+
+    def __setstate__(self, state):
+        self._INITIALIZED = False # prevent db updates during unpickling
+        for key in state.keys():
+            if key == 'container_items':
+                continue # handle outside loop
+            setattr(self, key, state.pop(key))
+        VMNet.__setstate__(self, state.pop('container_items'))
+        self._INITIALIZED = True
+
+    def mac_index(self):
+        """
+        Generator for all allocated mac addresses (requires db lock)
+        """
+        for mac in DbNet.mac_index(self):
+            yield mac
+        for mac in ParamsNet.mac_index(self):
+            yield mac
+
+    def generate_mac_address(self, nic_index_or_name, attempts=1024):
+        """
+        Set & return valid mac address for nic_index_or_name or raise NetError
+
+        @param: nic_index_or_name: index number or name of NIC
+        @return: MAC address string
+        @raise: NetError if mac generation failed
+        """
+        nic = self[nic_index_or_name]
+        if nic.has_key('mac'):
+            logging.warning("Overwriting mac %s for nic %s with random"
+                                % (nic.mac, str(nic_index_or_name)))
+        self.free_mac_address(nic_index_or_name)
+        self.lock_db()
+        attempts_remaining = attempts
+        while attempts_remaining > 0:
+            mac_attempt = nic.complete_mac_address(self.mac_prefix)
+            if mac_attempt not in self.mac_index():
+                nic.mac = mac_attempt.lower()
+                self.unlock_db()
+                return self[nic_index_or_name].mac # calls update_db
+            else:
+                attempts_remaining -= 1
+        self.unlock_db()
+        raise NetError("%s/%s MAC generation failed with prefix %s after %d "
+                         "attempts for NIC %s on VM %s (%s)" % (
+                            self.vm_type,
+                            self.driver_type,
+                            self.mac_prefix,
+                            attempts,
+                            str(nic_index_or_name),
+                            self.vm_name,
+                            self.db_key))
+
+    def free_mac_address(self, nic_index_or_name):
+        """
+        Remove the mac value from nic_index_or_name and cache unless static
+
+        @param: nic_index_or_name: index number or name of NIC
+        """
+        nic = self[nic_index_or_name]
+        if nic.has_key('mac'):
+            # Reset to params definition if any, or None
+            self.reset_mac(nic_index_or_name)
+        self.update_db()
+
+    def set_mac_address(self, nic_index_or_name, mac):
+        """
+        Set a MAC address to value specified
+
+        @param: nic_index_or_name: index number or name of NIC
+        @raise: NetError if mac already assigned
+        """
+        nic = self[nic_index_or_name]
+        if nic.has_key('mac'):
+            logging.warning("Overwriting mac %s for nic %s with %s"
+                            % (nic.mac, str(nic_index_or_name), mac))
+        nic.mac = mac.lower()
+        self.update_db()
+
+    def get_mac_address(self, nic_index_or_name):
+        """
+        Return a MAC address for nic_index_or_name
+
+        @param: nic_index_or_name: index number or name of NIC
+        @return: MAC address string.
+        """
+        return self[nic_index_or_name].mac.lower()
+
+    def generate_ifname(self, nic_index_or_name):
+        """
+        Return and set network interface name
+        """
+        nic_index = self.nic_name_index(self[nic_index_or_name].nic_name)
+        prefix = "t%d-" % nic_index
+        postfix = generate_random_string(6)
+        # Ensure interface name doesn't excede 11 characters
+        self[nic_index_or_name].ifname = (prefix + postfix)[-11:]
+        return self[nic_index_or_name].ifname # forces update_db
 
 def verify_ip_address_ownership(ip, macs, timeout=10.0):
     """
@@ -409,7 +1193,7 @@ def verify_ip_address_ownership(ip, macs, timeout=10.0):
 
     @param ip: An IP address.
     @param macs: A list or tuple of MAC addresses.
-    @return: True iff ip is assigned to a MAC address in macs.
+    @return: True if ip is assigned to a MAC address in macs.
     """
     # Compile a regex that matches the given IP address and any of the given
     # MAC addresses
@@ -509,474 +1293,6 @@ def check_kvm_source_dir(source_dir):
         return 2
     else:
         raise error.TestError("Unknown source dir layout, cannot proceed.")
-
-
-# Functions and classes used for logging into guests and transferring files
-
-class LoginError(Exception):
-    def __init__(self, msg, output):
-        Exception.__init__(self, msg, output)
-        self.msg = msg
-        self.output = output
-
-    def __str__(self):
-        return "%s    (output: %r)" % (self.msg, self.output)
-
-
-class LoginAuthenticationError(LoginError):
-    pass
-
-
-class LoginTimeoutError(LoginError):
-    def __init__(self, output):
-        LoginError.__init__(self, "Login timeout expired", output)
-
-
-class LoginProcessTerminatedError(LoginError):
-    def __init__(self, status, output):
-        LoginError.__init__(self, None, output)
-        self.status = status
-
-    def __str__(self):
-        return ("Client process terminated    (status: %s,    output: %r)" %
-                (self.status, self.output))
-
-
-class LoginBadClientError(LoginError):
-    def __init__(self, client):
-        LoginError.__init__(self, None, None)
-        self.client = client
-
-    def __str__(self):
-        return "Unknown remote shell client: %r" % self.client
-
-
-class SCPError(Exception):
-    def __init__(self, msg, output):
-        Exception.__init__(self, msg, output)
-        self.msg = msg
-        self.output = output
-
-    def __str__(self):
-        return "%s    (output: %r)" % (self.msg, self.output)
-
-
-class SCPAuthenticationError(SCPError):
-    pass
-
-
-class SCPAuthenticationTimeoutError(SCPAuthenticationError):
-    def __init__(self, output):
-        SCPAuthenticationError.__init__(self, "Authentication timeout expired",
-                                        output)
-
-
-class SCPTransferTimeoutError(SCPError):
-    def __init__(self, output):
-        SCPError.__init__(self, "Transfer timeout expired", output)
-
-
-class SCPTransferFailedError(SCPError):
-    def __init__(self, status, output):
-        SCPError.__init__(self, None, output)
-        self.status = status
-
-    def __str__(self):
-        return ("SCP transfer failed    (status: %s,    output: %r)" %
-                (self.status, self.output))
-
-
-def _remote_login(session, username, password, prompt, timeout=10, debug=False):
-    """
-    Log into a remote host (guest) using SSH or Telnet.  Wait for questions
-    and provide answers.  If timeout expires while waiting for output from the
-    child (e.g. a password prompt or a shell prompt) -- fail.
-
-    @brief: Log into a remote host (guest) using SSH or Telnet.
-
-    @param session: An Expect or ShellSession instance to operate on
-    @param username: The username to send in reply to a login prompt
-    @param password: The password to send in reply to a password prompt
-    @param prompt: The shell prompt that indicates a successful login
-    @param timeout: The maximal time duration (in seconds) to wait for each
-            step of the login procedure (i.e. the "Are you sure" prompt, the
-            password prompt, the shell prompt, etc)
-    @raise LoginTimeoutError: If timeout expires
-    @raise LoginAuthenticationError: If authentication fails
-    @raise LoginProcessTerminatedError: If the client terminates during login
-    @raise LoginError: If some other error occurs
-    """
-    password_prompt_count = 0
-    login_prompt_count = 0
-
-    while True:
-        try:
-            match, text = session.read_until_last_line_matches(
-                [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"[Ll]ogin:\s*$",
-                 r"[Cc]onnection.*closed", r"[Cc]onnection.*refused",
-                 r"[Pp]lease wait", r"[Ww]arning", prompt],
-                timeout=timeout, internal_timeout=0.5)
-            if match == 0:  # "Are you sure you want to continue connecting"
-                if debug:
-                    logging.debug("Got 'Are you sure...', sending 'yes'")
-                session.sendline("yes")
-                continue
-            elif match == 1:  # "password:"
-                if password_prompt_count == 0:
-                    if debug:
-                        logging.debug("Got password prompt, sending '%s'", password)
-                    session.sendline(password)
-                    password_prompt_count += 1
-                    continue
-                else:
-                    raise LoginAuthenticationError("Got password prompt twice",
-                                                   text)
-            elif match == 2:  # "login:"
-                if login_prompt_count == 0 and password_prompt_count == 0:
-                    if debug:
-                        logging.debug("Got username prompt; sending '%s'", username)
-                    session.sendline(username)
-                    login_prompt_count += 1
-                    continue
-                else:
-                    if login_prompt_count > 0:
-                        msg = "Got username prompt twice"
-                    else:
-                        msg = "Got username prompt after password prompt"
-                    raise LoginAuthenticationError(msg, text)
-            elif match == 3:  # "Connection closed"
-                raise LoginError("Client said 'connection closed'", text)
-            elif match == 4:  # "Connection refused"
-                raise LoginError("Client said 'connection refused'", text)
-            elif match == 5:  # "Please wait"
-                if debug:
-                    logging.debug("Got 'Please wait'")
-                timeout = 30
-                continue
-            elif match == 6:  # "Warning added RSA"
-                if debug:
-                    logging.debug("Got 'Warning added RSA to known host list")
-                continue
-            elif match == 7:  # prompt
-                if debug:
-                    logging.debug("Got shell prompt -- logged in")
-                break
-        except aexpect.ExpectTimeoutError, e:
-            raise LoginTimeoutError(e.output)
-        except aexpect.ExpectProcessTerminatedError, e:
-            raise LoginProcessTerminatedError(e.status, e.output)
-
-
-def remote_login(client, host, port, username, password, prompt, linesep="\n",
-                 log_filename=None, timeout=10):
-    """
-    Log into a remote host (guest) using SSH/Telnet/Netcat.
-
-    @param client: The client to use ('ssh', 'telnet' or 'nc')
-    @param host: Hostname or IP address
-    @param port: Port to connect to
-    @param username: Username (if required)
-    @param password: Password (if required)
-    @param prompt: Shell prompt (regular expression)
-    @param linesep: The line separator to use when sending lines
-            (e.g. '\\n' or '\\r\\n')
-    @param log_filename: If specified, log all output to this file
-    @param timeout: The maximal time duration (in seconds) to wait for
-            each step of the login procedure (i.e. the "Are you sure" prompt
-            or the password prompt)
-    @raise LoginBadClientError: If an unknown client is requested
-    @raise: Whatever _remote_login() raises
-    @return: A ShellSession object.
-    """
-    if client == "ssh":
-        cmd = ("ssh -o UserKnownHostsFile=/dev/null "
-               "-o PreferredAuthentications=password -p %s %s@%s" %
-               (port, username, host))
-    elif client == "telnet":
-        cmd = "telnet -l %s %s %s" % (username, host, port)
-    elif client == "nc":
-        cmd = "nc %s %s" % (host, port)
-    else:
-        raise LoginBadClientError(client)
-
-    logging.debug("Login command: '%s'", cmd)
-    session = aexpect.ShellSession(cmd, linesep=linesep, prompt=prompt)
-    try:
-        _remote_login(session, username, password, prompt, timeout)
-    except Exception:
-        session.close()
-        raise
-    if log_filename:
-        session.set_output_func(log_line)
-        session.set_output_params((log_filename,))
-    return session
-
-
-def wait_for_login(client, host, port, username, password, prompt, linesep="\n",
-                   log_filename=None, timeout=240, internal_timeout=10):
-    """
-    Make multiple attempts to log into a remote host (guest) until one succeeds
-    or timeout expires.
-
-    @param timeout: Total time duration to wait for a successful login
-    @param internal_timeout: The maximal time duration (in seconds) to wait for
-            each step of the login procedure (e.g. the "Are you sure" prompt
-            or the password prompt)
-    @see: remote_login()
-    @raise: Whatever remote_login() raises
-    @return: A ShellSession object.
-    """
-    logging.debug("Attempting to log into %s:%s using %s (timeout %ds)",
-                  host, port, client, timeout)
-    end_time = time.time() + timeout
-    while time.time() < end_time:
-        try:
-            return remote_login(client, host, port, username, password, prompt,
-                                linesep, log_filename, internal_timeout)
-        except LoginError, e:
-            logging.debug(e)
-        time.sleep(2)
-    # Timeout expired; try one more time but don't catch exceptions
-    return remote_login(client, host, port, username, password, prompt,
-                        linesep, log_filename, internal_timeout)
-
-
-def _remote_scp(session, password_list, transfer_timeout=600, login_timeout=20):
-    """
-    Transfer file(s) to a remote host (guest) using SCP.  Wait for questions
-    and provide answers.  If login_timeout expires while waiting for output
-    from the child (e.g. a password prompt), fail.  If transfer_timeout expires
-    while waiting for the transfer to complete, fail.
-
-    @brief: Transfer files using SCP, given a command line.
-
-    @param session: An Expect or ShellSession instance to operate on
-    @param password_list: Password list to send in reply to the password prompt
-    @param transfer_timeout: The time duration (in seconds) to wait for the
-            transfer to complete.
-    @param login_timeout: The maximal time duration (in seconds) to wait for
-            each step of the login procedure (i.e. the "Are you sure" prompt or
-            the password prompt)
-    @raise SCPAuthenticationError: If authentication fails
-    @raise SCPTransferTimeoutError: If the transfer fails to complete in time
-    @raise SCPTransferFailedError: If the process terminates with a nonzero
-            exit code
-    @raise SCPError: If some other error occurs
-    """
-    password_prompt_count = 0
-    timeout = login_timeout
-    authentication_done = False
-
-    scp_type = len(password_list)
-
-    while True:
-        try:
-            match, text = session.read_until_last_line_matches(
-                [r"[Aa]re you sure", r"[Pp]assword:\s*$", r"lost connection"],
-                timeout=timeout, internal_timeout=0.5)
-            if match == 0:  # "Are you sure you want to continue connecting"
-                logging.debug("Got 'Are you sure...', sending 'yes'")
-                session.sendline("yes")
-                continue
-            elif match == 1:  # "password:"
-                if password_prompt_count == 0:
-                    logging.debug("Got password prompt, sending '%s'" %
-                                   password_list[password_prompt_count])
-                    session.sendline(password_list[password_prompt_count])
-                    password_prompt_count += 1
-                    timeout = transfer_timeout
-                    if scp_type == 1:
-                        authentication_done = True
-                    continue
-                elif password_prompt_count == 1 and scp_type == 2:
-                    logging.debug("Got password prompt, sending '%s'" %
-                                   password_list[password_prompt_count])
-                    session.sendline(password_list[password_prompt_count])
-                    password_prompt_count += 1
-                    timeout = transfer_timeout
-                    authentication_done = True
-                    continue
-                else:
-                    raise SCPAuthenticationError("Got password prompt twice",
-                                                 text)
-            elif match == 2:  # "lost connection"
-                raise SCPError("SCP client said 'lost connection'", text)
-        except aexpect.ExpectTimeoutError, e:
-            if authentication_done:
-                raise SCPTransferTimeoutError(e.output)
-            else:
-                raise SCPAuthenticationTimeoutError(e.output)
-        except aexpect.ExpectProcessTerminatedError, e:
-            if e.status == 0:
-                logging.debug("SCP process terminated with status 0")
-                break
-            else:
-                raise SCPTransferFailedError(e.status, e.output)
-
-
-def remote_scp(command, password_list, log_filename=None, transfer_timeout=600,
-               login_timeout=20):
-    """
-    Transfer file(s) to a remote host (guest) using SCP.
-
-    @brief: Transfer files using SCP, given a command line.
-
-    @param command: The command to execute
-        (e.g. "scp -r foobar root@localhost:/tmp/").
-    @param password_list: Password list to send in reply to a password prompt.
-    @param log_filename: If specified, log all output to this file
-    @param transfer_timeout: The time duration (in seconds) to wait for the
-            transfer to complete.
-    @param login_timeout: The maximal time duration (in seconds) to wait for
-            each step of the login procedure (i.e. the "Are you sure" prompt
-            or the password prompt)
-    @raise: Whatever _remote_scp() raises
-    """
-    logging.debug("Trying to SCP with command '%s', timeout %ss",
-                  command, transfer_timeout)
-    if log_filename:
-        output_func = log_line
-        output_params = (log_filename,)
-    else:
-        output_func = None
-        output_params = ()
-    session = aexpect.Expect(command,
-                                    output_func=output_func,
-                                    output_params=output_params)
-    try:
-        _remote_scp(session, password_list, transfer_timeout, login_timeout)
-    finally:
-        session.close()
-
-
-def scp_to_remote(host, port, username, password, local_path, remote_path,
-                  log_filename=None, timeout=600):
-    """
-    Copy files to a remote host (guest) through scp.
-
-    @param host: Hostname or IP address
-    @param username: Username (if required)
-    @param password: Password (if required)
-    @param local_path: Path on the local machine where we are copying from
-    @param remote_path: Path on the remote machine where we are copying to
-    @param log_filename: If specified, log all output to this file
-    @param timeout: The time duration (in seconds) to wait for the transfer
-            to complete.
-    @raise: Whatever remote_scp() raises
-    """
-    command = ("scp -v -o UserKnownHostsFile=/dev/null "
-               "-o PreferredAuthentications=password -r -P %s %s %s@%s:%s" %
-               (port, local_path, username, host, remote_path))
-    password_list = []
-    password_list.append(password)
-    return remote_scp(command, password_list, log_filename, timeout)
-
-
-
-def scp_from_remote(host, port, username, password, remote_path, local_path,
-                    log_filename=None, timeout=600):
-    """
-    Copy files from a remote host (guest).
-
-    @param host: Hostname or IP address
-    @param username: Username (if required)
-    @param password: Password (if required)
-    @param local_path: Path on the local machine where we are copying from
-    @param remote_path: Path on the remote machine where we are copying to
-    @param log_filename: If specified, log all output to this file
-    @param timeout: The time duration (in seconds) to wait for the transfer
-            to complete.
-    @raise: Whatever remote_scp() raises
-    """
-    command = ("scp -v -o UserKnownHostsFile=/dev/null "
-               "-o PreferredAuthentications=password -r -P %s %s@%s:%s %s" %
-               (port, username, host, remote_path, local_path))
-    password_list = []
-    password_list.append(password)
-    remote_scp(command, password_list, log_filename, timeout)
-
-
-def scp_between_remotes(src, dst, port, s_passwd, d_passwd, s_name, d_name,
-                        s_path, d_path, log_filename=None, timeout=600):
-    """
-    Copy files from a remote host (guest) to another remote host (guest).
-
-    @param src/dst: Hostname or IP address of src and dst
-    @param s_name/d_name: Username (if required)
-    @param s_passwd/d_passwd: Password (if required)
-    @param s_path/d_path: Path on the remote machine where we are copying
-                         from/to
-    @param log_filename: If specified, log all output to this file
-    @param timeout: The time duration (in seconds) to wait for the transfer
-            to complete.
-
-    @return: True on success and False on failure.
-    """
-    command = ("scp -v -o UserKnownHostsFile=/dev/null -o "
-               "PreferredAuthentications=password -r -P %s %s@%s:%s %s@%s:%s" %
-               (port, s_name, src, s_path, d_name, dst, d_path))
-    password_list = []
-    password_list.append(s_passwd)
-    password_list.append(d_passwd)
-    return remote_scp(command, password_list, log_filename, timeout)
-
-
-def copy_files_to(address, client, username, password, port, local_path,
-                  remote_path, log_filename=None, verbose=False, timeout=600):
-    """
-    Copy files to a remote host (guest) using the selected client.
-
-    @param client: Type of transfer client
-    @param username: Username (if required)
-    @param password: Password (if requried)
-    @param local_path: Path on the local machine where we are copying from
-    @param remote_path: Path on the remote machine where we are copying to
-    @param address: Address of remote host(guest)
-    @param log_filename: If specified, log all output to this file (SCP only)
-    @param verbose: If True, log some stats using logging.debug (RSS only)
-    @param timeout: The time duration (in seconds) to wait for the transfer to
-            complete.
-    @raise: Whatever remote_scp() raises
-    """
-    if client == "scp":
-        scp_to_remote(address, port, username, password, local_path,
-                      remote_path, log_filename, timeout)
-    elif client == "rss":
-        log_func = None
-        if verbose:
-            log_func = logging.debug
-        c = rss_client.FileUploadClient(address, port, log_func)
-        c.upload(local_path, remote_path, timeout)
-        c.close()
-
-
-def copy_files_from(address, client, username, password, port, remote_path,
-                    local_path, log_filename=None, verbose=False, timeout=600):
-    """
-    Copy files from a remote host (guest) using the selected client.
-
-    @param client: Type of transfer client
-    @param username: Username (if required)
-    @param password: Password (if requried)
-    @param remote_path: Path on the remote machine where we are copying from
-    @param local_path: Path on the local machine where we are copying to
-    @param address: Address of remote host(guest)
-    @param log_filename: If specified, log all output to this file (SCP only)
-    @param verbose: If True, log some stats using logging.debug (RSS only)
-    @param timeout: The time duration (in seconds) to wait for the transfer to
-    complete.
-    @raise: Whatever remote_scp() raises
-    """
-    if client == "scp":
-        scp_from_remote(address, port, username, password, remote_path,
-                        local_path, log_filename, timeout)
-    elif client == "rss":
-        log_func = None
-        if verbose:
-            log_func = logging.debug
-        c = rss_client.FileDownloadClient(address, port, log_func)
-        c.download(remote_path, local_path, timeout)
-        c.close()
 
 
 # The following are utility functions related to ports.
@@ -1201,13 +1517,41 @@ def run_tests(parser, job):
 
     @return: True, if all tests ran passed, False if any of them failed.
     """
+    last_index = 0
     for i, d in enumerate(parser.get_dicts()):
         logging.info("Test %4d:  %s" % (i + 1, d["shortname"]))
+        last_index += 1
 
     status_dict = {}
     failed = False
-
+    # Add the parameter decide if setup host env in the test case
+    # For some special tests we only setup host in the first and last case
+    # When we need to setup host env we need the host_setup_flag as following:
+    #    0(00): do nothing
+    #    1(01): setup env
+    #    2(10): cleanup env
+    #    3(11): setup and cleanup env
+    index = 0
+    setup_flag = 1
+    cleanup_flag = 2
     for dict in parser.get_dicts():
+        if index == 0:
+            if dict.get("host_setup_flag", None) is not None:
+                flag = int(dict["host_setup_flag"])
+                dict["host_setup_flag"] = flag | setup_flag
+            else:
+                dict["host_setup_flag"] = setup_flag
+        elif index == last_index:
+            if dict.get("host_setup_flag", None) is not None:
+                flag = int(dict["host_setup_flag"])
+                dict["host_setup_flag"] = flag | cleanup_flag
+            else:
+                dict["host_setup_flag"] = cleanup_flag
+        index += 1
+
+        # Add kvm module status
+        dict["kvm_default"] = get_module_params(dict.get("sysfs_dir", "sys"), "kvm")
+
         if dict.get("skip") == "yes":
             continue
         dependencies_satisfied = True
@@ -1309,13 +1653,19 @@ class Flag(str):
         else:
             return False
 
+    def __str__(self):
+        return self.split("|")[0]
+
+    def __repr__(self):
+        return self.split("|")[0]
+
     def __hash__(self, *args, **kwargs):
         return 0
 
 
 kvm_map_flags_to_test = {
             Flag('avx')                        :set(['avx']),
-            Flag('sse3')                       :set(['sse3']),
+            Flag('sse3|pni')                   :set(['sse3']),
             Flag('ssse3')                      :set(['ssse3']),
             Flag('sse4.1|sse4_1|sse4.2|sse4_2'):set(['sse4']),
             Flag('aes')                        :set(['aes','pclmul']),
@@ -1444,71 +1794,6 @@ def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
     tarball.close()
 
 
-class Thread(threading.Thread):
-    """
-    Run a function in a background thread.
-    """
-    def __init__(self, target, args=(), kwargs={}):
-        """
-        Initialize the instance.
-
-        @param target: Function to run in the thread.
-        @param args: Arguments to pass to target.
-        @param kwargs: Keyword arguments to pass to target.
-        """
-        threading.Thread.__init__(self)
-        self._target = target
-        self._args = args
-        self._kwargs = kwargs
-
-
-    def run(self):
-        """
-        Run target (passed to the constructor).  No point in calling this
-        function directly.  Call start() to make this function run in a new
-        thread.
-        """
-        self._e = None
-        self._retval = None
-        try:
-            try:
-                self._retval = self._target(*self._args, **self._kwargs)
-            except Exception:
-                self._e = sys.exc_info()
-                raise
-        finally:
-            # Avoid circular references (start() may be called only once so
-            # it's OK to delete these)
-            del self._target, self._args, self._kwargs
-
-
-    def join(self, timeout=None, suppress_exception=False):
-        """
-        Join the thread.  If target raised an exception, re-raise it.
-        Otherwise, return the value returned by target.
-
-        @param timeout: Timeout value to pass to threading.Thread.join().
-        @param suppress_exception: If True, don't re-raise the exception.
-        """
-        threading.Thread.join(self, timeout)
-        try:
-            if self._e:
-                if not suppress_exception:
-                    # Because the exception was raised in another thread, we
-                    # need to explicitly insert the current context into it
-                    s = error.exception_context(self._e[1])
-                    s = error.join_contexts(error.get_context(), s)
-                    error.set_exception_context(self._e[1], s)
-                    raise self._e[0], self._e[1], self._e[2]
-            else:
-                return self._retval
-        finally:
-            # Avoid circular references (join() may be called multiple times
-            # so we can't delete these)
-            self._e = None
-            self._retval = None
-
-
 def parallel(targets):
     """
     Run multiple functions in parallel.
@@ -1523,9 +1808,9 @@ def parallel(targets):
     threads = []
     for target in targets:
         if isinstance(target, tuple) or isinstance(target, list):
-            t = Thread(*target)
+            t = utils.InterruptedThread(*target)
         else:
-            t = Thread(target)
+            t = utils.InterruptedThread(target)
         threads.append(t)
         t.start()
     return [t.join() for t in threads]
@@ -1541,270 +1826,79 @@ class VirtLoggingConfig(logging_config.LoggingConfig):
                                                          verbose=verbose)
 
 
-class PciAssignable(object):
-    """
-    Request PCI assignable devices on host. It will check whether to request
-    PF (physical Functions) or VF (Virtual Functions).
-    """
-    def __init__(self, type="vf", driver=None, driver_option=None,
-                 names=None, devices_requested=None):
-        """
-        Initialize parameter 'type' which could be:
-        vf: Virtual Functions
-        pf: Physical Function (actual hardware)
-        mixed:  Both includes VFs and PFs
-
-        If pass through Physical NIC cards, we need to specify which devices
-        to be assigned, e.g. 'eth1 eth2'.
-
-        If pass through Virtual Functions, we need to specify how many vfs
-        are going to be assigned, e.g. passthrough_count = 8 and max_vfs in
-        config file.
-
-        @param type: PCI device type.
-        @param driver: Kernel module for the PCI assignable device.
-        @param driver_option: Module option to specify the maximum number of
-                VFs (eg 'max_vfs=7')
-        @param names: Physical NIC cards correspondent network interfaces,
-                e.g.'eth1 eth2 ...'
-        @param devices_requested: Number of devices being requested.
-        """
-        self.type = type
-        self.driver = driver
-        self.driver_option = driver_option
-        if names:
-            self.name_list = names.split()
-        if devices_requested:
-            self.devices_requested = int(devices_requested)
-        else:
-            self.devices_requested = None
+class KojiDirIndexParser(HTMLParser.HTMLParser):
+    '''
+    Parser for HTML directory index pages, specialized to look for RPM links
+    '''
+    def __init__(self):
+        '''
+        Initializes a new KojiDirListParser instance
+        '''
+        HTMLParser.HTMLParser.__init__(self)
+        self.package_file_names = []
 
 
-    def _get_pf_pci_id(self, name, search_str):
-        """
-        Get the PF PCI ID according to name.
+    def handle_starttag(self, tag, attrs):
+        '''
+        Handle tags during the parsing
 
-        @param name: Name of the PCI device.
-        @param search_str: Search string to be used on lspci.
-        """
-        cmd = "ethtool -i %s | awk '/bus-info/ {print $2}'" % name
-        s, pci_id = commands.getstatusoutput(cmd)
-        if not (s or "Cannot get driver information" in pci_id):
-            return pci_id[5:]
-        cmd = "lspci | awk '/%s/ {print $1}'" % search_str
-        pci_ids = [id for id in commands.getoutput(cmd).splitlines()]
-        nic_id = int(re.search('[0-9]+', name).group(0))
-        if (len(pci_ids) - 1) < nic_id:
+        This just looks for links ('a' tags) for files ending in .rpm
+        '''
+        if tag == 'a':
+            for k, v in attrs:
+                if k == 'href' and v.endswith('.rpm'):
+                    self.package_file_names.append(v)
+
+
+class RPMFileNameInfo:
+    '''
+    Simple parser for RPM based on information present on the filename itself
+    '''
+    def __init__(self, filename):
+        '''
+        Initializes a new RpmInfo instance based on a filename
+        '''
+        self.filename = filename
+
+
+    def get_filename_without_suffix(self):
+        '''
+        Returns the filename without the default RPM suffix
+        '''
+        assert self.filename.endswith('.rpm')
+        return self.filename[0:-4]
+
+
+    def get_filename_without_arch(self):
+        '''
+        Returns the filename without the architecture
+
+        This also excludes the RPM suffix, that is, removes the leading arch
+        and RPM suffix.
+        '''
+        wo_suffix = self.get_filename_without_suffix()
+        arch_sep = wo_suffix.rfind('.')
+        return wo_suffix[:arch_sep]
+
+
+    def get_arch(self):
+        '''
+        Returns just the architecture as present on the RPM filename
+        '''
+        wo_suffix = self.get_filename_without_suffix()
+        arch_sep = wo_suffix.rfind('.')
+        return wo_suffix[arch_sep+1:]
+
+
+    def get_nvr_info(self):
+        '''
+        Returns a dictionary with the name, version and release components
+
+        If koji is not installed, this returns None
+        '''
+        if not KOJI_INSTALLED:
             return None
-        return pci_ids[nic_id]
-
-
-    def _release_dev(self, pci_id):
-        """
-        Release a single PCI device.
-
-        @param pci_id: PCI ID of a given PCI device.
-        """
-        base_dir = "/sys/bus/pci"
-        full_id = get_full_pci_id(pci_id)
-        vendor_id = get_vendor_from_pci_id(pci_id)
-        drv_path = os.path.join(base_dir, "devices/%s/driver" % full_id)
-        if 'pci-stub' in os.readlink(drv_path):
-            cmd = "echo '%s' > %s/new_id" % (vendor_id, drv_path)
-            if os.system(cmd):
-                return False
-
-            stub_path = os.path.join(base_dir, "drivers/pci-stub")
-            cmd = "echo '%s' > %s/unbind" % (full_id, stub_path)
-            if os.system(cmd):
-                return False
-
-            driver = self.dev_drivers[pci_id]
-            cmd = "echo '%s' > %s/bind" % (full_id, driver)
-            if os.system(cmd):
-                return False
-
-        return True
-
-
-    def get_vf_devs(self):
-        """
-        Catch all VFs PCI IDs.
-
-        @return: List with all PCI IDs for the Virtual Functions avaliable
-        """
-        if not self.sr_iov_setup():
-            return []
-
-        cmd = "lspci | awk '/Virtual Function/ {print $1}'"
-        return commands.getoutput(cmd).split()
-
-
-    def get_pf_devs(self):
-        """
-        Catch all PFs PCI IDs.
-
-        @return: List with all PCI IDs for the physical hardware requested
-        """
-        pf_ids = []
-        for name in self.name_list:
-            pf_id = self._get_pf_pci_id(name, "Ethernet")
-            if not pf_id:
-                continue
-            pf_ids.append(pf_id)
-        return pf_ids
-
-
-    def get_devs(self, count):
-        """
-        Check out all devices' PCI IDs according to their name.
-
-        @param count: count number of PCI devices needed for pass through
-        @return: a list of all devices' PCI IDs
-        """
-        if self.type == "vf":
-            vf_ids = self.get_vf_devs()
-        elif self.type == "pf":
-            vf_ids = self.get_pf_devs()
-        elif self.type == "mixed":
-            vf_ids = self.get_vf_devs()
-            vf_ids.extend(self.get_pf_devs())
-        return vf_ids[0:count]
-
-
-    def get_vfs_count(self):
-        """
-        Get VFs count number according to lspci.
-        """
-        # FIXME: Need to think out a method of identify which
-        # 'virtual function' belongs to which physical card considering
-        # that if the host has more than one 82576 card. PCI_ID?
-        cmd = "lspci | grep 'Virtual Function' | wc -l"
-        return int(commands.getoutput(cmd))
-
-
-    def check_vfs_count(self):
-        """
-        Check VFs count number according to the parameter driver_options.
-        """
-        # Network card 82576 has two network interfaces and each can be
-        # virtualized up to 7 virtual functions, therefore we multiply
-        # two for the value of driver_option 'max_vfs'.
-        expected_count = int((re.findall("(\d)", self.driver_option)[0])) * 2
-        return (self.get_vfs_count == expected_count)
-
-
-    def is_binded_to_stub(self, full_id):
-        """
-        Verify whether the device with full_id is already binded to pci-stub.
-
-        @param full_id: Full ID for the given PCI device
-        """
-        base_dir = "/sys/bus/pci"
-        stub_path = os.path.join(base_dir, "drivers/pci-stub")
-        if os.path.exists(os.path.join(stub_path, full_id)):
-            return True
-        return False
-
-
-    def sr_iov_setup(self):
-        """
-        Ensure the PCI device is working in sr_iov mode.
-
-        Check if the PCI hardware device drive is loaded with the appropriate,
-        parameters (number of VFs), and if it's not, perform setup.
-
-        @return: True, if the setup was completed successfuly, False otherwise.
-        """
-        re_probe = False
-        s, o = commands.getstatusoutput('lsmod | grep %s' % self.driver)
-        if s:
-            re_probe = True
-        elif not self.check_vfs_count():
-            os.system("modprobe -r %s" % self.driver)
-            re_probe = True
-        else:
-            return True
-
-        # Re-probe driver with proper number of VFs
-        if re_probe:
-            cmd = "modprobe %s %s" % (self.driver, self.driver_option)
-            logging.info("Loading the driver '%s' with option '%s'",
-                         self.driver, self.driver_option)
-            s, o = commands.getstatusoutput(cmd)
-            if s:
-                return False
-            return True
-
-
-    def request_devs(self):
-        """
-        Implement setup process: unbind the PCI device and then bind it
-        to the pci-stub driver.
-
-        @return: a list of successfully requested devices' PCI IDs.
-        """
-        base_dir = "/sys/bus/pci"
-        stub_path = os.path.join(base_dir, "drivers/pci-stub")
-
-        self.pci_ids = self.get_devs(self.devices_requested)
-        logging.debug("The following pci_ids were found: %s", self.pci_ids)
-        requested_pci_ids = []
-        self.dev_drivers = {}
-
-        # Setup all devices specified for assignment to guest
-        for pci_id in self.pci_ids:
-            full_id = get_full_pci_id(pci_id)
-            if not full_id:
-                continue
-            drv_path = os.path.join(base_dir, "devices/%s/driver" % full_id)
-            dev_prev_driver = os.path.realpath(os.path.join(drv_path,
-                                               os.readlink(drv_path)))
-            self.dev_drivers[pci_id] = dev_prev_driver
-
-            # Judge whether the device driver has been binded to stub
-            if not self.is_binded_to_stub(full_id):
-                logging.debug("Binding device %s to stub", full_id)
-                vendor_id = get_vendor_from_pci_id(pci_id)
-                stub_new_id = os.path.join(stub_path, 'new_id')
-                unbind_dev = os.path.join(drv_path, 'unbind')
-                stub_bind = os.path.join(stub_path, 'bind')
-
-                info_write_to_files = [(vendor_id, stub_new_id),
-                                       (full_id, unbind_dev),
-                                       (full_id, stub_bind)]
-
-                for content, file in info_write_to_files:
-                    try:
-                        utils.open_write_close(file, content)
-                    except IOError:
-                        logging.debug("Failed to write %s to file %s", content,
-                                      file)
-                        continue
-
-                if not self.is_binded_to_stub(full_id):
-                    logging.error("Binding device %s to stub failed", pci_id)
-                    continue
-            else:
-                logging.debug("Device %s already binded to stub", pci_id)
-            requested_pci_ids.append(pci_id)
-        self.pci_ids = requested_pci_ids
-        return self.pci_ids
-
-
-    def release_devs(self):
-        """
-        Release all PCI devices currently assigned to VMs back to the
-        virtualization host.
-        """
-        try:
-            for pci_id in self.dev_drivers:
-                if not self._release_dev(pci_id):
-                    logging.error("Failed to release device %s to host", pci_id)
-                else:
-                    logging.info("Released device %s successfully", pci_id)
-        except Exception:
-            return
+        return koji.util.koji.parse_NVR(self.get_filename_without_arch())
 
 
 class KojiClient(object):
@@ -2109,6 +2203,25 @@ class KojiClient(object):
         return rpm_names
 
 
+    def get_pkg_base_url(self):
+        '''
+        Gets the base url for packages in Koji
+        '''
+        if self.config_options.has_key('pkgurl'):
+            return self.config_options['pkgurl']
+        else:
+            return "%s/%s" % (self.config_options['topurl'],
+                              'packages')
+
+
+    def get_scratch_base_url(self):
+        '''
+        Gets the base url for scratch builds in Koji
+        '''
+        one_level_up = os.path.dirname(self.get_pkg_base_url())
+        return "%s/%s" % (one_level_up, 'scratch')
+
+
     def get_pkg_urls(self, pkg, arch=None):
         '''
         Gets the urls for the packages specified in pkg
@@ -2122,12 +2235,7 @@ class KojiClient(object):
         info = self.get_pkg_info(pkg)
         rpms = self.get_pkg_rpm_info(pkg, arch)
         rpm_urls = []
-
-        if self.config_options.has_key('pkgurl'):
-            base_url = self.config_options['pkgurl']
-        else:
-            base_url = "%s/%s" % (self.config_options['topurl'],
-                                  'packages')
+        base_url = self.get_pkg_base_url()
 
         for rpm in rpms:
             rpm_name = koji.pathinfo.rpm(rpm)
@@ -2153,6 +2261,63 @@ class KojiClient(object):
                 architecture independent (noarch) packages
         '''
         rpm_urls = self.get_pkg_urls(pkg, arch)
+        for url in rpm_urls:
+            utils.get_file(url,
+                           os.path.join(dst_dir, os.path.basename(url)))
+
+
+    def get_scratch_pkg_urls(self, pkg, arch=None):
+        '''
+        Gets the urls for the scratch packages specified in pkg
+
+        @type pkg: KojiScratchPkgSpec
+        @param pkg: a scratch package specification
+        @type arch: string
+        @param arch: packages built for this architecture, but also including
+                architecture independent (noarch) packages
+        '''
+        rpm_urls = []
+
+        if arch is None:
+            arch = utils.get_arch()
+        arches = [arch, 'noarch']
+
+        index_url = "%s/%s/task_%s" % (self.get_scratch_base_url(),
+                                       pkg.user,
+                                       pkg.task)
+        index_parser = KojiDirIndexParser()
+        index_parser.feed(urllib.urlopen(index_url).read())
+
+        if pkg.subpackages:
+            for p in pkg.subpackages:
+                for pfn in index_parser.package_file_names:
+                    r = RPMFileNameInfo(pfn)
+                    info = r.get_nvr_info()
+                    if (p == info['name'] and
+                        r.get_arch() in arches):
+                        rpm_urls.append("%s/%s" % (index_url, pfn))
+        else:
+            for pfn in index_parser.package_file_names:
+                if (RPMFileNameInfo(pfn).get_arch() in arches):
+                    rpm_urls.append("%s/%s" % (index_url, pfn))
+
+        return rpm_urls
+
+
+    def get_scratch_pkgs(self, pkg, dst_dir, arch=None):
+        '''
+        Download the packages from a scratch build
+
+        @type pkg: KojiScratchPkgSpec
+        @param pkg: a scratch package specification
+        @type dst_dir: string
+        @param dst_dir: the destination directory, where the downloaded
+                packages will be saved on
+        @type arch: string
+        @param arch: packages built for this architecture, but also including
+                architecture independent (noarch) packages
+        '''
+        rpm_urls = self.get_scratch_pkg_urls(pkg, arch)
         for url in rpm_urls:
             utils.get_file(url,
                            os.path.join(dst_dir, os.path.basename(url)))
@@ -2447,6 +2612,96 @@ class KojiPkgSpec(object):
         return ("<KojiPkgSpec tag=%s build=%s pkg=%s subpkgs=%s>" %
                 (self.tag, self.build, self.package,
                  ", ".join(self.subpackages)))
+
+
+class KojiScratchPkgSpec(object):
+    '''
+    A package specification syntax parser for Koji scratch builds
+
+    This holds information on user, task and subpackages to be fetched
+    from koji and possibly installed (features external do this class).
+
+    New objects can be created either by providing information in the textual
+    format or by using the actual parameters for user, task and subpackages.
+    The textual format is useful for command line interfaces and configuration
+    files, while using parameters is better for using this in a programatic
+    fashion.
+
+    This package definition has a special behaviour: if no subpackages are
+    specified, all packages of the chosen architecture (plus noarch packages)
+    will match.
+
+    The following sets of examples are interchangeable. Specifying all packages
+    from a scratch build (whose task id is 1000) sent by user jdoe:
+
+        >>> from kvm_utils import KojiScratchPkgSpec
+        >>> pkg = KojiScratchPkgSpec('jdoe:1000')
+
+        >>> pkg = KojiScratchPkgSpec(user=jdoe, task=1000)
+
+    Specifying some packages from a scratch build whose task id is 1000, sent
+    by user jdoe:
+
+        >>> pkg = KojiScratchPkgSpec('jdoe:1000:kernel,kernel-devel')
+
+        >>> pkg = KojiScratchPkgSpec(user=jdoe, task=1000,
+                                     subpackages=['kernel', 'kernel-devel'])
+    '''
+
+    SEP = ':'
+
+    def __init__(self, text='', user=None, task=None, subpackages=[]):
+        '''
+        Instantiates a new KojiScratchPkgSpec object
+
+        @type text: string
+        @param text: a textual representation of a scratch build on Koji that
+                will be parsed
+        @type task: number
+        @param task: a koji task id, example: 1001
+        @type subpackages: list of strings
+        @param subpackages: a list of package names, usually a subset of
+                the RPM packages generated by a given build
+        '''
+        # Set to None to indicate 'not set' (and be able to use 'is')
+        self.user = None
+        self.task = None
+        self.subpackages = []
+
+        # Textual representation takes precedence (most common use case)
+        if text:
+            self.parse(text)
+        else:
+            self.user = user
+            self.task = task
+            self.subpackages = subpackages
+
+
+    def parse(self, text):
+        '''
+        Parses a textual representation of a package specification
+
+        @type text: string
+        @param text: textual representation of a package in koji
+        '''
+        parts = text.count(self.SEP) + 1
+        if parts == 1:
+            raise ValueError('KojiScratchPkgSpec requires a user and task id')
+        elif parts == 2:
+            self.user, self.task = text.split(self.SEP)
+        elif parts >= 3:
+            # Instead of erroring on more arguments, we simply ignore them
+            # This makes the parser suitable for future syntax additions, such
+            # as specifying the package architecture
+            part1, part2, part3 = text.split(self.SEP)[0:3]
+            self.user = part1
+            self.task = part2
+            self.subpackages = part3.split(',')
+
+
+    def __repr__(self):
+        return ("<KojiScratchPkgSpec user=%s task=%s subpkgs=%s>" %
+                (self.user, self.task, ", ".join(self.subpackages)))
 
 
 def umount(src, mount_point, type):
@@ -3301,9 +3556,9 @@ def install_host_kernel(job, params):
         koji_build = params.get('host_kernel_koji_build')
         koji_tag = params.get('host_kernel_koji_tag')
 
-        k_deps = KojiPkgSpec(tag=koji_tag, package='kernel',
+        k_deps = KojiPkgSpec(tag=koji_tag, build=koji_build, package='kernel',
                              subpackages=['kernel-devel', 'kernel-firmware'])
-        k = KojiPkgSpec(tag=koji_tag, package='kernel',
+        k = KojiPkgSpec(tag=koji_tag, build=koji_build, package='kernel',
                         subpackages=['kernel'])
 
         c = KojiClient(koji_cmd)
@@ -3332,7 +3587,7 @@ def install_host_kernel(job, params):
         patch_list = params.get('host_kernel_patch_list')
         if patch_list:
             patch_list = patch_list.split()
-        kernel_config = params.get('host_kernel_config')
+        kernel_config = params.get('host_kernel_config', None)
 
         repodir = os.path.join("/tmp", 'kernel_src')
         r = git.get_repo(uri=repo, branch=branch, destination_dir=repodir,
@@ -3340,7 +3595,8 @@ def install_host_kernel(job, params):
         host_kernel = job.kernel(r)
         if patch_list:
             host_kernel.patch(patch_list)
-        host_kernel.config(kernel_config)
+        if kernel_config:
+            host_kernel.config(kernel_config)
         host_kernel.build()
         host_kernel.install()
         host_kernel.boot()
@@ -3348,6 +3604,79 @@ def install_host_kernel(job, params):
     else:
         logging.info('Chose %s, using the current kernel for the host',
                      install_type)
+
+
+def install_cpuflags_util_on_vm(test, vm, dst_dir, extra_flags=None):
+    """
+    Install stress to vm.
+
+    @param vm: virtual machine.
+    @param dst_dir: Installation path.
+    @param extra_flags: Extraflags for gcc compiler.
+    """
+    if not extra_flags:
+        extra_flags = ""
+
+    cpuflags_src = os.path.join(test.virtdir, "deps", "test_cpu_flags")
+    cpuflags_dst = os.path.join(dst_dir, "test_cpu_flags")
+    session = vm.wait_for_login()
+    session.cmd("rm -rf %s" %
+                (cpuflags_dst))
+    session.cmd("sync")
+    vm.copy_files_to(cpuflags_src, dst_dir)
+    session.cmd("sync")
+    session.cmd("cd %s; make EXTRA_FLAGS='%s';" %
+                    (cpuflags_dst, extra_flags))
+    session.cmd("sync")
+    session.close()
+
+
+def qemu_has_option(option, qemu_path):
+    """
+    Helper function for command line option wrappers
+
+    @param option: Option need check.
+    @param qemu_path: Path for qemu-kvm.
+    """
+    help = commands.getoutput("%s -help" % qemu_path)
+    return bool(re.search(r"^-%s(\s|$)" % option, help, re.MULTILINE))
+
+
+def bitlist_to_string(data):
+    """
+    Transform from bit list to ASCII string.
+
+    @param data: Bit list to be transformed
+    """
+    result = []
+    pos = 0
+    c = 0
+    while pos < len(data):
+        c += data[pos] << (7 - (pos % 8))
+        if (pos % 8) == 7:
+            result.append(c)
+            c = 0
+        pos += 1
+    return ''.join([ chr(c) for c in result ])
+
+
+def string_to_bitlist(data):
+    """
+    Transform from ASCII string to bit list.
+
+    @param data: String to be transformed
+    """
+    data = [ord(c) for c in data]
+    result = []
+    for ch in data:
+        i = 7
+        while i >= 0:
+            if ch & (1 << i) != 0:
+                result.append(1)
+            else:
+                result.append(0)
+            i -= 1
+    return result
 
 
 def if_nametoindex(ifname):
@@ -3435,7 +3764,7 @@ def bring_up_ifname(ifname):
     @param ifname: Name of the interface
     """
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-    ifr = struct.pack("16si", ifname, IFF_UP)
+    ifr = struct.pack("16sh", ifname, IFF_UP)
     try:
         fcntl.ioctl(ctrl_sock, SIOCSIFFLAGS, ifr)
     except IOError:
@@ -3470,6 +3799,24 @@ def if_set_macaddress(ifname, mac):
         logging.info(e)
         raise HwAddrSetError(ifname, mac)
     ctrl_sock.close()
+
+
+def get_module_params(sys_path, module_name):
+    """
+    Get the kvm module params
+    @param sys_path: sysfs path for modules info
+    @param module_name: module to check
+    """
+    dir_params = os.path.join(sys_path, "module", module_name, "parameters")
+    module_params = {}
+    if os.path.isdir(dir_params):
+        for file in os.listdir(dir_params):
+            full_dir = os.path.join(dir_params, file)
+            tmp = open(full_dir, 'r').read().strip()
+            module_params[full_dir] = tmp
+    else:
+        return None
+    return module_params
 
 
 def check_iso(url, destination, iso_sha1):
@@ -3564,7 +3911,7 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
             logging.debug("Creating config file %s from sample", dst_file)
             shutil.copyfile(src_file, dst_file)
         else:
-            diff_result = utils.run("diff -Naur %s %s" % (src_file, dst_file),
+            diff_result = utils.run("diff -Naur %s %s" % (dst_file, src_file),
                                     ignore_status=True, verbose=False)
             if diff_result.exit_status != 0:
                 logging.debug("%s result:\n %s" %
@@ -3585,11 +3932,11 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
     logging.info("%s - Verifying iso (make sure we have the OS ISO needed for "
                  "the default test set)", step)
 
-    iso_name = "Fedora-16-x86_64-DVD.iso"
-    fedora_dir = "pub/fedora/linux/releases/16/Fedora/x86_64/iso"
+    iso_name = "Fedora-17-x86_64-DVD.iso"
+    fedora_dir = "pub/fedora/linux/releases/17/Fedora/x86_64/iso"
     url = os.path.join("http://download.fedoraproject.org/", fedora_dir,
                        iso_name)
-    iso_sha1 = "76dd59c37e9a0ec2af56263fa892ff571c92c89a"
+    iso_sha1 = "7a748072cc366ee3bdcd533afc70eda239c977c7"
     destination = os.path.join(base_dir, 'isos', 'linux')
     check_iso(url, destination, iso_sha1)
 
@@ -3780,3 +4127,106 @@ class NumaNode(object):
         logging.info("Numa Node record dict:")
         for i in self.cpus:
             logging.info("    %s: %s" % (i, self.dict[i]))
+
+
+def get_cpu_model():
+    """
+    Get cpu model from host cpuinfo
+    """
+    def _cpu_flags_sort(cpu_flags):
+        """
+        Update the cpu flags get from host to a certain order and format
+        """
+        flag_list = re.split("\s+", cpu_flags.strip())
+        flag_list.sort()
+        cpu_flags = " ".join(flag_list)
+        return cpu_flags
+
+    def _make_up_pattern(flags):
+        """
+        Update the check pattern to a certain order and format
+        """
+        pattern_list = re.split(",", flags.strip())
+        pattern = r""
+        pattern_list.sort()
+        pattern = r"(\b%s\b)" % pattern_list[0]
+        for i in pattern_list[1:]:
+            pattern += r".+(\b%s\b)" % i
+        return pattern
+
+    vendor_re = "vendor_id\s+:\s+(\w+)"
+    cpu_flags_re = "flags\s+:\s+([\w\s]+)\n"
+
+    cpu_types = {"AuthenticAMD": ["Opteron_G4", "Opteron_G3", "Opteron_G2",
+                                 "Opteron_G1"],
+                 "GenuineIntel": ["SandyBridge", "Westmere", "Nehalem",
+                                  "Penryn", "Conroe"]}
+    cpu_type_re = {"Opteron_G4":
+                  "avx,xsave,aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3,sse4a",
+                   "Opteron_G3": "cx16,sse4a",
+                   "Opteron_G2": "cx16",
+                   "Opteron_G1": "",
+                   "SandyBridge":
+                   "avx,xsave,aes,sse4_2|sse4.2,sse4.1|sse4_1,cx16,ssse3",
+                   "Westmere": "aes,sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
+                   "Nehalem": "sse4.2|sse4_2,sse4.1|sse4_1,cx16,ssse3",
+                   "Penryn": "sse4.1|sse4_1,cx16,ssse3",
+                   "Conroe": "ssse3"}
+
+    fd = open("/proc/cpuinfo")
+    cpu_info = fd.read()
+    fd.close()
+
+    vendor = re.findall(vendor_re, cpu_info)[0]
+    cpu_flags = re.findall(cpu_flags_re, cpu_info)
+
+    cpu_model = ""
+    if cpu_flags:
+        cpu_flags = _cpu_flags_sort(cpu_flags[0])
+        for cpu_type in cpu_types.get(vendor):
+            pattern = _make_up_pattern(cpu_type_re.get(cpu_type))
+            if re.findall(pattern, cpu_flags):
+                cpu_model = cpu_type
+                break
+    else:
+        logging.warn("Can not Get cpu flags from cpuinfo")
+
+    if cpu_model:
+        cpu_type_list = cpu_types.get(vendor)
+        cpu_support_model = cpu_type_list[cpu_type_list.index(cpu_model):]
+        cpu_model = ",".join(cpu_support_model)
+
+    return cpu_model
+
+
+def generate_mac_address_simple():
+    r = random.SystemRandom()
+    mac = "9a:%02x:%02x:%02x:%02x:%02x" % (r.randint(0x00, 0xff),
+                                           r.randint(0x00, 0xff),
+                                           r.randint(0x00, 0xff),
+                                           r.randint(0x00, 0xff),
+                                           r.randint(0x00, 0xff))
+    return mac
+
+
+def get_ip_address_by_interface(ifname):
+    """
+    returns ip address by interface
+    @param ifname - interface name
+    @raise NetError - When failed to fetch IP address (ioctl raised IOError.).
+
+    Retrieves interface address from socket fd trough ioctl call
+    and transforms it into string from 32-bit packed binary
+    by using socket.inet_ntoa().
+
+    """
+    SIOCGIFADDR = 0x8915 # Get interface address <bits/ioctls.h>
+    mysocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        return socket.inet_ntoa(fcntl.ioctl(
+                    mysocket.fileno(),
+                    SIOCGIFADDR,
+                    struct.pack('256s', ifname[:15]) # ifname to binary IFNAMSIZ == 16
+                )[20:24])
+    except IOError:
+        raise NetError("Error while retrieving IP address from interface %s." % ifname)

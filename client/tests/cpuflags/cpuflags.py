@@ -6,9 +6,9 @@ Autotest test for testing main group of cpu flags functionality.
 """
 import os, logging
 
-from autotest_lib.client.bin import test, utils
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_utils
+from autotest.client import test, utils
+from autotest.client.shared import error
+from autotest.client.virt import virt_utils
 
 class cpuflags(test.test):
     """

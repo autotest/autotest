@@ -1,9 +1,9 @@
 import re, logging, ConfigParser
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import qemu_io
-from autotest_lib.client.virt import virt_vm
-from autotest_lib.client.virt import virt_utils
-from autotest_lib.client.bin import utils
+from autotest.client.shared import error
+from autotest.client.virt import qemu_io
+from autotest.client.virt import virt_utils
+from autotest.client.virt.kvm_storage import QemuImg
+from autotest.client import utils
 
 @error.context_aware
 def run_qemu_io_blkdebug(test, params, env):
@@ -32,7 +32,8 @@ def run_qemu_io_blkdebug(test, params, env):
     blkdebug_default = params.get("blkdebug_default")
 
     error.context("Create image", logging.info)
-    image_name = virt_vm.create_image(params.object_params(image), test.bindir)
+    image_io = QemuImg(params.object_params(image), test.bindir, image)
+    image_name = image_io.create(params.object_params(image))
 
     template_name =  virt_utils.get_path(test.virtdir, blkdebug_default)
     template = ConfigParser.ConfigParser()
@@ -45,9 +46,14 @@ def run_qemu_io_blkdebug(test, params, env):
         template.set("inject-error", "event", '"%s"' % err_event)
         template.set("inject-error", "errno", '"%s"' % errn)
 
-        with open(blkdebug_cfg, 'w') as blkdebug:
+        error.context("Write blkdebug config file", logging.info)
+        blkdebug = None
+        try:
+            blkdebug = open(blkdebug_cfg, 'w')
             template.write(blkdebug)
-            blkdebug.close()
+        finally:
+            if blkdebug is not None:
+                blkdebug.close()
 
         error.context("Operate in qemu-io to trigger the error", logging.info)
         session = qemu_io.QemuIOShellSession(test, params, image_name,

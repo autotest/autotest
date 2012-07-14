@@ -3,10 +3,12 @@ try:
     import autotest.common as common
 except ImportError:
     import common
+
 from django.core.management import execute_manager
+
 try:
     try:
-        from autotest_lib.frontend import settings
+        from autotest.frontend import settings
     except ImportError:
         import settings
 except ImportError:

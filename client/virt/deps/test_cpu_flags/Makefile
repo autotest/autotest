@@ -2,7 +2,7 @@ MKDIR = mkdir -p
 
 OPTFLAGS=-O3
 
-CFLAGS= -m64 ${OPTFLAGS} -std=c99 -pipe \
+CFLAGS= ${OPTFLAGS} -std=c99 -pipe \
 	-ftree-vectorize \
 	-ffast-math \
 	-fopenmp \
@@ -51,7 +51,7 @@ default:cpuflags-test
 
 all:cpuflags-test
 
-cpuflags-test: avx.o fma4.o xop.o sse4a.o sse4.o ssse3.o sse3.o aes.o pclmul.o rdrand.o stress.o
+cpuflags-test: avx.o fma4.o xop.o sse4a.o sse4.o ssse3.o sse3.o aes.o pclmul.o rdrand.o stress.o stressmem.o
 	$(CC) $(CFLAGS) $(LIBS) cpuflags-test.c -o cpuflags-test \
 		aes.o \
 		pclmul.o \
@@ -64,6 +64,7 @@ cpuflags-test: avx.o fma4.o xop.o sse4a.o sse4.o ssse3.o sse3.o aes.o pclmul.o r
 		ssse3.o \
 		sse3.o \
 		stress.o \
+		stressmem.o \
 
 aes.o: aes.c tests.h
 	$(CC) $(CFLAGSAES) $(LIBS) -c aes.c
@@ -97,6 +98,10 @@ sse3.o: sse3.c tests.h
 
 stress.o: stress.c tests.h
 	$(CC) $(CFLAGSSTRESS) $(LIBS) -c stress.c
+
+stressmem.o: stressmem.c tests.h
+	$(CC) $(CFLAGSSTRESS) $(LIBS) -c stressmem.c
+
 
 ARCHIVE= cpuflags-test
 

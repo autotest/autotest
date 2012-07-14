@@ -1,8 +1,10 @@
 import os, time, commands, re, logging, glob, threading, shutil
-from autotest_lib.client.bin import utils
-from autotest_lib.client.common_lib import error
-import aexpect, virt_utils, kvm_monitor, ppm_utils, virt_test_setup
-import virt_vm, kvm_vm, libvirt_vm, virt_video_maker
+from autotest.client import utils
+from autotest.client.shared import error
+import aexpect, kvm_monitor, ppm_utils, virt_test_setup, virt_vm, kvm_vm
+import libvirt_vm, virt_video_maker, virt_utils, virt_storage, kvm_storage
+import virt_remote
+
 try:
     import PIL.Image
 except ImportError:
@@ -11,12 +13,11 @@ except ImportError:
                     'please install python-imaging or the equivalent for your '
                     'distro.')
 
-
 _screendump_thread = None
 _screendump_thread_termination_event = None
 
 
-def preprocess_image(test, params):
+def preprocess_image(test, params, image_name):
     """
     Preprocess a single QEMU image according to the instructions in params.
 
@@ -24,7 +25,7 @@ def preprocess_image(test, params):
     @param params: A dict containing image preprocessing parameters.
     @note: Currently this function just creates an image if requested.
     """
-    image_filename = virt_vm.get_image_filename(params, test.bindir)
+    image_filename = virt_storage.get_image_filename(params, test.bindir)
 
     create_image = False
 
@@ -35,8 +36,10 @@ def preprocess_image(test, params):
           os.path.exists(image_filename)):
         create_image = True
 
-    if create_image and not virt_vm.create_image(params, test.bindir):
-        raise error.TestError("Could not create image")
+    if create_image:
+        image = kvm_storage.QemuImg(params, test.bindir, image_name)
+        if not image.create(params):
+            raise error.TestError("Could not create image")
 
 
 def preprocess_vm(test, params, env, name):
@@ -99,28 +102,30 @@ def preprocess_vm(test, params, env, name):
         else:
             # Start the VM (or restart it if it's already up)
             vm.create(name, params, test.bindir,
-                      migration_mode=params.get("migration_mode"))
+                      migration_mode=params.get("migration_mode"),
+                      migration_fd=params.get("migration_fd"))
     else:
         # Don't start the VM, just update its params
         vm.params = params
 
 
-def postprocess_image(test, params):
+def postprocess_image(test, params, image_name):
     """
     Postprocess a single QEMU image according to the instructions in params.
 
     @param test: An Autotest test object.
     @param params: A dict containing image postprocessing parameters.
     """
+    image = kvm_storage.QemuImg(params, test.bindir, image_name)
     if params.get("check_image") == "yes":
         try:
-            virt_vm.check_image(params, test.bindir)
+            image.check_image(params, test.bindir)
         except Exception, e:
             if params.get("restore_image_on_check_error", "no") == "yes":
-                virt_vm.backup_image(params, test.bindir, 'restore', True)
+                image.backup_image(params, test.bindir, "restore", True)
             raise e
     if params.get("remove_image") == "yes":
-        virt_vm.remove_image(params, test.bindir)
+        image.remove()
 
 
 def postprocess_vm(test, params, env, name):
@@ -223,13 +228,13 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
                     # Call image_func for each image
                     if vm is not None and vm.is_alive():
                         vm.pause()
-                    image_func(test, image_params)
+                    image_func(test, image_params, image_name)
                     if vm is not None and vm.is_alive():
                         vm.resume()
         else:
             for image_name in params.objects("images"):
                 image_params = params.object_params(image_name)
-                image_func(test, image_params)
+                image_func(test, image_params, image_name)
 
     if not vm_first:
         _call_image_func()
@@ -284,27 +289,53 @@ def preprocess(test, params, env):
             vm.destroy()
             del env[key]
 
-    # Get the KVM kernel module version and write it as a keyval
-    if os.path.exists("/dev/kvm"):
+    # Get Host cpu type
+    if params.get("auto_cpu_model") == "yes":
+        if not env.get("cpu_model"):
+            env["cpu_model"] = virt_utils.get_cpu_model()
+        params["cpu_model"] = env.get("cpu_model")
+
+    kvm_ver_cmd = params.get("kvm_ver_cmd", "")
+
+    if kvm_ver_cmd:
         try:
-            kvm_version = open("/sys/module/kvm/version").read().strip()
-        except Exception:
-            kvm_version = os.uname()[2]
+            cmd_result = utils.run(kvm_ver_cmd)
+            kvm_version = cmd_result.stdout.strip()
+        except error.CmdError, e:
+            kvm_version = "Unknown"
     else:
-        kvm_version = "Unknown"
-        logging.debug("KVM module not loaded")
+        # Get the KVM kernel module version and write it as a keyval
+        if os.path.exists("/dev/kvm"):
+            try:
+                kvm_version = open("/sys/module/kvm/version").read().strip()
+            except Exception:
+                kvm_version = os.uname()[2]
+        else:
+            logging.warning("KVM module not loaded")
+            kvm_version = "Unknown"
+
     logging.debug("KVM version: %s" % kvm_version)
     test.write_test_keyval({"kvm_version": kvm_version})
 
     # Get the KVM userspace version and write it as a keyval
-    qemu_path = virt_utils.get_path(test.bindir, params.get("qemu_binary",
-                                                           "qemu"))
-    version_line = commands.getoutput("%s -help | head -n 1" % qemu_path)
-    matches = re.findall("[Vv]ersion .*?,", version_line)
-    if matches:
-        kvm_userspace_version = " ".join(matches[0].split()[1:]).strip(",")
+    kvm_userspace_ver_cmd = params.get("kvm_userspace_ver_cmd", "")
+
+    if kvm_userspace_ver_cmd:
+        try:
+            cmd_result = utils.run(kvm_userspace_ver_cmd)
+            kvm_userspace_version = cmd_result.stdout.strip()
+        except error.CmdError, e:
+            kvm_userspace_version = "Unknown"
     else:
-        kvm_userspace_version = "Unknown"
+        qemu_path = virt_utils.get_path(test.bindir,
+                                        params.get("qemu_binary", "qemu"))
+        version_line = commands.getoutput("%s -help | head -n 1" % qemu_path)
+        matches = re.findall("[Vv]ersion .*?,", version_line)
+        if matches:
+            kvm_userspace_version = " ".join(matches[0].split()[1:]).strip(",")
+        else:
+            kvm_userspace_version = "Unknown"
+
     logging.debug("KVM userspace version: %s" % kvm_userspace_version)
     test.write_test_keyval({"kvm_userspace_version": kvm_userspace_version})
 
@@ -314,14 +345,32 @@ def preprocess(test, params, env):
         if params.get("vm_type") == "libvirt":
             libvirt_vm.libvirtd_restart()
 
+    if params.get("setup_thp") == "yes":
+        thp = virt_test_setup.TransparentHugePageConfig(test, params)
+        thp.setup()
+
     # Execute any pre_commands
     if params.get("pre_command"):
         process_command(test, params, env, params.get("pre_command"),
                         int(params.get("pre_command_timeout", "600")),
                         params.get("pre_command_noncritical") == "yes")
 
+    #Clone master image from vms.
+    if params.get("master_images_clone"):
+        for vm_name in params.get("vms").split():
+            vm = env.get_vm(vm_name)
+            if vm:
+                vm.destroy(free_mac_addresses=False)
+                env.unregister_vm(vm_name)
+
+            vm_params = params.object_params(vm_name)
+            for image in vm_params.get("master_images_clone").split():
+                image_obj = kvm_storage.QemuImg(params, test.bindir, image)
+                image_obj.clone_image(params, vm_name, image, test.bindir)
+
     # Preprocess all VMs and images
-    process(test, params, env, preprocess_image, preprocess_vm)
+    if params.get("not_preprocess","no") == "no":
+        process(test, params, env, preprocess_image, preprocess_vm)
 
     # Start the screendump thread
     if params.get("take_regular_screendumps") == "yes":
@@ -349,7 +398,7 @@ def postprocess(test, params, env):
 
     # Terminate the screendump thread
     global _screendump_thread, _screendump_thread_termination_event
-    if _screendump_thread:
+    if _screendump_thread is not None:
         logging.debug("Terminating screendump thread")
         _screendump_thread_termination_event.set()
         _screendump_thread.join(10)
@@ -405,7 +454,7 @@ def postprocess(test, params, env):
                 try:
                     session = vm.login()
                     session.close()
-                except (virt_utils.LoginError, virt_vm.VMError), e:
+                except (virt_remote.LoginError, virt_vm.VMError), e:
                     logging.warn(e)
                     vm.destroy(gracefully=False)
 
@@ -423,6 +472,10 @@ def postprocess(test, params, env):
         h.cleanup()
         if params.get("vm_type") == "libvirt":
             libvirt_vm.libvirtd_restart()
+
+    if params.get("setup_thp") == "yes":
+        thp = virt_test_setup.TransparentHugePageConfig(test, params)
+        thp.cleanup()
 
     # Execute any post_commands
     if params.get("post_command"):
@@ -489,6 +542,7 @@ def _take_screendumps(test, params, env):
                 logging.warn(e)
                 continue
             except AttributeError, e:
+                logging.warn(e)
                 continue
             if not os.path.exists(temp_filename):
                 logging.warn("VM '%s' failed to produce a screendump", vm.name)
@@ -528,7 +582,9 @@ def _take_screendumps(test, params, env):
                 except NameError:
                     pass
             os.unlink(temp_filename)
-        if _screendump_thread_termination_event.isSet():
-            _screendump_thread_termination_event = None
-            break
-        _screendump_thread_termination_event.wait(delay)
+
+        if _screendump_thread_termination_event is not None:
+            if _screendump_thread_termination_event.isSet():
+                _screendump_thread_termination_event = None
+                break
+            _screendump_thread_termination_event.wait(delay)

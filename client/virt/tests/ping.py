@@ -1,6 +1,6 @@
 import logging
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_test_utils
+from autotest.client.shared import error
+from autotest.client.virt import virt_test_utils
 
 
 def run_ping(test, params, env):
@@ -24,7 +24,7 @@ def run_ping(test, params, env):
 
     counts = params.get("ping_counts", 100)
     flood_minutes = float(params.get("flood_minutes", 10))
-    nics = params.get("nics").split()
+    nics = vm.virtnet
     strict_check = params.get("strict_check", "no") == "yes"
 
     packet_size = [0, 1, 4, 48, 512, 1440, 1500, 1505, 4054, 4055, 4096, 4192,

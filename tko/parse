@@ -4,5 +4,5 @@ try:
     import autotest.common
 except ImportError:
     import common
-from autotest_lib.tko import parse
+from autotest.tko import parse
 parse.main()

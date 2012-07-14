@@ -8,9 +8,9 @@ DRIVERS:=blade dli-lpc hmc ivm reboot-netfinity reboot-newisys reboot-numaq \
 	reboot-acs48 reboot-apc reboot-laurel fence_apc_snmp.py
 
 install::
-	@[ -d $(BASE)/lib/drivers ] || mkdir $(BASE)/lib/drivers
+	@[ -d $(BASE)$(LIBDIR)/conmux/drivers ] || mkdir $(BASE)$(LIBDIR)/conmux/drivers
 	for f in $(DRIVERS); do \
-	    rm -f $(BASE)/lib/drivers/$$f; \
-	    cp -p drivers/$$f $(BASE)/lib/drivers/$$f; \
-	    chmod 755 $(BASE)/lib/drivers/$$f; \
+	    rm -f $(BASE)$(LIBDIR)/conmux/drivers/$$f; \
+	    cp -p drivers/$$f $(BASE)$(LIBDIR)/conmux/drivers/$$f; \
+	    chmod 755 $(BASE)$(LIBDIR)/conmux/drivers/$$f; \
 	done

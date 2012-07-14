@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 c = global_config.global_config
 _section = 'AUTOTEST_WEB'
@@ -26,7 +26,7 @@ def _get_config(config_key, default=None):
     return c.get_config_value(_section, config_key, default=default)
 
 AUTOTEST_DEFAULT = {
-    'ENGINE': 'autotest_lib.frontend.db.backends.afe',
+    'ENGINE': 'autotest.frontend.db.backends.afe',
     'PORT': '',
     'HOST': _get_config("host"),
     'NAME': _get_config("database"),
@@ -53,7 +53,7 @@ TKO_URL_PREFIX = 'new_tko/server/'
 # although not all variations may be possible on all operating systems.
 # If running in a Windows environment this must be set to the same as your
 # system time zone.
-TIME_ZONE = 'America/Los_Angeles'
+TIME_ZONE = 'UTC'
 
 # Language code for this installation. All choices can be found here:
 # http://www.w3.org/TR/REC-html40/struct/dirlang.html#langcodes
@@ -64,7 +64,7 @@ SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
-USE_I18N = True
+USE_I18N = False
 
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
@@ -92,6 +92,7 @@ TEMPLATE_LOADERS = (
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     'frontend.apache_auth.ApacheAuthMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.doc.XViewMiddleware',

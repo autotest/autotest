@@ -6,10 +6,13 @@ from django.db.backends.sqlite3.base import DatabaseWrapper as SQLiteDatabaseWra
 
 
 class DatabaseOperations(SQLiteDatabaseOperations):
-    compiler_module = "autotest_lib.frontend.db.backends.afe_sqlite.compiler"
+    compiler_module = "autotest.frontend.db.backends.afe_sqlite.compiler"
 
 
 class DatabaseWrapper(SQLiteDatabaseWrapper):
     def __init__(self, *args, **kwargs):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
-        self.ops = DatabaseOperations()
+        try:
+            self.ops = DatabaseOperations()
+        except TypeError:
+            self.ops = DatabaseOperations(connection=kwargs.get('connection'))

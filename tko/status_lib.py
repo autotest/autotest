@@ -3,7 +3,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import log
+from autotest.client.shared import log
 
 
 statuses = log.job_statuses
@@ -86,6 +86,6 @@ class line_buffer(object):
 
 
 def parser(version):
-    library = "autotest_lib.tko.parsers.version_%d" % version
+    library = "autotest.tko.parsers.version_%d" % version
     module = __import__(library, globals(), locals(), ["parser"])
     return module.parser()

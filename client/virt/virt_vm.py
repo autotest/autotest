@@ -1,7 +1,7 @@
-import os, logging, time, glob, re, shutil
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-import virt_utils
+import logging, time, glob, re
+from autotest.client.shared import error
+import virt_utils, virt_remote
+
 
 class VMError(Exception):
     pass
@@ -186,6 +186,16 @@ class VMIPAddressMissingError(VMAddressError):
     def __str__(self):
         return "No DHCP lease for MAC %s" % self.mac
 
+class VMUnknownNetTypeError(VMError):
+    def __init__(self, vmname, nicname, nettype):
+        super(VMUnknownNetTypeError, self).__init__()
+        self.vmname = vmname
+        self.nicname = nicname
+        self.nettype = nettype
+
+    def __str__(self):
+        return "Unknown nettype '%s' requested for NIC %s on VM %s" % (
+            self.nettype, self.nicname, self.vmname)
 
 class VMAddNetDevError(VMError):
     pass
@@ -255,6 +265,29 @@ class VMDeviceNotSupportedError(VMDeviceError):
         return ("Device '%s' is not supported for vm '%s' on this Host." %
                 (self.device, self.name))
 
+class VMPCIDeviceError(VMDeviceError):
+    pass
+
+class VMPCISlotInUseError(VMPCIDeviceError):
+    def __init__(self, name, slot):
+        VMPCIDeviceError.__init__(self, name, slot)
+        self.name = name
+        self.slot = slot
+
+    def __str__(self):
+        return ("PCI slot '0x%s' is already in use on vm '%s'. Please assign"
+                " another slot in config file." % (self.slot, self.name))
+
+class VMPCIOutOfRangeError(VMPCIDeviceError):
+    def __init__(self, name, max_dev_num):
+        VMPCIDeviceError.__init__(self, name, max_dev_num)
+        self.name = name
+        self.max_dev_num = max_dev_num
+
+    def __str__(self):
+        return ("Too many PCI devices added on vm '%s', max supported '%s'" %
+                (self.name, str(self.max_dev_num)))
+
 class VMUSBError(VMError):
     pass
 
@@ -278,286 +311,6 @@ class VMUSBControllerPortFullError(VMUSBControllerError):
 
     def __str__(self):
         return ("No available USB Controller port left for VM %s." % self.name)
-
-
-def get_image_blkdebug_filename(params, root_dir):
-    """
-    Generate an blkdebug file path from params and root_dir.
-
-    blkdebug files allow error injection in the block subsystem.
-
-    @param params: Dictionary containing the test parameters.
-    @param root_dir: Base directory for relative filenames.
-
-    @note: params should contain:
-           blkdebug -- the name of the debug file.
-    """
-    blkdebug_name = params.get("drive_blkdebug", None)
-    if blkdebug_name is not None:
-        blkdebug_filename = virt_utils.get_path(root_dir, blkdebug_name)
-    else:
-        blkdebug_filename = None
-    return blkdebug_filename
-
-
-def get_image_filename(params, root_dir):
-    """
-    Generate an image path from params and root_dir.
-
-    @param params: Dictionary containing the test parameters.
-    @param root_dir: Base directory for relative filenames.
-
-    @note: params should contain:
-           image_name -- the name of the image file, without extension
-           image_format -- the format of the image (qcow2, raw etc)
-    """
-    image_name = params.get("image_name", "image")
-    image_format = params.get("image_format", "qcow2")
-    if params.get("image_raw_device") == "yes":
-        return image_name
-    if image_format:
-        image_filename = "%s.%s" % (image_name, image_format)
-    else:
-        image_filename = image_name
-    image_filename = virt_utils.get_path(root_dir, image_filename)
-    return image_filename
-
-
-def create_image(params, root_dir):
-    """
-    Create an image using qemu_image.
-
-    @param params: Dictionary containing the test parameters.
-    @param root_dir: Base directory for relative filenames.
-
-    @note: params should contain:
-           image_name -- the name of the image file, without extension
-           image_format -- the format of the image (qcow2, raw etc)
-           image_cluster_size (optional) -- the cluster size for the image
-           image_size -- the requested size of the image (a string
-           qemu-img can understand, such as '10G')
-           create_with_dd -- use dd to create the image (raw format only)
-    """
-    format = params.get("image_format", "qcow2")
-    image_filename = get_image_filename(params, root_dir)
-    size = params.get("image_size", "10G")
-    if params.get("create_with_dd") == "yes" and format == "raw":
-        # maps K,M,G,T => (count, bs)
-        human = {'K': (1, 1),
-                 'M': (1, 1024),
-                 'G': (1024, 1024),
-                 'T': (1024, 1048576),
-                }
-        if human.has_key(size[-1]):
-            block_size = human[size[-1]][1]
-            size = int(size[:-1]) * human[size[-1]][0]
-        qemu_img_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
-                        % (image_filename, size, block_size))
-    else:
-        qemu_img_cmd = virt_utils.get_path(root_dir,
-                                    params.get("qemu_img_binary", "qemu-img"))
-        qemu_img_cmd += " create"
-
-        qemu_img_cmd += " -f %s" % format
-
-        image_cluster_size = params.get("image_cluster_size", None)
-        if image_cluster_size is not None:
-            qemu_img_cmd += " -o cluster_size=%s" % image_cluster_size
-
-        qemu_img_cmd += " %s" % image_filename
-
-        qemu_img_cmd += " %s" % size
-
-    utils.system(qemu_img_cmd)
-    return image_filename
-
-
-def remove_image(params, root_dir):
-    """
-    Remove an image file.
-
-    @param params: A dict
-    @param root_dir: Base directory for relative filenames.
-
-    @note: params should contain:
-           image_name -- the name of the image file, without extension
-           image_format -- the format of the image (qcow2, raw etc)
-    """
-    image_filename = get_image_filename(params, root_dir)
-    logging.debug("Removing image file %s", image_filename)
-    if os.path.exists(image_filename):
-        os.unlink(image_filename)
-    else:
-        logging.debug("Image file %s not found", image_filename)
-
-
-def check_image(params, root_dir):
-    """
-    Check an image using the appropriate tools for each virt backend.
-
-    @param params: Dictionary containing the test parameters.
-    @param root_dir: Base directory for relative filenames.
-
-    @note: params should contain:
-           image_name -- the name of the image file, without extension
-           image_format -- the format of the image (qcow2, raw etc)
-
-    @raise VMImageCheckError: In case qemu-img check fails on the image.
-    """
-    vm_type = params.get("vm_type")
-    if vm_type == 'kvm':
-        image_filename = get_image_filename(params, root_dir)
-        logging.debug("Checking image file %s", image_filename)
-        qemu_img_cmd = virt_utils.get_path(root_dir,
-                                      params.get("qemu_img_binary", "qemu-img"))
-        image_is_qcow2 = params.get("image_format") == 'qcow2'
-        if os.path.exists(image_filename) and image_is_qcow2:
-            # Verifying if qemu-img supports 'check'
-            q_result = utils.run(qemu_img_cmd, ignore_status=True)
-            q_output = q_result.stdout
-            check_img = True
-            if not "check" in q_output:
-                logging.error("qemu-img does not support 'check', "
-                              "skipping check")
-                check_img = False
-            if not "info" in q_output:
-                logging.error("qemu-img does not support 'info', "
-                              "skipping check")
-                check_img = False
-            if check_img:
-                try:
-                    utils.system("%s info %s" % (qemu_img_cmd, image_filename))
-                except error.CmdError:
-                    logging.error("Error getting info from image %s",
-                                  image_filename)
-
-                cmd_result = utils.run("%s check %s" %
-                                       (qemu_img_cmd, image_filename),
-                                       ignore_status=True)
-                # Error check, large chances of a non-fatal problem.
-                # There are chances that bad data was skipped though
-                if cmd_result.exit_status == 1:
-                    for e_line in cmd_result.stdout.splitlines():
-                        logging.error("[stdout] %s", e_line)
-                    for e_line in cmd_result.stderr.splitlines():
-                        logging.error("[stderr] %s", e_line)
-                    if params.get("backup_image_on_check_error", "no") == "yes":
-                        backup_image(params, root_dir, 'backup', False)
-                    raise error.TestWarn("qemu-img check error. Some bad data "
-                                         "in the image may have gone unnoticed")
-                # Exit status 2 is data corruption for sure, so fail the test
-                elif cmd_result.exit_status == 2:
-                    for e_line in cmd_result.stdout.splitlines():
-                        logging.error("[stdout] %s", e_line)
-                    for e_line in cmd_result.stderr.splitlines():
-                        logging.error("[stderr] %s", e_line)
-                    if params.get("backup_image_on_check_error", "no") == "yes":
-                        backup_image(params, root_dir, 'backup', False)
-                    raise VMImageCheckError(image_filename)
-                # Leaked clusters, they are known to be harmless to data
-                # integrity
-                elif cmd_result.exit_status == 3:
-                    raise error.TestWarn("Leaked clusters were noticed during "
-                                         "image check. No data integrity "
-                                         "problem was found though.")
-
-                # Just handle normal operation
-                if params.get("backup_image", "no") == "yes":
-                    backup_image(params, root_dir, 'backup', True)
-
-        else:
-            if not os.path.exists(image_filename):
-                logging.debug("Image file %s not found, skipping check",
-                              image_filename)
-            elif not image_is_qcow2:
-                logging.debug("Image file %s not qcow2, skipping check",
-                              image_filename)
-
-
-def backup_image(params, root_dir, action, good=True):
-    """
-    Backup or restore a disk image, depending on the action chosen.
-
-    @param params: Dictionary containing the test parameters.
-    @param root_dir: Base directory for relative filenames.
-    @param action: Whether we want to backup or restore the image.
-    @param good: If we are backing up a good image(we want to restore it) or
-            a bad image (we are saving a bad image for posterior analysis).
-
-    @note: params should contain:
-           image_name -- the name of the image file, without extension
-           image_format -- the format of the image (qcow2, raw etc)
-    """
-    def backup_raw_device(src, dst):
-        utils.system("dd if=%s of=%s bs=4k conv=sync" % (src, dst))
-
-    def backup_image_file(src, dst):
-        logging.debug("Copying %s -> %s", src, dst)
-        shutil.copy(src, dst)
-
-    def get_backup_name(filename, backup_dir, good):
-        if not os.path.isdir(backup_dir):
-            os.makedirs(backup_dir)
-        basename = os.path.basename(filename)
-        if good:
-            backup_filename = "%s.backup" % basename
-        else:
-            backup_filename = ("%s.bad.%s" %
-                               (basename, virt_utils.generate_random_string(4)))
-        return os.path.join(backup_dir, backup_filename)
-
-
-    image_filename = get_image_filename(params, root_dir)
-    backup_dir = params.get("backup_dir")
-    if params.get('image_raw_device') == 'yes':
-        iname = "raw_device"
-        iformat = params.get("image_format", "qcow2")
-        ifilename = "%s.%s" % (iname, iformat)
-        ifilename = virt_utils.get_path(root_dir, ifilename)
-        image_filename_backup = get_backup_name(ifilename, backup_dir, good)
-        backup_func = backup_raw_device
-    else:
-        image_filename_backup = get_backup_name(image_filename, backup_dir,
-                                                good)
-        backup_func = backup_image_file
-
-    if action == 'backup':
-        image_dir = os.path.dirname(image_filename)
-        image_dir_disk_free = utils.freespace(image_dir)
-        image_filename_size = os.path.getsize(image_filename)
-        image_filename_backup_size = 0
-        if os.path.isfile(image_filename_backup):
-            image_filename_backup_size = os.path.getsize(image_filename_backup)
-        disk_free = image_dir_disk_free + image_filename_backup_size
-        minimum_disk_free = 1.2 * image_filename_size
-        if disk_free < minimum_disk_free:
-            image_dir_disk_free_gb = float(image_dir_disk_free) / 10**9
-            minimum_disk_free_gb = float(minimum_disk_free) / 10**9
-            logging.error("Dir %s has %.1f GB free, less than the minimum "
-                          "required to store a backup, defined to be 120%% "
-                          "of the backup size, %.1f GB. Skipping backup...",
-                          image_dir, image_dir_disk_free_gb,
-                          minimum_disk_free_gb)
-            return
-        if good:
-            # In case of qemu-img check return 1, we will make 2 backups, one
-            # for investigation and other, to use as a 'pristine' image for
-            # further tests
-            state = 'good'
-        else:
-            state = 'bad'
-        logging.info("Backing up %s image file %s", state, image_filename)
-        src, dst = image_filename, image_filename_backup
-    elif action == 'restore':
-        if not os.path.isfile(image_filename_backup):
-            logging.error('Image backup %s not found, skipping restore...',
-                          image_filename_backup)
-            return
-        logging.info("Restoring image file %s from backup",
-                     image_filename)
-        src, dst = image_filename_backup, image_filename
-
-    backup_func(src, dst)
 
 
 class BaseVM(object):
@@ -613,7 +366,6 @@ class BaseVM(object):
     def __init__(self, name, params):
         self.name = name
         self.params = params
-
         #
         # Assuming all low-level hypervisors will have a serial (like) console
         # connection to the guest. libvirt also supports serial (like) consoles
@@ -621,9 +373,20 @@ class BaseVM(object):
         # is or behaves like aexpect.ShellSession.
         #
         self.serial_console = None
-
-        self._generate_unique_id()
-
+        # Create instance if not already set
+        if not hasattr(self, 'instance'):
+            self._generate_unique_id()
+        # Don't overwrite existing state, update from params
+        if hasattr(self, 'virtnet'):
+            # Direct reference to self.virtnet makes pylint complain
+            # note: virtnet.__init__() supports being called anytime
+            getattr(self, 'virtnet').__init__(self.params,
+                                          self.name,
+                                          self.instance)
+        else: # Create new
+            self.virtnet = virt_utils.VirtNet(self.params,
+                                          self.name,
+                                          self.instance)
 
     def _generate_unique_id(self):
         """
@@ -631,7 +394,7 @@ class BaseVM(object):
         """
         while True:
             self.instance = (time.strftime("%Y%m%d-%H%M%S-") +
-                             virt_utils.generate_random_string(4))
+                             virt_utils.generate_random_string(8))
             if not glob.glob("/tmp/*%s" % self.instance):
                 break
 
@@ -661,13 +424,123 @@ class BaseVM(object):
         @raise VMMACAddressMissingError: If no MAC address is defined for the
                 requested NIC
         """
-        nic_name = self.params.objects("nics")[nic_index]
-        nic_params = self.params.object_params(nic_name)
-        mac = (nic_params.get("nic_mac") or
-               virt_utils.get_mac_address(self.instance, nic_index))
-        if not mac:
+        try:
+            mac = self.virtnet[nic_index].mac
+            return mac
+        except KeyError:
             raise VMMACAddressMissingError(nic_index)
-        return mac
+
+
+    def get_address(self, index=0):
+        """
+        Return the IP address of a NIC or guest (in host space).
+
+        @param index: Name or index of the NIC whose address is requested.
+        @return: 'localhost': Port redirection is in use
+        @return: IP address of NIC if valid in arp cache.
+        @raise VMMACAddressMissingError: If no MAC address is defined for the
+                requested NIC
+        @raise VMIPAddressMissingError: If no IP address is found for the the
+                NIC's MAC address
+        @raise VMAddressVerificationError: If the MAC-IP address mapping cannot
+                be verified (using arping)
+        """
+        nic = self.virtnet[index]
+        # TODO: Determine port redirection in use w/o checking nettype
+        if nic.nettype != 'bridge':
+            return "localhost"
+        if not nic.has_key('mac'):
+            raise VMMACAddressMissingError(index)
+        else:
+            # Get the IP address from arp cache, try upper and lower case
+            arp_ip = self.address_cache.get(nic.mac.upper())
+            if not arp_ip:
+                arp_ip = self.address_cache.get(nic.mac.lower())
+            if not arp_ip:
+                raise VMIPAddressMissingError(nic.mac)
+            # Make sure the IP address is assigned to one or more macs
+            # for this guest
+            macs = self.virtnet.mac_list()
+            if not virt_utils.verify_ip_address_ownership(arp_ip, macs):
+                raise VMAddressVerificationError(nic.mac, arp_ip)
+            logging.debug('Found/Verified IP %s for VM %s NIC %s' % (
+                            arp_ip, self.name, str(index)))
+            return arp_ip
+
+
+    def free_mac_address(self, nic_index_or_name=0):
+        """
+        Free a NIC's MAC address.
+
+        @param nic_index: Index of the NIC
+        """
+        self.virtnet.free_mac_address(nic_index_or_name)
+
+    @error.context_aware
+    def wait_for_get_address(self, nic_index_or_name, timeout=30, internal_timeout=1):
+        """
+        Wait for a nic to acquire an IP address, then return it.
+        """
+        # Don't let VMIPAddressMissingError/VMAddressVerificationError through
+        def _get_address():
+            try:
+                return self.get_address(nic_index_or_name)
+            except (VMIPAddressMissingError, VMAddressVerificationError):
+                return False
+        if not virt_utils.wait_for(_get_address, timeout, internal_timeout):
+            raise VMIPAddressMissingError(self.virtnet[nic_index_or_name].mac)
+        return self.get_address(nic_index_or_name)
+
+    # Adding/setup networking devices methods split between 'add_*' for
+    # setting up virtnet, and 'activate_' for performing actions based
+    # on settings.
+    def add_nic(self, **params):
+        """
+        Add new or setup existing NIC with optional model type and mac address
+
+        @param: **params: Additional NIC parameters to set.
+        @param: nic_name: Name for device
+        @param: mac: Optional MAC address, None to randomly generate.
+        @param: ip: Optional IP address to register in address_cache
+        @return: Dict with new NIC's info.
+        """
+        if not params.has_key('nic_name'):
+            params['nic_name'] = virt_utils.generate_random_id()
+        nic_name = params['nic_name']
+        if nic_name in self.virtnet.nic_name_list():
+            self.virtnet[nic_name].update(**params)
+        else:
+            self.virtnet.append(params)
+        nic = self.virtnet[nic_name]
+        if not nic.has_key('mac'): # generate random mac
+            logging.debug("Generating random mac address for nic")
+            self.virtnet.generate_mac_address(nic_name)
+        # mac of '' or invaid format results in not setting a mac
+        if nic.has_key('ip') and nic.has_key('mac'):
+            if not self.address_cache.has_key(nic.mac):
+                logging.debug("(address cache) Adding static "
+                              "cache entry: %s ---> %s" % (nic.mac, nic.ip))
+            else:
+                logging.debug("(address cache) Updating static "
+                              "cache entry from: %s ---> %s"
+                              " to: %s ---> %s" % (nic.mac,
+                              self.address_cache[nic.mac], nic.mac, nic.ip))
+            self.address_cache[nic.mac] = nic.ip
+        return nic
+
+
+    def del_nic(self, nic_index_or_name):
+        """
+        Remove the nic specified by name, or index number
+        """
+        nic = self.virtnet[nic_index_or_name]
+        nic_mac = nic.mac.lower()
+        self.free_mac_address(nic_index_or_name)
+        try:
+            del self.address_cache[nic_mac]
+            del self.virtnet[nic_index_or_name]
+        except IndexError:
+            pass # continue to not exist
 
 
     def verify_kernel_crash(self):
@@ -685,7 +558,7 @@ class BaseVM(object):
                 raise VMDeadKernelCrashError(match.group(0))
 
 
-    def verify_illegal_instructonn(self):
+    def verify_illegal_instruction(self):
         """
         Find illegal instruction code on VM serial console output.
 
@@ -744,9 +617,9 @@ class BaseVM(object):
         port = self.get_port(int(self.params.get("shell_port")))
         log_filename = ("session-%s-%s.log" %
                         (self.name, virt_utils.generate_random_string(4)))
-        session = virt_utils.remote_login(client, address, port, username,
-                                         password, prompt, linesep,
-                                         log_filename, timeout)
+        session = virt_remote.remote_login(client, address, port, username,
+                                           password, prompt, linesep,
+                                           log_filename, timeout)
         session.set_status_test_command(self.params.get("status_test_command",
                                                         ""))
         return session
@@ -776,7 +649,7 @@ class BaseVM(object):
         while time.time() < end_time:
             try:
                 return self.login(nic_index, internal_timeout)
-            except (virt_utils.LoginError, VMError), e:
+            except (virt_remote.LoginError, VMError), e:
                 e = str(e)
                 if e not in error_messages:
                     logging.debug(e)
@@ -787,14 +660,15 @@ class BaseVM(object):
 
 
     @error.context_aware
-    def copy_files_to(self, host_path, guest_path, nic_index=0, verbose=False,
-                      timeout=COPY_FILES_TIMEOUT):
+    def copy_files_to(self, host_path, guest_path, nic_index=0, limit="",
+                      verbose=False, timeout=COPY_FILES_TIMEOUT):
         """
         Transfer files to the remote host(guest).
 
         @param host_path: Host path
         @param guest_path: Guest path
         @param nic_index: The index of the NIC to connect to.
+        @param limit: Speed limit of file transfer.
         @param verbose: If True, log some stats using logging.debug (RSS only)
         @param timeout: Time (seconds) before giving up on doing the remote
                 copy.
@@ -808,13 +682,13 @@ class BaseVM(object):
         log_filename = ("transfer-%s-to-%s-%s.log" %
                         (self.name, address,
                         virt_utils.generate_random_string(4)))
-        virt_utils.copy_files_to(address, client, username, password, port,
-                                host_path, guest_path, log_filename, verbose,
-                                timeout)
+        virt_remote.copy_files_to(address, client, username, password, port,
+                                  host_path, guest_path, limit, log_filename,
+                                  verbose, timeout)
 
 
     @error.context_aware
-    def copy_files_from(self, guest_path, host_path, nic_index=0,
+    def copy_files_from(self, guest_path, host_path, nic_index=0, limit="",
                         verbose=False, timeout=COPY_FILES_TIMEOUT):
         """
         Transfer files from the guest.
@@ -822,6 +696,7 @@ class BaseVM(object):
         @param host_path: Guest path
         @param guest_path: Host path
         @param nic_index: The index of the NIC to connect to.
+        @param limit: Speed limit of file transfer.
         @param verbose: If True, log some stats using logging.debug (RSS only)
         @param timeout: Time (seconds) before giving up on doing the remote
                 copy.
@@ -835,9 +710,9 @@ class BaseVM(object):
         log_filename = ("transfer-%s-from-%s-%s.log" %
                         (self.name, address,
                         virt_utils.generate_random_string(4)))
-        virt_utils.copy_files_from(address, client, username, password, port,
-                                  guest_path, host_path, log_filename,
-                                  verbose, timeout)
+        virt_remote.copy_files_from(address, client, username, password, port,
+                                    guest_path, host_path, limit, log_filename,
+                                    verbose, timeout)
 
 
     @error.context_aware
@@ -863,8 +738,8 @@ class BaseVM(object):
         # Try to get a login prompt
         self.serial_console.sendline()
 
-        virt_utils._remote_login(self.serial_console, username, password,
-                                prompt, timeout)
+        virt_remote._remote_login(self.serial_console, username, password,
+                                  prompt, timeout)
         return self.serial_console
 
 
@@ -884,7 +759,7 @@ class BaseVM(object):
         while time.time() < end_time:
             try:
                 return self.serial_login(internal_timeout)
-            except virt_utils.LoginError, e:
+            except virt_remote.LoginError, e:
                 e = str(e)
                 if e not in error_messages:
                     logging.debug(e)
@@ -983,17 +858,19 @@ class BaseVM(object):
         raise NotImplementedError
 
 
-    def get_address(self, index=0):
+    def activate_nic(self, nic_index_or_name):
         """
-        Return the IP address of a NIC of the guest
+        Activate an inactive network device
 
-        @param index: Index of the NIC whose address is requested.
-        @raise VMMACAddressMissingError: If no MAC address is defined for the
-                requested NIC
-        @raise VMIPAddressMissingError: If no IP address is found for the the
-                NIC's MAC address
-        @raise VMAddressVerificationError: If the MAC-IP address mapping cannot
-                be verified (using arping)
+        @param: nic_index_or_name: name or index number for existing NIC
+        """
+        raise NotImplementedError
+
+    def deactivate_nic(self, nic_index_or_name):
+        """
+        Deactivate an active network device
+
+        @param: nic_index_or_name: name or index number for existing NIC
         """
         raise NotImplementedError
 

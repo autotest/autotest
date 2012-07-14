@@ -6,8 +6,8 @@ tests with and without this "profiler".
 author: jsmiller@google.com
 """
 
-import os, subprocess
-from autotest_lib.client.bin import kvm_control, profiler, utils
+import os
+from autotest.client import kvm_control, profiler, utils
 
 
 class kvm_modload(profiler.profiler):

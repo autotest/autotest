@@ -1,8 +1,6 @@
-import time
-import sys
-import re
-
-from autotest_lib.client.common_lib import error
+import time, sys, re
+from autotest.client.shared import error
+from autotest.client.virt import virt_test_utils
 
 
 def _get_function(func_name):
@@ -86,6 +84,9 @@ def run_boot(test, params, env):
     if check_func:
         error.context("Verify device(s) before rebooting.")
         _check_device(check_func)
+
+    if params.get("rh_perf_envsetup_script"):
+        virt_test_utils.service_setup(vm, session, test.virtdir)
 
     if params.get("reboot_method"):
         error.context("Reboot guest.")

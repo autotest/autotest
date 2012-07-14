@@ -1,6 +1,6 @@
 import os, sys, subprocess, logging
-from autotest_lib.client.bin import test, utils
-from autotest_lib.client.common_lib import error
+from autotest.client import test, utils
+from autotest.client.shared import error
 
 
 class disktest(test.test):

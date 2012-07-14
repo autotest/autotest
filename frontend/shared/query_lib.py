@@ -1,4 +1,4 @@
-from autotest_lib.frontend.shared import exceptions
+from autotest.frontend.shared import exceptions
 
 class ConstraintError(Exception):
     """Raised when an error occurs applying a Constraint."""

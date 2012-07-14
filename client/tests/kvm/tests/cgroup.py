@@ -3,21 +3,17 @@ cgroup autotest test (on KVM guest)
 @author: Lukas Doktor <ldoktor@redhat.com>
 @copyright: 2011 Red Hat, Inc.
 """
-import logging
-import os
-import re
-import time
-from random import random
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-from autotest_lib.client.tests.cgroup.cgroup_common import Cgroup
-from autotest_lib.client.tests.cgroup.cgroup_common import CgroupModules
-from autotest_lib.client.tests.cgroup.cgroup_common import get_load_per_cpu
-from autotest_lib.client.virt.virt_env_process import preprocess
-from autotest_lib.client.virt import kvm_monitor
-from autotest_lib.client.virt.aexpect import ExpectTimeoutError
-from autotest_lib.client.virt.aexpect import ExpectProcessTerminatedError
-from autotest_lib.client.virt.aexpect import ShellTimeoutError
+import logging, os, re, time
+from autotest.client.shared import error
+from autotest.client import utils
+from autotest.client.tests.cgroup.cgroup_common import Cgroup
+from autotest.client.tests.cgroup.cgroup_common import CgroupModules
+from autotest.client.tests.cgroup.cgroup_common import get_load_per_cpu
+from autotest.client.virt.virt_env_process import preprocess
+from autotest.client.virt import kvm_monitor
+from autotest.client.virt.aexpect import ExpectTimeoutError
+from autotest.client.virt.aexpect import ExpectProcessTerminatedError
+from autotest.client.virt.aexpect import ShellTimeoutError
 
 
 @error.context_aware

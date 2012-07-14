@@ -1,6 +1,6 @@
-import logging, os
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_test_utils, virt_utils, aexpect
+import logging
+from autotest.client.shared import error
+from autotest.client.virt import virt_test_utils, virt_vm, aexpect
 
 
 def run_nic_hotplug(test, params, env):
@@ -16,11 +16,12 @@ def run_nic_hotplug(test, params, env):
     7) Delete nic device and netdev
     8) Re-enable primary link of guest
 
-    BEWARE OF THE NETWORK BRIDGE DEVICE USED FOR THIS TEST ("bridge" param).
-    The KVM autotest default bridge virbr0, leveraging libvirt, works fine
-    for the purpose of this test. When using other bridges, the timeouts
-    which usually happen when the bridge topology changes (that is, devices
-    get added and removed) may cause random failures.
+    BEWARE OF THE NETWORK BRIDGE DEVICE USED FOR THIS TEST ("nettype=bridge"
+    and "netdst=<bridgename>" param).  The KVM autotest default bridge virbr0,
+    leveraging libvirt, works fine for the purpose of this test. When using
+    other bridges, the timeouts which usually happen when the bridge
+    topology changes (that is, devices get added and removed) may cause random
+    failures.
 
     @param test:   KVM test object.
     @param params: Dictionary with the test parameters.
@@ -55,7 +56,8 @@ def run_nic_hotplug(test, params, env):
             session.get_command_output("modprobe %s" % module)
 
     # hot-add the nic
-    nic_info = vm.add_nic(model=pci_model)
+    nic_name = 'hotadded'
+    nic_info = vm.hotplug_nic(nic_model=pci_model, nic_name=nic_name)
 
     # Only run dhclient if explicitly set and guest is not running Windows.
     # Most modern Linux guests run NetworkManager, and thus do not need this.
@@ -64,23 +66,20 @@ def run_nic_hotplug(test, params, env):
         ifname = virt_test_utils.get_linux_ifname(session, nic_info['mac'])
         session_serial.cmd("dhclient %s &" % ifname)
 
-    logging.info("Shutting down the primary link")
-    vm.monitor.cmd("set_link %s off" % vm.netdev_id[0])
+    logging.info("Shutting down the primary link(s)")
+    for nic in vm.virtnet:
+        if nic.nic_name == nic_name:
+            continue
+        else:
+            vm.monitor.cmd("set_link %s off" % nic.device_id)
 
     try:
         logging.info("Waiting for new nic's ip address acquisition...")
-        if not virt_utils.wait_for(lambda:
-                                   (vm.address_cache.get(nic_info['mac'])
-                                    is not None),
-                                   10, 1):
-            raise error.TestFail("Could not get ip address of new nic")
-
-        ip = vm.address_cache.get(nic_info['mac'])
-
-        if not virt_utils.verify_ip_address_ownership(ip, nic_info['mac']):
-            raise error.TestFail("Could not verify the ip address of new nic")
-        else:
-            logging.info("Got the ip address of new nic: %s", ip)
+        try:
+            ip = vm.wait_for_get_address(nic_name)
+        except virt_vm.VMIPAddressMissingError:
+            raise error.TestFail("Could not get or verify ip address of nic")
+        logging.info("Got the ip address of new nic: %s", ip)
 
         logging.info("Ping test the new nic ...")
         s, o = virt_test_utils.ping(ip, 100)
@@ -89,12 +88,15 @@ def run_nic_hotplug(test, params, env):
             raise error.TestFail("New nic failed ping test")
 
         logging.info("Detaching the previously attached nic from vm")
-        vm.del_nic(nic_info, guest_delay)
+        vm.hotunplug_nic(nic_name)
 
     finally:
-        vm.free_mac_address(1)
-        logging.info("Re-enabling the primary link")
-        vm.monitor.cmd("set_link %s on" % vm.netdev_id[0])
+        logging.info("Re-enabling the primary link(s)")
+        for nic in vm.virtnet:
+            if nic.nic_name == nic_name:
+                continue
+            else:
+                vm.monitor.cmd("set_link %s on" % nic.device_id)
 
     # Attempt to put back udev network naming rules, even if the command to
     # disable the rules failed. We may be undoing what was done in a previous

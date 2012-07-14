@@ -16,8 +16,8 @@ try:
     import autotest.common
 except ImportError:
     import common
-from autotest_lib.tko import display, frontend, db, query_lib
-from autotest_lib.client.common_lib import kernel_versions
+from autotest.tko import display, frontend, db, query_lib
+from autotest.client.shared import kernel_versions
 
 html_header = """\
 <form action="/tko/compose_query.cgi" method="get">

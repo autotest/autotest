@@ -1,8 +1,7 @@
 import logging, os, re
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-from autotest_lib.client.virt import virt_utils, virt_test_utils
-from autotest_lib.client.virt import virt_test_setup, virt_env_process
+from autotest.client.shared import error
+from autotest.client import utils
+from autotest.client.virt import virt_env_process
 
 
 @error.context_aware
@@ -26,9 +25,7 @@ def run_trans_hugepage_swapping(test, params, env):
                     args_list_tmp[key] = int(re.split('\s+', line)[1])
         return args_list_tmp
 
-    test_config = virt_test_setup.TransparentHugePageConfig(test, params)
     try:
-        test_config.setup()
         # Swapping test
         logging.info("Swapping test start")
         # Parameters of memory information
@@ -71,23 +68,22 @@ def run_trans_hugepage_swapping(test, params, env):
 
             # Set the memory size of vm
             # To ignore the oom killer set it to the free swap size
-            vm = virt_test_utils.get_living_vm(env, params.get("main_vm"))
+            vm = env.get_vm(params.get("main_vm"))
+            vm.verify_alive()
             if int(params['mem']) > swap_free[0]:
                 vm.destroy()
                 vm_name = 'vmsw'
                 vm0 =  params.get("main_vm")
-                vm0_key = virt_utils.env_get_vm(env, vm0)
+                vm0_key = env.get_vm(vm0)
                 params['vms'] = params['vms'] + " " + vm_name
                 params['mem'] = str(swap_free[0])
                 vm_key = vm0_key.clone(vm0, params)
-                virt_utils.env_register_vm(env, vm_name, vm_key)
+                env.register_vm(vm_name, vm_key)
                 virt_env_process.preprocess_vm(test, params, env, vm_name)
                 vm_key.create()
-                session = virt_utils.wait_for(vm_key.remote_login,
-                                              timeout=login_timeout)
+                session = vm_key.wait_for_login(timeout=login_timeout)
             else:
-                session = virt_test_utils.wait_for_login(vm,
-                                                        timeout=login_timeout)
+                session = vm.wait_for_login(timeout=login_timeout)
 
             error.context("making guest to swap memory")
             cmd = ("dd if=/dev/zero of=%s/zero bs=%s000000 count=%s" %
@@ -109,5 +105,5 @@ def run_trans_hugepage_swapping(test, params, env):
         logging.info("Swapping test succeed")
 
     finally:
-        session.close()
-        test_config.cleanup()
+        if session is not None:
+            session.close()

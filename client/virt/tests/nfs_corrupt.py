@@ -1,8 +1,8 @@
 import logging, os, re
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils, os_dep
-from autotest_lib.client.virt import virt_utils
-from autotest_lib.client.virt import virt_env_process
+from autotest.client.shared import error
+from autotest.client import utils, os_dep
+from autotest.client.virt import virt_utils
+from autotest.client.virt import virt_env_process
 
 
 class NFSCorruptConfig(object):

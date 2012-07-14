@@ -1,9 +1,13 @@
-#!/bin/sh
+#!/bin/bash
 
 ATHOME=/usr/local/autotest
 DATETIMESTAMP=$(date "+%m-%d-%Y-%H-%M-%S")
 BASENAME=$(echo $(basename $0) | cut -f1 -d '.')
 LOG="/tmp/$BASENAME-$DATETIMESTAMP.log"
+ATPASSWD=
+MYSQLPW=
+INSTALL_PACKAGES_ONLY=0
+export LANG=en_US.utf8
 
 print_log() {
 echo $(date "+%H:%M:%S") $1 '|' $2 | tee -a $LOG
@@ -13,18 +17,24 @@ usage() {
 cat << EOF
 usage: $0 [options]
 
-This script installs the autotest server on a given Fedora 16 system.
+This script installs the autotest server on a given system.
+Currently tested systems:
+ * Fedora 16
+ * Fedora 17
+ * RHEL 6.2
+ * Ubuntu 12.04
 
-OPTIONS:
+GENERAL OPTIONS:
    -h      Show this message
    -u      Autotest user password
-   -d      Autotest MySQL database password
+   -d      MySQL password (both mysql root and autotest_web db)
+
+INSTALLATION STEP SELECTION:
+   -p      Only install packages
 EOF
 }
 
-ATPASSWD=
-MYSQLPW=
-while getopts "hu:d:" OPTION
+while getopts "hu:d:p" OPTION
 do
      case $OPTION in
          h)
@@ -37,6 +47,9 @@ do
          d)
              MYSQLPW=$OPTARG
              ;;
+         p)
+             INSTALL_PACKAGES_ONLY=1
+             ;;
          ?)
              usage
              exit
@@ -44,16 +57,15 @@ do
      esac
 done
 
+check_command_line_params() {
 if [[ -z $ATPASSWD ]] || [[ -z $MYSQLPW ]]
 then
      usage
      exit 1
 fi
+}
 
-print_log "INFO" "Installing the Autotest server"
-print_log "INFO" "A log of operation is kept in $LOG"
-print_log "INFO" "Install started at: $(date)"
-
+check_disk_space() {
 LOCALFREE=$(df -kP /usr/local | awk '{ print $4 }' | grep -v Avai)
 VARFREE=$(df -kP /var | awk '{ print $4 }' | grep -v Avai)
 
@@ -73,7 +85,9 @@ then
     print_log "ERROR" "You should have more free space in /var"
     exit 1
 fi
+}
 
+setup_substitute() {
 if [ ! -x /usr/local/bin/substitute ]
 then
     mkdir -p /usr/local/bin
@@ -144,10 +158,12 @@ EOF
     chmod +x /usr/local/bin/substitute
 
 fi
+}
 
+setup_epel_repo() {
 if [ -f /etc/redhat-release ]
 then
-  
+
     if [ ! -f /etc/yum.repos.d/epel.repo ]
     then
         if [ "`grep 'release 6' /etc/redhat-release`" != "" ]
@@ -157,56 +173,122 @@ then
         fi
     fi
 fi
+}
 
-print_log "INFO" "Installing utility packages"
-yum install -y unzip wget >> $LOG 2>&1
-print_log "INFO" "Installing webserver packages"
-yum install -y httpd mod_python Django >> $LOG 2>&1
-print_log "INFO" "Installing py-mysql packages"
-yum install -y mysql-server MySQL-python >> $LOG 2>&1
-print_log "INFO" "Installing development packages"
-yum install -y git java-1.6.0-openjdk-devel >> $LOG 2>&1
-print_log "INFO" "Installing python libraries"
-yum install -y python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib python-atfork >> $LOG 2>&1
-print_log "INFO" "Installing/updating selinux policy"
-yum install -y selinux-policy selinux-policy-targeted policycoreutils-python >> $LOG 2>&1
+install_packages_rh() {
+PACKAGES_UTILITY=(unzip wget)
+PACKAGES_WEBSERVER=(httpd mod_wsgi Django)
+PACKAGES_MYSQL=(mysql-server MySQL-python)
+PACKAGES_DEVELOPMENT=(git java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel)
+PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib python-atfork)
+PACKAGES_SELINUX=(selinux-policy selinux-policy-targeted policycoreutils-python)
+PACKAGES_ALL=( \
+    ${PACKAGES_UTILITY[*]}
+    ${PACKAGES_WEBSERVER[*]}
+    ${PACKAGES_MYSQL[*]}
+    ${PACKAGES_DEVELOPMENT[*]}
+    ${PACKAGES_PYTHON_LIBS[*]}
+    ${PACKAGES_SELINUX[*]}
+)
 
+PKG_COUNT=$(echo ${PACKAGES_ALL[*]} | wc -w)
+INSTALLED_PKG_COUNT=$(rpm -q ${PACKAGES_ALL[*]} | grep -v 'not installed' | wc -l)
+
+if [ $PKG_COUNT == $INSTALLED_PKG_COUNT ]; then
+    print_log "INFO" "All packages already installed"
+else
+    print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
+    yum install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
+fi
+}
+
+install_packages_deb() {
+PACKAGES_UTILITY=(unzip wget gnuplot makepasswd)
+PACKAGES_WEBSERVER=(apache2-mpm-prefork libapache2-mod-wsgi python-django)
+PACKAGES_MYSQL=(mysql-server python-mysqldb)
+PACKAGES_DEVELOPMENT=(git openjdk-7-jre-headless)
+PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 python-numpy python-matplotlib python-setuptools python-simplejson)
+PACKAGES_ALL=( \
+    ${PACKAGES_UTILITY[*]}
+    ${PACKAGES_WEBSERVER[*]}
+    ${PACKAGES_MYSQL[*]}
+    ${PACKAGES_DEVELOPMENT[*]}
+    ${PACKAGES_PYTHON_LIBS[*]}
+)
+
+print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
+apt-get install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
+}
+
+setup_selinux() {
 # Turns out the problem "AttributeError: 'module' object has no attribute 'default'"
 # is in fact an SELinux problem. I did try to fix it, but couldn't, this needs to
 # be investigated more carefully.
 print_log "INFO" "Disabling SELinux (sorry guys...)"
-if [ -x /selinux/enforce ]
+if [ -f /selinux/enforce ]
 then
     echo 0 > /selinux/enforce
 fi
+
 setenforce 0
 
-print_log "INFO" "Starting MySQL server"
+if [ -f /etc/selinux/config ]
+then
+    /usr/local/bin/substitute 'SELINUX=enforcing' 'SELINUX=permissive' /etc/selinux/config
+fi
+}
+
+setup_mysql_service_deb() {
+print_log "INFO" "Enabling MySQL server on boot"
+update-rc.d mysql defaults >> $LOG
+}
+
+setup_mysql_service_rh() {
+print_log "INFO" "Enabling MySQL server on boot"
 if [ -x /etc/init.d/mysqld ]
 then
     chkconfig --level 2345 mysqld on >> $LOG
-    /etc/init.d/mysqld restart >> $LOG
 else
     systemctl enable mysqld.service >> $LOG
-    systemctl restart mysqld.service >> $LOG
 fi
+}
 
-print_log "INFO" "Installing autotest"
+create_autotest_user_deb() {
+print_log "INFO" "Creating autotest user"
 if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
 then
     print_log "INFO" "Adding user autotest"
-    useradd autotest
+    echo $ATPASSWD > /tmp/pwd
+    useradd -d /usr/local/autotest autotest -p $(makepasswd --crypt-md5 --clearfrom=/tmp/pwd | awk '{print $2}')
+    rm -rf /tmp/pwd
+fi
+}
+
+create_autotest_user_rh() {
+print_log "INFO" "Creating autotest user"
+if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
+then
+    print_log "INFO" "Adding user autotest"
+    useradd -b /usr/local autotest
     print_log "INFO" "Setting autotest user password"
     echo "$ATPASSWD
 $ATPASSWD" | passwd --stdin autotest >> $LOG
 fi
+}
 
-mkdir -p /usr/local
+install_autotest() {
+print_log "INFO" "Installing autotest"
+mkdir -p $ATHOME
 if [ ! -e $ATHOME/.git/config ]
 then
     print_log "INFO" "Cloning autotest repo in $ATHOME"
-    cd /usr/local
-    git clone git://github.com/autotest/autotest.git
+    cd $ATHOME
+    git init
+    git remote add origin git://github.com/autotest/autotest.git
+    git config branch.master.remote origin
+    git config branch.master.merge refs/heads/master
+    git pull
+    git checkout master
 else
     print_log "INFO" "Updating autotest repo in $ATHOME"
     cd $ATHOME
@@ -216,7 +298,10 @@ fi
 
 print_log "INFO" "Setting proper permissions for the autotest directory"
 chown -R autotest:autotest $ATHOME
+chmod 775 $ATHOME
+}
 
+check_mysql_password() {
 print_log "INFO" "Verifying MySQL root password"
 mysqladmin -u root password $MYSQLPW > /dev/null 2>&1
 
@@ -226,6 +311,9 @@ then
     print_log "ERROR" "MySQL already has a different root password"
     exit 1
 fi
+}
+
+create_autotest_database() {
 if [ "$(echo $DB | grep 'Unknown database')" != "" ]
 then
     print_log "INFO" "Creating MySQL databases for autotest"
@@ -236,17 +324,32 @@ grant SELECT on autotest_web.* TO 'nobody'@'%';
 grant SELECT on autotest_web.* TO 'nobody'@'localhost';
 SQLEOF
 fi
+}
 
+build_external_packages() {
 print_log "INFO" "Running autotest dependencies build (may take a while since it might download files)"
 cat << EOF | su - autotest >> $LOG 2>&1
 /usr/local/autotest/utils/build_externals.py
 EOF
+}
 
+configure_webserver_deb() {
+print_log "INFO" "Configuring Web server"
+if [ ! -e  /etc/apache2/sites-enabled/001-autotest ]
+then
+    /usr/local/bin/substitute "WSGISocketPrefix run/wsgi" "#WSGISocketPrefix run/wsgi" /usr/local/autotest/apache/conf/django-directives
+    sudo rm /etc/apache2/sites-enabled/000-default
+    sudo ln -s /usr/local/autotest/apache/conf/apache-conf /etc/apache2/sites-enabled/001-autotest
+fi
+a2enmod rewrite
+update-rc.d apache2 defaults
+}
+
+configure_webserver_rh() {
 print_log "INFO" "Configuring Web server"
 if [ ! -e  /etc/httpd/conf.d/autotest.conf ]
 then
     ln -s /usr/local/autotest/apache/conf/all-directives /etc/httpd/conf.d/autotest.conf
-    service httpd configtest
 fi
 if [ -x /etc/init.d/httpd ]
 then
@@ -254,7 +357,9 @@ then
 else
     systemctl enable httpd.service >> $LOG
 fi
+}
 
+configure_autotest() {
 print_log "INFO" "Setting up the autotest configuration files"
 
 # TODO: notify_email in [SCHEDULER] section of global_config.ini
@@ -262,7 +367,9 @@ print_log "INFO" "Setting up the autotest configuration files"
 cat << EOF | su - autotest >> $LOG 2>&1
 /usr/local/bin/substitute please_set_this_password "$MYSQLPW" $ATHOME/global_config.ini
 EOF
+}
 
+setup_databse_schema() {
 TABLES=$(echo "use autotest_web; show tables;" | mysql --user=root --password=$MYSQLPW 2>&1)
 
 if [ "$(echo $TABLES | grep tko_test_view_outer_joins)" = "" ]
@@ -276,57 +383,98 @@ EOF
 else
     print_log "INFO" "Database schemas are already in place"
 fi
+}
 
+restart_mysql_deb() {
+print_log "INFO" "Re-starting MySQL server"
+service mysql restart >> $LOG
+}
+
+restart_mysql_rh() {
 print_log "INFO" "Re-starting MySQL server"
 if [ -x /etc/init.d/mysqld ]
 then
-    /etc/init.d/mysqld restart >> $LOG
+    service $1 restart >> $LOG
 else
     systemctl restart mysqld.service >> $LOG
 fi
+}
 
-# Patch up a python 2.7 problem
-if [ "$(grep '^CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py)" != "" ]
+patch_python27_bug() {
+#
+# We may not be on python 2.7
+#
+if [ -d  /usr/lib64/python2.7 ]
 then
-    /usr/local/bin/substitute 'CFUNCTYPE(c_int)(lambda: None)' '# CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py
+    # Patch up a python 2.7 problem
+    if [ "$(grep '^CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py)" != "" ]
+    then
+        /usr/local/bin/substitute 'CFUNCTYPE(c_int)(lambda: None)' '# CFUNCTYPE(c_int)(lambda: None)' /usr/lib64/python2.7/ctypes/__init__.py
+    fi
 fi
+}
 
+build_web_rpc_client() {
 print_log "INFO" "Building the web rpc client (may take up to 10 minutes)"
 cat << EOF | su - autotest >> $LOG
 /usr/local/autotest/utils/compile_gwt_clients.py -a
 EOF
+}
 
+import_tests() {
 print_log "INFO" "Import the base tests and profilers"
 cat << EOF | su - autotest >> $LOG
 /usr/local/autotest/utils/test_importer.py -A
 EOF
+}
 
+restart_apache_deb() {
+print_log "INFO" "Restarting web server"
+service apache2 restart
+}
+
+restart_apache_rh() {
 print_log "INFO" "Restarting web server"
 if [ -x /etc/init.d/httpd ]
 then
-    /etc/init.d/httpd restart
+    service httpd restart
 else
     systemctl restart httpd.service
 fi
+}
 
-print_log "INFO" "Starting the scheduler"
-if [ -x /etc/init.d/httpd ]
+start_scheduler_deb() {
+print_log "INFO" "Installing/starting scheduler"
+cp $ATHOME/utils/autotest.init /etc/init.d/autotest >> $LOG
+chmod +x /etc/init.d/autotest >> $LOG
+update-rc.d autotest defaults >> $LOG
+service autotest stop >> $LOG
+rm -f $ATHOME/autotest-scheduler.pid $ATHOME/autotest-scheduler-watcher.pid
+service autotest start >> $LOG
+}
+
+start_scheduler_rh() {
+print_log "INFO" "Installing/starting scheduler"
+if [ ! -d /etc/systemd ]
 then
     cp $ATHOME/utils/autotest-rh.init /etc/init.d/autotest >> $LOG
     chmod +x /etc/init.d/autotest >> $LOG
     chkconfig --level 2345 autotest on >> $LOG
-    /etc/init.d/autotest stop >> $LOG
-    rm -f $ATHOME/monitor_db_babysitter.pid $ATHOME/monitor_db.pid
-    /etc/init.d/autotest start >> $LOG
+    service autotest stop >> $LOG
+    rm -f $ATHOME/autotest-scheduler.pid $ATHOME/autotest-scheduler-watcher.pid
+    service autotest start >> $LOG
 else
     cp $ATHOME/utils/autotestd.service /etc/systemd/system/ >> $LOG
     systemctl daemon-reload >> $LOG
     systemctl enable autotestd.service >> $LOG
     systemctl stop autotestd.service >> $LOG
-    rm -f $ATHOME/monitor_db_babysitter.pid $ATHOME/monitor_db.pid
+    rm -f $ATHOME/autotest-scheduler.pid $ATHOME/autotest-scheduler-watcher.pid
     systemctl start autotestd.service >> $LOG
 fi
+}
 
+setup_firewall() {
+[ -f /etc/sysconfig/iptables ] || return;
 if [ "$(grep -- '--dport 80 -j ACCEPT' /etc/sysconfig/iptables)" = "" ]
 then
     echo "Opening firewall for http traffic" >> $LOG
@@ -342,17 +490,104 @@ then
 
     if [ -x /etc/init.d/iptables ]
     then
-        /etc/init.d/iptables restart >> $LOG
+        service iptables restart >> $LOG
     else
         systemctl restart iptables.service >> $LOG
     fi
 fi
+}
 
-print_log "INFO" "$(systemctl status autotestd.service)"
+print_install_status() {
+if [ -x /etc/init.d/autotest ]
+then
+    print_log "INFO" "$(service autotest status)"
+else
+    print_log "INFO" "$(systemctl status autotestd.service)"
+fi
+}
 
-cd $ATHOME/client/common_lib/
+print_version_and_url() {
+cd $ATHOME/client/shared/
 VERSION="$(./version.py)"
 print_log "INFO" "Finished installing autotest server $VERSION at: $(date)"
 
-IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | grep -v 192.168.122 | cut -d: -f2 | awk '{ print $1}')"
+IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | grep -v '192.168.122.1$' | cut -d: -f2 | awk '{ print $1}')"
+if [ "$IP" = "" ]
+then
+    IP="$(ifconfig | grep inet | awk '{print $2}' | grep -v ":" | grep -v '127.0.0.1' | grep -v '192.168.122.1$')"
+fi
 print_log "INFO" "You can access your server on http://$IP/afe"
+}
+
+full_install() {
+    check_command_line_params
+
+    print_log "INFO" "Installing the Autotest server"
+    print_log "INFO" "A log of operation is kept in $LOG"
+    print_log "INFO" "Install started at: $(date)"
+
+    if [ -f /etc/redhat-release ]
+    then
+        check_disk_space
+        setup_substitute
+        setup_epel_repo
+        install_packages_rh
+    elif [ "$(grep 'Ubuntu' /etc/issue)" != "" ]
+    then
+        check_disk_space
+        setup_substitute
+        install_packages_deb
+    else
+        print_log "Sorry, I can't recognize your distro, exiting..."
+    fi
+
+    if [ $INSTALL_PACKAGES_ONLY == 0 ]
+    then
+        if [ -f /etc/redhat-release ]
+        then
+            setup_selinux
+            setup_mysql_service_rh
+            restart_mysql_rh
+            create_autotest_user_rh
+            install_autotest
+            check_mysql_password
+            create_autotest_database
+            build_external_packages
+            configure_webserver_rh
+            configure_autotest
+            setup_databse_schema
+            restart_mysql_rh
+            patch_python27_bug
+            build_web_rpc_client
+            import_tests
+            restart_apache_rh
+            start_scheduler_rh
+            setup_firewall
+            print_install_status
+            print_version_and_url
+        elif [ "$(grep 'Ubuntu' /etc/issue)" != "" ]
+        then
+            setup_mysql_service_deb
+            restart_mysql_deb
+            create_autotest_user_deb
+            install_autotest
+            check_mysql_password
+            create_autotest_database
+            build_external_packages
+            configure_webserver_deb
+            configure_autotest
+            setup_databse_schema
+            restart_mysql_deb
+            build_web_rpc_client
+            import_tests
+            restart_apache_deb
+            start_scheduler_deb
+            print_install_status
+            print_version_and_url
+        else
+            print_log "Sorry, I can't recognize your distro, exiting..."
+        fi
+    fi
+}
+
+full_install

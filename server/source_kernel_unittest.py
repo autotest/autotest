@@ -5,8 +5,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib.test_utils import mock
-from autotest_lib.server import source_kernel, autotest_remote, hosts
+from autotest.client.shared.test_utils import mock
+from autotest.server import source_kernel, hosts
 
 
 class TestSourceKernel(unittest.TestCase):

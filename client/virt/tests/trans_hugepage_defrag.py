@@ -1,7 +1,7 @@
 import logging, time, os, re
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-from autotest_lib.client.virt import virt_test_utils, virt_test_setup
+from autotest.client.shared import error
+from autotest.client import utils
+from autotest.client.virt import virt_test_utils, virt_test_setup
 
 
 @error.context_aware
@@ -125,7 +125,6 @@ def run_trans_hugepage_defrag(test, params, env):
     mem_path = os.path.join("/tmp", "thp_space")
 
     try:
-        test_config.setup()
         error.context("deactivating khugepaged defrag functionality")
         change_feature_status("off", "khugepaged/defrag", test_config)
         change_feature_status("off", "defrag", test_config)
@@ -161,4 +160,3 @@ def run_trans_hugepage_defrag(test, params, env):
     finally:
         logging.debug("Cleaning up libhugetlbfs on host")
         set_libhugetlbfs(0)
-        test_config.cleanup()

@@ -3,11 +3,11 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.frontend import settings
-from autotest_lib.database import db_utils
+from autotest.frontend import settings
+from autotest.database import db_utils
 
 AFE_MIGRATION_NAME = '059_drone_sets_permissions'
-migrations_module = __import__('autotest_lib.frontend.migrations', globals(),
+migrations_module = __import__('autotest.frontend.migrations', globals(),
                                locals(), [AFE_MIGRATION_NAME])
 migration_059 = getattr(migrations_module, AFE_MIGRATION_NAME)
 

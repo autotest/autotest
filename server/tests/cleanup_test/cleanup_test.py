@@ -1,5 +1,5 @@
-from autotest_lib.server import test
-from autotest_lib.client.common_lib import error
+from autotest.server import test
+from autotest.client.shared import error
 
 class cleanup_test(test.test):
     version = 1

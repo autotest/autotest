@@ -3,9 +3,9 @@ Sets up a subprocess to run any generic command in the background every
 few seconds (by default the interval is 60 secs)
 """
 
-import time, os, subprocess
-from autotest_lib.client.bin import profiler
-from autotest_lib.client.common_lib import utils, error
+import time, os
+from autotest.client import profiler
+from autotest.client.shared import utils, error
 
 class cmdprofile(profiler.profiler):
     version = 2

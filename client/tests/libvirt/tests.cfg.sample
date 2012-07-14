@@ -6,22 +6,24 @@
 include tests-shared.cfg
 
 variants:
-    # Runs virt-install, f16 64 bit guest OS, install, boot, shutdown
-    - @libvirt_f16_quick:
+    # Runs virt-install, f17 64 bit guest OS, install, boot, shutdown
+    - @libvirt_f17_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
+        hvm_or_pv = hvm
         only raw
         only virtio_net
-        only ide
+        only virtio_blk
         only smp2
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only Fedora.16.64
-        only unattended_install.cdrom, boot, reboot, shutdown, remove_guest.with_disk
+        only Fedora.17.64
+        only unattended_install.cdrom.extra_cdrom_ks, boot, reboot, shutdown, remove_guest.with_disk
 
-    # Runs virt-install, f16 64 as a 64 bit PV guest OS, install, boot, shutdown
-    - @libvirt_xenpv_f16_quick:
+
+    # Runs virt-install, f17 64 as a 64 bit PV guest OS, install, boot, shutdown
+    - @libvirt_xenpv_f17_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
         hvm_or_pv = pv
@@ -33,12 +35,12 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only Fedora.16.64
-        only unattended_install.cdrom, boot, reboot, shutdown, remove_guest.with_disk
+        only Fedora.17.64
+        only unattended_install.cdrom.http_ks, boot, reboot, shutdown, remove_guest.with_disk
 
-    # Runs virt-install, f16 64 as a 64 bit HVM (full virt) guest OS,
+    # Runs virt-install, f17 64 as a 64 bit HVM (full virt) guest OS,
     # install, boot, shutdown
-    - @libvirt_xenhvm_f16_quick:
+    - @libvirt_xenhvm_f17_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
         hvm_or_pv = hvm
@@ -51,13 +53,14 @@ variants:
         only no_9p_export
         only no_pci_assignable
         only smallpages
-        only Fedora.16.64
-        only unattended_install.cdrom, boot, reboot, shutdown, remove_guest.with_disk
+        only Fedora.17.64
+        only unattended_install.cdrom.in_cdrom_ks, boot, reboot, shutdown, remove_guest.with_disk
 
     # Runs virt-install, RHEL 6.0 64 bit guest OS, install, boot, shutdown
     - @libvirt_rhel60_quick:
         virt_install_binary = /usr/bin/virt-install
         qemu_img_binary = /usr/bin/qemu-img
+        hvm_or_pv = hvm
         only raw
         only virtio_net
         only virtio_blk
@@ -66,7 +69,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only RHEL.6.0.x86_64
-        only unattended_install.cdrom, boot, reboot, shutdown, remove_guest.with_disk
+        only unattended_install.cdrom.extra_cdrom_ks, boot, reboot, shutdown, remove_guest.with_disk
 
     - @libvirt_windows:
         virt_install_binary = /usr/bin/virt-install
@@ -88,4 +91,4 @@ variants:
         only unattended_install.cdrom, boot, reboot, shutdown, remove_guest.with_disk
 
 # Choose your test list from the testsets defined
-only libvirt_f16_quick
+only libvirt_f17_quick

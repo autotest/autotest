@@ -10,15 +10,43 @@ vms = vm1
 # Default virtual machine to use, when not specified by test.
 main_vm = vm1
 
-# List of network device object names (whitespace seperated)
+# List of default network device object names (whitespace seperated)
+# All VMs get these by default, unless specific vm name references
+# are used, for example:
+#
+# vms = vm1 vm2 vm3 vm4
+# nics = nic1 nic2 nic3
+# nics_vm1 = nic2
+# nics_vm2 =
+# nics_vm3 = nic1 nic3
+#
+# Translates to:
+# VM 'vm1' uses only 'nic2'
+# VM 'vm2' uses no nics
+# VM 'vm3' uses 'nic1' and 'nic3'
+# VM 'vm4' uses all three nics
 nics = nic1
-# List of end-point bridges to connect NIC devices to on host
-bridge = virbr0
-# For libvirt, use following as argument to --network
-virsh_network = network=default
+# Assign random MAC by default, or specify per-nic values
+# mac_nic1 = 01:02:03:04:05:06
+# Use builtin dhcpd by default, or assign per-nic IP addresses
+# ip_nic1 = 192.168.122.100
+# Global defauot NIC Destination type (network, bridge (tap), user)
+# Add '_<nic_name>' postfix for heterogenious mapping (nettype_nic1 = bridge)
+nettype = bridge
+# Global default destination name (eth1, virbr0, default, etc.)
+# Add '_<nic_name>' postfix for heterogenious mapping (netdst_nic1 = virbr0)
+netdst = virbr0
+# Heterogenious models are also possible (default in guest-hw.cfg)
+# nic_model_nic1 = e1000
+# nic_model_nic2 = virtio
+# or based on vm
+# nic_model_vm1 = virtio
 
 # List of block device object names (whitespace seperated)
 images = image1
+# List of block device object names with order (whitespace seperated)
+# Example: $base $sn1 $sn2
+image_chain = ""
 # List of optical device object names
 cdroms = cd1
 
@@ -38,17 +66,32 @@ usb_type_tablet1 = usb-tablet
 # USB Controller type which device uses.
 usb_controller_tablet1 = uhci
 
+# Emulated machine type, run following command to see supported machine type.
+# qemu-kvm -M ?
+# machine_type = pc
+
 
 
 ##### Low-level parameters for platform, networking, block, and usb devices.
 
 # Default number of processors for each VM
 smp = 1
+# Config for vcpu
+#vcpu_cores = 1
+#vcpu_threads = 1
+#vcpu_sockets = 1
+
 # Memory for each VM
 mem = 1024
 
 # Networking type (nic, user, tap, socket, vde, dump, none)
 nic_mode = tap
+
+# initial PCI address for guest.
+init_pci_addr = 4
+
+# Host networking restart command line for PCI assign cases
+# net_restart_cmd = /etc/init.d/network restart
 
 # Size of file-based qcow2 image, if image_raw-device not used.
 image_size = 10G
@@ -66,7 +109,9 @@ drive_cache = none
 # List of hypervisor-monitor object names (one per guest),
 #    used to communicate with hypervisor to control guests.
 #    Order cooresponds to 'vms' list above.
-monitors = humanmonitor1
+monitors = hmp1
+# hmp1 monitor type (protocol), if only hmp1 type is going to be set
+#monitor_type_hmp1 = human
 # Default monitor type (protocol), if multiple types to be used
 monitor_type = human
 # Pattern to get vcpu threads from monitor.
@@ -77,8 +122,18 @@ vcpu_thread_pattern = "thread_id=(\d+)"
 # Guest Display type (vnc, sdl, spice, or nographic)
 display = vnc
 
+# VNC autoport selection.
+vnc_autoport = yes
+
 # Guest VGA type (cirrus,  std, vmware, qxl, xenfb, none)
 vga = std
+
+# Add a sga device to guest.
+#enable_sga = yes
+
+# Specify multiple sound cards seperated by comma,like 'sb16,adlib' or 'all'.
+# By default, it's 'ac97'.
+soundcards = ac97
 
 ###
 # Capture contents of display during each test
@@ -88,51 +143,57 @@ screendump_delay = 5
 # Encode video from vm screenshots
 encode_video_files = yes
 
+# Set boot order
+boot_order = cdn
+# Use the first hard disk for boot device once
+boot_once = c
+# Enable/Disable boot menu
+boot_menu = off
 
 
 #### SPICE related options valid if display == spice,
 #### you should set vga = qxl to get SPICE in use
-qxl_dev_nr = 1
-qxl_dev_memory = 33554432
-spice_port = 3001
-spice_password = 123456
-spice_addr = 0
+#qxl_dev_nr = 1
+#qxl_dev_memory = 33554432
+#spice_port = 3001
+#spice_password = 123456
+#spice_addr = 0
 
-spice_ssl = no
-spice_tls_port = 3002
-spice_tls_ciphers = DEFAULT
-spice_gen_x509 = yes
+#spice_ssl = no
+#spice_tls_port = 3002
+#spice_tls_ciphers = DEFAULT
+#spice_gen_x509 = yes
 
 # x509_dir uses passphrase less key by default (defined in x509_secure)
 # spice_x509_dir = no will enable x509_key_file, x509_cert_file and
 # x509_cacert_file
-spice_x509_dir = yes
+#spice_x509_dir = yes
 
-spice_x509_prefix = /tmp/spice_x509d
-spice_x509_key_file = server-key.pem
-spice_x509_cacert_file = ca-cert.pem
-spice_x509_cert_file = server-cert.pem
-spice_x509_key_password = testPassPhrase
-spice_x509_secure = no
-spice_x509_cacert_subj = /C=CZ/L=BRNO/O=SPICE/CN=my CA
-spice_x509_server_subj = /C=CZ/L=BRNO/O=SPICE/CN=my Server
-spice_secure_channels = main, inputs
+#spice_x509_prefix = /tmp/spice_x509d
+#spice_x509_key_file = server-key.pem
+#spice_x509_cacert_file = ca-cert.pem
+#spice_x509_cert_file = server-cert.pem
+#spice_x509_key_password = testPassPhrase
+#spice_x509_secure = no
+#spice_x509_cacert_subj = /C=CZ/L=BRNO/O=SPICE/CN=my CA
+#spice_x509_server_subj = /C=CZ/L=BRNO/O=SPICE/CN=my Server
+#spice_secure_channels = main, inputs
 
 # Less common options
 # image compression opts (auto_glz, auto_lz, quic, glz, lz, off)
-spice_image_compression = auto_glz
+#spice_image_compression = auto_glz
 # jpeg wan compression opts (auto, never, always)
-spice_jpeg_wan_compression = auto
+#spice_jpeg_wan_compression = auto
 # zlib-glz wan compression opts (auto, never, always)
-spice_zlib_glz_wan_compression = auto
+#spice_zlib_glz_wan_compression = auto
 # streaming-video opts (off, all, filter)
-spice_streaming_video = all
+#spice_streaming_video = all
 # agent mouse opts (on, off)
-spice_agent_mouse = on
+#spice_agent_mouse = on
 # playback compression opts (on, off)
-spice_playback_compression = on
-spice_ipv4 = yes
-spice_ipv6 = no
+#spice_playback_compression = on
+#spice_ipv4 = yes
+#spice_ipv6 = no
 
 ##### Less-common and default parameters expected by some tests,
 ##### do not modify unless you know what you're doing.
@@ -161,6 +222,7 @@ drive_werror_image1 =
 #    unattended_install. In all other tests, it should be no, so keep the global
 #    as is.
 backup_image = no
+backup_dir = /tmp
 # Enable backup_image_on_check_error = yes globally to allow isolate bad images
 #    for investigation purposes
 backup_image_on_check_error = no
@@ -185,6 +247,10 @@ start_vm = yes
 kill_vm = no
 kill_vm_gracefully = yes
 kill_unresponsive_vms = yes
+# Don't kill vm via monitor until it becomes paused
+kill_vm_only_when_paused = yes
+# Wait time before kill vm
+kill_timeout = 60
 
 # Screendump thread params
 convert_ppm_files_to_png_on_error = yes
@@ -199,12 +265,15 @@ keep_video_files_on_error = yes
 # Default remote shell port (SSH under linux)
 shell_port = 22
 # If you need more ports to be available for comm between host and guest,
-# please add them here
-priv_bridge_ports = 53 67
+# please see https://github.com/autotest/autotest/wiki/KVMAutotest-Networking
 
 # Default scheduler params
 used_cpus = 1
 used_mem = 512
+
+# Cpu model params
+auto_cpu_model = "yes"
+cpu_model_flags = ""
 
 # Port redirections
 redirs = remote_shell
@@ -240,4 +309,14 @@ netdev_peer_re = "\s{2,}(.*?): .*?\\\s(.*?):"
 # for RHEL5 host, the regex should be:
 # netdev_peer_re = "\s{2,}(.*?): .*?\s{2,}(.*?):"
 # for RHEL6 host, the regex should be:
-# netdev_peer_re = "\s{2,}(.*?):.*?peer=(.*?)\n"
+# netdev_peer_re = "\s{2,}(.*?):.*?peer=(.*?)\s"
+
+# You can set custom commands to verify kvm module and userspace version, here
+# is a convenient example for RHEL and Fedora.
+#kvm_ver_cmd = "modinfo kvm | grep vermagic | awk '{print $2}'"
+#kvm_userspace_ver_cmd = "grep -q el5 /proc/version && rpm -q kvm || rpm -q qemu-kvm"
+
+image_clone_commnad = 'cp --reflink=auto %s %s'
+image_remove_commnad = 'rm -rf %s'
+
+indirect_image_blacklist = "/dev/hda.* /dev/sda.* /dev/sg0 /dev/md0"

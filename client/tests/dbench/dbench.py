@@ -1,6 +1,6 @@
 import os, re
 
-from autotest_lib.client.bin import utils, test
+from autotest.client import utils, test
 
 class dbench(test.test):
     version = 3
@@ -11,7 +11,8 @@ class dbench(test.test):
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('patch -p1 < ../dbench_startup.patch')
+        utils.system('patch -p1 < %s' %
+                     os.path.join(self.bindir, 'dbench_startup.patch'))
         utils.configure()
         utils.make()
 

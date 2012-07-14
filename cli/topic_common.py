@@ -50,16 +50,16 @@ High Level Algorithm:
    should return results.
 
 4. Output
-   The child output() method is called with the execute() resutls as a
+   The child output() method is called with the execute() results as a
    parameter.  This is child-specific, but should leverage the
    atest.print_*() methods.
 """
 
 import getpass, optparse, os, pwd, re, socket, sys, textwrap, traceback
 import socket, string, urllib2
-from autotest_lib.cli import rpc
-from autotest_lib.frontend.afe.json_rpc import proxy
-from autotest_lib.client.common_lib.test_utils import mock
+from autotest.cli import rpc
+from autotest.frontend.afe.json_rpc import proxy
+from autotest.client.shared.test_utils import mock
 
 
 # Maps the AFE keys to printable names.
@@ -113,7 +113,7 @@ FAIL_TAG = '<XYZ>'
 UPLOAD_SOCKET_TIMEOUT = 60*30
 
 
-# Convertion functions to be called for printing,
+# Conversion functions to be called for printing,
 # e.g. to print True/False for booleans.
 def __convert_platform(field):
     if field is None:
@@ -253,7 +253,12 @@ class atest(object):
         if self.kill_on_failure:
             self.invalid_syntax(header + rest)
         else:
-            print >> sys.stderr, header + rest
+            #don't print the message here.
+            #  It will be displayed later by "show_all_failures"
+            # header ends with ":\n"
+            # so, strip it off
+            msg = header.rstrip().rstrip(":")   
+            self.failure(rest, item="", what_failed=msg)
 
 
     def invalid_syntax(self, msg):

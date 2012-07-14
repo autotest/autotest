@@ -9,7 +9,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.server import autoserv_parser
+from autotest.server import autoserv_parser
 
 
 class autoserv_parser_test(unittest.TestCase):

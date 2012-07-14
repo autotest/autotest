@@ -1,6 +1,6 @@
 import re, os
-from autotest_lib.client.bin import utils, test
-from autotest_lib.client.common_lib import error
+from autotest.client import utils, test
+from autotest.client.shared import error
 
 class libhugetlbfs(test.test):
     version = 6

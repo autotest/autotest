@@ -1,0 +1,16 @@
+Make sure build process dumps config errors in separate file from build
+errors (and warnings), from build output
+
+Fix lmbench's config stage stuff
+
+Redirect stdout and stderr for each test's setup and execute to 4 sep files
+  (APW: ok, not clear i really like them (out/err) being separated.
+   the loss of chronology is bad IMHO)
+  (MJB: I was thinking of kernel compiles I guess. Maybe we should just
+	do it for that, and make the rest more generic)
+
+Caching version of kernelexpand to grab new kernels
+
+Errors from profilers are not being caught (shove a syntax error in a profiler
+python script to see what I mean) ... generates a file in results/debug/debug,
+but doesn't cascade up

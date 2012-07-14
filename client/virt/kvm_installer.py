@@ -5,9 +5,9 @@ See BaseInstaller class in base_installer.py for interface details.
 """
 
 import os, logging
-from autotest_lib.client.bin import utils
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import base_installer
+from autotest.client import utils
+from autotest.client.shared import error
+import base_installer
 
 
 __all__ = ['GitRepoInstaller', 'LocalSourceDirInstaller',
@@ -209,7 +209,7 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
         if qemu_fs_proxy_bin is not None:
             os.symlink(qemu_fs_proxy_bin, qemu_fs_proxy_dst)
         else:
-            raise error.TestError('Invalid qemu fs proxy path')
+            logging.warning('Qemu fs proxy path %s not found on source dir')
 
 
     def _install_phase_init(self):

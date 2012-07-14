@@ -1,6 +1,6 @@
-import commands, logging
-from autotest_lib.client.common_lib import utils, error
-from autotest_lib.client.virt import virt_env_process, virt_test_utils
+import logging
+from autotest.client.shared import utils, error
+from autotest.client.virt import virt_env_process
 
 
 @error.context_aware

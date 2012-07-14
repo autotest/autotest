@@ -2,7 +2,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.database import db_utils
+from autotest.database import db_utils
 
 UP_SQL = """
 CREATE INDEX afe_drone_sets_drones_droneset_ibfk

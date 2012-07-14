@@ -1,7 +1,7 @@
 import logging, os, re
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-from autotest_lib.client.virt import virt_test_utils, aexpect
+from autotest.client.shared import error
+from autotest.client import utils
+from autotest.client.virt import virt_test_utils, aexpect
 
 
 def run_multicast(test, params, env):
@@ -53,7 +53,7 @@ def run_multicast(test, params, env):
     prefix = re.findall("\d+.\d+.\d+", mcast)[0]
     suffix = int(re.findall("\d+", mcast)[-1])
     # copy python script to guest for joining guest to multicast groups
-    mcast_path = os.path.join(test.bindir, "scripts/multicast_guest.py")
+    mcast_path = os.path.join(test.virtdir, "scripts/multicast_guest.py")
     vm.copy_files_to(mcast_path, "/tmp")
     output = session.cmd_output("python /tmp/multicast_guest.py %d %s %d" %
                                 (mgroup_count, prefix, suffix))

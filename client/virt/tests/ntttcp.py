@@ -1,9 +1,11 @@
 import logging, os, glob, re, commands
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import utils
-from autotest_lib.client.virt import virt_utils, aexpect, virt_test_utils
+from autotest.client.shared import error
+from autotest.client.shared import utils
+from autotest.client.virt import virt_utils, virt_test_utils, virt_remote
+from autotest.client.virt import aexpect
 
 _receiver_ready = False
+
 
 def run_ntttcp(test, params, env):
     """
@@ -84,9 +86,9 @@ def run_ntttcp(test, params, env):
             port = int(params.get("shell_port"))
             log_filename = ("session-%s-%s.log" % (receiver_addr,
                             virt_utils.generate_random_string(4)))
-            session = virt_utils.remote_login(client, receiver_addr, port,
-                                             username, password, prompt,
-                                             linesep, log_filename, timeout)
+            session = virt_remote.remote_login(client, receiver_addr, port,
+                                               username, password, prompt,
+                                               linesep, log_filename, timeout)
             session.set_status_test_command("echo %errorlevel%")
         install_ntttcp(session)
         ntttcp_receiver_cmd = params.get("ntttcp_receiver_cmd")
@@ -155,7 +157,7 @@ def run_ntttcp(test, params, env):
         return list
 
     try:
-        bg = virt_utils.Thread(receiver, ())
+        bg = utils.InterruptedThread(receiver, ())
         bg.start()
         if bg.isAlive():
             sender()
@@ -167,6 +169,14 @@ def run_ntttcp(test, params, env):
             f = open("%s.RHS" % results_path, "w")
             raw = "  buf(k)| throughput(Mbit/s)"
             logging.info(raw)
+            f.write("#ver# %s\n#ver# host kernel: %s%s\n" %
+                    (commands.getoutput("rpm -q qemu-kvm"), os.uname()[2]))
+            desc = """#desc# The tests are sessions of "NTttcp", send buf number is %s. 'throughput' was taken from ntttcp's report.
+#desc# How to read the results:
+#desc# - The Throughput is measured in Mbit/sec.
+#desc#
+""" % (buf_num)
+            f.write(desc)
             f.write(raw + "\n")
             for j in parse_file(i):
                 raw = "%8s| %8s" % (j[0], j[1])

@@ -35,17 +35,41 @@ variants:
         shutdown_cleanly = yes
         shutdown_cleanly_timeout = 120
         force_create_image = yes
-        # TODO: is this needed for both kvm and libvirt?
-        extra_params += " -boot d"
         guest_port_unattended_install = 12323
         kernel = vmlinuz
         initrd = initrd.img
         # Set migrate_background to yes to run migration in parallel
         # migrate_background = yes
 
+        # Way of delivering ks file into the guest
+        variants:
+            # Additional iso with kickstart is attached into the guest
+            - extra_cdrom_ks:
+                only Linux
+                unattended_delivery_method = cdrom
+                cdroms += " unattended"
+                drive_index_unattended = 1
+                drive_index_cd1 = 2
+            # Kickstart is packed into the installation iso
+            - in_cdrom_ks:
+                only Linux, unattended_install.cdrom
+                unattended_delivery_method = integrated
+            # Autotest starts simple http server providing kickstart 
+            - http_ks:
+                only Linux
+                unattended_delivery_method = url
+            # Image with kickstart is attached into the guest as floppy drive
+            - floppy_ks:
+                only Linux
+                unattended_delivery_method = floppy
+
         variants:
             # Install guest from cdrom
             - cdrom:
+                # TODO: is this needed for both kvm and libvirt?
+                # This option is only used in windows installation case,
+                # since linux use kernel/initrd option of qemu.
+                boot_once = d
                 medium = cdrom
                 redirs += " unattended_install"
             # Install guest from http/ftp url
@@ -74,6 +98,10 @@ variants:
             - kernel_initrd:
                 only Linux
                 medium = kernel_initrd
+            - import:
+                medium = import
+                force_create_image = no
+                create_image = no
 
     - qemu_iotests:
         type = qemu_iotests
@@ -155,7 +183,7 @@ variants:
         image_size_pxe = 1G
         force_create_image_pxe = yes
         remove_image_pxe = yes
-        extra_params += ' -boot n'
+        boot_once = n
         kill_vm_on_error = yes
         network = bridge
         restart_vm = yes
@@ -235,6 +263,49 @@ variants:
                 status_error = "yes"
                 libvirtd = "off"
 
+    - virsh_nodeinfo:
+        type = virsh_nodeinfo
+        vms = ''
+        variants:
+            - no_option:
+                virsh_node_options = ""
+                status_error = "no"
+                libvirtd = "on"
+            - unexpect_option:
+                virsh_node_options = "xyz"
+                status_error = "yes"
+                libvirtd = "on"
+            - with_libvirtd_stop:
+                virsh_node_options = ""
+                status_error = "yes"
+                libvirtd = "off"
+
+    - virsh_freecell:
+        type = virsh_freecell
+        vms = ''
+        variants:
+            - expected_options:
+                status_error = "no"
+                variants:
+                    - no_option:
+                        virsh_freecell_options = ""
+                    - expected_option_all:
+                        virsh_freecell_options = "--all"
+                    - expected_option_0:
+                        virsh_freecell_options = 0
+            - error_test:
+                status_error = "yes"
+                variants:
+                    - unexpected_option_xyz:
+                        virsh_freecell_options = "xyz"
+                    - unexpected_option_12345:
+                        virsh_freecell_options = 12345
+        variants:
+            - libvirton:
+                libvirtd = "on"
+            - libvirtoff:
+                libvirtd = "off"
+                status_error = "yes"
 
     - module_probe:
         type = module_probe
@@ -253,6 +324,7 @@ variants:
         login_timeout = 240
 
     - boot_with_usb:
+        only Linux
         type = boot
         restart_vm = yes
         kill_vm_on_error = yes
@@ -327,8 +399,12 @@ variants:
         reboot_method = shell
         kill_vm_on_error = yes
         login_timeout = 240
+        # this script is used to setup test env for (linux)guest/host
+        # before performance testing
+        # rh_perf_envsetup_script = scripts/rh_perf_envsetup.sh
 
     - reboot_with_usb:
+        only Linux
         type = boot
         reboot_method = shell
         kill_vm_on_error = yes
@@ -398,6 +474,43 @@ variants:
                 create_image_stg = yes
                 image_size_stg = 10M
 
+    - dd_test: install setup image_copy unattended_install.cdrom
+        only Linux
+        type = dd_test
+        images += " stg1"
+        create_image_stg1 = yes
+        image_name_stg1 = stg1
+        image_size_stg1 = 1M
+        image_snapshot_stg1 = no
+        drive_index_stg1 = 3
+        dd_count = 1
+        # last input and output disk
+        dd_if_select = -1
+        dd_of_select = -1
+        variants:
+            - readwrite:
+                dd_stat = 0
+                variants:
+                    - zero2disk:
+                        dd_if = ZERO
+                        dd_of = /dev/[shv]d?
+                    - disk2null:
+                        dd_if = /dev/[shv]d?
+                        dd_of = NULL
+            - readonly:
+                # ide, ahci don't support readonly disks
+                no ide, ahci
+                image_readonly_stg1 = yes
+                variants:
+                    - zero2disk:
+                        dd_if = ZERO
+                        dd_of = /dev/[shv]d?
+                        dd_stat = 1
+                    - disk2null:
+                        dd_if = /dev/[shv]d?
+                        dd_of = NULL
+                        dd_stat = 0
+
 
     - virsh_migrate: install setup image_copy unattended_install.cdrom
         type = virsh_migrate
@@ -416,21 +529,24 @@ variants:
         # virsh_migrate_destuser = root
         # virsh_migrate_destpwd = ""
         virsh_migrate_dest_state = running
+        virsh_migrate_src_state = running
+        virsh_migrate_libvirtd_state = 'on'
+        connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
+        status_error = 'no'
+        virsh_migrate_delay = 60
+        virsh_migrate_back = 'no'
         variants:
             - there_and_back:
-                virsh_migrate_delay = 60
                 # After migrating, migrate the guest back.
                 virsh_migrate_back = 'yes'
                 # By 'default', use same options and extra with the
                 # virsh_migrate_back_desturi set to the original connect_uri
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
                 # virsh_migrate_back_options = 'default'
                 # virsh_migrate_back_extra = 'default'
                 # virsh_migrate_back_desturi = 'default'
             - there_and_back_a_lot:
                 iterations = 100
                 virsh_migrate_back = 'yes'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
                 # don't kill anything inbetween iterations, you'll need to
                 # shut it down manually or by including a shutdown test
                 kill_vm = no
@@ -441,35 +557,150 @@ variants:
             - there_live:
                 # Uni-direction migration with option --live.
                 virsh_migrate_options = "--live"
-                virsh_migrate_delay = 60
-                virsh_migrate_back = 'no'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
             - there_p2p:
                 # Uni-direction migration with option --p2p.
                 virsh_migrate_options = "--live --p2p"
-                virsh_migrate_delay = 60
-                virsh_migrate_back = 'no'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
             - there_p2p_tunnelled:
                 # Uni-direction migration with option --tunnelled.
                 # --tunnelled should be used with --p2p.
                 virsh_migrate_options = "--live --p2p --tunnelled"
-                virsh_migrate_delay = 60
-                virsh_migrate_back = 'no'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
             - there_direct:
                 # Uni-direction migration with option --direct.
                 virsh_migrate_options = "--live --direct"
-                virsh_migrate_delay = 60
-                virsh_migrate_back = 'no'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
             - there_suspend:
                 # Uni-direction migration with option --suspend.
                 virsh_migrate_options = "--live --suspend"
-                virsh_migrate_delay = 60
-                virsh_migrate_back = 'no'
-                connect_uri = qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system
                 virsh_migrate_dest_state = paused
+            - there_persistent:
+                # Uni-direction migration with option --persistent.
+                virsh_migrate_options = "--live --persistent"
+            - there_undefinesource:
+                # Uni-direction migration with option --undefinesource.
+                virsh_migrate_options = "--live --undefinesource"
+            - there_copy-storage-all:
+                # Uni-direction migration with option --copy-storage-all.
+                virsh_migrate_options = "--live --copy-storage-all"
+                virsh_migrate_extra =
+            - there_copy-storage-inc:
+                # Uni-direction migration with option --copy-storage-inc.
+                virsh_migrate_options = "--live --copy-storage-inc"
+                virsh_migrate_extra =
+            - there_change-protection:
+                # Uni-direction migration with option --change-protection.
+                virsh_migrate_options = "--live --change-protection"
+            - there_verbose:
+                # Uni-direction migration with option --verbose.
+                virsh_migrate_options = "--live --verbose"
+            - there_timeout:
+                # Uni-direction migration with option --timeout.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--timeout 30"
+            - there_timeout_short:
+                # Uni-direction migration with a very short timeout.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--timeout 1"
+                virsh_migrate_dest_state = "running"
+            - there_migrateuri:
+                # Uni-direction migration with option --migrateuri.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--migrateuri PROTO://DEST_HOSTNAME.EXAMPLE.COM:PORT"
+            - there_dname:
+                # Uni-direction migration with option --dname.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--dname xyz"
+            - there_xml:
+                # Uni-direction migration with option --xml.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--xml /tmp/virsh_migrate.xml"
+                virsh_migrate_xml = /tmp/virsh_migrate.xml
+            - there_offline:
+                # Uni-direction offline migration.
+                virsh_migrate_options = ""
+                virsh_migrate_extra = ""
+            - there_vm_suspend_live:
+                # Uni-direction live migration with VM suspend.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = ""
+                virsh_migrate_src_state = paused
+                virsh_migrate_dest_state = paused
+            - there_vm_suspend_offline:
+                # Uni-direction offline migration with VM suspend.
+                virsh_migrate_options = ""
+                virsh_migrate_extra = ""
+                virsh_migrate_src_state = paused
+                virsh_migrate_dest_state = paused
+            - there_vm_shutdown_live:
+                # Uni-direction live migration with VM shutdown.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = ""
+                virsh_migrate_src_state = "shut off"
+                status_error = 'yes'
+            - there_vm_shutdown_offline:
+                # Uni-direction offline migration with VM shutdown.
+                virsh_migrate_options = ""
+                virsh_migrate_extra = ""
+                virsh_migrate_src_state = "shut off"
+                status_error = 'yes'
+            - there_libvirtd_stop:
+                # Uni-direction live migration with libvirtd stop.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = ""
+                virsh_migrate_libvirtd_state = 'off'
+                status_error = 'yes'
+            - there_libvirtd_stop_offline:
+                # Uni-direction offline migration with libvirtd stop.
+                virsh_migrate_options = ""
+                virsh_migrate_extra = ""
+                virsh_migrate_libvirtd_state = 'off'
+                status_error = 'yes'
+            # ERROR
+            - there_domain_nonexist:
+                # Uni-direction migration with non-exist domain.
+                virsh_migrate_options = "--live"
+                vm_ref = xyz
+                status_error = 'yes'
+            - there_domain_missing:
+                # Uni-direction migration without option --domain.
+                virsh_migrate_options = "--live"
+                vm_ref = ""
+                status_error = 'yes'
+            - there_desturi_nonexist:
+                # Uni-direction migration with non-exist desturi.
+                virsh_migrate_options = "--live"
+                virsh_migrate_desturi = xyz
+                status_error = 'yes'
+            - there_desturi_missing:
+                # Uni-direction migration without option --desturi.
+                virsh_migrate_options = "--live"
+                virsh_migrate_desturi = ""
+                status_error = 'yes'
+            - there_migrateuri_nonexist:
+                # Uni-direction migration with non-exist migrateuri.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--migrateuri xyz"
+                status_error = 'yes'
+            - there_timeout_invalid:
+                # Uni-direction migration with an invalid timeout.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--timeout -1"
+                status_error = 'yes'
+            - there_timeout_offline:
+                # Uni-direction offline migration with option --timeout.
+                virsh_migrate_options = ""
+                virsh_migrate_extra = "--timeout 60"
+                status_error = 'yes'
+            - there_dname_exist:
+                # Uni-direction migration with an existing dname.
+                virsh_migrate_options = "--live"
+                # Here, xxx is an existing VM name on destination.
+                virsh_migrate_extra = "--dname xxx"
+                status_error = 'yes'
+            - there_xml_nonexist:
+                # Uni-direction migration with a non-existing xmlfile.
+                virsh_migrate_options = "--live"
+                virsh_migrate_extra = "--xml xyz"
+                status_error = 'yes'
+
 
     - migrate: install setup image_copy unattended_install.cdrom
         type = migration
@@ -491,6 +722,8 @@ variants:
                 migration_protocol = "unix"
             - exec:
                 migration_protocol = "exec"
+            - fd:
+                migration_protocol = "fd"
             - mig_cancel:
                 migration_protocol = "tcp"
                 mig_cancel = yes
@@ -503,6 +736,16 @@ variants:
                 drive_werror_image1 = stop
                 vmstate_check = yes
                 migration_living_guest = no
+            - with_speed_measurement:
+                # migration speed in bytes. Default scaler is M (350 == 350M)
+                only Linux
+                mig_speed = 125M
+                # accuracy of mig_speed
+                # speed_range = (mig_speed+-(mig_speed*mig_speed_accuracy))
+                # if real_mig_speed is on in speed_range it raises Test warning.
+                mig_speed_accuracy = 0.3
+                pre_migrate = "set_speed_and_install"
+                type = migration_with_speed_measurement
             - with_set_speed:
                 mig_speed = 1G
                 pre_migrate = "mig_set_speed"
@@ -527,6 +770,8 @@ variants:
 
     - migrate_multi_host: install setup image_copy unattended_install.cdrom
         type = migration_multi_host
+        vms = "vm1"
+        start_vm = no
         migration_test_command = help
         migration_bg_command = "cd /tmp; nohup tcpdump -q -i any -t ip host localhost"
         migration_bg_check_command = pgrep tcpdump
@@ -534,9 +779,41 @@ variants:
         kill_vm_on_error = yes
         iterations = 2
         used_mem = 1024
-        mig_timeout = 3600
+        mig_timeout = 4800
+        disk_prepare_timeout = 360
         comm_port = 13234
-        regain_ip_cmd = dhclient
+        regain_ip_cmd = killall dhclient; sleep 10; dhclient;
+        variants:
+            #Migration protocol.
+            -tcp:
+                variants:
+                    - @default:
+                        type = migration_multi_host
+                    - measure_migration_speed:
+                        only Linux
+                        mig_speed = 1G
+                        type = migration_multi_host_with_speed_measurement
+            -fd:
+                type = migration_multi_host_fd
+
+    - migration_multi_host_with_file_transfer: install setup image_copy unattended_install.cdrom
+        type = migration_multi_host_with_file_transfer
+        vms = "vm1"
+        start_vm = no
+        kill_vm_on_error = yes
+        used_mem = 1024
+        mig_timeout = 4800
+        disk_prepare_timeout = 360
+        comm_port = 13234
+        #path where file is stored on guest.
+        guest_path = "/tmp/file"
+        #size of generated file.
+        file_size = 500
+        transfer_timeout = 240
+        #Transfer speed in Mb
+        transfer_speed = 100
+        #Count of migration during file transfer.
+        migrate_count = 3
 
     - boot_savevm: install setup image_copy unattended_install.cdrom
         type = boot_savevm
@@ -625,12 +902,40 @@ variants:
                 test_control_file = flail.control
             - systemtap:
                 test_control_file = systemtap.control
+            - ltp:
+                # This timeout has to be set inaccordance with timeout
+                # argument in ltp.control (-t 1h)file.
+                # Currently it is set to 1 hour and correspodingly this time
+                # has been kept (3600+1000) 4600 seconds.
+                # Inorder to run ltp for more time change the timeout here and
+                # ltp.control file appropriately.
+                test_timeout = 4600
+                test_control_file = ltp.control
             - cpuflags-stress:
                 test_control_file = cpuflags.control
+            - scsi_testsuite:
+                images += " asd"
+                image_boot_image1 = yes
+                image_name_asd = scsidisk
+                image_format_asd = qcow2
+                image_boot_asd = no
+                drive_index_asd = 1
+                create_image_asd = yes
+                image_size_asd = 10M
+                drive_serial_asd = ATST001
+                pci_model = scsi
+                test_control_file = scsi_testsuite.control
+                variants:
+                    - scsi-disk:
+                        drive_format_asd = scsi-disk
 
     - qemu_img_commit:  install setup image_copy unattended_install.cdrom
         type = qemu_img
         subcommand = commit
+
+    - block_stream:
+        type = block_stream
+        alive_test_cmd = uname -a
 
     - stop_continue: install setup image_copy unattended_install.cdrom
         type = stop_continue
@@ -658,6 +963,7 @@ variants:
         type = linux_s3
 
     - timedrift: install setup image_copy unattended_install.cdrom
+        rtc_drift = "slew"
         variants:
             - ntp:
                 variants:
@@ -763,6 +1069,13 @@ variants:
         type = smbios_table
         start_vm = no
 
+    - perf_kvm: install setup image_copy unattended_install.cdrom
+	type = perf_kvm
+	kallsyms_cmd = "cat /proc/kallsyms > /tmp/guest_kallsyms"
+	modules_cmd = "cat /proc/modules > /tmp/geust_modules"
+	transfer_timeout = 100
+	perf_record_timeout =  100
+
     - softlockup: install setup unattended_install.cdrom
         only Linux
         type = softlockup
@@ -831,7 +1144,6 @@ variants:
 
     - whql: install setup image_copy unattended_install.cdrom
         only Windows
-        nic_mode = tap
         # Replace this with the address of an installed DTM server
         server_address = 10.20.30.40
         # The server should run rss.exe like a regular Windows VM, preferably
@@ -849,10 +1161,9 @@ variants:
                 # except for the image name which ends with '-supportvm'.
                 type = unattended_install
                 image_name += -supportvm
-                extra_params += " -boot d"
+                boot_once = d
                 force_create_image = yes
                 kill_vm = yes
-                nic_mode = user
                 redirs += " unattended_install"
                 guest_port_unattended_install = 12323
                 medium = cdrom
@@ -1096,7 +1407,6 @@ variants:
         maximal = 4094
         listen_cmd = "nc -l %s > %s"
         send_cmd = "nc %s %s < %s"
-        nic_mode = tap
         vms += " vm2"
         image_snapshot = yes
         kill_vm_vm2 = yes
@@ -1123,7 +1433,6 @@ variants:
     - nicdriver_unload: install setup image_copy unattended_install.cdrom
         only Linux
         type = nicdriver_unload
-        nic_mode = tap
         filesize = 100
         transfer_timeout = 100
         transfer_type = remote
@@ -1139,7 +1448,6 @@ variants:
     - multicast: install setup image_copy unattended_install.cdrom
         only Linux
         type = multicast
-        nic_mode = tap
         mcast = 225.0.0.1
         mgroup_count = 20
         flood_minutes = 1
@@ -1148,6 +1456,125 @@ variants:
         only Linux
         type = mac_change
         kill_vm = yes
+
+    - performance:
+        type = performance
+        kill_vm = yes
+        variants:
+            - ffsb:
+                only Linux
+                md5value = "cabfc1021c2ec6c6b168fefc84210891"
+                images += " stg2"
+                image_name_stg2 = storage2
+                image_size_stg2 = 110G
+                force_create_image = yes
+                force_create_image_image1 = no
+                test_timeout = 3600
+                monitor_cmd = "mpstat -P ALL 1"
+                #test_cmd = "ffsb examples/profile_everything"
+                test_src = "http://cdnetworks-kr-1.dl.sourceforge.net/project/ffsb/ffsb/ffsb-6.0-rc2/ffsb-6.0-rc2.tar.bz2"
+                compile_cmd = "./configure && make"
+                prepare_cmd = " mount /dev/[sv]db /mnt"
+                ignore_pattern = "Linux|^(\n)"
+                head_pattern = "\d+:\d+:\d+\s+[AP]M\s+(\w+)\s+"
+                row_pattern = "CPU"
+                categories = "LargeFile Creates(256KB)|LargeFile Create(8KB)|Mail Server(8KB)|Radom Reads(8KB)|Random Writes(8KB)|Sequential Reads(256KB)|Sequential Reads(8KB)"
+                threads = "1 8 16"
+                variants:
+                    - file_prepare:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_file_prepare.patch"
+                        test_cmd = "ffsb examples/file_prepare.ffsb"
+                    - large_file_creates_256k_01:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_large_file_creates_256k_1.patch"
+                        test_cmd = "ffsb examples/large_file_creates_256k_1.ffsb"
+                    - large_file_creates_256k_08:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_large_file_creates_256k_8.patch"
+                        test_cmd = "ffsb examples/large_file_creates_256k_8.ffsb"
+                    - large_file_creates_256k_16:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_large_file_creates_256k_16.patch"
+                        test_cmd = "ffsb examples/large_file_creates_256k_16.ffsb"
+                    - large_file_creates_8k_01:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_large_file_creates_8k_1.patch"
+                        test_cmd = "ffsb examples/large_file_creates_8k_1.ffsb"
+                    - large_file_creates_8k_08:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_large_file_creates_8k_8.patch"
+                        test_cmd = "ffsb examples/large_file_creates_8k_8.ffsb"
+                    - large_file_creates_8k_16:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_large_file_creates_8k_16.patch"
+                        test_cmd = "ffsb examples/large_file_creates_8k_16.ffsb"
+                    - mail_server_8k_01:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_mail_server_8k_1.patch"
+                        test_cmd = "ffsb examples/mail_server_8k_1.ffsb"
+                    - mail_server_8k_08:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_mail_server_8k_8.patch"
+                        test_cmd = "ffsb examples/mail_server_8k_8.ffsb"
+                    - mail_server_8k_16:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_mail_server_8k_16.patch"
+                        test_cmd = "ffsb examples/mail_server_8k_16.ffsb"
+                    - random_read_8k_01:
+                        force_create_image = no
+                        test_patch = "ffsb_random_reads_8k_1.patch"
+                        test_cmd = "ffsb examples/random_reads_8k_1.ffsb"
+                    - random_read_8k_08:
+                        force_create_image = no
+                        test_patch = "ffsb_random_reads_8k_8.patch"
+                        test_cmd = "ffsb examples/random_reads_8k_8.ffsb"
+                    - random_read_8k_16:
+                        force_create_image = no
+                        test_patch = "ffsb_random_reads_8k_16.patch"
+                        test_cmd = "ffsb examples/random_reads_8k_16.ffsb"
+                    - random_write_8k_01:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_random_write_8k_1.patch"
+                        test_cmd = "ffsb examples/random_write_8k_1.ffsb"
+                    - random_write_8k_08:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_random_write_8k_8.patch"
+                        test_cmd = "ffsb examples/random_write_8k_8.ffsb"
+                    - random_write_8k_16:
+                        prepare_cmd = "echo y|mkfs  -t ext4 /dev/[sv]db; mount /dev/[sv]db /mnt; rm -rf /mnt/ffsb1;mkdir -p /mnt/ffsb1"
+                        test_patch = "ffsb_random_write_8k_16.patch"
+                        test_cmd = "ffsb examples/random_write_8k_16.ffsb"
+                    - sequential_reads_256k_01:
+                        force_create_image = no
+                        test_patch = "ffsb_sequential_reads_256k_1.patch"
+                        test_cmd = "ffsb examples/sequential_reads_256k_1.ffsb"
+                    - sequential_reads_256k_08:
+                        force_create_image = no
+                        test_patch = "ffsb_sequential_reads_256k_8.patch"
+                        test_cmd = "ffsb examples/sequential_reads_256k_8.ffsb"
+                    - sequential_reads_256k_16:
+                        force_create_image = no
+                        test_patch = "ffsb_sequential_reads_256k_16.patch"
+                        test_cmd = "ffsb examples/sequential_reads_256k_16.ffsb"
+                    - sequential_reads_8k_01:
+                        force_create_image = no
+                        test_patch = "ffsb_sequential_reads_8k_1.patch"
+                        test_cmd = "ffsb examples/sequential_reads_8k_1.ffsb"
+                    - sequential_reads_8k_08:
+                        force_create_image = no
+                        test_patch = "ffsb_sequential_reads_8k_8.patch"
+                        test_cmd = "ffsb examples/sequential_reads_8k_8.ffsb"
+                    - sequential_reads_8k_16:
+                        force_create_image = no
+                        test_patch = "ffsb_sequential_reads_8k_16.patch"
+                        test_cmd = "ffsb examples/sequential_reads_8k_16.ffsb"
+                    - summary_results:
+                        summary_results = "yes"
+                        test = "ffsb"
+#           FIXME: make iozone can be executed by performance.py
+#           - iozone:
+#               test_timeout = 1200
 
     - netperf: install setup image_copy unattended_install.cdrom
         only Linux
@@ -1161,9 +1588,8 @@ variants:
         pci_model_nic1 = virtio_net
         # bridge_nic2 = switch
         pci_model_nic2 = e1000
-        nic_mode = tap
         netperf_files = netperf-2.4.5.tar.bz2 wait_before_data.patch
-        setup_cmd = "cd /tmp && rm -rf netperf-2.4.5 && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure && make"
+        setup_cmd = "cd /tmp && rm -rf netperf-2.4.5 && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure --enable-burst && make"
         # configure netperf test parameters
         # l = 60
         # protocols = "TCP_STREAM TCP_MAERTS TCP_RR"
@@ -1172,6 +1598,9 @@ variants:
         # sizes = "64 256 512 1024"
         # sizes_rr = "64 256 512 1024"
         numa_node = -1
+        # this script is used to setup test env for (linux)guest/host
+        # before performance testing
+        # rh_perf_envsetup_script = scripts/rh_perf_envsetup.sh
         variants:
             - guest_guest:
                 vms += " vm2"
@@ -1210,7 +1639,6 @@ variants:
         only Linux
         type = ethtool
         filesize = 512
-        nic_mode = tap
 
     - nic_bonding: install setup image_copy unattended_install.cdrom
         only Linux
@@ -1238,7 +1666,6 @@ variants:
         only Linux
         type = netstress_kill_guest
         image_snapshot = yes
-        nic_mode = tap
         # There should be enough vms for build topology.
         variants:
             -driver:
@@ -1381,36 +1808,71 @@ variants:
         virtio_console_no_serialports = 0
         virtio_console_no_consoles = 0
 
+        # BASIC INFO ABOUT VIRTIO_CONSOLE PARAMS
         # smoke params - $console_type:data_string
         # FIXME: test_smoke doesn't work with console yet (virtio_console bug)
         # "serialport;console:Custom data"
-        smoke_test = yes
-        virtio_console_smoke = "serialport"
+        #smoke_test = yes
+        #virtio_console_smoke = "serialport"
         # loopback params - '$source_console_type@buffer_length:$destination_console_type1@buffer_length:...:$loopback_buffer_length;...'
-        loopback_test = yes
-        virtio_console_loopback = "serialport:serialport;serialport@1024:serialport@32:console@1024:console@8:16"
+        #loopback_test = yes
+        #virtio_console_loopback = "serialport:serialport;serialport@1024:serialport@32:console@1024:console@8:16"
         # perf params - $console_type@buffer_length:$test_duration
         # FIXME: test_perf doesn't work with console yet (virtio_console bug)
         # virtio_console_perf = "serialport;serialport@1000000:120;console@1024:60"
-        perf_test = yes
-        virtio_console_perf = "serialport;serialport@1000000:120"
+        #perf_test = yes
+        #virtio_console_perf = "serialport;serialport@1000000:120"
         # Enable destructive tests: "test_name  = yes"
         # Disable test: change yes or delete key.
-        rmmod_test = yes
-        max_ports_test = yes
-        shutdown_test = yes
+        #rmmod_test = yes
+        #max_ports_test = yes
+        #shutdown_test = yes
 
         # Offline migration params - '$console_type:$no_migrations:$send-:$recv-$loopback-buffer_length'
-        migrate_offline_test = yes
-        virtio_console_migration_offline = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
+        #migrate_offline_test = yes
+        #virtio_console_migration_offline = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
 
         # Online migration params - '$console_type:$no_migrations:$send-:$recv-$loopback-buffer_length'
-        migrate_online_test = yes
-        virtio_console_migration_online = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
+        #migrate_online_test = yes
+        #virtio_console_migration_online = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
 
-        hotplug_test = yes
-        hotplug_serial_test = yes
-        hotplug_console_test = no
+        #hotplug_test = yes
+        #hotplug_serial_test = yes
+        #hotplug_console_test = no
+
+        # CASES SETUPS:
+        variants:
+            - smoke:
+                # Very basic test of presence of virtio_console in system
+                variants:
+                    - serialport:
+                        smoke_test = yes
+                        virtio_console_smoke = "serialport"
+                    - console:
+                        # FIXME: test_smoke doesn't work with console due of virtio_console bug, disable this variant
+                        no virtio_console
+                        smoke_test = yes
+                        virtio_console_smoke = "console"
+            - basic:
+                # Basic virtio_console functionality tests
+                loopback_test = yes
+                virtio_console_loopback = "serialport:serialport;serialport@1024:serialport@32:console@1024:console@8:16"
+            - perf:
+                perf_test = yes
+                virtio_console_perf = "serialport;serialport@1000000:120"
+            - destructive:
+                rmmod_test = yes
+                max_ports_test = yes
+                shutdown_test = yes
+            - migration:
+                migrate_offline_test = yes
+                virtio_console_migration_offline = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
+                migrate_online_test = yes
+                virtio_console_migration_online = "serialport:1:2048:2048:2048;serialport:5:4096:4096:4096"
+            - hotplug:
+                hotplug_test = yes
+                hotplug_serial_test = yes
+                hotplug_console_test = no
 
     # This unit test module is for older branches of KVM that use the
     # kvmctl test harness (such as the code shipped with RHEL 5.x)
@@ -1502,13 +1964,13 @@ variants:
 
     - multi_disk: install setup image_copy unattended_install.cdrom
         type = multi_disk
-        usbs = ""
         force_create_image = yes
         force_create_image_image1 = no
         remove_image = yes
         remove_image_image1 = no
         cmd_timeout = 1000
-        block_list = C: D: vda vda1 vda2 hda hda1 hda2 sda sda1 sda2
+        black_list = C: D:
+        start_vm = no
         variants:
             - signal_repeat:
                 images += " stg"
@@ -1525,7 +1987,52 @@ variants:
                 # other variants.
                 # stg_image_format = qcow2
                 # stg_drive_format = virtio
-                # stg_assign_index = yes
+            - all_drive_format_types:
+                stg_image_size = 1M
+                stg_params = "drive_format:ide,scsi,virtio,scsi-hd,usb2"
+                usbs += " default-ehci"
+                usb_type_default-ehci = usb-ehci
+            - virtio_scsi_variants:
+                # Decrease length of the command
+                stg_image_name = '/tmp/%s'
+                stg_image_size = 1M
+                stg_params = "drive_format:scsi-disk "
+                variants:
+                    - @passthrough:
+                        # We need to unload scsi_debug modules used by VM
+                        kill_vm = yes
+                        force_create_image = no
+                        pre_command = "modprobe scsi_debug && echo 9 > /sys/bus/pseudo/drivers/scsi_debug/add_host"
+                        post_command = "rmmod scsi_debug"
+                        stg_params += "image_raw_device:yes "
+                        stg_params += "image_format:raw "
+                        stg_params += "indirect_image_select:range(-9,0) "
+                        variants:
+                            - block:
+                                stg_params += "image_name:/dev/sd* "
+                            - generic:
+                                stg_params += "drive_format:scsi-generic "
+                                stg_params += "image_name:/dev/sg* "
+                    - multi_lun:
+                        stg_params += "drive_lun:range(0,16383,63) "
+                    - multi_scsiid_lun:
+                        stg_params += "drive_scsiid:range(0,255,1,3) "
+                        stg_params += "drive_lun:range(0,16383,8191) "
+                    - multi_bus_scsiid_lun:
+                        stg_params += "drive_bus:range(0,15,1,9) "
+                        stg_params += "drive_scsiid:range(0,255,127,3) "
+                        stg_params += "drive_lun:range(0,16383,8191) "
+            - debug_params:
+                # Remove this to execute this test-params-devel test
+                no multi_disk
+                # Dont run the actual test, only show the disk setup
+                multi_disk_params_only = yes
+                stg_image_name = '/tmp/%s'
+                stg_image_size = 1M
+                stg_params += "list_params:item1,item2,item3 "
+                stg_params += "simplerange:range(55) "
+                stg_params += "fullrange:range(first,last,step,multiple_items) "
+                stg_params += "range_0-all_disk:range(n) "
 
     - clock_getres: install setup image_copy unattended_install.cdrom
         only Linux
@@ -1563,16 +2070,24 @@ variants:
 
     - cdrom_test: install setup image_copy unattended_install.cdrom
         only Linux
-        start_vm = no
         type = cdrom
         cdrom_cd1 = orig.iso
+        start_vm = no
+        kill_vm_on_error = yes
         max_times = 20
+        # test whether cdrom is unlocked <300s after boot
+        cdrom_test_autounlock = no
+        # test the tray status
+        cdrom_test_tray_status = yes
+        # wait before eject $cdrom (let OS initialize cdrom ...)
+        workaround_eject_time = 0
 
     - floppy_test: install setup image_copy unattended_install.cdrom
         only Linux
         type = floppy
         start_vm = no
-        floppy = images/test_floppy.img
+        floppies = "fl"
+        floppy_name = images/test_floppy.img
 
     - usb_storage: install setup image_copy unattended_install.cdrom
         only Linux
@@ -1602,7 +2117,8 @@ variants:
     - usb_multi_disk: install setup image_copy unattended_install.cdrom
         type = multi_disk
         cmd_timeout = 1000
-        block_list = C: D: vda vda1 vda2 hda hda1 hda2 sda sda1 sda2
+        black_list = C: D:
+        start_vm = no
         kill_vm = yes
         create_image = yes
         image_boot_image1 = yes
@@ -1647,6 +2163,7 @@ variants:
         thp_test_config = ""
         kill_vm = yes
         login_timeout = 360
+        setup_thp = yes
         variants:
             - base:
                 type = trans_hugepage
@@ -1658,14 +2175,25 @@ variants:
                 dd_timeout = 900
                 check_cmd_timeout = 900
 
-    - cpuflags:
+    - cpuflags: install setup image_copy unattended_install.cdrom
         type = cpuflags
         extra_params += " -snapshot"
+        auto_cpu_model = no
         #Disable all unnecessary vms.
         vms = ""
         #Try to start guest with all flags which are supported by host.
         all_host_supported_flags = "no"
-        cpu_model = "core2duo"
+
+        #If cpu_model is "" or isn't defined test try test all cpu models,
+        #which host supports.
+        cpu_model = ""
+
+        #Cpumodels defined in blacklist are not tested.
+        #Works only if cpu_model is not defined.
+        cpu_model_blacklist = ""
+        64:
+            cpu_model_blacklist += " 486 kvm32 qemu32 pentium pentium2"
+            cpu_model_blacklist += " pentium3 coreduo n270"
         guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
         variants:
@@ -1699,15 +2227,21 @@ variants:
     - cpuflags_multi_host:
         type = cpuflags
         test_type = test_multi_host_migration
-        #Disable all unnecessary vms.
-        vms = ""
+        vms = "vm1"
+        start_vm = no
         #Try to start guest with all flags which are supported by host.
         all_host_supported_flags = "no"
         cpu_model = "core2duo:sse3"
         guest_spec_flags = "fxsr_opt hypervisor ds pdpe1gb osxsave svm"
         host_spec_flags = "pbe tm ds_cpl monitor acpi dtes64 ht tm2 xtpr est pdcm smx"
+        mig_timeout = 4800
+        kill_vm_on_error = yes
+        disk_prepare_timeout = 360
+        comm_port = 13234
+        regain_ip_cmd = killall dhclient; sleep 10; dhclient;
+        auto_cpu_model = no
 
-    - cpu_hotplug_test:
+    - cpu_hotplug_test: install setup image_copy unattended_install.cdrom
         type = cpu_hotplug
         cpu_hotplug_timeout = 600
         n_cpus_add = 1
@@ -1715,7 +2249,7 @@ variants:
         iterations = 5
         onoff_iterations = 100
 
-    - hdparm:
+    - hdparm: install setup image_copy unattended_install.cdrom
         only Linux
         type = hdparm
         get_disk_cmd = \ls /dev/[vhs]da
@@ -1786,6 +2320,94 @@ variants:
                 test_control_file = 9p-ci.control
                 test_timeout = 1800
 
+    - negative_create:
+        type = negative_create
+        start_vm = no
+
+    - rv_connect:
+        type = rv_connect
+        vms = vm1 vm2
+        guest_vm = vm1
+        client_vm = vm2
+        image_name_vm2 = client_vm
+        display_vm2 = vnc
+        vga_vm2 = cirrus
+
+        variants:
+            - RHEL:
+                variants:
+                    # This is current solution of handling
+                    # multiple guests running exact same OS
+                    -6.3.beta.x86_64:
+                        image_name_vm2 = rhel63-64_client
+                    -6.3.beta.i386:
+                        image_name_vm2 = rhel63-32_client
+    - kernel_install:
+        only Linux
+        type = kernel_install
+        variants:
+            ## Example for other installation methods
+            #- koji:
+            #    install_type = koji
+            #    kernel_dep_pkgs = "linux-firmware module-init-tools"
+            #    kernel_koji_tag = f17-updates
+            #- rpm:
+            #    install_type = rpm
+                 # These 2 parameters can be url.
+            #    kernel_rpm_path = "kernel-3.4.4-3.fc17.x86_64.rpm"
+            #    kernel_deps_rpms = "linux-firmware-20120510-0.3.git375e954.fc17.noarch.rpm"
+            #    file_checklist = kernel_rpm_path kernel_deps_rpms
+            #- git:
+            #    install_type = git
+            #    kernel_git_repo = ""
+            #    kernel_git_repo_base = ""
+            #    kernel_git_branch = ""
+            #    kernel_git_commit = ""
+            #    kernel_patch_list = ""
+            #    kernel_config = ""
+            #    kerne_config_list = ""
+            - @tar:
+                install_type = tar
+                kernel_src_pkg = "http://www.kernel.org/pub/linux/kernel/v3.0/linux-3.4.tar.bz2"
+                # Remember to update this config file to your own.
+                kernel_config = "/boot/config--3.4.4-3.fc17.x86_64"
+                kernel_patch_list = "http://www.kernel.org/pub/linux/kernel/v3.0/patch-3.4.4.bz2"
+                file_checklist = kerne_src_pkg kernel_config kernel_patch_list
+                kernel_tag = "3.4.4"
+                # The fedora default kernel config would take very long time to compile.
+                test_timeout_install = 3600
+
+    - rv_disconnect: rv_connect
+        type = rv_disconnect
+        vms = vm1 vm2
+        guest_vm = vm1
+        client_vm = vm2
+        image_name_vm2 = client_vm
+        display_vm2 = vnc
+        vga_vm2 = cirrus
+
+        variants:
+            - RHEL:
+                variants:
+                    # This is current solution of handling
+                    # multiple guests running exact same OS
+                    -6.3.beta.x86_64:
+                        image_name_vm2 = rhel63-64_client
+                    -6.3.beta.i386:
+                        image_name_vm2 = rhel63-32_client
+
+    - seabios: install setup image_copy unattended_install.cdrom
+        type = seabios
+        start_vm = no
+        restart_vm = no
+        kill_vm = yes
+        boot_menu = on
+        enable_sga = yes
+        boot_menu_key = "f12"
+        boot_menu_hint = "Press F12 for boot menu"
+        # Specify the boot device name which you want to test here.
+        boot_device = "iPXE"
+
     - shutdown: install setup image_copy unattended_install.cdrom
         type = shutdown
         shutdown_method = shell
@@ -1807,6 +2429,9 @@ variants:
                 remove_image = no
             - with_disk:
                 remove_image = yes
+
+    - fail-test:
+        type = fail
 
 whql.support_vm_install, whql.client_install.support_vm:
     image_name += -supportvm

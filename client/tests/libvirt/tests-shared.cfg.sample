@@ -3,6 +3,12 @@
 # This file contains the base test set definitions, shared among single host
 # and multi host jobs.
 
+# Virtualization type (kvm or libvirt)
+vm_type = libvirt
+# The hypervisor uri (default, qemu://hostname/system, etc.)
+# where default or unset means derive from installed system
+connect_uri = default
+
 # Include the base config files.
 include base.cfg
 include subtests.cfg
@@ -10,12 +16,6 @@ include guest-os.cfg
 include guest-hw.cfg
 include cdkeys.cfg
 include virtio-win.cfg
-
-# Virtualization type (kvm or libvirt)
-vm_type = libvirt
-# The hypervisor uri (default, qemu://hostname/system, etc.)
-# where default or unset means derive from installed system
-connect_uri = default
 
 # Modify/comment the following lines if you wish to modify the paths of the
 # image files, ISO files or qemu binaries.

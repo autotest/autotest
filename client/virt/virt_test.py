@@ -1,8 +1,7 @@
 import os, sys, logging, imp
-
-from autotest_lib.client.bin import test
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_utils, virt_env_process
+from autotest.client import test
+from autotest.client.shared import error
+import virt_utils, virt_env_process
 
 
 class virt_test(test.test):
@@ -57,21 +56,31 @@ class virt_test(test.test):
                     # Get the test routine corresponding to the specified
                     # test type
                     t_type = params.get("type")
+
+                    subtest_dirs = []
+                    tests_dir = self.job.testdir
+
+                    other_subtests_dirs = params.get("other_tests_dirs", "")
+                    for d in other_subtests_dirs.split():
+                        subtestdir = os.path.join(tests_dir, d, "tests")
+                        if not os.path.isdir(subtestdir):
+                            raise error.TestError("Directory %s not"
+                                                  " exist." % (subtestdir))
+                        subtest_dirs.append(dir)
                     # Verify if we have the correspondent source file for it
                     virt_dir = os.path.dirname(virt_utils.__file__)
-                    subtest_dir_common = os.path.join(virt_dir, "tests")
-                    subtest_dir_test = os.path.join(self.bindir, "tests")
+                    subtest_dirs.append(os.path.join(virt_dir, "tests"))
+                    subtest_dirs.append(os.path.join(self.bindir, "tests"))
                     subtest_dir = None
-                    for d in [subtest_dir_test, subtest_dir_common]:
+                    for d in subtest_dirs:
                         module_path = os.path.join(d, "%s.py" % t_type)
                         if os.path.isfile(module_path):
                             subtest_dir = d
                             break
                     if subtest_dir is None:
                         raise error.TestError("Could not find test file %s.py "
-                                              "on either %s or %s directory" %
-                                              (t_type, subtest_dir_test,
-                                              subtest_dir_common))
+                                              "on tests dirs %s" %
+                                              (t_type, subtest_dirs))
                     # Load the test module
                     f, p, d = imp.find_module(t_type, [subtest_dir])
                     test_module = imp.load_module(t_type, f, p, d)

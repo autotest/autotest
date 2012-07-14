@@ -14,18 +14,18 @@ For docs, see:
     http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
-import getpass, os, time, traceback, re
+import getpass, os, time, traceback, re, xmlrpclib
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.frontend.afe import rpc_client_lib
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.common_lib import utils
+from autotest.frontend.afe import rpc_client_lib
+from autotest.client.shared import global_config
+from autotest.client.shared import utils
 try:
-    from autotest_lib.server.site_common import site_utils as server_utils
+    from autotest.server.site_common import site_utils as server_utils
 except:
-    from autotest_lib.server import utils as server_utils
+    from autotest.server import utils as server_utils
 form_ntuples_from_machines = server_utils.form_ntuples_from_machines
 
 GLOBAL_CONFIG = global_config.global_config

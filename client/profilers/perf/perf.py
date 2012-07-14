@@ -5,9 +5,9 @@ supports functionality similar to oprofile and more.
 @see: http://lwn.net/Articles/310260/
 """
 
-import time, os, stat, subprocess, signal
+import os, stat, subprocess, signal
 import logging
-from autotest_lib.client.bin import profiler, os_dep, utils
+from autotest.client import profiler, os_dep, utils
 
 
 class perf(profiler.profiler):

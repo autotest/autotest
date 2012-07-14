@@ -8,10 +8,10 @@ import threading, time, traceback
 from collections import deque
 from threading import Thread
 
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-from autotest_lib.client.virt import virt_utils, virt_test_utils, kvm_monitor
-from autotest_lib.client.virt import virt_env_process, aexpect
+from autotest.client.shared import error
+from autotest.client import utils
+from autotest.client.virt import virt_test_utils, kvm_monitor, virt_env_process
+from autotest.client.virt import aexpect
 
 
 def run_virtio_console(test, params, env):
@@ -598,7 +598,7 @@ def run_virtio_console(test, params, env):
 
         @return: Kernel crash log or None.
         """
-        data = vm_port.read_nonblocking()
+        data = vm_port.read_nonblocking(0.1, timeout)
         match = re.search("BUG:", data, re.MULTILINE)
         if match is None:
             return None

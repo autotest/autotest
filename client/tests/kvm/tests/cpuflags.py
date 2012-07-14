@@ -1,7 +1,7 @@
-import logging, re, random, os, time, socket, pickle
-from autotest_lib.client.common_lib import error, utils
-from autotest_lib.client.virt import kvm_vm
-from autotest_lib.client.virt import virt_utils, aexpect
+import logging, re, random, os, time, pickle, sys, traceback
+from autotest.client.shared import error, utils
+from autotest.client.virt import kvm_vm
+from autotest.client.virt import virt_utils, aexpect
 
 
 def run_cpuflags(test, params, env):
@@ -23,6 +23,8 @@ def run_cpuflags(test, params, env):
     mig_timeout = float(params.get("mig_timeout", "3600"))
     mig_protocol = params.get("migration_protocol", "tcp")
     mig_speed = params.get("mig_speed", "100M")
+
+    cpu_model_black_list = params.get("cpu_model_blacklist", "").split(" ")
 
     multi_host_migration = params.get("multi_host_migration", "no")
 
@@ -196,6 +198,19 @@ def run_cpuflags(test, params, env):
         logging.debug("Flags on guest not defined by host: %s", (gf - rf))
         return rf - gf
 
+    def get_cpu_models_supported_by_host():
+        """
+        Get all cpumodels which set of flags is subset of hosts flags.
+
+        @return: [cpumodels]
+        """
+        cpumodels = []
+        for cpumodel in get_cpu_models():
+            flags = HgFlags(cpumodel)
+            if flags.host_unsupported_flags == set([]):
+                cpumodels.append(cpumodel)
+        return cpumodels
+
     def disable_cpu(vm_session, cpu, disable=True):
         """
         Disable cpu in guest system.
@@ -315,6 +330,16 @@ def run_cpuflags(test, params, env):
                     self.clean()
             return ret
 
+    def print_exception(called_object):
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        logging.error("In function (" + called_object.__name__ + "):")
+        logging.error("Call from:\n" +
+                      traceback.format_stack()[-2][:-1])
+        logging.error("Exception from:\n" +
+                      "".join(traceback.format_exception(
+                                              exc_type, exc_value,
+                                              exc_traceback.tb_next)))
+
     class Test_temp(MiniSubtest):
         def clean(self):
             logging.info("cleanup")
@@ -389,13 +414,13 @@ def run_cpuflags(test, params, env):
 
             if all_host_supported_flags == "yes":
                 for fadd in flags.cpumodel_unsupport_flags:
-                    cpuf_model += ",+" + fadd
+                    cpuf_model += ",+" + str(fadd)
             else:
                 for fadd in extra_flags:
-                    cpuf_model += ",+" + fadd
+                    cpuf_model += ",+" + str(fadd)
 
             for fdel in flags.host_unsupported_flags:
-                cpuf_model += ",-" + fdel
+                cpuf_model += ",-" + str(fdel)
 
             if all_host_supported_flags == "yes":
                 guest_flags = flags.all_possible_guest_flags
@@ -443,7 +468,7 @@ def run_cpuflags(test, params, env):
 
             # Add unsupported flags.
             for fadd in flags.host_all_unsupported_flags:
-                cpuf_model += ",+" + fadd
+                cpuf_model += ",+" + str(fadd)
 
             vnc_port = virt_utils.find_free_port(5900, 6100) - 5900
             cmd = "%s -cpu %s -vnc :%d" % (qemu_binary, cpuf_model, vnc_port)
@@ -472,14 +497,14 @@ def run_cpuflags(test, params, env):
             cpu_model, extra_flags = parse_cpu_model()
 
             flags = HgFlags(cpu_model, extra_flags)
+            cpuf_model = cpu_model + ",enforce"
 
             logging.debug("Unsupported flags %s.",
                           str(flags.host_all_unsupported_flags))
-            cpuf_model = cpu_model + ",enforce"
 
             # Add unsupported flags.
             for fadd in flags.host_all_unsupported_flags:
-                cpuf_model += ",+" + fadd
+                cpuf_model += ",+" + str(fadd)
 
             vnc_port = virt_utils.find_free_port(5900, 6100) - 5900
             cmd = "%s -cpu %s -vnc :%d" % (qemu_binary, cpuf_model, vnc_port)
@@ -506,18 +531,21 @@ def run_cpuflags(test, params, env):
 
             flags = HgFlags(cpu_model, extra_flags)
 
-            logging.debug("Cpu mode flags %s.",
-                          str(flags.quest_cpu_model_flags))
-            logging.debug("Added flags %s.",
-                          str(flags.cpumodel_unsupport_flags))
             cpuf_model = cpu_model
 
-            # Add unsupported flags.
-            for fadd in flags.cpumodel_unsupport_flags:
-                cpuf_model += ",+" + fadd
+            logging.debug("Cpu mode flags %s.",
+                          str(flags.quest_cpu_model_flags))
 
-            for fdel in flags.host_unsupported_flags:
-                cpuf_model += ",-" + fdel
+            if all_host_supported_flags == "yes":
+                logging.debug("Added flags %s.",
+                              str(flags.cpumodel_unsupport_flags))
+
+                # Add unsupported flags.
+                for fadd in flags.cpumodel_unsupport_flags:
+                    cpuf_model += ",+" + str(fadd)
+
+                for fdel in flags.host_unsupported_flags:
+                    cpuf_model += ",-" + str(fdel)
 
             (self.vm, _) = start_guest_with_cpuflags(cpuf_model, smp)
 
@@ -583,10 +611,10 @@ def run_cpuflags(test, params, env):
 
             # Add unsupported flags.
             for fadd in flags.cpumodel_unsupport_flags:
-                cpuf_model += ",+" + fadd
+                cpuf_model += ",+" + str(fadd)
 
             for fdel in flags.host_unsupported_flags:
-                cpuf_model += ",-" + fdel
+                cpuf_model += ",-" + str(fdel)
 
             (self.vm, _) = start_guest_with_cpuflags(cpuf_model, smp)
 
@@ -656,13 +684,6 @@ def run_cpuflags(test, params, env):
             """
             Test migration between multiple hosts.
             """
-            def guest_active(vm):
-                o = vm.monitor.info("status")
-                if isinstance(o, str):
-                    return "status: running" in o
-                else:
-                    return o.get("status") == "running"
-
             cpu_model, extra_flags = parse_cpu_model()
 
             flags = HgFlags(cpu_model, extra_flags)
@@ -674,147 +695,107 @@ def run_cpuflags(test, params, env):
             cpuf_model = cpu_model
 
             for fadd in extra_flags:
-                cpuf_model += ",+" + fadd
+                cpuf_model += ",+" + str(fadd)
 
             for fdel in flags.host_unsupported_flags:
-                cpuf_model += ",-" + fdel
+                cpuf_model += ",-" + str(fdel)
 
             install_path = "/tmp"
-            login_timeout = int(params.get("login_timeout", 360))
-            role = params.get("role")
-            srchost = params.get("srchost")
-            dsthost = params.get("dsthost")
-            # Port used to communicate info between source and destination
-            comm_port = int(params.get("comm_port", 12324))
-            comm_timeout = float(params.get("comm_timeout", "10"))
-            regain_ip_cmd = params.get("regain_ip_cmd", "dhclient")
 
-            if role == 'source':
-                (self.vm, session) = start_guest_with_cpuflags(cpuf_model,
-                                                               smp)
+            class testMultihostMigration(virt_utils.MultihostMigration):
+                def __init__(self, test, params, env):
+                    super(testMultihostMigration, self).__init__(test,
+                                                                 params,
+                                                                 env)
 
-                install_cpuflags_test_on_vm(self.vm, install_path)
+                def migration_scenario(self):
+                    srchost = self.params.get("hosts")[0]
+                    dsthost = self.params.get("hosts")[1]
 
-                Flags = check_cpuflags_work(self.vm, install_path,
+                    def worker(mig_data):
+                        vm = env.get_vm("vm1")
+                        session = vm.wait_for_login(timeout=self.login_timeout)
+
+                        install_cpuflags_test_on_vm(vm, install_path)
+
+                        Flags = check_cpuflags_work(vm, install_path,
                                             flags.all_possible_guest_flags)
-                logging.info("Woking CPU flags: %s", str(Flags[0]))
-                logging.info("Not working CPU flags: %s", str(Flags[1]))
-                logging.warning("Flags works even if not deffined on"
-                                " guest cpu flags: %s",
-                                str(Flags[0] - flags.guest_flags))
-                logging.warning("Not tested CPU flags: %s", str(Flags[2]))
+                        logging.info("Woking CPU flags: %s", str(Flags[0]))
+                        logging.info("Not working CPU flags: %s",
+                                     str(Flags[1]))
+                        logging.warning("Flags works even if not deffined on"
+                                        " guest cpu flags: %s",
+                                        str(Flags[0] - flags.guest_flags))
+                        logging.warning("Not tested CPU flags: %s",
+                                        str(Flags[2]))
+                        session.sendline("nohup dd if=/dev/[svh]da of=/tmp/"
+                                         "stressblock bs=10MB count=100 &")
 
-                session.sendline("nohup dd if=/dev/[svh]da of=/tmp/"
-                                "stressblock bs=10MB count=100 &")
+                        cmd = ("nohup %s/cpuflags-test --stress  %s%s &" %
+                               (os.path.join(install_path, "test_cpu_flags"),
+                                smp,
+                                virt_utils.kvm_flags_to_stresstests(Flags[0] &
+                                                        flags.guest_flags)))
+                        logging.debug("Guest_flags: %s",
+                                      str(flags.guest_flags))
+                        logging.debug("Working_flags: %s", str(Flags[0]))
+                        logging.debug("Start stress on guest: %s", cmd)
+                        session.sendline(cmd)
 
-                cmd = ("nohup %s/cpuflags-test --stress  %s%s &" %
-                      (os.path.join(install_path, "test_cpu_flags"), smp,
-                      virt_utils.kvm_flags_to_stresstests(Flags[0] &
-                                                    flags.guest_flags)))
-                logging.debug("Guest_flags: %s", str(flags.guest_flags))
-                logging.debug("Working_flags: %s", str(Flags[0]))
-                logging.debug("Start stress on guest: %s", cmd)
-                session.sendline(cmd)
+                    def check_worker(mig_data):
+                        vm = env.get_vm("vm1")
 
-                # Listen on a port to get the migration port received from
-                # dest machine
-                s_socket = socket.socket(socket.AF_INET,
-                                         socket.SOCK_STREAM)
-                s_socket.bind(('', comm_port))
-                s_socket.listen(1)
-                s_socket.settimeout(comm_timeout)
+                        vm.verify_illegal_instruction()
 
-                # Wait 30 seconds for source and dest to reach this point
-                test.job.barrier(srchost,
-                                 'socket_started', 120).rendezvous(srchost,
-                                                                  dsthost)
+                        session = vm.wait_for_login(timeout=self.login_timeout)
 
-                c_socket = s_socket.accept()[0]
+                        try:
+                            session.cmd('killall cpuflags-test')
+                        except aexpect.ShellCmdError:
+                            raise error.TestFail("The cpuflags-test program"
+                                                 " should be active after"
+                                                 " migration and it's not.")
 
-                mig_port = int(c_socket.recv(6))
-                logging.info("Received from destination the"
-                             " migration port %s" % mig_port)
-                c_socket.close()
+                        Flags = check_cpuflags_work(vm, install_path,
+                                                flags.all_possible_guest_flags)
+                        logging.info("Woking CPU flags: %s",
+                                     str(Flags[0]))
+                        logging.info("Not working CPU flags: %s",
+                                     str(Flags[1]))
+                        logging.warning("Flags works even if not deffined on"
+                                        " guest cpu flags: %s",
+                                        str(Flags[0] - flags.guest_flags))
+                        logging.warning("Not tested CPU flags: %s",
+                                        str(Flags[2]))
 
-                #Wait for start cpuflags-test stress.
-                time.sleep(10)
-                logging.info("Start migrating now...")
-                self.vm.monitor.migrate_set_speed(mig_speed)
-                self.vm.migrate(dest_host=dsthost, remote_port=mig_port)
+                    self.migrate_wait(["vm1"], srchost, dsthost,
+                                      worker, check_worker)
 
-                # Wait up to 30 seconds for dest to reach this point
-                test.job.barrier(srchost,
-                                 'mig_finished', 30).rendezvous(srchost,
-                                                                dsthost)
-
-            elif role == 'destination':
-                # Wait up to login_timeout + 30 seconds for the source to
-                # reach this point
-                (self.vm, _) = start_guest_with_cpuflags(cpuf_model,
-                                                         smp,
-                                                         True,
-                                                         False)
-
-                test.job.barrier(dsthost, 'socket_started',
-                                 login_timeout + 120).rendezvous(srchost,
-                                                                dsthost)
-
-                c_socket = socket.socket(socket.AF_INET,
-                                         socket.SOCK_STREAM)
-                c_socket.settimeout(comm_timeout)
-                c_socket.connect((srchost, comm_port))
-
-                logging.info("Communicating to source migration"
-                             " port %s" % self.vm.migration_port)
-                c_socket.send("%d" % self.vm.migration_port)
-                c_socket.close()
-
-                # Wait up to mig_timeout + 30 seconds for the source to
-                # reach this point: migration finished
-                test.job.barrier(dsthost, 'mig_finished',
-                                 mig_timeout + 30).rendezvous(srchost,
-                                                              dsthost)
-
-                if not guest_active(self.vm):
-                    raise error.TestFail("Guest not active after"
-                                         " migration")
-
-                logging.info("Migrated guest appears to be running")
-
-                # Log into the guest again
-                logging.info("Logging into migrated guest after"
-                             " migration...")
-                session_serial = self.vm.wait_for_serial_login(
-                                                    timeout=login_timeout)
-                session_serial.cmd(regain_ip_cmd)
-
-                self.vm.verify_illegal_instructonn()
-
-                session = self.vm.wait_for_login(timeout=login_timeout)
-
-                try:
-                    session.cmd('killall cpuflags-test')
-                except aexpect.ShellCmdError:
-                    raise error.TestFail("The cpuflags-test program should"
-                                         " be active after migration and"
-                                         " it's not.")
-
-                Flags = check_cpuflags_work(self.vm, install_path,
-                                            flags.all_possible_guest_flags)
-                logging.info("Woking CPU flags: %s", str(Flags[0]))
-                logging.info("Not working CPU flags: %s", str(Flags[1]))
-                logging.warning("Flags works even if not deffined on"
-                                " guest cpu flags: %s",
-                                str(Flags[0] - flags.guest_flags))
-                logging.warning("Not tested CPU flags: %s", str(Flags[2]))
-
-            else:
-                raise error.TestError('Invalid role specified')
+            params_b = params.copy()
+            params_b["cpu_model"] = cpu_model
+            mig = testMultihostMigration(test, params_b, env)
+            mig.run()
 
     test_type = params.get("test_type")
     if (test_type in locals()):
         tests_group = locals()[test_type]
-        tests_group()
+        if params.get("cpu_model"):
+            tests_group()
+        else:
+            cpu_models = (set(get_cpu_models_supported_by_host()) -
+                          set(cpu_model_black_list))
+            logging.info("Start test with cpu models %s" % (str(cpu_models)))
+            failed = []
+            for cpumodel in cpu_models:
+                params["cpu_model"] = cpumodel
+                try:
+                    tests_group()
+                except:
+                    print_exception(tests_group)
+                    failed.append(cpumodel)
+            if failed != []:
+                raise error.TestFail("Test of cpu models %s failed." %
+                                     (str(failed)))
     else:
         raise error.TestFail("Test group '%s' is not defined in"
                              " cpuflags test" % test_type)

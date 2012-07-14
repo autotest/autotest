@@ -1,7 +1,7 @@
 import os, re, time
 
-from autotest_lib.tko import models, status_lib, utils as tko_utils
-from autotest_lib.tko.parsers import base, version_0
+from autotest.tko import models, status_lib, utils as tko_utils
+from autotest.tko.parsers import base, version_0
 
 
 class job(version_0.job):

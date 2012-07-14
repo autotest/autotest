@@ -10,7 +10,7 @@ you might need to do 'cat < /dev/null > /usr/include/linux/config.h'.
 But read the FAQ first.
 """
 import os
-from autotest_lib.client.bin import utils, profiler
+from autotest.client import utils, profiler
 
 class lockmeter(profiler.profiler):
     version = 1

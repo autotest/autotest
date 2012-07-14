@@ -1,8 +1,7 @@
 import re, logging
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-import aexpect
-import virt_utils
+from autotest.client.shared import error
+from autotest.client import utils
+import virt_utils, aexpect
 
 
 class QemuIOParamError(Exception):
@@ -12,7 +11,7 @@ class QemuIOParamError(Exception):
     pass
 
 
-class QemuIO():
+class QemuIO(object):
     """
     A class for execute qemu-io command
     """
@@ -143,7 +142,8 @@ class QemuIOShellSession(QemuIO):
         """
         Close the shell session for qemu-io
         """
-        self.session.close()
+        if not self.create_session:
+            self.session.close()
 
 
 class QemuIOSystem(QemuIO):

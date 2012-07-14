@@ -1,0 +1,212 @@
+include tests-shared.cfg
+
+variants:
+    - qxl:
+
+variants:
+    - vnc:
+        display = vnc
+        vga = std
+
+    - spice:
+        vga = qxl
+        display = spice
+
+        variants:
+            - 1monitor:
+                qxl_dev_nr = 1
+            - 2monitor:
+                qxl_dev_nr = 2
+            - 3monitor:
+                qxl_dev_nr = 3
+            - 4monitor:
+                qxl_dev_nr = 4
+
+        variants:
+            - @no_password:
+            - password:
+                spice_password = 12456
+        variants:
+            - @no_ssl:
+                spice_ssl = no
+                spice_port = 3000
+            - bad_port:
+                spice_port = -1
+            - ssl:
+                spice_ssl = yes
+                spice_tls_port = 3200
+                spice_tls_ciphers = DEFAULT
+                spice_gen_x509 = yes
+                spice_x509_dir = yes
+                spice_x509_prefix = /tmp/spice_x509d
+                spice_x509_key_file = server-key.pem
+                spice_x509_cacert_file = ca-cert.pem
+                spice_x509_cert_file = server-cert.pem
+                spice_x509_key_password = testPassPhrase
+                spice_x509_cacert_subj = /C=CZ/L=BRNO/O=SPICE/CN=my CA
+                spice_x509_server_subj = /C=CZ/L=BRNO/O=SPICE/CN=my Server
+                spice_secure_channels = main, inputs
+                spice_client_host_subject = yes
+                variants:
+                    - key_password:
+                        spice_x509_secure = yes
+                    - @no_key_password:
+                        spice_x509_secure = no
+        variants:
+            - @default_ic:
+                spice_image_compression = auto_glz
+            - auto_glz_ic:
+                spice_image_compression = auto_glz
+            - auto_lz_ic:
+                spice_image_compression = auto_lz
+            - quic_ic:
+                spice_image_compression = quic
+            - glz_ic:
+                spice_image_compression = glz
+            - lz_ic:
+                spice_image_compression = lz
+            - no_ic:
+                spice_image_compression = off
+            - bad_ic:
+                spice_image_compression = bad_value
+
+        variants:
+            - @default_jpeg_wc:
+                spice_jpeg_wan_compression = auto
+            - auto_jpeg_wc:
+                spice_jpeg_wan_compression = auto
+            - off_jpeg_wc:
+                spice_jpeg_wan_compression = off
+            - on_jpeg_wc:
+                spice_jpeg_wan_compression = always
+            - bad_jpeg_wc:
+                spice_jpeg_wan_compression = bad_value
+
+        variants:
+            - @default_zlib_wc:
+                spice_zlib_glz_wan_compression = auto
+            - auto_zlib_wc:
+                spice_zlib_glz_wan_compression = auto
+            - off_zlib_wc:
+                spice_zlib_glz_wan_compression = off
+            - on_zlib_wc:
+                spice_zlib_glz_wan_compression = always
+            - bad_zlib_wc:
+                spice_zlib_glz_wan_compression = bad_value
+
+        variants:
+            - @default_sv:
+                spice_streaming_video = filter
+            - sv:
+                spice_streaming_video = all
+            - filter_sv:
+                spice_streaming_video = filter
+            - no_sv:
+                spice_streaming_video = off
+            - bad_sv:
+                spice_streaming_video = bad_value
+
+
+        variants:
+            -@default_pc:
+                spice_playback_compression = on
+            -pc:
+                spice_playback_compression = on
+            -no_pc:
+                spice_playback_compression = off
+
+        variants:
+            -ipv6:
+                spice_ipv6 = yes
+                spice_ipv4=no
+            -ipv4:
+                spice_ipv4=yes
+                spice_ipv6=no
+            -default_ipv:
+                spice_ipv4=no
+                spice_ipv6=no
+variants:
+
+    - qemu_kvm_rhel63_install_client:
+        # Use this only when you need to create rhel62 image qcow
+        qemu_binary = /usr/libexec/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        image_name = /tmp/kvm_autotest_root/images/rhel63-64_client
+        only qcow2
+        only rtl8139
+        only ide
+        only smp2
+        only no_9p_export
+        only no_pci_assignable
+        only smallpages
+        only Linux.RHEL.6.3.beta.x86_64
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only unattended_install.cdrom.extra_cdrom_ks
+
+    - qemu_kvm_rhel63_install_guest:
+        # Use this only when you need to create rhel62 image qcow
+        qemu_binary = /usr/libexec/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        only qcow2
+        only rtl8139
+        only ide
+        only smp2
+        only no_9p_export
+        only no_pci_assignable
+        only smallpages
+        only RHEL.6.3.beta.x86_64
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only unattended_install.cdrom.extra_cdrom_ks
+
+    - @remote_viewer_rhel63_quick:
+        qemu_binary = /usr/libexec/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        rv_binary = /usr/bin/remote-viewer
+        only qcow2
+        only e1000
+        only ide
+        only up
+        only no_9p_export
+        only no_pci_assignable
+        only smallpages
+        only Linux.RHEL.6.3.beta.x86_64
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only rv_connect.RHEL.6.3.beta.x86_64, shutdown
+
+    - @spice_negative_rhel63_all:
+        qemu_binary = /usr/libexec/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        rv_binary = /usr/bin/remote-viewer
+        only qcow2
+        only e1000
+        only ide
+        only up
+        only no_9p_export
+        only no_pci_assignable
+        only smallpages
+        only Linux.RHEL.6.3.beta.x86_64
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.bad_port.no_password.1monitor, spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.bad_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.default_sv.default_zlib_wc.bad_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.default_sv.bad_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.bad_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.bad_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only negative_create
+
+    - @rv_disconnect_rhel63:
+        qemu_binary = /usr/libexec/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        rv_binary = /usr/bin/remote-viewer
+        only qcow2
+        only e1000
+        only ide
+        only up
+        only no_9p_export
+        only no_pci_assignable
+        only smallpages
+        only Linux.RHEL.6.3.beta.x86_64
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only start, rv_connect.RHEL.6.3.beta.x86_64, rv_disconnect.RHEL.6.3.beta.x86_64, shutdown
+
+# Choose your test list from the testsets defined
+only qemu_kvm_rhel63_install_guest, qemu_kvm_rhel63_install_client, remote_viewer_rhel63_quick, rv_disconnect_rhel63, spice_negative_rhel63_all

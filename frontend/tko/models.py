@@ -1,6 +1,6 @@
 from django.db import models as dbmodels, connection
 from django.utils import datastructures
-from autotest_lib.frontend.afe import model_logic, readonly_connection
+from autotest.frontend.afe import model_logic, readonly_connection
 
 _quote_name = connection.ops.quote_name
 

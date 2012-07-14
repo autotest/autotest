@@ -1,0 +1,28 @@
+#!/usr/bin/python
+try:
+    import autotest.common
+except ImportError:
+    import common
+
+import sys, os, subprocess
+
+# We want to set the output (stdout&stderr) of the autotest binary onto our
+# stdout channel. We went to get the status stream of autotest back on our
+# stderr channel - we set up fd 3 for this, and harness_simple.py can
+# open it later.
+
+# Set up file descriptor 3 as a copy of our stderr. This is the status channel
+os.dup2(2,3)
+# Join our stderr in with our stdout
+os.dup2(1,2)
+
+autodir = os.path.dirname(sys.argv[0])
+autotest = os.path.join(autodir, 'autotest')
+
+args = [autotest] + sys.argv[1:]
+if '-H' not in args:
+    args.insert(1, '-H simple')
+cmd = ' '.join(args)
+exit_code = subprocess.call(cmd, shell=True, stderr=subprocess.STDOUT,
+                            close_fds=False)
+sys.exit(exit_code) # pass on the exit status from autotest

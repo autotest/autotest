@@ -168,10 +168,12 @@ public class CreateJobViewPresenter implements TestSelectorListener {
 
         JSONArray hostInfo = cloneObject.get("hosts").isArray();
         List<String> hostnames = new ArrayList<String>();
+        List<String> profiles = new ArrayList<String>();
         for (JSONObject host : new JSONArrayList<JSONObject>(hostInfo)) {
             hostnames.add(Utils.jsonToString(host.get("hostname")));
+            profiles.add(Utils.jsonToString(host.get("profile")));
         }
-        hostSelector.setSelectedHostnames(hostnames, true);
+        hostSelector.setSelectedHostnames(hostnames, profiles, true);
 
         JSONObject metaHostCounts = cloneObject.get("meta_host_counts").isObject();
 
@@ -589,6 +591,7 @@ public class CreateJobViewPresenter implements TestSelectorListener {
 
                 HostSelector.HostSelection hosts = hostSelector.getSelectedHosts();
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));
+                args.put("profiles", Utils.stringsToJSON(hosts.profiles));
                 args.put("meta_hosts", Utils.stringsToJSON(hosts.metaHosts));
                 args.put("one_time_hosts",
                     Utils.stringsToJSON(hosts.oneTimeHosts));

@@ -1,6 +1,6 @@
 import os, sys, logging
-from autotest_lib.client.bin import test
-from autotest_lib.client.common_lib import error
+from autotest.client import test
+from autotest.client.shared import error
 
 
 class selftest(test.test):
@@ -41,12 +41,12 @@ class selftest(test.test):
     def __warn(self, msg):
         sys.stderr.write(msg)
 
-    def execute(self, cmd, *args):
+    def execute(self, cmd, **args):
         if cmd == 'mark':
-            self.__mark(*args)
+            self.__mark(**args)
         elif cmd == 'throw':
-            self.__throw(*args)
+            self.__throw(**args)
         elif cmd == 'print':
-            self.__print(*args)
+            self.__print(**args)
         elif cmd == 'warn':
-            self.__warn(*args)
+            self.__warn(**args)

@@ -1,6 +1,6 @@
 import logging, os, re
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.virt import virt_utils, rss_client, aexpect
+from autotest.client.shared import error
+from autotest.client.virt import aexpect, virt_utils, virt_remote, rss_client
 
 
 def run_whql_submission(test, params, env):
@@ -55,10 +55,10 @@ def run_whql_submission(test, params, env):
                                  filename, server_studio_path, timeout=60)
 
     # Open a shell session with the server
-    server_session = virt_utils.remote_login("nc", server_address,
-                                            server_shell_port, "", "",
-                                            sessions[0].prompt,
-                                            sessions[0].linesep)
+    server_session = virt_remote.remote_login("nc", server_address,
+                                              server_shell_port, "", "",
+                                              sessions[0].prompt,
+                                              sessions[0].linesep)
     server_session.set_status_test_command(sessions[0].status_test_command)
 
     # Get the computer names of the server and clients

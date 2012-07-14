@@ -2,16 +2,15 @@
 
 import cStringIO, logging, os, sys, unittest
 
-# direct imports; autotest_lib has not been setup while testing this.
-from common_lib.test_utils import mock
+# direct imports; autotest has not been setup while testing this.
+from shared.test_utils import mock
 import setup_modules
 
 
 class LoggingErrorStderrTests(unittest.TestCase):
     def setUp(self):
-        autotest_dir = os.path.abspath(os.path.join(setup_modules.dirname,
-                                                    '..'))
-        setup_modules.setup(autotest_dir, root_module_name='autotest_lib')
+        autotest_dir = os.path.dirname(sys.modules[__name__].__file__)
+        setup_modules.setup(autotest_dir, root_module_name='autotest')
         self.god = mock.mock_god()
         self.test_stderr = cStringIO.StringIO()
         self.god.stub_with(sys, 'stderr', self.test_stderr)

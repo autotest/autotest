@@ -1,4 +1,4 @@
-from autotest_lib.client.common_lib import global_config
+from autotest.client.shared import global_config
 
 def migrate_up(manager):
     # Add the column with a default first, and then drop the default.

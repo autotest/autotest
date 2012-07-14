@@ -1,5 +1,5 @@
 import logging, time, tempfile, os.path
-from autotest_lib.client.common_lib import error
+from autotest.client.shared import error
 
 def run_save_restore(test, params, env):
     """

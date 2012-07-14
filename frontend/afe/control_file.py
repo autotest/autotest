@@ -10,7 +10,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.frontend.afe import model_logic
+from autotest.frontend.afe import model_logic
 import frontend.settings
 
 AUTOTEST_DIR = os.path.abspath(os.path.join(
@@ -59,7 +59,7 @@ kernel_install_control = \"""
 %s    pass
 \"""
 
-from autotest_lib.client.common_lib import error
+from autotest.client.shared import error
 
 at = autotest_remote.Autotest()
 
@@ -124,7 +124,7 @@ def upload_kernel_config(host, kernel_info):
     dictionary.
     \"""
     import os
-    from autotest_lib.client.common_lib import autotemp, utils
+    from autotest.client.shared import autotemp, utils
 
     config_orig = kernel_info.get('config_file')
 

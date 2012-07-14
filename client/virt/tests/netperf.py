@@ -1,9 +1,8 @@
-import logging, os, commands, sys, threading, re, glob
-from autotest_lib.client.common_lib import error
-from autotest_lib.client.bin import utils
-from autotest_lib.client.virt import aexpect, virt_utils
-from autotest_lib.client.virt import virt_test_utils
-from autotest_lib.server.hosts.ssh_host import SSHHost
+import logging, os, commands, threading, re, glob
+from autotest.server.hosts.ssh_host import SSHHost
+from autotest.client import utils
+from autotest.client.virt import virt_test_utils, virt_utils, virt_remote
+
 
 def run_netperf(test, params, env):
     """
@@ -22,6 +21,8 @@ def run_netperf(test, params, env):
     vm.verify_alive()
     login_timeout = int(params.get("login_timeout", 360))
     session = vm.wait_for_login(timeout=login_timeout)
+    if params.get("rh_perf_envsetup_script"):
+        virt_test_utils.service_setup(vm, session, test.virtdir)
     server = vm.get_address()
     server_ctl = vm.get_address(1)
     session.close()
@@ -38,6 +39,8 @@ def run_netperf(test, params, env):
         vm2 = env.get_vm("vm2")
         vm2.verify_alive()
         session2 = vm2.wait_for_login(timeout=login_timeout)
+        if params.get("rh_perf_envsetup_script"):
+            virt_test_utils.service_setup(vm2, session2, test.virtdir)
         client = vm2.get_address()
         session2.close()
         if params.get('numa_node'):
@@ -63,8 +66,8 @@ def run_netperf(test, params, env):
 
         netperf_dir = os.path.join(os.environ['AUTODIR'], "tests/netperf2")
         for i in params.get("netperf_files").split():
-            virt_utils.scp_to_remote(ip, shell_port, username, password,
-                                     "%s/%s" % (netperf_dir, i), "/tmp/")
+            virt_remote.scp_to_remote(ip, shell_port, username, password,
+                                      "%s/%s" % (netperf_dir, i), "/tmp/")
         ssh_cmd(ip, params.get("setup_cmd"))
 
     logging.info("Prepare env of server/client/host")
@@ -79,14 +82,17 @@ def run_netperf(test, params, env):
                sessions=params.get('sessions'),
                sizes_rr=params.get('sizes_rr'),
                sizes=params.get('sizes'),
-               protocols=params.get('protocols'))
+               protocols=params.get('protocols'),
+               ver_cmd=params.get('ver_cmd', "rpm -q qemu-kvm"),
+               netserver_port=params.get('netserver_port', "12865"))
 
 
 def start_test(server, server_ctl, host, client, resultsdir, l=60,
                sessions_rr="50 100 250 500", sessions="1 2 4",
                sizes_rr="64 256 512 1024 2048",
                sizes="64 256 512 1024 2048 4096",
-               protocols="TCP_STREAM TCP_MAERTS TCP_RR"):
+               protocols="TCP_STREAM TCP_MAERTS TCP_RR", ver_cmd=None,
+               netserver_port=None):
     """
     Start to test with different kind of configurations
 
@@ -101,6 +107,8 @@ def start_test(server, server_ctl, host, client, resultsdir, l=60,
     @param sizes_rr: request/response sizes (TCP_RR, UDP_RR)
     @param sizes: send size (TCP_STREAM, UDP_STREAM)
     @param protocols: test type
+    @param ver_cmd: command to check kvm version
+    @param netserver_port: netserver listen port
     """
 
     def parse_file(file_prefix, raw=""):
@@ -116,12 +124,25 @@ def start_test(server, server_ctl, host, client, resultsdir, l=60,
         return thu
 
     fd = open("%s/netperf-result.RHS" % resultsdir, "w")
+    fd.write("#ver# %s\n#ver# host kernel: %s\n#ver# guest kernel:%s\n" % (
+             commands.getoutput(ver_cmd),
+             os.uname()[2], ssh_cmd(server_ctl, "uname -r")))
+    desc = """#desc# The tests are %s seconds sessions of "Netperf". 'throughput' was taken from netperf's report.
+#desc# other measurements were taken on the host.
+#desc# How to read the results:
+#desc# - The Throughput is measured in Mbit/sec.
+#desc# - io_exit: io exits of KVM.
+#desc# - irq_inj: irq injections of KVM.
+#desc#
+""" % (l)
+    fd.write(desc)
+
     for protocol in protocols.split():
         logging.info(protocol)
-        fd.write(protocol+ "\n")
+        fd.write("Category:" + protocol+ "\n")
         row = "%5s|%8s|%10s|%6s|%9s|%10s|%10s|%12s|%12s|%9s|%8s|%8s|%10s|%10s" \
-              "|%11s|%10s" % ("size", "sessions", "throughput", "cpu",
-              "normalize", "#tx-pkts", "#rx-pkts", "#tx-byts", "#rx-byts",
+              "|%11s|%10s" % ("size", "sessions", "throughput", "%CPU",
+              "thr/%CPU", "#tx-pkts", "#rx-pkts", "#tx-byts", "#rx-byts",
               "#re-trans", "#tx-intr", "#rx-intr", "#io_exit", "#irq_inj",
               "#tpkt/#exit", "#rpkt/#irq")
         logging.info(row)
@@ -136,11 +157,13 @@ def start_test(server, server_ctl, host, client, resultsdir, l=60,
             for j in sessions_test:
                 if (protocol == "TCP_RR"):
                     ret = launch_client(1, server, server_ctl, host, client, l,
-                    "-t %s -v 0 -P -0 -- -r %s,%s -b %s" % (protocol, i, i, j))
+                    "-t %s -v 0 -P -0 -- -r %s,%s -b %s" % (protocol, i, i, j),
+                    netserver_port)
                     thu = parse_file("/tmp/netperf.%s" % ret['pid'], 0)
                 else:
                     ret = launch_client(j, server, server_ctl, host, client, l,
-                                     "-C -c -t %s -- -m %s" % (protocol, i))
+                                     "-C -c -t %s -- -m %s" % (protocol, i),
+                                     netserver_port)
                     thu = parse_file("/tmp/netperf.%s" % ret['pid'], 4)
                 cpu = 100 - float(ret['mpstat'].split()[10])
                 normal = thu / cpu
@@ -172,12 +195,12 @@ def ssh_cmd(ip, cmd, user="root"):
     'UserKnownHostsFile=/dev/null %s@%s "%s"' % (user, ip, cmd))
 
 
-def launch_client(sessions, server, server_ctl, host, client, l, nf_args):
+def launch_client(sessions, server, server_ctl, host, client, l, nf_args, port):
     """ Launch netperf clients """
 
     client_path="/tmp/netperf-2.4.5/src/netperf"
     server_path="/tmp/netperf-2.4.5/src/netserver"
-    ssh_cmd(server_ctl, "pidof netserver || %s" % server_path)
+    ssh_cmd(server_ctl, "pidof netserver || %s -p %s" % (server_path, port))
     ncpu = ssh_cmd(server_ctl, "cat /proc/cpuinfo |grep processor |wc -l")
 
     def count_interrupt(name):

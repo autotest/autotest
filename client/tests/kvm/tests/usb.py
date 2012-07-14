@@ -1,5 +1,5 @@
 import logging, os, re, uuid
-from autotest_lib.client.common_lib import error
+from autotest.client.shared import error
 
 
 @error.context_aware
@@ -24,10 +24,24 @@ def run_usb(test, params, env):
         """
         Verify USB storage device in monitor
 
-        @params regex_str: regex for checking command output,
-                                search option,
-                                and expected string.
+        @param regex_str: Regex for checking command output
+        @param string: The string which will be checked
+        @param expect_result: The expected string
+        @param search_opt: Search option for re module.
         """
+        def _compare_str(act, exp, ignore_case):
+            str_func = lambda x: x
+            if ignore_case:
+                str_func = lambda x: x.lower()
+            if str_func(act) != str_func(exp):
+                return ("Expected: '%s', Actual: '%s'" %
+                        (str_func(exp), str_func(act)))
+            return ""
+
+        ignore_case = False
+        if search_opt & re.I == re.I:
+            ignore_case = True
+
         error.context("Finding matched sub-string with regex pattern %s" %
                       regex_str)
         m = re.findall(regex_str, string, search_opt)
@@ -36,16 +50,17 @@ def run_usb(test, params, env):
             raise error.TestError("Could not find matched sub-string")
 
         error.context("Verify matched string is same as expected")
+        actual_result = m[0]
         fail_log = []
-        if isinstance(m[0], tuple):
-            for i in xrange(len(expect_result)):
-                if m[0][i] != expect_result[i]:
-                    fail_log.append("Expected: '%s', Actual: '%s'" %
-                                    (expect_result[i], m[0][i]))
+        if isinstance(actual_result, tuple):
+            for i, v in enumerate(expect_result):
+                ret =  _compare_str(actual_result[i], v, ignore_case)
+                if ret:
+                    fail_log.append(ret)
         else:
-            if m[0] != expect_result[0]:
-                fail_log.append("Expected: '%s', Actual: '%s'" %
-                                (expect_result[0], m[0]))
+            ret =  _compare_str(actual_result, expect_result[0], ignore_case)
+            if ret:
+                fail_log.append(ret)
 
         if fail_log:
             logging.debug(string)
@@ -163,9 +178,13 @@ def run_usb(test, params, env):
         session = _login()
         output = session.cmd("ls -l /dev/disk/by-path/* | grep usb").strip()
         devname = re.findall("sd\w", output)
-        cmd = "dmesg | grep %s" % devname[0] if devname else "sda"
+        if devname:
+            d = devname[0]
+        else:
+            d = "sda"
+        cmd = "dmesg | grep %s" % d
         output = session.cmd(cmd)
-        _verify_string(expect_str, output, [expect_str])
+        _verify_string(expect_str, output, [expect_str], re.I)
         _do_io_test_guest(session)
 
         session.close()
@@ -190,12 +209,19 @@ def run_usb(test, params, env):
         session = _login()
         output = session.cmd("ls -l /dev/disk/by-path/* | grep usb").strip()
         devname = re.findall("sd\w", output)
-        cmd = "cat /sys/block/%s/queue/{minimum,optimal}_io_size" % \
-               (devname[0] if devname else "sda")
+        if devname:
+            d = devname[0]
+        else:
+            d = 'sda'
+        cmd = ("cat /sys/block/%s/queue/{minimum,optimal}_io_size" % d)
+
         output = session.cmd(cmd)
         # Note: If set min_io_size = 0, guest min_io_size would be set to
         # 512 by default.
-        expected_min_size = min_io_size if min_io_size != "0" else "512"
+        if min_io_size != "0":
+            expected_min_size = min_io_size
+        else:
+            expected_min_size = "512"
         _verify_string("(\d+)\n(\d+)", output, [expected_min_size, opt_io_size])
         _do_io_test_guest(session)
 

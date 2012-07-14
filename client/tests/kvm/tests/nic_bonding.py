@@ -1,7 +1,6 @@
 import logging, time
-from autotest_lib.client.virt.tests import file_transfer
-from autotest_lib.client.virt import virt_test_utils, virt_utils, aexpect
-from autotest_lib.client.common_lib import error
+from autotest.client.virt import virt_test_utils, aexpect
+from autotest.client.shared import error, utils
 
 
 def run_nic_bonding(test, params, env):
@@ -33,7 +32,7 @@ def run_nic_bonding(test, params, env):
     session_serial.cmd("ifconfig bond0 up")
     ifnames = [virt_test_utils.get_linux_ifname(session_serial,
                                                vm.get_mac_address(vlan))
-               for vlan, nic in enumerate(params.get("nics").split())]
+               for vlan, nic in enumerate(vm.virtnet)]
     setup_cmd = "ifenslave bond0 " + " ".join(ifnames)
     session_serial.cmd(setup_cmd)
     #do a pgrep to check if dhclient has already been running
@@ -51,15 +50,16 @@ def run_nic_bonding(test, params, env):
 
     try:
         logging.info("Test file transfering:")
-        file_transfer.run_file_transfer(test, params, env)
+        virt_test_utils.run_file_transfer(test, params, env)
 
         logging.info("Failover test with file transfer")
-        transfer_thread = virt_utils.Thread(file_transfer.run_file_transfer,
-                                           (test, params, env))
+        transfer_thread = utils.InterruptedThread(
+                                              virt_test_utils.run_file_transfer,
+                                               (test, params, env))
         try:
             transfer_thread.start()
             while transfer_thread.isAlive():
-                for vlan, nic in enumerate(params.get("nics").split()):
+                for vlan, nic in enumerate(vm.virtnet):
                     device_id = vm.get_peer(vm.netdev_id[vlan])
                     if not device_id:
                         raise error.TestError("Could not find peer device for"

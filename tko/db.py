@@ -4,8 +4,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.tko import utils
+from autotest.client.shared import global_config
+from autotest.tko import utils
 
 
 class MySQLTooManyRows(Exception):
@@ -158,6 +158,9 @@ class db_sql(object):
                 quoted_field = self._quote(field)
                 if value is None:
                     keys.append(quoted_field + ' is null')
+                elif '%' in str(value):
+                    keys.append(quoted_field + 'like %s')
+                    values.append(value)
                 else:
                     keys.append(quoted_field + '=%s')
                     values.append(value)
@@ -311,6 +314,25 @@ class db_sql(object):
         self._exec_sql_with_commit(cmd, values, commit)
 
 
+    def delete_afe_job(self, tag, commit = None):
+        job_idx = self.find_job(tag)
+        afe_job_idx = self.find_afe_job(tag)
+        for test_idx in self.find_tests(job_idx):
+            where = {'test_idx' : test_idx}
+            self.delete('tko_iteration_result', where)
+            self.delete('tko_iteration_attributes', where)
+            self.delete('tko_test_attributes', where)
+            self.delete('tko_test_labels_tests', {'test_id': test_idx})
+        where = {'job_idx' : job_idx}
+        self.delete('tko_job_keyvals', {'job_id' : job_idx})
+        self.delete('tko_tests', where)
+        self.delete('tko_jobs', where)
+        self.delete('afe_aborted_host_queue_entries', {'queue_entry_id' : afe_job_idx})
+        self.delete('afe_special_tasks', {'queue_entry_id' : afe_job_idx})
+        self.delete('afe_host_queue_entries', {'id' : afe_job_idx})
+        self.delete('afe_jobs', {'id' : afe_job_idx})
+
+
     def delete_job(self, tag, commit = None):
         job_idx = self.find_job(tag)
         for test_idx in self.find_tests(job_idx):
@@ -320,6 +342,7 @@ class db_sql(object):
             self.delete('tko_test_attributes', where)
             self.delete('tko_test_labels_tests', {'test_id': test_idx})
         where = {'job_idx' : job_idx}
+        self.delete('tko_job_keyvals', {'job_id' : job_idx})
         self.delete('tko_tests', where)
         self.delete('tko_jobs', where)
 
@@ -534,6 +557,22 @@ class db_sql(object):
             return None
 
 
+    def find_afe_job(self, tag):
+        rows = self.select('afe_job_id', 'tko_jobs', {'tag': tag})
+        if rows:
+            return rows[0][0]
+        else:
+            return None
+
+
+    def find_tag(self, tag_pattern):
+        rows = self.select('tag', 'tko_jobs', {'tag': tag_pattern})
+        if rows:
+            return rows[0][0]
+        else:
+            return None
+
+
 def _get_db_type():
     """Get the database type name to use from the global config."""
     get_value = global_config.global_config.get_config_value
@@ -543,7 +582,7 @@ def _get_db_type():
 def _get_error_class(class_name):
     """Retrieves the appropriate error class by name from the database
     module."""
-    db_module = __import__("autotest_lib.tko." + _get_db_type(),
+    db_module = __import__("autotest.tko." + _get_db_type(),
                            globals(), locals(), ["driver"])
     return getattr(db_module.driver, class_name)
 
@@ -553,7 +592,7 @@ def db(*args, **dargs):
     provided in args and dargs, using the database type specified by
     the global configuration (defaulting to mysql)."""
     db_type = _get_db_type()
-    db_module = __import__("autotest_lib.tko." + db_type, globals(),
+    db_module = __import__("autotest.tko." + db_type, globals(),
                            locals(), [db_type])
     db = getattr(db_module, db_type)(*args, **dargs)
     return db

@@ -7,7 +7,7 @@ try:
 except ImportError:
     import common
 
-from autotest_lib.scheduler import monitor_db_watcher
+from autotest.scheduler import monitor_db_watcher
 
 if __name__ == '__main__':
     monitor_db_watcher.main()

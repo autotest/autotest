@@ -17,7 +17,7 @@ See topic_common.py for a High Level Design and Algorithm.
 """
 
 import getpass, os, pwd, re, socket, sys
-from autotest_lib.cli import topic_common, action_common
+from autotest.cli import topic_common, action_common
 
 
 class job(topic_common.atest):
@@ -356,6 +356,7 @@ class job_create(job_create_or_clone):
     """atest job create [--priority <Low|Medium|High|Urgent>]
     [--synch_count] [--control-file </path/to/cfile>]
     [--on-server] [--test <test1,test2>] [--kernel <http://kernel>]
+    [--kernel-config <http://kernel-config-file>]
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
     [--labels <list of labels of machines to run on>]
     [--reboot_before <option>] [--reboot_after <option>]
@@ -373,6 +374,7 @@ class job_create(job_create_or_clone):
     def __init__(self):
         super(job_create, self).__init__()
         self.ctrl_file_data = {}
+        doc_url = 'https://github.com/autotest/autotest/wiki/KernelSpecification'
         self.parser.add_option('-y', '--synch_count', type=int,
                                help='Number of machines to use per autoserv '
                                     'execution')
@@ -386,7 +388,12 @@ class job_create(job_create_or_clone):
 
         self.parser.add_option('-k', '--kernel', help='A comma separated list'
                                ' of kernel versions/URLs/filenames to run the'
-                               ' job on')
+                               ' job on. Please check %s for more info' %
+                               doc_url)
+        self.parser.add_option('--kernel-config', help='A comma separated list'
+                               ' of kernel config URLs/filenames to run the'
+                               ' job on.  Entries will be paired (in order)'
+                               ' with values provided in the --kernel option')
         self.parser.add_option('--kernel-cmdline', help='A string that will be'
                                ' given as cmdline to the booted kernel(s)'
                                ' specified by the -k option')
@@ -425,14 +432,44 @@ class job_create(job_create_or_clone):
                                help='Job maximum runtime in hours')
 
 
-    @staticmethod
-    def _get_kernel_data(kernel_list, cmdline):
-        # the RPC supports cmdline per kernel version in a dictionary
-        kernels = []
+    def _get_kernel_data(self, kernel_list, cmdline, config_list=None):
+        """ Combine CLI options for kernel_list, cmdline, and config_list
+        into a list of dictionary entries (the RPC requires version,
+        with optional entries for config_file and cmdline).
+
+        If a config_list is specified, it must have the same number of
+        entries as the kernel_list.
+
+        If a cmdline is specified, it will be associated with each entry
+        in the kernel_list
+        """
+        configs = []
+        versions = []
+        if (config_list):
+            for config in re.split(r'[, ]+', config_list):
+                if not config:
+                    continue
+                if (config.lower() == 'none'):
+                    configs.append(None)
+                else:
+                    configs.append(config)
+
         for version in re.split(r'[, ]+', kernel_list):
             if not version:
                 continue
+            versions.append(version)
+            if (config_list is None):
+                configs.append(None)
+
+        if (len(configs) != len(versions)):
+            self.invalid_syntax('Must specify same number of entries in'
+                                ' --kernel and --kernel-config options');
+
+        kernels = []
+        for version, config in zip(versions, configs):
             kernel_info = {'version': version}
+            if config:
+                kernel_info['config_file'] = config
             if cmdline:
                 kernel_info['cmdline'] = cmdline
             kernels.append(kernel_info)
@@ -459,7 +496,9 @@ class job_create(job_create_or_clone):
                                 '--test, not both.')
         if options.kernel:
             self.ctrl_file_data['kernel'] = self._get_kernel_data(
-                    options.kernel, options.kernel_cmdline)
+                    options.kernel,
+                    options.kernel_cmdline,
+                    config_list=options.kernel_config)
         if options.control_file:
             try:
                 control_file_f = open(options.control_file)

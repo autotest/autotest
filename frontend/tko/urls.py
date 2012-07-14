@@ -3,8 +3,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.frontend import settings, urls_common
-from autotest_lib.frontend.tko import resources
+from autotest.frontend import settings, urls_common
+from autotest.frontend.tko import resources
 
 urlpatterns, debug_patterns = (
         urls_common.generate_patterns('frontend.tko', 'TkoClient'))

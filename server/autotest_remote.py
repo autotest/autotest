@@ -1,11 +1,10 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-import re, os, sys, traceback, subprocess, time, pickle, glob, tempfile
-import logging, getpass
-from autotest_lib.server import installable_object, prebuild, utils
-from autotest_lib.client.common_lib import base_job, log, error, autotemp
-from autotest_lib.client.common_lib import global_config, packages
-from autotest_lib.client.common_lib import utils as client_utils
+import re, os, sys, traceback, time, glob, tempfile, logging
+from autotest.server import installable_object, prebuild, utils
+from autotest.client.shared import base_job, log, error, autotemp
+from autotest.client.shared import global_config, packages
+from autotest.client.shared import utils as client_utils
 
 
 get_value = global_config.global_config.get_config_value
@@ -68,7 +67,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
         for path in Autotest.get_client_autodir_paths(host):
             try:
-                autotest_binary = os.path.join(path, 'bin', 'autotest')
+                autotest_binary = os.path.join(path, 'autotest')
                 host.run('test -x %s' % utils.sh_escape(autotest_binary))
                 host.run('test -w %s' % utils.sh_escape(path))
                 logging.debug('Found existing autodir at %s', path)
@@ -113,6 +112,14 @@ class BaseAutotest(installable_object.InstallableObject):
                 ', '.join(client_autodir_paths))
 
 
+    def _create_test_output_dir(self, host, autodir):
+        tmpdir = os.path.join(autodir, 'tmp')
+        state_autodir = global_config.global_config.get_config_value('COMMON',
+                                                             'test_output_dir',
+                                                               default=tmpdir)
+        host.run('mkdir -p %s' % utils.sh_escape(state_autodir))
+
+
     def get_fetch_location(self):
         c = global_config.global_config
         repos = c.get_config_value("PACKAGES", 'fetch_location', type=list,
@@ -153,6 +160,8 @@ class BaseAutotest(installable_object.InstallableObject):
                  ' | xargs rm -rf && rm -rf .[^.]*' % autodir)
         pkgmgr.install_pkg('autotest', 'client', pkg_dir, autodir,
                            preserve_install_dir=True)
+        self._create_test_output_dir(host, autodir)
+        logging.info("Installation of autotest completed")
         self.installed = True
 
 
@@ -161,7 +170,24 @@ class BaseAutotest(installable_object.InstallableObject):
         light_files = [os.path.join(self.source_material, f)
                        for f in os.listdir(self.source_material)
                        if f not in dirs_to_exclude]
+
+        # there should be one and only one grubby tarball
+        grubby_glob = os.path.join(self.source_material,
+                                   "deps/grubby/grubby-*.tar.bz2")
+        grubby_tarball_paths = glob.glob(grubby_glob)
+        if grubby_tarball_paths:
+            grubby_tarball_path = grubby_tarball_paths[0]
+            if os.path.exists(grubby_tarball_path):
+                light_files.append(grubby_tarball_path)
+
         host.send_file(light_files, autodir, delete_dest=True)
+
+        profilers_autodir = os.path.join(autodir, 'profilers')
+        profilers_init = os.path.join(self.source_material, 'profilers',
+                                      '__init__.py')
+        host.run("mkdir -p %s" % profilers_autodir)
+        host.send_file(profilers_init, profilers_autodir, delete_dest=True)
+        dirs_to_exclude.discard("profilers")
 
         # create empty dirs for all the stuff we excluded
         commands = []
@@ -213,6 +239,9 @@ class BaseAutotest(installable_object.InstallableObject):
         if use_packaging:
             try:
                 self._install_using_packaging(host, autodir)
+                self._create_test_output_dir(host, autodir)
+                logging.info("Installation of autotest completed")
+                self.installed = True
                 return
             except (error.PackageInstallError, error.AutoservRunError,
                     global_config.ConfigError), e:
@@ -229,6 +258,7 @@ class BaseAutotest(installable_object.InstallableObject):
                 self._install_using_send_file(host, autodir)
             else:
                 host.send_file(self.source_material, autodir, delete_dest=True)
+            self._create_test_output_dir(host, autodir)
             logging.info("Installation of autotest completed")
             self.installed = True
             return
@@ -339,9 +369,9 @@ class BaseAutotest(installable_object.InstallableObject):
             pass
 
         delete_file_list = [atrun.remote_control_file,
-                            atrun.remote_control_file + '.state',
+                            atrun.remote_control_state,
                             atrun.manual_control_file,
-                            atrun.manual_control_file + '.state']
+                            atrun.manual_control_state]
         cmd = ';'.join('rm -f ' + control for control in delete_file_list)
         host.run(cmd, ignore_status=True)
 
@@ -381,7 +411,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
         # Create and copy state file to remote_control_file + '.state'
         state_file = host.job.preprocess_client_state()
-        host.send_file(state_file, atrun.remote_control_file + '.init.state')
+        host.send_file(state_file, atrun.remote_control_init_state)
         os.remove(state_file)
 
         # Copy control_file to remote_control_file on the host
@@ -434,13 +464,29 @@ class _BaseRun(object):
         control = os.path.join(self.autodir, 'control')
         if tag:
             control += '.' + tag
+
+        tmpdir = os.path.join(self.autodir, 'tmp')
+        state_dir = global_config.global_config.get_config_value('COMMON',
+                                                              'test_output_dir',
+                                                              default=tmpdir)
+
         self.manual_control_file = control
+        self.manual_control_init_state = os.path.join(state_dir,
+                          os.path.basename(control) + ".init.state")
+        self.manual_control_state = os.path.join(state_dir,
+                          os.path.basename(control) + ".state")
+
         self.remote_control_file = control + '.autoserv'
+        self.remote_control_init_state = os.path.join(state_dir,
+                          os.path.basename(control) + ".autoserv.init.state")
+        self.remote_control_state = os.path.join(state_dir,
+                          os.path.basename(control) + ".autoserv.state")
+
         self.config_file = os.path.join(self.autodir, 'global_config.ini')
 
 
     def verify_machine(self):
-        binary = os.path.join(self.autodir, 'bin/autotest')
+        binary = os.path.join(self.autodir, 'autotest')
         try:
             self.host.run('ls %s > /dev/null 2>&1' % binary)
         except:
@@ -471,14 +517,14 @@ class _BaseRun(object):
 
 
     def get_background_cmd(self, section):
-        cmd = ['nohup', os.path.join(self.autodir, 'bin/autotest_client')]
+        cmd = ['nohup', os.path.join(self.autodir, 'autotest_client')]
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
 
 
     def get_daemon_cmd(self, section, monitor_dir):
-        cmd = ['nohup', os.path.join(self.autodir, 'bin/autotestd'),
+        cmd = ['nohup', os.path.join(self.autodir, 'autotestd'),
                monitor_dir, '-H autoserv']
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
@@ -486,7 +532,7 @@ class _BaseRun(object):
 
 
     def get_monitor_cmd(self, monitor_dir, stdout_read, stderr_read):
-        cmd = [os.path.join(self.autodir, 'bin', 'autotestd_monitor'),
+        cmd = [os.path.join(self.autodir, 'autotestd_monitor'),
                monitor_dir, str(stdout_read), str(stderr_read)]
         return ' '.join(cmd)
 
@@ -657,7 +703,7 @@ class _BaseRun(object):
 
     def execute_section(self, section, timeout, stderr_redirector,
                         client_disconnect_timeout):
-        logging.info("Executing %s/bin/autotest %s/control phase %d",
+        logging.info("Executing %s/autotest %s/control phase %d",
                      self.autodir, self.autodir, section)
 
         if self.background:
@@ -767,8 +813,7 @@ class _BaseRun(object):
             if not self.background:
                 collector.collect_client_job_results()
                 collector.remove_redundant_client_logs()
-                state_file = os.path.basename(self.remote_control_file
-                                              + '.state')
+                state_file = os.path.basename(self.remote_control_state)
                 state_path = os.path.join(self.results_dir, state_file)
                 self.host.job.postprocess_client_state(state_path)
                 self.host.job.remove_client_log(hostname, remote_results,
@@ -1033,12 +1078,12 @@ class client_logger(object):
 
 
 SiteAutotest = client_utils.import_site_class(
-    __file__, "autotest_lib.server.site_autotest", "SiteAutotest",
+    __file__, "autotest.server.site_autotest", "SiteAutotest",
     BaseAutotest)
 
 
 _SiteRun = client_utils.import_site_class(
-    __file__, "autotest_lib.server.site_autotest", "_SiteRun", _BaseRun)
+    __file__, "autotest.server.site_autotest", "_SiteRun", _BaseRun)
 
 
 class Autotest(SiteAutotest):

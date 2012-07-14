@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
-import pickle, subprocess, os, shutil, socket, sys, time, signal, getpass
-import datetime, traceback, tempfile, itertools, logging
+import pickle, subprocess, os, shutil, sys, time, signal, getpass
+import datetime, traceback, tempfile, itertools
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest_lib.client.common_lib import utils, global_config, error
-from autotest_lib.server import hosts, subcommand
-from autotest_lib.scheduler import email_manager, scheduler_config
+from autotest.client.shared import utils, global_config, error
+from autotest.server import hosts, subcommand
+from autotest.scheduler import email_manager, scheduler_config
 
 # An environment variable we add to the environment to enable us to
 # distinguish processes we started from those that were started by
@@ -154,7 +154,7 @@ class DroneUtility(object):
         processes are scanned.
         """
         site_check_parse = utils.import_site_function(
-                __file__, 'autotest_lib.scheduler.site_drone_utility',
+                __file__, 'autotest.scheduler.site_drone_utility',
                 'check_parse', lambda x: False)
         results = {
             'pidfiles' : self._read_pidfiles(pidfile_paths),
