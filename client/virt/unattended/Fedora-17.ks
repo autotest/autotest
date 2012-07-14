@@ -21,6 +21,7 @@ autopart
 @base
 @development-libs
 @development-tools
+dmidecode
 %end
 
 %post --interpreter /usr/bin/python
