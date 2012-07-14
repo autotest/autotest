@@ -1134,7 +1134,7 @@ class VM(virt_vm.BaseVM):
                     qemu_cmd += add_drive(help, floppy,
                                           format="floppy",
                                           index=index,
-                                          readonly= floppy_readonly)
+                                          readonly=floppy_readonly)
                 else:
                     qemu_cmd += add_floppy(help, floppy, index)
 
