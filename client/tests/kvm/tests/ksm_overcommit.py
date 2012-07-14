@@ -191,11 +191,11 @@ def run_ksm_overcommit(test, params, env):
                     # We need to keep some memory for python to run.
                     if (free_mem < 64000) or (ksm_swap and
                                               free_mem < (450000 * perf_ratio)):
-                        vm.monitor.cmd("stop")
+                        vm.pause()
                         for j in range(0, i):
                             lvms[j].destroy(gracefully = False)
                         time.sleep(20)
-                        vm.monitor.cmd("c")
+                        vm.resume()
                         logging.debug("Only %s free memory, killing %d guests",
                                       free_mem, (i - 1))
                         last_vm = i
@@ -206,12 +206,12 @@ def run_ksm_overcommit(test, params, env):
                 logging.debug("Only %s host free memory, killing %d guests",
                               free_mem, (i - 1))
                 logging.debug("Stopping %s", vm.name)
-                vm.monitor.cmd("stop")
+                vm.pause()
                 for j in range(0, i):
                     logging.debug("Destroying %s", lvms[j].name)
                     lvms[j].destroy(gracefully = False)
                 time.sleep(20)
-                vm.monitor.cmd("c")
+                vm.resume()
                 last_vm = i
 
             if last_vm != 0:

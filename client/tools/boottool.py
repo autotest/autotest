@@ -7,7 +7,16 @@ A boottool clone, but written in python and relying mostly on grubby[1].
 '''
 
 import os, re, sys, optparse, logging, subprocess
-import urllib, tarfile, tempfile, shutil, struct, md5
+import urllib, tarfile, tempfile, shutil, struct
+
+#
+# Get rid of DeprecationWarning messages on newer Python version while still
+# making it run on properly on Python 2.4
+#
+try:
+    import hashlib as md5
+except ImportError:
+    import md5
 
 
 __all__ = ['Grubby', 'OptionParser', 'App', 'EfiVar', 'EfiToolSys',
@@ -479,6 +488,149 @@ def parse_entry(entry_str, separator='='):
     return entry
 
 
+def detect_distro_type():
+    '''
+    Simple distro detection based on release/version files
+    '''
+    if os.path.exists('/etc/redhat-release'):
+        return 'redhat'
+    elif os.path.exists('/etc/debian_version'):
+        return 'debian'
+    else:
+        return None
+
+
+class DebianBuildDeps(object):
+    '''
+    Checks and install grubby build dependencies on Debian (like) systems
+
+    Tested on:
+       * Debian Squeeze (6.0)
+       * Ubuntu 12.04 LTS
+    '''
+
+
+    PKGS = ['gcc', 'make', 'libpopt-dev', 'libblkid-dev']
+
+
+    def check(self):
+        '''
+        Checks if necessary packages are already installed
+        '''
+        result = True
+        for p in self.PKGS:
+            args = ['dpkg-query', '--show', '--showformat=${Status}', p]
+            output = subprocess.Popen(args, shell=False,
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      close_fds=True).stdout.read()
+            if not output == 'install ok installed':
+                result = False
+        return result
+
+
+    def install(self):
+        '''
+        Attempt to install the build dependencies via a package manager
+        '''
+        if self.check():
+            return True
+        else:
+            try:
+                args = ['apt-get', 'update', '-qq']
+                subprocess.call(args,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+
+                args = ['apt-get', 'install', '-qq'] + self.PKGS
+                subprocess.call(args,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+            except OSError:
+                pass
+        return self.check()
+
+
+class RPMBuildDeps(object):
+    '''
+    Base class for RPM based systems
+    '''
+    def check(self):
+        '''
+        Checks if necessary packages are already installed
+        '''
+        result = True
+        for p in self.PKGS:
+            args = ['rpm', '-q', '--qf=%{NAME}', p]
+            output = subprocess.Popen(args, shell=False,
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE,
+                                      close_fds=True).stdout.read()
+            if not output.startswith(p):
+                result = False
+
+        return result
+
+
+class RedHatBuildDeps(RPMBuildDeps):
+    '''
+    Checks and install grubby build dependencies on RedHat (like) systems
+
+    Tested on:
+       * Fedora 17
+       * RHEL 5
+       * RHEL 6
+    '''
+
+
+    PKGS = ['gcc', 'make']
+    REDHAT_RELEASE_RE = re.compile('.*\srelease\s(\d)\.(\d)\s.*')
+
+
+    def __init__(self):
+        '''
+        Initializes a new dep installer, taking into account RHEL version
+        '''
+        match = self.REDHAT_RELEASE_RE.match(open('/etc/redhat-release').read())
+        if match:
+            major, minor = match.groups()
+            if int(major) <= 5:
+                self.PKGS += ['popt', 'e2fsprogs-devel']
+            else:
+                self.PKGS += ['popt-devel', 'libblkid-devel']
+
+
+    def install(self):
+        '''
+        Attempt to install the build dependencies via a package manager
+        '''
+        if self.check():
+            return True
+        else:
+            try:
+                args = ['yum', 'install', '-q', '-y'] + self.PKGS
+
+                # This is an extra safety step, to install the needed header
+                # in case the blkid headers package could not be detected
+                args += ['/usr/include/popt.h',
+                         '/usr/include/blkid/blkid.h']
+
+                result = subprocess.call(args,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+            except OSError:
+                pass
+        return self.check()
+
+
+DISTRO_DEPS_MAPPING = {
+    'debian' : DebianBuildDeps,
+    'redhat' : RedHatBuildDeps
+    }
+
+
 def install_grubby_if_necessary(path=None):
     '''
     Installs grubby if it's necessary on this system
@@ -554,6 +706,11 @@ class Grubby(object):
         self.opts = opts
         self.log = logging.getLogger(self.__class__.__name__)
 
+        if os.environ.has_key('BOOTTOOL_DEBUG_RUN'):
+            self.debug_run = True
+        else:
+            self.debug_run = False
+
         self._check_grubby_version()
         self._set_bootloader()
 
@@ -583,6 +740,9 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns command output
         '''
+        if self.debug_run:
+            self.log.debug('running: "%s"', ' '.join(arguments))
+
         result = None
         try:
             result = subprocess.Popen(arguments, shell=False,
@@ -594,6 +754,8 @@ class Grubby(object):
 
         if result is not None:
             result = result.strip()
+            if self.debug_run:
+                logging.debug('previous command output: "%s"', result)
         else:
             self.log.error('_run_get_output error while running: "%s"',
                            ' '.join(arguments))
@@ -604,6 +766,9 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns command output
         '''
+        if self.debug_run:
+            self.log.debug('running: "%s"', ' '.join(arguments))
+
         result = None
         try:
             result = subprocess.Popen(arguments, shell=False,
@@ -616,6 +781,8 @@ class Grubby(object):
 
         if result is not None:
             result = result.strip()
+            if self.debug_run:
+                logging.debug('previous command output/error: "%s"', result)
         else:
             self.log.error('_run_get_output_err error while running: "%s"',
                            ' '.join(arguments))
@@ -626,9 +793,14 @@ class Grubby(object):
         '''
         Utility function that runs a command and returns status code
         '''
+        if self.debug_run:
+            self.log.debug('running: "%s"', ' '.join(arguments))
+
         result = None
         try:
             result = subprocess.call(arguments)
+            if self.debug_run:
+                logging.debug('previous command result: %s', result)
         except OSError:
             result = -1
             self.log.error('caught OSError, returning %s', result)
@@ -661,6 +833,16 @@ class Grubby(object):
         '''
         args = []
         args.append(self.path)
+
+        if self.path is None:
+            self.log.error('grubby executable currently set to None. this is '
+                           'a serious error condition')
+
+        if self.path is not None and not os.path.exists(self.path):
+            self.log.error('grubby executable does not exist: "%s"', self.path)
+            if not os.access(self.path, os.R_OK | os.X_OK):
+                self.log.error('insufficient permissions (read and execute) '
+                               'for grubby executable: "%s"', self.path)
 
         # If a bootloader has been detected, that is, a mode has been set,
         # it's passed as the first command line argument to grubby
@@ -1320,6 +1502,17 @@ class Grubby(object):
 
         topdir = tempfile.mkdtemp()
 
+        deps_klass = DISTRO_DEPS_MAPPING.get(detect_distro_type(), None)
+        if deps_klass is not None:
+            deps = deps_klass()
+            if not deps.check():
+                self.log.warn('Installing distro build deps for grubby. This '
+                              'may take a while, depending on bandwidth and '
+                              'actual number of packages to install')
+                if not deps.install():
+                    self.log.error('Failed to install distro build deps for '
+                                   'grubby')
+
         tarball = self.grubby_install_fetch_tarball(topdir)
         if tarball is None:
             raise GrubbyInstallException('Failed to fetch grubby tarball')
@@ -1789,7 +1982,11 @@ class BoottoolApp(object):
         if level > max_level:
             level = max_level
 
-        logging_level = log_map.get(level)
+        if os.environ.has_key('BOOTTOOL_DEBUG_RUN'):
+            logging_level = logging.DEBUG
+        else:
+            logging_level = log_map.get(level)
+
         logging.basicConfig(level=logging_level,
                             format=LOGGING_FORMAT)
 

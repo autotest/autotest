@@ -90,7 +90,7 @@ def run_unittest(test, params, env):
                 virt_env_process.preprocess_vm(test, params, env, vm_name)
                 vm = env.get_vm(vm_name)
                 vm.create()
-                vm.monitor.cmd("cont")
+                vm.resume()
                 logging.info("Waiting for unittest %s to complete, timeout %s, "
                              "output in %s", t, timeout,
                              vm.get_testlog_filename())

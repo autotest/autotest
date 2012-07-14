@@ -33,6 +33,8 @@
 # 2004-08-23 fl   take advantage of post-2.1 expat features
 # 2005-02-01 fl   added iterparse implementation
 # 2005-03-02 fl   fixed iterparse support for pre-2.2 versions
+# 2012-06-29 cevich@redhat.com Made all classes new-style
+# 2012-07-02 cevich@redhat.com Include dist. ElementPath
 #
 # Copyright (c) 1999-2005 by Fredrik Lundh.  All rights reserved.
 #
@@ -111,37 +113,17 @@ __all__ = [
 
 import string, sys, re
 
-class _SimpleElementPath:
-    # emulate pre-1.2 find/findtext/findall behaviour
-    def find(self, element, tag):
-        for elem in element:
-            if elem.tag == tag:
-                return elem
-        return None
-    def findtext(self, element, tag, default=None):
-        for elem in element:
-            if elem.tag == tag:
-                return elem.text or ""
-        return default
-    def findall(self, element, tag):
-        if tag[:3] == ".//":
-            return element.getiterator(tag[3:])
-        result = []
-        for elem in element:
-            if elem.tag == tag:
-                result.append(elem)
-        return result
-
 try:
-    import ElementPath
+    import autotest.common as common
 except ImportError:
-    # FIXME: issue warning in this case?
-    ElementPath = _SimpleElementPath()
+    import common
+
+import autotest.client.shared.ElementPath as ElementPath
 
 # TODO: add support for custom namespace resolvers/default namespaces
 # TODO: add improved support for incremental parsing
 
-VERSION = "1.2.6"
+VERSION = "1.2.6b"
 
 ##
 # Internal element class.  This class defines the Element interface,
@@ -156,7 +138,7 @@ VERSION = "1.2.6"
 # @see Comment
 # @see ProcessingInstruction
 
-class _ElementInterface:
+class _ElementInterface(object):
     # <tag attrib>text<child/>...</tag>tail
 
     ##
@@ -514,7 +496,7 @@ PI = ProcessingInstruction
 #     an URI, and this argument is interpreted as a local name.
 # @return An opaque object, representing the QName.
 
-class QName:
+class QName(object):
     def __init__(self, text_or_uri, tag=None):
         if tag:
             text_or_uri = "{%s}%s" % (text_or_uri, tag)
@@ -537,7 +519,7 @@ class QName:
 # @keyparam file Optional file handle or name.  If given, the
 #     tree is initialized with the contents of this XML file.
 
-class ElementTree:
+class ElementTree(object):
 
     def __init__(self, element=None, file=None):
         assert element is None or iselement(element)
@@ -871,7 +853,7 @@ def parse(source, parser=None):
 #     events are reported.
 # @return A (event, elem) iterator.
 
-class iterparse:
+class iterparse(object):
 
     def __init__(self, source, events=None):
         if not hasattr(source, "read"):
@@ -1001,7 +983,7 @@ fromstring = XML
 # @defreturn string
 
 def tostring(element, encoding=None):
-    class dummy:
+    class dummy(object):
         pass
     data = []
     file = dummy()
@@ -1020,7 +1002,7 @@ def tostring(element, encoding=None):
 # @param element_factory Optional element factory.  This factory
 #    is called to create new Element instances, as necessary.
 
-class TreeBuilder:
+class TreeBuilder(object):
 
     def __init__(self, element_factory=None):
         self._data = [] # data collector
@@ -1108,7 +1090,7 @@ class TreeBuilder:
 # @see #ElementTree
 # @see #TreeBuilder
 
-class XMLTreeBuilder:
+class XMLTreeBuilder(object):
 
     def __init__(self, html=0, target=None):
         try:

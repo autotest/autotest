@@ -4,7 +4,7 @@ Interfaces to the QEMU monitor.
 @copyright: 2008-2010 Red Hat Inc.
 """
 
-import socket, time, threading, logging, select, re
+import socket, time, threading, logging, select, re, os
 import virt_utils, virt_passfd_setup
 from autotest.client.shared import utils
 try:
@@ -79,6 +79,7 @@ class Monitor:
         self._passfd = None
         self._supported_cmds = []
         self.debug_log = False
+        self.log_file = os.path.basename(self.filename + ".log")
 
         try:
             self._socket.connect(filename)
@@ -174,6 +175,17 @@ class Monitor:
                           self.name, cmd, extra_str)
 
 
+    def _log_lines(self, log_str):
+        """
+        Record monitor cmd/output in log file.
+        """
+        try:
+            for l in log_str.splitlines():
+                virt_utils.log_line(self.log_file, l)
+        except Exception:
+            pass
+
+
     def is_responsive(self):
         """
         Return True iff the monitor is responsive.
@@ -239,10 +251,17 @@ class HumanMonitor(Monitor):
                 break
             s += data
             try:
-                if s.splitlines()[-1].split()[-1] == "(qemu)":
-                    return True, "\n".join(s.splitlines()[:-1])
+                lines = s.splitlines()
+                if lines[-1].split()[-1] == "(qemu)":
+                    self._log_lines("\n".join(lines[1:]))
+                    return True, "\n".join(lines[:-1])
             except IndexError:
                 continue
+        if s:
+            try:
+                self._log_lines(s.splitlines()[1:])
+            except IndexError:
+                pass
         return False, "\n".join(s.splitlines())
 
 
@@ -261,6 +280,7 @@ class HumanMonitor(Monitor):
         try:
             try:
                 self._socket.sendall(cmd + "\n")
+                self._log_lines(cmd)
             except socket.error, e:
                 raise MonitorSocketError("Could not send monitor command %r" %
                                          cmd, e)
@@ -677,6 +697,7 @@ class QMPMonitor(Monitor):
         for line in s.splitlines():
             try:
                 objs += [json.loads(line)]
+                self._log_lines(line)
             except Exception:
                 pass
         # Keep track of asynchronous events
@@ -693,6 +714,7 @@ class QMPMonitor(Monitor):
         """
         try:
             self._socket.sendall(data)
+            self._log_lines(str(data))
         except socket.error, e:
             raise MonitorSocketError("Could not send data: %r" % data, e)
 
