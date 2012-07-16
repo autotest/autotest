@@ -1,0 +1,68 @@
+#!/usr/bin/python
+# Copyright Google, Martin J. Bligh <mbligh@google.com>, Jan 2009
+import os, sys
+try:
+    import autotest.common
+except ImportError:
+    import common
+from autotest_lib.server import frontend
+
+try:
+    old = frontend.AFE(web_server='http://' + sys.argv[1])
+    new = frontend.AFE(web_server='http://' + sys.argv[2])
+
+    hostname = sys.argv[3]
+    print 'Migrating %s ...' % hostname
+
+    old_host = old.get_hosts(hostname=hostname)[0]
+    print old_host
+except Exception:
+    print "Usage: atest_migrate_host <old_server> <new_server> <hostname>"
+    raise
+    sys.exit(1)
+
+
+# Create host
+
+new_host = new.create_host(hostname=hostname, locked=True)
+
+# Deal with labels
+old_host_labels = old_host.get_labels()
+for label in old_host_labels:
+    # Create any non-existant labels
+    if not new.get_labels(name=label.name):
+        print label
+        new_label = new.create_label(name=label.name,
+                                        platform=label.platform,
+                                        only_if_needed=label.only_if_needed)
+    # Add any missing labels to the machine
+    if not [l for l in new_host.get_labels() if l.name == label.name]:
+        new_host.add_labels([label.name])
+
+# Deal with ACLs
+old_host_acls = [a for a in old_host.get_acls() if a.name != 'Everyone']
+new_users = [user.login for user in new.get_users()]
+
+for acl in old_host_acls:
+    # Create any non-existant ACLs
+    new_acls = new.get_acls(name=acl.name)
+    if new_acls:
+        new_acl = new_acls[0]
+    else:
+        new_acl = new.create_acl(name=acl.name, description=acl.description)
+    # Add any users to the ACL that we can
+    for user in acl.users:
+        if user in new_users:
+            new_acl.add_users([user])
+        else:
+            print 'Skipping absent user %s' % user
+    # Add any missing ACLs to the machine
+    if not [a for a in new_host.get_acls() if a.name == acl.name]:
+        new_host.add_acl(acl.name)
+
+# Enable the new host
+if not old_host.locked:
+    new_host.modify(locked=False)
+
+# Delete host from old server
+old_host.delete()

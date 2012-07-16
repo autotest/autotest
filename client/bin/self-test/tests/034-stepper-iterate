@@ -1,0 +1,11 @@
+print "--SELFTEST-- loading test"
+
+def step_init():
+	print "--STEPTEST-- step_init called"
+	step_test(1)
+	
+def step_test(iteration):
+	if (iteration < 5):
+		job.next_step([step_test, iteration + 1])
+
+        print "--STEPTEST-- step_test called iteration=%d" % iteration

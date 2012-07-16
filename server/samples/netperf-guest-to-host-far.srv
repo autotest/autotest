@@ -1,0 +1,63 @@
+print "XXXX start of control file"
+
+
+def check_kernel(host, version, package):
+    if host.run("uname -r").stdout.strip() != version:
+        print "XXXX installing kernel on %s" % (host.hostname,)
+        package.install(host)
+
+        host.reboot()
+        host.wait_up()
+
+
+def install_kvm(kvm_on_host_var_name, host, source, addresses):
+    exec ("global %(var_name)s\n"
+            "%(var_name)s= kvm.KVM(host)\n"
+            "%(var_name)s.get(source)\n"
+            "%(var_name)s.install(addresses)\n" % {"var_name": kvm_on_host_var_name})
+
+
+print "XXXX creating RemoteHost objects"
+remote_host1= hosts.create_host("192.168.1.1")
+remote_host2= hosts.create_host("192.168.1.2")
+
+kernel= deb_kernel.DEBKernel()
+kernel.get("/home/foo/linux-2.6.21.3-3_2.6.21.3-3_amd64.deb")
+
+host1_command= subcommand(check_kernel, [remote_host1, "2.6.21.3-3", kernel])
+host2_command= subcommand(check_kernel, [remote_host2, "2.6.21.3-3", kernel])
+
+parallel([host1_command, host2_command])
+
+
+print "XXXX installing KVM on %s" % remote_host1.hostname
+install_kvm("kvm_on_remote_host1", remote_host1, "/var/local/kvm-33.tar.gz", [{"mac": "02:00:00:00:00:01", "ip" : "10.0.0.1"}])
+
+
+print "XXXX starting guests"
+qemu_options= "-m 256 -hda /var/local/vdisk.img -snapshot"
+gserver= hosts.KVMGuest(kvm_on_remote_host1, qemu_options)
+gserver.wait_up()
+
+
+print "XXXX installing autotest"
+at= autotest_remote.Autotest()
+at.get("/home/foo/autotest/client")
+at.install(gserver)
+at.install(remote_host2)
+
+
+print "XXXX running autotest"
+server_results_dir= "results-netperf-guest-to-host-far-server"
+client_results_dir= "results-netperf-guest-to-host-far-client"
+
+server_control_file= 'job.run_test("netperf2", "%s", "%s", "server", tag="server")' % (sh_escape(gserver.hostname), sh_escape(remote_host2.hostname),)
+client_control_file= 'job.run_test("netperf2", "%s", "%s", "client", tag="client")' % (sh_escape(gserver.hostname), sh_escape(remote_host2.hostname),)
+
+server_command= subcommand(at.run, [server_control_file, server_results_dir, gserver])
+client_command= subcommand(at.run, [client_control_file, client_results_dir, remote_host2])
+
+parallel([server_command, client_command])
+
+
+print "XXXX end of control file"

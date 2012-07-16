@@ -1,0 +1,54 @@
+#!/usr/bin/python
+"""
+Selects all rows and columns that satisfy the condition specified
+and prints the matrix.
+"""
+import sys, os, re, optparse
+try:
+    import autotest.common
+except ImportError:
+    import common
+from autotest_lib.client.common_lib import kernel_versions
+from autotest_lib.tko import display, frontend, db, query_lib
+
+# First do all the options parsing
+parser = optparse.OptionParser()
+parser.add_option('-x', '--x_axis', action='store', dest='x_axis',
+                                                default='machine_group')
+parser.add_option('-y', '--y_axis', action='store', dest='y_axis',
+                                                default='kernel')
+parser.add_option('-c', '--condition', action='store', dest='condition')
+(options, args) = parser.parse_args()
+
+if options.condition:
+    where = query_lib.parse_scrub_and_gen_condition(
+                options.condition, frontend.test_view_field_dict)
+    # print("where clause:" % where)
+else:
+    where = None
+
+# Grab the data
+db = db.db()
+test_data = frontend.get_matrix_data(db, options.x_axis, options.y_axis, where)
+
+# Print everything
+widest_row_header = max([len(y) for y in test_data.y_values])
+data_column_width = max([max(13,len(x)) for x in test_data.x_values])
+column_widths = [widest_row_header] + [data_column_width] * len(test_data.x_values)
+format = ' | '.join(['%%%ds' % i for i in column_widths])
+# Print headers
+print format % tuple([''] + test_data.x_values)
+
+# print data
+for y in test_data.y_values:
+    line = [y]
+    for x in test_data.x_values:
+        try:
+            data_point = test_data.data[x][y]
+            good_status = db.status_idx['GOOD']
+            good = data_point.status_count.get(good_status, 0)
+            total = sum(data_point.status_count.values())
+            line.append('%5d / %-5d' % (good, total))
+        except:
+            line.append('')
+    print format % tuple(line)

@@ -1,0 +1,8 @@
+checkpoint 1 1
+GOOD selftest.test1 Completed Successfully
+
+checkpoint 2 3
+FAIL selftest.test3 selftest: sequence was 2 when 3 expected
+
+JOB ERROR: selftest: sequence was 2 when 3 expected
+--SELFTEST-- exit 1

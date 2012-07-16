@@ -1,0 +1,46 @@
+import os.path
+
+print "XXXX start of control file"
+
+print "XXXX creating RemoteHost object"
+remote_host= hosts.create_host("192.168.1.1")
+
+
+print "XXXX installing KVM"
+kvm_on_remote_host= kvm.KVM(remote_host)
+
+kvm_on_remote_host.get("/var/local/kvm-33.tar.gz")
+addresses= [{"mac": "02:00:00:00:00:%02x" % (num,), "ip" : "10.0.0.%d" % (num,)} for num in range(1, 16)]
+kvm_on_remote_host.install(addresses)
+
+
+print "XXXX starting guests"
+qemu_options= "-m 256 -hda /var/local/vdisk.img -snapshot"
+
+# > 1
+num_guests= 5
+g= []
+for i in range(num_guests):
+    g.append(hosts.KVMGuest(kvm_on_remote_host, qemu_options))
+for i in range(num_guests):
+    g[i].wait_up()
+
+
+print "XXXX running transfers"
+tmp_dir= g[0].get_tmp_dir()
+big_file= os.path.join(tmp_dir, "big_file")
+g[0].run('dd if=/dev/urandom of="%s" bs=1024 count=102400' % (big_file,))
+print g[0].run('sha1sum "%s"' % (big_file,)).stdout.strip()
+
+args= range(1, num_guests)
+
+def f(i):
+    print "This is %s" % i
+    tmp_dir= g[i].get_tmp_dir()
+    g[i].run('scp "%s":"%s" "%s"' % (g[0].hostname, big_file, tmp_dir,))
+    print g[i].run('sha1sum "%s"' % (os.path.join(tmp_dir, "big_file"),)).stdout.strip()
+
+job.parallel_simple(f, args)
+
+
+print "XXXX end of control file"

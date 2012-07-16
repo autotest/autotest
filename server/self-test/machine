@@ -1,0 +1,14 @@
+import time
+
+print "Instantiating a machine object"
+m = hosts.create_host(machines[0])
+print "Passed"
+
+print
+
+print "Running is_up on remote machine"
+m.is_up()
+time.sleep(1)
+m.is_up()
+print "Passed"
+

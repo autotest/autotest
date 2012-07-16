@@ -1,0 +1,45 @@
+import utils
+
+print "Instantiating a machine object"
+m = hosts.create_host(machines[0])
+print "Passed"
+
+print
+
+print "Pinging"
+if m.is_up():
+	print "Passed"
+else:
+	raise "Failed"
+
+print
+
+print "Waiting for ssh"
+m.wait_up(5)
+print "Passed"
+
+print
+
+print "Running ls on remote machine via host.run"
+if m.run('ls -d /etc').stdout.strip() == '/etc':
+	print "Passed"
+else:
+	raise "Failed"
+
+utils.run('rm -f /tmp/motd')
+print "Removing temporary file from remote machine"
+m.run('rm -f /tmp/motd')
+print "Running send_file remote machine"
+m.send_file('/etc/motd', '/tmp/motd')
+print "Running get_file remote machine"
+m.get_file('/tmp/motd', '/tmp/motd')
+print "Verifying files match"
+if utils.run('diff -q /etc/motd /tmp/motd').exit_status:
+	raise "Failed"
+print "Removing temporary file from remote machine"
+m.run('rm -f /tmp/motd')
+print "Passed"
+utils.run('rm -f /tmp/motd')
+
+print
+
