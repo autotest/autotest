@@ -384,15 +384,13 @@ class VM(virt_vm.BaseVM):
             return " -m %s" % mem
 
 
-        def add_smp(help, smp, vcpu_cores=0, vcpu_threads=0, vcpu_sockets=0):
-            smp_str = " -smp %d" % int(smp)
-            # the value is not None, "", or "0"
-            if vcpu_cores:
-                smp_str += ",cores=%d" % int(vcpu_cores)
-            if vcpu_threads:
-                smp_str += ",threads=%d" % int(vcpu_threads)
-            if vcpu_sockets:
-                smp_str += ",sockets=%d" % int(vcpu_sockets)
+        def add_smp(help):
+            smp_str = " -smp %d" % self.cpuinfo.smp
+            if has_option(help, "maxcpus=cpus"):
+                smp_str += ",maxcpus=%d" % self.cpuinfo.maxcpus
+            smp_str += ",cores=%d" % self.cpuinfo.cores
+            smp_str += ",threads=%d" % self.cpuinfo.threads
+            smp_str += ",sockets=%d" % self.cpuinfo.sockets
             return smp_str
 
 
@@ -1048,24 +1046,38 @@ class VM(virt_vm.BaseVM):
         if mem:
             qemu_cmd += add_mem(help, mem)
 
-        smp = int(params.get("smp", 1))
-        if smp:
-            vcpu_threads = int(params.get("vcpu_threads", 1))
-            vcpu_cores = int(params.get("vcpu_cores", smp))
-            vcpu_sockets = int(params.get("vcpu_sockets", 1))
+        smp = int(params.get("smp", 0))
+        vcpu_maxcpus = int(params.get("vcpu_maxcpus", 0))
+        vcpu_sockets = int(params.get("vcpu_sockets", 0))
+        vcpu_cores = int(params.get("vcpu_cores", 0))
+        vcpu_threads = int(params.get("vcpu_threads", 0))
 
-            if smp > 8 and vcpu_threads == 1:
-                vcpu_threads = 2
+        # Force CPU threads to 2 when smp > 8.
+        if smp > 8 and vcpu_threads <= 1:
+            vcpu_threads = 2
 
-            if not vcpu_cores:
-                vcpu_cores = smp / vcpu_threads / vcpu_sockets
-            if not vcpu_threads:
-                vcpu_threads = smp / vcpu_cores / vcpu_sockets
-            if not vcpu_sockets:
-                vcpu_sockets = smp / vcpu_cores / vcpu_threads
+        if smp == 0 or vcpu_sockets == 0:
+            vcpu_cores = vcpu_cores or 1
+            vcpu_threads = vcpu_threads or 1
+            if smp and vcpu_sockets == 0:
+                vcpu_sockets = smp / (vcpu_cores * vcpu_threads)
+            else:
+                vcpu_sockets = vcpu_sockets or 1
+            if smp == 0:
+                smp = vcpu_cores * vcpu_threads * vcpu_sockets
+        else:
+            if vcpu_cores == 0:
+                vcpu_threads = vcpu_threads or 1
+                vcpu_cores = smp / (vcpu_sockets * vcpu_threads)
+            else:
+                vcpu_threads = smp / (vcpu_cores * vcpu_sockets)
 
-            qemu_cmd += add_smp(help, smp, vcpu_cores, vcpu_threads,
-                                vcpu_sockets)
+        self.cpuinfo.smp = smp
+        self.cpuinfo.maxcpus = vcpu_maxcpus or smp
+        self.cpuinfo.cores = vcpu_cores
+        self.cpuinfo.threads = vcpu_cores
+        self.cpuinfo.sockets = vcpu_sockets
+        qemu_cmd += add_smp(help)
 
         cpu_model = params.get("cpu_model")
         use_default_cpu_model = True
@@ -1083,6 +1095,10 @@ class VM(virt_vm.BaseVM):
             vendor = params.get("cpu_model_vendor")
             flags = params.get("cpu_model_flags")
             family = params.get("cpu_family")
+            self.cpuinfo.model = cpu_model
+            self.cpuinfo.vendor = vendor
+            self.cpuinfo.flags = flags
+            self.cpuinfo.family = family
             qemu_cmd += add_cpu_flags(help, cpu_model, flags,
                                       vendor, family)
 
