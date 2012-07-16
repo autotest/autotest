@@ -181,12 +181,12 @@ def run_nfs_corrupt(test, params, env):
 
     config = NFSCorruptConfig(test, params)
     config.setup()
-
-    params["image_name_stg"] = os.path.join(config.mnt_dir, 'nfs_corrupt')
+    image_name = os.path.join(config.mnt_dir, 'nfs_corrupt')
+    params["image_name_stg"] = image_name
     params["force_create_image_stg"] = "yes"
     params["create_image_stg"] = "yes"
     stg_params = params.object_params("stg")
-    virt_env_process.preprocess_image(test, stg_params)
+    virt_env_process.preprocess_image(test, stg_params, image_name)
 
     vm = env.get_vm(params["main_vm"])
     vm.create(params=params)
