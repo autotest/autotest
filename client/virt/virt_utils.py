@@ -150,6 +150,7 @@ class HwAddrGetError(NetError):
     def __str__(self):
         return "Can not get mac of interface %s" % self.ifname
 
+
 class PropCanKeyError(KeyError, AttributeError):
     def __init__(self, key, slots):
         self.key = key
@@ -158,19 +159,23 @@ class PropCanKeyError(KeyError, AttributeError):
         return "Unsupported key name %s (supported keys: %s)" % (
                     str(self.key), str(self.slots))
 
+
 class PropCanValueError(PropCanKeyError):
     def __str__(self):
         return "Instance contains None value for valid key '%s'" % (
                     str(self.key))
+
 
 class VMNetError(NetError):
     def __str__(self):
         return ("VMNet instance items must be dict-like and contain "
                 "a 'nic_name' mapping")
 
+
 class DbNoLockError(NetError):
     def __str__(self):
         return "Attempt made to access database with improper locking"
+
 
 class Env(UserDict.IterableUserDict):
     """
@@ -346,6 +351,7 @@ class Params(UserDict.IterableUserDict):
                 new_dict[new_key] = self[key]
         return new_dict
 
+
 # subclassed dict wouldn't honor __slots__ on python 2.4 when __slots__ gets
 # overridden by a subclass. This class also changes behavior of dict
 # WRT to None value being the same as non-existant "key".
@@ -355,6 +361,7 @@ class PropCan(object):
 
     raise: KeyError if requested container-like index isn't in set (__slots__)
     """
+
     __slots__ = []
 
     def __init__(self, properties={}):
@@ -367,6 +374,7 @@ class PropCan(object):
             value = properties.get(propertea, None)
             self[propertea] = value
 
+
     def __getattribute__(self, propertea):
         try:
             value = super(PropCan, self).__getattribute__(propertea)
@@ -377,11 +385,13 @@ class PropCan(object):
         else:
             raise PropCanValueError(propertea, self.__slots__)
 
+
     def __getitem__(self, propertea):
         try:
             return getattr(self, propertea)
         except AttributeError:
             raise PropCanKeyError(propertea, self.__slots__)
+
 
     def __setitem__(self, propertea, value):
         try:
@@ -389,11 +399,13 @@ class PropCan(object):
         except AttributeError:
             raise PropCanKeyError(propertea, self.__slots__)
 
+
     def __delitem__(self, propertea):
         try:
             delattr(self, propertea)
         except AttributeError:
             raise PropCanKeyError(propertea, self.__slots__)
+
 
     def __len__(self):
         length = 0
@@ -401,6 +413,7 @@ class PropCan(object):
             if self.__contains__(propertea):
                 length += 1
         return length
+
 
     def __contains__(self, propertea):
         try:
@@ -410,6 +423,7 @@ class PropCan(object):
         if value:
             return True
 
+
     def keys(self):
         keylist = []
         for propertea in self.__slots__:
@@ -417,8 +431,10 @@ class PropCan(object):
                 keylist.append(propertea)
         return keylist
 
+
     def has_key(self, propertea):
         return self.__contains__(propertea)
+
 
     def set_if_none(self, propertea, value):
         """
@@ -426,6 +442,7 @@ class PropCan(object):
         """
         if propertea not in self.keys():
             self[propertea] = value
+
 
     def get(self, propertea, default=None):
         """
@@ -436,13 +453,16 @@ class PropCan(object):
         else:
             return default
 
+
     def update(self, **otherdict):
         for propertea in self.__slots__:
             if otherdict.has_key(propertea):
                 self[propertea] = otherdict[propertea]
 
+
     def __repr__(self):
         return self.__str__()
+
 
     def __str__(self):
         """
@@ -466,32 +486,40 @@ class PropCan(object):
                 continue
         return str(d)
 
+
 # Legacy functions related to MAC/IP addresses should make noise
 def _open_mac_pool(lock_mode):
     raise RuntimeError("Please update your code to use the VirtNet class")
 
+
 def _close_mac_pool(pool, lock_file):
     raise RuntimeError("Please update your code to use the VirtNet class")
 
+
 def _generate_mac_address_prefix(mac_pool):
     raise RuntimeError("Please update your code to use the VirtNet class")
+
 
 def generate_mac_address(vm_instance, nic_index):
     raise RuntimeError("Please update your code to use "
                        "VirtNet.generate_mac_address()")
 
+
 def free_mac_address(vm_instance, nic_index):
     raise RuntimeError("Please update your code to use "
                        "VirtNet.free_mac_address()")
+
 
 def set_mac_address(vm_instance, nic_index, mac):
     raise RuntimeError("Please update your code to use "
                        "VirtNet.set_mac_address()")
 
+
 class VirtIface(PropCan):
     """
     Networking information for single guest interface and host connection.
     """
+
     __slots__ = ['nic_name', 'mac', 'nic_model', 'ip', 'nettype', 'netdst']
     # Make sure first byte generated is always zero and it follows
     # the class definition.  This helps provide more predictable
@@ -505,8 +533,10 @@ class VirtIface(PropCan):
                 state[key] = self[key]
         return state
 
+
     def __setstate__(self, state):
         self.__init__(state)
+
 
     @classmethod
     def name_is_valid(cls, nic_name):
@@ -520,6 +550,7 @@ class VirtIface(PropCan):
         except PropCanKeyError: #unset name
             return False
 
+
     @classmethod
     def mac_is_valid(cls, mac):
         try:
@@ -527,6 +558,7 @@ class VirtIface(PropCan):
         except TypeError:
             return False
         return True # Though may be less than 6 bytes
+
 
     @classmethod
     def mac_str_to_int_list(cls, mac):
@@ -560,6 +592,7 @@ class VirtIface(PropCan):
                              str(mac)))
         return mac
 
+
     @classmethod
     def int_list_to_mac_str(cls, mac_bytes):
         """
@@ -574,6 +607,7 @@ class VirtIface(PropCan):
                 mac_bytes[byte_index] = "%x" % mac
         return mac_bytes
 
+
     @classmethod
     def generate_bytes(cls):
         """
@@ -583,6 +617,7 @@ class VirtIface(PropCan):
         if cls.LASTBYTE > 0xff:
             cls.LASTBYTE = 0
         yield cls.LASTBYTE
+
 
     @classmethod
     def complete_mac_address(cls, mac):
@@ -600,13 +635,11 @@ class VirtIface(PropCan):
             return cls.complete_mac_address(cls.int_list_to_mac_str(mac))
 
 
-
 class LibvirtIface(VirtIface):
     """
     Networking information specific to libvirt
     """
     __slots__ = VirtIface.__slots__ + []
-
 
 
 class KVMIface(VirtIface):
@@ -617,6 +650,7 @@ class KVMIface(VirtIface):
                                        'tapfd_id', 'netdev_id', 'tftp',
                                        'romfile', 'nic_extra_params',
                                        'netdev_extra_params']
+
 
 class VMNet(list):
     """
@@ -645,16 +679,20 @@ class VMNet(list):
         else:
             raise VMNetError
 
+
     def __getstate__(self):
         return [nic for nic in self]
 
+
     def __setstate__(self, state):
         VMNet.__init__(self, self.container_class, state)
+
 
     def __getitem__(self, index_or_name):
         if isinstance(index_or_name, str):
             index_or_name = self.nic_name_index(index_or_name)
         return super(VMNet, self).__getitem__(index_or_name)
+
 
     def __setitem__(self, index_or_name, value):
         if not isinstance(value, dict):
@@ -671,7 +709,7 @@ class VMNet(list):
 
     def subclass_pre_init(self, params, vm_name):
         """
-            Subclasses must establish style before calling VMNet. __init__()
+        Subclasses must establish style before calling VMNet. __init__()
         """
         #TODO: Get rid of this function.  it's main purpose is to provide
         # a shared way to setup style (container_class) from params+vm_name
@@ -686,6 +724,7 @@ class VMNet(list):
             for key,value in VMNetStyle(self.vm_type,
                                         self.driver_type).items():
                 setattr(self, key, value)
+
 
     def process_mac(self, value):
         """
@@ -708,11 +747,13 @@ class VMNet(list):
                                        self.__class__.DISCARD_WARNINGS))
                     self.__class__.DISCARD_WARNINGS -= 1
 
+
     def mac_list(self):
         """
         Return a list of all mac addresses used by defined interfaces
         """
         return [nic.mac for nic in self if hasattr(nic, 'mac')]
+
 
     def append(self, value):
         newone = self.container_class(value)
@@ -723,6 +764,7 @@ class VMNet(list):
             super(VMNet, self).append(newone)
         else:
             raise VMNetError
+
 
     def nic_name_index(self, name):
         """
@@ -737,6 +779,7 @@ class VMNet(list):
             raise IndexError("Can't find nic named '%s' among '%s'" %
                              (name, nic_name_list))
 
+
     def nic_name_list(self):
         """
         Obtain list of nic names from lookup of contents 'nic_name' key.
@@ -747,6 +790,7 @@ class VMNet(list):
             namelist.append(item['nic_name'])
         return namelist
 
+
     def nic_lookup(self, prop_name, prop_value):
         """
         Return the first index with prop_name key matching prop_value or None
@@ -756,6 +800,7 @@ class VMNet(list):
                 if self[nic_index][prop_name] == prop_value:
                     return nic_index
         return None
+
 
 # TODO: Subclass VMNet into KVM/Libvirt variants and
 # pull them, along with ParmasNet and maybe DbNet based on
@@ -795,15 +840,18 @@ class VMNetStyle(dict):
     def __new__(cls, vm_type, driver_type):
         return cls.get_style(vm_type, driver_type)
 
+
     @classmethod
     def get_vm_type_map(cls, vm_type):
         return cls.VMNet_Style_Map.get(vm_type,
                                         cls.VMNet_Style_Map['default'])
 
+
     @classmethod
     def get_driver_type_map(cls, vm_type_map, driver_type):
         return vm_type_map.get(driver_type,
                                vm_type_map['default'])
+
 
     @classmethod
     def get_style(cls, vm_type, driver_type):
@@ -823,7 +871,6 @@ class ParamsNet(VMNet):
             # attr: mac, ip, model, nettype, netdst, etc.
             <attr> = value
             <attr>_<nic name> = value
-
     """
 
     # __init__ must not presume clean state, it should behave
@@ -854,8 +901,11 @@ class ParamsNet(VMNet):
             result_list.append(nic_dict)
         VMNet.__init__(self, self.container_class, result_list)
 
+
     def mac_index(self):
-        """Generator over mac addresses found in params"""
+        """
+        Generator over mac addresses found in params
+        """
         for nic_name in self.params.get('nics'):
             nic_obj_params = self.params.object_params(nic_name)
             mac = nic_obj_params.get('mac')
@@ -864,8 +914,11 @@ class ParamsNet(VMNet):
             else:
                 continue
 
+
     def reset_mac(self, index_or_name):
-        """Reset to mac from params if defined and valid, or undefine."""
+        """
+        Reset to mac from params if defined and valid, or undefine.
+        """
         nic = self[index_or_name]
         nic_name = nic.nic_name
         nic_params = self.params.object_params(nic_name)
@@ -877,8 +930,11 @@ class ParamsNet(VMNet):
             new_mac = None
         nic.mac = new_mac
 
+
     def reset_ip(self, index_or_name):
-        """Reset to ip from params if defined and valid, or undefine."""
+        """
+        Reset to ip from params if defined and valid, or undefine.
+        """
         nic = self[index_or_name]
         nic_name = nic.nic_name
         nic_params = self.params.object_params(nic_name)
@@ -890,13 +946,13 @@ class ParamsNet(VMNet):
             new_ip = None
         nic.ip = new_ip
 
+
 class DbNet(VMNet):
     """
     Networking information from database
 
         Database specification-
             database values are python string-formatted lists of dictionaries
-
     """
 
     _INITIALIZED = False
@@ -931,10 +987,12 @@ class DbNet(VMNet):
         if entry:
             VMNet.__init__(self, self.container_class, entry)
 
+
     def __setitem__(self, index, value):
         super(DbNet, self).__setitem__(index, value)
         if self._INITIALIZED:
             self.update_db()
+
 
     def __getitem__(self, index_or_name):
         # container class attributes are read-only, hook
@@ -943,6 +1001,7 @@ class DbNet(VMNet):
             self.update_db()
         return super(DbNet, self).__getitem__(index_or_name)
 
+
     def __delitem__(self, index_or_name):
         if isinstance(index_or_name, str):
             index_or_name = self.nic_name_index(index_or_name)
@@ -950,10 +1009,12 @@ class DbNet(VMNet):
         if self._INITIALIZED:
             self.update_db()
 
+
     def append(self, value):
         super(DbNet, self).append(value)
         if self._INITIALIZED:
             self.update_db()
+
 
     def lock_db(self):
         if not hasattr(self, 'lock'):
@@ -964,6 +1025,7 @@ class DbNet(VMNet):
                 raise DbNoLockError
         else:
             raise DbNoLockError
+
 
     def unlock_db(self):
         if hasattr(self, 'db'):
@@ -976,6 +1038,7 @@ class DbNet(VMNet):
                 raise DbNoLockError
         else:
             raise DbNoLockError
+
 
     def db_entry(self, db_key=None):
         """
@@ -1005,8 +1068,11 @@ class DbNet(VMNet):
             result.append(result_dict)
         return result
 
+
     def save_to_db(self, db_key=None):
-        """Writes string representation out to database"""
+        """
+        Writes string representation out to database
+        """
         if db_key == None:
             db_key = self.db_key
         data = str(self)
@@ -1023,10 +1089,12 @@ class DbNet(VMNet):
             except KeyError:
                 pass
 
+
     def update_db(self):
         self.lock_db()
         self.save_to_db()
         self.unlock_db()
+
 
     def mac_index(self):
         """Generator of mac addresses found in database"""
@@ -1042,12 +1110,10 @@ class DbNet(VMNet):
             raise DbNoLockError
 
 
-
 class VirtNet(DbNet, ParamsNet):
     """
     Persistent collection of VM's networking information.
     """
-
     # __init__ must not presume clean state, it should behave
     # assuming there is existing properties/data on the instance
     # and take steps to preserve or update it as appropriate.
@@ -1073,6 +1139,7 @@ class VirtNet(DbNet, ParamsNet):
         # signal runtime content handling to methods
         self._INITIALIZED = True
 
+
     # Delegating get/setstate() details more to ancestor classes
     # doesn't play well with multi-inheritence.  While possibly
     # more difficult to maintain, hard-coding important property
@@ -1088,6 +1155,7 @@ class VirtNet(DbNet, ParamsNet):
             state[style_attr] = getattr(self, style_attr)
         return state
 
+
     def __setstate__(self, state):
         self._INITIALIZED = False # prevent db updates during unpickling
         for key in state.keys():
@@ -1097,6 +1165,7 @@ class VirtNet(DbNet, ParamsNet):
         VMNet.__setstate__(self, state.pop('container_items'))
         self._INITIALIZED = True
 
+
     def mac_index(self):
         """
         Generator for all allocated mac addresses (requires db lock)
@@ -1105,6 +1174,7 @@ class VirtNet(DbNet, ParamsNet):
             yield mac
         for mac in ParamsNet.mac_index(self):
             yield mac
+
 
     def generate_mac_address(self, nic_index_or_name, attempts=1024):
         """
@@ -1140,6 +1210,7 @@ class VirtNet(DbNet, ParamsNet):
                             self.vm_name,
                             self.db_key))
 
+
     def free_mac_address(self, nic_index_or_name):
         """
         Remove the mac value from nic_index_or_name and cache unless static
@@ -1151,6 +1222,7 @@ class VirtNet(DbNet, ParamsNet):
             # Reset to params definition if any, or None
             self.reset_mac(nic_index_or_name)
         self.update_db()
+
 
     def set_mac_address(self, nic_index_or_name, mac):
         """
@@ -1166,6 +1238,7 @@ class VirtNet(DbNet, ParamsNet):
         nic.mac = mac.lower()
         self.update_db()
 
+
     def get_mac_address(self, nic_index_or_name):
         """
         Return a MAC address for nic_index_or_name
@@ -1174,6 +1247,7 @@ class VirtNet(DbNet, ParamsNet):
         @return: MAC address string.
         """
         return self[nic_index_or_name].mac.lower()
+
 
     def generate_ifname(self, nic_index_or_name):
         """
@@ -1185,6 +1259,7 @@ class VirtNet(DbNet, ParamsNet):
         # Ensure interface name doesn't excede 11 characters
         self[nic_index_or_name].ifname = (prefix + postfix)[-11:]
         return self[nic_index_or_name].ifname # forces update_db
+
 
 def verify_ip_address_ownership(ip, macs, timeout=10.0):
     """
@@ -1419,6 +1494,7 @@ def generate_random_string(length):
         str += r.choice(chars)
         length -= 1
     return str
+
 
 def generate_random_id():
     """

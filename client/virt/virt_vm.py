@@ -381,12 +381,13 @@ class BaseVM(object):
             # Direct reference to self.virtnet makes pylint complain
             # note: virtnet.__init__() supports being called anytime
             getattr(self, 'virtnet').__init__(self.params,
-                                          self.name,
-                                          self.instance)
+                                              self.name,
+                                              self.instance)
         else: # Create new
             self.virtnet = virt_utils.VirtNet(self.params,
-                                          self.name,
-                                          self.instance)
+                                              self.name,
+                                              self.instance)
+
 
     def _generate_unique_id(self):
         """
