@@ -34,6 +34,10 @@ variants:
                 time_command = date +'TIME: %a %m/%d/%Y %H:%M:%S.%N'
                 time_filter_re = "(?:TIME: \w\w\w )(.{19})(?:\.\d\d)"
                 time_format = "%m/%d/%Y %H:%M:%S"
+        time_manage:
+            time_command = date +'TIME: %a %m/%d/%Y %H:%M:%S.%N'
+            time_filter_re = "(?:TIME: \w\w\w )(.{19})(?:\.\d\d)"
+            time_format = "%m/%d/%Y %H:%M:%S"
         file_transfer:
             tmp_dir = /tmp/
             clean_cmd = rm -f
@@ -52,7 +56,7 @@ variants:
             format_command = echo y | mkfs -t %s /dev/%s
             copy_to_command = \cp -rf /bin/ls /mnt/%s
             copy_from_command = \cp -rf /mnt/%s/ls /tmp/ls
-            compare_command = cd /bin && md5sum ls > /tmp/ls.md5 && cd /tmp && md5sum -c ls.md5
+            compare_command = md5sum /bin/ls > /tmp/ls.md5 && cd /tmp && md5sum -c ls.md5
             check_result_key_word = OK
             max_disk:
                  stg_image_num = 27
@@ -1415,6 +1419,11 @@ variants:
                 time_command = "echo TIME: %date% %time%"
                 time_filter_re = "(?<=TIME: \w\w\w ).{19}(?=\.\d\d)"
                 time_format = "%m/%d/%Y %H:%M:%S"
+        time_manage:
+            alive_test_cmd = systeminfo
+            time_command = "echo TIME: %date% %time%"
+            time_filter_re = "(?<=TIME: \w\w\w ).{19}(?=\.\d\d)"
+            time_format = "%m/%d/%Y %H:%M:%S"
         guest_s4:
             check_s4_support_cmd = powercfg /hibernate on
             test_s4_cmd = start ping -t localhost

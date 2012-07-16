@@ -537,9 +537,11 @@ class BaseVM(object):
         nic_mac = nic.mac.lower()
         self.free_mac_address(nic_index_or_name)
         try:
-            del self.address_cache[nic_mac]
             del self.virtnet[nic_index_or_name]
+            del self.address_cache[nic_mac]
         except IndexError:
+            pass # continue to not exist
+        except KeyError:
             pass # continue to not exist
 
 

@@ -442,9 +442,21 @@ class VM(virt_vm.BaseVM):
                       lun=None):
             name = None
             dev = ""
+            if self.params.get("use_bootindex") in ['yes', 'on', True]:
+                if boot in ['yes', 'on', True]:
+                    bootindex = 1
+                boot = "unused"
             if format == "ahci":
                 name = "ahci%s" % index
                 dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
+                dev += _add_option("bootindex", bootindex)
+                format = "none"
+                index = None
+            if format == "virtio":
+                name = "virtio%s" % index
+                dev += " -device virtio-blk-pci"
+                dev += _add_option("bootindex", bootindex)
+                dev += _add_option("drive", name)
                 format = "none"
                 index = None
             if format == "usb2":
@@ -1116,14 +1128,13 @@ class VM(virt_vm.BaseVM):
                 floppy_params = params.object_params(floppy_name)
                 floppy_readonly = floppy_params.get("floppy_readonly", "no")
                 floppy_readonly = floppy_readonly == "yes"
-                floppy = floppy_params.get("floppy_name")
+                floppy = virt_utils.get_path(root_dir,
+                                             floppy_params.get("floppy_name"))
                 if has_option(help,"global"):
-                    qemu_cmd += add_drive(help,
-                                          virt_utils.get_path(root_dir,
-                                                              floppy),
+                    qemu_cmd += add_drive(help, floppy,
                                           format="floppy",
                                           index=index,
-                                          readonly= floppy_readonly)
+                                          readonly=floppy_readonly)
                 else:
                     qemu_cmd += add_floppy(help, floppy, index)
 

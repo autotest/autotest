@@ -8,41 +8,119 @@ compute and check regression bug.
 """
 import os, sys, re, commands, warnings, ConfigParser
 
+def exec_sql(str, user='root', passwd='redhat'):
+    cmd = "echo 'use autotest_web; %s' |mysql -u %s -p%s" % (str, user, passwd)
+    return commands.getoutput(cmd)
+
+def get_test_keyval(jobid, keyname, default=''):
+    idx = exec_sql("select job_idx from tko_jobs where afe_job_id=%s;"
+                    % jobid).split()[-1]
+    test_idx = exec_sql('select test_idx from tko_tests where job_idx=%s;'
+                        % idx).split()[3]
+    try:
+        return exec_sql('select value from tko_test_attributes'
+                        ' where test_idx=%s and attribute="%s";'
+                         % (test_idx, keyname)).split()[-1]
+    except:
+        return default
 
 class Sample():
     """ Collect test results in same environment to a sample """
-    def __init__(self, files):
-        self.files_dict = []
-        self.desc = ""
-        self.version = ""
-        for i in range(len(files)):
-            fd = open(files[i], "r")
-            f = []
-            desc = []
-            ver = []
-            for l in fd.readlines():
-                if "#desc#" in l:
-                    desc.append(l[6:])
-                elif "#ver#" in l:
-                    ver.append(l[5:])
+    def __init__(self, type, arg):
+        def generate_raw_table(test_dict):
+            ret_dict = []
+            tmp = []
+            type = category = None
+            for i in test_dict:
+                line = i.split('|')[1:]
+                if not type:
+                    type = line[0:2]
+                if type != line[0:2]:
+                    ret_dict.append('|'.join(type + tmp))
+                    type = line[0:2]
+                    tmp = []
+                if "e+" in line[-1]:
+                    tmp.append("%.0f" % float(line[-1]))
+                elif 'e-' in line[-1]:
+                    tmp.append("%.2f" % float(line[-1]))
+                elif not (re.findall("[a-zA-Z]", line[-1]) or is_int(line[-1])):
+                    tmp.append("%.2f" % float(line[-1]))
                 else:
-                    f.append(l.strip())
+                    tmp.append(line[-1])
 
-            self.files_dict.append(f)
-            fd.close()
+                if category != i.split('|')[0]:
+                    category = i.split('|')[0]
+                    ret_dict.append("Category:" + category.strip())
+                    ret_dict.append(self.categories)
+            ret_dict.append('|'.join(type + tmp))
+            return ret_dict
 
+        if type == 'file':
+            files = arg.split()
+            self.files_dict = []
+            for i in range(len(files)):
+                fd = open(files[i], "r")
+                f = []
+                for l in fd.readlines():
+                    l = l.strip()
+                    if re.findall("^### ", l):
+                        if "kvm-userspace-ver" in l:
+                            self.kvmver = l.split(':')[-1]
+                        elif "kvm_version" in l:
+                            self.hostkernel = l.split(':')[-1]
+                        elif "guest-kernel-ver" in l:
+                            self.guestkernel = l.split(':')[-1]
+                        elif "session-length" in l:
+                            self.len = l.split(':')[-1]
+                    else:
+                        f.append(l.strip())
+                self.files_dict.append(f)
+                fd.close()
+        elif type == 'database':
+            jobid = arg
+            self.kvmver = get_test_keyval(jobid, "kvm-userspace-ver")
+            self.hostkernel = get_test_keyval(jobid, "kvm_version")
+            self.guestkernel = get_test_keyval(jobid, "guest-kernel-ver")
+            self.len = get_test_keyval(jobid, "session-length")
+            self.categories = get_test_keyval(jobid, "category")
+
+            idx = exec_sql("select job_idx from tko_jobs where afe_job_id=%s;"
+                           % jobid).split()[-1]
+            out = exec_sql("select test_idx,iteration_key,iteration_value"
+                           " from tko_perf_view where job_idx=%s;" % idx)
+            testidx = None
+            job_dict = []
+            test_dict = []
+            data = out.splitlines()[1:]
+            for l in data:
+                s = l.split()
+                if not testidx:
+                    testidx = s[0]
+                if testidx != s[0]:
+                    job_dict.append(generate_raw_table(test_dict))
+                    test_dict = []
+                    testidx = s[0]
+                test_dict.append(' | '.join(s[1].split('--')[0:] + s[-1:]))
+
+            job_dict.append(generate_raw_table(test_dict))
+            self.files_dict = job_dict
+
+        self.version = " userspace: %s\n host kernel: %s\n guest kernel: %s" % (
+                        self.kvmver, self.hostkernel, self.guestkernel)
         nrepeat = len(self.files_dict)
-        nrepeat_re = '\$repeat_n'
-        self.desc = "".join(desc) + """ - Every Avg line represents the average value based on *$repeat_n* repetitions of the same test,
-   and the following SD line represents the Standard Deviation between the *$repeat_n* repetitions.
+        if nrepeat < 2:
+            print "`nrepeat' should be larger than 1!"
+            sys.exit(1)
+
+        self.desc = """ - Every Avg line represents the average value based on *%d* repetitions of the same test,
+   and the following SD line represents the Standard Deviation between the *%d* repetitions.
  - The Standard deviation is displayed as a percentage of the average.
  - The significance of the differences between the two averages is calculated using unpaired T-test that
    takes into account the SD of the averages.
  - The paired t-test is computed for the averages of same category.
 
-"""
-        self.desc = re.sub(nrepeat_re, str(nrepeat), self.desc)
-        self.version = "".join(ver)
+""" % (nrepeat, nrepeat)
+
 
     def getAvg(self, avg_update=None):
         return self._process_files(self.files_dict, self._get_list_avg,
@@ -158,6 +236,7 @@ class Sample():
 
         for i in range(len(files_dict)):
             lines.append(files_dict[i][row].split("|"))
+
         for col in range(len(lines[0])):
             data_list = []
             for i in range(len(lines)):
@@ -260,8 +339,9 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
                     tee_line(prefix0 + lists[n][i], f)
                 elif "Category:" in lists[n][i]:
                     if category != 0 and prefix3:
-                        tee_line(prefix3 + str_ignore(
-                                 allpvalues[category-1][0]), f)
+                        if len(allpvalues[category-1]) > 0:
+                            tee_line(prefix3 + str_ignore(
+                                     allpvalues[category-1][0]), f)
                         tee("</TBODY></TABLE>", f)
                         tee("<br>", f)
                         tee("<TABLE BORDER=1 CELLSPACING=1 CELLPADDING=1 "
@@ -274,23 +354,34 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
             if lists[0][i] != rates[n][i] and not re.findall("[a-zA-Z]",
                                                              rates[n][i]):
                 tee_line(prefix2[n] +  str_ignore(rates[n][i], True), f)
-    if prefix3 and len(allpvalues[0]) > 0:
+    if prefix3 and len(allpvalues[-1]) > 0:
         tee_line(prefix3 + str_ignore(allpvalues[category-1][0]), f)
     tee("</TBODY></TABLE>", f)
 
-def analyze(test, sample_list1, sample_list2, configfile):
+def analyze(test, type, arg1, arg2, configfile):
     """ Compute averages/p-vales of two samples, print results nicely """
     config = ConfigParser.ConfigParser()
     config.read(configfile)
     ignore_col = int(config.get(test, "ignore_col"))
     avg_update = config.get(test, "avg_update")
+    desc = config.get(test, "desc")
+
+    def get_list(dir):
+        result_file_pattern = config.get(test, "result_file_pattern")
+        cmd = 'find %s|grep "%s.*/%s"' % (dir, test, result_file_pattern)
+        print cmd
+        return commands.getoutput(cmd)
+
+    if type == 'file':
+        arg1 = get_list(arg1)
+        arg2 = get_list(arg2)
 
     commands.getoutput("rm -f %s.*html" % test)
-    s1 = Sample(sample_list1.split())
+    s1 = Sample(type, arg1)
     avg1 = s1.getAvg(avg_update=avg_update)
     sd1 = s1.getSD()
 
-    s2 = Sample(sample_list2.split())
+    s2 = Sample(type, arg2)
     avg2 = s2.getAvg(avg_update=avg_update)
     sd2 = s2.getSD()
 
@@ -307,7 +398,7 @@ def analyze(test, sample_list1, sample_list2, configfile):
         if not re.findall("[a-zA-Z]", avg1[i]):
             tmp1.append([avg1[i]])
             tmp2.append([avg2[i]])
-        elif not "|" in avg1[i] and i != 0:
+        elif 'Category' in avg1[i] and i != 0:
             navg1.append(tmp1)
             navg2.append(tmp2)
             tmp1 = []
@@ -324,10 +415,13 @@ def analyze(test, sample_list1, sample_list2, configfile):
         # p-value list isn't null
         rlist.append(pvalues)
 
+    desc = desc % s1.len
+
     tee("<pre>####1. Description of setup#1\n" + s1.version + "</pre>",
         test+".html")
     tee("<pre>####2. Description of setup#2\n" + s2.version + "</pre>",
         test+".html")
+    tee("<pre>" + '\n'.join(desc.split('\\n')) + "</pre>", test+".html")
     tee("<pre>" + s1.desc + "</pre>", test+".html")
 
     display([avg1, sd1, avg2, sd2], rlist, allpvalues, test+".html",
@@ -346,22 +440,6 @@ def analyze(test, sample_list1, sample_list2, configfile):
             prefix1=[" |    |"],
             prefix2=["-|Avg |"], prefix3="")
 
-def compare(testname, olddir, curdir, configfile='perf.conf'):
-    """ Find result files from directories """
-    config = ConfigParser.ConfigParser()
-    config.read(configfile)
-    result_file_pattern = config.get(testname, "result_file_pattern")
-
-    def search_files(dir):
-        cmd = 'find %s|grep "%s.*/%s"' % (dir, testname, result_file_pattern)
-        print cmd
-        return commands.getoutput(cmd)
-
-    oldlist = search_files(olddir)
-    newlist = search_files(curdir)
-    if oldlist != "" or newlist != "":
-        analyze(testname, oldlist, newlist, configfile)
-
 def is_int(n):
     try:
         int(n)
@@ -379,8 +457,9 @@ def tee(content, file):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         this = os.path.basename(sys.argv[0])
-        print 'Usage: %s <testname> <dir1> <dir>' % this
+        print 'Usage: %s <testname> file <dir1> <dir2>' % this
+        print '    or %s <testname> db <jobid1> <jobid2>' % this
         sys.exit(1)
-    compare(sys.argv[1], sys.argv[2], sys.argv[3])
+    analyze(sys.argv[1], sys.argv[2], sys.argv[3] ,sys.argv[4], 'perf.conf')

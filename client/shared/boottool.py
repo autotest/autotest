@@ -13,23 +13,10 @@ Copyright 2012 Red Hat, Inc.
 Released under the GPL v2
 '''
 
-import os, sys, imp
+import os, sys
 from autotest.client.shared import error
-#
-# This performs some import magic, to import the boottool cli as a module
-try:
-    import autotest.common as common
-    CURRENT_DIRECTORY = os.path.dirname(common.__file__)
-    BOOTTOOL_CLI_PATH = os.path.join(CURRENT_DIRECTORY, "client", "tools", "boottool.py")
-except ImportError:
-    import common
-    CURRENT_DIRECTORY = os.path.dirname(sys.modules[__name__].__file__)
-    CLIENT_DIRECTORY = os.path.abspath(os.path.join(CURRENT_DIRECTORY, ".."))
-    BOOTTOOL_CLI_PATH = os.path.join(CLIENT_DIRECTORY, "tools", "boottool.py")
-
-
-imp.load_source("boottool_cli", BOOTTOOL_CLI_PATH)
-from boottool_cli import Grubby, install_grubby_if_necessary, EfiToolSys
+from autotest.client.tools.boottool import Grubby, install_grubby_if_necessary, EfiToolSys
+from autotest.client.tools.boottool import GRUBBY_DEFAULT_SYSTEM_PATH
 
 
 class boottool(Grubby):
@@ -38,8 +25,10 @@ class boottool(Grubby):
 
     Inherits all functionality from boottool(.py) CLI app (lazily).
     """
-    def __init__(self, path='/sbin/grubby'):
+    def __init__(self, path=None):
         self.instantiated = False
+        if path is None:
+            path = GRUBBY_DEFAULT_SYSTEM_PATH
         self.path = path
 
 
