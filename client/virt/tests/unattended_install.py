@@ -4,7 +4,7 @@ import xml.dom.minidom
 from autotest.client.shared import error, iso9660
 from autotest.client import utils
 from autotest.client.virt import virt_vm, virt_utils, virt_http_server
-from autotest.client.virt import kvm_monitor, virt_remote
+from autotest.client.virt import kvm_monitor, virt_remote, virt_syslog_server
 
 
 # Whether to print all shell commands called
@@ -16,6 +16,8 @@ _url_auto_content_server_thread_event = None
 _unattended_server_thread = None
 _unattended_server_thread_event = None
 
+_syslog_server_thread = None
+_syslog_server_thread_event = None
 
 def start_auto_content_server_thread(port, path):
     global _url_auto_content_server_thread
@@ -65,6 +67,35 @@ def terminate_unattended_server_thread():
         return False
 
     if  _unattended_server_thread_event.isSet():
+        return True
+
+    return False
+
+
+def start_syslog_server_thread(address, port):
+    global _syslog_server_thread
+    global _syslog_server_thread_event
+
+    virt_syslog_server.set_default_format('[unattended install syslog server '
+                                          '(%s.%s)] %s')
+
+    if _syslog_server_thread is None:
+        _syslog_server_thread_event = threading.Event()
+        _syslog_server_thread = threading.Thread(
+            target=virt_syslog_server.syslog_server,
+            args=(address, port, True, terminate_syslog_server_thread))
+        _syslog_server_thread.start()
+
+
+def terminate_syslog_server_thread():
+    global _syslog_server_thread, _syslog_server_thread_event
+
+    if _syslog_server_thread is None:
+        return False
+    if _syslog_server_thread_event is None:
+        return False
+
+    if  _syslog_server_thread_event.isSet():
         return True
 
     return False
@@ -409,6 +440,11 @@ class UnattendedInstallConfig(object):
         # use the same IP as url_auto_content_ip, but a different port
         self.unattended_server_port = None
 
+        # Embedded Syslog Server
+        self.syslog_server_enabled = params.get('syslog_server_enabled', 'no')
+        self.syslog_server_ip = params.get('syslog_server_ip', auto_ip)
+        self.syslog_server_port = params.get('syslog_server_port', 5140)
+
         self.vm = vm
 
 
@@ -430,6 +466,15 @@ class UnattendedInstallConfig(object):
         dummy_medium_re = r'\bKVM_TEST_MEDIUM\b'
         if self.medium in ["cdrom", "kernel_initrd"]:
             content = "cdrom"
+
+        dummy_logging_re = r'\bKVM_TEST_LOGGING\b'
+        if re.search(dummy_logging_re, contents):
+            if self.syslog_server_enabled == 'yes':
+                l = 'logging --host=%s --port=%s --level=debug'
+                l = l % (self.syslog_server_ip, self.syslog_server_port)
+            else:
+                l = ''
+            contents = re.sub(dummy_logging_re, l, contents)
 
         elif self.medium == "url":
             content = "url --url %s" % self.url
@@ -929,6 +974,10 @@ class UnattendedInstallConfig(object):
         if DEBUG:
             virt_utils.display_attributes(self)
 
+        if self.syslog_server_enabled == 'yes':
+            start_syslog_server_thread(self.syslog_server_ip,
+                                       self.syslog_server_port)
+
         if self.medium in ["cdrom", "kernel_initrd"]:
             if self.kernel and self.initrd:
                 self.setup_cdrom()
@@ -1027,6 +1076,13 @@ def run_unattended_install(test, params, env):
         _unattended_server_thread_event.set()
         _unattended_server_thread.join(3)
         _unattended_server_thread = None
+
+    global _syslog_server_thread
+    global _syslog_server_thread_event
+    if _syslog_server_thread is not None:
+        _syslog_server_thread_event.set()
+        _syslog_server_thread.join(3)
+        _syslog_server_thread = None
 
     time_elapsed = time.time() - start_time
     logging.info("Guest reported successful installation after %d s (%d min)",

@@ -13,6 +13,7 @@ firstboot --disable
 bootloader --location=mbr --append="console=tty0 console=ttyS0,115200"
 zerombr
 poweroff
+KVM_TEST_LOGGING
 
 clearpart --all --initlabel
 autopart
