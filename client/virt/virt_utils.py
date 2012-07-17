@@ -1347,29 +1347,6 @@ def kill_process_tree(pid, sig=signal.SIGKILL):
     safe_kill(pid, signal.SIGCONT)
 
 
-def check_kvm_source_dir(source_dir):
-    """
-    Inspects the kvm source directory and verifies its disposition. In some
-    occasions build may be dependant on the source directory disposition.
-    The reason why the return codes are numbers is that we might have more
-    changes on the source directory layout, so it's not scalable to just use
-    strings like 'old_repo', 'new_repo' and such.
-
-    @param source_dir: Source code path that will be inspected.
-    """
-    os.chdir(source_dir)
-    has_qemu_dir = os.path.isdir('qemu')
-    has_kvm_dir = os.path.isdir('kvm')
-    if has_qemu_dir:
-        logging.debug("qemu directory detected, source dir layout 1")
-        return 1
-    if has_kvm_dir and not has_qemu_dir:
-        logging.debug("kvm directory detected, source dir layout 2")
-        return 2
-    else:
-        raise error.TestError("Unknown source dir layout, cannot proceed.")
-
-
 # The following are utility functions related to ports.
 
 def is_port_free(port, address):
