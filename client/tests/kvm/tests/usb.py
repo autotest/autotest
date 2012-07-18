@@ -230,21 +230,6 @@ def run_usb(test, params, env):
         session.close()
 
 
-    @error.context_aware
-    def _check_freq_option(freq, regex_str, expect_str):
-        error.context("Set freq option to '%s'" % freq, logging.info)
-        _restart_vm({"freq_usb1": freq})
-
-        error.context("Check freq option in monitor", logging.info)
-        output = str(vm.monitor.info("qtree"))
-        _verify_string(regex_str, output, [expect_str], re.S)
-
-        error.context("Check freq option in guest", logging.info)
-        session = _login()
-        _do_io_test_guest(session)
-        session.close()
-
-
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
 
@@ -298,15 +283,3 @@ def run_usb(test, params, env):
         # So comment these test temporary.
         #_check_io_size_option("1024", "1024")
         #_check_io_size_option("4096", "4096")
-
-    if params.get("check_freq_option") == "yes":
-        error.context("Check USB EHCI freq option", logging.info)
-        freq = "1000"
-        regex_str = 'usb-ehci.*?freq = (.*?)\n'
-        _check_freq_option(freq, regex_str, freq)
-
-        freq = "250"
-        _check_freq_option(freq, regex_str, freq)
-
-        freq = "2000"
-        _check_freq_option(freq, regex_str, freq)

@@ -830,8 +830,7 @@ class VM(virt_vm.BaseVM):
             else:
                 return ""
 
-        def add_usb(help, usb_id, usb_type, multifunction=False,
-                    masterbus=None, firstport=None, freq=None):
+        def add_usb(help, usb_id, usb_type):
             if not has_option(help, "device"):
                 # Okay, for the archaic qemu which has not device parameter,
                 # just return a usb uhci controller.
@@ -845,13 +844,18 @@ class VM(virt_vm.BaseVM):
                 raise virt_vm.VMDeviceNotSupportedError(self.name, usb_type)
 
             cmd = " -device %s" % usb_type
-
             cmd += _add_option("id", usb_id)
-            cmd += _add_option("multifunction", multifunction)
-            cmd += _add_option("masterbus", masterbus)
-            cmd += _add_option("firstport", firstport)
-            cmd += _add_option("freq", freq)
 
+            if usb_type == "ich9-usb-ehci1":
+                common = ",multifunction=on,masterbus=%s.0" % usb_id
+                uhci1 = " -device ich9-usb-uhci1,addr=1d.0,firstport=0"
+                uhci2 = " -device ich9-usb-uhci2,addr=1d.1,firstport=2"
+                uhci3 = " -device ich9-usb-uhci3,addr=1d.2,firstport=4"
+                cmd += ",addr=1d.7,multifunction=on"
+                cmd += uhci1 + common
+                cmd += uhci2 + common
+                cmd += uhci3 + common
+                
             # register this usb controller.
             self.usb_dev_dict[usb_id] = []
             return cmd
@@ -987,11 +991,7 @@ class VM(virt_vm.BaseVM):
         # Add USB controllers
         for usb_name in params.objects("usbs"):
             usb_params = params.object_params(usb_name)
-            qemu_cmd += add_usb(help, usb_name, usb_params.get("usb_type"),
-                                usb_params.get("multifunction") == "on",
-                                usb_params.get("masterbus"),
-                                usb_params.get("firstport"),
-                                usb_params.get("freq"))
+            qemu_cmd += add_usb(help, usb_name, usb_params.get("usb_type"))
 
         for image_name in params.objects("images"):
             image_params = params.object_params(image_name)
