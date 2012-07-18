@@ -269,17 +269,18 @@ class VM(virt_vm.BaseVM):
 
             for usb in params.objects("usbs"):
                 usb_params = params.object_params(usb)
-
+                usb_type = usb_params.get("usb_type")
                 usb_dev = self.usb_dev_dict.get(usb)
 
-                controller = usb
-                max_port = int(usb_params.get("usb_max_port", 6))
-                if len(usb_dev) < max_port:
-                    bus = "%s.0" % usb
-                    self.usb_dev_dict[usb].append(dev)
-                    # Usb port starts from 1, so add 1 directly here.
-                    port = self.usb_dev_dict[usb].index(dev) + 1
-                    break
+                if usb_type.find(controller_type) != -1:
+                    controller = usb
+                    max_port = int(usb_params.get("usb_max_port", 6))
+                    if len(usb_dev) < max_port:
+                        bus = "%s.0" % usb
+                        self.usb_dev_dict[usb].append(dev)
+                        # Usb port starts from 1, so add 1 directly here.
+                        port = self.usb_dev_dict[usb].index(dev) + 1
+                        break
 
             if controller is None:
                 raise virt_vm.VMUSBControllerMissingError(self.name,
