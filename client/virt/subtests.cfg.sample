@@ -368,9 +368,9 @@ variants:
                 usb_controller_hub1 = uhci
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB Hub"
-                vendor_id = "0000"
+                vendor_id = "(0000|0409)"
                 vendor = ""
-                product_id = "0000"
+                product_id = "(0000|55aa)"
                 product = "QEMU USB Hub"
             - storage:
                 # Disable other usb devices
@@ -380,9 +380,9 @@ variants:
                 usb_max_port_usb1 = 6
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB MSD"
-                vendor_id = "0000"
+                vendor_id = "(0000|46f4)"
                 vendor = ""
-                product_id = "0000"
+                product_id = "(0000|0001)"
                 product = "QEMU USB HARDDRIVE"
                 images += " stg"
                 image_boot_image1 = yes
@@ -448,9 +448,9 @@ variants:
                 usb_controller_hub1 = uhci
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB Hub"
-                vendor_id = "0000"
+                vendor_id = "(0000|0409)"
                 vendor = ""
-                product_id = "0000"
+                product_id = "(0000|55aa)"
                 product = "QEMU USB Hub"
             - storage:
                 # Disable other usb devices
@@ -460,9 +460,9 @@ variants:
                 usb_max_port_usb1 = 6
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB MSD"
-                vendor_id = "0000"
+                vendor_id = "(0000|46f4)"
                 vendor = ""
-                product_id = "0000"
+                product_id = "(0000|0001)"
                 product = "QEMU USB HARDDRIVE"
                 images += " stg"
                 image_boot_image1 = yes
