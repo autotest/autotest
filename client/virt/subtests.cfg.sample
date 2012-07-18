@@ -2169,6 +2169,7 @@ variants:
         usb_type_usb1 = usb-ehci
         usb_devices = ""
         images += " stg"
+        image_boot_image1 = yes
         image_name_stg = "usbdevice"
         image_format_stg = "qcow2"
         image_boot_stg = no
