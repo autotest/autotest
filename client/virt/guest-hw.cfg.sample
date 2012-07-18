@@ -38,6 +38,11 @@ variants:
             dp_regex_serversupportdev = VirtIO Ethernet Adapter #2$
     -xennet:
         # placeholder
+    - spapr-vlan:
+        nic_model = spapr-vlan
+        no ethtool
+        jumbo:
+            mtu = 1500
 
 variants:
     - @up:
