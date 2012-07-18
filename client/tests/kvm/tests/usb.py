@@ -118,6 +118,8 @@ def run_usb(test, params, env):
         for line in output.splitlines():
             if "Buffer I/O error" in line:
                 io_error_msg.append(line)
+            if re.search("reset \w+ speed USB device", line):
+                io_error_msg.append(line)
 
         if io_error_msg:
             e_msg = "IO error found on guest's dmesg when formatting USB device"
