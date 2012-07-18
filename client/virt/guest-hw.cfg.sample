@@ -69,14 +69,11 @@ variants:
     - ahci:
         drive_format=ahci
         cd_format=ahci
-    - usb_stick:
+    - usb2:
         drive_format=usb2
-        usbs += " default-ehci"
-        usb_type_default-ehci = usb-ehci
-    - usb_cdrom:
         cd_format=usb2
-        usbs += " default-ehci-cd"
-        usb_type_default-ehci-cd = usb-ehci
+        usbs += " install_ehci"
+        usb_type_install_ehci = ich9-usb-ehci1
     - xenblk:
         # placeholder
 
