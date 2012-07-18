@@ -419,8 +419,8 @@ class VM(virt_vm.BaseVM):
                     dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
                     format = "none"
                     index = None
-                if format == "usb2":
-                    name = "usb2.%s" % index
+                if format in ['usb1', 'usb2', 'usb3']:
+                    name = "%s.%s" % (format, index)
                     dev += " -device usb-storage"
                     dev += _add_option("bus", bus)
                     dev += _add_option("port", port)
@@ -472,8 +472,8 @@ class VM(virt_vm.BaseVM):
                 dev += _add_option("drive", name)
                 format = "none"
                 index = None
-            if format == "usb2":
-                name = "usb2.%s" % index
+            if format in ['usb1', 'usb2', 'usb3']:
+                name = "%s.%s" % (format, index)
                 dev += " -device usb-storage"
                 dev += _add_option("bus", bus)
                 dev += _add_option("port", port)
@@ -1003,8 +1003,12 @@ class VM(virt_vm.BaseVM):
 
             bus = None
             port = None
+            if image_params.get("drive_format") == "usb1":
+                bus, port = get_free_usb_port(image_name, "uhci")
             if image_params.get("drive_format") == "usb2":
                 bus, port = get_free_usb_port(image_name, "ehci")
+            if image_params.get("drive_format") == "usb3":
+                bus, port = get_free_usb_port(image_name, "xhci")
             if image_params.get("drive_format").startswith("scsi-"):
                 try:
                     bus = int(image_params.get("drive_bus", 0))
@@ -1148,8 +1152,12 @@ class VM(virt_vm.BaseVM):
             iso = cdrom_params.get("cdrom")
             bus = None
             port = None
+            if cd_format == "usb1":
+                bus, port = get_free_usb_port(image_name, "uhci")
             if cd_format == "usb2":
                 bus, port = get_free_usb_port(image_name, "ehci")
+            if cd_format == "usb3":
+                bus, port = get_free_usb_port(image_name, "xhci")
             if cd_format == "ahci" and not have_ahci:
                 qemu_cmd += " -device ahci,id=ahci"
                 have_ahci = True
