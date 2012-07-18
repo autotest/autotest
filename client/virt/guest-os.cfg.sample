@@ -420,7 +420,7 @@ variants:
                             cdrom_cd1 = isos/linux/Fedora-16-ppc64-DVD.iso
                             md5sum_cd1 = ffc0674f87e4f7e5739605dc80f4ffce
                             md5sum_1m_cd1 = 23be25f6a04a78f6dc7cb6ad9e691988
-                            kernel_cmdline = "root=live:CDLABEL=Fedora-16-ppc64 ks=cdrom:/ks.cfg console=hvc0 serial rd_NO_PLYMOUTH"
+                            kernel_params = "root=live:CDLABEL=Fedora-16-ppc64 ks=cdrom:/ks.cfg console=hvc0 serial rd_NO_PLYMOUTH"
 
                     - 17.32:
                         image_name = f17-32
