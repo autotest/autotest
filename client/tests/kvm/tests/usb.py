@@ -87,7 +87,7 @@ def run_usb(test, params, env):
 
         error.context("Creating comparison file")
         c_file = '/tmp/usbfile'
-        session.cmd("dd if=/dev/random of=%s bs=1M count=1" % c_file)
+        session.cmd("dd if=/dev/urandom of=%s bs=1M count=1" % c_file)
 
         error.context("Copying %s to USB disk" % c_file)
         session.cmd("cp %s /mnt" % c_file)
