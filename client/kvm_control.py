@@ -2,8 +2,10 @@
 Utilities useful to client control files that test KVM.
 """
 
+
 from autotest.client import utils
 from autotest.client.shared import error
+
 
 def get_kvm_arch():
     """
@@ -31,22 +33,20 @@ def load_kvm():
     Loads the appropriate KVM kernel modules
     """
     kvm_status = utils.system('modprobe kvm')
-    kvm_amdintel_status = utils.system("modprobe " + kvm_arch)
+    kvm_amdintel_status = utils.system("modprobe " + get_kvm_arch())
     if kvm_status:
         return kvm_status
     else:
         return kvm_amdintel_status
+
 
 def unload_kvm():
     """
     Unloads the appropriate KVM kernel modules
     """
-    kvm_amdintel_status = utils.system("rmmod " + kvm_arch)
+    kvm_amdintel_status = utils.system("rmmod " + get_kvm_arch())
     kvm_status = utils.system('rmmod kvm')
     if kvm_status:
         return kvm_status
     else:
         return kvm_amdintel_status
-
-
-kvm_arch = get_kvm_arch()
