@@ -258,7 +258,7 @@ def run_usb(test, params, env):
     session = _login()
     output = session.cmd("lsusb -v")
     # No bus specified, default using "usb.0" for "usb-storage"
-    for i in ["ID 0000:0000", "Mass Storage", "SCSI", "QEMU USB HARDDRIVE"]:
+    for i in ["Mass Storage", "SCSI", "QEMU USB HARDDRIVE"]:
         _verify_string(i, output, [i])
     _do_io_test_guest(session)
     session.close()
