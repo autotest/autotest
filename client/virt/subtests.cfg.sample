@@ -376,8 +376,6 @@ variants:
                 # Disable other usb devices
                 usb_devices = ""
                 usbs = usb1
-                usb_type_usb1 = usb-ehci
-                usb_max_port_usb1 = 6
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB MSD"
                 vendor_id = "(0000|46f4)"
@@ -389,10 +387,22 @@ variants:
                 image_name_stg = "usbdevice"
                 image_format_stg = "qcow2"
                 image_boot_stg = no
-                drive_format_stg = "usb2"
                 drive_index_stg = 1
                 create_image_stg = yes
                 image_size_stg = 10M
+                variants:
+                    - uhci:
+                        usb_type_usb1 = piix3-usb-uhci
+                        usb_max_port_usb1 = 2
+                        drive_format_stg = "usb1"
+                    - ehci:
+                        usb_type_usb1 = ich9-usb-ehci1
+                        usb_max_port_usb1 = 6
+                        drive_format_stg = "usb2"
+                    - xhci:
+                        usb_type_usb1 = nec-usb-xhci
+                        usb_max_port_usb1 = 4
+                        drive_format_stg = "usb3"
 
     - reboot: install setup image_copy unattended_install.cdrom
         type = boot
@@ -456,8 +466,6 @@ variants:
                 # Disable other usb devices
                 usb_devices = ""
                 usbs = usb1
-                usb_type_usb1 = usb-ehci
-                usb_max_port_usb1 = 6
                 check_func = "check_usb_device"
                 info_usb_name = "QEMU USB MSD"
                 vendor_id = "(0000|46f4)"
@@ -469,10 +477,22 @@ variants:
                 image_name_stg = "usbdevice"
                 image_format_stg = "qcow2"
                 image_boot_stg = no
-                drive_format_stg = "usb2"
                 drive_index_stg = 1
                 create_image_stg = yes
                 image_size_stg = 10M
+                variants:
+                    - uhci:
+                        usb_type_usb1 = piix3-usb-uhci
+                        usb_max_port_usb1 = 2
+                        drive_format_stg = "usb1"
+                    - ehci:
+                        usb_type_usb1 = ich9-usb-ehci1
+                        usb_max_port_usb1 = 6
+                        drive_format_stg = "usb2"
+                    - xhci:
+                        usb_type_usb1 = nec-usb-xhci
+                        usb_max_port_usb1 = 4
+                        drive_format_stg = "usb3"
 
     - dd_test: install setup image_copy unattended_install.cdrom
         only Linux
@@ -2166,24 +2186,35 @@ variants:
         kill_vm = yes
         format_timeout = 400
         usbs = usb1
-        usb_type_usb1 = usb-ehci
         usb_devices = ""
         images += " stg"
         image_boot_image1 = yes
         image_name_stg = "usbdevice"
         image_format_stg = "qcow2"
         image_boot_stg = no
-        drive_format_stg = "usb2"
         drive_index_stg = 1
         create_image_stg = yes
         image_size_stg = 10M
         fdisk_string = "10 MB, 10485760 bytes"
         variants:
-            - @default:
-            - check_options:
-                check_serial_option = yes
-                check_removable_option = yes
-                check_io_size_option = yes
+            - uhci:
+                usb_type_usb1 = piix3-usb-uhci
+                usb_max_port_usb1 = 2
+                drive_format_stg = "usb1"
+            - ehci:
+                usb_type_usb1 = ich9-usb-ehci1
+                usb_max_port_usb1 = 6
+                drive_format_stg = "usb2"
+                variants:
+                    - @default:
+                    - check_options:
+                        check_serial_option = yes
+                        check_removable_option = yes
+                        check_io_size_option = yes
+            - xhci:
+                usb_type_usb1 = nec-usb-xhci
+                usb_max_port_usb1 = 4
+                drive_format_stg = "usb3"
 
     - usb_multi_disk: install setup image_copy unattended_install.cdrom
         type = multi_disk
