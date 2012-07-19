@@ -144,6 +144,33 @@ variants:
         only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
         only unattended_install.cdrom.extra_cdrom_ks
 
+    # Runs qemu-kvm Windows guest install
+    - @qemu_kvm_windows_install_guest:
+        # We want qemu-kvm for this run
+        qemu_binary = /usr/libexec/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        # Only qcow2 file format
+        only qcow2
+        # Only rtl8139 for nw card (default on qemu-kvm)
+        only rtl8139
+        # Only ide hard drives
+        only ide
+        # qemu-kvm will start only with -smp 2 (2 processors)
+        only smp2
+        # Disable 9p export by default
+        only no_9p_export
+        # No PCI assignable devices
+        only no_pci_assignable
+        # No large memory pages
+        only smallpages
+        # Operating system choice
+        only Win7.64.sp1
+        # Subtest choice. You can modify that line to add more subtests
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only unattended_install.cdrom
+
+
     - qemu_kvm_rhel63_install_guest:
         # Use this only when you need to create rhel62 image qcow
         qemu_binary = /usr/libexec/qemu-kvm
@@ -175,6 +202,23 @@ variants:
         only Linux.RHEL.6.3.beta.x86_64
         only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
         only rv_connect.RHEL.6.3.beta.x86_64, shutdown
+
+    - @remote_viewer_win_guest_quick:
+        qemu_binary = /usr/libexec/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        rv_binary = /usr/bin/remote-viewer
+        only qcow2
+        only e1000
+        only ide
+        only up
+        only no_9p_export
+        only no_pci_assignable
+        only smallpages
+        only Win7.64.sp1
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        #rv_connect_win is specifically a test meant for a windows guest and a rhel client, rv_connect cannot be used.
+        only rv_connect_win.RHEL.6.3.beta.x86_64, shutdown
 
     - @spice_negative_rhel63_all:
         qemu_binary = /usr/libexec/qemu-kvm
@@ -209,4 +253,6 @@ variants:
         only start, rv_connect.RHEL.6.3.beta.x86_64, rv_disconnect.RHEL.6.3.beta.x86_64, shutdown
 
 # Choose your test list from the testsets defined
+# the following is for remote viewer tests with the setup of a rhel client, and a windows guest
+#only qemu_kvm_windows_install_guest, qemu_kvm_rhel63_install_client, remote_viewer_win_guest_quick 
 only qemu_kvm_rhel63_install_guest, qemu_kvm_rhel63_install_client, remote_viewer_rhel63_quick, rv_disconnect_rhel63, spice_negative_rhel63_all
