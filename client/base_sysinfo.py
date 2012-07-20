@@ -192,6 +192,10 @@ class base_sysinfo(object):
                                              log_in_keyval=True))
         self.sm = software_manager.SoftwareManager()
 
+    def __getstate__(self):
+        ret = dict(self.__dict__)
+        ret["sm"] = None
+        return ret
 
     def serialize(self):
         return {"boot": self.boot_loggables, "test": self.test_loggables}
