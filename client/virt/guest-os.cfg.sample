@@ -768,6 +768,14 @@ variants:
                             md5sum_1m_cd1 = 9d9061f652ff435cc4c57e9e9ff09076
                         usb_storage.check_options:
                             check_io_size_option = no
+                        physical_resources_check:
+                            cpu_sockets_chk_cmd = "cat /sys/devices/system/cpu/cpu*/topology/physical_package_id | sort | uniq | wc -l"
+                            cpu_cores_chk_cmd = echo "-($(cat /sys/devices/system/cpu/cpu0/topology/core_siblings_list))+1" | bc
+                            # kernel uses a comma-separated string for the thread list,
+                            # so we only need to count the comma in the
+                            # thread_siblings_list file to get the thread count in a core.
+                            # More info, please see cpulist_scnprintf() in include/linux/cpumask.h
+                            cpu_threads_chk_cmd = "expr $(grep -c ',' /sys/devices/system/cpu/cpu0/topology/thread_siblings_list) + 1"
 
                     - 5.7.x86_64:
                         no setup
@@ -785,6 +793,14 @@ variants:
                             md5sum_1m_cd1 = c65d0a1b4d9a32da42aa5142c6e9a5b3
                         usb_storage.check_options:
                             check_io_size_option = no
+                        physical_resources_check:
+                            cpu_sockets_chk_cmd = "cat /sys/devices/system/cpu/cpu*/topology/physical_package_id | sort | uniq | wc -l"
+                            cpu_cores_chk_cmd = echo "-($(cat /sys/devices/system/cpu/cpu0/topology/core_siblings_list))+1" | bc
+                            # kernel uses a comma-separated string for the thread list,
+                            # so we only need to count the comma in the
+                            # thread_siblings_list file to get the thread count in a core.
+                            # More info, please see cpulist_scnprintf() in include/linux/cpumask.h
+                            cpu_threads_chk_cmd = "expr $(grep -c ',' /sys/devices/system/cpu/cpu0/topology/thread_siblings_list) + 1"
 
 
                     - 5.8.i386:
@@ -803,6 +819,14 @@ variants:
                             md5sum_1m_cd1 = fd680d61aaa7f257be81fa345a56216e
                         usb_storage.check_options:
                             check_io_size_option = no
+                        physical_resources_check:
+                            cpu_sockets_chk_cmd = "cat /sys/devices/system/cpu/cpu*/topology/physical_package_id | sort | uniq | wc -l"
+                            cpu_cores_chk_cmd = echo "-($(cat /sys/devices/system/cpu/cpu0/topology/core_siblings_list))+1" | bc
+                            # kernel uses a comma-separated string for the thread list,
+                            # so we only need to count the comma in the
+                            # thread_siblings_list file to get the thread count in a core.
+                            # More info, please see cpulist_scnprintf() in include/linux/cpumask.h
+                            cpu_threads_chk_cmd = "expr $(grep -c ',' /sys/devices/system/cpu/cpu0/topology/thread_siblings_list) + 1"
 
                     - 5.8.x86_64:
                         no setup
@@ -820,6 +844,14 @@ variants:
                             md5sum_1m_cd1 = a09aa0e6b9ab9bb1eb019e6838b19ad3
                         usb_storage.check_options:
                             check_io_size_option = no
+                        physical_resources_check:
+                            cpu_sockets_chk_cmd = "cat /sys/devices/system/cpu/cpu*/topology/physical_package_id | sort | uniq | wc -l"
+                            cpu_cores_chk_cmd = echo "-($(cat /sys/devices/system/cpu/cpu0/topology/core_siblings_list))+1" | bc
+                            # kernel uses a comma-separated string for the thread list,
+                            # so we only need to count the comma in the
+                            # thread_siblings_list file to get the thread count in a core.
+                            # More info, please see cpulist_scnprintf() in include/linux/cpumask.h
+                            cpu_threads_chk_cmd = "expr $(grep -c ',' /sys/devices/system/cpu/cpu0/topology/thread_siblings_list) + 1"
 
                     - 6.0.i386:
                         no setup
