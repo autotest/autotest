@@ -126,7 +126,7 @@ def run_physical_resources_check(test, params, env):
             logging.error(fail_log)
             return f_fail
 
-        logging.debug("%s check pass. Expected: '%s', Aucual: '%s'",
+        logging.debug("%s check pass. Expected: '%s', Actual: '%s'",
                       string.capitalize(chk_type), expected_n, actual_n)
         return f_fail
 
