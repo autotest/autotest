@@ -1075,7 +1075,7 @@ class VM(virt_vm.BaseVM):
         self.cpuinfo.smp = smp
         self.cpuinfo.maxcpus = vcpu_maxcpus or smp
         self.cpuinfo.cores = vcpu_cores
-        self.cpuinfo.threads = vcpu_cores
+        self.cpuinfo.threads = vcpu_threads
         self.cpuinfo.sockets = vcpu_sockets
         qemu_cmd += add_smp(help)
 
