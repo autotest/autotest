@@ -1422,16 +1422,15 @@ class VM(virt_vm.BaseVM):
                                     % (nic.nic_name, mac_source.name))
                     nic.mac = mac_source.get_mac_address(nic.nic_name)
                 if nic.nettype == 'bridge' or nic.nettype == 'network':
-                    if not nic.get('tapfd'):
-                        nic.tapfd = str(virt_utils.open_tap("/dev/net/tun",
-                                                            nic.ifname,
-                                                            vnet_hdr=False))
-                        logging.debug("Adding VM %s NIC ifname %s"
-                                      " to bridge %s" % (self.name,
-                                            nic.ifname, nic.netdst))
-                        if nic.nettype == 'bridge':
-                            virt_utils.add_to_bridge(nic.ifname, nic.netdst)
-                        virt_utils.bring_up_ifname(nic.ifname)
+                    nic.tapfd = str(virt_utils.open_tap("/dev/net/tun",
+                                                        nic.ifname,
+                                                        vnet_hdr=False))
+                    logging.debug("Adding VM %s NIC ifname %s"
+                                  " to bridge %s" % (self.name,
+                                        nic.ifname, nic.netdst))
+                    if nic.nettype == 'bridge':
+                        virt_utils.add_to_bridge(nic.ifname, nic.netdst)
+                    virt_utils.bring_up_ifname(nic.ifname)
                 elif nic.nettype == 'user':
                     logging.info("Assuming dependencies met for "
                                  "user mode nic %s, and ready to go"
