@@ -345,9 +345,22 @@ class VM(virt_vm.BaseVM):
             return cmd
 
 
-        def add_virtio_port(help, name, bus, filename, porttype):
-            cmd = (" -chardev socket,id=dev%s,path=%s,server,nowait" % (name,
-                                                                    filename))
+        def add_virtio_port(help, name, bus, filename, porttype, chardev):
+            """
+            Appends virtio_serialport or virtio_console device to cmdline.
+            @param help: qemu -h output
+            @param name: Name of the port
+            @param bus: Which virtio-serial-pci device use
+            @param filename: Path to chardev filename
+            @param porttype: Type of the port (*serialport, console)
+            @param chardev: Which chardev to use (*socket, spicevmc)
+            """
+            cmd = ''
+            if chardev == "spicevmc":   # SPICE
+                cmd += " -chardev spicevmc,id=dev%s,name=%s" % (name, name)
+            else:   # SOCKET
+                cmd = (" -chardev socket,id=dev%s,path=%s,server,nowait"
+                                                        % (name, filename))
             if porttype in ("console", "virtio_console"):
                 cmd += " -device virtconsole"
             else:
@@ -855,7 +868,7 @@ class VM(virt_vm.BaseVM):
                 cmd += uhci1 + common
                 cmd += uhci2 + common
                 cmd += uhci3 + common
-                
+
             # register this usb controller.
             self.usb_dev_dict[usb_id] = []
             return cmd
@@ -981,7 +994,8 @@ class VM(virt_vm.BaseVM):
             # Add actual ports
             qemu_cmd += add_virtio_port(help, port_name, bus,
                                     self.get_virtio_port_filename(port_name),
-                                    port_params.get('virtio_port_type'))
+                                    port_params.get('virtio_port_type'),
+                                    port_params.get('virtio_port_chardev'))
 
         # Add logging
         qemu_cmd += add_log_seabios(help)
@@ -1652,7 +1666,10 @@ class VM(virt_vm.BaseVM):
             self.virtio_ports = []
             for port_name in params.objects("virtio_ports"):
                 port_params = params.object_params(port_name)
-                filename = self.get_virtio_port_filename(port_name)
+                if port_params.get('virtio_port_chardev') == "spicevmc":
+                    filename = 'dev%s' % port_name
+                else:
+                    filename = self.get_virtio_port_filename(port_name)
                 if port_params.get('virtio_port_type') in ("console",
                                                            "virtio_console"):
                     self.virtio_ports.append(
