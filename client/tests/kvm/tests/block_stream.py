@@ -23,7 +23,7 @@ def run_block_stream(test, params, env):
     qemu_img = params.get("qemu_img_binary")
     block_stream_cmd = "block-stream"
 
-  
+
     def check_block_jobs_info():
         """
         Verify the status of block-jobs reported by monitor command info block-jobs.
@@ -81,8 +81,8 @@ def run_block_stream(test, params, env):
                      "%s", results)
 
         if not re.search("backing file:", str(results)):
-           raise error.TestFail("Backing file is not available in the "
-                                "backdrive image")
+            raise error.TestFail("Backing file is not available in the "
+                                 "backdrive image")
 
         if vm.monitor.protocol == "human":
             block_stream_cmd = "block_stream"
@@ -116,8 +116,8 @@ def run_block_stream(test, params, env):
                      results)
 
         if re.search("backing file:", str(results)):
-           raise error.TestFail(" Backing file is still available in the "
-                                "backdrive image")
+            raise error.TestFail(" Backing file is still available in the "
+                                 "backdrive image")
         # TODO
         # The file size should be more/less equal to the "backing file" size
 
