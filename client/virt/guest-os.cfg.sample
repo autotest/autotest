@@ -1014,6 +1014,9 @@ variants:
                     #kernel_params = "autoyast=floppy console=ttyS0,115200 console=tty0"
                     kernel_params = "autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0"
                     wait_no_ack = yes
+                    # SUSE and OpenSUSE typically require yast2-firstboot to run
+                    # and finish the system to be fully installed.
+                    setup_boot = yes
 
                 variants:
                     - 11.0.32:
@@ -1192,6 +1195,9 @@ variants:
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
+                    # SUSE and OpenSUSE typically require yast2-firstboot to run
+                    # and finish the system to be fully installed.
+                    setup_boot = yes
 
                 variants:
                    - 10.4.64:
