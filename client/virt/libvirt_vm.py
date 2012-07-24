@@ -1513,23 +1513,28 @@ class VM(virt_vm.BaseVM):
             count += 1
         raise virt_vm.VMMACAddressMissingError(nic_index)
 
+
     def get_pid(self):
         """
-        Return the VM's PID.  If the VM is dead return None.
+        Return the VM's PID.
 
-        @note: This works under the assumption that self.process.get_pid()
-        returns the PID of the parent shell process.
+        @return: int with PID. If VM is not alive, returns None.
         """
-        try:
-            filename = "/var/run/libvirt/qemu/%s.pid" % self.name
-            if not self.params.get("type") == "unattended_install":
-                if os.path.exists(filename):
-                    self.process = int(open(filename).read())
-            children = commands.getoutput("ps --ppid=%d -o pid=" %
-                                          self.process.get_pid()).split()
-            return int(children[0])
-        except (TypeError, IndexError, ValueError):
-            return None
+        pid_file = "/var/run/libvirt/qemu/%s.pid" % self.name
+        pid = None
+        if os.path.exists(pid_file):
+            try:
+                pid_file_contents = open(pid_file).read()
+                pid = int(pid_file_contents)
+            except IOError:
+                logging.error("Could not read %s to get PID", pid_file)
+            except TypeError:
+                logging.error("PID file %s has invalid contents: '%s'",
+                              pid_file, pid_file_contents)
+        else:
+            logging.debug("PID file %s not present", pid_file)
+
+        return pid
 
 
     def get_shell_pid(self):
