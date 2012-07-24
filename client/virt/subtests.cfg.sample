@@ -948,6 +948,9 @@ variants:
                 variants:
                     - scsi-disk:
                         drive_format_asd = scsi-disk
+            - xfstests:
+                test_timeout = 4800
+                test_control_file = xfstests.control
 
     - qemu_img_commit:  install setup image_copy unattended_install.cdrom
         type = qemu_img
