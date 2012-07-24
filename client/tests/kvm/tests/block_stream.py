@@ -21,7 +21,9 @@ def run_block_stream(test, params, env):
     drive_format = params.get("drive_format")
     backing_file_name = "%s_bak" % (image_name)
     qemu_img = params.get("qemu_img_binary")
+    block_stream_cmd = "block-stream"
 
+  
     def check_block_jobs_info():
         """
         Verify the status of block-jobs reported by monitor command info block-jobs.
@@ -82,13 +84,16 @@ def run_block_stream(test, params, env):
            raise error.TestFail("Backing file is not available in the "
                                 "backdrive image")
 
+        if vm.monitor.protocol == "human":
+            block_stream_cmd = "block_stream"
+
         # Start streaming in qemu-cmd line
         if 'ide' in drive_format:
             error.context("Block streaming on qemu monitor (ide drive)")
-            vm.monitor.cmd("block-stream ide0-hd0")
+            vm.monitor.cmd("%s ide0-hd0" % block_stream_cmd)
         elif 'virtio' in drive_format:
             error.context("Block streaming on qemu monitor (virtio drive)")
-            vm.monitor.cmd("block-stream virtio0")
+            vm.monitor.cmd("%s virtio0" % block_stream_cmd)
         else:
             raise error.TestError("The drive format is not supported")
 
