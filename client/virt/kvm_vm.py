@@ -60,10 +60,11 @@ class VM(virt_vm.BaseVM):
 
         self.init_pci_addr = int(params.get("init_pci_addr", 4))
         self.name = name
-        self.params = params
+        self.params = params.copy()
         self.root_dir = root_dir
         # We need this to get to the blkdebug files
-        self.virt_dir = os.path.abspath(os.path.join(root_dir, "..", "..", "virt"))
+        self.virt_dir = os.path.abspath(os.path.join(root_dir, "..", "..",
+                                                     "virt"))
         self.address_cache = address_cache
         # This usb_dev_dict member stores usb controller and device info,
         # It's dict, each key is an id of usb controller,
@@ -79,7 +80,7 @@ class VM(virt_vm.BaseVM):
         self.logs = {}
         self.logsessions = {}
         self.driver_type = 'kvm'
-        self.params['driver_type_'+self.name] = self.driver_type
+        self.params['driver_type_' + self.name] = self.driver_type
         # virtnet init depends on vm_type/driver_type being set w/in params
         super(VM, self).__init__(name, params)
         # un-overwrite instance attribute, virtnet db lookups depend on this
@@ -416,7 +417,8 @@ class VM(virt_vm.BaseVM):
                 dev = "";
                 if format == "ahci":
                     name = "ahci%s" % index
-                    dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index, name)
+                    dev += " -device ide-drive,bus=ahci.%s,drive=%s" % (index,
+                                                                        name)
                     format = "none"
                     index = None
                 if format in ['usb1', 'usb2', 'usb3']:
@@ -536,8 +538,8 @@ class VM(virt_vm.BaseVM):
             cmd += _add_option("readonly", readonly, bool)
             return cmd + dev
 
-        def add_nic(help, vlan, model=None, mac=None, device_id=None, netdev_id=None,
-                    nic_extra_params=None):
+        def add_nic(help, vlan, model=None, mac=None, device_id=None,
+                    netdev_id=None, nic_extra_params=None):
             if model == 'none':
                 return ''
             if has_option(help, "netdev"):
@@ -946,7 +948,7 @@ class VM(virt_vm.BaseVM):
         qemu_cmd += add_name(help, name)
         # no automagic devices please
         defaults = params.get("defaults", "no")
-        if has_option(help,"nodefaults") and defaults != "yes":
+        if has_option(help, "nodefaults") and defaults != "yes":
             qemu_cmd += " -nodefaults"
         # Add monitors
         for monitor_name in params.objects("monitors"):
@@ -1339,7 +1341,8 @@ class VM(virt_vm.BaseVM):
             if p9_readonly == "yes":
                 qemu_cmd += ",readonly"
 
-            qemu_cmd += " -device virtio-9p-pci,fsdev=local1,mount_tag=autotest_tag"
+            qemu_cmd += " -device virtio-9p-pci,fsdev=local1"
+            qemu_cmd += ",mount_tag=autotest_tag"
 
         extra_params = params.get("extra_params")
         if extra_params:
@@ -1396,7 +1399,7 @@ class VM(virt_vm.BaseVM):
         if name is not None:
             self.name = name
         if params is not None:
-            self.params = params
+            self.params = params.copy()
         if root_dir is not None:
             self.root_dir = root_dir
         name = self.name
@@ -1447,7 +1450,8 @@ class VM(virt_vm.BaseVM):
         try:
             # Handle port redirections
             redir_names = params.objects("redirs")
-            host_ports = virt_utils.find_free_ports(5000, 6000, len(redir_names))
+            host_ports = virt_utils.find_free_ports(5000, 6000,
+                                                    len(redir_names))
             self.redirs = {}
             for i in range(len(redir_names)):
                 redir_params = params.object_params(redir_names[i])
@@ -1458,7 +1462,7 @@ class VM(virt_vm.BaseVM):
             for nic in self.virtnet:
                 # fill in key values, validate nettype
                 # note: __make_qemu_command() calls vm.add_nic (i.e. on a copy)
-                nic = self.add_nic(**dict(nic)) # implied add_netdev
+                nic = self.add_nic(**dict(nic))     # implied add_netdev
                 if mac_source:
                     # Will raise exception if source doesn't
                     # have cooresponding nic
@@ -1479,7 +1483,7 @@ class VM(virt_vm.BaseVM):
                     logging.info("Assuming dependencies met for "
                                  "user mode nic %s, and ready to go"
                                  % nic.nic_name)
-                    pass # assume prep. manually performed
+                    pass    # assume prep. manually performed
                 self.virtnet.update_db()
 
             # Find available VNC port, if needed
@@ -1505,18 +1509,18 @@ class VM(virt_vm.BaseVM):
                         driver=params.get("driver"),
                         driver_option=params.get("driver_option"),
                         devices_requested=pa_devices_requested,
-                        host_set_flag = params.get("host_setup_flag"),
-                        kvm_params = params.get("kvm_default"),
-                        net_restart_cmd = params.get("net_restart_cmd"))
+                        host_set_flag=params.get("host_setup_flag"),
+                        kvm_params=params.get("kvm_default"),
+                        net_restart_cmd=params.get("net_restart_cmd"))
                 # Physical NIC (PF) assignable devices
                 elif pa_type == "pf":
                     self.pci_assignable = virt_test_setup.PciAssignable(
                         type=pa_type,
                         names=params.get("device_names"),
                         devices_requested=pa_devices_requested,
-                        host_set_flag = params.get("host_setup_flag"),
-                        kvm_params = params.get("kvm_default"),
-                        net_restart_cmd = params.get("net_restart_cmd"))
+                        host_set_flag=params.get("host_setup_flag"),
+                        kvm_params=params.get("kvm_default"),
+                        net_restart_cmd=params.get("net_restart_cmd"))
                 # Working with both VF and PF
                 elif pa_type == "mixed":
                     self.pci_assignable = virt_test_setup.PciAssignable(
@@ -1525,9 +1529,9 @@ class VM(virt_vm.BaseVM):
                         driver_option=params.get("driver_option"),
                         names=params.get("device_names"),
                         devices_requested=pa_devices_requested,
-                        host_set_flag = params.get("host_setup_flag"),
-                        kvm_params = params.get("kvm_default"),
-                        net_restart_cmd = params.get("net_restart_cmd"))
+                        host_set_flag=params.get("host_setup_flag"),
+                        kvm_params=params.get("kvm_default"),
+                        net_restart_cmd=params.get("net_restart_cmd"))
                 else:
                     raise virt_vm.VMBadPATypeError(pa_type)
 
@@ -1564,7 +1568,7 @@ class VM(virt_vm.BaseVM):
             if p9_fs_driver == "proxy":
                 proxy_helper_name = params.get("9p_proxy_binary",
                                                "virtfs-proxy-helper")
-                proxy_helper_cmd =  virt_utils.get_path(root_dir,
+                proxy_helper_cmd = virt_utils.get_path(root_dir,
                                                         proxy_helper_name)
                 if not proxy_helper_cmd:
                     raise virt_vm.VMCreateError("Proxy command not specified")
@@ -1666,12 +1670,14 @@ class VM(virt_vm.BaseVM):
             output = self.process.get_output()
 
             if re.search("Could not initialize KVM", output, re.IGNORECASE):
-                e = virt_vm.VMKVMInitError(qemu_command, self.process.get_output())
+                e = virt_vm.VMKVMInitError(qemu_command,
+                                           self.process.get_output())
                 self.destroy()
                 raise e
 
             if "alloc_mem_area" in output:
-                e = virt_vm.VMHugePageError(qemu_command, self.process.get_output())
+                e = virt_vm.VMHugePageError(qemu_command,
+                                            self.process.get_output())
                 self.destroy()
                 raise e
 
@@ -1808,7 +1814,7 @@ class VM(virt_vm.BaseVM):
                 except OSError:
                     pass
             if free_mac_addresses:
-                for nic_index in xrange(0,len(self.virtnet)):
+                for nic_index in xrange(0, len(self.virtnet)):
                     self.free_mac_address(nic_index)
 
 
@@ -1987,7 +1993,7 @@ class VM(virt_vm.BaseVM):
         return self.virtnet[nic_name]
 
     @error.context_aware
-    def hotunplug_nic(self,nic_index_or_name):
+    def hotunplug_nic(self, nic_index_or_name):
         """
         Convenience method wrapper for del/deactivate nic and netdev.
         """
@@ -2159,7 +2165,7 @@ class VM(virt_vm.BaseVM):
             logging.info("waiting for the guest to finish the unplug")
             if not virt_utils.wait_for(lambda: nic.nic_name not in
                                        self.monitor.info("qtree"),
-                                       wait, 5 ,1):
+                                       wait, 5 , 1):
                 raise virt_vm.VMDelNicError("Device is not unplugged by "
                                             "guest, please check whether the "
                                             "hotplug module was loaded in "
@@ -2279,8 +2285,8 @@ class VM(virt_vm.BaseVM):
         def wait_for_migration():
             if not virt_utils.wait_for(mig_finished, timeout, 2, 2,
                                       "Waiting for migration to complete"):
-                raise virt_vm.VMMigrateTimeoutError("Timeout expired while waiting "
-                                            "for migration to finish")
+                raise virt_vm.VMMigrateTimeoutError("Timeout expired while "
+                                            "waiting for migration to finish")
 
         local = dest_host == "localhost"
         mig_fd_name = None
@@ -2480,7 +2486,7 @@ class VM(virt_vm.BaseVM):
         """
         self.verify_status('paused') # Throws exception if not
         # Set high speed 1TB/S
-        self.monitor.migrate_set_speed(2<<39)
+        self.monitor.migrate_set_speed(2 << 39)
         self.monitor.migrate_set_downtime(self.MIGRATE_TIMEOUT)
         logging.debug("Saving VM %s to %s" % (self.name, path))
         # Can only check status if background migration
@@ -2491,7 +2497,7 @@ class VM(virt_vm.BaseVM):
             self.MIGRATE_TIMEOUT, 2, 2,
             "Waiting for save to %s to complete" % path)
         # Restore the speed and downtime to default values
-        self.monitor.migrate_set_speed(32<<20)
+        self.monitor.migrate_set_speed(32 << 20)
         self.monitor.migrate_set_downtime(0.03)
         # Base class defines VM must be off after a save
         self.monitor.cmd("system_reset")
@@ -2503,11 +2509,11 @@ class VM(virt_vm.BaseVM):
         Override BaseVM restore_from_file method
         """
         self.verify_status('paused') # Throws exception if not
-        logging.debug("Restoring VM %s from %s" % (self.name,path))
+        logging.debug("Restoring VM %s from %s" % (self.name, path))
         # Rely on create() in incoming migration mode to do the 'right thing'
         self.create(name=self.name, params=self.params, root_dir=self.root_dir,
                     timeout=self.MIGRATE_TIMEOUT, migration_mode="exec",
-                    migration_exec_cmd="cat "+path, mac_source=self)
+                    migration_exec_cmd="cat " + path, mac_source=self)
         self.verify_status('running') # Throws exception if not
 
     def needs_restart(self, name, params, basedir):
