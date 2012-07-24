@@ -400,7 +400,6 @@ class GitFetcher(RepositoryFetcher):
         logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)
 
-        # try to retrieve the package via http
         package_path = self.branch + " " + filename
         try:
             cmd = self.git_archive_cmd_pattern % (self.url, dest_path, package_path)
