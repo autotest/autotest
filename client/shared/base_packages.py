@@ -419,11 +419,15 @@ class GitFetcher(RepositoryFetcher):
                                                                   package_path))
 
 
-    def install_pkg_post(self, filename, fetch_dir, install_dir, preserve_install_dir=False):
+    def install_pkg_post(self, filename, fetch_dir, install_dir,
+                         preserve_install_dir=False):
         install_path = re.sub(filename, "", install_dir)
-        pkg_name = "%s.tar" % re.sub("/","_", filename)
-        fetch_path = os.path.join(fetch_dir, pkg_name)
-        self.pkgmgr._run_command('tar -xf %s -C %s' % (fetch_path, install_path))
+        for suffix in ['', '.tar', '.tar.bz2']:
+            pkg_name = "%s%s" % (suffix, re.sub("/","_", filename))
+            fetch_path = os.path.join(fetch_dir, pkg_name)
+            if os.path.exists(fetch_path):
+                self.pkgmgr._run_command('tar -xf %s -C %s' % (fetch_path,
+                                                               install_path))
 
 
 class LocalFilesystemFetcher(RepositoryFetcher):
