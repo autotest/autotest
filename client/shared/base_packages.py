@@ -181,6 +181,20 @@ class RepositoryFetcher(object):
     url = None
 
 
+    def __init__(self, package_manager, repository_url):
+        """
+        Initializes a new Repository Fetcher
+
+        @type package_manager: BasePackageManager instance
+        @param package_manager: and instance of BasePackageManager class
+        @type repository_url: string
+        @param repository_url: The base URL of the repository
+        """
+        self.run_command = package_manager._run_command
+        self.url = repository_url
+        self.pkgmgr = package_manager
+
+
     def install_pkg_setup(self, name, fetch_dir, install):
         """
         Install setup for a package based on fetcher type.
@@ -262,15 +276,6 @@ class HttpFetcher(RepositoryFetcher):
     # parameters: url, destination file path
     #
     wget_cmd_pattern = 'wget --connect-timeout=15 -nv %s -O %s'
-
-
-    def __init__(self, package_manager, repository_url):
-        """
-        @param repository_url: The base URL of the http repository
-        """
-        self.run_command = package_manager._run_command
-        self.url = repository_url
-        self.pkgmgr = package_manager
 
 
     def _quick_http_test(self):
@@ -356,7 +361,19 @@ class GitFetcher(RepositoryFetcher):
         @type repository_url: string
         @param repository_url: The base URL of the git repository
         """
+        super(GitFetcher, self).__init__(package_manager, repository_url)
+        self._set_repo_url_branch(repository_url)
+        logging.debug('GitFetcher initialized with repo=%s and branch=%s',
+                      self.url, self.branch)
 
+
+    def _set_repo_url_branch(self, repository_url):
+        '''
+        Parse the url, look for a branch and set it accordingly
+
+        @type repository_url: string
+        @param repository_url: The base URL of the git repository
+        '''
         #do we have branch info in the repoistory_url?
         branch = "master"
         match = repository_url.split(":")
@@ -364,13 +381,7 @@ class GitFetcher(RepositoryFetcher):
             #we have a branch
             branch = match[2]
             repository_url = re.sub(":" + branch, "", repository_url)
-
-        logging.debug('GitFetcher initialized with repo=%s and branch=%s',
-                      repository_url, branch)
-        self.run_command = package_manager._run_command
-        self.url = repository_url
         self.branch = branch
-        self.pkgmgr = package_manager
 
 
     def fetch_pkg_file(self, filename, dest_path):
@@ -417,12 +428,6 @@ class GitFetcher(RepositoryFetcher):
 
 
 class LocalFilesystemFetcher(RepositoryFetcher):
-    def __init__(self, package_manager, local_dir):
-        self.run_command = package_manager._run_command
-        self.url = local_dir
-        self.pkgmgr = package_manager
-
-
     def fetch_pkg_file(self, filename, dest_path):
         logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)
