@@ -1044,3 +1044,19 @@ def run_unattended_install(test, params, env):
         except kvm_monitor.MonitorError, e:
             logging.warning("Guest apparently shut down, but got a "
                             "monitor error: %s", e)
+
+    if params.get("setup_boot", "no") == "yes":
+        logging.info("Performing post install boot (setup)")
+        login_timeout = float(params.get("login_timeout", 240))
+        vm_type = params.get("vm_type")
+        params_setup_boot = params.copy()
+        params_setup_boot["cdroms"] = "cd1"
+        params_setup_boot.pop("kernel")
+        params_setup_boot.pop("kernel_params")
+        params_setup_boot.pop("initrd")
+        if vm_type == "kvm":
+            vm.create(params=params_setup_boot)
+        else:
+            vm.start()
+        session = vm.wait_for_login(timeout=login_timeout*2)
+        session.close()

@@ -1,0 +1,243 @@
+<?xml version="1.0"?>
+<!DOCTYPE profile>
+<profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
+  <bootloader>
+    <device_map config:type="list">
+      <device_map_entry>
+        <firmware>hd0</firmware>
+        <linux>/dev/vda</linux>
+      </device_map_entry>
+    </device_map>
+    <global>
+      <activate>true</activate>
+      <boot_boot>false</boot_boot>
+      <boot_extended>false</boot_extended>
+      <boot_mbr>false</boot_mbr>
+      <boot_root>true</boot_root>
+      <debug>false</debug>
+      <generic_mbr>false</generic_mbr>
+      <gfxmenu>/boot/message</gfxmenu>
+      <hiddenmenu>false</hiddenmenu>
+      <lines_cache_id>2</lines_cache_id>
+      <timeout config:type="integer">8</timeout>
+    </global>
+    <initrd_modules config:type="list">
+      <initrd_module>
+        <module>processor</module>
+      </initrd_module>
+      <initrd_module>
+        <module>thermal</module>
+      </initrd_module>
+      <initrd_module>
+        <module>ata_piix</module>
+      </initrd_module>
+      <initrd_module>
+        <module>virtio_pci</module>
+      </initrd_module>
+      <initrd_module>
+        <module>fan</module>
+      </initrd_module>
+      <initrd_module>
+        <module>jbd</module>
+      </initrd_module>
+      <initrd_module>
+        <module>ext3</module>
+      </initrd_module>
+      <initrd_module>
+        <module>virtio_blk</module>
+      </initrd_module>
+      <initrd_module>
+        <module>edd</module>
+      </initrd_module>
+    </initrd_modules>
+    <append>console=tty0 console=ttyS0,115200</append>
+    <loader_type>grub</loader_type>
+    <sections config:type="list"/>
+  </bootloader>
+  <firewall>
+    <FW_DEV_DMZ></FW_DEV_DMZ>
+    <FW_DEV_EXT></FW_DEV_EXT>
+    <FW_DEV_INT></FW_DEV_INT>
+    <enable_firewall config:type="boolean">false</enable_firewall>
+    <start_firewall config:type="boolean">false</start_firewall>
+  </firewall>
+  <general>
+    <ask-list config:type="list"/>
+    <mode>
+      <confirm config:type="boolean">false</confirm>
+      <halt config:type="boolean">true</halt>
+    </mode>
+    <mouse>
+      <id>none</id>
+    </mouse>
+    <signature-handling>
+      <accept_file_without_checksum config:type="boolean">true</accept_file_without_checksum>
+      <accept_non_trusted_gpg_key config:type="boolean">true</accept_non_trusted_gpg_key>
+      <accept_unknown_gpg_key config:type="boolean">true</accept_unknown_gpg_key>
+      <accept_unsigned_file config:type="boolean">true</accept_unsigned_file>
+      <accept_verification_failed config:type="boolean">false</accept_verification_failed>
+      <import_gpg_key config:type="boolean">true</import_gpg_key>
+    </signature-handling>
+  </general>
+  <groups config:type="list">
+    <group>
+      <gid>33</gid>
+      <group_password>x</group_password>
+      <groupname>video</groupname>
+      <userlist>linux</userlist>
+    </group>
+    <group>
+      <gid>16</gid>
+      <group_password>x</group_password>
+      <groupname>dialout</groupname>
+      <userlist>linux</userlist>
+    </group>
+  </groups>
+  <keyboard>
+    <keyboard_values>
+      <numlock>bios</numlock>
+      <tty>tty1 tty2 tty3 tty4 tty5 tty6</tty>
+    </keyboard_values>
+    <keymap>english-us</keymap>
+  </keyboard>
+  <networking>
+    <dhcp_options>
+      <dhclient_additional_options></dhclient_additional_options>
+      <dhclient_client_id></dhclient_client_id>
+      <dhclient_hostname_option>AUTO</dhclient_hostname_option>
+    </dhcp_options>
+    <dns>
+      <dhcp_hostname config:type="boolean">true</dhcp_hostname>
+      <dhcp_resolv config:type="boolean">true</dhcp_resolv>
+    </dns>
+    <interfaces config:type="list">
+      <interface>
+        <bootproto>dhcp</bootproto>
+        <device>eth0</device>
+        <startmode>auto</startmode>
+        <usercontrol>no</usercontrol>
+      </interface>
+    </interfaces>
+    <managed config:type="boolean">false</managed>
+    <routing>
+      <ip_forward config:type="boolean">false</ip_forward>
+    </routing>
+  </networking>
+  <partitioning config:type="list">
+    <drive>
+      <device>/dev/vda</device>
+      <partitions config:type="list"/>
+      <type config:type="symbol">CT_DISK</type>
+      <use>all</use>
+    </drive>
+  </partitioning>
+  <report>
+    <errors>
+      <log config:type="boolean">true</log>
+      <show config:type="boolean">true</show>
+      <timeout config:type="integer">0</timeout>
+    </errors>
+    <messages>
+      <log config:type="boolean">true</log>
+      <show config:type="boolean">true</show>
+      <timeout config:type="integer">0</timeout>
+    </messages>
+    <warnings>
+      <log config:type="boolean">true</log>
+      <show config:type="boolean">true</show>
+      <timeout config:type="integer">0</timeout>
+    </warnings>
+    <yesno_messages>
+      <log config:type="boolean">true</log>
+      <show config:type="boolean">true</show>
+      <timeout config:type="integer">0</timeout>
+    </yesno_messages>
+  </report>
+  <scripts>
+    <init-scripts config:type="list">
+      <script>
+        <debug config:type="boolean">true</debug>
+        <filename>config</filename>
+        <source><![CDATA[dhclient eth0
+chkconfig sshd on
+sed -i -e 's/\(PasswordAuthentication\s\)no/\1yes/g'  /etc/ssh/sshd_config
+service sshd restart
+]]></source>
+      </script>
+    </init-scripts>
+    <pre-scripts config:type="list">
+      <script>
+        <debug config:type="boolean">true</debug>
+        <feedback config:type="boolean">false</feedback>
+        <filename>disksetup</filename>
+        <interpreter>shell</interpreter>
+        <source><![CDATA[ if fdisk -l | grep sda -c >0;then sed  -e 's/\(.*\/dev\/\)vda\(.*\)/\1sda\2/g' /tmp/profile/autoinst.xml>/tmp/profile/modified.xml; fi
+]]></source>
+      </script>
+    </pre-scripts>
+  </scripts>
+  <software>
+    <packages config:type="list">
+      <package>autoyast2-installation</package>
+      <package>dhcp-client</package>
+      <package>dhcp-tools</package>
+      <package>autoyast2-installation</package>
+      <package>autoyast2-installation</package>
+      <package>autoyast2-installation</package>
+    </packages>
+    <patterns config:type="list">
+      <pattern>apparmor</pattern>
+      <pattern>apparmor_opt</pattern>
+      <pattern>base</pattern>
+      <pattern>console</pattern>
+      <pattern>devel_basis</pattern>
+      <pattern>enhanced_base</pattern>
+      <pattern>enhanced_base_opt</pattern>
+      <pattern>sw_management</pattern>
+      <pattern>yast2_basis</pattern>
+      <pattern>yast2_install_wf</pattern>
+    </patterns>
+  </software>
+  <user_defaults>
+    <group>100</group>
+    <groups>video,dialout</groups>
+    <home>/home</home>
+    <inactive>-1</inactive>
+    <shell>/bin/bash</shell>
+    <skel>/etc/skel</skel>
+  </user_defaults>
+  <users config:type="list">
+    <user>
+      <encrypted config:type="boolean">true</encrypted>
+      <fullname>linux</fullname>
+      <gid>100</gid>
+      <home>/home/linux</home>
+      <password_settings>
+        <inact>-1</inact>
+        <max>99999</max>
+        <min>0</min>
+        <warn>7</warn>
+      </password_settings>
+      <shell>/bin/bash</shell>
+      <uid>1000</uid>
+      <user_password>$2a$05$bgtKW4IJKSS04W4GdU4ckeZL9yVHZdTmZz6F.gAxw9xItSfmt.zci</user_password>
+      <username>linux</username>
+    </user>
+    <user>
+      <encrypted config:type="boolean">true</encrypted>
+      <fullname>root</fullname>
+      <gid>0</gid>
+      <home>/root</home>
+      <password_settings>
+        <inact>-1</inact>
+        <max>99999</max>
+        <min>0</min>
+        <warn>7</warn>
+      </password_settings>
+      <shell>/bin/bash</shell>
+      <uid>0</uid>
+      <user_password>$2a$05$yit2ieOcDslJrkEqLo8D3ej1ZNWNX79iAaT885W.aDTZ581ZwBD8S</user_password>
+      <username>root</username>
+    </user>
+  </users>
+</profile>
