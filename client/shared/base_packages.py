@@ -15,7 +15,11 @@ CHECKSUM_FILE = "packages.checksum"
 
 
 def has_pbzip2():
-    '''Check if parallel bzip2 is available on this system.'''
+    '''
+    Check if parallel bzip2 is available on this system.
+
+    @return: True if pbzip2 is available, False otherwise
+    '''
     try:
         os_dep.command('pbzip2')
     except ValueError:
@@ -29,10 +33,12 @@ _PBZIP2_AVAILABLE = has_pbzip2()
 
 def parse_ssh_path(repo):
     '''
-    Parse ssh://xx@xx/path/to/ and return a tuple with host_line and
-    remote path
-    '''
+    Parse an SSH url
 
+    @type repo: string
+    @param repo: a repo uri like ssh://xx@xx/path/to/
+    @returns: tuple with (host, remote_path)
+    '''
     match = re.search('^ssh://(.*?)(/.*)$', repo)
     if match:
         return match.groups()
@@ -42,7 +48,26 @@ def parse_ssh_path(repo):
 
 
 def repo_run_command(repo, cmd, ignore_status=False, cd=True):
-    """Run a command relative to the repos path"""
+    """
+    Run a command relative to the repo path
+
+    This is basically a utils.run() wrapper that sets itself in a repo
+    directory if it is appropriate, so parameters such as cmd and ignore_status
+    are passed along to it.
+
+    @type repo: string
+    @param repo: a repository url
+    @type cmd: string
+    @param cmd: the command to be executed. This is passed along to utils.run()
+    @type ignore_status: boolean
+    @param ignore_status: do not raise an exception, no matter what the exit
+            code of the command is.
+    @type cd: boolean
+    @param cd: wether to change the working directory to the repo directory
+            before running the specified command.
+    @return: a CmdResult object or None
+    @raise CmdError: the exit code of the command execution was not 0
+    """
     repo = repo.strip()
     run_cmd = None
     cd_str = ''
@@ -67,6 +92,13 @@ def repo_run_command(repo, cmd, ignore_status=False, cd=True):
 
 
 def create_directory(repo):
+    '''
+    Create a directory over at the remote repository
+
+    @type repo: string
+    @param repo: the repo URL containing the remote directory path
+    @return: a CmdResult object or None
+    '''
     remote_path = repo
     if repo.startswith('ssh://'):
         _, remote_path = parse_ssh_path(repo)
@@ -74,11 +106,24 @@ def create_directory(repo):
 
 
 def check_diskspace(repo, min_free=None):
-    # Note: 1 GB = 10**9 bytes (SI unit).
+    '''
+    Check if the remote directory over at the pkg repo has available diskspace
+
+    If the amount of free space is not supplied, it is taken from the global
+    configuration file, section [PACKAGES], key 'mininum_free_space'. The unit
+    used are in SI, that is, 1 GB = 10**9 bytes.
+
+    @type repo: string
+    @param repo: a remote package repo URL
+    @type min_free: int
+    @param: min_free mininum amount of free space, in GB (10**9 bytes)
+    @raise error.RepoUnknownError: general repository error condition
+    @raise error.RepoDiskFullError: repository does not have at least the
+        requested amount of free disk space.
+    '''
     if min_free is None:
-        min_free = global_config.global_config.get_config_value('PACKAGES',
-                                                          'minimum_free_space',
-                                                          type=int, default=1)
+        min_free = global_config.global_config.get_config_value(
+            'PACKAGES', 'minimum_free_space', type=int, default=1)
     try:
         df = repo_run_command(repo,
                               'df -PB %d . | tail -1' % 10 ** 9).stdout.split()
@@ -91,6 +136,13 @@ def check_diskspace(repo, min_free=None):
 
 
 def check_write(repo):
+    '''
+    Checks that the remote repository directory is writable
+
+    @type repo: string
+    @param repo: a remote package repo URL
+    @raise error.RepoWriteError: repository write error
+    '''
     try:
         repo_testfile = '.repo_test_file'
         repo_run_command(repo, 'touch %s' % repo_testfile).stdout.strip()
@@ -100,6 +152,16 @@ def check_write(repo):
 
 
 def trim_custom_directories(repo, older_than_days=None):
+    '''
+    Remove old files from the remote repo directory
+
+    The age of the files, if not provided by the older_than_days parameter is
+    taken from the global configuration file, at section [PACKAGES],
+    configuration item 'custom_max_age'.
+
+    @type repo: string
+    @param repo: a remote package repo URL
+    '''
     if not repo:
         return
 
@@ -111,14 +173,25 @@ def trim_custom_directories(repo, older_than_days=None):
 
 
 class RepositoryFetcher(object):
+    '''
+    Base class with common functionality for repository fetchers
+    '''
+
+
     url = None
 
 
     def install_pkg_setup(self, name, fetch_dir, install):
-        """ Install setup for a package based on fetcher type.
+        """
+        Install setup for a package based on fetcher type.
+
+        @type name: string
         @param name:  The filename to be munged
+        @type fetch_dir: string
         @param fetch_dir: The destination path to be munged
-        @install: Whether this is be called from the install path or not
+        @type insall: boolean
+        @param install: Whether this is be called from the install path or not
+        @return: tuple with (name, fetch_dir)
         """
         if install:
             if "test" in name:
@@ -127,21 +200,32 @@ class RepositoryFetcher(object):
 
         return (name, fetch_dir)
 
+
     def fetch_pkg_file(self, filename, dest_path):
-        """ Fetch a package file from a package repository.
+        """
+        Fetch a package file from a package repository.
 
+        @type filename: string
         @param filename: The filename of the package file to fetch.
+        @type dest_path: string
         @param dest_path: Destination path to download the file to.
-
-        @raises PackageFetchError if the fetch failed
+        @raises PackageFetchError: if the fetch failed
         """
         raise NotImplementedError()
 
-    def install_pkg_post(self, filename, fetch_dir, install_dir, preserve_install_dir=False):
-        """ Fetcher specific post install
+
+    def install_pkg_post(self, filename, fetch_dir,
+                         install_dir, preserve_install_dir=False):
+        """
+        Fetcher specific post install
+
+        @type filename: string
         @param filename: The filename of the package to install
+        @type fetch_dir: string
         @param fetch_dir: The fetched path of the package
+        @type install_dir: string
         @param install_dir: The path to install the package to
+        @type preserve_install_dir: boolean
         @preserve_install_dir: Preserve the install directory
         """
         # check to see if the install_dir exists and if it does
@@ -169,6 +253,14 @@ class RepositoryFetcher(object):
 
 
 class HttpFetcher(RepositoryFetcher):
+    '''
+    Repository Fetcher using HTTP
+    '''
+
+
+    #
+    # parameters: url, destination file path
+    #
     wget_cmd_pattern = 'wget --connect-timeout=15 -nv %s -O %s'
 
 
@@ -182,8 +274,11 @@ class HttpFetcher(RepositoryFetcher):
 
 
     def _quick_http_test(self):
-        """ Run a simple 30 second wget on the repository to see if it is
-        reachable. This avoids the need to wait for a full 10min timeout.
+        """
+        Runs a wget command with a 30s timeout
+
+        This checks that the repository is reachable, and avoids the need to
+        wait for a full 10min timeout.
         """
         # just make a temp file to write a test fetch into
         mktemp = 'mktemp -u /tmp/tmp.XXXXXX'
@@ -202,6 +297,15 @@ class HttpFetcher(RepositoryFetcher):
 
 
     def fetch_pkg_file(self, filename, dest_path):
+        """
+        Fetch a package file from a package repository.
+
+        @type filename: string
+        @param filename: The filename of the package file to fetch.
+        @type dest_path: string
+        @param dest_path: Destination path to download the file to.
+        @raises PackageFetchError: if the fetch failed
+        """
         logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)
 
@@ -232,13 +336,25 @@ class HttpFetcher(RepositoryFetcher):
 
 
 class GitFetcher(RepositoryFetcher):
-    #need remote_url, output file, <branch>:<file name>
+    """
+    A git based repository fetcher
+    """
+
+
+    #
+    # parameters: url, destination file path, <branch>:<file name>
+    #
     git_archive_cmd_pattern = 'git archive --remote=%s -o %s %s'
 
 
     def __init__(self, package_manager, repository_url):
         """
-        @param repository_url: The base URL of the http repository
+        Initializes a new GitFetcher
+
+        @type package_manager: BasePackageManager class
+        @param package_manager: and instance of BasePackageManager class
+        @type repository_url: string
+        @param repository_url: The base URL of the git repository
         """
 
         #do we have branch info in the repoistory_url?
@@ -249,7 +365,8 @@ class GitFetcher(RepositoryFetcher):
             branch = match[2]
             repository_url = re.sub(":" + branch, "", repository_url)
 
-        logging.debug('GitFetcher initialized with repo=%s and branch=%s' % (repository_url, branch))
+        logging.debug('GitFetcher initialized with repo=%s and branch=%s',
+                      repository_url, branch)
         self.run_command = package_manager._run_command
         self.url = repository_url
         self.branch = branch
@@ -257,9 +374,17 @@ class GitFetcher(RepositoryFetcher):
 
 
     def fetch_pkg_file(self, filename, dest_path):
-        """git is an SCM, you can download the test directly.  No need to
-        fetch a bz2'd tarball file.  However 'filename' is <type>-<name>.tar.bz2
-        break this up and only fetch <name>
+        """
+        Fetch a package file and save it to the given destination path
+
+        git is an SCM, you can download the test directly.  No need to fetch
+        a bz2'd tarball file.  However 'filename' is <type>-<name>.tar.bz2
+        break this up and only fetch <name>.
+
+        @type filename: string
+        @param filename: The filename of the package file to fetch.
+        @type dest_path: string
+        @param dest_path: Destination path to download the file to.
         """
         logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)
@@ -317,22 +442,38 @@ class BasePackageManager(object):
                  upload_paths=None, do_locking=True, run_function=utils.run,
                  run_function_args=[], run_function_dargs={}):
         '''
-        repo_urls: The list of the repository urls which is consulted
-                   whilst fetching the package
-        upload_paths: The list of the upload of repositories to which
-                      the package is uploaded to
-        pkgmgr_dir : A directory that can be used by the package manager
-                      to dump stuff (like checksum files of the repositories
-                      etc.).
-        do_locking : Enable locking when the packages are installed.
+        Initializes a new BasePackageManager instance
 
-        run_function is used to execute the commands throughout this file.
-        It defaults to utils.run() but a custom method (if provided) should
-        be of the same schema as utils.run. It should return a CmdResult
-        object and throw a CmdError exception. The reason for using a separate
-        function to run the commands is that the same code can be run to fetch
-        a package on the local machine or on a remote machine (in which case
-        ssh_host's run function is passed in for run_function).
+        One of most used interfaces on this class is the _run_command(), which
+        is controlled by the run_function parameter. It defaults to utils.run()
+        but a custom method (if provided) should be of the same schema as
+        utils.run. It should return a CmdResult object and throw a CmdError
+        exception. The reason for using a separate function to run the commands
+        is that the same code can be run to fetch a package on the local
+        machine or on a remote machine (in which case ssh_host's run function
+        is passed in for run_function).
+
+        @type pkgmgr_dir: string
+        @param pkgmgr_dir: A directory that can be used by the package manager
+                 to dump stuff (like checksum files of the repositories etc)
+        @type hostname: string
+        @param hostname: hostname from where to fetch a list of package repos
+        @type repo_urls: list of strings
+        @param repo_urls: The list of the repository urls which is consulted
+                 whilst fetching the package
+        @type upload_paths: list of strings
+        @param upload_paths: The list of the upload of repositories to which
+                 the package is uploaded to
+        @type do_locking: boolean
+        @param do_locking: Enable locking when the packages are installed.
+        @type run_function: function
+        @param run_function: function used to execute commands.
+        @type run_function_args: tuple
+        @param run_function_args: positional (tuple-like) arguments to
+                 run_function
+        @param run_function_dargs: dictionary
+        @param run_function_dargs: named (dictionary-like) arguments to
+                 run_function
         '''
         # In memory dictionary that stores the checksum's of packages
         self._checksum_dict = {}
@@ -940,7 +1081,8 @@ class BasePackageManager(object):
 
     @staticmethod
     def get_tarball_name(name, pkg_type):
-        """Converts a package name and type into a tarball name.
+        """
+        Converts a package name and type into a tarball name.
 
         @param name: The name of the package
         @param pkg_type: The type of the package
