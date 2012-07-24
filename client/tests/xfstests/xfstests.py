@@ -14,6 +14,8 @@ class xfstests(test.test):
 
     def _get_available_tests(self):
         tests = glob.glob('???.out')
+        tests += glob.glob('???.out.linux')
+        tests = [t.replace('.linux', '') for t in tests]
         tests_list = [t[:-4] for t in tests if os.path.exists(t[:-4])]
         tests_list.sort()
         return tests_list
