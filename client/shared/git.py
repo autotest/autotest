@@ -107,7 +107,7 @@ class GitRepoHelper(object):
 
         @return: Commit id.
         '''
-        return self.git_cmd('log --pretty=format:"%H" -1').stdout.strip()
+        return self.git_cmd('log --pretty=format:%H -1').stdout.strip()
 
 
     def get_top_tag(self):
