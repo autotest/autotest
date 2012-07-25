@@ -304,6 +304,16 @@ class BaseInstaller(object):
         pass
 
 
+    def write_version_keyval(self, test):
+        if getattr(self, 'get_version'):
+            version = self.get_version()
+        else:
+            version = "Unknown"
+        sw_version = {('software_version_%s' % self.name): version}
+        logging.debug("Writing test keyval %s", sw_version)
+        test.write_test_keyval(sw_version)
+
+
     def load_modules(self, module_list=None):
         '''
         Load Linux Kernel modules the virtualization software may depend on
@@ -710,6 +720,13 @@ class GitRepoInstaller(BaseLocalSourceInstaller):
             self.source_destination)
 
         self._set_build_helper()
+
+
+    def get_version(self):
+        uri = self.content_helper.uri
+        branch = self.content_helper.branch
+        commit = self.content_helper.get_top_commit()
+        return "%s:%s:%s" % (uri, branch, commit)
 
 
 class FailedInstaller:
