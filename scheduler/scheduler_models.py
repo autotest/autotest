@@ -24,6 +24,8 @@ from autotest.database import database_connection
 from autotest.scheduler import drone_manager, email_manager
 from autotest.scheduler import scheduler_config
 
+GLOBAL_CONFIG = global_config.global_config
+
 _notify_email_statuses = []
 _base_url = None
 
@@ -35,7 +37,7 @@ def initialize():
     _db = database_connection.DatabaseConnection('AUTOTEST_WEB')
     _db.connect(db_type='django')
 
-    notify_statuses_list = global_config.global_config.get_config_value(
+    notify_statuses_list = GLOBAL_CONFIG.get_config_value(
             scheduler_config.CONFIG_SECTION, "notify_email_statuses",
             default='')
     global _notify_email_statuses
@@ -46,14 +48,14 @@ def initialize():
     # AUTOTEST_WEB.base_url is still a supported config option as some people
     # may wish to override the entire url.
     global _base_url
-    config_base_url = global_config.global_config.get_config_value(
+    config_base_url = GLOBAL_CONFIG.get_config_value(
             scheduler_config.CONFIG_SECTION, 'base_url', default='')
     if config_base_url:
         _base_url = config_base_url
     else:
         # For the common case of everything running on a single server you
         # can just set the hostname in a single place in the config file.
-        server_name = global_config.global_config.get_config_value(
+        server_name = GLOBAL_CONFIG.get_config_value(
                 'SERVER', 'hostname')
         if not server_name:
             logging.critical('[SERVER] hostname missing from the config file.')
@@ -607,34 +609,50 @@ class HostQueueEntry(DBObject):
         """
         job_stats = Job(id=self.job.id).get_execution_details()
 
-        subject = ('Autotest | Job ID: %s "%s" | Status: %s ' %
-                   (self.job.id, self.job.name, status))
+        subject = 'Autotest #%s' % self.job.id
 
         if hostname is not None:
-            subject += '| Hostname: %s ' % hostname
+            subject += ' | %s on %s' % (self.job.name, hostname)
+        else:
+            subject += ' | %s' % self.job.name
 
-        if status not in ["1 Failed", "Failed"]:
-            subject += '| Success Rate: %.2f %%' % job_stats['success_rate']
+        status = status.split()[-1]
+        if status == "Completed":
+            subject += '| success: %.2f%%' % job_stats['success_rate']
+        else:
+            subject += '| %s' % status
 
-        body =  "Job ID: %s\n" % self.job.id
-        body += "Job name: %s\n" % self.job.name
-        if hostname is not None:
-            body += "Host: %s\n" % hostname
-        if summary is not None:
-            body += "Summary: %s\n" % summary
-        body += "Status: %s\n" % status
-        body += "Results interface URL: %s\n" % self._view_job_url()
-        body += "Execution time (HH:MM:SS): %s\n" % job_stats['execution_time']
+        body = ""
         if int(job_stats['total_executed']) > 0:
-            body += "User tests executed: %s\n" % job_stats['total_executed']
-            body += "User tests passed: %s\n" % job_stats['total_passed']
-            body += "User tests failed: %s\n" % job_stats['total_failed']
-            body += ("User tests success rate: %.2f %%\n" %
-                     job_stats['success_rate'])
+            body += ("run: %s | pass: %s | skip: %s | fail: %s" %
+                     (job_stats['total_executed'], job_stats['total_passed'],
+                      job_stats['total_skipped'], job_stats['total_failed']))
+            e_time = job_stats['execution_time']
+            if e_time not in ['(could not determine)', '(none)']:
+                body += " | runtime: %s" % e_time
+            if status == "Completed":
+                body += " | success: %.2f%%" % job_stats['success_rate']
+            else:
+                body += "\n[Warning] Job status: %s" % status
 
-        if job_stats['failed_rows']:
-            body += "Failures:\n"
-            body += job_stats['failed_rows']
+            body += "\n\n"
+
+        keyval_list = job_stats['keyval_dict_list']
+        if keyval_list:
+            for kv in keyval_list:
+                k, v = kv.items()[0]
+                body += "%s: %s\n\n" % (k, v)
+
+        body += job_stats['fail_detail']
+        body += job_stats['warn_detail']
+        body += job_stats['skip_detail']
+        body += job_stats['pass_detail']
+
+        if hostname is not None:
+            body += "Job was run on host %s\n" % hostname
+
+        body += ("For more details, check the full report on the web:\n%s\n" %
+                 self._view_job_url())
 
         return subject, body
 
@@ -866,7 +884,7 @@ class Job(DBObject):
 
         @return: Dictionary with test execution details
         """
-        def _find_test_jobs(rows):
+        def _find_framework_tests(rows):
             """
             Here we are looking for tests such as SERVER_JOB and CLIENT_JOB.*
             Those are autotest 'internal job' tests, so they should not be
@@ -875,13 +893,76 @@ class Job(DBObject):
             @param rows: List of rows (matrix) with database results.
             """
             job_test_pattern = re.compile('SERVER|CLIENT\\_JOB\.[\d]')
-            n_test_jobs = 0
+            test_jobs = []
             for r in rows:
                 test_name = r[0]
                 if job_test_pattern.match(test_name):
-                    n_test_jobs += 1
+                    test_jobs.append(test_name)
 
-            return n_test_jobs
+            return test_jobs
+
+        def _format_rows(rows, max_length=75):
+            """
+            Format failure rows, so they are legible on the resulting email.
+
+            @param rows: List of rows (matrix) with database results.
+            @param field: Field of the stats dict we want to fill.
+            @param max_length: Int with maximum length of a line printed.
+            """
+            formatted_row = ""
+            status_translate = {"GOOD": "PASS", "TEST_NA": "SKIP"}
+            if rows:
+                label = rows[0][1]
+                if label in status_translate.keys():
+                    label = status_translate[label]
+                formatted_row += "%s (%s):\n" % (label, len(rows))
+                for row in rows:
+                    # Add test name, status and count
+                    formatted_row += "%s\n" % (row[0])
+                    # start to add reasons
+                    if row[2]:
+                        reason = row[2].split()
+                        curr_length = 0
+                        formatted_row += "    "
+                        for word in reason:
+                            previous_length = curr_length
+                            curr_length += len(word)
+                            if curr_length > max_length:
+                                curr_length = 0
+                                if previous_length != 0:
+                                    formatted_row += "\n    %s " % word
+                                else:
+                                    # Corner case, len(word) > 75 char
+                                    formatted_row += "%s\n    " % word
+                            else:
+                                formatted_row += "%s " % word
+                        formatted_row += "\n"
+                formatted_row += "\n"
+            return formatted_row
+
+        def _get_test_keyval(jobid, keyname, db, default=''):
+            try:
+                lines = []
+                idx = db.execute('SELECT job_idx FROM tko_jobs WHERE '
+                                 'afe_job_id=%s' % jobid)[0]
+                test_indexes = db.execute('SELECT test_idx FROM tko_tests WHERE '
+                                          'job_idx=%s' % idx)
+                for i in test_indexes:
+                    rows =  db.execute('SELECT value FROM tko_test_attributes '
+                                        'WHERE test_idx=%s AND attribute="%s"' %
+                                        (i[0], keyname))
+                    if rows:
+                        for row in rows:
+                            line = []
+                            for c in row:
+                                line.append(str(c))
+                            lines.append(" ".join(line))
+                if lines:
+                    return lines[0]
+                else:
+                    return default
+            except:
+                return default
 
         stats = {}
 
@@ -894,13 +975,17 @@ class Job(DBObject):
                 ORDER BY t.reason
                 """ % self.id)
 
-        failed_rows = [r for r in rows if not r[1] == 'GOOD']
+        framework_tests = _find_framework_tests(rows)
+        failed_rows = [r for r in rows if r[1] != 'GOOD']
+        framework_tests_failed = _find_framework_tests(failed_rows)
+        explicitly_failed_rows = [r for r in rows if r[1] == 'FAIL']
+        warn_rows = [r for r in rows if r[1] == 'WARN']
+        skipped_rows = [(r[0], r[1], '') for r in rows if r[1] == 'TEST_NA']
+        passed_rows = [(r[0], r[1], '')  for r in rows if r[1] == 'GOOD' and r[0] not in framework_tests]
 
-        n_test_jobs = _find_test_jobs(rows)
-        n_test_jobs_failed = _find_test_jobs(failed_rows)
-
-        total_executed = len(rows) - n_test_jobs
-        total_failed = len(failed_rows) - n_test_jobs_failed
+        total_executed = len(rows) - len(framework_tests)
+        total_failed = len(failed_rows) - len(framework_tests_failed)
+        total_skipped = len(skipped_rows)
 
         if total_executed > 0:
             success_rate = 100 - ((total_failed / float(total_executed)) * 100)
@@ -910,14 +995,13 @@ class Job(DBObject):
         stats['total_executed'] = total_executed
         stats['total_failed'] = total_failed
         stats['total_passed'] = total_executed - total_failed
+        stats['total_skipped'] = total_skipped
         stats['success_rate'] = success_rate
 
-        status_header = ("Test Name", "Status", "Reason")
-        if failed_rows:
-            stats['failed_rows'] = utils.matrix_to_string(failed_rows,
-                                                          status_header)
-        else:
-            stats['failed_rows'] = ''
+        stats['fail_detail'] = _format_rows(explicitly_failed_rows)
+        stats['warn_detail'] = _format_rows(warn_rows)
+        stats['skip_detail'] = _format_rows(skipped_rows)
+        stats['pass_detail'] = _format_rows(passed_rows)
 
         time_row = _db.execute("""
                    SELECT started_time, finished_time
@@ -939,7 +1023,25 @@ class Job(DBObject):
         else:
             stats['execution_time'] = '(none)'
 
+        keyval_dict_list = []
+        keyval_list = self.get_keyval_list()
+        print "DBG: kv list obtained from get_keyval_list: %s" % keyval_list
+        if keyval_list:
+            for kv in keyval_list:
+                keyval_dict = {}
+                keyval_dict[kv] = _get_test_keyval(self.id, kv, _db)
+                keyval_dict_list.append(keyval_dict)
+        stats['keyval_dict_list'] = keyval_dict_list
+
         return stats
+
+
+    def get_keyval_list(self):
+        raw = GLOBAL_CONFIG.get_config_value('SCHEDULER',
+                                             'keyval_names_exibit_summary_mail',
+                                             default="")
+        keyval_list = re.split(r'[\s,;:]', raw)
+        return [element for element in keyval_list if element]
 
 
     def set_status(self, status, update_queues=False):
