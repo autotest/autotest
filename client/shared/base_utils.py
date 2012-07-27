@@ -2008,6 +2008,18 @@ def display_data_size(size):
     return '%.2f %s' % (size, prefixes[i])
 
 
+def cpu_affinity_by_task(pid, vcpu_pid):
+    """
+    This function returns the allowed cpus from the proc entry
+    for each vcpu's through its task id for a pid(of a VM)
+    """
+
+    cmd = "cat /proc/%s/task/%s/status|grep Cpus_allowed:| awk '{print $2}'" % (pid,vcpu_pid)
+    output = system_output(cmd, ignore_status=False)
+    return output
+
+
+
 def convert_data_size(size, default_sufix='B'):
     '''
     Convert data size from human readable units to an int of arbitrary size.
