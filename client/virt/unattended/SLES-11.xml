@@ -547,10 +547,40 @@ service sshd restart
 ]]></source>
       </script>
     </init-scripts>
+  <chroot-scripts config:type="list">
+    <script>
+      <chrooted config:type="boolean">true</chrooted>
+      <source>
+        <![CDATA[cd /usr/share/YaST2/modules
+
+echo -e '
+--- Packages.ycp    (Revision 65598)
++++ Packages.ycp    (Revision 66286)
+@@ -1703,6 +1703,13 @@
+   */
+  global boolean SelectProduct () {
+      Packages::Initialize (true);
++
++    if (Stage::cont())
++    {
++    y2milestone("Second stage - skipping product selection");
++    return true;
++    }
++
+      list<map<string,any> > products = Pkg::ResolvableProperties ("", `product, "");
+
+      if (size (products) == 0)' | patch --ignore-whitespace
+
+ycpc -c Packages.ycp
+        ]]>
+      </source>
+    </script>
+  </chroot-scripts>
   </scripts>
   <software>
     <packages config:type="list">
       <package>dhcp-client</package>
+      <package>patch</package>
     </packages>
     <patterns config:type="list">
       <pattern>Basis-Devel</pattern>
