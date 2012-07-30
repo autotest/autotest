@@ -69,14 +69,6 @@ def print_rv_version(client_session, rv_binary):
     logging.info("spice-gtk version: %s",
             client_session.cmd(rv_binary + " --spice-gtk-version"))
 
-def get_pid(job_string):
-    """
-    Returns PID of process given in string returned from job execution
-    @param job_string '[job_number] job_PID'
-    @return PID
-    """
-    return job_string.split("]")[1].splitlines()[0]
-
 def launch_gnome_session(client_session):
     """
     Launches gnome session inside client_session
@@ -87,8 +79,6 @@ def launch_gnome_session(client_session):
     which is not done by default in pure Xorg
     """
     cmd = "nohup gnome-session --display=:0.0 &> /dev/null &"
-    job_output = client_session.cmd(cmd)
-    cmd = "disown -h %s" % get_pid(job_output)
     return client_session.cmd(cmd)
 
 def launch_xorg(client_session):
@@ -180,8 +170,6 @@ def launch_rv(client_vm, guest_vm, params):
     print_rv_version(client_session, rv_binary)
 
     logging.info("Launching %s on the client (virtual)", cmd)
-    job_output = client_session.cmd(cmd)
-    cmd = "disown -h %s" % get_pid(job_output)
     client_session.cmd(cmd)
 
     # client waits for user entry (authentication) if spice_password is set
@@ -191,6 +179,10 @@ def launch_rv(client_vm, guest_vm, params):
 
     wait_timeout() # Wait for conncetion to establish
     verify_established(client_session, host_ip, host_port, rv_binary)
+
+    #prevent from kill remote-viewer after test finish
+    cmd = "disown -ar"
+    client_session.cmd(cmd)
 
 def run_rv_connect(test, params, env):
     """
