@@ -116,6 +116,16 @@ def virsh_cmd(cmd, uri="", ignore_status=False, print_info=False):
     return ret
 
 
+def virsh_domname(id, uri="", ignore_status=False, print_info=False):
+    """
+    Convert a domain id or UUID to domain name
+
+    @param id: a domain id or UUID.
+    """
+    return virsh_cmd("domname --domain %s" % id, uri,
+                                ignore_status, print_info)
+
+
 def virsh_qemu_monitor_command(domname, command, uri="",
                                ignore_status=False, print_info=False):
     """
