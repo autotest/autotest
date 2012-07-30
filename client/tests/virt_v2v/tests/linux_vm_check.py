@@ -99,4 +99,3 @@ def run_linux_vm_check(test, params, env):
             logging.info("SUCCESS")
         else:
             raise error.TestFail("FAIL")
-

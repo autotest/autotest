@@ -3,7 +3,7 @@ from autotest.client.virt import virt_v2v as v2v
 
 def get_args_dict(params):
     args_dict = {}
-    keys_list = [ 'target', 'vms', 'ovirt_engine_url', 'ovirt_engine_user', 
+    keys_list = [ 'target', 'vms', 'ovirt_engine_url', 'ovirt_engine_user',
                   'ovirt_engine_password', 'hypervisor', 'hostname', 'storage',
                   'network', 'netrc', 'username', 'password' ]
 

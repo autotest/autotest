@@ -743,4 +743,3 @@ class StorageDomainManager(object):
         except Exception, e:
             logging.error('Failed to add %s domain:\n%s'
                           % (domain_type, str(e)))
-
