@@ -716,7 +716,7 @@ class VMNet(list):
         # so that unittests can run independantly for each subclass.
         if not hasattr(self, 'vm_name'):
             self.vm_name = vm_name
-        if not hasattr(self, 'prams'):
+        if not hasattr(self, 'params'):
             self.params = params.object_params(self.vm_name)
         if not hasattr(self, 'container_class'):
             self.vm_type = self.params.get('vm_type', 'default')
