@@ -94,7 +94,8 @@ class harness_autoserv(harness.harness):
 
 class AutoservFetcher(base_packages.RepositoryFetcher):
     def __init__(self, package_manager, job_harness):
-        self.url = "autoserv://"
+        super(AutoservFetcher, self).__init__(package_manager=package_manager,
+                                              repository_url="autoserv://")
         self.job_harness = job_harness
 
 
