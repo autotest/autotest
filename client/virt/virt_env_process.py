@@ -3,7 +3,7 @@ from autotest.client import utils
 from autotest.client.shared import error
 import aexpect, kvm_monitor, ppm_utils, virt_test_setup, virt_vm, kvm_vm
 import libvirt_vm, virt_video_maker, virt_utils, virt_storage, kvm_storage
-import virt_remote
+import virt_remote, virt_v2v, ovirt
 
 try:
     import PIL.Image
@@ -55,12 +55,18 @@ def preprocess_vm(test, params, env, name):
     logging.debug("Preprocessing VM '%s'", name)
     vm = env.get_vm(name)
     vm_type = params.get('vm_type')
+    target = params.get('target')
     if not vm:
         logging.debug("VM object for '%s' does not exist, creating it", name)
         if vm_type == 'kvm':
             vm = kvm_vm.VM(name, params, test.bindir, env.get("address_cache"))
         if vm_type == 'libvirt':
             vm = libvirt_vm.VM(name, params, test.bindir, env.get("address_cache"))
+        if vm_type == 'virt_v2v':
+            if target == 'libvirt' or target is None:
+                vm = libvirt_vm.VM(name, params, test.bindir, env.get("address_cache"))
+            if target == 'ovirt':
+                vm = ovirt.VMManager(name, params, test.bindir, env.get("address_cache"))
         env.register_vm(name, vm)
 
     remove_vm = False
@@ -82,7 +88,7 @@ def preprocess_vm(test, params, env, name):
         start_vm = True
     elif params.get("start_vm") == "yes":
         # need to deal with libvirt VM differently than qemu
-        if vm_type == 'libvirt':
+        if vm_type == 'libvirt' or vm_type == 'virt_v2v':
             if not vm.is_alive():
                 logging.debug("VM is not alive; starting it...")
                 start_vm = True
@@ -97,6 +103,9 @@ def preprocess_vm(test, params, env, name):
 
     if start_vm:
         if vm_type == "libvirt" and params.get("type") != "unattended_install":
+            vm.params = params
+            vm.start()
+        elif vm_type == "virt_v2v":
             vm.params = params
             vm.start()
         else:
@@ -258,6 +267,11 @@ def preprocess(test, params, env):
     @param env: The environment (a dict-like object).
     """
     error.context("preprocessing")
+    port = params.get('shell_port')
+    prompt = params.get('shell_prompt')
+    address = params.get('ovirt_node_address')
+    username = params.get('ovirt_node_user')
+    password = params.get('ovirt_node_password')
 
     # Start tcpdump if it isn't already running
     if "address_cache" not in env:
@@ -267,11 +281,24 @@ def preprocess(test, params, env):
         del env["tcpdump"]
     if "tcpdump" not in env and params.get("run_tcpdump", "yes") == "yes":
         cmd = "%s -npvi any 'dst port 68'" % virt_utils.find_command("tcpdump")
-        logging.debug("Starting tcpdump '%s'", cmd)
-        env["tcpdump"] = aexpect.Tail(
-            command=cmd,
-            output_func=_update_address_cache,
-            output_params=(env["address_cache"],))
+        if params.get("remote_preprocess") == "yes":
+            logging.debug("Starting tcpdump '%s' on remote host", cmd)
+            login_cmd = ("ssh -o UserKnownHostsFile=/dev/null -o \
+                         PreferredAuthentications=password -p %s %s@%s" %
+                         (port, username, address))
+            env["tcpdump"] = aexpect.ShellSession(
+                login_cmd,
+                output_func=_update_address_cache,
+                output_params=(env["address_cache"],))
+            virt_remote._remote_login(env["tcpdump"], username, password, prompt)
+            env["tcpdump"].sendline(cmd)
+        else:
+            logging.debug("Starting tcpdump '%s' on local host", cmd)
+            env["tcpdump"] = aexpect.Tail(
+                command=cmd,
+                output_func=_update_address_cache,
+                output_params=(env["address_cache"],))
+
         if virt_utils.wait_for(lambda: not env["tcpdump"].is_alive(),
                               0.1, 0.1, 1.0):
             logging.warn("Could not start tcpdump")

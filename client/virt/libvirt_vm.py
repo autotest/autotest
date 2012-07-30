@@ -590,6 +590,64 @@ def virsh_net_destroy(name, extra="", uri="",
     return virsh_cmd(cmd, uri, ignore_status, print_info)
 
 
+def virsh_pool_info(name, uri=""):
+    """
+    Returns basic information about the storage pool.
+    """
+    cmd = "pool-info %s" % name
+    try:
+        virsh_cmd(cmd, uri)
+        return True
+    except error.CmdError, detail:
+        logging.error("Pool %s doesn't exist:\n%s", name, detail)
+        return False
+
+
+def virsh_pool_destroy(name, uri=""):
+    """
+    Forcefully stop a given pool.
+    """
+    cmd = "pool-destroy %s" % name
+    try:
+        virsh_cmd(cmd, uri)
+        return True
+    except error.CmdError, detail:
+        logging.error("Failed to destroy pool: %s." % detail)
+        return False
+
+
+def virsh_pool_create_as(name, _type, target, extra="", uri=""):
+    """
+    Create a pool from a set of args.
+
+    @param: name: name of pool
+    @param: type: storage pool type such as 'dir'
+    @param: target: libvirt uri to send guest to
+    @param: extra: Free-form string of options
+    @return: True if pool creation command was successful
+    """
+
+    if not name:
+        logging.error("Please give a pool name")
+
+    types = [ 'dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical' ]
+
+    if _type and _type not in types:
+        logging.error("Only support pool types: %s." % types)
+    elif not _type:
+        _type = types[0]
+
+    logging.info("Create %s type pool %s" % (_type, name))
+    cmd = "pool-create-as --name %s --type %s --target %s %s" \
+          % (name, _type, target, extra)
+    try:
+        virsh_cmd(cmd, uri)
+        return True
+    except error.CmdError, detail:
+        logging.error("Failed to create pool: %s." % detail)
+        return False
+
+
 class VM(virt_vm.BaseVM):
     """
     This class handles all basic VM operations for libvirt.
@@ -1539,26 +1597,6 @@ class VM(virt_vm.BaseVM):
         Return VM's UUID.
         """
         return virsh_uuid(self.name, self.connect_uri)
-
-
-    def get_port(self, port, nic_index=0):
-        """
-        Return the port in host space corresponding to port in guest space.
-
-        @param port: Port number in host space.
-        @param nic_index: Index of the NIC.
-        @return: If port redirection is used, return the host port redirected
-                to guest port port. Otherwise return port.
-        @raise VMPortNotRedirectedError: If an unredirected port is requested
-                in user mode
-        """
-        if self.virtnet[nic_index].nettype == "bridge":
-            return port
-        else:
-            try:
-                return self.redirs[port]
-            except KeyError:
-                raise virt_vm.VMPortNotRedirectedError(port)
 
 
     def get_ifname(self, nic_index=0):
