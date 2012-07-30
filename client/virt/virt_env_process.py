@@ -25,21 +25,25 @@ def preprocess_image(test, params, image_name):
     @param params: A dict containing image preprocessing parameters.
     @note: Currently this function just creates an image if requested.
     """
-    image_filename = virt_storage.get_image_filename(params, test.bindir)
-
-    create_image = False
-
-    if params.get("force_create_image") == "yes":
-        logging.debug("Param 'force_create_image' specified, creating image")
-        create_image = True
-    elif (params.get("create_image") == "yes" and not
-          os.path.exists(image_filename)):
-        create_image = True
-
-    if create_image:
-        image = kvm_storage.QemuImg(params, test.bindir, image_name)
-        if not image.create(params):
-            raise error.TestError("Could not create image")
+    if params.get("storage_type") == "iscsi":
+        iscsidev = kvm_storage.Iscsi(params, test.bindir, image_name)
+        params["image_name"] = iscsidev.setup()
+    else:
+        image_filename = virt_storage.get_image_filename(params, test.bindir)
+ 
+        create_image = False
+ 
+        if params.get("force_create_image") == "yes":
+            logging.debug("Param 'force_create_image' specified, creating image")
+            create_image = True
+        elif (params.get("create_image") == "yes" and not
+              os.path.exists(image_filename)):
+            create_image = True
+ 
+        if create_image:
+            image = kvm_storage.QemuImg(params, test.bindir, image_name)
+            if not image.create(params):
+                raise error.TestError("Could not create image")
 
 
 def preprocess_vm(test, params, env, name):
@@ -125,16 +129,20 @@ def postprocess_image(test, params, image_name):
     @param test: An Autotest test object.
     @param params: A dict containing image postprocessing parameters.
     """
-    image = kvm_storage.QemuImg(params, test.bindir, image_name)
-    if params.get("check_image") == "yes":
-        try:
-            image.check_image(params, test.bindir)
-        except Exception, e:
-            if params.get("restore_image_on_check_error", "no") == "yes":
-                image.backup_image(params, test.bindir, "restore", True)
-            raise e
-    if params.get("remove_image") == "yes":
-        image.remove()
+    if params.get("storage_type") == "iscsi":
+        iscsidev = kvm_storage.Iscsi(params, test.bindir, image_name)
+        iscsidev.cleanup()
+    else:
+        image = kvm_storage.QemuImg(params, test.bindir, image_name)
+        if params.get("check_image") == "yes":
+            try:
+                image.check_image(params, test.bindir)
+            except Exception, e:
+                if params.get("restore_image_on_check_error", "no") == "yes":
+                    image.backup_image(params, test.bindir, "restore", True)
+                raise e
+        if params.get("remove_image") == "yes":
+            image.remove()
 
 
 def postprocess_vm(test, params, env, name):
