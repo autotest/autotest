@@ -54,4 +54,3 @@ def run_virsh_freecell(test, params, env):
         if status != 0:
             raise error.TestFail("Command 'virsh freecell %s' failed "
                                  "(correct command)" % option)
-

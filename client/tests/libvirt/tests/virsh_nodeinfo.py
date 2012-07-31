@@ -107,4 +107,3 @@ def run_virsh_nodeinfo(test, params, env):
         if status != 0:
             raise error.TestFail("Command 'virsh nodeinfo %s' failed "
                                  "(correct command)" % option)
-

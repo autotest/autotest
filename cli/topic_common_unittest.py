@@ -344,7 +344,7 @@ class atest_unittest(cli_mock.cli_unittest):
 
     def test_invalid_arg_continue(self):
         # The string will be placed into self.atest.failed
-        self.atest.invalid_arg('This is sort of ok')      
+        self.atest.invalid_arg('This is sort of ok')
         self.assert_('This is sort of ok' in self.atest.failed.keys())
 
 
