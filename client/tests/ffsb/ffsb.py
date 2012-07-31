@@ -157,6 +157,9 @@ class ffsb(test.test):
         @param tarball: FFSB tarball. Could be either a path relative to
                 self.srcdir or a URL.
         """
+        profile_src = os.path.join(self.bindir, 'profile.cfg.sample')
+        profile_dst = os.path.join(os.path.dirname(self.srcdir), 'profile.cfg')
+        shutil.copyfile(profile_src, profile_dst)
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
