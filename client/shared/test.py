@@ -53,6 +53,10 @@ class base_test(object):
                                                        default=tmpdir)
         self.srcdir = os.path.join(output_config, os.path.basename(self.bindir),
                                    'src')
+        source_code_dir = os.path.join(self.bindir, 'src')
+        if os.path.isdir(source_code_dir):
+            if not os.path.isdir(self.srcdir):
+                shutil.copytree(source_code_dir, self.srcdir)
         if not os.path.isdir(self.srcdir):
             os.makedirs(self.srcdir)
         self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname,
