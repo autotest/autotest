@@ -208,8 +208,6 @@ class RepositoryFetcher(object):
         @return: tuple with (name, fetch_dir)
         """
         if install:
-            if "test" in name:
-                name = self.pkgmgr.get_tarball_name(name, "test")
             fetch_dir = os.path.join(fetch_dir, re.sub("/", "_", name))
 
         return (name, fetch_dir)
@@ -399,8 +397,8 @@ class GitFetcher(RepositoryFetcher):
         """
         logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)
-
-        package_path = self.branch + " " + filename
+        name, package_type = self.pkgmgr.parse_tarball_name(filename)
+        package_path = self.branch + " " + name
         try:
             cmd = self.git_archive_cmd_pattern % (self.url, dest_path, package_path)
             result = self.run_command(cmd)
@@ -415,12 +413,13 @@ class GitFetcher(RepositoryFetcher):
             logging.debug('Successfully fetched %s from %s', package_path,
                           self.url)
         except error.CmdError:
-            raise error.PackageFetchError('%s not found in %s' % (filename,
+            raise error.PackageFetchError('%s not found in %s' % (name,
                                                                   package_path))
 
 
     def install_pkg_post(self, filename, fetch_dir, install_dir,
                          preserve_install_dir=False):
+        filename, _ = self.pkgmgr.parse_tarball_name(filename)
         install_path = re.sub(filename, "", install_dir)
         for suffix in ['', '.tar', '.tar.bz2']:
             pkg_name = "%s%s" % (suffix, re.sub("/","_", filename))
@@ -616,13 +615,13 @@ class BasePackageManager(object):
                 fcntl.flock(lockfile, fcntl.LOCK_EX)
 
             self._run_command('mkdir -p %s' % fetch_dir)
-
+            pkg_name = self.get_tarball_name(name, pkg_type)
             try:
                 # Fetch the package into fetch_dir
-                fetcher = self.fetch_pkg(name, fetch_dir, use_checksum=True,
+                fetcher = self.fetch_pkg(pkg_name, fetch_dir, use_checksum=True,
                                          repo_url=repo_url, install=True)
 
-                fetcher.install_pkg_post(name, fetch_dir, install_dir, preserve_install_dir)
+                fetcher.install_pkg_post(pkg_name, fetch_dir, install_dir, preserve_install_dir)
             except error.PackageFetchError, why:
                 raise error.PackageInstallError(
                     'Installation of %s(type:%s) failed : %s'
