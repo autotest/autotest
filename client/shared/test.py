@@ -17,6 +17,7 @@
 #       tmpdir          eg. tmp/<tempname>_<testname.tag>
 
 import fcntl, getpass, os, re, sys, shutil, tempfile, time, traceback, logging
+import glob
 
 from autotest.client.shared import error, global_config
 from autotest.client import utils
@@ -59,6 +60,11 @@ class base_test(object):
                 shutil.copytree(source_code_dir, self.srcdir)
         if not os.path.isdir(self.srcdir):
             os.makedirs(self.srcdir)
+        patch_file_list = glob.glob(os.path.join(self.bindir, "*.patch"))
+        for patch_src in patch_file_list:
+            patch_dst = os.path.join(os.path.dirname(self.srcdir),
+                                     os.path.basename(patch_src))
+            shutil.copyfile(patch_src, patch_dst)
         self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname,
                                        dir=job.tmpdir)
         self._keyvals = []
