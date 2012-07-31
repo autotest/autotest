@@ -982,7 +982,7 @@ variants:
                             kernel = images/rhel63-32/vmlinuz
                             initrd = images/rhel63-32/initrd.img
                         unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL6.3-i386-DVD.iso
+                            cdrom_cd1 = isos/linux/RHEL-6.3-i386-DVD.iso
                             md5sum_cd1 = edd93cda6935bcf04c3381446764eb26
                             md5sum_1m_cd1 = e97d4ff920c82bff61ada4b1b9f183eb
 
@@ -1001,7 +1001,7 @@ variants:
                             kernel = images/rhel63-64/vmlinuz
                             initrd = images/rhel63-64/initrd.img
                         unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL6.3-x86_64-DVD.iso
+                            cdrom_cd1 = isos/linux/RHEL-6.3-x86_64-DVD.iso
                             md5sum_cd1 = d717af33dd258945e6304f9955487017
                             md5sum_1m_cd1 = 006ea6571a6431234a1313d1c3c6e70e
 
