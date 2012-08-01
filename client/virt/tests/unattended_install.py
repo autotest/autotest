@@ -469,15 +469,6 @@ class UnattendedInstallConfig(object):
         if self.medium in ["cdrom", "kernel_initrd"]:
             content = "cdrom"
 
-        dummy_logging_re = r'\bKVM_TEST_LOGGING\b'
-        if re.search(dummy_logging_re, contents):
-            if self.syslog_server_enabled == 'yes':
-                l = 'logging --host=%s --port=%s --level=debug'
-                l = l % (self.syslog_server_ip, self.syslog_server_port)
-            else:
-                l = ''
-            contents = re.sub(dummy_logging_re, l, contents)
-
         elif self.medium == "url":
             content = "url --url %s" % self.url
 
@@ -488,6 +479,15 @@ class UnattendedInstallConfig(object):
             raise ValueError("Unexpected installation medium %s" % self.url)
 
         contents = re.sub(dummy_medium_re, content, contents)
+
+        dummy_logging_re = r'\bKVM_TEST_LOGGING\b'
+        if re.search(dummy_logging_re, contents):
+            if self.syslog_server_enabled == 'yes':
+                l = 'logging --host=%s --port=%s --level=debug'
+                l = l % (self.syslog_server_ip, self.syslog_server_port)
+            else:
+                l = ''
+            contents = re.sub(dummy_logging_re, l, contents)
 
         logging.debug("Unattended install contents:")
         for line in contents.splitlines():
