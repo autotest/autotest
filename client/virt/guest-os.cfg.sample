@@ -350,6 +350,7 @@ variants:
                             cdrom_unattended = images/f15-32/ks.iso
                             kernel = images/f15-32/vmlinuz
                             initrd = images/f15-32/initrd.img
+                            syslog_server_proto = tcp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-15-i386-DVD.iso
                             md5sum_cd1 = 9a91492ac84dde9ceff0cb346a079487
@@ -368,6 +369,7 @@ variants:
                             cdrom_unattended = images/f15-64/ks.iso
                             kernel = images/f15-64/vmlinuz
                             initrd = images/f15-64/initrd.img
+                            syslog_server_proto = tcp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-15-x86_64-DVD.iso
                             md5sum_cd1 = c122a2a4f478da4a3d2d12396e84244e
@@ -386,6 +388,7 @@ variants:
                             cdrom_unattended = images/f16-32/ks.iso
                             kernel = images/f16-32/vmlinuz
                             initrd = images/f16-32/initrd.img
+                            syslog_server_proto = tcp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-16-i386-DVD.iso
                             md5sum_cd1 = 0d64ab6b1b800827a9c83d95395b3da0
@@ -404,6 +407,7 @@ variants:
                             cdrom_unattended = images/f16-64/ks.iso
                             kernel = images/f16-64/vmlinuz
                             initrd = images/f16-64/initrd.img
+                            syslog_server_proto = tcp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-16-x86_64-DVD.iso
                             md5sum_cd1 = bb38ea1fe4b2fc69e7a6e15cf1c69c91
@@ -417,6 +421,7 @@ variants:
                             cdrom_unattended = images/f16-ppc64/ks.iso
                             kernel = images/f16-ppc64/vmlinuz
                             initrd = images/f16-ppc64/initrd.img
+                            syslog_server_proto = tcp
                         unattended_install.cdrom:
                             boot_path = ppc/ppc64
                             cdrom_cd1 = isos/linux/Fedora-16-ppc64-DVD.iso
@@ -433,6 +438,7 @@ variants:
                             cdrom_unattended = images/f17-32/ks.iso
                             kernel = images/f17-32/vmlinuz
                             initrd = images/f17-32/initrd.img
+                            syslog_server_proto = tcp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-17-i386-DVD.iso
                             md5sum_cd1 = d4717e04b596e33898cc34970e79dd3d
@@ -448,6 +454,7 @@ variants:
                             cdrom_unattended = images/f17-64/ks.iso
                             kernel = images/f17-64/vmlinuz
                             initrd = images/f17-64/initrd.img
+                            syslog_server_proto = tcp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/Fedora-17-x86_64-DVD.iso
                             md5sum_cd1 = 26f3358a5f8973f0956093f28a0106e7
@@ -623,6 +630,7 @@ variants:
                             cdrom_unattended = images/rhel53-32/ks.iso
                             kernel = images/rhel53-32/vmlinuz
                             initrd = images/rhel53-32/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.3-i386-DVD.iso
                             md5sum_cd1 = 371c62851611fd32ead440df6f24a296
@@ -645,6 +653,7 @@ variants:
                             cdrom_unattended = images/rhel53-64/ks.iso
                             kernel = images/rhel53-64/vmlinuz
                             initrd = images/rhel53-64/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.3-x86_64-DVD.iso
                             md5sum_cd1 = c5ed6b284410f4d8212cafc78fd7a8c5
@@ -662,6 +671,7 @@ variants:
                             cdrom_unattended = images/rhel54-32/ks.iso
                             kernel = images/rhel54-32/vmlinuz
                             initrd = images/rhel54-32/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.4-i386-DVD.iso
                             md5sum_cd1 = 7a12ec6599527e4f3d1790b51eadbfed
@@ -679,6 +689,7 @@ variants:
                             cdrom_unattended = images/rhel54-64/ks.iso
                             kernel = images/rhel54-64/vmlinuz
                             initrd = images/rhel54-64/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.4-x86_64-DVD.iso
                             md5sum_cd1 = 04fe3c10202402d7b389528d2bad0210
@@ -696,6 +707,7 @@ variants:
                             cdrom_unattended = images/rhel55-32/ks.iso
                             kernel = images/rhel55-32/vmlinuz
                             initrd = images/rhel55-32/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.5-i386-DVD.iso
                             md5sum_cd1 = 148858b157f275d9153797efddfc83c3
@@ -713,6 +725,7 @@ variants:
                             cdrom_unattended = images/rhel55-64/ks.iso
                             kernel = images/rhel55-64/vmlinuz
                             initrd = images/rhel55-64/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.5-x86_64-DVD.iso
                             md5sum_cd1 = f3119f883257ef9041234feda2f1cad0
@@ -730,6 +743,7 @@ variants:
                             cdrom_unattended = images/rhel56-32/ks.iso
                             kernel = images/rhel56-32/vmlinuz
                             initrd = images/rhel56-32/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.6-i386-DVD.iso
                             md5sum_cd1 = c214653d91b81c9a7a7f7249753d0f5d
@@ -747,6 +761,7 @@ variants:
                             cdrom_unattended = images/rhel56-64/ks.iso
                             kernel = images/rhel56-64/vmlinuz
                             initrd = images/rhel56-64/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.6-x86_64-DVD.iso
                             md5sum_cd1 = d77d3815afb381a50148ba55ad930679
@@ -764,6 +779,7 @@ variants:
                             cdrom_unattended = images/rhel57-32/ks.iso
                             kernel = images/rhel57-32/vmlinuz
                             initrd = images/rhel57-32/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.7-i386-DVD.iso
                             md5sum_cd1 = d738dcaf8d65ebf03d6da32916ddde43
@@ -789,6 +805,7 @@ variants:
                             cdrom_unattended = images/rhel57-64/ks.iso
                             kernel = images/rhel57-64/vmlinuz
                             initrd = images/rhel57-64/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.7-x86_64-DVD.iso
                             md5sum_cd1 = 1a3c5959e34612e91f4a1840b997b287
@@ -815,6 +832,7 @@ variants:
                             cdrom_unattended = images/rhel58-32/ks.iso
                             kernel = images/rhel58-32/vmlinuz
                             initrd = images/rhel58-32/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.8-i386-DVD.iso
                             md5sum_cd1 = 514e6ac28590e521402329da23220cc4
@@ -840,6 +858,7 @@ variants:
                             cdrom_unattended = images/rhel58-64/ks.iso
                             kernel = images/rhel58-64/vmlinuz
                             initrd = images/rhel58-64/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-5.8-x86_64-DVD.iso
                             md5sum_cd1 = e55f3a142ce6d36e8061be45f72b3c17
@@ -869,6 +888,7 @@ variants:
                             cdrom_unattended = images/rhel60-32/ks.iso
                             kernel = images/rhel60-32/vmlinuz
                             initrd = images/rhel60-32/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.0-i386-DVD.iso
                             md5sum_cd1 = 291d234c93442405972689b4b41c14bc
@@ -888,6 +908,7 @@ variants:
                             cdrom_unattended = images/rhel60-64/ks.iso
                             kernel = images/rhel60-64/vmlinuz
                             initrd = images/rhel60-64/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.0-x86_64-DVD.iso
                             md5sum_cd1 = f7141396c6a19399d63e8c195354317d
@@ -907,6 +928,7 @@ variants:
                             cdrom_unattended = images/rhel61-32/ks.iso
                             kernel = images/rhel61-32/vmlinuz
                             initrd = images/rhel61-32/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.1-i386-DVD.iso
                             md5sum_cd1 = f8c8a310e34d26339c99d462e3557324
@@ -926,6 +948,7 @@ variants:
                             cdrom_unattended = images/rhel61-64/ks.iso
                             kernel = images/rhel61-64/vmlinuz
                             initrd = images/rhel61-64/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.1-x86_64-DVD.iso
                             md5sum_cd1 = a051dbf28ef444a019dc6660efe3e3a4
@@ -945,6 +968,7 @@ variants:
                             cdrom_unattended = images/rhel62-32/ks.iso
                             kernel = images/rhel62-32/vmlinuz
                             initrd = images/rhel62-32/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.2-i386-DVD.iso
                             md5sum_cd1 = 31f3ef3825fbde428bf3ab49ce2b99db
@@ -964,6 +988,7 @@ variants:
                             cdrom_unattended = images/rhel62-64/ks.iso
                             kernel = images/rhel62-64/vmlinuz
                             initrd = images/rhel62-64/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.2-x86_64-DVD.iso
                             md5sum_cd1 = 7525d7ea1b1fd074538c7505bccd143d
@@ -983,6 +1008,7 @@ variants:
                             cdrom_unattended = images/rhel63-32/ks.iso
                             kernel = images/rhel63-32/vmlinuz
                             initrd = images/rhel63-32/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.3-i386-DVD.iso
                             md5sum_cd1 = edd93cda6935bcf04c3381446764eb26
@@ -1002,6 +1028,7 @@ variants:
                             cdrom_unattended = images/rhel63-64/ks.iso
                             kernel = images/rhel63-64/vmlinuz
                             initrd = images/rhel63-64/initrd.img
+                            syslog_server_proto = udp
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/RHEL-6.3-x86_64-DVD.iso
                             md5sum_cd1 = d717af33dd258945e6304f9955487017
