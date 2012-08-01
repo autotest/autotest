@@ -72,7 +72,7 @@ def terminate_unattended_server_thread():
     return False
 
 
-def start_syslog_server_thread(address, port):
+def start_syslog_server_thread(address, port, tcp):
     global _syslog_server_thread
     global _syslog_server_thread_event
 
@@ -83,7 +83,7 @@ def start_syslog_server_thread(address, port):
         _syslog_server_thread_event = threading.Event()
         _syslog_server_thread = threading.Thread(
             target=virt_syslog_server.syslog_server,
-            args=(address, port, True, terminate_syslog_server_thread))
+            args=(address, port, tcp, terminate_syslog_server_thread))
         _syslog_server_thread.start()
 
 
@@ -443,7 +443,9 @@ class UnattendedInstallConfig(object):
         # Embedded Syslog Server
         self.syslog_server_enabled = params.get('syslog_server_enabled', 'no')
         self.syslog_server_ip = params.get('syslog_server_ip', auto_ip)
-        self.syslog_server_port = params.get('syslog_server_port', 5140)
+        self.syslog_server_port = int(params.get('syslog_server_port', 5140))
+        self.syslog_server_tcp = params.get('syslog_server_proto',
+                                            'tcp') == 'tcp'
 
         self.vm = vm
 
@@ -978,7 +980,8 @@ class UnattendedInstallConfig(object):
 
         if self.syslog_server_enabled == 'yes':
             start_syslog_server_thread(self.syslog_server_ip,
-                                       self.syslog_server_port)
+                                       self.syslog_server_port,
+                                       self.syslog_server_tcp)
 
         if self.medium in ["cdrom", "kernel_initrd"]:
             if self.kernel and self.initrd:
