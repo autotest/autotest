@@ -2600,7 +2600,8 @@ class KojiPkgSpec(object):
         Describes why this is not valid, in a human friendly way
         '''
         if self._is_invalid_neither_tag_or_build():
-            return 'neither a tag or build are set, and of them should be set'
+            return ('neither a tag nor a build were set, one of them '
+                    'must be set')
         elif self._is_invalid_package_but_no_tag():
             return 'package name specified but no tag is set'
         elif self._is_invalid_subpackages_but_no_main_package():
