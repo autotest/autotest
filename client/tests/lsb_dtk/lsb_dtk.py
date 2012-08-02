@@ -25,7 +25,7 @@ class lsb_dtk(test.test):
             raise error.TestError(e_msg)
 
         self.config = config_loader(config, self.tmpdir)
-        self.cachedir = os.path.join(self.bindir, 'cache')
+        self.cachedir = os.path.join(os.path.dirname(self.srcdir), 'cache')
         if not os.path.isdir(self.cachedir):
             os.makedirs(self.cachedir)
 
