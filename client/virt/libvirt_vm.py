@@ -1029,7 +1029,7 @@ class VM(virt_vm.BaseVM):
         virt_install_cmd += add_connect_uri(help, self.connect_uri)
 
         # hvm or pv specificed by libvirt switch (pv used  by Xen only)
-        hvm_or_pv = params.get("hvm_or_pv")
+        hvm_or_pv = params.get("hvm_or_pv", "hvm")
         if hvm_or_pv:
             virt_install_cmd += add_hvm_or_pv(help, hvm_or_pv)
 
