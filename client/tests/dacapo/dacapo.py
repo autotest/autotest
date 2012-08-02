@@ -43,7 +43,7 @@ class dacapo(test.test):
     def run_once(self, test='antlr', config='./dacapo.cfg', jvm='default'):
         cfg = config_loader(cfg=config, tmpdir=self.tmpdir, raise_errors=True)
         self.test = test
-        cachedir = os.path.join(self.bindir, 'cache')
+        cachedir = os.path.join(os.path.dirname(self.srcdir), 'cache')
         if not os.path.isdir(cachedir):
             os.makedirs(cachedir)
 
