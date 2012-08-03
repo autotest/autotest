@@ -146,10 +146,10 @@ class LinuxVMCheck(object):
         # libvirt is a default target
         if self.target == "libvirt" or self.target is None:
             self.vm = lvirt.VM(self.name, self.params, self.test.bindir,
-                              self.env.get("address_cache"))
+                               self.env.get("address_cache"))
         elif self.target == "ovirt":
-            self.vm = ovirt.VMManager(self.name, self.params, self.test.bindir,
-                              self.env.get("address_cache"))
+            self.vm = ovirt.VMManager(self.params, self.test.bindir,
+                                      self.env.get("address_cache"))
         else:
             raise ValueError("Doesn't support %s target now" % self.target)
 
