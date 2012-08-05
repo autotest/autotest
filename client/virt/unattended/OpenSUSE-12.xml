@@ -154,6 +154,14 @@
     </yesno_messages>
   </report>
   <scripts>
+  <chroot-scripts config:type="list">
+    <script>
+      <chrooted config:type="boolean">true</chrooted>
+      <source>
+        <![CDATA[insserv autoyast]]>
+      </source>
+    </script>
+  </chroot-scripts>
     <init-scripts config:type="list">
       <script>
         <debug config:type="boolean">true</debug>
