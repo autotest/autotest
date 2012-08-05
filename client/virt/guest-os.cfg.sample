@@ -1160,7 +1160,7 @@ variants:
                             cdrom_unattended = images/opensuse-11-4-32/autoyast.iso
                             kernel = images/opensuse-11-4-32/linux
                             initrd = images/opensuse-11-4-32/initrd
-                            boot_path = boot/x86_64/loader
+                            boot_path = boot/i386/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.4-DVD-i586.iso
                             md5sum_cd1 = 5f6d6d67c3e256b2513311f4ed650515
