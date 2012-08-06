@@ -11,6 +11,7 @@ and then runs a given subset of tests against each file system.
 """
 
 import fsdev_disks
+from autotest.client import utils
 
 # Initialize the FS_LIST variable below to the desired file system list; each
 # entry should contain the following (single) string:
