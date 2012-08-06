@@ -74,6 +74,9 @@ def list_mount_points():
 
 
 def get_iosched_path(device_name, component):
+    # queue refers to an entire disk, not a single partition
+    if device_name[-1].isdigit():
+        device_name=re.sub("\d", "", device_name)
     return '/sys/block/%s/queue/%s' % (device_name, component)
 
 
