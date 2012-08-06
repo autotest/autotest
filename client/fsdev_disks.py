@@ -445,8 +445,8 @@ class fsdev_disks:
         # Save the kernel version for later
         self.kernel_ver = kver
 
-        # For now we always use 'anticipatory'
-        tune_paths = tune_files["anticipatory"]
+        # For now we always use 'cfq'
+        tune_paths = tune_files["cfq"]
 
         # Create a dictionary out of the tunables array
         self.tune_loc = {}
@@ -518,7 +518,7 @@ class fsdev_disks:
             # Set the scheduler first before setting any other tunables
             self.set_tunable(disk, "scheduler",
                                    self.tune_loc["scheduler"],
-                                   "anticipatory")
+                                   "cfq")
 
             # Now set all the tunable parameters we've been given
             for tune_desc in self.tune_list:
