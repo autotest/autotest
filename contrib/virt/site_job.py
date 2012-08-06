@@ -177,7 +177,7 @@ class site_job_create(job.job_create):
         #
         if self.command_line_options.timestamp:
             logging.debug("Adding timestamp to jobname")
-            timestamp = time.strftime(" %m-%d-%Y %H:%M:%S", time.localtime())
+            timestamp = time.strftime(" %Y-%m-%d %H:%M:%S", time.localtime())
             self.jobname += timestamp
             self.data['name'] = self.jobname
 
