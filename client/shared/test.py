@@ -47,7 +47,11 @@ class base_test(object):
         else:
             self.crash_handling_enabled = False
         self.bindir = bindir
-        autodir = os.path.abspath(os.environ['AUTODIR'])
+        try:
+            autodir = os.path.abspath(os.environ['AUTODIR'])
+        except KeyError:
+            autodir = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                     'autotest_top_path')
         tmpdir = os.path.join(autodir, 'tmp')
         output_config = GLOBAL_CONFIG.get_config_value('COMMON',
                                                        'test_output_dir',
