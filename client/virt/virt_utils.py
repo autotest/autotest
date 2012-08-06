@@ -565,7 +565,7 @@ class VirtIface(PropCan):
         """
         Convert list of string bytes to int list
         """
-        if isinstance(mac, str):
+        if isinstance(mac, (str, unicode)):
             mac = mac.split(':')
         # strip off any trailing empties
         for rindex in xrange(len(mac), 0, -1):
@@ -577,7 +577,7 @@ class VirtIface(PropCan):
             assert len(mac) < 7
             for byte_str_index in xrange(0,len(mac)):
                 byte_str = mac[byte_str_index]
-                assert isinstance(byte_str, str)
+                assert isinstance(byte_str, (str, unicode))
                 assert len(byte_str) > 0
                 try:
                     value = eval("0x%s" % byte_str, {}, {})
