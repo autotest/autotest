@@ -13,6 +13,7 @@ RewriteRule /results(.*) /var/lib/autotest/results/$1
     Options Indexes FollowSymLinks MultiViews
     Order allow,deny
     Allow from all
+    IndexHeadInsert "<img src='/afe/header.png'/><hr/>"
 </Location>
 
 <LocationMatch "/results.*\.(log|DEBUG|INFO|WARNING|ERROR)$">
