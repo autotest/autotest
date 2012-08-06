@@ -702,6 +702,8 @@ class partition(object):
         # We have to get an exclusive lock here - mount/umount are racy
         fcntl.flock(mtab.fileno(), fcntl.LOCK_EX)
         sys.stdout.flush()
+        if not os.path.isdir(mountpoint):
+            os.makedirs(mountpoint)
         try:
             utils.system(mount_cmd)
             mtab.close()
