@@ -17,9 +17,7 @@ def step_init():
     will be rebooted and then we'll proceed with step_tests.
     """
     job.next_step([step_tests])
-    testkernel = job.kernel('2.6.35')
-    # This is the default config that can be retrieved on gitweb
-    testkernel.config('http://git.kernel.org/?p=linux/kernel/git/stable/linux-2.6.35.y.git;a=blob_plain;f=arch/x86/configs/x86_64_defconfig;h=6c86acd847a4e28c09d951b34d488b13d44df3c7;hb=ea8a52f9f4bcc3420c38ae07f8378a2f18443970')
+    testkernel = job.kernel('3.4.1')
     testkernel.build()
     testkernel.install('autotest-alternate')
     job.bootloader.list_titles()

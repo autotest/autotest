@@ -68,7 +68,7 @@ def update_all(autotest_dir, add_noncompliant, add_experimental):
     @param add_experimental: add tests with experimental attribute set.
     """
     for path in [ 'server/tests', 'server/site_tests', 'client/tests',
-                  'client/site_tests']:
+                  'client/site_tests', 'client/samples']:
         test_path = os.path.join(autotest_dir, path)
         if not os.path.exists(test_path):
             continue

@@ -6,7 +6,7 @@ TEST_CLASS = "Kernel"
 TEST_CATEGORY = "Functional"
 
 DOC = """
-Runs sleeptest with differnt profilers present in the autotest tree. Also,
+Runs sleeptest with different profilers present in the autotest tree. Also,
 it shows the convenience logging methods, such as logging.info and
 logging.error.
 """

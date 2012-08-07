@@ -14,7 +14,7 @@ features such as:
    newly built kernels
  * Downloading, configuring, patching, building and booting a kernel straight
    from kernel.org.
- * Kernel expand - provide a string such as '2.6.36-git13' and have autotest to
+ * Kernel expand - provide a string such as '3.5.0-rc2' and have autotest to
    expand that and download the proper source tarballs and patches
    automatically.
  * Local kernel.org mirror - Alternate kernel.org mirror that you can set on
@@ -30,17 +30,8 @@ def step_init():
     # If you have a local/different kernel.org mirror, you can set it by
     # uncommenting the below and set the URL properly.
     #job.config_set('local_mirror', 'http://foo/bar')
-    testkernel = job.kernel('2.6.35')
-    # If you want to see kernel expansion in action, comment the above and
-    # uncomment the below. Keep in mind that after some months, it's expected
-    # that some of the patches might not exist, so you might want to edit
-    # this to satisfy your needs.
-    #testkernel = job.kernel('2.6.36-git13')
-    # You can provide a path to an uncompressed kernel source as well
-    #testkernel = job.kernel('/path/to/kernel-source')
-    testkernel.patch('http://www.kernel.org/pub/linux/kernel/v2.6/patch-2.6.35.7.bz2')
-    # This is the default config that can be retrieved on gitweb
-    testkernel.config('http://git.kernel.org/?p=linux/kernel/git/stable/linux-2.6.35.y.git;a=blob_plain;f=arch/x86/configs/x86_64_defconfig;h=6c86acd847a4e28c09d951b34d488b13d44df3c7;hb=ea8a52f9f4bcc3420c38ae07f8378a2f18443970')
+    testkernel = job.kernel('3.4.1')
+    testkernel.config()
     testkernel.build()
     testkernel.boot()
 
