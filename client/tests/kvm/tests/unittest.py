@@ -36,10 +36,18 @@ def run_unittest(test, params, env):
                               unittest_cfg)
     logging.debug('Unit test list: %s', test_list)
 
-    if params.get('test_list'):
-        test_list = params.get('test_list').split()
+    if params.get('unittest_test_list'):
+        test_list = params.get('unittest_test_list').split()
         logging.info('Original test list overriden by user')
         logging.info('User defined unit test list: %s', test_list)
+
+    black_list = params.get('unittest_test_blacklist', '').split()
+    if black_list:
+        for b in black_list:
+            if b in test_list:
+                test_list.remove(b)
+        logging.info('Tests blacklisted by user: %s', black_list)
+        logging.info('Test list after blacklist: %s', test_list)
 
     nfail = 0
     tests_failed = []
