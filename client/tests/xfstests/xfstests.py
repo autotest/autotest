@@ -10,6 +10,7 @@ class xfstests(test.test):
     FAILED_RE = re.compile(r'Failed \d+ of \d+ tests')
     NA_RE = re.compile(r'Passed all 0 tests')
     NA_DETAIL_RE = re.compile(r'(\d{3})\s*(\[not run\])\s*(.*)')
+    GROUP_TEST_LINE_RE = re.compile('(\d{3})\s(.*)')
 
     def _get_available_tests(self):
         tests = glob.glob('???.out')
@@ -49,6 +50,39 @@ class xfstests(test.test):
                                   'assuming failure. Please check debug logs')
 
 
+    def _get_groups(self):
+        '''
+        Returns the list of groups known to xfstests
+
+        By reading the group file and identifying unique mentions of groups
+        '''
+        groups = []
+        for l in open(os.path.join(self.srcdir, 'group')).readlines():
+            m = self.GROUP_TEST_LINE_RE.match(l)
+            if m is not None:
+                groups = m.groups()[1].split()
+                for g in groups:
+                    if g not in groups:
+                        groups.add(g)
+        return groups
+
+
+    def _get_tests_for_group(self, group):
+        '''
+        Returns the list of tests that belong to a certain test group
+        '''
+        tests = []
+        for l in open(os.path.join(self.srcdir, 'group')).readlines():
+            m = self.GROUP_TEST_LINE_RE.match(l)
+            if m is not None:
+                test = m.groups()[0]
+                groups = m.groups()[1]
+                if group in groups.split():
+                    if test not in tests:
+                        tests.append(test)
+        return tests
+
+
     def setup(self, tarball='xfstests.tar.bz2'):
         '''
         Sets up the environment necessary for running xfstests
@@ -79,7 +113,7 @@ class xfstests(test.test):
                       ", ".join(self._get_available_tests()))
 
 
-    def run_once(self, test_number):
+    def run_once(self, test_number, skip_dangerous=True):
         os.chdir(self.srcdir)
         if test_number == '000':
             logging.debug('Dummy test to setup xfstests')
@@ -87,6 +121,10 @@ class xfstests(test.test):
 
         if test_number not in self._get_available_tests():
             raise error.TestError('test file %s not found' % test_number)
+
+        if skip_dangerous:
+            if test_number in self._get_tests_for_group('dangerous'):
+                raise error.TestNAError('test is dangerous, skipped')
 
         logging.debug("Running test: %s" % test_number)
         self._run_sub_test(test_number)
