@@ -2590,13 +2590,14 @@ variants:
         # Specify the boot device name which you want to test here.
         boot_device = "iPXE"
 
+    - fail-test:
+        type = fail
+
     - shutdown: install setup image_copy unattended_install.cdrom
         type = shutdown
         shutdown_method = shell
         kill_vm = yes
         kill_vm_gracefully = no
-
-    # Do not define test variants below shutdown
 
     - remove_guest: install setup image_copy unattended_install.cdrom
         type = remove_guest
@@ -2612,8 +2613,7 @@ variants:
             - with_disk:
                 remove_image = yes
 
-    - fail-test:
-        type = fail
+    # Do not define test variants below remove_guest
 
 whql.support_vm_install, whql.client_install.support_vm:
     image_name += -supportvm
