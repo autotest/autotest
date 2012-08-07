@@ -244,6 +244,7 @@ restore_image_on_check_error = no
 
 # Some preprocessor/postprocessor params
 start_vm = yes
+paused_after_start_vm = no
 kill_vm = no
 kill_vm_gracefully = yes
 kill_unresponsive_vms = yes

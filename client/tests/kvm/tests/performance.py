@@ -189,9 +189,10 @@ def ffsb_sum(topdir, prefix, params, guest_ver, resultsdir):
 #desc#
 """
     fd.write(desc)
-    fd.write("SUM\n   None|    MBps|      Hostcpu|MBps/Hostcpu%\n")
+    fd.write("Category:SUM\n   None|    MBps|      Hostcpu|MBps/Hostcpu%\n")
     fd.write("      0|%8.2f|%13.2f|%8.2f\n" % (sum_thro, sum_hostcpu,
                                                (sum_thro/sum_hostcpu)))
+    fd.write("Category:ALL\n")
     idx = 0
     for i in range(len(matrix)):
         if i % 3 == 0:

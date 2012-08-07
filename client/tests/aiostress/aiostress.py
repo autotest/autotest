@@ -20,7 +20,6 @@ class aiostress(test.test):
         os.mkdir(self.srcdir)
         os.chdir(self.srcdir)
         utils.system('cp ' + self.bindir+'/aio-stress.c .')
-        os.chdir(self.srcdir)
         self.gcc_flags += ' -Wall -lpthread -laio'
         cmd = 'gcc ' + self.gcc_flags + ' aio-stress.c -o aio-stress'
         utils.system(cmd)

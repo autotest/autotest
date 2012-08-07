@@ -30,6 +30,8 @@ except ImportError:
 from autotest.client.shared import utils, error, logging_config
 from autotest.client.shared import logging_manager
 
+# Hostname of patchwork server to use
+PWHOST = "patchwork.virt.bos.redhat.com"
 
 class CheckPatchLoggingConfig(logging_config.LoggingConfig):
     def configure_logging(self, results_dir=None, verbose=False):
@@ -508,10 +510,15 @@ class FileChecker(object):
 
 
 class PatchChecker(object):
-    def __init__(self, patch=None, patchwork_id=None, github_id=None, vcs=None,
+    def __init__(self, patch=None, patchwork_id=None, github_id=None,
+                 pwhost=None, vcs=None,
                  confirm=False):
         self.confirm = confirm
         self.base_dir = os.getcwd()
+        if pwhost is None:
+            self.pwhost = PWHOST
+        else:
+            self.pwhost = pwhost
 
         if patch:
             self.patch = os.path.abspath(patch)
@@ -551,7 +558,7 @@ class PatchChecker(object):
 
         @param id: Patchwork patch id.
         """
-        patch_url = "http://patchwork.test.kernel.org/patch/%s/mbox/" % id
+        patch_url = "http://%s/patch/%s/mbox/" % (self.pwhost, id)
         patch_dest = os.path.join(self.base_dir, 'patchwork-%s.patch' % id)
         patch = utils.get_file(patch_url, patch_dest)
         # Patchwork sometimes puts garbage on the path, such as long
@@ -638,6 +645,8 @@ if __name__ == "__main__":
     parser.add_option('-f', '--full-check', dest="full_check",
                       action='store_true',
                       help='check the full tree for corrective actions')
+    parser.add_option('--patchwork-host', dest="patchwork_host",
+                      help='patchwork custom server url')
     parser.add_option('-y', '--yes', dest="confirm",
                       action='store_true',
                       help='Answer yes to all questions')
@@ -649,6 +658,7 @@ if __name__ == "__main__":
     debug = options.debug
     full_check = options.full_check
     confirm = options.confirm
+    pwhost = options.patchwork_host
     vcs = VCS()
     if vcs.backend is None:
         vcs = None
@@ -684,7 +694,8 @@ if __name__ == "__main__":
         elif id:
             logging.info("Checking patchwork patch #%s", id)
             logging.info("")
-            patch_checker = PatchChecker(patchwork_id=id, vcs=vcs,
+            patch_checker = PatchChecker(patchwork_id=id, pwhost=pwhost,
+                                         vcs=vcs,
                                          confirm=confirm)
         elif gh_id:
             logging.info("Checking github pull request #%s", gh_id)

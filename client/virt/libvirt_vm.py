@@ -116,6 +116,59 @@ def virsh_cmd(cmd, uri="", ignore_status=False, print_info=False):
     return ret
 
 
+def virsh_domname(id, uri="", ignore_status=False, print_info=False):
+    """
+    Convert a domain id or UUID to domain name
+
+    @param id: a domain id or UUID.
+    """
+    return virsh_cmd("domname --domain %s" % id, uri,
+                                ignore_status, print_info)
+
+
+def virsh_qemu_monitor_command(domname, command, uri="",
+                               ignore_status=False, print_info=False):
+    """
+    This helps to execute the qemu monitor command through virsh command.
+    """
+
+    cmd_qemu_monitor = "qemu-monitor-command %s --hmp \'%s\'" % (domname, command)
+    return virsh_cmd(cmd_qemu_monitor, uri, ignore_status, print_info)
+
+
+def virsh_vcpupin(domname, vcpu, cpu, uri="",
+                  ignore_status=False, print_info=False):
+    """
+    Changes the cpu affinity for respective vcpu.
+    """
+
+    try:
+        cmd_vcpupin = "vcpupin %s %s %s" % (domname, vcpu, cpu)
+        virsh_cmd(cmd_vcpupin, uri, ignore_status, print_info)
+
+    except error.CmdError, detail:
+        logging.error("Virsh vcpupin VM %s failed:\n%s", domname, detail)
+        return False
+
+
+def virsh_vcpuinfo(domname, uri="", ignore_status=False, print_info=False):
+    """
+    Prints the vcpuinfo of a given domain.
+    """
+
+    cmd_vcpuinfo = "vcpuinfo %s" % domname
+    return virsh_cmd(cmd_vcpuinfo, uri, ignore_status, print_info).stdout.strip()
+
+
+def virsh_vcpucount_live(domname, uri="", ignore_status=False, print_info=False):
+    """
+    Prints the vcpucount of a given domain.
+    """
+
+    cmd_vcpucount = "vcpucount --live --active %s" % domname
+    return virsh_cmd(cmd_vcpucount, uri, ignore_status, print_info).stdout.strip()
+
+
 def virsh_freecell(uri = "", ignore_status=False, extra = ""):
     """
     Prints the available amount of memory on the machine or within a NUMA cell.
@@ -517,6 +570,33 @@ def virsh_detach_interface(name, option="", uri="", ignore_status=False, print_i
     if option:
         cmd += " %s" % option
 
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
+def virsh_net_create(xml_file, extra="", uri="",
+                     ignore_status=False, print_info=False):
+    """
+    Create network from a XML file.
+    """
+    cmd = "net-create --file %s %s" % (xml_file, extra)
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
+def virsh_net_list(options, extra="", uri="",
+                   ignore_status=False, print_info=False):
+    """
+    List networks on host.
+    """
+    cmd = "net-list %s %s" % (options, extra)
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
+def virsh_net_destroy(name, extra="", uri="",
+                      ignore_status=False, print_info=False):
+    """
+    Destroy actived network on host.
+    """
+    cmd = "net-destroy --network %s %s" % (name, extra)
     return virsh_cmd(cmd, uri, ignore_status, print_info)
 
 
@@ -959,7 +1039,7 @@ class VM(virt_vm.BaseVM):
         virt_install_cmd += add_connect_uri(help, self.connect_uri)
 
         # hvm or pv specificed by libvirt switch (pv used  by Xen only)
-        hvm_or_pv = params.get("hvm_or_pv")
+        hvm_or_pv = params.get("hvm_or_pv", "hvm")
         if hvm_or_pv:
             virt_install_cmd += add_hvm_or_pv(help, hvm_or_pv)
 
@@ -1537,6 +1617,19 @@ class VM(virt_vm.BaseVM):
         return pid
 
 
+    def get_vcpus_pid(self):
+        """
+        Return the vcpu's pid for a given VM.
+
+        @return: list of PID of vcpus of a VM.
+        """
+
+        vcpu_pids = []
+        output = virsh_qemu_monitor_command(self.name, "info cpus")
+        vcpu_pids = re.findall(r'thread_id=(\d+)', output.stdout)
+        return vcpu_pids
+
+
     def get_shell_pid(self):
         """
         Return the PID of the parent shell process.
@@ -1719,3 +1812,10 @@ class VM(virt_vm.BaseVM):
         Override BaseVM restore_from_file method
         """
         virsh_restore(self.name, path, uri=self.connect_uri)
+
+
+    def vcpupin(self, vcpu, cpu):
+        """
+        To pin vcpu to cpu
+        """
+        virsh_vcpupin(self.name, vcpu, cpu)

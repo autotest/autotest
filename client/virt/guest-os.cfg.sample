@@ -982,7 +982,7 @@ variants:
                             kernel = images/rhel63-32/vmlinuz
                             initrd = images/rhel63-32/initrd.img
                         unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL6.3-i386-DVD.iso
+                            cdrom_cd1 = isos/linux/RHEL-6.3-i386-DVD.iso
                             md5sum_cd1 = edd93cda6935bcf04c3381446764eb26
                             md5sum_1m_cd1 = e97d4ff920c82bff61ada4b1b9f183eb
 
@@ -1001,7 +1001,7 @@ variants:
                             kernel = images/rhel63-64/vmlinuz
                             initrd = images/rhel63-64/initrd.img
                         unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/RHEL6.3-x86_64-DVD.iso
+                            cdrom_cd1 = isos/linux/RHEL-6.3-x86_64-DVD.iso
                             md5sum_cd1 = d717af33dd258945e6304f9955487017
                             md5sum_1m_cd1 = 006ea6571a6431234a1313d1c3c6e70e
 
@@ -1160,7 +1160,7 @@ variants:
                             cdrom_unattended = images/opensuse-11-4-32/autoyast.iso
                             kernel = images/opensuse-11-4-32/linux
                             initrd = images/opensuse-11-4-32/initrd
-                            boot_path = boot/x86_64/loader
+                            boot_path = boot/i386/loader
                         unattended_install.cdrom:
                             cdrom_cd1 = isos/linux/openSUSE-11.4-DVD-i586.iso
                             md5sum_cd1 = 5f6d6d67c3e256b2513311f4ed650515
@@ -1179,6 +1179,37 @@ variants:
                             cdrom_cd1 = isos/linux/openSUSE-11.4-DVD-x86_64.iso
                             md5sum_cd1 = 082ebfac494b41cd56b38fb4218c545d
                             md5sum_1m_cd1 = 2adcc5623e6c50b5d08acb7f84aa3fb1
+
+                    - 12.1.32:
+                        image_name = openSUSE-12.1-32
+                        unattended_install:
+                            unattended_file = unattended/OpenSUSE-12.xml
+                            #floppies = "fl"
+                            #floppy_name = images/opensuse-12-1-32/autoyast.vfd
+                            cdrom_unattended = images/opensuse-12-1-32/autoyast.iso
+                            kernel = images/opensuse-12-1-32/linux
+                            initrd = images/opensuse-12-1-32/initrd
+                            boot_path = boot/i386/loader
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/openSUSE-12.1-DVD-i586.iso
+                            md5sum_cd1 = ewew22b4d6bfdb11f5bdd36a05f9968a780c
+                            md5sum_1m_cd1 = 17013a2e8dcaea45505955c157d6b5b4
+
+                    - 12.1.64:
+                        image_name = openSUSE-12.1-64
+                        unattended_install:
+                            unattended_file = unattended/OpenSUSE-12.xml
+                            #floppies = "fl"
+                            #floppy_name = images/opensuse-12-1-64/autoyast.vfd
+                            cdrom_unattended = images/opensuse-12-1-64/autoyast.iso
+                            kernel = images/opensuse-12-1-64/linux
+                            initrd = images/opensuse-12-1-64/initrd
+                            boot_path = boot/x86_64/loader
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/openSUSE-12.1-DVD-x86_64.iso
+                            md5sum_cd1 = 4cfe8229111ef723ae7aa541fd2c87b7
+                            md5sum_1m_cd1 = ec21b641c5f024b758169324d6c634ee
+
 
             - SLES:
                 shell_prompt = "^root@.*[\#\$]\s*$|#"
@@ -1286,6 +1317,37 @@ variants:
                             cdrom_cd1 = isos/linux/SLES-11-SP1-DVD-x86_64-GM-DVD1.iso
                             md5sum_cd1 = d2e10420f3689faa49a004b60fb396b7
                             md5sum_1m_cd1 = f7f67b5da46923a9f01da8a2b6909654
+
+                   - 11.2.32:
+                        image_name = sles11sp2-32
+                        unattended_install:
+                            unattended_file = unattended/SLES-11-SP2.xml
+                            #floppies = "fl"
+                            #floppy_name = images/sles-11-2-32/autoyast.vfd
+                            cdrom_unattended = images/sles-11-2-32/autoyast.iso
+                            kernel = images/sles-11-2-32/linux
+                            initrd = images/sles-11-2-32/initrd
+                            boot_path = boot/i386/loader
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/SLES-11-SP2-DVD-i586-GM-DVD1.iso
+                            md5sum_cd1 = a0b34f6237b2b2a6b2174c82b40ed326 
+                            md5sum_1m_cd1 = e5a629f311cdfa7477880e7349a1f00d 
+
+                   - 11.2.64:
+                        image_name = sles11sp2-64
+                        unattended_install:
+                            unattended_file = unattended/SLES-11-SP2.xml
+                            #floppies = "fl"
+                            #floppy_name = images/sles-11-2-64/autoyast.vfd
+                            cdrom_unattended = images/sles-11-2-64/autoyast.iso
+                            kernel = images/sles-11-2-64/linux
+                            initrd = images/sles-11-2-64/initrd
+                            boot_path = boot/x86_64/loader
+                        unattended_install.cdrom:
+                            cdrom_cd1 = isos/linux/SLES-11-SP2-DVD-x86_64-GM-DVD1.iso
+                            md5sum_cd1 = 461d82ae6e15062b0807c1338f040497 
+                            md5sum_1m_cd1 = 2ad34f9d84267e732929ea977c5be47e
+
 
             - Ubuntu:
                 shell_prompt = "^root@.*[\#\$]\s*$"

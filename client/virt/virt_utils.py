@@ -565,7 +565,7 @@ class VirtIface(PropCan):
         """
         Convert list of string bytes to int list
         """
-        if isinstance(mac, str):
+        if isinstance(mac, (str, unicode)):
             mac = mac.split(':')
         # strip off any trailing empties
         for rindex in xrange(len(mac), 0, -1):
@@ -577,7 +577,7 @@ class VirtIface(PropCan):
             assert len(mac) < 7
             for byte_str_index in xrange(0,len(mac)):
                 byte_str = mac[byte_str_index]
-                assert isinstance(byte_str, str)
+                assert isinstance(byte_str, (str, unicode))
                 assert len(byte_str) > 0
                 try:
                     value = eval("0x%s" % byte_str, {}, {})
@@ -2600,7 +2600,8 @@ class KojiPkgSpec(object):
         Describes why this is not valid, in a human friendly way
         '''
         if self._is_invalid_neither_tag_or_build():
-            return 'neither a tag or build are set, and of them should be set'
+            return ('neither a tag nor a build were set, one of them '
+                    'must be set')
         elif self._is_invalid_package_but_no_tag():
             return 'package name specified but no tag is set'
         elif self._is_invalid_subpackages_but_no_main_package():

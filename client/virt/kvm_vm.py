@@ -1030,7 +1030,8 @@ class VM(virt_vm.BaseVM):
                     raise virt_vm.VMError("cfg: drive_bus have to be an "
                                           "integer. (%s)" % image_name)
                 for i in range(len(virtio_scsi_pcis), bus + 1):
-                    qemu_cmd += " -device virtio-scsi-pci,id=virtio_scsi_pci%d" % i
+                    hba = params.get("scsi_hba", "virtio-scsi-pci");
+                    qemu_cmd += " -device %s,id=virtio_scsi_pci%d" % (hba, i)
                     virtio_scsi_pcis.append("virtio_scsi_pci%d" % i)
 
             qemu_cmd += add_drive(help,

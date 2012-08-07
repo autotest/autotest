@@ -212,6 +212,9 @@ variants:
                 status_error = "yes"
                 libvirtd = "off"
 
+    - virsh_vcpupin: install setup image_copy unattended_install.cdrom
+        type = virsh_vcpupin
+
     - virsh_version: install setup image_copy unattended_install.cdrom
         type = virsh_version
         vms = ''
@@ -306,6 +309,57 @@ variants:
             - libvirtoff:
                 libvirtd = "off"
                 status_error = "yes"
+
+    - virsh_domname:
+        type = virsh_domname
+        kill_vm = yes
+        kill_vm_on_error = yes
+        options = "%s"
+        options_suffix = ""
+        variants:
+            - with_valid_option:
+                status_error = "no"
+                # status_error means the correctness of the options
+                variants:
+                    - domid:
+                        options_ref = "id"
+                    - uuid:
+                        options_ref = "uuid"
+            - with_invalid_option:
+                status_error = "yes"
+                variants:
+                    - none:
+                        options_ref = ""
+                    - hex_domid:
+                        options_ref = "id"
+                        options = "%x"
+                    - invalid_domid:
+                        options_ref = "9999"
+                    - invalid_uuid:
+                        options_ref = "99999999-9999-9999-9999-999999999999"
+                    - addition_invalid_param:
+                        options_ref = "id"
+                        options_suffix = "xyz"
+                    - vm_name:
+                        options_ref = "name"
+        variants:
+            - vm_state:
+                variants:
+                    - vm_running:
+                        addition_status_error = "no"
+                        start_vm = "yes"
+                    - vm_paused:
+                        addition_status_error = "no"
+                        paused_after_start_vm = "yes"
+                    - vm_shut_off:
+                        addition_status_error = "yes"
+                        start_vm = "no"
+            - with_libvirtd_stop:
+                only with_valid_option
+                # addition_status_error means the correctness of the operation.
+                # only when the two status_error are ok, the result will be ok.
+                addition_status_error = "yes"
+                libvirtd = "off"
 
     - module_probe:
         type = module_probe
@@ -1727,7 +1781,7 @@ variants:
         vio_driver_chk_cmd = ""
         mem_chk_re_str = ([0-9]+)
         cpu_cores_chk_cmd = "lscpu | grep '^Core'"
-        cpu_sockets_chk_cmd = "lscpu | grep '^Socket'"
+        cpu_sockets_chk_cmd = "lscpu | grep -E '(^Socket|^CPU socket)'"
         cpu_threads_chk_cmd = "lscpu | grep '^Thread'"
         chk_timeout = 240
 
@@ -2536,13 +2590,21 @@ variants:
         # Specify the boot device name which you want to test here.
         boot_device = "iPXE"
 
+    - fail-test:
+        type = fail
+
     - shutdown: install setup image_copy unattended_install.cdrom
         type = shutdown
         shutdown_method = shell
         kill_vm = yes
         kill_vm_gracefully = no
 
-    # Do not define test variants below shutdown
+    - guest_agent: install setup image_copy unattended_install.cdrom
+        only Fedora.16, Fedora.17
+        type = guest_agent
+        virtio_ports += "org.qemu.guest_agent.0"
+        virtio_port_type_org.qemu.guest_agent.0 = "serialport"
+        gagent_install_cmd = "yum install -y qemu-guest-agent && service qemu-guest-agent start"
 
     - remove_guest: install setup image_copy unattended_install.cdrom
         type = remove_guest
@@ -2558,8 +2620,7 @@ variants:
             - with_disk:
                 remove_image = yes
 
-    - fail-test:
-        type = fail
+    # Do not define test variants below remove_guest
 
 whql.support_vm_install, whql.client_install.support_vm:
     image_name += -supportvm

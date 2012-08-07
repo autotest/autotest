@@ -16,6 +16,8 @@ def run_unittest_kvmctl(test, params, env):
     case = params.get("case")
     srcdir = params.get("srcdir", test.srcdir)
     unit_dir = os.path.join(srcdir, "kvm_userspace", "kvm", "user")
+    if not os.path.isdir(unit_dir):
+        os.makedirs(unit_dir)
     os.chdir(unit_dir)
 
     cmd = "./kvmctl test/x86/bootstrap test/x86/%s.flat" % case

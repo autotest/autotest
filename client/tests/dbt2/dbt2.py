@@ -1,4 +1,4 @@
-import os
+import os, shutil
 from autotest.client import test, utils
 
 
@@ -16,6 +16,9 @@ class dbt2(test.test):
     def setup(self, tarball = 'dbt2-0.39.tar.bz2'):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
+        profile_src = os.path.join(self.bindir, 'pgpool.conf')
+        profile_dst = os.path.join(os.path.dirname(self.srcdir), 'pgpool.conf')
+        shutil.copyfile(profile_src, profile_dst)
         self.job.setup_dep(['pgsql', 'pgpool', 'mysql'])
 
         #

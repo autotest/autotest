@@ -14,7 +14,7 @@ class dma_memtest(test.test):
     """
     version = 1
     def initialize(self):
-        self.cachedir = os.path.join(self.bindir, 'cache')
+        self.cachedir = os.path.join(os.path.dirname(self.srcdir), 'cache')
         self.nfail = 0
 
 

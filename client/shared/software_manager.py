@@ -111,6 +111,8 @@ class SoftwareManager(object):
     uses the concept of a backend, a helper class that implements the set of
     operations of a given package management tool.
     """
+    initialized = False
+
     def __init__(self):
         """
         Lazily instantiate the object
