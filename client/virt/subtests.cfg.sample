@@ -2599,6 +2599,13 @@ variants:
         kill_vm = yes
         kill_vm_gracefully = no
 
+    - guest_agent: install setup image_copy unattended_install.cdrom
+        only Fedora.16, Fedora.17
+        type = guest_agent
+        virtio_ports += "org.qemu.guest_agent.0"
+        virtio_port_type_org.qemu.guest_agent.0 = "serialport"
+        gagent_install_cmd = "yum install -y qemu-guest-agent && service qemu-guest-agent start"
+
     - remove_guest: install setup image_copy unattended_install.cdrom
         type = remove_guest
         shutdown_method = shell
