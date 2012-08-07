@@ -76,6 +76,8 @@ variants:
         extra_params += " -S"
         # In case you want to execute only a subset of the tests defined on the
         # unittests.cfg file on qemu-kvm, uncomment and edit test_list
-        #test_list = idt_test hypercall vmexit realmode
+        #unittest_test_list = idt_test hypercall vmexit realmode
+        # In case you want to excluse just some of the tests, use a blacklist
+        #unittest_test_blacklist = access apic emulator
 
 only build unittest
