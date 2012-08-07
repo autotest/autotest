@@ -4,10 +4,12 @@ NAME = 'xfs filesystem test suite'
 TEST_CLASS = 'kernel'
 TEST_CATEGORY = 'Functional'
 TEST_TYPE = 'client'
-PKG_DEPS = {'Fedora' : ['autoconf', 'libtool', 'gcc', 'xfsprogs', 'xfsdump',
-                        'xfsprogs-devel', 'xfsprogs-qa-devel', 'libuuid-devel',
-                        'libacl-devel', 'libattr-devel', 'util-linux',
-                        'kpartx']}
+FEDORA_REDHAT_PKGS = ['autoconf', 'libtool', 'make', 'gcc', 'xfsprogs',
+                      'xfsdump', 'xfsprogs-devel', 'xfsprogs-qa-devel',
+                      'libuuid-devel', 'libacl-devel', 'libattr-devel',
+                      'util-linux', 'kpartx']
+PKG_DEPS = {'Fedora' : FEDORA_REDHAT_PKGS,
+            'Red Hat' : FEDORA_REDHAT_PKGS}
 DOC = """
 xfstests in autotest
 --------------------
@@ -69,14 +71,14 @@ from autotest.client import partition
 # Install package dependencies if your distro is present in PKG_DEPS
 distro = utils.get_os_vendor()
 if PKG_DEPS.has_key(distro):
-    deps = self.SW_DEPS.get(distro, None)
+    deps = PKG_DEPS.get(distro, None)
     real_deps = []
     if deps is not None:
         s = software_manager.SoftwareManager()
         for d in deps:
             if not s.check_installed(d):
-                reals_deps.append(d)
-    if reals_deps:
+                real_deps.append(d)
+    if real_deps:
         real_deps_text = ' '.join(real_deps)
         logging.info('Installing xfstests dependency "%s"', real_deps_text)
         s.install(real_deps_text)
