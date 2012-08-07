@@ -11,11 +11,6 @@ class xfstests(test.test):
     NA_RE = re.compile(r'Passed all 0 tests')
     NA_DETAIL_RE = re.compile(r'(\d{3})\s*(\[not run\])\s*(.*)')
 
-    SW_DEPS = {'Fedora' : ['autoconf', 'libtool', 'gcc', 'xfsprogs', 'xfsdump',
-                           'xfsprogs-devel', 'xfsprogs-qa-devel',
-                           'libuuid-devel', 'libacl-devel',
-                           'libattr-devel']}
-
     def _get_available_tests(self):
         tests = glob.glob('???.out')
         tests += glob.glob('???.out.linux')
@@ -54,35 +49,10 @@ class xfstests(test.test):
                                   'assuming failure. Please check debug logs')
 
 
-    def _distro_has_deps_annotated(self):
-        '''
-        Checks if the current distro has a list of package dependencies
-        '''
-        distro = utils.get_os_vendor()
-        return self.SW_DEPS.has_key(distro)
-
-
-    def _install_software_deps(self):
-        '''
-        Install the software dependecies for the detected distro
-        '''
-        distro = utils.get_os_vendor()
-        deps = self.SW_DEPS.get(distro, None)
-        if deps is not None:
-            s = software_manager.SoftwareManager()
-            for d in deps:
-                if not s.check_installed(d):
-                    logging.info('Installing xfstests dependency "%s"', d)
-                    s.install(d)
-
-
-    def setup(self, tarball='xfstests.tar.bz2', use_package_manager=True):
+    def setup(self, tarball='xfstests.tar.bz2'):
         '''
         Sets up the environment necessary for running xfstests
         '''
-        if use_package_manager and self._distro_has_deps_annotated():
-            self._install_software_deps()
-
         #
         # Anticipate failures due to missing devel tools, libraries, headers
         # and xfs commands
