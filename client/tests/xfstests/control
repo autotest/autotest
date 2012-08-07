@@ -121,7 +121,7 @@ os.environ['TEST_DIR'] = p.mountpoint
 #
 # Adapt to the list of tests you want to run
 #
-TEST_RANGE = ['%03i' % t for t in range(0, 256)]
+TEST_RANGE = ['%03i' % t for t in range(0, 287)]
 #
 # Choose the filesystem types you want the tests to run on
 #
