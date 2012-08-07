@@ -310,25 +310,28 @@ class test_job_directory(unittest.TestCase):
 
 
     def test_fails_if_writable_and_no_permission_to_create(self):
-        os.mkdir('testing8', 0555)
-        self.assert_(os.path.isdir('testing8'))
-        self.assertRaises(base_job.job_directory.UncreatableDirectoryException,
-                          base_job.job_directory, 'testing8/subdir', True)
+        if os.getuid() != 0:
+            os.mkdir('testing8', 0555)
+            self.assert_(os.path.isdir('testing8'))
+            self.assertRaises(base_job.job_directory.UncreatableDirectoryException,
+                              base_job.job_directory, 'testing8/subdir', True)
 
 
     def test_passes_if_not_is_writable_and_dir_not_writable(self):
-        os.mkdir('testing9', 0555)
-        self.assert_(os.path.isdir('testing9'))
-        self.assert_(not os.access('testing9', os.W_OK))
-        jd = base_job.job_directory('testing9')
+        if os.getuid() != 0:
+            os.mkdir('testing9', 0555)
+            self.assert_(os.path.isdir('testing9'))
+            self.assert_(not os.access('testing9', os.W_OK))
+            jd = base_job.job_directory('testing9')
 
 
     def test_fails_if_is_writable_but_dir_not_writable(self):
-        os.mkdir('testing10', 0555)
-        self.assert_(os.path.isdir('testing10'))
-        self.assert_(not os.access('testing10', os.W_OK))
-        self.assertRaises(base_job.job_directory.UnwritableDirectoryException,
-                          base_job.job_directory, 'testing10', True)
+        if os.getuid() != 0:
+            os.mkdir('testing10', 0555)
+            self.assert_(os.path.isdir('testing10'))
+            self.assert_(not os.access('testing10', os.W_OK))
+            self.assertRaises(base_job.job_directory.UnwritableDirectoryException,
+                              base_job.job_directory, 'testing10', True)
 
 
     def test_fails_if_no_path_and_not_writable(self):
@@ -1396,12 +1399,13 @@ class test_make_outputdir(unittest.TestCase):
 
 
     def test_raises_test_error_if_outputdir_uncreatable(self):
-        os.chmod(self.resultdir, stat.S_IRUSR | stat.S_IXUSR)
-        self.assert_(not os.path.exists('subdir2'))
-        self.assertRaises(OSError, os.mkdir, 'subdir2')
-        self.assertRaises(error.TestError, self.job._make_test_outputdir,
-                          'subdir2')
-        self.assert_(not os.path.exists('subdir2'))
+        if os.getuid() != 0:
+            os.chmod(self.resultdir, stat.S_IRUSR | stat.S_IXUSR)
+            self.assert_(not os.path.exists('subdir2'))
+            self.assertRaises(OSError, os.mkdir, 'subdir2')
+            self.assertRaises(error.TestError, self.job._make_test_outputdir,
+                              'subdir2')
+            self.assert_(not os.path.exists('subdir2'))
 
 
     def test_creates_writable_directory(self):
