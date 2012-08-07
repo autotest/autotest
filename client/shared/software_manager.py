@@ -722,6 +722,40 @@ class AptBackend(DpkgBackend):
             return None
 
 
+def install_distro_packages(distro_pkg_map):
+    '''
+    Installs packages for the currently running distribution
+
+    This utility function checks if the currently running distro is a
+    key in the distro_pkg_map dictionary, and if there is a list of packages
+    set as its value.
+
+    If these conditions match, the packages will be installed using the
+    software manager interface, thus the native packaging system if the
+    currenlty running distro.
+
+    @type disto_pkg_map: dict
+    @param distro_pkg_map: mapping of distro name, as returned by
+        utils.get_os_vendor(), to a list of package names
+    @returns: True if any packages were actually installed, False otherwise
+    '''
+    result = False
+    distro = utils.get_os_vendor()
+    if distro_pkg_map.has_key(distro):
+        pkgs = distro_pkg_map.get(distro, None)
+        needed_pkgs = []
+        if pkgs is not None:
+            s = SoftwareManager()
+            for p in pkgs:
+                if not s.check_installed(p):
+                    needed_pkgs.append(p)
+        if needed_pkgs:
+            text = ' '.join(needed_pkgs)
+            logging.info('Installing packages "%s"', text)
+            result = s.install(text)
+    return result
+
+
 if __name__ == '__main__':
     parser = optparse.OptionParser(
     "usage: %prog [install|remove|check-installed|list-all|list-files|add-repo|"
