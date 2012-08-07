@@ -1781,7 +1781,7 @@ variants:
         vio_driver_chk_cmd = ""
         mem_chk_re_str = ([0-9]+)
         cpu_cores_chk_cmd = "lscpu | grep '^Core'"
-        cpu_sockets_chk_cmd = "lscpu | grep '^Socket'"
+        cpu_sockets_chk_cmd = "lscpu | grep -E '(^Socket|^CPU socket)'"
         cpu_threads_chk_cmd = "lscpu | grep '^Thread'"
         chk_timeout = 240
 
