@@ -32,21 +32,6 @@ from autotest.client.shared import logging_config, logging_manager
 SUPPORTED_PACKAGE_MANAGERS = ['apt-get', 'yum', 'zypper']
 
 
-def generate_random_string(length):
-    """
-    Return a random string using alphanumeric characters.
-
-    @length: Length of the string that will be generated.
-    """
-    r = random.SystemRandom()
-    str = ""
-    chars = string.letters + string.digits
-    while length > 0:
-        str += r.choice(chars)
-        length -= 1
-    return str
-
-
 class SoftwareManagerLoggingConfig(logging_config.LoggingConfig):
     """
     Used with the sole purpose of providing convenient logging setup
@@ -396,7 +381,8 @@ class YumBackend(RpmBackend):
 
         # Didn't find it, let's set it up
         while True:
-            section_name = 'software_manager' + '_' + generate_random_string(4)
+            section_name = 'software_manager' + '_'
+            section_name += utils.generate_random_string(4)
             if not self.cfgparser.has_section(section_name):
                 break
         self.cfgparser.add_section(section_name)
