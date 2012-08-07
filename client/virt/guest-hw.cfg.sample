@@ -71,6 +71,11 @@ variants:
         # NOTE:  scsi-block and scsi-generic are pass-through physical dev only
         drive_format=scsi-hd
         cd_format=scsi-cd
+        scsi_hba=virtio-scsi-pci
+    - lsi_scsi:
+        drive_format=scsi-hd
+        cd_format=scsi-cd
+        scsi_hba=lsi53c895a
     - ahci:
         drive_format=ahci
         cd_format=ahci
