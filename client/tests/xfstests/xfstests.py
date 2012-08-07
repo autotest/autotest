@@ -4,7 +4,7 @@ from autotest.client import test, utils, os_dep
 
 class xfstests(test.test):
 
-    version = 1
+    version = 2
 
     PASSED_RE = re.compile(r'Passed all \d+ tests')
     FAILED_RE = re.compile(r'Failed \d+ of \d+ tests')
