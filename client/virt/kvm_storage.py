@@ -344,3 +344,43 @@ class QemuImg(virt_storage.QemuImg):
             elif not image_is_qcow2:
                 logging.debug("Image file %s not qcow2, skipping check",
                               image_filename)
+
+
+class Iscsidev(virt_storage.Iscsidev):
+    """
+    Class for handle iscsi devices for VM
+    """
+    def __init__(self, params, root_dir, tag):
+        """
+        Init the default value for image object.
+
+        @param params: Dictionary containing the test parameters.
+        @param root_dir: Base directory for relative filenames.
+        @param tag: Image tag defined in parameter images
+        """
+        super(Iscsidev, self).__init__(self, params, root_dir, tag)
+
+
+    def setup(self):
+        """
+        Access the iscsi target. And return the local raw device name.
+        """
+        self.iscsidevice.login()
+        device_name = self.iscsidevice.get_device_name()
+        if self.device_id:
+            device_name += self.device_id
+        return device_name
+
+
+    def cleanup(self):
+        """
+        Logout the iscsi target and clean up the config and image.
+        """
+        if self.cleanup:
+            self.iscsidevice.cleanup()
+            if self.emulated_file_remove:
+                logging.debug("Removing file %s", self.emulated_image)
+                if os.path.exists(self.emulated_image):
+                    os.unlink(self.emulated_image)
+                else:
+                    logging.debug("File %s not found", self.emulated_image)
