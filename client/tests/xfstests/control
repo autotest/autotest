@@ -6,7 +6,8 @@ TEST_CATEGORY = 'Functional'
 TEST_TYPE = 'client'
 PKG_DEPS = {'Fedora' : ['autoconf', 'libtool', 'gcc', 'xfsprogs', 'xfsdump',
                         'xfsprogs-devel', 'xfsprogs-qa-devel', 'libuuid-devel',
-                        'libacl-devel', 'libattr-devel']}
+                        'libacl-devel', 'libattr-devel', 'util-linux',
+                        'kpartx']}
 DOC = """
 xfstests in autotest
 --------------------
