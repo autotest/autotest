@@ -7,6 +7,7 @@ This exports:
 """
 import logging, os, shutil, re
 from autotest.client import utils
+from autotest.shared import iscsi
 import virt_utils, virt_vm
 
 
@@ -297,3 +298,48 @@ class QemuImg(object):
                     utils.run(params.get("image_remove_commnad") % (image_fn))
                 else:
                     logging.debug("Image file %s not found", image_fn)
+
+
+class Rawdev(object):
+    """
+    Base class for rew storage devices such as iscsi and local disks
+    """
+    def __init__(self, params, root_dir, tag):
+        """
+        Init the default value for image object.
+
+        @param params: Dictionary containing the test parameters.
+        @param root_dir: Base directory for relative filenames.
+        @param tag: Image tag defined in parameter images
+        """
+        host_set_flag = params.get("host_setup_flag")
+        if host_set_flag is not None:
+            self.cleanup = host_set_flag & 2 == 2
+        else:
+            self.cleanup = False
+        if params.get("force_cleanup") == "yes":
+            self.cleanup = True
+        self.image_name = tag
+
+
+class Iscsidev(Rawdev):
+    """
+    Class for handle iscsi devices for VM
+    """
+    def __init__(self, params, root_dir, tag):
+        """
+        Init the default value for image object.
+
+        @param params: Dictionary containing the test parameters.
+        @param root_dir: Base directory for relative filenames.
+        @param tag: Image tag defined in parameter images
+        """
+        Rawdev.__init__(self, params, root_dir, tag)
+        self.emulated_file_remove = False
+        self.emulated_image = params.get("emulated_image")
+        if self.emulated_image:
+            if params.get("emulated_file_remove", "no") == "yes":
+                self.emulated_file_remove = True
+        params["iscsi_thread_id"] = self.image_name
+        self.iscsidevice = iscsi.Iscsi(params, root_dir=root_dir)
+        self.device_id = params.get("device_id")

@@ -106,6 +106,20 @@ image_name = image
 #    writethrough - use host cache, report complete before storage write
 drive_cache = none
 
+# Iscsi support related params. Please fill them depends on your environment.
+# For both iscsi and emulated iscsi should have this option:
+# target: target name of your iscsi device
+# device_id(optinal): The number of your device if the iscsi device already formated
+# For iscsi device only:
+# portal_ip: iscsi server ip
+# initiator: initiator name
+# For emulated iscsi in localhost only:
+# emulated_image: image name in localhost
+# Other option parameters:
+# force_cleanup: if need logout and cleanup after the case. The value should
+#                be yes or no
+# emulated_file_remove(emulated iscsi only): If remove the file after logout
+#
 # List of hypervisor-monitor object names (one per guest),
 #    used to communicate with hypervisor to control guests.
 #    Order cooresponds to 'vms' list above.
