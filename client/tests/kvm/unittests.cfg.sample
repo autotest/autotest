@@ -55,10 +55,10 @@ variants:
         # actually be run have to be defined in the 'installers'
         ######################################################################
         # QEMU (KVM) installation from a GIT repo
-        git_repo_qemu_kvm_uri = git://github.com/avikivity/qemu.git
+        git_repo_qemu_kvm_uri = git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git
 
         # KVM unit tests from a GIT repo
-        git_repo_kvm_unit_tests_uri = git://github.com/avikivity/kvm-unit-tests.git
+        git_repo_kvm_unit_tests_uri = git://git.kernel.org/pub/scm/virt/kvm/kvm-unit-tests.git
         #git_repo_kvm_unit_tests_configure_options = --arch=x86_64
 
         ######################################################################
