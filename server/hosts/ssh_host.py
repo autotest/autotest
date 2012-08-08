@@ -11,7 +11,7 @@ You should import the "hosts" package instead of importing each type of host.
 """
 
 import sys, re, traceback, logging, subprocess, os
-from autotest.client.shared import error, pxssh
+from autotest.client.shared import error, ssh_key
 from autotest.server import utils
 from autotest.server.hosts import abstract_ssh
 
@@ -205,43 +205,13 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             raise error.AutoservRunError("command execution error", result)
 
 
-    def setup_ssh_key(self):
-        logging.debug('Performing SSH key setup on %s:%d as %s.' %
-                      (self.hostname, self.port, self.user))
-
-        try:
-            host = pxssh.pxssh()
-            host.login(self.hostname, self.user, self.password,
-                        port=self.port)
-            public_key = utils.get_public_key()
-
-            host.sendline('mkdir -p ~/.ssh')
-            host.prompt()
-            host.sendline('chmod 700 ~/.ssh')
-            host.prompt()
-            host.sendline("echo '%s' >> ~/.ssh/authorized_keys; " %
-                            public_key)
-            host.prompt()
-            host.sendline('chmod 600 ~/.ssh/authorized_keys')
-            host.prompt()
-            host.logout()
-
-            logging.debug('SSH key setup complete.')
-
-        except:
-            logging.debug('SSH key setup has failed.')
-            try:
-                host.logout()
-            except:
-                pass
-
-
     def setup_ssh(self):
         if self.password:
             try:
                 self.ssh_ping()
             except error.AutoservSshPingHostError:
-                self.setup_ssh_key()
+                ssh_key.setup_ssh_key(self.hostname, self.user, self.password,
+                                   port=self.port)
 
 
 class AsyncSSHMixin(object):
