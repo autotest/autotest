@@ -1,293 +1,424 @@
 """
 Utility classes and functions to handle connection to a libvirt host system
 
+Suggested usage: from autotest.client.virt.virsh import Virsh
+
+Virsh Function API:
+    All module functions must accept a variable number of keyword arguments
+    (i.e. **dargs) in addition to normal positional/keyword parameters.
+
 @copyright: 2012 Red Hat Inc.
 """
 
-import logging
+import logging, urlparse
+from autotest.client import utils, os_dep
 from autotest.client.shared import error
+from autotest.client.virt import virt_vm
 
-DEBUG = False
-try:
-    VIRSH_EXEC = os_dep.command("virsh")
-except ValueError:
-    VIRSH_EXEC = None
+# Class-wide logging de-clutterer counter
+_SCREENSHOT_ERROR_COUNT = 0
 
-
-def libvirtd_restart():
+# Using properties here to allow extending getters/setters by external means
+class VirshBase(object):
     """
-    Restart libvirt daemon.
+    Base Class storing libvirt Connection & state to a host
     """
-    try:
-        utils.run("service libvirtd restart")
-        logging.debug("Restarted libvirtd successfuly")
-        return True
-    except error.CmdError, detail:
-        logging.error("Failed to restart libvirtd:\n%s", detail)
-        return False
+
+    # Private storage for properties set in __init__
+    _uri = ""
+    _ignore_status = False
+    _debug = False
+    _virsh_exec = os_dep.command("virsh")
+
+    # Keep properties referencable and extensible by subclasses
+    PROPERTIES = {
+        'uri':(get_uri, set_uri),
+        'ignore_status':(get_ignore_status, set_ignore_status),
+        'virsh_exec':(get_virsh_exec, set_virsh_exec),
+        'debug':(get_debug, set_debug),
+    }
+
+    def __init__(self, **dargs):
+        """
+        Initialize libvirt connection/state
+
+        param: uri: default connection uri when not specified
+        param: ignore_status: Treat command errors as real errors if False
+        param: debug: Print additional output / debugging info.
+        param: virsh_exec: optional/alternate virsh executable path
+        """
+        for name, handlers in self.PROPERTIES:
+            setattr(self, name, property(*handlers))
+        # utilize properties for initialization
+        for name, value in dargs:
+            if value:
+                setattr(self, name, value)
+
+    def get_uri(self):
+        return self._uri
 
 
-def libvirtd_stop():
-    """
-    Stop libvirt daemon.
-    """
-    try:
-        utils.run("service libvirtd stop")
-        logging.debug("Stop  libvirtd successfuly")
-        return True
-    except error.CmdError, detail:
-        logging.error("Failed to stop libvirtd:\n%s", detail)
-        return False
+    def set_uri(self, uri):
+        self._uri = uri
 
+    def get_ignore_status(self):
+        return self._ignore_status
 
-def libvirtd_start():
-    """
-    Start libvirt daemon.
-    """
-    try:
-        utils.run("service libvirtd  start")
-        logging.debug("Start  libvirtd successfuly")
-        return True
-    except error.CmdError, detail:
-        logging.error("Failed to start libvirtd:\n%s", detail)
-        return False
-
-
-def service_libvirtd_control(action):
-    """
-    Libvirtd control by action, if cmd executes successfully,
-    return True, otherwise return False.
-    If the action is status, return True when it's running,
-    otherwise return False.
-    @ param action: start|stop|status|restart|condrestart|
-      reload|force-reload|try-restart
-    """
-    actions = ['start','stop','restart','condrestart','reload',
-               'force-reload','try-restart']
-    if action in actions:
-        try:
-            utils.run("service libvirtd %s" % action)
-            logging.debug("%s libvirtd successfuly", action)
-            return True
-        except error.CmdError, detail:
-            logging.error("Failed to %s libvirtd:\n%s", action, detail)
-            return False
-    elif action == "status":
-        cmd_result = utils.run("service libvirtd status")
-        if re.search("pid", cmd_result.stdout.strip()):
-            logging.info("Libvirtd service is running")
-            return True
+    def set_ignore_status(self, ignore_status):
+        if ignore_status:
+            self._ignore_status = True
         else:
-            return False
-    else:
-        raise error.TestError("Unknown action: %s" % action)
+            self._ignore_status = False
+
+    def get_virsh_exec(self):
+        return self._virsh_exec
 
 
-def virsh_cmd(cmd, uri="", ignore_status=False, print_info=False):
+    def set_virsh_exec(self, virsh_exec):
+        self._virsh_exec = virsh_exec
+
+
+    def get_debug(self):
+        return self._debug
+
+
+    def set_debug(self, debug):
+        if debug:
+            self._debug = True
+            logging.debug("Virsh debugging switched on")
+        else:
+            self._debug = False
+            logging.debug("Virsh debugging switched off")
+
+# Ahhhhh, look out!  It's D Arg mangler comnta gettcha!
+class DArgMangler(dict):
+    """
+    Dict-like class that checks parent instance properties for any missing keys
+    """
+
+    def __init__(self, parent, *args, **dargs):
+        """
+        Initialize DargMangler dict to fill missing keys from parent
+
+        param: parent: Parent instance to pull properties from as needed
+        """
+        self._parent = parent
+        super(DArgMangler, self).__init__(*args, **dargs)
+
+
+    def __getitem__(self, key):
+        try:
+            value = super(DArgMangler, self).__getitem__(key)
+            if value:
+                return value
+        except KeyError:
+            value = getattr(self._parent, key)
+            if value:
+                return value
+            else:
+                raise KeyError, ":%s (parent %s)" % (str(key),
+                                                     str(type(self._parent)))
+
+
+class Virsh(VirshBase):
+    """
+    Execute libvirt operations, optionally with particular connection/state.
+    """
+
+    # list of module symbol names not to wrap inside instances
+    _NOCLOSE = ['__builtins__', '__file__', '__package__', '__name__',
+                '__doc__', 'DArgMangler', 'VirshBase', 'Virsh', '_SCREENSHOT_ERROR_COUNT',
+                'cmd']
+
+    def __init__(self, *args, **dargs):
+        super(Virsh, self).__init__(*args, **dargs)
+        # Define the instance callables from the contents of this module
+        # to avoid using class methods and hand-written aliases
+        for sym, ref in globals().items():
+            if sym not in self._NOCLOSE:
+                # closure allowing virsh.function() API extension
+                def virsh_closure(*args, **dargs):
+                    # Allow extension of self.PROPERTIES by mangling
+                    # closure keyword arguments through property managers
+                    new_dargs = DArgMangler(self, dargs)
+                    for prop in self.PROPERTIES.keys():
+                        if not new_dargs.has_key(prop) or not new_dargs[prop]:
+                            new_dargs[prop] = getattr(self, prop)
+                    return ref(*args, **new_dargs)
+                setattr(self, sym, virsh_closure)
+
+
+##### virsh functions follow #####
+
+# Note: MANY other functions depend on cmd()'s parameter order
+def cmd(cmd, **dargs):
     """
     Append cmd to 'virsh' and execute, optionally return full results.
 
     @param: cmd: Command line to append to virsh command
-    @param: uri: Hypervisor URI to connect to
-    @param: ignore_status: Raise an exception if False
-    @param: print_info: Print stdout and stderr if True
+    @param: dargs: standardized virh function API keywords
     @return: CmdResult object
     """
-    if VIRSH_EXEC is None:
-        raise ValueError('Missing command: virsh')
 
     uri_arg = ""
-    if uri:
-        uri_arg = "-c " + uri
-    cmd = "%s %s %s" % (VIRSH_EXEC, uri_arg, cmd)
+    if dargs['uri']:
+        uri_arg = "-c " + dargs['uri']
+    cmd = "%s %s %s" % (dargs['virsh_exec'], uri_arg, cmd)
 
-    if print_info:
+    if dargs['debug']:
         logging.debug("Running command: %s" % cmd)
 
-    ret = utils.run(cmd, verbose=DEBUG, ignore_status=ignore_status)
+    ret = utils.run(cmd, verbose=dargs['debug'],
+                    ignore_status=dargs['ignore_status'])
 
-    if print_info:
+    if dargs['debug']:
         logging.debug("status: %s" % ret.exit_status)
         logging.debug("stdout: %s" % ret.stdout.strip())
         logging.debug("stderr: %s" % ret.stderr.strip())
     return ret
 
 
-def virsh_domname(id, uri="", ignore_status=False, print_info=False):
+def domname(id, **dargs):
     """
     Convert a domain id or UUID to domain name
 
     @param id: a domain id or UUID.
+    @param: dargs: standardized virh function API keywords
+    @return: CmdResult object
     """
-    return virsh_cmd("domname --domain %s" % id, uri,
-                                ignore_status, print_info)
+    return cmd("domname --domain %s" % id, **dargs)
 
 
-def virsh_qemu_monitor_command(domname, command, uri="",
-                               ignore_status=False, print_info=False):
+def qemu_monitor_command(domname, command, **dargs):
     """
     This helps to execute the qemu monitor command through virsh command.
+
+    @param: domname: Name of monitor domain
+    @param: command: monitor command to execute
+    @param: dargs: standardized virh function API keywords
     """
 
     cmd_qemu_monitor = "qemu-monitor-command %s --hmp \'%s\'" % (domname, command)
-    return virsh_cmd(cmd_qemu_monitor, uri, ignore_status, print_info)
+    return cmd(cmd_qemu_monitor, **dargs)
 
 
-def virsh_vcpupin(domname, vcpu, cpu, uri="",
-                  ignore_status=False, print_info=False):
+def vcpupin(domname, vcpu, cpu, **dargs):
     """
     Changes the cpu affinity for respective vcpu.
+
+    @param: domname: name of domain
+    @param: vcpu: virtual CPU to modify
+    @param: cpu: physical CPU specification (string)
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
 
     try:
         cmd_vcpupin = "vcpupin %s %s %s" % (domname, vcpu, cpu)
-        virsh_cmd(cmd_vcpupin, uri, ignore_status, print_info)
+        cmd(cmd_vcpupin, **dargs)
 
     except error.CmdError, detail:
         logging.error("Virsh vcpupin VM %s failed:\n%s", domname, detail)
         return False
 
 
-def virsh_vcpuinfo(domname, uri="", ignore_status=False, print_info=False):
+def vcpuinfo(domname, **dargs):
     """
     Prints the vcpuinfo of a given domain.
+
+    @param: domname: name of domain
+    @param: dargs: standardized virh function API keywords
+    @return: standard output from command
     """
 
     cmd_vcpuinfo = "vcpuinfo %s" % domname
-    return virsh_cmd(cmd_vcpuinfo, uri, ignore_status, print_info).stdout.strip()
+    return cmd(cmd_vcpuinfo, **dargs).stdout.strip()
 
 
-def virsh_vcpucount_live(domname, uri="", ignore_status=False, print_info=False):
+def vcpucount_live(domname, **dargs):
     """
     Prints the vcpucount of a given domain.
+
+    @param: domname: name of a domain
+    @param: dargs: standardized virh function API keywords
+    @return: standard output from command
     """
 
     cmd_vcpucount = "vcpucount --live --active %s" % domname
-    return virsh_cmd(cmd_vcpucount, uri, ignore_status, print_info).stdout.strip()
+    return cmd(cmd_vcpucount, **dargs).stdout.strip()
 
 
-def virsh_freecell(uri = "", ignore_status=False, extra = ""):
+def freecell(uri = "", extra="", **dargs):
     """
     Prints the available amount of memory on the machine or within a NUMA cell.
+
+    @param: extra: extra argument string to pass to command
+    @param: dargs: standardized virh function API keywords
+    @return: CmdResult object
     """
     cmd_freecell = "freecell %s" % extra
-    return virsh_cmd(cmd_freecell, uri, ignore_status)
+    return cmd(cmd_freecell, **dargs)
 
 
-def virsh_nodeinfo(uri = "", ignore_status=False, extra = ""):
+def nodeinfo(uri = "", extra="", **dargs):
     """
     Returns basic information about the node,like number and type of CPU,
     and size of the physical memory.
+
+    @param: extra: extra argument string to pass to command
+    @param: dargs: standardized virh function API keywords
+    @return: CmdResult object
     """
     cmd_nodeinfo = "nodeinfo %s" % extra
-    return virsh_cmd(cmd_nodeinfo, uri, ignore_status)
+    return cmd(cmd_nodeinfo, **dargs)
 
 
-def virsh_uri(uri=""):
+def uri(**dargs):
     """
     Return the hypervisor canonical URI.
+
+    @param: dargs: standardized virh function API keywords
+    @return: standard output from command
     """
-    return virsh_cmd("uri", uri).stdout.strip()
+    return cmd("uri", **dargs).stdout.strip()
 
 
-def virsh_hostname(uri=""):
+def hostname(**dargs):
     """
     Return the hypervisor hostname.
+
+    @param: dargs: standardized virh function API keywords
+    @return: standard output from command
     """
-    return virsh_cmd("hostname", uri).stdout.strip()
+    return cmd("hostname", **dargs).stdout.strip()
 
 
-def virsh_version(uri=""):
+def version(**dargs):
     """
     Return the major version info about what this built from.
+
+    @param: dargs: standardized virh function API keywords
+    @return: standard output from command
     """
-    return virsh_cmd("version", uri).stdout.strip()
+    return cmd("version", **dargs).stdout.strip()
 
 
-def virsh_driver(uri=""):
+def driver(**dargs):
     """
-    return the driver by asking libvirt
+    Return the driver by asking libvirt
+
+    @param: dargs: standardized virh function API keywords
+    @return: VM driver name
     """
     # libvirt schme composed of driver + command
     # ref: http://libvirt.org/uri.html
-    scheme = urlparse.urlsplit(virsh_uri(uri))[0]
+    scheme = urlparse.urlsplit( uri(**dargs) )[0]
     # extract just the driver, whether or not there is a '+'
     return scheme.split('+', 2)[0]
 
 
-def virsh_domstate(name, uri=""):
+def domstate(name, **dargs):
     """
     Return the state about a running domain.
 
     @param name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: standard output from command
     """
-    return virsh_cmd("domstate %s" % name, uri).stdout.strip()
+    return cmd("domstate %s" % name, **dargs).stdout.strip()
 
 
-def virsh_domid(name, uri=""):
+def domid(name, **dargs):
     """
     Return VM's ID.
+
+    @param name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: standard output from command
     """
-    return virsh_cmd("domid %s" % (name), uri).stdout.strip()
+    return cmd("domid %s" % (name), **dargs).stdout.strip()
 
 
-def virsh_dominfo(name, uri=""):
+def dominfo(name, **dargs):
     """
     Return the VM information.
+
+    @param: dargs: standardized virh function API keywords
+    @return: standard output from command
     """
-    return virsh_cmd("dominfo %s" % (name), uri).stdout.strip()
+    return cmd("dominfo %s" % (name), **dargs).stdout.strip()
 
 
-def virsh_uuid(name, uri=""):
+def domuuid(name, **dargs):
     """
     Return the Converted domain name or id to the domain UUID.
 
     @param name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: standard output from command
     """
-    return virsh_cmd("domuuid %s" % name, uri).stdout.strip()
+    return cmd("domuuid %s" % name, **dargs).stdout.strip()
 
 
-def virsh_screenshot(name, filename, uri=""):
+def screenshot(name, filename, **dargs):
+    """
+    Capture a screenshot of VM's console and store it in file on host
+
+    @param: name: VM name
+    @param: filename: name of host file
+    @param: dargs: standardized virh function API keywords
+    @return: filename
+    """
     try:
-        virsh_cmd("screenshot %s %s" % (name, filename), uri)
+        cmd("screenshot %s %s" % (name, filename), **dargs)
     except error.CmdError, detail:
-        logging.error("Error taking VM %s screenshot. You might have to set "
-                      "take_regular_screendumps=no on your tests.cfg config "
-                      "file \n%s", name, detail)
+        if _SCREENSHOT_ERROR_COUNT < 1:
+            logging.error("Error taking VM %s screenshot. You might have to "
+                          "set take_regular_screendumps=no on your "
+                          "tests.cfg config file \n%s.  This will be the "
+                          "only logged error message.", name, detail)
+        _SCREENSHOT_ERROR_COUNT += 1
     return filename
 
 
-def virsh_dumpxml(name, to_file="", uri="", ignore_status=False, print_info=False):
+def dumpxml(name, to_file="", **dargs):
     """
     Return the domain information as an XML dump.
 
-    @param name: VM name
+    @param: name: VM name
+    @param: to_file: optional file to write XML output to
+    @param: dargs: standardized virh function API keywords
+    @return: standard output from command
     """
     if to_file:
         cmd = "dumpxml %s > %s" % (name, to_file)
     else:
         cmd = "dumpxml %s" % name
 
-    return virsh_cmd(cmd, uri, ignore_status, print_info).stdout.strip()
+    return cmd(cmd, **dargs).stdout.strip()
 
 
-def virsh_is_alive(name, uri=""):
+def is_alive(name, **dargs):
     """
     Return True if the domain is started/alive.
 
-    @param name: VM name
+    @param: name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
-    return not virsh_is_dead(name, uri)
+    return not is_dead(name, **dargs)
 
 
-def virsh_is_dead(name, uri=""):
+def is_dead(name, **dargs):
     """
     Return True if the domain is undefined or not started/dead.
 
-    @param name: VM name
+    @param: name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
     try:
-        state = virsh_domstate(name, uri)
+        state = domstate(name, **dargs)
     except error.CmdError:
         return True
     if state in ('running', 'idle', 'no state', 'paused'):
@@ -296,17 +427,17 @@ def virsh_is_dead(name, uri=""):
         return True
 
 
-def virsh_suspend(name, uri=""):
+def suspend(name, **dargs):
     """
-    Return True on successful domain suspention of VM.
+    True on successful suspend of VM - kept in memory and not scheduled.
 
-    Suspend  a domain. It is kept in memory but will not be scheduled.
-
-    @param name: VM name
+    @param: name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
     try:
-        virsh_cmd("suspend %s" % (name), uri)
-        if virsh_domstate(name, uri) == 'paused':
+        cmd("suspend %s" % (name), **dargs)
+        if domstate(name, **dargs) == 'paused':
             logging.debug("Suspended VM %s", name)
             return True
         else:
@@ -316,17 +447,17 @@ def virsh_suspend(name, uri=""):
         return False
 
 
-def virsh_resume(name, uri=""):
+def resume(name, **dargs):
     """
-    Return True on successful domain resumption of VM.
+    True on successful moving domain out of suspend
 
-    Move a domain out of the suspended state.
-
-    @param name: VM name
+    @param: name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
     try:
-        virsh_cmd("resume %s" % (name), uri)
-        if virsh_is_alive(name, uri):
+        cmd("resume %s" % (name), **dargs)
+        if is_alive(name, **dargs):
             logging.debug("Resumed VM %s", name)
             return True
         else:
@@ -336,126 +467,126 @@ def virsh_resume(name, uri=""):
         return False
 
 
-def virsh_save(name, path, uri=""):
+def save(name, path, **dargs):
     """
     Store state of VM into named file.
 
     @param: name: VM Name to operate on
-    @param: uri: URI of libvirt hypervisor to use
     @param: path: absolute path to state file
+    @param: dargs: standardized virh function API keywords
     """
-    state = virsh_domstate(name, uri)
+    state = domstate(name, **dargs)
     if state not in ('paused',):
         raise virt_vm.VMStatusError("Cannot save a VM that is %s" % state)
     logging.debug("Saving VM %s to %s" %(name, path))
-    virsh_cmd("save %s %s" % (name, path), uri)
+    cmd("save %s %s" % (name, path), **dargs)
     # libvirt always stops VM after saving
-    state = virsh_domstate(name, uri)
+    state = domstate(name, **dargs)
     if state not in ('shut off',):
         raise virt_vm.VMStatusError("VM not shut off after save")
 
 
-def virsh_restore(name, path, uri=""):
+def restore(name, path, **dargs):
     """
     Load state of VM from named file and remove file.
 
     @param: name: VM Name to operate on
-    @param: uri: URI of libvirt hypervisor to use
     @param: path: absolute path to state file.
+    @param: dargs: standardized virh function API keywords
     """
     # Blindly assume named VM cooresponds with state in path
     # rely on higher-layers to take exception if missmatch
-    state = virsh_domstate(name, uri)
+    state = domstate(name, **dargs)
     if state not in ('shut off',):
         raise virt_vm.VMStatusError("Can not restore VM that is %s" % state)
     logging.debug("Restoring VM from %s" % path)
-    virsh_cmd("restore %s" % path, uri)
-    state = virsh_domstate(name, uri)
+    cmd("restore %s" % path, **dargs)
+    state = domstate(name, **dargs)
     if state not in ('paused','running'):
         raise virt_vm.VMStatusError("VM not paused after restore, it is %s." %
                 state)
 
 
-def virsh_start(name, uri=""):
+def start(name, **dargs):
     """
-    Return True on successful domain start.
+    True on successful start of (previously defined) inactive domain.
 
-    Start a (previously defined) inactive domain.
-
-    @param name: VM name
+    @param: name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
-    if virsh_is_alive(name, uri):
+    if is_alive(name, **dargs):
         return True
     try:
-        virsh_cmd("start %s" % (name), uri)
+        cmd("start %s" % (name), **dargs)
         return True
     except error.CmdError, detail:
         logging.error("Start VM %s failed:\n%s", name, detail)
         return False
 
 
-def virsh_shutdown(name, uri=""):
+def shutdown(name, **dargs):
     """
-    Return True on successful domain shutdown.
+    True on successful domain shutdown.
 
-    Gracefully shuts down a domain.
-
-    @param name: VM name
+    @param: name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
-    if virsh_domstate(name, uri) == 'shut off':
+    if domstate(name, **dargs) == 'shut off':
         return True
     try:
-        virsh_cmd("shutdown %s" % (name), uri)
+        cmd("shutdown %s" % (name), **dargs)
         return True
     except error.CmdError, detail:
         logging.error("Shutdown VM %s failed:\n%s", name, detail)
         return False
 
 
-def virsh_destroy(name, uri=""):
+def destroy(name, **dargs):
     """
-    Return True on successful domain destroy.
+    True on successful domain destruction
 
-    Immediately terminate the domain domain-id. The equivalent of ripping
-    the power cord out on a physical machine.
-
-    @param name: VM name
+    @param: name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
-    if virsh_domstate(name, uri) == 'shut off':
+    if domstate(name, **dargs) == 'shut off':
         return True
     try:
-        virsh_cmd("destroy %s" % (name), uri)
+        cmd("destroy %s" % (name), **dargs)
         return True
     except error.CmdError, detail:
         logging.error("Destroy VM %s failed:\n%s", name, detail)
         return False
 
 
-def virsh_define(xml_path, uri=""):
+def define(xml_path, **dargs):
     """
     Return True on successful domain define.
 
-    @param xml_path: XML file path
+    @param: xml_path: XML file path
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
     try:
-        virsh_cmd("define --file %s" % xml_path, uri)
+        cmd("define --file %s" % xml_path, **dargs)
         return True
     except error.CmdError:
         logging.error("Define %s failed.", xml_path)
         return False
 
 
-def virsh_undefine(name, uri=""):
+def undefine(name, **dargs):
     """
-    Return True on successful domain undefine.
+    Return True on successful domain undefine (after sutdown/destroy).
 
-    Undefine the configuration for an inactive domain. The domain should
-    be shutdown or destroyed before calling this method.
-
-    @param name: VM name
+    @param: name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
     try:
-        virsh_cmd("undefine %s" % (name), uri)
+        cmd("undefine %s" % (name), **dargs)
         logging.debug("undefined VM %s", name)
         return True
     except error.CmdError, detail:
@@ -463,45 +594,47 @@ def virsh_undefine(name, uri=""):
         return False
 
 
-def virsh_remove_domain(name, uri=""):
+def remove_domain(name, **dargs):
     """
     Return True after forcefully removing a domain if it exists.
 
-    @param name: VM name
+    @param: name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
-    if virsh_domain_exists(name, uri):
-        if virsh_is_alive(name, uri):
-            virsh_destroy(name, uri)
-        virsh_undefine(name, uri)
+    if domain_exists(name, **dargs):
+        if is_alive(name, **dargs):
+            destroy(name, **dargs)
+        undefine(name, **dargs)
     return True
 
 
-def virsh_domain_exists(name, uri=""):
+def domain_exists(name, **dargs):
     """
     Return True if a domain exits.
 
     @param name: VM name
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
     try:
-        virsh_cmd("domstate %s" % name, uri)
+        cmd("domstate %s" % name, **dargs)
         return True
     except error.CmdError, detail:
         logging.warning("VM %s does not exist:\n%s", name, detail)
         return False
 
 
-def virsh_migrate(name="", dest_uri="", option="", extra="", uri="",
-                  ignore_status=False, print_info=False):
+def migrate(name="", dest_uri="", option="", extra="", **dargs):
     """
     Migrate a guest to another host.
 
-    @param: name: name of guest on uri
+    @param: name: name of guest on uri.
     @param: dest_uri: libvirt uri to send guest to
     @param: option: Free-form string of options to virsh migrate
     @param: extra: Free-form string of options to follow <domain> <desturi>
-    @param: ignore_status: virsh_cmd() raises an exception when error if False
-    @param: print_info: virsh_cmd() print status, stdout and stderr if True
-    @return: True if migration command was successful
+    @param: dargs: standardized virh function API keywords
+    @return: CmdResult object
     """
     cmd = "migrate"
     if option:
@@ -513,38 +646,55 @@ def virsh_migrate(name="", dest_uri="", option="", extra="", uri="",
     if extra:
         cmd += " %s" % extra
 
-    return virsh_cmd(cmd, uri, ignore_status, print_info)
+    return cmd(cmd, **dargs)
 
 
-def virsh_attach_device(name, xml_file, extra="", uri=""):
+def attach_device(name, xml_file, extra="", **dargs):
     """
     Attach a device to VM.
+
+    @param: name: name of guest
+    @param: xml_file: xml describing device to detach
+    @param: extra: additional arguments to command
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
     cmd = "attach-device --domain %s --file %s %s" % (name, xml_file, extra)
     try:
-        virsh_cmd(cmd, uri)
+        cmd(cmd, **dargs)
         return True
     except error.CmdError:
         logging.error("Attaching device to VM %s failed." % name)
         return False
 
 
-def virsh_detach_device(name, xml_file, extra="", uri=""):
+def detach_device(name, xml_file, extra="", **dargs):
     """
     Detach a device from VM.
+
+    @param: name: name of guest
+    @param: xml_file: xml describing device to detach
+    @param: extra: additional arguments to command
+    @param: dargs: standardized virh function API keywords
+    @return: True operation was successful
     """
     cmd = "detach-device --domain %s --file %s %s" % (name, xml_file, extra)
     try:
-        virsh_cmd(cmd, uri)
+        cmd(cmd, **dargs)
         return True
     except error.CmdError:
         logging.error("Detaching device from VM %s failed." % name)
         return False
 
 
-def virsh_attach_interface(name, option="", uri="", ignore_status=False, print_info=False):
+def attach_interface(name, option="", **dargs):
     """
     Attach a NIC to VM.
+
+    @param: name: name of guest
+    @param: option: options to pass to command
+    @param: dargs: standardized virh function API keywords
+    @return: CmdResult object
     """
     cmd = "attach-interface "
 
@@ -553,12 +703,17 @@ def virsh_attach_interface(name, option="", uri="", ignore_status=False, print_i
     if option:
         cmd += " %s" % option
 
-    return virsh_cmd(cmd, uri, ignore_status, print_info)
+    return cmd(cmd, **dargs)
 
 
-def virsh_detach_interface(name, option="", uri="", ignore_status=False, print_info=False):
+def detach_interface(name, option="", **dargs):
     """
     Detach a NIC to VM.
+
+    @param: name: name of guest
+    @param: option: options to pass to command
+    @param: dargs: standardized virh function API keywords
+    @return: CmdResult object
     """
     cmd = "detach-interface "
 
@@ -567,32 +722,45 @@ def virsh_detach_interface(name, option="", uri="", ignore_status=False, print_i
     if option:
         cmd += " %s" % option
 
-    return virsh_cmd(cmd, uri, ignore_status, print_info)
+    return cmd(cmd, **dargs)
 
 
-def virsh_net_create(xml_file, extra="", uri="",
-                     ignore_status=False, print_info=False):
+def net_create(xml_file, extra="", **dargs):
     """
     Create network from a XML file.
+
+    @param: xml_file: xml defining network
+    @param: extra: extra parameters to pass to command
+    @param: options: options to pass to command
+    @param: dargs: standardized virh function API keywords
+    @return: CmdResult object
     """
     cmd = "net-create --file %s %s" % (xml_file, extra)
-    return virsh_cmd(cmd, uri, ignore_status, print_info)
+    return cmd(cmd, **dargs)
 
 
-def virsh_net_list(options, extra="", uri="",
-                   ignore_status=False, print_info=False):
+def net_list(options, extra="", **dargs):
     """
     List networks on host.
+
+    @param: extra: extra parameters to pass to command
+    @param: options: options to pass to command
+    @param: dargs: standardized virh function API keywords
+    @return: CmdResult object
     """
     cmd = "net-list %s %s" % (options, extra)
-    return virsh_cmd(cmd, uri, ignore_status, print_info)
+    return cmd(cmd, **dargs)
 
 
-def virsh_net_destroy(name, extra="", uri="",
-                      ignore_status=False, print_info=False):
+def net_destroy(name, extra="", **dargs):
     """
     Destroy actived network on host.
+
+    @param: name: name of guest
+    @param: extra: extra string to pass to command
+    @param: dargs: standardized virh function API keywords
+    @return: CmdResult object
     """
     cmd = "net-destroy --network %s %s" % (name, extra)
-    return virsh_cmd(cmd, uri, ignore_status, print_info)
+    return cmd(cmd, **dargs)
 

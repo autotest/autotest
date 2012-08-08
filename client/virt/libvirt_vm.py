@@ -11,6 +11,80 @@ from xml.dom import minidom
 import virt_utils, virt_vm, virt_storage, aexpect, virt_remote, virsh
 
 
+#TODO: Support this operation on a remote host
+def libvirtd_restart():
+    """
+    Restart libvirt daemon.
+    """
+    try:
+        utils.run("service libvirtd restart")
+        logging.debug("Restarted libvirtd successfuly")
+        return True
+    except error.CmdError, detail:
+        logging.error("Failed to restart libvirtd:\n%s", detail)
+        return False
+
+
+#TODO: Support this operation on a remote host
+def libvirtd_stop():
+    """
+    Stop libvirt daemon.
+    """
+    try:
+        utils.run("service libvirtd stop")
+        logging.debug("Stop  libvirtd successfuly")
+        return True
+    except error.CmdError, detail:
+        logging.error("Failed to stop libvirtd:\n%s", detail)
+        return False
+
+
+#TODO: Support this operation on a remote host
+def libvirtd_start():
+    """
+    Start libvirt daemon.
+    """
+    try:
+        utils.run("service libvirtd  start")
+        logging.debug("Start  libvirtd successfuly")
+        return True
+    except error.CmdError, detail:
+        logging.error("Failed to start libvirtd:\n%s", detail)
+        return False
+
+
+#TODO: Support this operation on a remote host
+#TODO: Support systemd in addion to SysV 'service' script
+def service_libvirtd_control(action):
+    """
+    Libvirtd control by action, if cmd executes successfully,
+    return True, otherwise return False.
+    If the action is status, return True when it's running,
+    otherwise return False.
+    @ param action: start|stop|status|restart|condrestart|
+      reload|force-reload|try-restart
+    """
+    actions = ['start','stop','restart','condrestart','reload',
+               'force-reload','try-restart']
+    if action in actions:
+        try:
+            utils.run("service libvirtd %s" % action)
+            logging.debug("%s libvirtd successfuly", action)
+            return True
+        except error.CmdError, detail:
+            logging.error("Failed to %s libvirtd:\n%s", action, detail)
+            return False
+    elif action == "status":
+        cmd_result = utils.run("service libvirtd status")
+        if re.search("pid", cmd_result.stdout.strip()):
+            logging.info("Libvirtd service is running")
+            return True
+        else:
+            return False
+    else:
+        raise error.TestError("Unknown action: %s" % action)
+
+
 class VM(virt_vm.BaseVM):
     """
     This class handles all basic VM operations for libvirt.
