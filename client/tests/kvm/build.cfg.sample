@@ -43,7 +43,7 @@ variants:
         # git_repo_qemu_base_uri = /home/user/code/qemu
 
         # QEMU (KVM) installation from a GIT repo
-        # git_repo_qemu_kvm_uri = git://github.com/avikivity/qemu.git
+        # git_repo_qemu_kvm_uri = git://git.kernel.org/pub/scm/virt/kvm/qemu-kvm.git
         # git_repo_qemu_kvm_configure_options = --enable-spice
 
         # SPICE installation from a GIT repo
