@@ -1,4 +1,4 @@
-import os
+import os, shutil
 from autotest.client import test, utils
 
 
@@ -6,9 +6,8 @@ class linus_stress(test.test):
     version = 1
 
     def setup(self):
-        os.mkdir(self.srcdir)
-        os.chdir(self.bindir)
-        utils.system('cp linus_stress.c src/')
+        shutil.copyfile(os.path.join(self.bindir, 'linus_stress.c'),
+                        os.path.join(self.srcdir, 'linus_stress.c'))
         os.chdir(self.srcdir)
         utils.system(utils.get_cc() + ' linus_stress.c -D_POSIX_C_SOURCE=200112 -o linus_stress')
 
