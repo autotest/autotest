@@ -29,7 +29,7 @@ See doctests/001_rpc_test.txt for (lots) more examples.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import datetime, xmlrpclib
+import datetime, xmlrpclib, logging
 try:
     import autotest.common as common
 except ImportError:
@@ -219,14 +219,16 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
 
             if len(system_list) < 1:
                 msg = 'System "%s" not found on install server'
-                rpcserver_logging.rpc_logger.info(msg, host_dict['hostname'])
+                rpc_logger = logging.getLogger('rpc_logger')
+                rpc_logger.info(msg, host_dict['hostname'])
 
             elif len(system_list) > 1:
                 msg = 'Found multiple systems on install server named %s'
 
                 if install_server_type == 'cobbler':
                     msg = '%s. This should never happen on cobbler' % msg
-                rpcserver_logging.rpc_logger.error(msg, host_dict['hostname'])
+                rpc_logger = logging.getLogger('rpc_logger')
+                rpc_logger.error(msg, host_dict['hostname'])
 
             else:
                 system = system_list[0]
