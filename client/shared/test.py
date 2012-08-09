@@ -47,7 +47,11 @@ class base_test(object):
         else:
             self.crash_handling_enabled = False
         self.bindir = bindir
-        autodir = os.path.abspath(os.environ['AUTODIR'])
+        try:
+            autodir = os.path.abspath(os.environ['AUTODIR'])
+        except KeyError:
+            autodir = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                     'autotest_top_path')
         tmpdir = os.path.join(autodir, 'tmp')
         output_config = GLOBAL_CONFIG.get_config_value('COMMON',
                                                        'test_output_dir',
@@ -55,11 +59,11 @@ class base_test(object):
         self.srcdir = os.path.join(output_config, os.path.basename(self.bindir),
                                    'src')
         source_code_dir = os.path.join(self.bindir, 'src')
-        if os.path.isdir(source_code_dir):
-            if not os.path.isdir(self.srcdir):
-                shutil.copytree(source_code_dir, self.srcdir)
         if not os.path.isdir(self.srcdir):
-            os.makedirs(self.srcdir)
+            if os.path.isdir(source_code_dir):
+                shutil.copytree(source_code_dir, self.srcdir)
+            else:
+                os.makedirs(self.srcdir)
         patch_file_list = glob.glob(os.path.join(self.bindir, "*.patch"))
         for patch_src in patch_file_list:
             patch_dst = os.path.join(os.path.dirname(self.srcdir),

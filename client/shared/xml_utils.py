@@ -20,7 +20,7 @@ TMPSFX='.xml'
 
 class TempXMLFile(file):
     """
-    Temporary XML file removed on instance deletion / unexceptional module exit.
+    Temporary XML file auto-removed on instance del / module exit.
     """
 
     def __init__(self, suffix=TMPSFX, prefix=TMPPFX, mode="wb+", buffer=1):
@@ -36,77 +36,99 @@ class TempXMLFile(file):
         os.close(fd)
         super(TempXMLFile, self).__init__(path, mode, buffer)
 
+
     def __exit__(self, exc_type, exc_value, traceback):
         """
         Always remove temporary file on module exit.
         """
+
         self.__del__()
         super(TempXMLFile, self).__exit__(exc_type, exc_value, traceback)
+
 
     def __del__(self):
         """
         Remove temporary file on instance delete.
         """
+
         try:
             os.unlink(self.name)
         except OSError:
             pass # don't care
 
-class XMLBackup(TempXMLFile):
-    """Temporary XML backuap, removed on unexceptional destruction."""
 
+class XMLBackup(TempXMLFile):
+    """
+    Backup file copy of XML data, automatically removed on instance destruction.
+    """
+
+    # Allow users to reference original source of XML data
     sourcefilename = None
 
     def __init__(self, sourcefilename):
         """
         Initialize a temporary backup from sourcefilename.
         """
+
         super(XMLBackup, self).__init__()
         self.sourcefilename = sourcefilename
         self.backup()
+
 
     def backup(self):
         """
         Overwrite temporary backup with contents of original source.
         """
+
         self.flush()
         self.seek(0)
         shutil.copyfileobj(file(self.sourcefilename, "rb"), super(XMLBackup,self))
         self.seek(0)
 
+
     def restore(self):
         """
         Overwrite original source with contents of temporary backup
         """
+
         self.flush()
         self.seek(0)
         shutil.copyfileobj(super(XMLBackup,self), file(self.sourcefilename, "wb+"))
         self.seek(0)
 
+
     def _info(self):
         logging.info("Retaining backup of %s in %s", self.sourcefilename,
                                                      self.name)
+
 
     def __exit__(self, exc_type, exc_value, traceback):
         """
         Remove temporary backup on unexceptional module exit.
         """
+
         if exc_type is None and exc_value is None and traceback is None:
             super(XMLBackup, self).__del__()
         else:
             self._info()
 
+
     def __del__(self):
         """
         Remove temporary file on instance delete.
         """
+
         self._info()
 
-class XMLBase(ElementTree.ElementTree, XMLBackup):
-    """ElementTree backed by a file copy of source"""
 
-    # Automaticaly remove temp file instance destruction
-    tempsource = None
+class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
+    """
+    Combination of ElementTree root and auto-cleaned XML backup file.
+    """
+
+    # Closed file object of original source or TempXMLFile
+    # self.sourcefilename inherited from parent
+    sourcebackupfile = None
 
     def __init__(self, xml):
         """
@@ -114,50 +136,52 @@ class XMLBase(ElementTree.ElementTree, XMLBackup):
 
         param: xml: A filename or string containing XML
         """
+
         # xml param could be xml string or readable filename
-        if not self.readablefile(xml):
-            self.tempsource = TempXMLFile()
-            self.tempsource.write(xml)
+        # If it's a string, use auto-delete TempXMLFile
+        # to hold the original content.
+        try:
+            self.sourcebackupfile = open(xml, "rb")
             # Prevent source modification
-            self.tempsource.close()
-            xml = self.tempsource.name
-        # xml guaranteed to be a filename
+            self.sourcebackupfile.close()
+        except (IOError, OSError):
+            # this will auto-delete when XMLBase instance goes out of scope
+            self.sourcebackupfile = TempXMLFile()
+            self.sourcebackupfile.write(xml)
+            # Prevent source modification
+            self.sourcebackupfile.close()
+            xml = self.sourcebackupfile.name
         XMLBackup.__init__(self, sourcefilename=xml)
-        ElementTree.ElementTree.__init__(self, element=None, file=xml)
+        ElementTree.ElementTree.__init__(self, element=None,
+                                         file=self.name)
         # Ensure parsed content matches file content
         self.write()
         self.flush()
 
-    @classmethod
-    def readablefile(cls, filename):
-        """
-        Returns True/False if filename exists and is readable
-        """
-        try:
-            test = file(filename, "rb")
-            test.close()
-            return True
-        except (OSError, IOError):
-            return False
 
     def write(self, filename=None, encoding="UTF-8"):
         """
         Write current XML tree to filename, or self.name if None.
         """
+
         if filename is None:
             filename = self.name
         ElementTree.ElementTree.write(self, filename, encoding)
 
+
     def read(self, xml):
         self.__del__()
         self.__init__(xml)
+
 
 class Sub(object):
     """String substituter using string.Template"""
 
     def __init__(self, **mapping):
         """Initialize substitution mapping."""
+
         self._mapping = mapping
+
 
     def substitute(self, text):
         """
@@ -165,6 +189,7 @@ class Sub(object):
 
         @param: text: string to substitute
         """
+
         return string.Template(text).safe_substitute(**self._mapping)
 
 
@@ -179,14 +204,16 @@ class TemplateXMLTreeBuilder(ElementTree.XMLTreeBuilder, Sub):
 
         @param: **mapping: values to be substituted for ${key} in XML input
         """
+
         Sub.__init__(self, **mapping)
         ElementTree.XMLTreeBuilder.__init__(self, target=self.BuilderClass())
+
 
     def feed(self, data):
         ElementTree.XMLTreeBuilder.feed(self, self.substitute(data))
 
 
-class TemplateXML(XMLBase):
+class TemplateXML(XMLTreeFile):
     """Template-sourced XML ElementTree backed by temporary file."""
 
     ParserClass = TemplateXMLTreeBuilder
@@ -198,10 +225,12 @@ class TemplateXML(XMLBase):
         @param: xml: A filename or string containing XML
         @param: **mapping: keys/values to feed with XML to string.template
         """
+
         self.parser = self.ParserClass(**mapping)
         # ElementTree.init calls self.parse()
         super(TemplateXML, self).__init__(xml)
         # XMLBase.__init__ calls self.write() after super init
+
 
     def parse(self, source):
         """
@@ -210,11 +239,14 @@ class TemplateXML(XMLBase):
         @param: source: XML file or filename
         @param: parser: ignored
         """
-        return super(XMLBase, self).parse(source, self.parser)
+
+        return super(TemplateXML, self).parse(source, self.parser)
+
 
     def restore(self):
         """
         Raise an IOError to protect the original template source.
         """
-        raise(IOError, "Protecting template source, disallowing restore to %s" %
+
+        raise IOError("Protecting template source, disallowing restore to %s" %
                         self.sourcefilename)

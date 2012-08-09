@@ -1,11 +1,11 @@
 # Copy this file to unittests.cfg and edit it.
 #
 # Define the objects we'll be using
-vms = vm1
+vms = unittest_vm
 vm_type = kvm
 
 # Choose the main VM
-main_vm = vm1
+main_vm = unittest_vm
 
 # Some preprocessor/postprocessor params
 start_vm = yes

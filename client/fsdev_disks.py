@@ -266,8 +266,8 @@ def prepare_disks(job, fs_desc, disk1_only=False, disk_list=None):
         disk_list = get_disk_list()
 
     # Make sure we have the appropriate 'mkfs' binary for the file system
-    mkfs_bin = 'mkfs.' + fs_desc.filesystem
-    if fs_desc.filesystem == 'ext4':
+    mkfs_bin = 'mkfs.' + fs_desc.fstype
+    if fs_desc.fstype == 'ext4':
         mkfs_bin = 'mkfs.ext4dev'
 
     try:
@@ -278,10 +278,10 @@ def prepare_disks(job, fs_desc, disk1_only=False, disk_list=None):
             utils.system('cp -ufp %s /sbin' % mkfs_bin)
         except Exception:
             raise error.TestError('No mkfs binary available for ' +
-                                  fs_desc.filesystem)
+                                  fs_desc.fstype)
 
     # For 'ext4' we need to add '-E test_fs' to the mkfs options
-    if fs_desc.filesystem == 'ext4':
+    if fs_desc.fstype == 'ext4':
         fs_desc.mkfs_flags += ' -E test_fs'
 
     # If the caller only needs one drive, grab the first one only
@@ -289,7 +289,7 @@ def prepare_disks(job, fs_desc, disk1_only=False, disk_list=None):
         disk_list = disk_list[0:1]
 
     # We have all the info we need to format the drives
-    mkfs_all_disks(job, disk_list, fs_desc.filesystem,
+    mkfs_all_disks(job, disk_list, fs_desc.fstype,
                    fs_desc.mkfs_flags, fs_desc.mount_options)
 
     # Return(mount path of the first disk, test tag value, disk_list)
@@ -445,8 +445,8 @@ class fsdev_disks:
         # Save the kernel version for later
         self.kernel_ver = kver
 
-        # For now we always use 'anticipatory'
-        tune_paths = tune_files["anticipatory"]
+        # For now we always use 'cfq'
+        tune_paths = tune_files["cfq"]
 
         # Create a dictionary out of the tunables array
         self.tune_loc = {}
@@ -518,7 +518,7 @@ class fsdev_disks:
             # Set the scheduler first before setting any other tunables
             self.set_tunable(disk, "scheduler",
                                    self.tune_loc["scheduler"],
-                                   "anticipatory")
+                                   "cfq")
 
             # Now set all the tunable parameters we've been given
             for tune_desc in self.tune_list:

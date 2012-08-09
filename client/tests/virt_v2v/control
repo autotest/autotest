@@ -1,0 +1,41 @@
+AUTHOR = """
+ajia@redhat.com (Alex Jia)
+gsun@redhat.com (Wayne Sun)
+"""
+TIME = 'MEDIUM'
+NAME = 'virt-v2v test'
+TEST_TYPE = 'client'
+TEST_CLASS = 'Virtualization'
+TEST_CATEGORY = 'Functional'
+
+DOC = """
+Executes the virt-v2v test on a given host. This module is separated in
+minor functions, that execute different tests for doing Quality Assurance
+on virt-v2v code.
+"""
+
+import sys, os, logging
+from autotest.client.shared import cartesian_config
+from autotest.client.virt import virt_utils
+
+# set English environment (command output might be localized, need to be safe)
+os.environ['LANG'] = 'en_US.UTF-8'
+
+str = """
+# This string will be parsed after build.cfg.  Make any desired changes to the
+# build configuration here.  For example (to install from koji/brew):
+# installers = koji_virt_v2v
+"""
+
+parser = cartesian_config.Parser()
+v2v_test_dir = os.path.join(os.environ['AUTODIR'],'tests/virt_v2v')
+
+# parser.parse_file(os.path.join(v2v_test_dir, "build.cfg"))
+# parser.parse_string(str)
+# if not virt_utils.run_tests(parser, job):
+#     logging.error("Virt-v2v build step failed, exiting.")
+#     sys.exit(1)
+
+parser.parse_file(os.path.join(v2v_test_dir, "tests.cfg"))
+
+virt_utils.run_tests(parser, job)

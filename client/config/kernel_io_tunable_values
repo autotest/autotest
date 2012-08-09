@@ -38,3 +38,17 @@ tune[2.6.26]:        read_expire=124
 tune[2.6.26]: write_batch_expire=124
 tune[2.6.26]:       write_expire=248
 
+# 3.4.4 cfq scheduler tunables
+tune[3.4.4]:     max_sectors_kb=512
+tune[3.4.4]:        nr_requests=128
+tune[3.4.4]:      read_ahead_kb=128
+
+# 3.4.7 cfq scheduler tunables
+tune[3.4.7]:     max_sectors_kb=512
+tune[3.4.7]:        nr_requests=128
+tune[3.4.7]:      read_ahead_kb=128
+
+# # 3.3.8 cfq scheduler tunables
+tune[3.3.8]:     max_sectors_kb=512
+tune[3.3.8]:        nr_requests=128
+tune[3.3.8]:      read_ahead_kb=128

@@ -116,6 +116,59 @@ def virsh_cmd(cmd, uri="", ignore_status=False, print_info=False):
     return ret
 
 
+def virsh_domname(id, uri="", ignore_status=False, print_info=False):
+    """
+    Convert a domain id or UUID to domain name
+
+    @param id: a domain id or UUID.
+    """
+    return virsh_cmd("domname --domain %s" % id, uri,
+                                ignore_status, print_info)
+
+
+def virsh_qemu_monitor_command(domname, command, uri="",
+                               ignore_status=False, print_info=False):
+    """
+    This helps to execute the qemu monitor command through virsh command.
+    """
+
+    cmd_qemu_monitor = "qemu-monitor-command %s --hmp \'%s\'" % (domname, command)
+    return virsh_cmd(cmd_qemu_monitor, uri, ignore_status, print_info)
+
+
+def virsh_vcpupin(domname, vcpu, cpu, uri="",
+                  ignore_status=False, print_info=False):
+    """
+    Changes the cpu affinity for respective vcpu.
+    """
+
+    try:
+        cmd_vcpupin = "vcpupin %s %s %s" % (domname, vcpu, cpu)
+        virsh_cmd(cmd_vcpupin, uri, ignore_status, print_info)
+
+    except error.CmdError, detail:
+        logging.error("Virsh vcpupin VM %s failed:\n%s", domname, detail)
+        return False
+
+
+def virsh_vcpuinfo(domname, uri="", ignore_status=False, print_info=False):
+    """
+    Prints the vcpuinfo of a given domain.
+    """
+
+    cmd_vcpuinfo = "vcpuinfo %s" % domname
+    return virsh_cmd(cmd_vcpuinfo, uri, ignore_status, print_info).stdout.strip()
+
+
+def virsh_vcpucount_live(domname, uri="", ignore_status=False, print_info=False):
+    """
+    Prints the vcpucount of a given domain.
+    """
+
+    cmd_vcpucount = "vcpucount --live --active %s" % domname
+    return virsh_cmd(cmd_vcpucount, uri, ignore_status, print_info).stdout.strip()
+
+
 def virsh_freecell(uri = "", ignore_status=False, extra = ""):
     """
     Prints the available amount of memory on the machine or within a NUMA cell.
@@ -518,6 +571,91 @@ def virsh_detach_interface(name, option="", uri="", ignore_status=False, print_i
         cmd += " %s" % option
 
     return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
+def virsh_net_create(xml_file, extra="", uri="",
+                     ignore_status=False, print_info=False):
+    """
+    Create network from a XML file.
+    """
+    cmd = "net-create --file %s %s" % (xml_file, extra)
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
+def virsh_net_list(options, extra="", uri="",
+                   ignore_status=False, print_info=False):
+    """
+    List networks on host.
+    """
+    cmd = "net-list %s %s" % (options, extra)
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
+def virsh_net_destroy(name, extra="", uri="",
+                      ignore_status=False, print_info=False):
+    """
+    Destroy actived network on host.
+    """
+    cmd = "net-destroy --network %s %s" % (name, extra)
+    return virsh_cmd(cmd, uri, ignore_status, print_info)
+
+
+def virsh_pool_info(name, uri=""):
+    """
+    Returns basic information about the storage pool.
+    """
+    cmd = "pool-info %s" % name
+    try:
+        virsh_cmd(cmd, uri)
+        return True
+    except error.CmdError, detail:
+        logging.error("Pool %s doesn't exist:\n%s", name, detail)
+        return False
+
+
+def virsh_pool_destroy(name, uri=""):
+    """
+    Forcefully stop a given pool.
+    """
+    cmd = "pool-destroy %s" % name
+    try:
+        virsh_cmd(cmd, uri)
+        return True
+    except error.CmdError, detail:
+        logging.error("Failed to destroy pool: %s." % detail)
+        return False
+
+
+def virsh_pool_create_as(name, _type, target, extra="", uri=""):
+    """
+    Create a pool from a set of args.
+
+    @param: name: name of pool
+    @param: type: storage pool type such as 'dir'
+    @param: target: libvirt uri to send guest to
+    @param: extra: Free-form string of options
+    @return: True if pool creation command was successful
+    """
+
+    if not name:
+        logging.error("Please give a pool name")
+
+    types = [ 'dir', 'fs', 'netfs', 'disk', 'iscsi', 'logical' ]
+
+    if _type and _type not in types:
+        logging.error("Only support pool types: %s." % types)
+    elif not _type:
+        _type = types[0]
+
+    logging.info("Create %s type pool %s" % (_type, name))
+    cmd = "pool-create-as --name %s --type %s --target %s %s" \
+          % (name, _type, target, extra)
+    try:
+        virsh_cmd(cmd, uri)
+        return True
+    except error.CmdError, detail:
+        logging.error("Failed to create pool: %s." % detail)
+        return False
 
 
 class VM(virt_vm.BaseVM):
@@ -959,7 +1097,7 @@ class VM(virt_vm.BaseVM):
         virt_install_cmd += add_connect_uri(help, self.connect_uri)
 
         # hvm or pv specificed by libvirt switch (pv used  by Xen only)
-        hvm_or_pv = params.get("hvm_or_pv")
+        hvm_or_pv = params.get("hvm_or_pv", "hvm")
         if hvm_or_pv:
             virt_install_cmd += add_hvm_or_pv(help, hvm_or_pv)
 
@@ -1471,26 +1609,6 @@ class VM(virt_vm.BaseVM):
         return virsh_uuid(self.name, self.connect_uri)
 
 
-    def get_port(self, port, nic_index=0):
-        """
-        Return the port in host space corresponding to port in guest space.
-
-        @param port: Port number in host space.
-        @param nic_index: Index of the NIC.
-        @return: If port redirection is used, return the host port redirected
-                to guest port port. Otherwise return port.
-        @raise VMPortNotRedirectedError: If an unredirected port is requested
-                in user mode
-        """
-        if self.virtnet[nic_index].nettype == "bridge":
-            return port
-        else:
-            try:
-                return self.redirs[port]
-            except KeyError:
-                raise virt_vm.VMPortNotRedirectedError(port)
-
-
     def get_ifname(self, nic_index=0):
         raise NotImplementedError
 
@@ -1535,6 +1653,19 @@ class VM(virt_vm.BaseVM):
             logging.debug("PID file %s not present", pid_file)
 
         return pid
+
+
+    def get_vcpus_pid(self):
+        """
+        Return the vcpu's pid for a given VM.
+
+        @return: list of PID of vcpus of a VM.
+        """
+
+        vcpu_pids = []
+        output = virsh_qemu_monitor_command(self.name, "info cpus")
+        vcpu_pids = re.findall(r'thread_id=(\d+)', output.stdout)
+        return vcpu_pids
 
 
     def get_shell_pid(self):
@@ -1719,3 +1850,10 @@ class VM(virt_vm.BaseVM):
         Override BaseVM restore_from_file method
         """
         virsh_restore(self.name, path, uri=self.connect_uri)
+
+
+    def vcpupin(self, vcpu, cpu):
+        """
+        To pin vcpu to cpu
+        """
+        virsh_vcpupin(self.name, vcpu, cpu)

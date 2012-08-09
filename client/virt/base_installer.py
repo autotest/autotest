@@ -304,6 +304,16 @@ class BaseInstaller(object):
         pass
 
 
+    def write_version_keyval(self, test):
+        if getattr(self, 'get_version'):
+            version = self.get_version()
+        else:
+            version = "Unknown"
+        sw_version = {('software_version_%s' % self.name): version}
+        logging.debug("Writing test keyval %s", sw_version)
+        test.write_test_keyval(sw_version)
+
+
     def load_modules(self, module_list=None):
         '''
         Load Linux Kernel modules the virtualization software may depend on
@@ -352,7 +362,8 @@ class BaseInstaller(object):
             self.reload_modules()
 
 
-    def install(self):
+    def install(self, cleanup=True, download=True, prepare=True,
+                build=True, install=True, init=True):
         '''
         Performs the installation of the virtualization software
 
@@ -360,23 +371,29 @@ class BaseInstaller(object):
         be reimplemented completely, or simply implement one or many of the
         install  phases.
         '''
-        self._install_phase_cleanup()
-        self._install_phase_cleanup_verify()
+        if cleanup:
+            self._install_phase_cleanup()
+            self._install_phase_cleanup_verify()
 
-        self._install_phase_download()
-        self._install_phase_download_verify()
+        if download:
+            self._install_phase_download()
+            self._install_phase_download_verify()
 
-        self._install_phase_prepare()
-        self._install_phase_prepare_verify()
+        if prepare:
+            self._install_phase_prepare()
+            self._install_phase_prepare_verify()
 
-        self._install_phase_build()
-        self._install_phase_build_verify()
+        if build:
+            self._install_phase_build()
+            self._install_phase_build_verify()
 
-        self._install_phase_install()
-        self._install_phase_install_verify()
+        if install:
+            self._install_phase_install()
+            self._install_phase_install_verify()
 
-        self._install_phase_init()
-        self._install_phase_init_verify()
+        if init:
+            self._install_phase_init()
+            self._install_phase_init_verify()
 
         self.reload_modules_if_needed()
         if self.save_results:
@@ -703,6 +720,13 @@ class GitRepoInstaller(BaseLocalSourceInstaller):
             self.source_destination)
 
         self._set_build_helper()
+
+
+    def get_version(self):
+        uri = self.content_helper.uri
+        branch = self.content_helper.branch
+        commit = self.content_helper.get_top_commit()
+        return "%s:%s:%s" % (uri, branch, commit)
 
 
 class FailedInstaller:

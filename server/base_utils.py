@@ -273,46 +273,6 @@ def parse_machine(machine, user='root', password='', port=22, profile=''):
     return machine, user, password, port, profile
 
 
-def get_public_key():
-    """
-    Return a valid string ssh public key for the user executing autoserv or
-    autotest. If there's no DSA or RSA public key, create a DSA keypair with
-    ssh-keygen and return it.
-    """
-
-    ssh_conf_path = os.path.expanduser('~/.ssh')
-
-    dsa_public_key_path = os.path.join(ssh_conf_path, 'id_dsa.pub')
-    dsa_private_key_path = os.path.join(ssh_conf_path, 'id_dsa')
-
-    rsa_public_key_path = os.path.join(ssh_conf_path, 'id_rsa.pub')
-    rsa_private_key_path = os.path.join(ssh_conf_path, 'id_rsa')
-
-    has_dsa_keypair = os.path.isfile(dsa_public_key_path) and \
-        os.path.isfile(dsa_private_key_path)
-    has_rsa_keypair = os.path.isfile(rsa_public_key_path) and \
-        os.path.isfile(rsa_private_key_path)
-
-    if has_dsa_keypair:
-        print 'DSA keypair found, using it'
-        public_key_path = dsa_public_key_path
-
-    elif has_rsa_keypair:
-        print 'RSA keypair found, using it'
-        public_key_path = rsa_public_key_path
-
-    else:
-        print 'Neither RSA nor DSA keypair found, creating DSA ssh key pair'
-        utils.system('ssh-keygen -t dsa -q -N "" -f %s' % dsa_private_key_path)
-        public_key_path = dsa_public_key_path
-
-    public_key = open(public_key_path, 'r')
-    public_key_str = public_key.read()
-    public_key.close()
-
-    return public_key_str
-
-
 def get_sync_control_file(control, host_name, host_num,
                           instance, num_jobs, port_base=63100):
     """

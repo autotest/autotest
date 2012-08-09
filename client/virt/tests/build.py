@@ -22,6 +22,7 @@ def run_build(test, params, env):
         for name in params.get("installers", "").split():
             installer_obj = installer.make_installer(name, params, test)
             installer_obj.install()
+            installer_obj.write_version_keyval(test)
             if installer_obj.minor_failure == True:
                 minor_failure = True
                 reason = "%s_%s: %s" % (installer_obj.name,
