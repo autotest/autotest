@@ -377,6 +377,7 @@ class FileChecker(object):
         are made. It is up to the user to decide if he wants to run reindent
         to correct the issues.
         """
+        success = True
         indent_exception = 'cli/job_unittest.py'
         if re.search (indent_exception, self.path):
             return
@@ -402,6 +403,8 @@ class FileChecker(object):
                 utils.run("mv %s %s" % (path, self.path), verbose=False)
             utils.run("rm %s.bak" % path, verbose=False)
             logging.info("")
+            success = False
+        return success
 
 
     def _check_code(self):
@@ -412,6 +415,7 @@ class FileChecker(object):
         Some of the problems reported might be bogus, but it's allways good
         to look at them.
         """
+        success = True
         non_py_ended = None
         if not self.path.endswith(".py"):
             path = "%s-cp.py" % self.path
@@ -439,6 +443,8 @@ class FileChecker(object):
                 if stderr_line:
                     logging.error("    [stdout]: %s", stderr_line)
             logging.error("")
+            success = False
+        return success
 
 
     def _check_unittest(self):
@@ -493,12 +499,16 @@ class FileChecker(object):
         Executes all required checks, if problems are found, the possible
         corrective actions are listed.
         """
+        success = True
         self._check_permissions()
         if self.is_python:
-            self._check_indent()
-            self._check_code()
+            if not self._check_indent():
+                success = False
+            if not self._check_code():
+                success = False
             if not skip_unittest:
-                self._check_unittest()
+                if not self._check_unittest():
+                    success = False
         if self.corrective_actions:
             for action in self.corrective_actions:
                 answer = utils.ask("Would you like to execute %s?" % action,
@@ -507,6 +517,7 @@ class FileChecker(object):
                     rc = utils.system(action, ignore_status=True)
                     if rc != 0:
                         logging.error("Error executing %s" % action)
+        return success
 
 
 class PatchChecker(object):
@@ -589,6 +600,7 @@ class PatchChecker(object):
 
     def _check_files_modified_patch(self):
         modified_files_after = []
+        files_failed_check = []
         if self.vcs.type == "subversion":
             untracked_files_after = self.vcs.get_unknown_files()
             modified_files_after = self.vcs.get_modified_files()
@@ -624,12 +636,17 @@ class PatchChecker(object):
             if os.path.isfile(modified_file):
                 file_checker = FileChecker(path=modified_file, vcs=self.vcs,
                                            confirm=self.confirm)
-                file_checker.report()
+                if not file_checker.report():
+                    files_failed_check.append(modified_file)
+        if files_failed_check:
+            return (False, files_failed_check)
+        else:
+            return (True, [])
 
 
     def check(self):
         self.vcs.apply_patch(self.patch)
-        self._check_files_modified_patch()
+        return self._check_files_modified_patch()
 
 
 if __name__ == "__main__":
@@ -666,6 +683,7 @@ if __name__ == "__main__":
     logging_manager.configure_logging(CheckPatchLoggingConfig(), verbose=debug)
 
     ignore_list = ['common.py', ".svn", ".git", '.pyc', ".orig", ".rej", ".bak"]
+    files_failed_check = []
     if full_check:
         logging.info("Autotest full tree check")
         logging.info("")
@@ -683,8 +701,13 @@ if __name__ == "__main__":
                 if check:
                     file_checker = FileChecker(path=path, vcs=vcs,
                                                confirm=confirm)
-                    file_checker.report(skip_unittest=True)
-        utils.system("unittest_suite.py --full", ignore_status=True)
+                    if not file_checker.report(skip_unittest=True):
+                        files_failed_check.append(file)
+
+        if files_failed_check:
+            logging.error("List of files with problems: %s", files_failed_check)
+            sys.exit(-1)
+
     else:
         if local_patch:
             logging.info("Checking local patch %s", local_patch)
@@ -705,4 +728,9 @@ if __name__ == "__main__":
         else:
             logging.error('No patch or patchwork id specified. Aborting.')
             sys.exit(1)
-        patch_checker.check()
+
+        (success, files_failed_check) = patch_checker.check()
+
+        if not success:
+            logging.error("List of files with problems: %s", files_failed_check)
+            sys.exit(-1)
