@@ -1199,6 +1199,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
     try:
         session.cmd("rm -f control.state")
         session.cmd("rm -rf results/*")
+        session.cmd("rm -rf tmp/*")
     except aexpect.ShellError:
         pass
     try:
