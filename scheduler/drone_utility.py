@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import pickle, subprocess, os, shutil, sys, time, signal, getpass
+import pickle, subprocess, os, shutil, sys, time, signal, getpass, logging
 import datetime, traceback, tempfile, itertools
 try:
     import autotest.common as common
@@ -15,7 +15,15 @@ from autotest.scheduler import email_manager, scheduler_config
 # something else during recovery.  Name credit goes to showard. ;)
 DARK_MARK_ENVIRONMENT_VAR = 'AUTOTEST_SCHEDULER_DARK_MARK'
 
-_TEMPORARY_DIRECTORY = 'drone_tmp'
+_OUTPUT_DIR = global_config.global_config.get_config_value('COMMON',
+                                                           'test_output_dir',
+                                                            default="")
+
+if _OUTPUT_DIR:
+    _TEMPORARY_DIRECTORY = os.path.join(_OUTPUT_DIR, 'drone_tmp')
+else:
+    _TEMPORARY_DIRECTORY = 'drone_tmp'
+
 _TRANSFER_FAILED_FILE = '.transfer_failed'
 
 
@@ -60,7 +68,13 @@ class DroneUtility(object):
 
 
     def initialize(self, results_dir):
-        temporary_directory = os.path.join(results_dir, _TEMPORARY_DIRECTORY)
+        if _OUTPUT_DIR:
+            temporary_directory = _TEMPORARY_DIRECTORY
+            logging.info("Output dir set in global_config.ini, overriding %s",
+                         results_dir)
+        else:
+            temporary_directory = os.path.join(results_dir,
+                                               _TEMPORARY_DIRECTORY)
         if os.path.exists(temporary_directory):
             shutil.rmtree(temporary_directory)
         self._ensure_directory_exists(temporary_directory)
