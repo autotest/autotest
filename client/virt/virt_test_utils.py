@@ -1374,7 +1374,9 @@ def ping(dest=None, count=None, interval=None, interface=None,
         command += " -b"
     if flood:
         command += " -f -q"
+        command = "sleep %s && kill -2 `pidof ping` & %s" % (timeout, command)
         output_func = None
+        timeout += 1
 
     return raw_ping(command, timeout, session, output_func)
 
