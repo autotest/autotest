@@ -1397,6 +1397,26 @@ def get_linux_ifname(session, mac_address):
         return None
 
 
+def restart_guest_network(session, nic_name=None):
+    """
+    Restart guest's network via serial console.
+
+    @param session: session to virtual machine
+    @nic_name: nic card name in guest to restart
+    """
+    if_list = []
+    if not nic_name:
+        # initiate all interfaces on guest.
+        o = session.cmd_output("ip link")
+        if_list = re.findall(r"\d+: (eth\d+):", o)
+    else:
+        if_list.append(nic_name)
+
+    if if_list:
+        session.sendline("killall dhclient && "
+                         "dhclient %s &" % ' '.join(if_list))
+
+
 def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
     """
     Call another test script in one test script.
