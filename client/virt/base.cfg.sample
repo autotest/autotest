@@ -101,9 +101,24 @@ image_raw_device = no
 # Name of image, or path to device node if using image_raw_device
 image_name = image
 
-# Host-side caching to use (none, writeback, writethrough)
-#    writeback - use host cache, report complete after storage write
-#    writethrough - use host cache, report complete before storage write
+# Host-side caching to use. This option is passed directly to qemu(-kvm) so
+# any valid qemu cache option is valid here. A quick reference for the
+# valid cache modes on current qemu:
+#
+# none: avoids the page cache completely, attempt to do disk IO directly to the
+#       guest memory.
+#
+# writethrough: use host page cache, report data as written to guest only when
+#               it's actually written by the storage subsystem (qemu default).
+#
+# writeback: use host page cache, report data as written to guest as soon as it
+#            is written to the host page cache.
+#
+# unsafe: use page cache, but never worry about flushing that data to disk.
+#
+# directsync: avoid page cache, report data as written to guest after it's
+#             reported as written by the storage subsystem.
+#
 drive_cache = none
 
 # Iscsi support related params. Please fill them depends on your environment.
