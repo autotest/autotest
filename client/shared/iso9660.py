@@ -11,21 +11,7 @@ __all__ = ['iso9660', 'Iso9660IsoInfo', 'Iso9660IsoRead', 'Iso9660Mount']
 
 
 import os, logging, tempfile, shutil, re
-from autotest.client.shared import utils
-
-
-def has_userland_tool(executable):
-    '''
-    Returns whether the system has a given executable
-    '''
-    if os.path.isabs(executable):
-        return os.path.exists(executable)
-    else:
-        for d in os.environ['PATH'].split(':'):
-            f = os.path.join(d, executable)
-            if os.path.exists(f):
-                return True
-    return False
+from autotest.client.shared import utils, deps
 
 
 def has_isoinfo():
@@ -35,17 +21,17 @@ def has_isoinfo():
     Maybe more checks could be added to see if isoinfo supports the needed
     features
     '''
-    return has_userland_tool('isoinfo')
+    return deps.can_execute('isoinfo')
 
 
 def has_isoread():
     '''
     Returns whether the system has the isoinfo executable
 
-    Maybe more checks could be added to see if iso-read supports the needed
+    Maybe more checks could bef added to see if iso-read supports the needed
     features
     '''
-    return has_userland_tool('iso-read')
+    return deps.can_execute('iso-read')
 
 
 def can_mount():
@@ -58,7 +44,7 @@ def can_mount():
         logging.debug('Can not use mount: current user is not "root"')
         return False
 
-    if not has_userland_tool('mount'):
+    if not deps.can_execute('mount'):
         logging.debug('Can not use mount: missing "mount" tool')
         return False
 
