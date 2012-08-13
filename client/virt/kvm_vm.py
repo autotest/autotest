@@ -479,11 +479,12 @@ class VM(virt_vm.BaseVM):
                 format = "none"
                 index = None
             if format == "virtio":
-                name = "virtio%s" % index
-                dev += " -device virtio-blk-pci"
-                dev += _add_option("bootindex", bootindex)
-                dev += _add_option("drive", name)
-                format = "none"
+                if has_option(help, "device"):
+                    name = "virtio%s" % index
+                    dev += " -device virtio-blk-pci"
+                    dev += _add_option("drive", name)
+                    format = "none"
+                    dev += _add_option("bootindex", bootindex)
                 index = None
             if format in ['usb1', 'usb2', 'usb3']:
                 name = "%s.%s" % (format, index)
