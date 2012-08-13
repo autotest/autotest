@@ -19,7 +19,7 @@ class isic(test.test):
         os.chdir(self.srcdir)
 
         utils.system('patch -p1 < ../build-fixes.patch')
-        utils.system('PREFIX=%s /deps/libnet/libnet/ ./configure' %self.autodir)
+        utils.system('PREFIX=%s/deps/libnet/libnet/ ./configure' %self.autodir)
         utils.system('make')
 
     def execute(self, args = '-s rand -d 127.0.0.1 -p 10000000'):
