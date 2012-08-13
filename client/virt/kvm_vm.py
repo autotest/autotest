@@ -689,11 +689,14 @@ class VM(virt_vm.BaseVM):
                     spice_opts.append(opt_string % tmp)
                 elif fallback:
                     spice_opts.append(fallback)
-            s_port = str(virt_utils.find_free_port(*port_range))
-            set_value("port=%s", "spice_port", "port=%s" % s_port)
-            if optget("spice_port") == None:
-                self.spice_options['spice_port'] = s_port
 
+            if optget("spice_port") is None:
+                s_port = str(virt_utils.find_free_port(*port_range))
+                self.spice_options['spice_port'] = s_port
+            else:
+                s_port = self.spice_options['spice_port']
+
+            set_value("port=%s", "spice_port", "port=%s" % s_port)
             set_value("password=%s", "spice_password", "disable-ticketing")
             set_value("addr=%s", "spice_addr")
 
