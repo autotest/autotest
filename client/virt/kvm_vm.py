@@ -346,7 +346,8 @@ class VM(virt_vm.BaseVM):
             return cmd
 
 
-        def add_virtio_port(help, name, bus, filename, porttype, chardev):
+        def add_virtio_port(help, name, bus, filename, porttype, chardev,
+                            name_prefix=None, index=None):
             """
             Appends virtio_serialport or virtio_console device to cmdline.
             @param help: qemu -h output
@@ -366,7 +367,11 @@ class VM(virt_vm.BaseVM):
                 cmd += " -device virtconsole"
             else:
                 cmd += " -device virtserialport"
-            cmd += ",chardev=dev%s,name=%s,id=%s" % (name, name, name)
+            if name_prefix:     # used by spiceagent (com.redhat.spice.*)
+                port_name = "%s%d" % (name_prefix, index)
+            else:
+                port_name = name
+            cmd += ",chardev=dev%s,name=%s,id=%s" % (name, port_name, name)
             cmd += _add_option("bus", bus)
             return cmd
 
@@ -978,6 +983,7 @@ class VM(virt_vm.BaseVM):
         qemu_cmd += add_serial(help, vm.get_serial_console_filename())
 
         # Add virtio_serial ports
+        i = 0
         virtio_serial_pcis = []
         virtio_port_spread = int(params.get('virtio_port_spread', 2))
         for port_name in params.objects("virtio_ports"):
@@ -997,7 +1003,10 @@ class VM(virt_vm.BaseVM):
             qemu_cmd += add_virtio_port(help, port_name, bus,
                                     self.get_virtio_port_filename(port_name),
                                     port_params.get('virtio_port_type'),
-                                    port_params.get('virtio_port_chardev'))
+                                    port_params.get('virtio_port_chardev'),
+                                    port_params.get('virtio_port_name_prefix'),
+                                    i)
+            i += 1
 
         # Add logging
         qemu_cmd += add_log_seabios(help)

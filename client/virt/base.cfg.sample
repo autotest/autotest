@@ -74,6 +74,11 @@ usb_controller_tablet1 = uhci
 # Host socket type
 # virtio_port_chardev = spicevmc
 # virtio_port_chardev_vc1 = socket
+# chardev name prefix (port index will be appended)
+# virtio_port_name_prefix = "com.redhat.spice."
+# By default the port name is used (vc1)
+# virtio_port_name_prefix_vc1 = ""
+
 # Emulated machine type, run following command to see supported machine type.
 # qemu-kvm -M ?
 # machine_type = pc
