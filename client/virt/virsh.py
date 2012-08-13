@@ -13,7 +13,7 @@ Virsh Function API:
 import logging, urlparse
 from autotest.client import utils, os_dep
 from autotest.client.shared import error
-from autotest.client.virt import virt_vm
+from autotest.client.virt import aexpect, virt_vm
 
 # Class-wide logging de-clutterer counter
 _SCREENSHOT_ERROR_COUNT = 0
@@ -32,10 +32,10 @@ class VirshBase(object):
 
     # Keep properties referencable and extensible by subclasses
     PROPERTIES = {
-        'uri':(get_uri, set_uri),
-        'ignore_status':(get_ignore_status, set_ignore_status),
-        'virsh_exec':(get_virsh_exec, set_virsh_exec),
-        'debug':(get_debug, set_debug),
+        'uri':('get_uri', 'set_uri'),
+        'ignore_status':('get_ignore_status', 'set_ignore_status'),
+        'virsh_exec':('get_virsh_exec', 'set_virsh_exec'),
+        'debug':('get_debug', 'set_debug'),
     }
 
     def __init__(self, **dargs):
@@ -47,12 +47,16 @@ class VirshBase(object):
         param: debug: Print additional output / debugging info.
         param: virsh_exec: optional/alternate virsh executable path
         """
-        for name, handlers in self.PROPERTIES:
-            setattr(self, name, property(*handlers))
+        # setup properties from instance instead of class
+        for name, handlers in self.PROPERTIES.items():
+            getter = getattr(self, handlers[0])
+            setter = getattr(self, handlers[1])
+            setattr(self, name,  property(*(getter, setter)))
         # utilize properties for initialization
         for name, value in dargs:
             if value:
                 setattr(self, name, value)
+
 
     def get_uri(self):
         return self._uri
@@ -61,14 +65,17 @@ class VirshBase(object):
     def set_uri(self, uri):
         self._uri = uri
 
+
     def get_ignore_status(self):
         return self._ignore_status
+
 
     def set_ignore_status(self, ignore_status):
         if ignore_status:
             self._ignore_status = True
         else:
             self._ignore_status = False
+
 
     def get_virsh_exec(self):
         return self._virsh_exec
@@ -120,6 +127,34 @@ class DArgMangler(dict):
                                                      str(type(self._parent)))
 
 
+class VirshSession(aexpect.ShellSession):
+    """
+    A virsh shell session, used with Virsh instances.
+    """
+
+    ERROR_REGEX_LIST = ['error:\s*', 'failed']
+
+    def __init__(self, virsh_instance):
+        uri_arg = ""
+        if virsh_instance.uri:
+            uri_arg = " -c '%s'" % virsh_instance.uri
+        cmd = "%s%s" % (virsh_instance.virsh_exec, uri_arg)
+        super(VirshSession, self).__init__(command=cmd,
+                                            id=virsh_instance.session_id,
+                                            prompt=r"virsh\s*\#\s*")
+
+
+    # No way to get sub-command status so fake it with regex over output
+    def cmd_status_output(self, cmd, timeout=60, internal_timeout=None,
+                          print_func=None):
+        o = self.cmd_output(cmd, timeout, internal_timeout, print_func)
+        for line in o.splitlines():
+            if self.match_patterns(line, self.ERROR_REGEX_LIST):
+                # There was an error
+                return 1, o
+        return 0, o
+
+
 class Virsh(VirshBase):
     """
     Execute libvirt operations, optionally with particular connection/state.
@@ -128,16 +163,20 @@ class Virsh(VirshBase):
     # list of module symbol names not to wrap inside instances
     _NOCLOSE = ['__builtins__', '__file__', '__package__', '__name__',
                 '__doc__', 'DArgMangler', 'VirshBase', 'Virsh', '_SCREENSHOT_ERROR_COUNT',
-                'cmd']
+                'VirshSession', '_cmd', 'cmd']
+
+    session = None
+    session_id = None
 
     def __init__(self, *args, **dargs):
+        # new_session() called by super's __init__ via uri property
         super(Virsh, self).__init__(*args, **dargs)
         # Define the instance callables from the contents of this module
         # to avoid using class methods and hand-written aliases
         for sym, ref in globals().items():
             if sym not in self._NOCLOSE:
                 # closure allowing virsh.function() API extension
-                def virsh_closure(*args, **dargs):
+                def virsh_closure(self, *args, **dargs):
                     # Allow extension of self.PROPERTIES by mangling
                     # closure keyword arguments through property managers
                     new_dargs = DArgMangler(self, dargs)
@@ -148,22 +187,57 @@ class Virsh(VirshBase):
                 setattr(self, sym, virsh_closure)
 
 
+    def new_session(self):
+        if getattr(self, 'session_id') and getattr(self, 'session'):
+            self.session.close()
+        self.session = VirshSession(self)
+        self.session_id = self.session.get_id()
+
+
+    def set_uri(self, uri):
+        """
+        Change instances uri, and re-connect virsh shell session.
+        """
+        # Don't assume set_uri() wasn't overridden
+        if super(Virsh, self).uri != uri:
+            super(Virsh, self).uri = uri
+            self.new_session()
+
+
+    # Note: MANY other functions depend on cmd()'s parameter order and names
+    def cmd(self, cmd, **dargs):
+        uri = dargs.get('uri', self.uri)
+        if dargs.get('uri'):
+            _cmd(cmd, **dargs)
+        # VirshSession Can't make these
+        ret = utils.CmdResult(cmd)
+        if dargs['debug']:
+            logging.debug("Running command: %s" % cmd)
+        ret.exit_status, ret.stdout = self.session.cmd_status_output(cmd)
+        ret.stderr = "" # No way to retrieve this separetly
+        if not dargs['ignore_status'] and bool(ret.exit_status):
+            raise error.CmdError(cmd, ret,
+                                 "Command returned non-zero exit status")
+        if dargs['debug']:
+            logging.debug("status: %s" % ret.exit_status)
+            logging.debug("stdout: %s" % ret.stdout.strip())
+            logging.debug("stderr: %s" % ret.stderr.strip())
+        return ret
+
+
 ##### virsh functions follow #####
 
-# Note: MANY other functions depend on cmd()'s parameter order
-def cmd(cmd, **dargs):
-    """
-    Append cmd to 'virsh' and execute, optionally return full results.
 
-    @param: cmd: Command line to append to virsh command
-    @param: dargs: standardized virh function API keywords
-    @return: CmdResult object
+# Note: MANY other functions depend on cmd()'s parameter order and names
+def _cmd(cmd, **dargs):
+    """
+    Interface to cmd function as 'cmd' symbol is polluted
     """
 
-    uri_arg = ""
+    uri_arg = " "
     if dargs['uri']:
-        uri_arg = "-c " + dargs['uri']
-    cmd = "%s %s %s" % (dargs['virsh_exec'], uri_arg, cmd)
+        uri_arg = " -c '%s'" % dargs['uri']
+    cmd = "%s%s%s" % (dargs['virsh_exec'], uri_arg, cmd)
 
     if dargs['debug']:
         logging.debug("Running command: %s" % cmd)
@@ -176,6 +250,17 @@ def cmd(cmd, **dargs):
         logging.debug("stdout: %s" % ret.stdout.strip())
         logging.debug("stderr: %s" % ret.stderr.strip())
     return ret
+
+
+def cmd(cmd, **dargs):
+    """
+    Append cmd to 'virsh' and execute, optionally return full results.
+
+    @param: cmd: Command line to append to virsh command
+    @param: dargs: standardized virh function API keywords
+    @return: CmdResult object
+    """
+    return _cmd(cmd, **dargs)
 
 
 def domname(id, **dargs):
