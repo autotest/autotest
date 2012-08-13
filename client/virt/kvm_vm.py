@@ -85,6 +85,7 @@ class VM(virt_vm.BaseVM):
         # un-overwrite instance attribute, virtnet db lookups depend on this
         if state:
             self.instance = state['instance']
+        self.qemu_command = ''
 
     def verify_alive(self):
         """
@@ -1601,6 +1602,7 @@ class VM(virt_vm.BaseVM):
                                               "[9p proxy helper]")
 
             logging.info("Running qemu command:\n%s", qemu_command)
+            self.qemu_command = qemu_command
             self.process = aexpect.run_bg(qemu_command, None,
                                           logging.info, "[qemu output] ")
 
