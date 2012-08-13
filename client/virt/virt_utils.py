@@ -4134,7 +4134,43 @@ class NumaNode(object):
         @param i: Index of the CPU inside the node.
         """
         cmd = utils.run("numactl --hardware")
-        return re.findall("node %s cpus: (.*)" % i, cmd.stdout)[0]
+        cpus = re.findall("node %s cpus: (.*)" % i, cmd.stdout)
+        if cpus:
+            cpus = cpus[0]
+        else:
+            break_flag = False
+            cpulist_path = "/sys/devices/system/node/node%s/cpulist" % i
+            try:
+                cpulist_file = open(cpulist_path, 'r')
+                cpus = cpulist_file.read()
+                cpulist_file.close()
+            except IOError:
+                logging.warn("Can not find the cpu list information from both"
+                             "numactl and sysfs. Please check your system.")
+                break_flag = True
+            if not break_flag:
+                # Try to expand the numbers with '-' to a string of numbers
+                # separated by blank. There number of '-' in the list depends
+                # on the physical architecture of the hardware.
+                try:
+                    convert_list = re.findall("\d+-\d+", cpus)
+                    for cstr in convert_list:
+                        _ = " "
+                        start = min(int(cstr.split("-")[0]),
+                                    int(cstr.split("-")[1]))
+                        end = max(int(cstr.split("-")[0]),
+                                  int(cstr.split("-")[1]))
+                        for n in range(start, end+1, 1):
+                            _ += "%s " % str(n)
+                        cpus = re.sub(cstr, _, cpus)
+                except IndexError, ValueError:
+                    logging.warn("The format of cpu list is not the same as"
+                                 " expected.")
+                    break_flag = False
+            if break_flag:
+                cpus = ""
+
+        return cpus
 
 
     def free_cpu(self, i):

@@ -1112,20 +1112,27 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
                            guest_results_dir)
 
 
-    def get_results_summary(guest_autotest_path):
+    def get_results_summary():
         """
-        Get the status of the tests that were executed on the host and close
-        the session where autotest was being executed.
+        Get the status of the tests that were executed on the guest.
+        NOTE: This function depends on the results copied to host by
+              get_results() function, so call get_results() first.
         """
-        session.cmd("cd %s" % guest_autotest_path)
-        output = session.cmd_output("cat results/*/status")
+        status_path = os.path.join(outputdir,
+                                   "guest_autotest_results/*/status")
+
+        try:
+            output = utils.system_output("cat %s" % status_path)
+        except error.CmdError, e:
+            logging.error("Error getting guest autotest status file: %s", e)
+            return None
+
         try:
             results = scan_results.parse_results(output)
             # Report test results
             logging.info("Results (test, status, duration, info):")
             for result in results:
-                logging.info(str(result))
-            session.close()
+                logging.info("\t %s", str(result))
             return results
         except Exception, e:
             logging.error("Error processing guest autotest results: %s", e)
@@ -1192,6 +1199,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
     try:
         session.cmd("rm -f control.state")
         session.cmd("rm -rf results/*")
+        session.cmd("rm -rf tmp/*")
     except aexpect.ShellError:
         pass
     try:
@@ -1223,7 +1231,7 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
     except aexpect.ShellTimeoutError:
         if vm.is_alive():
             get_results(destination_autotest_path)
-            get_results_summary(destination_autotest_path)
+            get_results_summary()
             raise error.TestError("Timeout elapsed while waiting for job to "
                                   "complete")
         else:
@@ -1234,8 +1242,8 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
         raise error.TestError("Autotest job on guest failed "
                               "(Remote session terminated during job)")
 
-    results = get_results_summary(destination_autotest_path)
     get_results(destination_autotest_path)
+    results = get_results_summary()
 
     # Make a list of FAIL/ERROR/ABORT results (make sure FAIL results appear
     # before ERROR results, and ERROR results appear before ABORT results)
@@ -1366,7 +1374,9 @@ def ping(dest=None, count=None, interval=None, interface=None,
         command += " -b"
     if flood:
         command += " -f -q"
+        command = "sleep %s && kill -2 `pidof ping` & %s" % (timeout, command)
         output_func = None
+        timeout += 1
 
     return raw_ping(command, timeout, session, output_func)
 
@@ -1387,6 +1397,26 @@ def get_linux_ifname(session, mac_address):
         return ethname
     except Exception:
         return None
+
+
+def restart_guest_network(session, nic_name=None):
+    """
+    Restart guest's network via serial console.
+
+    @param session: session to virtual machine
+    @nic_name: nic card name in guest to restart
+    """
+    if_list = []
+    if not nic_name:
+        # initiate all interfaces on guest.
+        o = session.cmd_output("ip link")
+        if_list = re.findall(r"\d+: (eth\d+):", o)
+    else:
+        if_list.append(nic_name)
+
+    if if_list:
+        session.sendline("killall dhclient && "
+                         "dhclient %s &" % ' '.join(if_list))
 
 
 def run_virt_sub_test(test, params, env, sub_type=None, tag=None):

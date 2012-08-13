@@ -173,9 +173,15 @@ def main():
     if parser.options.no_logging:
         results = None
     else:
+        output_dir = global_config.get_config_value('COMMON',
+                                                    'test_output_dir',
+                                                    default="")
         results = parser.options.results
         if not results:
             results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')
+            if output_dir:
+                results = os.path.join(output_dir, results)
+
         results  = os.path.abspath(results)
         resultdir_exists = False
         for filename in ('control.srv', 'status.log', '.autoserv_execute'):

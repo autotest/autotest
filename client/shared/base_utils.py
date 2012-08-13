@@ -1121,7 +1121,7 @@ def nuke_pid(pid, signal_queue=(signal.SIGTERM, signal.SIGKILL)):
     raise error.AutoservRunError('Could not kill %d' % pid, None)
 
 
-def system(command, timeout=None, ignore_status=False):
+def system(command, timeout=None, ignore_status=False, verbose=True):
     """
     Run a command
 
@@ -1129,12 +1129,14 @@ def system(command, timeout=None, ignore_status=False):
     @param ignore_status: if ignore_status=False, throw an exception if the
             command's exit code is non-zero
             if ignore_status=True, return the exit code.
+    @param verbose: if True, log the command being run.
 
     @return exit status of command
             (note, this will always be zero unless ignore_status=True)
     """
     return run(command, timeout=timeout, ignore_status=ignore_status,
-               stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS).exit_status
+               stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS,
+               verbose=verbose).exit_status
 
 
 def system_parallel(commands, timeout=None, ignore_status=False):
@@ -1146,7 +1148,7 @@ def system_parallel(commands, timeout=None, ignore_status=False):
 
 
 def system_output(command, timeout=None, ignore_status=False,
-                  retain_output=False, args=()):
+                  retain_output=False, args=(), verbose=True):
     """
     Run a command and return the stdout output.
 
@@ -1162,16 +1164,17 @@ def system_output(command, timeout=None, ignore_status=False,
             inside " quotes after they have been escaped for that; each
             element in the sequence will be given as a separate command
             argument
+    @param verbose: if True, log the command being run.
 
     @return a string with the stdout output of the command.
     """
     if retain_output:
         out = run(command, timeout=timeout, ignore_status=ignore_status,
                   stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS,
-                  args=args).stdout
+                  verbose=verbose, args=args).stdout
     else:
         out = run(command, timeout=timeout, ignore_status=ignore_status,
-                  args=args).stdout
+                  verbose=verbose, args=args).stdout
     if out[-1:] == '\n':
         out = out[:-1]
     return out
