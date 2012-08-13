@@ -2326,6 +2326,49 @@ class VM(virt_vm.BaseVM):
             error.context()
 
         try:
+            if self.params["display"] == "spice":
+                dest_port = clone.spice_options['spice_port']
+                logging.debug("Informing migration to spice client")
+                commands = ["__com.redhat_spice_migrate_info",
+                            "spice_migrate_info",
+                            "client_migrate_info"]
+
+                if self.monitor.protocol == "human":
+                    out = self.monitor.cmd("help", debug=False)
+                    for command in commands:
+                        if "\n%s" % command in out:
+                            # spice_migrate_info requires dest_host, dest_port
+                            if command in commands[:2]:
+                                command = "%s %s %s" % (command, dest_host,
+                                                        dest_port)
+                            # client_migrate_info also requires protocol
+                            else:
+                                command = "%s %s %s %s" % (command,
+                                                         self.params['display'],
+                                                         dest_host, dest_port)
+                            break
+                    self.monitor.cmd(command)
+
+                elif self.monitor.protocol == "qmp":
+                    out = self.monitor.cmd_obj({"execute": "query-commands"})
+                    for command in commands:
+                        if {'name': command} in out['return']:
+                            # spice_migrate_info requires dest_host, dest_port
+                            if command in commands[:2]:
+                                command_dict = {"execute": command,
+                                                "arguments":
+                                                 {"hostname": dest_host,
+                                                  "port": dest_port}}
+                            # client_migrate_info also requires protocol
+                            else:
+                                command_dict = {"execute": command,
+                                                "arguments":
+                                            {"protocol": self.params['display'],
+                                             "hostname": dest_host,
+                                             "port": dest_port}}
+                            break
+                    self.monitor.cmd_obj(command_dict)
+
             if protocol == "tcp":
                 if local:
                     uri = "tcp:0:%d" % clone.migration_port
