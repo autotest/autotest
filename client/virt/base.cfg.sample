@@ -66,6 +66,14 @@ usb_type_tablet1 = usb-tablet
 # USB Controller type which device uses.
 usb_controller_tablet1 = uhci
 
+# virtio_serialport and virtio_console ports
+# virtio_ports = "vs1 vs2 vc1"
+# Port types
+# virtio_port_type = serialport
+# virtio_port_type_vc1 = console
+# Host socket type
+# virtio_port_chardev = spicevmc
+# virtio_port_chardev_vc1 = socket
 # Emulated machine type, run following command to see supported machine type.
 # qemu-kvm -M ?
 # machine_type = pc
