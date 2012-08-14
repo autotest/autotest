@@ -90,6 +90,8 @@ variants:
             mount_dir = /mnt/
             diff_file_cmd = diff
             copy_cmd = cp
+        unattended_install:
+            syslog_server_enabled = yes
 
         variants:
             - CustomGuestLinux:
