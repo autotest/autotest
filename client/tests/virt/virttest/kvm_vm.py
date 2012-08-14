@@ -702,6 +702,7 @@ class VM(virt_vm.BaseVM):
                 self.spice_options['spice_port'] = s_port
 
             set_value("password=%s", "spice_password", "disable-ticketing")
+            set_yes_no_value("disable_copy_paste", yes_value="disable-copy-paste")
             set_value("addr=%s", "spice_addr")
 
             if optget("spice_ssl") == "yes":
@@ -1299,7 +1300,7 @@ class VM(virt_vm.BaseVM):
                 "spice_image_compression", "spice_jpeg_wan_compression",
                 "spice_zlib_glz_wan_compression", "spice_streaming_video",
                 "spice_agent_mouse", "spice_playback_compression",
-                "spice_ipv4", "spice_ipv6", "spice_x509_cert_file",
+                "spice_ipv4", "spice_ipv6", "spice_x509_cert_file", "disable_copy_paste"
             )
 
             for skey in spice_keys:
