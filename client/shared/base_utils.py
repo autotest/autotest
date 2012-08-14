@@ -1,7 +1,7 @@
 #
 # Copyright 2008 Google Inc. Released under the GPL v2
 
-import os, pickle, random, re, resource, select, shutil, signal, StringIO
+import os, pickle, random, re, resource, select, shutil, signal, StringIO, glob
 import socket, struct, subprocess, sys, time, textwrap, traceback, urlparse
 import warnings, smtplib, logging, urllib2, string
 from threading import Thread, Event, Lock
@@ -767,9 +767,34 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
     if install_needed:
         if not preserve_srcdir and os.path.exists(srcdir):
             shutil.rmtree(srcdir)
+        module_name = os.path.basename(os.path.dirname(srcdir))
+        module_parent = os.path.dirname(srcdir)
+        base_autotest = os.path.abspath(os.path.join(module_parent, "..", ".."))
+        tests_dir = os.path.join(base_autotest, 'tests')
+        site_tests_dir = os.path.join(base_autotest, 'site-tests')
+        other_tests_dir = GLOBAL_CONFIG.get_config_value("COMMON", "test_dir",
+                                                         default="")
+        source_code_dir = ""
+        for d in [other_tests_dir, site_tests_dir, tests_dir]:
+            source_code_dir = os.path.join(d, module_name, "src")
+            if os.path.isdir(source_code_dir):
+                break
+
+        if not os.path.isdir(srcdir):
+            if os.path.isdir(source_code_dir):
+                shutil.copytree(source_code_dir, srcdir)
+            else:
+                os.makedirs(srcdir)
+
+        patch_file_list = glob.glob(os.path.join(
+                                 (os.path.dirname(source_code_dir)), "*.patch"))
+        for patch_src in patch_file_list:
+            patch_dst = os.path.join(os.path.dirname(srcdir),
+                                     os.path.basename(patch_src))
+            shutil.copyfile(patch_src, patch_dst)
+
         install(*args, **dargs)
-        if os.path.exists(srcdir):
-            pickle.dump(new_version, open(versionfile, 'w'))
+        pickle.dump(new_version, open(versionfile, 'w'))
 
 
 def get_stderr_level(stderr_is_expected):
