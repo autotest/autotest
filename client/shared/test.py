@@ -58,17 +58,6 @@ class base_test(object):
                                                        default=tmpdir)
         self.srcdir = os.path.join(output_config, os.path.basename(self.bindir),
                                    'src')
-        source_code_dir = os.path.join(self.bindir, 'src')
-        if not os.path.isdir(self.srcdir):
-            if os.path.isdir(source_code_dir):
-                shutil.copytree(source_code_dir, self.srcdir)
-            else:
-                os.makedirs(self.srcdir)
-        patch_file_list = glob.glob(os.path.join(self.bindir, "*.patch"))
-        for patch_src in patch_file_list:
-            patch_dst = os.path.join(os.path.dirname(self.srcdir),
-                                     os.path.basename(patch_src))
-            shutil.copyfile(patch_src, patch_dst)
         self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname,
                                        dir=job.tmpdir)
         self._keyvals = []
