@@ -90,6 +90,10 @@ variants:
             mount_dir = /mnt/
             diff_file_cmd = diff
             copy_cmd = cp
+        unattended_install:
+            # Change the config below to yes if you want to use syslog
+            # to get anaconda logs (leads to verbose install logs)
+            syslog_server_enabled = no
 
         variants:
             - CustomGuestLinux:
