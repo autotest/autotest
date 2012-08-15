@@ -4,7 +4,7 @@ import xml.dom.minidom
 from autotest.client.shared import error, iso9660
 from autotest.client import utils
 from autotest.client.virt import virt_vm, virt_utils, virt_utils_disk
-from autotest.client.virt import kvm_monitor, remote, virt_syslog_server
+from autotest.client.virt import kvm_monitor, remote, syslog_server
 from autotest.client.virt import http_server
 
 
@@ -746,13 +746,13 @@ def start_syslog_server_thread(address, port, tcp):
     global _syslog_server_thread
     global _syslog_server_thread_event
 
-    virt_syslog_server.set_default_format('[UnattendedSyslog '
+    syslog_server.set_default_format('[UnattendedSyslog '
                                           '(%s.%s)] %s')
 
     if _syslog_server_thread is None:
         _syslog_server_thread_event = threading.Event()
         _syslog_server_thread = threading.Thread(
-            target=virt_syslog_server.syslog_server,
+            target=syslog_server.syslog_server,
             args=(address, port, tcp, terminate_syslog_server_thread))
         _syslog_server_thread.start()
 
