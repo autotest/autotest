@@ -3,7 +3,7 @@ import threading
 import xml.dom.minidom
 from autotest.client.shared import error, iso9660
 from autotest.client import utils
-from autotest.client.virt import virt_vm, virt_utils, virt_utils_disk
+from autotest.client.virt import virt_vm, virt_utils, utils_disk
 from autotest.client.virt import kvm_monitor, remote, syslog_server
 from autotest.client.virt import http_server
 
@@ -79,7 +79,7 @@ class RemoteInstall(object):
     """
     def __init__(self, path, ip, port, filename):
         self.path = path
-        virt_utils_disk.cleanup(self.path)
+        utils_disk.cleanup(self.path)
         os.makedirs(self.path)
         self.ip = ip
         self.port = port
@@ -441,7 +441,7 @@ class UnattendedInstallConfig(object):
         if self.unattended_file.endswith('.sif'):
             dest_fname = 'winnt.sif'
             setup_file = 'winnt.bat'
-            boot_disk = virt_utils_disk.FloppyDisk(self.floppy,
+            boot_disk = utils_disk.FloppyDisk(self.floppy,
                                                    self.qemu_img_binary,
                                                    self.tmpdir)
             answer_path = boot_disk.get_answer_file_path(dest_fname)
@@ -475,7 +475,7 @@ class UnattendedInstallConfig(object):
                                            kernel_params)
 
                 self.params['kernel_params'] = ''
-                boot_disk = virt_utils_disk.CdromInstallDisk(
+                boot_disk = utils_disk.CdromInstallDisk(
                     self.cdrom_unattended,
                     self.tmpdir,
                     self.cdrom_cd1_mount,
@@ -518,10 +518,10 @@ class UnattendedInstallConfig(object):
 
                 self.params['kernel_params'] = kernel_params
             elif self.params.get('unattended_delivery_method') == 'cdrom':
-                boot_disk = virt_utils_disk.CdromDisk(self.cdrom_unattended,
+                boot_disk = utils_disk.CdromDisk(self.cdrom_unattended,
                                                       self.tmpdir)
             elif self.params.get('unattended_delivery_method') == 'floppy':
-                boot_disk = virt_utils_disk.FloppyDisk(self.floppy,
+                boot_disk = utils_disk.FloppyDisk(self.floppy,
                                                        self.qemu_img_binary,
                                                        self.tmpdir)
             else:
@@ -535,10 +535,10 @@ class UnattendedInstallConfig(object):
                 # SUSE autoyast install
                 dest_fname = "autoinst.xml"
                 if self.cdrom_unattended:
-                    boot_disk = virt_utils_disk.CdromDisk(self.cdrom_unattended,
+                    boot_disk = utils_disk.CdromDisk(self.cdrom_unattended,
                                                           self.tmpdir)
                 elif self.floppy:
-                    boot_disk = virt_utils_disk.FloppyDisk(self.floppy,
+                    boot_disk = utils_disk.FloppyDisk(self.floppy,
                                                            self.qemu_img_binary,
                                                            self.tmpdir)
                 else:
@@ -550,7 +550,7 @@ class UnattendedInstallConfig(object):
             else:
                 # Windows unattended install
                 dest_fname = "autounattend.xml"
-                boot_disk = virt_utils_disk.FloppyDisk(self.floppy,
+                boot_disk = utils_disk.FloppyDisk(self.floppy,
                                                        self.qemu_img_binary,
                                                        self.tmpdir)
                 answer_path = boot_disk.get_answer_file_path(dest_fname)
@@ -610,7 +610,7 @@ class UnattendedInstallConfig(object):
                 if (self.params.get('unattended_delivery_method') !=
                     'integrated'):
                     i.close()
-                    virt_utils_disk.cleanup(self.cdrom_cd1_mount)
+                    utils_disk.cleanup(self.cdrom_cd1_mount)
             elif ((self.vm.driver_type == 'xen') and
                   (self.params.get('hvm_or_pv') == 'pv')):
                 logging.debug("starting unattended content web server")
@@ -703,7 +703,7 @@ class UnattendedInstallConfig(object):
                                 os.path.basename(self.initrd), self.image_path))
             utils.run(initrd_fetch_cmd, verbose=DEBUG)
         finally:
-            virt_utils_disk.cleanup(self.nfs_mount)
+            utils_disk.cleanup(self.nfs_mount)
 
 
     def setup_import(self):
@@ -844,7 +844,7 @@ def run_unattended_install(test, params, env):
         _url_auto_content_server_thread_event.set()
         _url_auto_content_server_thread.join(3)
         _url_auto_content_server_thread = None
-        virt_utils_disk.cleanup(unattended_install_config.cdrom_cd1_mount)
+        utils_disk.cleanup(unattended_install_config.cdrom_cd1_mount)
 
     global _unattended_server_thread
     global _unattended_server_thread_event

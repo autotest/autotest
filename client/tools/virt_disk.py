@@ -10,7 +10,7 @@ disks just like they're created by the virt unattended test installation.
 
 import sys, optparse
 import common
-from autotest.client.virt import virt_utils, virt_utils_disk
+from autotest.client.virt import virt_utils, utils_disk
 
 
 class OptionParser(optparse.OptionParser):
@@ -73,11 +73,11 @@ class App:
     def main(self):
         self.parse_cmdline()
         if self.options.floppy:
-            self.disk = virt_utils_disk.FloppyDisk(self.image,
+            self.disk = utils_disk.FloppyDisk(self.image,
                                                    self.options.qemu_img,
                                                    self.options.temp)
         elif self.options.cdrom:
-            self.disk = virt_utils_disk.CdromDisk(self.image,
+            self.disk = utils_disk.CdromDisk(self.image,
                                                   self.options.temp)
 
         for f in self.files:
