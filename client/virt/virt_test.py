@@ -1,7 +1,7 @@
 import os, sys, logging, imp
 from autotest.client import test
 from autotest.client.shared import error
-import virt_utils, virt_env_process
+import virt_utils, env_process
 
 
 class virt_test(test.test):
@@ -89,7 +89,7 @@ class virt_test(test.test):
                         f.close()
                     # Preprocess
                     try:
-                        virt_env_process.preprocess(self, params, env)
+                        env_process.preprocess(self, params, env)
                     finally:
                         env.save()
                     # Run the test function
@@ -107,7 +107,7 @@ class virt_test(test.test):
                     logging.error("Test failed: %s: %s",
                                   e.__class__.__name__, e)
                     try:
-                        virt_env_process.postprocess_on_error(
+                        env_process.postprocess_on_error(
                             self, params, env)
                     finally:
                         env.save()
@@ -117,7 +117,7 @@ class virt_test(test.test):
                 # Postprocess
                 try:
                     try:
-                        virt_env_process.postprocess(self, params, env)
+                        env_process.postprocess(self, params, env)
                     except Exception, e:
                         if test_passed:
                             raise

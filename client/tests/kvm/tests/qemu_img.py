@@ -1,6 +1,6 @@
 import re, os, logging, commands
 from autotest.client.shared import utils, error
-from autotest.client.virt import virt_utils, virt_env_process, virt_storage
+from autotest.client.virt import virt_utils, env_process, virt_storage
 
 
 def run_qemu_img(test, params, env):
@@ -288,7 +288,7 @@ def run_qemu_img(test, params, env):
 
             # Start a new VM, using backing file as its harddisk
             vm_name = params.get('main_vm')
-            virt_env_process.preprocess_vm(test, params, env, vm_name)
+            env_process.preprocess_vm(test, params, env, vm_name)
             vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
@@ -316,7 +316,7 @@ def run_qemu_img(test, params, env):
             # Second, Start a new VM, using image_name as its harddisk
             # Here, the commit_testfile should not exist
             vm_name = params.get('main_vm')
-            virt_env_process.preprocess_vm(test, params, env, vm_name)
+            env_process.preprocess_vm(test, params, env, vm_name)
             vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))
@@ -342,7 +342,7 @@ def run_qemu_img(test, params, env):
 
             # Start a new VM, using image_name as its harddisk
             vm_name = params.get('main_vm')
-            virt_env_process.preprocess_vm(test, params, env, vm_name)
+            env_process.preprocess_vm(test, params, env, vm_name)
             vm = env.get_vm(vm_name)
             vm.create()
             timeout = int(params.get("login_timeout", 360))

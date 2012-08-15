@@ -1,7 +1,7 @@
 import logging, os, re
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_env_process
+from autotest.client.virt import env_process
 
 
 @error.context_aware
@@ -79,7 +79,7 @@ def run_trans_hugepage_swapping(test, params, env):
                 params['mem'] = str(swap_free[0])
                 vm_key = vm0_key.clone(vm0, params)
                 env.register_vm(vm_name, vm_key)
-                virt_env_process.preprocess_vm(test, params, env, vm_name)
+                env_process.preprocess_vm(test, params, env, vm_name)
                 vm_key.create()
                 session = vm_key.wait_for_login(timeout=login_timeout)
             else:

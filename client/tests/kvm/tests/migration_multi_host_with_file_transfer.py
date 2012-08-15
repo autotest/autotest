@@ -2,7 +2,7 @@ import logging, threading
 from autotest.client import utils as client_utils
 from autotest.client.shared import utils, error
 from autotest.client.shared.syncdata import SyncData
-from autotest.client.virt import virt_env_process, virt_test_utils, virt_remote
+from autotest.client.virt import env_process, virt_test_utils, virt_remote
 from autotest.client.virt import virt_utils
 
 
@@ -108,9 +108,9 @@ def run_migration_multi_host_with_file_transfer(test, params, env):
             new_params['migration_mode'] = None
             new_params['start_vm'] = 'yes'
             self.vm_lock.acquire()
-            virt_env_process.process(self.test, new_params, self.env,
-                                     virt_env_process.preprocess_image,
-                                     virt_env_process.preprocess_vm)
+            env_process.process(self.test, new_params, self.env,
+                                     env_process.preprocess_image,
+                                     env_process.preprocess_vm)
             self.vm_lock.release()
             vm = self.env.get_vm(vm_name)
             vm.wait_for_login(timeout=self.login_timeout)

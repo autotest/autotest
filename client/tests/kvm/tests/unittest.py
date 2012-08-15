@@ -1,6 +1,6 @@
 import logging, os, shutil, glob, ConfigParser
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, virt_env_process
+from autotest.client.virt import virt_utils, env_process
 
 
 def run_unittest(test, params, env):
@@ -95,7 +95,7 @@ def run_unittest(test, params, env):
         try:
             try:
                 vm_name = params.get('main_vm')
-                virt_env_process.preprocess_vm(test, params, env, vm_name)
+                env_process.preprocess_vm(test, params, env, vm_name)
                 vm = env.get_vm(vm_name)
                 vm.create()
                 vm.resume()

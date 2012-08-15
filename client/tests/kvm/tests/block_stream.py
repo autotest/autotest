@@ -1,7 +1,7 @@
 import re, os, logging, commands, string, time
 from autotest.client.shared import utils, error
 from autotest.client.virt import kvm_monitor, virt_utils, virt_vm, aexpect
-from autotest.client.virt import virt_env_process
+from autotest.client.virt import env_process
 
 @error.context_aware
 def run_block_stream(test, params, env):
@@ -68,7 +68,7 @@ def run_block_stream(test, params, env):
 
         # Start virtual machine, using backing file as its harddisk
         vm_name = params.get('main_vm')
-        virt_env_process.preprocess_vm(test, params, env, vm_name)
+        env_process.preprocess_vm(test, params, env, vm_name)
         vm = env.get_vm(vm_name)
         vm.create()
         timeout = int(params.get("login_timeout", 360))

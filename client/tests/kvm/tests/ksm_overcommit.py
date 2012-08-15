@@ -2,7 +2,7 @@ import logging, time, random, math, os
 from autotest.client.shared import error
 from autotest.client import utils
 from autotest.client.virt import virt_utils, virt_test_utils, aexpect
-from autotest.client.virt import virt_env_process
+from autotest.client.virt import env_process
 
 
 def run_ksm_overcommit(test, params, env):
@@ -543,7 +543,7 @@ def run_ksm_overcommit(test, params, env):
     logging.debug("Memory used by allocator on guests = %dM", ksm_size)
 
     # Creating the first guest
-    virt_env_process.preprocess_vm(test, params, env, vm_name)
+    env_process.preprocess_vm(test, params, env, vm_name)
     lvms.append(env.get_vm(vm_name))
     if not lvms[0]:
         raise error.TestError("VM object not found in environment")

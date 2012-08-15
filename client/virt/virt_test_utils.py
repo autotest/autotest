@@ -28,7 +28,7 @@ from autotest.client.shared import error, global_config
 from autotest.client import utils
 from autotest.client.tools import scan_results
 from autotest.client.shared.syncdata import SyncData, SyncListenServer
-import aexpect, virt_utils, virt_vm, virt_remote, virt_storage, virt_env_process
+import aexpect, virt_utils, virt_vm, virt_remote, virt_storage, env_process
 
 GLOBAL_CONFIG = global_config.global_config
 
@@ -622,9 +622,9 @@ class MultihostMigration(object):
         new_params['migration_mode'] = migration_mode
         new_params['start_vm'] = 'yes'
         self.vm_lock.acquire()
-        virt_env_process.process(self.test, new_params, self.env,
-                                 virt_env_process.preprocess_image,
-                                 virt_env_process.preprocess_vm)
+        env_process.process(self.test, new_params, self.env,
+                                 env_process.preprocess_image,
+                                 env_process.preprocess_vm)
         self.vm_lock.release()
 
         self._check_vms(mig_data)

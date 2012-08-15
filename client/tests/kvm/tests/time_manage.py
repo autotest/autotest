@@ -1,7 +1,7 @@
 import logging, time, commands
 from autotest.client.shared import error
 from autotest.client.virt import virt_test_utils, aexpect
-from autotest.client.virt import virt_env_process
+from autotest.client.virt import env_process
 
 @error.context_aware
 def run_time_manage(test, params, env):
@@ -65,7 +65,7 @@ def run_time_manage(test, params, env):
             vm_params = vm.params.copy()
             curr_vm = vm.clone(vm_name, vm_params)
             env.register_vm(vm_name, curr_vm)
-            virt_env_process.preprocess_vm(test, vm_params, env, vm_name)
+            env_process.preprocess_vm(test, vm_params, env, vm_name)
             params["vms"] += " " + vm_name
 
             sessions.append(curr_vm.wait_for_login(timeout=login_timeout))

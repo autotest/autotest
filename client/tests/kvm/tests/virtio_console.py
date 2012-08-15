@@ -15,7 +15,7 @@ import threading
 import time
 from autotest.client import utils
 from autotest.client.shared import error
-from autotest.client.virt import kvm_virtio_port, virt_env_process
+from autotest.client.virt import kvm_virtio_port, env_process
 from autotest.client.virt import virt_test_utils
 
 
@@ -107,7 +107,7 @@ def run_virtio_console(test, params, env):
                 logging.debug("Recreating VM with more virtio ports.")
             else:
                 logging.warning("Recreating VM with more virtio ports.")
-            virt_env_process.preprocess_vm(test, params, env,
+            env_process.preprocess_vm(test, params, env,
                                             params.get("main_vm"))
             vm = env.get_vm(params.get("main_vm"))
 
