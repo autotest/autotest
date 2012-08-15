@@ -116,6 +116,8 @@ class UnattendedInstallConfig(object):
         @param params: Dictionary with test parameters.
         """
         root_dir = test.bindir
+        self.syslog_path = os.path.join(test.debugdir,
+                                        'syslog-%s.log' % vm.name)
         self.deps_dir = os.path.join(test.virtdir, 'deps')
         self.unattended_dir = os.path.join(test.virtdir, 'unattended')
         self.params = params
@@ -722,6 +724,7 @@ class UnattendedInstallConfig(object):
             virt_utils.display_attributes(self)
 
         if self.syslog_server_enabled == 'yes':
+            virt_syslog_server.set_default_file(self.syslog_path)
             start_syslog_server_thread(self.syslog_server_ip,
                                        self.syslog_server_port,
                                        self.syslog_server_tcp)
@@ -746,8 +749,7 @@ def start_syslog_server_thread(address, port, tcp):
     global _syslog_server_thread
     global _syslog_server_thread_event
 
-    virt_syslog_server.set_default_format('[unattended install syslog server '
-                                          '(%s.%s)] %s')
+    virt_syslog_server.set_default_format('[unattended syslog (%s.%s)]s')
 
     if _syslog_server_thread is None:
         _syslog_server_thread_event = threading.Event()

@@ -2,7 +2,27 @@ import os, re, logging, SocketServer
 
 
 SYSLOG_PORT = 514
-DEFAULT_FORMAT = '[relayed from embedded syslog server (%s.%s)] %s'
+DEFAULT_FORMAT = '[autotest syslog (%s.%s)] %s'
+DEFAULT_FILE = None
+
+
+def set_default_file(log_file):
+    '''
+    Changes the default message format
+
+    @type message_format: string
+    @param message_format: a message format string with 3 placeholders:
+                           facility, priority and message.
+    '''
+    global DEFAULT_FILE
+    DEFAULT_FILE = log_file
+
+
+def get_default_file():
+    '''
+    Returns the current default message format
+    '''
+    return DEFAULT_FILE
 
 
 def set_default_format(message_format):
@@ -123,7 +143,19 @@ class RequestHandler(SocketServer.BaseRequestHandler):
             pri = int(match.groups()[0])
             msg = match.groups()[1]
             (facility_name, priority_name) = self.decodeFacilityPriority(pri)
-            logging.debug(message_format, facility_name, priority_name, msg)
+            if DEFAULT_FILE is not None:
+                syslog_logger = logging.getLogger("autotest.syslog")
+                syslog_logger.setLevel(logging.DEBUG)
+                if not syslog_logger.handlers:
+                    file_handler = logging.FileHandler(filename=DEFAULT_FILE)
+                    file_handler.setLevel(logging.DEBUG)
+                    simple_formatter = logging.Formatter()
+                    file_handler.setFormatter(simple_formatter)
+                    syslog_logger.addHandler(file_handler)
+                syslog_logger.debug(msg)
+            else:
+                logging.debug(message_format, facility_name, priority_name, msg)
+
 
 
 class RequestHandlerTcp(RequestHandler):
