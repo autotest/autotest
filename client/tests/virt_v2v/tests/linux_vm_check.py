@@ -1,6 +1,6 @@
 import os, re, logging
 from autotest.client.shared import error
-from autotest.client.virt import virt_v2v_utils
+from autotest.client.virt import utils_v2v
 
 def run_linux_vm_check(test, params, env):
     """
@@ -8,7 +8,7 @@ def run_linux_vm_check(test, params, env):
     """
     target = params.get('target')
 
-    check_obj = virt_v2v_utils.LinuxVMCheck(test, params, env)
+    check_obj = utils_v2v.LinuxVMCheck(test, params, env)
 
     logging.info("Check guest os info")
     os_info = check_obj.get_vm_os_info()
