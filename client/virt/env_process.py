@@ -2,7 +2,7 @@ import os, time, commands, re, logging, glob, threading, shutil
 from autotest.client import utils
 from autotest.client.shared import error
 import aexpect, kvm_monitor, ppm_utils, test_setup, virt_vm, kvm_vm
-import libvirt_vm, virt_video_maker, virt_utils, storage, kvm_storage
+import libvirt_vm, video_maker, virt_utils, storage, kvm_storage
 import remote, ovirt
 
 try:
@@ -171,7 +171,7 @@ def postprocess_vm(test, params, env, name):
                       "encode a video from the screenshots produced by "
                       "vm %s", vm.name)
         try:
-            video = virt_video_maker.GstPythonVideoMaker()
+            video = video_maker.GstPythonVideoMaker()
             if (video.has_element('vp8enc') and video.has_element('webmmux')):
                 video_file = os.path.join(test.debugdir, "%s-%s.webm" %
                                           (vm.name, test.iteration))
