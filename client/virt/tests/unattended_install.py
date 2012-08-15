@@ -5,7 +5,7 @@ from autotest.client.shared import error, iso9660
 from autotest.client import utils
 from autotest.client.virt import virt_vm, virt_utils, virt_utils_disk
 from autotest.client.virt import kvm_monitor, virt_remote, virt_syslog_server
-from autotest.client.virt import virt_http_server
+from autotest.client.virt import http_server
 
 
 # Whether to print all shell commands called
@@ -27,7 +27,7 @@ def start_auto_content_server_thread(port, path):
     if _url_auto_content_server_thread is None:
         _url_auto_content_server_thread_event = threading.Event()
         _url_auto_content_server_thread = threading.Thread(
-            target=virt_http_server.http_server,
+            target=http_server.http_server,
             args=(port, path, terminate_auto_content_server_thread))
         _url_auto_content_server_thread.start()
 
@@ -39,7 +39,7 @@ def start_unattended_server_thread(port, path):
     if _unattended_server_thread is None:
         _unattended_server_thread_event = threading.Event()
         _unattended_server_thread = threading.Thread(
-            target=virt_http_server.http_server,
+            target=http_server.http_server,
             args=(port, path, terminate_unattended_server_thread))
         _unattended_server_thread.start()
 
