@@ -16,6 +16,7 @@ zerombr
 clearpart --all --initlabel
 autopart
 poweroff
+KVM_TEST_LOGGING
 
 %packages
 @base
