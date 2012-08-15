@@ -3,7 +3,7 @@ from autotest.client import utils
 from autotest.client.shared import error
 import aexpect, kvm_monitor, ppm_utils, test_setup, virt_vm, kvm_vm
 import libvirt_vm, virt_video_maker, virt_utils, storage, kvm_storage
-import remote, virt_v2v, ovirt
+import remote, ovirt
 
 try:
     import PIL.Image
