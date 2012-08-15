@@ -581,7 +581,7 @@ class ClusterManager(object):
         dc = self.api.datacenters.get(dc_name)
         try:
             logging.info('Creating a cluster %s in datacenter %s'
-                         % (cluster_name, dc_name))
+                         % (self.name, dc_name))
             if self.api.clusters.add(param.Cluster(name=self.name,
                                                    cpu=param.CPU(id=cpu_type),
                                                    data_center=dc,
