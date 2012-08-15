@@ -9,7 +9,7 @@ from autotest.client.shared import error
 from autotest.client import utils
 import virt_utils, virt_vm, virt_test_setup, virt_storage, kvm_monitor, aexpect
 import kvm_virtio_port
-import virt_remote
+import remote
 
 
 class VM(virt_vm.BaseVM):
@@ -1771,7 +1771,7 @@ class VM(virt_vm.BaseVM):
                 logging.debug("Trying to shutdown VM with shell command")
                 try:
                     session = self.login()
-                except (virt_remote.LoginError, virt_vm.VMError), e:
+                except (remote.LoginError, virt_vm.VMError), e:
                     logging.debug(e)
                 else:
                     try:

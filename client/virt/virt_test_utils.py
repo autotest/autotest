@@ -28,7 +28,7 @@ from autotest.client.shared import error, global_config
 from autotest.client import utils
 from autotest.client.tools import scan_results
 from autotest.client.shared.syncdata import SyncData, SyncListenServer
-import aexpect, virt_utils, virt_vm, virt_remote, virt_storage, env_process
+import aexpect, virt_utils, virt_vm, remote, virt_storage, env_process
 
 GLOBAL_CONFIG = global_config.global_config
 
@@ -71,7 +71,7 @@ def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2, serial=None):
             try:
                 session = vm.serial_login()
                 break
-            except virt_remote.LoginError, e:
+            except remote.LoginError, e:
                 logging.debug(e)
             time.sleep(step)
     else:
@@ -83,7 +83,7 @@ def wait_for_login(vm, nic_index=0, timeout=240, start=0, step=2, serial=None):
             try:
                 session = vm.login(nic_index=nic_index)
                 break
-            except (virt_remote.LoginError, virt_vm.VMError), e:
+            except (remote.LoginError, virt_vm.VMError), e:
                 logging.debug(e)
             time.sleep(step)
     if not session:

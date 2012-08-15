@@ -3,7 +3,7 @@ from autotest.client import utils
 from autotest.client.shared import error
 import aexpect, kvm_monitor, ppm_utils, virt_test_setup, virt_vm, kvm_vm
 import libvirt_vm, virt_video_maker, virt_utils, virt_storage, kvm_storage
-import virt_remote, virt_v2v, ovirt
+import remote, virt_v2v, ovirt
 
 try:
     import PIL.Image
@@ -301,7 +301,7 @@ def preprocess(test, params, env):
                 login_cmd,
                 output_func=_update_address_cache,
                 output_params=(env["address_cache"],))
-            virt_remote._remote_login(env["tcpdump"], username, password, prompt)
+            remote._remote_login(env["tcpdump"], username, password, prompt)
             env["tcpdump"].sendline(cmd)
         else:
             logging.debug("Starting tcpdump '%s' on local host", cmd)
@@ -494,7 +494,7 @@ def postprocess(test, params, env):
                 try:
                     session = vm.login()
                     session.close()
-                except (virt_remote.LoginError, virt_vm.VMError), e:
+                except (remote.LoginError, virt_vm.VMError), e:
                     logging.warn(e)
                     vm.destroy(gracefully=False)
 

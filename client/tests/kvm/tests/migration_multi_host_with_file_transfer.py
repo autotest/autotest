@@ -2,7 +2,7 @@ import logging, threading
 from autotest.client import utils as client_utils
 from autotest.client.shared import utils, error
 from autotest.client.shared.syncdata import SyncData
-from autotest.client.virt import env_process, virt_test_utils, virt_remote
+from autotest.client.virt import env_process, virt_test_utils, remote
 from autotest.client.virt import virt_utils
 
 
@@ -120,7 +120,7 @@ def run_migration_multi_host_with_file_transfer(test, params, env):
             #Copy until migration not end.
             while not end_event.isSet():
                 logging.info("Copy file to guest %s.", self.vm_addr)
-                virt_remote.copy_files_to(self.vm_addr, "scp", guest_root,
+                remote.copy_files_to(self.vm_addr, "scp", guest_root,
                                           guest_pass, 22, host_path,
                                           guest_path, limit=transfer_speed,
                                           verbose=True,
@@ -128,7 +128,7 @@ def run_migration_multi_host_with_file_transfer(test, params, env):
                 logging.info("Copy file to guests %s done.", self.vm_addr)
 
                 logging.info("Copy file from guest %s.", self.vm_addr)
-                virt_remote.copy_files_from(self.vm_addr, "scp", guest_root,
+                remote.copy_files_from(self.vm_addr, "scp", guest_root,
                                             guest_pass, 22, guest_path,
                                             host_path_returned,
                                             limit=transfer_speed, verbose=True,
@@ -203,7 +203,7 @@ def run_migration_multi_host_with_file_transfer(test, params, env):
                 self._run_and_migrate(bg, end_event, sync, migrate_count)
 
                 # Check if guest lives.
-                virt_remote.wait_for_login(shell_client, self.vm_addr,
+                remote.wait_for_login(shell_client, self.vm_addr,
                                            shell_port, guest_root,
                                            guest_pass, shell_prompt)
                 self._hosts_barrier(self.hosts, self.id, "After_check", 120)

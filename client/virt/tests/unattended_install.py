@@ -4,7 +4,7 @@ import xml.dom.minidom
 from autotest.client.shared import error, iso9660
 from autotest.client import utils
 from autotest.client.virt import virt_vm, virt_utils, virt_utils_disk
-from autotest.client.virt import kvm_monitor, virt_remote, virt_syslog_server
+from autotest.client.virt import kvm_monitor, remote, virt_syslog_server
 from autotest.client.virt import http_server
 
 
@@ -826,7 +826,7 @@ def run_unattended_install(test, params, env):
             try:
                 vm.login()
                 break
-            except (virt_remote.LoginError, Exception), e:
+            except (remote.LoginError, Exception), e:
                 pass
 
         if migrate_background:

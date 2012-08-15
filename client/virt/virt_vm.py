@@ -1,6 +1,6 @@
 import logging, time, glob, re
 from autotest.client.shared import error
-import virt_utils, virt_remote
+import virt_utils, remote
 
 
 class VMError(Exception):
@@ -672,7 +672,7 @@ class BaseVM(object):
         port = self.get_port(int(self.params.get("shell_port")))
         log_filename = ("session-%s-%s.log" %
                         (self.name, virt_utils.generate_random_string(4)))
-        session = virt_remote.remote_login(client, address, port, username,
+        session = remote.remote_login(client, address, port, username,
                                            password, prompt, linesep,
                                            log_filename, timeout)
         session.set_status_test_command(self.params.get("status_test_command",
@@ -704,7 +704,7 @@ class BaseVM(object):
         while time.time() < end_time:
             try:
                 return self.login(nic_index, internal_timeout)
-            except (virt_remote.LoginError, VMError), e:
+            except (remote.LoginError, VMError), e:
                 e = str(e)
                 if e not in error_messages:
                     logging.debug(e)
@@ -737,7 +737,7 @@ class BaseVM(object):
         log_filename = ("transfer-%s-to-%s-%s.log" %
                         (self.name, address,
                         virt_utils.generate_random_string(4)))
-        virt_remote.copy_files_to(address, client, username, password, port,
+        remote.copy_files_to(address, client, username, password, port,
                                   host_path, guest_path, limit, log_filename,
                                   verbose, timeout)
 
@@ -765,7 +765,7 @@ class BaseVM(object):
         log_filename = ("transfer-%s-from-%s-%s.log" %
                         (self.name, address,
                         virt_utils.generate_random_string(4)))
-        virt_remote.copy_files_from(address, client, username, password, port,
+        remote.copy_files_from(address, client, username, password, port,
                                     guest_path, host_path, limit, log_filename,
                                     verbose, timeout)
 
@@ -793,7 +793,7 @@ class BaseVM(object):
         # Try to get a login prompt
         self.serial_console.sendline()
 
-        virt_remote._remote_login(self.serial_console, username, password,
+        remote._remote_login(self.serial_console, username, password,
                                   prompt, timeout)
         return self.serial_console
 
@@ -814,7 +814,7 @@ class BaseVM(object):
         while time.time() < end_time:
             try:
                 return self.serial_login(internal_timeout)
-            except virt_remote.LoginError, e:
+            except remote.LoginError, e:
                 e = str(e)
                 if e not in error_messages:
                     logging.debug(e)
