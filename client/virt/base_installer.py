@@ -655,7 +655,7 @@ class BaseLocalSourceInstaller(BaseInstaller):
 
                 except utils_misc.SourceBuildFailed:
                     # Failed the current test
-                    raise error.Fail("Failed to build %s" % self.name)
+                    raise error.TestFail("Failed to build %s" % self.name)
             else:
                 self.build_helper.execute()
 
