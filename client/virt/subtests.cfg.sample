@@ -430,6 +430,16 @@ variants:
                         usb_type_xhci = nec-usb-xhci
                         usb_max_port_xhci = 4
                         usb_controller_mouse1 = xhci
+            - usb_audio:
+                usb_devices = audio1
+                usb_type_audio1 = usb-audio
+                usb_controller_audio1 = uhci
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB Audio"
+                vendor_id = "46f4"
+                vendor = ""
+                product_id = "0002"
+                product = "QEMU USB Audio"
             - hub:
                 usb_devices = hub1
                 usb_type_hub1 = usb-hub
@@ -534,6 +544,16 @@ variants:
                         usb_type_xhci = nec-usb-xhci
                         usb_max_port_xhci = 4
                         usb_controller_mouse1 = xhci
+            - usb_audio:
+                usb_devices = audio1
+                usb_type_audio1 = usb-audio
+                usb_controller_audio1 = uhci
+                check_func = "check_usb_device"
+                info_usb_name = "QEMU USB Audio"
+                vendor_id = "46f4"
+                vendor = ""
+                product_id = "0002"
+                product = "QEMU USB Audio"
             - hub:
                 usb_devices = hub1
                 usb_type_hub1 = usb-hub
