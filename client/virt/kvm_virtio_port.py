@@ -12,7 +12,7 @@ import select
 import socket
 import time
 from autotest.client.shared import error
-import virt_test_utils
+import utils_test
 
 
 SOCKET_SIZE = 2048
@@ -160,7 +160,7 @@ class GuestWorker(object):
     def __init__(self, vm):
         """ Initialize worker for use (including port init on guest) """
         self.vm = vm
-        self.session = virt_test_utils.wait_for_login(self.vm)
+        self.session = utils_test.wait_for_login(self.vm)
 
         timeout = 10
         if self.session.cmd_status('ls /tmp/virtio_console_guest.pyo'):
@@ -207,7 +207,7 @@ class GuestWorker(object):
         @param vm: New VM object
         """
         self.vm = vm
-        self.session = virt_test_utils.wait_for_login(self.vm)
+        self.session = utils_test.wait_for_login(self.vm)
         self._execute_worker(timeout)
 
     def cmd(self, cmd, timeout=10):
@@ -306,7 +306,7 @@ class GuestWorker(object):
                 match, tmp = self._cmd("guest_exit()", 10)
                 if (match is None) or (match == 0):
                     self.session.close()
-                    self.session = virt_test_utils.wait_for_login(self.vm)
+                    self.session = utils_test.wait_for_login(self.vm)
                 self.cmd("killall -9 python "
                          "&& echo -n PASS: python killed"
                          "|| echo -n PASS: python was already dead", 10)

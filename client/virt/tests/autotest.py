@@ -1,5 +1,5 @@
 import os
-from autotest.client.virt import virt_test_utils
+from autotest.client.virt import utils_test
 
 
 def run_autotest(test, params, env):
@@ -21,5 +21,5 @@ def run_autotest(test, params, env):
                                 params.get("test_control_file"))
     outputdir = test.outputdir
 
-    virt_test_utils.run_autotest(vm, session, control_path, timeout, outputdir,
+    utils_test.run_autotest(vm, session, control_path, timeout, outputdir,
                                  params)

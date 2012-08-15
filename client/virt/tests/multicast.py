@@ -1,7 +1,7 @@
 import logging, os, re
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils, aexpect
+from autotest.client.virt import utils_test, aexpect
 
 
 def run_multicast(test, params, env):
@@ -70,16 +70,16 @@ def run_multicast(test, params, env):
             mcast = "%s.%d" % (prefix, new_suffix)
 
             logging.info("Initial ping test, mcast: %s", mcast)
-            s, o = virt_test_utils.ping(mcast, 10, interface=ifname, timeout=20)
+            s, o = utils_test.ping(mcast, 10, interface=ifname, timeout=20)
             if s != 0:
                 raise error.TestFail(" Ping return non-zero value %s" % o)
 
             logging.info("Flood ping test, mcast: %s", mcast)
-            virt_test_utils.ping(mcast, None, interface=ifname, flood=True,
+            utils_test.ping(mcast, None, interface=ifname, flood=True,
                                 output_func=None, timeout=flood_minutes*60)
 
             logging.info("Final ping test, mcast: %s", mcast)
-            s, o = virt_test_utils.ping(mcast, 10, interface=ifname, timeout=20)
+            s, o = utils_test.ping(mcast, 10, interface=ifname, timeout=20)
             if s != 0:
                 raise error.TestFail("Ping failed, status: %s, output: %s" %
                                      (s, o))

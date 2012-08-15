@@ -1,6 +1,6 @@
 import logging, time, os
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, virt_test_utils, remote
+from autotest.client.virt import virt_utils, utils_test, remote
 from autotest.client.virt import rss_client
 
 
@@ -46,7 +46,7 @@ def run_whql_client_install(test, params, env):
 
     # Stop WTT service(s) on client
     for svc in wtt_services.split():
-        virt_test_utils.stop_windows_service(session, svc)
+        utils_test.stop_windows_service(session, svc)
 
     # Copy dsso_delete_machine_binary to server
     rss_client.upload(server_address, server_file_transfer_port,

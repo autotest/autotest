@@ -1,7 +1,7 @@
 import logging, os
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils
+from autotest.client.virt import utils_test
 from autotest.client.virt import virt_utils
 
 CLIENT_TEST = "kernelinstall"
@@ -159,7 +159,7 @@ def run_kernel_install(test, params, env):
     params["test_control_file_install"] = test_control_file
 
     error.context("Launch kernel installation test in guest")
-    virt_test_utils.run_virt_sub_test(test, params, env, sub_type="autotest",
+    utils_test.run_virt_sub_test(test, params, env, sub_type="autotest",
                                       tag="install")
 
     if params.get("need_reboot", "yes") == "yes":
@@ -177,7 +177,7 @@ def run_kernel_install(test, params, env):
         sub_test = params.get("sub_test")
         tag = params.get("sub_test_tag", "run")
         try:
-            virt_test_utils.run_virt_sub_test(test, params, env,
+            utils_test.run_virt_sub_test(test, params, env,
                                          sub_type=sub_test, tag=tag)
         except Exception, e:
             logging.error("Fail to run sub_test '%s', error message: '%s'",

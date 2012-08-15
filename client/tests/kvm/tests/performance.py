@@ -1,7 +1,7 @@
 import os, re, commands, glob, shutil
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils
+from autotest.client.virt import utils_test
 
 
 def run_performance(test, params, env):
@@ -84,7 +84,7 @@ def run_performance(test, params, env):
 
     test_cmd = cmd
     # Run guest test with monitor
-    tag = virt_test_utils.cmd_runner_monitor(vm, monitor_cmd, test_cmd,
+    tag = utils_test.cmd_runner_monitor(vm, monitor_cmd, test_cmd,
                                      guest_path, timeout = test_timeout)
 
     # Result collecting
@@ -99,7 +99,7 @@ def run_performance(test, params, env):
     row_pattern = params.get("row_pattern")
     for i in result_list:
         if re.findall("monitor_result", i):
-            result = virt_test_utils.summary_up_result(i, ignore_pattern,
+            result = utils_test.summary_up_result(i, ignore_pattern,
                                 head_pattern, row_pattern)
             fd = open("%s.sum" % i, "w")
             sum_info = {}
@@ -144,10 +144,10 @@ def ffsb_sum(topdir, prefix, params, guest_ver, resultsdir):
                 iops = "%8s" % re.split("\s+", line)[0]
             elif marks[1] in line:
                 substr = re.findall("\d+(?:\.\d+)*", line)[0]
-                readthro = virt_test_utils.aton("%.2f" % float(substr))
+                readthro = utils_test.aton("%.2f" % float(substr))
             elif marks[2] in line:
                 substr = re.findall("\d+(?:\.\d+)*", line)[0]
-                writethro = virt_test_utils.aton("%.2f" % float(substr))
+                writethro = utils_test.aton("%.2f" % float(substr))
                 break
 
         throughput = readthro + writethro
@@ -157,12 +157,12 @@ def ffsb_sum(topdir, prefix, params, guest_ver, resultsdir):
 
         file = glob.glob(os.path.join(sub_dir, "guest_monitor_result*.sum"))[0]
         str = open(file, "r").readlines()
-        linestr.append("%8.2f" % (100 - virt_test_utils.aton(str[1].split()[3])))
-        linestr.append("%8.2f" % (100 - virt_test_utils.aton(str[2].split()[3])))
+        linestr.append("%8.2f" % (100 - utils_test.aton(str[1].split()[3])))
+        linestr.append("%8.2f" % (100 - utils_test.aton(str[2].split()[3])))
 
         file = glob.glob(os.path.join(sub_dir, "host_monitor_result*.sum"))[0]
         str = open(file, "r").readlines()
-        hostcpu = 100 - virt_test_utils.aton(str[-1].split()[3])
+        hostcpu = 100 - utils_test.aton(str[-1].split()[3])
         linestr.append(hostcpu)
         sum_hostcpu += hostcpu
         linestr.append("%.2f" % (throughput/hostcpu))

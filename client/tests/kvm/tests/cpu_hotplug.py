@@ -1,6 +1,6 @@
 import os, logging, re
 from autotest.client.shared import error
-from autotest.client.virt import virt_test_utils
+from autotest.client.virt import utils_test
 
 
 @error.context_aware
@@ -96,7 +96,7 @@ def run_cpu_hotplug(test, params, env):
 
     timeout = int(params.get("cpu_hotplug_timeout"), 300)
     error.context("running cpu_hotplug autotest after cpu addition")
-    virt_test_utils.run_autotest(vm, session, control_path, timeout,
+    utils_test.run_autotest(vm, session, control_path, timeout,
                                  test.outputdir, params)
 
     # Last, but not least, let's offline/online the CPUs in the guest

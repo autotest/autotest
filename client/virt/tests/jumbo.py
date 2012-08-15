@@ -1,7 +1,7 @@
 import logging, commands, random
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_utils, virt_test_utils
+from autotest.client.virt import virt_utils, utils_test
 
 
 def run_jumbo(test, params, env):
@@ -37,7 +37,7 @@ def run_jumbo(test, params, env):
 
     try:
         # Environment preparation
-        ethname = virt_test_utils.get_linux_ifname(session, vm.get_mac_address(0))
+        ethname = utils_test.get_linux_ifname(session, vm.get_mac_address(0))
 
         logging.info("Changing the MTU of guest ...")
         guest_mtu_cmd = "ifconfig %s mtu %s" % (ethname , mtu)
@@ -52,36 +52,36 @@ def run_jumbo(test, params, env):
         utils.run(arp_add_cmd)
 
         def is_mtu_ok():
-            s, o = virt_test_utils.ping(ip, 1, interface=ifname,
+            s, o = utils_test.ping(ip, 1, interface=ifname,
                                        packetsize=max_icmp_pkt_size,
                                        hint="do", timeout=2)
             return s == 0
 
         def verify_mtu():
             logging.info("Verify the path MTU")
-            s, o = virt_test_utils.ping(ip, 10, interface=ifname,
+            s, o = utils_test.ping(ip, 10, interface=ifname,
                                        packetsize=max_icmp_pkt_size,
                                        hint="do", timeout=15)
             if s != 0 :
                 logging.error(o)
                 raise error.TestFail("Path MTU is not as expected")
-            if virt_test_utils.get_loss_ratio(o) != 0:
+            if utils_test.get_loss_ratio(o) != 0:
                 logging.error(o)
                 raise error.TestFail("Packet loss ratio during MTU "
                                      "verification is not zero")
 
         def flood_ping():
             logging.info("Flood with large frames")
-            virt_test_utils.ping(ip, interface=ifname,
+            utils_test.ping(ip, interface=ifname,
                                 packetsize=max_icmp_pkt_size,
                                 flood=True, timeout=float(flood_time))
 
         def large_frame_ping(count=100):
             logging.info("Large frame ping")
-            s, o = virt_test_utils.ping(ip, count, interface=ifname,
+            s, o = utils_test.ping(ip, count, interface=ifname,
                                        packetsize=max_icmp_pkt_size,
                                        timeout=float(count) * 2)
-            ratio = virt_test_utils.get_loss_ratio(o)
+            ratio = utils_test.get_loss_ratio(o)
             if ratio != 0:
                 raise error.TestFail("Loss ratio of large frame ping is %s" %
                                      ratio)
@@ -90,16 +90,16 @@ def run_jumbo(test, params, env):
             logging.info("Size increase ping")
             for size in range(0, max_icmp_pkt_size + 1, step):
                 logging.info("Ping %s with size %s", ip, size)
-                s, o = virt_test_utils.ping(ip, 1, interface=ifname,
+                s, o = utils_test.ping(ip, 1, interface=ifname,
                                            packetsize=size,
                                            hint="do", timeout=1)
                 if s != 0:
-                    s, o = virt_test_utils.ping(ip, 10, interface=ifname,
+                    s, o = utils_test.ping(ip, 10, interface=ifname,
                                                packetsize=size,
                                                adaptive=True, hint="do",
                                                timeout=20)
 
-                    if virt_test_utils.get_loss_ratio(o) > int(params.get(
+                    if utils_test.get_loss_ratio(o) > int(params.get(
                                                       "fail_ratio", 50)):
                         raise error.TestFail("Ping loss ratio is greater "
                                              "than 50% for size %s" % size)

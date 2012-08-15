@@ -1,5 +1,5 @@
-from autotest.client.virt import virt_test_utils
+from autotest.client.virt import utils_test
 
 
 def run_file_transfer(test, params, env):
-    virt_test_utils.run_file_transfer(test, params, env)
+    utils_test.run_file_transfer(test, params, env)

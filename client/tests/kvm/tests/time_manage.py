@@ -1,6 +1,6 @@
 import logging, time, commands
 from autotest.client.shared import error
-from autotest.client.virt import virt_test_utils, aexpect
+from autotest.client.virt import utils_test, aexpect
 from autotest.client.virt import env_process
 
 @error.context_aware
@@ -90,11 +90,11 @@ def run_time_manage(test, params, env):
                 error.context("checking responsiveness of guest")
                 se.cmd(params.get("alive_test_cmd"))
                 if itr == 0:
-                    (ht0, gt0) = virt_test_utils.get_time(se, time_command,
+                    (ht0, gt0) = utils_test.get_time(se, time_command,
                                                    time_filter_re, time_format)
                     prev_time.append((ht0, gt0))
                 else:
-                    (ht1, gt1) = virt_test_utils.get_time(se, time_command,
+                    (ht1, gt1) = utils_test.get_time(se, time_command,
                                                    time_filter_re, time_format)
                     curr_time.append((ht1, gt1))
             if itr != 0:

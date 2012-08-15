@@ -16,7 +16,7 @@ import time
 from autotest.client import utils
 from autotest.client.shared import error
 from autotest.client.virt import kvm_virtio_port, env_process
-from autotest.client.virt import virt_test_utils
+from autotest.client.virt import utils_test
 
 
 @error.context_aware
@@ -854,7 +854,7 @@ def run_virtio_console(test, params, env):
         for j in range(no_migrations):
             error.context("Performing migration number %s/%s"
                           % (j, no_migrations))
-            vm = virt_test_utils.migrate(vm, env, 3600, "exec", 0,
+            vm = utils_test.migrate(vm, env, 3600, "exec", 0,
                                          offline)
             if not vm:
                 raise error.TestFail("Migration failed")

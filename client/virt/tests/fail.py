@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import virt_test_utils
+from autotest.client.virt import utils_test
 
 
 def run_fail(test, params, env):

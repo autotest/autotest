@@ -1,7 +1,7 @@
 import logging, os, commands, threading, re, glob
 from autotest.server.hosts.ssh_host import SSHHost
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils, virt_utils, remote
+from autotest.client.virt import utils_test, virt_utils, remote
 
 
 def run_netperf(test, params, env):
@@ -22,7 +22,7 @@ def run_netperf(test, params, env):
     login_timeout = int(params.get("login_timeout", 360))
     session = vm.wait_for_login(timeout=login_timeout)
     if params.get("rh_perf_envsetup_script"):
-        virt_test_utils.service_setup(vm, session, test.virtdir)
+        utils_test.service_setup(vm, session, test.virtdir)
     server = vm.get_address()
     server_ctl = vm.get_address(1)
     session.close()
@@ -33,18 +33,18 @@ def run_netperf(test, params, env):
     if params.get('numa_node'):
         numa_node = int(params.get('numa_node'))
         node = virt_utils.NumaNode(numa_node)
-        virt_test_utils.pin_vm_threads(vm, node)
+        utils_test.pin_vm_threads(vm, node)
 
     if "vm2" in params["vms"]:
         vm2 = env.get_vm("vm2")
         vm2.verify_alive()
         session2 = vm2.wait_for_login(timeout=login_timeout)
         if params.get("rh_perf_envsetup_script"):
-            virt_test_utils.service_setup(vm2, session2, test.virtdir)
+            utils_test.service_setup(vm2, session2, test.virtdir)
         client = vm2.get_address()
         session2.close()
         if params.get('numa_node'):
-            virt_test_utils.pin_vm_threads(vm2, node)
+            utils_test.pin_vm_threads(vm2, node)
 
     if params.get("client"):
         client = params["client"]

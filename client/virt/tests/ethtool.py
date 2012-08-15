@@ -1,7 +1,7 @@
 import logging, re
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils, virt_utils, remote
+from autotest.client.virt import utils_test, virt_utils, remote
 from autotest.client.virt import aexpect
 
 
@@ -201,7 +201,7 @@ def run_ethtool(test, params, env):
     feature_status = {}
     filename = "/tmp/ethtool.dd"
     guest_ip = vm.get_address()
-    ethname = virt_test_utils.get_linux_ifname(session, vm.get_mac_address(0))
+    ethname = utils_test.get_linux_ifname(session, vm.get_mac_address(0))
 
     supported_features = params.get("supported_features")
     if supported_features:

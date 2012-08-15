@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import virt_test_utils, virt_vm, aexpect
+from autotest.client.virt import utils_test, virt_vm, aexpect
 
 
 def run_nic_hotplug(test, params, env):
@@ -27,14 +27,14 @@ def run_nic_hotplug(test, params, env):
     @param params: Dictionary with the test parameters.
     @param env:    Dictionary with test environment.
     """
-    vm = virt_test_utils.get_living_vm(env, params.get("main_vm"))
+    vm = utils_test.get_living_vm(env, params.get("main_vm"))
     login_timeout = int(params.get("login_timeout", 360))
     guest_delay = int(params.get("guest_delay", 20))
     pci_model = params.get("pci_model", "rtl8139")
     run_dhclient = params.get("run_dhclient", "no")
     guest_is_not_windows = "Win" not in params.get("guest_name", "")
 
-    session = virt_test_utils.wait_for_login(vm, timeout=login_timeout)
+    session = utils_test.wait_for_login(vm, timeout=login_timeout)
 
     udev_rules_path = "/etc/udev/rules.d/70-persistent-net.rules"
     udev_rules_bkp_path = "/tmp/70-persistent-net.rules"
@@ -63,7 +63,7 @@ def run_nic_hotplug(test, params, env):
     # Most modern Linux guests run NetworkManager, and thus do not need this.
     if run_dhclient == "yes" and guest_is_not_windows:
         session_serial = vm.wait_for_serial_login(timeout=login_timeout)
-        ifname = virt_test_utils.get_linux_ifname(session, nic_info['mac'])
+        ifname = utils_test.get_linux_ifname(session, nic_info['mac'])
         session_serial.cmd("dhclient %s &" % ifname)
 
     logging.info("Shutting down the primary link(s)")
@@ -82,7 +82,7 @@ def run_nic_hotplug(test, params, env):
         logging.info("Got the ip address of new nic: %s", ip)
 
         logging.info("Ping test the new nic ...")
-        s, o = virt_test_utils.ping(ip, 100)
+        s, o = utils_test.ping(ip, 100)
         if s != 0:
             logging.error(o)
             raise error.TestFail("New nic failed ping test")

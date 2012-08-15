@@ -2,7 +2,7 @@ import os, re, logging, time, socket
 from autotest.client.shared import error, utils
 from autotest.client.shared.barrier import listen_server
 from autotest.client.shared.syncdata import SyncData
-from autotest.client.virt import virt_test_utils, virt_utils
+from autotest.client.virt import utils_test, virt_utils
 
 
 def run_migration_multi_host_with_speed_measurement(test, params, env):
@@ -71,7 +71,7 @@ def run_migration_multi_host_with_speed_measurement(test, params, env):
 
         return mig_stat
 
-    class TestMultihostMigration(virt_test_utils.MultihostMigration):
+    class TestMultihostMigration(utils_test.MultihostMigration):
         def __init__(self, test, params, env):
             super(TestMultihostMigration, self).__init__(test, params, env)
             self.mig_stat = None

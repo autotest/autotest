@@ -1,5 +1,5 @@
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils
+from autotest.client.virt import utils_test
 
 
 def run_nic_promisc(test, params, env):
@@ -19,12 +19,12 @@ def run_nic_promisc(test, params, env):
     timeout = int(params.get("login_timeout", 360))
     session_serial = vm.wait_for_serial_login(timeout=timeout)
 
-    ethname = virt_test_utils.get_linux_ifname(session_serial,
+    ethname = utils_test.get_linux_ifname(session_serial,
                                               vm.get_mac_address(0))
 
     try:
         transfer_thread = utils.InterruptedThread(
-                                               virt_test_utils.run_file_transfer,
+                                               utils_test.run_file_transfer,
                                                (test, params, env))
         transfer_thread.start()
         while transfer_thread.isAlive():

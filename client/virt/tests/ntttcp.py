@@ -1,7 +1,7 @@
 import logging, os, glob, re, commands
 from autotest.client.shared import error
 from autotest.client.shared import utils
-from autotest.client.virt import virt_utils, virt_test_utils, remote
+from autotest.client.virt import virt_utils, utils_test, remote
 from autotest.client.virt import aexpect
 
 _receiver_ready = False
@@ -41,7 +41,7 @@ def run_ntttcp(test, params, env):
     if params.get('numa_node'):
         numa_node = int(params.get('numa_node'))
         node = virt_utils.NumaNode(numa_node)
-        virt_test_utils.pin_vm_threads(vm_sender, node)
+        utils_test.pin_vm_threads(vm_sender, node)
 
     if not receiver_addr:
         vm_receiver = env.get_vm("vm2")
@@ -54,7 +54,7 @@ def run_ntttcp(test, params, env):
                 raise error.TestError("Can't get receiver(%s) ip address" %
                                       vm_sender.name)
             if params.get('numa_node'):
-                virt_test_utils.pin_vm_threads(vm_receiver, node)
+                utils_test.pin_vm_threads(vm_receiver, node)
         finally:
             if sess:
                 sess.close()

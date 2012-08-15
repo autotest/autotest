@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, virt_test_utils
+from autotest.client.virt import virt_utils, utils_test
 
 
 def run_mac_change(test, params, env):
@@ -28,7 +28,7 @@ def run_mac_change(test, params, env):
         if old_mac != new_mac:
             break
     logging.info("The initial MAC address is %s", old_mac)
-    interface = virt_test_utils.get_linux_ifname(session_serial, old_mac)
+    interface = utils_test.get_linux_ifname(session_serial, old_mac)
     # Start change MAC address
     logging.info("Changing MAC address to %s", new_mac)
     change_cmd = ("ifconfig %s down && ifconfig %s hw ether %s && "

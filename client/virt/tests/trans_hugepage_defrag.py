@@ -1,7 +1,7 @@
 import logging, time, os, re
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils, test_setup
+from autotest.client.virt import utils_test, test_setup
 
 
 @error.context_aware
@@ -129,8 +129,8 @@ def run_trans_hugepage_defrag(test, params, env):
         change_feature_status("off", "khugepaged/defrag", test_config)
         change_feature_status("off", "defrag", test_config)
 
-        vm = virt_test_utils.get_living_vm(env, params.get("main_vm"))
-        session = virt_test_utils.wait_for_login(vm, timeout=login_timeout)
+        vm = utils_test.get_living_vm(env, params.get("main_vm"))
+        session = utils_test.wait_for_login(vm, timeout=login_timeout)
 
         fragment_host_memory(mem_path)
 

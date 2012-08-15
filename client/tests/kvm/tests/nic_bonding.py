@@ -1,5 +1,5 @@
 import logging, time
-from autotest.client.virt import virt_test_utils, aexpect
+from autotest.client.virt import utils_test, aexpect
 from autotest.client.shared import error, utils
 
 
@@ -30,7 +30,7 @@ def run_nic_bonding(test, params, env):
     session_serial.cmd(modprobe_cmd)
 
     session_serial.cmd("ifconfig bond0 up")
-    ifnames = [virt_test_utils.get_linux_ifname(session_serial,
+    ifnames = [utils_test.get_linux_ifname(session_serial,
                                                vm.get_mac_address(vlan))
                for vlan, nic in enumerate(vm.virtnet)]
     setup_cmd = "ifenslave bond0 " + " ".join(ifnames)
@@ -50,11 +50,11 @@ def run_nic_bonding(test, params, env):
 
     try:
         logging.info("Test file transfering:")
-        virt_test_utils.run_file_transfer(test, params, env)
+        utils_test.run_file_transfer(test, params, env)
 
         logging.info("Failover test with file transfer")
         transfer_thread = utils.InterruptedThread(
-                                              virt_test_utils.run_file_transfer,
+                                              utils_test.run_file_transfer,
                                                (test, params, env))
         try:
             transfer_thread.start()

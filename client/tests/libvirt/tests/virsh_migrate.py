@@ -1,6 +1,6 @@
 import logging, os, re, time, shutil, codecs
 from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm, virt_utils, virt_test_utils
+from autotest.client.virt import libvirt_vm, virt_utils, utils_test
 
 def run_virsh_migrate(test, params, env):
     """
@@ -109,7 +109,7 @@ def run_virsh_migrate(test, params, env):
         # Confirm VM can be accessed through network.
         time.sleep(delay)
         vm_ip = vm.get_address()
-        s_ping, o_ping = virt_test_utils.ping(vm_ip, count=2, timeout=delay)
+        s_ping, o_ping = utils_test.ping(vm_ip, count=2, timeout=delay)
         logging.info(o_ping)
         if s_ping != 0:
             raise error.TestError("%s did not respond after %d sec." % (vm.name, delay))

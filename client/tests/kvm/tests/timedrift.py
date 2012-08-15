@@ -1,6 +1,6 @@
 import logging, time, commands
 from autotest.client.shared import error
-from autotest.client.virt import virt_test_utils, aexpect
+from autotest.client.virt import utils_test, aexpect
 
 
 def run_timedrift(test, params, env):
@@ -100,7 +100,7 @@ def run_timedrift(test, params, env):
 
             # Get time before load
             # (ht stands for host time, gt stands for guest time)
-            (ht0, gt0) = virt_test_utils.get_time(session,
+            (ht0, gt0) = utils_test.get_time(session,
                                                  time_command,
                                                  time_filter_re,
                                                  time_format)
@@ -126,7 +126,7 @@ def run_timedrift(test, params, env):
             time.sleep(load_duration)
 
             # Get time delta after load
-            (ht1, gt1) = virt_test_utils.get_time(session,
+            (ht1, gt1) = utils_test.get_time(session,
                                                  time_command,
                                                  time_filter_re,
                                                  time_format)
@@ -157,7 +157,7 @@ def run_timedrift(test, params, env):
         time.sleep(rest_duration)
 
         # Get time after rest
-        (ht2, gt2) = virt_test_utils.get_time(session,
+        (ht2, gt2) = utils_test.get_time(session,
                                              time_command,
                                              time_filter_re,
                                              time_format)

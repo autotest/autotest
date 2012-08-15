@@ -1,6 +1,6 @@
 import logging, os, time
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils
+from autotest.client.virt import utils_test
 
 
 def run_nicdriver_unload(test, params, env):
@@ -22,7 +22,7 @@ def run_nicdriver_unload(test, params, env):
     vm.verify_alive()
     session_serial = vm.wait_for_serial_login(timeout=timeout)
 
-    ethname = virt_test_utils.get_linux_ifname(session_serial,
+    ethname = utils_test.get_linux_ifname(session_serial,
                                                vm.get_mac_address(0))
 
     # get ethernet driver from '/sys' directory.
@@ -40,7 +40,7 @@ def run_nicdriver_unload(test, params, env):
     try:
         threads = []
         for t in range(int(params.get("sessions_num", "10"))):
-            thread = utils.InterruptedThread(virt_test_utils.run_file_transfer,
+            thread = utils.InterruptedThread(utils_test.run_file_transfer,
                                              (test, params, env))
             thread.start()
             threads.append(thread)

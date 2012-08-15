@@ -1,6 +1,6 @@
 import re, logging, random, time
 from autotest.client.shared import error
-from autotest.client.virt import kvm_monitor, virt_test_utils
+from autotest.client.virt import kvm_monitor, utils_test
 
 
 def run_balloon_check(test, params, env):
@@ -112,7 +112,7 @@ def run_balloon_check(test, params, env):
     # Run option test after evict memory
     if params.has_key('sub_balloon_test_evict'):
         balloon_test = params['sub_balloon_test_evict']
-        virt_test_utils.run_virt_sub_test(test, params, env, sub_type=balloon_test)
+        utils_test.run_virt_sub_test(test, params, env, sub_type=balloon_test)
         if balloon_test == "shutdown" :
             logging.info("Guest shutdown normally after balloon")
             return
@@ -123,7 +123,7 @@ def run_balloon_check(test, params, env):
     # Run sub test after enlarge memory
     if params.has_key('sub_balloon_test_enlarge'):
         balloon_test = params['sub_balloon_test_enlarge']
-        virt_test_utils.run_virt_sub_test(test, params, env, sub_type=balloon_test)
+        utils_test.run_virt_sub_test(test, params, env, sub_type=balloon_test)
         if balloon_test == "shutdown" :
             logging.info("Guest shutdown normally after balloon")
             return
