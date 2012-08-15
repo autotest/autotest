@@ -22,7 +22,7 @@ For online docs, please refer to http://www.linux-kvm.org/page/KVM-Autotest
 
 import sys, os, logging
 from autotest.client.shared import cartesian_config
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 # set English environment (command output might be localized, need to be safe)
 os.environ['LANG'] = 'en_US.UTF-8'
@@ -37,7 +37,7 @@ parser = cartesian_config.Parser()
 kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests/kvm')
 parser.parse_file(os.path.join(kvm_test_dir, "build.cfg"))
 parser.parse_string(str)
-if not virt_utils.run_tests(parser, job):
+if not utils_misc.run_tests(parser, job):
     logging.error("KVM build step failed, exiting.")
     sys.exit(1)
 
@@ -66,4 +66,4 @@ if args:
             pass
 parser.parse_string(str)
 
-virt_utils.run_tests(parser, job)
+utils_misc.run_tests(parser, job)
