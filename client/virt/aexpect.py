@@ -186,7 +186,7 @@ if __name__ == "__main__":
 # The following is the client part of the module.
 
 import subprocess, time, signal, re, threading, logging
-import virt_utils
+import utils_misc
 try:
     import autotest.common as common
 except ImportError:
@@ -388,7 +388,7 @@ class Spawn:
         @param linesep: Line separator to be appended to strings sent to the
                 child process by sendline().
         """
-        self.id = id or virt_utils.generate_random_string(8)
+        self.id = id or utils_misc.generate_random_string(8)
 
         # Define filenames for communication with server
         base_dir = "/tmp/kvm_spawn"
@@ -580,7 +580,7 @@ class Spawn:
         """
         # Kill it if it's alive
         if self.is_alive():
-            virt_utils.kill_process_tree(self.get_pid(), sig)
+            utils_misc.kill_process_tree(self.get_pid(), sig)
         # Wait for the server to exit
         _wait(self.lock_server_running_filename)
         # Call all cleanup routines
@@ -1002,7 +1002,7 @@ class Expect(Tail):
                 return match, o
 
         # Check if the child has terminated
-        if virt_utils.wait_for(lambda: not self.is_alive(), 5, 0, 0.1):
+        if utils_misc.wait_for(lambda: not self.is_alive(), 5, 0, 0.1):
             raise ExpectProcessTerminatedError(patterns, self.get_status(), o)
         else:
             # This shouldn't happen

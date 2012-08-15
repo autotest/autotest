@@ -6,7 +6,7 @@ Program to help setup libvirt test environment
 """
 import os, sys
 import common
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 test_name = "libvirt"
 test_dir = os.path.dirname(sys.modules[__name__].__file__)
@@ -17,6 +17,6 @@ check_modules = None
 online_docs_url = None
 
 if __name__ == "__main__":
-    virt_utils.virt_test_assistant(test_name, test_dir, base_dir,
+    utils_misc.virt_test_assistant(test_name, test_dir, base_dir,
                                    default_userspace_paths, check_modules,
                                    online_docs_url)

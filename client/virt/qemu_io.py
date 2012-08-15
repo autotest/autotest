@@ -1,7 +1,7 @@
 import re, logging
 from autotest.client.shared import error
 from autotest.client import utils
-import virt_utils, aexpect
+import utils_misc, aexpect
 
 
 class QemuIOParamError(Exception):
@@ -20,8 +20,8 @@ class QemuIO(object):
                  log_func=None):
         self.type = ""
         if log_filename:
-            log_filename += "-" + virt_utils.generate_random_string(4)
-            self.output_func = virt_utils.log_line
+            log_filename += "-" + utils_misc.generate_random_string(4)
+            self.output_func = utils_misc.log_line
             self.output_params = (log_filename,)
         else:
             self.output_func = None
@@ -30,7 +30,7 @@ class QemuIO(object):
         self.prompt=prompt
         self.blkdebug_cfg=blkdebug_cfg
 
-        self.qemu_io_cmd = virt_utils.get_path(test.bindir,
+        self.qemu_io_cmd = utils_misc.get_path(test.bindir,
                                                params.get("qemu_io_binary",
                                                           "qemu-io"))
         self.io_options = io_options

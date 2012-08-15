@@ -2,7 +2,7 @@ import os, time, commands, re, logging, glob, threading, shutil
 from autotest.client import utils
 from autotest.client.shared import error
 import aexpect, kvm_monitor, ppm_utils, test_setup, virt_vm, kvm_vm
-import libvirt_vm, video_maker, virt_utils, storage, kvm_storage
+import libvirt_vm, video_maker, utils_misc, storage, kvm_storage
 import remote, ovirt
 
 try:
@@ -189,7 +189,7 @@ def postprocess_vm(test, params, env, name):
         if kill_vm_timeout:
             logging.debug("Param 'kill_vm' specified, waiting for VM to shut "
                           "down before killing it")
-            virt_utils.wait_for(vm.is_dead, kill_vm_timeout, 0, 1)
+            utils_misc.wait_for(vm.is_dead, kill_vm_timeout, 0, 1)
         else:
             logging.debug("Param 'kill_vm' specified, killing VM")
         vm.destroy(gracefully = params.get("kill_vm_gracefully") == "yes")
@@ -291,7 +291,7 @@ def preprocess(test, params, env):
         env["tcpdump"].close()
         del env["tcpdump"]
     if "tcpdump" not in env and params.get("run_tcpdump", "yes") == "yes":
-        cmd = "%s -npvi any 'dst port 68'" % virt_utils.find_command("tcpdump")
+        cmd = "%s -npvi any 'dst port 68'" % utils_misc.find_command("tcpdump")
         if params.get("remote_preprocess") == "yes":
             logging.debug("Starting tcpdump '%s' on remote host", cmd)
             login_cmd = ("ssh -o UserKnownHostsFile=/dev/null -o \
@@ -310,18 +310,18 @@ def preprocess(test, params, env):
                 output_func=_update_address_cache,
                 output_params=(env["address_cache"],))
 
-        if virt_utils.wait_for(lambda: not env["tcpdump"].is_alive(),
+        if utils_misc.wait_for(lambda: not env["tcpdump"].is_alive(),
                               0.1, 0.1, 1.0):
             logging.warn("Could not start tcpdump")
             logging.warn("Status: %s" % env["tcpdump"].get_status())
-            logging.warn("Output:" + virt_utils.format_str_for_message(
+            logging.warn("Output:" + utils_misc.format_str_for_message(
                 env["tcpdump"].get_output()))
 
     # Destroy and remove VMs that are no longer needed in the environment
     requested_vms = params.objects("vms")
     for key in env.keys():
         vm = env[key]
-        if not virt_utils.is_vm(vm):
+        if not utils_misc.is_vm(vm):
             continue
         if not vm.name in requested_vms:
             logging.debug("VM '%s' found in environment but not required for "
@@ -332,7 +332,7 @@ def preprocess(test, params, env):
     # Get Host cpu type
     if params.get("auto_cpu_model") == "yes":
         if not env.get("cpu_model"):
-            env["cpu_model"] = virt_utils.get_cpu_model()
+            env["cpu_model"] = utils_misc.get_cpu_model()
         params["cpu_model"] = env.get("cpu_model")
 
     kvm_ver_cmd = params.get("kvm_ver_cmd", "")
@@ -367,7 +367,7 @@ def preprocess(test, params, env):
         except error.CmdError, e:
             kvm_userspace_version = "Unknown"
     else:
-        qemu_path = virt_utils.get_path(test.bindir,
+        qemu_path = utils_misc.get_path(test.bindir,
                                         params.get("qemu_binary", "qemu"))
         version_line = commands.getoutput("%s -help | head -n 1" % qemu_path)
         matches = re.findall("[Vv]ersion .*?,", version_line)
@@ -556,14 +556,14 @@ def _take_screendumps(test, params, env):
     global _screendump_thread_termination_event
     temp_dir = test.debugdir
     if params.get("screendump_temp_dir"):
-        temp_dir = virt_utils.get_path(test.bindir,
+        temp_dir = utils_misc.get_path(test.bindir,
                                       params.get("screendump_temp_dir"))
         try:
             os.makedirs(temp_dir)
         except OSError:
             pass
     temp_filename = os.path.join(temp_dir, "scrdump-%s.ppm" %
-                                 virt_utils.generate_random_string(6))
+                                 utils_misc.generate_random_string(6))
     delay = float(params.get("screendump_delay", 5))
     quality = int(params.get("screendump_quality", 30))
 

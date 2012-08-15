@@ -2,7 +2,7 @@ import os, logging
 from autotest.client import test
 from autotest.client import utils
 from autotest.client.shared import git, error, software_manager
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 
 class kernelinstall(test.test):
@@ -46,19 +46,19 @@ class kernelinstall(test.test):
                     logging.error("No %s available on software sources" %
                                   utility)
         # First, download packages via koji/brew
-        c = virt_utils.KojiClient()
+        c = utils_misc.KojiClient()
         deps_rpms = ""
         if dep_pkgs:
             for p in dep_pkgs.split():
                 logging.info('Fetching kernel dependencies: %s', p)
-                k_dep = virt_utils.KojiPkgSpec(tag=koji_tag, package=p,
+                k_dep = utils_misc.KojiPkgSpec(tag=koji_tag, package=p,
                                                 subpackages=[p])
                 c.get_pkgs(k_dep, self.bindir)
                 deps_rpms += " "
                 deps_rpms += os.path.join(self.bindir,
                                          c.get_pkg_rpm_file_names(k_dep)[0])
 
-        k = virt_utils.KojiPkgSpec(tag=koji_tag, package=package,
+        k = utils_misc.KojiPkgSpec(tag=koji_tag, package=package,
                                    subpackages=[package])
 
         c.get_pkgs(k, self.bindir)

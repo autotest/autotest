@@ -1,7 +1,7 @@
 import re, logging, ConfigParser
 from autotest.client.shared import error
 from autotest.client.virt import qemu_io
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 from autotest.client.virt.kvm_storage import QemuImg
 from autotest.client import utils
 
@@ -20,7 +20,7 @@ def run_qemu_io_blkdebug(test, params, env):
     @param env:    Dictionary with test environment.
     """
     tmp_dir = params.get("tmp_dir", "/tmp")
-    blkdebug_cfg = virt_utils.get_path(tmp_dir, params.get("blkdebug_cfg",
+    blkdebug_cfg = utils_misc.get_path(tmp_dir, params.get("blkdebug_cfg",
                                                             "blkdebug.cfg"))
     err_command = params.get("err_command")
     err_event = params.get("err_event")
@@ -35,12 +35,12 @@ def run_qemu_io_blkdebug(test, params, env):
     image_io = QemuImg(params.object_params(image), test.bindir, image)
     image_name = image_io.create(params.object_params(image))
 
-    template_name =  virt_utils.get_path(test.virtdir, blkdebug_default)
+    template_name =  utils_misc.get_path(test.virtdir, blkdebug_default)
     template = ConfigParser.ConfigParser()
     template.read(template_name)
 
     for errn in errn_list:
-        log_filename = virt_utils.get_path(test.outputdir,
+        log_filename = utils_misc.get_path(test.outputdir,
                                            "qemu-io-log-%s" % errn)
         error.context("Write the blkdebug config file", logging.info)
         template.set("inject-error", "event", '"%s"' % err_event)

@@ -1,6 +1,6 @@
 import logging, time, re
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, utils_test, aexpect
+from autotest.client.virt import utils_misc, utils_test, aexpect
 
 
 def run_vlan(test, params, env):
@@ -53,7 +53,7 @@ def run_vlan(test, params, env):
         return session.cmd_status(rem_vlan_cmd % (iface, iface))
 
     def nc_transfer(src, dst):
-        nc_port = virt_utils.find_free_port(1025, 5334, vm_ip[dst])
+        nc_port = utils_misc.find_free_port(1025, 5334, vm_ip[dst])
         listen_cmd = params.get("listen_cmd")
         send_cmd = params.get("send_cmd")
 

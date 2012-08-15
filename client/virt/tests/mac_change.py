@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, utils_test
+from autotest.client.virt import utils_misc, utils_test
 
 
 def run_mac_change(test, params, env):
@@ -45,7 +45,7 @@ def run_mac_change(test, params, env):
     session_serial.sendline(dhclient_cmd)
 
     # Re-log into the guest after changing mac address
-    if virt_utils.wait_for(session.is_responsive, 120, 20, 3):
+    if utils_misc.wait_for(session.is_responsive, 120, 20, 3):
         # Just warning when failed to see the session become dead,
         # because there is a little chance the ip does not change.
         logging.warn("The session is still responsive, settings may fail.")

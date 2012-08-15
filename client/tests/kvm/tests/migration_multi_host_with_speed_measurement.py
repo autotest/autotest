@@ -2,7 +2,7 @@ import os, re, logging, time, socket
 from autotest.client.shared import error, utils
 from autotest.client.shared.barrier import listen_server
 from autotest.client.shared.syncdata import SyncData
-from autotest.client.virt import utils_test, virt_utils
+from autotest.client.virt import utils_test, utils_misc
 
 
 def run_migration_multi_host_with_speed_measurement(test, params, env):
@@ -116,7 +116,7 @@ def run_migration_multi_host_with_speed_measurement(test, params, env):
                 vm = mig_data.vms[0]
                 session = vm.wait_for_login(timeout=self.login_timeout)
 
-                virt_utils.install_cpuflags_util_on_vm(test, vm, install_path,
+                utils_misc.install_cpuflags_util_on_vm(test, vm, install_path,
                                                     extra_flags="-msse3 -msse2")
 
                 cmd = ("%s/cpuflags-test --stressmem %d" %
@@ -125,7 +125,7 @@ def run_migration_multi_host_with_speed_measurement(test, params, env):
                 session.sendline(cmd)
 
             if self.master_id() == self.hostid:
-                server_port = virt_utils.find_free_port(5200, 6000)
+                server_port = utils_misc.find_free_port(5200, 6000)
                 server = listen_server(port=server_port)
                 data_len = 0
                 sync.sync(server_port, timeout=120)

@@ -28,7 +28,7 @@ from autotest.client.shared import error, global_config
 from autotest.client import utils
 from autotest.client.tools import scan_results
 from autotest.client.shared.syncdata import SyncData, SyncListenServer
-import aexpect, virt_utils, virt_vm, remote, storage, env_process
+import aexpect, utils_misc, virt_vm, remote, storage, env_process
 
 GLOBAL_CONFIG = global_config.global_config
 
@@ -135,7 +135,7 @@ def reboot(vm, session, method="shell", sleep_before_reset=10, nic_index=0,
         logging.error("Unknown reboot method: %s", method)
 
     # Wait for the session to become unresponsive and close it
-    if not virt_utils.wait_for(lambda: not session.is_responsive(timeout=30),
+    if not utils_misc.wait_for(lambda: not session.is_responsive(timeout=30),
                               120, 0, 1):
         raise error.TestFail("Guest refuses to go down")
     session.close()
@@ -239,7 +239,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
                     o.get("status") == "canceled")
 
     def wait_for_migration():
-        if not virt_utils.wait_for(mig_finished, mig_timeout, 2, 2,
+        if not utils_misc.wait_for(mig_finished, mig_timeout, 2, 2,
                                   "Waiting for migration to finish"):
             raise error.TestFail("Timeout expired while waiting for migration "
                                  "to finish")
@@ -274,7 +274,7 @@ def migrate(vm, env=None, mig_timeout=3600, mig_protocol="tcp",
             if mig_cancel:
                 time.sleep(2)
                 vm.monitor.cmd("migrate_cancel")
-                if not virt_utils.wait_for(mig_cancelled, 60, 2, 2,
+                if not utils_misc.wait_for(mig_cancelled, 60, 2, 2,
                                           "Waiting for migration "
                                           "cancellation"):
                     raise error.TestFail("Failed to cancel migration")
@@ -419,7 +419,7 @@ class MultihostMigration(object):
     case is when the guest images are on an NFS server.
 
     Example:
-        class TestMultihostMigration(virt_utils.MultihostMigration):
+        class TestMultihostMigration(utils_misc.MultihostMigration):
             def __init__(self, test, params, env):
                 super(testMultihostMigration, self).__init__(test, params, env)
 
@@ -518,7 +518,7 @@ class MultihostMigration(object):
         for vm in mig_data.vms:
             multi_mig.append((mig_wrapper, (vm, mig_data.dst,
                                             mig_data.vm_ports)))
-        virt_utils.parallel(multi_mig)
+        utils_misc.parallel(multi_mig)
 
 
     def migrate_vms_dest(self, mig_data):
@@ -977,11 +977,11 @@ def run_file_transfer(test, params, env):
         count = 1
 
     host_path = os.path.join(dir_name, "tmp-%s" %
-                             virt_utils.generate_random_string(8))
+                             utils_misc.generate_random_string(8))
     host_path2 = host_path + ".2"
     cmd = "dd if=/dev/zero of=%s bs=10M count=%d" % (host_path, count)
     guest_path = (tmp_dir + "file_transfer-%s" %
-                  virt_utils.generate_random_string(8))
+                  utils_misc.generate_random_string(8))
 
     try:
         logging.info("Creating %dMB file on host", filesize)
@@ -1294,7 +1294,7 @@ def raw_ping(command, timeout, session, output_func):
         # Because ping have the ability to catch the SIGINT signal so we can
         # always get the packet loss ratio even if timeout.
         if process.is_alive():
-            virt_utils.kill_process_tree(process.get_pid(), signal.SIGINT)
+            utils_misc.kill_process_tree(process.get_pid(), signal.SIGINT)
 
         status = process.get_status()
         output = process.get_output()
@@ -1430,7 +1430,7 @@ def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
     """
     if sub_type is None:
         raise error.TestError("No sub test is found")
-    virt_dir = os.path.dirname(virt_utils.__file__)
+    virt_dir = os.path.dirname(utils_misc.__file__)
     subtest_dir_virt = os.path.join(virt_dir, "tests")
     subtest_dir_kvm = os.path.join(test.bindir, "tests")
     subtest_dir = None

@@ -2,7 +2,7 @@ import logging, os
 from autotest.client.shared import error
 from autotest.client import utils
 from autotest.client.virt import utils_test
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 CLIENT_TEST = "kernelinstall"
 
@@ -140,7 +140,7 @@ def run_kernel_install(test, params, env):
         control_base += ", tag='%s'" % tag
     control_base += ")"
 
-    virt_dir = os.path.dirname(virt_utils.__file__)
+    virt_dir = os.path.dirname(utils_misc.__file__)
     test_control_file = "kernel_install.control"
     test_control_path = os.path.join(virt_dir, "autotest_control",
                                      test_control_file)

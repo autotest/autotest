@@ -3,7 +3,7 @@ import threading
 import xml.dom.minidom
 from autotest.client.shared import error, iso9660
 from autotest.client import utils
-from autotest.client.virt import virt_vm, virt_utils, utils_disk
+from autotest.client.virt import virt_vm, utils_misc, utils_disk
 from autotest.client.virt import kvm_monitor, remote, syslog_server
 from autotest.client.virt import http_server
 
@@ -168,7 +168,7 @@ class UnattendedInstallConfig(object):
 
         # Content server params
         # lookup host ip address for first nic by interface name
-        auto_ip = virt_utils.get_ip_address_by_interface(vm.virtnet[0].netdst)
+        auto_ip = utils_misc.get_ip_address_by_interface(vm.virtnet[0].netdst)
         self.url_auto_content_ip = params.get('url_auto_ip', auto_ip)
         self.url_auto_content_port = None
 
@@ -412,7 +412,7 @@ class UnattendedInstallConfig(object):
             self.answer_kickstart(answer_path)
 
             if self.unattended_server_port is None:
-                self.unattended_server_port = virt_utils.find_free_port(
+                self.unattended_server_port = utils_misc.find_free_port(
                     8000,
                     8099,
                     self.url_auto_content_ip)
@@ -482,7 +482,7 @@ class UnattendedInstallConfig(object):
                     kernel_params)
             elif self.params.get('unattended_delivery_method') == 'url':
                 if self.unattended_server_port is None:
-                    self.unattended_server_port = virt_utils.find_free_port(
+                    self.unattended_server_port = utils_misc.find_free_port(
                         8000,
                         8099,
                         self.url_auto_content_ip)
@@ -615,7 +615,7 @@ class UnattendedInstallConfig(object):
                   (self.params.get('hvm_or_pv') == 'pv')):
                 logging.debug("starting unattended content web server")
 
-                self.url_auto_content_port = virt_utils.find_free_port(8100,
+                self.url_auto_content_port = utils_misc.find_free_port(8100,
                                                                        8199,
                                                        self.url_auto_content_ip)
 
@@ -719,7 +719,7 @@ class UnattendedInstallConfig(object):
         """
         logging.info("Starting unattended install setup")
         if DEBUG:
-            virt_utils.display_attributes(self)
+            utils_misc.display_attributes(self)
 
         if self.syslog_server_enabled == 'yes':
             start_syslog_server_thread(self.syslog_server_ip,
@@ -869,7 +869,7 @@ def run_unattended_install(test, params, env):
                                                   120))
         logging.info("Wait for guest to shutdown cleanly")
         try:
-            if virt_utils.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
+            if utils_misc.wait_for(vm.is_dead, shutdown_cleanly_timeout, 1, 1):
                 logging.info("Guest managed to shutdown cleanly")
         except kvm_monitor.MonitorError, e:
             logging.warning("Guest apparently shut down, but got a "

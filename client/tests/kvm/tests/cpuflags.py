@@ -1,7 +1,7 @@
 import logging, re, random, os, time, pickle, sys, traceback
 from autotest.client.shared import error, utils
 from autotest.client.virt import kvm_vm
-from autotest.client.virt import virt_utils, aexpect
+from autotest.client.virt import utils_misc, aexpect
 
 
 def run_cpuflags(test, params, env):
@@ -12,8 +12,8 @@ def run_cpuflags(test, params, env):
     @param params: Dictionary with the test parameters.
     @param env: Dictionary with test environment.
     """
-    virt_utils.Flag.aliases = virt_utils.kvm_map_flags_aliases
-    qemu_binary = virt_utils.get_path('.', params.get("qemu_binary", "qemu"))
+    utils_misc.Flag.aliases = utils_misc.kvm_map_flags_aliases
+    qemu_binary = utils_misc.get_path('.', params.get("qemu_binary", "qemu"))
 
     cpuflags_src = os.path.join(test.virtdir, "deps", "test_cpu_flags")
     smp = int(params.get("smp", 1))
@@ -30,13 +30,13 @@ def run_cpuflags(test, params, env):
 
     class HgFlags(object):
         def __init__(self, cpu_model, extra_flags=set([])):
-            virtual_flags = set(map(virt_utils.Flag,
+            virtual_flags = set(map(utils_misc.Flag,
                                    params.get("guest_spec_flags", "").split()))
-            self.hw_flags = set(map(virt_utils.Flag,
+            self.hw_flags = set(map(utils_misc.Flag,
                                     params.get("host_spec_flags", "").split()))
             self.qemu_support_flags = get_all_qemu_flags()
-            self.host_support_flags = set(map(virt_utils.Flag,
-                                              virt_utils.get_cpu_flags()))
+            self.host_support_flags = set(map(utils_misc.Flag,
+                                              utils_misc.get_cpu_flags()))
             self.quest_cpu_model_flags = (get_guest_host_cpuflags(cpu_model) -
                                           virtual_flags)
 
@@ -97,7 +97,7 @@ def run_cpuflags(test, params, env):
         out = vm_session.cmd_output("cat /proc/cpuinfo")
 
         flags = flags_re.search(out).groups()[0].split()
-        return set(map(virt_utils.Flag, flags))
+        return set(map(utils_misc.Flag, flags))
 
     def get_guest_host_cpuflags(cpumodel):
         """
@@ -118,7 +118,7 @@ def run_cpuflags(test, params, env):
             raise error.TestFail("Cannot find %s cpu model." % (cpumodel))
         for flag_group in model.groups():
             flags += flag_group.split()
-        return set(map(virt_utils.Flag, flags))
+        return set(map(utils_misc.Flag, flags))
 
     def get_all_qemu_flags():
         cmd = qemu_binary + " -cpu ?cpuid"
@@ -131,7 +131,7 @@ def run_cpuflags(test, params, env):
         for a in m.groups():
             flags += a.split()
 
-        return set(map(virt_utils.Flag, flags))
+        return set(map(utils_misc.Flag, flags))
 
     def get_flags_full_name(cpu_flag):
         """
@@ -140,10 +140,10 @@ def run_cpuflags(test, params, env):
         @param cpu_flag: Flag
         @return: all name of Flag.
         """
-        cpu_flag = virt_utils.Flag(cpu_flag)
+        cpu_flag = utils_misc.Flag(cpu_flag)
         for f in get_all_qemu_flags():
             if f == cpu_flag:
-                return virt_utils.Flag(f)
+                return utils_misc.Flag(f)
         return []
 
     def parse_qemu_cpucommand(cpumodel):
@@ -157,8 +157,8 @@ def run_cpuflags(test, params, env):
         cpumodel = flags[0]
 
         qemu_model_flag = get_guest_host_cpuflags(cpumodel)
-        host_support_flag = set(map(virt_utils.Flag,
-                                    virt_utils.get_cpu_flags()))
+        host_support_flag = set(map(utils_misc.Flag,
+                                    utils_misc.get_cpu_flags()))
         real_flags = qemu_model_flag & host_support_flag
 
         for f in flags[1:]:
@@ -258,7 +258,7 @@ def run_cpuflags(test, params, env):
         session = vm.wait_for_login()
         for f in flags:
             try:
-                for tc in virt_utils.kvm_map_flags_to_test[f]:
+                for tc in utils_misc.kvm_map_flags_to_test[f]:
                     session.cmd("%s/cpuflags-test --%s" %
                                 (os.path.join(path, "test_cpu_flags"), tc))
                 pass_Flags.append(f)
@@ -266,9 +266,9 @@ def run_cpuflags(test, params, env):
                 not_working.append(f)
             except KeyError:
                 not_tested.append(f)
-        return (set(map(virt_utils.Flag, pass_Flags)),
-                set(map(virt_utils.Flag, not_working)),
-                set(map(virt_utils.Flag, not_tested)))
+        return (set(map(utils_misc.Flag, pass_Flags)),
+                set(map(utils_misc.Flag, not_working)),
+                set(map(utils_misc.Flag, not_tested)))
 
     def run_stress(vm, timeout, guest_flags):
         """
@@ -285,7 +285,7 @@ def run_cpuflags(test, params, env):
         try:
             stress_session.cmd("%s/cpuflags-test --stress %s%s" %
                         (os.path.join(install_path, "test_cpu_flags"), smp,
-                         virt_utils.kvm_flags_to_stresstests(flags[0])),
+                         utils_misc.kvm_flags_to_stresstests(flags[0])),
                         timeout=timeout)
         except aexpect.ShellTimeoutError:
             ret = True
@@ -311,7 +311,7 @@ def run_cpuflags(test, params, env):
 
         try:
             (cpu_model, extra_flags) = cpu_model.split(":")
-            extra_flags = set(map(virt_utils.Flag, extra_flags.split(",")))
+            extra_flags = set(map(utils_misc.Flag, extra_flags.split(",")))
         except ValueError:
             cpu_model = cpu_model
             extra_flags = set([])
@@ -470,7 +470,7 @@ def run_cpuflags(test, params, env):
             for fadd in flags.host_all_unsupported_flags:
                 cpuf_model += ",+" + str(fadd)
 
-            vnc_port = virt_utils.find_free_port(5900, 6100) - 5900
+            vnc_port = utils_misc.find_free_port(5900, 6100) - 5900
             cmd = "%s -cpu %s -vnc :%d" % (qemu_binary, cpuf_model, vnc_port)
             out = None
 
@@ -483,7 +483,7 @@ def run_cpuflags(test, params, env):
                     out = e.result_obj.stderr
             finally:
                 uns_re = re.compile("^warning:.*flag '(.+)'", re.MULTILINE)
-                warn_flags = set(map(virt_utils.Flag, uns_re.findall(out)))
+                warn_flags = set(map(utils_misc.Flag, uns_re.findall(out)))
                 fwarn_flags = flags.host_all_unsupported_flags - warn_flags
                 if fwarn_flags:
                     raise error.TestFail("Qemu did not warn the use of "
@@ -506,7 +506,7 @@ def run_cpuflags(test, params, env):
             for fadd in flags.host_all_unsupported_flags:
                 cpuf_model += ",+" + str(fadd)
 
-            vnc_port = virt_utils.find_free_port(5900, 6100) - 5900
+            vnc_port = utils_misc.find_free_port(5900, 6100) - 5900
             cmd = "%s -cpu %s -vnc :%d" % (qemu_binary, cpuf_model, vnc_port)
             out = None
             try:
@@ -516,7 +516,7 @@ def run_cpuflags(test, params, env):
                     logging.error("Host boot with unsupported flag")
             finally:
                 uns_re = re.compile("^warning:.*flag '(.+)'", re.MULTILINE)
-                warn_flags = set(map(virt_utils.Flag, uns_re.findall(out)))
+                warn_flags = set(map(utils_misc.Flag, uns_re.findall(out)))
                 fwarn_flags = flags.host_all_unsupported_flags - warn_flags
                 if fwarn_flags:
                     raise error.TestFail("Qemu did not warn the use of "
@@ -589,7 +589,7 @@ def run_cpuflags(test, params, env):
             if all_host_supported_flags == "yes":
                 test_flags = flags.all_possible_guest_flags
 
-            result = virt_utils.parallel([(encap, [timeout]),
+            result = utils_misc.parallel([(encap, [timeout]),
                                          (run_stress, [self.vm, timeout,
                                                       test_flags])])
             if not (result[0] and result[1]):
@@ -629,7 +629,7 @@ def run_cpuflags(test, params, env):
                                 "stressblock bs=10MB count=100 &")
             cmd = ("nohup %s/cpuflags-test --stress  %s%s &" %
                    (os.path.join(install_path, "test_cpu_flags"), smp,
-                   virt_utils.kvm_flags_to_stresstests(flags[0])))
+                   utils_misc.kvm_flags_to_stresstests(flags[0])))
             stress_session.sendline(cmd)
 
             time.sleep(5)
@@ -702,7 +702,7 @@ def run_cpuflags(test, params, env):
 
             install_path = "/tmp"
 
-            class testMultihostMigration(virt_utils.MultihostMigration):
+            class testMultihostMigration(utils_misc.MultihostMigration):
                 def __init__(self, test, params, env):
                     super(testMultihostMigration, self).__init__(test,
                                                                  params,
@@ -734,7 +734,7 @@ def run_cpuflags(test, params, env):
                         cmd = ("nohup %s/cpuflags-test --stress  %s%s &" %
                                (os.path.join(install_path, "test_cpu_flags"),
                                 smp,
-                                virt_utils.kvm_flags_to_stresstests(Flags[0] &
+                                utils_misc.kvm_flags_to_stresstests(Flags[0] &
                                                         flags.guest_flags)))
                         logging.debug("Guest_flags: %s",
                                       str(flags.guest_flags))

@@ -1,6 +1,6 @@
 import logging, os, re
 from autotest.client.shared import error
-from autotest.client.virt import aexpect, virt_utils, remote, rss_client
+from autotest.client.virt import aexpect, utils_misc, remote, rss_client
 
 
 def run_whql_submission(test, params, env):
@@ -42,10 +42,10 @@ def run_whql_submission(test, params, env):
                                     "Microsoft Driver Test Manager\\Studio")
     dsso_test_binary = params.get("dsso_test_binary",
                                   "deps/whql_submission_15.exe")
-    dsso_test_binary = virt_utils.get_path(test.virtdir, dsso_test_binary)
+    dsso_test_binary = utils_misc.get_path(test.virtdir, dsso_test_binary)
     dsso_delete_machine_binary = params.get("dsso_delete_machine_binary",
                                             "deps/whql_delete_machine_15.exe")
-    dsso_delete_machine_binary = virt_utils.get_path(test.virtdir,
+    dsso_delete_machine_binary = utils_misc.get_path(test.virtdir,
                                                     dsso_delete_machine_binary)
     test_timeout = float(params.get("test_timeout", 600))
 
@@ -74,7 +74,7 @@ def run_whql_submission(test, params, env):
         server_session.cmd(cmd, print_func=logging.debug)
 
     # Reboot the client machines
-    sessions = virt_utils.parallel((vm.reboot, (session,))
+    sessions = utils_misc.parallel((vm.reboot, (session,))
                                   for vm, session in zip(vms, sessions))
 
     # Check the NICs again
@@ -254,7 +254,7 @@ def run_whql_submission(test, params, env):
     # Kill the client VMs and fail if the automation program did not terminate
     # on time
     if not done:
-        virt_utils.parallel(vm.destroy for vm in vms)
+        utils_misc.parallel(vm.destroy for vm in vms)
         raise error.TestFail("The automation program did not terminate "
                              "on time")
 

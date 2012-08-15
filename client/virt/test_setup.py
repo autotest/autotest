@@ -4,7 +4,7 @@ Library to perform pre/post test setup for KVM autotest.
 import os, logging, time, re, random, commands
 from autotest.client.shared import error
 from autotest.client import utils, kvm_control
-import virt_utils
+import utils_misc
 
 
 class THPError(Exception):
@@ -399,8 +399,8 @@ class PciAssignable(object):
         @param pci_id: PCI ID of a given PCI device.
         """
         base_dir = "/sys/bus/pci"
-        full_id = virt_utils.get_full_pci_id(pci_id)
-        vendor_id = virt_utils.get_vendor_from_pci_id(pci_id)
+        full_id = utils_misc.get_full_pci_id(pci_id)
+        vendor_id = utils_misc.get_vendor_from_pci_id(pci_id)
         drv_path = os.path.join(base_dir, "devices/%s/driver" % full_id)
         if 'pci-stub' in os.readlink(drv_path):
             cmd = "echo '%s' > %s/new_id" % (vendor_id, drv_path)
@@ -631,7 +631,7 @@ class PciAssignable(object):
 
         # Setup all devices specified for assignment to guest
         for pci_id in self.pci_ids:
-            full_id = virt_utils.get_full_pci_id(pci_id)
+            full_id = utils_misc.get_full_pci_id(pci_id)
             if not full_id:
                 continue
             drv_path = os.path.join(base_dir, "devices/%s/driver" % full_id)
@@ -642,7 +642,7 @@ class PciAssignable(object):
             # Judge whether the device driver has been binded to stub
             if not self.is_binded_to_stub(full_id):
                 logging.debug("Binding device %s to stub", full_id)
-                vendor_id = virt_utils.get_vendor_from_pci_id(pci_id)
+                vendor_id = utils_misc.get_vendor_from_pci_id(pci_id)
                 stub_new_id = os.path.join(stub_path, 'new_id')
                 unbind_dev = os.path.join(drv_path, 'unbind')
                 stub_bind = os.path.join(stub_path, 'bind')

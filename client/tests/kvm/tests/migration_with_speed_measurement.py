@@ -1,5 +1,5 @@
 import os, re, logging, time
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 from autotest.client.shared import error, utils
 
 
@@ -78,7 +78,7 @@ def run_migration_with_speed_measurement(test, params, env):
 
     try:
         # Reboot the VM in the background
-        virt_utils.install_cpuflags_util_on_vm(test, vm, install_path,
+        utils_misc.install_cpuflags_util_on_vm(test, vm, install_path,
                                                extra_flags="-msse3 -msse2")
 
         vm.monitor.migrate_set_speed(mig_speed)

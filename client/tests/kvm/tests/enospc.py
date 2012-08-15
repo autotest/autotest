@@ -1,7 +1,7 @@
 import logging, time, re, os
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_vm, virt_utils, kvm_storage
+from autotest.client.virt import virt_vm, utils_misc, kvm_storage
 
 
 class EnospcConfig(object):
@@ -36,7 +36,7 @@ class EnospcConfig(object):
     def setup(self):
         logging.debug("Starting enospc setup")
         error.context("performing enospc setup")
-        virt_utils.display_attributes(self)
+        utils_misc.display_attributes(self)
         # Double check if there aren't any leftovers
         self.cleanup()
         try:

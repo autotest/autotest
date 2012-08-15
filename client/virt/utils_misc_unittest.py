@@ -2,12 +2,12 @@
 
 import unittest, time, sys, os, shelve
 import common
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 from autotest.client import utils
 from autotest.client.shared.test_utils import mock
 from autotest.client.shared import cartesian_config
 
-class virt_utils_test(unittest.TestCase):
+class utils_misc_test(unittest.TestCase):
 
 
     def test_cpu_vendor_intel(self):
@@ -20,7 +20,7 @@ class virt_utils_test(unittest.TestCase):
                  'ds_cpl', 'vmx', 'smx', 'est', 'tm2', 'ssse3', 'cx16',
                  'xtpr', 'pdcm', 'sse4_1', 'xsave', 'lahf_lm', 'ida',
                  'tpr_shadow', 'vnmi', 'flexpriority']
-        vendor = virt_utils.get_cpu_vendor(flags, False)
+        vendor = utils_misc.get_cpu_vendor(flags, False)
         self.assertEqual(vendor, 'intel')
 
 
@@ -36,32 +36,32 @@ class virt_utils_test(unittest.TestCase):
                  'sse4a', 'misalignsse', '3dnowprefetch', 'osvw', 'ibs',
                  'skinit', 'wdt', 'cpb', 'npt', 'lbrv', 'svm_lock',
                  'nrip_save']
-        vendor = virt_utils.get_cpu_vendor(flags, False)
+        vendor = utils_misc.get_cpu_vendor(flags, False)
         self.assertEqual(vendor, 'amd')
 
 
     def test_vendor_unknown(self):
         flags = ['non', 'sense', 'flags']
-        vendor = virt_utils.get_cpu_vendor(flags, False)
+        vendor = utils_misc.get_cpu_vendor(flags, False)
         self.assertEqual(vendor, 'unknown')
 
 
     def test_get_archive_tarball_name(self):
-        tarball_name = virt_utils.get_archive_tarball_name('/tmp',
+        tarball_name = utils_misc.get_archive_tarball_name('/tmp',
                                                            'tmp-archive',
                                                            'bz2')
         self.assertEqual(tarball_name, 'tmp-archive.tar.bz2')
 
 
     def test_get_archive_tarball_name_absolute(self):
-        tarball_name = virt_utils.get_archive_tarball_name('/tmp',
+        tarball_name = utils_misc.get_archive_tarball_name('/tmp',
                                                            '/var/tmp/tmp',
                                                            'bz2')
         self.assertEqual(tarball_name, '/var/tmp/tmp.tar.bz2')
 
 
     def test_get_archive_tarball_name_from_dir(self):
-        tarball_name = virt_utils.get_archive_tarball_name('/tmp',
+        tarball_name = utils_misc.get_archive_tarball_name('/tmp',
                                                            None,
                                                            'bz2')
         self.assertEqual(tarball_name, 'tmp.tar.bz2')
@@ -77,7 +77,7 @@ git_repo_foo_commit = bc732ad8b2ed8be52160b893735417b43a1e91a8
         config_parser.parse_string(config)
         params = config_parser.get_dicts().next()
 
-        h = virt_utils.GitRepoParamHelper(params, 'foo', '/tmp/foo')
+        h = utils_misc.GitRepoParamHelper(params, 'foo', '/tmp/foo')
         self.assertEqual(h.name, 'foo')
         self.assertEqual(h.branch, 'next')
         self.assertEqual(h.lbranch, 'local')
@@ -137,7 +137,7 @@ class TestNumaNode(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god(ut=self)
         self.god.stub_with(utils, 'run', utils_run)
-        self.numa_node = virt_utils.NumaNode(-1)
+        self.numa_node = utils_misc.NumaNode(-1)
 
 
     def test_get_node_num(self):
@@ -191,13 +191,13 @@ class TestNumaNode(unittest.TestCase):
     def test_bitlist_to_string(self):
         string = 'foo'
         bitlist = [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1]
-        self.assertEqual(virt_utils.string_to_bitlist(string), bitlist)
+        self.assertEqual(utils_misc.string_to_bitlist(string), bitlist)
 
 
     def test_string_to_bitlist(self):
         bitlist = [0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0]
         string = 'bar'
-        self.assertEqual(virt_utils.bitlist_to_string(bitlist), string)
+        self.assertEqual(utils_misc.bitlist_to_string(bitlist), string)
 
 
     def tearDown(self):
@@ -206,17 +206,17 @@ class TestNumaNode(unittest.TestCase):
 class test_PropCan(unittest.TestCase):
 
     def test_empty_len(self):
-        pc = virt_utils.PropCan()
+        pc = utils_misc.PropCan()
         self.assertEqual(len(pc), 0)
 
 class test_VirtIface(unittest.TestCase):
 
-    VirtIface = virt_utils.VirtIface
+    VirtIface = utils_misc.VirtIface
 
     def setUp(self):
-        virt_utils.VirtIface.LASTBYTE = -1 # Restart count at zero
+        utils_misc.VirtIface.LASTBYTE = -1 # Restart count at zero
         # These warnings are annoying during testing
-        virt_utils.VMNet.DISCARD_WARNINGS -1
+        utils_misc.VMNet.DISCARD_WARNINGS -1
 
     def loop_assert(self, virtiface, test_keys, what_func, string_val):
         for propertea in test_keys:
@@ -239,7 +239,7 @@ class test_VirtIface(unittest.TestCase):
         half_prop_end = (len(self.VirtIface.__slots__) / 2) + 1
         props = {}
         for propertea in self.VirtIface.__slots__[0:half_prop_end]:
-            props[propertea] = virt_utils.generate_random_string(16)
+            props[propertea] = utils_misc.generate_random_string(16)
         virtiface = self.VirtIface(props)
         what_func = lambda propertea:props[propertea]
         self.loop_assert(virtiface, props.keys(), what_func, str(props))
@@ -247,7 +247,7 @@ class test_VirtIface(unittest.TestCase):
     def test_full_set(self):
         props = {}
         for propertea in self.VirtIface.__slots__:
-            props[propertea] = virt_utils.generate_random_string(16)
+            props[propertea] = utils_misc.generate_random_string(16)
         virtiface = self.VirtIface(props)
         what_func = lambda propertea:props[propertea]
         self.loop_assert(virtiface, props.keys(), what_func, str(props))
@@ -258,11 +258,11 @@ class test_VirtIface(unittest.TestCase):
         """
         props = {}
         for propertea in self.VirtIface.__slots__:
-            props[propertea] = virt_utils.generate_random_string(16)
+            props[propertea] = utils_misc.generate_random_string(16)
         more_props = {}
         for idx in xrange(0,16):
-            more_props[virt_utils.generate_random_string(
-                16)] = virt_utils.generate_random_string(16)
+            more_props[utils_misc.generate_random_string(
+                16)] = utils_misc.generate_random_string(16)
         #Keep seperated for testing
         apendex_set = {}
         apendex_set.update(props)
@@ -287,45 +287,45 @@ class test_VirtIface(unittest.TestCase):
 class test_KVMIface(test_VirtIface):
 
     def setUp(self):
-        self.VirtIface = virt_utils.KVMIface
+        self.VirtIface = utils_misc.KVMIface
         # These warnings are annoying during testing
-        virt_utils.VMNet.DISCARD_WARNINGS -1
+        utils_misc.VMNet.DISCARD_WARNINGS -1
 
 class test_LibvirtIface(test_VirtIface):
 
     def setUp(self):
-        self.VirtIface = virt_utils.LibvirtIface
+        self.VirtIface = utils_misc.LibvirtIface
         # These warnings are annoying during testing
-        virt_utils.VMNet.DISCARD_WARNINGS -1
+        utils_misc.VMNet.DISCARD_WARNINGS -1
 
 class test_VMNetStyle(unittest.TestCase):
 
     def get_a_map(self, vm_type, driver_type):
-        return virt_utils.VMNetStyle.get_style(vm_type, driver_type)
+        return utils_misc.VMNetStyle.get_style(vm_type, driver_type)
 
     def test_default_default(self):
-        map = self.get_a_map(virt_utils.generate_random_string(16),
-                             virt_utils.generate_random_string(16))
+        map = self.get_a_map(utils_misc.generate_random_string(16),
+                             utils_misc.generate_random_string(16))
         self.assertEqual(map['mac_prefix'], '9a')
-        self.assertEqual(map['container_class'], virt_utils.KVMIface)
-        self.assert_(issubclass(map['container_class'], virt_utils.VirtIface))
+        self.assertEqual(map['container_class'], utils_misc.KVMIface)
+        self.assert_(issubclass(map['container_class'], utils_misc.VirtIface))
 
     def test_libvirt(self):
         map = self.get_a_map('libvirt',
-                             virt_utils.generate_random_string(16))
-        self.assertEqual(map['container_class'], virt_utils.LibvirtIface)
-        self.assert_(issubclass(map['container_class'], virt_utils.VirtIface))
+                             utils_misc.generate_random_string(16))
+        self.assertEqual(map['container_class'], utils_misc.LibvirtIface)
+        self.assert_(issubclass(map['container_class'], utils_misc.VirtIface))
 
 
 class test_VMNet(unittest.TestCase):
 
     def setUp(self):
-        virt_utils.VirtIface.LASTBYTE = -1 # Restart count at zero
+        utils_misc.VirtIface.LASTBYTE = -1 # Restart count at zero
         # These warnings are annoying during testing
-        virt_utils.VMNet.DISCARD_WARNINGS -1
+        utils_misc.VMNet.DISCARD_WARNINGS -1
 
     def test_string_container(self):
-        self.assertRaises(TypeError, virt_utils.VMNet, str, ["Foo"])
+        self.assertRaises(TypeError, utils_misc.VMNet, str, ["Foo"])
 
     def test_VirtIface_container(self):
         test_data = [
@@ -337,13 +337,13 @@ class test_VMNet(unittest.TestCase):
             {'nic_name':'nic3',
              'mac':'01:02:03:04:05:06'}
         ]
-        self.assertRaises(virt_utils.VMNetError,
-                          virt_utils.VMNet,
-                            virt_utils.VirtIface, test_data)
+        self.assertRaises(utils_misc.VMNetError,
+                          utils_misc.VMNet,
+                            utils_misc.VirtIface, test_data)
         del test_data[1]
-        vmnet = virt_utils.VMNet(virt_utils.VirtIface, test_data)
+        vmnet = utils_misc.VMNet(utils_misc.VirtIface, test_data)
         self.assertEqual(vmnet[0].nic_name, test_data[0]['nic_name'])
-        self.assertEqual(vmnet['nic1'].__class__, virt_utils.VirtIface)
+        self.assertEqual(vmnet['nic1'].__class__, utils_misc.VirtIface)
         self.assertEqual(False, hasattr(vmnet['nic1'], 'mac'))
         self.assertEqual(False, 'mac' in vmnet['nic1'].keys())
         self.assertEqual(vmnet.nic_name_list(), ['nic1', 'nic2', 'nic3'])
@@ -460,14 +460,14 @@ class test_VMNet_Subclasses(unittest.TestCase):
         # MAC generator produces from incrementing byte list
         # at random starting point (class property).
         # make sure it starts counting at zero before every test
-        virt_utils.VirtIface.LASTBYTE = -1
+        utils_misc.VirtIface.LASTBYTE = -1
         # These warnings are annoying during testing
-        virt_utils.VMNet.DISCARD_WARNINGS -1
+        utils_misc.VMNet.DISCARD_WARNINGS -1
         parser = cartesian_config.Parser()
         parser.parse_string(self.nettests_cartesian)
         self.CartesianResult = []
         for d in parser.get_dicts():
-            params = virt_utils.Params(d)
+            params = utils_misc.Params(d)
             self.CartesianResult.append(params)
             for vm_name in params.objects('vms'):
                 vm = params.object_params(vm_name)
@@ -484,7 +484,7 @@ class test_VMNet_Subclasses(unittest.TestCase):
             self.driver_type = self.params.get('driver_type')
             self.instance = ( "%s-%s" % (
                 time.strftime("%Y%m%d-%H%M%S"),
-                virt_utils.generate_random_string(16)) )
+                utils_misc.generate_random_string(16)) )
 
     def fakevm_generator(self):
         for params in self.CartesianResult:
@@ -518,7 +518,7 @@ class test_VMNet_Subclasses(unittest.TestCase):
         self.zero_counter()
         for fakevm in self.fakevm_generator():
             test_params = fakevm.get_params()
-            virtnet = virt_utils.ParamsNet(test_params,
+            virtnet = utils_misc.ParamsNet(test_params,
                                            fakevm.name)
             self.assert_(virtnet.container_class)
             self.assert_(virtnet.mac_prefix)
@@ -535,12 +535,12 @@ class test_VMNet_Subclasses(unittest.TestCase):
                 virtnet_nic = virtnet[virtnet_index]
                 params_nic = param_nics[virtnet_index]
                 self.assert_( issubclass(virtnet_nic.__class__,
-                                         virt_utils.PropCan))
+                                         utils_misc.PropCan))
                 self.assertEqual(virtnet_nic.nic_name, params_nic,
                                     "%s != %s" % (virtnet_nic.nic_name,
                                     params_nic))
                 # __slots__ functionality established/asserted elsewhere
-                props_to_check = list(virt_utils.VirtIface.__slots__)
+                props_to_check = list(utils_misc.VirtIface.__slots__)
                 # other tests check mac address handling
                 del props_to_check[props_to_check.index('mac')]
                 for propertea in props_to_check:
@@ -571,7 +571,7 @@ class test_VMNet_Subclasses(unittest.TestCase):
         self.zero_counter()
         for fakevm in self.fakevm_generator():
             test_params = fakevm.get_params()
-            virtnet = virt_utils.DbNet(test_params, fakevm.name,
+            virtnet = utils_misc.DbNet(test_params, fakevm.name,
                                        self.db_filename, fakevm.instance)
             self.assert_(hasattr(virtnet, 'container_class'))
             self.assert_(hasattr(virtnet, 'mac_prefix'))
@@ -613,7 +613,7 @@ class test_VMNet_Subclasses(unittest.TestCase):
                 mac = nic.get('mac')
                 if mac:
                     # Another test already checked mac_is_valid behavior
-                    self.assert_(virt_utils.VirtIface.mac_is_valid(mac))
+                    self.assert_(utils_misc.VirtIface.mac_is_valid(mac))
             self.print_and_inc()
         db.close()
 
@@ -634,12 +634,12 @@ class test_VMNet_Subclasses(unittest.TestCase):
                 mac = "%s0%x" % (self.mac_prefix,lastbyte)
             else:
                 mac = "%s%x" % (self.mac_prefix,lastbyte)
-            params = virt_utils.Params({
+            params = utils_misc.Params({
                 "nics":"nic1",
                 "vms":vm_name,
                 "mac_nic1":mac,
             })
-            virtnet = virt_utils.VirtNet(params, vm_name,
+            virtnet = utils_misc.VirtNet(params, vm_name,
                                          vm_name, self.db_filename)
             virtnet.mac_prefix = self.mac_prefix
             self.assertEqual(virtnet['nic1'].mac, mac)
@@ -662,11 +662,11 @@ class test_VMNet_Subclasses(unittest.TestCase):
         # also confirming params merge with db data
         for lastbyte in xrange(0, 0xFF):
             vm_name = "vm%d" % lastbyte
-            params = virt_utils.Params({
+            params = utils_misc.Params({
                 "nics":"nic1",
                 "vms":vm_name
             })
-            virtnet = virt_utils.VirtNet(params, vm_name,
+            virtnet = utils_misc.VirtNet(params, vm_name,
                                          vm_name, self.db_filename)
             if lastbyte < 16:
                 mac = "%s0%x" % (self.mac_prefix,lastbyte)
@@ -685,21 +685,21 @@ class test_VMNet_Subclasses(unittest.TestCase):
         """
         self.zero_counter(25)
         # test two nics, second mac generation should fail (pool exhausted)
-        params = virt_utils.Params({
+        params = utils_misc.Params({
             "nics":"nic1 nic2",
             "vms":"vm255"
         })
-        virtnet = virt_utils.VirtNet(params, 'vm255',
+        virtnet = utils_misc.VirtNet(params, 'vm255',
                                      'vm255', self.db_filename)
         virtnet.mac_prefix = self.mac_prefix
-        self.assertRaises(virt_utils.PropCanKeyError,
+        self.assertRaises(utils_misc.PropCanKeyError,
                           virtnet.get_mac_address, 'nic1')
         mac = "%s%x" % (self.mac_prefix,255)
         # This will grab the last available address
         # only try 300 times, guarantees LASTBYTE counter will loop once
         self.assertEqual(virtnet.generate_mac_address(0, 300), mac)
         # This will fail allocation
-        self.assertRaises(virt_utils.NetError,
+        self.assertRaises(utils_misc.NetError,
                             virtnet.generate_mac_address, 1, 300)
 
 
@@ -708,21 +708,21 @@ class test_VMNet_Subclasses(unittest.TestCase):
         Release mac from beginning, midle, and end, re-generate + verify value
         """
         self.zero_counter(1)
-        beginning_params = virt_utils.Params({
+        beginning_params = utils_misc.Params({
             "nics":"nic1 nic2",
             "vms":"vm0"
         })
-        middle_params = virt_utils.Params({
+        middle_params = utils_misc.Params({
             "nics":"nic1 nic2",
             "vms":"vm127"
         })
-        end_params = virt_utils.Params({
+        end_params = utils_misc.Params({
             "nics":"nic1 nic2",
             "vms":"vm255",
         })
         for params in (beginning_params,middle_params,end_params):
             vm_name = params['vms']
-            virtnet = virt_utils.VirtNet(params, vm_name,
+            virtnet = utils_misc.VirtNet(params, vm_name,
                                          vm_name, self.db_filename)
             virtnet.mac_prefix = self.mac_prefix
             iface = virtnet['nic1']
@@ -731,7 +731,7 @@ class test_VMNet_Subclasses(unittest.TestCase):
             # Sequential generation from test_04_VirtNet guarantee
             self.assertEqual(last_db_mac_byte, last_vm_name_byte)
             # only try 300 times, guarantees LASTBYTE counter will loop once
-            self.assertRaises(virt_utils.NetError,
+            self.assertRaises(utils_misc.NetError,
                               virtnet.generate_mac_address, 1, 300)
             virtnet.free_mac_address(0)
             virtnet.free_mac_address(1)
@@ -750,7 +750,7 @@ class test_VMNet_Subclasses(unittest.TestCase):
             if fakevm.vm_type != 'kvm':
                 continue
             test_params = fakevm.get_params()
-            virtnet = virt_utils.VirtNet(test_params,
+            virtnet = utils_misc.VirtNet(test_params,
                                            fakevm.name,
                                            fakevm.name)
             for virtnet_index in xrange(0, len(virtnet)):

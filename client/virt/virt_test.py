@@ -1,7 +1,7 @@
 import os, sys, logging, imp
 from autotest.client import test
 from autotest.client.shared import error
-import virt_utils, env_process
+import utils_misc, env_process
 
 
 class virt_test(test.test):
@@ -25,7 +25,7 @@ class virt_test(test.test):
 
     def run_once(self, params):
         # Convert params to a Params object
-        params = virt_utils.Params(params)
+        params = utils_misc.Params(params)
 
         # If a dependency test prior to this test has failed, let's fail
         # it right away as TestNA.
@@ -42,11 +42,11 @@ class virt_test(test.test):
 
         # Set the log file dir for the logging mechanism used by kvm_subprocess
         # (this must be done before unpickling env)
-        virt_utils.set_log_file_dir(self.debugdir)
+        utils_misc.set_log_file_dir(self.debugdir)
 
         # Open the environment file
         env_filename = os.path.join(self.bindir, params.get("env", "env"))
-        env = virt_utils.Env(env_filename, self.env_version)
+        env = utils_misc.Env(env_filename, self.env_version)
 
         test_passed = False
 
@@ -64,7 +64,7 @@ class virt_test(test.test):
                                                   " exist." % (subtestdir))
                         subtest_dirs.append(subtestdir)
                     # Verify if we have the correspondent source file for it
-                    virt_dir = os.path.dirname(virt_utils.__file__)
+                    virt_dir = os.path.dirname(utils_misc.__file__)
                     subtest_dirs.append(os.path.join(virt_dir, "tests"))
                     subtest_dirs.append(os.path.join(self.bindir, "tests"))
                     subtest_dir = None

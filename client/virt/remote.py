@@ -2,7 +2,7 @@
 Functions and classes used for logging into guests and transferring files.
 """
 import logging, time
-import aexpect, virt_utils, rss_client
+import aexpect, utils_misc, rss_client
 
 
 class LoginError(Exception):
@@ -199,7 +199,7 @@ def remote_login(client, host, port, username, password, prompt, linesep="\n",
         session.close()
         raise
     if log_filename:
-        session.set_output_func(virt_utils.log_line)
+        session.set_output_func(utils_misc.log_line)
         session.set_output_params((log_filename,))
     return session
 
@@ -327,7 +327,7 @@ def remote_scp(command, password_list, log_filename=None, transfer_timeout=600,
     logging.debug("Trying to SCP with command '%s', timeout %ss",
                   command, transfer_timeout)
     if log_filename:
-        output_func = virt_utils.log_line
+        output_func = utils_misc.log_line
         output_params = (log_filename,)
     else:
         output_func = None

@@ -8,7 +8,7 @@ KVM cdrom test
 import logging, re, time, os
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_utils, aexpect, kvm_monitor
+from autotest.client.virt import utils_misc, aexpect, kvm_monitor
 
 
 @error.context_aware
@@ -151,7 +151,7 @@ def run_cdrom(test, params, env):
     session.get_command_output("umount %s" % cdrom_dev)
     if params.get('cdrom_test_autounlock') == 'yes':
         error.context("Trying to unlock the cdrom")
-        if not virt_utils.wait_for(lambda: not vm.check_block_locked(device),
+        if not utils_misc.wait_for(lambda: not vm.check_block_locked(device),
                                    300):
             raise error.TestFail("Device %s could not be unlocked" % device)
 

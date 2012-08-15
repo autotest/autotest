@@ -3,7 +3,7 @@
 import sys, os, re, logging
 import common
 from autotest.client.shared import logging_manager
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 
 def destroy_tap(tapfd_list):
@@ -16,7 +16,7 @@ def destroy_tap(tapfd_list):
 
 
 if __name__ == "__main__":
-    logging_manager.configure_logging(virt_utils.VirtLoggingConfig(),
+    logging_manager.configure_logging(utils_misc.VirtLoggingConfig(),
                                       verbose=True)
     if len(sys.argv) <= 2:
         logging.info("Usage: %s bridge_name qemu_command_line", sys.argv[0])
@@ -44,9 +44,9 @@ if __name__ == "__main__":
     for tap in tap_list:
         try:
             ifname = "tap-%s" % tap
-            tapfd = virt_utils.open_tap("/dev/net/tun", ifname)
-            virt_utils.add_to_bridge(ifname, brname)
-            virt_utils.bring_up_ifname(ifname)
+            tapfd = utils_misc.open_tap("/dev/net/tun", ifname)
+            utils_misc.add_to_bridge(ifname, brname)
+            utils_misc.bring_up_ifname(ifname)
             pattern = tap_replace_re % tap
             cmd_line = re.sub(pattern, "\g<1>%s " % tapfd, cmd_line)
             tapfd_list.append(tapfd)

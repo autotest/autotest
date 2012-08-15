@@ -7,7 +7,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 import time, os, logging, fcntl, re, commands
 from autotest.client.shared import error
 from autotest.client import utils
-import virt_utils, virt_vm, test_setup, storage, kvm_monitor, aexpect
+import utils_misc, virt_vm, test_setup, storage, kvm_monitor, aexpect
 import kvm_virtio_port
 import remote
 
@@ -696,7 +696,7 @@ class VM(virt_vm.BaseVM):
                     spice_opts.append(opt_string % tmp)
                 elif fallback:
                     spice_opts.append(fallback)
-            s_port = str(virt_utils.find_free_port(*port_range))
+            s_port = str(utils_misc.find_free_port(*port_range))
             set_value("port=%s", "spice_port", "port=%s" % s_port)
             if optget("spice_port") == None:
                 self.spice_options['spice_port'] = s_port
@@ -706,7 +706,7 @@ class VM(virt_vm.BaseVM):
 
             if optget("spice_ssl") == "yes":
                 # SSL only part
-                t_port = str(virt_utils.find_free_port(*tls_port_range))
+                t_port = str(utils_misc.find_free_port(*tls_port_range))
                 set_value("tls-port=%s", "spice_tls_port",
                           "tls-port=%s" % t_port)
                 if optget("spice_tls_port") == None:
@@ -719,7 +719,7 @@ class VM(virt_vm.BaseVM):
                     passwd = optget("spice_x509_key_password")
                     secure = optget("spice_x509_secure")
 
-                    virt_utils.create_x509_dir(prefix, c_subj, s_subj, passwd,
+                    utils_misc.create_x509_dir(prefix, c_subj, s_subj, passwd,
                                                secure)
 
                 tmp = optget("spice_x509_dir")
@@ -927,7 +927,7 @@ class VM(virt_vm.BaseVM):
         # PCI addr 0,1,2 are taken by PCI/ISA/IDE bridge and the sound device.
         self.pci_addr_list = [0, 1, 2]
 
-        qemu_binary = virt_utils.get_path(root_dir, params.get("qemu_binary",
+        qemu_binary = utils_misc.get_path(root_dir, params.get("qemu_binary",
                                                               "qemu"))
         self.qemu_binary = qemu_binary
         help = commands.getoutput("%s -help" % qemu_binary)
@@ -953,7 +953,7 @@ class VM(virt_vm.BaseVM):
         if params.get("numa_node"):
             numa_node = int(params.get("numa_node"))
             if numa_node < 0:
-                p = virt_utils.NumaNode(numa_node)
+                p = utils_misc.NumaNode(numa_node)
                 n = int(p.get_node_num()) + numa_node
                 qemu_cmd += "numactl -m %s " % n
             else:
@@ -1090,7 +1090,7 @@ class VM(virt_vm.BaseVM):
             netdev_extra = nic.get("netdev_extra_params")
             bootp = nic.get("bootp")
             if nic.get("tftp"):
-                tftp = virt_utils.get_path(root_dir, nic.get("tftp"))
+                tftp = utils_misc.get_path(root_dir, nic.get("tftp"))
             else:
                 tftp = None
             nettype = nic.get("nettype", "bridge")
@@ -1197,7 +1197,7 @@ class VM(virt_vm.BaseVM):
                     qemu_cmd += " -device virtio-scsi-pci,id=virtio_scsi_pci%d" % i
                     virtio_scsi_pcis.append("virtio_scsi_pci%d" % i)
             if iso:
-                qemu_cmd += add_cdrom(help, virt_utils.get_path(root_dir, iso),
+                qemu_cmd += add_cdrom(help, utils_misc.get_path(root_dir, iso),
                                       cdrom_params.get("drive_index"),
                                       cd_format, bus)
 
@@ -1214,7 +1214,7 @@ class VM(virt_vm.BaseVM):
                 floppy_params = params.object_params(floppy_name)
                 floppy_readonly = floppy_params.get("floppy_readonly", "no")
                 floppy_readonly = floppy_readonly == "yes"
-                floppy = virt_utils.get_path(root_dir,
+                floppy = utils_misc.get_path(root_dir,
                                              floppy_params.get("floppy_name"))
                 if has_option(help,"global"):
                     qemu_cmd += add_drive(help, floppy,
@@ -1244,7 +1244,7 @@ class VM(virt_vm.BaseVM):
 
         tftp = params.get("tftp")
         if tftp:
-            tftp = virt_utils.get_path(root_dir, tftp)
+            tftp = utils_misc.get_path(root_dir, tftp)
             qemu_cmd += add_tftp(help, tftp)
 
         bootp = params.get("bootp")
@@ -1253,7 +1253,7 @@ class VM(virt_vm.BaseVM):
 
         kernel = params.get("kernel")
         if kernel:
-            kernel = virt_utils.get_path(root_dir, kernel)
+            kernel = utils_misc.get_path(root_dir, kernel)
             qemu_cmd += add_kernel(help, kernel)
 
         kernel_params = params.get("kernel_params")
@@ -1262,7 +1262,7 @@ class VM(virt_vm.BaseVM):
 
         initrd = params.get("initrd")
         if initrd:
-            initrd = virt_utils.get_path(root_dir, initrd)
+            initrd = utils_misc.get_path(root_dir, initrd)
             qemu_cmd += add_initrd(help, initrd)
 
         for host_port, guest_port in redirs:
@@ -1436,7 +1436,7 @@ class VM(virt_vm.BaseVM):
             cdrom_params = params.object_params(cdrom)
             iso = cdrom_params.get("cdrom")
             if iso:
-                iso = virt_utils.get_path(root_dir, iso)
+                iso = utils_misc.get_path(root_dir, iso)
                 if not os.path.exists(iso):
                     raise virt_vm.VMImageMissingError(iso)
                 compare = False
@@ -1473,7 +1473,7 @@ class VM(virt_vm.BaseVM):
         try:
             # Handle port redirections
             redir_names = params.objects("redirs")
-            host_ports = virt_utils.find_free_ports(5000, 6000, len(redir_names))
+            host_ports = utils_misc.find_free_ports(5000, 6000, len(redir_names))
             self.redirs = {}
             for i in range(len(redir_names)):
                 redir_params = params.object_params(redir_names[i])
@@ -1492,15 +1492,15 @@ class VM(virt_vm.BaseVM):
                                     % (nic.nic_name, mac_source.name))
                     nic.mac = mac_source.get_mac_address(nic.nic_name)
                 if nic.nettype == 'bridge' or nic.nettype == 'network':
-                    nic.tapfd = str(virt_utils.open_tap("/dev/net/tun",
+                    nic.tapfd = str(utils_misc.open_tap("/dev/net/tun",
                                                         nic.ifname,
                                                         vnet_hdr=False))
                     logging.debug("Adding VM %s NIC ifname %s"
                                   " to bridge %s" % (self.name,
                                         nic.ifname, nic.netdst))
                     if nic.nettype == 'bridge':
-                        virt_utils.add_to_bridge(nic.ifname, nic.netdst)
-                    virt_utils.bring_up_ifname(nic.ifname)
+                        utils_misc.add_to_bridge(nic.ifname, nic.netdst)
+                    utils_misc.bring_up_ifname(nic.ifname)
                 elif nic.nettype == 'user':
                     logging.info("Assuming dependencies met for "
                                  "user mode nic %s, and ready to go"
@@ -1510,7 +1510,7 @@ class VM(virt_vm.BaseVM):
 
             # Find available VNC port, if needed
             if params.get("display") == "vnc":
-                self.vnc_port = virt_utils.find_free_port(5900, 6100)
+                self.vnc_port = utils_misc.find_free_port(5900, 6100)
 
             # Find random UUID if specified 'uuid = random' in config file
             if params.get("uuid") == "random":
@@ -1570,14 +1570,14 @@ class VM(virt_vm.BaseVM):
 
             # Add migration parameters if required
             if migration_mode == "tcp":
-                self.migration_port = virt_utils.find_free_port(5200, 6000)
+                self.migration_port = utils_misc.find_free_port(5200, 6000)
                 qemu_command += " -incoming tcp:0:%d" % self.migration_port
             elif migration_mode == "unix":
                 self.migration_file = "/tmp/migration-unix-%s" % self.instance
                 qemu_command += " -incoming unix:%s" % self.migration_file
             elif migration_mode == "exec":
                 if migration_exec_cmd == None:
-                    self.migration_port = virt_utils.find_free_port(5200, 6000)
+                    self.migration_port = utils_misc.find_free_port(5200, 6000)
                     qemu_command += (' -incoming "exec:nc -l %s"' %
                                      self.migration_port)
                 else:
@@ -1590,7 +1590,7 @@ class VM(virt_vm.BaseVM):
             if p9_fs_driver == "proxy":
                 proxy_helper_name = params.get("9p_proxy_binary",
                                                "virtfs-proxy-helper")
-                proxy_helper_cmd =  virt_utils.get_path(root_dir,
+                proxy_helper_cmd =  utils_misc.get_path(root_dir,
                                                         proxy_helper_name)
                 if not proxy_helper_cmd:
                     raise virt_vm.VMCreateError("Proxy command not specified")
@@ -1648,7 +1648,7 @@ class VM(virt_vm.BaseVM):
                 while time.time() < end_time:
                     try:
                         if monitor_params.get("monitor_type") == "qmp":
-                            if virt_utils.qemu_has_option("qmp",
+                            if utils_misc.qemu_has_option("qmp",
                                                           self.qemu_binary):
                                 # Add a QMP monitor
                                 monitor = kvm_monitor.QMPMonitor(
@@ -1722,7 +1722,7 @@ class VM(virt_vm.BaseVM):
             self.serial_console = aexpect.ShellSession(
                 "nc -U %s" % self.get_serial_console_filename(),
                 auto_close=False,
-                output_func=virt_utils.log_line,
+                output_func=utils_misc.log_line,
                 output_params=("serial-%s.log" % name,),
                 prompt=self.params.get("shell_prompt", "[\#\$]"))
 
@@ -1732,7 +1732,7 @@ class VM(virt_vm.BaseVM):
                 self.logsessions[key] = aexpect.Tail(
                     "nc -U %s" % value,
                     auto_close=False,
-                    output_func=virt_utils.log_line,
+                    output_func=utils_misc.log_line,
                     output_params=(outfile,))
 
             # start guest
@@ -1779,7 +1779,7 @@ class VM(virt_vm.BaseVM):
                         session.sendline(self.params.get("shutdown_command"))
                         logging.debug("Shutdown command sent; waiting for VM "
                                       "to go down")
-                        if virt_utils.wait_for(self.is_dead, kill_timeout,
+                        if utils_misc.wait_for(self.is_dead, kill_timeout,
                                                1, 1):
                             logging.debug("VM is down")
                             return
@@ -1791,7 +1791,7 @@ class VM(virt_vm.BaseVM):
                 logging.debug("Trying to kill VM with monitor command")
                 if self.params.get("kill_vm_only_when_paused") == "yes":
                     try:
-                        if virt_utils.wait_for(
+                        if utils_misc.wait_for(
                                  lambda: self.monitor.verify_status("paused"),
                                                kill_timeout, 1, 1):
                             logging.debug("Killing already paused VM '%s'",
@@ -1804,16 +1804,16 @@ class VM(virt_vm.BaseVM):
                     logging.warn(e)
                 else:
                     # Wait for the VM to be really dead
-                    if virt_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
+                    if utils_misc.wait_for(self.is_dead, 5, 0.5, 0.5):
                         logging.debug("VM is down")
                         return
 
             # If the VM isn't dead yet...
             logging.debug("Cannot quit normally, sending a kill to close the "
                           "deal")
-            virt_utils.kill_process_tree(self.process.get_pid(), 9)
+            utils_misc.kill_process_tree(self.process.get_pid(), 9)
             # Wait for the VM to be really dead
-            if virt_utils.wait_for(self.is_dead, 5, 0.5, 0.5):
+            if utils_misc.wait_for(self.is_dead, 5, 0.5, 0.5):
                 logging.debug("VM is down")
                 return
 
@@ -2020,14 +2020,14 @@ class VM(virt_vm.BaseVM):
         nic_name = params['nic_name']
         nic = self.virtnet[nic_name]
         nic_index = self.virtnet.nic_name_index(nic_name)
-        nic.set_if_none('netdev_id', virt_utils.generate_random_id())
+        nic.set_if_none('netdev_id', utils_misc.generate_random_id())
         nic.set_if_none('ifname', self.virtnet.generate_ifname(nic_index))
         nic.set_if_none('nettype', 'bridge')
         if nic.nettype == 'bridge': # implies tap
             # destination is required, hard-code reasonable default if unset
             nic.set_if_none('netdst', 'virbr0')
             # tapfd allocated/set in activate because requires system resources
-            nic.set_if_none('tapfd_id', virt_utils.generate_random_id())
+            nic.set_if_none('tapfd_id', utils_misc.generate_random_id())
         elif nic.nettype == 'user':
             pass # nothing to do
         else: # unsupported nettype
@@ -2063,7 +2063,7 @@ class VM(virt_vm.BaseVM):
         nic = super(VM, self).add_nic(**params)
         nic_index = self.virtnet.nic_name_index(nic.nic_name)
         nic.set_if_none('vlan', str(nic_index))
-        nic.set_if_none('device_id', virt_utils.generate_random_id())
+        nic.set_if_none('device_id', utils_misc.generate_random_id())
         if not nic.has_key('netdev_id'):
             # virtnet items are lists that act like dicts
             nic.netdev_id = self.add_netdev(**dict(nic))
@@ -2090,7 +2090,7 @@ class VM(virt_vm.BaseVM):
         if nic.nettype == 'bridge': # implies tap
             error.context("Opening tap device node for %s " % nic.ifname,
                           logging.debug)
-            nic.set_if_none('tapfd', str(virt_utils.open_tap("/dev/net/tun",
+            nic.set_if_none('tapfd', str(utils_misc.open_tap("/dev/net/tun",
                                                              nic.ifname,
                                                              vnet_hdr=False)))
             error.context("Registering tap id %s for FD %d" %
@@ -2099,11 +2099,11 @@ class VM(virt_vm.BaseVM):
             attach_cmd += " tap,id=%s,fd=%s" % (nic.device_id, nic.tapfd_id)
             error.context("Raising interface for " + msg_sfx + attach_cmd,
                           logging.debug)
-            virt_utils.bring_up_ifname(nic.ifname)
+            utils_misc.bring_up_ifname(nic.ifname)
             error.context("Raising bridge for " + msg_sfx + attach_cmd,
                           logging.debug)
             # assume this will puke if netdst unset
-            virt_utils.add_to_bridge(nic.ifname, nic.netdst)
+            utils_misc.add_to_bridge(nic.ifname, nic.netdst)
         elif nic.nettype == 'user':
             attach_cmd += " user,name=%s" % nic.ifname
         else: # unsupported nettype
@@ -2169,7 +2169,7 @@ class VM(virt_vm.BaseVM):
         self.monitor.cmd(nic_del_cmd)
         if wait:
             logging.info("waiting for the guest to finish the unplug")
-            if not virt_utils.wait_for(lambda: nic.nic_name not in
+            if not utils_misc.wait_for(lambda: nic.nic_name not in
                                        self.monitor.info("qtree"),
                                        wait, 5 ,1):
                 raise virt_vm.VMDelNicError("Device is not unplugged by "
@@ -2289,7 +2289,7 @@ class VM(virt_vm.BaseVM):
                         o.get("status") == "canceled")
 
         def wait_for_migration():
-            if not virt_utils.wait_for(mig_finished, timeout, 2, 2,
+            if not utils_misc.wait_for(mig_finished, timeout, 2, 2,
                                       "Waiting for migration to complete"):
                 raise virt_vm.VMMigrateTimeoutError("Timeout expired while waiting "
                                             "for migration to finish")
@@ -2386,7 +2386,7 @@ class VM(virt_vm.BaseVM):
             if cancel_delay:
                 time.sleep(cancel_delay)
                 self.monitor.cmd("migrate_cancel")
-                if not virt_utils.wait_for(mig_cancelled, 60, 2, 2,
+                if not utils_misc.wait_for(mig_cancelled, 60, 2, 2,
                                           "Waiting for migration "
                                           "cancellation"):
                     raise virt_vm.VMMigrateCancelError("Cannot cancel migration")
@@ -2472,7 +2472,7 @@ class VM(virt_vm.BaseVM):
             session = session or self.login()
             session.sendline(self.params.get("reboot_command"))
             error.context("waiting for guest to go down", logging.info)
-            if not virt_utils.wait_for(
+            if not utils_misc.wait_for(
                 lambda:
                     not session.is_responsive(timeout=self.CLOSE_SESSION_TIMEOUT),
                 timeout / 2, 0, 1):
@@ -2540,7 +2540,7 @@ class VM(virt_vm.BaseVM):
         logging.debug("Saving VM %s to %s" % (self.name, path))
         # Can only check status if background migration
         self.monitor.migrate("exec:cat>%s" % path, wait=False)
-        result = virt_utils.wait_for(
+        result = utils_misc.wait_for(
             # no monitor.migrate-status method
             lambda : "status: completed" in self.monitor.info("migrate"),
             self.MIGRATE_TIMEOUT, 2, 2,

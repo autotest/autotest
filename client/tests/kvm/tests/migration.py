@@ -1,6 +1,6 @@
 import logging, time, types
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 
 def run_migration(test, params, env):
@@ -99,9 +99,9 @@ def run_migration(test, params, env):
                              "command output after migration")
                 logging.info("Command: %s", test_command)
                 logging.info("Output before:" +
-                            virt_utils.format_str_for_message(reference_output))
+                            utils_misc.format_str_for_message(reference_output))
                 logging.info("Output after:" +
-                             virt_utils.format_str_for_message(output))
+                             utils_misc.format_str_for_message(output))
                 raise error.TestFail("Command '%s' produced different output "
                                     "before and after migration" % test_command)
 

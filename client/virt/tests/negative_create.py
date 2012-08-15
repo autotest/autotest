@@ -1,5 +1,5 @@
 import logging
-from autotest.client.virt import virt_vm, virt_utils
+from autotest.client.virt import virt_vm, utils_misc
 
 
 class VMCreateSuccess(Exception):
@@ -23,7 +23,7 @@ def run_negative_create(test, params, env):
     main_vm = env.get_vm(params["main_vm"])
     try:
         main_vm.create(params["main_vm"])
-    except (virt_vm.VMError, virt_utils.NetError), err:
+    except (virt_vm.VMError, utils_misc.NetError), err:
         logging.debug("VM Failed to create. This was expected. Reason:\n%s",
                       str(err))
     else:

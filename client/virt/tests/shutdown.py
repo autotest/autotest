@@ -1,6 +1,6 @@
 import time
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 
 @error.context_aware
@@ -35,7 +35,7 @@ def run_shutdown(test, params, env):
             error.context("waiting VM to go down "
                           "(system_powerdown monitor cmd)")
 
-        if not virt_utils.wait_for(vm.is_dead, 240, 0, 1):
+        if not utils_misc.wait_for(vm.is_dead, 240, 0, 1):
             raise error.TestFail("Guest refuses to go down")
 
     finally:

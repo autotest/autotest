@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 
 def run_kdump(test, params, env):
@@ -46,7 +46,7 @@ def run_kdump(test, params, env):
             logging.info("Triggering crash on vcpu %d ...", vcpu)
             session.sendline("taskset -c %d %s" % (vcpu, crash_cmd))
 
-        if not virt_utils.wait_for(lambda: not session.is_responsive(), 240, 0,
+        if not utils_misc.wait_for(lambda: not session.is_responsive(), 240, 0,
                                   1):
             raise error.TestFail("Could not trigger crash on vcpu %d" % vcpu)
 

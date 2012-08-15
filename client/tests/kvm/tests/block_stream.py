@@ -1,6 +1,6 @@
 import re, os, logging, commands, string, time
 from autotest.client.shared import utils, error
-from autotest.client.virt import kvm_monitor, virt_utils, virt_vm, aexpect
+from autotest.client.virt import kvm_monitor, utils_misc, virt_vm, aexpect
 from autotest.client.virt import env_process
 
 @error.context_aware

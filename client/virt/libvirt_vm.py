@@ -8,7 +8,7 @@ import time, os, logging, fcntl, re, commands, shutil, urlparse, tempfile
 from autotest.client.shared import error
 from autotest.client import utils, os_dep
 from xml.dom import minidom
-import virt_utils, virt_vm, storage, aexpect, remote
+import utils_misc, virt_vm, storage, aexpect, remote
 
 DEBUG = False
 try:
@@ -1078,7 +1078,7 @@ class VM(virt_vm.BaseVM):
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
 
-        virt_install_binary = virt_utils.get_path(
+        virt_install_binary = utils_misc.get_path(
             root_dir,
             params.get("virt_install_binary",
                        "virt-install"))
@@ -1256,7 +1256,7 @@ class VM(virt_vm.BaseVM):
 
                 if iso:
                     virt_install_cmd += add_drive(help,
-                                 virt_utils.get_path(root_dir, iso),
+                                 utils_misc.get_path(root_dir, iso),
                                       image_params.get("iso_image_pool"),
                                       image_params.get("iso_image_vol"),
                                       'cdrom',
@@ -1273,7 +1273,7 @@ class VM(virt_vm.BaseVM):
         # one please modify this part.
         floppy = params.get("floppy_name")
         if floppy:
-            floppy = virt_utils.get_path(root_dir, floppy)
+            floppy = utils_misc.get_path(root_dir, floppy)
             virt_install_cmd += add_drive(help, floppy,
                               None,
                               None,
@@ -1368,7 +1368,7 @@ class VM(virt_vm.BaseVM):
                 (os.path.basename(iso) == 'ks.iso')):
                 continue
             if iso:
-                iso = virt_utils.get_path(root_dir, iso)
+                iso = utils_misc.get_path(root_dir, iso)
                 if not os.path.exists(iso):
                     raise virt_vm.VMImageMissingError(iso)
                 compare = False
@@ -1405,7 +1405,7 @@ class VM(virt_vm.BaseVM):
         try:
             # Handle port redirections
             redir_names = params.objects("redirs")
-            host_ports = virt_utils.find_free_ports(5000, 6000, len(redir_names))
+            host_ports = utils_misc.find_free_ports(5000, 6000, len(redir_names))
             self.redirs = {}
             for i in range(len(redir_names)):
                 redir_params = params.object_params(redir_names[i])
@@ -1423,12 +1423,12 @@ class VM(virt_vm.BaseVM):
                     self.vnc_port = None
                     self.vnc_autoport = True
                 else:
-                    self.vnc_port = virt_utils.find_free_port(5900, 6100)
+                    self.vnc_port = utils_misc.find_free_port(5900, 6100)
                     self.vnc_autoport = False
 
             # Find available spice port, if needed
             if params.get("spice"):
-                self.spice_port = virt_utils.find_free_port(8000, 8100)
+                self.spice_port = utils_misc.find_free_port(8000, 8100)
 
             # Find random UUID if specified 'uuid = random' in config file
             if params.get("uuid") == "random":
@@ -1456,7 +1456,7 @@ class VM(virt_vm.BaseVM):
             logging.info("Running libvirt command:\n%s", install_command)
             utils.run(install_command, verbose=False)
             # Wait for the domain to be created
-            virt_utils.wait_for(func=self.is_alive, timeout=60,
+            utils_misc.wait_for(func=self.is_alive, timeout=60,
                                 text=("waiting for domain %s to start" %
                                       self.name))
             self.uuid = virsh_uuid(self.name, self.connect_uri)
@@ -1466,13 +1466,13 @@ class VM(virt_vm.BaseVM):
                 self.serial_console = aexpect.ShellSession(
                     "virsh console %s" % self.name,
                     auto_close=False,
-                    output_func=virt_utils.log_line,
+                    output_func=utils_misc.log_line,
                     output_params=("serial-%s.log" % name,))
             else:
                 self.serial_console = aexpect.ShellSession(
                     "tail -f %s" % self.get_serial_console_filename(),
                     auto_close=False,
-                    output_func=virt_utils.log_line,
+                    output_func=utils_misc.log_line,
                     output_params=("serial-%s.log" % name,))
 
         finally:
@@ -1562,7 +1562,7 @@ class VM(virt_vm.BaseVM):
                             session.sendline(self.params.get("shutdown_command"))
                             logging.debug("Shutdown command sent; waiting for VM "
                                           "to go down...")
-                            if virt_utils.wait_for(self.is_dead, 60, 1, 1):
+                            if utils_misc.wait_for(self.is_dead, 60, 1, 1):
                                 logging.debug("VM is down")
                                 return
                         finally:
@@ -1726,7 +1726,7 @@ class VM(virt_vm.BaseVM):
             raise virt_vm.VMRebootError("Unknown reboot method: %s" % method)
 
         error.context("waiting for guest to go down", logging.info)
-        if not virt_utils.wait_for(lambda:
+        if not utils_misc.wait_for(lambda:
                                   not session.is_responsive(timeout=30),
                                   120, 0, 1):
             raise virt_vm.VMRebootError("Guest refuses to go down")
@@ -1779,7 +1779,7 @@ class VM(virt_vm.BaseVM):
                                 " vm %s" % (index, self.name))
         if virsh_start(self.name, self.connect_uri):
             # Wait for the domain to be created
-            has_started = virt_utils.wait_for(func=self.is_alive, timeout=60,
+            has_started = utils_misc.wait_for(func=self.is_alive, timeout=60,
                                               text=("waiting for domain %s "
                                                     "to start" % self.name))
             if has_started is None:

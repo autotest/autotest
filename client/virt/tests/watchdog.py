@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 
 def run_watchdog(test, params, env):
@@ -29,7 +29,7 @@ def run_watchdog(test, params, env):
         crash_cmd = "echo c > /proc/sysrq-trigger"
         session.sendline(crash_cmd)
 
-        if not virt_utils.wait_for(lambda: not session.is_responsive(),
+        if not utils_misc.wait_for(lambda: not session.is_responsive(),
                                    240, 0, 1):
             raise error.TestFail("Could not trigger crash")
 

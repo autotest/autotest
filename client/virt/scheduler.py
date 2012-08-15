@@ -1,5 +1,5 @@
 import os, select
-import virt_utils, virt_vm, aexpect
+import utils_misc, virt_vm, aexpect
 
 
 class scheduler:
@@ -73,7 +73,7 @@ class scheduler:
             # The scheduler wants this worker to free its used resources
             elif cmd[0] == "cleanup":
                 env_filename = os.path.join(self.bindir, self_dict["env"])
-                env = virt_utils.Env(env_filename)
+                env = utils_misc.Env(env_filename)
                 for obj in env.values():
                     if isinstance(obj, virt_vm.VM):
                         obj.destroy()

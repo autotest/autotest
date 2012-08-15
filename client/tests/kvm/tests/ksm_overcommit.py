@@ -1,7 +1,7 @@
 import logging, time, random, math, os
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_utils, utils_test, aexpect
+from autotest.client.virt import utils_misc, utils_test, aexpect
 from autotest.client.virt import env_process
 
 
@@ -529,7 +529,7 @@ def run_ksm_overcommit(test, params, env):
     params['mem'] = mem
     params['vms'] = vm_name
     # Associate pidfile name
-    params['pid_' + vm_name] = virt_utils.generate_tmp_file_name(vm_name,
+    params['pid_' + vm_name] = utils_misc.generate_tmp_file_name(vm_name,
                                                                 'pid')
     if not params.get('extra_params'):
         params['extra_params'] = ' '
@@ -564,7 +564,7 @@ def run_ksm_overcommit(test, params, env):
     # Creating other guest systems
     for i in range(1, vmsc):
         vm_name = "vm" + str(i + 1)
-        params['pid_' + vm_name] = virt_utils.generate_tmp_file_name(vm_name,
+        params['pid_' + vm_name] = utils_misc.generate_tmp_file_name(vm_name,
                                                                     'pid')
         params['extra_params_' + vm_name] = params.get('extra_params')
         params['extra_params_' + vm_name] += (" -pidfile %s" %

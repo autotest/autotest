@@ -1,7 +1,7 @@
 import logging, os
 from autotest.client.shared import utils, error
 from autotest.client import utils as client_utils
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 
 @error.context_aware
@@ -29,7 +29,7 @@ def run_migration_with_file_transfer(test, params, env):
     mig_protocol = params.get("migration_protocol", "tcp")
     mig_cancel_delay = int(params.get("mig_cancel") == "yes") * 2
 
-    host_path = "/tmp/file-%s" % virt_utils.generate_random_string(6)
+    host_path = "/tmp/file-%s" % utils_misc.generate_random_string(6)
     host_path_returned = "%s-returned" % host_path
     guest_path = params.get("guest_path", "/tmp/file")
     file_size = params.get("file_size", "500")

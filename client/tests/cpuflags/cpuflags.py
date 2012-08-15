@@ -8,7 +8,7 @@ import os, logging
 
 from autotest.client import test, utils
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 class cpuflags(test.test):
     """
@@ -47,7 +47,7 @@ class cpuflags(test.test):
             not_working = []
             for f in flags:
                 try:
-                    for tc in virt_utils.kvm_map_flags_to_test[f]:
+                    for tc in utils_misc.kvm_map_flags_to_test[f]:
                         utils.run("./cpuflags-test --%s" % (tc))
                     pass_Flags.append(f)
                 except error.CmdError:
@@ -65,7 +65,7 @@ class cpuflags(test.test):
             flags = check_cpuflags_work(flags)
             try:
                 utils.run("./cpuflags-test --stress %s%s" %
-                          (smp, virt_utils.kvm_flags_to_stresstests(flags[0])),
+                          (smp, utils_misc.kvm_flags_to_stresstests(flags[0])),
                           timeout)
             except error.CmdError:
                 ret = True
@@ -73,7 +73,7 @@ class cpuflags(test.test):
 
 
         os.chdir(self.srcdir)
-        run_stress(60, set(map(virt_utils.Flag, virt_utils.get_cpu_flags())), 4)
+        run_stress(60, set(map(utils_misc.Flag, utils_misc.get_cpu_flags())), 4)
 
 
     def cleanup(self):

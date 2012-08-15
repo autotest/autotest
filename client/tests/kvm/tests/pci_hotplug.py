@@ -1,6 +1,6 @@
 import re
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, aexpect, storage
+from autotest.client.virt import utils_misc, aexpect, storage
 
 
 def run_pci_hotplug(test, params, env):
@@ -79,8 +79,8 @@ def run_pci_hotplug(test, params, env):
         after_add = vm.monitor.info("pci")
 
     elif cmd_type == "device_add":
-        driver_id = test_type + "-" + virt_utils.generate_random_id()
-        device_id = test_type + "-" + virt_utils.generate_random_id()
+        driver_id = test_type + "-" + utils_misc.generate_random_id()
+        device_id = test_type + "-" + utils_misc.generate_random_id()
         if test_type == "nic":
             if tested_model == "virtio":
                 tested_model = "virtio-net-pci"
@@ -152,7 +152,7 @@ def run_pci_hotplug(test, params, env):
             after_del = vm.monitor.info("pci")
             return after_del != after_add
 
-        if (not virt_utils.wait_for(device_removed, 10, 0, 1)
+        if (not utils_misc.wait_for(device_removed, 10, 0, 1)
             and not ignore_failure):
             raise error.TestFail("Failed to hot remove PCI device: %s. "
                                  "Monitor command: %s" %
@@ -170,7 +170,7 @@ def run_pci_hotplug(test, params, env):
             return o != reference
 
         secs = int(params.get("wait_secs_for_hook_up"))
-        if not virt_utils.wait_for(new_shown, 30, secs, 3):
+        if not utils_misc.wait_for(new_shown, 30, secs, 3):
             raise error.TestFail("No new device shown in output of command "
                                  "executed inside the guest: %s" %
                                  params.get("reference_cmd"))
@@ -180,7 +180,7 @@ def run_pci_hotplug(test, params, env):
             o = session.cmd_output(params.get("find_pci_cmd"))
             return params.get("match_string") in o
 
-        if not virt_utils.wait_for(find_pci, 30, 3, 3):
+        if not utils_misc.wait_for(find_pci, 30, 3, 3):
             raise error.TestFail("PCI %s %s device not found in guest. "
                                  "Command was: %s" %
                                  (tested_model, test_type,

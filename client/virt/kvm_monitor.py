@@ -5,7 +5,7 @@ Interfaces to the QEMU monitor.
 """
 
 import socket, time, threading, logging, select, re, os
-import virt_utils, passfd_setup
+import utils_misc, passfd_setup
 from autotest.client.shared import utils
 try:
     import json
@@ -181,7 +181,7 @@ class Monitor:
         """
         try:
             for l in log_str.splitlines():
-                virt_utils.log_line(self.log_file, l)
+                utils_misc.log_line(self.log_file, l)
         except Exception:
             pass
 
@@ -827,7 +827,7 @@ class QMPMonitor(Monitor):
             # Read any data that might be available
             self._read_objects()
             # Send command
-            id = virt_utils.generate_random_string(8)
+            id = utils_misc.generate_random_string(8)
             cmdobj = self._build_cmd(cmd, args, id)
             if fd is not None:
                 if self._passfd is None:

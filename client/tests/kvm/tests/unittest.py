@@ -1,6 +1,6 @@
 import logging, os, shutil, glob, ConfigParser
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, env_process
+from autotest.client.virt import utils_misc, env_process
 
 
 def run_unittest(test, params, env):
@@ -102,7 +102,7 @@ def run_unittest(test, params, env):
                 logging.info("Waiting for unittest %s to complete, timeout %s, "
                              "output in %s", t, timeout,
                              vm.get_testlog_filename())
-                if not virt_utils.wait_for(vm.is_dead, timeout):
+                if not utils_misc.wait_for(vm.is_dead, timeout):
                     raise error.TestFail("Timeout elapsed (%ss)" % timeout)
                 # Check qemu's exit status
                 status = vm.process.get_status()

@@ -1,7 +1,7 @@
 import logging, os, commands, threading, re, glob
 from autotest.server.hosts.ssh_host import SSHHost
 from autotest.client import utils
-from autotest.client.virt import utils_test, virt_utils, remote
+from autotest.client.virt import utils_test, utils_misc, remote
 
 
 def run_netperf(test, params, env):
@@ -32,7 +32,7 @@ def run_netperf(test, params, env):
     # pin guest vcpus/memory/vhost threads to last numa node of host by default
     if params.get('numa_node'):
         numa_node = int(params.get('numa_node'))
-        node = virt_utils.NumaNode(numa_node)
+        node = utils_misc.NumaNode(numa_node)
         utils_test.pin_vm_threads(vm, node)
 
     if "vm2" in params["vms"]:

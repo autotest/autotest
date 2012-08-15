@@ -1,7 +1,7 @@
 import logging, re
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import utils_test, virt_utils, remote
+from autotest.client.virt import utils_test, utils_misc, remote
 from autotest.client.virt import aexpect
 
 
@@ -134,7 +134,7 @@ def run_ethtool(test, params, env):
 
         logging.debug("Listening traffic using command: %s", tcpdump_cmd)
         session2.sendline(tcpdump_cmd)
-        if not virt_utils.wait_for(
+        if not utils_misc.wait_for(
                            lambda:session.cmd_status("pgrep tcpdump") == 0, 30):
             return (False, "Tcpdump process wasn't launched")
 

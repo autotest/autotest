@@ -1814,18 +1814,18 @@ def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
     For archiving directory '/tmp' in '/net/server/backup' as file
     'tmp.tar.bz2', simply use:
 
-    >>> virt_utils.archive_as_tarball('/tmp', '/net/server/backup')
+    >>> utils_misc.archive_as_tarball('/tmp', '/net/server/backup')
 
     To save the file it with a different name, say 'host1-tmp.tar.bz2'
     and save it under '/net/server/backup', use:
 
-    >>> virt_utils.archive_as_tarball('/tmp', '/net/server/backup',
+    >>> utils_misc.archive_as_tarball('/tmp', '/net/server/backup',
                                       'host1-tmp')
 
     To save with gzip compression instead (resulting in the file
     '/net/server/backup/host1-tmp.tar.gz'), use:
 
-    >>> virt_utils.archive_as_tarball('/tmp', '/net/server/backup',
+    >>> utils_misc.archive_as_tarball('/tmp', '/net/server/backup',
                                       'host1-tmp', 'gz')
     '''
     tarball_name = get_archive_tarball_name(source_dir,

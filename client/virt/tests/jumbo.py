@@ -1,7 +1,7 @@
 import logging, commands, random
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_utils, utils_test
+from autotest.client.virt import utils_misc, utils_test
 
 
 def run_jumbo(test, params, env):
@@ -106,7 +106,7 @@ def run_jumbo(test, params, env):
 
         logging.info("Waiting for the MTU to be OK")
         wait_mtu_ok = 10
-        if not virt_utils.wait_for(is_mtu_ok, wait_mtu_ok, 0, 1):
+        if not utils_misc.wait_for(is_mtu_ok, wait_mtu_ok, 0, 1):
             logging.debug(commands.getoutput("ifconfig -a"))
             raise error.TestError("MTU is not as expected even after %s "
                                   "seconds" % wait_mtu_ok)

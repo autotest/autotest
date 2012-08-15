@@ -1,6 +1,6 @@
 import logging, time, glob, re
 from autotest.client.shared import error
-import virt_utils, remote
+import utils_misc, remote
 
 
 class VMError(Exception):
@@ -413,7 +413,7 @@ class BaseVM(object):
                                               self.name,
                                               self.instance)
         else: # Create new
-            self.virtnet = virt_utils.VirtNet(self.params,
+            self.virtnet = utils_misc.VirtNet(self.params,
                                               self.name,
                                               self.instance)
 
@@ -427,7 +427,7 @@ class BaseVM(object):
         """
         while True:
             self.instance = (time.strftime("%Y%m%d-%H%M%S-") +
-                             virt_utils.generate_random_string(8))
+                             utils_misc.generate_random_string(8))
             if not glob.glob("/tmp/*%s" % self.instance):
                 break
 
@@ -494,7 +494,7 @@ class BaseVM(object):
             # Make sure the IP address is assigned to one or more macs
             # for this guest
             macs = self.virtnet.mac_list()
-            if not virt_utils.verify_ip_address_ownership(arp_ip, macs):
+            if not utils_misc.verify_ip_address_ownership(arp_ip, macs):
                 raise VMAddressVerificationError(nic.mac, arp_ip)
             logging.debug('Found/Verified IP %s for VM %s NIC %s' % (
                             arp_ip, self.name, str(index)))
@@ -540,7 +540,7 @@ class BaseVM(object):
                 return self.get_address(nic_index_or_name)
             except (VMIPAddressMissingError, VMAddressVerificationError):
                 return False
-        if not virt_utils.wait_for(_get_address, timeout, internal_timeout):
+        if not utils_misc.wait_for(_get_address, timeout, internal_timeout):
             raise VMIPAddressMissingError(self.virtnet[nic_index_or_name].mac)
         return self.get_address(nic_index_or_name)
 
@@ -558,7 +558,7 @@ class BaseVM(object):
         @return: Dict with new NIC's info.
         """
         if not params.has_key('nic_name'):
-            params['nic_name'] = virt_utils.generate_random_id()
+            params['nic_name'] = utils_misc.generate_random_id()
         nic_name = params['nic_name']
         if nic_name in self.virtnet.nic_name_list():
             self.virtnet[nic_name].update(**params)
@@ -671,7 +671,7 @@ class BaseVM(object):
         address = self.get_address(nic_index)
         port = self.get_port(int(self.params.get("shell_port")))
         log_filename = ("session-%s-%s.log" %
-                        (self.name, virt_utils.generate_random_string(4)))
+                        (self.name, utils_misc.generate_random_string(4)))
         session = remote.remote_login(client, address, port, username,
                                            password, prompt, linesep,
                                            log_filename, timeout)
@@ -736,7 +736,7 @@ class BaseVM(object):
         port = self.get_port(int(self.params.get("file_transfer_port")))
         log_filename = ("transfer-%s-to-%s-%s.log" %
                         (self.name, address,
-                        virt_utils.generate_random_string(4)))
+                        utils_misc.generate_random_string(4)))
         remote.copy_files_to(address, client, username, password, port,
                                   host_path, guest_path, limit, log_filename,
                                   verbose, timeout)
@@ -764,7 +764,7 @@ class BaseVM(object):
         port = self.get_port(int(self.params.get("file_transfer_port")))
         log_filename = ("transfer-%s-from-%s-%s.log" %
                         (self.name, address,
-                        virt_utils.generate_random_string(4)))
+                        utils_misc.generate_random_string(4)))
         remote.copy_files_from(address, client, username, password, port,
                                     guest_path, host_path, limit, log_filename,
                                     verbose, timeout)

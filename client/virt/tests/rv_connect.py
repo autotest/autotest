@@ -7,7 +7,7 @@ Requires: binaries remote-viewer, Xorg, netstat
 """
 import logging, os, time
 from autotest.client.virt.aexpect import ShellCmdError
-from autotest.client.virt import virt_utils, remote
+from autotest.client.virt import utils_misc, remote
 
 class RVConnectError(Exception):
     """Exception raised in case that remote-viewer fails to connect"""
@@ -113,7 +113,7 @@ def launch_rv(client_vm, guest_vm, params):
     @param params
     """
     rv_binary = params.get("rv_binary", "remote-viewer")
-    host_ip = virt_utils.get_ip_address_by_interface(params.get("netdst"))
+    host_ip = utils_misc.get_ip_address_by_interface(params.get("netdst"))
     host_port = None
     display = params.get("display")
     cmd = rv_binary + " --display=:0.0"

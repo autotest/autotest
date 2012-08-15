@@ -1,6 +1,6 @@
 import re, logging
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 
 @error.context_aware
@@ -31,7 +31,7 @@ def run_seabios(test, params, env):
     error.context("Display and check the boot menu order")
 
     f = lambda: re.search(boot_menu_hint, vm.serial_console.get_output())
-    if not (boot_menu_hint and virt_utils.wait_for(f, timeout, 1)):
+    if not (boot_menu_hint and utils_misc.wait_for(f, timeout, 1)):
         raise error.TestFail("Could not get boot menu message.")
 
     # Send boot menu key in monitor.

@@ -1,5 +1,5 @@
 import logging, socket, time, errno, os, fcntl
-from autotest.client.virt import utils_test, virt_utils
+from autotest.client.virt import utils_test, utils_misc
 from autotest.client.shared.syncdata import SyncData
 
 def run_migration_multi_host_fd(test, params, env):
@@ -80,7 +80,7 @@ def run_migration_multi_host_fd(test, params, env):
             mig_port = None
 
             if params.get("hostid") == self.master_id():
-                mig_port = virt_utils.find_free_port(5200, 6000)
+                mig_port = utils_misc.find_free_port(5200, 6000)
 
             sync = SyncData(self.master_id(), self.hostid,
                              self.params.get("hosts"),

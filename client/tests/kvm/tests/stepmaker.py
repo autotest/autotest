@@ -13,7 +13,7 @@ try:
 except ImportError:
     import common
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, ppm_utils, step_editor
+from autotest.client.virt import utils_misc, ppm_utils, step_editor
 from autotest.client.virt import kvm_monitor
 pygtk.require('2.0')
 
@@ -351,7 +351,7 @@ def run_stepmaker(test, params, env):
     steps_filename = params.get("steps")
     if not steps_filename:
         raise error.TestError("Steps filename not specified")
-    steps_filename = virt_utils.get_path(test.virtdir, steps_filename)
+    steps_filename = utils_misc.get_path(test.virtdir, steps_filename)
     if os.path.exists(steps_filename):
         raise error.TestError("Steps file %s already exists" % steps_filename)
 

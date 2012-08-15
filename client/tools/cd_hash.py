@@ -12,14 +12,14 @@ except ImportError:
     import common
 from autotest.client.shared import logging_manager
 from autotest.client import utils
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 
 if __name__ == "__main__":
     parser = optparse.OptionParser("usage: %prog [options] [filenames]")
     options, args = parser.parse_args()
 
-    logging_manager.configure_logging(virt_utils.VirtLoggingConfig())
+    logging_manager.configure_logging(utils_misc.VirtLoggingConfig())
 
     if args:
         filenames = args

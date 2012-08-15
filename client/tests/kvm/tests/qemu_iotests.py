@@ -1,7 +1,7 @@
 import os
 from autotest.client.shared import git, error
 from autotest.client import utils
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 
 @error.context_aware
@@ -29,11 +29,11 @@ def run_qemu_iotests(test, params, env):
                  destination_dir=destination_dir, base_uri=base_uri)
 
     # Then, set the qemu paths for the use of the testsuite
-    os.environ["QEMU_PROG"] = virt_utils.get_path(test.bindir,
+    os.environ["QEMU_PROG"] = utils_misc.get_path(test.bindir,
                                     params.get("qemu_binary", "qemu"))
-    os.environ["QEMU_IMG_PROG"] = virt_utils.get_path(test.bindir,
+    os.environ["QEMU_IMG_PROG"] = utils_misc.get_path(test.bindir,
                                     params.get("qemu_img_binary", "qemu-img"))
-    os.environ["QEMU_IO_PROG"] = virt_utils.get_path(test.bindir,
+    os.environ["QEMU_IO_PROG"] = utils_misc.get_path(test.bindir,
                                     params.get("qemu_io_binary", "qemu-io"))
 
     os.chdir(destination_dir)

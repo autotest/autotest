@@ -1,7 +1,7 @@
 import logging, os, glob, re, commands
 from autotest.client.shared import error
 from autotest.client.shared import utils
-from autotest.client.virt import virt_utils, utils_test, remote
+from autotest.client.virt import utils_misc, utils_test, remote
 from autotest.client.virt import aexpect
 
 _receiver_ready = False
@@ -40,7 +40,7 @@ def run_ntttcp(test, params, env):
     # pin guest vcpus/memory/vhost threads to last numa node of host by default
     if params.get('numa_node'):
         numa_node = int(params.get('numa_node'))
-        node = virt_utils.NumaNode(numa_node)
+        node = utils_misc.NumaNode(numa_node)
         utils_test.pin_vm_threads(vm_sender, node)
 
     if not receiver_addr:
@@ -85,7 +85,7 @@ def run_ntttcp(test, params, env):
             client = params.get("shell_client")
             port = int(params.get("shell_port"))
             log_filename = ("session-%s-%s.log" % (receiver_addr,
-                            virt_utils.generate_random_string(4)))
+                            utils_misc.generate_random_string(4)))
             session = remote.remote_login(client, receiver_addr, port,
                                                username, password, prompt,
                                                linesep, log_filename, timeout)
@@ -95,7 +95,7 @@ def run_ntttcp(test, params, env):
         global _receiver_ready
         f = open(results_path + ".receiver", 'a')
         for b in buffers:
-            virt_utils.wait_for(lambda: not _wait(), timeout)
+            utils_misc.wait_for(lambda: not _wait(), timeout)
             _receiver_ready = True
             rbuf = params.get("fixed_rbuf", b)
             cmd = ntttcp_receiver_cmd % (session_num, receiver_addr, rbuf, buf_num)
@@ -124,7 +124,7 @@ def run_ntttcp(test, params, env):
             for b in buffers:
                 cmd = ntttcp_sender_cmd % (session_num, receiver_addr, b, buf_num)
                 # Wait until receiver ready
-                virt_utils.wait_for(_wait, timeout)
+                utils_misc.wait_for(_wait, timeout)
                 r = session.cmd_output(cmd, timeout=timeout,
                                        print_func=logging.debug)
                 _receiver_ready = False
