@@ -70,6 +70,8 @@ def run_usb(test, params, env):
 
     @error.context_aware
     def _do_io_test_guest(session):
+        blksizes = [ "4K", "16K", "64K", "256K" ]
+
         output = session.cmd("fdisk -l")
         if params.get("fdisk_string") not in output:
             for line in output.splitlines():
@@ -90,7 +92,10 @@ def run_usb(test, params, env):
         session.cmd("dd if=/dev/urandom of=%s bs=1M count=1" % c_file)
 
         error.context("Copying %s to USB disk" % c_file)
-        session.cmd("cp %s /mnt" % c_file)
+        for s in blksizes:
+            u_file = "/mnt/usbfile-%s" % s
+            session.cmd("dd if=%s of=%s bs=%s" %
+                        (c_file, u_file, s))
 
         error.context("Unmounting USB disk before file comparison")
         session.cmd("umount %s" % devname)
@@ -100,14 +105,15 @@ def run_usb(test, params, env):
 
         error.context("Determining md5sum for file on root fs and in USB disk")
         md5_root = session.cmd("md5sum %s" % c_file).strip()
-        cmd = "md5sum /mnt/%s" % os.path.basename(c_file)
-        md5_usb = session.cmd(cmd).strip()
         md5_root = md5_root.split()[0]
-        md5_usb = md5_usb.split()[0]
+        for s in blksizes:
+            u_file = "/mnt/usbfile-%s" % s
+            md5_usb = session.cmd("md5sum %s" % u_file).strip()
+            md5_usb = md5_usb.split()[0]
 
-        if md5_root != md5_usb:
-            raise error.TestError("MD5 mismatch between file on root fs and on "
-                                  "USB disk")
+            if md5_root != md5_usb:
+                raise error.TestError("MD5 mismatch between file on root fs "
+                                      "and on USB disk [%s]" % u_file)
 
         error.context("Unmounting USB disk after file comparison")
         session.cmd("umount %s" % devname)
