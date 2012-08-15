@@ -174,7 +174,7 @@ tests = list(parser.get_dicts())
 # -------------
 # Run the tests
 # -------------
-from autotest.client.virt import virt_scheduler
+from autotest.client.virt import scheduler
 from autotest.client import utils
 
 # total_cpus defaults to the number of CPUs reported by /proc/cpuinfo
@@ -185,7 +185,7 @@ total_mem = int(commands.getoutput("free -m").splitlines()[1].split()[1]) * 3/4
 num_workers = total_cpus
 
 # Start the scheduler and workers
-s = virt_scheduler.scheduler(tests, num_workers, total_cpus, total_mem, pwd)
+s = scheduler.scheduler(tests, num_workers, total_cpus, total_mem, pwd)
 job.parallel([s.scheduler],
              *[(s.worker, i, job.run_test) for i in range(num_workers)])
 
