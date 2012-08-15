@@ -7,7 +7,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 import time, os, logging, fcntl, re, commands
 from autotest.client.shared import error
 from autotest.client import utils
-import virt_utils, virt_vm, virt_test_setup, storage, kvm_monitor, aexpect
+import virt_utils, virt_vm, test_setup, storage, kvm_monitor, aexpect
 import kvm_virtio_port
 import remote
 
@@ -1526,7 +1526,7 @@ class VM(virt_vm.BaseVM):
 
                 # Virtual Functions (VF) assignable devices
                 if pa_type == "vf":
-                    self.pci_assignable = virt_test_setup.PciAssignable(
+                    self.pci_assignable = test_setup.PciAssignable(
                         type=pa_type,
                         driver=params.get("driver"),
                         driver_option=params.get("driver_option"),
@@ -1536,7 +1536,7 @@ class VM(virt_vm.BaseVM):
                         net_restart_cmd = params.get("net_restart_cmd"))
                 # Physical NIC (PF) assignable devices
                 elif pa_type == "pf":
-                    self.pci_assignable = virt_test_setup.PciAssignable(
+                    self.pci_assignable = test_setup.PciAssignable(
                         type=pa_type,
                         names=params.get("device_names"),
                         devices_requested=pa_devices_requested,
@@ -1545,7 +1545,7 @@ class VM(virt_vm.BaseVM):
                         net_restart_cmd = params.get("net_restart_cmd"))
                 # Working with both VF and PF
                 elif pa_type == "mixed":
-                    self.pci_assignable = virt_test_setup.PciAssignable(
+                    self.pci_assignable = test_setup.PciAssignable(
                         type=pa_type,
                         driver=params.get("driver"),
                         driver_option=params.get("driver_option"),

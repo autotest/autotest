@@ -1,7 +1,7 @@
 import os, time, commands, re, logging, glob, threading, shutil
 from autotest.client import utils
 from autotest.client.shared import error
-import aexpect, kvm_monitor, ppm_utils, virt_test_setup, virt_vm, kvm_vm
+import aexpect, kvm_monitor, ppm_utils, test_setup, virt_vm, kvm_vm
 import libvirt_vm, virt_video_maker, virt_utils, storage, kvm_storage
 import remote, virt_v2v, ovirt
 
@@ -380,13 +380,13 @@ def preprocess(test, params, env):
     test.write_test_keyval({"kvm_userspace_version": kvm_userspace_version})
 
     if params.get("setup_hugepages") == "yes":
-        h = virt_test_setup.HugePageConfig(params)
+        h = test_setup.HugePageConfig(params)
         h.setup()
         if params.get("vm_type") == "libvirt":
             libvirt_vm.libvirtd_restart()
 
     if params.get("setup_thp") == "yes":
-        thp = virt_test_setup.TransparentHugePageConfig(test, params)
+        thp = test_setup.TransparentHugePageConfig(test, params)
         thp.setup()
 
     # Execute any pre_commands
@@ -508,13 +508,13 @@ def postprocess(test, params, env):
         del env["tcpdump"]
 
     if params.get("setup_hugepages") == "yes":
-        h = virt_test_setup.HugePageConfig(params)
+        h = test_setup.HugePageConfig(params)
         h.cleanup()
         if params.get("vm_type") == "libvirt":
             libvirt_vm.libvirtd_restart()
 
     if params.get("setup_thp") == "yes":
-        thp = virt_test_setup.TransparentHugePageConfig(test, params)
+        thp = test_setup.TransparentHugePageConfig(test, params)
         thp.cleanup()
 
     # Execute any post_commands

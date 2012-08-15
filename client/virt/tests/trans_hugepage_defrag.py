@@ -1,7 +1,7 @@
 import logging, time, os, re
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_test_utils, virt_test_setup
+from autotest.client.virt import virt_test_utils, test_setup
 
 
 @error.context_aware
@@ -119,7 +119,7 @@ def run_trans_hugepage_defrag(test, params, env):
             utils.run("umount %s" % mem_path)
 
 
-    test_config = virt_test_setup.TransparentHugePageConfig(test, params)
+    test_config = test_setup.TransparentHugePageConfig(test, params)
     logging.info("Defrag test start")
     login_timeout = float(params.get("login_timeout", 360))
     mem_path = os.path.join("/tmp", "thp_space")
