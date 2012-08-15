@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import virt_agent
+from autotest.client.virt import guest_agent
 
 
 def run_qemu_guest_agent(test, params, env):
@@ -28,7 +28,7 @@ def run_qemu_guest_agent(test, params, env):
 
     gagent_name = params.get("gagent_name", "org.qemu.guest_agent.0")
     gagent_file_name = vm.get_virtio_port_filename(gagent_name)
-    gagent = virt_agent.QemuAgent(vm, gagent_name, gagent_file_name,
+    gagent = guest_agent.QemuAgent(vm, gagent_name, gagent_file_name,
                                    get_supported_cmds=True)
 
     # Check if guest agent work.
