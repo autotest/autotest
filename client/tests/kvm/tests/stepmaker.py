@@ -13,12 +13,12 @@ try:
 except ImportError:
     import common
 from autotest.client.shared import error
-from autotest.client.virt import virt_utils, ppm_utils, virt_step_editor
+from autotest.client.virt import virt_utils, ppm_utils, step_editor
 from autotest.client.virt import kvm_monitor
 pygtk.require('2.0')
 
 
-class StepMaker(virt_step_editor.StepMakerWindow):
+class StepMaker(step_editor.StepMakerWindow):
     """
     Application used to create a step file. It will grab your input to the
     virtual machine and record it on a 'step file', that can be played
@@ -26,7 +26,7 @@ class StepMaker(virt_step_editor.StepMakerWindow):
     """
     # Constructor
     def __init__(self, vm, steps_filename, tempdir, params):
-        virt_step_editor.StepMakerWindow.__init__(self)
+        step_editor.StepMakerWindow.__init__(self)
 
         self.vm = vm
         self.steps_filename = steps_filename
@@ -91,7 +91,7 @@ class StepMaker(virt_step_editor.StepMakerWindow):
         self.vm.resume()
         self.steps_file.close()
         self.vars_file.close()
-        virt_step_editor.StepMakerWindow.destroy(self, widget)
+        step_editor.StepMakerWindow.destroy(self, widget)
 
 
     # Utilities
