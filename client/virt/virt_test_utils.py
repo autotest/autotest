@@ -28,7 +28,7 @@ from autotest.client.shared import error, global_config
 from autotest.client import utils
 from autotest.client.tools import scan_results
 from autotest.client.shared.syncdata import SyncData, SyncListenServer
-import aexpect, virt_utils, virt_vm, remote, virt_storage, env_process
+import aexpect, virt_utils, virt_vm, remote, storage, env_process
 
 GLOBAL_CONFIG = global_config.global_config
 
@@ -552,7 +552,7 @@ class MultihostMigration(object):
         """
         Prepare env to start vms.
         """
-        virt_storage.preprocess_images(self.test.bindir, self.params, self.env)
+        storage.preprocess_images(self.test.bindir, self.params, self.env)
 
 
     def _check_vms_source(self, mig_data):
@@ -667,7 +667,7 @@ class MultihostMigration(object):
         """
         Kill vms and delete cloned images.
         """
-        virt_storage.postprocess_images(self.test.bindir, self.params)
+        storage.postprocess_images(self.test.bindir, self.params)
 
 
     def migrate(self, vms_name, srchost, dsthost, start_work=None,

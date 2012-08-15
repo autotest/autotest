@@ -2,7 +2,7 @@ import os, time, commands, re, logging, glob, threading, shutil
 from autotest.client import utils
 from autotest.client.shared import error
 import aexpect, kvm_monitor, ppm_utils, virt_test_setup, virt_vm, kvm_vm
-import libvirt_vm, virt_video_maker, virt_utils, virt_storage, kvm_storage
+import libvirt_vm, virt_video_maker, virt_utils, storage, kvm_storage
 import remote, virt_v2v, ovirt
 
 try:
@@ -29,7 +29,7 @@ def preprocess_image(test, params, image_name):
         iscsidev = kvm_storage.Iscsidev(params, test.bindir, image_name)
         params["image_name"] = iscsidev.setup()
     else:
-        image_filename = virt_storage.get_image_filename(params, test.bindir)
+        image_filename = storage.get_image_filename(params, test.bindir)
 
         create_image = False
 

@@ -7,7 +7,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 import time, os, logging, fcntl, re, commands
 from autotest.client.shared import error
 from autotest.client import utils
-import virt_utils, virt_vm, virt_test_setup, virt_storage, kvm_monitor, aexpect
+import virt_utils, virt_vm, virt_test_setup, storage, kvm_monitor, aexpect
 import kvm_virtio_port
 import remote
 
@@ -1046,7 +1046,7 @@ class VM(virt_vm.BaseVM):
                     virtio_scsi_pcis.append("virtio_scsi_pci%d" % i)
 
             qemu_cmd += add_drive(help,
-                    virt_storage.get_image_filename(image_params, root_dir),
+                    storage.get_image_filename(image_params, root_dir),
                     image_params.get("drive_index"),
                     image_params.get("drive_format"),
                     image_params.get("drive_cache"),
@@ -1055,7 +1055,7 @@ class VM(virt_vm.BaseVM):
                     image_params.get("drive_serial"),
                     image_params.get("image_snapshot"),
                     image_params.get("image_boot"),
-                    virt_storage.get_image_blkdebug_filename(image_params,
+                    storage.get_image_blkdebug_filename(image_params,
                                                            self.virt_dir),
                     bus,
                     port,

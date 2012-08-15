@@ -5,10 +5,10 @@ This exports:
   - two functions for get image/blkdebug filename
   - class for image operates and basic parameters
 """
-import virt_storage
+import storage
 
 
-class QemuImg(virt_storage.QemuImg):
+class QemuImg(storage.QemuImg):
     """
     libvirt class for handling operations of disk/block images.
     """
@@ -20,7 +20,7 @@ class QemuImg(virt_storage.QemuImg):
         @param root_dir: Base directory for relative filenames.
         @param tag: Image tag defined in parameter images.
         """
-        virt_storage.QemuImg(params, root_dir, tag)
+        storage.QemuImg(params, root_dir, tag)
         # Please init image_cmd for libvirt in this class
         # self.image_cmd =
 

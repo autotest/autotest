@@ -5,7 +5,7 @@ Utility classes and functions to handle KVM Qtree parsing and verification.
 @copyright: 2012 Red Hat Inc.
 """
 import logging, os, re
-import virt_storage
+import storage
 
 OFFSET_PER_LEVEL = 2
 
@@ -473,7 +473,7 @@ class QtreeDisksContainer(object):
             current = None
             image_params = params.object_params(name)
             image_name = os.path.realpath(
-                        virt_storage.get_image_filename(image_params, root_dir))
+                        storage.get_image_filename(image_params, root_dir))
             for (qname, disk) in disks.iteritems():
                 if disk.get('image_name') == image_name:
                     current = disk

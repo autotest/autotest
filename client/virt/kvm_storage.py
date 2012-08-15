@@ -8,10 +8,10 @@ This exports:
 import logging, os
 from autotest.client.shared import error
 from autotest.client import utils
-import virt_utils, virt_vm, virt_storage
+import virt_utils, virt_vm, storage
 
 
-class QemuImg(virt_storage.QemuImg):
+class QemuImg(storage.QemuImg):
     """
     KVM class for handling operations of disk/block images.
     """
@@ -23,7 +23,7 @@ class QemuImg(virt_storage.QemuImg):
         @param root_dir: Base directory for relative filenames.
         @param tag: Image tag defined in parameter images
         """
-        virt_storage.QemuImg.__init__(self, params, root_dir, tag)
+        storage.QemuImg.__init__(self, params, root_dir, tag)
         self.image_cmd = virt_utils.get_path(root_dir,
                                  params.get("qemu_img_binary","qemu-img"))
 
@@ -129,7 +129,7 @@ class QemuImg(virt_storage.QemuImg):
         params_convert = {"image_name": convert_image,
                           "image_format": convert_format}
 
-        convert_image_filename = virt_storage.get_image_filename(params_convert,
+        convert_image_filename = storage.get_image_filename(params_convert,
                                                                  root_dir)
 
         cmd = self.image_cmd
@@ -346,7 +346,7 @@ class QemuImg(virt_storage.QemuImg):
                               image_filename)
 
 
-class Iscsidev(virt_storage.Iscsidev):
+class Iscsidev(storage.Iscsidev):
     """
     Class for handle iscsi devices for VM
     """
