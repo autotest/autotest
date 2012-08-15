@@ -518,7 +518,7 @@ class BaseVM(object):
             try:
                 return self.redirs[port]
             except KeyError:
-                raise virt_vm.VMPortNotRedirectedError(port)
+                raise VMPortNotRedirectedError(port)
 
 
     def free_mac_address(self, nic_index_or_name=0):
