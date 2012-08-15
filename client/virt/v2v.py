@@ -8,7 +8,7 @@ import logging
 
 from autotest.client import os_dep, utils
 from autotest.client.shared import ssh_key
-from autotest.client.virt import utils_v2v as v2v_utils
+from autotest.client.virt import utils_v2v
 
 DEBUG = False
 
@@ -35,17 +35,17 @@ def v2v_cmd(params):
     username = params.get('username')
     password = params.get('password')
 
-    uri_obj = v2v_utils.Uri(hypervisor)
+    uri_obj = utils_v2v.Uri(hypervisor)
     # Return actual 'uri' according to 'hostname' and 'hypervisor'
     uri = uri_obj.get_uri(hostname)
 
-    tgt_obj = v2v_utils.Target(target, uri)
+    tgt_obj = utils_v2v.Target(target, uri)
     # Return virt-v2v command line options based on 'target' and 'hypervisor'
     options = tgt_obj.get_cmd_options(params)
 
     # Convert a existing VM without or with connection authorization.
     if hypervisor == 'esx':
-        v2v_utils.build_esx_no_verify(params)
+        utils_v2v.build_esx_no_verify(params)
     elif hypervisor == 'xen' or hypervisor == 'kvm':
         # Setup ssh key for build connection without password.
         ssh_key.setup_ssh_key(hostname, user=username, port=22,
