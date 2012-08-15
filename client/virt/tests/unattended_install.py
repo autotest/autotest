@@ -746,7 +746,7 @@ def start_syslog_server_thread(address, port, tcp):
     global _syslog_server_thread
     global _syslog_server_thread_event
 
-    virt_syslog_server.set_default_format('[unattended install syslog server '
+    virt_syslog_server.set_default_format('[UnattendedSyslog '
                                           '(%s.%s)] %s')
 
     if _syslog_server_thread is None:

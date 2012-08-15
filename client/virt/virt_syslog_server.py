@@ -2,7 +2,7 @@ import os, re, logging, SocketServer
 
 
 SYSLOG_PORT = 514
-DEFAULT_FORMAT = '[relayed from embedded syslog server (%s.%s)] %s'
+DEFAULT_FORMAT = '[AutotestSyslog (%s.%s)] %s'
 
 
 def set_default_format(message_format):
