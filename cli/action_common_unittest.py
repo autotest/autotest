@@ -4,14 +4,13 @@
 
 """Tests for action_common."""
 
-import unittest, os, sys, StringIO, copy
+import unittest, sys, copy
 
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.cli import cli_mock, topic_common, action_common, rpc
-from autotest.frontend.afe.json_rpc import proxy
+from autotest.cli import cli_mock, action_common, rpc
 
 #
 # List action
@@ -138,8 +137,8 @@ class atest_list_unittest(cli_mock.cli_unittest):
         (out, err, errors) = self._atest_list_execute(filters, check_results)
         K = errors.keys()[0]
         V = errors.values()[0].keys()[0]
-        self.assertIn('Unknown',K)
-        self.assertIn('label2',V)
+        self.assertTrue('Unknown' in K)
+        self.assertTrue('label2' in V)
 
 
     def test_atest_list_execute_items_good_and_bad_no_check(self):
