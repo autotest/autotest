@@ -1967,6 +1967,16 @@ variants:
         virtio_port_type_vc4 = "console"
         virtio_console_test_time = 60
         variants:
+            # Dummy and debug scripts.
+            # You have to remove "no virtio_console" to be able to run those tests
+            - dummy:
+                # Remove this to run dummy tests
+                no virtio_console
+                variants:
+                    # Dummy test which removes guest_script
+                    - delete_guest_script:
+                        virtio_console_test = delete_guest_script
+
             # Tests which can run or serialport or console
             # NOTE: By default VM have booth serialports and consoles. The difference is that it uses serialport or console as tested object. If you want to test pure VM without the other virtio_port devices change virtio_ports (or virtio_port_type) in 'virtserialport' resp 'virtconsole' variants.
             - @specifiable:
