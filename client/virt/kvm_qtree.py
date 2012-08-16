@@ -16,7 +16,7 @@ _RE_CLASS = re.compile(r'^class ([^,]*), addr (\d\d:\d\d.\d+), pci id '
 
 class IncompatibleTypeError(TypeError):
     def __init__(self, prop, desired_type, value):
-        super(IncompatibleTypeError, self).__init__()
+        TypeError.__init__(self)
         self.prop = prop
         self.desired = desired_type
         self.value = value

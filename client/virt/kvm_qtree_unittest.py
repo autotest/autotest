@@ -173,16 +173,16 @@ class QtreeContainerTest(unittest.TestCase):
                             "%s != %s" % (len(nodes), len(reference_nodes))))
 
         for i in xrange(len(nodes)):
-            self.assertIsInstance(nodes[i], reference_nodes[i], ("Node %d "
-            "should be class %s but is %s instead" % (i, reference_nodes[i],
-                                                      type(reference_nodes))))
+            self.assertTrue(isinstance(nodes[i], reference_nodes[i]),
+                            ("Node %d should be class %s but is %s instead" %
+                             (i, reference_nodes[i], type(reference_nodes))))
 
         tree = qtree.get_qtree()
-        self.assertIsInstance(tree.str_qtree(), str,
-                              "qtree.str_qtree() returns nonstring output.")
+        self.assertTrue(isinstance(tree.str_qtree(), str),
+                        "qtree.str_qtree() returns nonstring output.")
 
-        self.assertIsInstance(str(tree), str,
-                              "str(qtree) returns nonstring output.")
+        self.assertTrue(isinstance(str(tree), str),
+                        "str(qtree) returns nonstring output.")
 
     def test_bad_qtree(self):
         """ Incorrect qtree """
@@ -227,8 +227,8 @@ class QtreeDiskContainerTest(unittest.TestCase):
                          (0, 0, 1, 0))
         # Check the full disk output (including params)
         for disk in disks.disks:
-            self.assertIsInstance(str(disk), str,
-                              "str(disk) returns nonstring output.")
+            self.assertTrue(isinstance(str(disk), str),
+                            "str(disk) returns nonstring output.")
 
     def test_check_params_bad(self):
         """ Whole workflow with bad data """
