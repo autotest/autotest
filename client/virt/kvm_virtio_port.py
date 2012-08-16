@@ -95,7 +95,8 @@ class _VirtioPort(object):
             except Exception:
                 attempt -= 1
                 time.sleep(1)
-        raise error.TestFail("Can't open the %s sock" % self.name)
+        raise error.TestFail("Can't open the %s sock (%s)" % (self.name,
+                                                              self.hostfile))
 
     def clean_port(self):
         """
