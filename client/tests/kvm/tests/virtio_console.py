@@ -1282,6 +1282,23 @@ def run_virtio_console(test, params, env):
             port.close()
 
     ######################################################################
+    # Debug and dummy tests
+    ######################################################################
+    def test_delete_guest_script():
+        """
+        This dummy test only removes the guest_worker_script. Use this it
+        when you use the old image with a new guest_worker version.
+        @note: The script name might differ!
+        """
+        vm = env.get_vm(params.get("main_vm"))
+        session = vm.wait_for_login()
+        out = session.cmd_output("echo on")
+        if "on" in out:     # Linux
+            session.cmd_status("rm -f /tmp/virtio_console_guest.py*")
+        else:       # Windows
+            session.cmd_status("del /F /Q C:\\virtio_console_guest.py*")
+
+    ######################################################################
     # Main
     # Executes test specified by virtio_console_test variable in cfg
     ######################################################################
