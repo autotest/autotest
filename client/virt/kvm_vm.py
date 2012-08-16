@@ -1678,13 +1678,19 @@ class VM(virt_vm.BaseVM):
                 self.monitors += [monitor]
 
             # Create virtio_ports (virtio_serialports and virtio_consoles)
+            i = 0
             self.virtio_ports = []
-            for port_name in params.objects("virtio_ports"):
-                port_params = params.object_params(port_name)
+            for port in params.objects("virtio_ports"):
+                port_params = params.object_params(port)
                 if port_params.get('virtio_port_chardev') == "spicevmc":
-                    filename = 'dev%s' % port_name
+                    filename = 'dev%s' % port
                 else:
-                    filename = self.get_virtio_port_filename(port_name)
+                    filename = self.get_virtio_port_filename(port)
+                port_name = port_params.get('virtio_port_name_prefix', None)
+                if port_name:   # If port_name_prefix was used
+                    port_name = port_name + str(i)
+                else:           # Implicit name - port
+                    port_name = port
                 if port_params.get('virtio_port_type') in ("console",
                                                            "virtio_console"):
                     self.virtio_ports.append(
@@ -1692,6 +1698,7 @@ class VM(virt_vm.BaseVM):
                 else:
                     self.virtio_ports.append(
                             kvm_virtio_port.VirtioSerial(port_name, filename))
+                i += 1
 
             # Get the output so far, to see if we have any problems with
             # KVM modules or with hugepage setup.
