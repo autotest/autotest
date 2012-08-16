@@ -167,7 +167,7 @@ class VirtioGuest:
 
     def send(self, port, length=1, mode=True, is_static=False):
         """
-        Send a data of some length
+        Send a data of arbitrary length
 
         @param port: Port to write data
         @param length: Length of data
@@ -1047,7 +1047,7 @@ class VirtioGuestNt(VirtioGuest):
 
     def send(self, port, length=1, mode=True, is_static=False):
         """
-        Send a data of some length
+        Send a data of arbitrary length
 
         @param port: Port to write data
         @param length: Length of data

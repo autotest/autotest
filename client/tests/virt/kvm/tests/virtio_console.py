@@ -229,7 +229,8 @@ def run_virtio_console(test, params, env):
             if match != 1:  # Multiple open didn't fail:
                 raise error.TestFail("Unexpended pass of opening the"
                                      " serialport device for the 2nd time.")
-            elif not "[Errno 24]" in data:
+            elif ((not "[Errno 24]" in data) and
+                    (not "Access is denied" in data)):
                 raise error.TestFail("Multiple opening fail but with another"
                                      " exception %s" % data)
         port.open()
@@ -1010,6 +1011,9 @@ def run_virtio_console(test, params, env):
         @param cfg: virtio_console_params - which type of virtio port to test
         @param cfg: virtio_console_pause - pause between monitor commands
         """
+        # TODO: Support the new port name_prefix
+        # TODO: 101 of 100 ports are initialised (might be related to above^^)
+
         # TODO: Rewrite this test. It was left as it was before the virtio_port
         # conversion and looked too messy to repair it during conversion.
         # TODO: Split this test into multiple variants

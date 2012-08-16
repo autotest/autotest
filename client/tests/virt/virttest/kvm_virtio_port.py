@@ -162,9 +162,39 @@ class GuestWorker(object):
         """ Initialize worker for use (including port init on guest) """
         self.vm = vm
         self.session = utils_test.wait_for_login(self.vm)
+        self.__cmd_execute_worker = None
 
+        # Detect the OS version
+        guest_script_py = "virtio_console_guest.py"
+        out = self.session.cmd_output("echo on")
+        if "on" in out:
+            self.os_linux = True
+            guest_script_path = "/tmp/%s" % guest_script_py
+            cmd_already_compiled_chck = "ls %so" % guest_script_path
+            cmd_compile = ("python -OO %s -c "
+                           "&& echo -n 'PASS: Compile virtio_guest finished' "
+                           "|| echo -n 'FAIL: Compile virtio_guest failed'"
+                     % guest_script_path)
+            self.__cmd_execute_worker = ("python %so"
+                                    "&& echo -n 'PASS: virtio_guest finished' "
+                                    "|| echo -n 'FAIL: virtio_guest failed'"
+                                    % guest_script_path)
+        else:
+            self.os_linux = False
+            guest_script_path = "C:\\%s" % guest_script_py
+            cmd_already_compiled_chck = "dir %so" % guest_script_path
+            cmd_compile = ("%s -c "
+                           "&& echo PASS: Compile virtio_guest finished "
+                           "|| echo FAIL: Compile virtio_guest failed"
+                           % guest_script_path)
+            self.__cmd_execute_worker = ("%so "
+                                    "&& echo PASS: virtio_guest finished "
+                                    "|| echo FAIL: virtio_guest failed"
+                                    % guest_script_path)
+
+        # Copy, compile and run the worker
         timeout = 10
-        if self.session.cmd_status('ls /tmp/virtio_console_guest.pyo'):
+        if self.session.cmd_status(cmd_already_compiled_chck):
             # Copy virtio_console_guest.py into guests
             try:
                 base_path = os.environ['AUTODIR']
@@ -174,26 +204,26 @@ class GuestWorker(object):
                                      'shared', 'scripts', 'virtio_console_guest.py')
             dst_dir = "/tmp"
 
-            self.vm.copy_files_to(vksmd_src, dst_dir)
+            self.vm.copy_files_to(vksmd_src, guest_script_path)
 
-            # Compile and execute worker
-            logging.debug("compile virtio_console_guest.py on guest %s",
+            # set echo off (self.cmd() musn't contain C:)
+            self.session.sendline("echo off")
+            # Compile worker
+            logging.debug("Compile %s on guest %s", guest_script_py,
                           self.vm.name)
-            self.cmd("python -OO /tmp/virtio_console_guest.py -c "
-                     "&& echo -n 'PASS: Compile virtio_guest finished' || "
-                     "echo -n 'FAIL: Compile virtio_guest failed'", timeout)
+            self.cmd(cmd_compile, timeout)
             self.session.sendline()
 
-        logging.debug("Starting virtio_console_guest.py on guest %s",
+        # set echo off (self.cmd() musn't contain C:)
+        self.session.sendline("echo off")
+        logging.debug("Starting %so on guest %s", guest_script_py,
                       self.vm.name)
         self._execute_worker(timeout)
         self._init_guest(timeout)
 
     def _execute_worker(self, timeout=10):
         """ Execute worker on guest """
-        self.cmd("python /tmp/virtio_console_guest.pyo && "
-                 "echo -n 'PASS: virtio_guest finished' || "
-                 "echo -n 'FAIL: virtio_guest failed'", timeout)
+        self.cmd(self.__cmd_execute_worker, timeout)
         # Let the system rest
         # FIXME: Is this always necessarily?
         time.sleep(2)
