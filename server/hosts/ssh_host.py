@@ -211,7 +211,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                 self.ssh_ping()
             except error.AutoservSshPingHostError:
                 ssh_key.setup_ssh_key(self.hostname, self.user, self.password,
-                                   port=self.port)
+                                      self.port)
 
 
 class AsyncSSHMixin(object):
