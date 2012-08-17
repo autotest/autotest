@@ -1,4 +1,4 @@
-import os
+import os, logging
 from autotest.client.shared import pxssh
 from autotest.client.shared import base_utils as utils
 
@@ -44,11 +44,11 @@ def get_public_key():
 
 def setup_ssh_key(hostname, user, password, port):
     logging.debug('Performing SSH key setup on %s:%d as %s.' %
-                  (self.hostname, self.port, self.user))
+                  (hostname, port, user))
 
     try:
         host = pxssh.pxssh()
-        host.login(hostname, user, password, port)
+        host.login(hostname, user, password, port=port)
         public_key = get_public_key()
 
         host.sendline('mkdir -p ~/.ssh')
