@@ -635,7 +635,7 @@ class HostQueueEntry(DBObject):
             else:
                 body += "\n[Warning] Job status: %s" % status
 
-            body += "\n\n"
+            body += "\n%s\n\n" % self._view_job_url()
 
         keyval_list = job_stats['keyval_dict_list']
         if keyval_list:
@@ -972,7 +972,6 @@ class Job(DBObject):
                 WHERE t.job_idx = j.job_idx
                 AND s.status_idx = t.status
                 AND j.afe_job_id = %s
-                ORDER BY t.reason
                 """ % self.id)
 
         framework_tests = _find_framework_tests(rows)
