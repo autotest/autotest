@@ -76,6 +76,7 @@ class CobblerInterface(object):
         # reinstalled)
         self.server.modify_system(system_handle, 'netboot_enabled', 'True',
                                   self.token)
+        self.server.save_system(system_handle, self.token)
         try:
             # Cobbler only generates the DHCP configuration for netboot enabled
             # machines, so we need to synchronize the dhcpd file after changing
@@ -86,8 +87,6 @@ class CobblerInterface(object):
             if not "unknown remote method" in err.faultString:
                 logging.error("DHCP sync failed, error code: %s, error string: %s",
                               err.faultCode, err.faultString)
-
-        self.server.save_system(system_handle, self.token)
 
 
     def install_host(self, host, profile='', timeout=None, num_attempts=2):
