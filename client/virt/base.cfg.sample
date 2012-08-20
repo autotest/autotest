@@ -41,6 +41,9 @@ netdst = virbr0
 # nic_model_nic2 = virtio
 # or based on vm
 # nic_model_vm1 = virtio
+#Host IP address to be used by tests mainly in case of
+#advanced network configuration of the host
+#host_ip_addr = ""
 
 # List of block device object names (whitespace seperated)
 images = image1
