@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm
+from autotest.client.virt import libvirt_vm, virsh
 
 def run_virsh_uri(test, params, env):
     """
@@ -12,13 +12,6 @@ def run_virsh_uri(test, params, env):
     (4) Call virsh uri with libvirtd service stop
     """
 
-    def virsh_uri(cmd):
-        cmd_result = utils.run(cmd, ignore_status=True)
-        logging.info("Output: %s", cmd_result.stdout.strip())
-        logging.error("Error: %s", cmd_result.stderr.strip())
-        logging.info("Status: %d", cmd_result.exit_status)
-        return cmd_result.exit_status, cmd_result.stdout.strip()
-
     # Prepare libvirtd service
     check_libvirtd = params.has_key("libvirtd")
     if check_libvirtd:
@@ -27,17 +20,26 @@ def run_virsh_uri(test, params, env):
             libvirt_vm.service_libvirtd_control("stop")
 
     # Run test case
+    connect_uri = params.get('connect_uri')
     option = params.get("options")
-    check_target_uri = params.has_key("target_uri")
-    if check_target_uri:
-        target_uri = params.get("target_uri")
+    target_uri = params.get("target_uri")
+    if target_uri:
+        if target_uri.count('SOURCE_HOSTNAME.EXAMPLE.COM'):
+            raise error.TestError('target_uri configuration set to sample value')
         logging.info("The target_uri: %s", target_uri)
         cmd = "virsh -c %s uri" % target_uri
     else:
         cmd = "virsh uri %s" % option
 
     logging.info("The command: %s", cmd)
-    status, uri_test = virsh_uri(cmd)
+    try:
+        uri_test = virsh.canonical_uri(option, uri = connect_uri,
+                             ignore_status = False,
+                             debug = True)
+        status = 0 # good
+    except error.CmdError:
+        status = 1 # bad
+        uri_test = ''
 
     # Recover libvirtd service start
     if libvirtd == "off":

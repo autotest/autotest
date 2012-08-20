@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm
+from autotest.client.virt import libvirt_vm, virsh
 
 def run_virsh_hostname(test, params, env):
     """
@@ -29,8 +29,14 @@ def run_virsh_hostname(test, params, env):
             libvirt_vm.libvirtd_stop()
 
     # Run test case
-    option = params.get("options")
-    status, hostname_test = virsh_hostname(option)
+    option = params.get("virsh_hostname_options")
+    try:
+        hostname_test = virsh.hostname(option,
+                                       ignore_status = False,
+                                       debug = True)
+        status = 0 # good
+    except CmdError:
+        status = 1 # bad
 
     # Recover libvirtd service start
     if libvirtd == "off":

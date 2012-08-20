@@ -1,6 +1,6 @@
 import re, logging
 from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm
+from autotest.client.virt import libvirt_vm, virsh
 from autotest.client import *
 
 def run_virsh_freecell(test, params, env):
@@ -23,7 +23,7 @@ def run_virsh_freecell(test, params, env):
 
     # Run test case
     option = params.get("virsh_freecell_options")
-    cmd_result = libvirt_vm.virsh_freecell(ignore_status=True, extra=option)
+    cmd_result = virsh.freecell(ignore_status=True, extra=option)
     logging.info("Output:\n%s", cmd_result.stdout.strip())
     logging.info("Status: %d", cmd_result.exit_status)
     logging.error("Error: %s", cmd_result.stderr.strip())

@@ -1,7 +1,7 @@
 import logging, re
 from  xml.dom.minidom import parseString
 from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm
+from autotest.client.virt import libvirt_vm, virsh
 
 def run_virsh_capabilities(test, params, env):
     """
@@ -11,14 +11,6 @@ def run_virsh_capabilities(test, params, env):
     (2) Call virsh capabilities with an unexpected option
     (3) Call virsh capabilities with libvirtd service stop
     """
-    def virsh_capabilities(option):
-        cmd = "virsh capabilities  %s" % option
-        cmd_result = utils.run(cmd, ignore_status=True)
-        logging.info("Output: %s", cmd_result.stdout.strip())
-        logging.error("Error: %s", cmd_result.stderr.strip())
-        logging.info("Status: %d", cmd_result.exit_status)
-        return cmd_result.exit_status, cmd_result.stdout.strip()
-
     def compare_capabilities_xml(source):
         dom = parseString(source)
         host = dom.getElementsByTagName('host')[0]
@@ -72,16 +64,22 @@ def run_virsh_capabilities(test, params, env):
             raise error.TestFail("The capabilities_xml gives an different "
                                  "hypervisor")
 
+    connect_uri = params.get("connect_uri", virsh.canonical_uri())
+
     # Prepare libvirtd service
-    check_libvirtd = params.has_key("libvirtd")
-    if check_libvirtd:
+    if params.has_key("libvirtd"):
         libvirtd = params.get("libvirtd")
         if libvirtd == "off":
             libvirt_vm.service_libvirtd_control("stop")
 
     # Run test case
     option = params.get("virsh_cap_options")
-    status, output = virsh_capabilities(option)
+    try:
+        output = virsh.capabilities(option, uri = connect_uri,
+                                    ignore_status = False, debug = True)
+        status = 0 # good
+    except utils.CmdError:
+        status = 1 # bad
 
     # Recover libvirtd service start
     if libvirtd == "off":

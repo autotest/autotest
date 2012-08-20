@@ -8,7 +8,8 @@ import time, os, logging, fcntl, re, shutil, urlparse, tempfile
 from autotest.client.shared import error
 from autotest.client import utils, os_dep
 from xml.dom import minidom
-import utils_misc, virt_vm, storage, aexpect, remote
+import utils_misc, virt_vm, storage, aexpect, remote, virsh
+
 
 def libvirtd_restart():
     """
@@ -119,10 +120,11 @@ class VM(virt_vm.BaseVM):
         self.vnclisten = "0.0.0.0"
         self.connect_uri = params.get("connect_uri", "default")
         if self.connect_uri == 'default':
-            self.connect_uri = virsh_uri()
+            self.connect_uri = None
+            self.driver_type = 'qemu'
         else: # Validate and canonicalize uri early to catch problems
-            self.connect_uri = virsh_uri(uri = self.connect_uri)
-        self.driver_type = virsh_driver(uri = self.connect_uri)
+            self.connect_uri = virsh.canonical_uri(uri = self.connect_uri)
+            self.driver_type = virsh.driver(uri = self.connect_uri)
         self.params['driver_type_'+self.name] = self.driver_type
         # virtnet init depends on vm_type/driver_type being set w/in params
         super(VM, self).__init__(name, params)
@@ -138,21 +140,22 @@ class VM(virt_vm.BaseVM):
         """
         if not self.is_alive():
             raise virt_vm.VMDeadError("Domain %s is inactive" % self.name,
-                                      virsh_domstate(self.name, self.connect_uri))
+                                      virsh.domstate(self.name,
+                                                     uri = self.connect_uri))
 
 
     def is_alive(self):
         """
         Return True if VM is alive.
         """
-        return virsh_is_alive(self.name, self.connect_uri)
+        return virsh.is_alive(self.name, uri = self.connect_uri)
 
 
     def is_dead(self):
         """
         Return True if VM is dead.
         """
-        return virsh_is_dead(self.name, self.connect_uri)
+        return virsh.is_dead(self.name, uri = self.connect_uri)
 
 
     def is_persistent(self):
@@ -161,7 +164,7 @@ class VM(virt_vm.BaseVM):
         """
         try:
             return bool(re.search(r"^Persistent:\s+[Yy]es",
-                        virsh_dominfo(self.name, self.connect_uri),
+                        virsh.dominfo(self.name, uri = self.connect_uri),
                         re.MULTILINE))
         except error.CmdError:
             return False
@@ -170,7 +173,7 @@ class VM(virt_vm.BaseVM):
         """
         Undefine the VM.
         """
-        return virsh_undefine(self.name, self.connect_uri)
+        return virsh.undefine(self.name, uri = self.connect_uri)
 
 
     def define(self, xml_file):
@@ -180,28 +183,28 @@ class VM(virt_vm.BaseVM):
         if not os.path.exists(xml_file):
             logging.error("File %s not found." % xml_file)
             return False
-        return virsh_define(xml_file, self.connect_uri)
+        return virsh.define(xml_file, uri = self.connect_uri)
 
 
     def state(self):
         """
         Return domain state.
         """
-        return virsh_domstate(self.name, self.connect_uri)
+        return virsh.domstate(self.name, uri = self.connect_uri)
 
 
     def get_id(self):
         """
         Return VM's ID.
         """
-        return virsh_domid(self.name, self.connect_uri)
+        return virsh.domid(self.name, uri = self.connect_uri)
 
 
     def get_xml(self):
         """
         Return VM's xml file.
         """
-        return virsh_dumpxml(self.name, uri=self.connect_uri)
+        return virsh.dumpxml(self.name, uri = self.connect_uri)
 
 
     def backup_xml(self):
@@ -213,7 +216,7 @@ class VM(virt_vm.BaseVM):
         try:
             xml_file = tempfile.mktemp(dir="/tmp")
 
-            virsh_dumpxml(self.name, to_file=xml_file, uri=self.connect_uri)
+            virsh.dumpxml(self.name, to_file = xml_file, uri = self.connect_uri)
             return xml_file
         except Exception, detail:
             if os.path.exists(xml_file):
@@ -450,7 +453,7 @@ class VM(virt_vm.BaseVM):
             return " -append %s" % cmdline
 
         def add_connect_uri(help, uri):
-            if has_option(help, "connect"):
+            if uri and has_option(help, "connect"):
                 return " --connect=%s" % uri
             else:
                 return ""
@@ -677,12 +680,12 @@ class VM(virt_vm.BaseVM):
 
                 if iso:
                     virt_install_cmd += add_drive(help,
-                                 utils_misc.get_path(root_dir, iso),
+                                      utils_misc.get_path(root_dir, iso),
                                       image_params.get("iso_image_pool"),
                                       image_params.get("iso_image_vol"),
                                       'cdrom',
                                       None,
-                                      None,
+                                      'ro',
                                       None,
                                       None,
                                       None,
@@ -882,7 +885,7 @@ class VM(virt_vm.BaseVM):
             utils_misc.wait_for(func=self.is_alive, timeout=60,
                                 text=("waiting for domain %s to start" %
                                       self.name))
-            self.uuid = virsh_uuid(self.name, self.connect_uri)
+            self.uuid = virsh.domuuid(self.name, uri = self.connect_uri)
 
             # Establish a session with the serial console
             if self.only_pty == True:
@@ -904,7 +907,7 @@ class VM(virt_vm.BaseVM):
 
 
     def migrate(self, dest_uri="", option="--live --timeout 60", extra="",
-                ignore_status=False, print_info=False):
+                ignore_status=False, debug=False):
         """
         Migrate a VM to a remote host.
 
@@ -915,9 +918,10 @@ class VM(virt_vm.BaseVM):
         """
         logging.info("Migrating VM %s from %s to %s" %
                      (self.name, self.connect_uri, dest_uri))
-        result = virsh_migrate(self.name, dest_uri, option,
-                               extra, self.connect_uri,
-                               ignore_status, print_info)
+        result = virsh.migrate(self.name, dest_uri, option,
+                               extra, uri = self.connect_uri,
+                               ignore_status = ignore_status,
+                               debug = debug)
         # On successful migration, point to guests new hypervisor.
         # Since dest_uri could be None, checking it is necessary.
         if result.exit_status == 0 and dest_uri:
@@ -929,30 +933,38 @@ class VM(virt_vm.BaseVM):
         """
         Attach a device to VM.
         """
-        return virsh_attach_device(self.name, xml_file, extra, self.connect_uri)
+        return virsh.attach_device(self.name, xml_file, extra,
+                                   uri = self.connect_uri)
 
 
     def detach_device(self, xml_file, extra=""):
         """
         Detach a device from VM.
         """
-        return virsh_detach_device(self.name, xml_file, extra, self.connect_uri)
+        return virsh.detach_device(self.name, xml_file, extra,
+                                   uri = self.connect_uri)
 
 
-    def attach_interface(self, option="", ignore_status=False, print_info=False):
+    def attach_interface(self, option="", ignore_status=False,
+                         debug=False):
         """
         Attach a NIC to VM.
         """
-        return virsh_attach_interface(self.name, option, self.connect_uri,
-                                      ignore_status=ignore_status, print_info=print_info)
+        return virsh.attach_interface(self.name, option,
+                                      uri = self.connect_uri,
+                                      ignore_status = ignore_status,
+                                      debug = debug)
 
 
-    def detach_interface(self, option="", ignore_status=False, print_info=False):
+    def detach_interface(self, option="", ignore_status=False,
+                         debug=False):
         """
         Detach a NIC to VM.
         """
-        return virsh_detach_interface(self.name, option, self.connect_uri,
-                                      ignore_status=ignore_status, print_info=print_info)
+        return virsh.detach_interface(self.name, option,
+                                      uri = self.connect_uri,
+                                      ignore_status = ignore_status,
+                                      print_info = print_info)
 
 
     def destroy(self, gracefully=True, free_mac_addresses=True):
@@ -990,7 +1002,7 @@ class VM(virt_vm.BaseVM):
                                 return
                         finally:
                             session.close()
-                virsh_destroy(self.name, self.connect_uri)
+                virsh.destroy(self.name, uri = self.connect_uri)
 
         finally:
             if self.serial_console:
@@ -1029,7 +1041,7 @@ class VM(virt_vm.BaseVM):
         """
         Return VM's UUID.
         """
-        return virsh_uuid(self.name, self.connect_uri)
+        return virsh.domuuid(self.name, uri = self.connect_uri)
 
 
     def get_ifname(self, nic_index=0):
@@ -1043,7 +1055,7 @@ class VM(virt_vm.BaseVM):
         @raise VMMACAddressMissingError: If no MAC address is defined for the
                 requested NIC
         """
-        thexml = virsh_dumpxml(self.name, uri=self.connect_uri)
+        thexml = virsh.dumpxml(self.name, uri = self.connect_uri)
         dom = minidom.parseString(thexml)
         count = 0
         for node in dom.getElementsByTagName('interface'):
@@ -1085,7 +1097,9 @@ class VM(virt_vm.BaseVM):
         @return: list of PID of vcpus of a VM.
         """
 
-        output = virsh_qemu_monitor_command(self.name, "info cpus")
+        vcpu_pids = []
+        output = virsh.qemu_monitor_command(self.name, "info cpus",
+                                            uri = self.connect_uri)
         vcpu_pids = re.findall(r'thread_id=(\d+)', output.stdout)
         return vcpu_pids
 
@@ -1175,14 +1189,14 @@ class VM(virt_vm.BaseVM):
     def screendump(self, filename, debug=False):
         if debug:
             logging.debug("Requesting screenshot %s" % filename)
-        return virsh_screenshot(self.name, filename, self.connect_uri)
+        return virsh.screenshot(self.name, filename, uri = self.connect_uri)
 
 
     def start(self):
         """
         Starts this VM.
         """
-        self.uuid = virsh_uuid(self.name, self.connect_uri)
+        self.uuid = virsh.domuuid(self.name, uri = self.connect_uri)
         # Pull in mac addresses from libvirt guest definition
         for index, nic in enumerate(self.virtnet):
             try:
@@ -1199,7 +1213,7 @@ class VM(virt_vm.BaseVM):
             except virt_vm.VMMACAddressMissingError:
                 logging.warning("Nic %d requested by test but not defined for"
                                 " vm %s" % (index, self.name))
-        if virsh_start(self.name, self.connect_uri):
+        if virsh.start(self.name, uri = self.connect_uri):
             # Wait for the domain to be created
             has_started = utils_misc.wait_for(func=self.is_alive, timeout=60,
                                               text=("waiting for domain %s "
@@ -1207,7 +1221,7 @@ class VM(virt_vm.BaseVM):
             if has_started is None:
                 raise virt_vm.VMStartError(self.name, "libvirt domain not "
                                                       "active after start")
-            self.uuid = virsh_uuid(self.name, self.connect_uri)
+            self.uuid = virsh.domuuid(self.name, uri = self.connect_uri)
         else:
             raise virt_vm.VMStartError(self.name, "libvirt domain failed "
                                                   "to start")
@@ -1227,7 +1241,7 @@ class VM(virt_vm.BaseVM):
         while count > 0:
             # check every 5 seconds
             if count % 5 == 0:
-                if virsh_is_dead(self.name, self.connect_uri):
+                if virsh.is_dead(self.name, uri = self.connect_uri):
                     logging.debug("Shutdown took %d seconds", timeout - count)
                     return True
             count -= 1
@@ -1240,7 +1254,7 @@ class VM(virt_vm.BaseVM):
         """
         Shuts down this VM.
         """
-        if virsh_shutdown(self.name, self.connect_uri):
+        if virsh.shutdown(self.name, uri = self.connect_uri):
             if self.wait_for_shutdown():
                 logging.debug("VM %s shut down", self.name)
                 return True
@@ -1253,29 +1267,29 @@ class VM(virt_vm.BaseVM):
 
 
     def pause(self):
-        return virsh_suspend(self.name, self.connect_uri)
+        return virsh.suspend(self.name, uri = self.connect_uri)
 
 
     def resume(self):
-        return virsh_resume(self.name, self.connect_uri)
+        return virsh.resume(self.name, uri = self.connect_uri)
 
 
     def save_to_file(self, path):
         """
         Override BaseVM save_to_file method
         """
-        virsh_save(self.name, path, uri=self.connect_uri)
+        virsh.save(self.name, path, uri = self.connect_uri)
 
 
     def restore_from_file(self, path):
         """
         Override BaseVM restore_from_file method
         """
-        virsh_restore(self.name, path, uri=self.connect_uri)
+        virsh.restore(self.name, path, uri = self.connect_uri)
 
 
     def vcpupin(self, vcpu, cpu):
         """
         To pin vcpu to cpu
         """
-        virsh_vcpupin(self.name, vcpu, cpu)
+        virsh.vcpupin(self.name, vcpu, cpu, uri = self.connect_uri)

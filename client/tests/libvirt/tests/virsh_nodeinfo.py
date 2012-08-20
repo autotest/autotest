@@ -1,7 +1,6 @@
 import re, logging
 from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm
-from autotest.client import *
+from autotest.client.virt import libvirt_vm, virsh
 
 def run_virsh_nodeinfo(test, params, env):
     """
@@ -80,7 +79,7 @@ def run_virsh_nodeinfo(test, params, env):
 
     # Run test case
     option = params.get("virsh_node_options")
-    cmd_result = libvirt_vm.virsh_nodeinfo(ignore_status=True, extra=option)
+    cmd_result = virsh.nodeinfo(ignore_status=True, extra=option)
     logging.info("Output:\n%s", cmd_result.stdout.strip())
     logging.info("Status: %d", cmd_result.exit_status)
     logging.error("Error: %s", cmd_result.stderr.strip())

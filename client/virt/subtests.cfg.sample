@@ -54,7 +54,7 @@ variants:
             - in_cdrom_ks:
                 only Linux, unattended_install.cdrom
                 unattended_delivery_method = integrated
-            # Autotest starts simple http server providing kickstart 
+            # Autotest starts simple http server providing kickstart
             - http_ks:
                 only Linux
                 unattended_delivery_method = url
@@ -202,7 +202,7 @@ variants:
                     - connect_to_local:
                         target_uri = "qemu+ssh:///system"
                     - connect_to_remote:
-                        target_uri = "qemu+ssh://SOURCE_HOSTNAME.EXAMPLE.COM/system"
+                        target_uri = ${connect_uri}
             - unexpect_option:
                 options = "xyz"
                 status_error = "yes"
@@ -220,15 +220,15 @@ variants:
         vms = ''
         variants:
             - no_option:
-                options = ""
+                virsh_version_options = ""
                 status_error = "no"
                 libvirtd = "on"
             - unexpect_option:
-                options = " xyz"
+                virsh_version_options = " xyz"
                 status_error = "yes"
                 libvirtd = "on"
             - with_libvirtd_stop:
-                options = ""
+                virsh_version_options = ""
                 status_error = "yes"
                 libvirtd = "off"
 
@@ -237,7 +237,7 @@ variants:
         vms = ''
         variants:
             - no_option:
-                options = ""
+                virsh_hostname_options = ""
                 status_error = "no"
                 libvirtd = "on"
             - unexpect_option:
@@ -709,6 +709,8 @@ variants:
         type = virsh_migrate
         # Migrating non-started VM causes undefined behavior
         start_vm = yes
+        # Console output can only be monitored via virsh console output
+        only_pty = True
         # Options to pass to virsh migrate command before <domain> <desturi>
         virsh_migrate_options = "--live --undefinesource --persistent"
         # Extra options to pass after <domain> <desturi>

@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm
+from autotest.client.virt import libvirt_vm, virsh
 
 def run_virsh_version(test, params, env):
     """
@@ -10,13 +10,8 @@ def run_virsh_version(test, params, env):
     (2) Call virsh version with an unexpected option
     (3) Call virsh version with libvirtd service stop
     """
-    def virsh_version(option):
-        cmd = "virsh version  %s" % option
-        cmd_result = utils.run(cmd, ignore_status=True)
-        logging.debug("Output: %s", cmd_result.stdout.strip())
-        logging.debug("Error: %s", cmd_result.stderr.strip())
-        logging.debug("Status: %d", cmd_result.exit_status)
-        return cmd_result.exit_status
+
+    connect_uri = params.get("connect_uri")
 
     # Prepare libvirtd service
     check_libvirtd = params.has_key("libvirtd")
@@ -26,8 +21,13 @@ def run_virsh_version(test, params, env):
             libvirt_vm.libvirtd_stop()
 
     # Run test case
-    option = params.get("options")
-    status = virsh_version(option)
+    option = params.get("virsh_version_options")
+    try:
+        output = virsh.version(option, uri = connect_uri,
+                               ignore_status = False, debug = True)
+        status = 0 #good
+    except error.CmdError:
+        status = 1 #bad
 
     # Recover libvirtd service start
     if libvirtd == "off":

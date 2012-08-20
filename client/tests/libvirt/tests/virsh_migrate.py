@@ -1,6 +1,6 @@
 import logging, os, re, time, shutil, codecs
 from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm, utils_misc, utils_test
+from autotest.client.virt import libvirt_vm, virsh, utils_misc, utils_test
 
 def run_virsh_migrate(test, params, env):
     """
@@ -24,7 +24,7 @@ def run_virsh_migrate(test, params, env):
         """
         logging.info("Cleaning up VMs on %s" % vm.connect_uri)
         try:
-            if libvirt_vm.virsh_domain_exists(vm.name, vm.connect_uri):
+            if virsh.domain_exists(vm.name, uri = vm.connect_uri):
                 vm_state = vm.state()
                 if vm_state == "paused":
                     vm.resume()
@@ -60,10 +60,8 @@ def run_virsh_migrate(test, params, env):
             logging.error("VM not alive on destination %s" % dest_uri)
             return False
 
-        # FIXME: This needs to be tested, but won't work currently
-        # vm.verify_kernel_crash()
-        logging.debug("vm.verify_kernel_crash() needs to be tested, "
-                     "but won't work currently.")
+        # Throws exception if console shows panic message
+        vm.verify_kernel_crash()
         return True
 
 
@@ -78,7 +76,7 @@ def run_virsh_migrate(test, params, env):
 
     vm.connect_uri = params.get("connect_uri", "default")
     if vm.connect_uri == 'default':
-        vm.connect_uri = libvirt_vm.virsh_uri()
+        vm.connect_uri = virsh.canonical_uri()
 
     src_uri = vm.connect_uri
     dest_uri = params.get("virsh_migrate_desturi")
@@ -190,7 +188,7 @@ def run_virsh_migrate(test, params, env):
         if options.count("undefinesource") or extra.count("undefinesource"):
             logging.info("Verifying <virsh domstate> DOES return an error."
                          "%s should not exist on %s." % (vm_name, src_uri))
-            if libvirt_vm.virsh_domain_exists(vm_name, src_uri):
+            if virsh.domain_exists(vm_name, uri = src_uri):
                 check_src_undefine = False
 
         # Checking for --dname.
@@ -198,7 +196,7 @@ def run_virsh_migrate(test, params, env):
         check_dest_dname = True
         if options.count("dname") or extra.count("dname"):
             dname = extra.split()[1].strip()
-            if not libvirt_vm.virsh_domain_exists(dname, dest_uri):
+            if not virsh.domain_exists(dname, uri = dest_uri):
                 check_dest_dname = False
 
         # Checking for --xml.
@@ -242,7 +240,7 @@ def run_virsh_migrate(test, params, env):
 
     # Recover source (just in case).
     # vm.connect_uri has been set back to src_uri in cleanup_dest().
-    if not libvirt_vm.virsh_domain_exists(vm_name, src_uri):
+    if not virsh.domain_exists(vm_name, uri = src_uri):
         vm.define(vm_xmlfile_bak)
     else:
         #if not vm.shutdown():
