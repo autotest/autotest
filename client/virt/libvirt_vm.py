@@ -207,6 +207,27 @@ def virsh_version(uri=""):
     return virsh_cmd("version", uri).stdout.strip()
 
 
+def virsh_list(options="", uri="", ignore_status=False, print_info=False):
+    """
+    Return the list of domains.
+    """
+    return virsh_cmd("list %s" % options, uri, ignore_status, print_info)
+
+
+def virsh_managedsave(name, options="", uri="", ignore_status=False, print_info=False):
+    """
+    Managed save of a domain state.
+    """
+    return virsh_cmd("managedsave --domain %s %s" % (name, options), uri, ignore_status, print_info)
+
+
+def virsh_managedsave_remove(name, uri="", ignore_status=False, print_info=False):
+    """
+    Remove managed save of a domain
+    """
+    return virsh_cmd("managedsave-remove --domain %s" % name, uri, ignore_status, print_info)
+
+
 def virsh_driver(uri=""):
     """
     return the driver by asking libvirt
