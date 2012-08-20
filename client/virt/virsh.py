@@ -18,7 +18,7 @@ is defined by VIRSH_PROPERTIES and possibly VIRSH_SESSION_PROPS.
 @copyright: 2012 Red Hat Inc.
 """
 
-import logging, urlparse
+import logging, urlparse, re
 from autotest.client import utils, os_dep
 from autotest.client.shared import error, contents
 import aexpect, virt_vm
@@ -31,23 +31,31 @@ _SCREENSHOT_ERROR_COUNT = 0
 # Everything else from globals() will become a method of Virsh class
 _NOCLOSE = contents.get_map().keys() + [
     '_SCREENSHOT_ERROR_COUNT', '_NOCLOSE', 'VirshBase', 'DArgMangler',
-    'VirshSession', 'Closure', 'Virsh', 'VirshPersistant'
+    'VirshSession', 'Closure', 'Virsh', 'VirshPersistant', 'VIRSH_EXEC',
+    'VIRSH_COMMAND_CACHE'
 ]
+
+# default virsh executable
+VIRSH_EXEC = os_dep.command("virsh")
 
 # Virsh class properties and default values
 # Schema: {<name>:<default>}
 VIRSH_PROPERTIES = {
-    'uri':"",
+    'uri':None,
     'ignore_status':False,
-    'virsh_exec':os_dep.command("virsh"),
+    'virsh_exec':VIRSH_EXEC,
     'debug':False,
 }
 
-# Persistant session virsh class properties and default values
+# Persistant session virsh class property extension to VIRSH_PROPERTIES
 VIRSH_SESSION_PROPS = {
     'session':None,
     'session_id':None
 }
+VIRSH_SESSION_PROPS.update(VIRSH_PROPERTIES)
+
+# Cache of virsh commands, used by has_help_command() and help_command()
+VIRSH_COMMAND_CACHE = None
 
 class VirshBase(dict):
     """
@@ -61,7 +69,8 @@ class VirshBase(dict):
         getter = getattr(cls, 'get_%s' % property_name,
                          lambda self: getattr(self, '_'+property_name))
         setter = getattr(cls, 'set_%s' % property_name,
-                         lambda self,value: setattr(self,
+                         lambda self,value: setattr(self, '_'+property_name,
+                                                    value))
         delter = getattr(cls, 'del_%s' % property_name,
                          lambda self: delattr(self, '_'+property_name))
         # Don't overwrite existing
@@ -74,7 +83,9 @@ class VirshBase(dict):
         Sets up generic getters/setters/deleteters if not defined for class
         """
         # allow dargs to extend VIRSH_PROPERTIES
-        for name in VIRSH_PROPERTIES.copy().update(dargs).keys():
+        _dargs = VIRSH_PROPERTIES.copy()
+        _dargs.update(dargs)
+        for name in _dargs.keys():
             cls._generate_property(name)
         # Super doesn't work for classes on python 2.4
         return dict.__new__(cls)
@@ -85,7 +96,9 @@ class VirshBase(dict):
         Initialize libvirt connection/state from VIRSH_PROPERTIES and/or dargs
         """
         # Setup defaults, (calls properties)
-        for name,value in VIRSH_PROPERTIES.copy().update(dargs).items():
+        _dargs = VIRSH_PROPERTIES.copy()
+        _dargs.update(dargs)
+        for name,value in _dargs.items():
             self[name] = value
 
 
@@ -98,7 +111,7 @@ class VirshBase(dict):
 
     def __setitem__(self, key, value):
         # Calls property functions if defined
-        setattr(self, key, value):
+        setattr(self, key, value)
 
 
     def __delitem__(self, key):
@@ -123,12 +136,14 @@ class VirshBase(dict):
 
 
     def set_debug(self, debug):
+        if hasattr(self, '_debug') and self._debug != debug:
+            logging.debug("Virsh debugging enabled: %s" % str(debug))
+        else:
+            return # no change
         if debug:
             self._debug = True
-            logging.debug("Virsh debugging switched on")
         else:
             self._debug = False
-            logging.debug("Virsh debugging switched off")
 
 
 # Ahhhhh, look out!  It's D Arg mangler comnta gettcha!
@@ -145,6 +160,9 @@ class DArgMangler(dict):
         param: *args: passed to ancestors constructor
         param: **dargs: passed to ancestors constructor
         """
+        if not issubclass(type(parent), dict):
+            raise ValueError("%s is not a %s" % (
+                              type(parent), dict))
         self._parent = parent
         super(DArgMangler, self).__init__(*args, **dargs)
 
@@ -157,10 +175,10 @@ class DArgMangler(dict):
         @raises: KeyError: When value is None, undefined locally or on parent.
         """
         try:
-            return super(DArgMangler, self)[key]
+            return super(DArgMangler, self).__getitem__(key)
         except KeyError:
             # Assume parent raises KeyError if value == None
-            return self.parent[key]
+            return self._parent.__getitem__(key)
 
 
 class VirshSession(aexpect.ShellSession):
@@ -247,7 +265,7 @@ class Closure(object):
         """
         Retrieve keyword args from state before calling ref function
         """
-        return _ref(*args, **DArgMangler(self._state, dargs))
+        return self._ref(*args, **DArgMangler(self._state, dargs))
 
 
 class Virsh(VirshBase):
@@ -265,8 +283,8 @@ class Virsh(VirshBase):
         # Define the instance callables from the contents of this module
         # to avoid using class methods and hand-written aliases
         for sym, ref in globals().items():
-            if sym not in self._NOCLOSE and callable(ref):
-                self[sym] = Closure(ref, self))
+            if sym not in _NOCLOSE and callable(ref):
+                self[sym] = Closure(ref, self)
 
 
 class VirshPersistant(Virsh):
@@ -276,9 +294,10 @@ class VirshPersistant(Virsh):
 
     def __new__(cls, **dargs):
         # Allow dargs to extend VIRSH_SESSION_PROPS
-        _dargs = VIRSH_SESSION_PROPS.copy().update(dargs)
+        _dargs = VIRSH_SESSION_PROPS.copy()
+        _dargs.update(dargs)
         # python 2.4 can't use super on class objects
-        return Virsh.__new__(**_dargs)
+        return Virsh.__new__(cls, **_dargs)
 
 
     def __init__(self, **dargs):
@@ -288,7 +307,8 @@ class VirshPersistant(Virsh):
         @param: **dargs: initial values for VIRSH_[PROPERTIES,SESSION_PROPS]
         """
 
-        _dargs = VIRSH_SESSION_PROPS.copy().update(dargs)
+        _dargs = VIRSH_SESSION_PROPS.copy()
+        _dargs.update(dargs)
         # new_session() called by super via uri property (below)
         super(VirshPersistant, self).__init__(**_dargs)
 
@@ -316,15 +336,15 @@ class VirshPersistant(Virsh):
         Accessed via property, i.e. virsh.uri = 'qemu://foobar/system'
         """
         # Don't assume ancestor get/set_uri() wasn't overridden
-        if super(Virsh, self).uri != uri:
-            super(Virsh, self).uri = uri
+        if self.get('uri') != uri:
+            self['_uri'] = uri
             self.new_session()
 
 
 ##### virsh module functions follow (See module docstring for API) #####
 
 
-def cmd(cmd, **dargs):
+def command(cmd, **dargs):
     """
     Interface to cmd function as 'cmd' symbol is polluted
 
@@ -334,14 +354,15 @@ def cmd(cmd, **dargs):
     @raises: CmdError if non-zero exit status and ignore_status=False
     """
 
-    uri = dargs.get('uri')
-    virsh_exec = dargs.get('virsh_exec')
-    debug = dargs.get('debug')
-    ignore_status = dargs.get('ignore_status')
-    session_id = dargs.get('session_id')
+    uri = dargs.get('uri', VIRSH_PROPERTIES['uri'])
+    virsh_exec = dargs.get('virsh_exec', VIRSH_PROPERTIES['virsh_exec'])
+    debug = dargs.get('debug', VIRSH_PROPERTIES['debug'])
+    ignore_status = dargs.get('ignore_status',
+                              VIRSH_PROPERTIES['ignore_status'])
+    session_id = dargs.get('session_id', None)
 
     if session_id:
-        session = VirshSession(id=session_id)
+        session = VirshSession(id = session_id)
         ret = session.cmd_result(cmd, ignore_status)
     else:
         uri_arg = " "
@@ -368,7 +389,7 @@ def domname(id, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: CmdResult object
     """
-    return cmd("domname --domain %s" % id, **dargs)
+    return command("domname --domain %s" % id, **dargs)
 
 
 def qemu_monitor_command(domname, command, **dargs):
@@ -381,7 +402,7 @@ def qemu_monitor_command(domname, command, **dargs):
     """
 
     cmd_qemu_monitor = "qemu-monitor-command %s --hmp \'%s\'" % (domname, command)
-    return cmd(cmd_qemu_monitor, **dargs)
+    return command(cmd_qemu_monitor, **dargs)
 
 
 def vcpupin(domname, vcpu, cpu, **dargs):
@@ -397,7 +418,7 @@ def vcpupin(domname, vcpu, cpu, **dargs):
 
     try:
         cmd_vcpupin = "vcpupin %s %s %s" % (domname, vcpu, cpu)
-        cmd(cmd_vcpupin, **dargs)
+        command(cmd_vcpupin, **dargs)
 
     except error.CmdError, detail:
         logging.error("Virsh vcpupin VM %s failed:\n%s", domname, detail)
@@ -414,7 +435,7 @@ def vcpuinfo(domname, **dargs):
     """
 
     cmd_vcpuinfo = "vcpuinfo %s" % domname
-    return cmd(cmd_vcpuinfo, **dargs).stdout.strip()
+    return command(cmd_vcpuinfo, **dargs).stdout.strip()
 
 
 def vcpucount_live(domname, **dargs):
@@ -427,7 +448,7 @@ def vcpucount_live(domname, **dargs):
     """
 
     cmd_vcpucount = "vcpucount --live --active %s" % domname
-    return cmd(cmd_vcpucount, **dargs).stdout.strip()
+    return command(cmd_vcpucount, **dargs).stdout.strip()
 
 
 def freecell(extra="", **dargs):
@@ -439,7 +460,7 @@ def freecell(extra="", **dargs):
     @return: CmdResult object
     """
     cmd_freecell = "freecell %s" % extra
-    return cmd(cmd_freecell, **dargs)
+    return command(cmd_freecell, **dargs)
 
 
 def nodeinfo(extra="", **dargs):
@@ -452,37 +473,39 @@ def nodeinfo(extra="", **dargs):
     @return: CmdResult object
     """
     cmd_nodeinfo = "nodeinfo %s" % extra
-    return cmd(cmd_nodeinfo, **dargs)
+    return command(cmd_nodeinfo, **dargs)
 
 
-def uri(**dargs):
+def canonical_uri(option='', **dargs):
     """
     Return the hypervisor canonical URI.
 
+    @param: option: additional option string to pass
     @param: dargs: standardized virsh function API keywords
     @return: standard output from command
     """
-    return cmd("uri", **dargs).stdout.strip()
+    return command("uri %s" % option, **dargs).stdout.strip()
 
-
-def hostname(**dargs):
+def hostname(option='', **dargs):
     """
     Return the hypervisor hostname.
 
+    @param: option: additional option string to pass
     @param: dargs: standardized virsh function API keywords
     @return: standard output from command
     """
-    return cmd("hostname", **dargs).stdout.strip()
+    return command("hostname %s" % option, **dargs).stdout.strip()
 
 
-def version(**dargs):
+def version(option='', **dargs):
     """
     Return the major version info about what this built from.
 
+    @param: option: additional option string to pass
     @param: dargs: standardized virsh function API keywords
     @return: standard output from command
     """
-    return cmd("version", **dargs).stdout.strip()
+    return command("version %s" % option, **dargs).stdout.strip()
 
 
 def driver(**dargs):
@@ -494,7 +517,7 @@ def driver(**dargs):
     """
     # libvirt schme composed of driver + command
     # ref: http://libvirt.org/uri.html
-    scheme = urlparse.urlsplit( uri(**dargs) )[0]
+    scheme = urlparse.urlsplit( canonical_uri(**dargs) )[0]
     # extract just the driver, whether or not there is a '+'
     return scheme.split('+', 2)[0]
 
@@ -507,7 +530,7 @@ def domstate(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: standard output from command
     """
-    return cmd("domstate %s" % name, **dargs).stdout.strip()
+    return command("domstate %s" % name, **dargs).stdout.strip()
 
 
 def domid(name, **dargs):
@@ -518,7 +541,7 @@ def domid(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: standard output from command
     """
-    return cmd("domid %s" % (name), **dargs).stdout.strip()
+    return command("domid %s" % (name), **dargs).stdout.strip()
 
 
 def dominfo(name, **dargs):
@@ -528,7 +551,7 @@ def dominfo(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: standard output from command
     """
-    return cmd("dominfo %s" % (name), **dargs).stdout.strip()
+    return command("dominfo %s" % (name), **dargs).stdout.strip()
 
 
 def domuuid(name, **dargs):
@@ -539,7 +562,7 @@ def domuuid(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: standard output from command
     """
-    return cmd("domuuid %s" % name, **dargs).stdout.strip()
+    return command("domuuid %s" % name, **dargs).stdout.strip()
 
 
 def screenshot(name, filename, **dargs):
@@ -552,7 +575,7 @@ def screenshot(name, filename, **dargs):
     @return: filename
     """
     try:
-        cmd("screenshot %s %s" % (name, filename), **dargs)
+        command("screenshot %s %s" % (name, filename), **dargs)
     except error.CmdError, detail:
         if _SCREENSHOT_ERROR_COUNT < 1:
             logging.error("Error taking VM %s screenshot. You might have to "
@@ -577,7 +600,7 @@ def dumpxml(name, to_file="", **dargs):
     else:
         cmd = "dumpxml %s" % name
 
-    return cmd(cmd, **dargs).stdout.strip()
+    return command(cmd, **dargs).stdout.strip()
 
 
 def is_alive(name, **dargs):
@@ -618,7 +641,7 @@ def suspend(name, **dargs):
     @return: True operation was successful
     """
     try:
-        cmd("suspend %s" % (name), **dargs)
+        command("suspend %s" % (name), **dargs)
         if domstate(name, **dargs) == 'paused':
             logging.debug("Suspended VM %s", name)
             return True
@@ -638,7 +661,7 @@ def resume(name, **dargs):
     @return: True operation was successful
     """
     try:
-        cmd("resume %s" % (name), **dargs)
+        command("resume %s" % (name), **dargs)
         if is_alive(name, **dargs):
             logging.debug("Resumed VM %s", name)
             return True
@@ -661,7 +684,7 @@ def save(name, path, **dargs):
     if state not in ('paused',):
         raise virt_vm.VMStatusError("Cannot save a VM that is %s" % state)
     logging.debug("Saving VM %s to %s" %(name, path))
-    cmd("save %s %s" % (name, path), **dargs)
+    command("save %s %s" % (name, path), **dargs)
     # libvirt always stops VM after saving
     state = domstate(name, **dargs)
     if state not in ('shut off',):
@@ -682,7 +705,7 @@ def restore(name, path, **dargs):
     if state not in ('shut off',):
         raise virt_vm.VMStatusError("Can not restore VM that is %s" % state)
     logging.debug("Restoring VM from %s" % path)
-    cmd("restore %s" % path, **dargs)
+    command("restore %s" % path, **dargs)
     state = domstate(name, **dargs)
     if state not in ('paused','running'):
         raise virt_vm.VMStatusError("VM not paused after restore, it is %s." %
@@ -700,7 +723,7 @@ def start(name, **dargs):
     if is_alive(name, **dargs):
         return True
     try:
-        cmd("start %s" % (name), **dargs)
+        command("start %s" % (name), **dargs)
         return True
     except error.CmdError, detail:
         logging.error("Start VM %s failed:\n%s", name, detail)
@@ -718,7 +741,7 @@ def shutdown(name, **dargs):
     if domstate(name, **dargs) == 'shut off':
         return True
     try:
-        cmd("shutdown %s" % (name), **dargs)
+        command("shutdown %s" % (name), **dargs)
         return True
     except error.CmdError, detail:
         logging.error("Shutdown VM %s failed:\n%s", name, detail)
@@ -736,7 +759,7 @@ def destroy(name, **dargs):
     if domstate(name, **dargs) == 'shut off':
         return True
     try:
-        cmd("destroy %s" % (name), **dargs)
+        command("destroy %s" % (name), **dargs)
         return True
     except error.CmdError, detail:
         logging.error("Destroy VM %s failed:\n%s", name, detail)
@@ -752,7 +775,7 @@ def define(xml_path, **dargs):
     @return: True operation was successful
     """
     try:
-        cmd("define --file %s" % xml_path, **dargs)
+        command("define --file %s" % xml_path, **dargs)
         return True
     except error.CmdError:
         logging.error("Define %s failed.", xml_path)
@@ -768,7 +791,7 @@ def undefine(name, **dargs):
     @return: True operation was successful
     """
     try:
-        cmd("undefine %s" % (name), **dargs)
+        command("undefine %s" % (name), **dargs)
         logging.debug("undefined VM %s", name)
         return True
     except error.CmdError, detail:
@@ -800,7 +823,7 @@ def domain_exists(name, **dargs):
     @return: True operation was successful
     """
     try:
-        cmd("domstate %s" % name, **dargs)
+        command("domstate %s" % name, **dargs)
         return True
     except error.CmdError, detail:
         logging.warning("VM %s does not exist:\n%s", name, detail)
@@ -828,7 +851,7 @@ def migrate(name="", dest_uri="", option="", extra="", **dargs):
     if extra:
         cmd += " %s" % extra
 
-    return cmd(cmd, **dargs)
+    return command(cmd, **dargs)
 
 
 def attach_device(name, xml_file, extra="", **dargs):
@@ -843,7 +866,7 @@ def attach_device(name, xml_file, extra="", **dargs):
     """
     cmd = "attach-device --domain %s --file %s %s" % (name, xml_file, extra)
     try:
-        cmd(cmd, **dargs)
+        command(cmd, **dargs)
         return True
     except error.CmdError:
         logging.error("Attaching device to VM %s failed." % name)
@@ -862,7 +885,7 @@ def detach_device(name, xml_file, extra="", **dargs):
     """
     cmd = "detach-device --domain %s --file %s %s" % (name, xml_file, extra)
     try:
-        cmd(cmd, **dargs)
+        command(cmd, **dargs)
         return True
     except error.CmdError:
         logging.error("Detaching device from VM %s failed." % name)
@@ -885,7 +908,7 @@ def attach_interface(name, option="", **dargs):
     if option:
         cmd += " %s" % option
 
-    return cmd(cmd, **dargs)
+    return command(cmd, **dargs)
 
 
 def detach_interface(name, option="", **dargs):
@@ -904,7 +927,7 @@ def detach_interface(name, option="", **dargs):
     if option:
         cmd += " %s" % option
 
-    return cmd(cmd, **dargs)
+    return command(cmd, **dargs)
 
 
 def net_create(xml_file, extra="", **dargs):
@@ -918,7 +941,7 @@ def net_create(xml_file, extra="", **dargs):
     @return: CmdResult object
     """
     cmd = "net-create --file %s %s" % (xml_file, extra)
-    return cmd(cmd, **dargs)
+    return command(cmd, **dargs)
 
 
 def net_list(options, extra="", **dargs):
@@ -931,7 +954,7 @@ def net_list(options, extra="", **dargs):
     @return: CmdResult object
     """
     cmd = "net-list %s %s" % (options, extra)
-    return cmd(cmd, **dargs)
+    return command(cmd, **dargs)
 
 
 def net_destroy(name, extra="", **dargs):
@@ -944,7 +967,7 @@ def net_destroy(name, extra="", **dargs):
     @return: CmdResult object
     """
     cmd = "net-destroy --network %s %s" % (name, extra)
-    return cmd(cmd, **dargs)
+    return command(cmd, **dargs)
 
 
 def pool_info(name, **dargs):
@@ -956,7 +979,7 @@ def pool_info(name, **dargs):
     """
     cmd = "pool-info %s" % name
     try:
-        cmd(cmd, **dargs)
+        command(cmd, **dargs)
         return True
     except error.CmdError, detail:
         logging.error("Pool %s doesn't exist:\n%s", name, detail)
@@ -972,7 +995,7 @@ def pool_destroy(name, **dargs):
     """
     cmd = "pool-destroy %s" % name
     try:
-        cmd(cmd, **dargs)
+        command(cmd, **dargs)
         return True
     except error.CmdError, detail:
         logging.error("Failed to destroy pool: %s." % detail)
@@ -1005,8 +1028,53 @@ def pool_create_as(name, pool_type, target, extra="", **dargs):
     cmd = "pool-create-as --name %s --type %s --target %s %s" \
           % (name, pool_type, target, extra)
     try:
-        cmd(cmd, **dargs)
+        command(cmd, **dargs)
         return True
     except error.CmdError, detail:
         logging.error("Failed to create pool: %s." % detail)
         return False
+
+
+def capabilities(option='', **dargs):
+    """
+    Return output from virsh capibilities command
+
+    @param: option: additional options (takes none)
+    @param: dargs: standardized virsh function API keywords
+    """
+    return command('capabilities %s' % option, **dargs).stdout.strip()
+
+
+def help_command(options='', cache=False, **dargs):
+    """
+    Return list of commands in help command output
+
+    @param: options: additional options to pass to help command
+    @param: cache: Return cached result if True, or refreshed cache if False
+    @param: dargs: standardized virsh function API keywords
+    """
+    # global needed to support this function's use in Virsh method closure
+    global VIRSH_COMMAND_CACHE
+    if not VIRSH_COMMAND_CACHE or cache is False:
+        VIRSH_COMMAND_CACHE = []
+        cmd = 'help'
+        if options:
+            cmd += (' ' + options)
+        r = re.compile(r"\s+([a-zA-Z0-9-]+)\s+")
+        for line in command(cmd, **dargs).stdout.strip().splitlines():
+            mo = r.search(line)
+            if mo:
+                VIRSH_COMMAND_CACHE.append(mo.group(1))
+    # Prevent accidental modification of cache itself
+    return list(VIRSH_COMMAND_CACHE)
+
+
+def has_help_command(cmd, options='', **dargs):
+    """
+    Regex Search for '^\s+<command>\s+' in virsh help output
+
+    @param: cmd: Name of command to look for
+    @param: options: Additional options to send to help command
+    @return: True/False
+    """
+    return bool(help_command(options, cache=True, **dargs).count(cmd))

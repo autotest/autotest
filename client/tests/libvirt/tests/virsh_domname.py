@@ -1,6 +1,6 @@
 import logging, time
 from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm
+from autotest.client.virt import libvirt_vm, virsh
 
 
 def run_virsh_domname(test, params, env):
@@ -17,6 +17,7 @@ def run_virsh_domname(test, params, env):
 
     domid = vm.get_id().strip()
     domuuid = vm.get_uuid().strip()
+    connect_uri = vm.connect_uri
 
     #Prepare libvirtd status
     libvirtd = params.get("libvirtd", "on")
@@ -47,7 +48,8 @@ def run_virsh_domname(test, params, env):
         options = (options % options_ref)
     if options_suffix:
         options = options + " " + options_suffix
-    result = libvirt_vm.virsh_domname(options, ignore_status=True, print_info=True)
+    result = virsh.domname(options, ignore_status=True, debug=True,
+                           uri = connect_uri)
 
     #Recover libvirtd service to start
     if libvirtd == "off":

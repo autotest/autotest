@@ -1,7 +1,6 @@
 import logging, re, os, commands, string, math
 from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm
-from autotest.client import *
+from autotest.client.virt import virsh
 
 def run_virsh_vcpupin(test, params, env):
     """
@@ -28,7 +27,7 @@ def run_virsh_vcpupin(test, params, env):
         @param: vcpu: vcpu number for which the affinity is required
         """
 
-        output = libvirt_vm.virsh_vcpuinfo(domname)
+        output = virsh.vcpuinfo(domname)
         cmd = re.findall('[^Affinity:][-y]+', str(output))
         total_affinity = cmd[vcpu].lstrip()
         actual_affinity = list(total_affinity)
@@ -96,6 +95,8 @@ def run_virsh_vcpupin(test, params, env):
                                           %(vm_name, vcpu, cpu, pid, vcpu_pid))
 
 
+    if not virsh.has_help_command('vcpucount'):
+        raise error.TestNAError("This version of libvirt doesn't support this test")
     # Get the vm name, pid of vm and check for alive
     vm_name = params.get("main_vm")
     vm = env.get_vm(params["main_vm"])
@@ -106,7 +107,7 @@ def run_virsh_vcpupin(test, params, env):
     host_cpu_count = utils.count_cpus()
 
     # Get the guest vcpu count
-    guest_vcpu_count = libvirt_vm.virsh_vcpucount_live(vm_name)
+    guest_vcpu_count = virsh.vcpucount_live(vm_name)
 
     # Run test case
     for vcpu in range(int(guest_vcpu_count)):
