@@ -361,6 +361,77 @@ variants:
                 addition_status_error = "yes"
                 libvirtd = "off"
 
+    - virsh_list:
+        type = virsh_list
+        vm_start = yes
+        kill_vm = yes
+        kill_vm_on_error = yes
+        variants:
+            - with_valid_options:
+                status_error = "no"
+                variants:
+                    - inactive:
+                        options_ref = "inactive"
+                    - all:
+                        options_ref = "all"
+                    - none:
+                        options_ref = ""
+                variants:
+                    - list_table:
+                        list_ref = "--table"
+                    - list_name:
+                        list_ref = "--name"
+                    - list_uuid:
+                        list_ref = "--uuid"
+                    - list_none:
+                        list_ref = ""
+            - with_invalid_options:
+                status_error = "yes"
+                variants:
+                    - invalid_string:
+                        options_ref = "xyz"
+                    - vm_id:
+                        options_ref = "vm_id"
+                    - vm_name:
+                        options_ref = "vm_name"
+                    - vm_uuid:
+                        options_ref = "vm_uuid"
+        variants:
+            - normal_test:
+                addition_status_error = "no"
+            - special_test:
+                variants:
+                    - list_transient_domains:
+                        only with_valid_options
+                        addition_status_error = "no"
+                        vm_ref = "transient"
+                    - list_persistent_domains:
+                        only with_valid_options
+                        addition_status_error = "no"
+                        vm_ref = "persistent"
+                    - with_managed_save:
+                        only with_valid_options.list_table.all
+                        #Because managedsave command will shutdown domain
+                        #we should list all if we need to check the mark of saved.
+                        addition_status_error = "no"
+                        vm_ref = "managed-save"
+                    - list_local_domains_on_remote:
+                        #You should config ssh autologin between remote and local
+                        #when you test list_local_domains_on_remote.
+                        only with_valid_options
+                        addition_status_error = "no"
+                        remote_ref = "remote"
+                        #remote host's IP
+                        remote_ip = "127.0.0.1"
+                        #remote host's password
+                        remote_passwd = "password"
+                        #local host's ip
+                        local_ip = "127.0.0.1"
+                    - with_libvirt_off:
+                        only with_valid_options
+                        addition_status_error = "yes"
+                        libvirtd = "off"
+
     - module_probe:
         type = module_probe
         # You can specify your own module list, though it is not needed usually.
