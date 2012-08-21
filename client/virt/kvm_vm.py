@@ -1743,7 +1743,15 @@ class VM(virt_vm.BaseVM):
                     output_params=(outfile,))
 
             # start guest
-            self.monitor.cmd("cont")
+            if self.monitor.verify_status("paused"):
+                try:
+                    self.monitor.cmd("cont")
+                except kvm_monitor.QMPCmdError, e:
+                    if ((e.data['class'] == "MigrationExpected") and
+                        (migration_mode is not None)):
+                        logging.debug("Migration did not start yet...")
+                    else:
+                        raise e
 
         finally:
             fcntl.lockf(lockfile, fcntl.LOCK_UN)

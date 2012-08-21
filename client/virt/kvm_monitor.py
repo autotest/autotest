@@ -1152,7 +1152,13 @@ class QMPMonitor(Monitor):
         args = {"uri": uri,
                 "blk": full_copy,
                 "inc": incremental_copy}
-        return self.cmd("migrate", args)
+        try:
+            return self.cmd("migrate", args)
+        except QMPCmdError, e:
+            if e.data['class'] == 'SockConnectInprogress':
+                logging.debug("Migrate socket connection still initializing...")
+            else:
+                raise e
 
 
     def migrate_set_speed(self, value):
