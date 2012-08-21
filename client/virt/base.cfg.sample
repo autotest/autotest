@@ -5,6 +5,16 @@ qemu_binary = qemu
 qemu_img_binary = qemu-img
 qemu_io_binary = qemu-io
 
+# Qemu cmd prefix (to attach qemu to valgrind, for example)
+#qemu_command_prefix = valgrind
+
+# Explicitly pass -enable-kvm to qemu (default yes)
+#enable_kvm = yes
+# Explicitly pass -no-kvm to qemu (default no)
+#disable_kvm = no
+# Explicitly pass -disable-shutdown to qemu (default no)
+#disable_shutdown = no
+
 # List of virtual machine object names (whitespace seperated)
 vms = vm1
 # Default virtual machine to use, when not specified by test.

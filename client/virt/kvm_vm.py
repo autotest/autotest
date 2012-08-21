@@ -951,6 +951,10 @@ class VM(virt_vm.BaseVM):
             qemu_cmd += "LD_LIBRARY_PATH=%s " % library_path
         if params.get("qemu_audio_drv"):
             qemu_cmd += "QEMU_AUDIO_DRV=%s " % params.get("qemu_audio_drv")
+        # Add command prefix for qemu-kvm. like taskset, valgrind and so on
+        if params.get("qemu_command_prefix"):
+            qemu_command_prefix = params.get("qemu_command_prefix")
+            qemu_cmd += "%s " % qemu_command_prefix
         # Add numa memory cmd to pin guest memory to numa node
         if params.get("numa_node"):
             numa_node = int(params.get("numa_node"))
@@ -1374,8 +1378,16 @@ class VM(virt_vm.BaseVM):
             qemu_cmd += " %s" % extra_params
 
         if (has_option(hlp, "enable-kvm")
-            and params.get("enable-kvm", "yes") == "yes"):
+            and params.get("enable_kvm", "yes") == "yes"):
             qemu_cmd += " -enable-kvm"
+
+        if (has_option(hlp, "no-kvm") and
+            params.get("disable_kvm", "no") == "yes"):
+            qemu_cmd += " -no-kvm "
+
+        if (has_option(hlp, "no-shutdown") and
+            params.get("disable_shutdown", "no") == "yes"):
+            qemu_cmd += " -no-shutdown "
 
         if params.get("enable_sga") == "yes":
             qemu_cmd += add_sga(hlp)
