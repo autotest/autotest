@@ -2337,6 +2337,7 @@ class VM(virt_vm.BaseVM):
 
         try:
             if self.params["display"] == "spice":
+                host_ip = utils_misc.get_host_ip_address(self.params)
                 dest_port = clone.spice_options['spice_port']
                 logging.debug("Informing migration to spice client")
                 commands = ["__com.redhat_spice_migrate_info",
@@ -2347,15 +2348,15 @@ class VM(virt_vm.BaseVM):
                     out = self.monitor.cmd("help", debug=False)
                     for command in commands:
                         if "\n%s" % command in out:
-                            # spice_migrate_info requires dest_host, dest_port
+                            # spice_migrate_info requires host_ip, dest_port
                             if command in commands[:2]:
-                                command = "%s %s %s" % (command, dest_host,
+                                command = "%s %s %s" % (command, host_ip,
                                                         dest_port)
                             # client_migrate_info also requires protocol
                             else:
                                 command = "%s %s %s %s" % (command,
                                                          self.params['display'],
-                                                         dest_host, dest_port)
+                                                         host_ip, dest_port)
                             break
                     self.monitor.cmd(command)
 
@@ -2363,18 +2364,18 @@ class VM(virt_vm.BaseVM):
                     out = self.monitor.cmd_obj({"execute": "query-commands"})
                     for command in commands:
                         if {'name': command} in out['return']:
-                            # spice_migrate_info requires dest_host, dest_port
+                            # spice_migrate_info requires host_ip, dest_port
                             if command in commands[:2]:
                                 command_dict = {"execute": command,
                                                 "arguments":
-                                                 {"hostname": dest_host,
+                                                 {"hostname": host_ip,
                                                   "port": dest_port}}
                             # client_migrate_info also requires protocol
                             else:
                                 command_dict = {"execute": command,
                                                 "arguments":
                                             {"protocol": self.params['display'],
-                                             "hostname": dest_host,
+                                             "hostname": host_ip,
                                              "port": dest_port}}
                             break
                     self.monitor.cmd_obj(command_dict)
