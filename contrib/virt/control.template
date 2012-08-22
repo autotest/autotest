@@ -9,7 +9,7 @@ os.environ['LANG'] = 'en_US.UTF-8'
 kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'kvm')
 sys.path.append(kvm_test_dir)
 from autotest.client.shared import cartesian_config
-from autotest.client.virt import virt_utils
+from autotest.client.virt import utils_misc
 
 kernel_install_params = %s
 custom_cfg = %s
@@ -19,7 +19,7 @@ def step_init():
     job.next_step([step_test])
     if kernel_install:
         try:
-            virt_utils.install_host_kernel(job, kernel_install_params)
+            utils_misc.install_host_kernel(job, kernel_install_params)
         except Exception, details:
             job.record('FAIL', None, 'host kernel install (client)', str(details))
 
@@ -28,7 +28,7 @@ def step_test():
     parser.parse_file(os.path.join(kvm_test_dir, "redhat.cfg"))
     for line in custom_cfg:
         parser.parse_string(line)
-    virt_utils.run_tests(parser, job)
+    utils_misc.run_tests(parser, job)
 ''' % (params, custom_cfg, kernel_install)
     return control
 

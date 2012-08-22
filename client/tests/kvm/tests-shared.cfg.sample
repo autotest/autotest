@@ -33,7 +33,7 @@ other_tests_dirs = ""
 #   (for example, the cdrom share can be read only)
 image_name(_.*)? ?<= /tmp/kvm_autotest_root/images/
 cdrom(_.*)? ?<= /tmp/kvm_autotest_root/
-floppy ?<= /tmp/kvm_autotest_root/
+floppy(_.*)? ?<= /tmp/kvm_autotest_root/
 Linux..unattended_install:
     kernel ?<= /tmp/kvm_autotest_root/
     initrd ?<= /tmp/kvm_autotest_root/
