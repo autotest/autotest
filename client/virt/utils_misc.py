@@ -4321,3 +4321,16 @@ def get_ip_address_by_interface(ifname):
                 )[20:24])
     except IOError:
         raise NetError("Error while retrieving IP address from interface %s." % ifname)
+
+def get_host_ip_address(params):
+    """
+    returns ip address of host specified in host_ip_addr parameter If provided
+    otherwise ip address on interface specified in netdst paramter is returned
+    @param params
+    """
+    host_ip = params.get('host_ip_addr', None)
+    if not host_ip:
+        host_ip = get_ip_address_by_interface(params.get('netdst'))
+        logging.warning("No IP address of host was provided, using IP address"
+                        " on %s interface", str(params.get('netdst')))
+    return host_ip
