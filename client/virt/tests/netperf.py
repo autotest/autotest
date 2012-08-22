@@ -1,6 +1,6 @@
 import logging, os, commands, threading, re, glob
-from autotest.server.hosts.ssh_host import SSHHost
 from autotest.client import utils
+from autotest.client.shared import ssh_key
 from autotest.client.virt import utils_test, utils_misc, remote
 
 
@@ -60,7 +60,8 @@ def run_netperf(test, params, env):
 
     def env_setup(ip):
         logging.debug("Setup env for %s" % ip)
-        SSHHost(ip, user=username, port=shell_port, password=password)
+        ssh_key.setup_ssh_key(hostname=ip, user=username, port=shell_port,
+                              password=password)
         ssh_cmd(ip, "service iptables stop")
         ssh_cmd(ip, "echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore")
 
