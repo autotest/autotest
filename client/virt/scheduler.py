@@ -24,12 +24,12 @@ class scheduler:
         self.total_mem = total_mem
         self.bindir = bindir
         # Pipes -- s stands for scheduler, w stands for worker
-        self.s2w = [os.pipe() for i in range(num_workers)]
-        self.w2s = [os.pipe() for i in range(num_workers)]
-        self.s2w_r = [os.fdopen(r, "r", 0) for r, w in self.s2w]
-        self.s2w_w = [os.fdopen(w, "w", 0) for r, w in self.s2w]
-        self.w2s_r = [os.fdopen(r, "r", 0) for r, w in self.w2s]
-        self.w2s_w = [os.fdopen(w, "w", 0) for r, w in self.w2s]
+        self.s2w = [os.pipe() for _ in range(num_workers)]
+        self.w2s = [os.pipe() for _ in range(num_workers)]
+        self.s2w_r = [os.fdopen(r, "r", 0) for r, _ in self.s2w]
+        self.s2w_w = [os.fdopen(w, "w", 0) for _, w in self.s2w]
+        self.w2s_r = [os.fdopen(r, "r", 0) for r, _ in self.w2s]
+        self.w2s_w = [os.fdopen(w, "w", 0) for _, w in self.w2s]
         # "Personal" worker dicts contain modifications that are applied
         # specifically to each worker.  For example, each worker must use a
         # different environment file and a different MAC address pool.
@@ -75,7 +75,7 @@ class scheduler:
                 env_filename = os.path.join(self.bindir, self_dict["env"])
                 env = utils_misc.Env(env_filename)
                 for obj in env.values():
-                    if isinstance(obj, virt_vm.VM):
+                    if isinstance(obj, virt_vm.BaseVM):
                         obj.destroy()
                     elif isinstance(obj, aexpect.Spawn):
                         obj.close()
@@ -104,7 +104,7 @@ class scheduler:
 
         while True:
             # Wait for a message from a worker
-            r, w, x = select.select(self.w2s_r, [], [])
+            r, _, _ = select.select(self.w2s_r, [], [])
 
             someone_is_ready = False
 
