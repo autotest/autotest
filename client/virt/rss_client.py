@@ -122,12 +122,12 @@ class FileTransferClient(object):
         self._socket.close()
 
 
-    def _send(self, str, timeout=60):
+    def _send(self, sr, timeout=60):
         try:
             if timeout <= 0:
                 raise socket.timeout
             self._socket.settimeout(timeout)
-            self._socket.sendall(str)
+            self._socket.sendall(sr)
         except socket.timeout:
             raise FileTransferTimeoutError("Timeout expired while sending "
                                            "data to server")
@@ -161,7 +161,7 @@ class FileTransferClient(object):
         return "".join(strs)
 
 
-    def _report_stats(self, str):
+    def _report_stats(self, sr):
         if self._log_func:
             dt = time.time() - self._last_time
             if dt >= 1:
@@ -169,24 +169,24 @@ class FileTransferClient(object):
                 speed = (self.transferred - self._last_transferred) / dt
                 speed /= 1048576.
                 self._log_func("%s %.3f MB (%.3f MB/sec)" %
-                               (str, transferred, speed))
+                               (sr, transferred, speed))
                 self._last_time = time.time()
                 self._last_transferred = self.transferred
 
 
-    def _send_packet(self, str, timeout=60):
-        self._send(struct.pack("=I", len(str)))
-        self._send(str, timeout)
-        self.transferred += len(str) + 4
+    def _send_packet(self, sr, timeout=60):
+        self._send(struct.pack("=I", len(sr)))
+        self._send(sr, timeout)
+        self.transferred += len(sr) + 4
         self._report_stats("Sent")
 
 
     def _receive_packet(self, timeout=60):
         size = struct.unpack("=I", self._receive(4))[0]
-        str = self._receive(size, timeout)
-        self.transferred += len(str) + 4
+        sr = self._receive(size, timeout)
+        self.transferred += len(sr) + 4
         self._report_stats("Received")
-        return str
+        return sr
 
 
     def _send_file_chunks(self, filename, timeout=60):
