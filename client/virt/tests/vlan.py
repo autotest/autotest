@@ -122,7 +122,7 @@ def run_vlan(test, params, env):
                 for i in range(2):
                     interface = ifname[i] + '.' + str(vlan)
                     dest = subnet +'.'+ str(vlan2)+ '.' + ip_unit[(i+1)%2]
-                    s, o = utils_test.ping(dest, count=2,
+                    s, _ = utils_test.ping(dest, count=2,
                                               interface=interface,
                                               session=session[i], timeout=30)
                     if ((vlan == vlan2) ^ (s == 0)):

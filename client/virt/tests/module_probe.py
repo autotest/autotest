@@ -27,7 +27,7 @@ def run_module_probe(test, params, env):
 
     load_count = int(params.get("load_count", 100))
     try:
-        for i in range(load_count):
+        for _ in range(load_count):
             try:
                 installer_object.load_modules()
             except Exception,e:

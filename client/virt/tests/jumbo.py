@@ -52,7 +52,7 @@ def run_jumbo(test, params, env):
         utils.run(arp_add_cmd)
 
         def is_mtu_ok():
-            s, o = utils_test.ping(ip, 1, interface=ifname,
+            s, _ = utils_test.ping(ip, 1, interface=ifname,
                                        packetsize=max_icmp_pkt_size,
                                        hint="do", timeout=2)
             return s == 0
@@ -78,7 +78,7 @@ def run_jumbo(test, params, env):
 
         def large_frame_ping(count=100):
             logging.info("Large frame ping")
-            s, o = utils_test.ping(ip, count, interface=ifname,
+            _, o = utils_test.ping(ip, count, interface=ifname,
                                        packetsize=max_icmp_pkt_size,
                                        timeout=float(count) * 2)
             ratio = utils_test.get_loss_ratio(o)

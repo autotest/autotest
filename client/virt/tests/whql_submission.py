@@ -185,7 +185,7 @@ def run_whql_submission(test, params, env):
     results = eval("".join(results.splitlines()))
 
     # Download logs and HTML reports from the server
-    for i, r in enumerate(results):
+    for r in results:
         if "report" in r:
             try:
                 rss_client.download(server_address,

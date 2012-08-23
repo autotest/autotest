@@ -67,7 +67,7 @@ def run_ntttcp(test, params, env):
             # Don't install ntttcp if it's already installed
             error.context("NTttcp directory already exists")
             session.cmd(params.get("check_ntttcp_cmd"))
-        except aexpect.ShellCmdError, e:
+        except aexpect.ShellCmdError:
             ntttcp_install_cmd = params.get("ntttcp_install_cmd")
             error.context("Installing NTttcp on guest")
             session.cmd(ntttcp_install_cmd % (platform, platform), timeout=200)
@@ -135,13 +135,13 @@ def run_ntttcp(test, params, env):
 
     def parse_file(resultfile):
         """ Parse raw result files and generate files with standard format """
-        file = open(resultfile, "r")
-        list= []
+        fileobj = open(resultfile, "r")
+        lst= []
         found = False
-        for line in file.readlines():
+        for line in fileobj.readlines():
             o = re.findall("Send buffer size: (\d+)", line)
             if o:
-                buffer = o[0]
+                bfr = o[0]
             if "Total Throughput(Mbit/s)" in line:
                 found = True
             if found:
@@ -150,11 +150,11 @@ def run_ntttcp(test, params, env):
                     continue
                 try:
                     [float(i) for i in fields]
-                    list.append([buffer, fields[-1]])
+                    lst.append([bfr, fields[-1]])
                 except ValueError:
                     continue
                 found = False
-        return list
+        return lst
 
     try:
         bg = utils.InterruptedThread(receiver, ())

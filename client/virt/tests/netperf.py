@@ -115,8 +115,8 @@ def start_test(server, server_ctl, host, client, resultsdir, l=60,
     def parse_file(file_prefix, raw=""):
         """ Parse result files and reture throughput total """
         thu = 0
-        for file in glob.glob("%s.*.nf" % file_prefix):
-            o = commands.getoutput("cat %s |tail -n 1" % file)
+        for filename in glob.glob("%s.*.nf" % file_prefix):
+            o = commands.getoutput("cat %s |tail -n 1" % filename)
             try:
                 thu += float(o.split()[raw])
             except:

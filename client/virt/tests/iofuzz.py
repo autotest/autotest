@@ -126,7 +126,7 @@ def run_iofuzz(test, params, env):
                 inst.append(("write", [port, 0]))
 
             # Write random values to random ports of the range
-            for seq in range(fuzz_count * (end - beg + 1)):
+            for _ in range(fuzz_count * (end - beg + 1)):
                 inst.append(("write",
                              [r.randint(beg, end), r.randint(0,255)]))
 
