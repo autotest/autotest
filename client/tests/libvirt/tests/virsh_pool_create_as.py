@@ -30,7 +30,7 @@ def run_virsh_pool_create_as(test, params, env):
 
     logging.info('Creating a %s type pool %s' % (pool_type, pool_name))
     status = virsh.pool_create_as(pool_name, pool_type, pool_target,
-                                  extra = pool_options, uri = virsh.canonical_uri())
+                                  extra=pool_options, uri=virsh.canonical_uri())
 
     # Check status_error
     status_error = params.get('status_error')
@@ -40,7 +40,7 @@ def run_virsh_pool_create_as(test, params, env):
         else:
             logging.info("It's an expected error")
     elif status_error == 'no':
-        if not virt.virsh_pool_info(pool_name, uri = virsh.canonical_uri()):
+        if not virsh.pool_info(pool_name, uri=virsh.canonical_uri()):
             raise error.TestFail('Failed to check pool information')
         else:
             logging.info('Pool %s is running' % pool_name)

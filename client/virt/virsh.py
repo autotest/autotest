@@ -4,9 +4,9 @@ Utility classes and functions to handle connection to a libvirt host system
 Suggested usage: import autotest.client.virt.virsh
 
 The entire contents of callables in this module (minus the names defined in
-_NOCLOSE below), will become methods of the Virsh and VirshPersistant classes.
+_NOCLOSE below), will become methods of the Virsh and VirshPersistent classes.
 A Closure class is used to wrap the module functions, and allow for
-Virsh/VrshPersistant instance state to be passed.  This is acomplished
+Virsh/VrshPersistent instance state to be passed.  This is accomplished
 by encoding state as dictionary of keyword arguments, and passing
 that to the module functions.
 
@@ -20,18 +20,20 @@ is defined by VIRSH_PROPERTIES and possibly VIRSH_SESSION_PROPS.
 
 import logging, urlparse, re
 from autotest.client import utils, os_dep
-from autotest.client.shared import error, contents
+from autotest.client.shared import error
 import aexpect, virt_vm
 
+# Store runtime namespace for filtering later
+MODULE_CONTENTS = globals()
 
 # Needs to be in-scope for Virsh* class screenshot method and module function
 _SCREENSHOT_ERROR_COUNT = 0
 
 # list of symbol names NOT to wrap as Virsh class methods
 # Everything else from globals() will become a method of Virsh class
-_NOCLOSE = contents.get_map().keys() + [
+_NOCLOSE = MODULE_CONTENTS.keys() + [
     '_SCREENSHOT_ERROR_COUNT', '_NOCLOSE', 'VirshBase', 'DArgMangler',
-    'VirshSession', 'Closure', 'Virsh', 'VirshPersistant', 'VIRSH_EXEC',
+    'VirshSession', 'Closure', 'Virsh', 'VirshPersistent', 'VIRSH_EXEC',
     'VIRSH_COMMAND_CACHE'
 ]
 
@@ -47,7 +49,7 @@ VIRSH_PROPERTIES = {
     'debug':False,
 }
 
-# Persistant session virsh class property extension to VIRSH_PROPERTIES
+# Persistent session virsh class property extension to VIRSH_PROPERTIES
 VIRSH_SESSION_PROPS = {
     'session':None,
     'session_id':None
@@ -202,7 +204,6 @@ class VirshSession(aexpect.ShellSession):
         @param prompt: Regular expression describing the shell's prompt line.
         """
 
-        uri_arg = ""
         if uri:
             virsh_exec += " -c '%s'" % uri
 
@@ -239,7 +240,7 @@ class VirshSession(aexpect.ShellSession):
     def cmd_result(self, cmd, ignore_status=False):
         """Mimic utils.run()"""
         exit_status, stdout = self.cmd_status_output(cmd)
-        stderr = '' # no way to retrieve this separatly
+        stderr = '' # no way to retrieve this separately
         result = utils.CmdResult(cmd, stdout, stderr, exit_status)
         if not ignore_status and exit_status:
             raise error.CmdError(cmd, result,
@@ -250,7 +251,7 @@ class VirshSession(aexpect.ShellSession):
 # across different versions of python
 class Closure(object):
     """
-    Callable instances for function with persistant internal state
+    Callable instances for function with persistent internal state
     """
 
     def __init__(self, ref, state):
@@ -275,7 +276,7 @@ class Virsh(VirshBase):
 
     def __init__(self, **dargs):
         """
-        Initialize Virsh instance with persistant options
+        Initialize Virsh instance with persistent options
 
         @param: **dargs: initial values for VIRSH_PROPERTIES
         """
@@ -287,9 +288,9 @@ class Virsh(VirshBase):
                 self[sym] = Closure(ref, self)
 
 
-class VirshPersistant(Virsh):
+class VirshPersistent(Virsh):
     """
-    Execute libvirt operations using persistant virsh session.
+    Execute libvirt operations using persistent virsh session.
     """
 
     def __new__(cls, **dargs):
@@ -302,7 +303,7 @@ class VirshPersistant(Virsh):
 
     def __init__(self, **dargs):
         """
-        Initialize persistant virsh session.
+        Initialize persistent virsh session.
 
         @param: **dargs: initial values for VIRSH_[PROPERTIES,SESSION_PROPS]
         """
@@ -310,12 +311,12 @@ class VirshPersistant(Virsh):
         _dargs = VIRSH_SESSION_PROPS.copy()
         _dargs.update(dargs)
         # new_session() called by super via uri property (below)
-        super(VirshPersistant, self).__init__(**_dargs)
+        super(VirshPersistent, self).__init__(**_dargs)
 
 
     def __del__(self):
-        if self.get('session_id') and self.get('session'):
-            self.get('session').close()
+        if self['session_id'] and self['session']:
+            self['session'].close()
 
 
     def new_session(self):
@@ -324,8 +325,8 @@ class VirshPersistant(Virsh):
         """
 
         if self.get('session_id') and self.get('session'):
-            self.session.close()
-        self['session'] = VirshSession(self.get('virsh_exec'), self.get('uri'))
+            self['session'].close()
+        self['session'] = VirshSession(self['virsh_exec'], self['uri'])
         self['session_id'] = self['session'].get_id()
 
 
@@ -336,8 +337,8 @@ class VirshPersistant(Virsh):
         Accessed via property, i.e. virsh.uri = 'qemu://foobar/system'
         """
         # Don't assume ancestor get/set_uri() wasn't overridden
-        if self.get('uri') != uri:
-            self['_uri'] = uri
+        if self['uri'] != uri:
+            super(VirshPersistent, self).uri = uri
             self.new_session()
 
 
@@ -362,7 +363,7 @@ def command(cmd, **dargs):
     session_id = dargs.get('session_id', None)
 
     if session_id:
-        session = VirshSession(id = session_id)
+        session = VirshSession(id=session_id)
         ret = session.cmd_result(cmd, ignore_status)
     else:
         uri_arg = " "
@@ -381,15 +382,15 @@ def command(cmd, **dargs):
     return ret
 
 
-def domname(id, **dargs):
+def domname(dom_id_or_uuid, **dargs):
     """
     Convert a domain id or UUID to domain name
 
-    @param id: a domain id or UUID.
+    @param: dom_id_or_uuid: a domain id or UUID.
     @param: dargs: standardized virsh function API keywords
     @return: CmdResult object
     """
-    return command("domname --domain %s" % id, **dargs)
+    return command("domname --domain %s" % dom_id_or_uuid, **dargs)
 
 
 def qemu_monitor_command(domname, command, **dargs):
@@ -506,6 +507,37 @@ def version(option='', **dargs):
     @return: standard output from command
     """
     return command("version %s" % option, **dargs).stdout.strip()
+
+
+def dom_list(options="", **dargs):
+    """
+    Return the list of domains.
+
+    @param: options: options to pass to list command
+    @return: CmdResult object
+    """
+    return command("list %s" % options, **dargs)
+
+
+def managedsave(name, options="", **dargs):
+    """
+    Managed save of a domain state.
+
+    @param: name: Name of domain to save
+    @param: options: options: options to pass to list command
+    @return: CmdResult object
+    """
+    return command("managedsave --domain %s %s" % (name, options), **dargs)
+
+
+def managedsave_remove(name, **dargs):
+    """
+    Remove managed save of a domain
+
+    @param: name: name of managed-saved domain to remove
+    @return: CmdResult object
+    """
+    return command("managedsave-remove --domain %s" % name, **dargs)
 
 
 def driver(**dargs):
@@ -699,8 +731,8 @@ def restore(name, path, **dargs):
     @param: path: absolute path to state file.
     @param: dargs: standardized virsh function API keywords
     """
-    # Blindly assume named VM cooresponds with state in path
-    # rely on higher-layers to take exception if missmatch
+    # Blindly assume named VM corresponds with state in path
+    # rely on higher-layers to take exception if mismatch
     state = domstate(name, **dargs)
     if state not in ('shut off',):
         raise virt_vm.VMStatusError("Can not restore VM that is %s" % state)
@@ -784,7 +816,7 @@ def define(xml_path, **dargs):
 
 def undefine(name, **dargs):
     """
-    Return True on successful domain undefine (after sutdown/destroy).
+    Return True on successful domain undefine (after shutdown/destroy).
 
     @param: name: VM name
     @param: dargs: standardized virsh function API keywords
@@ -1037,7 +1069,7 @@ def pool_create_as(name, pool_type, target, extra="", **dargs):
 
 def capabilities(option='', **dargs):
     """
-    Return output from virsh capibilities command
+    Return output from virsh capabilities command
 
     @param: option: additional options (takes none)
     @param: dargs: standardized virsh function API keywords

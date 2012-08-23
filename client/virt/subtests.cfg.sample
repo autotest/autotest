@@ -200,9 +200,9 @@ variants:
                 #premise: connect with none-password
                 variants:
                     - connect_to_local:
-                        target_uri = "qemu+ssh:///system"
+                        target_uri = "qemu:///system"
                     - connect_to_remote:
-                        target_uri = ${connect_uri}
+                        target_uri = "qemu://TARGET_HOSTNAME.EXAMPLE.COM/system"
             - unexpect_option:
                 options = "xyz"
                 status_error = "yes"

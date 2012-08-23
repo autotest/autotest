@@ -52,8 +52,8 @@ class class_constructors_test(module_load_test):
         v = self.virsh.Virsh()
 
 
-    def test_VirshPersistant(self):
-        vp = self.virsh.VirshPersistant()
+    def test_VirshPersistent(self):
+        vp = self.virsh.VirshPersistent()
 
 
     def test_DArgMangler(self):
@@ -98,10 +98,10 @@ class virsh_class_has_help_command_test(virsh_has_help_command_test):
     def setUp(self):
         self.virsh = self.virsh.Virsh(debug=True)
 
-class virsh_persistant_class_has_help_command_test(virsh_has_help_command_test):
+class virsh_persistent_class_has_help_command_test(virsh_has_help_command_test):
 
     def setUp(self):
-        self.virsh = self.virsh.VirshPersistant(debug=True)
+        self.virsh = self.virsh.VirshPersistent(debug=True)
 
 if __name__ == '__main__':
     unittest.main()

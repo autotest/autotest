@@ -49,7 +49,7 @@ def run_virsh_domname(test, params, env):
     if options_suffix:
         options = options + " " + options_suffix
     result = virsh.domname(options, ignore_status=True, debug=True,
-                           uri = connect_uri)
+                           uri=connect_uri)
 
     #Recover libvirtd service to start
     if libvirtd == "off":
