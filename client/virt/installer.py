@@ -144,7 +144,7 @@ def installer_name_split(fullname, virt=None):
     '''
     for mode in INSTALLER_REGISTRY.get_modes(virt):
         if fullname.startswith('%s_' % mode):
-            null, _name = fullname.split(mode)
+            _, _name = fullname.split(mode)
             name = _name[1:]
             return (mode, name)
 
