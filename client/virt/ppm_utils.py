@@ -9,7 +9,7 @@ from autotest.client import utils
 
 # Some directory/filename utils, for consistency
 
-def find_id_for_screendump(md5sum, dir):
+def find_id_for_screendump(md5sum, data_dir):
     """
     Search dir for a PPM file whose name ends with md5sum.
 
@@ -19,16 +19,16 @@ def find_id_for_screendump(md5sum, dir):
     '20080101_120000_d41d8cd98f00b204e9800998ecf8427e.ppm'.
     """
     try:
-        files = os.listdir(dir)
+        files = os.listdir(data_dir)
     except OSError:
         files = []
-    for file in files:
+    for fl in files:
         exp = re.compile(r"(.*_)?" + md5sum + r"\.ppm", re.IGNORECASE)
-        if exp.match(file):
-            return file
+        if exp.match(fl):
+            return fl
 
 
-def generate_id_for_screendump(md5sum, dir):
+def generate_id_for_screendump(md5sum, data_dir):
     """
     Generate a unique filename using the given MD5 sum.
 
@@ -59,9 +59,9 @@ def image_read_from_ppm_file(filename):
             image.
     """
     fin = open(filename,"rb")
-    l1 = fin.readline()
+    fin.readline()
     l2 = fin.readline()
-    l3 = fin.readline()
+    fin.readline()
     data = fin.read()
     fin.close()
 
@@ -105,7 +105,7 @@ def image_crop(width, height, data, x1, y1, dx, dy):
     if dy > height - y1: dy = height - y1
     newdata = ""
     index = (x1 + y1*width) * 3
-    for i in range(dy):
+    for _ in range(dy):
         newdata += data[index:(index+dx*3)]
         index += width*3
     return (dx, dy, newdata)
@@ -120,9 +120,9 @@ def image_md5sum(width, height, data):
     @data: PPM file data
     """
     header = "P6\n%d %d\n255\n" % (width, height)
-    hash = utils.hash('md5', header)
-    hash.update(data)
-    return hash.hexdigest()
+    hsh = utils.hash('md5', header)
+    hsh.update(data)
+    return hsh.hexdigest()
 
 
 def get_region_md5sum(width, height, data, x1, y1, dx, dy,
