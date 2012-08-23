@@ -5,9 +5,30 @@ Utility functions to deal with ppm (qemu screendump format) files.
 """
 
 import os, struct, time, re
-from autotest.client import utils
+try:
+    import hashlib
+except ImportError:
+    import md5
 
 # Some directory/filename utils, for consistency
+
+def md5eval(data):
+    """
+    Returns a md5 hash evaluator. This function is implemented in order to
+    encapsulate objects in a way that is compatible with python 2.4 and
+    python 2.6 without warnings.
+
+    @param data: Optional input string that will be used to update the object.
+    """
+    try:
+        hsh = hashlib.new(type)
+    except NameError:
+        hsh = md5.new()
+    if data:
+        hsh.update(data)
+
+    return hsh
+
 
 def find_id_for_screendump(md5sum, data_dir):
     """
@@ -120,7 +141,7 @@ def image_md5sum(width, height, data):
     @data: PPM file data
     """
     header = "P6\n%d %d\n255\n" % (width, height)
-    hsh = utils.hash('md5', header)
+    hsh = md5eval(header)
     hsh.update(data)
     return hsh.hexdigest()
 

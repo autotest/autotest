@@ -8,10 +8,6 @@ Step file creator/editor.
 """
 
 import pygtk, gtk, os, glob, shutil, sys, logging
-try:
-    import autotest.common as common
-except ImportError:
-    import common
 import ppm_utils
 pygtk.require('2.0')
 
@@ -49,65 +45,65 @@ def key_event_to_qemu_string(event):
     keyval = keyvals[0][0]
     keyname = gtk.gdk.keyval_name(keyval)
 
-    dict = { "Return": "ret",
-             "Tab": "tab",
-             "space": "spc",
-             "Left": "left",
-             "Right": "right",
-             "Up": "up",
-             "Down": "down",
-             "F1": "f1",
-             "F2": "f2",
-             "F3": "f3",
-             "F4": "f4",
-             "F5": "f5",
-             "F6": "f6",
-             "F7": "f7",
-             "F8": "f8",
-             "F9": "f9",
-             "F10": "f10",
-             "F11": "f11",
-             "F12": "f12",
-             "Escape": "esc",
-             "minus": "minus",
-             "equal": "equal",
-             "BackSpace": "backspace",
-             "comma": "comma",
-             "period": "dot",
-             "slash": "slash",
-             "Insert": "insert",
-             "Delete": "delete",
-             "Home": "home",
-             "End": "end",
-             "Page_Up": "pgup",
-             "Page_Down": "pgdn",
-             "Menu": "menu",
-             "semicolon": "0x27",
-             "backslash": "0x2b",
-             "apostrophe": "0x28",
-             "grave": "0x29",
-             "less": "0x2b",
-             "bracketleft": "0x1a",
-             "bracketright": "0x1b",
-             "Super_L": "0xdc",
-             "Super_R": "0xdb",
-             }
+    keymap = { "Return": "ret",
+               "Tab": "tab",
+               "space": "spc",
+               "Left": "left",
+               "Right": "right",
+               "Up": "up",
+               "Down": "down",
+               "F1": "f1",
+               "F2": "f2",
+               "F3": "f3",
+               "F4": "f4",
+               "F5": "f5",
+               "F6": "f6",
+               "F7": "f7",
+               "F8": "f8",
+               "F9": "f9",
+               "F10": "f10",
+               "F11": "f11",
+               "F12": "f12",
+               "Escape": "esc",
+               "minus": "minus",
+               "equal": "equal",
+               "BackSpace": "backspace",
+               "comma": "comma",
+               "period": "dot",
+               "slash": "slash",
+               "Insert": "insert",
+               "Delete": "delete",
+               "Home": "home",
+               "End": "end",
+               "Page_Up": "pgup",
+               "Page_Down": "pgdn",
+               "Menu": "menu",
+               "semicolon": "0x27",
+               "backslash": "0x2b",
+               "apostrophe": "0x28",
+               "grave": "0x29",
+               "less": "0x2b",
+               "bracketleft": "0x1a",
+               "bracketright": "0x1b",
+               "Super_L": "0xdc",
+               "Super_R": "0xdb",
+               }
 
     if ord('a') <= keyval <= ord('z') or ord('0') <= keyval <= ord('9'):
-        str = keyname
-    elif keyname in dict.keys():
-        str = dict[keyname]
+        sr = keyname
+    elif keyname in keymap.keys():
+        sr = keymap[keyname]
     else:
         return ""
 
     if event.state & gtk.gdk.CONTROL_MASK:
-        str = "ctrl-" + str
+        sr = "ctrl-" + str
     if event.state & gtk.gdk.MOD1_MASK:
-        str = "alt-" + str
+        sr = "alt-" + str
     if event.state & gtk.gdk.SHIFT_MASK:
-        str = "shift-" + str
+        sr = "shift-" + str
 
-    return str
+    return sr
 
 
 class StepMakerWindow:
@@ -352,7 +348,7 @@ class StepMakerWindow:
                 title)
         dlg.set_title(title)
         dlg.format_secondary_text(text)
-        response = dlg.run()
+        dlg.run()
         dlg.destroy()
 
 
@@ -577,60 +573,60 @@ class StepMakerWindow:
             self.message("No barrier region selected.", "Error")
             return
 
-        str = "step"
+        sr = "step"
 
         # Add step recording time
         if self.entry_time.get_text():
-            str += " " + self.entry_time.get_text()
+            sr += " " + self.entry_time.get_text()
 
-        str += "\n"
+        sr += "\n"
 
         # Add screendump line
         if self.image_data:
-            str += "screendump %s\n" % self.entry_screendump.get_text()
+            sr += "screendump %s\n" % self.entry_screendump.get_text()
 
         # Add comment
         if self.entry_comment.get_text():
-            str += "# %s\n" % self.entry_comment.get_text()
+            sr += "# %s\n" % self.entry_comment.get_text()
 
         # Add sleep line
         if self.check_sleep.get_active():
-            str += "sleep %d\n" % self.spin_sleep.get_value()
+            sr += "sleep %d\n" % self.spin_sleep.get_value()
 
         # Add barrier_2 line
         if self.check_barrier.get_active():
-            str += "barrier_2 %d %d %d %d %s %d" % (
+            sr += "barrier_2 %d %d %d %d %s %d" % (
                     self.barrier_size[0], self.barrier_size[1],
                     self.barrier_corner[0], self.barrier_corner[1],
                     self.barrier_md5sum, self.spin_barrier_timeout.get_value())
             if self.check_barrier_optional.get_active():
-                str += " optional"
-            str += "\n"
+                sr += " optional"
+            sr += "\n"
 
         # Add "Sending keys" comment
         keys_to_send = self.get_keys().split()
         if keys_to_send:
-            str += "# Sending keys: %s\n" % self.get_keys()
+            sr += "# Sending keys: %s\n" % self.get_keys()
 
         # Add key and var lines
         for key in keys_to_send:
             if key.startswith("$"):
                 varname = key[1:]
-                str += "var %s\n" % varname
+                sr += "var %s\n" % varname
             else:
-                str += "key %s\n" % key
+                sr += "key %s\n" % key
 
         # Add mousemove line
         if self.check_mousemove.get_active():
-            str += "mousemove %d %d\n" % (self.mouse_click_coords[0],
+            sr += "mousemove %d %d\n" % (self.mouse_click_coords[0],
                                           self.mouse_click_coords[1])
 
         # Add mouseclick line
         if self.check_mouseclick.get_active():
-            dict = { 1 : 1,
-                     2 : 2,
-                     3 : 4 }
-            str += "mouseclick %d\n" % dict[self.mouse_click_button]
+            mapping = { 1 : 1,
+                        2 : 2,
+                        3 : 4 }
+            sr += "mouseclick %d\n" % mapping[self.mouse_click_button]
 
         # Write screendump and cropped screendump image files
         if data_dir and self.image_data:
@@ -650,38 +646,21 @@ class StepMakerWindow:
                 except IOError:
                     self.message("Could not write screendump file.", "Error")
 
-            #if self.check_barrier.get_active():
-            #    # Crop image to get the cropped screendump
-            #    (cw, ch, cdata) = ppm_utils.image_crop(
-            #            self.image_width, self.image_height, self.image_data,
-            #            self.barrier_corner[0], self.barrier_corner[1],
-            #            self.barrier_size[0], self.barrier_size[1])
-            #    cropped_scrdump_md5sum = ppm_utils.image_md5sum(cw, ch, cdata)
-            #    cropped_scrdump_filename = \
-            #    ppm_utils.get_cropped_screendump_filename(scrdump_filename,
-            #                                            cropped_scrdump_md5sum)
-            #    # Write cropped screendump file
-            #    try:
-            #        ppm_utils.image_write_to_ppm_file(cropped_scrdump_filename,
-            #                                          cw, ch, cdata)
-            #    except IOError:
-            #        self.message("Could not write cropped screendump file.",
-            #                     "Error")
+        return sr
 
-        return str
-
-    def set_state_from_step_lines(self, str, data_dir, warn=True):
+    def set_state_from_step_lines(self, sr, data_dir, warn=True):
         self.clear_state()
 
-        for line in str.splitlines():
+        for line in sr.splitlines():
             words = line.split()
             if not words:
                 continue
 
-            if line.startswith("#") \
-                    and not self.entry_comment.get_text() \
-                    and not line.startswith("# Sending keys:") \
-                    and not line.startswith("# ----"):
+            if (line.startswith("#") and not
+                self.entry_comment.get_text() and not
+                line.startswith("# Sending keys:") and not
+                line.startswith("# ----")):
+
                 self.entry_comment.set_text(line.strip("#").strip())
 
             elif words[0] == "step":
@@ -865,8 +844,8 @@ class StepMakerWindow:
     def event_key_press(self, widget, event):
         if self.check_manual.get_active():
             return False
-        str = key_event_to_qemu_string(event)
-        self.add_key(str)
+        sr = key_event_to_qemu_string(event)
+        self.add_key(sr)
         return True
 
 
@@ -1215,7 +1194,7 @@ class StepEditor(StepMakerWindow):
 
     def insert_steps(self, filename, index):
         # Read the steps file
-        (steps, header) = self.read_steps_file(filename)
+        (steps, _) = self.read_steps_file(filename)
 
         data_dir = ppm_utils.get_data_dir(filename)
         for step in steps:
@@ -1301,7 +1280,7 @@ class StepEditor(StepMakerWindow):
         steps = []
         header = ""
 
-        file = open(filename, "r")
+        fileobj = open(filename, "r")
         for line in file.readlines():
             words = line.split()
             if not words:
@@ -1314,7 +1293,7 @@ class StepEditor(StepMakerWindow):
                 steps[-1] += line
             else:
                 header += line
-        file.close()
+        fileobj.close()
 
         return (steps, header)
 
@@ -1390,12 +1369,12 @@ class StepEditor(StepMakerWindow):
             self.write_steps_file(self.steps_filename)
 
     def write_steps_file(self, filename):
-        file = open(filename, "w")
-        file.write(self.header)
+        fileobj = open(filename, "w")
+        fileobj.write(self.header)
         for step in self.steps:
-            file.write("# " + "-" * 32 + "\n")
-            file.write(step)
-        file.close()
+            fileobj.write("# " + "-" * 32 + "\n")
+            fileobj.write(step)
+        fileobj.close()
 
 
 if __name__ == "__main__":
