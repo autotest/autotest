@@ -1474,7 +1474,9 @@ class VM(virt_vm.BaseVM):
             # Make qemu command
             install_command = self.__make_libvirt_command()
 
-            logging.info("Running libvirt command:\n%s", install_command)
+            logging.info("Running libvirt command (reformatted):")
+            for item in install_command.replace(" -", " \n    -").splitlines():
+                logging.info("%s", item)
             utils.run(install_command, verbose=False)
             # Wait for the domain to be created
             utils_misc.wait_for(func=self.is_alive, timeout=60,
