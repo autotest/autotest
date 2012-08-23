@@ -2528,10 +2528,10 @@ class VM(virt_vm.BaseVM):
         # For compatibility with versions of QEMU that do not recognize all
         # key names: replace keyname with the hex value from the dict, which
         # QEMU will definitely accept
-        dict = {"comma": "0x33",
-                "dot":   "0x34",
-                "slash": "0x35"}
-        for key, value in dict.items():
+        key_mapping = {"comma": "0x33",
+                       "dot":   "0x34",
+                       "slash": "0x35"}
+        for key, value in key_mapping.items():
             keystr = keystr.replace(key, value)
         self.monitor.sendkey(keystr)
         time.sleep(0.2)
@@ -2557,7 +2557,7 @@ class VM(virt_vm.BaseVM):
         logging.debug("Saving VM %s to %s" % (self.name, path))
         # Can only check status if background migration
         self.monitor.migrate("exec:cat>%s" % path, wait=False)
-        result = utils_misc.wait_for(
+        utils_misc.wait_for(
             # no monitor.migrate-status method
             lambda : "status: completed" in self.monitor.info("migrate"),
             self.MIGRATE_TIMEOUT, 2, 2,
@@ -2567,7 +2567,6 @@ class VM(virt_vm.BaseVM):
         self.monitor.migrate_set_downtime(0.03)
         # Base class defines VM must be off after a save
         self.monitor.cmd("system_reset")
-        state = self.monitor.get_status()
         self.verify_status('paused') # Throws exception if not
 
     def restore_from_file(self, path):
