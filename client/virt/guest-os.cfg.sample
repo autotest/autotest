@@ -1266,7 +1266,7 @@ variants:
                             initrd = images/sles-10-64/initrd
                             boot_path = boot/x86_64/loader
                         unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/SLES-10-x86_64-DVD1.iso
+                            cdrom_cd1 = isos/linux/SLES-10-SP4-DVD-x86_64-GM-DVD1.iso
                             md5sum_cd1 = b07e59b7cba66b995f97eef42e28f5c3
                             md5sum_1m_cd1 = ac4963cf50b683972491a3fd1da64cc1
 
@@ -1282,7 +1282,7 @@ variants:
                             initrd = images/sles-10-32/initrd
                             boot_path = boot/i386/loader
                         unattended_install.cdrom:
-                            cdrom_cd1 = isos/linux/SLES-10-i386-DVD1.iso
+                            cdrom_cd1 = isos/linux/SLES-10-SP4-DVD-i386-GM-DVD1.iso
                             md5sum_cd1 = 277912f7503df68322820c955c8adce8
                             md5sum_1m_cd1 = 282453620102c7b9d7386fc623420b91
 
