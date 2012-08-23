@@ -556,7 +556,6 @@ service network restart
     <patterns config:type="list">
       <pattern>Basis-Devel</pattern>
       <pattern>base</pattern>
-      <pattern>laptop</pattern>
       <pattern>Minimal</pattern>
     </patterns>
   </software>
