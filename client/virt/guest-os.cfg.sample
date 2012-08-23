@@ -1249,8 +1249,6 @@ variants:
                     # hold your autoyast file
                     #kernel_params = "autoyast=floppy console=ttyS0,115200 console=tty0"
                     kernel_params = "autoyast=device://scd0/autoinst.xml console=ttyS0,115200 console=tty0"
-                    # --- uncomment the below line for other SLES 10 distros only ---
-                    #kernel_params = "autoyast=device://hdb/autoinst.xml console=ttyS0,115200 console=tty0"
                     kernel = linux
                     initrd = initrd
                     wait_no_ack = yes
@@ -1259,6 +1257,7 @@ variants:
                    - 10.4.64:
                         image_name = sles10-64
                         unattended_install:
+                            kernel_params = "autoyast=device://hdb/autoinst.xml console=ttyS0,115200 console=tty0"
                             unattended_file = unattended/SLES-10.xml
                             #floppies = "fl"
                             #floppy_name = images/sles-10-64/autoyast.vfd
@@ -1274,6 +1273,7 @@ variants:
                    - 10.4.32:
                         image_name = sles10-64
                         unattended_install:
+                            kernel_params = "autoyast=device://hdb/autoinst.xml console=ttyS0,115200 console=tty0"
                             unattended_file = unattended/SLES-10.xml
                             #floppies = "fl"
                             #floppy_name = images/sles-10-32/autoyast.vfd
