@@ -8,8 +8,8 @@ class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         """
         Serve a GET request.
         """
-        range = self.parse_header_byte_range()
-        if range:
+        rg = self.parse_header_byte_range()
+        if rg:
             f = self.send_head_range(range[0], range[1])
             if f:
                 self.copyfile_range(f, self.wfile, range[0], range[1])
@@ -25,10 +25,10 @@ class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         range_param = 'Range'
         range_discard = 'bytes='
         if self.headers.has_key(range_param):
-            range = self.headers.get(range_param)
-            if range.startswith(range_discard):
-                range = range[len(range_discard):]
-                begin, end = range.split('-')
+            rg = self.headers.get(range_param)
+            if rg.startswith(range_discard):
+                rg = rg[len(range_discard):]
+                begin, end = rg.split('-')
                 return (int(begin), int(end))
         return None
 
@@ -92,8 +92,8 @@ class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         words = filter(None, words)
         path = self.server.cwd
         for word in words:
-            drive, word = os.path.splitdrive(word)
-            head, word = os.path.split(word)
+            _, word = os.path.splitdrive(word)
+            _, word = os.path.split(word)
             if word in (os.curdir, os.pardir): continue
             path = os.path.join(path, word)
         return path
@@ -111,9 +111,9 @@ class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return self.client_address[0]
 
 
-    def log_message(self, format, *args):
+    def log_message(self, fmt, *args):
         logging.debug("builtin http server handling request from %s: %s" %
-                      (self.address_string(), format%args))
+                      (self.address_string(), fmt%args))
 
 
 def http_server(port=8000, cwd=None, terminate_callable=None):
