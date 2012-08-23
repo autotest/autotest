@@ -923,7 +923,6 @@ class ParamsNet(VMNet):
         nic_name = nic.nic_name
         nic_params = self.params.object_params(nic_name)
         params_mac = nic_params.get('mac')
-        old_mac = nic.get('mac')
         if params_mac and self.container_class.mac_is_valid(params_mac):
             new_mac = params_mac.lower()
         else:
@@ -939,7 +938,6 @@ class ParamsNet(VMNet):
         nic_name = nic.nic_name
         nic_params = self.params.object_params(nic_name)
         params_ip = nic_params.get('ip')
-        old_ip = nic.get('ip')
         if params_ip:
             new_ip = params_ip
         else:
@@ -1296,11 +1294,11 @@ def verify_ip_address_ownership(ip, macs, timeout=10.0):
 # Utility functions for dealing with external processes
 
 def find_command(cmd):
-    for dir in ["/usr/local/sbin", "/usr/local/bin",
+    for path in ["/usr/local/sbin", "/usr/local/bin",
                 "/usr/sbin", "/usr/bin", "/sbin", "/bin"]:
-        file = os.path.join(dir, cmd)
-        if os.path.exists(file):
-            return file
+        cmd_path = os.path.join(path, cmd)
+        if os.path.exists(cmd_path):
+            return cmd_path
     raise ValueError('Missing command: %s' % cmd)
 
 
@@ -1431,14 +1429,14 @@ def log_line(filename, line):
     _open_log_files[filename].flush()
 
 
-def set_log_file_dir(dir):
+def set_log_file_dir(directory):
     """
     Set the base directory for log files created by log_line().
 
     @param dir: Directory for log files.
     """
     global _log_file_dir
-    _log_file_dir = dir
+    _log_file_dir = directory
 
 
 # The following are miscellaneous utility functions.
@@ -1480,23 +1478,23 @@ def generate_random_id():
     return "id" + generate_random_string(6)
 
 
-def generate_tmp_file_name(file, ext=None, dir='/tmp/'):
+def generate_tmp_file_name(file_name, ext=None, directory='/tmp/'):
     """
     Returns a temporary file name. The file is not created.
     """
     while True:
-        file_name = (file + '-' + time.strftime("%Y%m%d-%H%M%S-") +
+        file_name = (file_name + '-' + time.strftime("%Y%m%d-%H%M%S-") +
                      generate_random_string(4))
         if ext:
             file_name += '.' + ext
-        file_name = os.path.join(dir, file_name)
+        file_name = os.path.join(directory, file_name)
         if not os.path.exists(file_name):
             break
 
     return file_name
 
 
-def format_str_for_message(str):
+def format_str_for_message(sr):
     """
     Format str so that it can be appended to a message.
     If str consists of one line, prefix it with a space.
@@ -1506,13 +1504,13 @@ def format_str_for_message(str):
     """
     lines = str.splitlines()
     num_lines = len(lines)
-    str = "\n".join(lines)
+    sr = "\n".join(lines)
     if num_lines == 0:
         return ""
     elif num_lines == 1:
-        return " " + str
+        return " " + sr
     else:
-        return "\n" + str
+        return "\n" + sr
 
 
 def wait_for(func, timeout, first=0.0, step=1.0, text=None):
@@ -1587,28 +1585,28 @@ def run_tests(parser, job):
     index = 0
     setup_flag = 1
     cleanup_flag = 2
-    for dict in parser.get_dicts():
+    for param_dict in parser.get_dicts():
         if index == 0:
-            if dict.get("host_setup_flag", None) is not None:
-                flag = int(dict["host_setup_flag"])
-                dict["host_setup_flag"] = flag | setup_flag
+            if param_dict.get("host_setup_flag", None) is not None:
+                flag = int(param_dict["host_setup_flag"])
+                param_dict["host_setup_flag"] = flag | setup_flag
             else:
-                dict["host_setup_flag"] = setup_flag
+                param_dict["host_setup_flag"] = setup_flag
         if index == last_index:
-            if dict.get("host_setup_flag", None) is not None:
-                flag = int(dict["host_setup_flag"])
-                dict["host_setup_flag"] = flag | cleanup_flag
+            if param_dict.get("host_setup_flag", None) is not None:
+                flag = int(param_dict["host_setup_flag"])
+                param_dict["host_setup_flag"] = flag | cleanup_flag
             else:
-                dict["host_setup_flag"] = cleanup_flag
+                param_dict["host_setup_flag"] = cleanup_flag
         index += 1
 
         # Add kvm module status
-        dict["kvm_default"] = get_module_params(dict.get("sysfs_dir", "sys"), "kvm")
+        param_dict["kvm_default"] = get_module_params(param_dict.get("sysfs_dir", "sys"), "kvm")
 
-        if dict.get("skip") == "yes":
+        if param_dict.get("skip") == "yes":
             continue
         dependencies_satisfied = True
-        for dep in dict.get("dep"):
+        for dep in param_dict.get("dep"):
             for test_name in status_dict.keys():
                 if not dep in test_name:
                     continue
@@ -1618,19 +1616,19 @@ def run_tests(parser, job):
                 if status_dict[test_name] not in ['GOOD', 'WARN']:
                     dependencies_satisfied = False
                     break
-        test_iterations = int(dict.get("iterations", 1))
-        test_tag = dict.get("shortname")
+        test_iterations = int(param_dict.get("iterations", 1))
+        test_tag = param_dict.get("shortname")
 
         if dependencies_satisfied:
             # Setting up profilers during test execution.
-            profilers = dict.get("profilers", "").split()
+            profilers = param_dict.get("profilers", "").split()
             for profiler in profilers:
                 job.profilers.add(profiler)
             # We need only one execution, profiled, hence we're passing
             # the profile_only parameter to job.run_test().
             profile_only = bool(profilers) or None
-            current_status = job.run_test_detail(dict.get("vm_type"),
-                                                 params=dict,
+            current_status = job.run_test_detail(param_dict.get("vm_type"),
+                                                 params=param_dict,
                                                  tag=test_tag,
                                                  iterations=test_iterations,
                                                  profile_only=profile_only)
@@ -1638,15 +1636,15 @@ def run_tests(parser, job):
                 job.profilers.delete(profiler)
         else:
             # We will force the test to fail as TestNA during preprocessing
-            dict['dependency_failed'] = 'yes'
-            current_status = job.run_test_detail(dict.get("vm_type"),
-                                                 params=dict,
+            param_dict['dependency_failed'] = 'yes'
+            current_status = job.run_test_detail(param_dict.get("vm_type"),
+                                                 params=param_dict,
                                                  tag=test_tag,
                                                  iterations=test_iterations)
 
         if not current_status:
             failed = True
-        status_dict[dict.get("name")] = current_status
+        status_dict[param_dict.get("name")] = current_status
 
     return not failed
 
@@ -2758,7 +2756,7 @@ class KojiScratchPkgSpec(object):
                 (self.user, self.task, ", ".join(self.subpackages)))
 
 
-def umount(src, mount_point, type):
+def umount(src, mount_point, fstype):
     """
     Umount the src mounted in mount_point.
 
@@ -2767,7 +2765,7 @@ def umount(src, mount_point, type):
     @type: file system type
     """
 
-    mount_string = "%s %s %s" % (src, mount_point, type)
+    mount_string = "%s %s %s" % (src, mount_point, fstype)
     if mount_string in file("/etc/mtab").read():
         umount_cmd = "umount %s" % mount_point
         try:
@@ -2780,24 +2778,24 @@ def umount(src, mount_point, type):
         return True
 
 
-def mount(src, mount_point, type, perm="rw"):
+def mount(src, mount_point, fstype, perm="rw"):
     """
     Mount the src into mount_point of the host.
 
     @src: mount source
     @mount_point: mount point
-    @type: file system type
+    @fstype: file system type
     @perm: mount premission
     """
-    umount(src, mount_point, type)
-    mount_string = "%s %s %s %s" % (src, mount_point, type, perm)
+    umount(src, mount_point, fstype)
+    mount_string = "%s %s %s %s" % (src, mount_point, fstype, perm)
 
     if mount_string in file("/etc/mtab").read():
         logging.debug("%s is already mounted in %s with %s",
                       src, mount_point, perm)
         return True
 
-    mount_cmd = "mount -t %s %s %s -o %s" % (type, src, mount_point, perm)
+    mount_cmd = "mount -t %s %s %s -o %s" % (fstype, src, mount_point, perm)
     try:
         utils.system(mount_cmd)
     except error.CmdError:
@@ -3137,8 +3135,6 @@ class PatchHelper(object):
         '''
         os.chdir(self.source_dir)
         for patch in self.patches:
-            patch_file = os.path.join(self.source_dir,
-                                      os.path.basename(patch))
             utils.system('patch -p1 < %s' % os.path.basename(patch))
 
 
@@ -3692,8 +3688,8 @@ def qemu_has_option(option, qemu_path):
     @param option: Option need check.
     @param qemu_path: Path for qemu-kvm.
     """
-    help = commands.getoutput("%s -help" % qemu_path)
-    return bool(re.search(r"^-%s(\s|$)" % option, help, re.MULTILINE))
+    hlp = commands.getoutput("%s -help" % qemu_path)
+    return bool(re.search(r"^-%s(\s|$)" % option, hlp, re.MULTILINE))
 
 
 def bitlist_to_string(data):
@@ -3740,7 +3736,6 @@ def if_nametoindex(ifname):
 
     @param ifname: interface name
     """
-    index = 0
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
     ifr = struct.pack("16si", ifname, 0)
     r = fcntl.ioctl(ctrl_sock, SIOCGIFINDEX, ifr)
@@ -3806,7 +3801,7 @@ def add_to_bridge(ifname, brname):
         raise TAPNotExistError(ifname)
     ifr = struct.pack("16si", brname, index)
     try:
-        r = fcntl.ioctl(ctrl_sock, SIOCBRADDIF, ifr)
+        fcntl.ioctl(ctrl_sock, SIOCBRADDIF, ifr)
     except IOError, details:
         raise BRAddIfError(ifname, brname, details)
     ctrl_sock.close()
@@ -3865,8 +3860,8 @@ def get_module_params(sys_path, module_name):
     dir_params = os.path.join(sys_path, "module", module_name, "parameters")
     module_params = {}
     if os.path.isdir(dir_params):
-        for file in os.listdir(dir_params):
-            full_dir = os.path.join(dir_params, file)
+        for filename in os.listdir(dir_params):
+            full_dir = os.path.join(dir_params, filename)
             tmp = open(full_dir, 'r').read().strip()
             module_params[full_dir] = tmp
     else:
@@ -4163,7 +4158,7 @@ class NumaNode(object):
                         for n in range(start, end+1, 1):
                             _ += "%s " % str(n)
                         cpus = re.sub(cstr, _, cpus)
-                except IndexError, ValueError:
+                except (IndexError, ValueError):
                     logging.warn("The format of cpu list is not the same as"
                                  " expected.")
                     break_flag = False
@@ -4238,7 +4233,6 @@ def get_cpu_model():
         Update the check pattern to a certain order and format
         """
         pattern_list = re.split(",", flags.strip())
-        pattern = r""
         pattern_list.sort()
         pattern = r"(\b%s\b)" % pattern_list[0]
         for i in pattern_list[1:]:
