@@ -11,8 +11,7 @@ try:
     from ovirtsdk.api import API
     from ovirtsdk.xml import params as param
 except ImportError:
-    logging.error("ovirtsdk module isn't present, please run install.py "
-                  "to build and install it")
+    logging.info("ovirtsdk module not present, please install it")
 
 from autotest.client.virt import virt_vm
 
