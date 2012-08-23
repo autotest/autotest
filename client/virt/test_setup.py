@@ -321,11 +321,11 @@ class PciAssignable(object):
     Request PCI assignable devices on host. It will check whether to request
     PF (physical Functions) or VF (Virtual Functions).
     """
-    def __init__(self, type="vf", driver=None, driver_option=None,
+    def __init__(self, dev_type="vf", driver=None, driver_option=None,
                  names=None, devices_requested=None,
                  host_set_flag=None, kvm_params=None):
         """
-        Initialize parameter 'type' which could be:
+        Initialize parameter 'dev_type' which could be:
         vf: Virtual Functions
         pf: Physical Function (actual hardware)
         mixed:  Both includes VFs and PFs
@@ -337,7 +337,7 @@ class PciAssignable(object):
         are going to be assigned, e.g. passthrough_count = 8 and max_vfs in
         config file.
 
-        @param type: PCI device type.
+        @param dev_type: PCI device type.
         @param driver: Kernel module for the PCI assignable device.
         @param driver_option: Module option to specify the maximum number of
                 VFs (eg 'max_vfs=7')
@@ -351,7 +351,7 @@ class PciAssignable(object):
                3: setup and cleanup env
         @param kvm_params: a dict for kvm module parameters default value
         """
-        self.type = type
+        self.type = dev_type
         self.driver = driver
         self.driver_option = driver_option
         if names:
@@ -385,7 +385,7 @@ class PciAssignable(object):
         if not (s or "Cannot get driver information" in pci_id):
             return pci_id[5:]
         cmd = "lspci | awk '/%s/ {print $1}'" % search_str
-        pci_ids = [id for id in commands.getoutput(cmd).splitlines()]
+        pci_ids = [i for i in commands.getoutput(cmd).splitlines()]
         nic_id = int(re.search('[0-9]+', name).group(0))
         if (len(pci_ids) - 1) < nic_id:
             return None
@@ -598,7 +598,7 @@ class PciAssignable(object):
             utils.system("modprobe %s" % kvm_arch)
 
         re_probe = False
-        s, o = commands.getstatusoutput('lsmod | grep %s' % self.driver)
+        s = commands.getstatus('lsmod | grep %s' % self.driver)
         if s:
             os.system("modprobe -r %s" % self.driver)
             re_probe = True
@@ -609,7 +609,7 @@ class PciAssignable(object):
         if re_probe:
             cmd = "modprobe %s" % self.driver
             logging.info("Loading the driver '%s' without option", self.driver)
-            s, o = commands.getstatusoutput(cmd)
+            s = commands.getstatus(cmd)
             utils.system("/etc/init.d/network restart", ignore_status=True)
             if s:
                 return False
@@ -651,12 +651,12 @@ class PciAssignable(object):
                                        (full_id, unbind_dev),
                                        (full_id, stub_bind)]
 
-                for content, file in info_write_to_files:
+                for content, filename in info_write_to_files:
                     try:
-                        utils.open_write_close(file, content)
+                        utils.open_write_close(filename, content)
                     except IOError:
                         logging.debug("Failed to write %s to file %s", content,
-                                      file)
+                                      filename)
                         continue
 
                 if not self.is_binded_to_stub(full_id):
