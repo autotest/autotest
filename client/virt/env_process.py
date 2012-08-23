@@ -235,7 +235,6 @@ def process(test, params, env, image_func, vm_func, vm_first=False):
     def _call_vm_func():
         for vm_name in params.objects("vms"):
             vm_params = params.object_params(vm_name)
-            vm = env.get_vm(vm_name)
             vm_func(test, vm_params, env, vm_name)
 
     def _call_image_func():
@@ -341,7 +340,7 @@ def preprocess(test, params, env):
         try:
             cmd_result = utils.run(kvm_ver_cmd)
             kvm_version = cmd_result.stdout.strip()
-        except error.CmdError, e:
+        except error.CmdError:
             kvm_version = "Unknown"
     else:
         # Get the KVM kernel module version and write it as a keyval
@@ -364,7 +363,7 @@ def preprocess(test, params, env):
         try:
             cmd_result = utils.run(kvm_userspace_ver_cmd)
             kvm_userspace_version = cmd_result.stdout.strip()
-        except error.CmdError, e:
+        except error.CmdError:
             kvm_userspace_version = "Unknown"
     else:
         qemu_path = utils_misc.get_path(test.bindir,
@@ -600,10 +599,10 @@ def _take_screendumps(test, params, env):
             counter[vm] += 1
             screendump_filename = os.path.join(screendump_dir, "%04d.jpg" %
                                                counter[vm])
-            hash = utils.hash_file(temp_filename)
-            if hash in cache:
+            hsh = utils.hash_file(temp_filename)
+            if hsh in cache:
                 try:
-                    os.link(cache[hash], screendump_filename)
+                    os.link(cache[hsh], screendump_filename)
                 except OSError:
                     pass
             else:
@@ -612,7 +611,7 @@ def _take_screendumps(test, params, env):
                         image = PIL.Image.open(temp_filename)
                         image.save(screendump_filename, format="JPEG",
                                    quality=quality)
-                        cache[hash] = screendump_filename
+                        cache[hsh] = screendump_filename
                     except IOError, error_detail:
                         logging.warning("VM '%s' failed to produce a "
                                         "screendump: %s", vm.name, error_detail)
