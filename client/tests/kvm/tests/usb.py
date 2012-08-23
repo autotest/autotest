@@ -1,4 +1,4 @@
-import logging, os, re, uuid
+import logging, re, uuid
 from autotest.client.shared import error
 
 

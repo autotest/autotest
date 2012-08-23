@@ -1,7 +1,4 @@
-import os, commands, glob
 from autotest.client import utils
-from autotest.client.shared import error
-from autotest.client.virt import utils_test
 
 
 def run_perf_kvm(test, params, env):
@@ -15,7 +12,6 @@ def run_perf_kvm(test, params, env):
     vm = env.get_vm(params["main_vm"])
     vm.verify_alive()
 
-    test_timeout = int(params.get("test_timeout", 240))
     login_timeout = int(params.get("login_timeout", 360))
     transfer_timeout = int(params.get("transfer_timeout", 240))
     perf_record_timeout = int(params.get("perf_record_timeout", 240))

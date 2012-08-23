@@ -77,7 +77,7 @@ def run_qmp_basic(test, params, env):
     def check_key_is_int(qmp_dict, key):
         fail_no_key(qmp_dict, key)
         try:
-            value = int(qmp_dict[key])
+            int(qmp_dict[key])
         except Exception:
             raise error.TestFail("'%s' key is not of type int, it's '%s'" %
                                  (key, type(qmp_dict[key])))
@@ -285,11 +285,11 @@ def run_qmp_basic(test, params, env):
         resp = monitor.cmd_obj({ "arguments": {}, "execute": "query-version" })
         check_success_resp(resp)
 
-        id = "1234foo"
-        resp = monitor.cmd_obj({ "id": id, "execute": "query-version",
+        idd = "1234foo"
+        resp = monitor.cmd_obj({ "id": idd, "execute": "query-version",
                                  "arguments": {} })
         check_success_resp(resp)
-        check_str_key(resp, "id", id)
+        check_str_key(resp, "id", idd)
 
         # TODO: would be good to test simple argument usage, but we don't have
         # a read-only command that accepts arguments.

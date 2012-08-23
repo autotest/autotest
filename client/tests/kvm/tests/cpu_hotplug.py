@@ -29,8 +29,8 @@ def run_cpu_hotplug(test, params, env):
     onoff_iterations = int(params.get("onoff_iterations", 20))
     total_cpus = current_cpus + n_cpus_add
 
-    error.context("getting guest dmesg before addition")
-    dmesg_before = session.cmd("dmesg -c")
+    error.context("cleaning guest dmesg before addition")
+    session.cmd("dmesg -c")
 
     error.context("Adding %d CPUs to guest" % n_cpus_add)
     for i in range(total_cpus):
@@ -45,7 +45,7 @@ def run_cpu_hotplug(test, params, env):
         raise error.TestFail("Monitor reports %s CPUs, when VM should have %s" %
                              (total_cpus_monitor, total_cpus))
 
-    dmesg_after = session.cmd("dmesg -c")
+    dmesg_after = session.cmd("dmesg")
     logging.debug("Guest dmesg output after CPU add:\n%s" % dmesg_after)
 
     # Verify whether the new cpus are showing up on /sys

@@ -38,7 +38,7 @@ def run_nic_bonding(test, params, env):
     #do a pgrep to check if dhclient has already been running
     pgrep_cmd = "pgrep dhclient"
     try:
-        cmd_output = session_serial.cmd(pgrep_cmd)
+        session_serial.cmd(pgrep_cmd)
     #if dhclient is there, killl it
     except aexpect.ShellCmdError:
         logging.info("it's safe to run dhclient now")

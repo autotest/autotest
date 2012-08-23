@@ -21,7 +21,7 @@ def run_9p(test, params, env):
     if mount_dir is None:
         logging.info("User Variable for mount dir is not set")
     else:
-        mkdir = session.get_command_output("mkdir -p %s" % mount_dir)
+        session.cmd("mkdir -p %s" % mount_dir)
 
         mount_option = " trans=virtio"
 

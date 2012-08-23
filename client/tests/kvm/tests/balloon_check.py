@@ -39,8 +39,7 @@ def run_balloon_check(test, params, env):
         @param new_mem: New desired memory.
         @return: Number of failures occurred during operation.
         """
-        fail = 0
-        cur_mem, fail = check_ballooned_memory()
+        _, fail = check_ballooned_memory()
         if params.get("monitor_type") == "qmp":
             new_mem = new_mem * 1024 * 1024
         logging.info("Changing VM memory to %s", new_mem)
@@ -75,7 +74,6 @@ def run_balloon_check(test, params, env):
     vm.verify_alive()
     timeout = int(params.get("login_timeout", 360))
     session = vm.wait_for_login(timeout=timeout)
-    balloon_chk_cmd = params.get("balloon_chk_cmd")
 
     # Upper limit that we can raise the memory
     vm_assigned_mem = int(params.get("mem"))

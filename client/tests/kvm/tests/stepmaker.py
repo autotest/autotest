@@ -8,10 +8,6 @@ Step file creator/editor.
 """
 
 import pygtk, gtk, gobject, time, os, commands, logging
-try:
-    import autotest.common as common
-except ImportError:
-    import common
 from autotest.client.shared import error
 from autotest.client.virt import utils_misc, ppm_utils, step_editor
 from autotest.client.virt import kvm_monitor
@@ -184,26 +180,26 @@ class StepMaker(step_editor.StepMakerWindow):
             return
 
         # Get var values from user and write them to vars file
-        vars = {}
+        var_dict = {}
         for line in lines.splitlines():
             words = line.split()
             if words and words[0] == "var":
                 varname = words[1]
                 if varname in self.vars.keys():
                     val = self.vars[varname]
-                elif varname in vars.keys():
-                    val = vars[varname]
+                elif varname in var_dict.keys():
+                    val = var_dict[varname]
                 elif varname in self.params.keys():
                     val = self.params[varname]
-                    vars[varname] = val
+                    var_dict[varname] = val
                 else:
                     val = self.inputdialog("$%s =" % varname, "Variable")
                     if val == None:
                         return
-                    vars[varname] = val
-        for varname in vars.keys():
-            self.vars_file.write("%s=%s\n" % (varname, vars[varname]))
-        self.vars.update(vars)
+                    var_dict[varname] = val
+        for varname in var_dict.keys():
+            self.vars_file.write("%s=%s\n" % (varname, var_dict[varname]))
+        self.vars.update(var_dict)
 
         # Write step lines to file
         self.steps_file.write("# " + "-" * 32 + "\n")
@@ -277,7 +273,7 @@ class StepMaker(step_editor.StepMakerWindow):
     def update_capture(self):
         self.redirect_timer()
 
-        (screen, x, y, flags) = gtk.gdk.display_get_default().get_pointer()
+        (_, x, y, _) = gtk.gdk.display_get_default().get_pointer()
         self.mouse_click_coords[0] = int(x * self.spin_sensitivity.get_value())
         self.mouse_click_coords[1] = int(y * self.spin_sensitivity.get_value())
 

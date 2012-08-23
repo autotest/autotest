@@ -29,13 +29,13 @@ def run_set_link(test, params, env):
         ip = vm.get_address(0)
 
         vm.set_link(linkid, up=False)
-        s, o = utils_test.ping(ip, count=10, timeout=20)
+        _, o = utils_test.ping(ip, count=10, timeout=20)
         if utils_test.get_loss_ratio(o) != 100:
             raise error.TestFail("Still can ping the %s after down %s" %
                                  (ip, linkid))
 
         vm.set_link(linkid, up=True)
-        s, o = utils_test.ping(ip, count=10, timeout=20)
+        _, o = utils_test.ping(ip, count=10, timeout=20)
         # we use 100% here as the notification of link status changed may be
         # delayed in guest driver
         if utils_test.get_loss_ratio(o) == 100:

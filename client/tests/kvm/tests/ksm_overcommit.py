@@ -350,8 +350,8 @@ def run_ksm_overcommit(test, params, env):
         logging.info("Phase 2g: Simultaneous verification last 96B")
         for i in range(0, max_alloc):
             a_cmd = "mem.static_random_verify(96)"
-            (match, data) = _execute_allocator(a_cmd, vm, lsessions[i],
-                                               (mem / 200 * 50 * perf_ratio))
+            _, data = _execute_allocator(a_cmd, vm, lsessions[i],
+                                         (mem / 200 * 50 * perf_ratio))
         logging.debug(utils_test.get_memory_info([vm]))
         logging.info("Phase 2g: PASS")
 

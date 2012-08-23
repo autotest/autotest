@@ -155,14 +155,14 @@ def ffsb_sum(topdir, prefix, params, guest_ver, resultsdir):
         linestr.append(throughput)
         sum_thro += throughput
 
-        file = glob.glob(os.path.join(sub_dir, "guest_monitor_result*.sum"))[0]
-        str = open(file, "r").readlines()
-        linestr.append("%8.2f" % (100 - utils_test.aton(str[1].split()[3])))
-        linestr.append("%8.2f" % (100 - utils_test.aton(str[2].split()[3])))
+        filename = glob.glob(os.path.join(sub_dir, "guest_monitor_result*.sum"))[0]
+        sr = open(filename, "r").readlines()
+        linestr.append("%8.2f" % (100 - utils_test.aton(sr[1].split()[3])))
+        linestr.append("%8.2f" % (100 - utils_test.aton(sr[2].split()[3])))
 
-        file = glob.glob(os.path.join(sub_dir, "host_monitor_result*.sum"))[0]
-        str = open(file, "r").readlines()
-        hostcpu = 100 - utils_test.aton(str[-1].split()[3])
+        filename = glob.glob(os.path.join(sub_dir, "host_monitor_result*.sum"))[0]
+        sr = open(filename, "r").readlines()
+        hostcpu = 100 - utils_test.aton(sr[-1].split()[3])
         linestr.append(hostcpu)
         sum_hostcpu += hostcpu
         linestr.append("%.2f" % (throughput/hostcpu))

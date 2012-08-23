@@ -32,7 +32,7 @@ def barrier_2(vm, words, params, debug_dir, data_scrdump_filename,
         return False
 
     # Parse barrier command line
-    cmd, dx, dy, x1, y1, md5sum, timeout = words[:7]
+    _, dx, dy, x1, y1, md5sum, timeout = words[:7]
     dx, dy, x1, y1, timeout = map(int, [dx, dy, x1, y1, timeout])
 
     # Define some paths

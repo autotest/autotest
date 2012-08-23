@@ -22,10 +22,10 @@ def run_system_reset_bootable(test, params, env):
     logging.info("Wait for %d seconds before reset" % wait_time)
     time.sleep(wait_time)
 
-    for i in range(reset_times):
+    for _ in range(reset_times):
         logging.info("Reset the system by monitor cmd")
         vm.monitor.cmd("system_reset")
         time.sleep(interval)
 
     logging.info("Try to login guest after reset")
-    session = vm.wait_for_login(timeout=timeout)
+    vm.wait_for_login(timeout=timeout)

@@ -1,7 +1,7 @@
 import logging, re, random, os, time, pickle, sys, traceback
 from autotest.client.shared import error, utils
 from autotest.client.virt import kvm_vm
-from autotest.client.virt import utils_misc, aexpect
+from autotest.client.virt import utils_misc, utils_test, aexpect
 
 
 def run_cpuflags(test, params, env):
@@ -702,7 +702,7 @@ def run_cpuflags(test, params, env):
 
             install_path = "/tmp"
 
-            class testMultihostMigration(utils_misc.MultihostMigration):
+            class testMultihostMigration(utils_test.MultihostMigration):
                 def __init__(self, test, params, env):
                     super(testMultihostMigration, self).__init__(test,
                                                                  params,

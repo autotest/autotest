@@ -61,7 +61,7 @@ class EnospcConfig(object):
             # Let's symlink the logical volume with the image name that autotest
             # expects this device to have
             os.symlink(self.lvtest_device, self.qcow_file_path)
-        except Exception, e:
+        except Exception:
             self.cleanup()
             raise
 

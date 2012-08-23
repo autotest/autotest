@@ -137,7 +137,7 @@ def run_pci_hotplug(test, params, env):
     # Define a helper function to delete the device
     def pci_del(ignore_failure=False):
         if cmd_type == "pci_add":
-            result_domain, bus, slot, function = add_output.split(',')
+            result_domain, bus, slot, _ = add_output.split(',')
             domain = int(result_domain.split()[2])
             bus = int(bus.split()[1])
             slot = int(slot.split()[1])

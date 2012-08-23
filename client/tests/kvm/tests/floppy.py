@@ -36,7 +36,7 @@ def run_floppy(test, params, env):
     # Some Linux distribution does not load floppy at boot and Windows
     # needs time to load and init floppy driver
     if dest_dir:
-        status = session.cmd("modprobe floppy")
+        session.cmd("modprobe floppy")
     else:
         time.sleep(20)
 
