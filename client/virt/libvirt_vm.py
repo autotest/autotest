@@ -4,7 +4,7 @@ Utility classes and functions to handle Virtual Machine creation using libvirt.
 @copyright: 2011 Red Hat Inc.
 """
 
-import time, os, logging, fcntl, re, commands, shutil, urlparse, tempfile
+import time, os, logging, fcntl, re, shutil, urlparse, tempfile
 from autotest.client.shared import error
 from autotest.client import utils, os_dep
 from xml.dom import minidom
@@ -1683,7 +1683,6 @@ class VM(virt_vm.BaseVM):
         @return: list of PID of vcpus of a VM.
         """
 
-        vcpu_pids = []
         output = virsh_qemu_monitor_command(self.name, "info cpus")
         vcpu_pids = re.findall(r'thread_id=(\d+)', output.stdout)
         return vcpu_pids
