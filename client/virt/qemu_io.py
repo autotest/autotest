@@ -1,4 +1,4 @@
-import re, logging
+import re
 from autotest.client.shared import error
 from autotest.client import utils
 import utils_misc, aexpect
@@ -49,7 +49,6 @@ class QemuIO(object):
         @params forbid_option: list for the option should not in command
         @return: qemu-io command line
         """
-        warning_flag = True
         essential_flag = False
 
         qemu_io_cmd = self.qemu_io_cmd
@@ -102,7 +101,6 @@ class QemuIOShellSession(QemuIO):
 
         self.type = "shell"
         forbid_option = ["h", "help", "V", "version", "c", "cmd"]
-        qemu_io_cmd = self.qemu_io_cmd
 
         self.qemu_io_cmd = self.get_cmd_line(forbid_option=forbid_option)
         self.create_session = True
@@ -161,7 +159,6 @@ class QemuIOSystem(QemuIO):
                         log_filename, io_options, log_func)
         ignore_option = ["c", "cmd"]
         essential_option = ["h", "help", "V", "version", "c", "cmd"]
-        qemu_io_cmd = self.qemu_io_cmd
 
         self.qemu_io_cmd = self.get_cmd_line(ignore_option=ignore_option,
                                              essential_option=essential_option)
