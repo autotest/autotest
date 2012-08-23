@@ -836,14 +836,14 @@ class BaseVM(object):
             return self.params.get("uuid", None)
 
 
-    def send_string(self, str):
+    def send_string(self, sr):
         """
         Send a string to the VM.
 
         @param str: String, that must consist of alphanumeric characters only.
                 Capital letters are allowed.
         """
-        for char in str:
+        for char in sr:
             if char.isupper():
                 self.send_key("shift-%s" % char.lower())
             else:
