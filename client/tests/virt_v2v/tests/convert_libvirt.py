@@ -1,4 +1,3 @@
-import os, logging
 from autotest.client.virt import v2v
 
 def get_args_dict(params):

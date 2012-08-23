@@ -1,4 +1,4 @@
-import os, re, logging
+import re, logging
 from autotest.client.shared import error
 from autotest.client.virt import utils_v2v
 

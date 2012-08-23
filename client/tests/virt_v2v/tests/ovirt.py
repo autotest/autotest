@@ -1,4 +1,4 @@
-import os, logging
+import logging
 from autotest.client.virt import ovirt
 
 def get_args_dict(params):
