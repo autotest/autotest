@@ -11,7 +11,8 @@ def run_virsh_version(test, params, env):
     (3) Call virsh version with libvirtd service stop
     """
 
-    connect_uri = params.get("connect_uri")
+    connect_uri = libvirt_vm.normalize_connect_uri( params.get("connect_uri",
+                                                               "default") )
 
     # Prepare libvirtd service
     check_libvirtd = params.has_key("libvirtd")
@@ -23,8 +24,8 @@ def run_virsh_version(test, params, env):
     # Run test case
     option = params.get("virsh_version_options")
     try:
-        output = virsh.version(option, uri = connect_uri,
-                               ignore_status = False, debug = True)
+        output = virsh.version(option, uri=connect_uri,
+                               ignore_status=False, debug=True)
         status = 0 #good
     except error.CmdError:
         status = 1 #bad

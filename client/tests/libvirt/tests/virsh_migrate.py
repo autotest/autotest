@@ -24,7 +24,7 @@ def run_virsh_migrate(test, params, env):
         """
         logging.info("Cleaning up VMs on %s" % vm.connect_uri)
         try:
-            if virsh.domain_exists(vm.name, uri = vm.connect_uri):
+            if virsh.domain_exists(vm.name, uri=vm.connect_uri):
                 vm_state = vm.state()
                 if vm_state == "paused":
                     vm.resume()
@@ -74,10 +74,6 @@ def run_virsh_migrate(test, params, env):
     if not vm_xmlfile_bak:
         logging.error("Backing up xmlfile failed.")
 
-    vm.connect_uri = params.get("connect_uri", "default")
-    if vm.connect_uri == 'default':
-        vm.connect_uri = virsh.canonical_uri()
-
     src_uri = vm.connect_uri
     dest_uri = params.get("virsh_migrate_desturi")
     # Identify easy config. mistakes early
@@ -110,14 +106,16 @@ def run_virsh_migrate(test, params, env):
         s_ping, o_ping = utils_test.ping(vm_ip, count=2, timeout=delay)
         logging.info(o_ping)
         if s_ping != 0:
-            raise error.TestError("%s did not respond after %d sec." % (vm.name, delay))
+            raise error.TestError("%s did not respond after %d sec."
+                                  % (vm.name, delay))
 
         # Prepare for --xml.
         logging.debug("Preparing new xml file for --xml option.")
         if options.count("xml") or extra.count("xml"):
             dest_xmlfile = params.get("virsh_migrate_xml", "")
             if dest_xmlfile:
-                ret_attach = vm.attach_interface("--type bridge --source virbr0 --mac %s" % new_nic_mac, True, True)
+                ret_attach = vm.attach_interface("--type bridge --source "
+                                "virbr0 --mac %s" % new_nic_mac, True, True)
                 if not ret_attach:
                     exception = True
                     raise error.TestError("Attaching nic to %s failed." % vm.name)
@@ -188,15 +186,15 @@ def run_virsh_migrate(test, params, env):
         if options.count("undefinesource") or extra.count("undefinesource"):
             logging.info("Verifying <virsh domstate> DOES return an error."
                          "%s should not exist on %s." % (vm_name, src_uri))
-            if virsh.domain_exists(vm_name, uri = src_uri):
-                check_src_undefine = False
+            if virsh.domain_exists(vm_name, uri=src_uri):
+                check_src_undefine=False
 
         # Checking for --dname.
         logging.debug("Checking for --dname option.")
         check_dest_dname = True
         if options.count("dname") or extra.count("dname"):
             dname = extra.split()[1].strip()
-            if not virsh.domain_exists(dname, uri = dest_uri):
+            if not virsh.domain_exists(dname, uri=dest_uri):
                 check_dest_dname = False
 
         # Checking for --xml.
@@ -240,7 +238,7 @@ def run_virsh_migrate(test, params, env):
 
     # Recover source (just in case).
     # vm.connect_uri has been set back to src_uri in cleanup_dest().
-    if not virsh.domain_exists(vm_name, uri = src_uri):
+    if not virsh.domain_exists(vm_name, uri=src_uri):
         vm.define(vm_xmlfile_bak)
     else:
         #if not vm.shutdown():

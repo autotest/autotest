@@ -1,6 +1,6 @@
 import re, logging, time, commands
 from autotest.client.shared import utils, error
-from autotest.client.virt import virt_remote, libvirt_vm as virsh
+from autotest.client.virt import remote, libvirt_vm, virsh
 
 
 def run_virsh_list(test, params, env):
@@ -25,7 +25,7 @@ def run_virsh_list(test, params, env):
         @return:return status and output of the virsh list command.
         """
         command_on_remote = "virsh -c qemu+ssh://%s/system list %s" % (local_ip, options_ref)
-        session = virt_remote.remote_login("ssh", remote_ip, "22", "root", remote_passwd, "#")
+        session = remote.remote_login("ssh", remote_ip, "22", "root", remote_passwd, "#")
         time.sleep(5)
         status, output = session.cmd_status_output(command_on_remote, internal_timeout=5)
         time.sleep(5)
@@ -40,13 +40,13 @@ def run_virsh_list(test, params, env):
     vm_ref = params.get("vm_ref", "")
 
     #Some parameters are not supported on old libvirt, skip them.
-    help_info = virsh.virsh_cmd("help list").stdout.strip()
+    help_info = virsh.command("help list").stdout.strip()
     if vm_ref and not re.search(vm_ref, help_info):
-        raise error.TestNAError("This version do not support vm type:%s, see help:\n%s"
-                                 % (vm_ref, help_info))
+        raise error.TestNAError("This version do not support vm type:%s"
+                                 % vm_ref)
     if list_ref and not re.search(list_ref, help_info):
-        raise error.TestNAError("This version do not support list type:%s, see help:\n%s"
-                                 % (list_ref, help_info))
+        raise error.TestNAError("This version do not support list type:%s"
+                                 % list_ref)
 
     status_error = params.get("status_error", "no")
     addition_status_error = params.get("addition_status_error", "no")
@@ -61,12 +61,12 @@ def run_virsh_list(test, params, env):
         tmp_xml = vm.backup_xml()
         vm.undefine()
     elif vm_ref == "managed-save":
-        virsh.virsh_managedsave(vm_name, ignore_status=True, print_info=True)
+        virsh.managedsave(vm_name, ignore_status=True, print_info=True)
 
     #Prepare libvirtd status
     libvirtd = params.get("libvirtd", "on")
     if libvirtd == "off":
-        virsh.service_libvirtd_control("stop")
+        libvirt_vm.service_libvirtd_control("stop")
 
     #run test case
     if list_ref == "--uuid":
@@ -105,20 +105,20 @@ def run_virsh_list(test, params, env):
     else:
         if vm_ref:
             options_ref = "%s --%s" % (options_ref, vm_ref)
-        result = virsh.virsh_list(options_ref, ignore_status=True, print_info=True)
+        result = virsh.dom_list(options_ref, ignore_status=True, print_info=True)
         status = result.exit_status
         output = result.stdout.strip()
 
     #Recover libvirtd service status
     if libvirtd == "off":
-        virsh.service_libvirtd_control("start")
+        libvirt_vm.service_libvirtd_control("start")
 
     #Recover of domain
     if vm_ref == "transient":
         vm.define(tmp_xml)
     elif vm_ref == "managed-save":
         #Recover saved guest.
-        virsh.virsh_managedsave_remove(vm_name, ignore_status=True, print_info=True)
+        virsh.managedsave_remove(vm_name, ignore_status=True, print_info=True)
 
     #Check result
     status_error = (status_error == "no") and (addition_status_error == "no")

@@ -1,5 +1,6 @@
 import logging, re, os, commands, string, math
-from autotest.client.shared import utils, error
+from autotest.client import utils
+from autotest.client.shared import error
 from autotest.client.virt import virsh
 
 def run_virsh_vcpupin(test, params, env):

@@ -64,7 +64,9 @@ def run_virsh_capabilities(test, params, env):
             raise error.TestFail("The capabilities_xml gives an different "
                                  "hypervisor")
 
-    connect_uri = params.get("connect_uri", virsh.canonical_uri())
+
+    connect_uri = libvirt_vm.normalize_connect_uri( params.get("connect_uri",
+                                                               "default") )
 
     # Prepare libvirtd service
     if params.has_key("libvirtd"):
@@ -75,11 +77,12 @@ def run_virsh_capabilities(test, params, env):
     # Run test case
     option = params.get("virsh_cap_options")
     try:
-        output = virsh.capabilities(option, uri = connect_uri,
-                                    ignore_status = False, debug = True)
+        output = virsh.capabilities(option, uri=connect_uri,
+                                    ignore_status=False, debug=True)
         status = 0 # good
-    except utils.CmdError:
+    except error.CmdError:
         status = 1 # bad
+        output = ''
 
     # Recover libvirtd service start
     if libvirtd == "off":
