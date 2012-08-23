@@ -1,4 +1,4 @@
-import os, re, logging, SocketServer
+import re, logging, SocketServer
 
 
 SYSLOG_PORT = 514
