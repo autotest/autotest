@@ -2449,8 +2449,7 @@ class VM(virt_vm.BaseVM):
                     md5_save1 = utils.hash_file(save1)
                     md5_save2 = utils.hash_file(save2)
                     if md5_save1 != md5_save2:
-                        raise virt_vm.VMMigrateStateMismatchError(md5_save1,
-                                                                  md5_save2)
+                        raise virt_vm.VMMigrateStateMismatchError()
                 finally:
                     if clean:
                         if os.path.isfile(save1):

@@ -233,14 +233,11 @@ class VMMigrateProtoUnsupportedError(VMMigrateError):
 
 
 class VMMigrateStateMismatchError(VMMigrateError):
-    def __init__(self, src_hash, dst_hash):
-        VMMigrateError.__init__(self, src_hash, dst_hash)
-        self.src_hash = src_hash
-        self.dst_hash = dst_hash
+    def __init__(self):
+        VMMigrateError.__init__(self)
 
     def __str__(self):
-        return ("Mismatch of VM state before and after migration (%s != %s)" %
-                (self.src_hash, self.dst_hash))
+        return ("Mismatch of VM state before and after migration")
 
 
 class VMRebootError(VMError):
