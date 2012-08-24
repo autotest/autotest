@@ -376,7 +376,7 @@ class Iscsidev(storage.Iscsidev):
         """
         Logout the iscsi target and clean up the config and image.
         """
-        if self.cleanup:
+        if self.exec_cleanup:
             self.iscsidevice.cleanup()
             if self.emulated_file_remove:
                 logging.debug("Removing file %s", self.emulated_image)
