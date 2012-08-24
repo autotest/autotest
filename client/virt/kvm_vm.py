@@ -1220,7 +1220,7 @@ class VM(virt_vm.BaseVM):
                                              floppy_params.get("floppy_name"))
                 if has_option(hlp,"global"):
                     qemu_cmd += add_drive(hlp, floppy,
-                                          format="floppy",
+                                          fmt="floppy",
                                           index=index,
                                           readonly=floppy_readonly)
                 else:
