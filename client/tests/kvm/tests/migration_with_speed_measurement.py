@@ -70,7 +70,7 @@ def run_migration_with_speed_measurement(test, params, env):
 
             last_transfer_mem = transfered_mem
 
-            logging.debug("Migration speeed %s MB." % (real_mig_speed))
+            logging.debug("Migration speed: %s MB/s" % (real_mig_speed))
             mig_stat.record(real_mig_speed)
             time.sleep(1)
 
@@ -101,22 +101,25 @@ def run_migration_with_speed_measurement(test, params, env):
         real_speed = mig_stat.get_average()
         ack_speed = mig_speed * mig_speed_accuracy
 
-        logging.info("Desired migration speed: %d MB/s." % (mig_speed))
-        logging.info("Average migration speed: %d MB/s" %
-                                (mig_stat.get_average()))
-        logging.info("Minimum migration speed: %d MB/s" %
-                                (mig_stat.get_min()))
-        logging.info("Maximum migration speed: %d MB/s" %
-                                (mig_stat.get_max()))
+        logging.info("Target migration speed: %d MB/s.", mig_speed)
+        logging.info("Average migration speed: %d MB/s", mig_stat.get_average())
+        logging.info("Minimum migration speed: %d MB/s", mig_stat.get_min())
+        logging.info("Maximum migration speed: %d MB/s", mig_stat.get_max())
+
+        logging.info("Maximum tolerable divergence: %3.1f%%",
+                     mig_speed_accuracy*100)
 
         if real_speed < mig_speed - ack_speed:
-            raise error.TestWarn("Migration speed %s MB is slower by more"
-                                 " %3.1f%% than desired speed %s MB" %
-                         (real_speed, mig_speed_accuracy * 100, mig_speed))
+            divergence = (1 - float(real_speed)/float(mig_speed)) * 100
+            raise error.TestWarn("Average migration speed (%s MB/s) "
+                                 "is %3.1f%% lower than target (%s MB/s)" %
+                                 (real_speed, divergence, mig_speed))
+
         if real_speed > mig_speed + ack_speed:
-            raise error.TestWarn("Migration speed %s MB is faster by more"
-                                 " %3.1f%% than desired speed %s MB" %
-                         (real_speed, mig_speed_accuracy * 100, mig_speed))
+            divergence = (1 - float(mig_speed)/float(real_speed)) * 100
+            raise error.TestWarn("Average migration speed (%s MB/s) "
+                                 "is %3.1f %% higher than target (%s MB/s)" %
+                                 (real_speed, divergence, mig_speed))
 
     finally:
         session.close()

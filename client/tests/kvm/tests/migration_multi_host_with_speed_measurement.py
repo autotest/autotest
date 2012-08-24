@@ -65,7 +65,7 @@ def run_migration_multi_host_with_speed_measurement(test, params, env):
 
             last_transfer_mem = transfered_mem
 
-            logging.debug("Migration speeed %sMB." % (real_mig_speed))
+            logging.debug("Migration speed: %s MB/s" % (real_mig_speed))
             mig_stat.record(real_mig_speed)
             time.sleep(1)
 
@@ -136,12 +136,12 @@ def run_migration_multi_host_with_speed_measurement(test, params, env):
                 client.close()
                 server.close()
                 self.link_speed = data_len / (30 * 1024 * 1024)
-                logging.info("Link speed %d MB." % (self.link_speed))
+                logging.info("Link speed %d MB/s" % (self.link_speed))
                 ms = utils.convert_data_size(mig_speed, 'M')
                 if (ms > data_len / 30):
-                    logging.warn("Migration speed %s is set faster than real"
-                                 " link speed %d MB" % (mig_speed,
-                                                       self.link_speed))
+                    logging.warn("Migration speed %s MB/s is set faster than "
+                                 "real link speed %d MB/s" % (mig_speed,
+                                                              self.link_speed))
                 else:
                     self.link_speed = ms / (1024 * 1024)
             else:
@@ -175,20 +175,23 @@ def run_migration_multi_host_with_speed_measurement(test, params, env):
         real_speed = mig_stat.get_average()
         ack_speed = mig.link_speed * mig_speed_accuracy
 
-        logging.info("Desired migration speed: %d MB/s." % (mig_speed))
-        logging.info("Real Link speed %dMB." % (mig.link_speed))
-        logging.info("Average migration speed: %d MB/s" %
-                                (mig_stat.get_average()))
-        logging.info("Minimum migration speed: %d MB/s" %
-                                (mig_stat.get_min()))
-        logging.info("Maximum migration speed: %d MB/s" %
-                                (mig_stat.get_max()))
+        logging.info("Target migration speed: %d MB/s", mig_speed)
+        logging.info("Real Link speed: %d MB/s", mig.link_speed)
+        logging.info("Average migration speed: %d MB/s", mig_stat.get_average())
+        logging.info("Minimum migration speed: %d MB/s", mig_stat.get_min())
+        logging.info("Maximum migration speed: %d MB/s", mig_stat.get_max())
 
-        if real_speed < mig.link_speed - ack_speed:
-            raise error.TestWarn("Migration speed %s MB is slower by more"
-                                 " %3.1f%% than real/desired speed %s MB" %
-                         (real_speed, mig_speed_accuracy * 100, mig.link_speed))
-        if real_speed > mig.link_speed + ack_speed:
-            raise error.TestWarn("Migration speed %s MB is faster by more"
-                                 " %3.1f%% than real/desired speed %s MB" %
-                         (real_speed, mig_speed_accuracy * 100, mig.link_speed))
+        logging.info("Maximum tolerable divergence: %3.1f%%",
+                     mig_speed_accuracy*100)
+
+        if real_speed < mig_speed - ack_speed:
+            divergence = (1 - float(real_speed)/float(mig_speed)) * 100
+            raise error.TestWarn("Average migration speed (%s MB/s) "
+                                 "is %3.1f%% lower than target (%s MB/s)" %
+                                 (real_speed, divergence, mig_speed))
+
+        if real_speed > mig_speed + ack_speed:
+            divergence = (1 - float(mig_speed)/float(real_speed)) * 100
+            raise error.TestWarn("Average migration speed (%s MB/s) "
+                                 "is %3.1f %% higher than target (%s MB/s)" %
+                                 (real_speed, divergence, mig_speed))
