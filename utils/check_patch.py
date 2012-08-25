@@ -22,19 +22,21 @@ Usage: check_patch.py -p [/path/to/patch]
 @author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 """
 
-import os, stat, logging, sys, optparse, re, urllib
+import os, stat, logging, sys, optparse, re, urllib, shutil, unittest
 try:
     import autotest.common as common
 except ImportError:
     import common
+
 from autotest.client.shared import utils, error, logging_config
 from autotest.client.shared import logging_manager
+from autotest.utils import run_pylint, reindent
 
 # Hostname of patchwork server to use
 PWHOST = "patchwork.virt.bos.redhat.com"
 
 class CheckPatchLoggingConfig(logging_config.LoggingConfig):
-    def configure_logging(self, results_dir=None, verbose=False):
+    def configure_logging(self, results_dir=None, verbose=True):
         super(CheckPatchLoggingConfig, self).configure_logging(use_console=True,
                                                                verbose=verbose)
         p = os.path.join(os.getcwd(), 'check-patch.log')
@@ -85,21 +87,21 @@ class VCS(object):
         return self.backend.get_modified_files()
 
 
-    def is_file_tracked(self, file):
+    def is_file_tracked(self, fl):
         """
         Return whether a file is tracked by the VCS.
         """
-        return self.backend.is_file_tracked(file)
+        return self.backend.is_file_tracked(fl)
 
 
-    def add_untracked_file(self, file):
+    def add_untracked_file(self, fl):
         """
         Add an untracked file to version control.
         """
         return self.backend.add_untracked_file(file)
 
 
-    def revert_file(self, file):
+    def revert_file(self, fl):
         """
         Restore file according to the latest state on the reference repo.
         """
@@ -151,10 +153,10 @@ class SubVersionBackend(object):
         return modified_files
 
 
-    def is_file_tracked(self, file):
+    def is_file_tracked(self, fl):
         stdout = None
         try:
-            cmdresult = utils.run("svn status --ignore-externals %s" % file,
+            cmdresult = utils.run("svn status --ignore-externals %s" % fl,
                                   verbose=False)
             stdout = cmdresult.stdout
         except error.CmdError:
@@ -172,29 +174,29 @@ class SubVersionBackend(object):
             return False
 
 
-    def add_untracked_file(self, file):
+    def add_untracked_file(self, fl):
         """
         Add an untracked file under revision control.
 
         @param file: Path to untracked file.
         """
         try:
-            utils.run('svn add %s' % file)
+            utils.run('svn add %s' % fl)
         except error.CmdError, e:
-            logging.error("Problem adding file %s to svn: %s", file, e)
+            logging.error("Problem adding file %s to svn: %s", fl, e)
             sys.exit(1)
 
 
-    def revert_file(self, file):
+    def revert_file(self, fl):
         """
         Revert file against last revision.
 
         @param file: Path to file to be reverted.
         """
         try:
-            utils.run('svn revert %s' % file)
+            utils.run('svn revert %s' % fl)
         except error.CmdError, e:
-            logging.error("Problem reverting file %s: %s", file, e)
+            logging.error("Problem reverting file %s: %s", fl, e)
             sys.exit(1)
 
 
@@ -252,10 +254,10 @@ class GitBackend(object):
         return modified_files
 
 
-    def is_file_tracked(self, file):
+    def is_file_tracked(self, fl):
         stdout = None
         try:
-            cmdresult = utils.run("git status --porcelain %s" % file,
+            cmdresult = utils.run("git status --porcelain %s" % fl,
                                   verbose=False)
             stdout = cmdresult.stdout
         except error.CmdError:
@@ -273,29 +275,29 @@ class GitBackend(object):
             return False
 
 
-    def add_untracked_file(self, file):
+    def add_untracked_file(self, fl):
         """
         Add an untracked file under revision control.
 
         @param file: Path to untracked file.
         """
         try:
-            utils.run('git add %s' % file)
+            utils.run('git add %s' % fl)
         except error.CmdError, e:
-            logging.error("Problem adding file %s to git: %s", file, e)
+            logging.error("Problem adding file %s to git: %s", fl, e)
             sys.exit(1)
 
 
-    def revert_file(self, file):
+    def revert_file(self, fl):
         """
         Revert file against last revision.
 
         @param file: Path to file to be reverted.
         """
         try:
-            utils.run('git checkout %s' % file)
+            utils.run('git checkout %s' % fl)
         except error.CmdError, e:
-            logging.error("Problem reverting file %s: %s", file, e)
+            logging.error("Problem reverting file %s: %s", fl, e)
             sys.exit(1)
 
 
@@ -343,107 +345,95 @@ class FileChecker(object):
         self.vcs = vcs
         self.confirm = confirm
         self.basename = os.path.basename(self.path)
+
         if self.basename.endswith('.py'):
             self.is_python = True
         else:
             self.is_python = False
 
         mode = os.stat(self.path)[stat.ST_MODE]
-        if mode & stat.S_IXUSR:
-            self.is_executable = True
-        else:
-            self.is_executable = False
+        self.is_executable = mode & stat.S_IXUSR
 
         checked_file = open(self.path, "r")
         self.first_line = checked_file.readline()
         checked_file.close()
         if "python" in self.first_line:
             self.is_python = True
+
         self.corrective_actions = []
-        self.indentation_exceptions = ['job_unittest.py']
+
+        self.indent_exception = 'cli/job_unittest.py'
+
+        if self.is_python:
+            logging.debug("Checking file %s",
+                          self.path.replace("./", "autotest/"))
+        if self.is_python and not self.path.endswith(".py"):
+            self.bkp_path = "%s-cp.py" % self.path
+            shutil.copyfile(self.path, self.bkp_path)
+        else:
+            self.bkp_path = None
+
+
+    def _get_checked_filename(self):
+        if self.bkp_path is not None:
+            return self.bkp_path
+        else:
+            return self.path
 
 
     def _check_indent(self):
         """
-        Verifies the file with reindent.py. This tool performs the following
-        checks on python files:
+        Verifies the file with the reindent module
+
+        This tool performs the following checks on python files:
 
           * Trailing whitespaces
           * Tabs
           * End of line
           * Incorrect indentation
 
-        For the purposes of checking, the dry run mode is used and no changes
-        are made. It is up to the user to decide if he wants to run reindent
-        to correct the issues.
+        And will automatically correct problems.
         """
         success = True
-        indent_exception = 'cli/job_unittest.py'
-        if re.search (indent_exception, self.path):
-            return
-        if not self.path.endswith(".py"):
-            path = "%s-cp.py" % self.path
-            utils.run("cp %s %s" % (self.path, path), verbose=False)
-        else:
-            path = self.path
+        if re.search (self.indent_exception, self.path):
+            return success
 
-        this_path = os.path.abspath(sys.modules['__main__'].__file__)
-        reindent_path = os.path.join(os.path.dirname(this_path),
-                                     'reindent.py')
+        path = self._get_checked_filename()
         try:
-            cmdstatus = utils.run('%s -v -d %s' % (reindent_path,
-                                                   path), verbose=False)
-        except error.CmdError, e:
-            logging.error("Error executing reindent.py: %s" % e)
+            f = open(path)
+        except IOError, msg:
+            logging.error("Error opening %s: %s", path, str(msg))
+            return False
 
-        if not "unchanged" in cmdstatus.stdout:
-            logging.info("File %s will be reindented" % self.path)
-            utils.run("%s -v %s" % (reindent_path, path), verbose=False)
-            if self.path != path:
-                utils.run("mv %s %s" % (path, self.path), verbose=False)
-            utils.run("rm %s.bak" % path, verbose=False)
-            logging.info("")
+        r = reindent.Reindenter(f)
+        f.close()
+        if r.run():
             success = False
+            logging.info("Reindenting %s", path)
+            f = open(path)
+            r.write(f)
+            f.close()
+
+        if not success and path != self.path:
+            shutil.copyfile(path, self.path)
+
         return success
 
 
     def _check_code(self):
         """
-        Verifies the file with run_pylint.py. This tool will call the static
-        code checker pylint using the special autotest conventions and warn
-        only on problems. If problems are found, a report will be generated.
-        Some of the problems reported might be bogus, but it's allways good
-        to look at them.
+        Verifies the file with run_pylint.
+
+        This tool will call the static code checker pylint using the special
+        autotest conventions and warn about problems. Some of the problems
+        reported might be false positive, but it's allways good to look at them.
         """
         success = True
-        non_py_ended = None
-        if not self.path.endswith(".py"):
-            path = "%s-cp.py" % self.path
-            utils.run("cp %s %s" % (self.path, path), verbose=False)
-            non_py_ended = " (filename has no .py)"
-        else:
-            path = self.path
+        path = self._get_checked_filename()
 
-        this_path = os.path.abspath(sys.modules['__main__'].__file__)
-        pylint_path = os.path.join(os.path.dirname(this_path),
-                                   'run_pylint.py')
-        c_cmd = '%s %s' % (pylint_path, path)
-        try:
-            utils.run(c_cmd, verbose=False)
-        except error.CmdError, e:
-            e_msg = "Found syntax issues during '%s'" % c_cmd
-            if non_py_ended is not None:
-                e_msg += non_py_ended
-                utils.run("rm %s" % path, verbose=False)
-            logging.error(e_msg)
-            for stdout_line in e.result_obj.stdout.split("\n"):
-                if stdout_line:
-                    logging.error("    [stdout]: %s", stdout_line)
-            for stderr_line in e.result_obj.stderr.split("\n"):
-                if stderr_line:
-                    logging.error("    [stdout]: %s", stderr_line)
-            logging.error("")
+        if run_pylint.check_file(path):
             success = False
+
         return success
 
 
@@ -453,45 +443,54 @@ class FileChecker(object):
         unittest and report on any failures. This is important to keep our
         unit tests up to date.
         """
+        success = True
         if "unittest" not in self.basename:
-            stripped_name = self.basename.strip(".py")
+            stripped_name = self.basename.rstrip(".py")
             unittest_name = stripped_name + "_unittest.py"
             unittest_path = self.path.replace(self.basename, unittest_name)
             if os.path.isfile(unittest_path):
-                unittest_cmd = 'python %s' % unittest_path
-                try:
-                    utils.run(unittest_cmd, verbose=False)
-                except error.CmdError, e:
-                    e_msg = ("Found unittest issues during '%s'" %
-                             unittest_cmd)
-                    logging.error(e_msg)
-                    for stdout_line in e.result_obj.stdout.split("\n"):
-                        if stdout_line:
-                            logging.error("    [stdout]: %s", stdout_line)
-                    for stderr_line in e.result_obj.stderr.split("\n"):
-                        if stderr_line:
-                            logging.error("    [stdout]: %s", stderr_line)
-                    logging.error("")
+                module = unittest_path.rstrip(".py")
+                module = module.split("/")
+                module[0] = "autotest"
+                mod = common.setup_modules.import_module(module[-1],
+                                                         ".".join(module[:-1]))
+                test = unittest.defaultTestLoader.loadTestsFromModule(mod)
+                suite = unittest.TestSuite(test)
+                runner = unittest.TextTestRunner()
+                result = runner.run(suite)
+                if result.errors or result.failures:
+                    success = False
+                    msg = '%s had %d failures and %d errors.'
+                    msg = (msg % '.'.join(module), len(result.failures),
+                           len(result.errors))
+                    logging.error(msg)
+
+        return success
 
 
     def _check_permissions(self):
         """
-        Verifies the execution permissions, specifically:
+        Verifies the execution permissions.
+
           * Files with no shebang and execution permissions are reported.
           * Files with shebang and no execution permissions are reported.
         """
         if self.first_line.startswith("#!"):
             if not self.is_executable:
                 if self.vcs.type == "subversion":
-                    self.corrective_actions.append("svn propset svn:executable ON %s" % self.path)
+                    utils.run("svn propset svn:executable ON %s" % self.path,
+                              ignore_status=True)
                 elif self.vcs.type == "git":
-                    self.corrective_actions.append("chmod +x %s" % self.path)
+                    utils.run("chmod +x %s" % self.path,
+                              ignore_status=True)
         else:
             if self.is_executable:
                 if self.vcs.type == "subversion":
-                    self.corrective_actions.append("svn propdel svn:executable %s" % self.path)
+                    utils.run("svn propdel svn:executable %s" % self.path,
+                              ignore_status=True)
                 elif self.vcs.type == "git":
-                    self.corrective_actions.append("chmod -x %s" % self.path)
+                    utils.run("chmod -x %s" % self.path,
+                              ignore_status=True)
 
 
     def report(self, skip_unittest=False):
@@ -509,14 +508,10 @@ class FileChecker(object):
             if not skip_unittest:
                 if not self._check_unittest():
                     success = False
-        if self.corrective_actions:
-            for action in self.corrective_actions:
-                answer = utils.ask("Would you like to execute %s?" % action,
-                                   auto=self.confirm)
-                if answer == "y":
-                    rc = utils.system(action, ignore_status=True)
-                    if rc != 0:
-                        logging.error("Error executing %s" % action)
+
+        if self.bkp_path is not None and os.path.isfile(self.bkp_path):
+            os.unlink(self.bkp_path)
+
         return success
 
 
@@ -562,15 +557,15 @@ class PatchChecker(object):
         self.vcs.update()
 
 
-    def _fetch_from_patchwork(self, id):
+    def _fetch_from_patchwork(self, pw_id):
         """
         Gets a patch file from patchwork and puts it under the cwd so it can
         be applied.
 
         @param id: Patchwork patch id.
         """
-        patch_url = "http://%s/patch/%s/mbox/" % (self.pwhost, id)
-        patch_dest = os.path.join(self.base_dir, 'patchwork-%s.patch' % id)
+        patch_url = "http://%s/patch/%s/mbox/" % (self.pwhost, pw_id)
+        patch_dest = os.path.join(self.base_dir, 'patchwork-%s.patch' % pw_id)
         patch = utils.get_file(patch_url, patch_dest)
         # Patchwork sometimes puts garbage on the path, such as long
         # sequences of underscores (_______). Get rid of those.
@@ -585,15 +580,15 @@ class PatchChecker(object):
         return patch
 
 
-    def _fetch_from_github(self, id):
+    def _fetch_from_github(self, gh_id):
         """
         Gets a patch file from patchwork and puts it under the cwd so it can
         be applied.
 
-        @param id: Patchwork patch id.
+        @param gh_id: Patchwork patch id.
         """
-        patch_url = "https://github.com/autotest/autotest/pull/%s.patch" % id
-        patch_dest = os.path.join(self.base_dir, 'github-%s.patch' % id)
+        patch_url = "https://github.com/autotest/autotest/pull/%s.patch" % gh_id
+        patch_dest = os.path.join(self.base_dir, 'github-%s.patch' % gh_id)
         urllib.urlretrieve(patch_url, patch_dest)
         return patch_dest
 
@@ -651,9 +646,9 @@ class PatchChecker(object):
 
 if __name__ == "__main__":
     parser = optparse.OptionParser()
-    parser.add_option('-p', '--patch', dest="local_patch", action='store',
+    parser.add_option('-l', '--patch', dest="local_patch", action='store',
                       help='path to a patch file that will be checked')
-    parser.add_option('-i', '--patchwork-id', dest="id", action='store',
+    parser.add_option('-p', '--patchwork-id', dest="pw_id", action='store',
                       help='id of a given patchwork patch')
     parser.add_option('-g', '--github-id', dest="gh_id", action='store',
                       help='id of a given github patch')
@@ -670,9 +665,10 @@ if __name__ == "__main__":
 
     options, args = parser.parse_args()
     local_patch = options.local_patch
-    id = options.id
+    pw_id = options.pw_id
     gh_id = options.gh_id
     debug = options.debug
+    run_pylint.set_verbosity(debug)
     full_check = options.full_check
     confirm = options.confirm
     pwhost = options.patchwork_host
@@ -681,32 +677,27 @@ if __name__ == "__main__":
         vcs = None
 
     logging_manager.configure_logging(CheckPatchLoggingConfig(), verbose=debug)
-
     ignore_list = ['common.py', ".svn", ".git", '.pyc', ".orig", ".rej", ".bak"]
-    files_failed_check = []
+
     if full_check:
+        run_pylint.set_verbosity(False)
         logging.info("Autotest full tree check")
         logging.info("")
-        for root, dirs, files in os.walk('.'):
-            for file in files:
+        for root, dirs, files in os.walk("."):
+            for fl in files:
                 check = True
-                path = os.path.join(root, file)
+                path = os.path.join(root, fl)
                 for pattern in ignore_list:
                     if re.search(pattern, path):
                         check = False
                 if check:
                     if vcs is not None:
-                        if not vcs.is_file_tracked(file=path):
+                        if not vcs.is_file_tracked(fl=path):
                             check = False
                 if check:
                     file_checker = FileChecker(path=path, vcs=vcs,
                                                confirm=confirm)
-                    if not file_checker.report(skip_unittest=True):
-                        files_failed_check.append(file)
-
-        if files_failed_check:
-            logging.error("List of files with problems: %s", files_failed_check)
-            sys.exit(-1)
+                    file_checker.report(skip_unittest=False)
 
     else:
         if local_patch:
@@ -714,10 +705,10 @@ if __name__ == "__main__":
             logging.info("")
             patch_checker = PatchChecker(patch=local_patch, vcs=vcs,
                                          confirm=confirm)
-        elif id:
+        elif pw_id:
             logging.info("Checking patchwork patch #%s", id)
             logging.info("")
-            patch_checker = PatchChecker(patchwork_id=id, pwhost=pwhost,
+            patch_checker = PatchChecker(patchwork_id=pw_id, pwhost=pwhost,
                                          vcs=vcs,
                                          confirm=confirm)
         elif gh_id:
@@ -730,7 +721,3 @@ if __name__ == "__main__":
             sys.exit(1)
 
         (success, files_failed_check) = patch_checker.check()
-
-        if not success:
-            logging.error("List of files with problems: %s", files_failed_check)
-            sys.exit(-1)
