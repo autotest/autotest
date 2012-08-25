@@ -452,18 +452,22 @@ class FileChecker(object):
                 module = unittest_path.rstrip(".py")
                 module = module.split("/")
                 module[0] = "autotest"
-                mod = common.setup_modules.import_module(module[-1],
-                                                         ".".join(module[:-1]))
-                test = unittest.defaultTestLoader.loadTestsFromModule(mod)
-                suite = unittest.TestSuite(test)
-                runner = unittest.TextTestRunner()
-                result = runner.run(suite)
-                if result.errors or result.failures:
-                    success = False
-                    msg = '%s had %d failures and %d errors.'
-                    msg = (msg % '.'.join(module), len(result.failures),
-                           len(result.errors))
-                    logging.error(msg)
+                try:
+                    mod = common.setup_modules.import_module(module[-1],
+                                                             ".".join(module[:-1]))
+                    test = unittest.defaultTestLoader.loadTestsFromModule(mod)
+                    suite = unittest.TestSuite(test)
+                    runner = unittest.TextTestRunner()
+                    result = runner.run(suite)
+                    if result.errors or result.failures:
+                        success = False
+                        msg = '%s had %d failures and %d errors.'
+                        msg = (msg % '.'.join(module), len(result.failures),
+                               len(result.errors))
+                        logging.error(msg)
+                except ImportError:
+                    logging.error("Unable to run unittest %s" %
+                                  ".".join(module))
 
         return success
 
