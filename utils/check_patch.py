@@ -410,7 +410,7 @@ class FileChecker(object):
         if r.run():
             success = False
             logging.info("Reindenting %s", path)
-            f = open(path)
+            f = open(path, "w")
             r.write(f)
             f.close()
 
