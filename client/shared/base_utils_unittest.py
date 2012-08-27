@@ -834,5 +834,238 @@ class test_get_random_port(unittest.TestCase):
             self.assert_(s.getsockname())
 
 
+class test_VersionableClass(unittest.TestCase):
+    def setUp(self):
+        self.god = mock.mock_god(ut=self)
+        self.god.stub_function(base_utils.logging, 'warn')
+        self.god.stub_function(base_utils.logging, 'debug')
+        self.version = 1
+
+
+    def tearDown(self):
+        self.god.unstub_all()
+
+
+    class FooC(object):
+            pass
+
+    #Not implemented get_version -> not used for versioning.
+    class VCP(FooC, base_utils.VersionableClass):
+        def __new__(cls, *args, **kargs):
+            test_VersionableClass.VCP.version = 1       # Only for unittesting.
+            test_VersionableClass.VCP.master_class = test_VersionableClass.VCP
+            return (super(test_VersionableClass.VCP, cls)
+                                                .__new__(cls, *args, **kargs))
+
+
+        def foo(self):
+            pass
+
+    class VC2(VCP, base_utils.VersionableClass):
+        @classmethod
+        def get_version(cls):
+            return cls.version
+
+        @classmethod
+        def is_right_version(cls, version):
+            if version is not None:
+                if version == 1:
+                    return True
+            return False
+
+        def func1(self):
+            logging.info("func1")
+
+        def func2(self):
+            logging.info("func2")
+
+    # get_version could be inherited.
+    class VC3(VC2, base_utils.VersionableClass):
+        @classmethod
+        def is_right_version(cls, version):
+            if version is not None:
+                if version == 2:
+                    return True
+            return False
+
+        def func2(self):
+            logging.info("func2_2")
+
+    class PP(base_utils.VersionableClass):
+        def __new__(cls, *args, **kargs):
+            test_VersionableClass.PP.version = 1       # Only for unittesting.
+            test_VersionableClass.PP.master_class = test_VersionableClass.PP
+            return (super(test_VersionableClass.PP, cls)
+                                                 .__new__(cls, *args, **kargs))
+
+    class PP2(PP, base_utils.VersionableClass):
+        @classmethod
+        def get_version(cls):
+            return cls.version
+
+        @classmethod
+        def is_right_version(cls, version):
+            if version is not None:
+                if cls.version == 1:
+                    return True
+            return False
+
+        def func1(self):
+            print "PP func1"
+
+
+    class WP(base_utils.VersionableClass):
+        def __new__(cls, *args, **kargs):
+            test_VersionableClass.WP.version = 1       # Only for unittesting.
+            test_VersionableClass.WP.master_class = test_VersionableClass.WP
+            return (super(test_VersionableClass.WP, cls)
+                                                 .__new__(cls, *args, **kargs))
+
+    class WP2(WP, base_utils.VersionableClass):
+        @classmethod
+        def get_version(cls):
+            return cls.version
+
+        def func1(self):
+            print "WP func1"
+
+
+    class N(VCP, PP):
+        pass
+
+    class NN(N):
+        pass
+
+    class M(VCP):
+        pass
+
+    class MM(M):
+        pass
+
+    class W(WP):
+        pass
+
+
+    def test_simple_versioning(self):
+        self.god.stub_function(test_VersionableClass.VCP, "foo")
+        self.god.stub_function(test_VersionableClass.VC2, "func1")
+        self.god.stub_function(test_VersionableClass.VC2, "func2")
+        self.god.stub_function(test_VersionableClass.VC3, "func2")
+
+        test_VersionableClass.VC2.func2.expect_call()
+        test_VersionableClass.VC2.func1.expect_call()
+        test_VersionableClass.VCP.foo.expect_call()
+        test_VersionableClass.VC3.func2.expect_call()
+
+        test_VersionableClass.VC2.func2.expect_call()
+        test_VersionableClass.VC2.func1.expect_call()
+        test_VersionableClass.VCP.foo.expect_call()
+        test_VersionableClass.VC3.func2.expect_call()
+
+        m = test_VersionableClass.M()
+        m.func2()   # call VC3.func2(m)
+        m.func1()   # call VC2.func1(m)
+        m.foo()     # call VC1.foo(m)
+        m.version = 2
+        m.check_repair_versions()
+        m.func2()
+
+        #m.version = 1
+        #m.check_repair_versions()
+
+        mm = test_VersionableClass.MM()
+        mm.func2()   # call VC3.func2(m)
+        mm.func1()   # call VC2.func1(m)
+        mm.foo()     # call VC1.foo(m)
+        mm.version = 2
+        mm.check_repair_versions()
+        mm.func2()
+
+        self.god.check_playback()
+
+    def test_set_class_priority(self):
+        self.god.stub_function(test_VersionableClass.VC2, "func1")
+        self.god.stub_function(test_VersionableClass.VC2, "func2")
+        self.god.stub_function(test_VersionableClass.VC3, "func2")
+        self.god.stub_function(test_VersionableClass.PP2, "func1")
+
+        test_VersionableClass.VC2.func1.expect_call()
+        test_VersionableClass.PP2.func1.expect_call()
+        test_VersionableClass.VC3.func2.expect_call()
+        test_VersionableClass.PP2.func1.expect_call()
+        test_VersionableClass.VC2.func1.expect_call()
+        test_VersionableClass.VC2.func2.expect_call()
+
+        m = test_VersionableClass.N()
+        m.func1()
+        m.set_priority_class(test_VersionableClass.PP,
+                             [test_VersionableClass.PP,
+                              test_VersionableClass.VCP])
+        m.func1()
+
+        m.version = 2
+        m.check_repair_versions()
+        m.func2()
+        m.func1()
+
+        m.set_priority_class(test_VersionableClass.VCP,
+                             [test_VersionableClass.PP,
+                              test_VersionableClass.VCP])
+
+        m.func1()
+
+        m.version = 1
+        m.check_repair_versions()
+        m.func2()
+
+        self.god.check_playback()
+
+
+    def test_set_class_priority_deep(self):
+        self.god.stub_function(test_VersionableClass.VC2, "func1")
+        self.god.stub_function(test_VersionableClass.VC2, "func2")
+        self.god.stub_function(test_VersionableClass.VC3, "func2")
+        self.god.stub_function(test_VersionableClass.PP2, "func1")
+
+        test_VersionableClass.VC2.func1.expect_call()
+        test_VersionableClass.PP2.func1.expect_call()
+        test_VersionableClass.VC3.func2.expect_call()
+        test_VersionableClass.PP2.func1.expect_call()
+        test_VersionableClass.VC2.func1.expect_call()
+        test_VersionableClass.VC2.func2.expect_call()
+
+        m = test_VersionableClass.NN()
+        m.func1()
+        m.set_priority_class(test_VersionableClass.PP,
+                             [test_VersionableClass.PP,
+                              test_VersionableClass.VCP])
+        m.func1()
+
+        m.version = 2
+        m.check_repair_versions()
+        m.func2()
+        m.func1()
+
+        m.set_priority_class(test_VersionableClass.VCP,
+                             [test_VersionableClass.PP,
+                              test_VersionableClass.VCP])
+
+        m.func1()
+
+        m.version = 1
+        m.check_repair_versions()
+        m.func2()
+
+        self.god.check_playback()
+
+
+    def test_check_not_implemented(self):
+        m = test_VersionableClass.W()
+        self.assertEqual(m.__class__.__bases__,
+                      tuple([test_VersionableClass.WP2]),
+                      "Class should be WP2 (last defined class in class"
+                      " hierarchy).")
+
+
 if __name__ == "__main__":
     unittest.main()
