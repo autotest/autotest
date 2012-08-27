@@ -443,6 +443,10 @@ class YumInstaller(BaseInstaller):
                                         "[]"))
 
 
+    def get_version(self):
+        return " ".join(self.yum_pkgs)
+
+
     def _install_phase_cleanup(self):
         packages_to_remove = " ".join(self.yum_pkgs)
         utils.system("yum remove -y %s" % packages_to_remove)
@@ -484,6 +488,10 @@ class KojiInstaller(BaseInstaller):
                                             "").split()
         if self.install_debug_info:
             self._expand_koji_pkgs_with_debuginfo()
+
+
+    def get_version(self):
+        return " ".join(self._get_rpm_file_names())
 
 
     def _expand_koji_pkgs_with_debuginfo(self):
