@@ -4,8 +4,8 @@ try:
 except ImportError:
     import common
 
-from autotest.client.shared import utils, error, profiler_manager
-
+from autotest.client.shared import utils, error, profiler_manager, global_config
+GLOBAL_CONFIG = global_config.global_config
 
 class profilers(profiler_manager.profiler_manager):
     def load_profiler(self, profiler, args, dargs):
@@ -26,7 +26,18 @@ class profilers(profiler_manager.profiler_manager):
 
         newprofiler.name = profiler
         newprofiler.bindir = os.path.join(prof_dir)
-        newprofiler.srcdir = os.path.join(newprofiler.bindir, 'src')
+        try:
+            autodir = os.path.abspath(os.environ['AUTODIR'])
+        except KeyError:
+            autodir = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                 'autotest_top_path')
+        tmpdir = os.path.join(autodir, 'tmp')
+        output_config = GLOBAL_CONFIG.get_config_value('COMMON',
+                                                       'test_output_dir',
+                                                       default=tmpdir)
+        newprofiler.srcdir = os.path.join(output_config,
+                                          os.path.basename(newprofiler.bindir),
+                                         'src')
         newprofiler.tmpdir = os.path.join(self.tmpdir, profiler)
         newprofiler.initialize(*args, **dargs)
         utils.update_version(newprofiler.srcdir, newprofiler.preserve_srcdir,
