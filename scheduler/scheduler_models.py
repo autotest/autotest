@@ -637,16 +637,19 @@ class HostQueueEntry(DBObject):
 
             body += "\n%s\n\n" % self._view_job_url()
 
-        keyval_list = job_stats['keyval_dict_list']
-        if keyval_list:
-            for kv in keyval_list:
-                k, v = kv.items()[0]
-                body += "%s: %s\n\n" % (k, v)
-
         body += job_stats['fail_detail']
         body += job_stats['warn_detail']
         body += job_stats['skip_detail']
         body += job_stats['pass_detail']
+
+        keyval_list = job_stats['keyval_dict_list']
+        if keyval_list:
+            for kv in keyval_list:
+                k, v = kv.items()[0]
+                body += "%s:\n" % k
+                for part in v.split():
+                    body += "  %s\n" % part
+                body += "\n"
 
         if hostname is not None:
             body += "Job was run on host %s\n" % hostname
