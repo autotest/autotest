@@ -710,7 +710,7 @@ if __name__ == "__main__":
             patch_checker = PatchChecker(patch=local_patch, vcs=vcs,
                                          confirm=confirm)
         elif pw_id:
-            logging.info("Checking patchwork patch #%s", id)
+            logging.info("Checking patchwork patch #%s", pw_id)
             logging.info("")
             patch_checker = PatchChecker(patchwork_id=pw_id, pwhost=pwhost,
                                          vcs=vcs,
