@@ -20,7 +20,8 @@ class virt(test.test):
         # the value present on the configuration file (defaults to yes)
         if params.get("preserve_srcdir", "yes") == "yes":
             self.preserve_srcdir = True
-        self.virtdir = os.path.dirname(sys.modules[__name__].__file__)
+        virtdir = os.path.dirname(sys.modules[__name__].__file__)
+        self.virtdir = os.path.join(virtdir, "shared")
 
 
     def run_once(self, params):
@@ -45,7 +46,8 @@ class virt(test.test):
         utils_misc.set_log_file_dir(self.debugdir)
 
         # Open the environment file
-        env_filename = os.path.join(self.bindir, params.get("env", "env"))
+        env_filename = os.path.join(self.bindir, params.get("vm_type"),
+                                    params.get("env", "env"))
         env = utils_misc.Env(env_filename, self.env_version)
 
         test_passed = False
@@ -64,9 +66,11 @@ class virt(test.test):
                                                   " exist." % (subtestdir))
                         subtest_dirs.append(subtestdir)
                     # Verify if we have the correspondent source file for it
-                    virt_dir = os.path.dirname(utils_misc.__file__)
+                    virt_dir = os.path.dirname(self.virtdir)
                     subtest_dirs.append(os.path.join(virt_dir, "tests"))
-                    subtest_dirs.append(os.path.join(self.bindir, "tests"))
+                    subtest_dirs.append(os.path.join(self.bindir,
+                                                     params.get("vm_type"),
+                                                     "tests"))
                     subtest_dir = None
 
                     # Get the test routine corresponding to the specified

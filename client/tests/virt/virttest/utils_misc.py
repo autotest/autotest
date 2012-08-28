@@ -1617,7 +1617,7 @@ def run_tests(parser, job):
                     dependencies_satisfied = False
                     break
         test_iterations = int(param_dict.get("iterations", 1))
-        test_tag = param_dict.get("shortname")
+        test_tag = param_dict.get("vm_type") + "." + param_dict.get("shortname")
 
         if dependencies_satisfied:
             # Setting up profilers during test execution.
@@ -1627,7 +1627,7 @@ def run_tests(parser, job):
             # We need only one execution, profiled, hence we're passing
             # the profile_only parameter to job.run_test().
             profile_only = bool(profilers) or None
-            current_status = job.run_test_detail(param_dict.get("vm_type"),
+            current_status = job.run_test_detail("virt",
                                                  params=param_dict,
                                                  tag=test_tag,
                                                  iterations=test_iterations,
@@ -1637,7 +1637,7 @@ def run_tests(parser, job):
         else:
             # We will force the test to fail as TestNA during preprocessing
             param_dict['dependency_failed'] = 'yes'
-            current_status = job.run_test_detail(param_dict.get("vm_type"),
+            current_status = job.run_test_detail("virt",
                                                  params=param_dict,
                                                  tag=test_tag,
                                                  iterations=test_iterations)
@@ -3945,7 +3945,9 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
     logging_manager.configure_logging(VirtLoggingConfig(), verbose=True)
     logging.info("%s test config helper", test_name)
     step = 0
-    common_dir = os.path.dirname(sys.modules[__name__].__file__)
+    shared_dir = os.path.abspath(os.path.join(sys.modules[__name__].__file__,
+                                              "..", ".."))
+    shared_dir = os.path.join(shared_dir, "shared", "cfg")
     logging.info("")
     step += 1
     logging.info("%d - Verifying directories (check if the directory structure "
@@ -3963,11 +3965,11 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
     step += 1
     logging.info("%d - Creating config files from samples (copy the default "
                  "config samples to actual config files)", step)
-    config_file_list = glob.glob(os.path.join(test_dir, "*.cfg.sample"))
-    config_file_list += glob.glob(os.path.join(common_dir, "*.cfg.sample"))
+    config_file_list = glob.glob(os.path.join(test_dir, "cfg", "*.cfg.sample"))
+    config_file_list += glob.glob(os.path.join(shared_dir, "*.cfg.sample"))
     for config_file in config_file_list:
         src_file = config_file
-        dst_file = os.path.join(test_dir, os.path.basename(config_file))
+        dst_file = os.path.join(test_dir, "cfg", os.path.basename(config_file))
         dst_file = dst_file.rstrip(".sample")
         if not os.path.isfile(dst_file):
             logging.debug("Creating config file %s from sample", dst_file)
