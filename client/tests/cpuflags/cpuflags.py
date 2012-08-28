@@ -8,7 +8,7 @@ import os, logging
 
 from autotest.client import test, utils
 from autotest.client.shared import error
-from autotest.client.virt import utils_misc
+from virttest import utils_misc
 
 class cpuflags(test.test):
     """

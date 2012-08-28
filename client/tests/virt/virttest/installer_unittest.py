@@ -2,8 +2,7 @@
 
 import unittest
 import common
-from autotest.client.virt import installer
-from autotest.client.shared import cartesian_config
+import installer, cartesian_config
 
 class installer_test(unittest.TestCase):
 

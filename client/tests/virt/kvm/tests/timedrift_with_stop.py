@@ -1,6 +1,6 @@
 import logging, time
 from autotest.client.shared import error
-from autotest.client.virt import utils_test
+from virttest import utils_test
 
 
 def run_timedrift_with_stop(test, params, env):

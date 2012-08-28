@@ -9,8 +9,8 @@ Step file creator/editor.
 
 import pygtk, gtk, gobject, time, os, commands, logging
 from autotest.client.shared import error
-from autotest.client.virt import utils_misc, ppm_utils, step_editor
-from autotest.client.virt import kvm_monitor
+from virttest import utils_misc, ppm_utils, step_editor
+from virttest import kvm_monitor
 pygtk.require('2.0')
 
 

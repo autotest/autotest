@@ -1,7 +1,7 @@
 import logging, os, commands, threading, re, glob
 from autotest.client import utils
 from autotest.client.shared import ssh_key
-from autotest.client.virt import utils_test, utils_misc, remote
+from virttest import utils_test, utils_misc, remote
 
 
 def run_netperf(test, params, env):

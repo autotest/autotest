@@ -1,8 +1,8 @@
 import logging, time, random, math, os
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import utils_misc, utils_test, aexpect
-from autotest.client.virt import env_process
+from virttest import utils_misc, utils_test, aexpect
+from virttest import env_process
 
 
 def run_ksm_overcommit(test, params, env):

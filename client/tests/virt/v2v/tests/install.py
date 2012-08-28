@@ -1,8 +1,8 @@
 import os, time, glob
 
 from autotest.client.shared import error
-from autotest.client.virt import installer
-from autotest.client.virt import base_installer
+from virttest import installer
+from virttest import base_installer
 from autotest.client import utils
 from autotest.client.shared import software_manager
 

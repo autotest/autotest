@@ -1,7 +1,7 @@
 import os, logging
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import utils_misc
+from virttest import utils_misc
 
 
 def run_image_copy(test, params, env):

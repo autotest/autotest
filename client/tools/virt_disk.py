@@ -10,7 +10,7 @@ disks just like they're created by the virt unattended test installation.
 
 import sys, optparse
 import common
-from autotest.client.virt import utils_misc, utils_disk
+from virttest import utils_misc, utils_disk
 
 
 class OptionParser(optparse.OptionParser):

@@ -1,7 +1,7 @@
 import logging, commands, random
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import utils_misc, utils_test
+from virttest import utils_misc, utils_test
 
 
 def run_jumbo(test, params, env):

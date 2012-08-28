@@ -1,6 +1,6 @@
-import re, logging, time, commands
-from autotest.client.shared import utils, error
-from autotest.client.virt import remote, libvirt_vm, virsh
+import re, logging, time
+from autotest.client.shared import error
+from virttest import virsh, libvirt_vm, remote
 
 
 def run_virsh_list(test, params, env):

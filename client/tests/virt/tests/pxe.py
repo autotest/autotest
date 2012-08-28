@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import aexpect
+from virttest import aexpect
 
 def run_pxe(test, params, env):
     """

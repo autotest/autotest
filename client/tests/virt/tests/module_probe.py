@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error, utils
-from autotest.client.virt import base_installer
+from virttest import base_installer
 
 
 def run_module_probe(test, params, env):

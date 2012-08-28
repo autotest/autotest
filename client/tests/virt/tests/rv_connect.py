@@ -6,8 +6,8 @@ Requires: binaries remote-viewer, Xorg, netstat
 
 """
 import logging, os, time
-from autotest.client.virt.aexpect import ShellCmdError
-from autotest.client.virt import utils_misc, remote
+from virttest.aexpect import ShellCmdError
+from virttest import utils_misc, remote
 
 class RVConnectError(Exception):
     """Exception raised in case that remote-viewer fails to connect"""

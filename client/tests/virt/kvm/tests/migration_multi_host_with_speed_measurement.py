@@ -2,7 +2,7 @@ import os, re, logging, time, socket
 from autotest.client.shared import error, utils
 from autotest.client.shared.barrier import listen_server
 from autotest.client.shared.syncdata import SyncData
-from autotest.client.virt import utils_test, utils_misc
+from virttest import utils_test, utils_misc
 
 
 def run_migration_multi_host_with_speed_measurement(test, params, env):

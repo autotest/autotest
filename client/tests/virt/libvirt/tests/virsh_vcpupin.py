@@ -1,7 +1,8 @@
-import logging, re, os, commands, string, math
+import logging, re, math
 from autotest.client import utils
 from autotest.client.shared import error
-from autotest.client.virt import virsh
+from virttest import virsh
+
 
 def run_virsh_vcpupin(test, params, env):
     """

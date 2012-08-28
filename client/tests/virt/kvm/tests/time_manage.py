@@ -1,7 +1,7 @@
 import logging, time
 from autotest.client.shared import error
-from autotest.client.virt import utils_test, aexpect
-from autotest.client.virt import env_process
+from virttest import utils_test, aexpect
+from virttest import env_process
 
 @error.context_aware
 def run_time_manage(test, params, env):

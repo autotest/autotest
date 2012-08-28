@@ -8,7 +8,7 @@ import logging
 
 from autotest.client import os_dep, utils
 from autotest.client.shared import ssh_key
-from autotest.client.virt import utils_v2v
+import utils_v2v
 
 DEBUG = False
 

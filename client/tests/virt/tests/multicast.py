@@ -1,7 +1,7 @@
 import logging, os, re
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import utils_test, aexpect
+from virttest import utils_test, aexpect
 
 
 def run_multicast(test, params, env):

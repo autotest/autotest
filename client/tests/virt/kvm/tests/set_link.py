@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import utils_test
+from virttest import utils_test
 
 
 def run_set_link(test, params, env):

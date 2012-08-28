@@ -2,10 +2,9 @@
 
 import unittest, time, sys, os, shelve
 import common
-from autotest.client.virt import utils_misc
 from autotest.client import utils
 from autotest.client.shared.test_utils import mock
-from autotest.client.shared import cartesian_config
+import utils_misc, cartesian_config
 
 class utils_misc_test(unittest.TestCase):
 

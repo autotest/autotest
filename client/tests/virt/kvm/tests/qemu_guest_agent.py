@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import guest_agent
+from virttest import guest_agent
 
 
 def run_qemu_guest_agent(test, params, env):

@@ -11,7 +11,7 @@ will match the packages you intended to install.
 import sys, optparse
 import common
 from autotest.client.shared import cartesian_config
-from autotest.client.virt import utils_misc
+from virttest import utils_misc
 
 
 class OptionParser(optparse.OptionParser):

@@ -1,8 +1,8 @@
 import logging, os, glob, re, commands
 from autotest.client.shared import error
 from autotest.client.shared import utils
-from autotest.client.virt import utils_misc, utils_test, remote
-from autotest.client.virt import aexpect
+from virttest import utils_misc, utils_test, remote
+from virttest import aexpect
 
 _receiver_ready = False
 

@@ -1,6 +1,6 @@
 import logging, time, commands
 from autotest.client.shared import error
-from autotest.client.virt import utils_test, aexpect
+from virttest import utils_test, aexpect
 
 
 def run_timedrift(test, params, env):

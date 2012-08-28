@@ -1,6 +1,6 @@
 import logging
 from autotest.client.shared import error
-from autotest.client.virt import utils_test, virt_vm, aexpect
+from virttest import utils_test, virt_vm, aexpect
 
 
 def run_nic_hotplug(test, params, env):

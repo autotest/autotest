@@ -1,6 +1,5 @@
 from autotest.client.shared import error
-from autotest.client.virt import installer
-from autotest.client.virt import base_installer
+from virttest import installer, base_installer
 
 
 def run_build(test, params, env):

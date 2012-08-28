@@ -1,6 +1,7 @@
-import logging, os, re, time, shutil, codecs
-from autotest.client.shared import utils, error
-from autotest.client.virt import libvirt_vm, virsh, utils_misc, utils_test
+import logging, os, re, time, codecs
+from autotest.client.shared import error
+from virttest import libvirt_vm, utils_test, virsh
+
 
 def run_virsh_migrate(test, params, env):
     """

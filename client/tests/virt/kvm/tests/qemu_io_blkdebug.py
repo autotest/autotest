@@ -1,8 +1,8 @@
 import re, logging, ConfigParser
 from autotest.client.shared import error
-from autotest.client.virt import qemu_io
-from autotest.client.virt import utils_misc
-from autotest.client.virt.kvm_storage import QemuImg
+from virttest import qemu_io
+from virttest import utils_misc
+from virttest.kvm_storage import QemuImg
 from autotest.client import utils
 
 @error.context_aware

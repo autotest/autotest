@@ -6,7 +6,7 @@ Program to help setup libvirt test environment
 """
 import os, sys
 import common
-from autotest.client.virt import utils_misc
+from virttest import utils_misc
 
 test_name = "libvirt"
 test_dir = os.path.dirname(sys.modules[__name__].__file__)

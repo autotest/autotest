@@ -1,5 +1,5 @@
 import logging
-from autotest.client.virt import ovirt
+from virttest import ovirt
 
 def get_args_dict(params):
     args_dict = {}

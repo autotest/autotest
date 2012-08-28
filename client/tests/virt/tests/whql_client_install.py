@@ -1,7 +1,7 @@
 import logging, time, os
 from autotest.client.shared import error
-from autotest.client.virt import utils_misc, utils_test, remote
-from autotest.client.virt import rss_client
+from virttest import utils_misc, utils_test, remote
+from virttest import rss_client
 
 
 def run_whql_client_install(test, params, env):

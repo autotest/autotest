@@ -1,6 +1,6 @@
 import re, logging
 from autotest.client.shared import error
-from autotest.client.virt import utils_v2v
+from virttest import utils_v2v
 
 def run_linux_vm_check(test, params, env):
     """

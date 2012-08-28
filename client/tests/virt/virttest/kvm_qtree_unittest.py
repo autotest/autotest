@@ -10,7 +10,7 @@ __author__ = """Lukas Doktor (ldoktor@redhat.com)"""
 import unittest
 import common
 from autotest.client.shared.test_utils import mock
-from autotest.client.virt import kvm_qtree
+from virttest import kvm_qtree
 
 OFFSET_PER_LEVEL = kvm_qtree.OFFSET_PER_LEVEL
 

@@ -15,8 +15,8 @@ import threading
 import time
 from autotest.client import utils
 from autotest.client.shared import error
-from autotest.client.virt import kvm_virtio_port, env_process
-from autotest.client.virt import utils_test
+from virttest import kvm_virtio_port, env_process
+from virttest import utils_test
 
 
 @error.context_aware

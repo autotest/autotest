@@ -13,7 +13,7 @@ try:
 except ImportError:
     logging.info("ovirtsdk module not present, please install it")
 
-from autotest.client.virt import virt_vm
+import virt_vm
 
 
 _api = None

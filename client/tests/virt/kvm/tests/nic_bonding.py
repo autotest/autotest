@@ -1,5 +1,5 @@
 import logging, time
-from autotest.client.virt import utils_test, aexpect
+from virttest import utils_test, aexpect
 from autotest.client.shared import error, utils
 
 

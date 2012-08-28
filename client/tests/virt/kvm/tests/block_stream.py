@@ -1,7 +1,7 @@
 import re, os, logging, time
 from autotest.client.shared import utils, error
-from autotest.client.virt import kvm_monitor
-from autotest.client.virt import env_process
+from virttest import kvm_monitor
+from virttest import env_process
 
 @error.context_aware
 def run_block_stream(test, params, env):

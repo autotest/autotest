@@ -1,6 +1,6 @@
 import logging, os, time
 from autotest.client import utils
-from autotest.client.virt import utils_test
+from virttest import utils_test
 
 
 def run_nicdriver_unload(test, params, env):

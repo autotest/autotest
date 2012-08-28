@@ -1,7 +1,7 @@
 import os, sys, logging, imp
 from autotest.client import test
 from autotest.client.shared import error
-import utils_misc, env_process
+from virttest import utils_misc, env_process
 
 
 class virt(test.test):

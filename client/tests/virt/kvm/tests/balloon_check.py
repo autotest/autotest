@@ -1,6 +1,6 @@
 import re, logging, random, time
 from autotest.client.shared import error
-from autotest.client.virt import kvm_monitor, utils_test
+from virttest import kvm_monitor, utils_test
 
 
 def run_balloon_check(test, params, env):

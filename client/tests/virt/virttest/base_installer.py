@@ -9,7 +9,7 @@ custom logic for each virtualization hypervisor/software.
 import os, logging
 from autotest.client import utils, os_dep
 from autotest.client.shared import error
-from autotest.client.virt import utils_misc
+import utils_misc
 
 class VirtInstallException(Exception):
     '''

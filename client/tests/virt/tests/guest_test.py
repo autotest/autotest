@@ -1,5 +1,5 @@
 import os, logging
-from autotest.client.virt import utils_misc
+from virttest import utils_misc
 
 
 def run_guest_test(test, params, env):

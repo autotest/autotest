@@ -1,7 +1,7 @@
 import logging, time, re, os
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import virt_vm, utils_misc, kvm_storage
+from virttest import virt_vm, utils_misc, kvm_storage
 
 
 class EnospcConfig(object):

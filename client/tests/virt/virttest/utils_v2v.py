@@ -6,8 +6,8 @@ Virt-v2v test utility functions.
 
 import os, re, logging
 
-from autotest.client.virt import ovirt
-from autotest.client.virt import libvirt_vm as lvirt
+import ovirt
+import libvirt_vm as lvirt
 
 
 def build_esx_no_verify(params):

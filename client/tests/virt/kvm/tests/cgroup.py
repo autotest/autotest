@@ -9,11 +9,11 @@ from autotest.client import utils
 from autotest.client.tests.cgroup.cgroup_common import Cgroup
 from autotest.client.tests.cgroup.cgroup_common import CgroupModules
 from autotest.client.tests.cgroup.cgroup_common import get_load_per_cpu
-from autotest.client.virt.env_process import preprocess
-from autotest.client.virt import kvm_monitor
-from autotest.client.virt.aexpect import ExpectTimeoutError
-from autotest.client.virt.aexpect import ExpectProcessTerminatedError
-from autotest.client.virt.aexpect import ShellTimeoutError
+from virttest.env_process import preprocess
+from virttest import kvm_monitor
+from virttest.aexpect import ExpectTimeoutError
+from virttest.aexpect import ExpectProcessTerminatedError
+from virttest.aexpect import ShellTimeoutError
 
 
 @error.context_aware

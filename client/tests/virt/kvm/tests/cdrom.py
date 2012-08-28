@@ -8,7 +8,7 @@ KVM cdrom test
 import logging, re, time, os
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import utils_misc, aexpect, kvm_monitor
+from virttest import utils_misc, aexpect, kvm_monitor
 
 
 @error.context_aware

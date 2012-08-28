@@ -1,6 +1,6 @@
 import re, string, logging
 from autotest.client.shared import error
-from autotest.client.virt import kvm_monitor, storage
+from virttest import kvm_monitor, storage
 
 
 def run_physical_resources_check(test, params, env):

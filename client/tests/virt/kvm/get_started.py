@@ -9,7 +9,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.virt import utils_misc
+from virttest import utils_misc
 
 test_name = "kvm"
 test_dir = os.path.dirname(sys.modules[__name__].__file__)

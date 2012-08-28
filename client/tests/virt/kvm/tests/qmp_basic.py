@@ -1,5 +1,5 @@
 from autotest.client.shared import error
-from autotest.client.virt import kvm_monitor
+from virttest import kvm_monitor
 
 
 def run_qmp_basic(test, params, env):

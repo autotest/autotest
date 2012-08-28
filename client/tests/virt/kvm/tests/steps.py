@@ -6,7 +6,7 @@ Utilities to perform automatic guest installation using step files.
 
 import os, time, shutil, logging
 from autotest.client.shared import error
-from autotest.client.virt import utils_misc, ppm_utils, kvm_monitor
+from virttest import utils_misc, ppm_utils, kvm_monitor
 
 try:
     import PIL.Image

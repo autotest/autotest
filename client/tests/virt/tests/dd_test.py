@@ -5,8 +5,7 @@ Configurable on-guest dd test.
 """
 import logging
 from autotest.client.shared import error
-from autotest.client.virt.aexpect import ShellCmdError
-from autotest.client.virt.aexpect import ShellTimeoutError
+from virttest import aexpect
 
 
 def run_dd_test(test, params, env):
@@ -27,7 +26,7 @@ def run_dd_test(test, params, env):
             # get all matching filenames
             try:
                 disks = sorted(session.cmd("ls -1d %s" % filename).split('\n'))
-            except ShellCmdError:   # No matching file (creating new?)
+            except aexpect.ShellCmdError:   # No matching file (creating new?)
                 disks = [filename]
             if disks[-1] == '':
                 disks = disks[:-1]
@@ -82,12 +81,12 @@ def run_dd_test(test, params, env):
 
     try:
         (stat, out) = session.cmd_status_output(dd_cmd, timeout=dd_timeout)
-    except ShellTimeoutError:
+    except aexpect.ShellTimeoutError:
         err = ("dd command timed-out (cmd='%s', timeout=%d)"
                                                     % (dd_cmd, dd_timeout))
         logging.error(err)
         raise error.TestFail(err)
-    except ShellCmdError, details:
+    except aexpect.ShellCmdError, details:
         stat = details.status
         out = details.output
 

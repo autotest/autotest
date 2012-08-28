@@ -1,8 +1,8 @@
 import logging, os
 from autotest.client.shared import error
 from autotest.client import utils
-from autotest.client.virt import utils_test
-from autotest.client.virt import utils_misc
+from virttest import utils_test
+from virttest import utils_misc
 
 CLIENT_TEST = "kernelinstall"
 

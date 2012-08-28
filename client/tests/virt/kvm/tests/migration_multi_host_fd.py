@@ -1,5 +1,5 @@
 import logging, socket, time, errno, os, fcntl
-from autotest.client.virt import utils_test, utils_misc
+from virttest import utils_test, utils_misc
 from autotest.client.shared.syncdata import SyncData
 
 def run_migration_multi_host_fd(test, params, env):

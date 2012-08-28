@@ -1,6 +1,6 @@
 import logging, time, re
 from autotest.client.shared import error
-from autotest.client.virt import utils_misc, utils_test, aexpect
+from virttest import utils_misc, utils_test, aexpect
 
 
 def run_vlan(test, params, env):

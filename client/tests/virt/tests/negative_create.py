@@ -1,5 +1,5 @@
 import logging
-from autotest.client.virt import virt_vm, utils_misc
+from virttest import virt_vm, utils_misc
 
 
 class VMCreateSuccess(Exception):

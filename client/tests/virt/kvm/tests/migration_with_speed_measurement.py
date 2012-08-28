@@ -1,5 +1,5 @@
 import os, re, logging, time
-from autotest.client.virt import utils_misc
+from virttest import utils_misc
 from autotest.client.shared import error, utils
 
 

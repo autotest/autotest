@@ -1,7 +1,7 @@
 import logging, re, random, os, time, pickle, sys, traceback
 from autotest.client.shared import error, utils
-from autotest.client.virt import kvm_vm
-from autotest.client.virt import utils_misc, utils_test, aexpect
+from virttest import kvm_vm
+from virttest import utils_misc, utils_test, aexpect
 
 
 def run_cpuflags(test, params, env):
