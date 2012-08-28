@@ -772,10 +772,11 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
         base_autotest = os.path.abspath(os.path.join(module_parent, "..", ".."))
         tests_dir = os.path.join(base_autotest, 'tests')
         site_tests_dir = os.path.join(base_autotest, 'site-tests')
+        profilers_dir = os.path.join(base_autotest, 'profilers')
         other_tests_dir = GLOBAL_CONFIG.get_config_value("COMMON", "test_dir",
                                                          default="")
         source_code_dir = ""
-        for d in [other_tests_dir, site_tests_dir, tests_dir]:
+        for d in [other_tests_dir, site_tests_dir, tests_dir, profilers_dir]:
             source_code_dir = os.path.join(d, module_name, "src")
             if os.path.isdir(source_code_dir):
                 break
