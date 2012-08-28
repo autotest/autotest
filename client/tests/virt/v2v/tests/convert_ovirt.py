@@ -1,4 +1,4 @@
-from virttest import v2v
+from virttest import utils_v2v
 
 
 def get_args_dict(params):
@@ -25,4 +25,4 @@ def run_convert_ovirt(test, params, env):
     args_dict = get_args_dict(params)
 
     # Run test case
-    v2v.v2v_cmd(args_dict)
+    utils_v2v.v2v_cmd(args_dict)

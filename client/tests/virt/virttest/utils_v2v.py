@@ -7,8 +7,17 @@ Virt-v2v test utility functions.
 import os, re, logging
 
 import ovirt
+from autotest.client import os_dep, utils
+from autotest.client.shared import ssh_key
+
 import libvirt_vm as lvirt
 
+DEBUG = False
+
+try:
+    V2V_EXEC = os_dep.command('virt-v2v')
+except ValueError:
+    V2V_EXEC = None
 
 def build_esx_no_verify(params):
     """
@@ -350,3 +359,46 @@ class WindowsVMCheck(object):
     This class handles all basic windows VM check operations.
     """
     pass
+
+
+def v2v_cmd(params):
+    """
+    Append cmd to 'virt-v2v' and execute, optionally return full results.
+
+    @param: params: A dictionary includes all of required parameters such as
+                    'target', 'hypervisor' and 'hostname', etc.
+    @return: stdout of command
+    """
+    if V2V_EXEC is None:
+        raise ValueError('Missing command: virt-v2v')
+
+    target = params.get('target')
+    hypervisor = params.get('hypervisor')
+    hostname = params.get('hostname')
+    username = params.get('username')
+    password = params.get('password')
+
+    uri_obj = Uri(hypervisor)
+    # Return actual 'uri' according to 'hostname' and 'hypervisor'
+    uri = uri_obj.get_uri(hostname)
+
+    tgt_obj = Target(target, uri)
+    # Return virt-v2v command line options based on 'target' and 'hypervisor'
+    options = tgt_obj.get_cmd_options(params)
+
+    # Convert a existing VM without or with connection authorization.
+    if hypervisor == 'esx':
+        build_esx_no_verify(params)
+    elif hypervisor == 'xen' or hypervisor == 'kvm':
+        # Setup ssh key for build connection without password.
+        ssh_key.setup_ssh_key(hostname, user=username, port=22,
+                              password=password)
+    else:
+        pass
+
+    # Construct a final virt-v2v command
+    cmd = '%s %s' % (V2V_EXEC, options)
+    logging.debug('%s' % cmd)
+    cmd_result = utils.run(cmd, verbose=DEBUG)
+    return cmd_result
+
