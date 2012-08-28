@@ -1854,9 +1854,14 @@ class VM(virt_vm.BaseVM):
                 self.process.close()
             if self.serial_console:
                 self.serial_console.close()
-            for f in ([self.get_testlog_filename(),
-                       self.get_serial_console_filename()] +
-                      self.get_monitor_filenames()):
+
+            # Generate the tmp file which should be deleted.
+            file_list = [self.get_testlog_filename()]
+            file_list += self.get_monitor_filenames()
+            file_list += self.get_virtio_port_filenames()
+            file_list.append(self.get_serial_console_filename())
+
+            for f in file_list:
                 try:
                     os.unlink(f)
                 except OSError:
@@ -1891,13 +1896,6 @@ class VM(virt_vm.BaseVM):
         Return the filename corresponding to a given monitor name.
         """
         return "/tmp/monitor-%s-%s" % (monitor_name, self.instance)
-
-
-    def get_virtio_port_filename(self, port_name):
-        """
-        Return the filename corresponding to a givven monitor name.
-        """
-        return "/tmp/virtio_port-%s-%s" % (port_name, self.instance)
 
 
     def get_monitor_filenames(self):
