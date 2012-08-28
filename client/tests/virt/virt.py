@@ -4,7 +4,7 @@ from autotest.client.shared import error
 import utils_misc, env_process
 
 
-class virt_test(test.test):
+class virt(test.test):
     """
     Shared test class infrastructure for tests such as the KVM test.
 
