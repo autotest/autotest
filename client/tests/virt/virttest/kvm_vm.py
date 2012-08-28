@@ -1764,7 +1764,7 @@ class VM(virt_vm.BaseVM):
 
             for key, value in self.logs.items():
                 outfile = "%s-%s.log" % (key, name)
-                logging.info("add log: %s" % outfile)
+                logging.debug("Add log: %s" % outfile)
                 self.logsessions[key] = aexpect.Tail(
                     "nc -U %s" % value,
                     auto_close=False,
