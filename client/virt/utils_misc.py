@@ -3592,11 +3592,13 @@ def install_host_kernel(job, params):
         logging.info('Installing host kernel through rpm')
 
         rpm_url = params.get('host_kernel_rpm_url')
-
-        dst = os.path.join("/tmp", os.path.basename(rpm_url))
+        k_basename = os.path.basename(rpm_url)
+        dst = os.path.join("/tmp", k_basename)
         k = utils.get_file(rpm_url, dst)
         host_kernel = job.kernel(k)
         host_kernel.install(install_vmlinux=False)
+        utils.write_keyval(job.resultdir,
+                           {'software_version_kernel': k_basename})
         host_kernel.boot()
 
     elif install_type in ['koji', 'brew']:
@@ -3625,6 +3627,9 @@ def install_host_kernel(job, params):
                              c.get_pkg_rpm_file_names(k)[0])
         host_kernel = job.kernel(k_rpm)
         host_kernel.install(install_vmlinux=False)
+        utils.write_keyval(job.resultdir,
+                           {'software_version_kernel':
+                            " ".join(c.get_pkg_rpm_file_names(k_deps))})
         host_kernel.boot()
 
     elif install_type == 'git':
@@ -3640,20 +3645,27 @@ def install_host_kernel(job, params):
         kernel_config = params.get('host_kernel_config', None)
 
         repodir = os.path.join("/tmp", 'kernel_src')
-        r = git.get_repo(uri=repo, branch=branch, destination_dir=repodir,
-                         commit=commit, base_uri=repo_base)
-        host_kernel = job.kernel(r)
+        r = git.GitRepoHelper(uri=repo, branch=branch, destination_dir=repodir,
+                              commit=commit, base_uri=repo_base)
+        r.execute()
+        host_kernel = job.kernel(r.destination_dir)
         if patch_list:
             host_kernel.patch(patch_list)
         if kernel_config:
             host_kernel.config(kernel_config)
         host_kernel.build()
         host_kernel.install()
+        git_repo_version = '%s:%s:%s' % (r.uri, r.branch, r.get_top_commit())
+        utils.write_keyval(job.resultdir,
+                           {'software_version_kernel': git_repo_version})
         host_kernel.boot()
 
     else:
         logging.info('Chose %s, using the current kernel for the host',
                      install_type)
+        k_version = utils.system_output('uname -r', ignore_status=True)
+        utils.write_keyval(job.resultdir,
+                           {'software_version_kernel': k_version})
 
 
 def install_cpuflags_util_on_vm(test, vm, dst_dir, extra_flags=None):
