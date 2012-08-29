@@ -77,22 +77,23 @@ class Disk(object):
 
 class FloppyDisk(Disk):
     """
-    Represents a 1.44 MB floppy disk. We can copy files to it, and setup it in
+    Represents a floppy disk. We can copy files to it, and setup it in
     convenient ways.
     """
     @error.context_aware
-    def __init__(self, path, qemu_img_binary, tmpdir):
+    def __init__(self, path, qemu_img_binary, tmpdir, vfd_size):
         error.context("Creating unattended install floppy image %s" % path)
         self.tmpdir = tmpdir
         self.mount = tempfile.mkdtemp(prefix='floppy_', dir=self.tmpdir)
         self.virtio_mount = None
         self.path = path
+        self.vfd_size = vfd_size
         clean_old_image(path)
         if not os.path.isdir(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
 
         try:
-            c_cmd = '%s create -f raw %s 1440k' % (qemu_img_binary, path)
+            c_cmd = '%s create -f raw %s %s' % (qemu_img_binary, path, self.vfd_size)
             utils.run(c_cmd, verbose=DEBUG)
             f_cmd = 'mkfs.msdos -s 1 %s' % path
             utils.run(f_cmd, verbose=DEBUG)

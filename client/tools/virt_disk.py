@@ -75,7 +75,7 @@ class App:
         if self.options.floppy:
             self.disk = utils_disk.FloppyDisk(self.image,
                                                    self.options.qemu_img,
-                                                   self.options.temp)
+                                                   self.options.temp, self.vfd_size)
         elif self.options.cdrom:
             self.disk = utils_disk.CdromDisk(self.image,
                                                   self.options.temp)

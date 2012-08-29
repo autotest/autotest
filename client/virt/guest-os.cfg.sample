@@ -1473,6 +1473,7 @@ variants:
 
     # Windows section
     - @Windows:
+        vfd_size = 2880k
         os_type = windows
         use_libvirt_cdrom_switch = yes
         shutdown_command = shutdown /s /f /t 0
