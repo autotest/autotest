@@ -1,0 +1,90 @@
+#!/usr/bin/python
+"""
+Run virt tests outside the autotest client harness.
+
+@copyright: Red Hat 2012
+"""
+import os, sys
+
+def silence_stdin_stderr():
+    in_fd = os.open('/dev/null', os.O_RDONLY)
+    try:
+        os.dup2(in_fd, 0)
+    finally:
+        os.close(in_fd)
+    sys.stdin = os.fdopen(0, 'r')
+    out_fd = os.open('/dev/null', os.O_WRONLY | os.O_CREAT)
+    try:
+        os.dup2(out_fd, 2)
+    finally:
+        os.close(out_fd)
+    sys.stderr = os.fdopen(2, 'w')
+
+
+DEBUG = False
+
+if not DEBUG:
+    silence_stdin_stderr()
+
+
+class StreamProxy(object):
+    def __init__(self, filename='/dev/null', stream=sys.stdout):
+        self.terminal = stream
+        self.log = open(filename, "a")
+        self.stream = self.log
+
+    def write(self, message):
+        self.stream.write(message)
+
+    def switch(self):
+        if self.stream == self.log:
+            self.stream = self.terminal
+        else:
+            self.stream = self.log
+
+sys.stdout = StreamProxy(stream=sys.stdout)
+
+try:
+    from autotest.client import setup_modules
+except ImportError:
+    try:
+        autotest_dir = os.environ['AUTOTEST_PATH']
+    except KeyError:
+        sys.stdout.switch()
+        print("Environment variable $AUTOTEST_PATH not set. "
+              "please set it to a path containing an autotest checkout")
+        sys.exit(1)
+    client_dir = os.path.join(autotest_dir, 'client')
+    sys.path.insert(0, client_dir)
+    import setup_modules
+    sys.path.pop(0)
+    setup_modules.setup(base_path=client_dir,
+                        root_module_name="autotest.client")
+
+test_dir = os.path.abspath(os.path.dirname(sys.modules[__name__].__file__))
+sys.path.append(test_dir)
+
+from virttest import cartesian_config, standalone_test
+
+standalone_test.configure_logging()
+standalone_test.configure_console_logging()
+
+if __name__ == '__main__':
+    import optparse
+    usage = "usage: %prog [options] [test_type]"
+    parser = optparse.OptionParser(usage=usage)
+    parser.add_option("-v", "--verbose",
+                      action="store_true", dest="verbose",
+                      help="Exhibit debug messages")
+    options, args = parser.parse_args()
+
+    if not args:
+        sys.stdout.switch()
+        parser.print_usage()
+        sys.exit(1)
+
+    t_type = args[0]
+
+    parser = cartesian_config.Parser()
+    parser.parse_file(os.path.join(test_dir, t_type, "cfg", "tests.cfg"))
+    standalone_test.run_tests(parser)
