@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest, tempfile, os, glob
+import unittest, tempfile, os, glob, logging
 
 try:
     import autotest.common as common
@@ -12,7 +12,17 @@ from autotest.client.shared import xml_utils, ElementTree
 
 class xml_test_data(unittest.TestCase):
 
+    def get_tmp_files(self, prefix, sufix):
+        path_string = os.path.join('/tmp', "%s*%s" % (prefix, sufix))
+        return glob.glob(path_string)
+
     def setUp(self):
+        # Previous testing may have failed / left behind extra files
+        for filename in self.get_tmp_files(xml_utils.TMPPFX, xml_utils.TMPSFX):
+            os.unlink(filename)
+        for filename in self.get_tmp_files(xml_utils.TMPPFX,
+                                           xml_utils.TMPSFX + xml_utils.EXSFX):
+            os.unlink(filename)
         # Compacted to save excess scrolling
         self.TEXT_REPLACE_KEY="TEST_XML_TEXT_REPLACE"
         self.XMLSTR="""<?xml version='1.0' encoding='UTF-8'?><capabilities><host>
@@ -45,11 +55,10 @@ class xml_test_data(unittest.TestCase):
 
 
     def tearDown(self):
-        for filename in glob.glob(os.path.join('/tmp', "%s*%s" %
-                                               (xml_utils.TMPPFX, xml_utils.TMPSFX)
-                                              )):
-            os.unlink(filename)
-
+        os.unlink(self.XMLFILE)
+        leftovers = self.get_tmp_files(xml_utils.TMPPFX, xml_utils.TMPSFX)
+        if len(leftovers) > 0:
+            self.fail('Leftover files: %s' % str(leftovers))
 
     def canonicalize_test_xml(self):
         et = ElementTree.parse(self.XMLFILE)
@@ -102,10 +111,20 @@ class test_XMLBackup(xml_test_data):
 
     class_to_test = xml_utils.XMLBackup
 
-    def is_same_contents(self, filename):
-        f = file(filename, "rb")
-        s = f.read()
-        return s == self.XMLSTR
+
+    def is_same_contents(self, filename, other=None):
+        try:
+            f = file(filename, "rb")
+            s = f.read()
+        except (IOError, OSError):
+            logging.warning("File %s does not exist" % filename)
+            return False
+        if other is None:
+            return s == self.XMLSTR
+        else:
+            other_f = file(other, "rb")
+            other_s = other_f.read()
+            return s == other_s
 
 
     def test_backup_filename(self):
@@ -149,9 +168,7 @@ class test_XMLBackup(xml_test_data):
             tmpf = self.class_to_test(self.XMLFILE)
             return tmpf.name
         filename = out_of_scope_xmlbackup()
-        #  DOES NOT delete
-        self.assertTrue(self.is_same_contents(filename))
-        os.unlink(filename)
+        self.assertRaises(OSError, os.unlink, filename)
 
 
     def test_TempXMLBackup_exception_exit(self):
@@ -159,8 +176,8 @@ class test_XMLBackup(xml_test_data):
         filename = tmpf.name
         # simulate exception exit DOES NOT DELETE
         tmpf.__exit__(Exception, "foo", "bar")
-        self.assertTrue(self.is_same_contents(filename))
-        os.unlink(filename)
+        self.assertTrue(self.is_same_contents(filename + xml_utils.EXSFX))
+        os.unlink(filename + xml_utils.EXSFX)
 
 
     def test_TempXMLBackup_unexception_exit(self):
@@ -174,6 +191,16 @@ class test_XMLBackup(xml_test_data):
 class test_XMLTreeFile(test_XMLBackup):
 
     class_to_test = xml_utils.XMLTreeFile
+
+    def test_sourcebackupfile_closed_file(self):
+        xml = self.class_to_test(self.XMLFILE)
+        self.assertRaises(ValueError, xml.sourcebackupfile.write, 'foobar')
+
+
+    def test_sourcebackupfile_closed_string(self):
+        xml = self.class_to_test(self.XMLSTR)
+        self.assertRaises(ValueError, xml.sourcebackupfile.write, 'foobar')
+
 
     def test_init_str(self):
         xml = self.class_to_test(self.XMLSTR)
@@ -201,6 +228,25 @@ class test_XMLTreeFile(test_XMLBackup):
         os.unlink(xmlbackup.sourcefilename)
         xmlbackup.restore()
         self.assertTrue(self.is_same_contents(xmlbackup.name))
+
+
+    def test_backup_backup_and_remove(self):
+        tmpf = self.class_to_test(self.XMLFILE)
+        tmps = self.class_to_test(self.XMLSTR)
+        bu_tmpf = tmpf.backup_copy()
+        bu_tmps = tmps.backup_copy()
+        self.assertTrue(self.is_same_contents(bu_tmpf.name, tmpf.name))
+        self.assertTrue(self.is_same_contents(bu_tmps.name, tmps.name))
+        tmpf.remove_by_xpath('guest/arch/wordsize')
+        tmps.find('guest/arch/wordsize').text = 'FOOBAR'
+        tmpf.write()
+        tmps.write()
+        self.assertFalse(self.is_same_contents(bu_tmpf.name, tmpf.name))
+        self.assertFalse(self.is_same_contents(bu_tmps.name, tmps.name))
+        self.assertTrue(self.is_same_contents(bu_tmpf.name, bu_tmps.name))
+        self.assertFalse(self.is_same_contents(tmpf.name, tmps.name))
+        del bu_tmpf
+        del bu_tmps
 
 
     def test_write_default(self):

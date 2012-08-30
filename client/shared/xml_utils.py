@@ -47,9 +47,10 @@ import logging
 
 from autotest.client.shared import ElementTree
 
-# Used by unittests
+# Also used by unittests
 TMPPFX='xml_utils_temp_'
 TMPSFX='.xml'
+EXSFX='_exception_retained'
 
 class TempXMLFile(file):
     """
@@ -70,24 +71,42 @@ class TempXMLFile(file):
         super(TempXMLFile, self).__init__(path, mode, buffer)
 
 
+    def _info(self):
+        """
+        Inform user that file was not auto-deleted due to exceptional exit.
+        """
+        logging.info("Retaining backup of %s in %s", self.sourcefilename,
+                                                     self.name + EXSFX)
+
+
+    def unlink(self):
+        """
+        Unconditionaly delete file, ignoring related exceptions
+        """
+        try:
+            os.unlink(self.name)
+            self.close()
+        except (OSError, IOError):
+            pass # don't care if delete fails
+
+
     def __exit__(self, exc_type, exc_value, traceback):
         """
-        Always remove temporary file on module exit.
+        unlink temporary backup on unexceptional module exit.
         """
 
-        self.__del__()
-        super(TempXMLFile, self).__exit__(exc_type, exc_value, traceback)
+        # there was an exception
+        if None not in (exc_type, exc_value, traceback):
+            os.rename(self.name, self.name + EXSFX)
+        self.unlink() # safe if file was renamed
 
 
     def __del__(self):
         """
-        Remove temporary file on instance delete.
+        unlink temporary file on instance delete.
         """
 
-        try:
-            os.unlink(self.name)
-        except OSError:
-            pass # don't care
+        self.unlink()
 
 
 class XMLBackup(TempXMLFile):
@@ -106,6 +125,11 @@ class XMLBackup(TempXMLFile):
         super(XMLBackup, self).__init__()
         self.sourcefilename = sourcefilename
         self.backup()
+
+
+    def __del__(self):
+        self.sourcefilename = None
+        super(XMLBackup, self).__del__()
 
 
     def backup(self):
@@ -130,30 +154,6 @@ class XMLBackup(TempXMLFile):
         self.seek(0)
 
 
-    def _info(self):
-        logging.info("Retaining backup of %s in %s", self.sourcefilename,
-                                                     self.name)
-
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """
-        Remove temporary backup on unexceptional module exit.
-        """
-
-        if exc_type is None and exc_value is None and traceback is None:
-            super(XMLBackup, self).__del__()
-        else:
-            self._info()
-
-
-    def __del__(self):
-        """
-        Remove temporary file on instance delete.
-        """
-
-        self._info()
-
-
 class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
     """
     Combination of ElementTree root and auto-cleaned XML backup file.
@@ -174,22 +174,67 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         # If it's a string, use auto-delete TempXMLFile
         # to hold the original content.
         try:
+            # Test if xml is a valid filename
             self.sourcebackupfile = open(xml, "rb")
-            # Prevent source modification
             self.sourcebackupfile.close()
         except (IOError, OSError):
-            # this will auto-delete when XMLBase instance goes out of scope
+            # Assume xml is a string that needs a temporary source file
             self.sourcebackupfile = TempXMLFile()
             self.sourcebackupfile.write(xml)
-            # Prevent source modification
             self.sourcebackupfile.close()
-            xml = self.sourcebackupfile.name
-        XMLBackup.__init__(self, sourcefilename=xml)
+        # sourcebackupfile now safe to use for base class initialization
+        XMLBackup.__init__(self, self.sourcebackupfile.name)
         ElementTree.ElementTree.__init__(self, element=None,
                                          file=self.name)
-        # Ensure parsed content matches file content
+        # Required for TemplateXML class to work
         self.write()
-        self.flush()
+        self.flush() # make sure it's on-disk
+
+
+    def backup_copy(self):
+        """Return a copy of instance, including copies of files"""
+        return self.__class__(self.name)
+
+
+    def get_parent_map(self, element=None):
+        """
+        Return a child to parent mapping dictionary
+
+        param: element: Search only below this element
+        """
+        # Comprehension loop over all children in all parents
+        return dict((c, p) for p in self.getiterator(element) for c in p)
+
+
+    def get_parent(self, element, relative_root=None):
+        """
+        Return the parent node of an element or None
+
+        param: element: Element to retrieve parent of
+        param: relative_root: Search only below this element
+        """
+        try:
+            return self.get_parent_map(relative_root)[element]
+        except KeyError:
+            return None
+
+
+    def remove(self, element):
+        """
+        Removes a matching subelement.
+
+        @param: element: element to be removed.
+        """
+        self.get_parent(element).remove(element)
+
+
+    def remove_by_xpath(self, xpath):
+        """
+        Remove an element found by xpath
+
+        @param: xpath: element name or path to remove
+        """
+        self.remove(self.find(xpath))
 
 
     def write(self, filename=None, encoding="UTF-8"):
