@@ -3,6 +3,7 @@ from autotest.client.shared import error
 from virttest import guest_agent
 
 
+@error.context_aware
 def run_qemu_guest_agent(test, params, env):
     """
     Test qemu guest agent, this case will:
@@ -19,18 +20,26 @@ def run_qemu_guest_agent(test, params, env):
 
     session = vm.wait_for_login(timeout=int(params.get("login_timeout", 360)))
 
-    # Try to install 'qemu-guest-agent' package.
+    error.context("Try to install 'qemu-guest-agent' package.", logging.info)
     gagent_install_cmd = params.get("gagent_install_cmd")
-    s = session.cmd_status(gagent_install_cmd)
-    session.close()
-    if s != 0:
+    gagent_start_cmd = params.get("gagent_start_cmd")
+    if gagent_install_cmd and bool(session.cmd_status(gagent_install_cmd)):
+        session.close()
         raise error.TestError("Could not install qemu-guest-agent package")
 
+    if gagent_start_cmd and bool(session.cmd_status(gagent_start_cmd)):
+        session.close()
+        raise error.TestError("Could not start qemu-guest-agent in vm '%s'",
+                              vm.name)
+    session.close()
+
+    error.context("Create a QemuAgent object and try to connect it to guest.",
+                  logging.info)
+    serial_type = params.get("serial_type", "virtio")
     gagent_name = params.get("gagent_name", "org.qemu.guest_agent.0")
-    gagent_file_name = vm.get_virtio_port_filename(gagent_name)
-    gagent = guest_agent.QemuAgent(vm, gagent_name, gagent_file_name,
+    gagent = guest_agent.QemuAgent(vm, gagent_name, serial_type,
                                    get_supported_cmds=True)
 
-    # Check if guest agent work.
+    error.context("Check if guest agent work.", logging.info)
     gagent.verify_responsive()
     logging.info(gagent.cmd("guest-info"))

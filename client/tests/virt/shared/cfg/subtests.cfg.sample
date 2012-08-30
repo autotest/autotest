@@ -2789,9 +2789,17 @@ variants:
         only Fedora.16, Fedora.17
         type = qemu_guest_agent
         gagent_name = "org.qemu.guest_agent.0"
-        virtio_ports += "org.qemu.guest_agent.0"
-        virtio_port_type_org.qemu.guest_agent.0 = "serialport"
-        gagent_install_cmd = "yum install -y qemu-guest-agent && service qemu-guest-agent start"
+        gagent_install_cmd = "yum install -y qemu-guest-agent"
+        variants:
+            - virtio_serial:
+                serial_type = virtio
+                virtio_ports += " org.qemu.guest_agent.0"
+                virtio_port_type_org.qemu.guest_agent.0 = "serialport"
+                gagent_start_cmd = "service qemu-guest-agent start"
+            - isa_serial:
+                serial_type = isa
+                isa_serials += " org.qemu.guest_agent.0"
+                gagent_start_cmd = "pgrep qemu-ga || qemu-ga -d -m isa-serial -p /dev/ttyS1"
 
     - remove_guest: install setup image_copy unattended_install.cdrom
         type = remove_guest

@@ -45,6 +45,10 @@ class VAgentNotSupportedError(VAgentError):
     pass
 
 
+class VAgentNotSupportedSerialError(VAgentNotSupportedError):
+    pass
+
+
 class VAgentCmdError(VAgentError):
     def __init__(self, cmd, args, data):
         VAgentError.__init__(self, cmd, args, data)
@@ -67,28 +71,34 @@ class QemuAgent(Monitor):
     RESPONSE_TIMEOUT = 20
     PROMPT_TIMEOUT = 20
 
-    def __init__(self, vm, name="org.qemu.guest_agent.0", filename=None,
-                 get_supported_cmds=False, suppress_exceptions=False):
+    def __init__(self, vm, name, serial_type, get_supported_cmds=False,
+                 suppress_exceptions=False):
         """
         Connect to the guest agent socket, Also make sure the json
         module is available.
 
         @param vm: The VM object who has this GuestAgent.
         @param name: Guest agent identifier.
-        @param filename: Guest agent socket filename.
+        @param serial_type: Specific which serial type (firtio or isa) guest
+                agent will use.
         @param get_supported_cmds: Try to get supported cmd list when initiation.
         @param suppress_exceptions: If True, ignore VAgentError exception.
 
         @raise VAgentConnectError: Raised if the connection fails and
                 suppress_exceptions is False
-        @raise VAgentProtocolError: Raised if the no QMP greeting message is
-                received and suppress_exceptions is False
+        @raise VAgentNotSupportedSerialError: Raised if the serial type is
+                neither 'virtio' nor 'isa' and suppress_exceptions is False
         @raise VAgentNotSupportedError: Raised if json isn't available and
                 suppress_exceptions is False
         """
         try:
-            if not filename:
+            if serial_type == "virtio":
                 filename = vm.get_virtio_port_filename(name)
+            elif serial_type == "isa":
+                filename = vm.get_serial_console_filename(name)
+            else:
+                raise VAgentNotSupportedSerialError("Not supported serial type"
+                                                    "'%s'" % serial_type)
 
             Monitor.__init__(self, name, filename)
             # Make sure json is available
