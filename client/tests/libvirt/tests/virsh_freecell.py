@@ -44,7 +44,7 @@ def run_virsh_freecell(test, params, env):
                                     "doesn't support --all option")
 
     def output_check(freecell_output):
-        if not re.search("kB", freecell_output):
+        if not re.search("ki?B", freecell_output, re.IGNORECASE):
             raise error.TestFail("virsh freecell output invalid: " + freecell_output)
 
     # Check status_error
