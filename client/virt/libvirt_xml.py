@@ -11,5 +11,5 @@ class LibvirtXMLVMNameError(LibvirtXMLError):
     pass
 
 
-class LibvirtXML(xml_utils.XMLBase):
+class LibvirtXML(xml_utils.XMLTreeFile):
     pass
