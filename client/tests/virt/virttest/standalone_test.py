@@ -181,6 +181,15 @@ class Test(object):
         return test_passed
 
 
+def print_stdout(sr, end=True):
+    sys.stdout.switch()
+    if end:
+        print(sr)
+    else:
+        print(sr),
+    sys.stdout.switch()
+
+
 def configure_logging():
     """
     Remove all the handlers on the root logger
@@ -295,9 +304,7 @@ def run_tests(parser):
             t = Test(dct)
             t.set_debugdir(debugdir)
 
-            sys.stdout.switch()
-            print("%s:" % t.tag),
-            sys.stdout.switch()
+            print_stdout("%s:" % t.tag, end=False)
 
             try:
                 current_status = t.run_once()
@@ -307,14 +314,10 @@ def run_tests(parser):
 
         if not current_status:
             failed = True
-            sys.stdout.switch()
-            print("FAIL")
-            sys.stdout.switch()
+            print_stdout("FAIL")
 
         else:
-            sys.stdout.switch()
-            print("PASS")
-            sys.stdout.switch()
+            print_stdout("PASS")
 
         status_dct[dct.get("name")] = current_status
 
