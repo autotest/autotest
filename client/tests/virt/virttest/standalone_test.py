@@ -293,9 +293,8 @@ def run_tests(parser):
             for test_name in status_dct.keys():
                 if not dep in test_name:
                     continue
-                # So the only really non-fatal state is WARN,
-                # All the others make it not safe to proceed
-                if status_dct[test_name] not in ['GOOD', 'WARN']:
+
+                if not status_dct[test_name]:
                     dependencies_satisfied = False
                     break
 
@@ -311,6 +310,10 @@ def run_tests(parser):
             except:
                 traceback.print_exc()
                 current_status = False
+        else:
+            skip_tag = "%s.%s" % (dct.get("vm_type"), dct.get("shortname"))
+            print_stdout("%s: SKIP" % skip_tag)
+            continue
 
         if not current_status:
             failed = True
