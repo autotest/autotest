@@ -62,8 +62,6 @@ class VM(virt_vm.BaseVM):
         self.name = name
         self.params = params
         self.root_dir = root_dir
-        # We need this to get to the blkdebug files
-        self.virt_dir = os.path.abspath(os.path.join(root_dir, "..", "..", "virt"))
         self.address_cache = address_cache
         # This usb_dev_dict member stores usb controller and device info,
         # It's dict, each key is an id of usb controller,
@@ -1055,6 +1053,7 @@ class VM(virt_vm.BaseVM):
                     qemu_cmd += " -device %s,id=virtio_scsi_pci%d" % (hba, i)
                     virtio_scsi_pcis.append("virtio_scsi_pci%d" % i)
 
+            shared_dir = os.path.join(self.root_dir, "shared")
             qemu_cmd += add_drive(hlp,
                     storage.get_image_filename(image_params, root_dir),
                     image_params.get("drive_index"),
@@ -1066,7 +1065,7 @@ class VM(virt_vm.BaseVM):
                     image_params.get("image_snapshot"),
                     image_params.get("image_boot"),
                     storage.get_image_blkdebug_filename(image_params,
-                                                           self.virt_dir),
+                                                        shared_dir),
                     bus,
                     port,
                     image_params.get("bootindex"),
