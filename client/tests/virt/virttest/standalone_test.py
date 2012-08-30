@@ -30,12 +30,14 @@ class Test(object):
         self.tag = ("%s.%s" %
                     (params.get("vm_type"), params.get("shortname")))
         self.debugdir = None
+        self.outputdir = None
         self.logfile = None
         self.file_handler = None
 
 
     def set_debugdir(self, debugdir):
         self.debugdir = os.path.join(debugdir, self.tag)
+        self.outputdir = self.debugdir
         if not os.path.isdir(self.debugdir):
             os.makedirs(self.debugdir)
         utils_misc.set_log_file_dir(self.debugdir)
