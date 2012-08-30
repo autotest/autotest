@@ -633,11 +633,24 @@ class BaseVM(object):
         return self.params
 
 
-    def get_serial_console_filename(self):
+    def get_serial_console_filename(self, name=None):
         """
         Return the serial console filename.
+
+        @param name: The serial port name.
         """
+        if name:
+            return "/tmp/serial-%s-%s" % (name, self.instance)
         return "/tmp/serial-%s" % self.instance
+
+
+    def get_serial_console_filenames(self):
+        """
+        Return a list of all serial console filenames
+        (as specified in the VM's params).
+        """
+        return [self.get_serial_console_filename(_) for _ in
+                self.params.objects("isa_serials")]
 
 
     def get_testlog_filename(self):

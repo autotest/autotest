@@ -81,6 +81,12 @@ usb_type_tablet1 = usb-tablet
 # USB Controller type which device uses.
 usb_controller_tablet1 = uhci
 
+# ISA serial port support
+# You can assign more than one isa serial to guest with this parameter.
+# like:
+# isa_serial = "S1 S2 S3"
+isa_serials = "serial1"
+
 # virtio_serialport and virtio_console ports
 # virtio_ports = "vs1 vs2 vc1"
 # Port types

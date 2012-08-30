@@ -304,18 +304,18 @@ class VM(virt_vm.BaseVM):
             return cmd
 
 
-        def add_serial(hlp, filename):
+        def add_serial(hlp, name, filename):
             if not has_option(hlp, "chardev"):
                 return " -serial unix:'%s',server,nowait" % filename
 
-            default_id = "serial_id_%s" % self.instance
+            serial_id = "serial_id_%s" % name
             cmd = " -chardev socket"
-            cmd += _add_option("id", default_id)
+            cmd += _add_option("id", serial_id)
             cmd += _add_option("path", filename)
             cmd += _add_option("server", "NO_EQUAL_STRING")
             cmd += _add_option("nowait", "NO_EQUAL_STRING")
             cmd += " -device isa-serial"
-            cmd += _add_option("chardev", default_id)
+            cmd += _add_option("chardev", serial_id)
             return cmd
 
 
@@ -963,7 +963,9 @@ class VM(virt_vm.BaseVM):
                                               monitor_filename)
 
         # Add serial console redirection
-        qemu_cmd += add_serial(hlp, vm.get_serial_console_filename())
+        for serial in params.objects("isa_serials"):
+            serial_filename = vm.get_serial_console_filename(serial)
+            qemu_cmd += add_serial(hlp, serial, serial_filename)
 
         # Add virtio_serial ports
         i = 0
@@ -1689,6 +1691,11 @@ class VM(virt_vm.BaseVM):
                 # Add this monitor to the list
                 self.monitors += [monitor]
 
+            # Create isa serial ports.
+            self.serial_ports = []
+            for serial in params.objects("isa_serials"):
+                self.serial_ports.append(serial)
+
             # Create virtio_ports (virtio_serialports and virtio_consoles)
             i = 0
             self.virtio_ports = []
@@ -1736,14 +1743,21 @@ class VM(virt_vm.BaseVM):
             self.vhost_threads = re.findall("\w+\s+(\d+)\s.*\[vhost-%s\]" %
                                             self.get_pid(), o)
 
-            # Establish a session with the serial console -- requires a version
-            # of netcat that supports -U
+            # Establish a session with the serial console
+            # Let's consider the first serial port as serial console.
+            # Note: requires a version of netcat that supports -U
+            try:
+                tmp_serial = self.serial_ports[0]
+            except IndexError:
+                raise virt_vm.VMConfigMissingError(name, "isa_serial")
+
             self.serial_console = aexpect.ShellSession(
-                "nc -U %s" % self.get_serial_console_filename(),
+                "nc -U %s" % self.get_serial_console_filename(tmp_serial),
                 auto_close=False,
                 output_func=utils_misc.log_line,
-                output_params=("serial-%s.log" % name,),
+                output_params=("serial-%s-%s.log" % (tmp_serial, name),),
                 prompt=self.params.get("shell_prompt", "[\#\$]"))
+            del tmp_serial
 
             for key, value in self.logs.items():
                 outfile = "%s-%s.log" % (key, name)
@@ -1859,7 +1873,7 @@ class VM(virt_vm.BaseVM):
             file_list = [self.get_testlog_filename()]
             file_list += self.get_monitor_filenames()
             file_list += self.get_virtio_port_filenames()
-            file_list.append(self.get_serial_console_filename())
+            file_list += self.get_serial_console_filenames()
 
             for f in file_list:
                 try:
