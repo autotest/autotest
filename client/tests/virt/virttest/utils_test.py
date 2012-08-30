@@ -1154,7 +1154,11 @@ def run_autotest(vm, session, control_path, timeout, outputdir, params):
 
     # To avoid problems, let's make the test use the current AUTODIR
     # (autotest client path) location
-    autotest_path = os.environ['AUTODIR']
+    try:
+        autotest_path = os.environ['AUTODIR']
+    except KeyError:
+        autotest_path = os.environ['AUTOTEST_PATH']
+        autotest_path = os.path.join(autotest_path, 'client')
     autotest_basename = os.path.basename(autotest_path)
     autotest_parentdir = os.path.dirname(autotest_path)
 
