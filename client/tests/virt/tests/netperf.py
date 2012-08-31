@@ -209,7 +209,7 @@ def ssh_cmd(ip, cmd, user="root"):
     @param cmd: executed command
     @param user: username
     """
-    return utils.system_output('ssh -o StrictHostKeyChecking=no -o '
+    return utils.system_output('ssh -q -o StrictHostKeyChecking=no -o '
     'UserKnownHostsFile=/dev/null %s@%s "%s"' % (user, ip, cmd))
 
 
