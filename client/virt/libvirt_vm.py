@@ -70,7 +70,7 @@ def service_libvirtd_control(action):
             logging.error("Failed to %s libvirtd:\n%s", action, detail)
             return False
     elif action == "status":
-        cmd_result = utils.run("service libvirtd status")
+        cmd_result = utils.run("service libvirtd status", ignore_status=True)
         if re.search("pid", cmd_result.stdout.strip()):
             logging.info("Libvirtd service is running")
             return True
