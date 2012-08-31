@@ -1795,9 +1795,9 @@ variants:
         nics += ' nic2'
         # nic1 is for control, nic2 is for data connection
         # bridge_nic1 = virbr0
-        pci_model_nic1 = virtio_net
+        nic_model_nic1 = virtio
         # bridge_nic2 = switch
-        pci_model_nic2 = e1000
+        nic_model_nic2 = e1000
         netperf_files = netperf-2.4.5.tar.bz2 wait_before_data.patch
         setup_cmd = "cd /tmp && rm -rf netperf-2.4.5 && tar xvfj netperf-2.4.5.tar.bz2 && cd netperf-2.4.5 && patch -p0 < ../wait_before_data.patch && ./configure --enable-burst && make"
         # configure netperf test parameters
