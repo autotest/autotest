@@ -240,8 +240,8 @@ def launch_client(sessions, server, server_ctl, host, client, l, nf_args, port):
                 ntxb = int(re.findall("TX bytes:(\d+)", i)[0])
         nre = int(ssh_cmd(server_ctl, "grep Tcp /proc/net/snmp|tail -1"
                  ).split()[12])
-        nrx_intr = count_interrupt("virtio0-input")
-        ntx_intr = count_interrupt("virtio0-output")
+        nrx_intr = count_interrupt("virtio.-input")
+        ntx_intr = count_interrupt("virtio.-output")
         io_exit = int(ssh_cmd(host, "cat /sys/kernel/debug/kvm/io_exits"))
         irq_inj = int(ssh_cmd(host, "cat /sys/kernel/debug/kvm/irq_injections"))
         return [nrx, ntx, nrxb, ntxb, nre, nrx_intr, ntx_intr, io_exit, irq_inj]
