@@ -176,23 +176,53 @@ class QemuImg(object):
                image_format -- the format of the image (qcow2, raw etc)
         """
         def backup_raw_device(src, dst):
-            utils.system("dd if=%s of=%s bs=4k conv=sync" % (src, dst))
+            if os.path.exists(src):
+                utils.system("dd if=%s of=%s bs=4k conv=sync" % (src, dst))
+            else:
+                logging.info("No source %s, skipping dd...", src)
 
         def backup_image_file(src, dst):
             logging.debug("Copying %s -> %s", src, dst)
-            shutil.copy(src, dst)
+            if os.path.isfile(src):
+                shutil.copy(src, dst)
+            else:
+                logging.info("No source file %s, skipping copy...", src)
 
-        def get_backup_name(filename, backup_dir, good):
+        def get_backup_set(filename, backup_dir, action, good):
+            """
+            Get all sources and destinations required for each backup.
+            """
             if not os.path.isdir(backup_dir):
                 os.makedirs(backup_dir)
             basename = os.path.basename(filename)
+            bkp_set = []
             if good:
-                backup_filename = "%s.backup" % basename
+                src = filename
+                dst = os.path.join(backup_dir, "%s.backup" % basename)
+                if action == 'backup':
+                    bkp_set = [[src, dst]]
+                elif action == 'restore':
+                    bkp_set = [[dst, src]]
             else:
-                backup_filename = ("%s.bad.%s" %
-                                   (basename,
-                                    utils_misc.generate_random_string(4)))
-            return os.path.join(backup_dir, backup_filename)
+                # We have to make 2 backups, one of the bad image, another one
+                # of the good image
+                src_bad = filename
+                src_good = filename + ".backup"
+                hsh = utils_misc.generate_random_string(4)
+                dst_bad = (os.path.join(backup_dir, "%s.bad.%s" %
+                                        (basename, hsh)))
+                dst_good = (os.path.join(backup_dir, "%s.good.%s" %
+                                         (basename, hsh)))
+                if action == 'backup':
+                    bkp_set = [[src_bad, dst_bad], [src_good, dst_good]]
+                elif action == 'restore':
+                    bkp_set = [[src_good, src_bad]]
+
+            if not bkp_set:
+                logging.error("No backup sets for action: %s, state: %s",
+                              action, good)
+
+            return bkp_set
 
 
         image_filename = self.image_filename
@@ -202,51 +232,37 @@ class QemuImg(object):
             iformat = params.get("image_format", "qcow2")
             ifilename = "%s.%s" % (iname, iformat)
             ifilename = utils_misc.get_path(root_dir, ifilename)
-            image_filename_backup = get_backup_name(ifilename, backup_dir, good)
+            backup_set = get_backup_set(ifilename, backup_dir, action, good)
             backup_func = backup_raw_device
         else:
-            image_filename_backup = get_backup_name(image_filename, backup_dir,
-                                                    good)
+            backup_set = get_backup_set(image_filename, backup_dir, action, good)
             backup_func = backup_image_file
 
         if action == 'backup':
             image_dir = os.path.dirname(image_filename)
             image_dir_disk_free = utils.freespace(image_dir)
-            image_filename_size = os.path.getsize(image_filename)
-            image_filename_backup_size = 0
-            if os.path.isfile(image_filename_backup):
-                image_filename_backup_size = os.path.getsize(
-                                                        image_filename_backup)
-            disk_free = image_dir_disk_free + image_filename_backup_size
-            minimum_disk_free = 1.2 * image_filename_size
-            if disk_free < minimum_disk_free:
-                image_dir_disk_free_gb = float(image_dir_disk_free) / 10**9
-                minimum_disk_free_gb = float(minimum_disk_free) / 10**9
-                logging.error("Dir %s has %.1f GB free, less than the minimum "
-                              "required to store a backup, defined to be 120%% "
-                              "of the backup size, %.1f GB. Skipping backup...",
-                              image_dir, image_dir_disk_free_gb,
-                              minimum_disk_free_gb)
-                return
-            if good:
-                # In case of qemu-img check return 1, we will make 2 backups,
-                # one for investigation and other, to use as a 'pristine'
-                # image for further tests
-                state = 'good'
-            else:
-                state = 'bad'
-            logging.info("Backing up %s image file %s", state, image_filename)
-            src, dst = image_filename, image_filename_backup
-        elif action == 'restore':
-            if not os.path.isfile(image_filename_backup):
-                logging.error('Image backup %s not found, skipping restore...',
-                              image_filename_backup)
-                return
-            logging.info("Restoring image file %s from backup",
-                         image_filename)
-            src, dst = image_filename_backup, image_filename
 
-        backup_func(src, dst)
+            backup_size = 0
+            for src, dst in backup_set:
+                if os.path.isfile(src):
+                    backup_size += os.path.getsize(src)
+
+            minimum_disk_free = 1.2 * backup_size
+            if image_dir_disk_free < minimum_disk_free:
+                image_dir_disk_free_gb = float(image_dir_disk_free) / 10**9
+                backup_size_gb = float(backup_size) / 10**9
+                minimum_disk_free_gb = float(minimum_disk_free) / 10**9
+                logging.error("Free space on %s: %.1f GB", image_dir,
+                              image_dir_disk_free_gb)
+                logging.error("Backup size: %.1f GB", backup_size_gb)
+                logging.error("Minimum free space acceptable: %.1f GB",
+                              minimum_disk_free_gb)
+                logging.error("Available disk space is not sufficient for a"
+                              "full backup. Skipping backup...")
+                return
+
+        for src, dst in backup_set:
+            backup_func(src, dst)
 
 
     def clone_image(self, params, vm_name, image_name, root_dir):
