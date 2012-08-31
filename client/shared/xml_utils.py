@@ -1,6 +1,39 @@
 """
     Utility module standardized on ElementTree 2.6 to minimize dependencies
     in python 2.4 systems.
+
+    Often operations on XML files suggest making a backup copy first is a
+    prudent measure.  However, it's easy to loose track of these temporary
+    files and they can quickly leave a mess behind.  The TempXMLFile class
+    helps by trying to clean up the temporary file whenever the instance is
+    deleted, goes out of scope, or an exception is thrown.
+
+    The XMLBackup class extends the TempXMLFile class by basing its file-
+    like instances off of an automatically created TempXMLFile instead of
+    pointing at the source.  Methods are provided for overwriting the backup
+    copy from the source, or restoring the source from the backup.  Similar
+    to TempXMLFile, the temporary backup files are automatically removed.
+    Access to the original source is provided by the sourcefilename
+    attribute.
+
+    An interface for querying and manipulating XML data is provided by
+    the XMLTreeFile class.  Instances of this class are BOTH file-like
+    and ElementTree-like objects.  Whether or not they are constructed
+    from a file or a string, the file-like instance always represents a
+    temporary backup copy.  Access to the source (even when itself is
+    temporary) is provided by the sourcefilename attribute, and a (closed)
+    file object attribute sourcebackupfile.  See the ElementTree documentation
+    for methods provided by that class.
+
+    Finally, the TemplateXML class represents XML templates that support
+    dynamic keyword substitution based on a dictionary.  Substitution keys
+    in the XML template (string or file) follow the 'bash' variable reference
+    style ($foo or ${bar}).  Extension of the parser is possible by subclassing
+    TemplateXML and overriding the ParserClass class attribute.  The parser
+    class should be an ElementTree.TreeBuilder class or subclass.  Instances
+    of XMLTreeFile are returned by the parse method, which are themselves
+    temporary backups of the parsed content.  See the xml_utils_unittest
+    module for examples.
 """
 
 import os.path, shutil, tempfile, string
