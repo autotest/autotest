@@ -58,7 +58,6 @@ class VM(virt_vm.BaseVM):
             self.vhost_threads = []
 
 
-        self.init_pci_addr = int(params.get("init_pci_addr", 4))
         self.name = name
         self.params = params
         self.root_dir = root_dir
@@ -205,30 +204,6 @@ class VM(virt_vm.BaseVM):
         # Each of these functions receives the output of 'qemu -help' as a
         # parameter, and should add the requested command line option
         # accordingly.
-
-
-        def get_free_pci_addr(pci_addr=None):
-            """
-            return *hex* format free pci addr.
-
-            @param pci_addr: *decimal* formated, desired pci_add
-            """
-            if pci_addr is None:
-                pci_addr = self.init_pci_addr
-                while True:
-                    # actually when pci_addr > 20? errors may happen
-                    if pci_addr > 31:
-                        raise virt_vm.VMPCIOutOfRangeError(self.name, 31)
-                    if pci_addr in self.pci_addr_list:
-                        pci_addr += 1
-                    else:
-                        self.pci_addr_list.append(pci_addr)
-                        return hex(pci_addr)
-            elif int(pci_addr) in self.pci_addr_list:
-                raise virt_vm.VMPCISlotInUseError(self.name, pci_addr)
-            else:
-                self.pci_addr_list.append(int(pci_addr))
-                return hex(int(pci_addr))
 
 
         def _add_option(option, value, option_type=None, first=False):
@@ -925,10 +900,6 @@ class VM(virt_vm.BaseVM):
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
 
-        # init value by default.
-        # PCI addr 0,1,2 are taken by PCI/ISA/IDE bridge and the sound device.
-        self.pci_addr_list = [0, 1, 2]
-
         qemu_binary = utils_misc.get_path(root_dir, params.get("qemu_binary",
                                                               "qemu"))
         self.qemu_binary = qemu_binary
@@ -1205,7 +1176,17 @@ class VM(virt_vm.BaseVM):
 
         soundhw = params.get("soundcards")
         if soundhw:
-            qemu_cmd += " -soundhw %s" % soundhw
+            if "invalid" in commands.getoutput("%s -device ?" % qemu_binary) or soundhw == "all":
+                qemu_cmd += " -soundhw %s" % soundhw
+            else:
+                for sound_device in soundhw.split(","):
+                    if "hda" in sound_device:
+                        qemu_cmd += " -device intel-hda -device hda-duplex"
+                    elif "ac97" in sound_device or "es1370" in sound_device:
+                        qemu_cmd += " -device %s" % sound_device.upper()
+                    else:
+                        qemu_cmd += " -device %s" % sound_device
+
 
         # We may want to add {floppy_otps} parameter for -fda, -fdb
         # {fat:floppy:}/path/. However vvfat is not usually recommended.
@@ -1430,8 +1411,6 @@ class VM(virt_vm.BaseVM):
         name = self.name
         params = self.params
         root_dir = self.root_dir
-
-        self.init_pci_addr = int(params.get("init_pci_addr", 4))
 
         # Verify the md5sum of the ISO images
         for cdrom in params.objects("cdroms"):

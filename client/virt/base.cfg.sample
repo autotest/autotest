@@ -103,9 +103,6 @@ mem = 1024
 # Networking type (nic, user, tap, socket, vde, dump, none)
 nic_mode = tap
 
-# initial PCI address for guest.
-init_pci_addr = 4
-
 # Host networking restart command line for PCI assign cases
 # net_restart_cmd = /etc/init.d/network restart
 
@@ -176,7 +173,8 @@ vga = std
 # Add a sga device to guest.
 #enable_sga = yes
 
-# Specify multiple sound cards seperated by comma,like 'sb16,adlib' or 'all'.
+# Specify multiple sound cards seperated by comma,
+# like 'sb16,adlib,ac97,es1370,hda' (multiple occurrences are allowed) or 'all' (-soundhw all).
 # By default, it's 'ac97'.
 soundcards = ac97
 
