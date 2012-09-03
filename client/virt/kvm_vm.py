@@ -4,7 +4,7 @@ Utility classes and functions to handle Virtual Machine creation using qemu.
 @copyright: 2008-2009 Red Hat Inc.
 """
 
-import time, os, logging, fcntl, re, commands
+import time, os, logging, fcntl, re, commands, errno
 from autotest.client.shared import error
 from autotest.client import utils
 import utils_misc, virt_vm, test_setup, storage, kvm_monitor, aexpect
@@ -1494,20 +1494,27 @@ class VM(virt_vm.BaseVM):
                                     % (nic.nic_name, mac_source.name))
                     nic.mac = mac_source.get_mac_address(nic.nic_name)
                 if nic.nettype == 'bridge' or nic.nettype == 'network':
-                    nic.tapfd = str(utils_misc.open_tap("/dev/net/tun",
-                                                        nic.ifname,
-                                                        vnet_hdr=False))
-                    logging.debug("Adding VM %s NIC ifname %s"
-                                  " to bridge %s" % (self.name,
-                                        nic.ifname, nic.netdst))
-                    if nic.nettype == 'bridge':
-                        utils_misc.add_to_bridge(nic.ifname, nic.netdst)
-                    utils_misc.bring_up_ifname(nic.ifname)
+                    try:
+                        nic.tapfd = str(utils_misc.open_tap("/dev/net/tun",
+                                                            nic.ifname,
+                                                            vnet_hdr=False))
+                        logging.debug("Adding VM %s NIC ifname %s"
+                                      " to bridge %s" % (self.name,
+                                            nic.ifname, nic.netdst))
+                        if nic.nettype == 'bridge':
+                            utils_misc.add_to_bridge(nic.ifname, nic.netdst)
+                        utils_misc.bring_up_ifname(nic.ifname)
+                    except utils_misc.TAPCreationError, taperror:
+                        if taperror.details.errno == errno.EBUSY:
+                            logging.info("VM %s NIC ifname %s was already "
+                                         "added to bridge %s, skipping...",
+                                         self.name, nic.ifname, nic.netdst)
+                        else:
+                            raise taperror
                 elif nic.nettype == 'user':
                     logging.info("Assuming dependencies met for "
                                  "user mode nic %s, and ready to go"
                                  % nic.nic_name)
-                    pass # assume prep. manually performed
                 self.virtnet.update_db()
 
             # Find available VNC port, if needed
