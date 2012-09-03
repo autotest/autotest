@@ -14,6 +14,8 @@ qemu_io_binary = qemu-io
 #disable_kvm = no
 # Explicitly pass -disable-shutdown to qemu (default no)
 #disable_shutdown = no
+# Pass a custom bios path for debugging
+#bios_path = /path/to/coreboot.rom
 
 # List of virtual machine object names (whitespace seperated)
 vms = vm1

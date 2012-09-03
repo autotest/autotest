@@ -1377,6 +1377,10 @@ class VM(virt_vm.BaseVM):
         if extra_params:
             qemu_cmd += " %s" % extra_params
 
+        bios_path = params.get("bios_path")
+        if bios_path:
+            qemu_cmd += " -bios %s" % bios_path
+
         if (has_option(hlp, "enable-kvm")
             and params.get("enable_kvm", "yes") == "yes"):
             qemu_cmd += " -enable-kvm"
