@@ -34,7 +34,6 @@ def preprocess_image(test, params, image_name):
         create_image = False
 
         if params.get("force_create_image") == "yes":
-            logging.debug("Param 'force_create_image' specified, creating image")
             create_image = True
         elif (params.get("create_image") == "yes" and not
               os.path.exists(image_filename)):
@@ -56,12 +55,10 @@ def preprocess_vm(test, params, env, name):
     @param env: The environment (a dict-like object).
     @param name: The name of the VM object.
     """
-    logging.debug("Preprocessing VM '%s'", name)
     vm = env.get_vm(name)
     vm_type = params.get('vm_type')
     target = params.get('target')
     if not vm:
-        logging.debug("VM object for '%s' does not exist, creating it", name)
         if vm_type == 'kvm':
             vm = kvm_vm.VM(name, params, test.bindir, env.get("address_cache"))
         if vm_type == 'libvirt':
@@ -75,7 +72,6 @@ def preprocess_vm(test, params, env, name):
 
     remove_vm = False
     if params.get("force_remove_vm") == "yes":
-        logging.debug("'force_remove_vm' specified; removing VM...")
         remove_vm = True
 
     if remove_vm:
@@ -84,25 +80,18 @@ def preprocess_vm(test, params, env, name):
     start_vm = False
 
     if params.get("restart_vm") == "yes":
-        logging.debug("Param 'restart_vm' specified, (re)starting VM")
         start_vm = True
     elif params.get("migration_mode"):
-        logging.debug("Param 'migration_mode' specified, starting VM in "
-                      "incoming migration mode")
         start_vm = True
     elif params.get("start_vm") == "yes":
         # need to deal with libvirt VM differently than qemu
         if vm_type == 'libvirt' or vm_type == 'virt_v2v':
             if not vm.is_alive():
-                logging.debug("VM is not alive; starting it...")
                 start_vm = True
         else:
             if not vm.is_alive():
-                logging.debug("VM is not alive, starting it")
                 start_vm = True
             if vm.needs_restart(name=name, params=params, basedir=test.bindir):
-                logging.debug("Current VM specs differ from requested one; "
-                              "restarting it")
                 start_vm = True
 
     if start_vm:
@@ -158,7 +147,6 @@ def postprocess_vm(test, params, env, name):
     @param env: The environment (a dict-like object).
     @param name: The name of the VM object.
     """
-    logging.debug("Postprocessing VM '%s'" % name)
     vm = env.get_vm(name)
     if not vm:
         return
@@ -167,9 +155,6 @@ def postprocess_vm(test, params, env, name):
     screendump_dir = os.path.join(test.debugdir, "screendumps_%s" % vm.name)
     if (params.get("encode_video_files", "yes") == "yes" and
         glob.glob("%s/*" % screendump_dir)):
-        logging.debug("Param 'encode_video_files' specified, trying to "
-                      "encode a video from the screenshots produced by "
-                      "vm %s", vm.name)
         try:
             video = video_maker.GstPythonVideoMaker()
             if (video.has_element('vp8enc') and video.has_element('webmmux')):
@@ -181,17 +166,12 @@ def postprocess_vm(test, params, env, name):
             video.start(screendump_dir, video_file)
 
         except Exception, detail:
-            logging.info("Param 'encode_video_files' specified, but video "
-                         "creation failed for vm %s: %s", vm.name, detail)
+            logging.info("Video creation failed for vm %s: %s", vm.name, detail)
 
     if params.get("kill_vm") == "yes":
         kill_vm_timeout = float(params.get("kill_vm_timeout", 0))
         if kill_vm_timeout:
-            logging.debug("Param 'kill_vm' specified, waiting for VM to shut "
-                          "down before killing it")
             utils_misc.wait_for(vm.is_dead, kill_vm_timeout, 0, 1)
-        else:
-            logging.debug("Param 'kill_vm' specified, killing VM")
         vm.destroy(gracefully = params.get("kill_vm_gracefully") == "yes")
 
 
@@ -292,7 +272,6 @@ def preprocess(test, params, env):
     if "tcpdump" not in env and params.get("run_tcpdump", "yes") == "yes":
         cmd = "%s -npvi any 'dst port 68'" % utils_misc.find_command("tcpdump")
         if params.get("remote_preprocess") == "yes":
-            logging.debug("Starting tcpdump '%s' on remote host", cmd)
             login_cmd = ("ssh -o UserKnownHostsFile=/dev/null -o \
                          PreferredAuthentications=password -p %s %s@%s" %
                          (port, username, address))
@@ -303,7 +282,6 @@ def preprocess(test, params, env):
             remote._remote_login(env["tcpdump"], username, password, prompt)
             env["tcpdump"].sendline(cmd)
         else:
-            logging.debug("Starting tcpdump '%s' on local host", cmd)
             env["tcpdump"] = aexpect.Tail(
                 command=cmd,
                 output_func=_update_address_cache,
@@ -323,8 +301,6 @@ def preprocess(test, params, env):
         if not utils_misc.is_vm(vm):
             continue
         if not vm.name in requested_vms:
-            logging.debug("VM '%s' found in environment but not required for "
-                          "test, destroying it" % vm.name)
             vm.destroy()
             del env[key]
 
@@ -413,7 +389,6 @@ def preprocess(test, params, env):
 
     # Start the screendump thread
     if params.get("take_regular_screendumps") == "yes":
-        logging.debug("Starting screendump thread")
         global _screendump_thread, _screendump_thread_termination_event
         _screendump_thread_termination_event = threading.Event()
         _screendump_thread = threading.Thread(target=_take_screendumps,
@@ -438,7 +413,6 @@ def postprocess(test, params, env):
     # Terminate the screendump thread
     global _screendump_thread, _screendump_thread_termination_event
     if _screendump_thread is not None:
-        logging.debug("Terminating screendump thread")
         _screendump_thread_termination_event.set()
         _screendump_thread.join(10)
         _screendump_thread = None
@@ -450,8 +424,6 @@ def postprocess(test, params, env):
 
     # Should we convert PPM files to PNG format?
     if params.get("convert_ppm_files_to_png") == "yes":
-        logging.debug("Param 'convert_ppm_files_to_png' specified, converting "
-                      "PPM files to PNG format")
         try:
             for f in glob.glob(os.path.join(test.debugdir, "*.ppm")):
                 if ppm_utils.image_verify_ppm_file(f):
@@ -463,31 +435,23 @@ def postprocess(test, params, env):
 
     # Should we keep the PPM files?
     if params.get("keep_ppm_files", "no") != "yes":
-        logging.debug("Param 'keep_ppm_files' not specified, removing all PPM "
-                      "files from debug dir")
         for f in glob.glob(os.path.join(test.debugdir, '*.ppm')):
             os.unlink(f)
 
     # Should we keep the screendump dirs?
     if params.get("keep_screendumps", "no") != "yes":
-        logging.debug("Param 'keep_screendumps' not specified, removing "
-                      "screendump dirs")
         for d in glob.glob(os.path.join(test.debugdir, "screendumps_*")):
             if os.path.isdir(d) and not os.path.islink(d):
                 shutil.rmtree(d, ignore_errors=True)
 
     # Should we keep the video files?
     if params.get("keep_video_files", "yes") != "yes":
-        logging.debug("Param 'keep_video_files' not specified, removing all .ogg "
-                      "and .webm files from debug dir")
         for f in (glob.glob(os.path.join(test.debugdir, '*.ogg')) +
                   glob.glob(os.path.join(test.debugdir, '*.webm'))):
             os.unlink(f)
 
     # Kill all unresponsive VMs
     if params.get("kill_unresponsive_vms") == "yes":
-        logging.debug("Param 'kill_unresponsive_vms' specified, killing all "
-                      "VMs that fail to respond to a remote login request")
         for vm in env.get_all_vms():
             if vm.is_alive():
                 try:
