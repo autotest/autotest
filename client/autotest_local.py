@@ -10,16 +10,16 @@ except ImportError:
     autodir = os.path.dirname(autodirbin)
     sys.path.insert(0, autodirbin)
 
-from autotest.client import job
-from autotest.client.shared import global_config
-from autotest.client import cmdparser, optparser
-
 autodirtest = os.path.join(autodir, "tests")
 
 os.environ['AUTODIR'] = autodir
 os.environ['AUTODIRBIN'] = autodirbin
 os.environ['AUTODIRTEST'] = autodirtest
 os.environ['PYTHONPATH'] = autodirbin
+
+from autotest.client import job
+from autotest.client.shared import global_config
+from autotest.client import cmdparser, optparser
 
 
 class AutotestLocalApp:

@@ -7,7 +7,7 @@ Autotest command parser
 import os, re, sys, logging
 from autotest.client import os_dep, utils
 from autotest.client.shared import global_config, logging_config, logging_manager
-from autotest.client.shared import base_packages, packages
+from autotest.client.shared import packages
 
 GLOBAL_CONFIG = global_config.global_config
 
@@ -16,12 +16,17 @@ GLOBALDIRTEST = GLOBAL_CONFIG.get_config_value('COMMON',
                                                'test_dir',
                                                 default="")
 
-tmpdir = os.path.abspath(os.path.join('.', 'tmp'))
+try:
+    autodir = os.path.abspath(os.environ['AUTODIR'])
+except KeyError:
+    autodir = GLOBAL_CONFIG.get_config_value('COMMON',
+                                             'autotest_top_path')
+tmpdir = os.path.join(autodir, 'tmp')
 
-FETCHDIRTEST = GLOBAL_CONFIG.get_config_value('COMMON',
-                                               'test_output_dir',
-                                                default=tmpdir)
-FETCHDIRTEST = os.path.join(FETCHDIRTEST, 'site_tests')
+output_dir = GLOBAL_CONFIG.get_config_value('COMMON',
+                                            'test_output_dir',
+                                             default=tmpdir)
+FETCHDIRTEST = os.path.join(output_dir, 'site_tests')
 
 if not os.path.isdir(FETCHDIRTEST):
     os.makedirs(FETCHDIRTEST)
@@ -106,15 +111,10 @@ class CommandParser(object):
             name = ""
 
         logging.info("Fetching file %s:%s", url, name)
-        autodir = os.path.abspath(os.environ['AUTODIR'])
-        tmpdir = os.path.join(autodir, 'tmp')
-        tests_out_dir = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                       'test_output_dir',
-                                                       default=tmpdir)
-        pkg_dir = os.path.join(tests_out_dir, 'packages')
+        pkg_dir = os.path.join(output_dir, 'packages')
         install_dir = os.path.join(FETCHDIRTEST, name)
 
-        pkgmgr = packages.PackageManager(tests_out_dir,
+        pkgmgr = packages.PackageManager(output_dir,
             run_function_dargs={'timeout':3600})
         pkgmgr.install_pkg(name, 'test', pkg_dir, install_dir,
             repo_url=url)
