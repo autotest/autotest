@@ -5,6 +5,7 @@ Interfaces to the virt agent.
 """
 
 import socket, time, logging
+from autotest.client.shared import error
 from kvm_monitor import Monitor, MonitorError
 
 try:
@@ -70,6 +71,11 @@ class QemuAgent(Monitor):
     CMD_TIMEOUT = 20
     RESPONSE_TIMEOUT = 20
     PROMPT_TIMEOUT = 20
+
+    SHUTDOWN_MODE_POWERDOWN = "powerdown"
+    SHUTDOWN_MODE_REBOOT = "reboot"
+    SHUTDOWN_MODE_HALT = "halt"
+
 
     def __init__(self, vm, name, serial_type, get_supported_cmds=False,
                  suppress_exceptions=False):
@@ -398,10 +404,23 @@ class QemuAgent(Monitor):
             self.cmd(cmd=cmd, debug=False)
 
 
-    def shutdown(self):
+    @error.context_aware
+    def shutdown(self, mode=SHUTDOWN_MODE_POWERDOWN):
         """
         Send "guest-shutdown", this cmd would not return any response.
+
+        @param mode: Speicfy shutdown mode, now qemu guest agent supports
+                     'powerdown', 'reboot', 'halt' 3 modes.
+        @return: True if shutdown cmd is sent successfully, False if
+                 'shutdown' is unsupported.
         """
         cmd = "guest-shutdown"
-        if self._has_command(cmd):
-            self.cmd(cmd=cmd, success_resp=False)
+        if not self._has_command(cmd):
+            return False
+
+        args = None
+        if mode in [self.SHUTDOWN_MODE_POWERDOWN, self.SHUTDOWN_MODE_REBOOT,
+                    self.SHUTDOWN_MODE_HALT]:
+            args = {"mode": mode}
+        self.cmd(cmd=cmd, args=args, success_resp=False)
+        return True
