@@ -44,6 +44,17 @@ class MonitorNotSupportedError(MonitorError):
     pass
 
 
+class MonitorNotSupportedCmdError(MonitorNotSupportedError):
+    def __init__(self, monitor, cmd):
+        MonitorError.__init__(self)
+        self.monitor = monitor
+        self.cmd = cmd
+
+    def __str__(self):
+        return ("Not supported cmd '%s' in monitor '%s'" %
+                (self.cmd, self.monitor))
+
+
 class QMPCmdError(MonitorError):
     def __init__(self, cmd, qmp_args, data):
         MonitorError.__init__(self, cmd, qmp_args, data)
@@ -195,6 +206,17 @@ class Monitor:
             return True
         except MonitorError:
             return False
+
+
+    def verify_supported_cmd(self, cmd):
+        """
+        Verify whether cmd is supported by monitor. If not, raise a
+        MonitorNotSupportedCmdError Exception.
+
+        @param cmd: The cmd string need to verify.
+        """
+        if not self._has_command(cmd):
+            raise MonitorNotSupportedCmdError(self.name, cmd)
 
 
 class HumanMonitor(Monitor):
