@@ -4,7 +4,7 @@ Interfaces to the virt agent.
 @copyright: 2008-2012 Red Hat Inc.
 """
 
-import socket, time, logging
+import socket, time, logging, random
 from autotest.client.shared import error
 from kvm_monitor import Monitor, MonitorError
 
@@ -62,6 +62,28 @@ class VAgentCmdError(VAgentError):
                 "error message: %r)" % (self.cmd, self.args, self.data))
 
 
+class VAgentSyncError(VAgentError):
+    def __init__(self, vm_name):
+        VAgentError.__init__(self)
+        self.vm = vm_name
+
+    def __str__(self):
+        return "Could not sync with guest agent in vm '%s'" % self.vm
+
+
+class VAgentSuspendError(VAgentError):
+    pass
+
+
+class VAgentSuspendUnknownModeError(VAgentSuspendError):
+    def __init__(self, mode):
+        VAgentSuspendError.__init__(self)
+        self.mode = mode
+
+    def __str__(self):
+        return "Not supported suspend mode '%s'" % self.mode
+
+
 class QemuAgent(Monitor):
     """
     Wraps qemu guest agent commands.
@@ -75,6 +97,10 @@ class QemuAgent(Monitor):
     SHUTDOWN_MODE_POWERDOWN = "powerdown"
     SHUTDOWN_MODE_REBOOT = "reboot"
     SHUTDOWN_MODE_HALT = "halt"
+
+    SUSPEND_MODE_DISK = "disk"
+    SUSPEND_MODE_RAM = "ram"
+    SUSPEND_MODE_HYBRID = "hybrid"
 
 
     def __init__(self, vm, name, serial_type, get_supported_cmds=False,
@@ -423,4 +449,62 @@ class QemuAgent(Monitor):
                     self.SHUTDOWN_MODE_HALT]:
             args = {"mode": mode}
         self.cmd(cmd=cmd, args=args, success_resp=False)
+        return True
+
+
+    @error.context_aware
+    def sync(self):
+        """
+        Sync guest agent with cmd 'guest-sync'.
+        """
+        cmd = "guest-sync"
+        if not self._has_command(cmd):
+            return
+
+        rnd_num = random.randint(1000, 9999)
+        args = {"id": rnd_num}
+        ret = self.cmd(cmd, args=args)
+        if ret != rnd_num:
+            raise VAgentSyncError(self.vm.name)
+
+
+    @error.context_aware
+    def suspend(self, mode=SUSPEND_MODE_RAM):
+        """
+        This function tries to execute the scripts provided by the pm-utils
+        package via guest agent interface. If it's not available, the suspend
+        operation will be performed by manually writing to a sysfs file.
+
+        NOTE: 1) For the best results it's strongly recommended to have the
+                 pm-utils package installed in the guest.
+              2) The 'ram' and 'hybrid' mode require QEMU to support the
+                 'system_wakeup' command.  Thus, it's *required* to query QEMU
+                 for the presence of the 'system_wakeup' command before issuing
+                 guest agent command.
+
+        @param mode: Specify suspend mode, could be one of 'disk', 'ram',
+                     'hybrid'.
+        @return: True if shutdown cmd is sent successfully, False if
+                 'suspend' is unsupported.
+        @raise VAgentSuspendUnknownModeError: Raise if mode is not supported.
+        """
+        if not mode in [self.SUSPEND_MODE_DISK, self.SUSPEND_MODE_RAM,
+                        self.SUSPEND_MODE_HYBRID]:
+            raise VAgentSuspendUnknownModeError("Not supported suspend mode '%s'" %
+                                          mode)
+
+        error.context("Suspend guest '%s' to '%s'" % (self.vm.name, mode))
+        cmd = "guest-suspend-%s" % mode
+        if not self._has_command(cmd):
+            return False
+
+        # verify QEMU monitor has 'system_wakeup' command.
+        self.vm.monitor.verify_supported_cmd("system_wakeup")
+
+        # First, sync with guest.
+        self.sync()
+
+        # Then send suspend cmd.
+        self.cmd(cmd=cmd, success_resp=False)
+
         return True
