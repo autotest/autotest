@@ -84,6 +84,19 @@ class VAgentSuspendUnknownModeError(VAgentSuspendError):
         return "Not supported suspend mode '%s'" % self.mode
 
 
+class VAgentFreezeStatusError(VAgentError):
+    def __init__(self, vm, status, expected):
+        VAgentError.__init__(self)
+        self.vm = vm
+        self.status = status
+        self.expected = expected
+
+
+    def __str__(self):
+        return ("Unexpected guest FS status '%s' (expected '%s') in vm "
+                "'%s'" % (self.status, self.expected, self.vm))
+
+
 class QemuAgent(Monitor):
     """
     Wraps qemu guest agent commands.
@@ -101,6 +114,9 @@ class QemuAgent(Monitor):
     SUSPEND_MODE_DISK = "disk"
     SUSPEND_MODE_RAM = "ram"
     SUSPEND_MODE_HYBRID = "hybrid"
+
+    FSFREEZE_STATUS_FROZEN = "frozen"
+    FSFREEZE_STATUS_THAWED = "thawed"
 
 
     def __init__(self, vm, name, serial_type, get_supported_cmds=False,
@@ -508,3 +524,84 @@ class QemuAgent(Monitor):
         self.cmd(cmd=cmd, success_resp=False)
 
         return True
+
+
+    def get_fsfreeze_status(self):
+        """
+        Get guest 'fsfreeze' status. The status could be 'frozen' or 'thawed'.
+        """
+        cmd = "guest-fsfreeze-status"
+        if self._has_command(cmd):
+            return self.cmd(cmd=cmd)
+
+
+    def verify_fsfreeze_status(self, expected):
+        """
+        Verify the guest agent fsfreeze status is same as expected, if not,
+        raise a VAgentFreezeStatusError.
+
+        @param expected: The expected status.
+        @raise VAgentFreezeStatusError: Raise if the guest fsfreeze status is
+                unexpected.
+        """
+        status = self.get_fsfreeze_status()
+        if status != expected:
+            raise VAgentFreezeStatusError(self.vm, status, expected)
+
+
+    @error.context_aware
+    def fsfreeze(self, check_status=True):
+        """
+        Freeze File system on guest.
+
+        @param check_status: Force this function to check the fsreeze status
+                             before/after sending cmd.
+        @return: Frozen FS number if cmd succeed, -1 if guest agent doesn't
+                 support fsfreeze cmd.
+        """
+        error.context("Freeze all FS in guest '%s'" % self.vm.name)
+        if check_status:
+            self.verify_fsfreeze_status(self.FSFREEZE_STATUS_THAWED)
+
+        cmd = "guest-fsfreeze-freeze"
+        if self._has_command(cmd):
+            ret = self.cmd(cmd=cmd)
+            if check_status:
+                try:
+                    self.verify_fsfreeze_status(self.FSFREEZE_STATUS_FROZEN)
+                except VAgentFreezeStatusError:
+                    # When the status is incorrect, reset fsfreeze status to
+                    # 'thawed'.
+                    self.cmd(cmd="guest-fsreeze-thaw")
+                    raise
+            return ret
+        return -1
+
+
+    @error.context_aware
+    def fsthaw(self, check_status=True):
+        """
+        Thaw File system on guest.
+
+        @param check_status: Force this function to check the fsreeze status
+                             before/after sending cmd.
+        @return: Thaw FS number if cmd succeed, -1 if guest agent doesn't
+                 support fsfreeze cmd.
+        """
+        error.context("thaw all FS in guest '%s'" % self.vm.name)
+        if check_status:
+            self.verify_fsfreeze_status(self.FSFREEZE_STATUS_FROZEN)
+
+        cmd = "guest-fsfreeze-thaw"
+        if self._has_command(cmd):
+            ret = self.cmd(cmd=cmd)
+            if check_status:
+                try:
+                    self.verify_fsfreeze_status(self.FSFREEZE_STATUS_THAWED)
+                except VAgentFreezeStatusError:
+                    # When the status is incorrect, reset fsfreeze status to
+                    # 'thawed'.
+                    self.cmd(cmd=cmd)
+                    raise
+            return ret
+        return -1
