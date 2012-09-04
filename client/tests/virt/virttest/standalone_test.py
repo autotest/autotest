@@ -247,6 +247,7 @@ def run_tests(parser):
     if not os.path.isdir(debugdir):
         os.makedirs(debugdir)
     debuglog = os.path.join(debugdir, "debug.log")
+    print_stdout("DEBUG LOG: %s" % debuglog)
     configure_file_logging(debuglog)
 
     last_index = -1
