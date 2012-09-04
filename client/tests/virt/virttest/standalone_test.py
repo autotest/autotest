@@ -1,5 +1,6 @@
 import os, logging, imp, sys, time, traceback
 from autotest.client.shared import error
+from autotest.client import utils
 import utils_misc, env_process
 
 
@@ -45,7 +46,7 @@ class Test(object):
 
 
     def write_test_keyval(self, d):
-        logging.debug(d)
+        utils.write_keyval(self.debugdir, d)
 
 
     def start_file_logging(self):
@@ -306,7 +307,12 @@ def run_tests(parser):
             print_stdout("%s:" % t.tag, end=False)
 
             try:
-                current_status = t.run_once()
+                try:
+                    t_begin = time.time()
+                    current_status = t.run_once()
+                finally:
+                    t_end = time.time()
+                    t_elapsed = t_end - t_begin
             except:
                 traceback.print_exc()
                 current_status = False
@@ -317,10 +323,10 @@ def run_tests(parser):
 
         if not current_status:
             failed = True
-            print_stdout("FAIL")
+            print_stdout("FAIL (%.2f s)" % t_elapsed)
 
         else:
-            print_stdout("PASS")
+            print_stdout("PASS (%.2f s)" % t_elapsed)
 
         status_dct[dct.get("name")] = current_status
 
