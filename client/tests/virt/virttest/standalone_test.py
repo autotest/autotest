@@ -59,7 +59,6 @@ class Test(object):
 
 
     def run_once(self):
-        self.start_file_logging()
         # Convert params to a Params object
         params = utils_misc.Params(self.params)
 
@@ -139,8 +138,6 @@ class Test(object):
                     test_passed = True
 
                 except Exception, e:
-                    logging.error("Test failed: %s: %s",
-                                  e.__class__.__name__, e)
                     try:
                         env_process.postprocess_on_error(self, params, env)
                     finally:
@@ -176,8 +173,6 @@ class Test(object):
                     logging.info("The command line used to start it was:\n%s",
                                  vm.name, vm.make_qemu_command())
                 raise error.JobError("Abort requested (%s)" % e)
-
-        self.stop_file_logging()
 
         return test_passed
 
@@ -347,12 +342,17 @@ def run_tests(parser):
             try:
                 try:
                     t_begin = time.time()
+                    t.start_file_logging()
                     current_status = t.run_once()
+                    logging.info("PASS")
+                    t.stop_file_logging()
                 finally:
                     t_end = time.time()
                     t_elapsed = t_end - t_begin
-            except:
-                traceback.print_exc()
+            except Exception, reason:
+                logging.error("FAIL -> %s: %s", reason.__class__.__name__,
+                              reason)
+                t.stop_file_logging()
                 current_status = False
         else:
             skip_tag = "%s.%s" % (dct.get("vm_type"), dct.get("shortname"))
