@@ -182,6 +182,27 @@ class Test(object):
         return test_passed
 
 
+class Bcolors(object):
+    """
+    Very simple class with color support.
+    """
+    HEADER = '\033[94m'
+    PASS = '\033[92m'
+    SKIP = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+    def disable(self):
+        self.HEADER = ''
+        self.PASS = ''
+        self.SKIP = ''
+        self.FAIL = ''
+        self.ENDC = ''
+
+
+bcolors = Bcolors()
+
+
 def print_stdout(sr, end=True):
     sys.stdout.switch()
     if end:
@@ -189,6 +210,22 @@ def print_stdout(sr, end=True):
     else:
         print(sr),
     sys.stdout.switch()
+
+
+def print_header(sr):
+    print_stdout(bcolors.HEADER + sr + bcolors.ENDC)
+
+
+def print_skip():
+    print_stdout(bcolors.SKIP + "SKIP" + bcolors.ENDC)
+
+
+def print_pass(t_elapsed):
+    print_stdout(bcolors.PASS + "PASS" + bcolors.ENDC + " (%.2f s)" % t_elapsed)
+
+
+def print_fail(t_elapsed):
+    print_stdout(bcolors.FAIL + "FAIL" + bcolors.ENDC + " (%.2f s)" % t_elapsed)
 
 
 def configure_logging():
@@ -247,7 +284,7 @@ def run_tests(parser):
     if not os.path.isdir(debugdir):
         os.makedirs(debugdir)
     debuglog = os.path.join(debugdir, "debug.log")
-    print_stdout("DEBUG LOG: %s" % debuglog)
+    print_header("DEBUG LOG: %s" % debuglog)
     configure_file_logging(debuglog)
 
     last_index = -1
@@ -319,15 +356,16 @@ def run_tests(parser):
                 current_status = False
         else:
             skip_tag = "%s.%s" % (dct.get("vm_type"), dct.get("shortname"))
-            print_stdout("%s: SKIP" % skip_tag)
+            print_stdout("%s:" % skip_tag, end=False)
+            print_skip()
             continue
 
         if not current_status:
             failed = True
-            print_stdout("FAIL (%.2f s)" % t_elapsed)
+            print_fail(t_elapsed)
 
         else:
-            print_stdout("PASS (%.2f s)" % t_elapsed)
+            print_pass(t_elapsed)
 
         status_dct[dct.get("name")] = current_status
 
