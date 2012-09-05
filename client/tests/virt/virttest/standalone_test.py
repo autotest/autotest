@@ -181,11 +181,16 @@ class Bcolors(object):
     """
     Very simple class with color support.
     """
-    HEADER = '\033[94m'
-    PASS = '\033[92m'
-    SKIP = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
+    def __init__(self):
+        self.HEADER = '\033[94m'
+        self.PASS = '\033[92m'
+        self.SKIP = '\033[93m'
+        self.FAIL = '\033[91m'
+        self.ENDC = '\033[0m'
+        allowed_terms = ['linux', 'xterm', 'vt100']
+        term = os.environ.get("TERM")
+        if (not os.isatty(1)) or (not term in allowed_terms):
+            self.disable()
 
     def disable(self):
         self.HEADER = ''
