@@ -91,7 +91,7 @@ class QemuImg(storage.QemuImg):
 
         check_output = params.get("check_output") == "yes"
         try:
-            result = utils.system(qemu_img_cmd)
+            result = utils.run(qemu_img_cmd, verbose=False)
         except error.CmdError, e:
             logging.error("Could not create image, failed with error message:"
                             "%s", str(e))
@@ -280,7 +280,8 @@ class QemuImg(storage.QemuImg):
         image_is_qcow2 = self.image_format == 'qcow2'
         if os.path.exists(image_filename) and image_is_qcow2:
             # Verifying if qemu-img supports 'check'
-            q_result = utils.run(qemu_img_cmd, ignore_status=True)
+            q_result = utils.run(qemu_img_cmd, ignore_status=True,
+                                 verbose=False)
             q_output = q_result.stdout
             check_img = True
             if not "check" in q_output:
@@ -293,15 +294,15 @@ class QemuImg(storage.QemuImg):
                 check_img = False
             if check_img:
                 try:
-                    utils.system("%s info %s" % (qemu_img_cmd,
-                                                 image_filename))
+                    utils.run("%s info %s" % (qemu_img_cmd, image_filename),
+                              verbose=False)
                 except error.CmdError:
                     logging.error("Error getting info from image %s",
                                   image_filename)
 
                 cmd_result = utils.run("%s check %s" %
                                        (qemu_img_cmd, image_filename),
-                                       ignore_status=True)
+                                       ignore_status=True, verbose=False)
                 # Error check, large chances of a non-fatal problem.
                 # There are chances that bad data was skipped though
                 if cmd_result.exit_status == 1:
