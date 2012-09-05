@@ -6,13 +6,7 @@ Run virt tests outside the autotest client harness.
 """
 import os, sys
 
-def silence_stdin_stderr():
-    in_fd = os.open('/dev/null', os.O_RDONLY)
-    try:
-        os.dup2(in_fd, 0)
-    finally:
-        os.close(in_fd)
-    sys.stdin = os.fdopen(0, 'r')
+def silence_stderr():
     out_fd = os.open('/dev/null', os.O_WRONLY | os.O_CREAT)
     try:
         os.dup2(out_fd, 2)
@@ -24,7 +18,7 @@ def silence_stdin_stderr():
 DEBUG = False
 
 if not DEBUG:
-    silence_stdin_stderr()
+    silence_stderr()
 
 
 class StreamProxy(object):
@@ -35,6 +29,9 @@ class StreamProxy(object):
 
     def write(self, message):
         self.stream.write(message)
+
+    def flush(self):
+        self.stream.flush()
 
     def switch(self):
         if self.stream == self.log:
