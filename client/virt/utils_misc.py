@@ -714,16 +714,13 @@ class VMNet(list):
         #TODO: Get rid of this function.  it's main purpose is to provide
         # a shared way to setup style (container_class) from params+vm_name
         # so that unittests can run independantly for each subclass.
-        if not hasattr(self, 'vm_name'):
-            self.vm_name = vm_name
-        if not hasattr(self, 'params'):
-            self.params = params.object_params(self.vm_name)
-        if not hasattr(self, 'container_class'):
-            self.vm_type = self.params.get('vm_type', 'default')
-            self.driver_type = self.params.get('driver_type', 'default')
-            for key,value in VMNetStyle(self.vm_type,
-                                        self.driver_type).items():
-                setattr(self, key, value)
+        self.vm_name = vm_name
+        self.params = params.object_params(self.vm_name)
+        self.vm_type = self.params.get('vm_type', 'default')
+        self.driver_type = self.params.get('driver_type', 'default')
+        for key,value in VMNetStyle(self.vm_type,
+                                    self.driver_type).items():
+            setattr(self, key, value)
 
 
     def process_mac(self, value):
