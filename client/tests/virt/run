@@ -71,20 +71,28 @@ standalone_test.configure_console_logging()
 
 if __name__ == '__main__':
     import optparse
-    usage = "usage: %prog [options] [test_type]"
-    parser = optparse.OptionParser(usage=usage)
+    parser = optparse.OptionParser()
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose",
                       help="Exhibit debug messages")
+    parser.add_option("-t", "--type",
+                      action="store", dest="type",
+                      help="Choose test type (kvm, libvirt, v2v)")
+    parser.add_option("-c", "--config",
+                      action="store", dest="config",
+                      help="Explicitly choose a cartesian config")
     options, args = parser.parse_args()
 
-    if not args:
+    if (not options.type) and (not options.config):
         sys.stdout.switch()
-        parser.print_usage()
+        parser.print_help()
         sys.exit(1)
 
-    t_type = args[0]
-
     parser = cartesian_config.Parser()
-    parser.parse_file(os.path.join(test_dir, t_type, "cfg", "tests.cfg"))
+    if options.config is not None:
+        cfg = os.path.abspath(options.config)
+    else:
+        cfg = os.path.join(test_dir, options.type, "cfg", "tests.cfg")
+
+    parser.parse_file(cfg)
     standalone_test.run_tests(parser)
