@@ -29,8 +29,7 @@ str = """
 """
 
 parser = cartesian_config.Parser()
-kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests/kvm')
-parser.parse_file(os.path.join(kvm_test_dir, "build.cfg"))
+parser.parse_file(os.path.join(virt_test_dir, "kvm", "cfg", "build.cfg"))
 parser.parse_string(str)
 if not utils_misc.run_tests(parser, job):
     logging.error("KVM build step failed, exiting.")
@@ -44,7 +43,7 @@ str = """
 """
 
 parser = cartesian_config.Parser()
-parser.parse_file(os.path.join(kvm_test_dir, "tests-spice.cfg"))
+parser.parse_file(os.path.join(virt_test_dir, "kvm", "cfg", "tests-spice.cfg"))
 
 if args:
     # We get test parameters from command line
