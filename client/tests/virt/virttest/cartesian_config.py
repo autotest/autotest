@@ -217,6 +217,7 @@ class Parser(object):
         self.debug = debug
         if filename:
             self.parse_file(filename)
+        self.filename = filename
 
 
     def parse_file(self, filename):
@@ -226,6 +227,7 @@ class Parser(object):
         @param filename: Path of the configuration file.
         """
         self.node = self._parse(FileReader(filename), self.node)
+        self.filename = filename
 
 
     def parse_string(self, s):
