@@ -3966,7 +3966,23 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
     logging.info("%d - Creating config files from samples (copy the default "
                  "config samples to actual config files)", step)
     config_file_list = glob.glob(os.path.join(test_dir, "cfg", "*.cfg.sample"))
-    config_file_list += glob.glob(os.path.join(shared_dir, "*.cfg.sample"))
+    config_file_list_shared = glob.glob(os.path.join(shared_dir,
+                                                     "*.cfg.sample"))
+
+    # Handle overrides of cfg files. Let's say a test provides its own
+    # subtest.cfg.sample, this file takes precedence over the shared
+    # subtest.cfg.sample. So, yank this file from the cfg file list.
+
+    idx = 0
+    for cf in config_file_list_shared:
+        basename = os.path.basename(cf)
+        target = os.path.join(test_dir, "cfg", basename)
+        if target in config_file_list:
+            config_file_list_shared.pop(idx)
+        idx += 1
+
+    config_file_list += config_file_list_shared
+
     for config_file in config_file_list:
         src_file = config_file
         dst_file = os.path.join(test_dir, "cfg", os.path.basename(config_file))
