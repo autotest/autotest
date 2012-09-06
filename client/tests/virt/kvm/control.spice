@@ -14,8 +14,10 @@ For online docs, please refer to http://www.linux-kvm.org/page/KVM-Autotest
 """
 
 import sys, os, logging
-from autotest.client.shared import cartesian_config
-from autotest.client.virt import utils_misc
+virt_test_dir = os.path.join(os.environ['AUTODIR'],'tests/virt')
+sys.path.insert(0, virt_test_dir)
+from virttest import utils_misc, cartesian_config
+
 
 # set English environment (command output might be localized, need to be safe)
 os.environ['LANG'] = 'en_US.UTF-8'

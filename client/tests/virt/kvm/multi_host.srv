@@ -15,19 +15,22 @@ dicts for the multi host test.
 
 import sys, os, commands, glob, shutil, logging, random
 from autotest.server import utils
-from autotest.client.shared import cartesian_config, error
+from autotest.client.shared import error
 
 # Specify the directory of autotest before you start this test
 AUTOTEST_DIR = job.clientdir
 
-KVM_DIR = os.path.join(AUTOTEST_DIR, 'tests', 'kvm')
+KVM_DIR = os.path.join(AUTOTEST_DIR, 'tests', 'virt')
+
+sys.path.insert(0, KVM_DIR)
+from virttest import utils_misc, cartesian_config
 
 CONTROL_MAIN_PART = """
-testname = "kvm"
+testname = "virt"
 bindir = os.path.join(job.testdir, testname)
 job.install_pkg(testname, 'test', bindir)
 
-kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'kvm')
+kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'virt')
 sys.path.append(kvm_test_dir)
 """
 
@@ -63,7 +66,7 @@ def run(machines):
     for host in _hosts.itervalues():
         host.at = autotest_remote.Autotest(host.host)
 
-    cfg_file = os.path.join(KVM_DIR, "multi-host-tests.cfg")
+    cfg_file = os.path.join(KVM_DIR, "kvm", "cfg", "multi-host-tests.cfg")
 
     if not os.path.exists(cfg_file):
         raise error.JobError("Config file %s was not found", cfg_file)
@@ -114,7 +117,7 @@ def run(machines):
 
         for machine in machines:
             host = _hosts[machine]
-            host.control += ("job.run_test('kvm', tag='%s', params=%s)" %
+            host.control += ("job.run_test('virt', tag='%s', params=%s)" %
                              (host.params['shortname'], host.params))
 
         logging.debug('Master control file:\n%s', _hosts[machines[0]].control)
@@ -131,7 +134,7 @@ def run(machines):
 
         try:
             parallel(commands)
-        except error.AutoservError as e:
+        except error.AutoservError, e:
             logging.error(e)
 
 if 'all' in args:
