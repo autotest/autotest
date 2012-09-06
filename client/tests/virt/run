@@ -6,20 +6,6 @@ Run virt tests outside the autotest client harness.
 """
 import os, sys
 
-def silence_stderr():
-    out_fd = os.open('/dev/null', os.O_WRONLY | os.O_CREAT)
-    try:
-        os.dup2(out_fd, 2)
-    finally:
-        os.close(out_fd)
-    sys.stderr = os.fdopen(2, 'w')
-
-
-DEBUG = False
-
-if not DEBUG:
-    silence_stderr()
-
 
 class StreamProxy(object):
     def __init__(self, filename='/dev/null', stream=sys.stdout):
@@ -39,32 +25,56 @@ class StreamProxy(object):
         else:
             self.stream = self.log
 
-sys.stdout = StreamProxy(stream=sys.stdout)
 
-try:
-    from autotest.client import setup_modules
-except ImportError:
+def silence_stderr():
+    out_fd = os.open('/dev/null', os.O_WRONLY | os.O_CREAT)
     try:
-        autotest_dir = os.environ['AUTOTEST_PATH']
-    except KeyError:
-        sys.stdout.switch()
-        print("Environment variable $AUTOTEST_PATH not set. "
-              "please set it to a path containing an autotest checkout")
-        sys.exit(1)
-    client_dir = os.path.join(autotest_dir, 'client')
-    sys.path.insert(0, client_dir)
-    import setup_modules
-    sys.path.pop(0)
-    setup_modules.setup(base_path=client_dir,
-                        root_module_name="autotest.client")
+        os.dup2(out_fd, 2)
+    finally:
+        os.close(out_fd)
+    sys.stderr = os.fdopen(2, 'w')
 
-test_dir = os.path.abspath(os.path.dirname(sys.modules[__name__].__file__))
-sys.path.append(test_dir)
 
-from virttest import cartesian_config, standalone_test
+def main(verbose=False):
+    if not verbose:
+        silence_stderr()
 
-standalone_test.configure_logging()
-standalone_test.configure_console_logging()
+    # Replace stdout by our StreamProxy object
+    sys.stdout = StreamProxy(stream=sys.stdout)
+
+    try:
+        from autotest.client import setup_modules
+    except ImportError:
+        try:
+            autotest_dir = os.environ['AUTOTEST_PATH']
+        except KeyError:
+            sys.stdout.switch()
+            print("Environment variable $AUTOTEST_PATH not set. "
+                  "please set it to a path containing an autotest checkout")
+            sys.exit(1)
+        client_dir = os.path.join(autotest_dir, 'client')
+        sys.path.insert(0, client_dir)
+        import setup_modules
+        sys.path.pop(0)
+        setup_modules.setup(base_path=client_dir,
+                            root_module_name="autotest.client")
+
+    test_dir = os.path.abspath(os.path.dirname(sys.modules[__name__].__file__))
+    sys.path.append(test_dir)
+
+    from virttest import cartesian_config, standalone_test
+
+    standalone_test.configure_logging()
+    standalone_test.configure_console_logging()
+    parser = cartesian_config.Parser()
+    if options.config is not None:
+        cfg = os.path.abspath(options.config)
+    else:
+        cfg = os.path.join(test_dir, options.type, "cfg", "tests.cfg")
+
+    parser.parse_file(cfg)
+    standalone_test.run_tests(parser)
+
 
 if __name__ == '__main__':
     import optparse
@@ -81,15 +91,7 @@ if __name__ == '__main__':
     options, args = parser.parse_args()
 
     if (not options.type) and (not options.config):
-        sys.stdout.switch()
         parser.print_help()
         sys.exit(1)
 
-    parser = cartesian_config.Parser()
-    if options.config is not None:
-        cfg = os.path.abspath(options.config)
-    else:
-        cfg = os.path.join(test_dir, options.type, "cfg", "tests.cfg")
-
-    parser.parse_file(cfg)
-    standalone_test.run_tests(parser)
+    main(options.verbose)
