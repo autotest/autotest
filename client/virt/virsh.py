@@ -416,7 +416,7 @@ def vcpupin(domname, vcpu, cpu, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: True operation was successful
     """
-
+    dargs['ignore_status'] = False
     try:
         cmd_vcpupin = "vcpupin %s %s %s" % (domname, vcpu, cpu)
         command(cmd_vcpupin, **dargs)
@@ -606,6 +606,7 @@ def screenshot(name, filename, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: filename
     """
+    dargs['ignore_status'] = False
     try:
         command("screenshot %s %s" % (name, filename), **dargs)
     except error.CmdError, detail:
@@ -654,6 +655,7 @@ def is_dead(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: True operation was successful
     """
+    dargs['ignore_status'] = False
     try:
         state = domstate(name, **dargs)
     except error.CmdError:
@@ -672,6 +674,7 @@ def suspend(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: True operation was successful
     """
+    dargs['ignore_status'] = False
     try:
         command("suspend %s" % (name), **dargs)
         if domstate(name, **dargs) == 'paused':
@@ -692,6 +695,7 @@ def resume(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: True operation was successful
     """
+    dargs['ignore_status'] = False
     try:
         command("resume %s" % (name), **dargs)
         if is_alive(name, **dargs):
@@ -754,6 +758,7 @@ def start(name, **dargs):
     """
     if is_alive(name, **dargs):
         return True
+    dargs['ignore_status'] = False
     try:
         command("start %s" % (name), **dargs)
         return True
@@ -772,6 +777,7 @@ def shutdown(name, **dargs):
     """
     if domstate(name, **dargs) == 'shut off':
         return True
+    dargs['ignore_status'] = False
     try:
         command("shutdown %s" % (name), **dargs)
         return True
@@ -790,6 +796,7 @@ def destroy(name, **dargs):
     """
     if domstate(name, **dargs) == 'shut off':
         return True
+    dargs['ignore_status'] = False
     try:
         command("destroy %s" % (name), **dargs)
         return True
@@ -806,6 +813,7 @@ def define(xml_path, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: True operation was successful
     """
+    dargs['ignore_status'] = False
     try:
         command("define --file %s" % xml_path, **dargs)
         return True
@@ -822,6 +830,7 @@ def undefine(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: True operation was successful
     """
+    dargs['ignore_status'] = False
     try:
         command("undefine %s" % (name), **dargs)
         logging.debug("undefined VM %s", name)
@@ -854,6 +863,7 @@ def domain_exists(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     @return: True operation was successful
     """
+    dargs['ignore_status'] = False
     try:
         command("domstate %s" % name, **dargs)
         return True
@@ -897,6 +907,7 @@ def attach_device(name, xml_file, extra="", **dargs):
     @return: True operation was successful
     """
     cmd = "attach-device --domain %s --file %s %s" % (name, xml_file, extra)
+    dargs['ignore_status'] = False
     try:
         command(cmd, **dargs)
         return True
@@ -916,6 +927,7 @@ def detach_device(name, xml_file, extra="", **dargs):
     @return: True operation was successful
     """
     cmd = "detach-device --domain %s --file %s %s" % (name, xml_file, extra)
+    dargs['ignore_status'] = False
     try:
         command(cmd, **dargs)
         return True
@@ -1010,6 +1022,7 @@ def pool_info(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     """
     cmd = "pool-info %s" % name
+    dargs['ignore_status'] = False
     try:
         command(cmd, **dargs)
         return True
@@ -1026,6 +1039,7 @@ def pool_destroy(name, **dargs):
     @param: dargs: standardized virsh function API keywords
     """
     cmd = "pool-destroy %s" % name
+    dargs['ignore_status'] = False
     try:
         command(cmd, **dargs)
         return True
@@ -1059,6 +1073,7 @@ def pool_create_as(name, pool_type, target, extra="", **dargs):
     logging.info("Create %s type pool %s" % (pool_type, name))
     cmd = "pool-create-as --name %s --type %s --target %s %s" \
           % (name, pool_type, target, extra)
+    dargs['ignore_status'] = False
     try:
         command(cmd, **dargs)
         return True
