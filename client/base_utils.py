@@ -722,6 +722,20 @@ def probe_cpus():
     return utils.system_output(cmd).splitlines()
 
 
+def get_cgroup_mountpoint(controller):
+    controller_list = [ 'cpuacct', 'cpu', 'memory', 'cpuset',
+                        'devices', 'freezer', 'blkio', 'netcls' ]
+
+    if controller not in controller_list:
+        raise error.TestError("Doesn't support controller <%s>" % controller)
+
+    f_cgcon = open("/proc/mounts", "rU")
+    cgconf_txt = f_cgcon.read()
+    f_cgcon.close()
+    mntpt = re.findall(r"\s(\S*cgroup/%s)" % controller, cgconf_txt)
+    return mntpt[0]
+
+
 def ping_default_gateway():
     """Ping the default gateway."""
 
