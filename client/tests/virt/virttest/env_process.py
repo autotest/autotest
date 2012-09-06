@@ -63,7 +63,7 @@ def preprocess_vm(test, params, env, name):
             vm = kvm_vm.VM(name, params, test.bindir, env.get("address_cache"))
         if vm_type == 'libvirt':
             vm = libvirt_vm.VM(name, params, test.bindir, env.get("address_cache"))
-        if vm_type == 'virt_v2v':
+        if vm_type == 'v2v':
             if target == 'libvirt' or target is None:
                 vm = libvirt_vm.VM(name, params, test.bindir, env.get("address_cache"))
             if target == 'ovirt':
@@ -85,7 +85,7 @@ def preprocess_vm(test, params, env, name):
         start_vm = True
     elif params.get("start_vm") == "yes":
         # need to deal with libvirt VM differently than qemu
-        if vm_type == 'libvirt' or vm_type == 'virt_v2v':
+        if vm_type == 'libvirt' or vm_type == 'v2v':
             if not vm.is_alive():
                 start_vm = True
         else:
@@ -98,7 +98,7 @@ def preprocess_vm(test, params, env, name):
         if vm_type == "libvirt" and params.get("type") != "unattended_install":
             vm.params = params
             vm.start()
-        elif vm_type == "virt_v2v":
+        elif vm_type == "v2v":
             vm.params = params
             vm.start()
         else:

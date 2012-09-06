@@ -1,6 +1,6 @@
 # Copy this file to build.cfg and edit it.
 
-vm_type = virt_v2v
+vm_type = v2v
 
 variants:
     - build:

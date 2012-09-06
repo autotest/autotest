@@ -29,7 +29,6 @@ str = """
 """
 
 parser = cartesian_config.Parser()
-v2v_test_dir = os.path.join(os.environ['AUTODIR'],'tests/virt_v2v')
 
 # parser.parse_file(os.path.join(v2v_test_dir, "build.cfg"))
 # parser.parse_string(str)
@@ -37,6 +36,6 @@ v2v_test_dir = os.path.join(os.environ['AUTODIR'],'tests/virt_v2v')
 #     logging.error("Virt-v2v build step failed, exiting.")
 #     sys.exit(1)
 
-parser.parse_file(os.path.join(v2v_test_dir, "tests.cfg"))
+parser.parse_file(os.path.join(virt_test_dir, "v2v", "cfg", "tests.cfg"))
 
 utils_misc.run_tests(parser, job)
