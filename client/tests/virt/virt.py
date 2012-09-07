@@ -22,6 +22,8 @@ class virt(test.test):
             self.preserve_srcdir = True
         virtdir = os.path.dirname(sys.modules[__name__].__file__)
         self.virtdir = os.path.join(virtdir, "shared")
+        # Place where virt software will be built/linked
+        self.builddir = os.path.join(virtdir, params.get("vm_type"))
 
 
     def run_once(self, params):

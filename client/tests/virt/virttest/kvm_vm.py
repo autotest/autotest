@@ -931,8 +931,10 @@ class VM(virt_vm.BaseVM):
         # PCI addr 0,1,2 are taken by PCI/ISA/IDE bridge and the sound device.
         self.pci_addr_list = [0, 1, 2]
 
-        qemu_binary = utils_misc.get_path(root_dir, params.get("qemu_binary",
-                                                              "qemu"))
+        qemu_binary = utils_misc.get_path(os.path.join(root_dir,
+                                                       params.get("vm_type")),
+                                          params.get("qemu_binary", "qemu"))
+
         self.qemu_binary = qemu_binary
         hlp = commands.getoutput("%s -help" % qemu_binary)
         support_cpu_model = commands.getoutput("%s -cpu ?list" % qemu_binary)

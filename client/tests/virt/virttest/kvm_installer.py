@@ -55,10 +55,10 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
 
         @return: None
         '''
-        qemu_path = os.path.join(self.test_bindir, self.QEMU_BIN)
-        qemu_img_path = os.path.join(self.test_bindir, self.QEMU_IMG_BIN)
-        qemu_io_path = os.path.join(self.test_bindir, self.QEMU_IO_BIN)
-        qemu_fs_proxy_path = os.path.join(self.test_bindir,
+        qemu_path = os.path.join(self.test_builddir, self.QEMU_BIN)
+        qemu_img_path = os.path.join(self.test_builddir, self.QEMU_IMG_BIN)
+        qemu_io_path = os.path.join(self.test_builddir, self.QEMU_IO_BIN)
+        qemu_fs_proxy_path = os.path.join(self.test_builddir,
                                           self.QEMU_FS_PROXY_BIN)
 
         # clean up previous links, if they exist
@@ -74,7 +74,7 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
 
         @return: None
         '''
-        qemu_unittest_path = os.path.join(self.test_bindir, "unittests")
+        qemu_unittest_path = os.path.join(self.test_builddir, "unittests")
 
         if os.path.lexists(qemu_unittest_path):
             os.unlink(qemu_unittest_path)
@@ -88,7 +88,7 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
         '''
         unittest_src = os.path.join(self.install_prefix,
                                     'share', 'qemu', 'tests')
-        unittest_dst = os.path.join(self.test_bindir, "unittests")
+        unittest_dst = os.path.join(self.test_builddir, "unittests")
 
         if os.path.lexists(unittest_dst):
             logging.debug("Unlinking unittest dir")
@@ -181,10 +181,10 @@ class KVMBaseInstaller(base_installer.BaseInstaller):
         """
         logging.debug("Linking QEMU binaries")
 
-        qemu_dst = os.path.join(self.test_bindir, self.QEMU_BIN)
-        qemu_img_dst = os.path.join(self.test_bindir, self.QEMU_IMG_BIN)
-        qemu_io_dst = os.path.join(self.test_bindir, self.QEMU_IO_BIN)
-        qemu_fs_proxy_dst = os.path.join(self.test_bindir,
+        qemu_dst = os.path.join(self.test_builddir, self.QEMU_BIN)
+        qemu_img_dst = os.path.join(self.test_builddir, self.QEMU_IMG_BIN)
+        qemu_io_dst = os.path.join(self.test_builddir, self.QEMU_IO_BIN)
+        qemu_fs_proxy_dst = os.path.join(self.test_builddir,
                                          self.QEMU_FS_PROXY_BIN)
 
         qemu_bin = self._qemu_bin_exists_at_prefix()

@@ -15,7 +15,7 @@ def run_unittest(test, params, env):
     @param params: Dictionary with the test parameters
     @param env: Dictionary with test environment
     """
-    unittest_dir = os.path.join(test.bindir, 'unittests')
+    unittest_dir = os.path.join(test.builddir, 'unittests')
     if not os.path.isdir(unittest_dir):
         raise error.TestError("No unittest dir %s available (did you run the "
                               "build test first?)" % unittest_dir)

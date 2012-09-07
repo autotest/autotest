@@ -86,10 +86,11 @@ class BaseInstaller(object):
         '''
         self.test_bindir = test.bindir
         self.test_srcdir = test.srcdir
+        self.test_builddir = test.builddir
         self.test_resultsdir = test.resultsdir
 
         #
-        # test_bindir is guaranteed to exist, but test_srcdir is not
+        # test_builddir is guaranteed to exist, but test_srcdir is not
         #
         if not os.path.isdir(test.srcdir):
             os.makedirs(test.srcdir)
@@ -609,7 +610,7 @@ class BaseLocalSourceInstaller(BaseInstaller):
         the resulting binaries will be installed. Usually this is the value
         passed to the configure script, ie: ./configure --prefix=<value>
         '''
-        prefix = os.path.join(self.test_bindir, 'install_root')
+        prefix = os.path.join(self.test_builddir, 'install_root')
         self.install_prefix = os.path.abspath(prefix)
 
 

@@ -19,8 +19,9 @@ class Test(object):
         self.bindir = ROOT_PATH
         self.testdir = os.path.join(self.bindir, 'tests')
         self.virtdir = os.path.join(self.bindir, 'shared')
+        self.builddir = os.path.join(self.bindir, params.get("vm_type"))
 
-        self.srcdir = os.path.join(self.bindir, params.get('vm_type'), 'src')
+        self.srcdir = os.path.join(self.builddir, 'src')
         if not os.path.isdir(self.srcdir):
             os.makedirs(self.srcdir)
 
