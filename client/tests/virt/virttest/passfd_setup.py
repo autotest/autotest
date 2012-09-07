@@ -20,13 +20,14 @@ def passfd_setup(output_dir=OUTPUT_DIR):
     @return: None
     '''
     if output_dir is not None:
-        output_file = os.path.join(output_dir, SHARED_OBJECT)
+        output_file = os.path.join(output_dir, os.path.basename(SHARED_OBJECT))
     else:
         output_file = SHARED_OBJECT
 
     c = distutils.ccompiler.new_compiler()
-    objects = c.compile(SOURCES, include_dirs=[PYTHON_HEADERS], extra_postargs=['-fPIC'])
-    c.link_shared_object(objects, SHARED_OBJECT, libraries=[PYTHON_LIB])
+    objects = c.compile(SOURCES, output_dir=OUTPUT_DIR,
+                        include_dirs=[PYTHON_HEADERS], extra_postargs=['-fPIC'])
+    c.link_shared_object(objects, output_file, libraries=[PYTHON_LIB])
 
 
 def import_passfd():
