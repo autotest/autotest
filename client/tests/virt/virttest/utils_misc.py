@@ -4066,8 +4066,8 @@ def virt_test_assistant(test_name, test_dir, base_dir, default_userspace_paths,
         logging.info("Please take a look at the online documentation: %s",
                      online_docs_url)
 
-    client_dir = os.path.abspath(os.path.join(test_dir, "..", ".."))
-    autotest_bin = os.path.join(client_dir, 'bin', 'autotest')
+    client_dir = os.path.abspath(os.path.join(test_dir, "..", "..", ".."))
+    autotest_bin = os.path.join(client_dir, 'autotest-local')
     control_file = os.path.join(test_dir, 'control')
 
     logging.info("")
