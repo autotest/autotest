@@ -929,6 +929,11 @@ class VM(virt_vm.BaseVM):
         # Clone this VM using the new params
         vm = self.clone(name, params, root_dir, copy_state=True)
 
+        # Update the virtnet with params
+        params_virtnet = utils_misc.VirtNet(params, name, self.instance)
+        if vm.virtnet != params_virtnet:
+            vm.virtnet = params_virtnet
+
         # init value by default.
         # PCI addr 0,1,2 are taken by PCI/ISA/IDE bridge and the sound device.
         self.pci_addr_list = [0, 1, 2]
@@ -1450,6 +1455,10 @@ class VM(virt_vm.BaseVM):
         name = self.name
         params = self.params
         root_dir = self.root_dir
+        # Update the virtnet with params
+        params_virtnet = utils_misc.VirtNet(params, name, self.instance)
+        if self.virtnet != params_virtnet:
+            self.virtnet = params_virtnet
 
         self.init_pci_addr = int(params.get("init_pci_addr", 4))
 
