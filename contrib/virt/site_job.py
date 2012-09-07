@@ -4,7 +4,7 @@ import inspect, new, logging, string, tempfile
 from autotest.cli import topic_common, action_common
 from autotest.cli import job
 from autotest.client.shared import logging_config
-from autotest.client.virt import utils_misc
+from virttest import utils_misc
 
 logging_config.LoggingConfig().configure_logging(verbose=True)
 

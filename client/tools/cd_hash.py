@@ -12,7 +12,7 @@ except ImportError:
     import common
 from autotest.client.shared import logging_manager
 from autotest.client import utils
-from autotest.client.virt import utils_misc
+from virttest import utils_misc
 
 
 if __name__ == "__main__":

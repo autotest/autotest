@@ -2,7 +2,7 @@ import os, logging
 from autotest.client import test
 from autotest.client import utils
 from autotest.client.shared import git, error, software_manager
-from autotest.client.virt import utils_misc
+from virttest import utils_misc
 
 
 class kernelinstall(test.test):

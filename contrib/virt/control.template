@@ -1,15 +1,16 @@
 import logging, os, sys, fcntl
-kvm_test_dir = "/usr/local/autotest/client/tests/kvm"
-from autotest.client.shared import cartesian_config
+virt_test_dir = "/usr/local/autotest/client/tests/virt"
+sys.path.insert(0, virt_test_dir)
+from virttest import cartesian_config
+
 
 def get_control(params, custom_cfg, kernel_install=True):
     control = '''
 import sys, os, logging
 os.environ['LANG'] = 'en_US.UTF-8'
-kvm_test_dir = os.path.join(os.environ['AUTODIR'],'tests', 'kvm')
-sys.path.append(kvm_test_dir)
-from autotest.client.shared import cartesian_config
-from autotest.client.virt import utils_misc
+virt_test_dir = os.path.join(os.environ['AUTODIR'],'tests/virt')
+sys.path.insert(0, virt_test_dir)
+from virttest import utils_misc, cartesian_config
 
 kernel_install_params = %s
 custom_cfg = %s
@@ -25,7 +26,7 @@ def step_init():
 
 def step_test():
     parser = cartesian_config.Parser()
-    parser.parse_file(os.path.join(kvm_test_dir, "redhat.cfg"))
+    parser.parse_file(os.path.join(virt_test_dir, "kvm", "redhat.cfg"))
     for line in custom_cfg:
         parser.parse_string(line)
     utils_misc.run_tests(parser, job)
@@ -34,7 +35,7 @@ def step_test():
 
 def run(machine):
     parser = cartesian_config.Parser()
-    parser.parse_file(os.path.join(kvm_test_dir, "redhat.cfg"))
+    parser.parse_file(os.path.join(virt_test_dir, "kvm", "redhat.cfg"))
     custom_cfg = $custom_job_cfg
     for line in custom_cfg:
         parser.parse_string(line)
