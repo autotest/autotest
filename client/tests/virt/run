@@ -8,38 +8,70 @@ import os, sys
 
 
 class StreamProxy(object):
+    """
+    Mechanism to supress stdout output, while keeping the original stdout.
+    """
+
     def __init__(self, filename='/dev/null', stream=sys.stdout):
+        """
+        Keep 2 streams to write to, and eventually switch.
+        """
         self.terminal = stream
         self.log = open(filename, "a")
         self.stream = self.log
 
     def write(self, message):
+        """
+        Write to the current stream.
+        """
         self.stream.write(message)
 
     def flush(self):
+        """
+        Flush the current stream.
+        """
         self.stream.flush()
 
     def switch(self):
+        """
+        Switch between the 2 currently available streams.
+        """
         if self.stream == self.log:
             self.stream = self.terminal
         else:
             self.stream = self.log
 
 
-def silence_stderr():
-    out_fd = os.open('/dev/null', os.O_WRONLY | os.O_CREAT)
-    try:
-        os.dup2(out_fd, 2)
-    finally:
-        os.close(out_fd)
-    sys.stderr = os.fdopen(2, 'w')
+if __name__ == '__main__':
+    import optparse
+    parser = optparse.OptionParser()
+    parser.add_option("-v", "--verbose",
+                      action="store_true", dest="verbose",
+                      help="Exhibit debug messages")
+    parser.add_option("-t", "--type",
+                      action="store", dest="type",
+                      help="Choose test type (kvm, libvirt, v2v)")
+    parser.add_option("-c", "--config",
+                      action="store", dest="config",
+                      help="Explicitly choose a cartesian config")
+    options, args = parser.parse_args()
 
+    if (not options.type) and (not options.config):
+        parser.print_help()
+        sys.exit(1)
 
-def main(verbose=False):
-    if not verbose:
-        silence_stderr()
+    if not options.verbose:
+        # Effectively points the stderr FD (2) to /dev/null, silencing
+        # stderr.
+        out_fd = os.open('/dev/null', os.O_WRONLY | os.O_CREAT)
+        try:
+            os.dup2(out_fd, 2)
+        finally:
+            os.close(out_fd)
+        sys.stderr = os.fdopen(2, 'w')
 
-    # Replace stdout by our StreamProxy object
+    # Replace stdout by our StreamProxy object, so we can supress all output
+    # but the one we specifically want.
     sys.stdout = StreamProxy(stream=sys.stdout)
 
     try:
@@ -74,24 +106,3 @@ def main(verbose=False):
 
     parser.parse_file(cfg)
     standalone_test.run_tests(parser)
-
-
-if __name__ == '__main__':
-    import optparse
-    parser = optparse.OptionParser()
-    parser.add_option("-v", "--verbose",
-                      action="store_true", dest="verbose",
-                      help="Exhibit debug messages")
-    parser.add_option("-t", "--type",
-                      action="store", dest="type",
-                      help="Choose test type (kvm, libvirt, v2v)")
-    parser.add_option("-c", "--config",
-                      action="store", dest="config",
-                      help="Explicitly choose a cartesian config")
-    options, args = parser.parse_args()
-
-    if (not options.type) and (not options.config):
-        parser.print_help()
-        sys.exit(1)
-
-    main(options.verbose)
