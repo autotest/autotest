@@ -57,6 +57,7 @@ if __name__ == '__main__':
     options, args = parser.parse_args()
 
     if (not options.type) and (not options.config):
+        print("No type (-t) or config (-c) options specified, aborting...")
         parser.print_help()
         sys.exit(1)
 
