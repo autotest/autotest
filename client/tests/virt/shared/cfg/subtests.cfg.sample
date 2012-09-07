@@ -935,6 +935,9 @@ variants:
                 mig_speed_accuracy = 0.3
                 pre_migrate = "set_speed_and_install"
                 type = migration_with_speed_measurement
+                exec:
+                    # Exec migration is pretty slow compared to other protos
+                    mig_speed = 50M
             - with_set_speed:
                 mig_speed = 1G
                 pre_migrate = "mig_set_speed"
@@ -2636,9 +2639,9 @@ variants:
         display_vm2 = vnc
         os_type_vm2 = linux
         shell_prompt_vm2 = ^\[.*\][\#\$]\s*$
-        shell_client_vm2 = ssh 
+        shell_client_vm2 = ssh
         username_vm2 = root
-        shell_port_vm2 = 22 
+        shell_port_vm2 = 22
         status_test_command_vm2 = echo $?
 
         variants:
