@@ -12,9 +12,10 @@ class Test(object):
     """
     Mininal test class used to run a virt test.
     """
+
     env_version = 1
     def __init__(self, params):
-        self.params = params
+        self.params = utils_misc.Params(params)
         self.bindir = ROOT_PATH
         self.testdir = os.path.join(self.bindir, 'tests')
         self.virtdir = os.path.join(self.bindir, 'shared')
@@ -59,8 +60,7 @@ class Test(object):
 
 
     def run_once(self):
-        # Convert params to a Params object
-        params = utils_misc.Params(self.params)
+        params = self.params
 
         # If a dependency test prior to this test has failed, let's fail
         # it right away as TestNA.
@@ -177,10 +177,20 @@ class Test(object):
         return test_passed
 
 
+def print_stdout(sr, end=True):
+    sys.stdout.switch()
+    if end:
+        print(sr)
+    else:
+        print(sr),
+    sys.stdout.switch()
+
+
 class Bcolors(object):
     """
     Very simple class with color support.
     """
+
     def __init__(self):
         self.HEADER = '\033[94m'
         self.PASS = '\033[92m'
@@ -199,32 +209,35 @@ class Bcolors(object):
         self.FAIL = ''
         self.ENDC = ''
 
-
+# Instantiate bcolors to be used in the functions below.
 bcolors = Bcolors()
 
 
-def print_stdout(sr, end=True):
-    sys.stdout.switch()
-    if end:
-        print(sr)
-    else:
-        print(sr),
-    sys.stdout.switch()
-
-
 def print_header(sr):
+    """
+    Print a string to stdout with HEADER (blue) color.
+    """
     print_stdout(bcolors.HEADER + sr + bcolors.ENDC)
 
 
 def print_skip():
+    """
+    Print SKIP to stdout with SKIP (yellow) color.
+    """
     print_stdout(bcolors.SKIP + "SKIP" + bcolors.ENDC)
 
 
 def print_pass(t_elapsed):
+    """
+    Print PASS to stdout with PASS (green) color.
+    """
     print_stdout(bcolors.PASS + "PASS" + bcolors.ENDC + " (%.2f s)" % t_elapsed)
 
 
 def print_fail(t_elapsed):
+    """
+    Print FAIL to stdout with FAIL (red) color.
+    """
     print_stdout(bcolors.FAIL + "FAIL" + bcolors.ENDC + " (%.2f s)" % t_elapsed)
 
 
