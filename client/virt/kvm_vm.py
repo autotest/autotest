@@ -2624,11 +2624,22 @@ class VM(virt_vm.BaseVM):
         """
         if (self.__make_qemu_command() !=
                 self.__make_qemu_command(name, params, basedir)):
-            logging.debug("VM params in env don't match requested, restarting.")
-            return True
+            restart = True
+        else:
+            for i, nic in enumerate(params.objects('nics')):
+                if (self.virtnet[i]['netdst'] !=
+                    params.object_params('nic').get('netdst')):
+                    restart = True
+            else:
+                restart = False
+
+        if restart:
+            logging.debug("VM params in env don't match requested, "
+                          "restarting.")
         else:
             logging.debug("VM params in env do match requested, continuing.")
-            return False
+
+        return restart
 
     def pause(self):
         """
