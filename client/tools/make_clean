@@ -31,7 +31,7 @@ def purge_src(top_dir):
 if os.path.isdir('tmp'):
     os.system('cd tmp && ls -A | xargs rm -rf')
 
-for dir in ['site_tests', 'site_profilers', 'tests', 'profilers', 'deps']:
+for dir in ['site_tests', 'site_profilers', 'tests', 'profilers', 'deps', 'tests/virt']:
     purge_src(dir)
 
 for filename in ['/tmp/address_pool', '/tmp/address_pool.lock',
