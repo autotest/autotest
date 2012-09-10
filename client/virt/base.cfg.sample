@@ -237,6 +237,8 @@ boot_menu = off
 #spice_secure_channels = main, inputs
 
 # Less common options
+# spice seamless migration (on, off), off is semi-seamless migration
+# spice_seamless_migration = on
 # image compression opts (auto_glz, auto_lz, quic, glz, lz, off)
 #spice_image_compression = auto_glz
 # jpeg wan compression opts (auto, never, always)

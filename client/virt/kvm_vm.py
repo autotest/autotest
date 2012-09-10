@@ -753,6 +753,7 @@ class VM(virt_vm.BaseVM):
                         spice_opts.append("tls-channel=%s" % (item.strip()))
 
             # Less common options
+            set_value("seamless-migration=%s", "spice_seamless_migration")
             set_value("image-compression=%s", "spice_image_compression")
             set_value("jpeg-wan-compression=%s", "spice_jpeg_wan_compression")
             set_value("zlib-glz-wan-compression=%s",
@@ -1299,6 +1300,7 @@ class VM(virt_vm.BaseVM):
                 "spice_zlib_glz_wan_compression", "spice_streaming_video",
                 "spice_agent_mouse", "spice_playback_compression",
                 "spice_ipv4", "spice_ipv6", "spice_x509_cert_file",
+                "spice_seamless_migration"
             )
 
             for skey in spice_keys:
@@ -2303,11 +2305,19 @@ class VM(virt_vm.BaseVM):
         error.base_context("migrating '%s'" % self.name)
 
         def mig_finished():
+            ret = True
+            if (self.params["display"] == "spice" and
+                self.get_spice_var("spice_seamless_migration") == "on"):
+                s = self.monitor.info("spice")
+                if isinstance(s, str):
+                    ret = "migrated: true" in s
+                else:
+                    ret = s.get("migrated") == "true"
             o = self.monitor.info("migrate")
             if isinstance(o, str):
-                return not "status: active" in o
+                return ret and (not "status: active" in o)
             else:
-                return o.get("status") != "active"
+                return ret and (o.get("status") != "active")
 
         def mig_succeeded():
             o = self.monitor.info("migrate")
@@ -2367,6 +2377,13 @@ class VM(virt_vm.BaseVM):
             if self.params["display"] == "spice":
                 host_ip = utils_misc.get_host_ip_address(self.params)
                 dest_port = clone.spice_options['spice_port']
+                if self.params["spice_ssl"] == "yes":
+                    dest_tls_port = clone.spice_options["spice_tls_port"]
+                    cert_subj = clone.spice_options["spice_x509_server_subj"]
+                    cert_subj = "\"%s\"" % cert_subj.replace('/',',')[1:]
+                else:
+                    dest_tls_port = ""
+                    cert_subj = ""
                 logging.debug("Informing migration to spice client")
                 commands = ["__com.redhat_spice_migrate_info",
                             "spice_migrate_info",
@@ -2378,13 +2395,15 @@ class VM(virt_vm.BaseVM):
                         if "\n%s" % command in out:
                             # spice_migrate_info requires host_ip, dest_port
                             if command in commands[:2]:
-                                command = "%s %s %s" % (command, host_ip,
-                                                        dest_port)
+                                command = "%s %s %s %s %s" % (command, host_ip,
+                                                        dest_port, dest_tls_port,
+                                                        cert_subj)
                             # client_migrate_info also requires protocol
                             else:
-                                command = "%s %s %s %s" % (command,
+                                command = "%s %s %s %s %s %s" % (command,
                                                          self.params['display'],
-                                                         host_ip, dest_port)
+                                                         host_ip, dest_port,
+                                                         dest_tls_port, cert_subj)
                             break
                     self.monitor.cmd(command)
 
@@ -2397,14 +2416,18 @@ class VM(virt_vm.BaseVM):
                                 command_dict = {"execute": command,
                                                 "arguments":
                                                  {"hostname": host_ip,
-                                                  "port": dest_port}}
+                                                  "port": dest_port,
+                                                  "tls-port": dest_tls_port,
+                                                  "cert-subject": cert_subj}}
                             # client_migrate_info also requires protocol
                             else:
                                 command_dict = {"execute": command,
                                                 "arguments":
                                             {"protocol": self.params['display'],
                                              "hostname": host_ip,
-                                             "port": dest_port}}
+                                             "port": dest_port,
+                                             "tls-port": dest_tls_port,
+                                             "cert-subject": cert_subj}}
                             break
                     self.monitor.cmd_obj(command_dict)
 
