@@ -10,12 +10,11 @@ def setup(topdir):
 
     os.chdir(srcdir)
 
-    utils.configure('--with-elfutils=elfutils ' \
-                    '--prefix=%s/systemtap' % topdir)
+    utils.configure('--with-elfutils=elfutils --prefix=%s/systemtap' % topdir)
     utils.make('-j %d' % utils.count_cpus())
     utils.make('install')
 
     os.chdir(topdir)
 
 pwd = os.getcwd()
-utils.update_version(pwd+'/src', True, version, setup, pwd)
+utils.update_version(os.path.join(pwd, 'src'), True, version, setup, pwd)
