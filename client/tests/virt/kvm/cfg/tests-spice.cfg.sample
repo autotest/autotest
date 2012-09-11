@@ -23,6 +23,14 @@ variants:
                 qxl_dev_nr = 4
 
         variants:
+            - @default_dcp:
+                disable_copy_paste = no
+            - dcp_off:
+                disable_copy_paste = no
+            - dcp_on:
+                disable_copy_paste = yes
+
+        variants:
             - @no_password:
             - password:
                 spice_password = 12456
@@ -143,7 +151,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Linux.RHEL.6.3.x86_64
-        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
         only unattended_install.cdrom.extra_cdrom_ks
 
     # Runs qemu-kvm Windows guest install
@@ -169,7 +177,7 @@ variants:
         # Operating system choice
         only Win7.64.sp1
         # Subtest choice. You can modify that line to add more subtests
-        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
         only unattended_install.cdrom
 
 
@@ -186,7 +194,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Linux.RHEL.6.3.x86_64
-        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
         only unattended_install.cdrom.extra_cdrom_ks
 
     - @remote_viewer_rhel63ssl:
@@ -202,7 +210,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Linux.RHEL.6.3.x86_64
-        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.ssl.key_password.password.1monitor
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.ssl.key_password.password.dcp_off.1monitor
         only rv_connect.RHEL.6.3.x86_64, shutdown
 
     - @remote_viewer_rhel63_quick:
@@ -218,7 +226,7 @@ variants:
         only no_pci_assignable
         only smallpages
         only Linux.RHEL.6.3.x86_64
-        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
         only rv_connect.RHEL.6.3.x86_64, shutdown
 
     - @remote_viewer_win_guest_quick:
@@ -234,11 +242,11 @@ variants:
         only no_pci_assignable
         only smallpages
         only Win7.64.sp1
-        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
         #rv_connect_win is specifically a test meant for a windows guest and a rhel client, rv_connect cannot be used.
-        only rv_connect_win.RHEL.6.3.beta.x86_64, shutdown
+        only rv_connect_win.RHEL.6.3.x86_64, shutdown
 
-    - @spice_negative_rhel63_all:
+    - @spice_negative_rhel63:
         qemu_binary = /usr/libexec/qemu-kvm
         qemu_img_binary = /usr/bin/qemu-img
         qemu_io_binary = /usr/bin/qemu-io
@@ -251,7 +259,6 @@ variants:
         only no_pci_assignable
         only smallpages
         only Linux.RHEL.6.3.x86_64
-        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.bad_port.no_password.1monitor, spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.bad_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.default_sv.default_zlib_wc.bad_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.default_sv.bad_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.default_pc.bad_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor, spice.default_ipv.bad_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
         only negative_create
 
     - @rv_disconnect_rhel63:
@@ -267,16 +274,65 @@ variants:
         only no_pci_assignable
         only smallpages
         only Linux.RHEL.6.3.x86_64
-        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.1monitor
-        only start, rv_connect.RHEL.6.3.x86_64, rv_disconnect.RHEL.6.3.x86_64, shutdown
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
+        only rv_connect.RHEL.6.3.x86_64, rv_disconnect.RHEL.6.3.x86_64, shutdown
+
+    - @rv_copyandpaste_rhel63:
+        qemu_binary = /usr/libexec/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        rv_binary = /usr/bin/remote-viewer
+        only qcow2
+        only e1000
+        only ide
+        only up
+        only no_9p_export
+        only no_pci_assignable
+        only smallpages
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
+        only Linux.RHEL.6.3.x86_64
+        only rv_connect.RHEL.6.3.x86_64, rv_copyandpaste.RHEL.6.3.x86_64, shutdown
+
+    - @rv_copyandpaste_dcp_rhel63:
+        qemu_binary = /usr/libexec/qemu-kvm
+        qemu_img_binary = /usr/bin/qemu-img
+        qemu_io_binary = /usr/bin/qemu-io
+        rv_binary = /usr/bin/remote-viewer
+        only qcow2
+        only e1000
+        only ide
+        only up
+        only no_9p_export
+        only no_pci_assignable
+        only smallpages
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_on.1monitor
+        only Linux.RHEL.6.3.x86_64
+        only rv_connect.RHEL.6.3.x86_64, rv_copyandpaste.RHEL.6.3.x86_64, shutdown
 
 variants:
+    #The following are all the individual tests for spice
     - Create_VMs:
         only qemu_kvm_rhel63_install_guest, qemu_kvm_rhel63_install_client
     - Install_Win_Guest:
         only qemu_kvm_windows_install_guest
-    - Negative_QEMU_Spice_Creation_Tests:
-        only spice_negative_rhel63_all
+    - Negative_QEMU_Spice_Launch_badport:
+    only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.bad_port.no_password.dcp_off.1monitor
+        only spice_negative_rhel63
+    - Negative_QEMU_Spice_Launch_badic:
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.default_jpeg_wc.bad_ic.no_ssl.no_password.dcp_off.1monitor
+        only spice_negative_rhel63
+    - Negative_QEMU_Spice_Launch_badjpegwc:
+        only spice.default_ipv.default_pc.default_sv.default_zlib_wc.bad_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
+        only spice_negative_rhel63
+    - Negative_QEMU_Spice_Launch_badzlib:
+        only spice.default_ipv.default_pc.default_sv.bad_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
+        only spice_negative_rhel63
+    - Negative_QEMU_Spice_Launch_badsv:
+        only spice.default_ipv.default_pc.bad_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
+        only spice_negative_rhel63
+    - Negative_QEMU_Spice_Launch_badpc:
+        only spice.default_ipv.bad_pc.default_sv.default_zlib_wc.default_jpeg_wc.default_ic.no_ssl.no_password.dcp_off.1monitor
+        only spice_negative_rhel63
     - Remote_Viewer_Test:
         only remote_viewer_rhel63_quick
     - Remote_Viewer_WinGuest_Test:
@@ -285,10 +341,54 @@ variants:
         only rv_disconnect_rhel63
     - Remote_Viewer_SSL_Test:
         only remote_viewer_rhel63ssl
+    - Copy_Client_to_Guest_POS:
+        config_test = "positive_client_to_guest"
+        only rv_copyandpaste_rhel63
+    - Copy_Guest_to_Client_POS:
+        config_test = "positive_guest_to_client"
+        only rv_copyandpaste_rhel63
+    - Copy_Client_to_Guest_NEG:
+        config_test = "negative_client_to_guest"
+        only rv_copyandpaste_rhel63
+    - Copy_Guest_to_Client_NEG:
+        config_test = "negative_guest_to_client"
+        only rv_copyandpaste_rhel63
+    - Copy_Guest_to_Client_DCP_NEG:
+        config_test = "negative_guest_to_client"
+        only rv_copyandpaste_dcp_rhel63
+    - Copy_Client_to_Guest_DCP_NEG:
+        config_test = "negative_client_to_guest"
+        only rv_copyandpaste_dcp_rhel63
+    - CopyIMG_Client_to_Guest_POS:
+        config_test = "positive_client_to_guest_image"
+        only rv_copyandpaste_rhel63
+    - CopyIMG_Guest_to_Client_POS:
+        config_test = "positive_guest_to_client_image"
+        only rv_copyandpaste_rhel63
+    - CopyIMG_Client_to_Guest_NEG:
+        config_test = "negative_client_to_guest_image"
+        only rv_copyandpaste_rhel63
+    - CopyIMG_Guest_to_Client_NEG:
+        config_test = "negative_guest_to_client_image"
+        only rv_copyandpaste_rhel63
+    - CopyIMG_Client_to_Guest_DCP_NEG:
+        config_test = "negative_client_to_guest_image"
+        only rv_copyandpaste_dcp_rhel63
+    - CopyIMG_Guest_to_Client_DCP_NEG:
+        config_test = "negative_guest_to_client_image"
+        only rv_copyandpaste_dcp_rhel63
+    - Copy_Client_to_Guest_largetext_POS:
+        config_test = "positive_client_to_guest"
+        #Currently only testing 256KB, this is due to a bug on pygtk
+        #When the bug gets resolved the amount should be increased
+        text_to_test=262144
+        only rv_copyandpaste_rhel63
+    - Copy_Guest_to_Client_largetext_POS:
+        config_test = "positive_client_to_guest"
+        #Currently only testing 256KB, this is due to a bug on pygtk
+        #When the bug gets resolved the amount should be increased
+        text_to_test=262144
+        only rv_copyandpaste_rhel63
 
-only Create_VMs, Install_Win_Guest, Negative_QEMU_Spice_Creation_Tests, Remote_Viewer_Test, Remote_Viewer_SSL_Test, Remote_Viewer_WinGuest_Test, Remote_Viewer_Disconnect_Test
-
-# Choose your test list from the testsets defined
-# the following is for remote viewer tests with the setup of a rhel client, and a windows guest
-#only qemu_kvm_windows_install_guest, qemu_kvm_rhel63_install_client, remote_viewer_win_guest_quick 
-#only qemu_kvm_rhel63_install_guest, qemu_kvm_rhel63_install_client, remote_viewer_rhel63_quick, rv_disconnect_rhel63, spice_negative_rhel63_all
+#Running all Spice Tests
+only Create_VMs, Install_Win_Guest, Negative_QEMU_Spice_Launch_badport, Negative_QEMU_Spice_Launch_badic, Negative_QEMU_Spice_Launch_badjpegwc, Negative_QEMU_Spice_Launch_badzlib, Negative_QEMU_Spice_Launch_badsv, Negative_QEMU_Spice_Launch_badpc, Remote_Viewer_Test, Remote_Viewer_SSL_Test, Remote_Viewer_WinGuest_Test, Remote_Viewer_Disconnect_Test, only Copy_Client_to_Guest_largetext_POS, Copy_Guest_to_Client_largetext_POS, Copy_Client_to_Guest_POS, Copy_Guest_to_Client_POS, Copy_Guest_to_Client_NEG, Copy_Client_to_Guest_NEG, CopyIMG_Client_to_Guest_POS, CopyIMG_Client_to_Guest_NEG, CopyIMG_Guest_to_Client_POS, CopyIMG_Guest_to_Client_NEG, CopyIMG_Client_to_Guest_DCP_NEG, CopyIMG_Guest_to_Client_DCP_NEG, Copy_Guest_to_Client_DCP_NEG, Copy_Client_to_Guest_DCP_NEG
