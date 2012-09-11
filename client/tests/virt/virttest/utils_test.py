@@ -946,6 +946,27 @@ def get_memory_info(lvms):
     return meminfo
 
 
+def domstat_cgroup_cpuacct_percpu(domain, qemu_path="/libvirt/qemu/"):
+    """
+    Get a list of domain-specific per CPU stats from cgroup cpuacct controller.
+
+    @param domain: Domain name
+    @param qemu_path: Default: "/libvirt/qemu/".
+                      Please refer OS doc to pass the correct qemu path.
+                      $CGRP_MNTPT/cpuacct/<$qemu_path>/<domain>..
+    """
+    percpu_act_file = (utils.get_cgroup_mountpoint("cpuacct") + qemu_path +
+                       domain + "/cpuacct.usage_percpu")
+    try:
+        f_percpu_act = open(percpu_act_file, "rU")
+        cpuacct_usage_percpu = f_percpu_act.readline().split()
+        f_percpu_act.close()
+        return cpuacct_usage_percpu
+    except IOError:
+        raise error.TestError("Failed to get per cpu stat from %s" %
+                              percpu_act_file)
+
+
 def run_file_transfer(test, params, env):
     """
     Transfer a file back and forth between host and guest.
