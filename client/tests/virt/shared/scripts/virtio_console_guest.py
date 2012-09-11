@@ -53,6 +53,15 @@ class VirtioGuest:
         """
         raise NotImplementedError
 
+    def _open(self, in_files):
+        """
+        Open devices and return array of descriptors
+
+        @param in_files: Files array
+        @return: Array of descriptor
+        """
+        raise NotImplementedError
+
     def check_zero_sym(self):
         """
         Check if port the first port symlinks were created.
@@ -127,7 +136,13 @@ class VirtioGuest:
         @param cachesize: Cachesize.
         @param mode: Mode of switch.
         """
-        raise NotImplementedError
+        in_f = self._open(in_files)
+        out_f = self._open(out_files)
+
+        s = self.Switch(in_f, out_f, self.exit_thread, cachesize, mode)
+        s.start()
+        self.threads.append(s)
+        print "PASS: Start switch"
 
     def exit_threads(self):
         """
@@ -796,10 +811,10 @@ class VirtioGuestNt(VirtioGuest):
     Test tools of virtio_ports.
     """
     LOOP_NONE = 0
-    LOOP_POLL = 2   # Poll is not defined on windows
-    LOOP_SELECT = 2
+    LOOP_POLL = 0   # TODO: Use SELECT instead of NONE (poll not supp. by win)
+    LOOP_SELECT = 0     # TODO: Support for Select
 
-    def _get_port_status(self, in_files=None):
+    def _get_port_status(self, in_files=[]):
         """
         Get info about ports.
 
@@ -923,6 +938,68 @@ class VirtioGuestNt(VirtioGuest):
             print "%s\nFAIL: Failed open file %s" % (str(exc_detail), name)
             return exc_detail
         print "PASS: Open all filles correctly."
+
+    def exit_threads(self):
+        """
+        Function end all running data switch.
+        """
+        #from pysrc import pydevd
+        #pydevd.settrace("192.168.122.1")
+        self.exit_thread.set()
+        for th in self.threads:
+            print "join"
+            th.join()
+        self.exit_thread.clear()
+
+        del self.threads[:]
+        for desc in self.files.itervalues():
+            win32file.CloseHandle(desc)
+        self.files.clear()
+        print "PASS: All threads finished"
+
+    class Switch(Thread):
+        """
+        Thread that sends data between ports.
+        """
+        def __init__(self, in_files, out_files, event,
+                      cachesize=1024, method=0):
+            """
+            @param in_files: Array of input files.
+            @param out_files: Array of output files.
+            @param method: Method of read/write access.
+            @param cachesize: Block to receive and send.
+            """
+            Thread.__init__(self, name="Switch")
+
+            self.in_files = in_files
+            self.out_files = out_files
+            self.exit_thread = event
+            self.method = method
+            self.cachesize = cachesize
+
+        def _none_mode(self):
+            """
+            Read and write to device in blocking mode
+            """
+            data = ""
+            #from pysrc import pydevd
+            #pydevd.settrace("192.168.122.1")
+            while not self.exit_thread.isSet():
+                data = ""
+                for desc in self.in_files:
+                    ret, _data = win32file.ReadFile(desc, self.cachesize)
+                    if ret == 0:
+                        data += _data
+                if data != "":
+                    for desc in self.out_files:
+                        ret, _data = win32file.WriteFile(desc, data)
+                        if ret:
+                            raise IOError("Error occured while sending data, "
+                                          "err=%s, sendlen=%s" % ret, _data)
+
+        def run(self):
+            self._none_mode()
+
 
 def is_alive():
     """
