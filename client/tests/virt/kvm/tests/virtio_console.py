@@ -537,6 +537,7 @@ def run_virtio_console(test, params, env):
             no_serialports = max(no_serialports, param.count('serialport'))
             no_consoles = max(no_consoles, param.count('console'))
         vm, guest_worker = get_vm_with_worker(no_consoles, no_serialports)
+        error_occured = False
 
         (consoles, serialports) = get_virtio_ports(vm)
 
@@ -619,12 +620,19 @@ def run_virtio_console(test, params, env):
             logging.debug('Joining th1')
             threads[0].join()
             tmp = "%d data sent; " % threads[0].idx
+            err = ""
             for thread in threads[1:]:
-                logging.debug('Joining th%s', thread)
+                logging.debug('Joining %s', thread)
                 thread.join()
                 tmp += "%d, " % thread.idx
+                if thread.ret_code:
+                    err += "%s, " % thread
             logging.info("test_loopback: %s data received and verified",
                          tmp[:-2])
+            if err:
+                error_occured = True
+                logging.error("test_loopback: error occured in threads: %s.",
+                              err[:-2])
 
             # Read-out all remaining data
             for recv_pt in recv_pts:
@@ -635,7 +643,13 @@ def run_virtio_console(test, params, env):
 
             del exit_event
             del threads[:]
+
         cleanup(vm, guest_worker)
+        if error_occured:
+            msg = ("test_loopback: Errors occured while executing test, check "
+                   "log for details.")
+            logging.error(msg)
+            raise error.TestFail(msg)
 
     def _process_stats(stats, scale=1.0):
         """

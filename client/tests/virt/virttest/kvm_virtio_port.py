@@ -403,6 +403,8 @@ class ThSend(Thread):
         self.exitevent = exit_event
         self.idx = 0
         self.quiet = quiet
+        self.ret_code = True    # sets to 0 when finish properly
+
 
     def run(self):
         logging.debug("ThSend %s: run", self.getName())
@@ -415,6 +417,7 @@ class ThSend(Thread):
             if not self.quiet:
                 raise ints
             logging.debug(ints)
+        self.ret_code = 0
 
 
 class ThSendCheck(Thread):
@@ -442,6 +445,7 @@ class ThSendCheck(Thread):
         self.exitevent = exit_event
         self.migrate_event = migrate_event
         self.idx = 0
+        self.ret_code = True    # sets to 0 when finish properly
 
     def run(self):
         logging.debug("ThSendCheck %s: run", self.getName())
@@ -503,6 +507,7 @@ class ThSendCheck(Thread):
         if too_much_data:
             logging.error("ThSendCheck: working around the 'too_much_data'"
                           "bug")
+        self.ret_code = 0
 
 
 class ThRecv(Thread):
@@ -524,6 +529,7 @@ class ThRecv(Thread):
         self.blocklen = blocklen
         self.idx = 0
         self.quiet = quiet
+        self.ret_code = True    # sets to 0 when finish properly
 
     def run(self):
         logging.debug("ThRecv %s: run", self.getName())
@@ -540,6 +546,7 @@ class ThRecv(Thread):
             if not self.quiet:
                 raise ints
             logging.debug(ints)
+        self.ret_code = 0
 
 
 class ThRecvCheck(Thread):
@@ -564,6 +571,7 @@ class ThRecvCheck(Thread):
         self.blocklen = blocklen
         self.idx = 0
         self.sendlen = sendlen + 1  # >=
+        self.ret_code = True    # sets to 0 when finish properly
 
     def run(self):
         logging.debug("ThRecvCheck %s: run", self.getName())
@@ -655,3 +663,4 @@ class ThRecvCheck(Thread):
                           (self.sendlen - minsendidx))
         logging.debug("ThRecvCheck %s: exit(%d)", self.getName(),
                       self.idx)
+        self.ret_code = 0
