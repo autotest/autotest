@@ -537,7 +537,7 @@ def run_virtio_console(test, params, env):
             no_serialports = max(no_serialports, param.count('serialport'))
             no_consoles = max(no_consoles, param.count('console'))
         vm, guest_worker = get_vm_with_worker(no_consoles, no_serialports)
-        error_occured = False
+        no_errors = 0
 
         (consoles, serialports) = get_virtio_ports(vm)
 
@@ -630,7 +630,7 @@ def run_virtio_console(test, params, env):
             logging.info("test_loopback: %s data received and verified",
                          tmp[:-2])
             if err:
-                error_occured = True
+                no_errors += 1
                 logging.error("test_loopback: error occured in threads: %s.",
                               err[:-2])
 
@@ -645,9 +645,9 @@ def run_virtio_console(test, params, env):
             del threads[:]
 
         cleanup(vm, guest_worker)
-        if error_occured:
-            msg = ("test_loopback: Errors occured while executing test, check "
-                   "log for details.")
+        if no_errors:
+            msg = ("test_loopback: %d errors occured while executing test, "
+                   "check log for details." % no_errors)
             logging.error(msg)
             raise error.TestFail(msg)
 
@@ -690,6 +690,7 @@ def run_virtio_console(test, params, env):
         vm, guest_worker = get_vm_with_worker(no_consoles, no_serialports)
         (consoles, serialports) = get_virtio_ports(vm)
         consoles = [consoles, serialports]
+        no_errors = 0
 
         for param in test_params.split(';'):
             if not param:
@@ -738,6 +739,9 @@ def run_virtio_console(test, params, env):
             logging.info("\n" + loads.get_mem_status_string()[:-1])
             exit_event.set()
             thread.join()
+            if thread.ret_code:
+                no_errors += 1
+                logging.error("test_perf: error occured in thread %s", thread)
 
             # Let the guest read-out all the remaining data
             while not guest_worker._cmd("virt.poll('%s', %s)"
@@ -777,6 +781,9 @@ def run_virtio_console(test, params, env):
             guest_worker.cmd("virt.exit_threads()", 10)
             exit_event.set()
             thread.join()
+            if thread.ret_code:
+                no_errors += 1
+                logging.error("test_perf: error occured in thread %s", thread)
             if (_time > time_slice):    # Deviation is higher than 1 time_slice
                 logging.error(
                 "Test ran %fs longer which is more than one time slice", _time)
@@ -790,6 +797,11 @@ def run_virtio_console(test, params, env):
             del thread
             del exit_event
         cleanup(vm, guest_worker)
+        if no_errors:
+            msg = ("test_perf: %d errors occured while executing test, "
+                   "check log for details." % no_errors)
+            logging.error(msg)
+            raise error.TestFail(msg)
 
     ######################################################################
     # Migration tests
@@ -929,11 +941,18 @@ def run_virtio_console(test, params, env):
             time.sleep(1)
             i -= 1
         tmp = "%d data sent; " % threads[0].idx
+        err = ""
         for thread in threads[1:]:
             thread.join()
             tmp += "%d, " % thread.idx
+            if thread.ret_code:
+                err += "%s, " % thread
         logging.info("test_migrate: %s data received and verified during %d "
                      "migrations", tmp[:-2], no_migrations)
+        if err:
+            msg = "test_migrate: error occured in threads: %s." % err[:-2]
+            logging.error(msg)
+            raise error.TestFail(msg)
 
         # CLEANUP
         guest_worker.safe_exit_loopback_threads([ports[0]], ports[1:])
