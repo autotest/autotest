@@ -988,17 +988,145 @@ class VirtioGuestNt(VirtioGuest):
                 data = ""
                 for desc in self.in_files:
                     ret, _data = win32file.ReadFile(desc, self.cachesize)
-                    if ret == 0:
-                        data += _data
+                    if ret:
+                        msg = ("Error occured while receiving data, "
+                               "err=%s, read=%s" % (ret, _data))
+                        print "FAIL: " + msg
+                        raise IOError(msg)
+                    data += _data
                 if data != "":
                     for desc in self.out_files:
                         ret, _data = win32file.WriteFile(desc, data)
                         if ret:
-                            raise IOError("Error occured while sending data, "
-                                          "err=%s, sendlen=%s" % ret, _data)
+                            msg = ("Error occured while sending data, "
+                                   "err=%s, sentlen=%s" % (ret, _data))
+                            print "FAIL: " + msg
+                            raise IOError(msg)
 
         def run(self):
             self._none_mode()
+
+    class Sender(Thread):
+        """
+        Creates a thread which sends random blocks of data to dst port.
+        """
+        def __init__(self, port, event, length):
+            """
+            @param port: Destination port
+            @param length: Length of the random data block
+            """
+            Thread.__init__(self, name="Sender")
+            self.port = port
+            self.exit_thread = event
+            self.data = array.array('L')
+            for _ in range(max(length / self.data.itemsize, 1)):
+                self.data.append(random.randrange(sys.maxint))
+
+        def run(self):
+            while not self.exit_thread.isSet():
+                if win32file.WriteFile(self.port, self.data)[0]:
+                    msg = "Error occured while sending data."
+                    print "FAIL: " + msg
+                    raise IOError(msg)
+
+    def send_loop_init(self, port, length):
+        """
+        Prepares the sender thread. Requires clean thread structure.
+        """
+        in_f = self._open([port])
+
+        self.threads.append(self.Sender(in_f[0], self.exit_thread, length))
+        print "PASS: Sender prepare"
+
+    def send_loop(self):
+        """
+        Start sender data transfer. Requires senderprepare run first.
+        """
+        self.threads[0].start()
+        print "PASS: Sender start"
+
+    def send(self, port, length=1, mode=True, is_static=False):
+        """
+        Send a data of some length
+
+        @param port: Port to write data
+        @param length: Length of data
+        @param mode: True = loop mode, False = one shoot mode
+        """
+        port = self._open([port])[0]
+
+        data = ""
+        writes = 0
+
+        if not is_static:
+            try:
+                while len(data) < length:
+                    data += "%c" % random.randrange(255)
+                _ret, _len = win32file.WriteFile(port, data)
+                if _ret:
+                    msg = ("Error occured while sending data, "
+                           "err=%s, sentlen=%s" % (_ret, _len))
+                    raise IOError(msg)
+                writes = _len
+            except Exception, inst:
+                print inst
+        else:
+            while len(data) < 4096:
+                data += "%c" % random.randrange(255)
+        if mode:
+            try:
+                while (writes < length):
+                    _ret, _len = win32file.WriteFile(port, data)
+                    if _ret:
+                        msg = ("Error occured while sending data, err=%s"
+                               ", sentlen=%s, allsentlen=%s" % (_ret, _len,
+                                                                writes))
+                        raise IOError(msg)
+                    writes += _len
+            except Exception, inst:
+                print inst
+        if writes >= length:
+            print "PASS: Send data length %d" % writes
+        else:
+            print ("FAIL: Partial send: desired %d, transfered %d" %
+                   (length, writes))
+
+    def recv(self, port, length=1, buflen=1024, mode=True):
+        """
+        Recv a data of some length
+
+        @param port: Port to write data
+        @param length: Length of data
+        @param mode: True = loop mode, False = one shoot mode
+        """
+        port = self._open([port])[0]
+
+        recvs = ""
+        try:
+            _ret, _data = win32file.ReadFile(port, buflen)
+            if _ret:
+                msg = ("Error occured while receiving data, "
+                       "err=%s, read=%s" % (_ret, _data))
+                raise IOError(msg)
+            recvs = _data
+        except Exception, inst:
+            print inst
+        if mode:
+            while (len(recvs) < length):
+                try:
+                    _ret, _data = win32file.ReadFile(port, buflen)
+                    if _ret:
+                        msg = ("Error occured while receiving data, "
+                               "err=%s, read=%s, allread=%s" % (_ret, _data,
+                                                                len(recvs)))
+                        raise IOError(msg)
+                except Exception, inst:
+                    print inst
+        if len(recvs) >= length:
+            print "PASS: Recv data length %d" % len(recvs)
+        else:
+            print ("FAIL: Partial recv: desired %d, transfered %d" %
+                   (length, len(recvs)))
 
 
 def is_alive():
