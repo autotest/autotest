@@ -2024,7 +2024,6 @@ variants:
                 # cgroup_memory_move_mb = 2048
 
     - virtio_console: install setup image_copy unattended_install.cdrom
-        only Linux
         type = virtio_console
         # Console cleanup is not 100%, consider using kill_vm_on_error
         kill_vm_on_error = yes
@@ -2058,29 +2057,37 @@ variants:
                             - open:
                                virtio_console_test = open
                             - check_zero_sym:
+                                only linux
                                 virtio_console_test = check_zero_sym
                             - multi_open:
                                 virtio_console_test = multi_open
                             - close:
                                 virtio_console_test = close
                             - polling:
+                                only linux
                                 virtio_console_test = polling
                             - sigio:
+                                only linux
                                 virtio_console_test = sigio
                             - lseek:
+                                only linux
                                 virtio_console_test = lseek
                             - rw_host_offline:
                                 virtio_console_test = rw_host_offline
                             - rw_host_offline_big_data:
+                                only linux
                                 virtio_console_test = rw_host_offline_big_data
                             - rw_blocking_mode:
+                                only linux
                                 virtio_console_test = rw_blocking_mode
                             - rw_nonblocking_mode:
+                                only linux
                                 virtio_console_test = rw_nonblocking_mode
                             - basic_loopback:
                                 virtio_console_test = basic_loopback
                             # Destructive tests
                             - rmmod:
+                                only linux
                                 virtio_console_test = rmmod
                             - migration:
                                 virtio_console_no_migrations = 5
