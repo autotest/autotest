@@ -211,7 +211,14 @@ class GuestWorker(object):
             # Compile worker
             logging.debug("Compile %s on guest %s", guest_script_py,
                           self.vm.name)
-            self.cmd(cmd_compile, timeout)
+            try:
+                self.cmd(cmd_compile, timeout)
+            except VirtioPortException:
+                if not self.os_linux:
+                    logging.error("Script execution failed, do you have python"
+                                  " and pywin32 installed? CURRENTLY THIS "
+                                  "NEEDS TO BE DONE MANUALLY!")
+                raise
             self.session.sendline()
 
         # set echo off (self.cmd() musn't contain C:)
@@ -223,7 +230,14 @@ class GuestWorker(object):
 
     def _execute_worker(self, timeout=10):
         """ Execute worker on guest """
-        self.cmd(self.__cmd_execute_worker, timeout)
+        try:
+            self.cmd(self.__cmd_execute_worker, timeout)
+        except VirtioPortException:
+            if not self.os_linux:
+                logging.error("Script execution failed, do you have python"
+                              " and pywin32 installed? CURRENTLY THIS "
+                              "NEEDS TO BE DONE MANUALLY!")
+            raise
         # Let the system rest
         # FIXME: Is this always necessarily?
         time.sleep(2)
