@@ -10,9 +10,9 @@ class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         """
         rg = self.parse_header_byte_range()
         if rg:
-            f = self.send_head_range(range[0], range[1])
+            f = self.send_head_range(rg[0], rg[1])
             if f:
-                self.copyfile_range(f, self.wfile, range[0], range[1])
+                self.copyfile_range(f, self.wfile, rg[0], rg[1])
                 f.close()
         else:
             f = self.send_head()
