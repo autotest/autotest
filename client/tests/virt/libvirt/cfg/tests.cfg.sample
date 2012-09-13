@@ -28,6 +28,7 @@ variants:
         qemu_img_binary = /usr/bin/qemu-img
         hvm_or_pv = pv
         take_regular_screendumps = no
+        connect_uri = xen
         only raw
         only xennet
         only xenblk
@@ -46,6 +47,7 @@ variants:
         hvm_or_pv = hvm
         take_regular_screendumps = no
         drive_cache =
+        connect_uri = xen
         only raw
         only rtl8139
         only ide
