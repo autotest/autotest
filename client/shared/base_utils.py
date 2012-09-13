@@ -782,10 +782,13 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
                 break
 
         if not os.path.isdir(srcdir):
+            tdir = os.path.dirname(srcdir)
+            if not os.path.isdir(tdir):
+                os.makedirs(tdir)
             if os.path.isdir(source_code_dir):
                 shutil.copytree(source_code_dir, srcdir)
             else:
-                os.makedirs(srcdir)
+                os.mkdir(srcdir)
 
         patch_file_list = glob.glob(os.path.join(
                                  (os.path.dirname(source_code_dir)), "*.patch"))
