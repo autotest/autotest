@@ -234,10 +234,19 @@ def launch_client(sessions, server, server_ctl, host, client, l, nf_args, port):
     def get_state():
         for i in ssh_cmd(server_ctl, "ifconfig").split("\n\n"):
             if server in i:
-                nrx = int(re.findall("RX packets:(\d+)", i)[0])
-                ntx = int(re.findall("TX packets:(\d+)", i)[0])
-                nrxb = int(re.findall("RX bytes:(\d+)", i)[0])
-                ntxb = int(re.findall("TX bytes:(\d+)", i)[0])
+                ifname = i.split()[0]
+
+        path = "find /sys/devices|grep net/%s/statistics" % ifname
+        cmd = "%s/rx_packets|xargs cat;%s/tx_packets|xargs cat;" \
+             "%s/rx_bytes|xargs cat;%s/tx_bytes|xargs cat" % (path,
+                                                   path, path, path)
+        output = ssh_cmd(server_ctl, cmd).split()
+
+        nrx = int(output[0])
+        ntx = int(output[1])
+        nrxb = int(output[2])
+        ntxb = int(output[3])
+
         nre = int(ssh_cmd(server_ctl, "grep Tcp /proc/net/snmp|tail -1"
                  ).split()[12])
         nrx_intr = count_interrupt("virtio.-input")
