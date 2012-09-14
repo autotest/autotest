@@ -382,3 +382,13 @@ indirect_image_blacklist = "/dev/hda.* /dev/sda.* /dev/sg0 /dev/md0"
 # Floppy size when unattended installing guests
 # 1.44MB for Linux, but 2.88MB for Windows guest, same as the virtio-win.vfd
 vfd_size = 1440k
+
+# Add the parameter decide if setup host env in the test case in a loop
+# For some special tests we only setup host in the first and last case as
+# SRIOV related tests. The meaning of this flag is as following:
+#    0(00): do nothing
+#    1(01): setup env
+#    2(10): cleanup env
+#    3(11): setup and cleanup env
+# You can set up it as the numbers marked in the above like this:
+# host_setup_flag = 0
