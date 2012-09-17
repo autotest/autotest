@@ -424,6 +424,18 @@ class PropCan(object):
             return True
 
 
+    def __eq__(self, other):
+        for key in self.__class__.__slots__:
+            if self.has_key(key) and other.has_key(key):
+                if self[key] != other[key]:
+                    return False
+        return True
+
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
     def keys(self):
         keylist = []
         for propertea in self.__slots__:
@@ -528,7 +540,7 @@ class VirtIface(PropCan):
 
     def __getstate__(self):
         state = {}
-        for key in VirtIface.__slots__:
+        for key in self.__class__.__slots__:
             if self.has_key(key):
                 state[key] = self[key]
         return state
@@ -1159,6 +1171,20 @@ class VirtNet(DbNet, ParamsNet):
             setattr(self, key, state.pop(key))
         VMNet.__setstate__(self, state.pop('container_items'))
         self._INITIALIZED = True
+
+
+    def __eq__(self, other):
+        if len(self) != len(other):
+            return False
+        # Order doesn't matter for most OS's as long as MAC & netdst match
+        for nic_name in self.nic_name_list():
+            if self[nic_name] != other[nic_name]:
+                return False
+        return True
+
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
     def mac_index(self):

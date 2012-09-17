@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import unittest, time, sys, os, shelve
+import unittest, time, sys, os, shelve, random
 import common
 from autotest.client import utils
 from autotest.client.shared.test_utils import mock
@@ -506,6 +506,46 @@ class test_VMNet_Subclasses(unittest.TestCase):
             self.counter = 0
             sys.stdout.write(".")
             sys.stdout.flush()
+
+
+    def test_cmp_Virtnet(self):
+        self.zero_counter()
+        to_test = 600 # Random generator slows this test way down
+        for fakevm1 in self.fakevm_generator():
+            to_test -= 1
+            if to_test < 1:
+                break
+            fvm1p = fakevm1.get_params()
+            fakevm1.virtnet = utils_misc.VirtNet(fvm1p, fakevm1.name,
+                                                 fakevm1.instance,
+                                                 self.db_filename)
+            if len(fakevm1.virtnet) < 2:
+                continue
+            fakevm2 = self.FakeVm(fakevm1.name + "_2", fvm1p)
+            fakevm2.virtnet = utils_misc.VirtNet(fvm1p, fakevm2.name,
+                                                 fakevm2.instance,
+                                                 self.db_filename)
+            # Verify nic order doesn't matter
+            fvm3p = utils_misc.Params(fvm1p.items()) # work on copy
+            nic_list = fvm1p.object_params(fakevm1.name).get(
+                         "nics", fvm1p.get('nics', "") ).split()
+            random.shuffle(nic_list)
+            fvm3p['nics'] = " ".join(nic_list)
+            fakevm3 = self.FakeVm(fakevm1.name + "_3", fvm3p)
+            fakevm3.virtnet = utils_misc.VirtNet(fvm3p, fakevm3.name,
+                                                 fakevm3.instance,
+                                                 self.db_filename)
+            self.assertTrue(fakevm1.virtnet == fakevm1.virtnet)
+            self.assertTrue(fakevm1.virtnet == fakevm2.virtnet)
+            self.assertTrue(fakevm1.virtnet == fakevm3.virtnet)
+            self.assertTrue(fakevm2.virtnet == fakevm3.virtnet)
+            if len(fakevm1.virtnet) > 1:
+                del fakevm1.virtnet[0]
+                self.assertFalse(fakevm1.virtnet == fakevm2.virtnet)
+                self.assertFalse(fakevm1.virtnet == fakevm3.virtnet)
+                self.assertTrue(fakevm1.virtnet != fakevm2.virtnet)
+                self.assertTrue(fakevm1.virtnet != fakevm3.virtnet)
+            self.print_and_inc()
 
     def test_01_Params(self):
         """
