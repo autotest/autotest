@@ -825,3 +825,35 @@ def suspend_to_disk():
     Suspend the system to disk (S4)
     """
     set_power_state('disk')
+
+
+def get_cpu_stat(key):
+    """
+    Get load per cpu from /proc/stat
+    @param _stats: previous values
+    @return: list of values of CPU times
+    """
+
+    stats =  []
+    stat_file = open('/proc/stat', 'r')
+    line = stat_file.readline()
+    while line:
+        if line.startswith(key):
+            stats = line.split()[1:]
+            break
+        line = stat_file.readline()
+    return stats
+
+
+def get_uptime():
+    """
+    @return: return the uptime of system in secs in float
+    in error case return 'None'
+    """
+
+    cmd = "/bin/cat /proc/uptime"
+    (status, output) = commands.getstatusoutput(cmd)
+    if status == 0:
+        return output.split()[0]
+    else:
+        return None
