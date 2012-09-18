@@ -63,6 +63,7 @@ class Monitor:
 
     ACQUIRE_LOCK_TIMEOUT = 20
     DATA_AVAILABLE_TIMEOUT = 0
+    CONNECT_TIMEOUT = 30
 
     def __init__(self, name, filename):
         """
@@ -76,6 +77,7 @@ class Monitor:
         self.filename = filename
         self._lock = threading.RLock()
         self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self._socket.settimeout(self.CONNECT_TIMEOUT)
         self._passfd = None
         self._supported_cmds = []
         self.debug_log = False
