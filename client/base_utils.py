@@ -237,6 +237,8 @@ def get_os_vendor():
 
     if file_contains_pattern(issue, 'Red Hat'):
         vendor = 'Red Hat'
+    if file_contains_pattern(issue, 'CentOS'):
+        vendor = 'Red Hat'
     elif file_contains_pattern(issue, 'Fedora'):
         vendor = 'Fedora'
     elif file_contains_pattern(issue, 'SUSE'):
