@@ -20,7 +20,7 @@ class posixtest(test.test):
         os.chdir(self.srcdir)
         # Applying a small patch that introduces some linux specific
         # linking options
-        utils.system('patch -p1 < ../posix-linux.patch')
+        utils.system('patch -p1 < %s/posix-linux.patch' % self.bindir)
         utils.make()
 
 

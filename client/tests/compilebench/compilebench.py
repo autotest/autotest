@@ -11,7 +11,7 @@ class compilebench(test.test):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
-        utils.system('patch -p1 < ../compilebench.patch')
+        utils.system('patch -p1 < %s/compilebench.patch' % self.bindir)
 
 
     def run_once(self, dir=None, num_kernel_trees=10, num_random_runs=30):
