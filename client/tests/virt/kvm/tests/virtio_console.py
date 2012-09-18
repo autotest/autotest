@@ -846,7 +846,7 @@ def run_virtio_console(test, params, env):
             tmp = "%d data sent; " % threads[0].idx
             for thread in threads[1:]:
                 tmp += "%d, " % thread.idx
-            logging.debug("test_loopback: %s data received and verified",
+            logging.debug("test_migrate: %s data received and verified",
                          tmp[:-2])
             i += 1
             time.sleep(2)
@@ -877,7 +877,7 @@ def run_virtio_console(test, params, env):
                 tmp = "%d data sent; " % threads[0].idx
                 for thread in threads[1:]:
                     tmp += "%d, " % thread.idx
-                logging.debug("test_loopback: %s data received and verified",
+                logging.debug("test_migrate: %s data received and verified",
                              tmp[:-2])
                 i += 1
                 time.sleep(2)
@@ -917,7 +917,7 @@ def run_virtio_console(test, params, env):
         for thread in threads[1:]:
             thread.join()
             tmp += "%d, " % thread.idx
-        logging.info("test_loopback: %s data received and verified during %d "
+        logging.info("test_migrate: %s data received and verified during %d "
                      "migrations", tmp[:-2], no_migrations)
 
         # CLEANUP
