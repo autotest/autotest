@@ -60,30 +60,6 @@ For example:
 import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
 import sys, time, urllib, urlparse
 import MySQLdb
-from shared import error
-
-
-Importing modules
-
-The order of imports should be as follows:
-
-Standard python modules
-Non-standard python modules
-Autotest modules
-
-Within one of these three sections, all module imports using the from
-keyword should appear after regular imports.
-Modules should be lumped together on the same line.
-Wildcard imports (from x import *) should be avoided if possible.
-Classes should not be imported from modules, but modules may be imported
- from packages, i.e.:
-from shared import error
-and not
-from shared.error import AutoservError
-
-For example:
-import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
-import sys, time, urllib, urlparse
 try:
     import autotest.common   
 except ImportError:
