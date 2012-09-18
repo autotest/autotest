@@ -12,7 +12,7 @@ class netpipe(test.test):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
-        utils.system('patch -p1 < ../makefile.patch')
+        utils.system('patch -p1 < %s/makefile.patch' % self.bindir)
         utils.make()
 
 

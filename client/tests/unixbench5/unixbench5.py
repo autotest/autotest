@@ -39,7 +39,7 @@ class unixbench5(test.test):
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('patch -p0 < ../Makefile.patch')
+        utils.system('patch -p0 < %s/Makefile.patch' % self.bindir)
         utils.make()
 
 

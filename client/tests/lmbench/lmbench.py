@@ -28,9 +28,9 @@ class lmbench(test.test):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
-        p1 = 'patch -p1 < ../0001-Fix-build-issues-with-lmbench.patch'
-        p2 = 'patch -p1 < ../0002-Changing-shebangs-on-lmbench-scripts.patch'
-        p3 = 'patch -p1 < ../0003-makefile.patch'
+        p1 = 'patch -p1 < %s/0001-Fix-build-issues-with-lmbench.patch' % self.bindir
+        p2 = 'patch -p1 < %s/0002-Changing-shebangs-on-lmbench-scripts.patch' % self.bindir
+        p3 = 'patch -p1 < %s/0003-makefile.patch' % self.bindir
         utils.system(p1)
         utils.system(p2)
         utils.system(p3)

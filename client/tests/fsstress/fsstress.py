@@ -15,8 +15,8 @@ class fsstress(test.test):
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
 
         os.chdir(self.srcdir)
-        utils.system('patch -p1 < ../fsstress-ltp.patch')
-        utils.system('patch -p1 < ../makefile.patch')
+        utils.system('patch -p1 < %s/fsstress-ltp.patch' % self.bindir)
+        utils.system('patch -p1 < %s/makefile.patch' % self.bindir)
         utils.make('fsstress')
 
 

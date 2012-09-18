@@ -20,7 +20,7 @@ class btreplay(test.test):
 
         os.chdir(self.srcdir)
 
-        utils.system('patch -p1 < ../Makefile.patch')
+        utils.system('patch -p1 < %s/Makefile.patch' % self.bindir)
         utils.system(self.make_flags + ' make')
 
 

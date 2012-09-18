@@ -26,7 +26,7 @@ class npb(test.test):
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
         # Prepare the makefile and benchmarks to generate.
-        utils.system('patch -p1 < ../enable-all-tests.patch')
+        utils.system('patch -p1 < %s/enable-all-tests.patch' % self.bindir)
         utils.system('cd NPB3.3-OMP && make suite')
 
 
