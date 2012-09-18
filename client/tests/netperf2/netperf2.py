@@ -16,7 +16,7 @@ class netperf2(test.test):
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('patch -p0 < ../wait_before_data.patch')
+        utils.system('patch -p0 < %s/wait_before_data.patch' % self.bindir)
         utils.configure()
         utils.make()
         utils.system('sync')

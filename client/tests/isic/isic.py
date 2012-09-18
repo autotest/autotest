@@ -18,7 +18,7 @@ class isic(test.test):
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('patch -p1 < ../build-fixes.patch')
+        utils.system('patch -p1 < %s/build-fixes.patch' % self.bindir)
         utils.system('PREFIX=%s/deps/libnet/libnet/ ./configure' %self.autodir)
         utils.system('make')
 

@@ -40,7 +40,7 @@ class libhugetlbfs(test.test):
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('patch -p1 < ../elflink.patch')
+        utils.system('patch -p1 < %s/elflink.patch' % self.bindir)
         # make might fail if there are no proper headers for the 32 bit
         # version, in that case try only for the 64 bit version
         try:

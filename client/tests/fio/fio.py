@@ -30,7 +30,7 @@ class fio(test.test):
         var_cflags  = 'CFLAGS="' + cflags + '"'
 
         os.chdir(self.srcdir)
-        utils.system('patch -p1 < ../Makefile.patch')
+        utils.system('patch -p1 < %s/Makefile.patch' % self.bindir))
         utils.system('%s %s make' % (var_ldflags, var_cflags))
 
 

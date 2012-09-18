@@ -11,7 +11,7 @@ class real_time_tests(test.test):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
-        utils.system('patch -p1 < ../path-fix.patch')
+        utils.system('patch -p1 < %s/path-fix.patch' % self.bindir)
 
     def execute(self, args = '-l 10'):
         os.chdir(self.srcdir)

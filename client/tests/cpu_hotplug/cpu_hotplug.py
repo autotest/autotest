@@ -10,7 +10,8 @@ class cpu_hotplug(test.test):
         tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
-        utils.run("patch -p1 < ../0001-LHCS-Cleanups-and-bugfixes.patch")
+        utils.run('patch -p1 < %s/0001-LHCS-Cleanups-and-bugfixes.patch' \
+                      % self.bindir)
 
 
     def initialize(self):

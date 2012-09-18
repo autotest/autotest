@@ -17,8 +17,8 @@ class unixbench(test.test):
         utils.extract_tarball_to_dir(tarball, self.srcdir)
         os.chdir(self.srcdir)
 
-        utils.system('patch -p1 < ../unixbench.patch')
-        utils.system('patch -p1 < ../Makefile.patch')
+        utils.system('patch -p1 < %s/unixbench.patch' % self.bindir)
+        utils.system('patch -p1 < %s/Makefile.patch' % self.bindir)
         utils.make()
         utils.system('rm pgms/select')
 

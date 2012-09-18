@@ -458,7 +458,7 @@ class kernel(BootableKernel):
 
     @log.record
     @tee_output_logdir_mark
-    def install(self, tag='autotest', prefix='/'):
+    def install(self, tag='autotest', prefix='/', install_vmlinux=True):
         """make install in the kernel tree"""
 
         # Record that we have installed the kernel, and
@@ -486,12 +486,14 @@ class kernel(BootableKernel):
             self.image = self.boot_dir + '/vmlinuz-' + tag
         else:
             self.image = self.vmlinux
+            install_vmlinux = True
         self.system_map = self.boot_dir + '/System.map-' + tag
         self.config_file = self.boot_dir + '/config-' + tag
         self.initrd = ''
 
         # copy to boot dir
-        utils.force_copy('vmlinux', self.vmlinux)
+        if install_vmlinux:
+            utils.force_copy('vmlinux', self.vmlinux)
         if (self.build_image != 'vmlinux'):
             utils.force_copy(self.build_image, self.image)
         utils.force_copy('System.map', self.system_map)

@@ -394,7 +394,7 @@ restart_mysql_rh() {
 print_log "INFO" "Re-starting MySQL server"
 if [ -x /etc/init.d/mysqld ]
 then
-    service $1 restart >> $LOG
+    service mysqld restart >> $LOG
 else
     systemctl restart mysqld.service >> $LOG
 fi
