@@ -13,6 +13,7 @@ from autotest.frontend import setup_django_environment
 
 import django.db
 
+from autotest.client import os_dep
 from autotest.client.shared import global_config, logging_manager
 from autotest.client.shared import host_protections, utils
 from autotest.database import database_connection
@@ -48,7 +49,12 @@ system error on the Autotest server.  Full results may not be available.  Sorry.
 
 _db = None
 _shutdown = False
-_autoserv_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'server', 'autoserv')
+# Start autotest-remove in both scenarios, system wide install or traditional
+# single dir installation
+try:
+    _autoserv_path = os_dep.command("autotest-remote")
+except ValueError:
+    _autoserv_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'server', 'autoserv')
 _testing_mode = False
 _drone_manager = None
 
