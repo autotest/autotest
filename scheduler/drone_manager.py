@@ -621,8 +621,16 @@ class DroneManager(object):
         if on_results_repository:
             base_dir = self._results_dir
         else:
-            base_dir = os.path.join(drones.AUTOTEST_INSTALL_DIR,
-                                    _DRONE_RESULTS_DIR_SUFFIX)
+            output_dir = global_config.global_config.get_config_value('COMMON',
+                                                              'test_output_dir',
+                                                               default="")
+            if output_dir:
+                base_dir = output_dir
+            else:
+                base_dir = drones.AUTOTEST_INSTALL_DIR
+
+            base_dir = os.path.join(base_dir, _DRONE_RESULTS_DIR_SUFFIX)
+
         return os.path.join(base_dir, path)
 
 
