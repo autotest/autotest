@@ -34,7 +34,7 @@ class VMStartError(VMError):
 
 class VMConfigMissingError(VMError):
     def __init__(self, name, config):
-        VMError.__init(self, name, config)
+        VMError.__init__(self, name, config)
         self.name = name
         self.config = config
 
