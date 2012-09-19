@@ -432,6 +432,33 @@ class BaseVM(object):
     #
     # Public API - could be reimplemented with virt specific code
     #
+
+
+    def needs_restart(self, name, params, basedir):
+        """
+        Verifies whether the current virt_install commandline matches the
+        requested one, based on the test parameters.
+        """
+        if (self.make_create_command() !=
+                self.make_create_command(name, params, basedir)):
+            logging.debug("VM params in env don't match requested, restarting.")
+            return True
+        else:
+            # Command-line encoded state doesn't include all params
+            # TODO: Check more than just networking
+            other_virtnet = utils_misc.VirtNet(params, name, self.instance)
+            if self.virtnet != other_virtnet:
+                logging.debug("VM params in env match, but network differs, "
+                              "restarting")
+                logging.debug("\t" + str(self.virtnet))
+                logging.debug("\t!=")
+                logging.debug("\t" + str(other_virtnet))
+                return True
+            else:
+                logging.debug("VM params in env do match requested, continuing.")
+                return False
+
+
     def verify_alive(self):
         """
         Make sure the VM is alive and that the main monitor is responsive.
@@ -1054,13 +1081,6 @@ class BaseVM(object):
         Throws a VMStatusError if before/after restore state is incorrect
 
         @param: path: path to file vm state was saved to
-        """
-        raise NotImplementedError
-
-    def needs_restart(self, name, params, basedir):
-        """
-        Based on virt preprocessing information, decide whether the VM needs
-        a restart.
         """
         raise NotImplementedError
 

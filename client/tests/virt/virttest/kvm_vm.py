@@ -157,7 +157,7 @@ class VM(virt_vm.BaseVM):
         return VM(name, params, root_dir, address_cache, state)
 
 
-    def __make_qemu_command(self, name=None, params=None, root_dir=None):
+    def make_create_command(self, name=None, params=None, root_dir=None):
         """
         Generate a qemu command line. All parameters are optional. If a
         parameter is not supplied, the corresponding value stored in the
@@ -1490,7 +1490,7 @@ class VM(virt_vm.BaseVM):
             # Generate basic parameter values for all NICs and create TAP fd
             for nic in self.virtnet:
                 # fill in key values, validate nettype
-                # note: __make_qemu_command() calls vm.add_nic (i.e. on a copy)
+                # note: make_create_command() calls vm.add_nic (i.e. on a copy)
                 nic = self.add_nic(**dict(nic)) # implied add_netdev
                 if mac_source:
                     # Will raise exception if source doesn't
@@ -1580,7 +1580,7 @@ class VM(virt_vm.BaseVM):
                     raise virt_vm.VMPAError(pa_type)
 
             # Make qemu command
-            qemu_command = self.__make_qemu_command()
+            qemu_command = self.make_create_command()
 
             # Add migration parameters if required
             if migration_mode == "tcp":
@@ -2624,18 +2624,6 @@ class VM(virt_vm.BaseVM):
                     migration_exec_cmd="cat "+path, mac_source=self)
         self.verify_status('running') # Throws exception if not
 
-    def needs_restart(self, name, params, basedir):
-        """
-        Verifies whether the current qemu commandline matches the requested
-        one, based on the test parameters.
-        """
-        if (self.__make_qemu_command() !=
-                self.__make_qemu_command(name, params, basedir)):
-            logging.debug("VM params in env don't match requested, restarting.")
-            return True
-        else:
-            logging.debug("VM params in env do match requested, continuing.")
-            return False
 
     def pause(self):
         """

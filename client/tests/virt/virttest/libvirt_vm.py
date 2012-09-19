@@ -104,7 +104,7 @@ class VM(virt_vm.BaseVM):
 
         @param name: The name of the object
         @param params: A dict containing VM params
-                (see method __make_libvirt_command for a full description)
+                (see method make_create_command for a full description)
         @param root_dir: Base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         @param state: If provided, use this as self.__dict__
@@ -250,7 +250,7 @@ class VM(virt_vm.BaseVM):
         @param root_dir: Optional new base directory for relative filenames
         @param address_cache: A dict that maps MAC addresses to IP addresses
         @param copy_state: If True, copy the original VM's state to the clone.
-                Mainly useful for __make_libvirt_command().
+                Mainly useful for make_create_command().
         """
         if name is None:
             name = self.name
@@ -267,7 +267,7 @@ class VM(virt_vm.BaseVM):
         return VM(name, params, root_dir, address_cache, state)
 
 
-    def __make_libvirt_command(self, name=None, params=None, root_dir=None):
+    def make_create_command(self, name=None, params=None, root_dir=None):
         """
         Generate a libvirt command line. All parameters are optional. If a
         parameter is not supplied, the corresponding value stored in the
@@ -498,7 +498,7 @@ class VM(virt_vm.BaseVM):
                     result += ',mac=%s' % mac
                 elif mac: # possible to specify --mac w/o --network
                     result += " --mac=%s" % mac
-            logging.debug("vm.__make_libvirt_command.add_nic returning: %s"
+            logging.debug("vm.make_create_command.add_nic returning: %s"
                              % result)
             return result
 
@@ -723,9 +723,9 @@ class VM(virt_vm.BaseVM):
 
         # setup networking parameters
         for nic in vm.virtnet:
-            # __make_libvirt_command can be called w/o vm.create()
+            # make_create_command can be called w/o vm.create()
             nic = vm.add_nic(**dict(nic))
-            logging.debug("__make_libvirt_command() setting up command for"
+            logging.debug("make_create_command() setting up command for"
                           " nic: %s" % str(nic))
             virt_install_cmd += add_nic(help,nic)
 
@@ -881,13 +881,13 @@ class VM(virt_vm.BaseVM):
                     logging.debug("Copying mac for nic %s from VM %s"
                                     % (nic.nic_name, mac_source.nam))
                     nic_params['mac'] = mac_source.get_mac_address(nic.nic_name)
-                # __make_libvirt_command() calls vm.add_nic (i.e. on a copy)
+                # make_create_command() calls vm.add_nic (i.e. on a copy)
                 nic = self.add_nic(**nic_params)
                 logging.debug('VM.create activating nic %s' % nic)
                 self.activate_nic(nic.nic_name)
 
             # Make qemu command
-            install_command = self.__make_libvirt_command()
+            install_command = self.make_create_command()
 
             logging.info("Running libvirt command (reformatted):")
             for item in install_command.replace(" -", " \n    -").splitlines():
@@ -1182,20 +1182,6 @@ class VM(virt_vm.BaseVM):
 
         error.context("logging in after reboot", logging.info)
         return self.wait_for_login(nic_index, timeout=timeout)
-
-
-    def needs_restart(self, name, params, basedir):
-        """
-        Verifies whether the current virt_install commandline matches the
-        requested one, based on the test parameters.
-        """
-        if (self.__make_libvirt_command() !=
-                self.__make_libvirt_command(name, params, basedir)):
-            logging.debug("VM params in env don't match requested, restarting.")
-            return True
-        else:
-            logging.debug("VM params in env do match requested, continuing.")
-            return False
 
 
     def screendump(self, filename, debug=False):
