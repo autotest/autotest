@@ -9,6 +9,7 @@ try:
 except ImportError:
     import common
 from autotest.scheduler import watcher_logging_config
+from autotest.client import os_dep
 from autotest.client.shared import error, global_config, utils
 from autotest.client.shared import logging_manager
 from autotest.scheduler import scheduler_logging_config
@@ -18,9 +19,18 @@ from autotest.scheduler import monitor_db
 PAUSE_LENGTH = 60
 STALL_TIMEOUT = 2*60*60
 
+output_dir = global_config.global_config.get_config_value('COMMON',
+                                                          'test_output_dir',
+                                                          default="")
+
 autodir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-results_dir = os.path.join(autodir, 'results')
-monitor_db_path = os.path.join(autodir, 'scheduler/autotest-scheduler')
+
+try:
+    monitor_db_path = os_dep.command('autotest-scheduler')
+    results_dir = os.path.join(output_dir, 'results')
+except ValueError:
+    monitor_db_path = os.path.join(autodir, 'scheduler/autotest-scheduler')
+    results_dir = os.path.join(autodir, 'results')
 
 
 def run_banner_output(cmd):
