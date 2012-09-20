@@ -1816,11 +1816,9 @@ variants:
                 vms += " vm2"
                 nics = 'nic1'
             - host_guest:
-                # local host ip address
-                # client = localhost
-            - exhost_guest:
-                # external host ip address
-                # client =
+                client = localhost
+                # to test exthost <-> guest:
+                # client = <external host ip>
 
     - ntttcp:
         only Windows
