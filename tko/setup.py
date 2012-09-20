@@ -40,5 +40,6 @@ setup(name='autotest',
                                          ]),
                  ],
       scripts=[tko_dir + '/autotest-db-delete-job',
+               tko_dir + '/autotest-tko-parse',
                ],
 )
