@@ -118,6 +118,8 @@ class HTTPRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
 
 def http_server(port=8000, cwd=None, terminate_callable=None):
     http = BaseHTTPServer.HTTPServer(('', port), HTTPRequestHandler)
+    http.timeout = 1
+
     if cwd is None:
         cwd = os.getcwd()
     http.cwd = cwd
@@ -128,8 +130,10 @@ def http_server(port=8000, cwd=None, terminate_callable=None):
         else:
             terminate = False
 
-        if not terminate:
-            http.handle_request()
+        if terminate:
+            break
+
+        http.handle_request()
 
 
 if __name__ == '__main__':
