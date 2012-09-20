@@ -60,7 +60,12 @@ _drone_manager = None
 
 
 def _parser_path_default(install_dir):
-    return os.path.join(install_dir, 'tko', 'parse')
+    try:
+        return os_dep.command('autotest-tko-parse')
+    except ValueError:
+        return os.path.join(install_dir, 'tko', 'parse')
+
+
 _parser_path_func = utils.import_site_function(
         __file__, 'autotest.scheduler.site_monitor_db',
         'parser_path', _parser_path_default)
