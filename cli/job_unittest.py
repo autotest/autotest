@@ -11,7 +11,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.cli import cli_mock, topic_common, job
+from autotest.cli import cli_mock, topic_common, job, rpc
 from autotest.client.shared.test_utils import mock
 
 
@@ -1340,6 +1340,35 @@ class job_create_unittest(cli_mock.cli_unittest):
         self._test_parse_hosts(['5*meta0', 'host0', '2*meta1', 'host1',
                                 '*meta2'], ['host0', 'host1'],
                                ['meta0']*5 + ['meta1']*2 + ['meta2'])
+
+
+    def test_parse_hosts_metas_labels_wildcards(self):
+        values = [{u'id': 180,
+                   u'platform': False,
+                   u'name': u'label0',
+                   u'invalid': False,
+                   u'kernel_config': u''},
+                  {u'id': 338,
+                   u'platform': False,
+                   u'name': u'label1',
+                   u'invalid': False,
+                   u'kernel_config': u''}]
+        testjob = job.job_create_or_clone()
+        testjob.afe = rpc.afe_comm()
+        self.mock_rpcs([('get_labels', {'name__startswith': 'label'},
+                         True, values)])
+        (unused_hosts, meta_hosts) = testjob._parse_hosts(['3*label*'])
+        self.assertEqualNoOrder(meta_hosts, ['label0'] * 3 + ['label1'] * 3)
+
+
+    def test_parse_hosts_metas_labels_wildcards_not_found(self):
+        testjob = job.job_create_or_clone()
+        testjob.afe = rpc.afe_comm()
+        self.mock_rpcs([('get_labels', {'name__startswith': 'label'},
+                         True, [])])
+        testjob._parse_hosts(['3*label*'])
+        self.assertEqual(testjob.failed['Failed to find labels'],
+                         {'No labels matching <XYZ>': set(['label*'])})
 
 
 class job_clone_unittest(cli_mock.cli_unittest):

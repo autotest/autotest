@@ -275,6 +275,21 @@ class job_create_or_clone(action_common.atest_create, job):
                                'email addresses to notify of job completion',
                                default='')
 
+    def _parse_meta_host_labels(self, label):
+        """Parse the label part of the meta_host definition
+        if it has a wild card it gets expanded into a list
+        of all matching labels, e.g.: 2*label* becomes
+        2*label1 2*label2 2*label3
+        """
+        if label.endswith('*'):
+            labels = self.execute_rpc('get_labels',
+                                      name__startswith=label.rstrip('*'))
+            if len(labels) == 0:
+                self.failure('No labels matching %s' % label, item=label,
+                             what_failed='Failed to find labels')
+            return [l['name'] for l in labels]
+        else:
+            return [label]
 
     def _parse_hosts(self, args):
         """ Parses the arguments to generate a list of hosts and meta_hosts
@@ -289,15 +304,15 @@ class job_create_or_clone(action_common.atest_create, job):
             for host in arg.split(','):
                 if re.match('^[0-9]+[*]', host):
                     num, host = host.split('*', 1)
-                    meta_hosts += int(num) * [host]
+                    meta_hosts += int(num) * self._parse_meta_host_labels(host)
                 elif re.match('^[*](\w*)', host):
-                    meta_hosts += [re.match('^[*](\w*)', host).group(1)]
+                    meta_hosts += self._parse_meta_host_labels(
+                                        re.match('^[*](\w*)', host).group(1))
                 elif host != '' and host not in hosts:
                     # Real hostname and not a duplicate
                     hosts.append(host)
 
         return (hosts, meta_hosts)
-
 
     def parse(self, parse_info=[]):
         host_info = topic_common.item_parse_info(attribute_name='hosts',
