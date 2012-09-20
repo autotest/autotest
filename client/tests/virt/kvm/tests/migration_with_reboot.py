@@ -27,7 +27,8 @@ def run_migration_with_reboot(test, params, env):
 
     try:
         # Reboot the VM in the background
-        bg = utils.InterruptedThread(vm.reboot, (session,))
+        bg = utils.InterruptedThread(vm.reboot, kwargs={'session' : session,
+                                     'timeout' : login_timeout})
         bg.start()
         try:
             while bg.isAlive():
