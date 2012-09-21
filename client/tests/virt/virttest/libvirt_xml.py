@@ -11,7 +11,7 @@
 
 import logging, os.path
 from autotest.client.shared import error, xml_utils
-from autotest.client.virt import libvirt_vm, virsh
+from virttest import libvirt_vm, virsh
 
 
 class LibvirtXMLError(Exception):
