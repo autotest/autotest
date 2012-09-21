@@ -2,6 +2,7 @@
 
 import re, os, sys, traceback, time, glob, tempfile, logging
 from autotest.server import installable_object, prebuild, utils
+from autotest.client import os_dep
 from autotest.client.shared import base_job, log, error, autotemp
 from autotest.client.shared import global_config, packages
 from autotest.client.shared import utils as client_utils
@@ -65,10 +66,25 @@ class BaseAutotest(installable_object.InstallableObject):
             logging.debug('Using existing host autodir: %s', autodir)
             return autodir
 
+
+        system_wide = True
+        autotest_system_wide = '/usr/bin/autotest-local'
+        try:
+            host.run('test -x %s' % utils.sh_escape(autotest_system_wide))
+            logging.info("System wide install detected")
+        except:
+            system_wide = False
+
         for path in Autotest.get_client_autodir_paths(host):
             try:
-                autotest_binary = os.path.join(path, 'autotest')
-                host.run('test -x %s' % utils.sh_escape(autotest_binary))
+                try:
+                    autotest_binary = os.path.join(path, 'autotest')
+                    host.run('test -x %s' % utils.sh_escape(autotest_binary))
+                except error.AutoservRunError:
+                    if system_wide:
+                        pass
+                    else:
+                        raise
                 host.run('test -w %s' % utils.sh_escape(path))
                 logging.debug('Found existing autodir at %s', path)
                 return path
@@ -166,10 +182,25 @@ class BaseAutotest(installable_object.InstallableObject):
 
 
     def _install_using_send_file(self, host, autodir):
+        system_wide = True
+        try:
+            autotest_local = os_dep.command('autotest-local')
+            autotest_local_streamhandler = os_dep.command('autotest-local-streamhandler')
+            autotest_daemon = os_dep.command('autotest-daemon')
+            autotest_daemon_monitor = os_dep.command('autotest-daemon-monitor')
+        except:
+            system_wide = False
+
         dirs_to_exclude = set(["tests", "site_tests", "deps", "profilers"])
         light_files = [os.path.join(self.source_material, f)
                        for f in os.listdir(self.source_material)
                        if f not in dirs_to_exclude]
+
+        if system_wide:
+            light_files.append(autotest_local)
+            light_files.append(autotest_local_streamhandler)
+            light_files.append(autotest_daemon)
+            light_files.append(autotest_daemon_monitor)
 
         # there should be one and only one grubby tarball
         grubby_glob = os.path.join(self.source_material,
@@ -486,12 +517,20 @@ class _BaseRun(object):
 
 
     def verify_machine(self):
-        binary = os.path.join(self.autodir, 'autotest')
+        system_wide = True
+        binary = os.path.join('/usr/bin/autotest-local')
         try:
-            self.host.run('ls %s > /dev/null 2>&1' % binary)
+            self.host.run('test -x %s' % binary)
         except:
-            raise error.AutoservInstallError(
-                "Autotest does not appear to be installed")
+            system_wide = False
+
+        if not system_wide:
+            binary = os.path.join(self.autodir, 'autotest')
+            try:
+                self.host.run('test -x %s' % binary)
+            except:
+                raise error.AutoservInstallError(
+                    "Autotest does not appear to be installed")
 
         if not self.parallel_flag:
             tmpdir = os.path.join(self.autodir, 'tmp')
@@ -517,23 +556,56 @@ class _BaseRun(object):
 
 
     def get_background_cmd(self, section):
-        cmd = ['nohup', os.path.join(self.autodir, 'autotest_client')]
+        system_wide = True
+        system_wide_client_path = '/usr/bin/autotest-local-streamhandler'
+        try:
+            self.host.run('test -x %s' % system_wide_client_path)
+        except:
+            system_wide = False
+
+        if system_wide:
+            cmd = ['nohup', system_wide_client_path]
+        else:
+            cmd = ['nohup', os.path.join(self.autodir, 'autotest_client')]
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
 
 
     def get_daemon_cmd(self, section, monitor_dir):
-        cmd = ['nohup', os.path.join(self.autodir, 'autotestd'),
-               monitor_dir, '-H autoserv']
+        system_wide = True
+        system_wide_client_path = '/usr/bin/autotest-daemon'
+        try:
+            self.host.run('test -x %s' % system_wide_client_path)
+        except:
+            system_wide = False
+
+        if system_wide:
+            cmd = ['nohup', system_wide_client_path,
+                   monitor_dir, '-H autoserv']
+        else:
+            cmd = ['nohup', os.path.join(self.autodir, 'autotestd'),
+                   monitor_dir, '-H autoserv']
+
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
 
 
     def get_monitor_cmd(self, monitor_dir, stdout_read, stderr_read):
-        cmd = [os.path.join(self.autodir, 'autotestd_monitor'),
-               monitor_dir, str(stdout_read), str(stderr_read)]
+        system_wide = True
+        system_wide_client_path = '/usr/bin/autotest-daemon-monitor'
+        try:
+            system_wide = self.host.run('test -x %s' % system_wide_client_path)
+        except:
+            system_wide = False
+
+        if system_wide:
+            cmd = [system_wide_client_path,
+                   monitor_dir, str(stdout_read), str(stderr_read)]
+        else:
+            cmd = [os.path.join(self.autodir, 'autotestd_monitor'),
+                   monitor_dir, str(stdout_read), str(stderr_read)]
         return ' '.join(cmd)
 
 
