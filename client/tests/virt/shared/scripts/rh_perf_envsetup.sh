@@ -74,12 +74,16 @@ echo "Setup env for performance testing, reboot is needed"
 ####
 echo "Setup runlevel to 3"
 if [[ $guest = "guest" ]];then
+   iptables -F
+   service iptables stop
+   chkconfig iptables off
    echo sed -ie "s/id:.*:initdefault:/id:3:initdefault:/g"  /etc/inittab
 fi
 
 ####
 echo "Off services when host starts up"
 
+echo "SELINUX=disabled" >> /etc/selinux/config
 chkconfig  auditd off
 chkconfig  autofs off
 chkconfig  avahi-daemon off
