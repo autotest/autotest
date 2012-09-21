@@ -719,7 +719,8 @@ class VirtIface(PropCan):
     Networking information for single guest interface and host connection.
     """
 
-    __slots__ = ['nic_name', 'mac', 'nic_model', 'ip', 'nettype', 'netdst']
+    __slots__ = ['nic_name', 'g_nic_name', 'mac', 'nic_model', 'ip',
+                 'nettype', 'netdst']
     # Make sure first byte generated is always zero and it follows
     # the class definition.  This helps provide more predictable
     # addressing while avoiding clashes between multiple NICs.

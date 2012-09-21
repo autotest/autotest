@@ -518,11 +518,31 @@ class BaseVM(object):
             # Make sure the IP address is assigned to one or more macs
             # for this guest
             macs = self.virtnet.mac_list()
+
             if not utils_misc.verify_ip_address_ownership(arp_ip, macs):
                 raise VMAddressVerificationError(nic.mac, arp_ip)
             logging.debug('Found/Verified IP %s for VM %s NIC %s' % (
                             arp_ip, self.name, str(index)))
             return arp_ip
+
+
+    def fill_addrs(self, addrs):
+        """
+        Fill VM's nic address to the virtnet structure based on VM's address
+        structure addrs.
+
+        @param addrs: Dict of interfaces and address
+                        {"if_name":{"mac":['addrs',],
+                                    "ipv4":['addrs',],
+                                    "ipv6":['addrs',]},
+                          ...}
+        """
+        for virtnet in self.virtnet:
+            for iface_name, iface in addrs.iteritems():
+                if virtnet.mac in iface["mac"]:
+                    virtnet.ip = {"ipv4": iface["ipv4"],
+                                  "ipv6": iface["ipv6"]}
+                    virtnet.g_nic_name = iface_name
 
 
     def get_port(self, port, nic_index=0):
