@@ -11,7 +11,9 @@ Compile All Autotest GWT Clients Living in autotest/frontend/client/src
 """
 
 _AUTOTEST_DIR = common.autotest_dir
-_DEFAULT_GWT_DIR = '/usr/local/lib/gwt'
+_DEFAULT_GWT_DIR = '/usr/share/gwt'
+if not os.path.isdir(_DEFAULT_GWT_DIR):
+    _DEFAULT_GWT_DIR = '/usr/local/lib/gwt'
 _DEFAULT_APP_DIR = os.path.join(_AUTOTEST_DIR, 'frontend/client')
 _DEFAULT_INSTALL_DIR = os.path.join(_DEFAULT_APP_DIR, 'www')
 _TMP_COMPILE_DIR = _DEFAULT_INSTALL_DIR + '.new'
