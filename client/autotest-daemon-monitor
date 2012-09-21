@@ -1,0 +1,61 @@
+#!/usr/bin/python
+
+try:
+    import autotest.common
+except ImportError:
+    import common
+import sys, os, signal, time, subprocess, fcntl
+
+logdir = sys.argv[1]
+stdout_start = int(sys.argv[2])  # number of bytes we can skip on stdout
+stderr_start = int(sys.argv[3])  # nubmer of bytes we can skip on stderr
+
+# if any of our tail processes die, the monitor should die too
+def kill_self(signum, frame):
+    os.kill(os.getpid(), signal.SIGTERM)
+signal.signal(signal.SIGCHLD, kill_self)
+
+devnull = open(os.devnull, 'w')
+
+# launch some tail processes to pump the std* streams
+def launch_tail(filename, outstream, start):
+    path = os.path.join(logdir, filename)
+    argv = ['tail', '--retry', '--follow=name', '--bytes=+%d' % start, path]
+    # stdout=sys.stdout fails on pre-2.5 python (bug in subprocess module)
+    if outstream != subprocess.PIPE and outstream.fileno() == 1:
+        return subprocess.Popen(argv, stderr=devnull)
+    else:
+        return subprocess.Popen(argv, stdout=outstream, stderr=devnull)
+stdout_pump = launch_tail('stdout', sys.stdout, stdout_start)
+stderr_pump = launch_tail('stderr', sys.stderr, stderr_start)
+
+# wait for logdir/started to exist to be sure autotestd is started
+start_time = time.time()
+started_file_path = os.path.join(logdir, 'started')
+while not os.path.exists(started_file_path):
+    time.sleep(1)
+    if time.time() - start_time >= 30:
+        raise Exception("autotestd failed to start in %s" % logdir)
+
+# watch the exit code file for an exit
+exit_code_file = open(os.path.join(logdir, 'exit_code'))
+fcntl.flock(exit_code_file, fcntl.LOCK_EX)
+try:
+    exit_code = exit_code_file.read()
+    if len(exit_code) != 4:
+        exit_code = -signal.SIGKILL   # autotestd was nuked
+    else:
+        exit_code = int(exit_code)
+finally:
+    fcntl.flock(exit_code_file, fcntl.LOCK_UN)
+    exit_code_file.close()
+
+# tail runs in 1s polling loop, so give them a chance to finish
+time.sleep(2)
+# clear the SIGCHLD handler so that killing the tails doesn't kill us
+signal.signal(signal.SIGCHLD, signal.SIG_DFL)
+os.kill(stdout_pump.pid, signal.SIGTERM)
+os.kill(stderr_pump.pid, signal.SIGTERM)
+
+# exit (with the same code as autotestd)
+sys.exit(exit_code)

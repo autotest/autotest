@@ -2,6 +2,7 @@
 
 import re, os, sys, traceback, time, glob, tempfile, logging
 from autotest.server import installable_object, prebuild, utils
+from autotest.client import os_dep
 from autotest.client.shared import base_job, log, error, autotemp
 from autotest.client.shared import global_config, packages
 from autotest.client.shared import utils as client_utils
@@ -65,10 +66,25 @@ class BaseAutotest(installable_object.InstallableObject):
             logging.debug('Using existing host autodir: %s', autodir)
             return autodir
 
+
+        system_wide = True
+        autotest_system_wide = '/usr/bin/autotest-local'
+        try:
+            host.run('test -x %s' % utils.sh_escape(autotest_system_wide))
+            logging.info("System wide install detected")
+        except:
+            system_wide = False
+
         for path in Autotest.get_client_autodir_paths(host):
             try:
-                autotest_binary = os.path.join(path, 'autotest')
-                host.run('test -x %s' % utils.sh_escape(autotest_binary))
+                try:
+                    autotest_binary = os.path.join(path, 'autotest')
+                    host.run('test -x %s' % utils.sh_escape(autotest_binary))
+                except error.AutoservRunError:
+                    if system_wide:
+                        pass
+                    else:
+                        raise
                 host.run('test -w %s' % utils.sh_escape(path))
                 logging.debug('Found existing autodir at %s', path)
                 return path
@@ -165,7 +181,38 @@ class BaseAutotest(installable_object.InstallableObject):
         self.installed = True
 
 
-    def _install_using_send_file(self, host, autodir):
+    def _install_using_send_file_sytem_wide(self, host, autodir):
+        """
+        Install autotest using scp/rsync if server was installed by packages.
+
+        In this case, we have to mimic installing the client very much like
+        the rpm does.
+        """
+        autotest_local = os_dep.command('autotest-local')
+        autotest_local_streamhandler = os_dep.command('autotest-local-streamhandler')
+        autotest_daemon = os_dep.command('autotest-daemon')
+        autotest_daemon_monitor = os_dep.command('autotest-daemon-monitor')
+        entry_points = []
+        entry_points.append(autotest_local)
+        entry_points.append(autotest_local_streamhandler)
+        entry_points.append(autotest_daemon)
+        entry_points.append(autotest_daemon_monitor)
+        host.send_file(entry_points, '/usr/bin/', delete_dest=True)
+        host.send_file('/var/lib/autotest', '/var/lib', delete_dest=True)
+
+        light_files = [os.path.dirname(self.source_material)]
+        light_files.append(os.path.join(self.source_material, 'common.py'))
+        light_files.append(os.path.join(self.source_material, '__init__.py'))
+
+        host.send_file(light_files, autodir, delete_dest=True)
+
+
+    def _install_using_send_file_regular(self, host, autodir):
+        """
+        Install autotest using scp/rsync if server is on a single dir install.
+
+        This is the traditional method of autotest install using send_file.
+        """
         dirs_to_exclude = set(["tests", "site_tests", "deps", "profilers"])
         light_files = [os.path.join(self.source_material, f)
                        for f in os.listdir(self.source_material)
@@ -197,6 +244,13 @@ class BaseAutotest(installable_object.InstallableObject):
             commands.append("mkdir -p '%s'" % abs_path)
             commands.append("touch '%s'/__init__.py" % abs_path)
         host.run(';'.join(commands))
+
+
+    def _install_using_send_file(self, host, autodir):
+        try:
+            self._install_using_send_file_sytem_wide(host, autodir)
+        except ValueError:
+            self._install_using_send_file_regular(host, autodir)
 
 
     def _install(self, host=None, autodir=None, use_autoserv=True,
@@ -231,7 +285,11 @@ class BaseAutotest(installable_object.InstallableObject):
         host.run('mkdir -p %s' % utils.sh_escape(autodir))
 
         # make sure there are no files in $AUTODIR/results
-        results_path = os.path.join(autodir, 'results')
+        try:
+            os_dep.command('autotest-local')
+            results_path = '/var/lib/autotest/results'
+        except ValueError:
+            results_path = os.path.join(autodir, 'results')
         host.run('rm -rf %s/*' % utils.sh_escape(results_path),
                  ignore_status=True)
 
@@ -483,15 +541,26 @@ class _BaseRun(object):
                           os.path.basename(control) + ".autoserv.state")
 
         self.config_file = os.path.join(self.autodir, 'global_config.ini')
+        self.system_wide_install = self.is_system_wide_install()
+
+
+    def is_system_wide_install(self):
+        binary = os.path.join('/usr/bin/autotest-local')
+        try:
+            self.host.run('test -x %s' % binary)
+            return True
+        except:
+            return False
 
 
     def verify_machine(self):
-        binary = os.path.join(self.autodir, 'autotest')
-        try:
-            self.host.run('ls %s > /dev/null 2>&1' % binary)
-        except:
-            raise error.AutoservInstallError(
-                "Autotest does not appear to be installed")
+        if not self.system_wide_install:
+            binary = os.path.join(self.autodir, 'autotest')
+            try:
+                self.host.run('test -x %s' % binary)
+            except:
+                raise error.AutoservInstallError(
+                    "Autotest does not appear to be installed")
 
         if not self.parallel_flag:
             tmpdir = os.path.join(self.autodir, 'tmp')
@@ -517,23 +586,56 @@ class _BaseRun(object):
 
 
     def get_background_cmd(self, section):
-        cmd = ['nohup', os.path.join(self.autodir, 'autotest_client')]
+        system_wide = True
+        system_wide_client_path = '/usr/bin/autotest-local-streamhandler'
+        try:
+            self.host.run('test -x %s' % system_wide_client_path)
+        except:
+            system_wide = False
+
+        if system_wide:
+            cmd = ['nohup', system_wide_client_path]
+        else:
+            cmd = ['nohup', os.path.join(self.autodir, 'autotest_client')]
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
 
 
     def get_daemon_cmd(self, section, monitor_dir):
-        cmd = ['nohup', os.path.join(self.autodir, 'autotestd'),
-               monitor_dir, '-H autoserv']
+        system_wide = True
+        system_wide_client_path = '/usr/bin/autotest-daemon'
+        try:
+            self.host.run('test -x %s' % system_wide_client_path)
+        except:
+            system_wide = False
+
+        if system_wide:
+            cmd = ['nohup', system_wide_client_path,
+                   monitor_dir, '-H autoserv']
+        else:
+            cmd = ['nohup', os.path.join(self.autodir, 'autotestd'),
+                   monitor_dir, '-H autoserv']
+
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
 
 
     def get_monitor_cmd(self, monitor_dir, stdout_read, stderr_read):
-        cmd = [os.path.join(self.autodir, 'autotestd_monitor'),
-               monitor_dir, str(stdout_read), str(stderr_read)]
+        system_wide = True
+        system_wide_client_path = '/usr/bin/autotest-daemon-monitor'
+        try:
+            system_wide = self.host.run('test -x %s' % system_wide_client_path)
+        except:
+            system_wide = False
+
+        if system_wide:
+            cmd = [system_wide_client_path,
+                   monitor_dir, str(stdout_read), str(stderr_read)]
+        else:
+            cmd = [os.path.join(self.autodir, 'autotestd_monitor'),
+                   monitor_dir, str(stdout_read), str(stderr_read)]
         return ' '.join(cmd)
 
 
@@ -560,7 +662,12 @@ class _BaseRun(object):
         @param client_log_prefix: Optional prefix to prepend to log files.
         """
         client_config_file = self._create_client_config_file(client_log_prefix)
-        self.host.send_file(client_config_file, self.config_file)
+        if self.system_wide_install:
+            self.host.run("mkdir -p /etc/autotest")
+            self.host.send_file(client_config_file,
+                                "/etc/autotest/global_config.ini")
+        else:
+            self.host.send_file(client_config_file, self.config_file)
         os.remove(client_config_file)
 
 
@@ -830,8 +937,12 @@ class log_collector(object):
         self.host = host
         if not client_tag:
             client_tag = "default"
-        self.client_results_dir = os.path.join(host.get_autodir(), "results",
-                                               client_tag)
+        try:
+            os_dep.command("autotest-local")
+            self.client_results_dir = '/var/lib/autotest/results'
+        except ValueError:
+            self.client_results_dir = os.path.join(host.get_autodir(), "results",
+                                                   client_tag)
         self.server_results_dir = results_dir
 
 
