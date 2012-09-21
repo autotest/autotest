@@ -348,6 +348,7 @@ profilers = kvm_stat
 
 # Timeouts
 login_timeout = 360
+test_timeout = 14400
 
 # libvirt (virt-install optional arguments)
 # TODO: Rename these with 'libvirt_' prefix

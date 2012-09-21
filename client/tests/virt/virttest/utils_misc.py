@@ -1650,11 +1650,13 @@ def run_tests(parser, job):
             # We need only one execution, profiled, hence we're passing
             # the profile_only parameter to job.run_test().
             profile_only = bool(profilers) or None
+            test_timeout = int(param_dict.get("test_timeout", 14400))
             current_status = job.run_test_detail("virt",
                                                  params=param_dict,
                                                  tag=test_tag,
                                                  iterations=test_iterations,
-                                                 profile_only=profile_only)
+                                                 profile_only=profile_only,
+                                                 timeout=test_timeout)
             for profiler in profilers:
                 job.profilers.delete(profiler)
         else:
