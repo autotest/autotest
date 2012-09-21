@@ -11,7 +11,7 @@
 
 import logging, os.path
 from autotest.client.shared import error, xml_utils
-from autotest.client.virt import libvirt_vm, virsh
+from virttest import libvirt_vm, virsh
 
 
 class LibvirtXMLError(Exception):
@@ -62,4 +62,3 @@ class LibvirtXML(LibvirtXMLBase):
         """Returns copy of libvirtd capabilities XML"""
         # protect against accidental modification
         super(LibvirtXML, self).__init__(self._XML)
-
