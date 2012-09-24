@@ -19,10 +19,7 @@ kernel_install = %s
 def step_init():
     job.next_step([step_test])
     if kernel_install:
-        try:
-            utils_misc.install_host_kernel(job, kernel_install_params)
-        except Exception, details:
-            job.record('FAIL', None, 'host kernel install (client)', str(details))
+        utils_misc.install_host_kernel(job, kernel_install_params)
 
 def step_test():
     parser = cartesian_config.Parser()
