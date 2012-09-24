@@ -701,7 +701,7 @@ if __name__ == "__main__":
                 if check:
                     file_checker = FileChecker(path=path, vcs=vcs,
                                                confirm=confirm)
-                    file_checker.report(skip_unittest=False)
+                    file_checker.report(skip_unittest=True)
 
     else:
         if local_patch:
