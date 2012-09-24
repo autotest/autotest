@@ -407,12 +407,15 @@ class FileChecker(object):
 
         r = reindent.Reindenter(f)
         f.close()
-        if r.run():
-            success = False
-            logging.info("Reindenting %s", path)
-            f = open(path, "w")
-            r.write(f)
-            f.close()
+        try:
+            if r.run():
+                success = False
+                logging.info("Reindenting %s", path)
+                f = open(path, "w")
+                r.write(f)
+                f.close()
+        except:
+            pass
 
         if not success and path != self.path:
             shutil.copyfile(path, self.path)
