@@ -401,4 +401,3 @@ def v2v_cmd(params):
     logging.debug('%s' % cmd)
     cmd_result = utils.run(cmd, verbose=DEBUG)
     return cmd_result
-

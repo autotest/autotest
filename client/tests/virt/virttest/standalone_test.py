@@ -170,9 +170,9 @@ class Test(object):
                     logging.info("VM '%s' is alive.", vm.name)
                     for m in vm.monitors:
                         logging.info("It has a %s monitor unix socket at: %s",
-                                     vm.name, m.protocol, m.filename)
+                                     m.protocol, m.filename)
                     logging.info("The command line used to start it was:\n%s",
-                                 vm.name, vm.make_qemu_command())
+                                 vm.make_qemu_command())
                 raise error.JobError("Abort requested (%s)" % e)
 
         return test_passed
