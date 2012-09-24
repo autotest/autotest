@@ -1,12 +1,126 @@
 #!/usr/bin/python -u
 
-import os, sys, unittest, optparse
+import os, sys, unittest, optparse, fcntl
 try:
     import autotest.common as common
 except ImportError:
     import common
 from autotest.utils import parallel
 from autotest.client.shared.test_utils import unittest as custom_unittest
+
+
+class StreamProxy(object):
+    """
+    Mechanism to supress stdout output, while keeping the original stdout.
+    """
+
+    def __init__(self, filename='/dev/null', stream=sys.stdout):
+        """
+        Keep 2 streams to write to, and eventually switch.
+        """
+        self.terminal = stream
+        self.log = open(filename, "a")
+        self.stream = self.log
+
+    def write(self, message):
+        """
+        Write to the current stream.
+        """
+        self.stream.write(message)
+
+    def flush(self):
+        """
+        Flush the current stream.
+        """
+        self.stream.flush()
+
+    def switch(self):
+        """
+        Switch between the 2 currently available streams.
+        """
+        if self.stream == self.log:
+            self.stream = self.terminal
+        else:
+            self.stream = self.log
+
+
+def print_stdout(sr, end=True):
+    try:
+        sys.stdout.switch()
+    except AttributeError:
+        pass
+    if end:
+        print(sr)
+    else:
+        print(sr),
+    try:
+        sys.stdout.switch()
+    except AttributeError:
+        pass
+
+class Bcolors(object):
+    """
+    Very simple class with color support.
+    """
+
+    def __init__(self):
+        self.HEADER = '\033[94m'
+        self.PASS = '\033[92m'
+        self.SKIP = '\033[93m'
+        self.FAIL = '\033[91m'
+        self.ENDC = '\033[0m'
+        allowed_terms = ['linux', 'xterm', 'vt100']
+        term = os.environ.get("TERM")
+        if (not os.isatty(1)) or (not term in allowed_terms):
+            self.disable()
+
+    def disable(self):
+        self.HEADER = ''
+        self.PASS = ''
+        self.SKIP = ''
+        self.FAIL = ''
+        self.ENDC = ''
+
+# Instantiate bcolors to be used in the functions below.
+bcolors = Bcolors()
+
+
+def print_header(sr):
+    """
+    Print a string to stdout with HEADER (blue) color.
+    """
+    print_stdout(bcolors.HEADER + sr + bcolors.ENDC)
+
+
+def print_skip():
+    """
+    Print SKIP to stdout with SKIP (yellow) color.
+    """
+    print_stdout(bcolors.SKIP + "SKIP" + bcolors.ENDC)
+
+
+def print_pass(end=True):
+    """
+    Print PASS to stdout with PASS (green) color.
+    """
+    print_stdout(bcolors.PASS + "PASS" + bcolors.ENDC, end=end)
+
+
+def print_fail(end=True):
+    """
+    Print FAIL to stdout with FAIL (red) color.
+    """
+    print_stdout(bcolors.FAIL + "FAIL" + bcolors.ENDC, end=end)
+
+
+def silence_stderr():
+    out_fd = os.open('/dev/null', os.O_WRONLY | os.O_CREAT)
+    try:
+        os.dup2(out_fd, 2)
+    finally:
+        os.close(out_fd)
+    sys.stderr = os.fdopen(2, 'w')
+
 
 parser = optparse.OptionParser()
 parser.add_option("-r", action="store", type="string", dest="start",
@@ -88,20 +202,39 @@ def run_test(mod_names, options):
     @param options: optparse options.
     """
     if not options.debug:
-        parallel.redirect_io()
+        sys.stdout = StreamProxy(stream=sys.stdout)
+        silence_stderr()
+    else:
+        sys.stdout = StreamProxy(stream=sys.stdout)
 
-    print "Running %s" % '.'.join(mod_names)
-    mod = common.setup_modules.import_module(mod_names[-1],
-                                             '.'.join(mod_names[:-1]))
-    for ut_module in [unittest, custom_unittest]:
-        test = ut_module.defaultTestLoader.loadTestsFromModule(mod)
-        suite = ut_module.TestSuite(test)
-        runner = ut_module.TextTestRunner(verbosity=2)
-        result = runner.run(suite)
-        if result.errors or result.failures:
-            msg = '%s had %d failures and %d errors.'
-            msg %= '.'.join(mod_names), len(result.failures), len(result.errors)
-            raise TestFailure(msg)
+    test_name =  '.'.join(mod_names)
+    fail = False
+
+    try:
+        mod = common.setup_modules.import_module(mod_names[-1],
+                                                 '.'.join(mod_names[:-1]))
+        for ut_module in [unittest, custom_unittest]:
+            test = ut_module.defaultTestLoader.loadTestsFromModule(mod)
+            suite = ut_module.TestSuite(test)
+            runner = ut_module.TextTestRunner(verbosity=2)
+            result = runner.run(suite)
+            if result.errors or result.failures:
+                fail = True
+    except:
+        fail = True
+
+    lockfile = open('/var/tmp/unittest.lock', 'w')
+    fcntl.flock(lockfile, fcntl.LOCK_EX)
+    print_stdout(test_name + ":", end=False)
+    if fail:
+        print_fail()
+    else:
+        print_pass()
+    fcntl.flock(lockfile, fcntl.LOCK_UN)
+    lockfile.close()
+
+    if fail:
+        raise TestFailure("Test %s failed" % test_name)
 
 
 def scan_for_modules(start, options):
@@ -154,8 +287,7 @@ def find_and_run_tests(start, options):
     else:
         modules = scan_for_modules(start, options)
 
-    if options.debug:
-        print 'Number of test modules found:', len(modules)
+    print_header('Number of test modules found: %d' % len(modules))
 
     functions = {}
     for module_names in modules:

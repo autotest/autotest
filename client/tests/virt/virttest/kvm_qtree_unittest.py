@@ -8,8 +8,13 @@ This is a unittest for kvm_qtree library.
 __author__ = """Lukas Doktor (ldoktor@redhat.com)"""
 
 import unittest
+import sys
+import os
 import common
 from autotest.client.shared.test_utils import mock
+test_dir = os.path.abspath(os.path.dirname(os.path.dirname(sys.modules[__name__].__file__)))
+print test_dir
+sys.path.append(test_dir)
 from virttest import kvm_qtree
 
 OFFSET_PER_LEVEL = kvm_qtree.OFFSET_PER_LEVEL
