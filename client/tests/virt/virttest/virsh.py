@@ -38,7 +38,11 @@ _NOCLOSE = MODULE_CONTENTS.keys() + [
 ]
 
 # default virsh executable
-VIRSH_EXEC = os_dep.command("virsh")
+try:
+    VIRSH_EXEC = os_dep.command("virsh")
+except ValueError:
+    VIRSH_EXEC = None
+    logging.info("Command 'virsh' is not installed, please install it")
 
 # Virsh class properties and default values
 # Schema: {<name>:<default>}
@@ -97,6 +101,9 @@ class VirshBase(dict):
         """
         Initialize libvirt connection/state from VIRSH_PROPERTIES and/or dargs
         """
+        if VIRSH_EXEC is None:
+            raise ValueError("Command 'virsh' is not installed, "
+                             "please install it.")
         # Setup defaults, (calls properties)
         _dargs = VIRSH_PROPERTIES.copy()
         _dargs.update(dargs)
