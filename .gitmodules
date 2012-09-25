@@ -1,3 +1,6 @@
 [submodule "client/tests"]
 	path = client/tests
 	url = git://github.com/autotest/autotest-client-tests.git
+[submodule "server/tests"]
+	path = server/tests
+	url = git://github.com/autotest/autotest-server-tests.git
