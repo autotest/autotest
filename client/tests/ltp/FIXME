@@ -1,5 +1,0 @@
-The ksm tests were added to the skiplist because of a bug that was preventing
-the test run to finish.
-
-They must be re-enabled, that is, removed from skiplist as soon as that is
-fixed upstream.
