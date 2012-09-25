@@ -8,8 +8,9 @@ import time, string, random, socket, os, signal, re, logging, commands, cPickle
 import fcntl, shelve, ConfigParser, sys, UserDict, inspect, tarfile
 import struct, shutil, glob, HTMLParser, urllib, traceback, platform
 from autotest.client import utils, os_dep
-from autotest.client.shared import error, logging_config
+from autotest.client.shared import error, logging_config, openvswitch
 from autotest.client.shared import logging_manager, git
+
 
 try:
     import koji
@@ -25,6 +26,7 @@ if ARCH == "ppc64":
     SIOCSIFFLAGS   = 0x8914
     SIOCGIFINDEX   = 0x8933
     SIOCBRADDIF    = 0x89a2
+    SIOCBRDELIF    = 0x89a3
     # From linux/include/linux/if_tun.h
     TUNSETIFF      = 0x800454ca
     TUNGETIFF      = 0x400454d2
@@ -38,9 +40,10 @@ else:
     # From include/linux/sockios.h
     SIOCSIFHWADDR = 0x8924
     SIOCGIFHWADDR = 0x8927
-    SIOCSIFFLAGS = 0x8914
-    SIOCGIFINDEX = 0x8933
-    SIOCBRADDIF = 0x89a2
+    SIOCSIFFLAGS  = 0x8914
+    SIOCGIFINDEX  = 0x8933
+    SIOCBRADDIF   = 0x89a2
+    SIOCBRDELIF   = 0x89a3
     # From linux/include/linux/if_tun.h
     TUNSETIFF = 0x400454ca
     TUNGETIFF = 0x800454d2
@@ -50,6 +53,110 @@ else:
     IFF_VNET_HDR = 0x4000
     # From linux/include/linux/if.h
     IFF_UP = 0x1
+
+
+class Bridge(object):
+    def get_structure(self):
+        """
+        Get bridge list.
+        """
+        br_i = re.compile("^(\S+).*?(\S+)$", re.MULTILINE)
+        nbr_i = re.compile("^\s+(\S+)$", re.MULTILINE)
+        out_line = utils.run("brctl show", verbose=False).stdout.splitlines()
+        result = dict()
+        bridge = None
+        iface = None
+        for line in out_line[1:]:
+            try:
+                (tmpbr, iface) = br_i.findall(line)[0]
+                bridge = tmpbr
+                result[bridge] = []
+            except IndexError:
+                iface = nbr_i.findall(line)[0]
+
+            if iface:  # add interface to bridge
+                result[bridge].append(iface)
+
+        return result
+
+
+    def list_br(self):
+        return self.get_structure().keys()
+
+
+    def port_to_br(self, port_name):
+        """
+        Return bridge which contain port.
+
+        @param port_name: Name of port.
+        @return: Bridge name or None if there is no bridge which contain port.
+        """
+        bridge = None
+        for (br, ifaces) in self.get_structure().iteritems():
+            if port_name in ifaces:
+                bridge = br
+        return bridge
+
+
+    def _br_ioctl(self, io_cmd, brname, ifname):
+        ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+        index = if_nametoindex(ifname)
+        if index == 0:
+            raise TAPNotExistError(ifname)
+        ifr = struct.pack("16si", brname, index)
+        _ = fcntl.ioctl(ctrl_sock, io_cmd, ifr)
+        ctrl_sock.close()
+
+
+    def add_port(self, brname, ifname):
+        """
+        Add a device to bridge
+
+        @param ifname: Name of TAP device
+        @param brname: Name of the bridge
+        """
+        try:
+            self._br_ioctl(SIOCBRADDIF, brname, ifname)
+        except IOError, details:
+            raise BRAddIfError(ifname, brname, details)
+
+
+    def del_port(self, brname, ifname):
+        """
+        Remove a TAP device from bridge
+
+        @param ifname: Name of TAP device
+        @param brname: Name of the bridge
+        """
+        try:
+            self._br_ioctl(SIOCBRDELIF, brname, ifname)
+        except IOError, details:
+            raise BRDelIfError(ifname, brname, details)
+
+
+def __init_openvswitch(func):
+    """
+    Decorator used for late init of __ovs variable.
+    """
+    def wrap_init(*args, **kargs):
+        global __ovs
+        if __ovs is None:
+            try:
+                __ovs = openvswitch.OpenVSwitchSystem()
+                __ovs.init_system()
+                if (not __ovs.check()):
+                    raise Exception("Check of OpenVSwitch failed.")
+            except Exception, e:
+                logging.debug("System not support OpenVSwitch:")
+                logging.debug(e)
+
+        return func(*args, **kargs)
+    return wrap_init
+
+
+#Global variable for OpenVSwitch
+__ovs = None
+__bridge = Bridge()
 
 
 def lock_file(filename, mode=fcntl.LOCK_EX):
@@ -132,6 +239,74 @@ class BRAddIfError(NetError):
                 (self.ifname, self.brname, self.details))
 
 
+class BRDelIfError(NetError):
+    def __init__(self, ifname, brname, details):
+        NetError.__init__(self, ifname, brname, details)
+        self.ifname = ifname
+        self.brname = brname
+        self.details = details
+
+    def __str__(self):
+        return ("Can not del if %s to bridge %s: %s" %
+                (self.ifname, self.brname, self.details))
+
+
+class IfNotInBridgeError(NetError):
+    def __init__(self, ifname, details):
+        NetError.__init__(self, ifname, details)
+        self.ifname = ifname
+        self.details = details
+
+    def __str__(self):
+        return ("If %s in any bridge: %s" %
+                (self.ifname, self.details))
+
+
+class BRNotExistError(NetError):
+    def __init__(self, brname, details):
+        NetError.__init__(self, brname, details)
+        self.brname = brname
+        self.details = details
+
+    def __str__(self):
+        return ("Bridge %s not exists: %s" % (self.brname, self.details))
+
+
+class IfChangeBrError(NetError):
+    def __init__(self, ifname, old_brname, new_brname, details):
+        NetError.__init__(self, ifname, old_brname, new_brname, details)
+        self.ifname = ifname
+        self.new_brname = new_brname
+        self.old_brname = old_brname
+        self.details = details
+
+    def __str__(self):
+        return ("Can not change if %s from bridge %s to bridge %s: %s" %
+                (self.ifname, self.new_brname, self.oldbrname, self.details))
+
+
+class IfChangeAddrError(NetError):
+    def __init__(self, ifname, ipaddr, details):
+        NetError.__init__(self, ifname, ipaddr, details)
+        self.ifname = ifname
+        self.ipaddr = ipaddr
+        self.details = details
+
+    def __str__(self):
+        return ("Can not change if %s from bridge %s to bridge %s: %s" %
+                (self.ifname, self.ipaddr, self.details))
+
+
+class BRIpError(NetError):
+    def __init__(self, brname):
+        NetError.__init__(self, brname)
+        self.brname = brname
+
+    def __str__(self):
+        return ("Bridge %s doesn't have assigned any ip address. It is"
+                " impossible to start dnsmasq for this bridge." % (self.brname))
+
+
 class HwAddrSetError(NetError):
     def __init__(self, ifname, mac):
         NetError.__init__(self, ifname, mac)
@@ -151,10 +326,22 @@ class HwAddrGetError(NetError):
         return "Can not get mac of interface %s" % self.ifname
 
 
+class VlanError(NetError):
+    def __init__(self, ifname, details):
+        NetError.__init__(self, ifname, details)
+        self.ifname = ifname
+        self.details = details
+
+    def __str__(self):
+        return ("Vlan error on interface %s: %s" %
+                (self.ifname, self.details))
+
+
 class PropCanKeyError(KeyError, AttributeError):
     def __init__(self, key, slots):
         self.key = key
         self.slots = slots
+
     def __str__(self):
         return "Unsupported key name %s (supported keys: %s)" % (
                     str(self.key), str(self.slots))
@@ -532,7 +719,8 @@ class VirtIface(PropCan):
     Networking information for single guest interface and host connection.
     """
 
-    __slots__ = ['nic_name', 'mac', 'nic_model', 'ip', 'nettype', 'netdst']
+    __slots__ = ['nic_name', 'g_nic_name', 'mac', 'nic_model', 'ip',
+                 'nettype', 'netdst']
     # Make sure first byte generated is always zero and it follows
     # the class definition.  This helps provide more predictable
     # addressing while avoiding clashes between multiple NICs.
@@ -3825,23 +4013,266 @@ def open_tap(devname, ifname, vnet_hdr=True):
     return tapfd
 
 
-def add_to_bridge(ifname, brname):
+def is_virtual_network_dev(dev_name):
+    """
+    @param dev_name: Device name.
+
+    @return: True if dev_name is in virtual/net dir, else false.
+    """
+    if dev_name in os.listdir("/sys/devices/virtual/net/"):
+        return True
+    else:
+        return False
+
+
+def find_dnsmasq_listen_address():
+    """
+    Search all dnsmasq listen addresses.
+
+    @param bridge_name: Name of bridge.
+    @param bridge_ip: Bridge ip.
+    @return: List of ip where dnsmasq is listening.
+    """
+    cmd = "ps -Af | grep dnsmasq"
+    result = utils.run(cmd).stdout
+    return re.findall("--listen-address (.+?) ", result, re.MULTILINE)
+
+
+def local_runner(cmd, timeout=None):
+    return utils.run(cmd, verbose=False, timeout=timeout).stdout
+
+
+def local_runner_status(cmd, timeout=None):
+    return utils.run(cmd, verbose=False, timeout=timeout).exit_status
+
+
+def get_net_if(runner=None):
+    """
+    @param output: Output form ip link command.
+    @return: List of netowork interface
+    """
+    if runner is None:
+        runner = local_runner
+    cmd = "ip link"
+    result = runner(cmd)
+    return re.findall("^\d+: (\S+?)[@:].*$", result, re.MULTILINE)
+
+
+def get_net_if_addrs(if_name, runner=None):
+    """
+    Get network device ip addresses. ioctl not used because there is
+    incompatibility with ipv6.
+
+    @param if_name: Name of interface.
+    @return: List ip addresses of network interface.
+    """
+    if runner is None:
+        runner = local_runner
+    cmd = "ip addr show %s" % (if_name)
+    result = runner(cmd)
+    return {"ipv4": re.findall("inet (.+?)/..?", result, re.MULTILINE),
+            "ipv6": re.findall("inet6 (.+?)/...?", result, re.MULTILINE),
+            "mac": re.findall("link/ether (.+?) ", result, re.MULTILINE)}
+
+
+def get_net_if_and_addrs(runner=None):
+    """
+    @return: Dict of interfaces and their addresses {"ifname": addrs}.
+    """
+    ret = {}
+    ifs = get_net_if(runner)
+    for iface in ifs:
+        ret[iface] = get_net_if_addrs(iface, runner)
+    return ret
+
+
+def set_net_if_ip(if_name, ip_addr):
+    """
+    Get network device ip addresses. ioctl not used because there is
+    incompatibility with ipv6.
+
+    @param if_name: Name of interface.
+    @param ip_addr: Interface ip addr in format "ip_address/mask".
+    @raise: IfChangeAddrError.
+    """
+    cmd = "ip addr add %s dev %s" % (ip_addr, if_name)
+    try:
+        utils.run(cmd, verbose=False)
+    except error.CmdError, e:
+        raise IfChangeAddrError(if_name, ip_addr, e)
+
+
+def ipv6_from_mac_addr(mac_addr):
+    """
+    @return: Ipv6 address for communication in link range.
+    """
+    mp = mac_addr.split(":")
+    mp[0] = ("%x") % (int(mp[0], 16) ^ 0x2)
+    return "fe80::%s%s:%sff:fe%s:%s%s" % tuple(mp)
+
+
+def check_add_dnsmasq_to_br(br_name, tmpdir):
+    """
+    Add dnsmasq for bridge. dnsmasq could be added only if bridge
+    have assigned ip address.
+
+    @param bridge_name: Name of bridge.
+    @param bridge_ip: Bridge ip.
+    @param tmpdir: Tmp dir for save pid file and ip range file.
+    """
+    br_ips = get_net_if_addrs(br_name)["ipv4"]
+    if not br_ips:
+        raise BRIpError(br_name)
+    dnsmasq_listen = find_dnsmasq_listen_address()
+    dhcp_ip_start = br_ips[0].split(".")
+    dhcp_ip_start[3] = "128"
+    dhcp_ip_start = ".".join(dhcp_ip_start)
+
+    dhcp_ip_end = br_ips[0].split(".")
+    dhcp_ip_end[3] = "254"
+    dhcp_ip_end = ".".join(dhcp_ip_end)
+
+    pidfile = ("%s-dnsmasq.pid") % (br_ips[0])
+    leases = ("%s.leases") % (br_ips[0])
+
+    if not (set(br_ips) & set(dnsmasq_listen)):
+        logging.debug("There is no dnsmasq on br %s."
+                      "Starting new one." % (br_name))
+        utils.run("/usr/sbin/dnsmasq --strict-order --bind-interfaces"
+                  " --pid-file=%s --conf-file= --except-interface lo"
+                  " --listen-address %s --dhcp-range %s,%s --dhcp-leasefile=%s"
+                  " --dhcp-lease-max=127 --dhcp-no-override" %
+                  (os.path.join(tmpdir, pidfile), br_ips[0], dhcp_ip_start,
+                   dhcp_ip_end, (os.path.join(tmpdir, leases))))
+    return pidfile
+
+
+@__init_openvswitch
+def find_bridge_manager(br_name, ovs=None):
+    """
+    Finds bridge which contain interface iface_name.
+
+    @param iface_name: Name of interface.
+    @return: (br_manager) which contain bridge or None.
+    """
+    if ovs is None:
+        ovs = __ovs
+    # find ifname in standard linux bridge.
+    if br_name in __bridge.list_br():
+        return __bridge
+    elif br_name in ovs.list_br():
+        return ovs
+    else:
+        return None
+
+
+@__init_openvswitch
+def find_current_bridge(iface_name, ovs=None):
+    """
+    Finds bridge which contain interface iface_name.
+
+    @param iface_name: Name of interface.
+    @return: (br_manager, Bridge) which contain iface_name or None.
+    """
+    if ovs is None:
+        ovs = __ovs
+    # find ifname in standard linux bridge.
+    master = __bridge
+    bridge = master.port_to_br(iface_name)
+    if bridge is None:
+        master = ovs
+        bridge = master.port_to_br(iface_name)
+
+    if bridge is None:
+        master = None
+
+    return (master, bridge)
+
+
+@__init_openvswitch
+def change_iface_bridge(ifname, new_bridge, ovs=None):
+    """
+    Change bridge on which is port added.
+
+    @param ifname: Iface name or Iface struct.
+    @param new_bridge: Name of new bridge.
+    """
+    if ovs is None:
+        ovs = __ovs
+    br_manager_new = find_bridge_manager(new_bridge, ovs)
+    if br_manager_new is None:
+        raise BRNotExistError(new_bridge, "")
+
+    if type(ifname) is str:
+        (br_manager_old, br_old) = find_current_bridge(ifname, ovs)
+        if not br_manager_old is None:
+            br_manager_old.del_port(br_old, ifname)
+        br_manager_new.add_port(new_bridge, ifname)
+    elif issubclass(type(ifname), VirtIface):
+        br_manager_old = find_bridge_manager(ifname.netdst, ovs)
+        if not br_manager_old is None:
+            br_manager_old.del_port(ifname.netdst, ifname.ifname)
+        br_manager_new.add_port(new_bridge, ifname.ifname)
+        ifname.netdst = new_bridge
+    else:
+        raise error.AutotestError("Network interface %s is wrong type %s." %
+                                  (ifname, new_bridge))
+
+
+@__init_openvswitch
+def add_to_bridge(ifname, brname, ovs=None):
     """
     Add a TAP device to bridge
 
     @param ifname: Name of TAP device
     @param brname: Name of the bridge
+    @param ovs: OpenVSwitch object.
     """
-    ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-    index = if_nametoindex(ifname)
-    if index == 0:
-        raise TAPNotExistError(ifname)
-    ifr = struct.pack("16si", brname, index)
-    try:
-        fcntl.ioctl(ctrl_sock, SIOCBRADDIF, ifr)
-    except IOError, details:
-        raise BRAddIfError(ifname, brname, details)
-    ctrl_sock.close()
+    if ovs is None:
+        ovs = __ovs
+
+    _ifname = None
+    if type(ifname) is str:
+        _ifname = ifname
+    elif issubclass(type(ifname), VirtIface):
+        _ifname = ifname.ifname
+
+    if brname in __bridge.list_br():
+        #Try add port to standard bridge or openvswitch in compatible mode.
+        __bridge.add_port(brname, _ifname)
+        return
+
+    #Try add port to OpenVSwitch bridge.
+    if brname in ovs.list_br():
+        ovs.add_port(brname, ifname)
+
+
+@__init_openvswitch
+def del_from_bridge(ifname, brname, ovs=None):
+    """
+    Del a TAP device to bridge
+
+    @param ifname: Name of TAP device
+    @param brname: Name of the bridge
+    @param ovs: OpenVSwitch object.
+    """
+    if ovs is None:
+        ovs = __ovs
+
+    _ifname = None
+    if type(ifname) is str:
+        _ifname = ifname
+    elif issubclass(type(ifname), VirtIface):
+        _ifname = ifname.ifname
+
+    if brname in __bridge.list_br():
+        #Try add port to standard bridge or openvswitch in compatible mode.
+        __bridge.del_port(brname, _ifname)
+        return
+
+    #Try add port to OpenVSwitch bridge.
+    if brname in ovs.list_br():
+        ovs.del_port(brname, _ifname)
 
 
 def bring_up_ifname(ifname):
@@ -3852,6 +4283,21 @@ def bring_up_ifname(ifname):
     """
     ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
     ifr = struct.pack("16sh", ifname, IFF_UP)
+    try:
+        fcntl.ioctl(ctrl_sock, SIOCSIFFLAGS, ifr)
+    except IOError:
+        raise TAPBringUpError(ifname)
+    ctrl_sock.close()
+
+
+def bring_down_ifname(ifname):
+    """
+    Bring up an interface
+
+    @param ifname: Name of the interface
+    """
+    ctrl_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+    ifr = struct.pack("16sh", ifname, 0)
     try:
         fcntl.ioctl(ctrl_sock, SIOCSIFFLAGS, ifr)
     except IOError:

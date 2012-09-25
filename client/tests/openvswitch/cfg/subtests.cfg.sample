@@ -1,0 +1,32 @@
+# Copy this file to subtests.cfg and edit it.
+#
+# Subtests
+
+variants:
+    - ovs_basic:
+        type = ovs_basic
+        vms = "vm1 vm2 vm3 vm4"
+        cpumodel= "core2duo"
+        #vms = ""
+        nics = "nic1 nic2"
+        netdst_nic2 = ""
+        extra_params += " -snapshot"
+        kill_vm = "yes"
+        kill_vm_gracefully = "no"
+        bridge_ip = "192.168.250.1/24"
+        kill_vm_timeout = 0
+        kill_vm_timeout_on_error = 0
+        variants:
+            -ping:
+                test_type = ping
+                ping_count = 10
+            -vlan_ping:
+                test_type = vlan_ping
+                ping_count = 10
+            -iperf:
+                test_type = iperf
+
+    - ovs_module:
+        type = ovs_module
+        vms = ""
+        mod_loaditer = "100"

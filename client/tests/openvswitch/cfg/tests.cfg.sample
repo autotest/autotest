@@ -1,0 +1,21 @@
+# Copy this file to tests.cfg and edit it.
+#
+# This file contains the test set definitions. Define your test sets here.
+
+# Include the base config files.
+include tests-shared.cfg
+
+
+qemu_binary = /usr/bin/qemu-kvm
+qemu_img_binary = /usr/bin/qemu-img
+qemu_io_binary = /usr/bin/qemu-io
+only qcow2
+only virtio_net
+only virtio_blk
+only smp2
+only no_9p_export
+only no_pci_assignable
+only smallpages
+only Fedora.17.64
+
+#only ovs_basic.vlan_ping
