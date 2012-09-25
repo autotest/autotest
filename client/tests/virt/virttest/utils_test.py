@@ -1455,11 +1455,12 @@ def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
     """
     if sub_type is None:
         raise error.TestError("No sub test is found")
-    virt_dir = os.path.dirname(utils_misc.__file__)
+    virt_dir = os.path.dirname(test.virtdir)
     subtest_dir_virt = os.path.join(virt_dir, "tests")
-    subtest_dir_kvm = os.path.join(test.bindir, "tests")
+    subtest_dir_specific = os.path.join(test.bindir, params.get('vm_type'),
+                                        "tests")
     subtest_dir = None
-    for d in [subtest_dir_kvm, subtest_dir_virt]:
+    for d in [subtest_dir_specific, subtest_dir_virt]:
         module_path = os.path.join(d, "%s.py" % sub_type)
         if os.path.isfile(module_path):
             subtest_dir = d
@@ -1467,7 +1468,7 @@ def run_virt_sub_test(test, params, env, sub_type=None, tag=None):
     if subtest_dir is None:
         raise error.TestError("Could not find test file %s.py "
                               "on either %s or %s directory" % (sub_type,
-                              subtest_dir_kvm, subtest_dir_virt))
+                              subtest_dir_specific, subtest_dir_virt))
 
     f, p, d = imp.find_module(sub_type, [subtest_dir])
     test_module = imp.load_module(sub_type, f, p, d)
