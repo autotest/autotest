@@ -1,9 +1,11 @@
-import os, re, sys, pwd, time, socket, getpass
+import os, sys, time
 import inspect, new, logging, string, tempfile
 
-from autotest.cli import topic_common, action_common
 from autotest.cli import job
 from autotest.client.shared import logging_config
+
+virt_test_dir = "/usr/local/autotest/client/tests/virt"
+sys.path.insert(0, virt_test_dir)
 from autotest.client.tests.virt.virttest import utils_misc
 
 logging_config.LoggingConfig().configure_logging(verbose=True)
