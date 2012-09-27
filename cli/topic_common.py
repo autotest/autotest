@@ -55,10 +55,8 @@ High Level Algorithm:
    atest.print_*() methods.
 """
 
-import getpass, optparse, os, pwd, re, socket, sys, textwrap, traceback
-import socket, string, urllib2
+import optparse, os, re, sys, textwrap, traceback, urllib2
 from autotest.cli import rpc
-from autotest.frontend.afe.json_rpc import proxy
 from autotest.client.shared.test_utils import mock
 
 
