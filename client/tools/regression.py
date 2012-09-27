@@ -48,7 +48,7 @@ def get_test_keyval(jobid, keyname, default=''):
     except:
         return default
 
-class Sample():
+class Sample(object):
     """ Collect test results in same environment to a sample """
     def __init__(self, type, arg):
         def generate_raw_table(test_dict):
