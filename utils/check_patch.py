@@ -362,7 +362,8 @@ class FileChecker(object):
 
         self.corrective_actions = []
 
-        self.indent_exception = 'cli/job_unittest.py'
+        self.indent_exceptions = ['cli/job_unittest.py']
+        self.check_exceptions = ['client/tests/virt/kvm/tests/stepmaker.py']
 
         if self.is_python:
             logging.debug("Checking file %s",
@@ -395,8 +396,9 @@ class FileChecker(object):
         And will automatically correct problems.
         """
         success = True
-        if re.search (self.indent_exception, self.path):
-            return success
+        for exc in self.indent_exceptions:
+            if re.search (exc, self.path):
+                return success
 
         path = self._get_checked_filename()
         try:
@@ -432,6 +434,10 @@ class FileChecker(object):
         reported might be false positive, but it's allways good to look at them.
         """
         success = True
+        for exc in self.check_exceptions:
+            if re.search (exc, self.path):
+                return success
+
         path = self._get_checked_filename()
 
         if run_pylint.check_file(path):
