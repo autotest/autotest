@@ -85,7 +85,7 @@ class TestPackage(unittest.TestCase):
         a_cmd = 'dpkg -f ' + input_package + ' Architecture 2>/dev/null'
         v_cmd = 'dpkg -f ' + input_package + ' Package 2>/dev/null'
         utils.system_output.expect_call(v_cmd).and_return(ver)
-        i_cmd = 'dpkg -s ' + ver + ' 2>/dev/null'
+        i_cmd = 'dpkg -s ' + ver + ' 2>&1'
         package_info['system_support'] = True
         utils.system_output.expect_call(v_cmd).and_return(ver)
         package_info['version'] = ver
