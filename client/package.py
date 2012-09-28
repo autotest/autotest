@@ -130,14 +130,14 @@ def _dpkg_info(dpkg_package):
         # i_cmd - Command to determiine if package is installed
         a_cmd = 'dpkg -f ' + dpkg_package + ' Architecture 2>/dev/null'
         v_cmd = 'dpkg -f ' + dpkg_package + ' Package 2>/dev/null'
-        i_cmd = 'dpkg -s ' + utils.system_output(v_cmd) + ' 2>/dev/null'
+        i_cmd = 'dpkg -s ' + utils.system_output(v_cmd) + ' 2>&1'
 
         package_info['system_support'] = True
         package_info['version'] = utils.system_output(v_cmd)
         package_info['arch'] = utils.system_output(a_cmd)
         # Checking if package is installed
         package_status = utils.system_output(i_cmd, ignore_status=True)
-        not_inst_pattern = re.compile('not-installed', re.IGNORECASE)
+        not_inst_pattern = re.compile('not[ -]installed', re.IGNORECASE)
         dpkg_not_installed = re.search(not_inst_pattern, package_status)
         if dpkg_not_installed:
             package_info['installed'] = False
