@@ -119,8 +119,6 @@ def get_disk_list(std_mounts_only=True, get_all_disks=False):
         if std_mounts_only and mstat < 0:
             continue
 
-        device_name = ''
-
         if not get_all_disks:
             # Was this partition mounted at all?
             if not mountpt:
@@ -128,13 +126,6 @@ def get_disk_list(std_mounts_only=True, get_all_disks=False):
                 # Ask the client where we should mount this partition
                 if not mountpt:
                     continue
-        else:
-            if partname[-1:].isdigit():
-                device_name = re.sub("\d", "", "/dev/%s" % partname)
-
-        if get_all_disks:
-            if not device_name:
-                continue
 
         # Looks like we have a valid disk drive, add it to the list
         hd_list.append({ 'device' : partname,
