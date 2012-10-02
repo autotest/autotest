@@ -48,35 +48,35 @@ import logging
 from autotest.client.shared import ElementTree
 
 # Also used by unittests
-TMPPFX='xml_utils_temp_'
-TMPSFX='.xml'
-EXSFX='_exception_retained'
+TMPPFX = 'xml_utils_temp_'
+TMPSFX = '.xml'
+EXSFX = '_exception_retained'
+ENCODING = "UTF-8"
 
 class TempXMLFile(file):
     """
     Temporary XML file auto-removed on instance del / module exit.
     """
 
-    def __init__(self, suffix=TMPSFX, prefix=TMPPFX, mode="wb+", buffer=1):
+    def __init__(self, suffix=TMPSFX, prefix=TMPPFX, mode="wb+", buffsz=1):
         """
         Initialize temporary XML file removed on instance destruction.
 
         param: suffix: temporary file's suffix
         param: prefix: temporary file's prefix
-        param: mode: file access mode
-        param: buffer: size of buffer in bytes, 1: line buffered
+        param: mode: second parameter to file()/open()
+        param: buffer: third parameter to file()/open()
         """
-        fd,path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
+        fd, path = tempfile.mkstemp(suffix=suffix, prefix=prefix)
         os.close(fd)
-        super(TempXMLFile, self).__init__(path, mode, buffer)
+        super(TempXMLFile, self).__init__(path, mode, buffsz)
 
 
     def _info(self):
         """
         Inform user that file was not auto-deleted due to exceptional exit.
         """
-        logging.info("Retaining backup of %s in %s", self.sourcefilename,
-                                                     self.name + EXSFX)
+        logging.info("Retaining %s", self.name + EXSFX)
 
 
     def unlink(self):
@@ -105,7 +105,7 @@ class TempXMLFile(file):
         """
         unlink temporary file on instance delete.
         """
-
+        self.close()
         self.unlink()
 
 
@@ -128,8 +128,17 @@ class XMLBackup(TempXMLFile):
 
 
     def __del__(self):
+        # Drop reference, don't delete source!
         self.sourcefilename = None
         super(XMLBackup, self).__del__()
+
+
+    def _info(self):
+        """
+        Inform user that file was not auto-deleted due to exceptional exit.
+        """
+        logging.info("Retaining backup of %s in %s", self.sourcefilename,
+                                                     self.name + EXSFX)
 
 
     def backup(self):
@@ -139,7 +148,8 @@ class XMLBackup(TempXMLFile):
 
         self.flush()
         self.seek(0)
-        shutil.copyfileobj(file(self.sourcefilename, "rb"), super(XMLBackup,self))
+        shutil.copyfileobj(file(self.sourcefilename, "rb"),
+                           super(XMLBackup, self))
         self.seek(0)
 
 
@@ -150,7 +160,8 @@ class XMLBackup(TempXMLFile):
 
         self.flush()
         self.seek(0)
-        shutil.copyfileobj(super(XMLBackup,self), file(self.sourcefilename, "wb+"))
+        shutil.copyfileobj(super(XMLBackup, self),
+                           file(self.sourcefilename, "wb+"))
         self.seek(0)
 
 
@@ -175,8 +186,9 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         # to hold the original content.
         try:
             # Test if xml is a valid filename
-            self.sourcebackupfile = open(xml, "rb")
+            self.sourcebackupfile = file(xml, "rb")
             self.sourcebackupfile.close()
+            # XMLBackup init will take care of creating a copy
         except (IOError, OSError):
             # Assume xml is a string that needs a temporary source file
             self.sourcebackupfile = TempXMLFile()
@@ -190,6 +202,11 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
         self.write()
         self.flush() # make sure it's on-disk
 
+
+    def __str__(self):
+        self.write()
+        self.flush()
+        return self.sourcebackupfile.read()
 
     def backup_copy(self):
         """Return a copy of instance, including copies of files"""
@@ -219,6 +236,30 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
             return None
 
 
+    def get_xpath(self, element):
+        """Return the XPath string formed from first-match tag names"""
+        parent_map = self.get_parent_map()
+        root = self.getroot()
+        assert root in parent_map.values()
+        if element == root:
+            return '.'
+        # List of strings reversed at end
+        path_list = []
+        while element != root:
+            # 2.7+ ElementPath supports predicates, so:
+            # element_index = list(parent_map[element]).index(element)
+            # element_index += 1 # XPath indexes are 1 based
+            # if element_index > 1:
+            #     path_list.append(u"%s[%d]" % (element.tag, element_index))
+            # else:
+            #     path_list.append(u"%s" % element.tag)
+            path_list.append(u"%s" % element.tag)
+            element = parent_map[element]
+        assert element == root
+        path_list.reverse()
+        return "/".join(path_list)
+
+
     def remove(self, element):
         """
         Removes a matching subelement.
@@ -234,16 +275,18 @@ class XMLTreeFile(ElementTree.ElementTree, XMLBackup):
 
         @param: xpath: element name or path to remove
         """
-        self.remove(self.find(xpath))
+        self.remove(self.find(xpath)) # can't remove root
 
 
-    def write(self, filename=None, encoding="UTF-8"):
+    # This overrides the file.write() method
+    def write(self, filename=None, encoding=ENCODING):
         """
         Write current XML tree to filename, or self.name if None.
         """
 
         if filename is None:
             filename = self.name
+        # Avoid calling file.write() by mistake
         ElementTree.ElementTree.write(self, filename, encoding)
 
 
@@ -310,15 +353,17 @@ class TemplateXML(XMLTreeFile):
         # XMLBase.__init__ calls self.write() after super init
 
 
-    def parse(self, source):
+    def parse(self, source, parser=None):
         """
         Parse source XML file or filename using TemplateXMLTreeBuilder
 
         @param: source: XML file or filename
         @param: parser: ignored
         """
-
-        return super(TemplateXML, self).parse(source, self.parser)
+        if parser is None:
+            return super(TemplateXML, self).parse(source, self.parser)
+        else:
+            return super(TemplateXML, self).parse(source, parser)
 
 
     def restore(self):

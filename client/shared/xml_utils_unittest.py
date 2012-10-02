@@ -60,12 +60,29 @@ class xml_test_data(unittest.TestCase):
         if len(leftovers) > 0:
             self.fail('Leftover files: %s' % str(leftovers))
 
+
     def canonicalize_test_xml(self):
         et = ElementTree.parse(self.XMLFILE)
         et.write(self.XMLFILE, encoding="UTF-8")
         f = file(self.XMLFILE)
         self.XMLSTR = f.read()
         f.close()
+
+
+    def is_same_contents(self, filename, other=None):
+        """Compare filename contents with XMLSTR, or contents of other"""
+        try:
+            f = file(filename, "rb")
+            s = f.read()
+        except (IOError, OSError):
+            logging.warning("File %s does not exist" % filename)
+            return False
+        if other is None:
+            return s == self.XMLSTR
+        else:
+            other_f = file(other, "rb")
+            other_s = other_f.read()
+            return s == other_s
 
 
 class test_ElementTree(xml_test_data):
@@ -88,7 +105,6 @@ class test_TempXMLFile(xml_test_data):
         tmpf.seek(0)
         stuff = tmpf.read()
         self.assertEqual(stuff, self.XMLSTR)
-        del tmpf
 
 
     def test_TempXMLFile_implicit(self):
@@ -110,22 +126,6 @@ class test_TempXMLFile(xml_test_data):
 class test_XMLBackup(xml_test_data):
 
     class_to_test = xml_utils.XMLBackup
-
-
-    def is_same_contents(self, filename, other=None):
-        try:
-            f = file(filename, "rb")
-            s = f.read()
-        except (IOError, OSError):
-            logging.warning("File %s does not exist" % filename)
-            return False
-        if other is None:
-            return s == self.XMLSTR
-        else:
-            other_f = file(other, "rb")
-            other_s = other_f.read()
-            return s == other_s
-
 
     def test_backup_filename(self):
         xmlbackup = self.class_to_test(self.XMLFILE)
@@ -245,8 +245,6 @@ class test_XMLTreeFile(test_XMLBackup):
         self.assertFalse(self.is_same_contents(bu_tmps.name, tmps.name))
         self.assertTrue(self.is_same_contents(bu_tmpf.name, bu_tmps.name))
         self.assertFalse(self.is_same_contents(tmpf.name, tmps.name))
-        del bu_tmpf
-        del bu_tmps
 
 
     def test_write_default(self):
@@ -295,6 +293,22 @@ class test_XMLTreeFile(test_XMLBackup):
         self.assertFalse(self.is_same_contents(otherfile.name))
         self.canonicalize_test_xml()
         self.assertTrue(self.is_same_contents(otherfile.name))
+
+
+    def get_xpath_elements(self, target_path_string):
+        xmlbackup = self.class_to_test(self.XMLSTR)
+        target_element = xmlbackup.find(target_path_string)
+        test_path_string = xmlbackup.get_xpath(target_element)
+        test_element = xmlbackup.find(test_path_string)
+        return (target_element, test_element)
+
+
+    def test_get_xpath(self):
+        # 2.6 ElementPath doesn't support predicates as in 2.7 :(
+        # (it blindly returns the first match)
+        self.assertEqual(*self.get_xpath_elements('guest/arch/wordsize'))
+        self.assertEqual(*self.get_xpath_elements('guest/arch/machine'))
+        self.assertEqual(*self.get_xpath_elements('host/cpu/arch'))
 
 
 class test_templatized_xml(xml_test_data):
