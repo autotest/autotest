@@ -23,8 +23,8 @@ try:
     warnings.filterwarnings('ignore', 'logging module already imported')
     atfork.stdlib_fixer.fix_logging_module()
 except ImportError, e:
-    from autotest.client.shared import global_config
-    if global_config.global_config.get_config_value(
+    from autotest.client.shared.global_config import global_config
+    if global_config.get_config_value(
             'AUTOSERV', 'require_atfork_module', type=bool, default=False):
         print >>sys.stderr, 'Please run utils/build_externals.py'
         print e
