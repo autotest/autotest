@@ -27,7 +27,7 @@ def create_host(
     elif SSH_ENGINE == 'raw_ssh':
         classes = [ssh_host.SSHHost, ssh_host.AsyncSSHMixin]
     else:
-        raise error.AutoServError("Unknown SSH engine %s. Please verify the "
+        raise error.AutoservError("Unknown SSH engine %s. Please verify the "
                                   "value of the configuration key 'ssh_engine' "
                                   "on autotest's global_config.ini file." %
                                   SSH_ENGINE)
