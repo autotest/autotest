@@ -77,11 +77,11 @@ class _sysinfo_logger(object):
         self.host = None
         self.autotest = None
         self.outputdir = None
+        self.disable_hooks = False
 
         if len(job.machines) != 1:
             # disable logging on multi-machine tests
-            self.before_hook = self.after_hook = None
-            self.before_iteration_hook = self.after_iteration_hook = None
+            self.disable_hooks = True
 
 
     def _install(self):
@@ -157,53 +157,57 @@ class _sysinfo_logger(object):
     @log.log_and_ignore_errors("pre-test server sysinfo error:")
     @install_autotest_and_run
     def before_hook(self, mytest, host, at, outputdir):
-        # run the pre-test sysinfo script
-        at.run(_sysinfo_before_test_script % outputdir,
-               results_dir=self.job.resultdir)
+        if not self.disable_hooks:
+            # run the pre-test sysinfo script
+            at.run(_sysinfo_before_test_script % outputdir,
+                   results_dir=self.job.resultdir)
 
-        self._pull_pickle(host, outputdir)
+            self._pull_pickle(host, outputdir)
 
 
     @log.log_and_ignore_errors("pre-test iteration server sysinfo error:")
     @install_autotest_and_run
     def before_iteration_hook(self, mytest, host, at, outputdir):
-        # this function is called after before_hook() se we have sysinfo state
-        # to push to the server
-        self._push_pickle(host, outputdir);
-        # run the pre-test iteration sysinfo script
-        at.run(_sysinfo_iteration_script %
-               (outputdir, 'log_before_each_iteration', mytest.iteration,
-                'before'),
-               results_dir=self.job.resultdir)
+        if not self.disable_hooks:
+            # this function is called after before_hook() se we have sysinfo state
+            # to push to the server
+            self._push_pickle(host, outputdir);
+            # run the pre-test iteration sysinfo script
+            at.run(_sysinfo_iteration_script %
+                   (outputdir, 'log_before_each_iteration', mytest.iteration,
+                    'before'),
+                   results_dir=self.job.resultdir)
 
-        # get the new sysinfo state from the client
-        self._pull_pickle(host, outputdir)
+            # get the new sysinfo state from the client
+            self._pull_pickle(host, outputdir)
 
 
     @log.log_and_ignore_errors("post-test iteration server sysinfo error:")
     @install_autotest_and_run
     def after_iteration_hook(self, mytest, host, at, outputdir):
-        # push latest sysinfo state to the client
-        self._push_pickle(host, outputdir);
-        # run the post-test iteration sysinfo script
-        at.run(_sysinfo_iteration_script %
-               (outputdir, 'log_after_each_iteration', mytest.iteration,
-                'after'),
-               results_dir=self.job.resultdir)
+        if not self.disable_hooks:
+            # push latest sysinfo state to the client
+            self._push_pickle(host, outputdir);
+            # run the post-test iteration sysinfo script
+            at.run(_sysinfo_iteration_script %
+                   (outputdir, 'log_after_each_iteration', mytest.iteration,
+                    'after'),
+                   results_dir=self.job.resultdir)
 
-        # get the new sysinfo state from the client
-        self._pull_pickle(host, outputdir)
+            # get the new sysinfo state from the client
+            self._pull_pickle(host, outputdir)
 
 
     @log.log_and_ignore_errors("post-test server sysinfo error:")
     @install_autotest_and_run
     def after_hook(self, mytest, host, at, outputdir):
-        self._push_pickle(host, outputdir);
-        # run the post-test sysinfo script
-        at.run(_sysinfo_after_test_script % outputdir,
-               results_dir=self.job.resultdir)
+        if not self.disable_hooks:
+            self._push_pickle(host, outputdir);
+            # run the post-test sysinfo script
+            at.run(_sysinfo_after_test_script % outputdir,
+                   results_dir=self.job.resultdir)
 
-        self._pull_sysinfo_keyval(host, outputdir, mytest)
+            self._pull_sysinfo_keyval(host, outputdir, mytest)
 
 
     def cleanup(self, host_close=True):
