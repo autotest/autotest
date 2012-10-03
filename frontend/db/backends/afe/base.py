@@ -16,6 +16,7 @@ class DatabaseOperations(MySQLOperations):
 
 class DatabaseWrapper(MySQLDatabaseWrapper):
     def __init__(self, *args, **kwargs):
+        self.connection = None
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
         self.creation = MySQLCreation(self)
         try:
