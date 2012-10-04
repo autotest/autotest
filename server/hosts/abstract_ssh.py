@@ -23,13 +23,13 @@ def _make_ssh_cmd_default(user="root", port=22, opts='', hosts_file='/dev/null',
 
 
 make_ssh_command = utils.import_site_function(
-    __file__, "autotest_remote_lib.server.hosts.site_host", "make_ssh_command",
+    __file__, "autotest.server.hosts.site_host", "make_ssh_command",
     _make_ssh_cmd_default)
 
 
 # import site specific Host class
 SiteHost = utils.import_site_class(
-    __file__, "autotest_remote_lib.server.hosts.site_host", "SiteHost",
+    __file__, "autotest.server.hosts.site_host", "SiteHost",
     remote.RemoteHost)
 
 
