@@ -135,7 +135,7 @@ class SerialHost(SiteHost):
         # even if the machine comes back up before it's called
         try:
             old_boot_id = self.get_boot_id()
-        except error.AutoservSSHTimeout:
+        except (error.AutoservSSHTimeout, error.AutoservError):
             old_boot_id = 'unknown boot_id prior to SerialHost.hardreset'
 
         def reboot():
