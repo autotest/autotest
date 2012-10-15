@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 import unittest
-import mail, email
+import mail
+from email import Message
 
 class test_data:
     mail_host = None
@@ -51,7 +52,7 @@ class mail_test(unittest.TestCase):
 
 
     def test_send_message(self):
-        message = email.Message.Message()
+        message = Message.Message()
         message["To"] = "you"
         message["Cc"] = "them"
         message["From"] = "me"
