@@ -895,7 +895,7 @@ def runtest(job, url, tag, args, dargs,
                                                         'test_dir',
                                                         default="")
         if bindir_config:
-            testdir_list.append(bindir_config)
+            testdir_list.extend(bindir_config.strip().split(','))
 
         bindir = None
         for t_dir in testdir_list:
