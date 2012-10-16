@@ -1077,7 +1077,13 @@ class client_logger(object):
         name, pkg_type = self.job.pkgmgr.parse_tarball_name(pkg_name)
         src_dirs = []
         if pkg_type == 'test':
-            for test_dir in ['site_tests', 'tests']:
+            test_dirs = ['site_tests', 'tests']
+            # if test_dir is defined in global config
+            # package the tests from there (if exists)
+            global_config_test_dirs = get_value('COMMON', 'test_dir', default="")
+            if global_config_test_dirs:
+                test_dirs = global_config_test_dirs.strip().split(',') + test_dirs 
+            for test_dir in test_dirs:                
                 src_dir = os.path.join(self.job.clientdir, test_dir, name)
                 if os.path.exists(src_dir):
                     src_dirs += [src_dir]
