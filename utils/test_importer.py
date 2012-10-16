@@ -221,6 +221,13 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
         __file__, 'autotest.utils.site_test_importer_attributes')
 
     for test in tests:
+        # if test path is not inside base test dir, the subsequent
+        # test load will fail so instead notify user right away
+        if not test.startswith(autotest_dir):
+            raise Exception('Test path ' +
+                            '%s not in %s, did you forget to use -z option?' %
+                            (test, autotest_dir))
+
         new_test = models.Test.objects.get_or_create(
                 path=test.replace(autotest_dir, '').lstrip('/'))[0]
         logging.info("Processing %s", new_test.path)
@@ -520,7 +527,7 @@ def main(argv):
                       help='Filename for list of test names that must match')
     parser.add_option('-z', '--autotest-dir', dest='autotest_dir',
                       default=os.path.join(os.path.dirname(__file__), '..'),
-                      help='Autotest directory root')
+                      help='Autotest directory root, or base test directory')
     options, args = parser.parse_args()
 
     logging_manager.configure_logging(TestImporterLoggingConfig(),
