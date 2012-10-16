@@ -33,6 +33,7 @@ pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'afe', 'templates')))
 pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'static')))
 pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'templates')))
 pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'tko', 'preconfigs')))
+pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'frontend.wsgi')))
 
 setup(name='autotest',
       description='Autotest test framework - rpc server',
