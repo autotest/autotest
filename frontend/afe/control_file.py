@@ -11,6 +11,7 @@ try:
 except ImportError:
     import common
 from autotest.frontend.afe import model_logic
+from autotest.client.shared import global_config
 import frontend.settings
 
 AUTOTEST_DIR = os.path.abspath(os.path.join(
@@ -157,7 +158,22 @@ def kernel_config_file(kernel, platform):
 
 
 def read_control_file(test):
-    control_file = open(os.path.join(AUTOTEST_DIR, test.path))
+    test_dirs = [AUTOTEST_DIR]
+    # if test_dir is defined in global config file
+    # try to fetch control file from there
+    global_config_test_dirs = (
+        global_config.global_config.get_config_value('COMMON',
+                                                     'test_dir',
+                                                     default=""))
+    if global_config_test_dirs:
+        test_dirs = global_config_test_dirs.strip().split(',') + test_dirs
+    control_file = None
+    for test_dir in test_dirs:
+        if os.path.isfile(os.path.join(test_dir, test.path)):
+            control_file = open(os.path.join(test_dir, test.path))
+            break
+    if not control_file:
+        raise Exception(test.path + ': test not found')
     control_contents = control_file.read()
     control_file.close()
     return control_contents
