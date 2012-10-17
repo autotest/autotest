@@ -193,11 +193,9 @@ class Sample(object):
                         (t, p) = stats.ttest_rel(sample1, sample2)
                     else:
                         (t, p) = stats.ttest_ind(sample1, sample2)
-                    flag = " "
-                    if p <= 0.05:
-                        flag = "+"
-                        if float(avg1) > float(avg2):
-                            flag = "-"
+                    flag = "+"
+                    if float(avg1) > float(avg2):
+                        flag = "-"
                     tmp.append(flag + "%.3f" % (1 - p ))
                 tmp = "|".join(tmp)
             ret.append(tmp)
