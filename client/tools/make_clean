@@ -1,45 +1,51 @@
 #!/usr/bin/python
-import os
+import os, sys
 
 def purge_src(top_dir):
     if not os.path.exists(top_dir):
         return
-    for dir in os.listdir(top_dir):
-        if dir.startswith('.'):
+    for subdir in os.listdir(top_dir):
+        if subdir.startswith('.'):
             continue
-        envfile = os.path.join(top_dir, dir, 'env')
+        envfile = os.path.join(top_dir, subdir, 'env')
         try:
             os.unlink(envfile)
             print "Cleaned environment file %s" % envfile
         except OSError:
             pass # ignore non-existing files
-        py = os.path.join (top_dir, dir, dir + '.py')
+        py = os.path.join (top_dir, subdir, subdir + '.py')
         if not os.path.exists(py):
             continue
         ret = os.system('grep -q "preserve_srcdir = " ' + py)
-        src_path = os.path.abspath(os.path.join('tests', dir, 'src'))
+        src_path = os.path.abspath(os.path.join('tests', subdir, 'src'))
         if not os.path.exists(src_path):
             continue
-        if ret:                 # This should have a replaceable src dir
+        if ret: # This should have a replaceable src subdir
             cmd = 'rm -rf ' + src_path
         else:
             cmd = 'cd %s; make clean > /dev/null 2>&1 ' % src_path
 
-        print 'Cleaning %s test dir' % dir
+        print 'Cleaning %s test dir' % subdir
         os.system(cmd)
 
-if os.path.isdir('tmp'):
-    os.system('cd tmp && ls -A | xargs rm -rf')
+if __name__ == '__main__':
+    tools_dir = os.path.abspath(os.path.dirname(sys.modules[__name__].__file__))
+    client_dir = os.path.dirname(tools_dir)
+    os.chdir(client_dir)
 
-for dir in ['site_tests', 'site_profilers', 'tests', 'profilers', 'deps', 'tests/virt']:
-    purge_src(dir)
+    if os.path.isdir('tmp'):
+        os.system('cd tmp && ls -A | xargs rm -rf')
 
-for filename in ['/tmp/address_pool', '/tmp/address_pool.lock',
-                '/tmp/kvm-autotest-vm-create.lock',
-                '/tmp/libvirt-autotest-vm-create.lock',
-                 '/tmp/mac_lock']:
-    try:
-        os.unlink(filename)
-        print "Cleaned temporary file %s" % filename
-    except OSError:
-        continue
+    for subdir in ['site_tests', 'site_profilers', 'tests', 'profilers', 'deps',
+                   'tests/virt']:
+        purge_src(subdir)
+
+    for filename in ['/tmp/address_pool', '/tmp/address_pool.lock',
+                     '/tmp/kvm-autotest-vm-create.lock',
+                     '/tmp/libvirt-autotest-vm-create.lock',
+                     '/tmp/mac_lock']:
+        try:
+            os.unlink(filename)
+            print "Cleaned temporary file %s" % filename
+        except OSError:
+            continue
