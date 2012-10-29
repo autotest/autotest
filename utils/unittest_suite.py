@@ -69,7 +69,7 @@ class Bcolors(object):
         self.SKIP = '\033[93m'
         self.FAIL = '\033[91m'
         self.ENDC = '\033[0m'
-        allowed_terms = ['linux', 'xterm', 'vt100']
+        allowed_terms = ['linux', 'xterm', 'xterm-256color', 'vt100']
         term = os.environ.get("TERM")
         if (not os.isatty(1)) or (not term in allowed_terms):
             self.disable()
