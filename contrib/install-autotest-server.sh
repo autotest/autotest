@@ -296,6 +296,9 @@ else
     git pull
 fi
 
+git submodule init
+git submodule update --recursive
+
 print_log "INFO" "Setting proper permissions for the autotest directory"
 chown -R autotest:autotest $ATHOME
 chmod 775 $ATHOME
