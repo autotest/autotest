@@ -26,7 +26,7 @@ class readprofile(profiler.profiler):
         utils.make('readprofile')
 
 
-    def initialize(self):
+    def initialize(self, **dargs):
         self.job.require_gcc()
 
         try:

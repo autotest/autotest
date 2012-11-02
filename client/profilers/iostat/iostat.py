@@ -9,7 +9,7 @@ from autotest.client.shared import utils, error
 class iostat(profiler.profiler):
     version = 2
 
-    def initialize(self, interval = 1, options = ''):
+    def initialize(self, interval = 1, options = '', **dargs):
         # Usage: iostat [ options... ] [ <interval> [ <count> ] ]
         # e.g, iostat -tmx 2
         self.interval = interval

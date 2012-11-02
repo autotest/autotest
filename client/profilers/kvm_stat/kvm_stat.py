@@ -17,7 +17,7 @@ class kvm_stat(profiler.profiler):
     test execution, redirecting its output to a file on the profile dir.
     """
     version = 1
-    def initialize(self):
+    def initialize(self, **dargs):
         """
         Gets path of kvm_stat and verifies if debugfs needs to be mounted.
         """

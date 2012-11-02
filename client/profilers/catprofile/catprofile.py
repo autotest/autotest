@@ -13,7 +13,7 @@ class catprofile(profiler.profiler):
 
     # filenames: list of filenames to cat
     def initialize(self, filenames = ['/proc/meminfo', '/proc/slabinfo'],
-                            outfile = 'monitor', interval = 1):
+                            outfile = 'monitor', interval = 1, **dargs):
         self.filenames = filenames
         self.outfile = outfile
         self.interval = interval

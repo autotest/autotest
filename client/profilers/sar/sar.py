@@ -17,7 +17,7 @@ class sar(profiler.profiler):
     """
     version = 1
 
-    def initialize(self, interval=1):
+    def initialize(self, interval=1, **dargs):
         """
         Set sar interval and verify what flags the installed sar supports.
 

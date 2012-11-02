@@ -29,7 +29,7 @@ class lockmeter(profiler.profiler):
         self.cmd = self.srcdir + '/lockstat'
 
 
-    def initialize(self):
+    def initialize(self, **dargs):
         self.job.require_gcc()
 
         if not os.path.exists('/proc/lockmeter'):

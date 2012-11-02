@@ -13,7 +13,7 @@ class cmdprofile(profiler.profiler):
 
 
     def initialize(self, cmds=['ps'], interval=60, outputfile='cmdprofile',
-                   outputfiles=None):
+                   outputfiles=None, **dargs):
 
         # do some basic sanity checking on the parameters
         if not outputfiles and not outputfile:

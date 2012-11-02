@@ -95,7 +95,7 @@ class oprofile(profiler.profiler):
         self._setup_oprofile()
 
 
-    def initialize(self, vmlinux=None, events=[], others=None, local=None):
+    def initialize(self, vmlinux=None, events=[], others=None, local=None, **dargs):
         self.job.require_gcc()
 
         if not vmlinux:

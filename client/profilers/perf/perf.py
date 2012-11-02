@@ -13,7 +13,7 @@ from autotest.client import profiler, os_dep, utils
 class perf(profiler.profiler):
     version = 1
 
-    def initialize(self, events=["cycles","instructions"], trace=False):
+    def initialize(self, events=["cycles","instructions"], trace=False, **dargs):
         if type(events) == str:
             self.events = [events]
         else:

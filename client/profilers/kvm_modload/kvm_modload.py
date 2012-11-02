@@ -14,7 +14,7 @@ class kvm_modload(profiler.profiler):
     version = 4
 
 
-    def initialize(self, interval=None, options=None):
+    def initialize(self, interval=None, options=None, **dargs):
         pass
 
 

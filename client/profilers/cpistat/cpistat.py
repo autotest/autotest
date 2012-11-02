@@ -10,7 +10,7 @@ from autotest.client import profiler
 class cpistat(profiler.profiler):
     version = 1
 
-    def initialize(self, interval = 1):
+    def initialize(self, interval = 1, **dargs):
         self.interval = interval
 
 
