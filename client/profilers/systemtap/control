@@ -1,0 +1,5 @@
+# You must provide a path to a systemtap script
+st_script = '/usr/share/systemtap/tapset/timestamp.stp'
+job.profilers.add('systemtap', stap_script_file=st_script)
+job.run_test('sleeptest', seconds=5)
+job.profilers.delete('systemtap')
