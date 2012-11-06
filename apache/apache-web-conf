@@ -1,0 +1,6 @@
+# Include files relevant to the web client code
+Include "autotest.d/afe-directives"
+Include "autotest.d/embedded-spreadsheet-directives"
+Include "autotest.d/embedded-tko-directives"
+Include "autotest.d/gwt-directives"
+Include "autotest.d/new-tko-directives"

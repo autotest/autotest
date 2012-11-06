@@ -1,26 +1,19 @@
-NameVirtualHost *
-<VirtualHost *>
-    DocumentRoot /usr/local/autotest/apache/www/
-    <Directory />
-        Options FollowSymLinks
-        AllowOverride None
-    </Directory>
-    <Directory /usr/local/autotest/apache/www/>
-        Options Indexes FollowSymLinks MultiViews
-        AllowOverride None
-        Order allow,deny
-        allow from all
-    </Directory>
+DocumentRoot /usr/local/autotest/apache/www
+RedirectMatch ^/$ /afe
 
+<IfVersion >= 2.4>
+   <Location />
+      Require all granted
+   </Location>
+</IfVersion>
+<IfVersion < 2.2.99>
+   <Location />
+      Order allow,deny
+      allow from all
+   </Location>
+</IfVersion>
 
-    ErrorLog /var/log/apache2/error.log
-    LogLevel warn
-
-    CustomLog /var/log/apache2/access.log combined
-    ServerSignature On
-
-    RedirectMatch ^/$ /afe
-
-    Include "/usr/local/autotest/apache/conf/all-directives"
-    
-</VirtualHost>
+# Include files relevant to the server code
+Include "autotest.d/django-directives"
+Include "autotest.d/cgi-directives"
+Include "autotest.d/tko-directives"
