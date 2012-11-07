@@ -31,10 +31,12 @@ GENERAL OPTIONS:
 
 INSTALLATION STEP SELECTION:
    -p      Only install packages
+   -n      Do not update autotest git repo. Useful if using a modified
+           local tree, usually when testing a modified version of this script
 EOF
 }
 
-while getopts "hu:d:p" OPTION
+while getopts "hpnu:d:" OPTION
 do
      case $OPTION in
          h)
@@ -49,6 +51,9 @@ do
              ;;
          p)
              INSTALL_PACKAGES_ONLY=1
+             ;;
+         n)
+             DONT_UPDATE_GIT=1
              ;;
          ?)
              usage
@@ -290,12 +295,15 @@ then
     git pull
     git checkout master
 else
-    print_log "INFO" "Updating autotest repo in $ATHOME"
-    cd $ATHOME
-    git checkout master
-    git pull
+    if [ -z $DONT_UPDATE_GIT ]; then
+       print_log "INFO" "Updating autotest repo in $ATHOME"
+       cd $ATHOME
+       git checkout master
+       git pull
+    fi
 fi
 
+cd $ATHOME
 git submodule init
 git submodule update --recursive
 
