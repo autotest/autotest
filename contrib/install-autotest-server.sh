@@ -476,8 +476,15 @@ else
 fi
 }
 
-setup_firewall() {
-[ -f /etc/sysconfig/iptables ] || return;
+setup_firewall_firewalld() {
+    echo "Opening firewall for http traffic" >> $LOG
+    echo "Opening firewall for http traffic"
+
+    $ATHOME/contrib/firewalld_add_service -s http
+    firewall-cmd --reload
+}
+
+setup_firewall_iptables() {
 if [ "$(grep -- '--dport 80 -j ACCEPT' /etc/sysconfig/iptables)" = "" ]
 then
     echo "Opening firewall for http traffic" >> $LOG
@@ -499,6 +506,17 @@ then
     fi
 fi
 }
+
+setup_firewall() {
+if [ -f /etc/sysconfig/iptables ]
+then
+   setup_firewall_iptables
+elif [ -x /usr/bin/firewall-cmd ]
+then
+   setup_firewall_firewalld
+fi
+}
+
 
 print_install_status() {
 if [ -x /etc/init.d/autotest ]
