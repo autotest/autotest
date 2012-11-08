@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+
+"""
+This tool adds a service to firewalld's permanent configuration
+
+We don't expect this tool be run, and thus firewalld to be present on a system
+that does not have quite recent software, such as Python 2.7
+"""
+
+import os
+import sys
+import logging
+import argparse
+import commands
+import xml.etree.ElementTree
+
+
+DEFAULT_ZONE_SRC_BASE_PATH = '/usr/lib/firewalld/zones'
+DEFAULT_ZONE_DST_BASE_PATH = '/etc/firewalld/zones'
+
+
+class ArgumentParser(argparse.ArgumentParser):
+    def __init__(self):
+        super(ArgumentParser, self).__init__(
+            description=("This tool adds a service to firewalld's permanent "
+                         "configuration"))
+
+        self.add_argument('-z', '--zone', default=self._get_default_zone(),
+                          help='Zone name, using default path')
+
+        self.add_argument('-s', '--service', default='http',
+                          help='Service name, default is "http"')
+
+
+    def _get_default_zone(self):
+        try:
+            s, o = commands.getstatusoutput('firewall-cmd --get-default-zone')
+            if s != 0:
+                return ''
+            else:
+                return o
+        except:
+            return ''
+
+
+class App(object):
+    def __init__(self):
+        self.argument_parser = ArgumentParser()
+        self.parsed_arguments = None
+
+
+    def get_src_file_from_zone(self, zone):
+        zone_filename = "%s.xml" % zone
+        return os.path.join(DEFAULT_ZONE_SRC_BASE_PATH,
+                            zone_filename)
+
+
+    def get_dst_file_from_zone(self, zone):
+        zone_filename = "%s.xml" % zone
+        return os.path.join(DEFAULT_ZONE_DST_BASE_PATH,
+                            zone_filename)
+
+
+    def is_service_enabled(self, path, service):
+        if not os.path.exists(path):
+            return False
+
+        tree = xml.etree.ElementTree.parse(path)
+        root = tree.getroot()
+
+        for child in root:
+            if child.tag == 'service':
+                if child.attrib['name'] == service:
+                    return True
+
+        return False
+
+
+    def add_service(self, zone, service):
+        src_file_path = self.get_src_file_from_zone(zone)
+        if not os.path.exists(src_file_path):
+            logging.error('Could not find default zone file: %s',
+                          src_file_path)
+            raise SystemExit
+
+        src_tree = xml.etree.ElementTree.parse(src_file_path)
+        src_root = src_tree.getroot()
+        dst_file_path = self.get_dst_file_from_zone(zone)
+
+        if self.is_service_enabled(dst_file_path, service):
+            return True
+
+        attrib = {'name': service}
+        new_service = xml.etree.ElementTree.SubElement(src_root,
+                                                       'service',
+                                                       attrib)
+        src_tree.write(dst_file_path)
+
+        # Now, double check the write was successfull
+        return self.is_service_enabled(dst_file_path, service)
+
+
+    def run(self):
+        self.parsed_arguments = self.argument_parser.parse_args()
+
+        if not self.parsed_arguments.zone:
+            logging.error("A zone name is a required argument")
+            raise SystemExit
+
+        if not self.parsed_arguments.service:
+            logging.error("A service name is a required argument")
+            raise SystemExit
+
+        result = self.add_service(self.parsed_arguments.zone,
+                                  self.parsed_arguments.service)
+        if result:
+            raise SystemExit(0)
+        else:
+            raise SystemExit(-1)
+
+
+if __name__ == '__main__':
+    app = App()
+    app.run()
