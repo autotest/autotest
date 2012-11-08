@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import os, sys
+import os, sys, shutil
 
 def purge_src(top_dir):
     if not os.path.exists(top_dir):
@@ -39,6 +39,9 @@ if __name__ == '__main__':
     for subdir in ['site_tests', 'site_profilers', 'tests', 'profilers', 'deps',
                    'tests/virt']:
         purge_src(subdir)
+
+    if os.path.isdir('/tmp/kvm_spawn'):
+        shutil.rmtree('/tmp/kvm_spawn', ignore_errors=True)
 
     for filename in ['/tmp/address_pool', '/tmp/address_pool.lock',
                      '/tmp/kvm-autotest-vm-create.lock',
