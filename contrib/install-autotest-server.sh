@@ -222,6 +222,7 @@ PACKAGES_ALL=( \
 )
 
 print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
+export DEBIAN_FRONTEND=noninteractive
 apt-get install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
 }
 
