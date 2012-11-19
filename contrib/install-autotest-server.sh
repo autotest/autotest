@@ -31,10 +31,12 @@ GENERAL OPTIONS:
 
 INSTALLATION STEP SELECTION:
    -p      Only install packages
+   -n      Do not update autotest git repo. Useful if using a modified
+           local tree, usually when testing a modified version of this script
 EOF
 }
 
-while getopts "hu:d:p" OPTION
+while getopts "hpnu:d:" OPTION
 do
      case $OPTION in
          h)
@@ -49,6 +51,9 @@ do
              ;;
          p)
              INSTALL_PACKAGES_ONLY=1
+             ;;
+         n)
+             DONT_UPDATE_GIT=1
              ;;
          ?)
              usage
@@ -179,7 +184,7 @@ install_packages_rh() {
 PACKAGES_UTILITY=(unzip wget)
 PACKAGES_WEBSERVER=(httpd mod_wsgi Django)
 PACKAGES_MYSQL=(mysql-server MySQL-python)
-PACKAGES_DEVELOPMENT=(git java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel)
+PACKAGES_DEVELOPMENT=(git java-devel)
 PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib python-atfork)
 PACKAGES_SELINUX=(selinux-policy selinux-policy-targeted policycoreutils-python)
 PACKAGES_ALL=( \
@@ -200,6 +205,16 @@ else
     print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
     yum install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
 fi
+
+# If both mod_wsgi and mod_python are installed, removed the latter
+rpm -q mod_python 1>/dev/null 2>&1
+if [ $? == 0 ]; then
+    rpm -q mod_wsgi 1>/dev/null 2>&1
+    if [ $? == 0 ]; then
+	print_log "INFO" "Removing mod_python because mod_wsgi is also installed"
+	yum -y remove mod_python >> $LOG 2>1&
+    fi
+fi
 }
 
 install_packages_deb() {
@@ -217,6 +232,7 @@ PACKAGES_ALL=( \
 )
 
 print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
+export DEBIAN_FRONTEND=noninteractive
 apt-get install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
 }
 
@@ -290,12 +306,15 @@ then
     git pull
     git checkout master
 else
-    print_log "INFO" "Updating autotest repo in $ATHOME"
-    cd $ATHOME
-    git checkout master
-    git pull
+    if [ -z $DONT_UPDATE_GIT ]; then
+       print_log "INFO" "Updating autotest repo in $ATHOME"
+       cd $ATHOME
+       git checkout master
+       git pull
+    fi
 fi
 
+cd $ATHOME
 git submodule init
 git submodule update --recursive
 
@@ -342,7 +361,10 @@ if [ ! -e  /etc/apache2/sites-enabled/001-autotest ]
 then
     /usr/local/bin/substitute "WSGISocketPrefix run/wsgi" "#WSGISocketPrefix run/wsgi" /usr/local/autotest/apache/conf/django-directives
     sudo rm /etc/apache2/sites-enabled/000-default
-    sudo ln -s /usr/local/autotest/apache/conf/apache-conf /etc/apache2/sites-enabled/001-autotest
+    sudo ln -s /etc/apache2/mods-available/version.load /etc/apache2/mods-enabled/
+    sudo ln -s /usr/local/autotest/apache/conf /etc/apache2/autotest.d
+    sudo ln -s /usr/local/autotest/apache/apache-conf /etc/apache2/sites-enabled/001-autotest
+    sudo ln -s /usr/local/autotest/apache/apache-web-conf /etc/apache2/sites-enabled/002-autotest
 fi
 a2enmod rewrite
 update-rc.d apache2 defaults
@@ -352,7 +374,11 @@ configure_webserver_rh() {
 print_log "INFO" "Configuring Web server"
 if [ ! -e  /etc/httpd/conf.d/autotest.conf ]
 then
-    ln -s /usr/local/autotest/apache/conf/all-directives /etc/httpd/conf.d/autotest.conf
+    # if for some reason, still running with mod_python, let it be parsed before the
+    # autotest config file, which has some directives to detect it
+    ln -s /usr/local/autotest/apache/conf /etc/httpd/autotest.d
+    ln -s /usr/local/autotest/apache/apache-conf /etc/httpd/conf.d/z_autotest.conf
+    ln -s /usr/local/autotest/apache/apache-web-conf /etc/httpd/conf.d/z_autotest-web.conf
 fi
 if [ -x /etc/init.d/httpd ]
 then
