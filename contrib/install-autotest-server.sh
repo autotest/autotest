@@ -201,6 +201,16 @@ else
     print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
     yum install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
 fi
+
+# If both mod_wsgi and mod_python are installed, removed the latter
+rpm -q mod_python 1>/dev/null 2>&1
+if [ $? == 0 ]; then
+    rpm -q mod_wsgi 1>/dev/null 2>&1
+    if [ $? == 0 ]; then
+	print_log "INFO" "Removing mod_python because mod_wsgi is also installed"
+	yum -y remove mod_python >> $LOG 2>1&
+    fi
+fi
 }
 
 setup_selinux() {
