@@ -298,8 +298,11 @@ configure_webserver() {
 print_log "INFO" "Configuring Web server"
 if [ ! -e  /etc/httpd/conf.d/autotest.conf ]
 then
-    ln -s /usr/local/autotest/apache/conf/all-directives /etc/httpd/conf.d/autotest.conf
-    service httpd configtest
+    # if for some reason, still running with mod_python, let it be parsed before the
+    # autotest config file, which has some directives to detect it
+    ln -s /usr/local/autotest/apache/conf /etc/httpd/autotest.d
+    ln -s /usr/local/autotest/apache/apache-conf /etc/httpd/conf.d/z_autotest.conf
+    ln -s /usr/local/autotest/apache/apache-web-conf /etc/httpd/conf.d/z_autotest-web.conf
 fi
 if [ -x /etc/init.d/httpd ]
 then

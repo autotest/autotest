@@ -10,9 +10,15 @@ RewriteCond /var/lib/autotest/results -d
 RewriteRule /results(.*) /var/lib/autotest/results/$1
 
 <Location "/results">
-    Options Indexes FollowSymLinks MultiViews
-    Order allow,deny
-    Allow from all
+    IndexHeadInsert "<img src='/afe/header.png'/><hr/>"
+    Options +Indexes +FollowSymLinks +MultiViews
+    <IfVersion >= 2.4>
+        Require all granted
+    </IfVersion>
+    <IfVersion <= 2.2.99>
+        Order allow,deny
+        Allow from all
+    </IfVersion>
 </Location>
 
 <LocationMatch "/results.*\.(log|DEBUG|INFO|WARNING|ERROR)$">
@@ -39,8 +45,14 @@ RewriteCond /usr/lib/python2.4/site-packages/autotest/tko -d
 RewriteRule /tko(.*) /usr/lib/python2.4/site-packages/autotest/tko/$1
 
 <Location "/tko">
-    Options ExecCGI Indexes MultiViews +SymLinksIfOwnerMatch
+    Options +ExecCGI +Indexes +MultiViews +SymLinksIfOwnerMatch
     DirectoryIndex compose_query.cgi
-    Order allow,deny
-    Allow from all
+    <IfVersion >= 2.4>
+        Require all granted
+    </IfVersion>
+    # Non existing version, safeguard against new 2.2 releases
+    <IfVersion <= 2.2.99>
+        Order allow,deny
+        Allow from all
+    </IfVersion>
 </Location>

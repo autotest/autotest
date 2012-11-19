@@ -1,46 +1,133 @@
-<IfModule !prefork.c>
-    # Django requires the prefork MPM, so just fail with this bogus directive
-    # if it's not loaded. See
-    # https://github.com/autotest/autotest/wiki/AutotestServerInstall for more info.
-    ERROR__DJANGO_REQUIRES_THE_PREFORK_MPM
+#
+# The following prevents a system from having installed and loaded on apache
+# both mod_python and mod_wsgi
+#
+<IfModule mod_wsgi.c>
+   <IfModule mod_python.c>
+      ERROR__EITHER_MOD_WSGI_XOR_MOD_PYTHON_SHOULD_BE_ACTIVE
+   </IfModule>
 </IfModule>
 
 #
-# Try to serve admin media files, no matter where django is actually installed
-# Covers python versions 2.4 through 2.7 and also django installed by utils/build_externals.py
+# Django, when running under mod_python, requires the prefork MPM, so just
+# fail with this bogus directive if it's not loaded. For more info see:
+# https://github.com/autotest/autotest/wiki/AutotestServerInstall
 #
+<IfModule !prefork.c>
+    <IfModule mod_python.c>
+       ERROR__DJANGO_REQUIRES_THE_PREFORK_MPM
+    </IfModule>
+</IfModule>
+
 RewriteEngine On
+
+#
+# Django < 1.4 installed by utils/build_externals.py
+#
 RewriteCond /usr/local/autotest/site-packages/django/contrib/admin/media -d
 RewriteRule /media/(css|img|js)(.*) /usr/local/autotest/site-packages/django/contrib/admin/media/$1/$2
+RewriteCond /usr/local/autotest/site-packages/django/contrib/admin/media -d
+RewriteRule /afe/server/admin/afe/(aclgroup|atomicgroup|host|label|profiler|test)/admin/(css|img|js)(.*) /usr/local/autotest/site-packages/django/contrib/admin/admin/$2/$3
 
-# Django 1.4 does change location of the admin css files
+#
+# Django >= 1.4 installed by utils/build_externals.py
+# Since it's not obvious: there's a change in the location of files
+#
 RewriteCond /usr/local/autotest/site-packages/django/contrib/admin/static/admin -d
 RewriteRule /media/(css|img|js)(.*) /usr/local/autotest/site-packages/django/contrib/admin/static/admin/$1/$2
+RewriteCond /usr/local/autotest/site-packages/django/contrib/admin/static/admin -d
+RewriteRule /afe/server/admin/afe/(aclgroup|atomicgroup|host|label|profiler|test)/admin/(css|img|js)(.*) /usr/local/autotest/site-packages/django/contrib/admin/static/admin/$2/$3
 
-RewriteCond /usr/lib/python2.4/site-packages/django/contrib/admin/media -d
-RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.4/site-packages/django/contrib/admin/media/$1/$2
-
-RewriteCond /usr/lib/python2.5/site-packages/django/contrib/admin/media -d
-RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.5/site-packages/django/contrib/admin/media/$1/$2
-
-RewriteCond /usr/lib/python2.6/site-packages/django/contrib/admin/media -d
-RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.6/site-packages/django/contrib/admin/media/$1/$2
-
-RewriteCond /usr/lib/python2.7/site-packages/django/contrib/admin/media -d
-RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/media/$1/$2
-
-# Django 1.4 does change location of the admin css files
+#
+# Python 2.7 and django >= 1.4 installed by distributions packages
+#
 RewriteCond /usr/lib/python2.7/site-packages/django/contrib/admin/static/admin -d
 RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/static/admin/$1/$2
+RewriteCond /usr/lib/python2.7/site-packages/django/contrib/admin/static/admin -d
+RewriteRule /afe/server/admin/afe/(aclgroup|atomicgroup|host|label|profiler|test)/admin/(css|img|js)(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/static/admin/$2/$3
 
-<Location ~ "/(afe|new_tko)/server">
-    SetHandler python-program
-    PythonHandler django.core.handlers.modpython
-    SetEnv DJANGO_SETTINGS_MODULE frontend.settings
-    PythonDebug On
-    # Force our own site-packages to be loaded by mod_python prior
-    # to mod_python's system python site-packages directory.
-    # This way our code can depend on library versions other than
-    # those available as packages on various OS distributions.
-    PythonPath "['/usr/local/autotest/site-packages', '/usr/local/autotest', '/usr/lib/python2.7/site-packages/autotest', '/usr/lib/python2.6/site-packages/autotest', '/usr/lib/python2.5/site-packages/autotest', '/usr/lib/python2.4/site-packages/autotest'] + sys.path"
-</Location>
+#
+# Python 2.7 and django < 1.4 installed by distributions packages
+#
+RewriteCond /usr/lib/python2.7/site-packages/django/contrib/admin/media -d
+RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/media/$1/$2
+RewriteCond /usr/lib/python2.7/site-packages/django/contrib/admin/media -d
+RewriteRule /afe/server/admin/afe/(aclgroup|atomicgroup|host|label|profiler|test)/admin/(css|img|js)(.*) /usr/lib/python2.7/site-packages/django/contrib/admin/admin/$2/$3
+
+#
+# Python 2.6 and django < 1.4 installed by distributions packages
+#
+RewriteCond /usr/lib/python2.6/site-packages/django/contrib/admin/media -d
+RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.6/site-packages/django/contrib/admin/media/$1/$2
+RewriteCond /usr/lib/python2.6/site-packages/django/contrib/admin/media -d
+RewriteRule /afe/server/admin/afe/(aclgroup|atomicgroup|host|label|profiler|test)/admin/(css|img|js)(.*) /usr/lib/python2.6/site-packages/django/contrib/admin/admin/$2/$3
+
+#
+# Python 2.5 and django < 1.4 installed by distributions packages
+#
+RewriteCond /usr/lib/python2.5/site-packages/django/contrib/admin/media -d
+RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.5/site-packages/django/contrib/admin/media/$1/$2
+RewriteCond /usr/lib/python2.5/site-packages/django/contrib/admin/media -d
+RewriteRule /afe/server/admin/afe/(aclgroup|atomicgroup|host|label|profiler|test)/admin/(css|img|js)(.*) /usr/lib/python2.5/site-packages/django/contrib/admin/admin/$2/$3
+
+#
+# Python 2.4 and django < 1.4 installed by distributions packages
+#
+RewriteCond /usr/lib/python2.4/site-packages/django/contrib/admin/media -d
+RewriteRule /media/(css|img|js)(.*) /usr/lib/python2.4/site-packages/django/contrib/admin/media/$1/$2
+RewriteCond /usr/lib/python2.4/site-packages/django/contrib/admin/media -d
+RewriteRule /afe/server/admin/afe/(aclgroup|atomicgroup|host|label|profiler|test)/admin/(css|img|js)(.*) /usr/lib/python2.4/site-packages/django/contrib/admin/admin/$2/$3
+
+#
+# Generic Python shared dir and django < 1.4 installed by Debian like packages
+#
+RewriteCond /usr/share/pyshared/django/contrib/admin/media -d
+RewriteRule /media/(css|img|js)(.*) /usr/share/pyshared/django/contrib/admin/media/$1/$2
+RewriteCond /usr/share/pyshared/django/contrib/admin/media -d
+RewriteRule /afe/server/admin/afe/(aclgroup|atomicgroup|host|label|profiler|test)/admin/(css|img|js)(.*) /usr/share/pyshared/django/contrib/admin/media$2/$3
+
+#
+# Configuration for mod_wsgi
+#
+<IfModule mod_wsgi.c>
+
+    RewriteCond /usr/local/autotest/frontend/frontend.wsgi -f
+    RewriteRule /(afe|new_tko)/server(.*) /usr/local/autotest/frontend/frontend.wsgi [H=wsgi-script]
+
+    RewriteCond /usr/lib/python2.7/site-packages/autotest/frontend/frontend.wsgi -f
+    RewriteRule /(afe|new_tko)/server(.*) /usr/lib/python2.7/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+
+    RewriteCond /usr/lib/python2.6/site-packages/autotest/frontend/frontend.wsgi -f
+    RewriteRule /(afe|new_tko)/server(.*) /usr/lib/python2.6/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+
+    RewriteCond /usr/lib/python2.5/site-packages/autotest/frontend/frontend.wsgi -f
+    RewriteRule /(afe|new_tko)/server(.*) /usr/lib/python2.5/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+
+    RewriteCond /usr/lib/python2.4/site-packages/autotest/frontend/frontend.wsgi -f
+    RewriteRule /(afe|new_tko)/server(.*) /usr/lib/python2.4/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+
+    <LocationMatch "/(afe|new_tko)/server(.*)">
+       Options +ExecCGI
+    </LocationMatch>
+
+    WSGISocketPrefix run/wsgi
+    WSGIDaemonProcess apache processes=10 threads=1
+    WSGIProcessGroup apache
+</IfModule>
+
+#
+# Configuration for mod_python
+#
+<IfModule mod_python.c>
+    <Location ~ "/(afe|new_tko)/server">
+        SetHandler python-program
+        PythonHandler django.core.handlers.modpython
+        SetEnv DJANGO_SETTINGS_MODULE frontend.settings
+        PythonDebug On
+        # Force our own site-packages to be loaded by mod_python prior to
+	# mod_python's system python site-packages directory.
+        # This way our code can depend on library versions other than
+        # those available as packages on various OS distributions.
+        PythonPath "['/usr/local/autotest/site-packages', '/usr/local/autotest', '/usr/lib/python2.7/site-packages/autotest', '/usr/lib/python2.6/site-packages/autotest', '/usr/lib/python2.5/site-packages/autotest', '/usr/lib/python2.4/site-packages/autotest'] + sys.path"
+    </Location>
+</IfModule>
