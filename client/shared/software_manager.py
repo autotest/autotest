@@ -398,7 +398,7 @@ class YumBackend(RpmBackend):
         self.cfgparser.set(section_name, 'url', url)
         self.cfgparser.set(section_name, 'enabled', 1)
         self.cfgparser.set(section_name, 'gpgcheck', 0)
-        self.cfgparser.write(self.repo_file_path)
+        self.cfgparser.write(open(self.repo_file_path, "w"))
 
 
     def remove_repo(self, url):
@@ -411,7 +411,7 @@ class YumBackend(RpmBackend):
             for option, value in self.cfgparser.items(section):
                 if option == 'url' and value == url:
                     self.cfgparser.remove_section(section)
-                    self.cfgparser.write(self.repo_file_path)
+                    self.cfgparser.write(open(self.repo_file_path, "w"))
 
 
     def upgrade(self):
