@@ -143,6 +143,9 @@ class LoggingFile(object):
     def flush(self):
         self._flush_buffer()
 
+    def isatty(self):
+        return False
+
 class SortingLoggingFile(LoggingFile):
     """
     File-like object that will recieve messages and pass them to the logging
