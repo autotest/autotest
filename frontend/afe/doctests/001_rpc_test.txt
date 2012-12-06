@@ -97,21 +97,39 @@ True
 
 # delete the lock_time field, since that can't be reliably checked
 >>> del data[0]['lock_time']
->>> data == [{'id': 1,
-...           'hostname': 'ipaj1',
-...           'locked': 1,
-...           'synch_id': None,
-...           'status': 'Ready',
-...           'labels': [],
-...           'atomic_group': None,
-...           'acls': ['Everyone'],
-...           'platform': None,
-...           'attributes': {},
-...           'invalid': 0,
-...           'protection': 'No protection',
-...           'locked_by': 'debug_user',
-...           'dirty': True}]
+>>> data[0]['id'] == 1
 True
+>>> data[0]['hostname'] == 'ipaj1'
+True
+>>> data[0]['locked'] == 1
+True
+>>> data[0]['synch_id'] == None
+True
+>>> data[0]['status'] == 'Ready'
+True
+>>> data[0]['labels'] == []
+True
+>>> data[0]['atomic_group'] == None
+True
+>>> data[0]['acls'] == ['Everyone']
+True
+>>> data[0]['platform'] == None
+True
+>>> data[0]['attributes'] == {}
+True
+>>> data[0]['invalid'] == False
+True
+>>> data[0]['protection'] == 'No protection'
+True
+>>> data[0]['locked_by'] == 'debug_user'
+True
+>>> data[0]['profiles'] == ['N/A']
+True
+>>> data[0]['current_profile'] == 'N/A'
+True
+>>> data[0]['dirty'] == True
+True
+
 >>> rpc_interface.modify_host('ipaj1', status='Hello')
 Traceback (most recent call last):
 ValidationError: {'status': 'Host status can not be modified by the frontend.'}
@@ -571,6 +589,7 @@ True
 ...  'atomic_group': None,
 ...  'aborted': False,
 ...  'started_on': None,
+...  'profile': '',
 ...  'full_status': 'Queued'})
 True
 >>> data[2] == (
@@ -586,6 +605,7 @@ True
 ...  'atomic_group': None,
 ...  'aborted': False,
 ...  'started_on': None,
+...  'profile': '',
 ...  'full_status': 'Queued'})
 True
 >>> rpc_interface.get_num_host_queue_entries(job=1)
