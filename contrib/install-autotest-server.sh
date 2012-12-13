@@ -478,7 +478,7 @@ setup_firewall_firewalld() {
     echo "Opening firewall for http traffic" >> $LOG
     echo "Opening firewall for http traffic"
 
-    $ATHOME/contrib/firewalld_add_service -s http
+    $ATHOME/installation_support/autotest-firewalld-add-service -s http
     firewall-cmd --reload
 }
 
