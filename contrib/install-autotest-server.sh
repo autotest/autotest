@@ -324,11 +324,12 @@ chmod 775 $ATHOME
 }
 
 check_mysql_password() {
-print_log "INFO" "Verifying MySQL root password"
+print_log "INFO" "Setting MySQL root password"
 mysqladmin -u root password $MYSQLPW > /dev/null 2>&1
 
-DB=$(echo "use autotest_web;" | mysql --user=root --password=$MYSQLPW 2>&1)
-if [ "$(echo $DB | grep 'Access denied')" != "" ]
+print_log "INFO" "Verifying MySQL root password"
+$ATHOME/installation_support/autotest-database-turnkey --check-credentials --root-password=$MYSQLPW
+if [ $? != 0 ]
 then
     print_log "ERROR" "MySQL already has a different root password"
     exit 1
@@ -336,15 +337,12 @@ fi
 }
 
 create_autotest_database() {
-if [ "$(echo $DB | grep 'Unknown database')" != "" ]
+print_log "INFO" "Creating MySQL databases for autotest"
+$ATHOME/installation_support/autotest-database-turnkey -s --root-password=$MYSQLPW -p $MYSQLPW > /dev/null 2>&1
+if [ $? != 0 ]
 then
-    print_log "INFO" "Creating MySQL databases for autotest"
-    cat << SQLEOF | mysql --user=root --password=$MYSQLPW >> $LOG
-create database autotest_web;
-grant all privileges on autotest_web.* TO 'autotest'@'localhost' identified by "$MYSQLPW";
-grant SELECT on autotest_web.* TO 'nobody'@'%';
-grant SELECT on autotest_web.* TO 'nobody'@'localhost';
-SQLEOF
+    print_log "ERROR" "Error creating MySQL database"
+    exit 1
 fi
 }
 
@@ -385,32 +383,6 @@ then
     chkconfig --level 2345 httpd on
 else
     systemctl enable httpd.service >> $LOG
-fi
-}
-
-configure_autotest() {
-print_log "INFO" "Setting up the autotest configuration files"
-
-# TODO: notify_email in [SCHEDULER] section of global_config.ini
-
-cat << EOF | su - autotest >> $LOG 2>&1
-/usr/local/bin/substitute please_set_this_password "$MYSQLPW" $ATHOME/global_config.ini
-EOF
-}
-
-setup_databse_schema() {
-TABLES=$(echo "use autotest_web; show tables;" | mysql --user=root --password=$MYSQLPW 2>&1)
-
-if [ "$(echo $TABLES | grep tko_test_view_outer_joins)" = "" ]
-then
-    print_log "INFO" "Setting up the database schemas"
-    cat << EOF | su - autotest >> $LOG 2>&1
-yes yes | $ATHOME/database/migrate.py --database=AUTOTEST_WEB sync
-yes no | /usr/local/autotest/frontend/manage.py syncdb
-/usr/local/autotest/frontend/manage.py syncdb
-EOF
-else
-    print_log "INFO" "Database schemas are already in place"
 fi
 }
 
@@ -601,8 +573,6 @@ full_install() {
             create_autotest_database
             build_external_packages
             configure_webserver_rh
-            configure_autotest
-            setup_databse_schema
             restart_mysql_rh
             patch_python27_bug
             build_web_rpc_client
@@ -622,8 +592,6 @@ full_install() {
             create_autotest_database
             build_external_packages
             configure_webserver_deb
-            configure_autotest
-            setup_databse_schema
             restart_mysql_deb
             build_web_rpc_client
             import_tests
