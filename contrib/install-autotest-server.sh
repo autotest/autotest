@@ -185,7 +185,7 @@ PACKAGES_UTILITY=(unzip wget)
 PACKAGES_WEBSERVER=(httpd mod_wsgi Django)
 PACKAGES_MYSQL=(mysql-server MySQL-python)
 PACKAGES_DEVELOPMENT=(git java-devel)
-PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib python-atfork)
+PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib urw-fonts python-atfork)
 PACKAGES_SELINUX=(selinux-policy selinux-policy-targeted policycoreutils-python)
 PACKAGES_ALL=( \
     ${PACKAGES_UTILITY[*]}
