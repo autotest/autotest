@@ -8,36 +8,32 @@ BASE=$(BUILD)$(PREFIX)
 BINS=console conmux-attach
 LIBS=Conmux.pm
 SBIN=conmux-registry conmux start
-LIBDIR=/lib
-LOGDIR=/var/log
-SYSCONFIGDIR=/etc
+
 MODULES=helpers drivers
-BINDIR=/bin
-SBINDIR=/sbin
 
 all::
 
 install::
 	@[ -d $(BASE) ] || mkdir -p $(BASE)
-	@[ -d $(BASE)$(BINDIR) ] || mkdir $(BASE)$(BINDIR)
-	@[ -d $(BASE)$(LIBDIR)/conmux ] || mkdir -p $(BASE)$(LIBDIR)/conmux
-	@[ -d $(BASE)$(SBINDIR) ] || mkdir $(BASE)$(SBINDIR)
-	@[ -d $(BUILD)$(LOGDIR)/conmux ] || mkdir -p $(BUILD)$(LOGDIR)/conmux
-	@[ -d $(BUILD)$(SYSCONFIGDIR)/conmux ] || mkdir -p $(BUILD)$(SYSCONFIGDIR)/conmux
+	@[ -d $(BASE)/bin ] || mkdir $(BASE)/bin
+	@[ -d $(BASE)/lib ] || mkdir $(BASE)/lib
+	@[ -d $(BASE)/sbin ] || mkdir $(BASE)/sbin
+	@[ -d $(BASE)/log ] || mkdir $(BASE)/log
+	@[ -d $(BASE)/etc ] || mkdir $(BASE)/etc
 	for f in $(BINS); do \
-	    rm -f $(BASE)$(BINDIR)/$$f; \
-	    cp -p $$f $(BASE)$(BINDIR)/$$f; \
-	    chmod 755 $(BASE)$(BINDIR)/$$f; \
+	    rm -f $(BASE)/bin/$$f; \
+	    cp -p $$f $(BASE)/bin/$$f; \
+	    chmod 755 $(BASE)/bin/$$f; \
 	done
 	for f in $(SBIN); do \
-	    rm -f $(BASE)$(SBINDIR)/$$f; \
-	    cp -p $$f $(BASE)$(SBINDIR)/$$f; \
-	    chmod 755 $(BASE)$(SBINDIR)/$$f; \
+	    rm -f $(BASE)/sbin/$$f; \
+	    cp -p $$f $(BASE)/sbin/$$f; \
+	    chmod 755 $(BASE)/sbin/$$f; \
 	done
 	for f in $(LIBS); do \
-	    rm -f $(BASE)$(LIBDIR)/conmux/$$f; \
-	    cp -p $$f $(BASE)$(LIBDIR)/conmux/$$f; \
-	    chmod 644 $(BASE)$(LIBDIR)/conmux/$$f; \
+	    rm -f $(BASE)/lib/$$f; \
+	    cp -p $$f $(BASE)/lib/$$f; \
+	    chmod 644 $(BASE)/lib/$$f; \
 	done
 
 release::
