@@ -1,22 +1,22 @@
 #!/usr/bin/python
 
-import os, shutil, tempfile, unittest
+import os, shutil, tempfile, unittest, logging
 try:
     import autotest.common as common
 except ImportError:
     import common
+from autotest.client import utils
 
 _AUTOTEST_DIR = common.autotest_dir
 
 
 class ClientCompilationTest(unittest.TestCase):
-
-
     def _compile_module(self, module_name):
         compile_script = os.path.join(_AUTOTEST_DIR, 'utils',
-                                       'compile_gwt_clients.py')
+                                      'compile_gwt_clients.py')
         cmd = '%s -d -c %s -e "-validateOnly"' % (compile_script, module_name)
-        result = os.system(cmd)
+        result = utils.run(cmd, verbose=False, ignore_status=True)
+        result = result.exit_status
         self.assertEquals(result, 0)
 
 
