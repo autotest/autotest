@@ -1,12 +1,16 @@
 #!/usr/bin/python -u
 
-import os, sys, re, subprocess, tempfile
-from optparse import OptionParser
+import os
+import sys
+import re
+import tempfile
+import optparse
+
 try:
     import autotest.common as common
 except ImportError:
     import common
-import MySQLdb, MySQLdb.constants.ER
+
 from autotest.client.shared import global_config, utils
 from autotest.database import database_connection
 
@@ -319,26 +323,41 @@ class MigrationManager(object):
         os.remove(dump_file)
 
 
-USAGE = """\
-%s [options] sync|test|simulate|safesync [version]
-Options:
-    -d --database   Which database to act on
-    -a --action     Which action to perform"""\
-    % sys.argv[0]
+class OptionParser(optparse.OptionParser):
+
+    ACTIONS = ['sync', 'test', 'simulate', 'safesync']
+
+    def __init__(self):
+        actions_info = '  <action>\t\tOne of: %s\n' % ', '.join(self.ACTIONS)
+        usage_info = 'Usage: %prog [options] <action>'
+
+        if sys.version_info[0:2] < (2, 6):
+            optparse.OptionParser.__init__(self, usage=usage_info,
+                                           description=actions_info)
+        else:
+            optparse.OptionParser.__init__(self, usage=usage_info,
+                                           epilog=actions_info)
+
+        self.add_option("-d", "--database", default="AUTOTEST_WEB",
+                        help="which database to act on (defaults to %default)")
+
+        self.add_option("-f", "--force", action="store_true",
+                        help="don't ask for confirmation")
+
+        self.add_option('--debug', action='store_true',
+                        help='print all DB queries')
+
+
+def get_migration_manager(db_name, debug, force):
+    database = database_connection.DatabaseConnection(db_name)
+    database.debug = debug
+    database.reconnect_enabled = False
+    database.connect()
+    return MigrationManager(database, force=force)
 
 
 def main():
     parser = OptionParser()
-    parser.add_option("-d", "--database",
-                      help="which database to act on",
-                      dest="database",
-                      default="AUTOTEST_WEB")
-    parser.add_option("-a", "--action", help="what action to perform",
-                      dest="action")
-    parser.add_option("-f", "--force", help="don't ask for confirmation",
-                      action="store_true")
-    parser.add_option('--debug', help='print all DB queries',
-                      action='store_true')
     (options, args) = parser.parse_args()
     manager = get_migration_manager(db_name=options.database,
                                     debug=options.debug, force=options.force)
@@ -357,25 +376,17 @@ def main():
             manager.simulate=True
             manager.simulate_sync_db(version)
         elif args[0] == 'safesync':
-            print 'Simluating migration'
+            print 'Simulating migration'
             manager.simulate=True
             manager.simulate_sync_db(version)
             print 'Performing real migration'
             manager.simulate=False
             manager.do_sync_db(version)
         else:
-            print USAGE
+            parser.print_help()
         return
 
-    print USAGE
-
-
-def get_migration_manager(db_name, debug, force):
-    database = database_connection.DatabaseConnection(db_name)
-    database.debug = debug
-    database.reconnect_enabled = False
-    database.connect()
-    return MigrationManager(database, force=force)
+    parser.print_help()
 
 
 if __name__ == '__main__':
