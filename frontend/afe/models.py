@@ -162,7 +162,7 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
     drones: the drones that are part of the set
     """
     DRONE_SETS_ENABLED = global_config.global_config.get_config_value(
-            'SCHEDULER', 'drone_sets_enabled', type=bool, default=False)
+            'SCHEDULER', 'drone_sets_enabled', value_type=bool, default=False)
     DEFAULT_DRONE_SET_NAME = global_config.global_config.get_config_value(
             'SCHEDULER', 'default_drone_set_name', default=None)
 
@@ -913,7 +913,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     DEFAULT_MAX_RUNTIME_HRS = global_config.global_config.get_config_value(
         'AUTOTEST_WEB', 'job_max_runtime_hrs_default', default=72)
     DEFAULT_PARSE_FAILED_REPAIR = global_config.global_config.get_config_value(
-        'AUTOTEST_WEB', 'parse_failed_repair_default', type=bool,
+        'AUTOTEST_WEB', 'parse_failed_repair_default', value_type=bool,
         default=False)
 
     Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
@@ -962,7 +962,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     @classmethod
     def parameterized_jobs_enabled(cls):
         return global_config.global_config.get_config_value(
-                'AUTOTEST_WEB', 'parameterized_jobs', type=bool)
+                'AUTOTEST_WEB', 'parameterized_jobs', value_type=bool)
 
 
     @classmethod

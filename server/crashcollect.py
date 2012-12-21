@@ -36,7 +36,7 @@ def get_crashinfo(host, test_start_time):
 
 # Load default for number of hours to wait before giving up on crash collection.
 HOURS_TO_WAIT = global_config.global_config.get_config_value(
-    'SERVER', 'crash_collection_hours_to_wait', type=float, default=4.0)
+    'SERVER', 'crash_collection_hours_to_wait', value_type=float, default=4.0)
 
 
 def wait_for_machine_to_recover(host, hours_to_wait=HOURS_TO_WAIT):

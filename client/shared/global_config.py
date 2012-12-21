@@ -1,5 +1,5 @@
 """
-A singleton class for accessing global config values
+A class and singleton for accessing global config values
 
 provides access to global configuration file
 """
@@ -81,7 +81,7 @@ else:
     RUNNING_STAND_ALONE_CLIENT = True
 
 
-class global_config(object):
+class GlobalConfig(object):
     '''
     A class for accessing global config values
     '''
@@ -271,6 +271,18 @@ class global_config(object):
             raise ConfigValueError(msg)
 
 
-# ensure the class is a singleton.  Now the symbol global_config
-# will point to the one and only one instace of the class
-global_config = global_config()
+# provide a singleton that should be used by all users of this module
+# unless there's a very clear reason for not reusing global_config, don't
+# bother and don't attempt to create multiple instances of GlobalConfig()
+global_config = GlobalConfig()
+
+
+def reload():
+    '''
+    Resets the global_config singleton instance
+
+    Useful when the config file itself is modified thus updated configuration
+    needs to be reflected by global_config
+    '''
+    global global_config
+    global_config = GlobalConfig()

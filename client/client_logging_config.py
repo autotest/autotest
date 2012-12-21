@@ -10,8 +10,8 @@ class ClientLoggingConfig(logging_config.LoggingConfig):
     def add_debug_file_handlers(self, log_dir, log_name=None):
         if not log_name:
             log_name = global_config.global_config.get_config_value(
-                    'CLIENT', 'default_logging_name',
-                    type=str, default='client')
+                'CLIENT', 'default_logging_name',
+                value_type=str, default='client')
         self._add_file_handlers_for_all_levels(log_dir, log_name)
 
 

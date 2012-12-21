@@ -65,11 +65,11 @@ class db_sql(object):
 
         # grab the timeout configuration
         self.query_timeout = get_value("AUTOTEST_WEB", "query_timeout",
-                                       type=int, default=3600)
-        self.min_delay = get_value("AUTOTEST_WEB", "min_retry_delay", type=int,
-                                   default=20)
-        self.max_delay = get_value("AUTOTEST_WEB", "max_retry_delay", type=int,
-                                   default=60)
+                                       value_type=int, default=3600)
+        self.min_delay = get_value("AUTOTEST_WEB", "min_retry_delay",
+                                   value_type=int, default=20)
+        self.max_delay = get_value("AUTOTEST_WEB", "max_retry_delay",
+                                   type=int, default=60)
 
 
     def _init_db(self):

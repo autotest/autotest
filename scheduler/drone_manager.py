@@ -201,7 +201,7 @@ class DroneManager(object):
         """
         pidfile_timeout = global_config.global_config.get_config_value(
                 scheduler_config.CONFIG_SECTION, 'max_pidfile_refreshes',
-                type=int, default=2000)
+                value_type=int, default=2000)
         return pidfile_timeout
 
 
@@ -621,9 +621,10 @@ class DroneManager(object):
         if on_results_repository:
             base_dir = self._results_dir
         else:
-            output_dir = global_config.global_config.get_config_value('COMMON',
-                                                              'test_output_dir',
-                                                               default="")
+            output_dir = global_config.global_config.get_config_value(
+                'COMMON',
+                'test_output_dir',
+                default="")
             if output_dir:
                 base_dir = output_dir
             else:

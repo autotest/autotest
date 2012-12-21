@@ -7,8 +7,9 @@ from autotest.scheduler import drone_utility, email_manager
 from autotest.client.shared import global_config
 
 
-AUTOTEST_INSTALL_DIR = global_config.global_config.get_config_value('SCHEDULER',
-                                                 'drone_installation_directory')
+AUTOTEST_INSTALL_DIR = global_config.global_config.get_config_value(
+    'SCHEDULER',
+    'drone_installation_directory')
 
 class DroneUnreachable(Exception):
     """The drone is non-sshable."""

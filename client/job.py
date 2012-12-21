@@ -276,9 +276,10 @@ class base_client_job(base_job.base_job):
         Perform the drop caches initialization.
         """
         self.drop_caches_between_iterations = (
-                                    GLOBAL_CONFIG.get_config_value('CLIENT',
-                                    'drop_caches_between_iterations',
-                                    type=bool, default=True))
+            GLOBAL_CONFIG.get_config_value('CLIENT',
+                                           'drop_caches_between_iterations',
+                                           value_type=bool, default=True))
+
         self.drop_caches = drop_caches
         if self.drop_caches:
             utils.drop_caches()
@@ -745,7 +746,7 @@ class base_client_job(base_job.base_job):
         """
         abort_on_mismatch = GLOBAL_CONFIG.get_config_value('CLIENT',
                                                            'abort_on_mismatch',
-                                                           type=bool,
+                                                           value_type=bool,
                                                            default=False)
         # check to see if any partitions have changed
         partition_list = partition_lib.get_partition_list(self,

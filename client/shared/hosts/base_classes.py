@@ -51,13 +51,13 @@ class Host(object):
 
     job = None
     DEFAULT_REBOOT_TIMEOUT = global_config.global_config.get_config_value(
-        "HOSTS", "default_reboot_timeout", type=int, default=1800)
+        "HOSTS", "default_reboot_timeout", value_type=int, default=1800)
     WAIT_DOWN_REBOOT_TIMEOUT = global_config.global_config.get_config_value(
-        "HOSTS", "wait_down_reboot_timeout", type=int, default=840)
+        "HOSTS", "wait_down_reboot_timeout", value_type=int, default=840)
     WAIT_DOWN_REBOOT_WARNING = global_config.global_config.get_config_value(
-        "HOSTS", "wait_down_reboot_warning", type=int, default=540)
+        "HOSTS", "wait_down_reboot_warning", value_type=int, default=540)
     HOURS_TO_WAIT_FOR_RECOVERY = global_config.global_config.get_config_value(
-        "HOSTS", "hours_to_wait_for_recovery", type=float, default=2.5)
+        "HOSTS", "hours_to_wait_for_recovery", value_type=float, default=2.5)
     # the number of hardware repair requests that need to happen before we
     # actually send machines to hardware repair
     HARDWARE_REPAIR_REQUEST_THRESHOLD = 4

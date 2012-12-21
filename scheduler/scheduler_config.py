@@ -33,7 +33,7 @@ class SchedulerConfig(object):
         for field, config_option in self.FIELDS.iteritems():
             setattr(self, field, config.get_config_value(CONFIG_SECTION,
                                                          config_option,
-                                                         type=int))
+                                                         value_type=int))
 
 
 config = SchedulerConfig()

@@ -89,7 +89,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
 
         # load up all the ssh agent keys
         use_sshagent = global_config.global_config.get_config_value(
-            'AUTOSERV', 'use_sshagent_with_paramiko', type=bool)
+            'AUTOSERV', 'use_sshagent_with_paramiko', value_type=bool)
         if use_sshagent:
             ssh_agent = paramiko.Agent()
             for i, key in enumerate(ssh_agent.get_keys()):
