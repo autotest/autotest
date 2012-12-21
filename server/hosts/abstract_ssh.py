@@ -6,7 +6,7 @@ from autotest.client.shared.global_config import global_config
 
 
 get_value = global_config.get_config_value
-enable_master_ssh = get_value('AUTOSERV', 'enable_master_ssh', type=bool,
+enable_master_ssh = get_value('AUTOSERV', 'enable_master_ssh', value_type=bool,
                               default=False)
 
 
@@ -534,7 +534,7 @@ class AbstractSSHHost(SiteHost):
     # tunable constants for the verify & repair code
     AUTOTEST_GB_DISKSPACE_REQUIRED = get_value("SERVER",
                                                "gb_diskspace_required",
-                                               type=int,
+                                               value_type=int,
                                                default=20)
 
 

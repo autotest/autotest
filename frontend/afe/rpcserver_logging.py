@@ -7,7 +7,8 @@ from autotest.client.shared import global_config
 
 
 config = global_config.global_config
-LOGGING_ENABLED = config.get_config_value('SERVER', 'rpc_logging', type=bool)
+LOGGING_ENABLED = config.get_config_value('SERVER', 'rpc_logging',
+                                          value_type=bool)
 
 MEGABYTE = 1024 * 1024
 

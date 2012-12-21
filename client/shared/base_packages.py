@@ -123,7 +123,7 @@ def check_diskspace(repo, min_free=None):
     '''
     if min_free is None:
         min_free = global_config.global_config.get_config_value(
-            'PACKAGES', 'minimum_free_space', type=int, default=1)
+            'PACKAGES', 'minimum_free_space', value_type=int, default=1)
     try:
         df = repo_run_command(repo,
                               'df -PB %d . | tail -1' % 10 ** 9).stdout.split()
@@ -167,7 +167,7 @@ def trim_custom_directories(repo, older_than_days=None):
 
     if older_than_days is None:
         older_than_days = global_config.global_config.get_config_value(
-            'PACKAGES', 'custom_max_age', type=int, default=40)
+            'PACKAGES', 'custom_max_age', value_type=int, default=40)
     cmd = 'find . -type f -atime +%s -exec rm -f {} \;' % older_than_days
     repo_run_command(repo, cmd, ignore_status=True)
 

@@ -45,7 +45,7 @@ class MockGlobalConfig(object):
         self._config_info[(section, key)] = value
 
 
-    def get_config_value(self, section, key, type=str,
+    def get_config_value(self, section, key, value_type=str,
                          default=None, allow_blank=False):
         identifier = (section, key)
         if identifier not in self._config_info:

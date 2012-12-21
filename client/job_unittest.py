@@ -584,10 +584,11 @@ class test_base_job(unittest.TestCase):
         mount_list = ["/mnt/hda1", "/mnt/hdb1"]
 
         # record
-        global_config.get_config_value.expect_call('CLIENT',
-                                                   'abort_on_mismatch',
-                                                   default=False,
-                                              type=bool).and_return(abort_value)
+        global_config.get_config_value.expect_call(
+            'CLIENT',
+            'abort_on_mismatch',
+            default=False,
+            value_type=bool).and_return(abort_value)
         job.partition_lib.get_partition_list.expect_call(
                 self.job, exclude_swap=False).and_return(part_list)
         for i in xrange(len(part_list)):

@@ -7,7 +7,7 @@ DEFAULT_FOLLOW_PATH = '/var/log/kern.log'
 DEFAULT_PATTERNS_PATH = 'console_patterns'
 SSH_ENGINE = global_config.global_config.get_config_value('AUTOSERV',
                                                           'ssh_engine',
-                                                          type=str)
+                                                          value_type=str)
 
 # for tracking which hostnames have already had job_start called
 _started_hostnames = set()

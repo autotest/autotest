@@ -1,59 +1,78 @@
-"""A singleton class for accessing global config values
+"""
+A class and singleton for accessing global config values
 
 provides access to global configuration file
 """
 
 __author__ = 'raphtee@google.com (Travis Miller)'
 
+
 import os, sys, ConfigParser
 from autotest.client.shared import error
 
 
 class ConfigError(error.AutotestError):
+    '''
+    Exception raised when the requested configuration item does not exist
+
+    This applies both the missing config files or sections or items of the
+    config file.
+    '''
     pass
 
 
 class ConfigValueError(ConfigError):
+    '''
+    Exception raised when the fetched configuration value can not be converted
+    '''
     pass
 
-global_config_filename = 'global_config.ini'
-shadow_config_filename = 'shadow_config.ini'
 
-shared_dir = os.path.dirname(sys.modules[__name__].__file__)
-client_dir = os.path.dirname(shared_dir)
-root_dir = os.path.dirname(client_dir)
-system_wide_dir = '/etc/autotest'
+#: Default global config file names, independent of actual path
+GLOBAL_CONFIG_FILENAME = 'global_config.ini'
+
+#: Default shadow config file names, independent of actual path
+SHADOW_CONFIG_FILENAME = 'shadow_config.ini'
+
+
+SHARED_DIR = os.path.dirname(sys.modules[__name__].__file__)
+CLIENT_DIR = os.path.dirname(SHARED_DIR)
+ROOT_DIR = os.path.dirname(CLIENT_DIR)
 
 # Check if the config files are in the system wide directory
-global_config_path_system_wide = os.path.join(system_wide_dir,
-                                              global_config_filename)
-shadow_config_path_system_wide = os.path.join(system_wide_dir,
-                                              shadow_config_filename)
-config_in_system_wide = os.path.exists(global_config_path_system_wide)
+SYSTEM_WIDE_DIR = '/etc/autotest'
+GLOBAL_CONFIG_PATH_SYSTEM_WIDE = os.path.join(SYSTEM_WIDE_DIR,
+                                              GLOBAL_CONFIG_FILENAME)
+SHADOW_CONFIG_PATH_SYSTEM_WIDE = os.path.join(SYSTEM_WIDE_DIR,
+                                              SHADOW_CONFIG_FILENAME)
+CONFIG_IN_SYSTEM_WIDE = os.path.exists(GLOBAL_CONFIG_PATH_SYSTEM_WIDE)
+
 
 # Check if the config files are at autotest's root dir
 # This will happen if client is executing inside a full autotest tree, or if
 # other entry points are being executed
-global_config_path_root = os.path.join(root_dir, global_config_filename)
-shadow_config_path_root = os.path.join(root_dir, shadow_config_filename)
-config_in_root = (os.path.exists(global_config_path_root) and
-                  os.path.exists(shadow_config_path_root))
+GLOBAL_CONFIG_PATH_ROOT = os.path.join(ROOT_DIR, GLOBAL_CONFIG_FILENAME)
+SHADOW_CONFIG_PATH_ROOT = os.path.join(ROOT_DIR, SHADOW_CONFIG_FILENAME)
+CONFIG_IN_ROOT = (os.path.exists(GLOBAL_CONFIG_PATH_ROOT) and
+                  os.path.exists(SHADOW_CONFIG_PATH_ROOT))
+
 
 # Check if the config files are at autotest's client dir
 # This will happen if a client stand alone execution is happening
-global_config_path_client = os.path.join(client_dir, 'global_config.ini')
-config_in_client = os.path.exists(global_config_path_client)
+GLOBAL_CONFIG_PATH_CLIENT = os.path.join(CLIENT_DIR, GLOBAL_CONFIG_FILENAME)
+CONFIG_IN_CLIENT = os.path.exists(GLOBAL_CONFIG_PATH_CLIENT)
 
-if config_in_system_wide:
-    DEFAULT_CONFIG_FILE = global_config_path_system_wide
-    DEFAULT_SHADOW_FILE = shadow_config_path_system_wide
+
+if CONFIG_IN_SYSTEM_WIDE:
+    DEFAULT_CONFIG_FILE = GLOBAL_CONFIG_PATH_SYSTEM_WIDE
+    DEFAULT_SHADOW_FILE = SHADOW_CONFIG_PATH_SYSTEM_WIDE
     RUNNING_STAND_ALONE_CLIENT = False
-elif config_in_root:
-    DEFAULT_CONFIG_FILE = global_config_path_root
-    DEFAULT_SHADOW_FILE = shadow_config_path_root
+elif CONFIG_IN_ROOT:
+    DEFAULT_CONFIG_FILE = GLOBAL_CONFIG_PATH_ROOT
+    DEFAULT_SHADOW_FILE = SHADOW_CONFIG_PATH_ROOT
     RUNNING_STAND_ALONE_CLIENT = False
-elif config_in_client:
-    DEFAULT_CONFIG_FILE = global_config_path_client
+elif CONFIG_IN_CLIENT:
+    DEFAULT_CONFIG_FILE = GLOBAL_CONFIG_PATH_CLIENT
     DEFAULT_SHADOW_FILE = None
     RUNNING_STAND_ALONE_CLIENT = True
 else:
@@ -61,7 +80,11 @@ else:
     DEFAULT_SHADOW_FILE = None
     RUNNING_STAND_ALONE_CLIENT = True
 
-class global_config(object):
+
+class GlobalConfig(object):
+    '''
+    A class for accessing global config values
+    '''
     _NO_DEFAULT_SPECIFIED = object()
 
     config = None
@@ -71,17 +94,27 @@ class global_config(object):
 
 
     def check_stand_alone_client_run(self):
+        '''
+        Checks if this code was detected to be running on an autotest client
+        '''
         return self.running_stand_alone_client
 
 
-    def set_config_files(self, config_file=DEFAULT_CONFIG_FILE,
-                            shadow_file=DEFAULT_SHADOW_FILE):
+    def set_config_files(self,
+                         config_file=DEFAULT_CONFIG_FILE,
+                         shadow_file=DEFAULT_SHADOW_FILE):
+        '''
+        Assigns this instance's pointers to the config files set or detected
+        '''
         self.config_file = config_file
         self.shadow_file = shadow_file
         self.config = None
 
 
     def _handle_no_value(self, section, key, default):
+        '''
+        Returns the requested config value or its default value if set
+        '''
         if default is self._NO_DEFAULT_SPECIFIED:
             msg = ("Value '%s' not found in section '%s'" %
                    (key, section))
@@ -111,8 +144,14 @@ class global_config(object):
         return cfgparser
 
 
-    def get_config_value(self, section, key, type=str,
+    def get_config_value(self, section, key, value_type=str,
                          default=_NO_DEFAULT_SPECIFIED, allow_blank=False):
+        '''
+        Returns the chosen config key value
+
+        Optionally this method converts the value to the supplied Python type,
+        sets a default value and deals with blank values.
+        '''
         self._ensure_config_parsed()
 
         try:
@@ -123,7 +162,7 @@ class global_config(object):
         if not val.strip() and not allow_blank:
             return self._handle_no_value(section, key, default)
 
-        return self._convert_value(key, section, val, type)
+        return self._convert_value(key, section, val, value_type)
 
 
     def override_config_value(self, section, key, new_value):
@@ -143,18 +182,25 @@ class global_config(object):
 
 
     def _ensure_config_parsed(self):
+        '''
+        Parses the config file if it hasn't been done yet
+        '''
         if self.config is None:
             self.parse_config_file()
 
 
     def merge_configs(self, shadow_config):
-        # overwrite whats in config with whats in shadow_config
+        '''
+        Overwrite whats in config with whats in shadow_config
+
+        This method adds section if needed, and then run through all options
+        and sets every one that is found
+        '''
         sections = shadow_config.sections()
         for section in sections:
-            # add the section if need be
             if not self.config.has_section(section):
                 self.config.add_section(section)
-            # now run through all options and set them
+
             options = shadow_config.options(section)
             for option in options:
                 val = shadow_config.get(section, option)
@@ -162,26 +208,32 @@ class global_config(object):
 
 
     def parse_config_file(self):
+        '''
+        Perform the parsing of both config files, merging common values
+
+        After reading the global_config.ini file, if a shadow_config.ini file
+        exists, it will be read and anything that is found in the previous
+        config file will be overriden.
+        '''
         self.config = ConfigParser.ConfigParser()
         if self.config_file and os.path.exists(self.config_file):
             self.config.read(self.config_file)
         else:
             raise ConfigError('%s not found' % (self.config_file))
 
-        # now also read the shadow file if there is one
-        # this will overwrite anything that is found in the
-        # other config
         if self.shadow_file and os.path.exists(self.shadow_file):
             shadow_config = ConfigParser.ConfigParser()
             shadow_config.read(self.shadow_file)
-            # now we merge shadow into global
             self.merge_configs(shadow_config)
 
 
-    # the values that are pulled from ini
-    # are strings.  But we should attempt to
-    # convert them to other types if needed.
     def _convert_value(self, key, section, value, value_type):
+        '''
+        Convert the values that are pulled from the config file
+
+        Those values are strings by default, and this method attempts to
+        convert them to other types if needed.
+        '''
         # strip off leading and trailing white space
         sval = value.strip()
 
@@ -219,6 +271,18 @@ class global_config(object):
             raise ConfigValueError(msg)
 
 
-# insure the class is a singleton.  Now the symbol global_config
-# will point to the one and only one instace of the class
-global_config = global_config()
+# provide a singleton that should be used by all users of this module
+# unless there's a very clear reason for not reusing global_config, don't
+# bother and don't attempt to create multiple instances of GlobalConfig()
+global_config = GlobalConfig()
+
+
+def reload():
+    '''
+    Resets the global_config singleton instance
+
+    Useful when the config file itself is modified thus updated configuration
+    needs to be reflected by global_config
+    '''
+    global global_config
+    global_config = GlobalConfig()

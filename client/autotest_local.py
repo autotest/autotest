@@ -55,10 +55,11 @@ class AutotestLocalApp:
     def main(self):
         self.parse_cmdline()
 
-        drop_caches = global_config.global_config.get_config_value('CLIENT',
-                                                                   'drop_caches',
-                                                                   type=bool,
-                                                                   default=True)
+        drop_caches = global_config.global_config.get_config_value(
+            'CLIENT',
+            'drop_caches',
+            value_type=bool,
+            default=True)
 
         if self.options.client_test_setup:
             from autotest.client import setup_job

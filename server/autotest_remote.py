@@ -10,7 +10,7 @@ from autotest.client.shared import utils as client_utils
 
 get_value = global_config.global_config.get_config_value
 autoserv_prebuild = get_value('AUTOSERV', 'enable_server_prebuild',
-                              type=bool, default=False)
+                              value_type=bool, default=False)
 
 
 class AutodirNotFoundError(Exception):
@@ -51,7 +51,7 @@ class BaseAutotest(installable_object.InstallableObject):
     @classmethod
     def get_client_autodir_paths(cls, host):
         return global_config.global_config.get_config_value(
-                'AUTOSERV', 'client_autodir_paths', type=list)
+                'AUTOSERV', 'client_autodir_paths', value_type=list)
 
 
     @classmethod
@@ -130,16 +130,20 @@ class BaseAutotest(installable_object.InstallableObject):
 
     def _create_test_output_dir(self, host, autodir):
         tmpdir = os.path.join(autodir, 'tmp')
-        state_autodir = global_config.global_config.get_config_value('COMMON',
-                                                             'test_output_dir',
-                                                               default=tmpdir)
+        state_autodir = global_config.global_config.get_config_value(
+            'COMMON',
+            'test_output_dir',
+            default=tmpdir)
         host.run('mkdir -p %s' % utils.sh_escape(state_autodir))
 
 
     def get_fetch_location(self):
         c = global_config.global_config
-        repos = c.get_config_value("PACKAGES", 'fetch_location', type=list,
-                                   default=[])
+        repos = c.get_config_value(
+            "PACKAGES",
+            'fetch_location',
+            value_type=list,
+            default=[])
         repos.reverse()
         return repos
 
@@ -283,7 +287,7 @@ class BaseAutotest(installable_object.InstallableObject):
         if self.source_material:
             c = global_config.global_config
             supports_autoserv_packaging = c.get_config_value(
-                "PACKAGES", "serve_packages_from_autoserv", type=bool)
+                "PACKAGES", "serve_packages_from_autoserv", value_type=bool)
             # Copy autotest recursively
             if supports_autoserv_packaging and use_autoserv:
                 self._install_using_send_file(host, autodir)
@@ -497,9 +501,10 @@ class _BaseRun(object):
             control += '.' + tag
 
         tmpdir = os.path.join(self.autodir, 'tmp')
-        state_dir = global_config.global_config.get_config_value('COMMON',
-                                                              'test_output_dir',
-                                                              default=tmpdir)
+        state_dir = global_config.global_config.get_config_value(
+            'COMMON',
+            'test_output_dir',
+            default=tmpdir)
 
         self.manual_control_file = control
         self.manual_control_init_state = os.path.join(state_dir,
@@ -1057,7 +1062,7 @@ class client_logger(object):
         elif fetch_package_match:
             pkg_name, dest_path, fifo_path = fetch_package_match.groups()
             serve_packages = global_config.global_config.get_config_value(
-                "PACKAGES", "serve_packages_from_autoserv", type=bool)
+                "PACKAGES", "serve_packages_from_autoserv", value_type=bool)
             if serve_packages and pkg_name.endswith(".tar.bz2"):
                 try:
                     self._send_tarball(pkg_name, dest_path)

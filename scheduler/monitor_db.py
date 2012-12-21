@@ -75,7 +75,8 @@ _parser_path = _parser_path_func(drones.AUTOTEST_INSTALL_DIR)
 def _get_pidfile_timeout_secs():
     """@returns How long to wait for autoserv to write pidfile."""
     pidfile_timeout_mins = global_config.global_config.get_config_value(
-            scheduler_config.CONFIG_SECTION, 'pidfile_timeout_mins', type=int)
+            scheduler_config.CONFIG_SECTION, 'pidfile_timeout_mins',
+            value_type=int)
     return pidfile_timeout_mins * 60
 
 
@@ -212,7 +213,7 @@ def main_without_exception_handling():
         return
 
     scheduler_enabled = global_config.global_config.get_config_value(
-        scheduler_config.CONFIG_SECTION, 'enable_scheduler', type=bool)
+        scheduler_config.CONFIG_SECTION, 'enable_scheduler', value_type=bool)
 
     if not scheduler_enabled:
         msg = ("Scheduler not enabled, set enable_scheduler to true in the "
@@ -293,7 +294,7 @@ class Dispatcher(object):
         self._seconds_between_garbage_stats = 60 * (
                 global_config.global_config.get_config_value(
                         scheduler_config.CONFIG_SECTION,
-                        'gc_stats_interval_mins', type=int, default=6*60))
+                        'gc_stats_interval_mins', value_type=int, default=6*60))
 
 
     def initialize(self, recover_hosts=True):
@@ -548,7 +549,7 @@ class Dispatcher(object):
         email_manager.manager.enqueue_notify_email(subject, message)
 
         die_on_orphans = global_config.global_config.get_config_value(
-            scheduler_config.CONFIG_SECTION, 'die_on_orphans', type=bool)
+            scheduler_config.CONFIG_SECTION, 'die_on_orphans', value_type=bool)
 
         if die_on_orphans:
             raise RuntimeError(subject + '\n' + message)
