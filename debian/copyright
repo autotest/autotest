@@ -1,0 +1,29 @@
+Upstream Author:
+
+    Martin Bligh, Andy Whitcroft
+
+Files: *
+Copyright:
+    2006-2009, Martin Bligh, Andy Whitcroft
+License: GPL
+
+Files: debian/*
+Copyright:
+    2012, Lucas Meneghel Rodrigues (lmr) <lookkas@gmail.com>
+License: GPL
+
+License: GPL
+   This package is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; version 2 only.
+
+   This package is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this package; if not, see .
+
+On Debian systems, the complete text of the GNU General
+Public License 2 can be found in `/usr/share/common-licenses/GPL-2'.

@@ -1,5 +1,5 @@
 from distutils.core import setup
-import os, sys
+import os
 
 try:
     import autotest.common as common
@@ -9,17 +9,40 @@ except ImportError:
 from autotest.client.shared import version
 
 # Mostly needed when called one level up
-db_dir = os.path.dirname(sys.modules[__name__].__file__) or '.'
-autotest_dir = os.path.abspath(os.path.join(db_dir, ".."))
+if os.path.isdir('database'):
+    db_dir = 'database'
+else:
+    db_dir = '.'
 
-setup(name='autotest',
-      description='Autotest test framework - results database module',
-      author='Autotest Team',
-      author_email='autotest@test.kernel.org',
-      version=version.get_git_version(),
-      url='autotest.kernel.org',
-      package_dir={'autotest.database': db_dir },
-      package_data={'autotest.database' : ['*.sql' ] },
-      packages=['autotest.database' ],
-      scripts=[db_dir + '/autotest-upgrade-db'],
-)
+
+def get_package_dir():
+    return {'autotest.database': db_dir}
+
+
+def get_package_data():
+    return {'autotest.database' : ['*.sql' ]}
+
+
+def get_packages():
+    return ['autotest.database']
+
+
+def get_scripts():
+    return [db_dir + '/autotest-upgrade-db']
+
+
+def run():
+    setup(name='autotest',
+          description='Autotest test framework - results database module',
+          maintainer='Lucas Meneghel Rodrigues',
+          maintainer_email='lmr@redhat.com',
+          version=version.get_version(),
+          url='http://autotest.github.com',
+          package_dir=get_package_dir(),
+          package_data=get_package_data(),
+          packages=get_packages(),
+          scripts=get_scripts())
+
+
+if __name__ == '__main__':
+    run()

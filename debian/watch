@@ -1,0 +1,3 @@
+version=3
+
+https://github.com/autotest/autotest/tags .*/(\d[\d\.]+)\.tar\.gz
