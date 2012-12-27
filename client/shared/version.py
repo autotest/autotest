@@ -87,4 +87,4 @@ def get_version(abbrev=4):
 
 
 if __name__ == "__main__":
-    print "Current version: %s" % get_version()
+    print get_version()
