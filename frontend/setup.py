@@ -1,5 +1,5 @@
 from distutils.core import setup
-import os, sys
+import os
 
 try:
     import autotest.common as common
@@ -9,10 +9,13 @@ except ImportError:
 from autotest.client.shared import version
 
 # Mostly needed when called one level up
-fe_dir = os.path.dirname(sys.modules[__name__].__file__) or '.'
+if os.path.isdir('frontend'):
+    fe_dir = 'frontend'
+else:
+    fe_dir = '.'
 
 # TODO: handle the client directory
-def get_data_files(path):
+def _get_files(path):
     '''
     Given a path, return all the files in there to package
     '''
@@ -23,41 +26,60 @@ def get_data_files(path):
             flist.append(fullname)
     return flist
 
-# Some stuff is too hard to package. just grab every file in these directories
-# and call it a day.  we can clean up some other time
-pd_filelist=[]
-pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'client')))
-pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'afe', 'doctests')))
-pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'afe', 'fixtures')))
-pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'afe', 'templates')))
-pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'static')))
-pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'templates')))
-pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'tko', 'preconfigs')))
-pd_filelist.extend([os.path.join(fe_dir, 'frontend.wsgi')])
+
+def get_file_list():
+    # Some stuff is too hard to package. just grab every file in these directories
+    # and call it a day.  we can clean up some other time
+    pd_filelist=[]
+    pd_filelist.extend(_get_files(os.path.join(fe_dir, 'client')))
+    pd_filelist.extend(_get_files(os.path.join(fe_dir, 'afe', 'doctests')))
+    pd_filelist.extend(_get_files(os.path.join(fe_dir, 'afe', 'fixtures')))
+    pd_filelist.extend(_get_files(os.path.join(fe_dir, 'afe', 'templates')))
+    pd_filelist.extend(_get_files(os.path.join(fe_dir, 'static')))
+    pd_filelist.extend(_get_files(os.path.join(fe_dir, 'templates')))
+    pd_filelist.extend(_get_files(os.path.join(fe_dir, 'tko', 'preconfigs')))
+    pd_filelist.extend([os.path.join(fe_dir, 'frontend.wsgi')])
+    return pd_filelist
+
+
+def get_package_dir():
+    return {'autotest.frontend': fe_dir}
+
+
+def get_package_data():
+    return {'autotest.frontend' : get_file_list()}
+
+
+def get_scripts():
+    return [os.path.join(fe_dir, 'autotest-manage-rpc-server')]
+
+
+def get_packages():
+    return ['autotest.frontend.afe',
+            'autotest.frontend.afe.feeds',
+            'autotest.frontend.afe.json_rpc',
+            'autotest.frontend.db',
+            'autotest.frontend.db.backends',
+            'autotest.frontend.db.backends.afe',
+            'autotest.frontend.db.backends.afe_sqlite',
+            'autotest.frontend.migrations',
+            'autotest.frontend.shared',
+            'autotest.frontend.tko',
+            'autotest.frontend']
+
 
 def run():
     setup(name='autotest',
-          description='Autotest test framework - rpc server',
-          author='Autotest Team',
-          author_email='autotest@test.kernel.org',
+          description='Autotest test framework - RPC server',
+          maintainer='Lucas Meneghel Rodrigues',
+          author_email='lmr@redhat.com',
           version=version.get_version(),
-          url='autotest.kernel.org',
-          package_dir={'autotest.frontend': fe_dir },
-          package_data={'autotest.frontend' : pd_filelist },
-          packages=['autotest.frontend.afe',
-                    'autotest.frontend.afe.feeds',
-                    'autotest.frontend.afe.json_rpc',
-                    'autotest.frontend.db',
-                    'autotest.frontend.db.backends',
-                    'autotest.frontend.db.backends.afe',
-                    'autotest.frontend.db.backends.afe_sqlite',
-                    'autotest.frontend.migrations',
-                    'autotest.frontend.shared',
-                    'autotest.frontend.tko',
-                    'autotest.frontend',
-                   ],
-          scripts=[os.path.join(fe_dir, 'autotest-manage-rpc-server')],
-    )
+          url='http://autotest.github.com',
+          package_dir=get_package_dir(),
+          package_data=get_package_data(),
+          packages=get_packages(),
+          scripts=get_scripts())
+
 
 if __name__ == '__main__':
     run()

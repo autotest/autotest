@@ -1,5 +1,5 @@
 from distutils.core import setup
-import os, sys
+import os
 
 try:
     import autotest.common as common
@@ -9,8 +9,23 @@ except ImportError:
 from autotest.client.shared import version
 
 # Mostly needed when called one level up
-mirror_dir = os.path.dirname(sys.modules[__name__].__file__) or '.'
-autotest_dir = os.path.abspath(os.path.join(mirror_dir, ".."))
+if os.path.isdir('mirror'):
+    mirror_dir = 'mirror'
+else:
+    mirror_dir = '.'
+
+
+def get_package_dir():
+    return {'autotest.mirror': mirror_dir}
+
+
+def get_packages():
+    return ['autotest.mirror']
+
+
+def get_data_files():
+    return [('share/autotest/mirror', [ mirror_dir + '/mirror' ])]
+
 
 def run():
     setup(name='autotest',
@@ -19,10 +34,10 @@ def run():
           author_email='autotest@test.kernel.org',
           version=version.get_version(),
           url='autotest.kernel.org',
-          package_dir={'autotest.mirror': mirror_dir },
-          packages=['autotest.mirror' ],
-          data_files=[('share/autotest/mirror', [ mirror_dir + '/mirror' ])],
-    )
+          package_dir=get_package_dir(),
+          packages=get_packages(),
+          data_files=get_data_files())
+
 
 if __name__ == '__main__':
     run()

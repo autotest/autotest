@@ -1,5 +1,5 @@
 from distutils.core import setup
-import os, sys
+import os
 
 try:
     import autotest.common as common
@@ -9,9 +9,13 @@ except ImportError:
 from autotest.client.shared import version
 
 # Mostly needed when called one level up
-server_dir = os.path.dirname(sys.modules[__name__].__file__) or '.'
+if os.path.isdir('server'):
+    server_dir = 'server'
+else:
+    server_dir = '.'
 
-def get_data_files(path):
+
+def _get_files(path):
     '''
     Given a path, return all the files in there to package
     '''
@@ -22,29 +26,47 @@ def get_data_files(path):
             flist.append(fullname)
     return flist
 
-# Some stuff is too hard to package. just grab every file in these directories
-# and call it a day.  we can clean up some other time
-pd_filelist=[]
-pd_filelist.extend(get_data_files(os.path.join(server_dir, 'control_segments')))
-pd_filelist.extend(get_data_files(os.path.join(server_dir, 'hosts', 'monitors')))
-pd_filelist.extend(get_data_files(os.path.join(server_dir, 'tests')))
+
+def get_file_list():
+    # Some stuff is too hard to package. just grab every file in these directories
+    # and call it a day.  we can clean up some other time
+    pd_filelist=[]
+    pd_filelist.extend(_get_files(os.path.join(server_dir, 'control_segments')))
+    pd_filelist.extend(_get_files(os.path.join(server_dir, 'hosts', 'monitors')))
+    pd_filelist.extend(_get_files(os.path.join(server_dir, 'tests')))
+    return pd_filelist
+
+
+def get_package_dir():
+    return {'autotest.server': server_dir}
+
+
+def get_package_data():
+    return {'autotest.server' : get_file_list()}
+
+
+def get_packages():
+    return ['autotest.server.hosts',
+            'autotest.server.hosts.monitors',
+            'autotest.server']
+
+
+def get_scripts():
+    return [server_dir + '/autotest-remote']
+
 
 def run():
     setup(name='autotest',
           description='Autotest testing framework - remote module',
-          author='Autotest Team',
-          author_email='autotest@test.kernel.org',
+          maintainer='Lucas Meneghel Rodrigues',
+          author_email='lmr@redhat.com',
           version=version.get_version(),
-          url='autotest.kernel.org',
-          package_dir={'autotest.server': server_dir },
-          package_data={'autotest.server' : pd_filelist },
-          packages=['autotest.server.hosts',
-                    'autotest.server.hosts.monitors',
-                    'autotest.server',
-                    ],
-          scripts=[server_dir + '/autotest-remote',
-                   ],
-    )
+          url='http://autotest.github.com',
+          package_dir=get_package_dir(),
+          package_data=get_package_data(),
+          packages=get_packages(),
+          scripts=get_scripts())
+
 
 if __name__ == '__main__':
     run()
