@@ -27,7 +27,6 @@ def get_data_files(path):
 pd_filelist=[]
 pd_filelist.extend(get_data_files(os.path.join(server_dir, 'control_segments')))
 pd_filelist.extend(get_data_files(os.path.join(server_dir, 'hosts', 'monitors')))
-pd_filelist.extend(get_data_files(os.path.join(server_dir, 'samples')))
 pd_filelist.extend(get_data_files(os.path.join(server_dir, 'tests')))
 
 setup(name='autotest',

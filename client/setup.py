@@ -23,19 +23,9 @@ def get_data_files(path):
             flist.append(fullname)
     return flist
 
-# Some stuff is too hard to package. just grab every file in these directories
-# and call it a day.  we can clean up some other time
-pd_filelist=['virt/scripts/*.py', 'virt/*.sample', 'virt/passfd.c', 'config/*' ]
+pd_filelist=['config/*' ]
 pd_filelist.extend(get_data_files(os.path.join(client_dir, 'profilers')))
-pd_filelist.extend(get_data_files(os.path.join(client_dir, 'samples')))
 pd_filelist.extend(get_data_files(os.path.join(client_dir, 'tests')))
-pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'autoit')))
-pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'autotest_control')))
-pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'blkdebug')))
-pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'deps')))
-pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'steps')))
-pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'tests')))
-pd_filelist.extend(get_data_files(os.path.join(client_dir, 'virt', 'unattended')))
 pd_filelist.extend(get_data_files(os.path.join(client_dir, 'tools')))
 
 
