@@ -1,1 +1,3 @@
 include RELEASE-VERSION
+include README.rst
+include LICENSE

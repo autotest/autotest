@@ -1,0 +1,5 @@
+autotest (0.15.0-rc0-54-g1568d) raring; urgency=low
+
+  * Initial release.
+
+ -- Lucas Meneghel Rodrigues (lmr) <lookkas@gmail.com>  Thu, 27 Dec 2012 06:49:43 -0200
