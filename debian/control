@@ -1,0 +1,18 @@
+Source: autotest
+Section: python
+Priority: optional
+Maintainer: Lucas Meneghel Rodrigues (lmr) <lookkas@gmail.com>
+Build-Depends: debhelper (>=7.0.50~), python-support (>= 0.6), cdbs (>= 0.4.49), python-all-dev
+Standards-Version: 3.8.4
+
+Package: autotest
+Architecture: all
+Homepage: http://autotest.github.com/
+XB-Python-Version: ${python:Versions}
+Depends: ${misc:Depends}, ${python:Depends}
+Description: Autotest is a framework for fully automated testing.
+ It is designed primarily to test the Linux kernel, though it is
+ useful for many other functions such as qualifying new hardware.
+ It's an open-source project under the GPL and is used and
+ developed by a number of organizations, including Google, IBM,
+ Red Hat, and many others.
