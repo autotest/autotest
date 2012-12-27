@@ -12,13 +12,17 @@ from autotest.client.shared import version
 mirror_dir = os.path.dirname(sys.modules[__name__].__file__) or '.'
 autotest_dir = os.path.abspath(os.path.join(mirror_dir, ".."))
 
-setup(name='autotest',
-      description='Autotest testing framework - mirror module',
-      author='Autotest Team',
-      author_email='autotest@test.kernel.org',
-      version=version.get_version(),
-      url='autotest.kernel.org',
-      package_dir={'autotest.mirror': mirror_dir },
-      packages=['autotest.mirror' ],
-      data_files=[('share/autotest/mirror', [ mirror_dir + '/mirror' ])],
-)
+def run():
+    setup(name='autotest',
+          description='Autotest testing framework - mirror module',
+          author='Autotest Team',
+          author_email='autotest@test.kernel.org',
+          version=version.get_version(),
+          url='autotest.kernel.org',
+          package_dir={'autotest.mirror': mirror_dir },
+          packages=['autotest.mirror' ],
+          data_files=[('share/autotest/mirror', [ mirror_dir + '/mirror' ])],
+    )
+
+if __name__ == '__main__':
+    run()

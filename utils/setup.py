@@ -13,22 +13,26 @@ utils_dir = os.path.dirname(sys.modules[__name__].__file__) or '.'
 
 # TODO handle the init scripts
 
-setup(name='autotest',
-      description='Autotest testing framework - utility scripts',
-      author='Autotest Team',
-      author_email='autotest@test.kernel.org',
-      version=version.get_version(),
-      url='autotest.kernel.org',
-      package_dir={'autotest.utils': utils_dir },
-      package_data={'autotest.utils' : ['named_semaphore/*',
-                                        'modelviz/*',
-                                       ],
-                   },
-      packages=['autotest.utils'],
-      data_files=[('share/autotest/utils', [ utils_dir + '/autotestd.service',
-                                             utils_dir + '/autotest.init',
-                                             utils_dir + '/autotest-rh.init',
-                                             utils_dir + '/release'
-                                           ])
-                 ],
-)
+def run():
+    setup(name='autotest',
+          description='Autotest testing framework - utility scripts',
+          author='Autotest Team',
+          author_email='autotest@test.kernel.org',
+          version=version.get_version(),
+          url='autotest.kernel.org',
+          package_dir={'autotest.utils': utils_dir },
+          package_data={'autotest.utils' : ['named_semaphore/*',
+                                            'modelviz/*',
+                                           ],
+                       },
+          packages=['autotest.utils'],
+          data_files=[('share/autotest/utils', [ utils_dir + '/autotestd.service',
+                                                 utils_dir + '/autotest.init',
+                                                 utils_dir + '/autotest-rh.init',
+                                                 utils_dir + '/release'
+                                               ])
+                     ],
+    )
+
+if __name__ == '__main__':
+    run()

@@ -29,18 +29,22 @@ pd_filelist.extend(get_data_files(os.path.join(server_dir, 'control_segments')))
 pd_filelist.extend(get_data_files(os.path.join(server_dir, 'hosts', 'monitors')))
 pd_filelist.extend(get_data_files(os.path.join(server_dir, 'tests')))
 
-setup(name='autotest',
-      description='Autotest testing framework - remote module',
-      author='Autotest Team',
-      author_email='autotest@test.kernel.org',
-      version=version.get_version(),
-      url='autotest.kernel.org',
-      package_dir={'autotest.server': server_dir },
-      package_data={'autotest.server' : pd_filelist },
-      packages=['autotest.server.hosts',
-                'autotest.server.hosts.monitors',
-                'autotest.server',
-                ],
-      scripts=[server_dir + '/autotest-remote',
-               ],
-)
+def run():
+    setup(name='autotest',
+          description='Autotest testing framework - remote module',
+          author='Autotest Team',
+          author_email='autotest@test.kernel.org',
+          version=version.get_version(),
+          url='autotest.kernel.org',
+          package_dir={'autotest.server': server_dir },
+          package_data={'autotest.server' : pd_filelist },
+          packages=['autotest.server.hosts',
+                    'autotest.server.hosts.monitors',
+                    'autotest.server',
+                    ],
+          scripts=[server_dir + '/autotest-remote',
+                   ],
+    )
+
+if __name__ == '__main__':
+    run()

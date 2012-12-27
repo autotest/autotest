@@ -35,25 +35,29 @@ pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'templates')))
 pd_filelist.extend(get_data_files(os.path.join(fe_dir, 'tko', 'preconfigs')))
 pd_filelist.extend([os.path.join(fe_dir, 'frontend.wsgi')])
 
-setup(name='autotest',
-      description='Autotest test framework - rpc server',
-      author='Autotest Team',
-      author_email='autotest@test.kernel.org',
-      version=version.get_version(),
-      url='autotest.kernel.org',
-      package_dir={'autotest.frontend': fe_dir },
-      package_data={'autotest.frontend' : pd_filelist },
-      packages=['autotest.frontend.afe',
-                'autotest.frontend.afe.feeds',
-                'autotest.frontend.afe.json_rpc',
-                'autotest.frontend.db',
-                'autotest.frontend.db.backends',
-                'autotest.frontend.db.backends.afe',
-                'autotest.frontend.db.backends.afe_sqlite',
-                'autotest.frontend.migrations',
-                'autotest.frontend.shared',
-                'autotest.frontend.tko',
-                'autotest.frontend',
-               ],
-      scripts=[os.path.join(fe_dir, 'autotest-manage-rpc-server')],
-)
+def run():
+    setup(name='autotest',
+          description='Autotest test framework - rpc server',
+          author='Autotest Team',
+          author_email='autotest@test.kernel.org',
+          version=version.get_version(),
+          url='autotest.kernel.org',
+          package_dir={'autotest.frontend': fe_dir },
+          package_data={'autotest.frontend' : pd_filelist },
+          packages=['autotest.frontend.afe',
+                    'autotest.frontend.afe.feeds',
+                    'autotest.frontend.afe.json_rpc',
+                    'autotest.frontend.db',
+                    'autotest.frontend.db.backends',
+                    'autotest.frontend.db.backends.afe',
+                    'autotest.frontend.db.backends.afe_sqlite',
+                    'autotest.frontend.migrations',
+                    'autotest.frontend.shared',
+                    'autotest.frontend.tko',
+                    'autotest.frontend',
+                   ],
+          scripts=[os.path.join(fe_dir, 'autotest-manage-rpc-server')],
+    )
+
+if __name__ == '__main__':
+    run()
