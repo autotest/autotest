@@ -26,10 +26,11 @@ class ArgumentParser(argparse.ArgumentParser):
                          "configuration"))
 
         self.add_argument('-z', '--zone', default=self._get_default_zone(),
-                          help='Zone name, using default path')
+                          help=('Zone name, using default path (defaults to '
+                                '"%(default)s")'))
 
         self.add_argument('-s', '--service', default='http',
-                          help='Service name, default is "http"')
+                          help='Service name (defaults to "%(default)s")')
 
 
     def _get_default_zone(self):
@@ -81,7 +82,7 @@ class App(object):
         if not os.path.exists(src_file_path):
             logging.error('Could not find default zone file: %s',
                           src_file_path)
-            raise SystemExit
+            return False
 
         src_tree = xml.etree.ElementTree.parse(src_file_path)
         src_root = src_tree.getroot()
@@ -102,6 +103,10 @@ class App(object):
 
     def run(self):
         self.parsed_arguments = self.argument_parser.parse_args()
+
+        if not (self.parsed_arguments.zone and self.parsed_arguments.service):
+            self.argument_parser.print_help()
+            raise SystemExit
 
         if not self.parsed_arguments.zone:
             logging.error("A zone name is a required argument")
