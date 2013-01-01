@@ -1414,3 +1414,12 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
             result += u' (active)'
 
         return result
+
+
+class MigrateInfo(dbmodels.Model, model_logic.ModelExtensions):
+    version = dbmodels.IntegerField(primary_key=True, default=None,
+                                    blank=True, null=False)
+    objects = model_logic.ExtendedManager()
+
+    class Meta:
+        db_table = 'migrate_info'
