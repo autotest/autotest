@@ -708,7 +708,7 @@ class AptBackend(DpkgBackend):
             return None
 
 
-def install_distro_packages(distro_pkg_map):
+def install_distro_packages(distro_pkg_map, interactive=False):
     '''
     Installs packages for the currently running distribution
 
@@ -725,6 +725,9 @@ def install_distro_packages(distro_pkg_map):
         utils.get_os_vendor(), to a list of package names
     @returns: True if any packages were actually installed, False otherwise
     '''
+    if not interactive:
+        os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
+
     result = False
     distro = utils.get_os_vendor()
     if distro_pkg_map.has_key(distro):
