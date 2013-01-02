@@ -14,26 +14,7 @@ except ImportError:
 
 
 from autotest.client.shared import software_manager
-
-
-FEDORA_REDHAT_PKGS = ['unzip', 'wget', 'httpd', 'mod_wsgi', 'Django',
-                      'mysql-server', 'MySQL-python', 'git', 'java-devel',
-                      'python-imaging', 'python-crypto', 'python-paramiko',
-                      'python-httplib2', 'numpy', 'python-matplotlib',
-                      'urw-fonts', 'python-atfork', 'selinux-policy',
-                      'selinux-policy-targeted', 'policycoreutils-python']
-
-UBUNTU_PKGS = ['unzip', 'wget', 'gnuplot', 'makepasswd', 'apache2-mpm-prefork',
-               'libapache2-mod-wsgi', 'python-django', 'mysql-server',
-               'python-mysqldb', 'git', 'openjdk-7-jre-headless',
-               'python-imaging', 'python-crypto', 'python-paramiko',
-               'python-httplib2', 'python-numpy', 'python-matplotlib',
-               'python-setuptools', 'python-simplejson', 'libgwt-dev-java']
-
-
-PKG_DEPS = {'Fedora' : FEDORA_REDHAT_PKGS,
-            'Red Hat' : FEDORA_REDHAT_PKGS,
-            'Ubuntu' : UBUNTU_PKGS}
+from autotest.frontend.pkgdeps import PKG_DEPS
 
 
 if __name__ == '__main__':
