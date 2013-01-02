@@ -180,60 +180,9 @@ then
 fi
 }
 
-install_packages_rh() {
-PACKAGES_UTILITY=(unzip wget)
-PACKAGES_WEBSERVER=(httpd mod_wsgi Django)
-PACKAGES_MYSQL=(mysql-server MySQL-python)
-PACKAGES_DEVELOPMENT=(git java-devel)
-PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib urw-fonts python-atfork)
-PACKAGES_SELINUX=(selinux-policy selinux-policy-targeted policycoreutils-python)
-PACKAGES_ALL=( \
-    ${PACKAGES_UTILITY[*]}
-    ${PACKAGES_WEBSERVER[*]}
-    ${PACKAGES_MYSQL[*]}
-    ${PACKAGES_DEVELOPMENT[*]}
-    ${PACKAGES_PYTHON_LIBS[*]}
-    ${PACKAGES_SELINUX[*]}
-)
-
-PKG_COUNT=$(echo ${PACKAGES_ALL[*]} | wc -w)
-INSTALLED_PKG_COUNT=$(rpm -q ${PACKAGES_ALL[*]} | grep -v 'not installed' | wc -l)
-
-if [ $PKG_COUNT == $INSTALLED_PKG_COUNT ]; then
-    print_log "INFO" "All packages already installed"
-else
-    print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
-    yum install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
-fi
-
-# If both mod_wsgi and mod_python are installed, removed the latter
-rpm -q mod_python 1>/dev/null 2>&1
-if [ $? == 0 ]; then
-    rpm -q mod_wsgi 1>/dev/null 2>&1
-    if [ $? == 0 ]; then
-	print_log "INFO" "Removing mod_python because mod_wsgi is also installed"
-	yum -y remove mod_python >> $LOG 2>1&
-    fi
-fi
-}
-
-install_packages_deb() {
-PACKAGES_UTILITY=(unzip wget gnuplot makepasswd)
-PACKAGES_WEBSERVER=(apache2-mpm-prefork libapache2-mod-wsgi python-django)
-PACKAGES_MYSQL=(mysql-server python-mysqldb)
-PACKAGES_DEVELOPMENT=(git openjdk-7-jre-headless)
-PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 python-numpy python-matplotlib python-setuptools python-simplejson)
-PACKAGES_ALL=( \
-    ${PACKAGES_UTILITY[*]}
-    ${PACKAGES_WEBSERVER[*]}
-    ${PACKAGES_MYSQL[*]}
-    ${PACKAGES_DEVELOPMENT[*]}
-    ${PACKAGES_PYTHON_LIBS[*]}
-)
-
-print_log "INFO" "Installing all packages (${PACKAGES_ALL[*]})"
-export DEBIAN_FRONTEND=noninteractive
-apt-get install -y ${PACKAGES_ALL[*]} >> $LOG 2>&1
+install_packages() {
+print_log "INFO" "Installing packages dependencies"
+$ATHOME/installation_support/autotest-install-packages-deps >> $LOG 2>&1
 }
 
 setup_selinux() {
@@ -550,12 +499,12 @@ full_install() {
         check_disk_space
         setup_substitute
         setup_epel_repo
-        install_packages_rh
+        install_packages
     elif [ "$(grep 'Ubuntu' /etc/issue)" != "" ]
     then
         check_disk_space
         setup_substitute
-        install_packages_deb
+        install_packages
     else
         print_log "Sorry, I can't recognize your distro, exiting..."
     fi
