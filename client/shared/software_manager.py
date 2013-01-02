@@ -245,6 +245,11 @@ class DpkgBackend(BaseBackend):
     dpkg is a lower level package manager, used by higher level managers such
     as apt and aptitude.
     """
+
+
+    INSTALLED_OUTPUT = 'install ok installed'
+
+
     def __init__(self):
         self.lowlevel_base_cmd = os_dep.command('dpkg')
 
@@ -254,11 +259,11 @@ class DpkgBackend(BaseBackend):
             n_cmd = (self.lowlevel_base_cmd + ' -f ' + name +
                      ' Package 2>/dev/null')
             name = utils.system_output(n_cmd)
-        i_cmd = self.lowlevel_base_cmd + ' -s ' + name + ' 2>/dev/null'
+        i_cmd = (self.lowlevel_base_cmd + "--show -f='${Status}' "
+                 + name + ' 2>/dev/null')
         # Checking if package is installed
         package_status = utils.system_output(i_cmd, ignore_status=True)
-        not_inst_pattern = re.compile('not-installed', re.IGNORECASE)
-        dpkg_not_installed = re.search(not_inst_pattern, package_status)
+        dpkg_not_installed = (package_status != self.INSTALLED_OUTPUT)
         if dpkg_not_installed:
             return False
         return True
