@@ -818,7 +818,6 @@ def suspend_to_disk():
 def get_cpu_stat(key):
     """
     Get load per cpu from /proc/stat
-    @param _stats: previous values
     @return: list of values of CPU times
     """
 
