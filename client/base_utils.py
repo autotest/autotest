@@ -27,7 +27,7 @@ def grep(pattern, file):
 
 def difflist(list1, list2):
     """returns items in list2 that are not in list1"""
-    diff = [];
+    diff = []
     for x in list2:
         if x not in list1:
             diff.append(x)
@@ -484,7 +484,7 @@ def avgtime_print(dir):
     r = re.compile('([\d\.]*)user ([\d\.]*)system (\d*):([\d\.]*)elapsed (\d*)%CPU')
     for line in f.readlines():
         try:
-            s = r.match(line);
+            s = r.match(line)
             user += float(s.group(1))
             system += float(s.group(2))
             elapsed += (float(s.group(3)) * 60) + float(s.group(4))
@@ -503,7 +503,7 @@ def running_config():
     Return path of config file of the currently running kernel
     """
     version = os.uname()[2]
-    for config in ('/proc/config.gz', \
+    for config in ('/proc/config.gz',
                    '/boot/config-%s' % version,
                    '/lib/modules/%s/build/.config' % version):
         if os.path.isfile(config):
