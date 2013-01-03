@@ -656,8 +656,7 @@ class base_client_job(base_job.base_job):
         try:
             optional_fields = None
             if timeout:
-                optional_fields = {}
-                optional_fields['timeout'] = timeout
+                optional_fields = {'timeout': timeout}
             self.record('START', subdir, testname,
                         optional_fields=optional_fields)
 
