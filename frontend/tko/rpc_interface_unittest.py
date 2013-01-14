@@ -70,11 +70,10 @@ CREATE TABLE "tko_iteration_result" (
 def setup_test_view():
     """
     Django has no way to actually represent a view; we simply create a model for
-    TestView.   This means when we syncdb, Django will create a table for it.
-    So manually remove that table and replace it with a view.
+    TestView. So manually create the view.
     """
     cursor = connection.cursor()
-    cursor.execute('DROP TABLE tko_test_view_2')
+    cursor.execute('DROP VIEW IF EXISTS tko_test_view_2')
     cursor.execute(_CREATE_TEST_VIEW)
 
 

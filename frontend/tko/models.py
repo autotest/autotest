@@ -695,3 +695,4 @@ class TestView(dbmodels.Model, model_logic.ModelExtensions):
 
     class Meta:
         db_table = 'tko_test_view_2'
+        managed = False
