@@ -20,8 +20,7 @@ try:
 except ImportError:
     import common
 
-from autotest.database.migrate import MigrationManager
-from autotest.database.database_connection import DatabaseConnection
+from autotest.client.shared import global_config
 from autotest.frontend import setup_django_environment
 
 try:
@@ -244,27 +243,6 @@ class App(object):
                 logging.error("Failure while creating the database "
                               "and setting privileges")
                 return -1
-
-            # Run the migration manager
-            database = DatabaseConnection()
-            database.connect('mysql',
-                             opts.host,
-                             opts.username,
-                             opts.password,
-                             opts.database)
-            migrations_dir = os.path.join(os.path.dirname(__file__),
-                                          '..', 'frontend', 'migrations')
-            manager = MigrationManager(database,
-                                       migrations_dir=migrations_dir,
-                                       force=True)
-            try:
-                manager._migrate_from_base()
-                manager.do_sync_db(None)
-            except AssertionError:
-                logging.debug('Error while syncing database schema to '
-                              'latest version')
-                return -1
-
 
             # Finally run Django's syncdb, yes, twice
             # The current method is suboptimal, we may need to fetch the syncdb command module
