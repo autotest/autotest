@@ -596,19 +596,22 @@ class Profiler(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
-    """\
+    """
     Required:
     name: name of ACL group
+    users: reference to users members of this ACL group
 
     Optional:
     description: arbitrary description of group
+    hosts: hosts that are part of this ACL group
     """
     name = dbmodels.CharField(max_length=255, unique=True)
-    description = dbmodels.CharField(max_length=255, blank=True)
-    users = dbmodels.ManyToManyField(User, blank=False,
+    description = dbmodels.CharField(max_length=255, null=True, blank=True)
+    users = dbmodels.ManyToManyField(User,
                                      db_table='afe_acl_groups_users')
-    hosts = dbmodels.ManyToManyField(Host, blank=True,
-                                     db_table='afe_acl_groups_hosts')
+    hosts = dbmodels.ManyToManyField(Host,
+                                     db_table='afe_acl_groups_hosts',
+                                     blank=True)
 
     name_field = 'name'
     objects = model_logic.ExtendedManager()
