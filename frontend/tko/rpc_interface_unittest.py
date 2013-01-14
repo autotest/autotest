@@ -96,11 +96,12 @@ class TkoTestMixin(object):
         self.god.stub_with(models.TempManager, '_cursor_rowcount',
                            self._cursor_rowcount_for_sqlite3)
 
-        # add some functions to SQLite for MySQL compatibility
         connection.cursor() # ensure connection is alive
-        connection.connection.create_function('if', 3, self._sqlite_if)
-        connection.connection.create_function('find_in_set', 2,
-                                              self._sqlite_find_in_set)
+        # add some functions to SQLite for MySQL compatibility
+        if hasattr(connection.connection, "create_function"):
+            connection.connection.create_function('if', 3, self._sqlite_if)
+            connection.connection.create_function('find_in_set', 2,
+                                                  self._sqlite_find_in_set)
 
         fix_iteration_tables()
 
