@@ -49,20 +49,20 @@ INNER JOIN tko_status ON tko_status.status_idx = tko_tests.status;
 # this will need to be updated if the table schemas change (or removed if we
 # add proper primary keys)
 _CREATE_ITERATION_ATTRIBUTES = """
-CREATE TABLE "tko_iteration_attributes" (
-    "test_idx" integer NOT NULL REFERENCES "tko_tests" ("test_idx"),
-    "iteration" integer NOT NULL,
-    "attribute" varchar(90) NOT NULL,
-    "value" varchar(300) NOT NULL
+CREATE TABLE tko_iteration_attributes (
+    test_idx integer NOT NULL REFERENCES tko_tests (test_idx),
+    iteration integer NOT NULL,
+    attribute varchar(90) NOT NULL,
+    value varchar(300) NOT NULL
 );
 """
 
 _CREATE_ITERATION_RESULTS = """
-CREATE TABLE "tko_iteration_result" (
-    "test_idx" integer NOT NULL REFERENCES "tko_tests" ("test_idx"),
-    "iteration" integer NOT NULL,
-    "attribute" varchar(90) NOT NULL,
-    "value" numeric(12, 31) NULL
+CREATE TABLE tko_iteration_result (
+    test_idx integer NOT NULL REFERENCES tko_tests (test_idx),
+    iteration integer NOT NULL,
+    attribute varchar(90) NOT NULL,
+    value numeric(31, 12) NULL
 );
 """
 
