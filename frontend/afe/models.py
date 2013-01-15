@@ -486,8 +486,8 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
 class HostAttribute(dbmodels.Model):
     """Arbitrary keyvals associated with hosts."""
     host = dbmodels.ForeignKey(Host)
-    attribute = dbmodels.CharField(max_length=90)
-    value = dbmodels.CharField(max_length=300)
+    attribute = dbmodels.CharField(max_length=90, blank=False)
+    value = dbmodels.CharField(max_length=300, blank=False)
 
     objects = model_logic.ExtendedManager()
 
