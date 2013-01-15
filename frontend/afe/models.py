@@ -496,7 +496,7 @@ class HostAttribute(dbmodels.Model):
 
 
 class Test(dbmodels.Model, model_logic.ModelExtensions):
-    """\
+    """
     Required:
     author: author name
     description: description of the test
@@ -523,18 +523,19 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     # now they use opposite values)
 
     name = dbmodels.CharField(max_length=255, unique=True)
-    author = dbmodels.CharField(max_length=255)
-    test_class = dbmodels.CharField(max_length=255)
-    test_category = dbmodels.CharField(max_length=255)
+    author = dbmodels.CharField(max_length=255, blank=False)
+    test_class = dbmodels.CharField(max_length=255, blank=False)
+    test_category = dbmodels.CharField(max_length=255, blank=False)
     dependencies = dbmodels.CharField(max_length=255, blank=True)
     description = dbmodels.TextField(blank=True)
     experimental = dbmodels.BooleanField(default=True)
     run_verify = dbmodels.BooleanField(default=True)
     test_time = dbmodels.SmallIntegerField(choices=TestTime.choices(),
                                            default=TestTime.MEDIUM)
-    test_type = dbmodels.SmallIntegerField(choices=TestTypes.choices())
-    sync_count = dbmodels.IntegerField(default=1)
-    path = dbmodels.CharField(max_length=255, unique=True)
+    test_type = dbmodels.SmallIntegerField(choices=TestTypes.choices(),
+                                           default=TestTypes.CLIENT)
+    sync_count = dbmodels.PositiveIntegerField(default=1)
+    path = dbmodels.CharField(max_length=255, unique=True, blank=False)
 
     dependency_labels = (
         dbmodels.ManyToManyField(Label, blank=True,
