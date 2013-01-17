@@ -22,103 +22,7 @@ except ImportError:
 
 from autotest.client.shared import global_config
 from autotest.frontend import setup_django_environment
-
-try:
-    from autotest.client.shared import global_config
-    settings_file_path = global_config.global_config.config_file
-except ImportError:
-    from autotest.client.shared import settings
-    settings_file_path = settings.settings.config_file
-
-DB_ADMIN_USER = 'root'
-
-
-def database_already_exists(database, user, password, hostname='localhost'):
-    '''
-    Detects if the given password exist by trying to connect to it
-    '''
-    try:
-        connection = MySQLdb.connect(user=user, passwd=password, db=database,
-                                     host=hostname)
-        return True
-    except MySQLdb.OperationalError:
-        return False
-
-
-def admin_credentials_valid(password, hostname='localhost'):
-    '''
-    Checks if the database admin (root) credential is valid
-    '''
-    try:
-        connection = MySQLdb.connect(user=DB_ADMIN_USER, passwd=password)
-        return True
-    except:
-        return False
-
-
-def create_database(database, root_password='',
-                    hostname='localhost', conn=None, transaction=False):
-    if conn is None:
-        if not admin_credentials_valid(root_password, hostname):
-            logging.error("Failed to logon as the database admin user")
-            return False
-        conn = MySQLdb.connect(user=DB_ADMIN_USER, passwd=root_password)
-
-    if database_already_exists(database, DB_ADMIN_USER, root_password,
-                               hostname):
-        logging.info("Database already exists, doing nothing")
-        return True
-
-    if transaction:
-        conn.begin()
-
-    curs = conn.cursor()
-    try:
-        curs.execute("CREATE DATABASE %s" % database)
-    except MySQLdb.ProgrammingError, MySQLdb.OperationalError:
-        conn.rollback()
-        return False
-
-    if transaction:
-        conn.commit()
-
-    return True
-
-
-def database_setup(database, user, password, root_password,
-                   hostname='localhost'):
-    '''
-    Attempts to create database AND users AND set privileges
-    '''
-    # To actually give the privileges, we use the root user
-    if not admin_credentials_valid(root_password, hostname):
-        logging.error("Failed to logon as the database admin user")
-        return False
-
-    conn = MySQLdb.connect(user=DB_ADMIN_USER, passwd=root_password)
-    conn.begin()
-    curs = conn.cursor()
-
-    if not create_database(database, hostname=hostname,
-                           root_password=root_password, conn=conn):
-        conn.rollback()
-        return False
-
-
-    GRANT_CMDS = ["grant all privileges on %(database)s.* TO "
-                  "'%(user)s'@'localhost' identified by '%(password)s'",
-                  "grant SELECT on %(database)s.* TO 'nobody'@'%%'",
-                  "grant SELECT on %(database)s.* TO 'nobody'@'localhost'"]
-    for cmd in GRANT_CMDS:
-        cmd_ = cmd % locals()
-        try:
-            curs.execute(cmd_)
-        except:
-            conn.rollback()
-            return False
-
-    conn.commit()
-    return True
+from autotest.installation_support import database_manager
 
 
 def set_global_config_value(section, key, value):
@@ -243,10 +147,15 @@ class App(object):
                             'password' : opts.password,
                             'root_password' : opts.root_password}
 
+        klass = database_manager.get_manager_class(conn_options['db_type'])
+        mngr = klass(conn_options['database'],
+                     admin_password=conn_options['root_password'],
+                     user=conn_options['user'],
+                     password=conn_options['password'],
+                     host=conn_options['host'])
+
         if opts.check_credentials:
-            result = admin_credentials_valid(conn_options['root_password'],
-                                             conn_options['host'])
-            if result:
+            if mngr.admin_credentials_valid():
                 return 0
             else:
                 return -1
@@ -262,11 +171,7 @@ class App(object):
                     return -1
 
             # Perform the creation of the database
-            creation = database_setup(conn_options['database'],
-                                      conn_options['user'],
-                                      conn_options['password'],
-                                      conn_options['root_password'],
-                                      conn_options['host'])
+            creation = mngr.setup()
             if not creation:
                 logging.error("Failure while creating the database "
                               "and setting privileges")
