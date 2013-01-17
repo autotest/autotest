@@ -3,6 +3,7 @@ TIME = 'MEDIUM'
 NAME = "Sample - Machine reboot"
 TEST_TYPE = "client"
 TEST_CLASS = "Kernel"
+TEST_CATEGORY = "Functional"
 
 DOC = """
 This test will reboot the machine ITERATIONS number of times.  Note that if you
