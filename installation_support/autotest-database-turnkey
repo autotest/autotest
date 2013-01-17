@@ -177,6 +177,13 @@ class OptionParser(optparse.OptionParser):
                         help=('Name of the database that will be created '
                               '(defaults to "%default")'))
 
+        self.add_option('--from-config', action='store_true', default=False,
+                        help=('Use the configuration as it is in the '
+                             'configuration file. When this option is used '
+                             'it disregards options such as --host, --username'
+                             ', etc. Also it won\'t modify the configuration '
+                              'file.'))
+
         self.add_option('--root-password', default='',
                         help=('The password currently assigned to the '
                               'database administrator user (defaults '
@@ -217,28 +224,49 @@ class App(object):
         result = False
         opts, args = self.option_parser.parse_args()
 
+        def get_config_db_value(key):
+            return global_config.global_config.get_config_value('AUTOTEST_WEB',
+                                                                key)
+
+        if opts.from_config:
+            conn_options = {'database' : get_config_db_value('database'),
+                            'host' : get_config_db_value('host'),
+                            'db_type' : get_config_db_value('db_type'),
+                            'user' : get_config_db_value('user'),
+                            'password' : get_config_db_value('password'),
+                            'root_password' : opts.root_password}
+        else:
+            conn_options = {'database' : opts.database,
+                            'host' : opts.host,
+                            'db_type' : get_config_db_value('db_type'),
+                            'user' : opts.username,
+                            'password' : opts.password,
+                            'root_password' : opts.root_password}
+
         if opts.check_credentials:
-            result = admin_credentials_valid(opts.root_password, opts.host)
+            result = admin_credentials_valid(conn_options['root_password'],
+                                             conn_options['host'])
             if result:
                 return 0
             else:
                 return -1
 
         elif opts.setup:
-            # Write the configuration values to the global config file
-            config = self.update_config_file(opts)
-            if not config:
-                logging.error("Failure while setting the config file database "
-                              "values. Please check the current state of your "
-                              "autotest config file.")
-                return -1
+            if not opts.from_config:
+                # Write the configuration values to the global config file
+                config = self.update_config_file(opts)
+                if not config:
+                    logging.error("Failure while setting the config file "
+                                  "database values. Please check the current "
+                                  "state of your autotest config file.")
+                    return -1
 
             # Perform the creation of the database
-            creation = database_setup(opts.database,
-                                      opts.username,
-                                      opts.password,
-                                      opts.root_password,
-                                      opts.host)
+            creation = database_setup(conn_options['database'],
+                                      conn_options['user'],
+                                      conn_options['password'],
+                                      conn_options['root_password'],
+                                      conn_options['host'])
             if not creation:
                 logging.error("Failure while creating the database "
                               "and setting privileges")
