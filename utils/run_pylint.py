@@ -83,7 +83,7 @@ def get_pylint_opts():
         else:
             opts = disable_old
 
-    return opts + ['--reports=no', '--include-ids=y', '--rcfile=/dev/null']
+    return opts + ['--reports=no', '--include-ids=y', '--rcfile=/dev/null', '--good-names=i,j,k,Run,_,vm']
 
 
 def check_file(file_path):
