@@ -12,7 +12,7 @@ except ImportError:
     import common
 
 from autotest.client.shared import utils
-from autotest.database import database_connection
+from autotest.database_legacy import database_connection
 
 MIGRATE_TABLE = 'migrate_info'
 

@@ -4,7 +4,7 @@ import frontend.setup
 import cli.setup
 import server.setup
 import scheduler.setup
-import database.setup
+import database_legacy.setup
 import tko.setup
 import utils.setup
 import mirror.setup
@@ -32,7 +32,7 @@ def get_package_dir():
                           cli.setup.get_package_dir(),
                           server.setup.get_package_dir(),
                           scheduler.setup.get_package_dir(),
-                          database.setup.get_package_dir(),
+                          database_legacy.setup.get_package_dir(),
                           tko.setup.get_package_dir(),
                           utils.setup.get_package_dir(),
                           mirror.setup.get_package_dir()])
@@ -44,7 +44,7 @@ def get_packages():
             cli.setup.get_packages() +
             server.setup.get_packages() +
             scheduler.setup.get_packages() +
-            database.setup.get_packages() +
+            database_legacy.setup.get_packages() +
             tko.setup.get_packages() +
             utils.setup.get_packages() +
             mirror.setup.get_packages())
@@ -63,7 +63,7 @@ def get_package_data():
                            cli.setup.get_package_data(),
                            server.setup.get_package_data(),
                            scheduler.setup.get_package_data(),
-                           database.setup.get_package_data(),
+                           database_legacy.setup.get_package_data(),
                            tko.setup.get_package_data(),
                            utils.setup.get_package_data()])
 
@@ -74,7 +74,7 @@ def get_scripts():
             cli.setup.get_scripts() +
             server.setup.get_scripts() +
             scheduler.setup.get_scripts() +
-            database.setup.get_scripts() +
+            database_legacy.setup.get_scripts() +
             tko.setup.get_scripts())
 
 

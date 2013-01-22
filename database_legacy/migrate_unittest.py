@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.database import database_connection, migrate
+from autotest.database_legacy import database_connection, migrate
 
 # Which section of the global config to pull info from.  We won't actually use
 # that DB, we'll use the corresponding test DB (test_<db name>).
