@@ -9,7 +9,7 @@ try:
 except ImportError:
     import common
 from autotest.cli import rpc
-from autotest.database import database_connection
+from autotest.database_legacy import database_connection
 
 
 # First do all the options parsing

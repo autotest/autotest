@@ -9,7 +9,7 @@ from autotest.frontend import setup_django_environment
 from autotest.frontend.afe import frontend_test_utils
 from autotest.client.shared.test_utils import mock
 from autotest.client.shared.test_utils import unittest
-from autotest.database import database_connection
+from autotest.database_legacy import database_connection
 from autotest.frontend.afe import models
 from autotest.scheduler import monitor_db, drone_manager, email_manager
 from autotest.scheduler import scheduler_config, gc_stats, host_scheduler

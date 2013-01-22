@@ -17,7 +17,7 @@ from autotest.client import os_dep
 from autotest.client.shared import logging_manager
 from autotest.client.shared.settings import settings
 from autotest.client.shared import host_protections, utils
-from autotest.database import database_connection
+from autotest.database_legacy import database_connection
 from autotest.frontend.afe import models, rpc_utils, readonly_connection
 from autotest.frontend.afe import model_attributes
 from autotest.scheduler import drone_manager, drones, email_manager

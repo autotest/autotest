@@ -7,7 +7,7 @@ except ImportError:
     import common
 from autotest.client.shared import settings
 from autotest.client.shared.test_utils import mock
-from autotest.database import database_connection
+from autotest.database_legacy import database_connection
 
 _CONFIG_SECTION = 'AUTOTEST_WEB'
 _HOST = 'myhost'

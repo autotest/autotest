@@ -9,22 +9,22 @@ except ImportError:
 from autotest.client.shared import version
 
 # Mostly needed when called one level up
-if os.path.isdir('database'):
-    db_dir = 'database'
+if os.path.isdir('database_legacy'):
+    db_dir = 'database_legacy'
 else:
     db_dir = '.'
 
 
 def get_package_dir():
-    return {'autotest.database': db_dir}
+    return {'autotest.database_legacy': db_dir}
 
 
 def get_package_data():
-    return {'autotest.database' : ['*.sql' ]}
+    return {'autotest.database_legacy' : ['*.sql' ]}
 
 
 def get_packages():
-    return ['autotest.database']
+    return ['autotest.database_legacy']
 
 
 def get_scripts():

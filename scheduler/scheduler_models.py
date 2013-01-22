@@ -20,7 +20,7 @@ import datetime, itertools, logging, os, re, sys, time, weakref
 from autotest.client.shared import host_protections
 from autotest.client.shared.settings import settings
 from autotest.frontend.afe import models, model_attributes
-from autotest.database import database_connection
+from autotest.database_legacy import database_connection
 from autotest.scheduler import drone_manager, email_manager
 from autotest.scheduler import scheduler_config
 
