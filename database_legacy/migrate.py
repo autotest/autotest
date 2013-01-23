@@ -17,11 +17,7 @@ from autotest.database_legacy import database_connection
 MIGRATE_TABLE = 'migrate_info'
 
 _AUTODIR = os.path.join(os.path.dirname(__file__), '..')
-_MIGRATIONS_DIRS = {
-    'AUTOTEST_WEB' : os.path.join(_AUTODIR, 'frontend', 'migrations'),
-    'TKO' : os.path.join(_AUTODIR, 'tko', 'migrations'),
-}
-_DEFAULT_MIGRATIONS_DIR = 'migrations' # use CWD
+_MIGRATIONS_DIRS = os.path.join(_AUTODIR, 'database_legacy', 'migrations')
 
 class Migration(object):
     _UP_ATTRIBUTES = ('migrate_up', 'UP_SQL')
@@ -87,8 +83,7 @@ class MigrationManager(object):
     def _set_migrations_dir(self, migrations_dir=None):
         config_section = self._config_section()
         if migrations_dir is None:
-            migrations_dir = os.path.abspath(
-                _MIGRATIONS_DIRS.get(config_section, _DEFAULT_MIGRATIONS_DIR))
+            migrations_dir = os.path.abspath(_MIGRATIONS_DIRS)
         self.migrations_dir = migrations_dir
         sys.path.append(migrations_dir)
         assert os.path.exists(migrations_dir), migrations_dir + " doesn't exist"
