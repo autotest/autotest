@@ -25,8 +25,7 @@ def get_package_data():
 
 
 def get_packages():
-    return ['autotest.tko.migrations',
-            'autotest.tko.parsers',
+    return ['autotest.tko.parsers',
             'autotest.tko.parsers.test',
             'autotest.tko.parsers.test.templates',
             'autotest.tko']
