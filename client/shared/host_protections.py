@@ -1,4 +1,5 @@
-from autotest.client.shared import enum, global_config
+from autotest.client.shared import enum
+from autotest.client.shared.settings import settings, SettingsError
 
 # Changing this file has consequences that need to be understood.
 # Adding a protection level to the enum requires you to append your change to
@@ -21,22 +22,23 @@ Protection = enum.Enum('No protection',          # Repair can do anything to
                                                  # this host
                        )
 
-running_client = global_config.global_config.check_stand_alone_client_run()
+running_client = settings.check_stand_alone_client_run()
 
 try:
     _bad_value = object()
-    default_protection = global_config.global_config.get_config_value(
-                            'HOSTS', 'default_protection', default=_bad_value)
+    default_protection = settings.get_value('HOSTS',
+                                            'default_protection',
+                                            default=_bad_value)
     if default_protection == _bad_value:
         if not running_client:
-            raise global_config.ConfigError(
-                'No HOSTS.default_protection defined in global_config.ini')
+            raise SettingsError('No HOSTS.default_protection defined in '
+                              'global_config.ini')
     else:
         default = Protection.get_value(default_protection)
 
 # It is OK to have an empty global configuration object (stand alone client)
 # so we trap this exception.
-except global_config.ConfigError:
+except SettingsError:
     pass
 
 choices = Protection.choices()

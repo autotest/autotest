@@ -5,11 +5,11 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared import settings
 from autotest.client.shared import autotemp
 
 
-global_config_ini_contents = """
+settings_ini_contents = """
 [SECTION_A]
 value_1: 6.0
 value_2: hello
@@ -37,7 +37,7 @@ value_1: somebody@remotehost
 def create_config_files():
     global_temp = autotemp.tempfile("global", ".ini",
                                             text=True)
-    os.write(global_temp.fd, global_config_ini_contents)
+    os.write(global_temp.fd, settings_ini_contents)
 
     shadow_temp = autotemp.tempfile("shadow", ".ini",
                                            text=True)
@@ -47,9 +47,9 @@ def create_config_files():
     return (global_temp, shadow_temp)
 
 
-class global_config_test(unittest.TestCase):
+class settings_test(unittest.TestCase):
     # grab the singelton
-    conf = global_config.global_config
+    conf = settings.settings
 
     def setUp(self):
         # set the config files to our test files
@@ -61,41 +61,41 @@ class global_config_test(unittest.TestCase):
     def tearDown(self):
         self.shadow_temp.clean()
         self.global_temp.clean()
-        self.conf.set_config_files(global_config.DEFAULT_CONFIG_FILE,
-                                global_config.DEFAULT_SHADOW_FILE)
+        self.conf.set_config_files(settings.DEFAULT_CONFIG_FILE,
+                                settings.DEFAULT_SHADOW_FILE)
 
 
     def test_float(self):
-        val = self.conf.get_config_value("SECTION_A", "value_1", float)
+        val = self.conf.get_value("SECTION_A", "value_1", float)
         self.assertEquals(type(val), types.FloatType)
         self.assertEquals(val, 6.0)
 
 
     def test_int(self):
-        val = self.conf.get_config_value("SECTION_B", "value_1", int)
+        val = self.conf.get_value("SECTION_B", "value_1", int)
         self.assertEquals(type(val), types.IntType)
         self.assertTrue(val < 0)
-        val = self.conf.get_config_value("SECTION_B", "value_3", int)
+        val = self.conf.get_value("SECTION_B", "value_3", int)
         self.assertEquals(val, 0)
-        val = self.conf.get_config_value("SECTION_B", "value_4", int)
+        val = self.conf.get_value("SECTION_B", "value_4", int)
         self.assertTrue(val > 0)
 
 
     def test_string(self):
-        val = self.conf.get_config_value("SECTION_A", "value_2")
+        val = self.conf.get_value("SECTION_A", "value_2")
         self.assertEquals(type(val),types.StringType)
         self.assertEquals(val, "hello")
 
 
     def test_override(self):
-        val = self.conf.get_config_value("SECTION_C", "value_1")
+        val = self.conf.get_value("SECTION_C", "value_1")
         self.assertEquals(val, "somebody@remotehost")
 
 
     def test_exception(self):
         error = 0
         try:
-            val = self.conf.get_config_value("SECTION_B",
+            val = self.conf.get_value("SECTION_B",
                                             "value_2", int)
         except Exception:
             error = 1
@@ -103,20 +103,20 @@ class global_config_test(unittest.TestCase):
 
 
     def test_boolean(self):
-        val = self.conf.get_config_value("SECTION_A", "value_3", bool)
+        val = self.conf.get_value("SECTION_A", "value_3", bool)
         self.assertEquals(val, True)
-        val = self.conf.get_config_value("SECTION_A", "value_4", bool)
+        val = self.conf.get_value("SECTION_A", "value_4", bool)
         self.assertEquals(val, False)
-        val = self.conf.get_config_value("SECTION_A", "value_5", bool)
+        val = self.conf.get_value("SECTION_A", "value_5", bool)
         self.assertEquals(val, True)
-        val = self.conf.get_config_value("SECTION_A", "value_6", bool)
+        val = self.conf.get_value("SECTION_A", "value_6", bool)
         self.assertEquals(val, False)
 
 
     def test_defaults(self):
-        val = self.conf.get_config_value("MISSING", "foo", float, 3.6)
+        val = self.conf.get_value("MISSING", "foo", float, 3.6)
         self.assertEquals(val, 3.6)
-        val = self.conf.get_config_value("SECTION_A", "novalue", str,
+        val = self.conf.get_value("SECTION_A", "novalue", str,
                                                 "default")
         self.assertEquals(val, "default")
 

@@ -1,6 +1,6 @@
 import os, logging, ConfigParser
 from autotest.client.shared import autotemp, base_packages, error
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 from autotest.client import harness
 
 
@@ -27,7 +27,7 @@ class harness_autoserv(harness.harness):
         # config items. To avoid that happening silently, the check below
         # was written.
         try:
-            global_config.global_config.get_section_values(["CLIENT", "COMMON"])
+            settings.get_section_values(["CLIENT", "COMMON"])
         except ConfigParser.NoSectionError:
             logging.error("Empty CLIENT or COMMON configuration session. "
                           "global_config.ini missing. This probably means "

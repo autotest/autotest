@@ -11,13 +11,11 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 from autotest.client.shared import utils
 from autotest.client.shared.test_utils import mock
 from autotest.frontend.afe import rpc_client_lib
 from autotest.server import frontend
-
-GLOBAL_CONFIG = global_config.global_config
 
 
 class BaseRpcClientTest(unittest.TestCase):
@@ -39,7 +37,7 @@ class BaseRpcClientTest(unittest.TestCase):
 class RpcClientTest(BaseRpcClientTest):
     def test_init(self):
         os.environ['LOGNAME'] = 'unittest-user'
-        GLOBAL_CONFIG.override_config_value('SERVER', 'hostname', 'test-host')
+        settings.override_value('SERVER', 'hostname', 'test-host')
         rpc_client_lib.authorization_headers.expect_call(
                 'unittest-user', 'http://test-host').and_return(
                         {'AUTHORIZATION': 'unittest-user'})
@@ -57,7 +55,7 @@ class AFETest(BaseRpcClientTest):
             name = 'nameFoo'
             id = 'idFoo'
             results_platform_map = {'NORAD' : {'Seeking_Joshua': ['WOPR']}}
-        GLOBAL_CONFIG.override_config_value('SERVER', 'hostname', 'chess')
+        settings.override_value('SERVER', 'hostname', 'chess')
         rpc_client_lib.authorization_headers.expect_call(
                 'david', 'http://chess').and_return(
                         {'AUTHORIZATION': 'david'})

@@ -6,7 +6,7 @@ try:
 except ImportError:
     import common
 
-from autotest.client.shared import global_config
+from autotest.client.shared import settings
 from autotest.client.shared.test_utils import mock
 from autotest.server import utils
 from autotest.server.hosts import base_classes, bootloader
@@ -15,11 +15,11 @@ from autotest.server.hosts import base_classes, bootloader
 class test_host_class(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()
-        # stub out get_server_dir, global_config.get_config_value
+        # stub out get_server_dir, settings.get_value
         self.god.stub_with(utils, "get_server_dir",
                            lambda: "/unittest/server")
-        self.god.stub_function(global_config.global_config,
-                               "get_config_value")
+        self.god.stub_function(settings.settings,
+                               "get_value")
         # stub out the bootloader
         self.real_bootloader = bootloader.Bootloader
         bootloader.Bootloader = lambda arg: object()
@@ -62,7 +62,7 @@ class test_host_class(unittest.TestCase):
 
 
     def test_get_wait_up_empty(self):
-        global_config.global_config.get_config_value.expect_call(
+        settings.settings.get_value.expect_call(
             "HOSTS", "wait_up_processes", default="").and_return("")
 
         host = base_classes.Host()
@@ -71,7 +71,7 @@ class test_host_class(unittest.TestCase):
 
 
     def test_get_wait_up_ignores_whitespace(self):
-        global_config.global_config.get_config_value.expect_call(
+        settings.settings.get_value.expect_call(
             "HOSTS", "wait_up_processes", default="").and_return("  ")
 
         host = base_classes.Host()
@@ -80,7 +80,7 @@ class test_host_class(unittest.TestCase):
 
 
     def test_get_wait_up_single_process(self):
-        global_config.global_config.get_config_value.expect_call(
+        settings.settings.get_value.expect_call(
             "HOSTS", "wait_up_processes", default="").and_return("proc1")
 
         host = base_classes.Host()
@@ -90,7 +90,7 @@ class test_host_class(unittest.TestCase):
 
 
     def test_get_wait_up_multiple_process(self):
-        global_config.global_config.get_config_value.expect_call(
+        settings.settings.get_value.expect_call(
             "HOSTS", "wait_up_processes", default="").and_return(
             "proc1,proc2,proc3")
 
@@ -101,7 +101,7 @@ class test_host_class(unittest.TestCase):
 
 
     def test_get_wait_up_drops_duplicates(self):
-        global_config.global_config.get_config_value.expect_call(
+        settings.settings.get_value.expect_call(
             "HOSTS", "wait_up_processes", default="").and_return(
             "proc1,proc2,proc1")
 

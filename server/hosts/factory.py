@@ -1,13 +1,11 @@
-from autotest.client.shared import utils, error, global_config
+from autotest.client.shared import error, settings
 from autotest.server import autotest_remote, utils as server_utils
-from autotest.server.hosts import site_factory, ssh_host, serial, remote
+from autotest.server.hosts import site_factory, ssh_host, serial
 from autotest.server.hosts import logfile_monitor
 
 DEFAULT_FOLLOW_PATH = '/var/log/kern.log'
 DEFAULT_PATTERNS_PATH = 'console_patterns'
-SSH_ENGINE = global_config.global_config.get_config_value('AUTOSERV',
-                                                          'ssh_engine',
-                                                          type=str)
+SSH_ENGINE = settings.settings.get_value('AUTOSERV', 'ssh_engine')
 
 # for tracking which hostnames have already had job_start called
 _started_hostnames = set()

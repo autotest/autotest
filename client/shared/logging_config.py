@@ -1,7 +1,5 @@
 import logging, os, sys, time
-from autotest.client.shared import global_config
-
-GLOBAL_CONFIG = global_config.global_config
+from autotest.client.shared.settings import settings
 
 # set up a simple catchall configuration for use during import time.  some code
 # may log messages at import time and we don't want those to get completely
@@ -54,8 +52,7 @@ class LoggingConfig(object):
 
     @classmethod
     def get_server_log_dir(cls):
-        server_log_dir = GLOBAL_CONFIG.get_config_value('SERVER',
-                                                        'logs_dir', default='')
+        server_log_dir = settings.get_value('SERVER', 'logs_dir', default='')
         if not server_log_dir:
             server_log_dir = os.path.join(cls.get_autotest_root(), 'logs')
         return server_log_dir

@@ -1,10 +1,10 @@
-import re, os, sys, types, time, random
+import re, os, sys, time, random
 
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 from autotest.tko import utils
 
 
@@ -40,35 +40,32 @@ class db_sql(object):
 
 
     def _load_config(self, host, database, user, password):
-        # grab the global config
-        get_value = global_config.global_config.get_config_value
-
         # grab the host, database
         if host:
             self.host = host
         else:
-            self.host = get_value("AUTOTEST_WEB", "host")
+            self.host = settings.get_value("AUTOTEST_WEB", "host")
         if database:
             self.database = database
         else:
-            self.database = get_value("AUTOTEST_WEB", "database")
+            self.database = settings.get_value("AUTOTEST_WEB", "database")
 
         # grab the user and password
         if user:
             self.user = user
         else:
-            self.user = get_value("AUTOTEST_WEB", "user")
+            self.user = settings.get_value("AUTOTEST_WEB", "user")
         if password is not None:
             self.password = password
         else:
-            self.password = get_value("AUTOTEST_WEB", "password")
+            self.password = settings.get_value("AUTOTEST_WEB", "password")
 
         # grab the timeout configuration
-        self.query_timeout = get_value("AUTOTEST_WEB", "query_timeout",
+        self.query_timeout = settings.get_value("AUTOTEST_WEB", "query_timeout",
                                        type=int, default=3600)
-        self.min_delay = get_value("AUTOTEST_WEB", "min_retry_delay", type=int,
+        self.min_delay = settings.get_value("AUTOTEST_WEB", "min_retry_delay", type=int,
                                    default=20)
-        self.max_delay = get_value("AUTOTEST_WEB", "max_retry_delay", type=int,
+        self.max_delay = settings.get_value("AUTOTEST_WEB", "max_retry_delay", type=int,
                                    default=60)
 
 
@@ -575,8 +572,7 @@ class db_sql(object):
 
 def _get_db_type():
     """Get the database type name to use from the global config."""
-    get_value = global_config.global_config.get_config_value
-    return "db_" + get_value("AUTOTEST_WEB", "db_type", default="mysql")
+    return "db_" + settings.get_value("AUTOTEST_WEB", "db_type", default="mysql")
 
 
 def _get_error_class(class_name):

@@ -1,4 +1,4 @@
-import atexit, datetime, os, tempfile, unittest
+import datetime
 try:
     import autotest.common as common
 except ImportError:
@@ -6,7 +6,7 @@ except ImportError:
 from autotest.frontend import setup_test_environment
 from autotest.frontend import thread_local
 from autotest.frontend.afe import models, model_attributes
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 from autotest.client.shared.test_utils import mock
 
 class FrontendTestMixin(object):
@@ -69,10 +69,8 @@ class FrontendTestMixin(object):
     def _frontend_common_setup(self, fill_data=True):
         self.god = mock.mock_god(ut=self)
         setup_test_environment.set_up()
-        global_config.global_config.override_config_value(
-                'AUTOTEST_WEB', 'parameterized_jobs', 'False')
-        global_config.global_config.override_config_value(
-                'SERVER', 'rpc_logging', 'False')
+        settings.override_value('AUTOTEST_WEB', 'parameterized_jobs', 'False')
+        settings.override_value('SERVER', 'rpc_logging', 'False')
 
         if fill_data:
             self._fill_in_test_data()

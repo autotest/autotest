@@ -1,11 +1,10 @@
 """
 Autotest scheduling utility.
 """
-
-
 import logging
 
-from autotest.client.shared import global_config, utils
+from autotest.client.shared import utils
+from autotest.client.shared.settings import settings
 from autotest.frontend.afe import models
 from autotest.scheduler import metahost_scheduler, scheduler_config
 from autotest.scheduler import scheduler_models
@@ -36,8 +35,8 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         self._db = db
         self._metahost_schedulers = metahost_scheduler.get_metahost_schedulers()
 
-        # load site-specific scheduler selected in global_config
-        site_schedulers_str = global_config.global_config.get_config_value(
+        # load site-specific scheduler selected in settings
+        site_schedulers_str = settings.get_value(
                 scheduler_config.CONFIG_SECTION, 'site_metahost_schedulers',
                 default='')
         site_schedulers = set(site_schedulers_str.split(','))

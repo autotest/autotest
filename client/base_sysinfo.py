@@ -1,13 +1,11 @@
 import os, shutil, re, glob, subprocess, logging, gzip
 
-from autotest.client.shared import log, global_config, software_manager
+from autotest.client.shared import log, software_manager
+from autotest.client.shared.settings import settings
 from autotest.client import utils
 
-GLOBAL_CONFIG = global_config.global_config
-
-_LOG_INSTALLED_PACKAGES = GLOBAL_CONFIG.get_config_value('CLIENT',
-                                                       'log_installed_packages',
-                                                       type=bool, default=False)
+_LOG_INSTALLED_PACKAGES = settings.get_value('CLIENT', 'log_installed_packages',
+                                             type=bool, default=False)
 
 _DEFAULT_COMMANDS_TO_LOG_PER_TEST = []
 _DEFAULT_COMMANDS_TO_LOG_PER_BOOT = [

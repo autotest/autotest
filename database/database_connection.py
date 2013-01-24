@@ -3,7 +3,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 
 RECONNECT_FOREVER = object()
 
@@ -116,7 +116,7 @@ class _SqliteBackend(_GenericBackend):
 
 class _DjangoBackend(_GenericBackend):
     def __init__(self):
-        from django.db import backend, connection, transaction
+        from django.db import connection, transaction
         import django.db as django_db
         super(_DjangoBackend, self).__init__(django_db)
         self._django_connection = connection
@@ -155,7 +155,7 @@ class DatabaseConnection(object):
     * max_reconnect_attempts: maximum number of time to try reconnecting before
       giving up.  Setting to RECONNECT_FOREVER removes the limit.
     * rowcount - will hold cursor.rowcount after each call to execute().
-    * global_config_section - the section in which to find DB information. this
+    * settings_section - the section in which to find DB information. this
       should be passed to the constructor, not set later, and may be None, in
       which case information must be passed to connect().
     * debug - if set True, all queries will be printed before being executed
@@ -163,8 +163,8 @@ class DatabaseConnection(object):
     _DATABASE_ATTRIBUTES = ('db_type', 'host', 'username', 'password',
                             'db_name')
 
-    def __init__(self, global_config_section=None, debug=False):
-        self.global_config_section = global_config_section
+    def __init__(self, settings_section=None, debug=False):
+        self.settings_section = settings_section
         self._backend = None
         self.rowcount = None
         self.debug = debug
@@ -180,10 +180,9 @@ class DatabaseConnection(object):
     def _get_option(self, name, provided_value):
         if provided_value is not None:
             return provided_value
-        if self.global_config_section:
-            global_config_name = _GLOBAL_CONFIG_NAMES.get(name, name)
-            return global_config.global_config.get_config_value(
-                self.global_config_section, global_config_name)
+        if self.settings_section:
+            settings_name = _GLOBAL_CONFIG_NAMES.get(name, name)
+            return settings.get_value(self.settings_section, settings_name)
         return getattr(self, name, None)
 
 

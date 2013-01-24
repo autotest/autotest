@@ -6,19 +6,18 @@ except ImportError:
     import common
 import MySQLdb
 import sys
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 
 if (len(sys.argv) < 2 or
     [arg for arg in sys.argv[1:] if arg.startswith('-')]):
     print "Usage: %s username [username ...]" %sys.argv[0]
     sys.exit(1)
 
-config = global_config.global_config
 section = 'AUTOTEST_WEB'
-host = config.get_config_value(section, "host")
-db_name = config.get_config_value(section, "database")
-user = config.get_config_value(section, "user")
-password = config.get_config_value(section, "password")
+host = settings.get_value(section, "host")
+db_name = settings.get_value(section, "database")
+user = settings.get_value(section, "user")
+password = settings.get_value(section, "password")
 
 con = MySQLdb.connect(host=host, user=user,
                       passwd=password, db=db_name)

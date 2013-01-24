@@ -1,6 +1,6 @@
 import os, time, logging, shutil, gzip
 
-from autotest.client.shared import global_config
+from autotest.client.shared import settings
 from autotest.server import utils
 
 
@@ -35,7 +35,7 @@ def get_crashinfo(host, test_start_time):
 
 
 # Load default for number of hours to wait before giving up on crash collection.
-HOURS_TO_WAIT = global_config.global_config.get_config_value(
+HOURS_TO_WAIT = settings.settings.get_value(
     'SERVER', 'crash_collection_hours_to_wait', type=float, default=4.0)
 
 

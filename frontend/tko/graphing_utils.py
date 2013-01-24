@@ -1,4 +1,4 @@
-import base64, os, tempfile, operator, pickle, datetime, django.db
+import base64, tempfile, pickle, datetime, django
 import os.path, getpass
 from math import sqrt
 
@@ -23,7 +23,7 @@ import StringIO, colorsys, PIL.Image, PIL.ImageChops
 from autotest.frontend.afe import readonly_connection
 from autotest.frontend.afe.model_logic import ValidationError
 from simplejson import encoder
-from autotest.client.shared import global_config
+from autotest.client.shared import settings
 from autotest.frontend.tko import models, tko_rpc_utils
 
 _FIGURE_DPI = 100
@@ -809,8 +809,8 @@ def create_embedded_plot(model, update_time):
     return image
 
 
-_cache_timeout = global_config.global_config.get_config_value(
-    'AUTOTEST_WEB', 'graph_cache_creation_timeout_minutes')
+_cache_timeout = settings.settings.get_value('AUTOTEST_WEB',
+                                         'graph_cache_creation_timeout_minutes')
 
 
 def handle_plot_request(id, max_age):

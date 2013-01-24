@@ -7,8 +7,8 @@ should inherit this class.
 
 import fcntl, logging, os, re, shutil
 from autotest.client import os_dep
-from autotest.client.shared import error, utils, global_config
-
+from autotest.client.shared import error, utils
+from autotest.client.shared.settings import settings, SettingsError
 
 # the name of the checksum file that stores the packages' checksums
 CHECKSUM_FILE = "packages.checksum"
@@ -44,7 +44,7 @@ def parse_ssh_path(repo):
         return match.groups()
     else:
         raise error.PackageUploadError(
-            "Incorrect SSH path in global_config: %s" % repo)
+            "Incorrect SSH path in settings: %s" % repo)
 
 
 def repo_run_command(repo, cmd, ignore_status=False, cd=True):
@@ -122,8 +122,8 @@ def check_diskspace(repo, min_free=None):
         requested amount of free disk space.
     '''
     if min_free is None:
-        min_free = global_config.global_config.get_config_value(
-            'PACKAGES', 'minimum_free_space', type=int, default=1)
+        min_free = settings.get_value('PACKAGES', 'minimum_free_space',
+                                      type=int, default=1)
     try:
         df = repo_run_command(repo,
                               'df -PB %d . | tail -1' % 10 ** 9).stdout.split()
@@ -166,8 +166,8 @@ def trim_custom_directories(repo, older_than_days=None):
         return
 
     if older_than_days is None:
-        older_than_days = global_config.global_config.get_config_value(
-            'PACKAGES', 'custom_max_age', type=int, default=40)
+        older_than_days = settings.get_value('PACKAGES', 'custom_max_age',
+                                             type=int, default=40)
     cmd = 'find . -type f -atime +%s -exec rm -f {} \;' % older_than_days
     repo_run_command(repo, cmd, ignore_status=True)
 
@@ -397,7 +397,7 @@ class GitFetcher(RepositoryFetcher):
         """
         logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)
-        name, package_type = self.pkgmgr.parse_tarball_name(filename)
+        name, _ = self.pkgmgr.parse_tarball_name(filename)
         package_path = self.branch + " " + name
         try:
             cmd = self.git_archive_cmd_pattern % (self.url, dest_path, package_path)
@@ -568,15 +568,15 @@ class BasePackageManager(object):
         if not custom_repos:
             # Not all package types necessarily require or allow custom repos
             try:
-                custom_repos = global_config.global_config.get_config_value(
-                    'PACKAGES', 'custom_upload_location').split(',')
-            except global_config.ConfigError:
+                custom_repos = settings.get_value('PACKAGES',
+                                            'custom_upload_location').split(',')
+            except SettingsError:
                 custom_repos = []
             try:
-                custom_download = global_config.global_config.get_config_value(
-                    'PACKAGES', 'custom_download_location')
+                custom_download = settings.get_value('PACKAGES',
+                                                     'custom_download_location')
                 custom_repos += [custom_download]
-            except global_config.ConfigError:
+            except SettingsError:
                 pass
 
             if not custom_repos:
@@ -680,8 +680,8 @@ class BasePackageManager(object):
         # reverse order, assuming that the 'newest' repos are most desirable
         for fetcher in reversed(repositories):
             try:
-                #different fetchers have different install requirements
-                (name, dest) = fetcher.install_pkg_setup(pkg_name, dest_path, install)
+                # different fetchers have different install requirements
+                dest = fetcher.install_pkg_setup(pkg_name, dest_path, install)[1]
 
                 # Fetch the package if it is not there, the checksum does
                 # not match, or checksums are disabled entirely

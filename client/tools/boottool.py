@@ -1420,11 +1420,9 @@ class Grubby(object):
         except:
             try:
                 # then the autotest source directory
-                from autotest.client.shared import global_config
-                GLOBAL_CONFIG = global_config.global_config
-                tarball = os.path.join(
-                   GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path'),
-                   tarball_name)
+                from autotest.client.shared.settings import settings
+                top_path = settings.get_value('COMMON', 'autotest_top_path')
+                tarball = os.path.join(top_path, tarball_name)
                 f = open(tarball)
             except:
                 # then try to grab it from github

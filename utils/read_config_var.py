@@ -9,7 +9,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings, SettingsError
 
 
 def usage():
@@ -32,8 +32,8 @@ def main(args):
             usage()
 
         try:
-            print global_config.global_config.get_config_value(section, var)
-        except global_config.ConfigError:
+            print settings.get_value(section, var)
+        except SettingsError:
             print "Error reading %s.%s" % (section, var)
 
 

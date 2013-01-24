@@ -17,15 +17,13 @@ try:
 except ImportError:
     import common
 
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 import sys, re, urllib2
 
-GLOBAL_CONFIG = global_config.global_config
-
 def get_mappings_2x():
-    KERNEL_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'kernel_mirror', default='')
-    GITWEB_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'kernel_gitweb', default='')
-    STABLE_GITWEB_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'stable_kernel_gitweb', default='')
+    KERNEL_BASE_URL = settings.get_value('CLIENT', 'kernel_mirror', default='')
+    GITWEB_BASE_URL = settings.get_value('CLIENT', 'kernel_gitweb', default='')
+    STABLE_GITWEB_BASE_URL = settings.get_value('CLIENT', 'stable_kernel_gitweb', default='')
 
     MAPPINGS_2X = [
         [ r'^\d+\.\d+$', '', True,
@@ -65,9 +63,9 @@ def get_mappings_2x():
 
 
 def get_mappings_post_2x():
-    KERNEL_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'kernel_mirror', default='')
-    GITWEB_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'kernel_gitweb', default='')
-    STABLE_GITWEB_BASE_URL = GLOBAL_CONFIG.get_config_value('CLIENT', 'stable_kernel_gitweb', default='')
+    KERNEL_BASE_URL = settings.get_value('CLIENT', 'kernel_mirror', default='')
+    GITWEB_BASE_URL = settings.get_value('CLIENT', 'kernel_gitweb', default='')
+    STABLE_GITWEB_BASE_URL = settings.get_value('CLIENT', 'stable_kernel_gitweb', default='')
 
     MAPPINGS_POST_2X = [
         [ r'^\d+\.\d+$', '', True,

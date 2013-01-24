@@ -7,7 +7,7 @@ except ImportError:
     import common
 from kernelexpand import decompose_kernel
 from kernelexpand import mirror_kernel_components
-from autotest.client.shared.global_config import global_config
+from autotest.client.shared.settings import settings
 from autotest.client.shared.test_utils import mock
 
 km = 'http://www.kernel.org/pub/linux/kernel/'
@@ -97,20 +97,20 @@ class kernelexpandTest(unittest.TestCase):
 
 
     def test_decompose_gitweb(self):
-        self.god.stub_function(global_config, "get_config_value")
-        global_config.get_config_value.expect_call('CLIENT', 'kernel_mirror', default='').and_return(km)
-        global_config.get_config_value.expect_call('CLIENT', 'kernel_gitweb', default='').and_return(gw)
-        global_config.get_config_value.expect_call('CLIENT', 'stable_kernel_gitweb', default='').and_return(sgw)
+        self.god.stub_function(settings, "get_value")
+        settings.get_value.expect_call('CLIENT', 'kernel_mirror', default='').and_return(km)
+        settings.get_value.expect_call('CLIENT', 'kernel_gitweb', default='').and_return(gw)
+        settings.get_value.expect_call('CLIENT', 'stable_kernel_gitweb', default='').and_return(sgw)
         correct = [ [ km + 'v3.x/linux-3.0.tar.bz2', gw + ';a=snapshot;h=refs/tags/v3.0;sf=tgz' ] ]
         sample = decompose_kernel('3.0')
         self.assertEqual(sample, correct)
 
 
     def test_decompose_sha1(self):
-        self.god.stub_function(global_config, "get_config_value")
-        global_config.get_config_value.expect_call('CLIENT', 'kernel_mirror', default='').and_return(km)
-        global_config.get_config_value.expect_call('CLIENT', 'kernel_gitweb', default='').and_return(gw)
-        global_config.get_config_value.expect_call('CLIENT', 'stable_kernel_gitweb', default='').and_return(sgw)
+        self.god.stub_function(settings, "get_value")
+        settings.get_value.expect_call('CLIENT', 'kernel_mirror', default='').and_return(km)
+        settings.get_value.expect_call('CLIENT', 'kernel_gitweb', default='').and_return(gw)
+        settings.get_value.expect_call('CLIENT', 'stable_kernel_gitweb', default='').and_return(sgw)
         correct = [ [ gw + ';a=snapshot;h=02f8c6aee8df3cdc935e9bdd4f2d020306035dbe;sf=tgz', sgw + ';a=snapshot;h=02f8c6aee8df3cdc935e9bdd4f2d020306035dbe;sf=tgz' ] ]
         sample = decompose_kernel('02f8c6aee8df3cdc935e9bdd4f2d020306035dbe')
         self.assertEqual(sample, correct)

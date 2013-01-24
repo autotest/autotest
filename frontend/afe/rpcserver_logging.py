@@ -1,24 +1,22 @@
-import logging, logging.handlers, time, os
+import logging
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 
 
-config = global_config.global_config
-LOGGING_ENABLED = config.get_config_value('SERVER', 'rpc_logging', type=bool)
+LOGGING_ENABLED = settings.get_value('SERVER', 'rpc_logging', type=bool)
 
 MEGABYTE = 1024 * 1024
 
 rpc_logger = None
 
 def configure_logging():
-    MAX_LOG_SIZE = config.get_config_value('SERVER', 'rpc_max_log_size_mb',
-                                           type=int)
-    NUMBER_OF_OLD_LOGS = config.get_config_value('SERVER', 'rpc_num_old_logs',
-                                                 type=int)
-    log_path = config.get_config_value('SERVER', 'rpc_log_path')
+    MAX_LOG_SIZE = settings.get_value('SERVER', 'rpc_max_log_size_mb', type=int)
+    NUMBER_OF_OLD_LOGS = settings.get_value('SERVER', 'rpc_num_old_logs',
+                                            type=int)
+    log_path = settings.get_value('SERVER', 'rpc_log_path')
 
     formatter = logging.Formatter(
         fmt='[%(asctime)s %(levelname)-5.5s] %(message)s',

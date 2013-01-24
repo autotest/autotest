@@ -14,21 +14,20 @@ For docs, see:
     http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
-import getpass, os, time, traceback, re, xmlrpclib
+import getpass, os, time, traceback, re
 try:
     import autotest.common as common
 except ImportError:
     import common
 from autotest.frontend.afe import rpc_client_lib
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 from autotest.client.shared import utils
 try:
     from autotest.server.site_common import site_utils as server_utils
-except:
+except ImportError:
     from autotest.server import utils as server_utils
 form_ntuples_from_machines = server_utils.form_ntuples_from_machines
 
-GLOBAL_CONFIG = global_config.global_config
 DEFAULT_SERVER = 'autotest'
 
 def dump_object(header, obj):
@@ -67,8 +66,8 @@ class RpcClient(object):
             if 'AUTOTEST_WEB' in os.environ:
                 server = os.environ['AUTOTEST_WEB']
             else:
-                server = GLOBAL_CONFIG.get_config_value('SERVER', 'hostname',
-                                                        default=DEFAULT_SERVER)
+                server = settings.get_value('SERVER', 'hostname',
+                                            default=DEFAULT_SERVER)
         self.server = server
         self.user = user
         self.print_log = print_log
@@ -397,18 +396,14 @@ class AFE(RpcClient):
         text.append(url + '\n')
 
         smtp_info = {}
-        smtp_info['server'] = GLOBAL_CONFIG.get_config_value('SERVER',
-                                                             'smtp_server',
-                                                             default='localhost')
-        smtp_info['port'] = GLOBAL_CONFIG.get_config_value('SERVER',
-                                                           'smtp_port',
-                                                           default='')
-        smtp_info['user'] = GLOBAL_CONFIG.get_config_value('SERVER',
-                                                           'smtp_user',
-                                                           default='')
-        smtp_info['password'] = GLOBAL_CONFIG.get_config_value('SERVER',
-                                                               'smtp_password',
-                                                               default='')
+        smtp_info['server'] = settings.get_value('SERVER', 'smtp_server',
+                                                default='localhost')
+        smtp_info['port'] = settings.get_value('SERVER', 'smtp_port',
+                                               default='')
+        smtp_info['user'] = settings.get_value('SERVER', 'smtp_user',
+                                               default='')
+        smtp_info['password'] = settings.get_value('SERVER', 'smtp_password',
+                                                   default='')
 
         body = '\n'.join(text)
         print '---------------------------------------------------'

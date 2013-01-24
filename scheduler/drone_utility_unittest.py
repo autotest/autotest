@@ -9,7 +9,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 from autotest.client.shared.test_utils import mock
 from autotest.scheduler import drone_utility
 
@@ -26,13 +26,13 @@ class TestDroneUtility(unittest.TestCase):
 
     def tearDown(self):
         self.god.unstub_all()
-        global_config.global_config.reset_config_values()
+        settings.reset_values()
 
 
     @staticmethod
     def _set_check_dark_mark(value):
-        global_config.global_config.override_config_value(
-                'SCHEDULER', 'check_processes_for_dark_mark', repr(value))
+        settings.override_value('SCHEDULER', 'check_processes_for_dark_mark',
+                                repr(value))
 
 
     def test_refresh_processes_ignore_dark_mark(self):

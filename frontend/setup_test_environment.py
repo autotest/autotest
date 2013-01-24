@@ -1,4 +1,3 @@
-import tempfile, shutil, os
 from django.core import management
 from django.conf import settings
 try:

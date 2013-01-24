@@ -51,8 +51,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(os, "fdopen")
         self.god.stub_function(os.path, "exists")
         self.god.stub_function(autotest_remote, "open")
-        self.god.stub_function(autotest_remote.global_config.global_config,
-                               "get_config_value")
+        self.god.stub_function(autotest_remote.settings, "get_value")
         self.god.stub_function(logging, "exception")
         self.god.stub_class(autotest_remote, "_Run")
         self.god.stub_class(autotest_remote, "log_collector")
@@ -117,15 +116,15 @@ class TestBaseAutotest(unittest.TestCase):
     def test_full_client_install(self):
         self.record_install_prologue()
 
-        c = autotest_remote.global_config.global_config
-        c.get_config_value.expect_call('PACKAGES',
+
+        autotest_remote.settings.get_value.expect_call('PACKAGES',
                                        'serve_packages_from_autoserv',
                                        type=bool).and_return(False)
         self.host.send_file.expect_call('source_material', 'autodir',
                                         delete_dest=True)
 
         tmpdir = 'autodir/tmp'
-        c.get_config_value.expect_call('COMMON',
+        autotest_remote.settings.get_value.expect_call('COMMON',
                                        'test_output_dir',
                                        default=tmpdir).and_return(tmpdir)
         self.host.run.expect_call('mkdir -p %s' % tmpdir)
@@ -138,17 +137,17 @@ class TestBaseAutotest(unittest.TestCase):
     def test_autoserv_install(self):
         self.record_install_prologue()
 
-        c = autotest_remote.global_config.global_config
-        c.get_config_value.expect_call('PACKAGES',
+
+        autotest_remote.settings.get_value.expect_call('PACKAGES',
             'fetch_location', type=list, default=[]).and_return([])
 
-        c.get_config_value.expect_call('PACKAGES',
+        autotest_remote.settings.get_value.expect_call('PACKAGES',
                                        'serve_packages_from_autoserv',
                                        type=bool).and_return(True)
         self.base_autotest._install_using_send_file.expect_call(self.host,
                                                                 'autodir')
         tmpdir = 'autodir/tmp'
-        c.get_config_value.expect_call('COMMON',
+        autotest_remote.settings.get_value.expect_call('COMMON',
                                        'test_output_dir',
                                        default=tmpdir).and_return(tmpdir)
         self.host.run.expect_call('mkdir -p %s' % tmpdir)
@@ -160,8 +159,8 @@ class TestBaseAutotest(unittest.TestCase):
     def test_packaging_install(self):
         self.record_install_prologue()
 
-        c = autotest_remote.global_config.global_config
-        c.get_config_value.expect_call('PACKAGES',
+
+        autotest_remote.settings.get_value.expect_call('PACKAGES',
             'fetch_location', type=list, default=[]).and_return(['repo'])
         pkgmgr = packages.PackageManager.expect_new('autodir',
             repo_urls=['repo'], hostname='hostname', do_locking=False,
@@ -173,11 +172,11 @@ class TestBaseAutotest(unittest.TestCase):
         pkgmgr.install_pkg.expect_call('autotest', 'client', pkg_dir,
                                        'autodir', preserve_install_dir=True)
         tmpdir = 'autodir/tmp'
-        c.get_config_value.expect_call('COMMON',
+        autotest_remote.settings.get_value.expect_call('COMMON',
                                        'test_output_dir',
                                        default=tmpdir).and_return(tmpdir)
         self.host.run.expect_call('mkdir -p %s' % tmpdir)
-        c.get_config_value.expect_call('COMMON',
+        autotest_remote.settings.get_value.expect_call('COMMON',
                                        'test_output_dir',
                                        default=tmpdir).and_return(tmpdir)
         self.host.run.expect_call('mkdir -p %s' % tmpdir)
@@ -232,8 +231,8 @@ class TestBaseAutotest(unittest.TestCase):
 
         utils.get.expect_call(control).and_return("temp")
 
-        c = autotest_remote.global_config.global_config
-        c.get_config_value.expect_call("PACKAGES",
+
+        autotest_remote.settings.get_value.expect_call("PACKAGES",
             'fetch_location', type=list, default=[]).and_return(['repo'])
         pkgmgr = packages.PackageManager.expect_new('autotest',
                                                      repo_urls=['repo'],
@@ -328,8 +327,8 @@ class TestBaseAutotest(unittest.TestCase):
         logger = autotest_remote.client_logger(self.host, '', '')
         self.god.stub_function(logger, '_send_tarball')
 
-        c = autotest_remote.global_config.global_config
-        c.get_config_value.expect_call('PACKAGES',
+
+        autotest_remote.settings.get_value.expect_call('PACKAGES',
                                        'serve_packages_from_autoserv',
                                        type=bool).and_return(True)
         logger._send_tarball.expect_call('pkgname.tar.bz2', '/autotest/dest/')

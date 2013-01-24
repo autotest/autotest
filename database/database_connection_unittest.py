@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared import settings
 from autotest.client.shared.test_utils import mock
 from autotest.database import database_connection
 
@@ -31,7 +31,7 @@ class DatabaseConnectionTest(unittest.TestCase):
 
 
     def tearDown(self):
-        global_config.global_config.reset_config_values()
+        settings.settings.reset_values()
         self.god.unstub_all()
 
 
@@ -56,12 +56,12 @@ class DatabaseConnectionTest(unittest.TestCase):
 
 
     def _override_config(self):
-        c = global_config.global_config
-        c.override_config_value(_CONFIG_SECTION, 'host', _HOST)
-        c.override_config_value(_CONFIG_SECTION, 'user', _USER)
-        c.override_config_value(_CONFIG_SECTION, 'password', _PASS)
-        c.override_config_value(_CONFIG_SECTION, 'database', _DB_NAME)
-        c.override_config_value(_CONFIG_SECTION, 'db_type', _DB_TYPE)
+        c = settings.settings
+        c.override_value(_CONFIG_SECTION, 'host', _HOST)
+        c.override_value(_CONFIG_SECTION, 'user', _USER)
+        c.override_value(_CONFIG_SECTION, 'password', _PASS)
+        c.override_value(_CONFIG_SECTION, 'database', _DB_NAME)
+        c.override_value(_CONFIG_SECTION, 'db_type', _DB_TYPE)
 
 
     def test_connect(self):
@@ -75,7 +75,7 @@ class DatabaseConnectionTest(unittest.TestCase):
         self.god.check_playback()
 
 
-    def test_global_config(self):
+    def test_settings(self):
         db = self._get_database_connection()
         self._fake_backend.connect.expect_call(**_CONNECT_KWARGS)
 

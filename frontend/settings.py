@@ -5,13 +5,12 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 
-c = global_config.global_config
 _section = 'AUTOTEST_WEB'
 
-DEBUG = c.get_config_value(_section, "sql_debug_mode", type=bool, default=False)
-TEMPLATE_DEBUG = c.get_config_value(_section, "template_debug_mode", type=bool,
+DEBUG = settings.get_value(_section, "sql_debug_mode", type=bool, default=False)
+TEMPLATE_DEBUG = settings.get_value(_section, "template_debug_mode", type=bool,
                                     default=False)
 
 FULL_ADMIN = False
@@ -23,7 +22,7 @@ ADMINS = (
 MANAGERS = ADMINS
 
 def _get_config(config_key, default=None):
-    return c.get_config_value(_section, config_key, default=default)
+    return settings.get_value(_section, config_key, default=default)
 
 AUTOTEST_DEFAULT = {
     'ENGINE': 'autotest.frontend.db.backends.afe',
