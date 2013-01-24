@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import enum, global_config, host_protections
+from autotest.client.shared import enum, settings, host_protections
 from autotest.database import database_connection
 from autotest.frontend import setup_django_environment
 from autotest.frontend.afe import frontend_test_utils, models
@@ -45,7 +45,7 @@ class MockGlobalConfig(object):
         self._config_info[(section, key)] = value
 
 
-    def get_config_value(self, section, key, type=str,
+    def get_value(self, section, key, type=str,
                          default=None, allow_blank=False):
         identifier = (section, key)
         if identifier not in self._config_info:
@@ -311,7 +311,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
     def setUp(self):
         self._frontend_common_setup()
         self._set_stubs()
-        self._set_global_config_values()
+        self._set_settings_values()
         self._create_dispatcher()
 
         logging.basicConfig(level=logging.DEBUG)
@@ -328,7 +328,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
 
     def _set_stubs(self):
         self.mock_config = MockGlobalConfig()
-        self.god.stub_with(global_config, 'global_config', self.mock_config)
+        self.god.stub_with(settings, 'settings', self.mock_config)
 
         self.mock_drone_manager = MockDroneManager()
         drone_manager._set_instance(self.mock_drone_manager)
@@ -347,7 +347,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         scheduler_models.initialize_globals()
 
 
-    def _set_global_config_values(self):
+    def _set_settings_values(self):
         self.mock_config.set_config_value('SCHEDULER', 'pidfile_timeout_mins',
                                           1)
         self.mock_config.set_config_value('SCHEDULER', 'gc_stats_interval_mins',

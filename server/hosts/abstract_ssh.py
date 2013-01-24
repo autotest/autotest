@@ -1,13 +1,12 @@
-import os, time, types, socket, shutil, glob, logging, traceback, tempfile
-from autotest.client.shared import autotemp, error, logging_manager
+import os, time, socket, shutil, glob, logging, traceback, tempfile
+from autotest.client.shared import autotemp, error
 from autotest.server import utils, autotest_remote
 from autotest.server.hosts import remote
-from autotest.client.shared.global_config import global_config
+from autotest.client.shared.settings import settings
 
 
-get_value = global_config.get_config_value
-enable_master_ssh = get_value('AUTOSERV', 'enable_master_ssh', type=bool,
-                              default=False)
+enable_master_ssh = settings.get_value('AUTOSERV', 'enable_master_ssh',
+                                       type=bool, default=False)
 
 
 def _make_ssh_cmd_default(user="root", port=22, opts='', hosts_file='/dev/null',
@@ -532,10 +531,10 @@ class AbstractSSHHost(SiteHost):
 
 
     # tunable constants for the verify & repair code
-    AUTOTEST_GB_DISKSPACE_REQUIRED = get_value("SERVER",
-                                               "gb_diskspace_required",
-                                               type=int,
-                                               default=20)
+    AUTOTEST_GB_DISKSPACE_REQUIRED = settings.get_value("SERVER",
+                                                        "gb_diskspace_required",
+                                                        type=int,
+                                                        default=20)
 
 
     def verify_connectivity(self):

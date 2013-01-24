@@ -2,7 +2,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 
 CONFIG_SECTION = 'SCHEDULER'
 
@@ -28,12 +28,11 @@ class SchedulerConfig(object):
 
 
     def read_config(self):
-        config = global_config.global_config
-        config.parse_config_file()
+        settings.parse_config_file()
         for field, config_option in self.FIELDS.iteritems():
-            setattr(self, field, config.get_config_value(CONFIG_SECTION,
-                                                         config_option,
-                                                         type=int))
+            setattr(self, field, settings.get_value(CONFIG_SECTION,
+                                                    config_option,
+                                                    type=int))
 
 
 config = SchedulerConfig()

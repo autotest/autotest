@@ -4,17 +4,17 @@
 Utility to upload or remove the packages from the packages repository.
 """
 
-import logging, os, sys, optparse, socket, tempfile, shutil
+import logging, os, sys, optparse, tempfile, shutil
 try:
     import autotest.common as common
 except ImportError:
     import common
 from autotest.client.shared import utils as client_utils
-from autotest.client.shared import global_config, error
+from autotest.client.shared import error
+from autotest.client.shared.settings import settings
 from autotest.client.shared import base_packages, packages
 from autotest.server import utils as server_utils
 
-c = global_config.global_config
 logging.basicConfig(level=logging.DEBUG)
 
 def get_exclude_string(client_dir):
@@ -225,9 +225,9 @@ def main():
     autotest_dir = os.path.abspath(os.path.join(server_dir, '..'))
 
     # extract the pkg locations from global config
-    repo_urls = c.get_config_value('PACKAGES', 'fetch_location',
+    repo_urls = settings.get_value('PACKAGES', 'fetch_location',
                                    type=list, default=[])
-    upload_paths = c.get_config_value('PACKAGES', 'upload_location',
+    upload_paths = settings.get_value('PACKAGES', 'upload_location',
                                       type=list, default=[])
 
     if options.repo:

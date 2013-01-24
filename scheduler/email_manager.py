@@ -3,7 +3,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 
 CONFIG_SECTION = 'SCHEDULER'
 
@@ -13,23 +13,27 @@ class EmailNotificationManager(object):
     def __init__(self):
         self._emails = []
 
-        self._from_address = global_config.global_config.get_config_value(
-            CONFIG_SECTION, "notify_email_from", default=getpass.getuser())
+        self._from_address = settings.get_value(CONFIG_SECTION,
+                                                "notify_email_from",
+                                                default=getpass.getuser())
 
-        self._notify_address = global_config.global_config.get_config_value(
-            CONFIG_SECTION, "notify_email", default='')
+        self._notify_address = settings.get_value(CONFIG_SECTION,
+                                                  "notify_email", default='')
 
-        self._smtp_server = global_config.global_config.get_config_value(
-            CONFIG_SECTION_SMTP, "smtp_server", default='localhost')
+        self._smtp_server = settings.get_value(CONFIG_SECTION_SMTP,
+                                               "smtp_server",
+                                               default='localhost')
 
-        self._smtp_port = global_config.global_config.get_config_value(
-            CONFIG_SECTION_SMTP, "smtp_port", default=None)
+        self._smtp_port = settings.get_value(CONFIG_SECTION_SMTP,
+                                             "smtp_port",
+                                             default=None)
 
-        self._smtp_user = global_config.global_config.get_config_value(
-            CONFIG_SECTION_SMTP, "smtp_user", default='')
+        self._smtp_user = settings.get_value(CONFIG_SECTION_SMTP,
+                                             "smtp_user", default='')
 
-        self._smtp_password = global_config.global_config.get_config_value(
-            CONFIG_SECTION_SMTP, "smtp_password", default='')
+        self._smtp_password = settings.get_value(CONFIG_SECTION_SMTP,
+                                                 "smtp_password", default='')
+
 
     def send_email(self, to_string, subject, body):
         """Mails out emails to the addresses listed in to_string.

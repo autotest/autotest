@@ -11,11 +11,11 @@ try:
 except ImportError:
     import common
 from autotest.frontend.afe import model_logic
-from autotest.client.shared import global_config
-import frontend.settings
+from autotest.client.shared.settings import settings
+import autotest.frontend.settings as frontend_settings
 
-AUTOTEST_DIR = os.path.abspath(os.path.join(
-    os.path.dirname(frontend.settings.__file__), '..'))
+frontend_settings_dir = os.path.dirname(frontend_settings.__file__)
+AUTOTEST_DIR = os.path.abspath(os.path.join(frontend_settings_dir, '..'))
 
 EMPTY_TEMPLATE = 'def step_init():\n'
 
@@ -161,12 +161,9 @@ def read_control_file(test):
     test_dirs = [AUTOTEST_DIR]
     # if test_dir is defined in global config file
     # try to fetch control file from there
-    global_config_test_dirs = (
-        global_config.global_config.get_config_value('COMMON',
-                                                     'test_dir',
-                                                     default=""))
-    if global_config_test_dirs:
-        test_dirs = global_config_test_dirs.strip().split(',') + test_dirs
+    settings_test_dirs = settings.get_value('COMMON', 'test_dir', default="")
+    if settings_test_dirs:
+        test_dirs = settings_test_dirs.strip().split(',') + test_dirs
     control_file = None
     for test_dir in test_dirs:
         if os.path.isfile(os.path.join(test_dir, test.path)):

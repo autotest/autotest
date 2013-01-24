@@ -5,13 +5,14 @@ try:
 except ImportError:
     import common
 import logging
-from autotest.client.shared import global_config, utils
+from autotest.client.shared import utils
+from autotest.client.shared.settings import settings
 from autotest.scheduler import drone_utility
 
 class BaseResultsArchiver(object):
     def archive_results(self, path):
-        results_host = global_config.global_config.get_config_value(
-                'SCHEDULER', 'results_host', default=None)
+        results_host = settings.get_value('SCHEDULER', 'results_host',
+                                          default=None)
         if not results_host or results_host == 'localhost':
             return
 

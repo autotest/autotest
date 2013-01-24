@@ -35,8 +35,7 @@ try:
 except ImportError:
     import common
 from autotest.frontend.afe import models, model_logic, model_attributes
-from autotest.frontend.afe import control_file, rpc_utils, rpcserver_logging
-from autotest.client.shared import global_config
+from autotest.frontend.afe import control_file, rpc_utils
 from autotest.server.hosts.remote import get_install_server_info
 
 

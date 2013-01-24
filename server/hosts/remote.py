@@ -2,16 +2,16 @@
 if it is available."""
 
 import os, logging, urllib
-from autotest.client.shared import error, global_config
+from autotest.client.shared import error
+from autotest.client.shared.settings import settings
 from autotest.server import utils
 from autotest.server.hosts import base_classes, install_server
 
 
 def get_install_server_info():
     server_info = {}
-    cfg = global_config.global_config
-    cfg.parse_config_file()
-    for option, value in cfg.config.items('INSTALL_SERVER'):
+    settings.parse_config_file()
+    for option, value in settings.config.items('INSTALL_SERVER'):
         server_info[option] = value
 
     return server_info

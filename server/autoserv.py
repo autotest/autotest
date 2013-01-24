@@ -9,9 +9,9 @@ try:
 except ImportError:
     import common
 
-from autotest.client.shared.global_config import global_config
-require_atfork = global_config.get_config_value(
-        'AUTOSERV', 'require_atfork_module', type=bool, default=True)
+from autotest.client.shared.settings import settings
+require_atfork = settings.get_value('AUTOSERV', 'require_atfork_module',
+                                    type=bool, default=True)
 
 try:
     import atfork
@@ -23,9 +23,9 @@ try:
     warnings.filterwarnings('ignore', 'logging module already imported')
     atfork.stdlib_fixer.fix_logging_module()
 except ImportError, e:
-    from autotest.client.shared.global_config import global_config
-    if global_config.get_config_value(
-            'AUTOSERV', 'require_atfork_module', type=bool, default=False):
+    from autotest.client.shared.settings import settings
+    if settings.get_value('AUTOSERV', 'require_atfork_module', type=bool,
+                          default=False):
         print >>sys.stderr, 'Please run utils/build_externals.py'
         print e
         sys.exit(1)
@@ -75,7 +75,6 @@ def run_autoserv(pid_file_manager, results, parser):
     verify = parser.options.verify
     repair = parser.options.repair
     cleanup = parser.options.cleanup
-    no_tee = parser.options.no_tee
     parse_job = parser.options.parse_job
     execution_tag = parser.options.execution_tag
     if not execution_tag:
@@ -173,9 +172,7 @@ def main():
     if parser.options.no_logging:
         results = None
     else:
-        output_dir = global_config.get_config_value('COMMON',
-                                                    'test_output_dir',
-                                                    default="")
+        output_dir = settings.get_value('COMMON', 'test_output_dir', default="")
         results = parser.options.results
         if not results:
             results = 'results.' + time.strftime('%Y-%m-%d-%H.%M.%S')

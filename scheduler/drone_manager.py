@@ -4,7 +4,8 @@ try:
 except ImportError:
     import common
 import logging
-from autotest.client.shared import error, global_config
+from autotest.client.shared import error
+from autotest.client.shared.settings import settings
 from autotest.scheduler import email_manager, drone_utility, drones
 from autotest.scheduler import scheduler_config
 
@@ -174,7 +175,7 @@ class DroneManager(object):
         logging.info('Using results repository on %s',
                      results_repository_hostname)
         self._results_drone = drones.get_drone(results_repository_hostname)
-        results_installation_dir = global_config.global_config.get_config_value(
+        results_installation_dir = settings.get_value(
                 scheduler_config.CONFIG_SECTION,
                 'results_host_installation_directory', default=None)
         if results_installation_dir:
@@ -199,9 +200,9 @@ class DroneManager(object):
 
         @returns: The number of refresh() calls before we forget a pidfile.
         """
-        pidfile_timeout = global_config.global_config.get_config_value(
-                scheduler_config.CONFIG_SECTION, 'max_pidfile_refreshes',
-                type=int, default=2000)
+        pidfile_timeout = settings.get_value(
+                       scheduler_config.CONFIG_SECTION, 'max_pidfile_refreshes',
+                       type=int, default=2000)
         return pidfile_timeout
 
 
@@ -221,20 +222,19 @@ class DroneManager(object):
         """
         Reread global config options for all drones.
         """
-        config = global_config.global_config
         section = scheduler_config.CONFIG_SECTION
-        config.parse_config_file()
+        settings.parse_config_file()
         for hostname, drone in self._drones.iteritems():
-            disabled = config.get_config_value(
-                    section, '%s_disabled' % hostname, default='')
+            disabled = settings.get_value(section, '%s_disabled' % hostname,
+                                          default='')
             drone.enabled = not bool(disabled)
 
-            drone.max_processes = config.get_config_value(
+            drone.max_processes = settings.get_value(
                     section, '%s_max_processes' % hostname, type=int,
                     default=scheduler_config.config.max_processes_per_drone)
 
-            allowed_users = config.get_config_value(
-                    section, '%s_users' % hostname, default=None)
+            allowed_users = settings.get_value(section, '%s_users' % hostname,
+                                               default=None)
             if allowed_users is not None:
                 allowed_users = set(allowed_users.split())
             drone.allowed_users = allowed_users
@@ -621,9 +621,8 @@ class DroneManager(object):
         if on_results_repository:
             base_dir = self._results_dir
         else:
-            output_dir = global_config.global_config.get_config_value('COMMON',
-                                                              'test_output_dir',
-                                                               default="")
+            output_dir = settings.get_value('COMMON', 'test_output_dir',
+                                            default="")
             if output_dir:
                 base_dir = output_dir
             else:

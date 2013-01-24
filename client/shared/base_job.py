@@ -1,9 +1,8 @@
 import os, copy, logging, errno, fcntl, time, re, weakref, traceback
 import tarfile
 import cPickle as pickle
-from autotest.client.shared import autotemp, error, log, global_config
-
-GLOBAL_CONFIG = global_config.global_config
+from autotest.client.shared import autotemp, error, log
+from autotest.client.shared.settings import settings
 
 
 class job_directory(object):
@@ -841,7 +840,7 @@ class TAPReport(object):
         """
         os.chdir(self.resultdir)
         tap_files = []
-        for rel_path, d, files in os.walk('.'):
+        for rel_path, _, files in os.walk('.'):
             tap_files.extend(["/".join(
                 [rel_path, f]) for f in files if f.endswith('.tap')])
         meta_yaml = open('meta.yml', 'w')
@@ -935,7 +934,7 @@ class base_job(object):
             Returns a status_logger instance for recording job status logs.
     """
 
-   # capture the dependency on several helper classes with factories
+    # capture the dependency on several helper classes with factories
     _job_directory = job_directory
     _job_state = job_state
 
@@ -1031,12 +1030,12 @@ class base_job(object):
         try:
             autodir = os.path.abspath(os.environ['AUTODIR'])
         except KeyError:
-            autodir = GLOBAL_CONFIG.get_config_value('COMMON',
+            autodir = settings.get_value('COMMON',
                                                      'autotest_top_path')
 
         tmpdir = os.path.join(autodir, 'tmp')
 
-        tests_out_dir = GLOBAL_CONFIG.get_config_value('COMMON',
+        tests_out_dir = settings.get_value('COMMON',
                                                        'test_output_dir',
                                                        default=tmpdir)
 

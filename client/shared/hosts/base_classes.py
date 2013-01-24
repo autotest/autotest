@@ -17,9 +17,10 @@ stutsman@google.com (Ryan Stutsman)
 
 import cPickle, cStringIO, logging, os, re
 
-from autotest.client.shared import global_config, error, utils
+from autotest.client.shared import error, utils
 from autotest.client.shared import host_protections
 from autotest.client import partition
+from autotest.client.shared.settings import settings
 
 
 class Host(object):
@@ -50,14 +51,18 @@ class Host(object):
     """
 
     job = None
-    DEFAULT_REBOOT_TIMEOUT = global_config.global_config.get_config_value(
-        "HOSTS", "default_reboot_timeout", type=int, default=1800)
-    WAIT_DOWN_REBOOT_TIMEOUT = global_config.global_config.get_config_value(
-        "HOSTS", "wait_down_reboot_timeout", type=int, default=840)
-    WAIT_DOWN_REBOOT_WARNING = global_config.global_config.get_config_value(
-        "HOSTS", "wait_down_reboot_warning", type=int, default=540)
-    HOURS_TO_WAIT_FOR_RECOVERY = global_config.global_config.get_config_value(
-        "HOSTS", "hours_to_wait_for_recovery", type=float, default=2.5)
+    DEFAULT_REBOOT_TIMEOUT = settings.get_value("HOSTS",
+                                                "default_reboot_timeout",
+                                                type=int, default=1800)
+    WAIT_DOWN_REBOOT_TIMEOUT = settings.get_value("HOSTS",
+                                                  "wait_down_reboot_timeout",
+                                                  type=int, default=840)
+    WAIT_DOWN_REBOOT_WARNING = settings.get_value("HOSTS",
+                                                  "wait_down_reboot_warning",
+                                                  type=int, default=540)
+    HOURS_TO_WAIT_FOR_RECOVERY = settings.get_value("HOSTS",
+                                                    "hours_to_wait_for_recovery",
+                                                    type=float, default=2.5)
     # the number of hardware repair requests that need to happen before we
     # actually send machines to hardware repair
     HARDWARE_REPAIR_REQUEST_THRESHOLD = 4
@@ -154,9 +159,8 @@ class Host(object):
 
     def get_wait_up_processes(self):
         """ Gets the list of local processes to wait for in wait_up. """
-        get_config = global_config.global_config.get_config_value
-        proc_list = get_config("HOSTS", "wait_up_processes",
-                               default="").strip()
+        proc_list = settings.get_value("HOSTS", "wait_up_processes",
+                                       default="").strip()
         processes = set(p.strip() for p in proc_list.split(","))
         processes.discard("")
         return processes
@@ -682,8 +686,8 @@ class Host(object):
 
         # find all the module directories associated with unused kernels
         modules_prefix = '/lib/modules/'
-        all_moddirs = [dir for dir in self.list_files_glob(modules_prefix + '*')
-                       if re.match(modules_prefix + r'\d+\.\d+\.\d+.*', dir)]
+        all_moddirs = [mod_dir for mod_dir in self.list_files_glob(modules_prefix + '*')
+                       if re.match(modules_prefix + r'\d+\.\d+\.\d+.*', mod_dir)]
         used_moddirs = self.symlink_closure(modules_prefix + kernver
                                             for kernver in used_kernver)
         unused_moddirs = set(all_moddirs) - set(used_moddirs)

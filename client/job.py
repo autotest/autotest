@@ -15,10 +15,9 @@ from autotest.client import partition as partition_lib
 from autotest.client.shared import base_job, boottool
 from autotest.client.shared import error, barrier, logging_manager
 from autotest.client.shared import base_packages, packages
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 from autotest.client.tools import html_report
 
-GLOBAL_CONFIG = global_config.global_config
 
 LAST_BOOT_TAG = object()
 JOB_PREAMBLE = """
@@ -146,9 +145,8 @@ class base_client_job(base_job.base_job):
         always <autodir>/results/<tag>, where tag is passed in on the command
         line as an option.
         """
-        output_dir_config = GLOBAL_CONFIG.get_config_value('CLIENT',
-                                                           'output_dir',
-                                                            default="")
+        output_dir_config = settings.get_value('CLIENT', 'output_dir',
+                                               default="")
         if options.output_dir:
             basedir = options.output_dir
         elif output_dir_config:
@@ -275,10 +273,9 @@ class base_client_job(base_job.base_job):
         """
         Perform the drop caches initialization.
         """
-        self.drop_caches_between_iterations = (
-                                    GLOBAL_CONFIG.get_config_value('CLIENT',
-                                    'drop_caches_between_iterations',
-                                    type=bool, default=True))
+        self.drop_caches_between_iterations = (settings.get_value('CLIENT',
+                                               'drop_caches_between_iterations',
+                                               type=bool, default=True))
         self.drop_caches = drop_caches
         if self.drop_caches:
             utils.drop_caches()
@@ -296,9 +293,8 @@ class base_client_job(base_job.base_job):
         """
         Perform the packages support initialization.
         """
-        tmpdir = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                'test_output_dir',
-                                                default=self.autodir)
+        tmpdir = settings.get_value('COMMON', 'test_output_dir',
+                                    default=self.autodir)
         self.pkgmgr = packages.PackageManager(
             tmpdir, run_function_dargs={'timeout':3600})
 
@@ -495,7 +491,7 @@ class base_client_job(base_job.base_job):
         # check if gcc is installed on the system.
         try:
             utils.system('which gcc')
-        except error.CmdError, e:
+        except error.CmdError:
             raise NotAvailableError('gcc is required by this job and is '
                                     'not available on the system')
 
@@ -563,9 +559,9 @@ class base_client_job(base_job.base_job):
                 group_func: Actual test run function
                 timeout: Test timeout
         """
-        group, testname = self.pkgmgr.get_package_name(url, 'test')
+        testname = self.pkgmgr.get_package_name(url, 'test')[1]
         testname, subdir, tag = self._build_tagged_test_name(testname, dargs)
-        outputdir = self._make_test_outputdir(subdir)
+        self._make_test_outputdir(subdir)
 
         timeout = dargs.pop('timeout', None)
         if timeout:
@@ -743,10 +739,8 @@ class base_client_job(base_job.base_job):
         @raise JobError: Raised if the current configuration does not match the
             pre-reboot configuration.
         """
-        abort_on_mismatch = GLOBAL_CONFIG.get_config_value('CLIENT',
-                                                           'abort_on_mismatch',
-                                                           type=bool,
-                                                           default=False)
+        abort_on_mismatch = settings.get_value('CLIENT', 'abort_on_mismatch',
+                                               type=bool, default=False)
         # check to see if any partitions have changed
         partition_list = partition_lib.get_partition_list(self,
                                                           exclude_swap=False)
@@ -986,9 +980,8 @@ class base_client_job(base_job.base_job):
     def _load_state(self):
         autodir = os.path.abspath(os.environ['AUTODIR'])
         tmpdir = os.path.join(autodir, 'tmp')
-        state_config = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                      'test_output_dir',
-                                                      default=tmpdir)
+        state_config = settings.get_value('COMMON', 'test_output_dir',
+                                          default=tmpdir)
         if not os.path.isdir(state_config):
             os.makedirs(state_config)
         init_state_file =  os.path.join(state_config,
@@ -1298,13 +1291,11 @@ def runjob(control, drop_caches, options):
     try:
         autodir = os.path.abspath(os.environ['AUTODIR'])
     except KeyError:
-        autodir = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                 'autotest_top_path')
+        autodir = settings.get_value('COMMON', 'autotest_top_path')
 
     tmpdir = os.path.join(autodir, 'tmp')
-    tests_out_dir = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                   'test_output_dir',
-                                                   default=tmpdir)
+    tests_out_dir = settings.get_value('COMMON', 'test_output_dir',
+                                       default=tmpdir)
     state = os.path.join(tests_out_dir, os.path.basename(control) + '.state')
 
     # Ensure state file is cleaned up before the job starts to run if autotest

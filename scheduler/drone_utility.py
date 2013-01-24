@@ -6,7 +6,8 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import utils, global_config, error
+from autotest.client.shared import utils, error
+from autotest.client.shared.settings import settings
 from autotest.server import hosts, subcommand
 from autotest.scheduler import email_manager, scheduler_config
 
@@ -15,9 +16,7 @@ from autotest.scheduler import email_manager, scheduler_config
 # something else during recovery.  Name credit goes to showard. ;)
 DARK_MARK_ENVIRONMENT_VAR = 'AUTOTEST_SCHEDULER_DARK_MARK'
 
-_OUTPUT_DIR = global_config.global_config.get_config_value('COMMON',
-                                                           'test_output_dir',
-                                                            default="")
+_OUTPUT_DIR = settings.get_value('COMMON','test_output_dir', default="")
 
 if _OUTPUT_DIR:
     _TEMPORARY_DIRECTORY = os.path.join(_OUTPUT_DIR, 'drone_tmp')
@@ -123,8 +122,9 @@ class DroneUtility(object):
     def _refresh_processes(self, command_name, open=open,
                            site_check_parse=None):
         # The open argument is used for test injection.
-        check_mark = global_config.global_config.get_config_value(
-            'SCHEDULER', 'check_processes_for_dark_mark', bool, False)
+        check_mark = settings.get_value('SCHEDULER',
+                                        'check_processes_for_dark_mark',
+                                        bool, False)
         processes = []
         for info in self._get_process_info():
             is_parse = (site_check_parse and site_check_parse(info))
@@ -411,8 +411,8 @@ class DroneUtility(object):
 
 
 def create_host(hostname):
-    username = global_config.global_config.get_config_value(
-        'SCHEDULER', hostname + '_username', default=getpass.getuser())
+    username = settings.get_value('SCHEDULER', hostname + '_username',
+                                  default=getpass.getuser())
     return hosts.SSHHost(hostname, user=username)
 
 
@@ -426,7 +426,7 @@ def parse_input():
 
     try:
         return pickle.loads(pickled_input)
-    except Exception, exc:
+    except Exception:
         separator = '*' * 50
         raise ValueError('Unpickling input failed\n'
                          'Input: %r\n'

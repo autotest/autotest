@@ -11,7 +11,7 @@ try:
 except ImportError:
     import common
 
-from autotest.client.shared import global_config, utils
+from autotest.client.shared import utils
 from autotest.database import database_connection
 
 MIGRATE_TABLE = 'migrate_info'
@@ -95,7 +95,7 @@ class MigrationManager(object):
 
 
     def _config_section(self):
-        return self._database.global_config_section
+        return self._database.settings_section
 
 
     def get_db_name(self):
@@ -118,7 +118,7 @@ class MigrationManager(object):
         try:
             self.execute("SELECT * FROM %s" % MIGRATE_TABLE)
             return True
-        except self._database.DatabaseError, exc:
+        except self._database.DatabaseError:
             # we can't check for more specifics due to differences between DB
             # backends (we can't even check for a subclass of DatabaseError)
             return False

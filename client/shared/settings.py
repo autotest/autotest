@@ -1,6 +1,7 @@
-"""A singleton class for accessing global config values
+"""
+A singleton class for accessing global config values.
 
-provides access to global configuration file
+provides access to global configuration file.
 """
 
 __author__ = 'raphtee@google.com (Travis Miller)'
@@ -9,14 +10,14 @@ import os, sys, ConfigParser
 from autotest.client.shared import error
 
 
-class ConfigError(error.AutotestError):
+class SettingsError(error.AutotestError):
     pass
 
 
-class ConfigValueError(ConfigError):
+class SettingsValueError(SettingsError):
     pass
 
-global_config_filename = 'global_config.ini'
+settings_filename = 'global_config.ini'
 shadow_config_filename = 'shadow_config.ini'
 
 shared_dir = os.path.dirname(sys.modules[__name__].__file__)
@@ -25,35 +26,35 @@ root_dir = os.path.dirname(client_dir)
 system_wide_dir = '/etc/autotest'
 
 # Check if the config files are in the system wide directory
-global_config_path_system_wide = os.path.join(system_wide_dir,
-                                              global_config_filename)
+settings_path_system_wide = os.path.join(system_wide_dir,
+                                         settings_filename)
 shadow_config_path_system_wide = os.path.join(system_wide_dir,
                                               shadow_config_filename)
-config_in_system_wide = os.path.exists(global_config_path_system_wide)
+config_in_system_wide = os.path.exists(settings_path_system_wide)
 
 # Check if the config files are at autotest's root dir
 # This will happen if client is executing inside a full autotest tree, or if
 # other entry points are being executed
-global_config_path_root = os.path.join(root_dir, global_config_filename)
+settings_path_root = os.path.join(root_dir, settings_filename)
 shadow_config_path_root = os.path.join(root_dir, shadow_config_filename)
-config_in_root = (os.path.exists(global_config_path_root) and
+config_in_root = (os.path.exists(settings_path_root) and
                   os.path.exists(shadow_config_path_root))
 
 # Check if the config files are at autotest's client dir
 # This will happen if a client stand alone execution is happening
-global_config_path_client = os.path.join(client_dir, 'global_config.ini')
-config_in_client = os.path.exists(global_config_path_client)
+settings_path_client = os.path.join(client_dir, 'global_config.ini')
+config_in_client = os.path.exists(settings_path_client)
 
 if config_in_system_wide:
-    DEFAULT_CONFIG_FILE = global_config_path_system_wide
+    DEFAULT_CONFIG_FILE = settings_path_system_wide
     DEFAULT_SHADOW_FILE = shadow_config_path_system_wide
     RUNNING_STAND_ALONE_CLIENT = False
 elif config_in_root:
-    DEFAULT_CONFIG_FILE = global_config_path_root
+    DEFAULT_CONFIG_FILE = settings_path_root
     DEFAULT_SHADOW_FILE = shadow_config_path_root
     RUNNING_STAND_ALONE_CLIENT = False
 elif config_in_client:
-    DEFAULT_CONFIG_FILE = global_config_path_client
+    DEFAULT_CONFIG_FILE = settings_path_client
     DEFAULT_SHADOW_FILE = None
     RUNNING_STAND_ALONE_CLIENT = True
 else:
@@ -61,7 +62,7 @@ else:
     DEFAULT_SHADOW_FILE = None
     RUNNING_STAND_ALONE_CLIENT = True
 
-class global_config(object):
+class Settings(object):
     _NO_DEFAULT_SPECIFIED = object()
 
     config = None
@@ -85,7 +86,7 @@ class global_config(object):
         if default is self._NO_DEFAULT_SPECIFIED:
             msg = ("Value '%s' not found in section '%s'" %
                    (key, section))
-            raise ConfigError(msg)
+            raise SettingsError(msg)
         else:
             return default
 
@@ -111,8 +112,8 @@ class global_config(object):
         return cfgparser
 
 
-    def get_config_value(self, section, key, type=str,
-                         default=_NO_DEFAULT_SPECIFIED, allow_blank=False):
+    def get_value(self, section, key, type=str, default=_NO_DEFAULT_SPECIFIED,
+                  allow_blank=False):
         self._ensure_config_parsed()
 
         try:
@@ -126,7 +127,7 @@ class global_config(object):
         return self._convert_value(key, section, val, type)
 
 
-    def override_config_value(self, section, key, new_value):
+    def override_value(self, section, key, new_value):
         """
         Override a value from the config file with a new value.
         """
@@ -134,7 +135,7 @@ class global_config(object):
         self.config.set(section, key, new_value)
 
 
-    def reset_config_values(self):
+    def reset_values(self):
         """
         Reset all values to those found in the config files (undoes all
         overrides).
@@ -166,7 +167,7 @@ class global_config(object):
         if self.config_file and os.path.exists(self.config_file):
             self.config.read(self.config_file)
         else:
-            raise ConfigError('%s not found' % (self.config_file))
+            raise SettingsError('%s not found' % (self.config_file))
 
         # now also read the shadow file if there is one
         # this will overwrite anything that is found in the
@@ -216,9 +217,9 @@ class global_config(object):
         except Exception:
             msg = ("Could not convert %s value %r in section %s to type %s" %
                     (key, sval, section, value_type))
-            raise ConfigValueError(msg)
+            raise SettingsValueError(msg)
 
 
-# insure the class is a singleton.  Now the symbol global_config
+# insure the class is a singleton.  Now the symbol settings
 # will point to the one and only one instace of the class
-global_config = global_config()
+settings = Settings()
