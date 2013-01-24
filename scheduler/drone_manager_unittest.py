@@ -5,7 +5,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+from autotest.client.shared.settings import settings
 from autotest.client.shared.test_utils import mock
 from autotest.scheduler import drone_manager, drones
 from autotest.scheduler import scheduler_config
@@ -223,9 +223,9 @@ class DroneManager(unittest.TestCase):
     def test_initialize(self):
         results_hostname = 'results_repo'
         results_install_dir = '/results/install'
-        global_config.global_config.override_config_value(
-                scheduler_config.CONFIG_SECTION,
-                'results_host_installation_directory', results_install_dir)
+        settings.override_value(scheduler_config.CONFIG_SECTION,
+                                'results_host_installation_directory',
+                                results_install_dir)
 
         (drones.get_drone.expect_call(self.mock_drone.name)
          .and_return(self.mock_drone))

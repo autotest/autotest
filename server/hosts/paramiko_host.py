@@ -1,7 +1,8 @@
-import os, sys, time, signal, socket, re, fnmatch, logging, threading
+import os, time, signal, socket, re, fnmatch, logging, threading
 import paramiko
 
-from autotest.client.shared import utils, error, global_config
+from autotest.client.shared import utils, error
+from autotest.client.shared.settings import settings
 from autotest.server import subcommand
 from autotest.server.hosts import abstract_ssh
 
@@ -88,8 +89,9 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                 user_keys[path] = key
 
         # load up all the ssh agent keys
-        use_sshagent = global_config.global_config.get_config_value(
-            'AUTOSERV', 'use_sshagent_with_paramiko', type=bool)
+        use_sshagent = settings.get_value('AUTOSERV',
+                                          'use_sshagent_with_paramiko',
+                                          type=bool)
         if use_sshagent:
             ssh_agent = paramiko.Agent()
             for i, key in enumerate(ssh_agent.get_keys()):

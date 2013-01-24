@@ -10,11 +10,7 @@ try:
 except ImportError:
     import common
 from autotest.cli import rpc
-from autotest.client.shared import global_config
-from autotest.frontend.afe import rpc_client_lib
-from autotest.frontend.afe.json_rpc import proxy
-
-GLOBAL_CONFIG = global_config.global_config
+from autotest.client.shared.settings import settings
 
 
 class rpc_unittest(unittest.TestCase):
@@ -34,7 +30,7 @@ class rpc_unittest(unittest.TestCase):
 
 
     def test_get_autotest_server_none(self):
-        GLOBAL_CONFIG.override_config_value('SERVER', 'hostname', 'Prince')
+        settings.override_value('SERVER', 'hostname', 'Prince')
         self.assertEqual('http://Prince', rpc.get_autotest_server(None))
 
 

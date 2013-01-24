@@ -7,18 +7,17 @@ except ImportError:
     import common
 from autotest.frontend import setup_django_environment
 from autotest.frontend import setup_test_environment
-from autotest.frontend.afe import test, readonly_connection
-from autotest.client.shared import global_config
+from autotest.frontend.afe import test
+from autotest.client.shared import settings
 
 _APP_DIR = os.path.join(os.path.dirname(__file__), 'afe')
 
 class FrontendTest(unittest.TestCase):
     def setUp(self):
         setup_test_environment.set_up()
-        global_config.global_config.override_config_value(
-                'AUTOTEST_WEB', 'parameterized_jobs', 'False')
-        global_config.global_config.override_config_value(
-                'SERVER', 'rpc_logging', 'False')
+        settings.settings.override_value('AUTOTEST_WEB', 'parameterized_jobs',
+                                         'False')
+        settings.settings.override_value('SERVER', 'rpc_logging', 'False')
 
 
     def tearDown(self):

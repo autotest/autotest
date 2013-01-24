@@ -9,7 +9,7 @@ except ImportError:
 from autotest.client import job, config, sysinfo, harness
 from autotest.client import xen, kernel, utils
 from autotest.client.shared import error, boottool
-from autotest.client.shared.global_config import global_config
+from autotest.client.shared.settings import settings
 from autotest.client.shared import logging_manager, logging_config
 from autotest.client.shared import base_job_unittest
 from autotest.client.shared.test_utils import mock, unittest
@@ -577,14 +577,14 @@ class test_base_job(unittest.TestCase):
         # setup
         self.god.stub_function(job.partition_lib, "get_partition_list")
         self.god.stub_function(utils, "count_cpus")
-        self.god.stub_function(global_config, "get_config_value")
+        self.god.stub_function(settings, "get_value")
 
         part_list = [self.get_partition_mock("/dev/hda1"),
                      self.get_partition_mock("/dev/hdb1")]
         mount_list = ["/mnt/hda1", "/mnt/hdb1"]
 
         # record
-        global_config.get_config_value.expect_call('CLIENT',
+        settings.get_value.expect_call('CLIENT',
                                                    'abort_on_mismatch',
                                                    default=False,
                                               type=bool).and_return(abort_value)

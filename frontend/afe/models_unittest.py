@@ -7,8 +7,8 @@ except ImportError:
     import common
 from autotest.frontend import setup_django_environment
 from autotest.frontend.afe import frontend_test_utils
-from autotest.frontend.afe import models, model_attributes, model_logic
-from autotest.client.shared import global_config
+from autotest.frontend.afe import models, model_attributes
+from autotest.client.shared.settings import settings
 
 
 class AclGroupTest(unittest.TestCase,
@@ -261,8 +261,7 @@ class ParameterizedJobTest(unittest.TestCase,
 
 
     def test_job(self):
-        global_config.global_config.override_config_value(
-                'AUTOTEST_WEB', 'parameterized_jobs', 'True')
+        settings.override_value('AUTOTEST_WEB', 'parameterized_jobs', 'True')
 
         test = models.Test.objects.create(
                 name='name', author='author', test_class='class',
@@ -300,8 +299,7 @@ class JobTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
 
 
     def test_check_parameterized_jobs_enabled(self):
-        global_config.global_config.override_config_value(
-                'AUTOTEST_WEB', 'parameterized_jobs', 'True')
+        settings.override_value('AUTOTEST_WEB', 'parameterized_jobs', 'True')
         self.assertRaises(Exception, models.Job.check_parameterized_job,
                           control_file=object(), parameterized_job=None)
 

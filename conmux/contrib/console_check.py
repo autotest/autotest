@@ -14,12 +14,11 @@ _author_ = 'Scott Zawalski (scottz@google.com)'
    access to the etc directory of the conmux server
 """
 
-import sys,  pexpect, commands, os
+import sys, commands, os
 from optparse import OptionParser
-from autotest_lib.client.common_lib import global_config
+from autotest.client.shared.settings import settings
+from autotest.client.shared import pexpect
 
-
-GLOBAL_CONFIG = global_config.global_config
 
 
 def main(argv):
@@ -28,7 +27,7 @@ def main(argv):
     consoles['bad'] = []
     consoles['unknown'] = []
     # 0, 1, 2 status
-    TOP_DIR = GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path')
+    TOP_DIR = settings.get_value('COMMON', 'autotest_top_path')
     STATUS = [ 'good', 'bad', 'unknown']
     parser = OptionParser()
     parser.add_option('--conmux-server', dest="conmux_server",
@@ -82,7 +81,7 @@ def main(argv):
                       action="store_true", dest="show_all",
                       default=False,
                       help="Show status of all consoles")
-    options, args = parser.parse_args()
+    options, _ = parser.parse_args()
     if len(argv) == 2 and options.verbose:
         parser.print_help()
         return 1
@@ -149,12 +148,11 @@ def update_console_label(console_label, consoles, cli_dir, add_hosts=False):
     # this is the best way to ensure a machine is added i.e. one at a time
 
     for host in consoles:
-        if not host_label_add(host, console_label, cli_dir):
+        if not label_add_host(host, console_label, cli_dir):
             # Try to create host
             if add_hosts:
                 if host_create(host, cli_dir):
-                    host_label_add(host, power_label,
-                                   cli_dir)
+                    label_add_host(host, console_label, cli_dir)
                 else:
                     print "Unable to add host " + host
 
@@ -180,16 +178,16 @@ def hard_reset_hosts(conmux_dir):
     """Go through conmux dir and find hosts that have reset commands"""
     config_dir = os.path.join(conmux_dir, "etc")
     hosts = []
-    for file in os.listdir(config_dir):
-        if not file.endswith(".cf"):
+    for path in os.listdir(config_dir):
+        if not path.endswith(".cf"):
             continue
-        file_path = os.path.join(config_dir, file)
+        file_path = os.path.join(config_dir, path)
         try:
             try:
                 f = open(file_path)
                 for line in f:
                     if "reset" in line:
-                        hosts.append(file.rstrip(".cf"))
+                        hosts.append(path.rstrip(".cf"))
             except IOError:
                 pass
         finally:
@@ -203,14 +201,14 @@ def host_create(host, cli_dir):
             True, if successfuly false if failed
     """
     cmd = "%s/host-create %s" % (cli_dir, host)
-    status, output = commands.getstatusoutput(cmd)
+    status, _ = commands.getstatusoutput(cmd)
     return status == 0
 
 
 def label_add_host(host, label, cli_dir):
     """Add a host to a label"""
     host_cmd = "%s/label-add-hosts %s %s" % (cli_dir, label, host)
-    (status, output) = commands.getstatusoutput(host_cmd)
+    (status, _) = commands.getstatusoutput(host_cmd)
     if status != 0:
         return False
 
@@ -220,7 +218,7 @@ def label_add_host(host, label, cli_dir):
 def remove_create_label(label, cli_dir):
     """Remove and recreate a given label"""
     cmd = "%s/label-rm %s" % (cli_dir, label)
-    status, output = commands.getstatusoutput(cmd)
+    status, _ = commands.getstatusoutput(cmd)
     if status != 0:
         raise Exception("Error deleting label: " + label)
 

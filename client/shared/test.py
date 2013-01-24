@@ -17,13 +17,10 @@
 #       tmpdir          eg. tmp/<tempname>_<testname.tag>
 
 import fcntl, getpass, os, re, sys, shutil, tempfile, time, traceback, logging
-import glob
 
-from autotest.client.shared import error, global_config
+from autotest.client.shared import error
+from autotest.client.shared.settings import settings
 from autotest.client import utils
-
-
-GLOBAL_CONFIG = global_config.global_config
 
 
 class base_test(object):
@@ -50,12 +47,10 @@ class base_test(object):
         try:
             autodir = os.path.abspath(os.environ['AUTODIR'])
         except KeyError:
-            autodir = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                     'autotest_top_path')
+            autodir = settings.get_value('COMMON', 'autotest_top_path')
         tmpdir = os.path.join(autodir, 'tmp')
-        output_config = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                       'test_output_dir',
-                                                       default=tmpdir)
+        output_config = settings.get_value('COMMON', 'test_output_dir',
+                                           default=tmpdir)
         self.srcdir = os.path.join(output_config, os.path.basename(self.bindir),
                                    'src')
         self.tmpdir = tempfile.mkdtemp("_" + self.tagged_testname,
@@ -891,9 +886,7 @@ def runtest(job, url, tag, args, dargs,
                 pass
 
         testdir_list = [job.testdir, getattr(job, 'site_testdir', None)]
-        bindir_config = GLOBAL_CONFIG.get_config_value('COMMON',
-                                                        'test_dir',
-                                                        default="")
+        bindir_config = settings.get_value('COMMON', 'test_dir', default="")
         if bindir_config:
             testdir_list.extend(bindir_config.strip().split(','))
 

@@ -10,21 +10,19 @@ classes.
 Globals:
 _notify_email_statuses: list of HQE statuses.  each time a single HQE reaches
         one of these statuses, an email will be sent to the job's email_list.
-        comes from global_config.
+        comes from settings.
 _base_url: URL to the local AFE server, used to construct URLs for emails.
 _db: DatabaseConnection for this module.
 _drone_manager: reference to global DroneManager instance.
 """
 
 import datetime, itertools, logging, os, re, sys, time, weakref
-from django.db import connection
-from autotest.client.shared import global_config, host_protections, utils
+from autotest.client.shared import host_protections
+from autotest.client.shared.settings import settings
 from autotest.frontend.afe import models, model_attributes
 from autotest.database import database_connection
 from autotest.scheduler import drone_manager, email_manager
 from autotest.scheduler import scheduler_config
-
-GLOBAL_CONFIG = global_config.global_config
 
 _notify_email_statuses = []
 _base_url = None
@@ -37,9 +35,9 @@ def initialize():
     _db = database_connection.DatabaseConnection('AUTOTEST_WEB')
     _db.connect(db_type='django')
 
-    notify_statuses_list = GLOBAL_CONFIG.get_config_value(
-            scheduler_config.CONFIG_SECTION, "notify_email_statuses",
-            default='')
+    notify_statuses_list = settings.get_value(scheduler_config.CONFIG_SECTION,
+                                              "notify_email_statuses",
+                                              default='')
     global _notify_email_statuses
     _notify_email_statuses = [status for status in
                               re.split(r'[\s,;:]', notify_statuses_list.lower())
@@ -48,15 +46,14 @@ def initialize():
     # AUTOTEST_WEB.base_url is still a supported config option as some people
     # may wish to override the entire url.
     global _base_url
-    config_base_url = GLOBAL_CONFIG.get_config_value(
-            scheduler_config.CONFIG_SECTION, 'base_url', default='')
+    config_base_url = settings.get_value(scheduler_config.CONFIG_SECTION,
+                                         'base_url', default='')
     if config_base_url:
         _base_url = config_base_url
     else:
         # For the common case of everything running on a single server you
         # can just set the hostname in a single place in the config file.
-        server_name = GLOBAL_CONFIG.get_config_value(
-                'SERVER', 'hostname')
+        server_name = settings.get_value('SERVER', 'hostname')
         if not server_name:
             logging.critical('[SERVER] hostname missing from the config file.')
             sys.exit(1)
@@ -1039,9 +1036,9 @@ class Job(DBObject):
 
 
     def get_keyval_list(self):
-        raw = GLOBAL_CONFIG.get_config_value('SCHEDULER',
-                                             'keyval_names_exibit_summary_mail',
-                                             default="")
+        raw = settings.get_value('SCHEDULER',
+                                 'keyval_names_exibit_summary_mail',
+                                 default="")
         keyval_list = re.split(r'[\s,;:]', raw)
         return [element for element in keyval_list if element]
 

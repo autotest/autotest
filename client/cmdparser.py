@@ -6,26 +6,21 @@ Autotest command parser
 
 import os, re, sys, logging
 from autotest.client import os_dep, utils
-from autotest.client.shared import global_config, logging_config, logging_manager
+from autotest.client.shared import logging_config, logging_manager
+from autotest.client.shared.settings import settings
 from autotest.client.shared import packages
 
-GLOBAL_CONFIG = global_config.global_config
-
 LOCALDIRTEST = "tests"
-GLOBALDIRTEST = GLOBAL_CONFIG.get_config_value('COMMON',
-                                               'test_dir',
-                                                default="")
+GLOBALDIRTEST = settings.get_value('COMMON', 'test_dir', default="")
 
 try:
     autodir = os.path.abspath(os.environ['AUTODIR'])
 except KeyError:
-    autodir = GLOBAL_CONFIG.get_config_value('COMMON',
-                                             'autotest_top_path')
+    autodir = settings.get_value('COMMON', 'autotest_top_path')
 tmpdir = os.path.join(autodir, 'tmp')
 
-output_dir = GLOBAL_CONFIG.get_config_value('COMMON',
-                                            'test_output_dir',
-                                             default=tmpdir)
+output_dir = settings.get_value('COMMON', 'test_output_dir', default=tmpdir)
+
 FETCHDIRTEST = os.path.join(output_dir, 'site_tests')
 
 if not os.path.isdir(FETCHDIRTEST):

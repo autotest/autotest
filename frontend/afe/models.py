@@ -7,9 +7,11 @@ try:
 except ImportError:
     import common
 from autotest.frontend.afe import model_logic, model_attributes
-from autotest.frontend import settings, thread_local
-from autotest.client.shared import enum, host_protections, global_config
+from autotest.frontend import thread_local
+from autotest.frontend import settings as frontend_settings
+from autotest.client.shared import enum, host_protections
 from autotest.client.shared import host_queue_entry_states
+from autotest.client.shared.settings import settings
 
 # job options and user preferences
 DEFAULT_REBOOT_BEFORE = model_attributes.RebootBefore.IF_DIRTY
@@ -47,7 +49,7 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     INFINITE_MACHINES = 333333333
     max_number_of_machines = dbmodels.IntegerField(default=INFINITE_MACHINES)
     invalid = dbmodels.BooleanField(default=False,
-                                  editable=settings.FULL_ADMIN)
+                                    editable=frontend_settings.FULL_ADMIN)
 
     name_field = 'name'
     objects = model_logic.ModelWithInvalidManager()
@@ -90,7 +92,7 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
     kernel_config = dbmodels.CharField(max_length=255, blank=True)
     platform = dbmodels.BooleanField(default=False)
     invalid = dbmodels.BooleanField(default=False,
-                                    editable=settings.FULL_ADMIN)
+                                    editable=frontend_settings.FULL_ADMIN)
     only_if_needed = dbmodels.BooleanField(default=False)
 
     name_field = 'name'
@@ -161,10 +163,11 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
     name: the drone set's name
     drones: the drones that are part of the set
     """
-    DRONE_SETS_ENABLED = global_config.global_config.get_config_value(
-            'SCHEDULER', 'drone_sets_enabled', type=bool, default=False)
-    DEFAULT_DRONE_SET_NAME = global_config.global_config.get_config_value(
-            'SCHEDULER', 'default_drone_set_name', default=None)
+    DRONE_SETS_ENABLED = settings.get_value('SCHEDULER', 'drone_sets_enabled',
+                                            type=bool, default=False)
+    DEFAULT_DRONE_SET_NAME = settings.get_value('SCHEDULER',
+                                                'default_drone_set_name',
+                                                default=None)
 
     name = dbmodels.CharField(max_length=255, unique=True)
     drones = dbmodels.ManyToManyField(Drone, db_table='afe_drone_sets_drones')
@@ -325,18 +328,19 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
                                       db_table='afe_hosts_labels')
     locked = dbmodels.BooleanField(default=False)
     synch_id = dbmodels.IntegerField(blank=True, null=True,
-                                     editable=settings.FULL_ADMIN)
+                                     editable=frontend_settings.FULL_ADMIN)
     status = dbmodels.CharField(max_length=255, default=Status.READY,
                                 choices=Status.choices(),
-                                editable=settings.FULL_ADMIN)
+                                editable=frontend_settings.FULL_ADMIN)
     invalid = dbmodels.BooleanField(default=False,
-                                    editable=settings.FULL_ADMIN)
+                                    editable=frontend_settings.FULL_ADMIN)
     protection = dbmodels.SmallIntegerField(null=False, blank=True,
                                             choices=host_protections.choices,
                                             default=host_protections.default)
     locked_by = dbmodels.ForeignKey(User, null=True, blank=True, editable=False)
     lock_time = dbmodels.DateTimeField(null=True, blank=True, editable=False)
-    dirty = dbmodels.BooleanField(default=True, editable=settings.FULL_ADMIN)
+    dirty = dbmodels.BooleanField(default=True,
+                                  editable=frontend_settings.FULL_ADMIN)
 
     name_field = 'hostname'
     objects = model_logic.ModelWithInvalidManager()
@@ -908,13 +912,15 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     its results parsed as part of the job.
     drone_set: The set of drones to run this job on
     """
-    DEFAULT_TIMEOUT = global_config.global_config.get_config_value(
-        'AUTOTEST_WEB', 'job_timeout_default', default=240)
-    DEFAULT_MAX_RUNTIME_HRS = global_config.global_config.get_config_value(
-        'AUTOTEST_WEB', 'job_max_runtime_hrs_default', default=72)
-    DEFAULT_PARSE_FAILED_REPAIR = global_config.global_config.get_config_value(
-        'AUTOTEST_WEB', 'parse_failed_repair_default', type=bool,
-        default=False)
+    DEFAULT_TIMEOUT = settings.get_value('AUTOTEST_WEB', 'job_timeout_default',
+                                         default=240)
+    DEFAULT_MAX_RUNTIME_HRS = settings.get_value('AUTOTEST_WEB',
+                                                 'job_max_runtime_hrs_default',
+                                                 default=72)
+    DEFAULT_PARSE_FAILED_REPAIR = settings.get_value('AUTOTEST_WEB',
+                                                  'parse_failed_repair_default',
+                                                     type=bool,
+                                                     default=False)
 
     Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
     ControlType = enum.Enum('Server', 'Client', start_value=1)
@@ -961,8 +967,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     @classmethod
     def parameterized_jobs_enabled(cls):
-        return global_config.global_config.get_config_value(
-                'AUTOTEST_WEB', 'parameterized_jobs', type=bool)
+        return settings.get_value('AUTOTEST_WEB', 'parameterized_jobs',
+                                  type=bool)
 
 
     @classmethod

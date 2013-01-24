@@ -9,10 +9,10 @@ try:
     import hashlib
 except ImportError:
     import md5, sha
-from autotest.client.shared import error, logging_manager, global_config
+from autotest.client.shared import error, logging_manager
 from autotest.client.shared import progressbar
+from autotest.client.shared.settings import settings
 
-GLOBAL_CONFIG = global_config.global_config
 
 def deprecated(func):
     """This is a decorator which can be used to mark functions as deprecated.
@@ -773,8 +773,7 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
         tests_dir = os.path.join(base_autotest, 'tests')
         site_tests_dir = os.path.join(base_autotest, 'site-tests')
         profilers_dir = os.path.join(base_autotest, 'profilers')
-        other_tests_dir = GLOBAL_CONFIG.get_config_value("COMMON", "test_dir",
-                                                         default="")
+        other_tests_dir = settings.get_value("COMMON", "test_dir", default="")
         source_code_dir = ""
         for d in [other_tests_dir, site_tests_dir, tests_dir, profilers_dir]:
             source_code_dir = os.path.join(d, module_name, "src")
@@ -1785,9 +1784,8 @@ def import_site_function(path, module, funcname, dummy, modulefile=None):
 
 def get_pid_path(program_name, pid_files_dir=None):
     if pid_files_dir is None:
-        pid_files_dir = GLOBAL_CONFIG.get_config_value("SERVER",
-                                                       'pid_files_dir',
-                                                       default="")
+        pid_files_dir = settings.get_value("SERVER", 'pid_files_dir',
+                                           default="")
 
     if not pid_files_dir:
         base_dir = os.path.dirname(__file__)

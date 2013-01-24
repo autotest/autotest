@@ -10,8 +10,9 @@ except ImportError:
     import common
 from autotest.scheduler import watcher_logging_config
 from autotest.client import os_dep
-from autotest.client.shared import error, global_config, utils
+from autotest.client.shared import error, utils
 from autotest.client.shared import logging_manager
+from autotest.client.shared.settings import settings, SettingsError
 from autotest.scheduler import scheduler_logging_config
 from autotest.scheduler import monitor_db
 
@@ -19,9 +20,7 @@ from autotest.scheduler import monitor_db
 PAUSE_LENGTH = 60
 STALL_TIMEOUT = 2*60*60
 
-output_dir = global_config.global_config.get_config_value('COMMON',
-                                                          'test_output_dir',
-                                                          default="")
+output_dir = settings.get_value('COMMON', 'test_output_dir', default="")
 
 autodir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -126,13 +125,12 @@ class MonitorProc(SiteMonitorProc):
                            'iostat -k -x 2 4',
                           ]
         db_cmd = '/usr/bin/mysqladmin --verbose processlist -u%s -p%s'
-        config = global_config.global_config
         try:
-            user = config.get_config_value("BACKUP", "user")
-            password = config.get_config_value("BACKUP", "password")
+            user = settings.get_value("BACKUP", "user")
+            password = settings.get_value("BACKUP", "password")
             db_cmd %= (user, password)
             INFO_TO_COLLECT.append(db_cmd)
-        except global_config.ConfigError:
+        except SettingsError:
             pass
         stall_log_path = self.log_path + '.stall_info'
         log = open(stall_log_path, "w")

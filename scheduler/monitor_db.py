@@ -14,7 +14,8 @@ from autotest.frontend import setup_django_environment
 import django.db
 
 from autotest.client import os_dep
-from autotest.client.shared import global_config, logging_manager
+from autotest.client.shared import logging_manager
+from autotest.client.shared.settings import settings
 from autotest.client.shared import host_protections, utils
 from autotest.database import database_connection
 from autotest.frontend.afe import models, rpc_utils, readonly_connection
@@ -74,8 +75,8 @@ _parser_path = _parser_path_func(drones.AUTOTEST_INSTALL_DIR)
 
 def _get_pidfile_timeout_secs():
     """@returns How long to wait for autoserv to write pidfile."""
-    pidfile_timeout_mins = global_config.global_config.get_config_value(
-            scheduler_config.CONFIG_SECTION, 'pidfile_timeout_mins', type=int)
+    pidfile_timeout_mins = settings.get_value(scheduler_config.CONFIG_SECTION,
+                                              'pidfile_timeout_mins', type=int)
     return pidfile_timeout_mins * 60
 
 
@@ -162,8 +163,8 @@ def initialize():
     utils.write_pid(PID_FILE_PREFIX)
 
     if _testing_mode:
-        global_config.global_config.override_config_value(
-            DB_CONFIG_SECTION, 'database', 'stresstest_autotest_web')
+        settings.override_value(DB_CONFIG_SECTION, 'database',
+                                'stresstest_autotest_web')
 
     os.environ['PATH'] = AUTOTEST_SERVER_DIR + ':' + os.environ['PATH']
     global _db
@@ -181,11 +182,11 @@ def initialize():
     initialize_globals()
     scheduler_models.initialize()
 
-    drones = global_config.global_config.get_config_value(
-        scheduler_config.CONFIG_SECTION, 'drones', default='localhost')
+    drones = settings.get_value(scheduler_config.CONFIG_SECTION, 'drones',
+                                default='localhost')
     drone_list = [hostname.strip() for hostname in drones.split(',')]
-    results_host = global_config.global_config.get_config_value(
-        scheduler_config.CONFIG_SECTION, 'results_host', default='localhost')
+    results_host = settings.get_value(scheduler_config.CONFIG_SECTION,
+                                      'results_host', default='localhost')
     _drone_manager.initialize(RESULTS_DIR, drone_list, results_host)
 
     logging.info("Connected! Running...")
@@ -211,12 +212,12 @@ def main_without_exception_handling():
         parser.print_usage()
         return
 
-    scheduler_enabled = global_config.global_config.get_config_value(
-        scheduler_config.CONFIG_SECTION, 'enable_scheduler', type=bool)
+    scheduler_enabled = settings.get_value(scheduler_config.CONFIG_SECTION,
+                                           'enable_scheduler', type=bool)
 
     if not scheduler_enabled:
         msg = ("Scheduler not enabled, set enable_scheduler to true in the "
-               "global_config's SCHEDULER section to enabled it. Exiting.")
+               "settings's SCHEDULER section to enabled it. Exiting.")
         logging.error(msg)
         sys.exit(1)
 
@@ -291,7 +292,7 @@ class Dispatcher(object):
         self._tick_count = 0
         self._last_garbage_stats_time = time.time()
         self._seconds_between_garbage_stats = 60 * (
-                global_config.global_config.get_config_value(
+                settings.get_value(
                         scheduler_config.CONFIG_SECTION,
                         'gc_stats_interval_mins', type=int, default=6*60))
 
@@ -547,8 +548,8 @@ class Dispatcher(object):
         message = '\n'.join(str(process) for process in orphans)
         email_manager.manager.enqueue_notify_email(subject, message)
 
-        die_on_orphans = global_config.global_config.get_config_value(
-            scheduler_config.CONFIG_SECTION, 'die_on_orphans', type=bool)
+        die_on_orphans = settings.get_value(scheduler_config.CONFIG_SECTION,
+                                            'die_on_orphans', type=bool)
 
         if die_on_orphans:
             raise RuntimeError(subject + '\n' + message)

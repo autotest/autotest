@@ -4,10 +4,8 @@
 
 import os
 from autotest.frontend.afe import rpc_client_lib
-from autotest.frontend.afe.json_rpc import proxy
-from autotest.client.shared import global_config, utils
+from autotest.client.shared.settings import settings
 
-GLOBAL_CONFIG = global_config.global_config
 DEFAULT_SERVER = 'autotest'
 AFE_RPC_PATH = '/afe/server/rpc/'
 TKO_RPC_PATH = '/new_tko/server/rpc/'
@@ -22,8 +20,9 @@ def get_autotest_server(web_server=None):
         if 'AUTOTEST_WEB' in os.environ:
             web_server = os.environ['AUTOTEST_WEB']
         else:
-            web_server = 'http://' + GLOBAL_CONFIG.get_config_value(
-                    'SERVER', 'hostname', default=DEFAULT_SERVER)
+            web_server = ('http://' +
+                          settings.get_value('SERVER', 'hostname',
+                                             default=DEFAULT_SERVER))
 
     # if the name doesn't start with http://,
     # nonexistant hosts get an obscure error

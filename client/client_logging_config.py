@@ -4,14 +4,14 @@ except ImportError:
     import common
 
 import os
-from autotest.client.shared import logging_config, global_config
+from autotest.client.shared import logging_config
+from autotest.client.shared.settings import settings
 
 class ClientLoggingConfig(logging_config.LoggingConfig):
     def add_debug_file_handlers(self, log_dir, log_name=None):
         if not log_name:
-            log_name = global_config.global_config.get_config_value(
-                    'CLIENT', 'default_logging_name',
-                    type=str, default='client')
+            log_name = settings.get_value('CLIENT', 'default_logging_name',
+                                          type=str, default='client')
         self._add_file_handlers_for_all_levels(log_dir, log_name)
 
 

@@ -4,13 +4,13 @@ import re, os, sys, traceback, time, glob, tempfile, logging
 from autotest.server import installable_object, prebuild, utils
 from autotest.client import os_dep
 from autotest.client.shared import base_job, log, error, autotemp
-from autotest.client.shared import global_config, packages
+from autotest.client.shared import packages
+from autotest.client.shared.settings import settings, SettingsError
 from autotest.client.shared import utils as client_utils
 
 
-get_value = global_config.global_config.get_config_value
-autoserv_prebuild = get_value('AUTOSERV', 'enable_server_prebuild',
-                              type=bool, default=False)
+autoserv_prebuild = settings.get_value('AUTOSERV', 'enable_server_prebuild',
+                                       type=bool, default=False)
 
 
 class AutodirNotFoundError(Exception):
@@ -50,8 +50,7 @@ class BaseAutotest(installable_object.InstallableObject):
 
     @classmethod
     def get_client_autodir_paths(cls, host):
-        return global_config.global_config.get_config_value(
-                'AUTOSERV', 'client_autodir_paths', type=list)
+        return settings.get_value('AUTOSERV', 'client_autodir_paths', type=list)
 
 
     @classmethod
@@ -130,15 +129,13 @@ class BaseAutotest(installable_object.InstallableObject):
 
     def _create_test_output_dir(self, host, autodir):
         tmpdir = os.path.join(autodir, 'tmp')
-        state_autodir = global_config.global_config.get_config_value('COMMON',
-                                                             'test_output_dir',
-                                                               default=tmpdir)
+        state_autodir = settings.get_value('COMMON', 'test_output_dir',
+                                           default=tmpdir)
         host.run('mkdir -p %s' % utils.sh_escape(state_autodir))
 
 
     def get_fetch_location(self):
-        c = global_config.global_config
-        repos = c.get_config_value("PACKAGES", 'fetch_location', type=list,
+        repos = settings.get_value("PACKAGES", 'fetch_location', type=list,
                                    default=[])
         repos.reverse()
         return repos
@@ -275,15 +272,15 @@ class BaseAutotest(installable_object.InstallableObject):
                 self.installed = True
                 return
             except (error.PackageInstallError, error.AutoservRunError,
-                    global_config.ConfigError), e:
+                    SettingsError), e:
                 logging.info("Could not install autotest using the packaging "
                              "system: %s. Trying other methods", e)
 
         # try to install from file or directory
         if self.source_material:
-            c = global_config.global_config
-            supports_autoserv_packaging = c.get_config_value(
-                "PACKAGES", "serve_packages_from_autoserv", type=bool)
+            supports_autoserv_packaging = settings.get_value("PACKAGES",
+                                                "serve_packages_from_autoserv",
+                                                type=bool)
             # Copy autotest recursively
             if supports_autoserv_packaging and use_autoserv:
                 self._install_using_send_file(host, autodir)
@@ -421,7 +418,7 @@ class BaseAutotest(installable_object.InstallableObject):
             pkgmgr = packages.PackageManager('autotest', hostname=host.hostname,
                                              repo_urls=repos)
             prologue_lines.append('job.add_repository(%s)\n' % repos)
-        except global_config.ConfigError, e:
+        except SettingsError, e:
             # If repos is defined packaging is enabled so log the error
             if repos:
                 logging.error(e)
@@ -497,9 +494,8 @@ class _BaseRun(object):
             control += '.' + tag
 
         tmpdir = os.path.join(self.autodir, 'tmp')
-        state_dir = global_config.global_config.get_config_value('COMMON',
-                                                              'test_output_dir',
-                                                              default=tmpdir)
+        state_dir = settings.get_value('COMMON', 'test_output_dir',
+                                       default=tmpdir)
 
         self.manual_control_file = control
         self.manual_control_init_state = os.path.join(state_dir,
@@ -645,8 +641,7 @@ class _BaseRun(object):
 
         @return: Path of the temporary file generated.
         """
-        config = global_config.global_config.get_section_values(
-                                                           ('CLIENT', 'COMMON'))
+        config = settings.get_section_values(('CLIENT', 'COMMON'))
         if client_log_prefix:
             config.set('CLIENT', 'default_logging_name', client_log_prefix)
         return self._create_aux_file(config.write)
@@ -1056,8 +1051,9 @@ class client_logger(object):
                 logging.exception(msg)
         elif fetch_package_match:
             pkg_name, dest_path, fifo_path = fetch_package_match.groups()
-            serve_packages = global_config.global_config.get_config_value(
-                "PACKAGES", "serve_packages_from_autoserv", type=bool)
+            serve_packages = settings.get_value("PACKAGES",
+                                                "serve_packages_from_autoserv",
+                                                type=bool)
             if serve_packages and pkg_name.endswith(".tar.bz2"):
                 try:
                     self._send_tarball(pkg_name, dest_path)
@@ -1080,10 +1076,11 @@ class client_logger(object):
             test_dirs = ['site_tests', 'tests']
             # if test_dir is defined in global config
             # package the tests from there (if exists)
-            global_config_test_dirs = get_value('COMMON', 'test_dir', default="")
-            if global_config_test_dirs:
-                test_dirs = global_config_test_dirs.strip().split(',') + test_dirs 
-            for test_dir in test_dirs:                
+            settings_test_dirs = settings.get_value('COMMON', 'test_dir',
+                                                    default="")
+            if settings_test_dirs:
+                test_dirs = settings_test_dirs.strip().split(',') + test_dirs
+            for test_dir in test_dirs:
                 src_dir = os.path.join(self.job.clientdir, test_dir, name)
                 if os.path.exists(src_dir):
                     src_dirs += [src_dir]
