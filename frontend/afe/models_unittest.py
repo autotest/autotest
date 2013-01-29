@@ -10,6 +10,7 @@ from autotest.frontend import test_utils
 from autotest.frontend.afe import models, model_attributes
 from autotest.client.shared.settings import settings
 
+from django.db import models as dbmodels
 
 class AclGroupTest(unittest.TestCase,
                    test_utils.FrontendTestMixin):
@@ -302,6 +303,154 @@ class JobTest(unittest.TestCase, test_utils.FrontendTestMixin):
         settings.override_value('AUTOTEST_WEB', 'parameterized_jobs', 'True')
         self.assertRaises(Exception, models.Job.check_parameterized_job,
                           control_file=object(), parameterized_job=None)
+
+
+class SoftwareComponentKindTest(unittest.TestCase,
+                                test_utils.FrontendTestMixin):
+    def setUp(self):
+        self._frontend_common_setup()
+
+
+    def tearDown(self):
+        self._frontend_common_teardown()
+
+
+    def test_create_delete(self):
+        models.SoftwareComponentKind.objects.create(name='rpm')
+        self.assertEqual(1, models.SoftwareComponentKind.objects.all().count())
+
+        models.SoftwareComponentKind.objects.all().delete()
+        self.assertEqual(0, models.SoftwareComponentKind.objects.all().count())
+
+
+    def test_create_duplicate_distro(self):
+        def create_kind():
+            models.SoftwareComponentKind.objects.create(name='rpm')
+
+        create_kind()
+        self.assertRaises(Exception, create_kind)
+        models.SoftwareComponentKind.objects.all().delete()
+
+
+class SoftwareComponentArchTest(unittest.TestCase,
+                                test_utils.FrontendTestMixin):
+    def setUp(self):
+        self._frontend_common_setup()
+
+
+    def tearDown(self):
+        self._frontend_common_teardown()
+
+
+    def test_create_delete(self):
+        models.SoftwareComponentArch.objects.create(name='x86_64')
+        self.assertEqual(1, models.SoftwareComponentArch.objects.all().count())
+
+        models.SoftwareComponentArch.objects.all().delete()
+        self.assertEqual(0, models.SoftwareComponentArch.objects.all().count())
+
+
+    def test_create_duplicate_distro(self):
+        def create_arch():
+            models.SoftwareComponentArch.objects.create(name='x86_64')
+
+        create_arch()
+        self.assertRaises(Exception, create_arch)
+        models.SoftwareComponentArch.objects.all().delete()
+
+
+class SoftwareComponentTest(unittest.TestCase,
+                            test_utils.FrontendTestMixin):
+    def setUp(self):
+        self._frontend_common_setup()
+
+
+    def tearDown(self):
+        self._frontend_common_teardown()
+
+
+    def test_delete_reference(self):
+        '''
+        Should not be possible to delete a Software Component Arch that
+        is referenced by an existing Software Component
+        '''
+        kind = models.SoftwareComponentKind.objects.create(name='rpm')
+        kind.save()
+        kind_id = kind.id
+
+        arch = models.SoftwareComponentArch.objects.create(name='x86_64')
+        arch.save()
+        arch_id = arch.id
+
+        sc = models.SoftwareComponent.objects.create(name='foo',
+                                                     kind=kind,
+                                                     arch=arch,
+                                                     version='1.0.0')
+        sc.save()
+        sc_id = sc.id
+        sc = models.SoftwareComponent.objects.get(pk=sc_id)
+
+        arch = models.SoftwareComponentArch.objects.get(pk=arch_id)
+
+        def arch_delete():
+            arch.delete()
+
+        self.assertRaises(dbmodels.ProtectedError, arch_delete)
+        models.SoftwareComponent.objects.all().delete()
+        models.SoftwareComponentKind.objects.all().delete()
+        models.SoftwareComponentArch.objects.all().delete()
+
+
+class LinuxDistroTest(unittest.TestCase,
+                      test_utils.FrontendTestMixin):
+    def setUp(self):
+        self._frontend_common_setup()
+
+
+    def tearDown(self):
+        self._frontend_common_teardown()
+
+
+    def test_create_delete(self):
+        models.LinuxDistro.objects.create(name='distro', major=1,
+                                          minor=0, arch='i386')
+
+        self.assertEqual(1, models.LinuxDistro.objects.all().count())
+
+        models.LinuxDistro.objects.all().delete()
+        self.assertEqual(0, models.LinuxDistro.objects.all().count())
+
+
+    def test_create_query_arch_delete(self):
+        models.LinuxDistro.objects.create(name='distro', major=1,
+                                          minor=0, arch='i386')
+        models.LinuxDistro.objects.create(name='distro', major=1,
+                                          minor=1, arch='i386')
+        models.LinuxDistro.objects.create(name='distro', major=1,
+                                          minor=0, arch='x86_64')
+        models.LinuxDistro.objects.create(name='distro', major=1,
+                                          minor=1, arch='x86_64')
+
+        all_count = models.LinuxDistro.objects.all().count()
+        self.assertEqual(all_count, 4)
+        i386_count = models.LinuxDistro.query_objects({'arch': 'i386'}).count()
+        self.assertEqual(i386_count, 2)
+
+        models.LinuxDistro.objects.get(name='distro', major=1,
+                                       minor=0, arch='i386').delete()
+        models.LinuxDistro.objects.get(name='distro', major=1,
+                                       minor=1, arch='i386').delete()
+        self.assertEqual(2, models.LinuxDistro.objects.all().count())
+
+
+    def test_create_duplicate_distro(self):
+        def create_distro():
+            models.LinuxDistro.objects.create(name='distro', major=1,
+                                              minor=0, arch='i386')
+
+        create_distro()
+        self.assertRaises(Exception, create_distro)
+        models.LinuxDistro.objects.all().delete()
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 from django.db import models as dbmodels, connection
 from django.utils import datastructures
 from autotest.frontend.afe import model_logic, readonly_connection
+from autotest.frontend.afe.models import TestEnvironment
 
 _quote_name = connection.ops.quote_name
 
@@ -287,6 +288,10 @@ class Test(dbmodels.Model, model_logic.ModelExtensions,
 
     #: the date and time the test started running
     started_time = dbmodels.DateTimeField(null=True, blank=True)
+
+    #: a reference to a :class:`TestEnvironment` that better describes
+    #: the environment (OS, packages, etc) where the test run
+    test_environment = dbmodels.ForeignKey(TestEnvironment, null=True)
 
     objects = model_logic.ExtendedManager()
 
