@@ -16,6 +16,9 @@ is, errors such as specifying invalid packages will be caught right away,
 and the job won't be submitted. This is to prevent a typo from triggering
 a job that will fail and waste developer time.
 
+We also included a version of our internal test config, cleaned out
+to include only the publicly available upstream components.
+You may copy it to qemu/cfg/site-config.cfg, on your virt-tests copy.
 
 Instalation:
 ------------
