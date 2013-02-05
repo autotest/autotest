@@ -75,7 +75,6 @@ def run_autoserv(pid_file_manager, results, parser):
     verify = parser.options.verify
     repair = parser.options.repair
     cleanup = parser.options.cleanup
-    no_tee = parser.options.no_tee
     parse_job = parser.options.parse_job
     execution_tag = parser.options.execution_tag
     if not execution_tag:

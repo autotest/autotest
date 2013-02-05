@@ -74,9 +74,6 @@ class base_autoserv_parser(object):
         self.parser.add_option("-C", "--cleanup", action="store_true",
                                default=False,
                                help="cleanup all machines after the job")
-        self.parser.add_option("-n", action="store_true",
-                               dest="no_tee", default=False,
-                               help="no teeing the status to stdout/err")
         self.parser.add_option("-N", action="store_true",
                                dest="no_logging", default=False,
                                help="no logging")
