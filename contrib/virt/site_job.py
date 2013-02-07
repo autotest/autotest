@@ -6,7 +6,7 @@ from autotest.client.shared import logging_config
 
 virt_test_dir = "/usr/local/autotest/client/tests/virt"
 sys.path.insert(0, virt_test_dir)
-from autotest.client.tests.virt.virttest import utils_misc
+from autotest.client.tests.virt.virttest import utils_koji
 
 logging_config.LoggingConfig().configure_logging(verbose=True)
 
@@ -66,7 +66,7 @@ class site_job_create(job.job_create):
 
         if self.command_line_options.koji_pkg:
             if self.koji_client is None:
-                self.koji_client = utils_misc.KojiClient()
+                self.koji_client = utils_koji.KojiClient()
 
         return (self.command_line_options, self.command_line_leftover)
 
@@ -91,7 +91,7 @@ class site_job_create(job.job_create):
         Configuration item on file is: koji_tag
         '''
         if self.command_line_options.koji_tag is not None:
-            utils_misc.set_default_koji_tag(self.command_line_options.koji_tag)
+            utils_koji.set_default_koji_tag(self.command_line_options.koji_tag)
 
 
     def _check_koji_packages(self):
@@ -104,7 +104,7 @@ class site_job_create(job.job_create):
         if self.command_line_options.koji_pkg is not None:
             logging.debug('Checking koji packages specification')
             for pkg_spec_text in self.command_line_options.koji_pkg:
-                pkg_spec = utils_misc.KojiPkgSpec(pkg_spec_text)
+                pkg_spec = utils_koji.KojiPkgSpec(pkg_spec_text)
 
                 if not (pkg_spec.is_valid() and
                         self.koji_client.is_pkg_valid(pkg_spec)):
