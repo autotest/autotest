@@ -445,6 +445,9 @@ class job_create(job_create_or_clone):
                                metavar='TIMEOUT')
         self.parser.add_option('--max_runtime',
                                help='Job maximum runtime in hours')
+        self.parser.add_option('--hostless',
+                               help='Specify a hostless job',
+                               action='store_true', default=False)
 
 
     def _get_kernel_data(self, kernel_list, cmdline, config_list=None):
@@ -498,11 +501,20 @@ class job_create(job_create_or_clone):
         options, leftover = super(job_create, self).parse(
                 parse_info=[deps_info])
 
-        if (len(self.hosts) == 0 and not self.one_time_hosts
-            and not options.labels and not options.atomic_group):
-            self.invalid_syntax('Must specify at least one machine '
-                                'or an atomic group '
-                                '(-m, -M, -b, -G or --one-time-hosts).')
+        if options.hostless:
+            if (self.hosts or self.one_time_hosts
+                or options.labels or options.atomic_group
+                or options.synch_count):
+                self.invalid_syntax('If hostless is specified cannot specify'
+                                    ' machine, atomic group or synch count'
+                                    ' (-m, -M, -b, -G, --synch_count')
+        else:
+            if (len(self.hosts) == 0 and not self.one_time_hosts
+                and not options.labels and not options.atomic_group):
+                self.invalid_syntax('Must specify at least one machine, '
+                                'atomic group or hostless'
+                                '(-m, -M, -b, -G, --one-time-hosts '
+                                'or hostless).')
         if not options.control_file and not options.test:
             self.invalid_syntax('Must specify either --test or --control-file'
                                 ' to create a job.')
@@ -565,6 +577,9 @@ class job_create(job_create_or_clone):
         else:
             self.data['control_type'] = 'Client'
 
+        if options.hostless:
+            self.data['hostless'] = True
+
         return options, leftover
 
 
@@ -599,7 +614,7 @@ class job_create(job_create_or_clone):
             deps = sorted(deps.union(cf_info['dependencies']))
             self.data['dependencies'] = list(deps)
 
-        if 'synch_count' not in self.data:
+        if 'synch_count' not in self.data and 'hostless' not in self.data:
             self.data['synch_count'] = 1
 
         return self.create_job()

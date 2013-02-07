@@ -1370,6 +1370,34 @@ class job_create_unittest(cli_mock.cli_unittest):
         self.assertEqual(testjob.failed['Failed to find labels'],
                          {'No labels matching <XYZ>': set(['label*'])})
 
+    def test_execute_create_job_hostless(self):
+        data = self.data.copy()
+        data['hostless'] = True
+        data['hosts'] = []
+        data['control_type'] = 'Server'
+        del data['synch_count']
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create', '-s', '-f', file_temp.name,
+                           '--hostless', 'test_job0'],
+                     rpcs=[('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],)
+        file_temp.clean()
+
+    def test_execute_create_job_hostless_bad_args_hosts(self):
+        testjob = job.job_create()
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        sys.argv = ['atest', 'job', 'create', '--hostless', 
+                    '-s', '-f', file_temp.name,
+                    '-m', 'myhost', 
+                    'test_hosteless_job0']
+        self.god.mock_io()
+        (sys.exit.expect_call(mock.anything_comparator())
+         .and_raises(cli_mock.ExitException))
+        self.assertRaises(cli_mock.ExitException, testjob.parse)
+        self.god.unmock_io()
+        self.god.check_playback()
+        file_temp.clean()
+
 
 class job_clone_unittest(cli_mock.cli_unittest):
     job_data = {'control_file': u'NAME = \'Server Sleeptest\'\nAUTHOR = \'mbligh@google.com (Martin Bligh)\'\nTIME = \'SHORT\'\nTEST_CLASS = \'Software\'\nTEST_CATEGORY = \'Functional\'\nTEST_TYPE = \'server\'\nEXPERIMENTAL = \'False\'\n\nDOC = """\nruns sleep for one second on the list of machines.\n"""\n\ndef run(machine):\n    host = hosts.create_host(machine)\n    job.run_test(\'sleeptest\')\n\njob.parallel_simple(run, machines)\n',
