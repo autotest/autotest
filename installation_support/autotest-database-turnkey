@@ -20,11 +20,16 @@ try:
 except ImportError:
     import common
 
-from autotest.client.shared import global_config
 from autotest.database.migrate import MigrationManager
 from autotest.database.database_connection import DatabaseConnection
 from autotest.frontend import setup_django_environment
 
+try:
+    from autotest.client.shared import global_config
+    settings_file_path = global_config.global_config.config_file
+except ImportError:
+    from autotest.client.shared import settings
+    settings_file_path = settings.settings.config_file
 
 DB_ADMIN_USER = 'root'
 
@@ -129,8 +134,8 @@ def set_global_config_value(section, key, value):
     section_re = re.compile(r'^\[%s\]$' % section)
     key_re = re.compile(r'^%s:\s+(.*)$' % key)
 
-    current_lines = open(global_config.global_config.config_file).readlines()
-    output_file = open(global_config.global_config.config_file, 'wb')
+    current_lines = open(settings_file).readlines()
+    output_file = open(settings_file, 'wb')
 
     for line in current_lines:
         if section_re.match(line):
