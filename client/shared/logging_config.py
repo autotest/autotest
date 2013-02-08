@@ -1,11 +1,6 @@
 import logging, os, sys, time
 from autotest.client.shared.settings import settings
 
-# set up a simple catchall configuration for use during import time.  some code
-# may log messages at import time and we don't want those to get completely
-# thrown away.  we'll clear this out when actual configuration takes place.
-logging.basicConfig(level=logging.DEBUG)
-
 class AllowBelowSeverity(logging.Filter):
     """
     Allows only records less severe than a given level (the opposite of what
