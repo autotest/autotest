@@ -13,7 +13,7 @@ FEDORA_REDHAT_PKGS = [
     'mod_wsgi',
     'mysql-server',
     'numpy',
-    'policycoreutils-python'
+    'policycoreutils-python',
     'python-atfork',
     'python-crypto',
     'python-httplib2',
