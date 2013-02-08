@@ -41,33 +41,6 @@ def _create_module_and_parents(name):
         parent = module
 
 
-def _import_children_into_module(parent_module_name, path):
-    """Import all the packages on a path into a parent module"""
-    # find all the packages at 'path'
-    names = []
-    for filename in os.listdir(path):
-        full_name = os.path.join(path, filename)
-        if not os.path.isdir(full_name):
-            continue   # skip files
-        if "." in filename:
-            continue   # if "." is in the name it's not a valid package name
-        if not os.access(full_name, os.R_OK | os.X_OK):
-            continue   # need read + exec access to make a dir importable
-        if "__init__.py" in os.listdir(full_name):
-            names.append(filename)
-    # import all the packages and insert them into 'parent_module'
-    sys.path.insert(0, path)
-    for name in names:
-        module = __import__(name)
-        # add the package to the parent
-        parent_module = sys.modules[parent_module_name]
-        setattr(parent_module, name, module)
-        full_name = parent_module_name + "." + name
-        sys.modules[full_name] = module
-    # restore the system path
-    sys.path.pop(0)
-
-
 def import_module(module, from_where):
     """Equivalent to 'from from_where import module'
     Returns the corresponding module"""
@@ -103,7 +76,7 @@ def _monkeypatch_logging_handle_error():
     logging.Handler.handleError = _autotest_logging_handle_error
 
 
-def setup(base_path, root_module_name=""):
+def setup(base_path, root_module_name="autotest"):
     """
     Perform all the necessary setup so that all the packages at
     'base_path' can be imported via "import root_module_name.package".
@@ -120,29 +93,14 @@ def setup(base_path, root_module_name=""):
         # already set up
         return
 
-    setup_client_only = False
+    _create_module_and_parents(root_module_name)
+    imp.load_package(root_module_name, base_path)
 
-    # Hack... Any better ideas?
-    if root_module_name == 'autotest.client':
-        serverdir = os.path.join(os.path.dirname(__file__), '..', 'server')
-        full_source = os.path.exists(serverdir)
-        if full_source:
-            root_module_name = 'autotest'
-            base_path = os.path.abspath(os.path.join(base_path, '..'))
-        else:
-            setup_client_only = True
-
-    if setup_client_only:
-        _create_module_and_parents(root_module_name)
-        imp.load_package(root_module_name, base_path)
-    else:
-        _create_module_and_parents(root_module_name)
-        _import_children_into_module(root_module_name, base_path)
-        # Allow locally installed third party packages to be found
-        # before any that are installed on the system itself when not.
-        # running as a client.
-        # This is primarily for the benefit of frontend and tko so that they
-        # may use libraries other than those available as system packages.
-        sys.path.insert(0, os.path.join(base_path, "site-packages"))
+    # Allow locally installed third party packages to be found
+    # before any that are installed on the system itself when not.
+    # running as a client.
+    # This is primarily for the benefit of frontend and tko so that they
+    # may use libraries other than those available as system packages.
+    sys.path.insert(0, os.path.join(base_path, "site-packages"))
 
     _monkeypatch_logging_handle_error()
