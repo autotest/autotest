@@ -14,7 +14,7 @@ except ImportError:
 
 check_version.check_python_version()
 
-import new, glob, traceback
+import new, traceback
 
 
 def _create_module(name):
@@ -94,12 +94,6 @@ def _autotest_logging_handle_error(self, record):
 
 
 def _monkeypatch_logging_handle_error():
-    # Hack out logging.py*
-    logging_py = os.path.join(os.path.dirname(__file__), "shared",
-                              "logging.py*")
-    if glob.glob(logging_py):
-        os.system("rm -f %s" % logging_py)
-
     # Monkey patch our own handleError into the logging module's StreamHandler.
     # A nicer way of doing this -might- be to have our own logging module define
     # an autotest Logger instance that added our own Handler subclass with this
