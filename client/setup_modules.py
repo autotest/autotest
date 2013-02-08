@@ -14,7 +14,7 @@ except ImportError:
 
 check_version.check_python_version()
 
-import new, traceback
+import new
 
 
 def _create_module(name):
@@ -48,34 +48,6 @@ def import_module(module, from_where):
     return getattr(from_module, module)
 
 
-def _autotest_logging_handle_error(self, record):
-    """Method to monkey patch into logging.Handler to replace handleError."""
-    # The same as the default logging.Handler.handleError but also prints
-    # out the original record causing the error so there is -some- idea
-    # about which call caused the logging error.
-    import logging
-    if logging.raiseExceptions:
-        # Avoid recursion as the below output can end up back in here when
-        # something has *seriously* gone wrong in autotest.
-        logging.raiseExceptions = 0
-        sys.stderr.write('Exception occurred formatting message: '
-                         '%r using args %r\n' % (record.msg, record.args))
-        traceback.print_stack()
-        sys.stderr.write('-' * 50 + '\n')
-        traceback.print_exc()
-        sys.stderr.write('Future logging formatting exceptions disabled.\n')
-
-
-def _monkeypatch_logging_handle_error():
-    # Monkey patch our own handleError into the logging module's StreamHandler.
-    # A nicer way of doing this -might- be to have our own logging module define
-    # an autotest Logger instance that added our own Handler subclass with this
-    # handleError method in it.  But that would mean modifying tons of code.
-    import logging
-    assert callable(logging.Handler.handleError)
-    logging.Handler.handleError = _autotest_logging_handle_error
-
-
 def setup(base_path, root_module_name="autotest"):
     """
     Perform all the necessary setup so that all the packages at
@@ -102,5 +74,3 @@ def setup(base_path, root_module_name="autotest"):
     # This is primarily for the benefit of frontend and tko so that they
     # may use libraries other than those available as system packages.
     sys.path.insert(0, os.path.join(base_path, "site-packages"))
-
-    _monkeypatch_logging_handle_error()
