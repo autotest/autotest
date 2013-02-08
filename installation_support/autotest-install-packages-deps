@@ -27,7 +27,13 @@ class AutotestInstallConfig(logging_config.LoggingConfig):
         super(AutotestInstallConfig, self).configure_logging(use_console=True,
                                                              verbose=verbose)
 
-logging_manager.configure_logging(AutotestInstallConfig())
-
 if __name__ == '__main__':
+    import optparse
+    option_parser = optparse.OptionParser()
+    option_parser.add_option("-v", "--verbose",
+                      action="store_true", dest="verbose",
+                      help="Exhibit debug messages")
+    options, args = option_parser.parse_args()
+    logging_manager.configure_logging(AutotestInstallConfig(),
+                                      verbose=options.verbose)
     software_manager.install_distro_packages(PKG_DEPS)
