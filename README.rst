@@ -64,6 +64,12 @@ You can find plenty of information on the autotest wiki
 http://github.com/autotest/autotest/wiki
 
 
+Mailing list and IRC info
+-------------------------
+
+https://github.com/autotest/autotest/wiki/ContactInfo
+
+
 Grabbing the latest source
 --------------------------
 
