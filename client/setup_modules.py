@@ -1,6 +1,18 @@
-__author__ = "jadmanski@google.com (John Admanski)"
+"""
+Module used to create the autotest namespace for single dir use case.
 
-import os, sys, imp
+Autotest programs can be used and developed without requiring it to be
+installed system-wide. In order for the code to see the library namespace:
+
+from autotest.client.shared import error
+from autotest.server import hosts
+...
+
+Without system wide install, we need some hacks, that are performed here.
+
+@author: John Admanski (jadmanski@google.com)
+"""
+import os, sys
 
 try:
     import autotest.client.shared.check_version as check_version
@@ -14,18 +26,26 @@ except ImportError:
 
 check_version.check_python_version()
 
-import new
+import new, imp
 
 
 def _create_module(name):
-    """Create a single top-level module"""
+    """
+    Create a single top-level module and add it to sys.modules.
+
+    @param name: Module name, such as 'autotest'.
+    """
     module = new.module(name)
     sys.modules[name] = module
     return module
 
 
 def _create_module_and_parents(name):
-    """Create a module, and all the necessary parents"""
+    """
+    Create a module, and all the necessary parents and add them to sys.modules.
+
+    @param name: Module name, such as 'autotest.client'.
+    """
     parts = name.split(".")
     # first create the top-level module
     parent = _create_module(parts[0])
@@ -42,24 +62,26 @@ def _create_module_and_parents(name):
 
 
 def import_module(module, from_where):
-    """Equivalent to 'from from_where import module'
-    Returns the corresponding module"""
+    """
+    Equivalent to 'from from_where import module'.
+
+    @param module: Module name.
+    @param from_where: Package from where the module is being imported.
+    @return: The corresponding module.
+    """
     from_module = __import__(from_where, globals(), locals(), [module])
     return getattr(from_module, module)
 
 
 def setup(base_path, root_module_name="autotest"):
     """
+    Setup a library namespace, with the appropriate top root module name.
+
     Perform all the necessary setup so that all the packages at
     'base_path' can be imported via "import root_module_name.package".
-    If root_module_name is empty, then all the packages at base_path
-    are inserted as top-level packages.
 
-    Also, setup all the common.* aliases for modules in the common
-    library.
-
-    The setup must be different if you are running on an Autotest server
-    or on a test machine that just has the client directories installed.
+    @param base_path: Base path for the module.
+    @param root_module_name: Top level name for the module.
     """
     if sys.modules.has_key(root_module_name):
         # already set up
@@ -68,9 +90,7 @@ def setup(base_path, root_module_name="autotest"):
     _create_module_and_parents(root_module_name)
     imp.load_package(root_module_name, base_path)
 
-    # Allow locally installed third party packages to be found
-    # before any that are installed on the system itself when not.
-    # running as a client.
+    # Allow locally installed third party packages to be found.
     # This is primarily for the benefit of frontend and tko so that they
     # may use libraries other than those available as system packages.
     sys.path.insert(0, os.path.join(base_path, "site-packages"))
