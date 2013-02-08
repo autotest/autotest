@@ -15,7 +15,19 @@ except ImportError:
 
 from autotest.client.shared import software_manager
 from autotest.frontend.pkgdeps import PKG_DEPS
+from autotest.client.shared import logging_manager, logging_config
 
+
+class AutotestInstallConfig(logging_config.LoggingConfig):
+    """
+    Used with the sole purpose of providing convenient logging setup
+    for the KVM test auxiliary programs.
+    """
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(AutotestInstallConfig, self).configure_logging(use_console=True,
+                                                             verbose=verbose)
+
+logging_manager.configure_logging(AutotestInstallConfig())
 
 if __name__ == '__main__':
     software_manager.install_distro_packages(PKG_DEPS)
