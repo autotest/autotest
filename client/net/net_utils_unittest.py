@@ -4,7 +4,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import utils
+from autotest.client import utils
 from autotest.client.net import net_utils, net_utils_mock
 from autotest.client.shared.test_utils import mock
 from autotest.client.shared import error
