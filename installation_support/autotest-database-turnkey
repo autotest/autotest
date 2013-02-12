@@ -181,6 +181,8 @@ class App(object):
             argv = ['manage.py', 'syncdb', '-v0', '--noinput']
             django.core.management.execute_from_command_line(argv)
             django.core.management.execute_from_command_line(argv)
+            argv = ['manage.py', 'migrate', '-v0', '--noinput']
+            django.core.management.execute_from_command_line(argv)
             return 0
 
         else:
