@@ -6,6 +6,7 @@ packages needed for running the AFE and TKO servers
 
 FEDORA_REDHAT_PKGS = [
     'Django',
+    'Django-south',
     'MySQL-python',
     'git',
     'httpd',
