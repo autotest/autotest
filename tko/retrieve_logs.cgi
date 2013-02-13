@@ -5,7 +5,8 @@ try:
     import autotest.common
 except ImportError:
     import common
-from autotest.client.shared import global_config
+
+from autotest.client.shared.settings import settings
 from autotest.client import utils
 from autotest.frontend.afe.json_rpc import serviceHandler
 
@@ -50,11 +51,9 @@ def find_repository_host(job_path):
     if site_repo_info is not None:
         return site_repo_info
 
-    config = global_config.global_config
-    drones = config.get_config_value('SCHEDULER', 'drones')
-    results_host = config.get_config_value('SCHEDULER', 'results_host')
-    archive_host = config.get_config_value('SCHEDULER', 'archive_host',
-                                            default='')
+    drones = settings.get_value('SCHEDULER', 'drones')
+    results_host = settings.get_value('SCHEDULER', 'results_host')
+    archive_host = settings.get_value('SCHEDULER', 'archive_host', default='')
     results_repos = [results_host]
     for drone in drones.split(','):
         drone = drone.strip()
