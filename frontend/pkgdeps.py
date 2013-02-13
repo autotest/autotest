@@ -14,6 +14,7 @@ FEDORA_REDHAT_PKGS = [
     'mysql-server',
     'numpy',
     'policycoreutils-python',
+    'python-django',
     'python-atfork',
     'python-crypto',
     'python-httplib2',
