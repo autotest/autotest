@@ -92,13 +92,13 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'frontend.apache_auth.ApacheAuthMiddleware',
+    'autotest.frontend.apache_auth.ApacheAuthMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.doc.XViewMiddleware',
-    'frontend.shared.json_html_formatter.JsonToHtmlMiddleware',
+    'autotest.frontend.shared.json_html_formatter.JsonToHtmlMiddleware',
 )
 
-ROOT_URLCONF = 'frontend.urls'
+ROOT_URLCONF = 'autotest.frontend.urls'
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
@@ -109,8 +109,8 @@ TEMPLATE_DIRS = (
 )
 
 INSTALLED_APPS = (
-    'frontend.afe',
-    'frontend.tko',
+    'autotest.frontend.afe',
+    'autotest.frontend.tko',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -119,5 +119,5 @@ INSTALLED_APPS = (
 )
 
 AUTHENTICATION_BACKENDS = (
-    'frontend.apache_auth.SimpleAuthBackend',
+    'autotest.frontend.apache_auth.SimpleAuthBackend',
 )
