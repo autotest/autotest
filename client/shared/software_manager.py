@@ -34,8 +34,7 @@ SUPPORTED_PACKAGE_MANAGERS = ['apt-get', 'yum', 'zypper']
 
 class SoftwareManagerLoggingConfig(logging_config.LoggingConfig):
     """
-    Used with the sole purpose of providing convenient logging setup
-    for the KVM test auxiliary programs.
+    Used with the sole purpose of providing logging setup for this program.
     """
     def configure_logging(self, results_dir=None, verbose=False):
         super(SoftwareManagerLoggingConfig, self).configure_logging(
