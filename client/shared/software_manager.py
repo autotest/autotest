@@ -83,7 +83,6 @@ class SystemInspector(object):
             else:
                 pm_supported = list_supported[0]
 
-        logging.debug('Package Manager backend: %s' % pm_supported)
         return pm_supported
 
 
@@ -95,8 +94,6 @@ class SoftwareManager(object):
     uses the concept of a backend, a helper class that implements the set of
     operations of a given package management tool.
     """
-    initialized = False
-
     def __init__(self):
         """
         Lazily instantiate the object
@@ -107,6 +104,7 @@ class SoftwareManager(object):
         self.base_command = None
         self.pm_version = None
 
+
     def _init_on_demand(self):
         """
         Determines the best supported package management system for the given
@@ -115,16 +113,18 @@ class SoftwareManager(object):
         if not self.initialized:
             inspector = SystemInspector()
             backend_type = inspector.get_package_management()
-            if backend_type == 'yum':
-                self.backend = YumBackend()
-            elif backend_type == 'zypper':
-                self.backend = ZypperBackend()
-            elif backend_type == 'apt-get':
-                self.backend = AptBackend()
-            else:
+            backend_mapping = {'apt-get': AptBackend,
+                               'yum': YumBackend,
+                               'zypper': ZypperBackend}
+
+            if backend_type not in backend_mapping.keys():
                 raise NotImplementedError('Unimplemented package management '
                                           'system: %s.' % backend_type)
+
+            backend = backend_mapping[backend_type]
+            self.backend = backend()
             self.initialized = True
+
 
     def __getattr__(self, name):
         self._init_on_demand()
