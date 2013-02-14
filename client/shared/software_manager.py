@@ -15,7 +15,7 @@ implement the given backend class.
 @copyright: IBM 2008-2009
 @copyright: Red Hat 2009-2010
 """
-import os, re, logging, ConfigParser, optparse, random, string
+import os, re, logging, ConfigParser, optparse
 try:
     import yum
 except Exception:
