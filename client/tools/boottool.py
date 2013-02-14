@@ -445,7 +445,8 @@ def find_executable(executable, favorite_path=None):
     @param executable: the name of a file that can be read and executed
     '''
     if os.path.isabs(executable):
-        paths = [os.path.basename(executable)]
+        paths = [os.path.dirname(executable)]
+        executable = os.path.basename(executable)
     else:
         paths = os.environ['PATH'].split(':')
         if favorite_path is not None and favorite_path not in paths:
@@ -694,14 +695,7 @@ class Grubby(object):
                              'elilo')
 
     def __init__(self, path=None, opts=None):
-        if path is None:
-            if os.path.exists(GRUBBY_DEFAULT_USER_PATH):
-                self.path = GRUBBY_DEFAULT_USER_PATH
-            else:
-                self.path = GRUBBY_DEFAULT_SYSTEM_PATH
-        else:
-            self.path = path
-
+        self._set_path(path)
         self.bootloader = None
         self.opts = opts
         self.log = logging.getLogger(self.__class__.__name__)
@@ -715,11 +709,29 @@ class Grubby(object):
         self._set_bootloader()
 
 
+    def _set_path(self, path=None):
+        """
+        Set grubby path.
+
+        If path is not provided, check first if there's a built grubby,
+        then look for the system grubby.
+
+        @param path: Alternate grubby path.
+        """
+        if path is None:
+            if os.path.exists(GRUBBY_DEFAULT_USER_PATH):
+                self.path = GRUBBY_DEFAULT_USER_PATH
+            else:
+                self.path = GRUBBY_DEFAULT_SYSTEM_PATH
+        else:
+            self.path = path
+
     #
     # The following block contain utility functions that are used to build
     # most of these class methods, such as methods for running commands
     # and preparing grubby command line switches.
     #
+
     def _check_grubby_version(self):
         '''
         Checks the version of grubby in use and warns if it's not good enough
@@ -832,11 +844,11 @@ class Grubby(object):
         Prepares the argument list when running a grubby command
         '''
         args = []
-        args.append(self.path)
 
         if self.path is None:
-            self.log.error('grubby executable currently set to None. this is '
-                           'a serious error condition')
+            self._set_path()
+
+        args.append(self.path)
 
         if self.path is not None and not os.path.exists(self.path):
             self.log.error('grubby executable does not exist: "%s"', self.path)
