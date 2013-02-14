@@ -139,13 +139,13 @@ class BaseBackend(object):
         """
         Installs package that provides [path].
 
-        @param file: Path to file.
+        @param path: Path to file.
         """
-        provides = self.provides(file)
+        provides = self.provides(path)
         if provides is not None:
             return self.install(provides)
         else:
-            logging.warning('No package seems to provide %s', file)
+            logging.warning('No package seems to provide %s', path)
             return False
 
 
@@ -670,11 +670,11 @@ class AptBackend(DpkgBackend):
             return False
 
 
-    def provides(self, file):
+    def provides(self, path):
         """
-        Return a list of packages that provide [file].
+        Return a list of packages that provide [path].
 
-        @param file: File path.
+        @param path: File path.
         """
         try:
             command = os_dep.command('apt-file')
@@ -687,7 +687,7 @@ class AptBackend(DpkgBackend):
             utils.system(cache_update_cmd, ignore_status=True)
         except Exception:
             logging.error("Apt file cache update failed")
-        fu_cmd = command + ' search ' + file
+        fu_cmd = command + ' search ' + path
         try:
             provides = utils.system_output(fu_cmd).split('\n')
             list_provides = []
@@ -696,16 +696,16 @@ class AptBackend(DpkgBackend):
                     try:
                         line = line.split(':')
                         package = line[0].strip()
-                        path = line[1].strip()
-                        if path == file and package not in list_provides:
+                        lpath = line[1].strip()
+                        if lpath == path and package not in list_provides:
                             list_provides.append(package)
                     except IndexError:
                         pass
             if len(list_provides) > 1:
                 logging.warning('More than one package found, '
-                                'opting by the first queue result')
+                                'opting by the first result')
             if list_provides:
-                logging.info("Package %s provides %s", list_provides[0], file)
+                logging.info("Package %s provides %s", list_provides[0], path)
                 return list_provides[0]
             return None
         except Exception:
