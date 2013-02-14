@@ -135,9 +135,9 @@ class BaseBackend(object):
     """
     This class implements all common methods among backends.
     """
-    def install_what_provides(self, file):
+    def install_what_provides(self, path):
         """
-        Installs package that provides [file].
+        Installs package that provides [path].
 
         @param file: Path to file.
         """
@@ -466,7 +466,6 @@ class ZypperBackend(RpmBackend):
 
         @param name: Package Name.
         """
-        path = os.path.abspath(name)
         i_cmd = self.base_command + ' install -l ' + name
         try:
             utils.system(i_cmd)
@@ -542,7 +541,8 @@ class ZypperBackend(RpmBackend):
             for line in p_output:
                 line = [a.strip() for a in line.split('|')]
                 try:
-                    state, pname, type, version, arch, repository = line
+                    # state, pname, type, version, arch, repository = line
+                    pname = line[1]
                     if pname not in list_provides:
                         list_provides.append(pname)
                 except IndexError:
