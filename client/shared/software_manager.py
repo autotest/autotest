@@ -428,7 +428,13 @@ class YumBackend(RpmBackend):
 
         @param name: Capability name (eg, 'foo').
         """
-        d_provides = self.yum_base.searchPackageProvides(args=[name])
+        try:
+            d_provides = self.yum_base.searchPackageProvides(args=[name])
+        except Exception, e:
+            logging.error("Error searching for package that "
+                          "provides %s: %s", name, e)
+            d_provides = []
+
         provides_list = [key for key in d_provides]
         if provides_list:
             return str(provides_list[0])
