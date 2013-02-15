@@ -200,7 +200,11 @@ class RpmBackend(BaseBackend):
             return self._check_installed_version(name, version)
         else:
             cmd = 'rpm -q ' + name + ' 2> /dev/null'
-            return (os.system(cmd) == 0)
+            try:
+                utils.system(cmd)
+                return True
+            except error.CmdError:
+                return False
 
 
     def list_all(self):
