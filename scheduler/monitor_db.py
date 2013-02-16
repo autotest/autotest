@@ -821,6 +821,7 @@ class Dispatcher(object):
             options = job.get_object_dict()
 
             host_objects = info['hosts']
+            profiles = info['profiles']
             one_time_hosts = info['one_time_hosts']
             metahost_objects = info['meta_hosts']
             atomic_group = info['atomic_group']
@@ -833,6 +834,7 @@ class Dispatcher(object):
                 rpc_utils.create_new_job(owner=rrun.owner.login,
                                          options=options,
                                          host_objects=host_objects,
+                                         profiles=profiles,
                                          metahost_objects=metahost_objects,
                                          atomic_group=atomic_group)
 
