@@ -442,3 +442,59 @@ def get_static_data():
     result['motd'] = rpc_utils.get_motd()
 
     return result
+
+# lower level access to tko models
+
+def get_machines(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.Machine.list_objects(filter_data))
+
+
+def get_kernels(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.Kernel.list_objects(filter_data))
+
+
+def get_patches(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.Patch.list_objects(filter_data))
+
+
+def get_statuses(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.Status.list_objects(filter_data))
+
+
+def get_jobs(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.Job.list_objects(filter_data))
+
+
+def get_job_keyvals(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.JobKeyval.list_objects(filter_data))
+
+
+def get_tests(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.Test.list_objects(filter_data))
+
+
+def get_test_attributes(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.TestAttribute.list_objects(filter_data))
+
+
+def get_iteration_attributes(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.IterationAttribute.list_objects(filter_data))
+
+
+def get_iteration_results(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.IterationResult.list_objects(filter_data))
+
+
+def get_test_labels(**filter_data):
+    return rpc_utils.prepare_for_serialization(
+        models.TestLabel.list_objects(filter_data))
