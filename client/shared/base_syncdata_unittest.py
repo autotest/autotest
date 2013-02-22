@@ -131,25 +131,12 @@ class SyncDataTest(unittest.TestCase):
         l = lambda: sync.sync("test1", 2)
         self.assertRaises(error.DataSyncError, l)
 
-    class MockListenServer(syncdata.SyncListenServer):
-        def _server(self, address, port):
-            self.listen_server = barrier.listen_server()
-            self.exit_event.wait()
-
     def test_SyncData_with_listenServer_client_wait_timeout(self):
         sync = syncdata.SyncData("127.0.0.1", "127.0.0.1",
                                  ["127.0.0.1", "192.168.0.1"],
                                  "127.0.0.1#1")
 
         l = lambda: sync.single_sync("test1", 2)
-        self.assertRaises(error.DataSyncError, l)
-
-    def test_SyncData_with_listenServer_fake_server(self):
-        sync = syncdata.SyncData("127.0.0.1", "127.0.0.1",
-                                 ["127.0.0.1", "192.168.0.1"],
-                                 "127.0.0.1#1", self.MockListenServer())
-
-        l = lambda: sync.single_sync("test1", 10)
         self.assertRaises(error.DataSyncError, l)
 
     def test_SyncData_multiple_session(self):
