@@ -25,7 +25,8 @@ FEDORA_REDHAT_PKGS = [
     'selinux-policy-targeted',
     'unzip',
     'urw-fonts',
-    'wget']
+    'wget',
+    'protobuf-compiler']
 
 
 UBUNTU_PKGS = [
@@ -48,7 +49,8 @@ UBUNTU_PKGS = [
     'python-setuptools',
     'python-simplejson',
     'unzip',
-    'wget']
+    'wget',
+    'protobuf-compiler']
 
 
 PKG_DEPS = {'Fedora' : FEDORA_REDHAT_PKGS,
