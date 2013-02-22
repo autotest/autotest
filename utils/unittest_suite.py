@@ -178,6 +178,7 @@ REQUIRES_PROTOBUFS = set((
 LONG_RUNTIME = set((
     'base_barrier_unittest.py',
     'logging_manager_unittest.py',
+    'base_syncdata_unittest.py'
     ))
 
 LONG_TESTS = (REQUIRES_DJANGO |
