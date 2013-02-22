@@ -20,12 +20,12 @@ try:
 except ImportError:
     import common
 
-from autotest.client.shared import global_config
 from autotest.frontend import setup_django_environment
 from autotest.installation_support import database_manager
+from autotest.client.shared import settings
 
 
-def set_global_config_value(section, key, value):
+def set_settings_value(section, key, value):
     '''
     Sets a value on the configuration file
 
@@ -37,8 +37,8 @@ def set_global_config_value(section, key, value):
     section_re = re.compile(r'^\[%s\]$' % section)
     key_re = re.compile(r'^%s:\s+(.*)$' % key)
 
-    current_lines = open(settings_file_path).readlines()
-    output_file = open(settings_file_path, 'wb')
+    current_lines = open(settings.settings.config_file).readlines()
+    output_file = open(settings.settings.config_file, 'wb')
 
     for line in current_lines:
         if section_re.match(line):
@@ -54,8 +54,8 @@ def set_global_config_value(section, key, value):
             output_file.write('%s' % line)
 
     output_file.close()
-    reload(global_config)
-    assert global_config.global_config.get_config_value(section, key) == value
+    reload(settings)
+    assert settings.settings.get_value(section, key) == value
 
 
 class OptionParser(optparse.OptionParser):
@@ -114,10 +114,10 @@ class App(object):
         '''
         try:
             section = 'AUTOTEST_WEB'
-            set_global_config_value(section, 'host', opts.host)
-            set_global_config_value(section, 'database', opts.database)
-            set_global_config_value(section, 'user', opts.username)
-            set_global_config_value(section, 'password', opts.password)
+            set_settings_value(section, 'host', opts.host)
+            set_settings_value(section, 'database', opts.database)
+            set_settings_value(section, 'user', opts.username)
+            set_settings_value(section, 'password', opts.password)
         except AssertionError:
             return False
 
@@ -129,8 +129,7 @@ class App(object):
         opts, args = self.option_parser.parse_args()
 
         def get_config_db_value(key):
-            return global_config.global_config.get_config_value('AUTOTEST_WEB',
-                                                                key)
+            return settings.settings.get_value('AUTOTEST_WEB', key)
 
         if opts.from_config:
             conn_options = {'database' : get_config_db_value('database'),
