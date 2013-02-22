@@ -2,7 +2,7 @@
 This module contains the status enums for use by HostQueueEntrys in the
 database.  It is a stand alone module as these status strings are needed
 from various disconnected pieces of code that should not depend on everything
-that frontend.afe.models depends on such as RPC clients.
+that autotest.frontend.afe.models depends on such as RPC clients.
 """
 
 from autotest.client.shared import enum

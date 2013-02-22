@@ -12,7 +12,7 @@ class SimpleAuthBackend(backends.ModelBackend):
     """
     Automatically allows any login.  This backend is for use when Apache is
     doing the real authentication.  Also ensures logged-in user exists in
-    frontend.afe.models.User database.
+    autotest.frontend.afe.models.User database.
     """
     def authenticate(self, username=None, password=None):
         try:

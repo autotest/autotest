@@ -7,7 +7,7 @@ from autotest.frontend import settings, urls_common
 from autotest.frontend.tko import resources
 
 urlpatterns, debug_patterns = (
-        urls_common.generate_patterns('frontend.tko', 'TkoClient'))
+        urls_common.generate_patterns('autotest.frontend.tko', 'TkoClient'))
 
 resource_patterns = defaults.patterns(
         '',
@@ -19,9 +19,9 @@ resource_patterns = defaults.patterns(
 
 urlpatterns += defaults.patterns(
         '',
-        (r'^jsonp_rpc/', 'frontend.tko.views.handle_jsonp_rpc'),
-        (r'^csv/', 'frontend.tko.views.handle_csv'),
-        (r'^plot/', 'frontend.tko.views.handle_plot'),
+        (r'^jsonp_rpc/', 'autotest.frontend.tko.views.handle_jsonp_rpc'),
+        (r'^csv/', 'autotest.frontend.tko.views.handle_csv'),
+        (r'^plot/', 'autotest.frontend.tko.views.handle_plot'),
 
         (r'^resources/', defaults.include(resource_patterns)))
 

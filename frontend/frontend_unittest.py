@@ -25,7 +25,7 @@ class FrontendTest(unittest.TestCase):
 
 
     def test_all(self):
-        doctest_runner = test.DoctestRunner(_APP_DIR, 'frontend.afe')
+        doctest_runner = test.DoctestRunner(_APP_DIR, 'autotest.frontend.afe')
         errors = doctest_runner.run_tests()
         self.assert_(errors == 0, '%s failures in frontend unit tests' % errors)
 

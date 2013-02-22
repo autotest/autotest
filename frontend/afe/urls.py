@@ -8,7 +8,7 @@ feeds = {
 }
 
 urlpatterns, debug_patterns = (
-        urls_common.generate_patterns('frontend.afe', 'AfeClient'))
+        urls_common.generate_patterns('autotest.frontend.afe', 'AfeClient'))
 
 resource_patterns = defaults.patterns(
         '',
@@ -65,8 +65,8 @@ urlpatterns += defaults.patterns(
 # Job feeds
 debug_patterns += defaults.patterns(
         '',
-        (r'^model_doc/', 'frontend.afe.views.model_documentation'),
-        (r'^feeds/(?P<url>.*)/$', 'frontend.afe.feeds.feed.feed_view',
+        (r'^model_doc/', 'autotest.frontend.afe.views.model_documentation'),
+        (r'^feeds/(?P<url>.*)/$', 'autotest.frontend.afe.feeds.feed.feed_view',
          {'feed_dict': feeds})
     )
 
