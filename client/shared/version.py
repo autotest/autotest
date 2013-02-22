@@ -39,7 +39,7 @@ import common
 from autotest.client import utils
 from autotest.client.shared import error
 
-_ROOT_PATH = os.path.join(sys.modules[__name__].__file__, "..", "..")
+_ROOT_PATH = os.path.join(sys.modules[__name__].__file__, "..", "..", "..")
 _ROOT_PATH = os.path.abspath(_ROOT_PATH)
 RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
 
