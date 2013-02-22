@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-"""Unittests for the JobSerializer class.
+"""
+Unittests for the JobSerializer class.
 
 Mostly test if the serialized object has the expected content.
-
 """
 
 try:
@@ -15,6 +15,17 @@ import os
 import re
 import tempfile
 import time
+import sys
+
+# In case the protocol buffer parser is missing, build it.
+# In Fedora, you can install the compiler using:
+# sudo yum install protobuf-compiler
+import commands
+cwd = os.getcwd()
+module_dir = os.path.dirname(sys.modules[__name__].__file__)
+os.chdir(module_dir)
+commands.getoutput('make')
+os.chdir(cwd)
 
 from autotest.tko import tko_pb2
 from autotest.tko import job_serializer
