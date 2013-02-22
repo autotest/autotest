@@ -661,6 +661,7 @@ class Job(resource_lib.InstanceEntry):
     @classmethod
     def create_instance(cls, input_dict, containing_collection):
         owner = input_dict.get('owner')
+        profiles = input_dict.get('profiles', None)
         if not owner:
             owner = models.User.current_user().login
 
@@ -715,6 +716,7 @@ class Job(resource_lib.InstanceEntry):
                 owner=owner,
                 options=options,
                 host_objects=host_objects,
+                profiles=profiles,
                 metahost_objects=metahost_label_objects,
                 atomic_group=atomic_group)
         return models.Job.objects.get(id=job_id)
