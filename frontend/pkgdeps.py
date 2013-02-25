@@ -41,6 +41,7 @@ UBUNTU_PKGS = [
     'openjdk-7-jre-headless',
     'python-crypto',
     'python-django',
+    'python-django-south',
     'python-httplib2',
     'python-imaging',
     'python-matplotlib',
