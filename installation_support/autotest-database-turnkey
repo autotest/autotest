@@ -183,6 +183,17 @@ class App(object):
             django.core.management.execute_from_command_line(argv)
             argv = ['manage.py', 'migrate', '-v0', '--noinput']
             django.core.management.execute_from_command_line(argv)
+
+            # South does not run the initial SQL file. This could be added as an
+            # extension to Django's management commands, but for now, let's KISS
+            this_path = os.path.dirname(os.path.abspath(__file__))
+            base_path = os.path.dirname(this_path)
+            tko_view_sql_path = os.path.join(base_path, 'frontend', 'tko',
+                                             'sql', 'test.sql')
+            if os.path.exists(tko_view_sql_path):
+                sql = open(tko_view_sql_path).read()
+                if not (mngr.run_sql(sql)):
+                    return -1
             return 0
 
         else:
