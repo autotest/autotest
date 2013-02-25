@@ -38,8 +38,16 @@ class DummyDatabaseManager(base.BaseDatabaseManager):
     def grant_privileges(self):
         return True
 
+
     def setup(self):
         '''
         Performs all the steps neede to completely setup a database instance
+        '''
+        return True
+
+
+    def run_sql(self, sql):
+        '''
+        Runs the given SQL code blindly
         '''
         return True

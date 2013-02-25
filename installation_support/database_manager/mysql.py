@@ -29,6 +29,21 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
             logging.error("Failed to logon as the database admin user")
 
 
+    def run_sql(self, sql):
+        '''
+        Runs the given SQL code blindly
+        '''
+        self.admin_connection.select_db(self.name)
+        cursor = self.admin_connection.cursor()
+        try:
+            cursor.execute(sql)
+        except (MySQLdb.ProgrammingError, MySQLdb.OperationalError):
+            self.admin_connection.rollback()
+            return False
+
+        return True
+
+
     def exists(self):
         '''
         Checks if the database instance exists

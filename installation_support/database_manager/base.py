@@ -43,6 +43,13 @@ class BaseDatabaseManager(object):
         self.host = host
 
 
+    def run_sql(self, sql):
+        '''
+        Runs the given SQL code blindly
+        '''
+        return NotImplementedError
+
+
     def config_as_dict(self):
         '''
         Returns relevant database configuration as a dictionary
