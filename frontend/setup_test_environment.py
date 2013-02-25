@@ -14,6 +14,10 @@ settings.DATABASES['default']['ENGINE'] = (
     'autotest.frontend.db.backends.afe_sqlite')
 settings.DATABASES['default']['NAME'] = ':memory:'
 
+# We have to update the south backend since the engine also gets changed here
+south_backend = settings.SOUTH_BACKENDS[settings.AUTOTEST_DEFAULT['ENGINE']]
+settings.SOUTH_DATABASE_ADAPTERS['default'] = south_backend
+
 from django.db import connection
 from autotest.frontend.afe import readonly_connection
 from autotest.installation_support import database_manager
@@ -37,6 +41,10 @@ COMPLETELY_DESTROY_THE_DATABASE = False
 
 def run_syncdb(verbosity=0):
     management.call_command('syncdb', verbosity=verbosity, interactive=False)
+    management.call_command('migrate', 'afe', verbosity=verbosity,
+                            interactive=False)
+    management.call_command('migrate', 'tko', verbosity=verbosity,
+                            interactive=False)
 
 
 def destroy_test_database():
