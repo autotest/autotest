@@ -318,4 +318,35 @@ public class Utils {
     public static String getBaseUrl() {
         return Window.Location.getProtocol() + "//" + Window.Location.getHost();
     }
+    
+    /**
+     * Split string into multiple lines, preserving words, insert "\n" at the end of lines
+     * @param input text to be split
+     * @param maxCharInLine maximum number of characters allowed in a line
+     * @return
+     */
+    public static String splitIntoLines(String input, int maxCharInLine){
+        StringBuilder output = new StringBuilder(input.length());
+        int lineLen = 0;
+    	String[] words = input.split("\\s"); // split on all whitespace
+    	int wordIndex = 0;
+        while (wordIndex < words.length) {
+            String word = words[wordIndex++];
+            while(word.length() > maxCharInLine) { // break words longer than line limit
+                output.append(word.substring(0, maxCharInLine-lineLen) + "\n");
+                word = word.substring(maxCharInLine - lineLen);
+                lineLen = 0;
+            }
+            if (lineLen + word.length() > maxCharInLine) { // break before word breaks line limit
+                output.append("\n");
+                lineLen = 0;
+                if ( word.length() == 0 ) // skip line ending blanks
+                	continue;
+            }
+            output.append(word + " ");
+            lineLen += word.length() + 1;
+        }
+        return output.toString();
+    }
+    
 }
