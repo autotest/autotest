@@ -461,7 +461,7 @@ class FileChecker(object):
             if os.path.isfile(unittest_path):
                 module = unittest_path.rstrip(".py")
                 module = module.split("/")
-                module[0] = "autotest"
+                module = ["autotest"] + module
                 try:
                     mod = common.setup_modules.import_module(module[-1],
                                                              ".".join(module[:-1]))
