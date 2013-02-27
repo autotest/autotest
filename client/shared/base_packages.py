@@ -80,7 +80,7 @@ def repo_run_command(repo, cmd, ignore_status=False, cd=True):
             username, host = hostline.split('@')
             run_cmd = 'ssh %s@%s "%s%s"' % (username, host, cd_str, cmd)
         else:
-            run_cmd = 'ssh %s "%s%s"' % (host, cd_str, cmd)
+            run_cmd = 'ssh %s "%s%s"' % (hostline, cd_str, cmd)
 
     else:
         if cd:
