@@ -203,7 +203,7 @@ class RepositoryFetcher(object):
         @param name:  The filename to be munged
         @type fetch_dir: string
         @param fetch_dir: The destination path to be munged
-        @type insall: boolean
+        @type install: boolean
         @param install: Whether this is be called from the install path or not
         @return: tuple with (name, fetch_dir)
         """
