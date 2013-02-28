@@ -5,11 +5,10 @@ try:
 except ImportError:
     import common
 from autotest.tko import db
-from autotest.client.shared import global_config
+from autotest.client.shared import settings
 from autotest.client.shared import logging_manager, logging_config
 from autotest.client import utils
 
-GLOBAL_CONFIG = global_config.global_config
 ERROR_NO_RESULTS_AVAILABLE = 1
 ERROR_WRONG_INPUT = 2
 ERROR_USER_ABORT = 3
@@ -31,8 +30,8 @@ def get_results_dir():
     results_dir_relative = os.path.abspath(os.path.join(tko_dir_relative, '..',
                                                         'results'))
 
-    top_path = GLOBAL_CONFIG.get_config_value('COMMON', 'autotest_top_path',
-                                              default='/usr/local/autotest')
+    top_path = settings.get_value('COMMON', 'autotest_top_path',
+                                  default='/usr/local/autotest')
     results_dir_absolute = os.path.abspath(os.path.join(top_path, 'results'))
 
     if results_dir_absolute == results_dir_relative:
