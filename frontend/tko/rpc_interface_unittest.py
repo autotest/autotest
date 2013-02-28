@@ -174,11 +174,15 @@ class TkoTestMixin(object):
         self._add_iteration_keyval('tko_iteration_result', test=job1_test1,
                                    iteration=2, attribute='iresult2', value=4)
 
-        label1 = models.TestLabel.objects.create(name='testlabel1')
+        # With the new database initialization based on Django, the fixture
+        # file is always loaded. That file has one entry, so the labels
+        # created for the test have ids set to 2 and 3, and not 1 and 2. We
+        # name them like this so that is even more explicit
         label2 = models.TestLabel.objects.create(name='testlabel2')
+        label3 = models.TestLabel.objects.create(name='testlabel3')
 
-        label1.tests.add(job1_test1)
         label2.tests.add(job1_test1)
+        label3.tests.add(job1_test1)
 
 
     def _add_iteration_keyval(self, table, test, iteration, attribute, value):
@@ -226,7 +230,7 @@ class RpcInterfaceTest(unittest.TestCase, TkoTestMixin):
                                                {'attr': {},
                                                 'perf': {'iresult': 3,
                                                          'iresult2': 4}}])
-        self.assertEquals(test['labels'], ['testlabel1', 'testlabel2'])
+        self.assertEquals(test['labels'], ['testlabel2', 'testlabel3'])
         self.assertEquals(test['job_keyvals'], {'keyval_key': 'keyval_value'})
 
 
@@ -274,10 +278,10 @@ class RpcInterfaceTest(unittest.TestCase, TkoTestMixin):
 
 
     def test_get_test_views_filter_on_labels(self):
-        tests = rpc_interface.get_test_views(include_labels=['testlabel1'])
+        tests = rpc_interface.get_test_views(include_labels=['testlabel2'])
         self._check_test_names(tests, ['mytest1'])
 
-        tests = rpc_interface.get_test_views(exclude_labels=['testlabel1'])
+        tests = rpc_interface.get_test_views(exclude_labels=['testlabel2'])
         self._check_test_names(tests, ['mytest2', 'kernbench'])
 
 
@@ -378,29 +382,29 @@ class RpcInterfaceTest(unittest.TestCase, TkoTestMixin):
     def test_test_labels(self):
         labels = rpc_interface.get_test_labels_for_tests(test_name='mytest1')
         self.assertEquals(len(labels), 2)
-        label1 = labels[0]
-        label2 = labels[1]
+        label2 = labels[0]
+        label3 = labels[1]
 
-        self._check_for_get_test_labels(label1, 1)
         self._check_for_get_test_labels(label2, 2)
+        self._check_for_get_test_labels(label3, 3)
 
-        rpc_interface.test_label_remove_tests(label1['id'], test_name='mytest1')
+        rpc_interface.test_label_remove_tests(label2['id'], test_name='mytest1')
 
         labels = rpc_interface.get_test_labels_for_tests(test_name='mytest1')
         self.assertEquals(len(labels), 1)
         label = labels[0]
 
-        self._check_for_get_test_labels(label, 2)
+        self._check_for_get_test_labels(label, 3)
 
-        rpc_interface.test_label_add_tests(label1['id'], test_name='mytest1')
+        rpc_interface.test_label_add_tests(label2['id'], test_name='mytest1')
 
         labels = rpc_interface.get_test_labels_for_tests(test_name='mytest1')
         self.assertEquals(len(labels), 2)
-        label1 = labels[0]
-        label2 = labels[1]
+        label2 = labels[0]
+        label3 = labels[1]
 
-        self._check_for_get_test_labels(label1, 1)
         self._check_for_get_test_labels(label2, 2)
+        self._check_for_get_test_labels(label3, 3)
 
 
     def test_get_test_attribute_fields(self):
@@ -448,36 +452,36 @@ class RpcInterfaceTest(unittest.TestCase, TkoTestMixin):
 
     def test_get_test_label_fields(self):
         tests = rpc_interface.get_test_views(
-                test_label_fields=['testlabel1', 'testlabel2'])
+                test_label_fields=['testlabel2', 'testlabel3'])
         self.assertEquals(len(tests), 3)
 
-        self.assertEquals(tests[0]['test_label_testlabel1'], 'testlabel1')
         self.assertEquals(tests[0]['test_label_testlabel2'], 'testlabel2')
+        self.assertEquals(tests[0]['test_label_testlabel3'], 'testlabel3')
 
         for index in (1, 2):
-            self.assertEquals(tests[index]['test_label_testlabel1'], None)
             self.assertEquals(tests[index]['test_label_testlabel2'], None)
+            self.assertEquals(tests[index]['test_label_testlabel3'], None)
 
 
     def test_filtering_on_test_label_fields(self):
         tests = rpc_interface.get_test_views(
-                extra_where='test_label_testlabel1 = "testlabel1"',
-                test_label_fields=['testlabel1'])
+                extra_where='test_label_testlabel2 = "testlabel2"',
+                test_label_fields=['testlabel2'])
         self.assertEquals(len(tests), 1)
 
 
     def test_grouping_on_test_label_fields(self):
         num_groups = rpc_interface.get_num_groups(
-                ['test_label_testlabel1'], test_label_fields=['testlabel1'])
+                ['test_label_testlabel2'], test_label_fields=['testlabel2'])
         self.assertEquals(num_groups, 2)
 
         counts = rpc_interface.get_group_counts(
-                ['test_label_testlabel1'], test_label_fields=['testlabel1'])
+                ['test_label_testlabel2'], test_label_fields=['testlabel2'])
         groups = counts['groups']
         self.assertEquals(len(groups), 2)
-        self.assertEquals(groups[0]['test_label_testlabel1'], None)
+        self.assertEquals(groups[0]['test_label_testlabel2'], None)
         self.assertEquals(groups[0]['group_count'], 2)
-        self.assertEquals(groups[1]['test_label_testlabel1'], 'testlabel1')
+        self.assertEquals(groups[1]['test_label_testlabel2'], 'testlabel2')
         self.assertEquals(groups[1]['group_count'], 1)
 
 

@@ -1,0 +1,12 @@
+[
+    {"pk": "1", "model": "tko.status", "fields": {"status_idx": "1", "word": "ABORT"}},
+    {"pk": "2", "model": "tko.status", "fields": {"status_idx": "2", "word": "ALERT"}},
+    {"pk": "3", "model": "tko.status", "fields": {"status_idx": "3", "word": "ERROR"}},
+    {"pk": "4", "model": "tko.status", "fields": {"status_idx": "4", "word": "FAIL"}},
+    {"pk": "5", "model": "tko.status", "fields": {"status_idx": "5", "word": "GOOD"}},
+    {"pk": "6", "model": "tko.status", "fields": {"status_idx": "6", "word": "NOSTATUS"}},
+    {"pk": "7", "model": "tko.status", "fields": {"status_idx": "7", "word": "RUNNING"}},
+    {"pk": "8", "model": "tko.status", "fields": {"status_idx": "8", "word": "TEST_NA"}},
+    {"pk": "9", "model": "tko.status", "fields": {"status_idx": "9", "word": "WARN"}},
+    {"pk": "1", "model": "tko.testlabel", "fields": {"id": "1", "name": "invalidated"}}
+]
