@@ -265,8 +265,9 @@ class db_sql(object):
                         dictionary of fields and data
         """
         fields = data.keys()
-        refs = ['%s' for field in fields]
-        values = [data[field] for field in fields]
+        fields = [f for f in fields if data[f] is not None]
+        refs = ['%s' for field in fields if data[field] is not None]
+        values = [data[field] for field in fields if data[field] is not None]
         cmd = ('insert into %s (%s) values (%s)' %
                (table, ','.join(self._quote(field) for field in fields),
                 ','.join(refs)))
