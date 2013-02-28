@@ -50,7 +50,7 @@ system error on the Autotest server.  Full results may not be available.  Sorry.
 
 _db = None
 _shutdown = False
-# Start autotest-remove in both scenarios, system wide install or traditional
+# Start autotest-remote in both scenarios, system wide install or traditional
 # single dir installation
 try:
     _autoserv_path = os_dep.command("autotest-remote")
