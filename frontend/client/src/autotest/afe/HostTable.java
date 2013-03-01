@@ -27,8 +27,10 @@ public class HostTable extends DynamicTable {
     @Override
     protected void preprocessRow(JSONObject host) {
     	// break labels column into separate lines if longer than some limit
-    	String otherLabels = Utils.jsonToString(host.get(HostDataSource.OTHER_LABELS));
-		host.put(HostDataSource.OTHER_LABELS, 
-				new JSONString(Utils.splitIntoLines(otherLabels, MAX_LABELS_COLUMN_WIDTH)));
+    	if ( host.containsKey(HostDataSource.OTHER_LABELS) ) {
+	    	String otherLabels = Utils.jsonToString(host.get(HostDataSource.OTHER_LABELS));
+			host.put(HostDataSource.OTHER_LABELS, 
+					new JSONString(Utils.splitIntoLines(otherLabels, MAX_LABELS_COLUMN_WIDTH)));
+    	}
     }
 }
