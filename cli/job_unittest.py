@@ -212,8 +212,7 @@ class job_list_unittest(job_unittest):
 class job_list_jobs_all_and_user_unittest(cli_mock.cli_unittest):
     def test_job_list_jobs_all_and_user(self):
         testjob = job.job_list()
-        sys.argv = ['atest', 'job', 'list', '-a', '-u', 'user0',
-                    '--ignore_site_file']
+        sys.argv = ['atest', 'job', 'list', '-a', '-u', 'user0']
         self.god.mock_io()
         (sys.exit.expect_call(mock.anything_comparator())
          .and_raises(cli_mock.ExitException))
@@ -1022,7 +1021,7 @@ class job_create_unittest(cli_mock.cli_unittest):
 
     def test_execute_create_job_no_args(self):
         testjob = job.job_create()
-        sys.argv = ['atest', 'job', 'create', '--ignore_site_file']
+        sys.argv = ['atest', 'job', 'create']
         self.god.mock_io()
         (sys.exit.expect_call(mock.anything_comparator())
          .and_raises(cli_mock.ExitException))
@@ -1034,8 +1033,7 @@ class job_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_job_no_hosts(self):
         testjob = job.job_create()
         file_temp = cli_mock.create_file(self.ctrl_file)
-        sys.argv = ['atest', '-f', file_temp.name, 'test_job0',
-                    '--ignore_site_file']
+        sys.argv = ['atest', '-f', file_temp.name, 'test_job0']
         self.god.mock_io()
         (sys.exit.expect_call(mock.anything_comparator())
          .and_raises(cli_mock.ExitException))
@@ -1048,8 +1046,7 @@ class job_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_job_cfile_and_tests(self):
         testjob = job.job_create()
         sys.argv = ['atest', 'job', 'create', '-t', 'sleeptest', '-f',
-                    'control_file', 'test_job0', '-m', 'host0',
-                    '--ignore_site_file']
+                    'control_file', 'test_job0', '-m', 'host0']
         self.god.mock_io()
         (sys.exit.expect_call(mock.anything_comparator())
          .and_raises(cli_mock.ExitException))
@@ -1061,7 +1058,7 @@ class job_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_job_cfile_and_kernel(self):
         testjob = job.job_create()
         sys.argv = ['atest', 'job', 'create', '-f', 'control_file', '-k',
-                    'kernel', 'test_job0', '-m', 'host0', '--ignore_site_file']
+                    'kernel', 'test_job0', '-m', 'host0']
         self.god.mock_io()
         (sys.exit.expect_call(mock.anything_comparator())
          .and_raises(cli_mock.ExitException))
@@ -1074,7 +1071,7 @@ class job_create_unittest(cli_mock.cli_unittest):
         testjob = job.job_create()
         sys.argv = ['atest', 'job', 'create', '-f', 'control_file', '-k',
                     'kernel1,kernel2', '--kernel-config', 'config1',
-                    'test_job0', '-m', 'host0', '--ignore_site_file']
+                    'test_job0', '-m', 'host0']
         self.god.mock_io()
         (sys.exit.expect_call(mock.anything_comparator())
          .and_raises(cli_mock.ExitException))
@@ -1086,7 +1083,7 @@ class job_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_job_bad_cfile(self):
         testjob = job.job_create()
         sys.argv = ['atest', 'job', 'create', '-f', 'control_file',
-                    'test_job0', '-m', 'host0', '--ignore_site_file']
+                    'test_job0', '-m', 'host0']
         self.god.mock_io()
         (sys.exit.expect_call(mock.anything_comparator())
          .and_raises(IOError))
@@ -1097,7 +1094,7 @@ class job_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_job_bad_priority(self):
         testjob = job.job_create()
         sys.argv = ['atest', 'job', 'create', '-t', 'sleeptest', '-p', 'Uber',
-                    '-m', 'host0', 'test_job0', '--ignore_site_file']
+                    '-m', 'host0', 'test_job0']
         self.god.mock_io()
         (sys.exit.expect_call(mock.anything_comparator())
          .and_raises(cli_mock.ExitException))
