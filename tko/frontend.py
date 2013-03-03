@@ -303,7 +303,3 @@ class iteration:
         self.iteration = iteration
         self.key = key
         self.value = value
-
-# class patch:
-#       def __init__(self):
-#               self.spec = None
