@@ -169,6 +169,11 @@ class RpmBackend(BaseBackend):
     as yum and zypper.
     """
 
+    PACKAGE_TYPE = 'rpm'
+    SOFTWARE_COMPONENT_QRY = (
+        PACKAGE_TYPE + ' ' +
+        '%{NAME} %{VERSION} %{RELEASE} %{SIGMD5} %{ARCH}')
+
     def __init__(self):
         self.lowlevel_base_cmd = os_dep.command('rpm')
 
@@ -220,12 +225,23 @@ class RpmBackend(BaseBackend):
             except error.CmdError:
                 return False
 
-    def list_all(self):
+    def list_all(self, software_components=True):
         """
         List all installed packages.
+
+        :param software_components: log in a format suitable for the
+                                    SoftwareComponent schema
         """
         logging.debug("Listing all system packages (may take a while)")
-        cmd_result = utils.run('rpm -qa | sort', verbose=False)
+
+        if software_components:
+            cmd_format = "rpm -qa --qf '%s' | sort"
+            query_format = "%s\n" % self.SOFTWARE_COMPONENT_QRY
+            cmd_format = cmd_format % query_format
+            cmd_result = utils.run(cmd_format, verbose=False)
+        else:
+            cmd_result = utils.run('rpm -qa | sort', verbose=False)
+
         out = cmd_result.stdout.strip()
         installed_packages = out.splitlines()
         return installed_packages
@@ -262,6 +278,7 @@ class DpkgBackend(BaseBackend):
     as apt and aptitude.
     """
 
+    PACKAGE_TYPE = 'deb'
     INSTALLED_OUTPUT = 'install ok installed'
 
     def __init__(self):
