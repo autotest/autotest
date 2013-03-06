@@ -497,6 +497,9 @@ def detect_distro_type():
         return 'redhat'
     elif os.path.exists('/etc/debian_version'):
         return 'debian'
+    elif os.path.exists('/etc/issue'):
+        if re.match(r'.*SUSE.*', open('/etc/issue').read()):
+            return 'suse'
     else:
         return None
 
@@ -575,6 +578,35 @@ class RPMBuildDeps(object):
         return result
 
 
+class SuseBuildDeps(RPMBuildDeps):
+    '''
+    Checks and install grubby build dependencies on SuSE (like) systems
+
+    Tested on:
+       * OpenSuSE 12.2
+    '''
+
+
+    PKGS = ['gcc', 'make', 'popt-devel', 'libblkid-devel']
+
+
+    def install(self):
+        '''
+        Attempt to install the build dependencies via a package manager
+        '''
+        if self.check():
+            return True
+        else:
+            try:
+                args = ['zypper', '-n', '--no-cd', 'install'] + self.PKGS
+                result = subprocess.call(args,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE)
+            except OSError:
+                pass
+        return self.check()
+
+
 class RedHatBuildDeps(RPMBuildDeps):
     '''
     Checks and install grubby build dependencies on RedHat (like) systems
@@ -627,8 +659,9 @@ class RedHatBuildDeps(RPMBuildDeps):
 
 
 DISTRO_DEPS_MAPPING = {
-    'debian' : DebianBuildDeps,
-    'redhat' : RedHatBuildDeps
+    'debian': DebianBuildDeps,
+    'redhat': RedHatBuildDeps,
+    'suse': SuseBuildDeps
     }
 
 
