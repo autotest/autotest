@@ -323,6 +323,12 @@ chown -R autotest:autotest $ATHOME
 chmod 775 $ATHOME
 }
 
+update_packages() {
+print_log "INFO" "Updating package dependencies"
+$ATHOME/installation_support/autotest-install-packages-deps >> $LOG 2>&1
+}
+
+
 check_mysql_password() {
 print_log "INFO" "Setting MySQL root password"
 mysqladmin -u root password $MYSQLPW > /dev/null 2>&1
@@ -569,6 +575,7 @@ full_install() {
             restart_mysql_rh
             create_autotest_user_rh
             install_autotest
+            update_packages
             check_mysql_password
             create_autotest_database
             build_external_packages
@@ -588,6 +595,7 @@ full_install() {
             restart_mysql_deb
             create_autotest_user_deb
             install_autotest
+            update_packages
             check_mysql_password
             create_autotest_database
             build_external_packages
