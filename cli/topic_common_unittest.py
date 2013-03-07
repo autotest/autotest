@@ -466,7 +466,8 @@ class atest_unittest(cli_mock.cli_unittest):
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left1', 'left2', 'host1', 'host2'])
 
-        self.assertEqual({'mlist': flist.name,
+        self.assertEqual({'username': None,
+                          'mlist': flist.name,
                           'web_server': 'fooweb',
                           'parse': True,
                           'parse_delim': '|',
@@ -488,7 +489,8 @@ class atest_unittest(cli_mock.cli_unittest):
         self.assertEqualNoOrder(self.atest.hosts,
                                 ['left2', 'host1', 'host2'])
 
-        self.assertEqual({'mlist': flist.name,
+        self.assertEqual({'username': None,
+                          'mlist': flist.name,
                           'web_server': 'fooweb',
                           'parse': True,
                           'parse_delim': '|',
@@ -522,7 +524,8 @@ class atest_unittest(cli_mock.cli_unittest):
                                 ['user1', 'user2', 'user3',
                                  'myuser', 'youruser'])
 
-        self.assertEqual({'mlist': flist.name,
+        self.assertEqual({'username': None,
+                          'mlist': flist.name,
                           'ulist': ulist.name,
                           'user': 'myuser,youruser',
                           'web_server': None,
@@ -559,7 +562,8 @@ class atest_unittest(cli_mock.cli_unittest):
                                 ['user1', 'user2', 'user3',
                                  'myuser', 'youruser'])
 
-        self.assertEqual({'mlist': flist.name,
+        self.assertEqual({'username': None,
+                          'mlist': flist.name,
                           'ulist': ulist.name,
                           'user': 'myuser,youruser',
                           'web_server': None,
@@ -595,7 +599,8 @@ class atest_unittest(cli_mock.cli_unittest):
                                 ['user1', 'user2', 'user3',
                                  'myuser', 'youruser'])
 
-        self.assertEqual({'mlist': flist.name,
+        self.assertEqual({'username': None,
+                          'mlist': flist.name,
                           'ulist': ulist.name,
                           'user': 'myuser,youruser',
                           'web_server': None,
@@ -629,7 +634,8 @@ class atest_unittest(cli_mock.cli_unittest):
         self.assertEqualNoOrder(self.atest.users,
                                 ['user1', 'user2', 'user3'])
 
-        self.assertEqual({'mlist': flist.name,
+        self.assertEqual({'username': None,
+                          'mlist': flist.name,
                           'ulist': ulist.name,
                           'user': None,
                           'web_server': None,
@@ -659,7 +665,8 @@ class atest_unittest(cli_mock.cli_unittest):
         self.assertEqualNoOrder(self.atest.users,
                                 ['myuser', 'youruser'])
 
-        self.assertEqual({'mlist': None,
+        self.assertEqual({'username': None,
+                          'mlist': None,
                           'ulist': None,
                           'user': 'myuser,youruser',
                           'web_server': None,
@@ -686,7 +693,8 @@ class atest_unittest(cli_mock.cli_unittest):
         self.assertEqualNoOrder(self.atest.users,
                                 ['myuser', 'youruser'])
 
-        self.assertEqual({'user': 'myuser,youruser',
+        self.assertEqual({'username': None,
+                          'user': 'myuser,youruser',
                           'acl': 'acl1,acl2',
                           'web_server': None,
                           'parse': False,
@@ -707,7 +715,8 @@ class atest_unittest(cli_mock.cli_unittest):
         self.assertEqualNoOrder(self.atest.users,
                                 ['myuser', 'youruser'])
 
-        self.assertEqual({'user': 'myuser,youruser',
+        self.assertEqual({'username': None,
+                          'user': 'myuser,youruser',
                           'web_server': None,
                           'parse': False,
                           'parse_delim': '|',
@@ -751,7 +760,8 @@ class atest_unittest(cli_mock.cli_unittest):
                     '--kill-on-failure', '--verbose', 'left1', 'left2',
                     '--parse-delim', '?']
         (options, leftover) = self.atest.parse()
-        self.assertEqual({'web_server': 'fooweb',
+        self.assertEqual({'username': None,
+                          'web_server': 'fooweb',
                           'parse': True,
                           'parse_delim': '?',
                           'kill_on_failure': True,

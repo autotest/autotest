@@ -361,6 +361,7 @@ class atest(object):
         self.kill_on_failure = False
         self.web_server = ''
         self.verbose = False
+        self.username = ''
         self.topic_parse_info = item_parse_info(attribute_name='not_used')
 
         self.parser = optparse.OptionParser(self._get_usage())
@@ -384,6 +385,11 @@ class atest(object):
                                'to talk to',
                                action='store', type='string',
                                dest='web_server', default=None)
+        self.parser.add_option('-Q', '--username',
+                               help='Specify the username to'
+                               'login with',
+                               action='store', type='string',
+                               dest='username', default=None)
 
 
     def _get_usage(self):
@@ -454,7 +460,7 @@ class atest(object):
         self.verbose = options.verbose
         self.web_server = options.web_server
         try:
-            self.afe = rpc.afe_comm(self.web_server)
+            self.afe = rpc.afe_comm(self.web_server, username=self.username)
         except rpc.AuthError, s:
             self.failure(str(s), fatal=True)
 
