@@ -8,16 +8,16 @@ except ImportError:
 from autotest.server import frontend
 
 try:
-    old = frontend.AFE(web_server='http://' + sys.argv[1])
-    new = frontend.AFE(web_server='http://' + sys.argv[2])
+    old = frontend.AFE(user=sys.argv[1], server=sys.argv[2])
+    new = frontend.AFE(user=sys.argv[1], server=sys.argv[3])
 
-    hostname = sys.argv[3]
+    hostname = sys.argv[4]
     print 'Migrating %s ...' % hostname
 
     old_host = old.get_hosts(hostname=hostname)[0]
     print old_host
 except Exception:
-    print ("Usage: %s <old_server> <new_server> <hostname>" %
+    print ("Usage: %s <user> <old_server> <new_server> <hostname>" %
            os.path.basename(sys.argv[0]))
     raise
     sys.exit(1)
@@ -64,6 +64,3 @@ for acl in old_host_acls:
 # Enable the new host
 if not old_host.locked:
     new_host.modify(locked=False)
-
-# Delete host from old server
-old_host.delete()
