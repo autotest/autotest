@@ -257,7 +257,7 @@ class atest(object):
             #  It will be displayed later by "show_all_failures"
             # header ends with ":\n"
             # so, strip it off
-            msg = header.rstrip().rstrip(":")   
+            msg = header.rstrip().rstrip(":")
             self.failure(rest, item="", what_failed=msg)
 
 
@@ -459,6 +459,7 @@ class atest(object):
 
         self.verbose = options.verbose
         self.web_server = options.web_server
+        self.username = options.username
         try:
             self.afe = rpc.afe_comm(self.web_server, username=self.username)
         except rpc.AuthError, s:

@@ -769,6 +769,17 @@ class atest_unittest(cli_mock.cli_unittest):
                           'debug': True}, options)
         self.assertEqual(leftover, ['left1', 'left2'])
 
+    def test_parse_username(self):
+        sys.argv = ['atest', '--username', 'frodo@bagend.com']
+        (options, unused_leftover) = self.atest.parse()
+        self.assertEqual({'username': 'frodo@bagend.com',
+                          'parse_delim': '|',
+                          'kill_on_failure': False,
+                          'verbose': False,
+                          'web_server': None,
+                          'parse': False,
+                          'debug': False}, options)
+        self.assertEqual('frodo@bagend.com', self.atest.afe.username)
 
     def test_execute_rpc_bad_server(self):
         self.atest.afe = rpc.afe_comm('http://does_not_exist')
@@ -992,6 +1003,8 @@ class atest_unittest(cli_mock.cli_unittest):
     def test_print_by_ids_parse_all_fields(self):
         self.__test_print_by_ids_parse('Id=id0|Name=name0|'
                                        'Id=id1|Name=name1\n')
+
+
 
 
 if __name__ == '__main__':
