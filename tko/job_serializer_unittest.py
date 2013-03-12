@@ -17,9 +17,9 @@ import tempfile
 import time
 import sys
 
-# In case the protocol buffer parser is missing, build it.
-# In Fedora, you can install the compiler using:
-# sudo yum install protobuf-compiler
+# Check the Makefile on this directory
+# for information on how to install the
+# dependencies for this unittest.
 import commands
 cwd = os.getcwd()
 module_dir = os.path.dirname(sys.modules[__name__].__file__)
