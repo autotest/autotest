@@ -27,7 +27,16 @@ os.chdir(module_dir)
 commands.getoutput('make')
 os.chdir(cwd)
 
-from autotest.tko import tko_pb2
+try:
+    from autotest.tko import tko_pb2
+except ImportError:
+    print("Error importing tko_pb2")
+    print("Please install the protocol buffer compiler "
+          "and the protocol buffer py library for your distro.")
+    print("installation_support/autotest-install-packages-deps "
+          "can help you with installing deps required for "
+          "server operation and unittests.")
+    sys.exit(1)
 from autotest.tko import job_serializer
 from autotest.tko import models
 from autotest.client.shared.test_utils import unittest
