@@ -18,6 +18,7 @@ import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.HasText;
 import com.google.gwt.user.client.ui.HasValue;
@@ -120,6 +121,17 @@ public class HostSelector implements ClickHandler {
                     deselectRow(row);
                 }
                 selectionRefresh();
+            }
+
+            public void onClick(JSONValue id, String profile) {
+                for (JSONObject row : selectedHostData.getItems()) {
+                    if (row.get("id").equals(id)) {
+                        selectedHostData.removeItem(row);
+                        row.put("profile", new JSONString(profile));
+                        selectedHostData.addItem(row);
+                        break;
+                    }
+                }
             }
         });
 

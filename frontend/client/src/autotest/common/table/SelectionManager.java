@@ -9,6 +9,7 @@ import autotest.common.ui.TableSelectionPanel.SelectionPanelListener;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONString;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.ListBox;
 import com.google.gwt.user.client.ui.Widget;
@@ -39,6 +40,7 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
     public interface SelectionListener {
         public void onAdd(Collection<JSONObject> objects);
         public void onRemove(Collection<JSONObject> objects);
+        public void onClick(JSONValue id, String profile);
     }
     
     public interface SelectableRowFilter {
@@ -182,6 +184,7 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
         }
 
         if (type == DataTable.WidgetType.ListBox) {
+            TableClickWidget w;
             int i;
             ListBox listBox = new ListBox();
             listBox.setVisibleItemCount(1);
@@ -197,18 +200,25 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
             if (rowObject.containsKey("profile")) {
                 s = rowObject.get("profile").isString().toString();
             } else {
-                s = rowObject.get("current_profile").isString().toString();
+                if (rowObject.containsKey("current_profile")) {
+                    s = rowObject.get("current_profile").isString().toString();
+                } else {
+                    // when we are using a metahost or select-by-hostname, we
+                    // are putting all profiles in, so just select the first one
+                    s = profiles.get(0).toString();
+                }
             }
             s = s.substring(1, s.length() - 1);
             for (i = 0; i < listBox.getItemCount(); i++) {
-                if (listBox.getItemText(i) == s) {
+                if (listBox.getItemText(i).equals(s)) {
                     rowObject.put("profile", new JSONString(listBox.getItemText(i)));
                     listBox.setSelectedIndex(i);
                     break;
                 }
             }
-            attachedTable.setRow(row, rowObject);
-            return new TableClickWidget(listBox, this, row, cell);
+            w = new TableClickWidget(listBox, this, row, cell);
+            w.setAssociatedId(rowObject.get("id"));
+            return w;
 	} else {
 	    // Should really check if type is CheckBox, but make this the default
 	    // scenario if type != DataTable.WidgetType.ListBox
@@ -226,9 +236,9 @@ public class SelectionManager implements TableWidgetFactory, TableWidgetClickLis
             refreshSelection();
         } else {
             ListBox l = (ListBox)widget.getContainedWidget();
-            JSONObject row = attachedTable.getRow(widget.getRow());
-            row.put("profile", new JSONString(l.getItemText(l.getSelectedIndex())));
-            attachedTable.setRow(widget.getRow(), row);
+            for (SelectionListener listener : listeners) {
+                listener.onClick(widget.getAssociatedId(), l.getItemText(l.getSelectedIndex()));
+            }
         }
     }
     

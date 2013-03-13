@@ -16,6 +16,7 @@ import com.google.gwt.event.dom.client.ChangeEvent;
 import com.google.gwt.event.dom.client.ChangeHandler;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.HasHTML;
 import com.google.gwt.user.client.ui.Widget;
@@ -239,4 +240,6 @@ public class TestSelector extends Composite implements DataTableListener, Change
         selectedTests.removeAll(objects);
         notifyListener();
     }
+
+    public void onClick(JSONValue id, String profile) { }
 }

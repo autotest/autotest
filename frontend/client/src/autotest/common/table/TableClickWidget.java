@@ -2,6 +2,7 @@ package autotest.common.table;
 
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.FocusWidget;
 
@@ -12,6 +13,7 @@ public class TableClickWidget extends Composite implements ClickHandler {
     private TableWidgetClickListener listener;
     private int row;
     private int cell;
+    private JSONValue associatedId;
 
     public static interface TableWidgetClickListener {
         public void onClick(TableClickWidget widget);
@@ -42,5 +44,13 @@ public class TableClickWidget extends Composite implements ClickHandler {
     
     public FocusWidget getContainedWidget() {
         return widget;
+    }
+
+    public void setAssociatedId(JSONValue id) {
+        this.associatedId = id;
+    }
+
+    public JSONValue getAssociatedId() {
+        return this.associatedId;
     }
 }
