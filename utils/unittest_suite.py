@@ -263,7 +263,7 @@ def scan_for_modules(start, options):
             if fname.endswith('_unittest.py'):
                 if not options.full and fname in LONG_TESTS:
                     continue
-                if fname in skip_tests:
+                if fname[:-3] in skip_tests:
                     continue
                 path_no_py = os.path.join(dirpath, fname).rstrip('.py')
                 assert path_no_py.startswith(ROOT)
