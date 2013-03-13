@@ -895,7 +895,12 @@ class base_client_job(base_job.base_job):
         # sync first, so that a sync during shutdown doesn't time out
         utils.system("sync; sync", ignore_status=True)
 
-        utils.system("(sleep 5; reboot) </dev/null >/dev/null 2>&1 &")
+        sleep_before_reboot = settings.get_value('CLIENT', 'sleep_before_reboot',
+                                                  default="5")
+
+        sleep_cmd = "(sleep %s; reboot) </dev/null >/dev/null 2>&1 &" % sleep_before_reboot
+        utils.system(sleep_cmd)
+
         self.quit()
 
 
