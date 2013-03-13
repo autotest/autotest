@@ -825,6 +825,7 @@ class Dispatcher(object):
             profiles = info['profiles']
             one_time_hosts = info['one_time_hosts']
             metahost_objects = info['meta_hosts']
+            metahost_profiles = info['meta_host_profiles']
             atomic_group = info['atomic_group']
 
             for host in one_time_hosts or []:
@@ -837,6 +838,7 @@ class Dispatcher(object):
                                          host_objects=host_objects,
                                          profiles=profiles,
                                          metahost_objects=metahost_objects,
+                                         metahost_profiles=metahost_profiles,
                                          atomic_group=atomic_group)
 
             except Exception, ex:

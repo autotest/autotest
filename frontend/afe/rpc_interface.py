@@ -264,6 +264,67 @@ def get_num_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
     return hosts.count()
 
 
+def get_install_server_profiles():
+    install_server = None
+    install_server_info = get_install_server_info()
+    install_server_type = install_server_info.get('type', None)
+    install_server_url = install_server_info.get('xmlrpc_url', None)
+
+    if install_server_type == 'cobbler' and install_server_url:
+        install_server = xmlrpclib.ServerProxy(install_server_url)
+
+    if install_server is None:
+        return None
+
+    return install_server.get_item_names('profile')
+
+
+def get_profiles():
+    error_encountered = True
+    profile_dicts = []
+    profiles = get_install_server_profiles()
+    if profiles is not None:
+        if len(profiles) < 1:
+            msg = 'No profiles defined on install server'
+            rpc_logger = logging.getLogger('rpc_logger')
+            rpc_logger.info(msg)
+
+        else:
+            error_encountered = False
+            # not sorted
+            profiles.sort()
+            profile_dicts.append(dict(name="Do_not_install"))
+            for profile in profiles:
+                profile_dicts.append(dict(name=profile))
+
+    if error_encountered:
+        profile_dicts.append(dict(name="N/A"))
+
+    return rpc_utils.prepare_for_serialization(profile_dicts)
+
+
+def get_num_profiles():
+    """
+    Same parameters as get_profiles().
+
+    @returns The number of defined profiles.
+    """
+    error_encountered = True
+    profiles = get_install_server_profiles()
+    if profiles is not None:
+        if len(profiles) < 1:
+            # 'N/A'
+            return 1
+
+        else:
+            # include 'Do_not_install'
+            return len(profiles) + 1
+
+    if error_encountered:
+        # 'N/A'
+        return 1
+
+
 # tests
 
 def add_test(name, test_type, path, author=None, dependencies=None,
@@ -445,11 +506,11 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
 
 
 def create_parameterized_job(name, priority, test, parameters, kernel=None,
-                             label=None, profiles=(), profilers=(),
+                             label=None, profiles=[], profilers=(),
                              profiler_parameters=None,
                              use_container=False, profile_only=None,
-                             upload_kernel_config=False, hosts=(),
-                             meta_hosts=(), one_time_hosts=(),
+                             upload_kernel_config=False, hosts=[],
+                             meta_hosts=[], meta_host_profiles=[], one_time_hosts=[],
                              atomic_group_name=None, synch_count=None,
                              is_template=False, timeout=None,
                              max_runtime_hrs=None, run_verify=True,
@@ -532,10 +593,10 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
 
 
 def create_job(name, priority, control_file, control_type,
-               hosts=(), profiles=(), meta_hosts=(), one_time_hosts=(),
-               atomic_group_name=None, synch_count=None, is_template=False,
-               timeout=None, max_runtime_hrs=None, run_verify=True,
-               email_list='', dependencies=(), reboot_before=None,
+               hosts=[], profiles=[], meta_hosts=[], meta_host_profiles=[],
+               one_time_hosts=[], atomic_group_name=None, synch_count=None,
+               is_template=False, timeout=None, max_runtime_hrs=None,
+               run_verify=True, email_list='', dependencies=(), reboot_before=None,
                reboot_after=None, parse_failed_repair=None, hostless=False,
                keyvals=None, drone_set=None):
     """\

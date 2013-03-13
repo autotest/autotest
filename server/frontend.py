@@ -177,6 +177,10 @@ class AFE(RpcClient):
         return [Host(self, h) for h in hosts]
 
 
+    def get_profiles(self):
+        return self.run('get_profiles')
+
+
     def get_hostnames(self, status=None, label=None, **dargs):
         """Like get_hosts() but returns hostnames instead of Host objects."""
         # This implementation can be replaced with a more efficient one

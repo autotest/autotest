@@ -339,7 +339,7 @@ class RpcInterfaceTest(unittest.TestCase,
                 name='job', priority=models.Job.Priority.MEDIUM, test='test',
                 parameters=job_parameters, kernel=kernels, label='label1',
                 profilers=profilers, profiler_parameters=profiler_parameters,
-                profile_only=False, hosts=('host1',), profiles=('rhel6',))
+                profile_only=False, hosts=['host1',], profiles=['rhel6',])
         parameterized_job = models.Job.smart_get(job_id).parameterized_job
 
         self.assertEqual(parameterized_job.test, test)

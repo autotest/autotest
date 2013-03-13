@@ -397,6 +397,7 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
     profiles = []
     one_time_hosts = []
     meta_hosts = []
+    meta_host_profiles = []
     atomic_group = None
     hostless = False
 
@@ -417,6 +418,7 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
                 profiles.append(queue_entry.profile)
         elif queue_entry.meta_host:
             meta_hosts.append(queue_entry.meta_host)
+            meta_host_profiles.append(queue_entry.profile)
         else:
             hostless = True
 
@@ -436,6 +438,7 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
                 hosts=hosts,
                 profiles=profiles,
                 meta_hosts=meta_hosts,
+                meta_host_profiles=meta_host_profiles,
                 meta_host_counts=meta_host_counts,
                 one_time_hosts=one_time_hosts,
                 atomic_group=atomic_group,
@@ -458,10 +461,11 @@ def check_for_duplicate_hosts(host_objects):
 
 
 def create_new_job(owner, options, host_objects, profiles, metahost_objects,
-                   atomic_group=None):
+                   metahost_profiles, atomic_group=None):
     labels_by_name = dict((label.name, label)
                           for label in models.Label.objects.all())
     all_host_objects = host_objects + metahost_objects
+    all_profiles = profiles + metahost_profiles
     metahost_counts = _get_metahost_counts(metahost_objects)
     dependencies = options.get('dependencies', [])
     synch_count = options.get('synch_count')
@@ -510,7 +514,7 @@ def create_new_job(owner, options, host_objects, profiles, metahost_objects,
 
     job = models.Job.create(owner=owner, options=options,
                             hosts=all_host_objects)
-    job.queue(all_host_objects, profiles=profiles, atomic_group=atomic_group,
+    job.queue(all_host_objects, profiles=all_profiles, atomic_group=atomic_group,
               is_template=options.get('is_template', False))
     return job.id
 
@@ -639,8 +643,8 @@ def get_create_job_common_args(local_args):
 
 
 def create_job_common(name, priority, control_type, control_file=None,
-                      hosts=(), profiles=(), meta_hosts=(), one_time_hosts=(),
-                      atomic_group_name=None, synch_count=None,
+                      hosts=[], profiles=[], meta_hosts=[], meta_host_profiles=[],
+                      one_time_hosts=[], atomic_group_name=None, synch_count=None,
                       is_template=False, timeout=None, max_runtime_hrs=None,
                       run_verify=True, email_list='', dependencies=(),
                       reboot_before=None, reboot_after=None,
@@ -754,4 +758,5 @@ def create_job_common(name, priority, control_type, control_file=None,
                           host_objects=host_objects,
                           profiles=profiles,
                           metahost_objects=metahost_objects,
+                          metahost_profiles=meta_host_profiles,
                           atomic_group=atomic_group)

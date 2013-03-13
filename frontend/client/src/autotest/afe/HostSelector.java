@@ -23,6 +23,7 @@ import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.HasText;
 import com.google.gwt.user.client.ui.HasValue;
 import com.google.gwt.user.client.ui.Widget;
+import com.google.gwt.user.client.Window;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,6 +50,7 @@ public class HostSelector implements ClickHandler {
         public List<String> hosts = new ArrayList<String>();
         public List<String> profiles = new ArrayList<String>();
         public List<String> metaHosts = new ArrayList<String>();
+        public List<String> metaHostProfiles = new ArrayList<String>();
         public List<String> oneTimeHosts = new ArrayList<String>();
     }
 
@@ -70,6 +72,7 @@ public class HostSelector implements ClickHandler {
 
     private Display display;
     private HostDataSource hostDataSource = new HostDataSource();
+    private ProfileDataSource profileDataSource = new ProfileDataSource();
     // availableTable needs its own data source
     private HostTable availableTable = new HostTable(new HostDataSource());
     private HostTableDecorator availableDecorator =
@@ -260,6 +263,7 @@ public class HostSelector implements ClickHandler {
             JSONObject oneTimeObject = new JSONObject();
             oneTimeObject.put("hostname", new JSONString(hostname));
             oneTimeObject.put("platform", new JSONString(ONE_TIME));
+            // need to add profiles here too, I think
             selectRow(oneTimeObject);
         }
 
@@ -282,18 +286,42 @@ public class HostSelector implements ClickHandler {
         }
 
         addMetaHosts(label, number);
-        selectionRefresh();
     }
 
-    public void addMetaHosts(String label, String number) {
+    public void addMetaHosts(final String label, final String number) {
+        JSONObject params = new JSONObject();
+        profileDataSource.query(params, new DefaultDataCallback () {
+            @Override
+            public void onQueryReady(Query query) {
+                query.getPage(null, null, null, this);
+            }
+
+            @Override
+            public void handlePage(List<JSONObject> data) {
+                processAddByLabel(label, number, data);
+            }
+        });
+    }
+
+    private void processAddByLabel(final String label, final String number, List<JSONObject> data) {
         JSONObject metaObject = new JSONObject();
+        JSONArray profiles = new JSONArray();
+        int i = 0;
         metaObject.put("hostname", new JSONString(META_PREFIX + number));
         metaObject.put("platform", new JSONString(label));
         metaObject.put("other_labels", new JSONString(""));
         metaObject.put("status", new JSONString(""));
         metaObject.put("locked_text", new JSONString(""));
         metaObject.put("id", new JSONNumber(--META_INDEX));
+        for (JSONObject profile : data) {
+             String p = profile.get("name").toString();
+             // JSON seems to insert extra quotes
+             profiles.set(i, new JSONString(p.substring(1, p.length()-1)));
+             i++;
+        }
+        metaObject.put("profiles", profiles);
         selectRow(metaObject);
+        selectionRefresh();
     }
 
     private void selectRow(JSONObject row) {
@@ -355,8 +383,10 @@ public class HostSelector implements ClickHandler {
             if (isMetaEntry(row)) {
                 int count =  getMetaNumber(row);
                 String platform = row.get("platform").isString().stringValue();
+                String profile = getProfile(row);
                 for(int counter = 0; counter < count; counter++) {
                     selection.metaHosts.add(platform);
+                    selection.metaHostProfiles.add(profile);
                 }
             }
             else {

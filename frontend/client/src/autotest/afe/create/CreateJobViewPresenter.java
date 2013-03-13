@@ -593,6 +593,7 @@ public class CreateJobViewPresenter implements TestSelectorListener {
                 args.put("hosts", Utils.stringsToJSON(hosts.hosts));
                 args.put("profiles", Utils.stringsToJSON(hosts.profiles));
                 args.put("meta_hosts", Utils.stringsToJSON(hosts.metaHosts));
+                args.put("meta_host_profiles", Utils.stringsToJSON(hosts.metaHostProfiles));
                 args.put("one_time_hosts",
                     Utils.stringsToJSON(hosts.oneTimeHosts));
 
