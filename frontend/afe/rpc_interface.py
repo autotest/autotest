@@ -234,8 +234,7 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
 
                 if host_dict['platform']:
                     error_encountered = False
-                    profile_params = {"comment":"*%s*" % host_dict['platform']}
-                    profiles = install_server.find_profile(profile_params)
+                    profiles = sorted(install_server.get_item_names('profile'))
                     host_dict['profiles'] = profiles
                     host_dict['profiles'].insert(0, 'Do_not_install')
                     host_dict['current_profile'] = system['profile']
