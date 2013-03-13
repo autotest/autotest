@@ -270,7 +270,6 @@ public class HostSelector implements ClickHandler {
             oneTimeObject.put("status", new JSONString(""));
             oneTimeObject.put("locked_text", new JSONString(""));
             oneTimeObject.put("id", new JSONNumber(--META_INDEX));
-            // need to add profiles here too, I think
             selectRow(oneTimeObject);
         }
 
