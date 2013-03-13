@@ -95,9 +95,6 @@ class RemoteHost(base_classes.Host):
             server_interface.install_host(self, profile=profile,
                                           timeout=timeout,
                                           num_attempts=num_attempts)
-        else:
-            raise error.AutoservUnsupportedError("Empty install server setup "
-                                                 "on global_config.ini")
 
 
     def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,

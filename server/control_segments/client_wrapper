@@ -3,6 +3,7 @@ at = autotest_remote.Autotest()
 
 def run_client(machine):
     host = hosts.create_host(machine)
+    host.machine_install(timeout=3600)
     host.log_kernel()
     at.run(control, host=host)
 

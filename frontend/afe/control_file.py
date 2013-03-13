@@ -86,6 +86,7 @@ def step_init():
     # a host object we use solely for the purpose of finding out the booted
     # kernel version, we use machines[0] since we already check that the same
     # kernel has been booted on all machines
+    step_reinstall()
     if len(kernel_list) > 1:
         kernel_host = hosts.create_host(machines[0])
 
@@ -108,6 +109,12 @@ def step_init():
             job.automatic_test_tag = kernel_host.get_kernel_ver()
         step_test()
 
+def step_reinstall():
+    def run(machine):
+        host = hosts.create_host(machine, initialize=False)
+        job.run_test('reinstall', host=host, disable_sysinfo=True)
+
+    job.parallel_simple(run, machines)
 
 def step_test():
 """ % CLIENT_KERNEL_TEMPLATE
