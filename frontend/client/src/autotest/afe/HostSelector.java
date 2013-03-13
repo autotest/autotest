@@ -261,8 +261,15 @@ public class HostSelector implements ClickHandler {
         // add one-time hosts
         for (String hostname : oneTimeHostnames) {
             JSONObject oneTimeObject = new JSONObject();
+            JSONArray profiles = new JSONArray();
+            profiles.set(0, new JSONString("N/A"));
             oneTimeObject.put("hostname", new JSONString(hostname));
             oneTimeObject.put("platform", new JSONString(ONE_TIME));
+            oneTimeObject.put("profiles", profiles);
+            oneTimeObject.put("other_labels", new JSONString(""));
+            oneTimeObject.put("status", new JSONString(""));
+            oneTimeObject.put("locked_text", new JSONString(""));
+            oneTimeObject.put("id", new JSONNumber(--META_INDEX));
             // need to add profiles here too, I think
             selectRow(oneTimeObject);
         }
