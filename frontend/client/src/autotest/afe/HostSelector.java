@@ -276,9 +276,9 @@ public class HostSelector implements ClickHandler {
         JSONObject metaObject = new JSONObject();
         metaObject.put("hostname", new JSONString(META_PREFIX + number));
         metaObject.put("platform", new JSONString(label));
-        metaObject.put("labels", new JSONArray());
+        metaObject.put("other_labels", new JSONString(""));
         metaObject.put("status", new JSONString(""));
-        metaObject.put("locked", new JSONNumber(0));
+        metaObject.put("locked_text", new JSONString(""));
         selectRow(metaObject);
     }
 
