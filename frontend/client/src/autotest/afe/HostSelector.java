@@ -41,6 +41,7 @@ import java.util.Set;
 public class HostSelector implements ClickHandler {
     private static final int TABLE_SIZE = 10;
     public static final String META_PREFIX = "Any ";
+    public static int META_INDEX = 0;
     public static final String ONE_TIME = "(one-time host)";
 
     public static class HostSelection {
@@ -279,6 +280,7 @@ public class HostSelector implements ClickHandler {
         metaObject.put("other_labels", new JSONString(""));
         metaObject.put("status", new JSONString(""));
         metaObject.put("locked_text", new JSONString(""));
+        metaObject.put("id", new JSONNumber(--META_INDEX));
         selectRow(metaObject);
     }
 
