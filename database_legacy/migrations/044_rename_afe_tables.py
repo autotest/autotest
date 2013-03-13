@@ -2,7 +2,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.database import db_utils
+from autotest.database_legacy import db_utils
 
 
 ORIG_NAMES = (

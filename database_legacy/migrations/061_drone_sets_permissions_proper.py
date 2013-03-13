@@ -4,7 +4,7 @@ try:
 except ImportError:
     import common
 from autotest.frontend import settings
-from autotest.database import db_utils
+from autotest.database_legacy import db_utils
 
 AFE_MIGRATION_NAME = '059_drone_sets_permissions'
 migrations_module = __import__('autotest.frontend.migrations', globals(),
