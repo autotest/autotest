@@ -243,7 +243,7 @@ def scan_for_modules(start, options):
 
     skip_tests = []
     if options.skip_tests:
-        skip_tests.update(options.skip_tests.split())
+        skip_tests = options.skip_tests.split()
 
     for dirpath, subdirs, filenames in os.walk(start):
         # Only look in and below subdirectories that are python modules.
