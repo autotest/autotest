@@ -30,7 +30,7 @@ GENERAL OPTIONS:
    -h      Show this message
    -u      Autotest user password
    -d      MySQL password (both mysql root and autotest_web db)
-   -a      Autotest base dir (defaults to $ATHOME)
+   -a      Autotest base dir (defaults to $ATHOME_DEFAULT)
    -g      Autotest git repo (defaults to $AUTOTEST_DEFAULT_GIT_REPO)
    -b      Autotest git branch (defaults to $AUTOTEST_DEFAULT_GIT_BRANCH)
    -c      Autotest git commit (defaults to no commit)
