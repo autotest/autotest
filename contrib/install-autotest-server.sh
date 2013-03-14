@@ -1,6 +1,8 @@
 #!/bin/bash
 
-ATHOME=/usr/local/autotest
+ATHOME_DEFAULT=/usr/local/autotest
+AUTOTEST_DEFAULT_GIT_REPO='git://github.com/autotest/autotest.git'
+AUTOTEST_DEFAULT_GIT_BRANCH='master'
 DATETIMESTAMP=$(date "+%m-%d-%Y-%H-%M-%S")
 BASENAME=$(echo $(basename $0) | cut -f1 -d '.')
 LOG="/tmp/$BASENAME-$DATETIMESTAMP.log"
@@ -28,6 +30,10 @@ GENERAL OPTIONS:
    -h      Show this message
    -u      Autotest user password
    -d      MySQL password (both mysql root and autotest_web db)
+   -a      Autotest base dir (defaults to $ATHOME)
+   -g      Autotest git repo (defaults to $AUTOTEST_DEFAULT_GIT_REPO)
+   -b      Autotest git branch (defaults to $AUTOTEST_DEFAULT_GIT_BRANCH)
+   -c      Autotest git commit (defaults to no commit)
 
 INSTALLATION STEP SELECTION:
    -p      Only install packages
@@ -36,18 +42,30 @@ INSTALLATION STEP SELECTION:
 EOF
 }
 
-while getopts "hpnu:d:" OPTION
+while getopts "hpna:g:b:c:u:d:" OPTION
 do
      case $OPTION in
          h)
              usage
              exit 1
              ;;
+         a)
+             ATHOME=$OPTARG
+             ;;
          u)
              ATPASSWD=$OPTARG
              ;;
          d)
              MYSQLPW=$OPTARG
+             ;;
+         g)
+             AUTOTEST_GIT_REPO=$OPTARG
+             ;;
+         b)
+             AUTOTEST_GIT_BRANCH=$OPTARG
+             ;;
+         c)
+             AUTOTEST_GIT_COMMIT=$OPTARG
              ;;
          p)
              INSTALL_PACKAGES_ONLY=1
@@ -67,6 +85,18 @@ if [[ -z $ATPASSWD ]] || [[ -z $MYSQLPW ]]
 then
      usage
      exit 1
+fi
+if [[ -z $ATHOME ]]
+then
+     ATHOME=$ATHOME_DEFAULT
+fi
+if [[ -z $AUTOTEST_GIT_REPO ]]
+then
+     AUTOTEST_GIT_REPO=$AUTOTEST_DEFAULT_GIT_REPO
+fi
+if [[ -z $AUTOTEST_GIT_BRANCH ]]
+then
+     AUTOTEST_GIT_BRANCH=$AUTOTEST_DEFAULT_GIT_BRANCH
 fi
 }
 
@@ -275,7 +305,7 @@ if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
 then
     print_log "INFO" "Adding user autotest"
     echo $ATPASSWD > /tmp/pwd
-    useradd -d /usr/local/autotest autotest -p $(makepasswd --crypt-md5 --clearfrom=/tmp/pwd | awk '{print $2}')
+    useradd -d $ATHOME autotest -p $(makepasswd --crypt-md5 --clearfrom=/tmp/pwd | awk '{print $2}')
     rm -rf /tmp/pwd
 fi
 }
@@ -285,10 +315,25 @@ print_log "INFO" "Creating autotest user"
 if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
 then
     print_log "INFO" "Adding user autotest"
-    useradd -b /usr/local autotest
+    useradd -d $ATHOME autotest
     print_log "INFO" "Setting autotest user password"
     echo "$ATPASSWD
 $ATPASSWD" | passwd --stdin autotest >> $LOG
+fi
+}
+
+get_autotest_from_git() {
+print_log "INFO" "Cloning autotest repo $AUTOTEST_GIT_REPO, branch $AUTOTEST_GIT_BRANCH in $ATHOME"
+cd $ATHOME
+git init
+git remote add origin $AUTOTEST_GIT_REPO
+git config branch.$AUTOTEST_GIT_BRANCH.remote origin
+git config branch.$AUTOTEST_GIT_BRANCH.merge refs/heads/$AUTOTEST_GIT_BRANCH
+git pull
+git checkout $AUTOTEST_GIT_BRANCH
+if [ -n $AUTOTEST_GIT_COMMIT ]; then
+    git checkout $AUTOTEST_GIT_COMMIT
+    git checkout -b specific-commit-branch
 fi
 }
 
@@ -297,14 +342,7 @@ print_log "INFO" "Installing autotest"
 mkdir -p $ATHOME
 if [ ! -e $ATHOME/.git/config ]
 then
-    print_log "INFO" "Cloning autotest repo in $ATHOME"
-    cd $ATHOME
-    git init
-    git remote add origin git://github.com/autotest/autotest.git
-    git config branch.master.remote origin
-    git config branch.master.merge refs/heads/master
-    git pull
-    git checkout master
+    get_autotest_from_git
 else
     if [ -z $DONT_UPDATE_GIT ]; then
        print_log "INFO" "Updating autotest repo in $ATHOME"
@@ -355,20 +393,51 @@ fi
 build_external_packages() {
 print_log "INFO" "Running autotest dependencies build (may take a while since it might download files)"
 cat << EOF | su - autotest >> $LOG 2>&1
-/usr/local/autotest/utils/build_externals.py
+$ATHOME/utils/build_externals.py
 EOF
+}
+
+relocate_global_config() {
+if [ $ATHOME != $ATHOME_DEFAULT ]
+then
+    print_log "INFO" "Relocating global_config.ini entries to $ATHOME"
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/global_config.ini
+fi
+}
+
+relocate_frontend_wsgi() {
+if [ $ATHOME != $ATHOME_DEFAULT ]
+then
+    print_log "INFO" "Relocating frontend.wsgi to $ATHOME"
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/frontend/frontend.wsgi
+fi
+}
+
+relocate_webserver() {
+if [ $ATHOME != $ATHOME_DEFAULT ]
+then
+    print_log "INFO" "Relocating apache config files to $ATHOME"
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/conf/afe-directives
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/conf/django-directives
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/conf/embedded-spreadsheet-directives
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/conf/embedded-tko-directives
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/conf/new-tko-directives
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/conf/tko-directives
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/apache-conf
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/drone-conf
+fi
 }
 
 configure_webserver_deb() {
 print_log "INFO" "Configuring Web server"
 if [ ! -e  /etc/apache2/sites-enabled/001-autotest ]
 then
-    /usr/local/bin/substitute "WSGISocketPrefix run/wsgi" "#WSGISocketPrefix run/wsgi" /usr/local/autotest/apache/conf/django-directives
+    /usr/local/bin/substitute "WSGISocketPrefix run/wsgi" "#WSGISocketPrefix run/wsgi" $ATHOME/apache/conf/django-directives
     sudo rm /etc/apache2/sites-enabled/000-default
     sudo ln -s /etc/apache2/mods-available/version.load /etc/apache2/mods-enabled/
-    sudo ln -s /usr/local/autotest/apache/conf /etc/apache2/autotest.d
-    sudo ln -s /usr/local/autotest/apache/apache-conf /etc/apache2/sites-enabled/001-autotest
-    sudo ln -s /usr/local/autotest/apache/apache-web-conf /etc/apache2/sites-enabled/002-autotest
+    sudo ln -s $ATHOME/apache/conf /etc/apache2/autotest.d
+    sudo ln -s $ATHOME/apache/apache-conf /etc/apache2/sites-enabled/001-autotest
+    sudo ln -s $ATHOME/apache/apache-web-conf /etc/apache2/sites-enabled/002-autotest
 fi
 a2enmod rewrite
 update-rc.d apache2 defaults
@@ -380,9 +449,9 @@ if [ ! -e  /etc/httpd/conf.d/autotest.conf ]
 then
     # if for some reason, still running with mod_python, let it be parsed before the
     # autotest config file, which has some directives to detect it
-    ln -s /usr/local/autotest/apache/conf /etc/httpd/autotest.d
-    ln -s /usr/local/autotest/apache/apache-conf /etc/httpd/conf.d/z_autotest.conf
-    ln -s /usr/local/autotest/apache/apache-web-conf /etc/httpd/conf.d/z_autotest-web.conf
+    ln -s $ATHOME/apache/conf /etc/httpd/autotest.d
+    ln -s $ATHOME/apache/apache-conf /etc/httpd/conf.d/z_autotest.conf
+    ln -s $ATHOME/apache/apache-web-conf /etc/httpd/conf.d/z_autotest-web.conf
 fi
 if [ -x /etc/init.d/httpd ]
 then
@@ -424,14 +493,14 @@ fi
 build_web_rpc_client() {
 print_log "INFO" "Building the web rpc client (may take up to 10 minutes)"
 cat << EOF | su - autotest >> $LOG
-/usr/local/autotest/utils/compile_gwt_clients.py -a
+$ATHOME/utils/compile_gwt_clients.py -a
 EOF
 }
 
 import_tests() {
 print_log "INFO" "Import the base tests and profilers"
 cat << EOF | su - autotest >> $LOG
-/usr/local/autotest/utils/test_importer.py -A
+$ATHOME/utils/test_importer.py -A
 EOF
 }
 
@@ -447,6 +516,16 @@ then
     service httpd restart
 else
     systemctl restart httpd.service
+fi
+}
+
+relocate_scheduler() {
+if [ $ATHOME != $ATHOME_DEFAULT ]
+then
+    print_log "INFO" "Relocating scheduler scripts and service files to $ATHOME"
+    /usr/local/bin/substitute "BASE_DIR=$ATHOME_DEFAULT" "BASE_DIR=$ATHOME" $ATHOME/utils/autotest.init
+    /usr/local/bin/substitute 'AUTOTEST_DIR="/usr/local/$PROG"' "AUTOTEST_DIR=$ATHOME" $ATHOME/utils/autotest-rh.init
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/utils/autotestd.service
 fi
 }
 
@@ -579,12 +658,16 @@ full_install() {
             check_mysql_password
             create_autotest_database
             build_external_packages
+            relocate_global_config
+            relocate_frontend_wsgi
+            relocate_webserver
             configure_webserver_rh
             restart_mysql_rh
             patch_python27_bug
             build_web_rpc_client
             import_tests
             restart_apache_rh
+            relocate_scheduler
             start_scheduler_rh
             setup_firewall
             print_install_status
@@ -599,11 +682,15 @@ full_install() {
             check_mysql_password
             create_autotest_database
             build_external_packages
+            relocate_global_config
+            relocate_frontend_wsgi
+            relocate_webserver
             configure_webserver_deb
             restart_mysql_deb
             build_web_rpc_client
             import_tests
             restart_apache_deb
+            relocate_scheduler
             start_scheduler_deb
             print_install_status
             print_version_and_url
