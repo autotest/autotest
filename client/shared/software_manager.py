@@ -159,7 +159,9 @@ class RpmBackend(BaseBackend):
 
 
     PACKAGE_TYPE = 'rpm'
-    SOFTWARE_COMPONENT_QRY = '%{NAME} %{VERSION} %{RELEASE} %{SIGMD5} %{ARCH}'
+    SOFTWARE_COMPONENT_QRY = (
+        PACKAGE_TYPE + ' ' +
+        '%{NAME} %{VERSION} %{RELEASE} %{SIGMD5} %{ARCH}')
 
 
     def __init__(self):
