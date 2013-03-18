@@ -680,6 +680,8 @@ class BasePackageManager(object):
         # reverse order, assuming that the 'newest' repos are most desirable
         for fetcher in reversed(repositories):
             try:
+                if isinstance(fetcher, GitFetcher):
+                    use_checksum  = False
                 # different fetchers have different install requirements
                 dest = fetcher.install_pkg_setup(pkg_name, dest_path, install)[1]
 
