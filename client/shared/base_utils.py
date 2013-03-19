@@ -1287,6 +1287,25 @@ def etraceback(prep, exc_info):
     return out
 
 
+def log_last_traceback(msg=None, log=logging.error):
+    """
+    Writes last traceback into specified log.
+    @param msg: Override the default message. ["Original traceback"]
+    @param log: Where to log the traceback [logging.error]
+    """
+    if not log:
+        log = logging.error
+    if msg:
+        log(msg)
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    if not exc_traceback:
+        log('Requested log_last_traceback but no exception was raised.')
+        return
+    log("Original " +
+        "".join(traceback.format_exception(exc_type, exc_value,
+                                           exc_traceback)))
+
+
 def strip_unicode(input):
     if type(input) == list:
         return [strip_unicode(i) for i in input]
