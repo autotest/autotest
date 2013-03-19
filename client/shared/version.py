@@ -45,9 +45,21 @@ RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
 
 
 def call_git_describe(abbrev=4):
+    cwd = os.getcwd()
+    os.chdir(_ROOT_PATH)
     try:
-        command = 'git describe --abbrev=%d' % abbrev
-        return utils.system_output(command, verbose=False)
+        try:
+            command = 'git describe --abbrev=%d' % abbrev
+            output = utils.system_output(command, verbose=False)
+            # Since github won't host arbitray uploads anymore,
+            # our new tags have to be prepended with autotest-
+            # so we have prettier tarball names straight from
+            # their system.
+            if output.startswith("autotest-"):
+                output = output.lstrip("autotest-")
+            return output
+        finally:
+            os.chdir(cwd)
     except error.CmdError:
         return None
 
