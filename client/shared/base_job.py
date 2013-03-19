@@ -1030,32 +1030,32 @@ class base_job(object):
         try:
             autodir = os.path.abspath(os.environ['AUTODIR'])
         except KeyError:
-            autodir = settings.get_value('COMMON',
-                                                     'autotest_top_path')
+            autodir = settings.get_value('COMMON', 'autotest_top_path')
 
         tmpdir = os.path.join(autodir, 'tmp')
 
-        tests_out_dir = settings.get_value('COMMON',
-                                                       'test_output_dir',
-                                                       default=tmpdir)
+        test_out_dir = settings.get_value('COMMON', 'test_output_dir',
+                                          default=tmpdir)
 
         if self.serverdir:
             root = self.serverdir
         else:
             root = self.clientdir
 
+        test_dir = settings.get_value('COMMON', 'test_dir',
+                                      default=os.path.join(root, 'tests'))
 
-        self._tmpdir = readwrite_dir(tests_out_dir, 'tmp')
+        self._tmpdir = readwrite_dir(test_out_dir, 'tmp')
 
         # special case packages for backwards compatibility
-        pkg_dir = tests_out_dir
+        pkg_dir = test_out_dir
         if pkg_dir == self.serverdir:
             pkg_dir = self.clientdir
         self._pkgdir = readwrite_dir(pkg_dir, 'packages')
 
         # Now tests are read-only modules
-        self._testdir = readonly_dir(root, 'tests')
-        self._site_testdir = readwrite_dir(tests_out_dir, 'site_tests')
+        self._testdir = readonly_dir(test_dir)
+        self._site_testdir = readwrite_dir(test_out_dir, 'site_tests')
 
         # various server-specific directories
         if self.serverdir:
