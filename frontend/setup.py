@@ -62,7 +62,6 @@ def get_packages():
             'autotest.frontend.db.backends',
             'autotest.frontend.db.backends.afe',
             'autotest.frontend.db.backends.afe_sqlite',
-            'autotest.frontend.migrations',
             'autotest.frontend.shared',
             'autotest.frontend.tko',
             'autotest.frontend']
