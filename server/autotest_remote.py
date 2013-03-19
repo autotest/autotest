@@ -230,9 +230,7 @@ class BaseAutotest(installable_object.InstallableObject):
     def _install(self, host=None, autodir=None, use_autoserv=True,
                  use_packaging=True):
         """
-        Install autotest.  If get() was not called previously, an
-        attempt will be made to install from the autotest svn
-        repository.
+        Install autotest.
 
         @param host A Host instance on which autotest will be installed
         @param autodir Location on the remote host to install to
