@@ -1,19 +1,19 @@
-# use some undocumented Django tricks to execute custom logic after syncdb
-
-from django.db.models import signals
 from django.contrib import auth
 from autotest.frontend.afe import models
+from south.signals import post_migrate
 
 BASIC_ADMIN = 'Basic admin'
 
-def create_admin_group(app, created_models, verbosity, **kwargs):
+
+def create_admin_group(app, **kwargs):
     """\
     Create a basic admin group with permissions for managing basic autotest
     objects.
     """
+    print "Creatin/updating Basic admin group"
     admin_group, created = auth.models.Group.objects.get_or_create(
         name=BASIC_ADMIN)
-    admin_group.save() # must save before adding permissions
+    admin_group.save()  # must save before adding permissions
     PermissionModel = auth.models.Permission
     have_permissions = list(admin_group.permissions.all())
     for model_name in ('host', 'label', 'test', 'aclgroup', 'profiler',
@@ -34,5 +34,4 @@ def create_admin_group(app, created_models, verbosity, **kwargs):
     else:
         print 'Group "%s" already exists' % BASIC_ADMIN
 
-
-signals.post_syncdb.connect(create_admin_group, sender=models)
+post_migrate.connect(create_admin_group)
