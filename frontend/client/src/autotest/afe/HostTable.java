@@ -11,9 +11,11 @@ public class HostTable extends DynamicTable {
 	private final int MAX_LABELS_COLUMN_WIDTH = 40;
 	
     protected static final String[][] HOST_COLUMNS = {
-        {"hostname", "Hostname"}, {"platform", "Platform"}, 
-        {HostDataSource.OTHER_LABELS, "Other labels"}, {"status", "Status"}, 
-        {HostDataSource.LOCKED_TEXT, "Locked"},
+        {"hostname", "Hostname"}, 
+        {"platform", "Platform"}, 
+        {HostDataSource.OTHER_LABELS, "Other labels"}, 
+        {"status", "Status"}, 
+        {"locked", "Locked"},
     };
     
     public HostTable(DataSource dataSource) {
@@ -32,5 +34,7 @@ public class HostTable extends DynamicTable {
 			host.put(HostDataSource.OTHER_LABELS, 
 					new JSONString(Utils.splitIntoLines(otherLabels, MAX_LABELS_COLUMN_WIDTH)));
     	}
-    }
+        if ( host.containsKey(HostDataSource.LOCKED_TEXT) )
+            host.put("locked", host.get(HostDataSource.LOCKED_TEXT));
+    }    
 }
