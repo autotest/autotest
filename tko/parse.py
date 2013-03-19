@@ -75,6 +75,10 @@ def mailfailure(jobname, job, message):
 def parse_one(db, jobname, path, reparse, mail_on_failure):
     """
     Parse a single job. Optionally send email on failure.
+
+    The method of identifying a job by (test_name, subdir) relies on the
+    fact that the parsing will be done on a result dir collected by
+    the scheduler and thus named uniquely.
     """
     tko_utils.dprint("\nScanning %s (%s)" % (jobname, path))
     old_job_idx = db.find_job(jobname)
