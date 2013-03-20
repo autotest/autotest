@@ -20,11 +20,15 @@ cat << EOF
 usage: $0 [options]
 
 This script installs the autotest server on a given system.
-Currently tested systems:
+
+Currently tested systems - Up to date versions of:
+
  * Fedora 16
  * Fedora 17
+ * Fedora 18
  * RHEL 6.2
  * Ubuntu 12.04
+ * Ubuntu 12.10
 
 GENERAL OPTIONS:
    -h      Show this message
