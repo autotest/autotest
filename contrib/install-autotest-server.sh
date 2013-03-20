@@ -434,7 +434,9 @@ if [ ! -e  /etc/apache2/sites-enabled/001-autotest ]
 then
     /usr/local/bin/substitute "WSGISocketPrefix run/wsgi" "#WSGISocketPrefix run/wsgi" $ATHOME/apache/conf/django-directives
     sudo rm /etc/apache2/sites-enabled/000-default
-    sudo ln -s /etc/apache2/mods-available/version.load /etc/apache2/mods-enabled/
+    if [ -f /etc/apache2/mods-available/version.load ]; then
+	sudo ln -s /etc/apache2/mods-available/version.load /etc/apache2/mods-enabled/
+    fi
     sudo ln -s $ATHOME/apache/conf /etc/apache2/autotest.d
     sudo ln -s $ATHOME/apache/apache-conf /etc/apache2/sites-enabled/001-autotest
     sudo ln -s $ATHOME/apache/apache-web-conf /etc/apache2/sites-enabled/002-autotest
