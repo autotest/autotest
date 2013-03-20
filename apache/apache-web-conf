@@ -1,3 +1,6 @@
+DocumentRoot /usr/local/autotest/apache/www
+RedirectMatch ^/$ /afe
+
 # Include files relevant to the web client code
 Include "autotest.d/afe-directives"
 Include "autotest.d/embedded-spreadsheet-directives"
