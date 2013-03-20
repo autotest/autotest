@@ -90,7 +90,14 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
             ins.@autotest.afe.JobDetailView::resizeResultsFrame(Ljava/lang/String;)(event.data);
         }
 
-        $wnd.addEventListener("message", $wnd.onSpreadsheetLoad, false);
+        // ataching listener unfortunatelly varies bc not everybody follows standard
+        if ($wnd.addEventListener) { //W3C
+           $wnd.addEventListener("message", $wnd.onSpreadsheetLoad, false);
+        } else if ($wnd.attachEvent) { //IE
+           $wnd.attachEvent("onmessage", $wnd.onSpreadsheetLoad);
+        } else { //last resort
+           $wnd["onmessage"] = $wnd.onSpreadsheetLoad;
+        }
     }-*/;
 
     @SuppressWarnings("unused") // called from native
