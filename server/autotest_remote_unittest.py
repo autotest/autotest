@@ -7,6 +7,7 @@ import unittest, os, tempfile, logging
 import common
 from autotest.server import autotest_remote, utils, hosts, server_job, profilers
 from autotest.client import sysinfo
+from autotest.client import utils as client_utils
 from autotest.client.shared import packages
 from autotest.client.shared import error
 from autotest.client.shared.test_utils import mock
@@ -40,6 +41,7 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(utils, "get")
         self.god.stub_function(utils, "read_keyval")
         self.god.stub_function(utils, "write_keyval")
+        self.god.stub_function(client_utils, "get_os_vendor")
         self.god.stub_function(utils, "system")
         self.god.stub_function(tempfile, "mkstemp")
         self.god.stub_function(tempfile, "mktemp")
@@ -52,6 +54,8 @@ class TestBaseAutotest(unittest.TestCase):
         self.god.stub_function(os.path, "exists")
         self.god.stub_function(autotest_remote, "open")
         self.god.stub_function(autotest_remote.settings, "get_value")
+        self.god.stub_function(autotest_remote, "_server_system_wide_install")
+        self.god.stub_function(autotest_remote, "_client_system_wide_install")
         self.god.stub_function(logging, "exception")
         self.god.stub_class(autotest_remote, "_Run")
         self.god.stub_class(autotest_remote, "log_collector")
@@ -67,6 +71,9 @@ class TestBaseAutotest(unittest.TestCase):
 
         # record
         utils.get_server_dir.expect_call().and_return(self.serverdir)
+
+        client_utils.get_os_vendor.expect_call().and_return('Debian')
+        autotest_remote._server_system_wide_install.expect_call().and_return(False)
 
         # create the autotest object
         self.base_autotest = autotest_remote.BaseAutotest(self.host)
@@ -282,6 +289,7 @@ class TestBaseAutotest(unittest.TestCase):
     def test_get_installed_autodir(self):
         self._stub_get_client_autodir_paths()
         self.host.get_autodir.expect_call().and_return(None)
+        autotest_remote._server_system_wide_install.expect_call().and_return(False)
         self._expect_failed_run('test -x /some/path/autotest')
         self.host.run.expect_call('test -x /another/path/autotest')
         self.host.run.expect_call('test -w /another/path')
@@ -293,6 +301,7 @@ class TestBaseAutotest(unittest.TestCase):
     def test_get_install_dir(self):
         self._stub_get_client_autodir_paths()
         self.host.get_autodir.expect_call().and_return(None)
+        autotest_remote._server_system_wide_install.expect_call().and_return(False)
         self._expect_failed_run('test -x /some/path/autotest')
         self._expect_failed_run('test -x /another/path/autotest')
         self._expect_failed_run('mkdir -p /some/path')
