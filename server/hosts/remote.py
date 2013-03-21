@@ -87,7 +87,7 @@ class RemoteHost(base_classes.Host):
         if install_server_is_configured():
             if not profile:
                 profile = self.profile
-            if profile == 'Do_not_install':
+            if profile in ['Do_not_install', 'N/A']:
                 return
             num_attempts = int(server_info.get('num_attempts', 2))
             ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
