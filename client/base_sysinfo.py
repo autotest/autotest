@@ -257,6 +257,12 @@ class base_sysinfo(object):
         """ Logging hook called before a test starts. """
         if _LOG_INSTALLED_PACKAGES:
             self._installed_packages = self.sm.list_all()
+            # Also log the list of installed packaged before each test starts
+            test_sysinfodir = self._get_sysinfodir(test.outputdir)
+            installed_path = os.path.join(test_sysinfodir, "installed_packages")
+            installed_packages = "\n".join(self._installed_packages)
+            utils.open_write_close(installed_path, installed_packages)
+
         if os.path.exists("/var/log/messages"):
             stat = os.stat("/var/log/messages")
             self._messages_size = stat.st_size
