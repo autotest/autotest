@@ -14,3 +14,4 @@ Contents:
 
    overview
    client_api
+   server_api
