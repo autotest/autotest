@@ -1,3 +1,5 @@
+import os
+
 # High level way of installing each autotest component
 import client.setup
 import frontend.setup
@@ -8,6 +10,7 @@ import database_legacy.setup
 import tko.setup
 import utils.setup
 import mirror.setup
+import installation_support.setup
 
 from distutils.core import setup
 
@@ -24,6 +27,35 @@ def _combine_dicts(list_dicts):
         for k in d:
             result_dict[k] = d[k]
     return result_dict
+
+
+def _fix_data_paths(package_data_dict):
+    '''
+    Corrects package data paths
+
+    When the package name is compound, and the package contents, that
+    is, file paths, contain the same path name found in the package
+    name, setuptools thinks there's an extra directory. This checks
+    that condition and adjusts (strips) the 1st directory name.
+    '''
+    result = {}
+    for package_name, package_content in package_data_dict.items():
+        package_structure = package_name.split('.')
+        package_structure_1st_level = package_structure[1]
+
+        result[package_name] = []
+        for p in package_content:
+            path_structure = p.split(os.path.sep)
+            path_structure_1st_level = path_structure[0]
+
+            if package_structure_1st_level == path_structure_1st_level:
+                path = os.path.join(*path_structure[1:])
+            else:
+                path = p
+
+            result[package_name].append(path)
+
+    return result
 
 
 def get_package_dir():
@@ -47,7 +79,8 @@ def get_packages():
             database_legacy.setup.get_packages() +
             tko.setup.get_packages() +
             utils.setup.get_packages() +
-            mirror.setup.get_packages())
+            mirror.setup.get_packages() +
+            installation_support.setup.get_packages())
 
 
 def get_data_files():
@@ -58,14 +91,16 @@ def get_data_files():
 
 
 def get_package_data():
-    return _combine_dicts([client.setup.get_package_data(),
-                           frontend.setup.get_package_data(),
-                           cli.setup.get_package_data(),
-                           server.setup.get_package_data(),
-                           scheduler.setup.get_package_data(),
-                           database_legacy.setup.get_package_data(),
-                           tko.setup.get_package_data(),
-                           utils.setup.get_package_data()])
+    return _combine_dicts([
+            _fix_data_paths(client.setup.get_package_data()),
+            _fix_data_paths(frontend.setup.get_package_data()),
+            _fix_data_paths(cli.setup.get_package_data()),
+            _fix_data_paths(server.setup.get_package_data()),
+            _fix_data_paths(scheduler.setup.get_package_data()),
+            _fix_data_paths(database_legacy.setup.get_package_data()),
+            _fix_data_paths(tko.setup.get_package_data()),
+            _fix_data_paths(utils.setup.get_package_data())
+            ])
 
 
 def get_scripts():
@@ -75,7 +110,8 @@ def get_scripts():
             server.setup.get_scripts() +
             scheduler.setup.get_scripts() +
             database_legacy.setup.get_scripts() +
-            tko.setup.get_scripts())
+            tko.setup.get_scripts() +
+            installation_support.setup.get_scripts())
 
 
 def run():

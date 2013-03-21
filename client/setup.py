@@ -32,7 +32,6 @@ def _get_files(path):
 def get_filelist():
     pd_filelist=['config/*' ]
     pd_filelist.extend(_get_files(os.path.join(client_dir, 'profilers')))
-    pd_filelist.extend(_get_files(os.path.join(client_dir, 'tests')))
     pd_filelist.extend(_get_files(os.path.join(client_dir, 'tools')))
     return pd_filelist
 

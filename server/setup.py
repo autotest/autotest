@@ -32,8 +32,6 @@ def get_file_list():
     # and call it a day.  we can clean up some other time
     pd_filelist=[]
     pd_filelist.extend(_get_files(os.path.join(server_dir, 'control_segments')))
-    pd_filelist.extend(_get_files(os.path.join(server_dir, 'hosts', 'monitors')))
-    pd_filelist.extend(_get_files(os.path.join(server_dir, 'tests')))
     return pd_filelist
 
 
