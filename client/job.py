@@ -125,6 +125,8 @@ class base_client_job(base_job.base_job):
 
 
     @classmethod
+    # The unittests will hide this method, well, for unittesting
+    # pylint: disable=E0202
     def _find_base_directories(cls):
         """
         Determine locations of autodir and clientdir (which are the same)
@@ -139,6 +141,8 @@ class base_client_job(base_job.base_job):
         return re.findall("[^\s]*?['|\"].*?['|\"]|[^\s]+", args)
 
 
+    # The unittests will hide this method, well, for unittesting
+    # pylint: disable=E0202
     def _find_resultdir(self, options):
         """
         Determine the directory for storing results. On a client this is

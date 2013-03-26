@@ -1261,8 +1261,10 @@ class test_job_tags(unittest.TestCase):
         class stub_job(base_job.base_job):
             _job_directory = stub_job_directory
             @classmethod
+            # pylint: disable=E0202
             def _find_base_directories(cls):
                 return '/autodir', '/autodir/client', '/autodir/server'
+            # pylint: disable=E0202
             def _find_resultdir(self):
                 return '/autodir/results'
         self.job = stub_job()
@@ -1366,9 +1368,11 @@ class test_make_outputdir(unittest.TestCase):
         self.resultdir = tempfile.mkdtemp(suffix='unittest')
         class stub_job(base_job.base_job):
             @classmethod
+            # pylint: disable=E0202
             def _find_base_directories(cls):
                 return '/autodir', '/autodir/client', '/autodir/server'
             @classmethod
+            # pylint: disable=E0202
             def _find_resultdir(cls):
                 return self.resultdir
 
