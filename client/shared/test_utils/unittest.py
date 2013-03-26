@@ -642,7 +642,8 @@ class TestCase(object):
 
     # These fail* assertion method names are pending deprecation and will
     # be a DeprecationWarning in 3.2; http://bugs.python.org/issue2578
-    def _deprecate(original_func):
+    # pylint: disable=E0213
+    def _deprecate(original_func): # @NoSelf
         def deprecated_func(*args, **kwargs):
             warnings.warn(
                 'Please use %s instead.' % original_func.__name__,
