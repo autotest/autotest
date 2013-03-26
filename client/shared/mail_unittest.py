@@ -2,6 +2,8 @@
 
 import unittest
 import mail
+# the email module has some weird behavior change among py 2.4/2.6
+# pylint: disable=E0611
 from email import Message
 
 class test_data:

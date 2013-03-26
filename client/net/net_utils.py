@@ -101,6 +101,8 @@ class network_utils(object):
 
 def network():
     try:
+        # Here we are importing site net utils only if it exists
+        # pylint: disable=E0611
         from autotest.client.net import site_net_utils
         return site_net_utils.network_utils()
     except ImportError:
@@ -383,6 +385,8 @@ class network_interface(object):
 
 def netif(name):
     try:
+        # Here we are importing site net utils only if it exists
+        # pylint: disable=E0611
         from autotest.client.net import site_net_utils
         return site_net_utils.network_interface(name)
     except ImportError:
@@ -448,6 +452,8 @@ class bonding(object):
 
 def bond():
     try:
+        # Here we are importing site net utils only if it exists
+        # pylint: disable=E0611
         from autotest.client.net import site_net_utils
         return site_net_utils.bonding()
     except ImportError:
@@ -742,6 +748,8 @@ class ethernet(object):
 
 def ethernet_packet():
     try:
+        # Here we are importing site net utils only if it exists
+        # pylint: disable=E0611
         from autotest.client.net import site_net_utils
         return site_net_utils.ethernet()
     except ImportError:

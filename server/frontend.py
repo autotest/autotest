@@ -23,6 +23,8 @@ from autotest.frontend.afe import rpc_client_lib
 from autotest.client.shared.settings import settings
 from autotest.client.shared import utils
 try:
+    # Here we are importing site utils only if it exists
+    # pylint: disable=E0611
     from autotest.server.site_common import site_utils as server_utils
 except ImportError:
     from autotest.server import utils as server_utils

@@ -12,4 +12,6 @@ import os
 from autotest.client.shared.utils import *
 from autotest.client.base_utils import *
 if os.path.exists(os.path.join(os.path.dirname(__file__), 'site_utils.py')):
+    # Here we are importing site utils only if it exists
+    # pylint: disable=E0611
     from autotest.client.site_utils import *

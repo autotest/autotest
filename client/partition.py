@@ -1001,6 +1001,8 @@ class virtual_partition:
 
 # import a site partition module to allow it to override functions
 try:
+    # Here we are importing site_partition only if it exists
+    # pylint: disable=E0611
     from autotest.client.site_partition import *
 except ImportError:
     pass
