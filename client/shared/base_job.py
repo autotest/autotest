@@ -1006,6 +1006,8 @@ class base_job(object):
             self._tap = self._tap_init(False)
 
     @classmethod
+    # The unittests will hide this method, well, for unittesting
+    # pylint: disable=E0202
     def _find_base_directories(cls):
         raise NotImplementedError()
 
@@ -1063,7 +1065,8 @@ class base_job(object):
         else:
             self._conmuxdir = None
 
-
+    # The unittests will hide this method, well, for unittesting
+    # pylint: disable=E0202
     def _find_resultdir(self, *args, **dargs):
         raise NotImplementedError()
 
