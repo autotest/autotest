@@ -493,8 +493,3 @@ def get_iteration_attributes(**filter_data):
 def get_iteration_results(**filter_data):
     return rpc_utils.prepare_for_serialization(
         models.IterationResult.list_objects(filter_data))
-
-
-def get_test_labels(**filter_data):
-    return rpc_utils.prepare_for_serialization(
-        models.TestLabel.list_objects(filter_data))
