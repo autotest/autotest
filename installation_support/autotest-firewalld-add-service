@@ -12,6 +12,8 @@ import sys
 import logging
 import argparse
 import commands
+# This script won't be executed on py 2.4, but has to be checked through pylint
+# pylint: disable=E0611
 import xml.etree.ElementTree
 
 
