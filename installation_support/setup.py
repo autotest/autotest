@@ -14,13 +14,8 @@ if os.path.isdir('installation_support'):
 else:
     pkg_dir = '.'
 
-
 def get_package_dir():
     return {'autotest.installation_support': pkg_dir}
-
-
-def get_package_data():
-    return {'autotest.frontend' : get_file_list()}
 
 
 def get_scripts():
@@ -42,7 +37,6 @@ def run():
           version=version.get_version(),
           url='http://autotest.github.com',
           package_dir=get_package_dir(),
-          package_data=get_package_data(),
           packages=get_packages(),
           scripts=get_scripts())
 
