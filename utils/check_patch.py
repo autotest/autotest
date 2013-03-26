@@ -362,9 +362,9 @@ class FileChecker(object):
 
         self.corrective_actions = []
 
-        self.indent_exceptions = ['cli/job_unittest.py']
+        self.indent_exceptions = ['cli/job_unittest.py', 'Makefile']
         self.check_exceptions = ['client/tests/virt/kvm/tests/stepmaker.py',
-                                 'utils/run_pylint.py']
+                                 'utils/run_pylint.py', 'Makefile']
 
         if self.is_python:
             logging.debug("Checking file %s",
