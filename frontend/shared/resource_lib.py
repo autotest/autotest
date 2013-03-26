@@ -410,6 +410,8 @@ class Collection(Resource):
 
 
     def _entry_from_instance(self, instance):
+        # entry_class is actually turned into a callable, so this is OK
+        # pylint: disable=E1102
         return self.entry_class(self._request, instance)
 
 
@@ -673,6 +675,8 @@ class RelationshipCollection(Collection):
         unfixed_entry = self.unfixed_class(self._request, instance)
         entries = {self.fixed_name: self.fixed_entry,
                    self.unfixed_name: unfixed_entry}
+        # entry_class is actually turned into a callable, so this is OK
+        # pylint: disable=E1102
         return self.entry_class(**entries)
 
 
