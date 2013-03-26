@@ -10,7 +10,7 @@ except ImportError:
     sys.exit(1)
 
 # Classes of errors we ignore on quiet runs
-IGNORED_ERRORS = 'E1002,E1101,E1103,E1120,F0401'
+IGNORED_ERRORS = 'E1002,E1101,E1103,E1120,F0401,I0011'
 # By default, complain about all things
 LINT_VERBOSE = True
 
