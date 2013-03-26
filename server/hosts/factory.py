@@ -15,8 +15,10 @@ def create_host(
     netconsole=False, **args):
     # parse out the profile up-front, if it's there, or else console monitoring
     # will not work
-    hostname, args['user'], args['password'], args['port'], args['profile'] = \
-            server_utils.parse_machine(hostname, ssh_user, ssh_pass, ssh_port)
+    # Here, ssh_user, ssh_pass and ssh_port are injected in the namespace
+    # pylint: disable=E0602
+    hostname, args['user'], args['password'], args['port'], args['profile'] = (
+            server_utils.parse_machine(hostname, ssh_user, ssh_pass, ssh_port))# @UndefinedVariable
 
     # by default assume we're using SSH support
     if SSH_ENGINE == 'paramiko':
