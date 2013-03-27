@@ -189,9 +189,15 @@ class App(object):
             this_path = os.path.dirname(os.path.abspath(__file__))
             base_path = os.path.dirname(this_path)
             tko_view_sql_path = os.path.join(base_path, 'frontend', 'tko',
-                                             'sql', 'test.sql')
+                                             'sql', 'tko-test-view.sql')
+            tko_view_2_sql_path = os.path.join(base_path, 'frontend', 'tko',
+                                               'sql', 'tko-test-view-2.sql')
             if os.path.exists(tko_view_sql_path):
                 sql = open(tko_view_sql_path).read()
+                if not (mngr.run_sql(sql)):
+                    return -1
+            if os.path.exists(tko_view_2_sql_path):
+                sql = open(tko_view_2_sql_path).read()
                 if not (mngr.run_sql(sql)):
                     return -1
             return 0
