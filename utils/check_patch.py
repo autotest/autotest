@@ -731,6 +731,7 @@ if __name__ == "__main__":
             logging.error("Please verify the problems and address them")
             sys.exit(1)
         else:
+            logging.info("All passed!")
             sys.exit(0)
 
     else:
