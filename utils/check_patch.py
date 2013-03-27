@@ -697,6 +697,16 @@ if __name__ == "__main__":
         run_pylint.set_verbosity(False)
         logging.info("Autotest full tree check")
         logging.info("")
+        if os.path.isfile("tko/Makefile"):
+            proto_cmd = "make -C tko"
+            try:
+                utils.system(proto_cmd)
+            except error.CmdError:
+                doc = "https://github.com/autotest/autotest/wiki/UnittestSuite"
+                logging.error("Command %s failed. Please check if you have "
+                              "the google protocol buffer compiler, refer to "
+                              "%s for more info", proto_cmd, doc)
+                sys.exit(1)
         for root, dirs, files in os.walk("."):
             for fl in files:
                 check = True
