@@ -362,6 +362,8 @@ class job_create_or_clone(action_common.atest_create, job):
         return ['%s (id %s)' % (self.jobname, job_id)]
 
 
+    # The unittests will hide this method, well, for unittesting
+    # pylint: disable=E0202
     def get_items(self):
         return [self.jobname]
 
@@ -711,5 +713,7 @@ class job_abort(job, action_common.atest_delete):
         print 'Aborting jobs: %s' % ', '.join(self.jobids)
 
 
+    # The unittests will hide this method, well, for unittesting
+    # pylint: disable=E0202
     def get_items(self):
         return self.jobids
