@@ -106,9 +106,19 @@ class TempManager(model_logic.ExtendedManager):
 
 
 class Machine(dbmodels.Model):
+    '''
+    A machine used to run a test
+    '''
+    #: A numeric and automatic integer that uniquely identifies a given
+    #: machine. This is the primary key for the resulting table created
+    #: from this model.
     machine_idx = dbmodels.AutoField(primary_key=True)
+    #: The name, such as a FQDN, of the machine that run the test. Must be
+    #: unique.
     hostname = dbmodels.CharField(unique=True, max_length=255)
+    #: the machine group
     machine_group = dbmodels.CharField(blank=True, max_length=240)
+    #: the machine owner
     owner = dbmodels.CharField(blank=True, max_length=240)
 
     class Meta:
@@ -116,9 +126,18 @@ class Machine(dbmodels.Model):
 
 
 class Kernel(dbmodels.Model):
+    '''
+    The Linux Kernel used during a test
+    '''
+    #: A numeric and automatic integer that uniquely identifies a given
+    #: machine. This is the primary key for the resulting table created
+    #: from this model.
     kernel_idx = dbmodels.AutoField(primary_key=True)
+    #: the kernel hash
     kernel_hash = dbmodels.CharField(max_length=105, editable=False)
+    #: base
     base = dbmodels.CharField(max_length=90)
+    #: printable
     printable = dbmodels.CharField(max_length=300)
 
     class Meta:
@@ -126,9 +145,16 @@ class Kernel(dbmodels.Model):
 
 
 class Patch(dbmodels.Model):
+    '''
+    A Patch applied to a Linux Kernel source during the build process
+    '''
+    #: A reference to a :class:`Kernel`
     kernel = dbmodels.ForeignKey(Kernel, db_column='kernel_idx')
+    #: A descriptive name for the patch
     name = dbmodels.CharField(blank=True, max_length=240)
+    #: The URL where the patch was fetched from
     url = dbmodels.CharField(blank=True, max_length=900)
+    #: hash
     the_hash = dbmodels.CharField(blank=True, max_length=105, db_column='hash')
 
     class Meta:
@@ -136,7 +162,18 @@ class Patch(dbmodels.Model):
 
 
 class Status(dbmodels.Model):
+    '''
+    The possible results of a test
+
+    These objects are populated automatically from a
+    :ref:`fixture file <django:initial-data-via-fixtures>`
+    '''
+    #: A numeric and automatic integer that uniquely identifies a given
+    #: machine. This is the primary key for the resulting table created
+    #: from this model.
     status_idx = dbmodels.AutoField(primary_key=True)
+    #: A short descriptive name for the status. This exact name is searched for
+    #: while the TKO parser is reading and parsing status files
     word = dbmodels.CharField(max_length=30)
 
     class Meta:
@@ -144,6 +181,9 @@ class Status(dbmodels.Model):
 
 
 class Job(dbmodels.Model, model_logic.ModelExtensions):
+    """
+    A test job, having one or many tests an their results
+    """
     job_idx = dbmodels.AutoField(primary_key=True)
     tag = dbmodels.CharField(unique=True, max_length=100)
     label = dbmodels.CharField(max_length=300)
@@ -152,6 +192,9 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     queued_time = dbmodels.DateTimeField(null=True, blank=True)
     started_time = dbmodels.DateTimeField(null=True, blank=True)
     finished_time = dbmodels.DateTimeField(null=True, blank=True)
+
+    #: If this job was scheduled through the AFE application, this points
+    #: to the related :class:`autotest.frontend.afe.models.Job` object
     afe_job_id = dbmodels.IntegerField(null=True, default=None)
 
     objects = model_logic.ExtendedManager()

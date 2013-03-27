@@ -1018,11 +1018,18 @@ class ModelExtensions(object):
 class ModelWithInvalid(ModelExtensions):
     """
     Overrides model methods save() and delete() to support invalidation in
-    place of actual deletion.  Subclasses must have a boolean "invalid"
-    field.
+    place of actual deletion.
+
+    Subclasses must have a boolean "invalid" field.
     """
 
     def save(self, *args, **kwargs):
+        '''
+        Attempts to ressurect a previously added and invalidated object first
+
+        If the object being added has not been saved to the database
+        previously, then this logic is relevant and not executed.
+        '''
         first_time = (self.id is None)
         if first_time:
             # see if this object was previously added and invalidated
@@ -1040,9 +1047,11 @@ class ModelWithInvalid(ModelExtensions):
 
     def resurrect_object(self, old_object):
         """
-        Called when self is about to be saved for the first time and is actually
-        "undeleting" a previously deleted object.  Can be overridden by
-        subclasses to copy data as desired from the deleted entry (but this
+        Restores a previously invalidated object
+
+        Called when self is about to be saved for the first time and is
+        actually "undeleting" a previously deleted object.  Can be overridden
+        by subclasses to copy data as desired from the deleted entry (but this
         superclass implementation must normally be called).
         """
         self.id = old_object.id
@@ -1050,6 +1059,8 @@ class ModelWithInvalid(ModelExtensions):
 
     def clean_object(self):
         """
+        Method supposed to be overriden by subclasses when invalidating objects
+
         This method is called when an object is marked invalid.
         Subclasses should override this to clean up relationships that
         should no longer exist if the object were deleted.
@@ -1058,6 +1069,9 @@ class ModelWithInvalid(ModelExtensions):
 
 
     def delete(self):
+        """
+        Fakes a deletion by marking an object as invalid
+        """
         self.invalid = self.invalid
         assert not self.invalid
         self.invalid = True
