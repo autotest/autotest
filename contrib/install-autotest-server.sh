@@ -356,9 +356,16 @@ else
     fi
 fi
 
+print_log "INFO" "Initializing and updating tests to the latest master"
 cd $ATHOME
 git submodule init
 git submodule update --recursive
+cd $ATHOME/client/tests
+git checkout master
+cd $ATHOME/client/tests/virt
+git checkout master
+cd $ATHOME/server/tests
+git checkout master
 
 print_log "INFO" "Setting proper permissions for the autotest directory"
 chown -R autotest:autotest $ATHOME
