@@ -1,7 +1,7 @@
 CREATE VIEW tko_test_view_2 AS
        SELECT
               tko_tests.test_idx AS test_idx,
-	      tko_tests.job_idx AS job_idx,
+              tko_tests.job_idx AS job_idx,
               tko_tests.test AS test_name,
               tko_tests.subdir AS subdir,
               tko_tests.kernel_idx AS kernel_idx,

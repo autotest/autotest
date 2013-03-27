@@ -36,7 +36,7 @@ def get_create_test_view_sql():
     Returns the SQL code that creates the test view
     """
     dir_path = os.path.dirname(os.path.abspath(__file__))
-    sql_path = os.path.join(dir_path, 'sql', 'test.sql')
+    sql_path = os.path.join(dir_path, 'sql', 'tko-test-view-2.sql')
     return open(sql_path).read()
 
 
