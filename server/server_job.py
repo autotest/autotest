@@ -230,6 +230,8 @@ class base_server_job(base_job.base_job):
 
 
     @classmethod
+    # The unittests will hide this method, well, for unittesting
+    # pylint: disable=E0202
     def _find_base_directories(cls):
         """
         Determine locations of autodir, clientdir and serverdir. Assumes
@@ -242,6 +244,8 @@ class base_server_job(base_job.base_job):
         return autodir, clientdir, serverdir
 
 
+    # The unittests will hide this method, well, for unittesting
+    # pylint: disable=E0202
     def _find_resultdir(self, resultdir):
         """
         Determine the location of resultdir. For server jobs we expect one to
