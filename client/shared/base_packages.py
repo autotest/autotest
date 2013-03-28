@@ -1026,7 +1026,8 @@ class BasePackageManager(object):
         @param include_string: Pattern that represents the files that will be
                 added to the tar package.
         @param exclude_string: Pattern that represents the files that should be
-                excluded from the tar package.
+                excluded from the tar package. It could be either a string or
+                a list.
         '''
         tarball_path = os.path.join(dest_dir, pkg_name)
         temp_path = tarball_path + '.tmp'
@@ -1038,9 +1039,13 @@ class BasePackageManager(object):
         if include_string is not None:
             cmd_list.append(include_string)
         if exclude_string is not None:
-            if not "--exclude" in exclude_string:
-                cmd_list.append('--exclude')
-            cmd_list.append(exclude_string)
+            if isinstance(exclude_string, list):
+                for exc_str in exclude_string:
+                    cmd_list.append('--exclude %s' % exc_str)
+            else:
+                if not "--exclude" in exclude_string:
+                    cmd_list.append('--exclude')
+                cmd_list.append(exclude_string)
 
         try:
             utils.system(' '.join(cmd_list))
