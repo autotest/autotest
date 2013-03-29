@@ -1,5 +1,4 @@
 [
     {"pk": "1", "model": "afe.aclgroup", "fields": {"name": "Everyone", "description": ""}},
-    {"pk": "70", "model": "afe.migrateinfo", "fields": {"version": "70"}},
     {"pk": "1", "model": "afe.linuxdistro", "fields": {"name": "unknown", "major": "0", "minor": "0", "arch": "unknown"}}
 ]
