@@ -255,23 +255,11 @@ class GitBackend(object):
 
 
     def is_file_tracked(self, fl):
-        stdout = None
         try:
-            cmdresult = utils.run("git status --porcelain %s" % fl,
-                                  verbose=False)
-            stdout = cmdresult.stdout
+            utils.run("git ls-files %s --error-unmatch" % fl,
+                      verbose=False)
+            return True
         except error.CmdError:
-            return False
-
-        if stdout is not None:
-            if stdout:
-                if stdout.startswith("??"):
-                    return False
-                else:
-                    return True
-            else:
-                return True
-        else:
             return False
 
 
@@ -332,7 +320,7 @@ class FileChecker(object):
     Picks up a given file and performs various checks, looking after problems
     and eventually suggesting solutions.
     """
-    def __init__(self, path, vcs=None, confirm=False):
+    def __init__(self, path=None, vcs=None, confirm=False):
         """
         Class constructor, sets the path attribute.
 
@@ -341,6 +329,10 @@ class FileChecker(object):
         @param confirm: Whether to answer yes to all questions asked without
                 prompting the user.
         """
+        if path is not None:
+            self.set_path(path=path, vcs=vcs, confirm=confirm)
+
+    def set_path(self, path, vcs=None, confirm=False):
         self.path = path
         self.vcs = vcs
         self.confirm = confirm
@@ -691,7 +683,9 @@ if __name__ == "__main__":
         vcs = None
 
     logging_manager.configure_logging(CheckPatchLoggingConfig(), verbose=debug)
-    ignore_list = ['common.py', ".svn", ".git", '.pyc', ".orig", ".rej", ".bak"]
+    extension_blacklist = ["common.py", ".java", ".html", ".png", ".css",
+                           ".xml", ".pyc", ".orig", ".rej", ".bak", ".so"]
+    dir_blacklist = [".svn", ".git", "logs", "virt", "site-packages", "ExternalSource"]
 
     if full_check:
         failed_paths = []
@@ -708,22 +702,33 @@ if __name__ == "__main__":
                               "the google protocol buffer compiler, refer to "
                               "%s for more info", proto_cmd, doc)
                 sys.exit(1)
+
+        file_checker = FileChecker()
         for root, dirs, files in os.walk("."):
-            for fl in files:
+            dirs[:] = [d for d in dirs if d not in dir_blacklist]
+
+            t_files = []
+            for f in files:
+                add = True
+                for extension in extension_blacklist:
+                    if f.endswith(extension):
+                        add = False
+                if add:
+                    t_files.append(f)
+            files = t_files
+
+            for f in files:
                 check = True
-                path = os.path.join(root, fl)
-                for pattern in ignore_list:
-                    if re.search(pattern, path):
-                        check = False
+                path = os.path.join(root, f)
                 if check:
                     if vcs is not None:
                         if not vcs.is_file_tracked(fl=path):
                             check = False
                 if check:
-                    file_checker = FileChecker(path=path, vcs=vcs,
-                                               confirm=confirm)
+                    file_checker.set_path(path=path, vcs=vcs, confirm=confirm)
                     if not file_checker.report(skip_unittest=True):
                         failed_paths.append(path)
+
         if failed_paths:
             logging.error("Full tree check found files with problems:")
             for fp in failed_paths:
