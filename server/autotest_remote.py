@@ -1162,8 +1162,17 @@ class client_logger(object):
                     logging.info('Bundling %s into %s', src_dir, pkg_name)
                     temp_dir = autotemp.tempdir(unique_id='autoserv-packager',
                                                 dir=self.job.tmpdir)
+
+                    exclude_paths = None
+                    exclude_file_path = os.path.join(src_dir, ".pack_exclude")
+                    if os.path.exists(exclude_file_path):
+                        exclude_file = open(exclude_file_path)
+                        exclude_paths = exclude_file.read().splitlines()
+                        exclude_file.close()
+
                     tarball_path = self.job.pkgmgr.tar_package(
-                        pkg_name, src_dir, temp_dir.name, " .", None)
+                                            pkg_name, src_dir, temp_dir.name,
+                                            " .", exclude_paths)
                     self.host.send_file(tarball_path, remote_dest)
                 finally:
                     temp_dir.clean()
