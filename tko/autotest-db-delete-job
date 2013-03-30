@@ -5,7 +5,7 @@ try:
 except ImportError:
     import common
 from autotest.tko import db
-from autotest.client.shared import settings
+from autotest.client.shared.settings import settings
 from autotest.client.shared import logging_manager, logging_config
 from autotest.client import utils
 
