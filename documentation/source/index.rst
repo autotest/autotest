@@ -13,6 +13,7 @@ Contents:
    :maxdepth: 2
 
    frontend/index
+   component_isolation/index
 
 
 Indices and tables

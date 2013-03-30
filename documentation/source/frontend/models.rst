@@ -20,3 +20,4 @@ things they do:
    model_logic
    afe_models
    tko_models
+   ci_models
