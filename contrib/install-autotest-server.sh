@@ -309,7 +309,7 @@ if [ "$(grep "^autotest:" /etc/passwd)" = "" ]
 then
     print_log "INFO" "Adding user autotest"
     echo $ATPASSWD > /tmp/pwd
-    useradd -d $ATHOME autotest -p $(makepasswd --crypt-md5 --clearfrom=/tmp/pwd | awk '{print $2}')
+    useradd -d $ATHOME autotest -s /bin/bash -p $(makepasswd --crypt-md5 --clearfrom=/tmp/pwd | awk '{print $2}')
     rm -rf /tmp/pwd
 fi
 }
