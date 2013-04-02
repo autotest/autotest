@@ -708,7 +708,8 @@ full_install() {
             print_install_status
             print_version_and_url
         else
-            print_log "Sorry, I can't recognize your distro, exiting..."
+            print_log "ERROR" "Sorry, I can't recognize your distro, exiting..."
+            exit 1
         fi
     fi
 }
