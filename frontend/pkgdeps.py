@@ -28,7 +28,9 @@ FEDORA_REDHAT_PKGS = [
     'urw-fonts',
     'wget',
     'protobuf-compiler',
-    'protobuf-python']
+    'protobuf-python',
+    'passwd',
+    'pylint']
 
 
 UBUNTU_PKGS = [
@@ -54,7 +56,8 @@ UBUNTU_PKGS = [
     'unzip',
     'wget',
     'protobuf-compiler',
-    'python-protobuf']
+    'python-protobuf',
+    'pylint']
 
 
 PKG_DEPS = {'Fedora' : FEDORA_REDHAT_PKGS,
