@@ -47,4 +47,8 @@ epub_publisher = u'Autotest Team'
 epub_copyright = u'2013, Autotest Team'
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}
+intersphinx_mapping = {
+    'python': ('http://docs.python.org/', None),
+    'django': ('http://docs.djangoproject.com/en/dev/',
+               'http://docs.djangoproject.com/en/dev/_objects/')
+    }
