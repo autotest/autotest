@@ -14,6 +14,9 @@ import installation_support.setup
 
 from distutils.core import setup
 
+from sphinx.setup_command import BuildDoc
+cmdclass = {'build_doc': BuildDoc}
+
 try:
     import autotest.common as common
 except ImportError:
@@ -125,7 +128,15 @@ def run():
           package_data=get_package_data(),
           packages= get_packages(),
           scripts=get_scripts(),
-          data_files=get_data_files())
+          data_files=get_data_files(),
+          cmdclass=cmdclass,
+          command_options={
+            'build_doc': {
+                'source_dir': ('setup.py', 'documentation/source')
+                }
+            }
+          )
+
 
 
 if __name__ == '__main__':

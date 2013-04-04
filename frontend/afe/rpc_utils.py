@@ -462,6 +462,24 @@ def check_for_duplicate_hosts(host_objects):
 
 def create_new_job(owner, options, host_objects, profiles, metahost_objects,
                    metahost_profiles, atomic_group=None):
+    '''
+    Create a new job
+
+    :param owner:
+    :type owner
+    :param options:
+    :type options:
+    :param host_objects:
+    :type host_objects:
+    :param profiles:
+    :type profiles:
+    :param metahost_objects:
+    :type metahost_objects:
+    :param metahost_profiles:
+    :type metahost_profiles:
+    :param atomic_group:
+    :type atomic_group:
+    '''
     labels_by_name = dict((label.name, label)
                           for label in models.Label.objects.all())
     all_host_objects = host_objects + metahost_objects
