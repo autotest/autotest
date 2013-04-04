@@ -33,3 +33,4 @@ frontend/client/gwt-unitCache/
 frontend/client/www/
 tko/tko_pb2.py
 documentation/build/*
+build/*
