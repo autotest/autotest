@@ -35,7 +35,7 @@ try:
 except ImportError:
     import common
 from autotest.frontend.afe import models, model_logic, model_attributes
-from autotest.frontend.afe import control_file, rpc_utils
+from autotest.frontend.afe import control_file, rpc_utils, reservations
 from autotest.server.hosts.remote import get_install_server_info
 
 
@@ -324,7 +324,25 @@ def get_num_profiles():
         return 1
 
 
+def reserve_hosts(host_filter_data, username=None):
+    """
+    @param host_filter_data: Filters out which hosts to reserve.
+    """
+    hosts = models.Host.query_objects(host_filter_data)
+    reservations.create(hosts_to_reserve=[h.hostname for h in hosts],
+                        username=username)
+
+
+def release_hosts(host_filter_data, username=None):
+    """
+    @param host_filter_data: Filters out which hosts to release.
+    """
+    hosts = models.Host.query_objects(host_filter_data)
+    reservations.release(hosts_to_release=[h.hostname for h in hosts],
+                        username=username)
+
 # tests
+
 
 def add_test(name, test_type, path, author=None, dependencies=None,
              experimental=True, run_verify=None, test_class=None,
