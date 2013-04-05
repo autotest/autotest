@@ -31,6 +31,7 @@ import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
+import com.google.gwt.user.client.ui.HorizontalPanel;
 
 import java.util.List;
 import java.util.Set;
@@ -139,6 +140,8 @@ public class HostDetailView extends DetailView
     private Button lockButton = new Button();
     private Button reverifyButton = new Button("Reverify");
     private Button reinstallButton = new Button("Reinstall");
+    private Button reserveButton = new Button("Reserve");
+    private Button releaseButton = new Button("Release");
     private CheckBox showSpecialTasks = new CheckBox();
 
     public HostDetailView(HostDetailListener hostDetailListener,
@@ -276,6 +279,8 @@ public class HostDetailView extends DetailView
         });
         addWidget(lockButton, "view_host_lock_button");
 
+        HorizontalPanel buttons = new HorizontalPanel();
+
         reverifyButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 JSONObject params = new JSONObject();
@@ -288,7 +293,7 @@ public class HostDetailView extends DetailView
                 }, "Host " + hostname);
             }
         });
-        addWidget(reverifyButton, "view_host_reverify_button");
+        buttons.add(reverifyButton);
 
         reinstallButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
@@ -297,7 +302,35 @@ public class HostDetailView extends DetailView
                 AfeUtils.scheduleReinstall(set, hostname, jobCreateListener);
             }
         });
-        addWidget(reinstallButton, "view_host_reinstall_button");
+        buttons.add(reinstallButton);
+
+        reserveButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
+                JSONArray hostIds = new JSONArray();
+                hostIds.set(0, currentHostObject.get("id"));
+                AfeUtils.handleHostsReservations(hostIds, true, "Host reserved", new SimpleCallback() {
+                    public void doCallback(Object source) {
+                        refresh();
+                    }
+                });
+            }
+        });
+        buttons.add(reserveButton);
+
+        releaseButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
+                JSONArray hostIds = new JSONArray();
+                hostIds.set(0, currentHostObject.get("id"));
+                AfeUtils.handleHostsReservations(hostIds, false, "Host released", new SimpleCallback() {
+                    public void doCallback(Object source) {
+                        refresh();
+                    }
+                });
+            }
+        });
+        buttons.add(releaseButton);
+
+        addWidget(buttons, "view_host_buttons");
     }
 
     public void onError(JSONObject errorObject) {
