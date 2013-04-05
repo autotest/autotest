@@ -386,4 +386,32 @@ public class AfeUtils {
         }
         row.put(targetFieldName, new JSONString(date));
     }
+
+    public static void handleHostsReservations(JSONArray hostIds, final boolean reserve,
+            final String message,
+            final SimpleCallback callback) {
+        JSONObject hostFilterData = new JSONObject();
+        JSONObject params = new JSONObject();
+
+        hostFilterData.put("id__in", hostIds);
+        params.put("host_filter_data", hostFilterData);
+
+        String functionName;
+        if (reserve)
+            functionName = "reserve_hosts";
+        else
+            functionName = "release_hosts";
+        JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
+
+        rpcProxy.rpcCall(functionName, params, new JsonRpcCallback() {
+            @Override
+            public void onSuccess(JSONValue result) {
+                NotifyManager.getInstance().showMessage(message);
+                callback.doCallback(null);
+            }
+        });
+
+    }
+
+
 }
