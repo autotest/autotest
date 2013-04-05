@@ -618,12 +618,16 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
 
     @staticmethod
-    def check_for_acl_violation_hosts(hosts):
-        user = User.current_user()
+    def check_for_acl_violation_hosts(hosts, username=None):
+        if username:
+            user = User.objects.get(login=username)
+        else:
+            user = User.current_user()
         if user.is_superuser():
             return
         accessible_host_ids = set(
             host.id for host in Host.objects.filter(aclgroup__users=user))
+        unaccessible = []
         for host in hosts:
             # Check if the user has access to this host,
             # but only if it is not a metahost or a one-time-host
@@ -631,9 +635,10 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
                          and not host.invalid
                          and int(host.id) not in accessible_host_ids)
             if no_access:
-                raise AclAccessViolation("%s does not have access to %s" %
-                                         (str(user), str(host)))
-
+                unaccessible.append(str(host))
+        if unaccessible:
+            raise AclAccessViolation("%s does not have access to %s" %
+                                         (str(user), ','.join(unaccessible)))
 
     @staticmethod
     def check_abort_permissions(queue_entries):
