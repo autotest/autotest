@@ -103,28 +103,39 @@ def foo(param1, param2):
 
     Long description of method foo.
 
-    @param param1: A thing called param1 that is used for a bunch of stuff
-            that has methods bar() and baz() which raise SpamError if
-            something goes awry.
-    @return a list of integers describing changes in a source tree
-    ...
+    :param param1: A thing called param1 that is used for a bunch of stuff
+                   that has methods bar() and baz() which raise SpamError if
+                   something goes awry.
+    :type param1: :class:`Thing`
+    :param param2: The number of :class:`thingies <Thing>` that foo will handle
+    :type param2: integer
+    :return: a list of integers describing changes in a source tree
+    :rtype: list of integers
     """
 
-The tags that you can put inside your docstring are tags recognized by systems
-like doxygen. Not all places need all tags defined, so choose them wisely while
-writing code.
+The docstring can hold any form of reStructuredText. For a brief intro, check:
 
-@author - Code author
-@param - Parameter description
-@return - Return value description
-@see - Reference to what you have done
-@todo - Things that still need to be worked out
-@version - Version string
-@warning - Call attention to potential problems with the code
-@raises - If the function can throw an exception, this tag documents the
+ http://docutils.sourceforge.net/rst.html
+
+More specifically, Autotest docs are now based on the Sphinx documentation
+framework:
+
+ http://sphinx-doc.org
+
+So you can use not only use the basic reStructuredText tags, but also any other
+tag that Sphinx makes available. When documenting functions and methods, you
+probably want to use one of the tags exemplified here:
+
+ http://sphinx-doc.org/domains.html#info-field-lists
+
+:param - Parameter description
+:returns - Return value description
+:raises - If the function can throw an exception, this tag documents the
 possible exception types.
 
-When in doubt refer to: http://doxygen.nl/commands.html
+The existing docstrings are being converted into reStructuredText, so don't
+worry if you find docstrings that don't conform to the example given here.
+When in doubt, please refer to the Sphinx documentation.
 
 Simple code
 
