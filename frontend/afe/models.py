@@ -19,35 +19,44 @@ DEFAULT_REBOOT_AFTER = model_attributes.RebootBefore.ALWAYS
 
 
 class AclAccessViolation(Exception):
-    """\
-    Raised when an operation is attempted with proper permissions as
-    dictated by ACLs.
+    """
+    Raised when an operation is attempted with proper permissions as dictated
+    by ACLs.
     """
 
 
 class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
-    """\
-    An atomic group defines a collection of hosts which must only be scheduled
-    all at once.  Any host with a label having an atomic group will only be
-    scheduled for a job at the same time as other hosts sharing that label.
-
-    Required:
-      name: A name for this atomic group.  ex: 'rack23' or 'funky_net'
-      max_number_of_machines: The maximum number of machines that will be
-              scheduled at once when scheduling jobs to this atomic group.
-              The job.synch_count is considered the minimum.
-
-    Optional:
-      description: Arbitrary text description of this group's purpose.
     """
-    name = dbmodels.CharField(max_length=255, unique=True)
-    description = dbmodels.TextField(blank=True)
-    # This magic value is the default to simplify the scheduler logic.
-    # It must be "large".  The common use of atomic groups is to want all
-    # machines in the group to be used, limits on which subset used are
-    # often chosen via dependency labels.
+    A collection of hosts which must only be scheduled all at once.
+
+    Any host with a label having an atomic group will only be scheduled for a
+    job at the same time as other hosts sharing that label.
+
+    Required Fields: :attr:`name`
+
+    Optional Fields: :attr:`description`, :attr:`max_number_of_machines`
+
+    Internal Fields: :attr:`invalid`
+    """
+    #: This magic value is the default to simplify the scheduler logic.
+    #: It must be "large".  The common use of atomic groups is to want all
+    #: machines in the group to be used, limits on which subset used are
+    #: often chosen via dependency labels.
     INFINITE_MACHINES = 333333333
+
+    #: A descriptive name, such as "rack23" or "my_net"
+    name = dbmodels.CharField(max_length=255, unique=True)
+
+    #: Arbitrary text description of this group's purpose.
+    description = dbmodels.TextField(blank=True)
+
+    #: The maximum number of machines that will be scheduled at once when
+    #: scheduling jobs to this atomic group. The :attr:`Job.synch_count` is
+    #: considered the minimum. Default value is :attr:`INFINITE_MACHINES`
     max_number_of_machines = dbmodels.IntegerField(default=INFINITE_MACHINES)
+
+    #: Internal field, used by
+    #: :class:`autotest.frontend.afe.model_logic.ModelWithInvalid`
     invalid = dbmodels.BooleanField(default=False,
                                     editable=frontend_settings.FULL_ADMIN)
 
@@ -57,13 +66,27 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
 
 
     def enqueue_job(self, job, is_template=False):
-        """Enqueue a job on an associated atomic group of hosts."""
+        """
+        Enqueue a job on an associated atomic group of hosts
+
+        :param job: the :class:`Job` that will be sent to this atomic group
+        :type job: :class:`Job`
+        :param is_template: wether the job is a template (True) or a regular
+                            job (False). Default is a regular job (False).
+        :type is_template: boolean
+        """
         queue_entry = HostQueueEntry.create(atomic_group=self, job=job,
                                             is_template=is_template)
         queue_entry.save()
 
 
     def clean_object(self):
+        """
+        Clears the labels set on this atomic group.
+
+        This method is required by
+        :class:`autotest.frontend.afe.model_logic.ModelWithInvalid`
+        """
         self.label_set.clear()
 
 
@@ -76,38 +99,70 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
 
 
 class Label(model_logic.ModelWithInvalid, dbmodels.Model):
-    """\
-    Required:
-      name: label name
-
-    Optional:
-      kernel_config: URL/path to kernel config for jobs run on this label.
-      platform: If True, this is a platform label (defaults to False).
-      only_if_needed: If True, a Host with this label can only be used if that
-              label is requested by the job/test (either as the meta_host or
-              in the job_dependencies).
-      atomic_group: The atomic group associated with this label.
     """
+    Identifiers used to tag hosts, tests and jobs, etc
+
+    Required Fields: :attr:`name`
+
+    Optional Fields: :attr:`kernel_config`, :attr:`platform`
+
+    Internal Fields: :attr:`invalid`
+    """
+    #: The name of the label. This is a required field and it must be unique
     name = dbmodels.CharField(max_length=255, unique=True)
+
+    #: URL/path to kernel config for jobs run on this label
     kernel_config = dbmodels.CharField(max_length=255, blank=True)
+
+    #: If True, this is a platform label (defaults to False)
     platform = dbmodels.BooleanField(default=False)
+
+    #: Internal field, used by
+    #: :class:`autotest.frontend.afe.model_logic.ModelWithInvalid`
     invalid = dbmodels.BooleanField(default=False,
                                     editable=frontend_settings.FULL_ADMIN)
+
+    #: If True, a Host with this label can only be used if that label is
+    #: requested by the job/test (either as the meta_host or in the
+    #: job_dependencies).
     only_if_needed = dbmodels.BooleanField(default=False)
+
+    #: The atomic group associated with this label.
+    atomic_group = dbmodels.ForeignKey(AtomicGroup, null=True, blank=True)
 
     name_field = 'name'
     objects = model_logic.ModelWithInvalidManager()
     valid_objects = model_logic.ValidObjectsManager()
-    atomic_group = dbmodels.ForeignKey(AtomicGroup, null=True, blank=True)
 
 
     def clean_object(self):
+        """
+        Clears this label from all hosts and tests it's associated with
+
+        This method is required by
+        :class:`autotest.frontend.afe.model_logic.ModelWithInvalid`
+        """
+
         self.host_set.clear()
         self.test_set.clear()
 
 
     def enqueue_job(self, job, profile, atomic_group=None, is_template=False):
-        """Enqueue a job on any host of this label."""
+        """
+        Enqueue a job on any host of this label
+
+        :param job: the :class:`Job` that will be sent to any host having this
+                    label
+        :type job: :class:`Job`
+        :param profile: a value for :attr:`HostQueueEntry.profile`
+        :type profile: string
+        :param atomic_group: The named collection of hosts to be scheduled all
+                             at once
+        :type atomic_group: :class:`AtomicGroup`
+        :param is_template: wether the job is a template (True) or a regular
+                            job (False). Default is a regular job (False).
+        :type is_template: boolean
+        """
         queue_entry = HostQueueEntry.create(meta_host=self, job=job,
                                             profile=profile,
                                             is_template=is_template,
@@ -126,8 +181,9 @@ class Drone(dbmodels.Model, model_logic.ModelExtensions):
     """
     A scheduler drone
 
-    hostname: the drone's hostname
+    Required Field: :attr:`hostname`
     """
+    #: the drone's hostname
     hostname = dbmodels.CharField(max_length=255, unique=True)
 
     name_field = 'hostname'
@@ -155,13 +211,12 @@ class Drone(dbmodels.Model, model_logic.ModelExtensions):
 
 class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
     """
-    A set of scheduler drones
+    A set of scheduler :class:`drones <Drone>`
 
     These will be used by the scheduler to decide what drones a job is allowed
     to run on.
 
-    name: the drone set's name
-    drones: the drones that are part of the set
+    Required Fields: :attr:`name`
     """
     DRONE_SETS_ENABLED = settings.get_value('SCHEDULER', 'drone_sets_enabled',
                                             type=bool, default=False)
@@ -169,7 +224,10 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
                                                 'default_drone_set_name',
                                                 default=None)
 
+    #: the drone set's name
     name = dbmodels.CharField(max_length=255, unique=True)
+
+    #: the :class:`drones <Drone>` that are part of the set
     drones = dbmodels.ManyToManyField(Drone, db_table='afe_drone_sets_drones')
 
     name_field = 'name'
@@ -190,25 +248,40 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
 
     @classmethod
     def drone_sets_enabled(cls):
+        '''
+        Returns wether the drone set feature is enabled on the scheduler
+
+        By means of the configuration file.
+        '''
         return cls.DRONE_SETS_ENABLED
 
 
     @classmethod
     def default_drone_set_name(cls):
+        '''
+        Returns the default drone set name as set on the configuration file
+        '''
         return cls.DEFAULT_DRONE_SET_NAME
 
 
     @classmethod
     def get_default(cls):
+        '''
+        Returns the default :class:`DroneSet` instance from the database
+        '''
         return cls.smart_get(cls.DEFAULT_DRONE_SET_NAME)
 
 
     @classmethod
     def resolve_name(cls, drone_set_name):
         """
-        Returns the name of one of these, if not None, in order of preference:
-        1) the drone set given,
-        2) the current user's default drone set, or
+        Returns one of three possible :class:`drone set <DroneSet>`
+
+        If this method is not passed None this order of preference will be used
+        to look for a :class:`DroneSet`
+
+        1) the drone set given
+        2) the current user's default drone set
         3) the global default drone set
 
         or returns None if drone sets are disabled
@@ -237,12 +310,13 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class User(dbmodels.Model, model_logic.ModelExtensions):
-    """\
-    Required:
-    login :user login name
+    """
+    A user account with a login name, privileges and preferences
 
-    Optional:
-    access_level: 0=User (default), 1=Admin, 100=Root
+    Required Fields: :attr:`login`
+
+    Optional Fields: :attr:`access_level`, :attr:`reboot_before`,
+    :attr:`reboot_after`, :attr:`drone_set`, :attr:`show_experimental`
     """
     ACCESS_ROOT = 100
     ACCESS_ADMIN = 1
@@ -250,17 +324,27 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
 
     AUTOTEST_SYSTEM = 'autotest_system'
 
+    #: user login name
     login = dbmodels.CharField(max_length=255, unique=True)
+
+    #: a numeric privilege level that must be one of: 0=User (default),
+    #: 1=Admin, 100=Root
     access_level = dbmodels.IntegerField(default=ACCESS_USER, blank=True)
 
-    # user preferences
+    #: wheter to reboot hosts before a job by default
     reboot_before = dbmodels.SmallIntegerField(
         choices=model_attributes.RebootBefore.choices(), blank=True,
         default=DEFAULT_REBOOT_BEFORE)
+
+    #: wheter to reboot hosts after a job by default
     reboot_after = dbmodels.SmallIntegerField(
         choices=model_attributes.RebootAfter.choices(), blank=True,
         default=DEFAULT_REBOOT_AFTER)
+
+    #: a :class:`DroneSet` that will be used by default for this user's jobs
     drone_set = dbmodels.ForeignKey(DroneSet, null=True, blank=True)
+
+    #: whether to show tests marked as experimental to this user
     show_experimental = dbmodels.BooleanField(default=False)
 
     name_field = 'login'
@@ -280,6 +364,12 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
 
 
     def is_superuser(self):
+        """
+        Returns whether the user is a super user
+
+        :return: True if the user is a super user, False otherwise
+        :rtype: boolean
+        """
         return self.access_level >= self.ACCESS_ROOT
 
 
@@ -302,43 +392,58 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
 
 class Host(model_logic.ModelWithInvalid, dbmodels.Model,
            model_logic.ModelWithAttributes):
-    """\
-    Required:
-    hostname
+    """
+    A machine on which a :class:`job <Job>` will run
 
-    optional:
-    locked: if true, host is locked and will not be queued
+    Required fields: :attr:`hostname`
 
-    Internal:
-    synch_id: currently unused
-    status: string describing status of host
-    invalid: true if the host has been deleted
-    protection: indicates what can be done to this host during repair
-    locked_by: user that locked the host, or null if the host is unlocked
-    lock_time: DateTime at which the host was locked
-    dirty: true if the host has been used without being rebooted
+    Optional fields: :attr:`locked`
+
+    Internal fields: :attr:`synch_id`, :attr:`status`, :attr:`invalid`,
+    :attr:`protection`, :attr:`locked_by`, :attr:`lock_time`, :attr:`dirty`
     """
     Status = enum.Enum('Verifying', 'Running', 'Ready', 'Repairing',
                        'Repair Failed', 'Cleaning', 'Pending',
                        string_values=True)
     Protection = host_protections.Protection
 
+    #: the name of the machine, usually the FQDN or IP address
     hostname = dbmodels.CharField(max_length=255, unique=True)
+
+    #: labels that are set on this host
     labels = dbmodels.ManyToManyField(Label, blank=True,
                                       db_table='afe_hosts_labels')
+
+    #: if true, host is locked and will not be queued
     locked = dbmodels.BooleanField(default=False)
+
+    #: currently unused
     synch_id = dbmodels.IntegerField(blank=True, null=True,
                                      editable=frontend_settings.FULL_ADMIN)
+
+    #: string describing status of hos
     status = dbmodels.CharField(max_length=255, default=Status.READY,
                                 choices=Status.choices(),
                                 editable=frontend_settings.FULL_ADMIN)
+
+    #: true if the host has been deleted. Internal field, used by
+    #: :class:`autotest.frontend.afe.model_logic.ModelWithInvalid`
     invalid = dbmodels.BooleanField(default=False,
                                     editable=frontend_settings.FULL_ADMIN)
+
+    #: indicates what can be done to this host during repair
     protection = dbmodels.SmallIntegerField(null=False, blank=True,
                                             choices=host_protections.choices,
                                             default=host_protections.default)
+
+    #: :class:`user <User>` that locked this host, or null if the host is
+    #: unlocked
     locked_by = dbmodels.ForeignKey(User, null=True, blank=True, editable=False)
+
+    #: Date and time at which the host was locked
     lock_time = dbmodels.DateTimeField(null=True, blank=True, editable=False)
+
+    #: true if the host has been used without being rebooted
     dirty = dbmodels.BooleanField(default=True,
                                   editable=frontend_settings.FULL_ADMIN)
 
@@ -354,6 +459,16 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
 
     @staticmethod
     def create_one_time_host(hostname):
+        """
+        Creates a host that will be available for a single job run
+
+        Internally, a :class:`host <Host>` is created with the :attr:`invalid`
+        attribute set to True. This way, it will **not** be available to have
+        jobs queued to it.
+
+        :returns: the one time, invalid, :class:`Host`
+        :rtype: :class:`Host`
+        """
         query = Host.objects.filter(hostname=hostname)
         if query.count() == 0:
             host = Host(hostname=hostname, invalid=True)
@@ -420,7 +535,21 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
 
 
     def enqueue_job(self, job, profile, atomic_group=None, is_template=False):
-        """Enqueue a job on this host."""
+        """
+        Enqueue a job on this host
+
+        :param job: the :class:`Job` that will be sent to any host having this
+                    label
+        :type job: :class:`Job`
+        :param profile: a value for :attr:`HostQueueEntry.profile`
+        :type profile: string
+        :param atomic_group: The named collection of hosts to be scheduled all
+                             at once
+        :type atomic_group: :class:`AtomicGroup`
+        :param is_template: wether the job is a template (True) or a regular
+                            job (False). Default is a regular job (False).
+        :type is_template: boolean
+        """
         queue_entry = HostQueueEntry.create(host=self, job=job, profile=profile,
                                             is_template=is_template,
                                             atomic_group=atomic_group)
@@ -484,9 +613,16 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
 
 
 class HostAttribute(dbmodels.Model):
-    """Arbitrary keyvals associated with hosts."""
+    """
+    Arbitrary keyvals associated with hosts
+
+    Required Fields: :attr:`host`, :attr:`attribute`, :attr:`value`
+    """
+    #: reference to a :class:`Host`
     host = dbmodels.ForeignKey(Host)
+    #: name of the attribute to set on the :class:`Host`
     attribute = dbmodels.CharField(max_length=90, blank=False)
+    #: value for the attribute
     value = dbmodels.CharField(max_length=300, blank=False)
 
     objects = model_logic.ExtendedManager()
@@ -497,49 +633,66 @@ class HostAttribute(dbmodels.Model):
 
 class Test(dbmodels.Model, model_logic.ModelExtensions):
     """
-    Required:
-    author: author name
-    description: description of the test
-    name: test name
-    time: short, medium, long
-    test_class: This describes the class for your the test belongs in.
-    test_category: This describes the category for your tests
-    test_type: Client or Server
-    path: path to pass to run_test()
-    sync_count:  is a number >=1 (1 being the default). If it's 1, then it's an
-                 async job. If it's >1 it's sync job for that number of machines
-                 i.e. if sync_count = 2 it is a sync job that requires two
-                 machines.
-    Optional:
-    dependencies: What the test requires to run. Comma deliminated list
-    dependency_labels: many-to-many relationship with labels corresponding to
-                       test dependencies.
-    experimental: If this is set to True production servers will ignore the test
-    run_verify: Whether or not the scheduler should run the verify stage
+    A test that can be scheduled and run on a :class:`host <Host>`
+
+    Required Fields: :attr:`author`, :attr:`description`, :attr:`name`,
+    :attr:`test_time`, :attr:`test_class`, :attr:`test_category`
+    :attr:`test_type`, :attr:`path`
+
+    Optional Fields: :attr:`sync_count`, :attr:`dependencies`,
+    :attr:`dependency_labels`, :attr:`experimental`, :attr:`run_verify`
     """
     TestTime = enum.Enum('SHORT', 'MEDIUM', 'LONG', start_value=1)
     TestTypes = model_attributes.TestTypes
     # TODO(showard) - this should be merged with Job.ControlType (but right
     # now they use opposite values)
 
+    #: test name
     name = dbmodels.CharField(max_length=255, unique=True)
+
+    #: author name
     author = dbmodels.CharField(max_length=255, blank=False)
+
+    #: This describes the class for your the test belongs in.
     test_class = dbmodels.CharField(max_length=255, blank=False)
+
+    #: This describes the category for your tests
     test_category = dbmodels.CharField(max_length=255, blank=False)
+
+    #: What the test requires to run. Comma deliminated list
     dependencies = dbmodels.CharField(max_length=255, blank=True)
+
+    #: description of the test
     description = dbmodels.TextField(blank=True)
+
+    #: If this is set to True production servers will ignore the test
     experimental = dbmodels.BooleanField(default=True)
+
+    #: Whether or not the scheduler should run the verify stage
     run_verify = dbmodels.BooleanField(default=True)
+
+    #: short, medium, long
     test_time = dbmodels.SmallIntegerField(choices=TestTime.choices(),
                                            default=TestTime.MEDIUM)
+
+    #: Client or Server
     test_type = dbmodels.SmallIntegerField(choices=TestTypes.choices(),
                                            default=TestTypes.CLIENT)
+
+    #: is a number >=1 (1 being the default). If it's 1, then it's an
+    #: async job. If it's >1 it's sync job for that number of machines
+    #: i.e. if sync_count = 2 it is a sync job that requires two
+    #: machines.
     sync_count = dbmodels.PositiveIntegerField(default=1)
+
+    #: path to pass to run_test()
     path = dbmodels.CharField(max_length=255, unique=True, blank=False)
 
+    #: many-to-many relationship with labels corresponding to test dependencies
     dependency_labels = (
         dbmodels.ManyToManyField(Label, blank=True,
                                  db_table='afe_autotests_dependency_labels'))
+
     name_field = 'name'
     objects = model_logic.ExtendedManager()
 
@@ -561,6 +714,8 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
 class TestParameter(dbmodels.Model):
     """
     A declared parameter of a test
+
+
     """
     test = dbmodels.ForeignKey(Test)
     name = dbmodels.CharField(max_length=255)
@@ -619,6 +774,15 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 
     @staticmethod
     def check_for_acl_violation_hosts(hosts, username=None):
+        '''
+        Check if the user can indeed send a job to the given hosts
+
+        :param hosts: a list of :class:`hosts <Host>`
+        :type hosts: list of :class:`Host`
+        :param username: a login name of the user 
+        :type username: string
+        :raises: AclAccessViolation
+        '''
         if username:
             user = User.objects.get(login=username)
         else:
@@ -644,9 +808,9 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     def check_abort_permissions(queue_entries):
         """
         look for queue entries that aren't abortable, meaning
-         * the job isn't owned by this user, and
-           * the machine isn't ACL-accessible, or
-           * the machine is in the "Everyone" ACL
+        * the job isn't owned by this user, and
+        * the machine isn't ACL-accessible, or
+        * the machine is in the "Everyone" ACL
         """
         user = User.current_user()
         if user.is_superuser():
@@ -754,10 +918,10 @@ class Kernel(dbmodels.Model):
         """
         Creates all kernels in the kernel list
 
-        @param kernel_list A list of dictionaries that describe the kernels, in
-                           the same format as the 'kernel' argument to
-                           rpc_interface.generate_control_file
-        @returns a list of the created kernels
+        :param kernel_list: A list of dictionaries that describe the kernels, in
+                            the same format as the 'kernel' argument to
+                            rpc_interface.generate_control_file
+        :returns: a list of the created kernels
         """
         if not kernel_list:
             return None
@@ -899,27 +1063,8 @@ class JobManager(model_logic.ExtendedManager):
 
 
 class Job(dbmodels.Model, model_logic.ModelExtensions):
-    """\
-    owner: username of job owner
-    name: job name (does not have to be unique)
-    priority: Low, Medium, High, Urgent (or 0-3)
-    control_file: contents of control file
-    control_type: Client or Server
-    created_on: date of job creation
-    submitted_on: date of job submission
-    synch_count: how many hosts should be used per autoserv execution
-    run_verify: Whether or not to run the verify phase
-    timeout: hours from queuing time until job times out
-    max_runtime_hrs: hours from job starting time until job times out
-    email_list: list of people to email on completion delimited by any of:
-                white space, ',', ':', ';'
-    dependency_labels: many-to-many relationship with labels corresponding to
-                       job dependencies
-    reboot_before: Never, If dirty, or Always
-    reboot_after: Never, If all tests passed, or Always
-    parse_failed_repair: if True, a failed repair launched by this job will have
-    its results parsed as part of the job.
-    drone_set: The set of drones to run this job on
+    """
+    A test job scheduled throught the AFE application
     """
     DEFAULT_TIMEOUT = settings.get_value('AUTOTEST_WEB', 'job_timeout_default',
                                          default=240)
@@ -934,34 +1079,70 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     Priority = enum.Enum('Low', 'Medium', 'High', 'Urgent')
     ControlType = enum.Enum('Server', 'Client', start_value=1)
 
+    #: username of job owner
     owner = dbmodels.CharField(max_length=255)
+
+    #: job name (does not have to be unique)
     name = dbmodels.CharField(max_length=255)
+
+    #: Low, Medium, High, Urgent (or 0-3)
     priority = dbmodels.SmallIntegerField(choices=Priority.choices(),
                                           blank=True, # to allow 0
                                           default=Priority.MEDIUM)
+
+    #: contents of control file
     control_file = dbmodels.TextField(null=True, blank=True)
+
+    #: Client or Server
     control_type = dbmodels.SmallIntegerField(choices=ControlType.choices(),
                                               blank=True, # to allow 0
                                               default=ControlType.CLIENT)
+
+    #: date of job creation
     created_on = dbmodels.DateTimeField()
+
+    #: how many hosts should be used per autoserv execution
     synch_count = dbmodels.IntegerField(null=True, default=1)
+
+    #: hours from queuing time until job times out
     timeout = dbmodels.IntegerField(default=DEFAULT_TIMEOUT)
+
+    #: Whether or not to run the verify phase
     run_verify = dbmodels.BooleanField(default=True)
+
+
+    #: list of people to email on job completion. Delimited by one of:
+    #: white space, comma (``,``), colon (``:``) or semi-colon (``;``)
     email_list = dbmodels.CharField(max_length=250, blank=True)
+
+    #: many-to-many relationship with labels corresponding to job dependencies
     dependency_labels = (
             dbmodels.ManyToManyField(Label, blank=True,
                                      db_table='afe_jobs_dependency_labels'))
+
+    #: Never, If dirty, or Always
     reboot_before = dbmodels.SmallIntegerField(
         choices=model_attributes.RebootBefore.choices(), blank=True,
         default=DEFAULT_REBOOT_BEFORE)
+
+    #: Never, If all tests passed, or Always
     reboot_after = dbmodels.SmallIntegerField(
         choices=model_attributes.RebootAfter.choices(), blank=True,
         default=DEFAULT_REBOOT_AFTER)
+
+    #: if True, a failed repair launched by this job will have its results
+    #: parsed as part of the job.
     parse_failed_repair = dbmodels.BooleanField(
         default=DEFAULT_PARSE_FAILED_REPAIR)
+
+    #: hours from job starting time until job times out
     max_runtime_hrs = dbmodels.IntegerField(default=DEFAULT_MAX_RUNTIME_HRS)
+
+    #: the set of drones to run this job on
     drone_set = dbmodels.ForeignKey(DroneSet, null=True, blank=True)
 
+    #: a reference to a :class:`ParameterizedJob` object. Can be NULL if
+    #: job is not parameterized
     parameterized_job = dbmodels.ForeignKey(ParameterizedJob, null=True,
                                             blank=True)
 
@@ -988,6 +1169,12 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         First, either control_file must be set, or parameterized_job must be
         set, but not both. Second, parameterized_job must be set if and only if
         the parameterized_jobs option in the global config is set to True.
+
+        :param control_file: the definition of the control file
+        :type control_file: string
+        :param parameterized_job: a :class:`ParameterizedJob`
+        :type parameterized_job: :class:`ParameterizedJob`
+        :return: None
         """
         if not (bool(control_file) ^ bool(parameterized_job)):
             raise Exception('Job must have either control file or '
@@ -1004,9 +1191,20 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     @classmethod
     def create(cls, owner, options, hosts):
-        """\
+        """
         Creates a job by taking some information (the listed args)
         and filling in the rest of the necessary information.
+
+        :param owner: the username of the job owner. set the attribute
+                      :attr:`owner`
+        :type owner: string
+        :param options: a dictionary with parameters to be passed to to the
+                        class method :meth:`add_object <Job.add_object>`
+        :type options: dict
+        :param hosts: a list of :class:`hosts <Host>` that will be used to
+                      check if the user can indeed send a job to them (by means
+                      of :meth:`AclGroup.check_for_acl_violation_hosts`
+        :type hosts: list of :class:`Host`
         """
         AclGroup.check_for_acl_violation_hosts(hosts)
 
