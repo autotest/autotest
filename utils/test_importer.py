@@ -291,13 +291,19 @@ def _set_attributes_clean(test, data):
     for attribute in int_attributes:
         setattr(test, attribute, int(getattr(data, attribute)))
 
-    try:
-        test.test_type = int(data.test_type)
-        if test.test_type != 1 and test.test_type != 2:
-            raise Exception('Incorrect number %d for test_type' %
-                            test.test_type)
-    except ValueError:
-        pass
+    if str == type(data.test_type):
+        if not data.test_type.lower() in test_type.keys():
+            raise Exception('Incorrect string %s for test_type' %
+                                data.test_type)
+        test.test_type = test_type[data.test_type.lower()]
+    else:
+        try:
+            test.test_type = int(data.test_type)
+            if test.test_type != 1 and test.test_type != 2:
+                raise Exception('Incorrect number %d for test_type' %
+                                test.test_type)
+        except ValueError:
+            pass
     try:
         test.test_time = int(data.time)
         if test.test_time < 1 or test.time > 3:
@@ -307,8 +313,6 @@ def _set_attributes_clean(test, data):
 
     if not test.test_time and str == type(data.time):
         test.test_time = test_time[data.time.lower()]
-    if not test.test_type and str == type(data.test_type):
-        test.test_type = test_type[data.test_type.lower()]
 
 
 def add_label_dependencies(test):
