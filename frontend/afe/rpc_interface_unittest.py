@@ -6,9 +6,9 @@ try:
 except ImportError:
     import common
 from autotest.frontend import setup_django_environment
-from autotest.frontend.afe import frontend_test_utils
+from autotest.frontend import test_utils
 from django.db import connection
-from autotest.frontend.afe import models, rpc_interface, frontend_test_utils
+from autotest.frontend.afe import models, rpc_interface
 from autotest.frontend.afe import model_logic, model_attributes
 from autotest.client.shared import settings
 
@@ -17,7 +17,7 @@ _hqe_status = models.HostQueueEntry.Status
 
 
 class RpcInterfaceTest(unittest.TestCase,
-                       frontend_test_utils.FrontendTestMixin):
+                       test_utils.FrontendTestMixin):
     def setUp(self):
         self._frontend_common_setup()
 
