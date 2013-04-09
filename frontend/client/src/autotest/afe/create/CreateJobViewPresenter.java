@@ -70,6 +70,7 @@ public class CreateJobViewPresenter implements TestSelectorListener {
         public RadioChooser.Display getRebootAfter();
         public HasValue<Boolean> getParseFailedRepair();
         public ICheckBox getHostless();
+        public HasValue<Boolean> getReserveHosts();       
         public HostSelector.Display getHostSelectorDisplay();
         public SimplifiedList getDroneSet();
         public ITextBox getSynchCountInput();
@@ -148,7 +149,9 @@ public class CreateJobViewPresenter implements TestSelectorListener {
         rebootAfter.setSelectedChoice(Utils.jsonToString(jobObject.get("reboot_after")));
         display.getParseFailedRepair().setValue(
                 jobObject.get("parse_failed_repair").isBoolean().booleanValue());
+        display.getReserveHosts().setValue(cloneObject.get("reserve_hosts").isBoolean().booleanValue());
         display.getHostless().setValue(cloneObject.get("hostless").isBoolean().booleanValue());
+        
         if (display.getHostless().getValue()) {
             hostSelector.setEnabled(false);
         }
@@ -517,6 +520,7 @@ public class CreateJobViewPresenter implements TestSelectorListener {
         display.getParseFailedRepair().setValue(
                 repository.getData("parse_failed_repair_default").isBoolean().booleanValue());
         display.getHostless().setValue(false);
+        display.getReserveHosts().setValue(false);
         display.getKernel().setText("");
         display.getKernelCmdline().setText("");
         display.getTimeout().setText(Utils.jsonToString(repository.getData("job_timeout_default")));
@@ -584,6 +588,7 @@ public class CreateJobViewPresenter implements TestSelectorListener {
                 args.put("parse_failed_repair",
                          JSONBoolean.getInstance(display.getParseFailedRepair().getValue()));
                 args.put("hostless", JSONBoolean.getInstance(display.getHostless().getValue()));
+                args.put("reserve_hosts", JSONBoolean.getInstance(display.getReserveHosts().getValue()));
 
                 if (staticData.getData("drone_sets_enabled").isBoolean().booleanValue()) {
                     args.put("drone_set", new JSONString(display.getDroneSet().getSelectedName()));
