@@ -543,7 +543,8 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
                              max_runtime_hrs=None, run_verify=True,
                              email_list='', dependencies=(), reboot_before=None,
                              reboot_after=None, parse_failed_repair=None,
-                             hostless=False, keyvals=None, drone_set=None):
+                             hostless=False, keyvals=None, drone_set=None,
+                             reserve_hosts=False):
     """
     Creates and enqueues a parameterized job.
 
@@ -625,40 +626,42 @@ def create_job(name, priority, control_file, control_type,
                is_template=False, timeout=None, max_runtime_hrs=None,
                run_verify=True, email_list='', dependencies=(), reboot_before=None,
                reboot_after=None, parse_failed_repair=None, hostless=False,
-               keyvals=None, drone_set=None):
-    """\
+               keyvals=None, drone_set=None, reserve_hosts=False):
+    """
     Create and enqueue a job.
 
-    @param name name of this job
-    @param priority Low, Medium, High, Urgent
-    @param control_file String contents of the control file.
-    @param control_type Type of control file, Client or Server.
-    @param synch_count How many machines the job uses per autoserv execution.
-    synch_count == 1 means the job is asynchronous.  If an atomic group is
-    given this value is treated as a minimum.
-    @param is_template If true then create a template job.
-    @param timeout Hours after this call returns until the job times out.
-    @param max_runtime_hrs Hours from job starting time until job times out
-    @param run_verify Should the host be verified before running the test?
-    @param email_list String containing emails to mail when the job is done
-    @param dependencies List of label names on which this job depends
-    @param reboot_before Never, If dirty, or Always
-    @param reboot_after Never, If all tests passed, or Always
-    @param parse_failed_repair if true, results of failed repairs launched by
-    this job will be parsed as part of the job.
-    @param hostless if true, create a hostless job
-    @param keyvals dict of keyvals to associate with the job
-
-    @param hosts List of hosts to run job on.
-    @param profiles List of profiles to use, in sync with @hosts list
-    @param meta_hosts List where each entry is a label name, and for each entry
-    one host will be chosen from that label to run the job on.
-    @param one_time_hosts List of hosts not in the database to run the job on.
-    @param atomic_group_name The name of an atomic group to schedule the job on.
-    @param drone_set The name of the drone set to run this test on.
-
-
-    @returns The created Job id number.
+    :param name: name of this job
+    :param priority: Low, Medium, High, Urgent
+    :param control_file: String contents of the control file.
+    :param control_type: Type of control file, Client or Server.
+    :param synch_count: How many machines the job uses per autoserv execution.
+                        synch_count == 1 means the job is asynchronous. If an
+                        atomic group is given this value is treated as a
+                        minimum.
+    :param is_template: If true then create a template job.
+    :param timeout: Hours after this call returns until the job times out.
+    :param max_runtime_hrs: Hours from job starting time until job times out
+    :param run_verify: Should the host be verified before running the test?
+    :param email_list: String containing emails to mail when the job is done
+    :param dependencies: List of label names on which this job depends
+    :param reboot_before: Never, If dirty, or Always
+    :param reboot_after: Never, If all tests passed, or Always
+    :param parse_failed_repair: if true, results of failed repairs launched by
+                                this job will be parsed as part of the job.
+    :param hostless: if true, create a hostless job
+    :param keyvals: dict of keyvals to associate with the job
+    :param hosts: List of hosts to run job on.
+    :param profiles: List of profiles to use, in sync with @hosts list
+    :param meta_hosts: List where each entry is a label name, and for each
+                       entry one host will be chosen from that label to run
+                       the job on.
+    :param one_time_hosts: List of hosts not in the database to run the job on.
+    :param atomic_group_name: name of an atomic group to schedule the job on.
+    :param drone_set: The name of the drone set to run this test on.
+    :param reserve_hosts: If set we will reseve the hosts that were allocated
+                          for this job
+    :returns: The created Job id number.
+    :rtype: integer
     """
     return rpc_utils.create_job_common(
             **rpc_utils.get_create_job_common_args(locals()))

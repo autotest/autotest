@@ -52,6 +52,7 @@ public class CreateJobViewDisplay implements CreateJobViewPresenter.Display {
     private RadioChooserDisplay rebootAfter = new RadioChooserDisplay();
     private CheckBox parseFailedRepair = new CheckBox();
     private CheckBoxImpl hostless = new CheckBoxImpl();
+    private CheckBox reserveHosts = new CheckBox();
     private TestSelectorDisplay testSelector = new TestSelectorDisplay();
     private CheckBoxPanelDisplay profilersPanel = new CheckBoxPanelDisplay(CHECKBOX_PANEL_COLUMNS);
     private CheckBoxImpl runNonProfiledIteration =
@@ -108,6 +109,7 @@ public class CreateJobViewDisplay implements CreateJobViewPresenter.Display {
         panel.add(rebootAfter, "create_reboot_after");
         panel.add(parseFailedRepair, "create_parse_failed_repair");
         panel.add(hostless, "create_hostless");
+        panel.add(reserveHosts, "reserve_hosts");
         panel.add(testSelector, "create_tests");
         panel.add(profilerControls, "create_profilers");
         panel.add(controlFilePanel, "create_edit_control");
@@ -180,6 +182,10 @@ public class CreateJobViewDisplay implements CreateJobViewPresenter.Display {
 
     public HasValue<Boolean> getParseFailedRepair() {
         return parseFailedRepair;
+    }
+
+    public HasValue<Boolean> getReserveHosts() {
+        return reserveHosts;
     }
 
     public SimplifiedList getPriorityList() {
