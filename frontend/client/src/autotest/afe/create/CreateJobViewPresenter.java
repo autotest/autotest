@@ -149,7 +149,7 @@ public class CreateJobViewPresenter implements TestSelectorListener {
         rebootAfter.setSelectedChoice(Utils.jsonToString(jobObject.get("reboot_after")));
         display.getParseFailedRepair().setValue(
                 jobObject.get("parse_failed_repair").isBoolean().booleanValue());
-        display.getReserveHosts().setValue(cloneObject.get("reserve_hosts").isBoolean().booleanValue());
+        display.getReserveHosts().setValue(jobObject.get("reserve_hosts").isBoolean().booleanValue());
         display.getHostless().setValue(cloneObject.get("hostless").isBoolean().booleanValue());
         
         if (display.getHostless().getValue()) {
