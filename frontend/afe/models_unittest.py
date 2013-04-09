@@ -6,13 +6,13 @@ try:
 except ImportError:
     import common
 from autotest.frontend import setup_django_environment
-from autotest.frontend.afe import frontend_test_utils
+from autotest.frontend import test_utils
 from autotest.frontend.afe import models, model_attributes
 from autotest.client.shared.settings import settings
 
 
 class AclGroupTest(unittest.TestCase,
-                   frontend_test_utils.FrontendTestMixin):
+                   test_utils.FrontendTestMixin):
     def setUp(self):
         self._frontend_common_setup()
 
@@ -43,7 +43,7 @@ class AclGroupTest(unittest.TestCase,
 
 
 class HostTest(unittest.TestCase,
-               frontend_test_utils.FrontendTestMixin):
+               test_utils.FrontendTestMixin):
     def setUp(self):
         self._frontend_common_setup()
 
@@ -69,7 +69,7 @@ class HostTest(unittest.TestCase,
 
 
 class SpecialTaskUnittest(unittest.TestCase,
-                          frontend_test_utils.FrontendTestMixin):
+                          test_utils.FrontendTestMixin):
     def setUp(self):
         self._frontend_common_setup()
 
@@ -128,7 +128,7 @@ class SpecialTaskUnittest(unittest.TestCase,
 
 
 class HostQueueEntryUnittest(unittest.TestCase,
-                             frontend_test_utils.FrontendTestMixin):
+                             test_utils.FrontendTestMixin):
     def setUp(self):
         self._frontend_common_setup()
 
@@ -146,7 +146,7 @@ class HostQueueEntryUnittest(unittest.TestCase,
 
 
 class ModelWithInvalidTest(unittest.TestCase,
-                           frontend_test_utils.FrontendTestMixin):
+                           test_utils.FrontendTestMixin):
     def setUp(self):
         self._frontend_common_setup()
 
@@ -217,7 +217,7 @@ class ModelWithInvalidTest(unittest.TestCase,
         self.assertEqual(0, models.Job.objects.all().count())
 
 
-class KernelTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
+class KernelTest(unittest.TestCase, test_utils.FrontendTestMixin):
     def setUp(self):
         self._frontend_common_setup()
 
@@ -251,7 +251,7 @@ class KernelTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
 
 
 class ParameterizedJobTest(unittest.TestCase,
-                           frontend_test_utils.FrontendTestMixin):
+                           test_utils.FrontendTestMixin):
     def setUp(self):
         self._frontend_common_setup()
 
@@ -274,7 +274,7 @@ class ParameterizedJobTest(unittest.TestCase,
         self.assertEqual(job, parameterized_job.job())
 
 
-class JobTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
+class JobTest(unittest.TestCase, test_utils.FrontendTestMixin):
     def setUp(self):
         self._frontend_common_setup()
 
