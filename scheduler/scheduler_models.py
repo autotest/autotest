@@ -23,6 +23,7 @@ from autotest.frontend.afe import models, model_attributes
 from autotest.database_legacy import database_connection
 from autotest.scheduler import drone_manager, email_manager
 from autotest.scheduler import scheduler_config
+from autotest.frontend.afe import reservations
 
 _notify_email_statuses = []
 _base_url = None
@@ -688,7 +689,11 @@ class HostQueueEntry(DBObject):
         logging.info("%s/%s/%s (job %s, entry %s) scheduled on %s, status=%s",
                      self.job.name, self.meta_host, self.atomic_group_id,
                      self.job.id, self.id, self.host.hostname, self.status)
-
+        # just before doing any actual work reserve the host if requested
+        if self.job.reserve_hosts:
+            logging.info("Job %s, reserving %s for %s",
+                         self.job.id, self.host.hostname, self.job.owner)
+            reservations.create([self.host.hostname], self.job.owner)
         self._do_schedule_pre_job_tasks()
 
 
@@ -823,7 +828,7 @@ class Job(DBObject):
                'control_type', 'created_on', 'synch_count', 'timeout',
                'run_verify', 'email_list', 'reboot_before', 'reboot_after',
                'parse_failed_repair', 'max_runtime_hrs', 'drone_set_id',
-               'parameterized_job_id')
+               'parameterized_job_id', 'reserve_hosts')
 
     # This does not need to be a column in the DB.  The delays are likely to
     # be configured short.  If the scheduler is stopped and restarted in
