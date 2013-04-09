@@ -1146,6 +1146,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     parameterized_job = dbmodels.ForeignKey(ParameterizedJob, null=True,
                                             blank=True)
 
+    #: if True, any host that is scheduled for this job will be reserved at the time of scheduling
+    reserve_hosts = dbmodels.BooleanField(default=False)
 
     # custom manager
     objects = JobManager()
@@ -1237,7 +1239,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             parse_failed_repair=options.get('parse_failed_repair'),
             created_on=datetime.now(),
             drone_set=drone_set,
-            parameterized_job=parameterized_job)
+            parameterized_job=parameterized_job,
+            reserve_hosts=options.get('reserve_hosts'))
 
         job.dependency_labels = options['dependencies']
 
