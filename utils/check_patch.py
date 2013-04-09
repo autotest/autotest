@@ -569,23 +569,28 @@ class PatchChecker(object):
         Gets a patch file from patchwork and puts it under the cwd so it can
         be applied.
 
-        @param id: Patchwork patch id.
+        @param id: Patchwork patch id. It can be a string with comma separated
+                github ids.
         """
-        patch_url = "http://%s/patch/%s/mbox/" % (self.pwhost, pw_id)
-        patch_dest = os.path.join(self.base_dir, 'patchwork-%s.patch' % pw_id)
-        patch = utils.get_file(patch_url, patch_dest)
-        # Patchwork sometimes puts garbage on the path, such as long
-        # sequences of underscores (_______). Get rid of those.
-        patch_ro = open(patch, 'r')
-        patch_contents = patch_ro.readlines()
-        patch_ro.close()
-        patch_rw = open(patch, 'w')
-        for line in patch_contents:
-            if not line.startswith("___"):
-                patch_rw.write(line)
-        patch_rw.close()
-        return patch
+        collection = os.path.join(self.base_dir, 'patchwork-%s.patch' %
+                                  utils.generate_random_string(4))
+        collection_rw = open(collection, 'w')
 
+        for i in pw_id.split(","):
+            patch_url = "http://%s/patch/%s/mbox/" % (self.pwhost, i)
+            patch_dest = os.path.join(self.base_dir, 'patchwork-%s.patch' % i)
+            patch = utils.get_file(patch_url, patch_dest)
+            # Patchwork sometimes puts garbage on the path, such as long
+            # sequences of underscores (_______). Get rid of those.
+            patch_ro = open(patch, 'r')
+            patch_contents = patch_ro.readlines()
+            patch_ro.close()
+            for line in patch_contents:
+                if not line.startswith("___"):
+                    collection_rw.write(line)
+        collection_rw.close()
+
+        return collection
 
     def _fetch_from_github(self, gh_id):
         """
@@ -746,7 +751,7 @@ if __name__ == "__main__":
             patch_checker = PatchChecker(patch=local_patch, vcs=vcs,
                                          confirm=confirm)
         elif pw_id:
-            logging.info("Checking patchwork patch #%s", pw_id)
+            logging.info("Checking patchwork patch IDs %s", pw_id)
             logging.info("")
             patch_checker = PatchChecker(patchwork_id=pw_id, pwhost=pwhost,
                                          vcs=vcs,
