@@ -1395,6 +1395,20 @@ class job_create_unittest(cli_mock.cli_unittest):
         self.god.check_playback()
         file_temp.clean()
 
+    def test_execute_create_job_reserve_hosts(self):
+        data = self.data.copy()
+        data['reserve_hosts'] = True
+        file_temp = cli_mock.create_file(self.ctrl_file)
+        self.run_cmd(argv=['atest', 'job', 'create',
+                           '-f', file_temp.name,
+                           'test_job0', '-m', 'host0',
+                           '--reserve-hosts',
+                           '--ignore_site_file'],
+                     rpcs=[('create_job', data, True, 42)],
+                     out_words_ok=['test_job0', 'Created'],
+                     out_words_no=['Uploading', 'Done'])
+        file_temp.clean()
+
 
 class job_clone_unittest(cli_mock.cli_unittest):
     job_data = {'control_file': u'NAME = \'Server Sleeptest\'\nAUTHOR = \'mbligh@google.com (Martin Bligh)\'\nTIME = \'SHORT\'\nTEST_CLASS = \'Software\'\nTEST_CATEGORY = \'Functional\'\nTEST_TYPE = \'server\'\nEXPERIMENTAL = \'False\'\n\nDOC = """\nruns sleep for one second on the list of machines.\n"""\n\ndef run(machine):\n    host = hosts.create_host(machine)\n    job.run_test(\'sleeptest\')\n\njob.parallel_simple(run, machines)\n',

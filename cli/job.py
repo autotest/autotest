@@ -370,7 +370,8 @@ class job_create_or_clone(action_common.atest_create, job):
 
 
 class job_create(job_create_or_clone):
-    """atest job create [--priority <Low|Medium|High|Urgent>]
+    """
+    atest job create [--priority <Low|Medium|High|Urgent>]
     [--synch_count] [--control-file </path/to/cfile>]
     [--on-server] [--test <test1,test2>] [--kernel <http://kernel>]
     [--kernel-config <http://kernel-config-file>]
@@ -381,6 +382,7 @@ class job_create(job_create_or_clone):
     [--one-time-hosts <hosts>] [--email <email>]
     [--dependencies <labels this job is dependent on>]
     [--atomic_group <atomic group name>] [--parse-failed-repair <option>]
+    [--reserve-hosts]
     job_name
 
     Creating a job is rather different from the other create operations,
@@ -450,7 +452,9 @@ class job_create(job_create_or_clone):
         self.parser.add_option('--hostless',
                                help='Specify a hostless job',
                                action='store_true', default=False)
-
+        self.parser.add_option('--reserve-hosts',
+                               help='Reserve hosts utilized by this job',
+                               action='store_true', default=False)
 
     def _get_kernel_data(self, kernel_list, cmdline, config_list=None):
         """ Combine CLI options for kernel_list, cmdline, and config_list
@@ -581,6 +585,9 @@ class job_create(job_create_or_clone):
 
         if options.hostless:
             self.data['hostless'] = True
+
+        if options.reserve_hosts:
+            self.data['reserve_hosts'] = True
 
         return options, leftover
 
