@@ -412,10 +412,13 @@ class LinuxDistroTest(unittest.TestCase,
 
 
     def test_create_delete(self):
+        # The builtin 'unknown distro' accounts for the first count
+        self.assertEqual(1, models.LinuxDistro.objects.all().count())
+
         models.LinuxDistro.objects.create(name='distro', major=1,
                                           minor=0, arch='i386')
 
-        self.assertEqual(1, models.LinuxDistro.objects.all().count())
+        self.assertEqual(2, models.LinuxDistro.objects.all().count())
 
         models.LinuxDistro.objects.all().delete()
         self.assertEqual(0, models.LinuxDistro.objects.all().count())
@@ -432,7 +435,7 @@ class LinuxDistroTest(unittest.TestCase,
                                           minor=1, arch='x86_64')
 
         all_count = models.LinuxDistro.objects.all().count()
-        self.assertEqual(all_count, 4)
+        self.assertEqual(all_count, 5)
         i386_count = models.LinuxDistro.query_objects({'arch': 'i386'}).count()
         self.assertEqual(i386_count, 2)
 
@@ -440,7 +443,7 @@ class LinuxDistroTest(unittest.TestCase,
                                        minor=0, arch='i386').delete()
         models.LinuxDistro.objects.get(name='distro', major=1,
                                        minor=1, arch='i386').delete()
-        self.assertEqual(2, models.LinuxDistro.objects.all().count())
+        self.assertEqual(3, models.LinuxDistro.objects.all().count())
 
 
     def test_create_duplicate_distro(self):
