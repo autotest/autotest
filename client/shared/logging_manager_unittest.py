@@ -262,7 +262,7 @@ class MonkeyPatchTestCase(unittest.TestCase):
     def check_filename(self, filename, expected=None):
         if expected is None:
             expected = [self.expected_filename]
-        self.assertIn(os.path.split(filename)[1], expected)
+        self.assertTrue(os.path.split(filename)[1] in expected)
 
 
     def _0_test_find_caller(self):
