@@ -208,7 +208,7 @@ then
         if [ "`grep 'release 6' /etc/redhat-release`" != "" ]
         then
             print_log "INFO" "Adding EPEL 6 repository"
-            rpm -ivh http://download.fedoraproject.org/pub/epel/6/`arch`/epel-release-6-7.noarch.rpm >> $LOG 2>&1
+            rpm -ivh http://download.fedoraproject.org/pub/epel/6/`arch`/epel-release-6-8.noarch.rpm >> $LOG 2>&1
         fi
     fi
 fi
