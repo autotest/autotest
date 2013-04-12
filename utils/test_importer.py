@@ -272,12 +272,13 @@ def _set_attributes_clean(test, data):
     @param test: a test object to be populated for the database.
     @param data: object with test data from the file system.
     """
-    test_type = { 'client' : 1,
-                  'server' : 2, }
-    test_time = { 'short' : 1,
-                  'medium' : 2,
-                  'long' : 3, }
-
+    test_type = {'client': 1,
+                 'server': 2, }
+    test_time = {'short': 1,
+                 'medium': 2,
+                 'long': 3, }
+    test.test_type = test_type[data.test_type.lower()]
+    test.test_time = test_time[data.time.lower()]
 
     string_attributes = ('name', 'author', 'test_class', 'test_category',
                          'test_category', 'sync_count')
@@ -290,25 +291,6 @@ def _set_attributes_clean(test, data):
     int_attributes = ('experimental', 'run_verify')
     for attribute in int_attributes:
         setattr(test, attribute, int(getattr(data, attribute)))
-
-    try:
-        test.test_type = int(data.test_type)
-        if test.test_type != 1 and test.test_type != 2:
-            raise Exception('Incorrect number %d for test_type' %
-                            test.test_type)
-    except ValueError:
-        pass
-    try:
-        test.test_time = int(data.time)
-        if test.test_time < 1 or test.time > 3:
-            raise Exception('Incorrect number %d for time' % test.time)
-    except ValueError:
-        pass
-
-    if not test.test_time and str == type(data.time):
-        test.test_time = test_time[data.time.lower()]
-    if not test.test_type and str == type(data.test_type):
-        test.test_type = test_type[data.test_type.lower()]
 
 
 def add_label_dependencies(test):
