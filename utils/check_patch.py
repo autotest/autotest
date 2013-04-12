@@ -14,7 +14,7 @@ The workflow is as follows:
    and report any failures.
 
 Usage: check_patch.py -p [/path/to/patch]
-       check_patch.py -i [patchwork id]
+       check_patch.py -i [list of patchwork ids separated by comma]
        check_patch.py -g [github pull request id]
        check_patch.py --full --yes [check all autotest tree]
 
@@ -660,9 +660,9 @@ if __name__ == "__main__":
     parser.add_option('-l', '--patch', dest="local_patch", action='store',
                       help='path to a patch file that will be checked')
     parser.add_option('-p', '--patchwork-id', dest="pw_id", action='store',
-                      help='id of a given patchwork patch')
+                      help='list of patchwork ids, such as 123,124,125')
     parser.add_option('-g', '--github-id', dest="gh_id", action='store',
-                      help='id of a given github patch')
+                      help='id of a given github pull request')
     parser.add_option('--verbose', dest="debug", action='store_true',
                       help='include debug messages in console output')
     parser.add_option('-f', '--full-check', dest="full_check",
