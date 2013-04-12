@@ -37,6 +37,7 @@ except ImportError:
 from autotest.frontend.afe import models, model_logic, model_attributes
 from autotest.frontend.afe import control_file, rpc_utils
 from autotest.server.hosts.remote import get_install_server_info
+from autotest.client.shared.settings import settings
 
 
 # labels
@@ -213,7 +214,7 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
 
         error_encountered = True
         if install_server is not None:
-            system_params = {"name":host_dict['hostname']}
+            system_params = {"name": host_dict['hostname']}
             system_list = install_server.find_system(system_params, True)
 
             if len(system_list) < 1:
@@ -237,7 +238,12 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
                     profiles = sorted(install_server.get_item_names('profile'))
                     host_dict['profiles'] = profiles
                     host_dict['profiles'].insert(0, 'Do_not_install')
-                    host_dict['current_profile'] = system['profile']
+                    use_current_profile = settings.get_value('INSTALL_SERVER',
+                            'use_current_profile', type=bool, default=True)
+                    if use_current_profile:
+                        host_dict['current_profile'] = system['profile']
+                    else:
+                        host_dict['current_profile'] = 'Do_not_install'
 
         if error_encountered:
             host_dict['profiles'] = ['N/A']
