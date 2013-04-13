@@ -1,0 +1,4 @@
+#!/bin/sh
+
+autotest -P quickcmd="reboot:" bootstrap
+

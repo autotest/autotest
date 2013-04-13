@@ -70,6 +70,9 @@ class harness_beaker(harness.harness):
         self.offline = False
         self.cmd = None
 
+        #handle legacy rhts scripts called from inside tests
+        os.environ['PATH']  = "%s:%s" % ('/var/cache/autotest', os.environ['PATH'])
+
         if harness_args:
             log.info('harness_args: %s' % harness_args)
             os.environ['AUTOTEST_HARNESS_ARGS'] = harness_args
@@ -108,14 +111,89 @@ class harness_beaker(harness.harness):
                 if not is_bootstrap:
                     self.offline = True
 
+            elif a[:8] == 'quickcmd':
+                if len(a) < 8 or a[8] != '=':
+                    raise error.HarnessError("Bad use of 'quickcmd'")
+                self.cmd = a[9:]
+
             else:
                 raise error.HarnessError("Unknown beaker harness arg: %s" % a)
+
+    def parse_quickcmd(self, args):
+        #hack allow tests to quickly submit feedback through harness
+
+        if not args:
+            return
+
+        if 'BEAKER_TASK_ID' not in os.environ:
+            raise error.HarnessError("No BEAKER_TASK_ID set")
+        task_id = os.environ['BEAKER_TASK_ID']
+
+        #Commands are from tests and should be reported as results
+        cmd,q_args =  args.split(':')
+        if cmd == 'submit_log':
+            try:
+                #rhts_submit_log has as args: -S -T -l
+                #we just care about -l
+                f = None
+                arg_list = q_args.split(' ')
+                while arg_list:
+                    arg = arg_list.pop(0)
+                    if arg == '-l':
+                        f = arg_list.pop(0)
+                        break
+                if not f:
+                    raise
+                self.bkr_proxy.task_upload_file(task_id, f)
+            except Exception:
+                log.critical('ERROR: Failed to process quick cmd %s' % cmd)
+
+        elif cmd == 'submit_result':
+            def init_args(testname='Need/a/testname/here', status="None", logfile=None, score="0"):
+                return testname, status, logfile, score
+
+            try:
+                #report_result has TESNAME STATUS LOGFILE SCORE
+                arg_list = q_args.split(' ')
+                testname, status, logfile, score = init_args(*arg_list)
+
+                resultid = self.bkr_proxy.task_result(task_id, status,
+                                                      testname, score, '')
+
+                if (logfile and os.path.isfile(logfile) and
+                   os.path.getsize(logfile) != 0):
+                    self.bkr_proxy.result_upload_file(task_id, resultid, logfile)
+
+                #save the dmesg file
+                dfile = '/tmp/beaker.dmesg'
+                utils.system('dmesg -c > %s' % dfile)
+                if os.path.getsize(dfile) != 0:
+                    self.bkr_proxy.result_upload_file(task_id, resultid, dfile)
+                #os.remove(dfile)
+
+            except Exception:
+                log.critical('ERROR: Failed to process quick cmd %s' % cmd)
+
+        elif cmd == 'reboot':
+            #we are in a stub job.  Can't use self.job.reboot() :-(
+            utils.system("sync; sync; reboot")
+            self.run_pause()
+            raise error.JobContinue("more to come")
+
+        else:
+            raise error.HarnessError("Bad sub-quickcmd: %s" % cmd)
 
     def bootstrap(self, fetchdir):
         '''How to kickstart autotest when you have no control file?
            You download the beaker XML, convert it to a control file
            and pass it back to autotest. Much like bootstrapping.. :-)
         '''
+
+        #hack to sneakily pass results back to beaker without running
+        #autotest.  Need to avoid calling get_recipe below
+        if self.cmd:
+            self.parse_quickcmd(self.cmd)
+            return None
 
         recipe = self.init_recipe_from_beaker()
 
