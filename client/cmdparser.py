@@ -8,7 +8,8 @@ import os, re, sys, logging
 from autotest.client import os_dep, utils
 from autotest.client.shared import logging_config, logging_manager
 from autotest.client.shared.settings import settings
-from autotest.client.shared import packages
+from autotest.client.shared import packages, error
+from autotest.client import harness
 
 LOCALDIRTEST = "tests"
 GLOBALDIRTEST = settings.get_value('COMMON', 'test_dir', default="")
@@ -35,16 +36,14 @@ class CmdParserLoggingConfig(logging_config.LoggingConfig):
     """
     def configure_logging(self, results_dir=None, verbose=False):
         super(CmdParserLoggingConfig, self).configure_logging(use_console=True,
-                                                              verbose=False)
-
-logging_manager.configure_logging(CmdParserLoggingConfig())
+                                                              verbose=verbose)
 
 class CommandParser(object):
     """
     A client-side command wrapper for the autotest client.
     """
 
-    COMMAND_LIST = ['help', 'list', 'run', 'fetch']
+    COMMAND_LIST = ['help', 'list', 'run', 'fetch', 'bootstrap']
 
     @classmethod
     def _print_control_list(cls, pipe, path):
@@ -87,7 +86,7 @@ class CommandParser(object):
                     pipe.write(' %-50s %s\n' % (text, desc))
 
 
-    def fetch(self, args):
+    def fetch(self, args, options):
         """
         fetch a remote control file or packages
 
@@ -125,6 +124,8 @@ class CommandParser(object):
         @param args is not used here.
         """
         logging.info("Commands:")
+        logging.info("bootstrap [-H <harness>] Use harness to fetch control file")
+        logging.info("\tcan also export AUTOTEST_HARNESS=<harness> to avoid -H option")
         logging.info("fetch <url> [<file>]\tFetch a remote file/package and install it")
         logging.info("\tgit://...:[<branch>] [<file/directory>]")
         logging.info("\thttp://... [<file>]")
@@ -182,12 +183,14 @@ class CommandParser(object):
         raise SystemExit(0)
 
 
-    def parse_args(self, args):
+    def parse_args(self, args, options):
         """
         Process a client side command.
 
         @param args: Command line args.
         """
+        logging_manager.configure_logging(CmdParserLoggingConfig(), verbose=options.verbose)
+
         if len(args) and args[0] in self.COMMAND_LIST:
             cmd = args.pop(0)
         else:
@@ -199,7 +202,7 @@ class CommandParser(object):
             cmd = 'list_tests'
         try:
             try:
-                args = getattr(self, cmd)(args)
+                args = getattr(self, cmd)(args, options)
             except TypeError:
                 args = getattr(self, cmd)()
         except SystemExit, return_code:
@@ -215,7 +218,7 @@ class CommandParser(object):
         return args
 
 
-    def run(self, args):
+    def run(self, args, options):
         """
         Wrap args with a path and send it back to autotest.
         """
@@ -241,3 +244,72 @@ class CommandParser(object):
 
         logging.error("Can not find test %s", test)
         raise SystemExit(1)
+
+    def bootstrap(self, args, options):
+        """
+        Bootstrap autotest by fetching the control file first and pass it back
+
+        Currently this relies on a harness to retrieve the file
+        """
+        def harness_env():
+            try:
+                return os.environ['AUTOTEST_HARNESS']
+            except KeyError:
+                return None
+
+        def harness_args_env():
+            try:
+                return os.environ['AUTOTEST_HARNESS_ARGS']
+            except KeyError:
+                return None
+
+        class stub_job(object):
+            def config_set(self, name, value):
+                return
+
+        if not options.harness and not harness_env():
+            self.help()
+
+        if options.harness:
+            harness_name = options.harness
+        elif harness_env():
+            harness_name = harness_env()
+            options.harness = harness_name
+
+        if options.harness_args:
+            harness_args = options.harness_args
+        else:
+            harness_args = harness_args_env()
+            options.harness_args = harness_args
+
+        myjob=stub_job()
+
+        # let harness initialize itself
+        try:
+            myharness = harness.select(harness_name, myjob, harness_args)
+            if not getattr(myharness, 'bootstrap'):
+                raise error.HarnessError("Does not support bootstrapping\n")
+        except Exception, error_detail:
+            if DEBUG:
+                raise
+            sys.stderr.write("Harness %s failed to initialize -> %s\n" % (harness_name, error_detail))
+            self.help()
+            sys.exit(1)
+
+        # get remote control file and stick it in FETCHDIRTEST
+        try:
+            control = myharness.bootstrap(FETCHDIRTEST)
+        except Exception, ex:
+            sys.stderr.write("bootstrap failed -> %s\n" % ex)
+            raise SystemExit(1)
+        logging.debug("bootstrap passing control file %s to run" % control)
+
+        if not control:
+            #nothing to do politely abort
+            #trick to work around various harness quirks
+            raise SystemExit(0)
+
+        args.append(control)
+
+        #raise SystemExit(1)
+        return args
