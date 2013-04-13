@@ -1,0 +1,7 @@
+#!/bin/sh
+
+args="$@"
+echo "$env"
+test -n "$AUTOTEST_HARNESS_ARGS" && extra=",$AUTOTEST_HARNESS_ARGS"
+autotest --verbose -P quickcmd="submit_result:$args$extra" bootstrap
+
