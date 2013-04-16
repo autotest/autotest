@@ -85,10 +85,10 @@ class BaseIso9660(object):
         Verify that the current set path is accessible
         '''
         if not os.path.exists(self.path):
-            raise OSError('File or device path does not exist: %s',
+            raise OSError('File or device path does not exist: %s' %
                           self.path)
         if not os.access(self.path, os.R_OK):
-            raise OSError('File or device path could not be read: %s',
+            raise OSError('File or device path could not be read: %s' %
                           self.path)
 
 
