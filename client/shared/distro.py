@@ -7,6 +7,7 @@ This is a replacement for the get_os_vendor() function from the utils module.
 
 import os
 import re
+import platform
 
 
 __all__ = ['LinuxDistro',
@@ -257,6 +258,40 @@ class Probe(object):
         return distro
 
 
+class StdLibProbe(Probe):
+    '''
+    Probe that uses the Python standard library builtin detection
+
+    This Probe has a lower score on purporse, serving as a fallback
+    if no explicit (and hopefully more accurate) probe exists.
+    '''
+    def get_distro(self):
+        name = None
+        version = UNKNOWN_DISTRO_VERSION
+        release = UNKNOWN_DISTRO_RELEASE
+        arch = UNKNOWN_DISTRO_ARCH
+
+        d_name, d_version_release, d_codename = platform.dist()
+        if d_name:
+            name = d_name
+
+        if '.' in d_version_release:
+            d_version, d_release = d_version_release.split('.', 1)
+            version = d_version
+            release = d_release
+        else:
+            version = d_version_release
+
+        arch = os.uname()[4]
+
+        if name is not None:
+            distro = LinuxDistro(name, version, release, arch)
+        else:
+            distro = UNKNOWN_DISTRO
+
+        return distro
+
+
 class RedHatProbe(Probe):
     '''
     Probe with version checks for Red Hat Enterprise Linux systems
@@ -312,6 +347,7 @@ register_probe(RedHatProbe)
 register_probe(CentosProbe)
 register_probe(FedoraProbe)
 register_probe(DebianProbe)
+register_probe(StdLibProbe)
 
 
 def detect():
