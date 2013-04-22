@@ -125,6 +125,17 @@ class LoggingFile(object):
 
 
     @do_not_report_as_logging_caller
+    def writelines(self, lines):
+        """"
+        Writes itertable of lines
+
+        :param lines: An iterable of strings that will be processed.
+        """
+        for data in lines:
+            self.write(data)
+
+
+    @do_not_report_as_logging_caller
     def _log_line(self, line):
         """
         Passes lines of output to the logging module.
