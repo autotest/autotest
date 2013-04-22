@@ -123,6 +123,16 @@ class LoggingFile(object):
         if data_lines[-1]:
             self._buffer.append(data_lines[-1])
 
+    @do_not_report_as_logging_caller
+    def writelines(self, lines):
+        """"
+        Writes itertable of lines.
+        :param data: An iterable of strings that will be processed.
+        """
+        # splitlines() discards a trailing blank line, so use split() instead
+        for data in lines:
+            self.write(data)
+
 
     @do_not_report_as_logging_caller
     def _log_line(self, line):
