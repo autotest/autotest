@@ -31,7 +31,7 @@ contains the following line:
 
 include RELEASE-VERSION
 """
-__all__ = ("get_version")
+__all__ = ("get_version",)
 
 
 import os, sys
