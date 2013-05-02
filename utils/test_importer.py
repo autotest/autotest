@@ -273,10 +273,12 @@ def _set_attributes_clean(test, data):
     @param data: object with test data from the file system.
     """
     test_type = {'client': 1,
-                 'server': 2, }
+                 'server': 2}
+
     test_time = {'short': 1,
                  'medium': 2,
-                 'long': 3, }
+                 'long': 3}
+
     test.test_type = test_type[data.test_type.lower()]
     test.test_time = test_time[data.time.lower()]
 
