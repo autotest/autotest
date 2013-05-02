@@ -35,7 +35,7 @@ try:
 except ImportError:
     import common
 from autotest.frontend.afe import models, model_logic, model_attributes
-from autotest.frontend.afe import control_file, rpc_utils
+from autotest.frontend.afe import control_file, rpc_utils, reservations
 from autotest.server.hosts.remote import get_install_server_info
 from autotest.client.shared.settings import settings
 
@@ -330,7 +330,25 @@ def get_num_profiles():
         return 1
 
 
+def reserve_hosts(host_filter_data, username=None):
+    """
+    @param host_filter_data: Filters out which hosts to reserve.
+    """
+    hosts = models.Host.query_objects(host_filter_data)
+    reservations.create(hosts_to_reserve=[h.hostname for h in hosts],
+                        username=username)
+
+
+def release_hosts(host_filter_data, username=None):
+    """
+    @param host_filter_data: Filters out which hosts to release.
+    """
+    hosts = models.Host.query_objects(host_filter_data)
+    reservations.release(hosts_to_release=[h.hostname for h in hosts],
+                        username=username)
+
 # tests
+
 
 def add_test(name, test_type, path, author=None, dependencies=None,
              experimental=True, run_verify=None, test_class=None,
@@ -521,7 +539,8 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
                              max_runtime_hrs=None, run_verify=True,
                              email_list='', dependencies=(), reboot_before=None,
                              reboot_after=None, parse_failed_repair=None,
-                             hostless=False, keyvals=None, drone_set=None):
+                             hostless=False, keyvals=None, drone_set=None,
+                             reserve_hosts=False):
     """
     Creates and enqueues a parameterized job.
 
@@ -603,7 +622,7 @@ def create_job(name, priority, control_file, control_type,
                is_template=False, timeout=None, max_runtime_hrs=None,
                run_verify=True, email_list='', dependencies=(), reboot_before=None,
                reboot_after=None, parse_failed_repair=None, hostless=False,
-               keyvals=None, drone_set=None):
+               keyvals=None, drone_set=None, reserve_hosts=False):
     """\
     Create and enqueue a job.
 
@@ -634,7 +653,7 @@ def create_job(name, priority, control_file, control_type,
     @param one_time_hosts List of hosts not in the database to run the job on.
     @param atomic_group_name The name of an atomic group to schedule the job on.
     @param drone_set The name of the drone set to run this test on.
-
+    @param reserve_hosts If set we will reseve the hosts that were allocated for this job
 
     @returns The created Job id number.
     """

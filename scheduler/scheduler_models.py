@@ -23,6 +23,7 @@ from autotest.frontend.afe import models, model_attributes
 from autotest.database_legacy import database_connection
 from autotest.scheduler import drone_manager, email_manager
 from autotest.scheduler import scheduler_config
+from autotest.frontend.afe import reservations
 
 _notify_email_statuses = []
 _base_url = None
@@ -190,7 +191,12 @@ class DBObject(object):
 
 
     def _fetch_row_from_db(self, row_id):
-        sql = 'SELECT * FROM %s WHERE ID=%%s' % self.__table
+        """
+        Fetch a row from the db representing a model; only fetch
+        columns specified in the fileds of the model
+        """
+        fields = ",".join(self._fields)
+        sql = 'SELECT %s FROM %s WHERE ID=%%s' % (fields, self.__table)
         rows = _db.execute(sql, (row_id,))
         if not rows:
             raise DBError("row not found (table=%s, row id=%s)"
@@ -322,11 +328,14 @@ class DBObject(object):
         """
         order_by = cls._prefix_with(order_by, 'ORDER BY ')
         where = cls._prefix_with(where, 'WHERE ')
-        query = ('SELECT %(table)s.* FROM %(table)s %(joins)s '
-                 '%(where)s %(order_by)s' % {'table' : cls._table_name,
-                                             'joins' : joins,
-                                             'where' : where,
-                                             'order_by' : order_by})
+        # construct field names table.field for all fields in a class
+        fields = [cls._table_name + '.' + f for f in cls._fields]
+        query = ('SELECT %(fields)s FROM %(table)s %(joins)s '
+                 '%(where)s %(order_by)s' % {'fields': ",".join(fields),
+                                             'table': cls._table_name,
+                                             'joins': joins,
+                                             'where': where,
+                                             'order_by': order_by})
         rows = _db.execute(query, params)
         return [cls(id=row[0], row=row) for row in rows]
 
@@ -688,7 +697,11 @@ class HostQueueEntry(DBObject):
         logging.info("%s/%s/%s (job %s, entry %s) scheduled on %s, status=%s",
                      self.job.name, self.meta_host, self.atomic_group_id,
                      self.job.id, self.id, self.host.hostname, self.status)
-
+        # just before doing any actual work reserve the host if requested
+        if self.job.reserve_hosts:
+            logging.info("Job %s, reserving %s for %s",
+                         self.job.id, self.host.hostname, self.job.owner)
+            reservations.create([self.host.hostname], self.job.owner)
         self._do_schedule_pre_job_tasks()
 
 
@@ -823,8 +836,7 @@ class Job(DBObject):
                'control_type', 'created_on', 'synch_count', 'timeout',
                'run_verify', 'email_list', 'reboot_before', 'reboot_after',
                'parse_failed_repair', 'max_runtime_hrs', 'drone_set_id',
-               'parameterized_job_id')
-
+               'parameterized_job_id', 'reserve_hosts')
     # This does not need to be a column in the DB.  The delays are likely to
     # be configured short.  If the scheduler is stopped and restarted in
     # the middle of a job's delay cycle, the delay cycle will either be

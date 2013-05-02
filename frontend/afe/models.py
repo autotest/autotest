@@ -773,19 +773,25 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
 
     @staticmethod
-    def check_for_acl_violation_hosts(hosts):
+    def check_for_acl_violation_hosts(hosts, username=None):
         '''
         Check if the user can indeed send a job to the given hosts
 
         :param hosts: a list of :class:`hosts <Host>`
         :type hosts: list of :class:`Host`
+        :param username: a login name of the user 
+        :type username: string
         :raises: AclAccessViolation
         '''
-        user = User.current_user()
+        if username:
+            user = User.objects.get(login=username)
+        else:
+            user = User.current_user()
         if user.is_superuser():
             return
         accessible_host_ids = set(
             host.id for host in Host.objects.filter(aclgroup__users=user))
+        unaccessible = []
         for host in hosts:
             # Check if the user has access to this host,
             # but only if it is not a metahost or a one-time-host
@@ -793,9 +799,10 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
                          and not host.invalid
                          and int(host.id) not in accessible_host_ids)
             if no_access:
-                raise AclAccessViolation("%s does not have access to %s" %
-                                         (str(user), str(host)))
-
+                unaccessible.append(str(host))
+        if unaccessible:
+            raise AclAccessViolation("%s does not have access to %s" %
+                                         (str(user), ','.join(unaccessible)))
 
     @staticmethod
     def check_abort_permissions(queue_entries):
@@ -1139,6 +1146,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     parameterized_job = dbmodels.ForeignKey(ParameterizedJob, null=True,
                                             blank=True)
 
+    #: if True, any host that is scheduled for this job will be reserved at the time of scheduling
+    reserve_hosts = dbmodels.BooleanField(default=False)
 
     # custom manager
     objects = JobManager()
@@ -1230,7 +1239,8 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
             parse_failed_repair=options.get('parse_failed_repair'),
             created_on=datetime.now(),
             drone_set=drone_set,
-            parameterized_job=parameterized_job)
+            parameterized_job=parameterized_job,
+            reserve_hosts=options.get('reserve_hosts'))
 
         job.dependency_labels = options['dependencies']
 

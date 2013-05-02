@@ -667,7 +667,7 @@ def create_job_common(name, priority, control_type, control_file=None,
                       run_verify=True, email_list='', dependencies=(),
                       reboot_before=None, reboot_after=None,
                       parse_failed_repair=None, hostless=False, keyvals=None,
-                      drone_set=None, parameterized_job=None):
+                      drone_set=None, parameterized_job=None, reserve_hosts=False):
     """
     Common code between creating "standard" jobs and creating parameterized jobs
     """
@@ -770,7 +770,8 @@ def create_job_common(name, priority, control_type, control_file=None,
                    parse_failed_repair=parse_failed_repair,
                    keyvals=keyvals,
                    drone_set=drone_set,
-                   parameterized_job=parameterized_job)
+                   parameterized_job=parameterized_job,
+                   reserve_hosts=reserve_hosts)
     return create_new_job(owner=owner,
                           options=options,
                           host_objects=host_objects,
