@@ -6,6 +6,7 @@ try:
     import autotest.common as common
 except ImportError:
     import common
+from autotest.client.shared.mock import MagicMock, patch
 from autotest.client.shared import base_utils, autotemp
 from autotest.client.shared.test_utils import mock
 
@@ -1066,6 +1067,76 @@ class test_VersionableClass(unittest.TestCase):
                       "Class should be WP2 (last defined class in class"
                       " hierarchy).")
 
+
+class test_AsyncJob(unittest.TestCase):
+
+    @staticmethod
+    def make_thread_mock():
+        class ThreadMock(object):
+            def __init__(self, *args, **kwargs):
+                self.daemon = False
+                self.args = args
+                self.kwargs = kwargs
+            def start(self):
+                self.start_called = True
+
+        return ThreadMock
+
+    def test_drainer(self):
+        output = MagicMock()
+        outputs = [output]
+        read_values = ['asdf', '']
+        def pop_values(*args):
+            return read_values.pop(0)
+        read_mock = MagicMock(side_effect=pop_values)
+        @patch("os.read", read_mock)
+        def _():
+            base_utils.AsyncJob._fd_drainer(MagicMock(), outputs, MagicMock())
+        _()
+
+    def test_init_stdin_is_None(self):
+        @patch.object(base_utils, "Thread")
+        @patch.object(base_utils, "Lock")
+        @patch("subprocess.Popen")
+        def _(lock_mock, thread_mock, popen_mock):
+            job = base_utils.AsyncJob("command", stdin=None)
+            assert lock_mock.called
+            assert thread_mock.called
+            assert not hasattr(job, "stdin_thread")
+            assert not hasattr(job, "stdin_lock")
+            assert job.string_stdin == None
+        _()
+
+    def test_init_stdin_is_string(self):
+
+        @patch.object(base_utils, "Thread", new_callable=self.make_thread_mock)
+        @patch.object(base_utils, "Lock")
+        @patch("subprocess.Popen")
+        def _(lock_mock, thread_mock, popen_mock):
+            job = base_utils.AsyncJob("echo", stdin="foobar")
+            assert lock_mock.called
+            assert job.stdin_thread.kwargs['name'] == 'echo-stdin'
+            assert job.stdin_thread.kwargs['args'][0] == 'foobar'
+            assert hasattr(job, "stdin_thread")
+            assert hasattr(job, "stdin_lock")
+            assert job.string_stdin == None
+        _()
+
+    def test_init_stdin_is_file(self):
+        @patch.object(base_utils, "Thread", new_callable=self.make_thread_mock)
+        @patch.object(base_utils, "Lock")
+        @patch("subprocess.Popen")
+        def _(lock_mock, thread_mock, popen_mock):
+            job = base_utils.AsyncJob("echo", stdin=MagicMock(spec=file))
+            assert lock_mock.called
+            assert job.stdout_thread.kwargs['name'] == 'echo-stdout'
+            assert job.stderr_thread.kwargs['name'] == 'echo-stderr'
+            assert hasattr(job, "stdout_thread")
+            assert hasattr(job, "stdout_lock")
+            assert hasattr(job, "stderr_thread")
+            assert hasattr(job, "stderr_lock")
+            assert job.string_stdin == None
+        _()
 
 if __name__ == "__main__":
     unittest.main()
