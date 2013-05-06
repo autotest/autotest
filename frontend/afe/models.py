@@ -1628,10 +1628,189 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         return result
 
 
-class MigrateInfo(dbmodels.Model, model_logic.ModelExtensions):
-    version = dbmodels.IntegerField(primary_key=True, default=None,
-                                    blank=True, null=False)
-    objects = model_logic.ExtendedManager()
+class SoftwareComponentKind(dbmodels.Model, model_logic.ModelExtensions):
+    '''
+    The type of software component
+
+    This information should be determined by the system that either
+    installs new software or that collects that information after the
+    test is run.
+
+    This is not named `SoftwareComponentType` because the obvious
+    attribute name (type) on class SoftwareComponenet is reserved.
+    '''
+    #: a name that describes the type of the software component
+    name = dbmodels.CharField(max_length=20, unique=True)
+
+    name_field = 'name'
 
     class Meta:
-        db_table = 'migrate_info'
+        db_table = 'software_component_kind'
+
+    def __unicode__(self):
+        return unicode(self.name)
+
+
+class SoftwareComponentArch(dbmodels.Model, model_logic.ModelExtensions):
+    '''
+    The architecture of the software component
+    '''
+    #: the name of a CPU architecture, such as x86_64, ppc64, etc
+    name = dbmodels.CharField(max_length=20, unique=True)
+
+    name_field = 'name'
+
+    class Meta:
+        db_table = 'software_component_arch'
+
+    def __unicode__(self):
+        return unicode(self.name)
+
+
+class SoftwareComponent(dbmodels.Model, model_logic.ModelExtensions):
+    '''
+    A given software component that plays an important role in the test
+
+    The major, minor and release fields are larger than usually will be
+    needed, but can be used to represent a SHA1SUM if we're dealing
+    with software build from source.
+
+    The checksum is supposed to hold the package or main binary checksum,
+    so that besides version comparison, a integrity check can be performed.
+
+    Note: to compare software versions (newer or older than) from software
+    built from a git repo, knowledge of that specific repo is needed.
+
+    Note: the level of database normalization is kept halfway on purpose
+    to give more flexibility on the composition of software components.
+
+    Both packaged software from the distribution or 3rd party software
+    installed from either packages or built for the test are considered
+    valid SoftwareComponents.
+    '''
+    #: a reference to a :class:`SoftwareComponentKind`
+    kind = dbmodels.ForeignKey(SoftwareComponentKind,
+                               null=False, blank=False,
+                               on_delete=dbmodels.PROTECT)
+
+    #: the name of the software component, usually the name of the software
+    #: package or source code repository name
+    name = dbmodels.CharField(max_length=255, null=False, blank=False)
+
+    #: the complete version number of the software, such as `0.1.2`
+    version = dbmodels.CharField(max_length=40, null=False, blank=False)
+
+    #: the release version of the software component, such as `-2`
+    release = dbmodels.CharField(max_length=40)
+
+
+    #: the checksum of the package, main binary or the hash that describes
+    #: the state of the source code repo from where the software component
+    #: was built from. Besides comparing the version, a integrity check can
+    #: also be performed.
+    checksum = dbmodels.CharField(max_length=40)
+
+    #: a software architecture that is the primary target of this software
+    #: component. This is a reference to a :class:`SoftwareComponentArch`
+    arch = dbmodels.ForeignKey(SoftwareComponentArch,
+                               null=False, blank=False,
+                               on_delete=dbmodels.PROTECT)
+
+    objects = model_logic.ExtendedManager()
+    name_field = 'name'
+
+
+    class Meta:
+        db_table = 'software_component'
+        unique_together = (("kind", "name", "version", "release", "checksum",
+                            "arch"))
+
+    def __unicode__(self):
+        return unicode(self.name)
+
+
+class LinuxDistro(dbmodels.Model, model_logic.ModelExtensions):
+    '''
+    Represents a given linux distribution base version
+
+    Usually a test system will be installed with a given distro plus other
+    external software packages (in this model terminology, that would be
+    software components).
+    '''
+    #: A short name that uniquely identifies the distro. This name can
+    #: include the version name for to make it easy to select a given release.
+    #: examples include "rhel64" as a name, while still populating the major
+    #: and minor fields.
+    name = dbmodels.CharField(max_length=40)
+
+    #: The major version of the distribution, usually denoting a longer
+    #: development cycle and support
+    major = dbmodels.IntegerField(blank=False)
+
+    #: The minor version of the distribution, usually denoting a collection
+    #: of updates and improvements that are repackaged and released as another
+    #: installable image and/or a service pack
+    minor = dbmodels.IntegerField(default=0, blank=False)
+
+    #: The predominant architecture of the compiled software that make up
+    #: the distribution. If a given distribution ship with, say, both
+    #: 32 and 64 bit versions of packages, the `arch` will most probably
+    #: be the abbreviation for the 64 bit arch, since it's the most specific
+    #: and probably the most predominant one.
+    arch = dbmodels.CharField(max_length=40, blank=False)
+
+    #: The complete list of :class:`SoftwareComponent` that make up the
+    #: distribution. If the server side is preloaded with the software of a
+    #: given distribution this will hold the complete list of software packages
+    #: and a :class:`TestEnvironment` that uses this :class:`LinuxDistro` will
+    #: then have a positive and negative list of :class:`SoftwareComponent`
+    #: when compared to what's available on the :class:`LinuxDistro`
+    software_components = dbmodels.ManyToManyField(
+        SoftwareComponent,
+        db_table='linux_distro_software_components')
+
+    objects = model_logic.ExtendedManager()
+    name_field = 'name'
+
+
+    class Meta:
+        db_table = 'linux_distro'
+        unique_together = (("name", "major", "minor", "arch"))
+
+
+    def __unicode__(self):
+        return unicode(self.name)
+
+
+class TestEnvironment(dbmodels.Model, model_logic.ModelExtensions):
+    '''
+    Collects machine information that could determine the test result
+
+    A test environment is a collection of the environment that was existed
+    during a test run. Since a test runs on a machine, this environment
+    information may be what differs a test with a PASS from a test with a
+    FAIL result.
+
+    Test environments may then be compared, and the result from the comparison
+    of one when a given test PASSED and one when the same test FAILED may be
+    enought to pinpoint the caused of a failure.
+
+    Currently only the Linux Distribution installed on the machine, and the
+    complete list of software components
+    '''
+    #: The :class:`LinuxDistro` detected to be installed by the host machine
+    #: running the test
+    distro = dbmodels.ForeignKey(LinuxDistro)
+
+    #: The complete list of :class:`SoftwareComponent` that are detected to be
+    #: installed on the machine or that were registered to be somehow installed
+    #: during the previous or current test
+    software_components = dbmodels.ManyToManyField(
+        SoftwareComponent,
+        db_table='test_environment_software_components')
+
+    objects = model_logic.ExtendedManager()
+
+
+    class Meta:
+        db_table = 'test_environment'

@@ -9,6 +9,7 @@ except ImportError:
 from autotest.client.shared import mail, pidfile
 from autotest.tko import db as tko_db, utils as tko_utils, status_lib, models
 from autotest.client.shared import utils
+from autotest.tko.test_environment_parser import parse_test_environment
 
 
 def parse_args():
@@ -75,6 +76,10 @@ def mailfailure(jobname, job, message):
 def parse_one(db, jobname, path, reparse, mail_on_failure):
     """
     Parse a single job. Optionally send email on failure.
+
+    The method of identifying a job by (test_name, subdir) relies on the
+    fact that the parsing will be done on a result dir collected by
+    the scheduler and thus named uniquely.
     """
     tko_utils.dprint("\nScanning %s (%s)" % (jobname, path))
     old_job_idx = db.find_job(jobname)
@@ -150,6 +155,18 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
             message_lines.append(format_failure_message(
                 jobname, test.kernel.base, test.subdir,
                 test.status, test.reason))
+
+        installed_packages_path = os.path.join(path,
+                                               test.subdir,
+                                               'sysinfo',
+                                               'installed_packages')
+
+        if os.path.exists(installed_packages_path):
+            te_id = parse_test_environment(installed_packages_path)
+            test.test_environment_id = te_id
+        else:
+            test.test_environment_id = None
+
     message = "\n".join(message_lines)
 
     # send out a email report of failure

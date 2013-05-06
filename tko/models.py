@@ -81,6 +81,7 @@ class test(object):
         self.iterations = iterations
         self.attributes = attributes
         self.labels = labels
+        self.test_environment_id = None
 
 
     @staticmethod

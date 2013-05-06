@@ -1,10 +1,11 @@
 import operator, unittest
 import simplejson
 from django.test import client
-from autotest.frontend.afe import frontend_test_utils, models as afe_models
+from autotest.frontend import test_utils
+from autotest.frontend.afe import models as afe_models
 
 class ResourceTestCase(unittest.TestCase,
-                       frontend_test_utils.FrontendTestMixin):
+                       test_utils.FrontendTestMixin):
     URI_PREFIX = None # subclasses may override this to use partial URIs
 
     def setUp(self):

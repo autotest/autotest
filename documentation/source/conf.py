@@ -52,3 +52,5 @@ intersphinx_mapping = {
     'django': ('http://docs.djangoproject.com/en/dev/',
                'http://docs.djangoproject.com/en/dev/_objects/')
     }
+
+autoclass_content = 'both'

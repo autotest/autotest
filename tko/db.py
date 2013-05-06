@@ -392,7 +392,8 @@ class db_sql(object):
                 'status':self.status_idx[test.status],
                 'reason':test.reason, 'machine_idx':job.machine_idx,
                 'started_time': test.started_time,
-                'finished_time':test.finished_time}
+                'finished_time':test.finished_time,
+                'test_environment_id': test.test_environment_id}
         is_update = hasattr(test, "test_idx")
         if is_update:
             test_idx = test.test_idx
