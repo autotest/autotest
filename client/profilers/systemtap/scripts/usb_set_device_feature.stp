@@ -1,0 +1,5 @@
+# cat usb_set_device_feature.stp
+probe qemu.kvm.usb_set_device_feature
+{
+   printf("addr=%d,feature=%d,ret=%d\n",addr,feature,ret);
+}

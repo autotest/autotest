@@ -1,0 +1,5 @@
+# cat bdrv_aio_writev.stp
+probe qemu.kvm.bdrv_aio_readv
+{
+ printf("bs=%d,sector_num=%d,nb_sectors=%d,opaque=%d\n",bs,sector_num,nb_sectors,opaque);
+}

@@ -1,0 +1,6 @@
+# cat usb_ehci_usbsts.stp
+probe qemu.kvm.usb_ehci_usbsts
+
+{
+  printf("sts=%d,state=%d\n",sts,state);
+}

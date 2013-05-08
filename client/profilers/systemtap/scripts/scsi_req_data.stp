@@ -1,0 +1,5 @@
+# cat scsi_req_data.stp
+probe qemu.kvm.scsi_req_data
+{
+ printf ("target=%d,lun=%d,tag=%d,len=%d\n",target,lun,tag,len);
+}

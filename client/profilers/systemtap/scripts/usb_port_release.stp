@@ -1,0 +1,6 @@
+# cat usb_port_release.stp
+probe qemu.kvm.usb_port_release
+
+{
+  printf("bus=%d,port=%d\n",bus,port);
+}

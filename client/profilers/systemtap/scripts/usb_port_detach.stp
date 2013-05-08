@@ -1,0 +1,6 @@
+# cat usb_port_detach.stp
+probe qemu.kvm.usb_port_detach
+
+{
+  printf("bus=%d,port=%d\n",bus,port);
+}

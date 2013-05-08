@@ -1,0 +1,5 @@
+# cat  usb_port_claim.stp
+probe qemu.kvm.usb_port_claim
+{
+ printf("bus=%d,port=%d\n",bus,port);
+}

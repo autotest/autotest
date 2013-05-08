@@ -1,0 +1,5 @@
+# cat usb_ehci_mmio_writel.stp
+probe qemu.kvm.usb_ehci_mmio_writel
+{
+  printf("addr=%d,str=%d,val=%d\n",addr,str,val);
+}

@@ -1,0 +1,4 @@
+probe qemu.kvm.bdrv_lock_medium
+{
+ printf("bs=%d,locked=%d\n",bs,locked);
+}

@@ -1,0 +1,5 @@
+# cat usb_ehci_port_reset.stp
+probe qemu.kvm.usb_ehci_port_reset
+{
+ printf("port=%d,enable=%d\n",port,enable);
+}

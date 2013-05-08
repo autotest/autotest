@@ -1,0 +1,5 @@
+# cat scsi_req_parsed.stp
+probe qemu.kvm.scsi_req_parsed
+{
+ printf("target=%d,lun=%d,tag=%d,cmd=%d,mode=%d,xfer=%d\n",target,lun,tag,cmd,mode,xfer);
+}

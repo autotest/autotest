@@ -1,0 +1,6 @@
+# cat scsi_req_alloc.stp
+probe qemu.kvm.scsi_req_alloc
+{
+ printf ("target=%d,lun=%d,tag=%d\n",target,lun,tag);
+}
+

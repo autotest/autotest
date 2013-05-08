@@ -1,0 +1,5 @@
+# cat usb_ehci_mmio_change.stp
+probe qemu.kvm.usb_ehci_mmio_change
+{
+ printf("addr=%d,str=%d,new=%d,old=%d\n",addr,str,new,old);
+}

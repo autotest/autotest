@@ -1,0 +1,5 @@
+# cat usb_set_addr.stp
+probe qemu.kvm.usb_set_addr
+{
+ printf("addr=%d\n",addr);
+}

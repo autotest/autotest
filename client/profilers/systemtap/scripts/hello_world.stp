@@ -1,0 +1,4 @@
+probe begin {
+    printf("Hello World!\n")
+    exit()
+}
