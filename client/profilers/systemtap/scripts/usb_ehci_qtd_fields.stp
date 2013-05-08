@@ -1,0 +1,5 @@
+# cat usb_ehci_qtd_fields.stp
+probe qemu.kvm.usb_ehci_qtd_fields
+{
+  printf("addr=%d,tbytes=%d,cpage=%d,cerr=%d,pid=%d\n",addr,tbytes,cpage,cerr,pid);
+}

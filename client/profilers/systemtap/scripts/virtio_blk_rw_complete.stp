@@ -1,0 +1,5 @@
+# cat virtio_blk_rw_complete.stp
+probe qemu.kvm.virtio_blk_rw_complete
+{
+ printf("req=%d,ret=%d\n",req,ret);
+}

@@ -1,0 +1,5 @@
+# cat usb_ehci_state.stp
+probe qemu.kvm.usb_ehci_state
+{
+  printf("schedule=%d,state=%d\n",schedule,state);
+}

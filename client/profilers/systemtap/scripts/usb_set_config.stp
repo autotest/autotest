@@ -1,0 +1,5 @@
+# cat usb_set_config.stp
+probe qemu.kvm.usb_set_config
+{
+ printf("addr=%d,config=%d,ret=%d\n",addr,config,ret);
+}

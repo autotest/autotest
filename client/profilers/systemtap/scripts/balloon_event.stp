@@ -1,0 +1,5 @@
+#cat balloon_event.stp
+probe qemu.kvm.balloon_event
+{
+    printf("opaque=%d,addr=%u\n",opaque,addr);
+}

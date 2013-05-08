@@ -1,0 +1,5 @@
+#cat  usb_ehci_port_detach.stp
+probe qemu.kvm.usb_ehci_port_detach
+{
+ printf("port=%d\n",port);
+}

@@ -1,0 +1,5 @@
+#cat usb_ehci_qtd_bits.stp
+probe qemu.kvm.usb_ehci_qtd_bits
+{
+  printf("addr=%d,ioc=%d,active=%d,halt=%d,babble=%d,xacterr=%d\n",addr,ioc,active,halt,babble,xacterr);
+}

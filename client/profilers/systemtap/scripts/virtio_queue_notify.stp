@@ -1,0 +1,4 @@
+probe qemu.kvm.virtio_queue_notify
+{
+printf("vdev=%d,n=%d,vq=%d\n",vdev,n,vq);
+}

@@ -1,0 +1,5 @@
+# cat virtqueue_flush.stp
+probe qemu.kvm.virtqueue_flush
+{
+ printf("vq=%d,count=%d\n",vq,count);
+}

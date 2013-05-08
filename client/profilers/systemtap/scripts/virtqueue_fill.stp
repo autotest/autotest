@@ -1,0 +1,5 @@
+# cat virtqueue_fill.stp
+probe qemu.kvm.virtqueue_fill
+{
+ printf("vq=%d,elem=%d,len=%d,idx=%d\n",vq,elem,len,idx);
+}

@@ -1,0 +1,5 @@
+# cat usb_ehci_qh_ptrs.stp
+probe qemu.kvm.usb_ehci_qh_ptrs
+{
+  printf("q=%d,addr=%d,nxt=%d,c_qtd=%d,n_qtd=%d,a_qtd=%d\n",q,addr,nxt,c_qtd,n_qtd,a_qtd);
+}

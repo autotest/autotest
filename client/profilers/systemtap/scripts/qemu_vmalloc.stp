@@ -1,0 +1,5 @@
+# cat qemu_vmalloc.stp
+probe qemu.kvm.qemu_vmalloc
+{
+  printf("size=%u,probe_name=%s\n",size,pn());
+}

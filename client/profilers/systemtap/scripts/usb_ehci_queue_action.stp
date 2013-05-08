@@ -1,0 +1,5 @@
+# cat usb_ehci_queue_action.stp
+probe qemu.kvm.usb_ehci_queue_action
+{
+  printf("q=%d,action=%d\n",q,action);
+}

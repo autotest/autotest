@@ -1,0 +1,5 @@
+# cat usb_ehci_data.stp
+probe qemu.kvm.usb_ehci_data
+{
+ printf ("rw=%d,cpage=%d,offset=%d,addr=%d,len=%d,bufpos=%d\n",rw,cpage,offset,addr,len,bufpos);
+}

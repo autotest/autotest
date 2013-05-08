@@ -1,0 +1,5 @@
+probe qemu.kvm.cpu_out
+{
+ printf("addr=%d,val=%d\n",addr,val)
+}
+

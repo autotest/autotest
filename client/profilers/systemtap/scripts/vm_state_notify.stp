@@ -1,0 +1,5 @@
+probe qemu.kvm.vm_state_notify
+{
+    printf("running=%d,reason=%d\n",running,reason);
+}
+

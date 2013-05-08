@@ -1,0 +1,5 @@
+# cat usb_desc_device.stp
+probe qemu.kvm.usb_desc_device
+{
+ printf("addr=%d,len=%d,ret=%d\n",addr,len,ret);
+}

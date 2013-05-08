@@ -1,0 +1,6 @@
+# cat usb_ehci_qh_bits.stp
+probe qemu.kvm.usb_ehci_qh_bits
+{
+  printf("addr=%d,c=%d,h=%d,dtc=%d,i=%d\n",addr,c,h,dtc,i);
+}
+

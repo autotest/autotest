@@ -1,0 +1,5 @@
+# cat scsi_req_dequeue.stp
+probe qemu.kvm.scsi_req_dequeue
+{
+ printf("target=%d,lun=%d,tag=%d\n",target,lun,tag);
+}
