@@ -251,7 +251,7 @@ class Test(dbmodels.Model, model_logic.ModelExtensions,
 class TestAttribute(dbmodels.Model, model_logic.ModelExtensions):
     test = dbmodels.ForeignKey(Test, db_column='test_idx')
     attribute = dbmodels.CharField(max_length=90)
-    value = dbmodels.CharField(blank=True, max_length=300)
+    value = dbmodels.CharField(blank=True, max_length=1024)
     user_created = dbmodels.BooleanField(default=False)
 
     objects = model_logic.ExtendedManager()
