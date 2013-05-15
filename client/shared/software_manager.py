@@ -25,7 +25,7 @@ try:
 except ImportError:
     import common
 from autotest.client import os_dep, utils
-from autotest.client.shared import error
+from autotest.client.shared import error, distro
 from autotest.client.shared import logging_config, logging_manager
 
 
@@ -53,7 +53,7 @@ class SystemInspector(object):
         """
         Probe system, and save information for future reference.
         """
-        self.distro = utils.get_os_vendor()
+        self.distro = distro.detect().name
 
 
     def get_package_management(self):
@@ -76,9 +76,11 @@ class SystemInspector(object):
         if len(list_supported) == 1:
             pm_supported = list_supported[0]
         elif len(list_supported) > 1:
-            if 'apt-get' in list_supported and self.distro in ['Debian', 'Ubuntu']:
+            if ('apt-get' in list_supported and
+                self.distro in ('debian', 'ubuntu')):
                 pm_supported = 'apt-get'
-            elif 'yum' in list_supported and self.distro == 'Fedora':
+            elif ('yum' in list_supported and
+                  self.distro in ('redhat', 'fedora')):
                 pm_supported = 'yum'
             else:
                 pm_supported = list_supported[0]
