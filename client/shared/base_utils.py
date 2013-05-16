@@ -141,42 +141,76 @@ class AsyncJob(BgJob):
         else:
             self.kill_func = kill_func
 
-        #we're going to make some threads to drain the stdout and stderr
-        def drainer(input, output, lock):
-            """
-            input is a pipe and output is file-like. if lock is non-None, then
-            we assume output isn't thread-safe
-            """
-            try:
-                while True:
-                    tmp = os.read(input.fileno(), 1024)
-                    if tmp == '':
-                        break
-                    if lock is not None:
-                        lock.acquire()
-                    for f in filter(lambda x: x is not None, output):
-                        f.write(tmp)
-                    if lock is not None:
-                        lock.release()
-            except:
-                pass
+        if self.string_stdin:
+            self.stdin_lock = Lock()
+            string_stdin = self.string_stdin
+            # replace with None so that _wait_for_commands will not try to re-write it
+            self.string_stdin = None
+            self.stdin_thread = Thread(target=AsyncJob._stdin_string_drainer, name=("%s-stdin" % command),
+                                    args=(string_stdin, self.sp.stdin))
+            self.stdin_thread.daemon = True
+            self.stdin_thread.start()
 
         self.stdout_lock = Lock()
         self.stdout_file = StringIO.StringIO()
-        self.stdout_thread = Thread(target=drainer, name=("%s-stdout"%command),
-                 args=(self.sp.stdout, (self.stdout_file, self.stdout_tee),
+        self.stdout_thread = Thread(target=AsyncJob._fd_drainer, name=("%s-stdout" % command),
+                 args=(self.sp.stdout, [self.stdout_file, self.stdout_tee],
                        self.stdout_lock))
         self.stdout_thread.daemon = True
 
         self.stderr_lock = Lock()
         self.stderr_file = StringIO.StringIO()
-        self.stderr_thread = Thread(target=drainer, name=("%s-stderr"%command),
-                 args=(self.sp.stderr, (self.stderr_file, self.stderr_tee),
+        self.stderr_thread = Thread(target=AsyncJob._fd_drainer, name=("%s-stderr" % command),
+                 args=(self.sp.stderr, [self.stderr_file, self.stderr_tee],
                        self.stderr_lock))
         self.stderr_thread.daemon = True
 
         self.stdout_thread.start()
         self.stderr_thread.start()
+
+    @staticmethod
+    def _stdin_string_drainer(input_string, stdin_pipe):
+        """
+        input is a string and output is PIPE
+        """
+        try:
+            while True:
+                # we can write PIPE_BUF bytes without blocking after a poll or select
+                # we aren't doing either but let's write small chunks anyway.
+                # POSIX requires PIPE_BUF is >= 512
+                # 512 should be replaced with select.PIPE_BUF in Python 2.7+
+                tmp = input_string[:512]
+                if tmp == '':
+                    break
+                stdin_pipe.write(tmp)
+                input_string = input_string[512:]
+        finally:
+            # close reading PIPE so that the reader doesn't block
+            stdin_pipe.close()
+
+    @staticmethod
+    def _fd_drainer(input_pipe, outputs, lock):
+        """
+        input is a pipe and output is file-like. if lock is non-None, then
+        we assume output isn't thread-safe
+        """
+        # if we don't have a lock object, then call a noop function like bool
+        acquire = getattr(lock, 'acquire', bool)
+        release = getattr(lock, 'release', bool)
+        writable_objs = [obj for obj in outputs if hasattr(obj, 'write')]
+        fileno = input_pipe.fileno()
+        while True:
+            # 1024 because that's what we did before
+            tmp = os.read(fileno, 1024)
+            if tmp == '':
+                break
+            acquire()
+            try:
+                for f in writable_objs:
+                    f.write(tmp)
+            finally:
+                release()
+        # don't close writeable_objs, the callee will close
 
     def output_prepare(self, stdout_file=None, stderr_file=None):
         raise NotImplementedError("This object automatically prepares its own "
