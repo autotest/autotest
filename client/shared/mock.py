@@ -839,6 +839,7 @@ class NonCallableMock(Base):
         return message % (expected_string, actual_string)
 
 
+    # pylint: disable=E0213
     def assert_called_with(_mock_self, *args, **kwargs):
         """assert that the mock was called with the specified arguments.
 
@@ -967,6 +968,7 @@ class CallableMixin(Base):
         pass
 
 
+    # pylint: disable=E0213
     def __call__(_mock_self, *args, **kwargs):
         # can't use self in-case a function / method we are mocking uses self
         # in the signature
@@ -974,6 +976,7 @@ class CallableMixin(Base):
         return _mock_self._mock_call(*args, **kwargs)
 
 
+    # pylint: disable=E0213
     def _mock_call(_mock_self, *args, **kwargs):
         self = _mock_self
         self.called = True
@@ -1025,6 +1028,7 @@ class CallableMixin(Base):
         ret_val = DEFAULT
         effect = self.side_effect
         if effect is not None:
+            # pylint: disable=E0702
             if _is_exception(effect):
                 raise effect
 
