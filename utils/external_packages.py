@@ -5,7 +5,7 @@ import subprocess, re
 from autotest.client.shared import utils
 
 _READ_SIZE = 64*1024
-_MAX_PACKAGE_SIZE = 100*1024*1024
+_MAX_PACKAGE_SIZE = 120*1024*1024
 
 
 class Error(Exception):
