@@ -31,7 +31,6 @@ public class ContextMenu {
             super(true);
         }
         
-        @Override
         public MenuItem addItem(String text, Command cmd) {
             return super.addItem(text, new CommandWrapper(cmd));
         }
