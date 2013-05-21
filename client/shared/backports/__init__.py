@@ -1,6 +1,12 @@
+"""
+This module contains backported functions that are not present on Python 2.4
+but are standard in more recent versions.
+"""
+
 import re
 
 
+# pylint: disable=I0011,W0622
 # noinspection PyShadowingBuiltins
 def next(*args):
     """
@@ -26,7 +32,7 @@ def next(*args):
     else:
         return args[0].next()
 
-
+# pylint: disable=W0622
 # noinspection PyShadowingBuiltins
 def any(iterable):
     """
@@ -40,6 +46,7 @@ def any(iterable):
     return False
 
 
+# pylint: disable=W0622
 # noinspection PyShadowingBuiltins
 def all(iterable):
     """
@@ -56,17 +63,20 @@ def all(iterable):
 # Adapted from http://code.activestate.com/recipes/576847/
 # :codeauthor: Vishal Sapre
 # :license: MIT
-_hexDict = {
-    '0': '0000', '1': '0001', '2': '0010', '3': '0011', '4': '0100', '5': '0101',
-    '6': '0110', '7': '0111', '8': '1000', '9': '1001', 'a': '1010', 'b': '1011',
-    'c': '1100', 'd': '1101', 'e': '1110', 'f': '1111', 'L': ''}
+BIN_HEX_DICT = {
+    '0': '0000', '1': '0001', '2': '0010', '3': '0011', '4': '0100',
+    '5': '0101', '6': '0110', '7': '0111', '8': '1000', '9': '1001',
+    'a': '1010', 'b': '1011', 'c': '1100', 'd': '1101', 'e': '1110',
+    'f': '1111', 'L': ''}
 
-# match left leading zeroes, but don't match a single 0 for the case of bin(0) == '0b0'
-_zstrip = re.compile(r'^0*(?=[01])')
+# match left leading zeroes, but don't match a single 0 for the case of
+# bin(0) == '0b0'
+BIN_ZSTRIP = re.compile(r'^0*(?=[01])')
 
 
+# pylint: disable=W0622
 # noinspection PyShadowingBuiltins
-def bin(n):
+def bin(number):
     """
     Adapted from http://code.activestate.com/recipes/576847/
     :codeauthor: Vishal Sapre
@@ -80,4 +90,5 @@ def bin(n):
     # look up binary string, append in list and join at the end.
     # =========================================================
     # replace leading left zeroes with '0b'
-    return _zstrip.sub('0b', ''.join([_hexDict[hstr] for hstr in hex(n)[2:]]))
+    tmp = [BIN_HEX_DICT[hstr] for hstr in hex(number)[2:]]
+    return BIN_ZSTRIP.sub('0b', ''.join(tmp))
