@@ -39,7 +39,7 @@ def parse_ssh_path(repo):
     @param repo: a repo uri like ssh://xx@xx/path/to/
     @returns: tuple with (host, remote_path)
     '''
-    match = re.search('^ssh://(.*?)(/.*)$', repo)
+    match = re.search('^ssh://([^/]+)(/.*)$', repo)
     if match:
         return match.groups()
     else:
