@@ -37,6 +37,7 @@ except ImportError:
 from autotest.frontend.afe import models, model_logic, model_attributes
 from autotest.frontend.afe import control_file, rpc_utils, reservations
 from autotest.server.hosts.remote import get_install_server_info
+from autotest.client.shared import version
 from autotest.client.shared.settings import settings
 
 
@@ -984,3 +985,7 @@ def get_static_data():
 
 def get_server_time():
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+
+def get_version():
+    return version.get_version()
