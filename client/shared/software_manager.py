@@ -171,7 +171,7 @@ class RpmBackend(BaseBackend):
         """
         cmd = (self.lowlevel_base_cmd + ' -q --qf %{VERSION} ' + name +
                ' 2> /dev/null')
-        inst_version = utils.system_output(cmd)
+        inst_version = utils.system_output(cmd, ignore_status=True)
 
         if inst_version >= version:
             return True
@@ -190,7 +190,7 @@ class RpmBackend(BaseBackend):
         if arch:
             cmd = (self.lowlevel_base_cmd + ' -q --qf %{ARCH} ' + name +
                    ' 2> /dev/null')
-            inst_archs = utils.system_output(cmd)
+            inst_archs = utils.system_output(cmd, ignore_status=True)
             inst_archs = inst_archs.split('\n')
 
             for inst_arch in inst_archs:
