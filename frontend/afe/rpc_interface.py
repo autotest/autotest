@@ -41,6 +41,13 @@ from autotest.client.shared import version
 from autotest.client.shared.settings import settings
 
 
+#
+# IMPORTANT: please update INTERFACE_VERSION with the current date whenever
+# the interface changes, so that RPC clients can handle the changes
+#
+INTERFACE_VERSION = (2013, 05, 23)
+
+
 # labels
 
 def add_label(name, kernel_config=None, platform=None, only_if_needed=None):
@@ -989,3 +996,7 @@ def get_server_time():
 
 def get_version():
     return version.get_version()
+
+
+def get_interface_version():
+    return INTERFACE_VERSION
