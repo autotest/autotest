@@ -5,6 +5,14 @@ from autotest.frontend.afe import models as afe_models, readonly_connection
 from autotest.frontend.tko import models, tko_rpc_utils, graphing_utils
 from autotest.frontend.tko import preconfigs
 
+
+#
+# IMPORTANT: please update INTERFACE_VERSION with the current date whenever
+# the interface changes, so that RPC clients can handle the changes
+#
+INTERFACE_VERSION = (2013, 05, 23)
+
+
 # table/spreadsheet view support
 
 def get_test_views(**filter_data):
@@ -493,3 +501,7 @@ def get_iteration_attributes(**filter_data):
 def get_iteration_results(**filter_data):
     return rpc_utils.prepare_for_serialization(
         models.IterationResult.list_objects(filter_data))
+
+
+def get_interface_version():
+    return INTERFACE_VERSION
