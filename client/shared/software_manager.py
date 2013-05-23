@@ -173,6 +173,9 @@ class RpmBackend(BaseBackend):
                ' 2> /dev/null')
         inst_version = utils.system_output(cmd, ignore_status=True)
 
+        if 'not installed' in inst_version:
+            return False
+
         if inst_version >= version:
             return True
         else:
