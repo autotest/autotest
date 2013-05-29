@@ -216,7 +216,7 @@ fi
 
 install_packages_rh() {
 PACKAGES_UTILITY=(unzip wget)
-PACKAGES_WEBSERVER=(httpd mod_wsgi Django)
+PACKAGES_WEBSERVER=(httpd mod_wsgi Django Django-south)
 PACKAGES_MYSQL=(mysql-server MySQL-python)
 PACKAGES_DEVELOPMENT=(git java-devel)
 PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 numpy python-matplotlib urw-fonts python-atfork)
@@ -253,7 +253,7 @@ fi
 
 install_packages_deb() {
 PACKAGES_UTILITY=(unzip wget gnuplot makepasswd)
-PACKAGES_WEBSERVER=(apache2-mpm-prefork libapache2-mod-wsgi python-django)
+PACKAGES_WEBSERVER=(apache2-mpm-prefork libapache2-mod-wsgi python-django python-django-south)
 PACKAGES_MYSQL=(mysql-server python-mysqldb)
 PACKAGES_DEVELOPMENT=(git openjdk-7-jre-headless)
 PACKAGES_PYTHON_LIBS=(python-imaging python-crypto python-paramiko python-httplib2 python-numpy python-matplotlib python-setuptools python-simplejson)
