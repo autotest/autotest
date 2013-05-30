@@ -22,7 +22,8 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
                                               user, password, host)
 
         if self.admin_credentials_valid():
-            self.admin_connection = MySQLdb.connect(user=self.admin,
+            self.admin_connection = MySQLdb.connect(host=self.host,
+                                                    user=self.admin,
                                                     passwd=self.admin_password)
         else:
             self.admin_connection = None
@@ -66,7 +67,8 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
         instance, but to the RDBMS as a whole (where appropriate)
         '''
         try:
-            MySQLdb.connect(user=self.admin,
+            MySQLdb.connect(host=self.host,
+                            user=self.admin,
                             passwd=self.admin_password)
             return True
         except MySQLdb.OperationalError:
