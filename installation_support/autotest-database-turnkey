@@ -88,6 +88,10 @@ class OptionParser(optparse.OptionParser):
                              ', etc. Also it won\'t modify the configuration '
                               'file.'))
 
+        self.add_option('--root-username', default='root',
+                        help=('Name of database administrator '
+                              '(defaults to "%default")'))
+
         self.add_option('--root-password', default='',
                         help=('The password currently assigned to the '
                               'database administrator user (defaults '
@@ -137,6 +141,7 @@ class App(object):
                             'db_type' : get_config_db_value('db_type'),
                             'user' : get_config_db_value('user'),
                             'password' : get_config_db_value('password'),
+                            'root_user' : opts.root_username,
                             'root_password' : opts.root_password}
         else:
             conn_options = {'database' : opts.database,
@@ -144,10 +149,12 @@ class App(object):
                             'db_type' : get_config_db_value('db_type'),
                             'user' : opts.username,
                             'password' : opts.password,
+                            'root_user' : opts.root_username,
                             'root_password' : opts.root_password}
 
         klass = database_manager.get_manager_class(conn_options['db_type'])
         mngr = klass(conn_options['database'],
+                     admin=conn_options['root_user'],
                      admin_password=conn_options['root_password'],
                      user=conn_options['user'],
                      password=conn_options['password'],

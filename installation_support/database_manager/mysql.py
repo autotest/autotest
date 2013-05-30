@@ -13,7 +13,7 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
     '''
     Class that manages MySQL database instances
     '''
-    def __init__(self, name, admin='root', admin_password=None, user=None,
+    def __init__(self, name, admin=None, admin_password=None, user=None,
                  password=None, host=None):
         '''
         Creates a new instance
