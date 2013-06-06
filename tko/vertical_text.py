@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import gd, os, cStringIO, urllib2, sys
+import gd, os, sys
 
 fontlist = [
     '/usr/lib/python/site-packages/reportlab/fonts/PenguinAttack.ttf'
