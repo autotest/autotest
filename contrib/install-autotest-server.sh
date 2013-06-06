@@ -214,6 +214,11 @@ then
 fi
 }
 
+install_git_rh() {
+    print_log "INFO" "Installing git packages"
+    yum install -y git >> $LOG 2>&1
+}
+
 install_packages_rh() {
 PACKAGES_UTILITY=(unzip wget)
 PACKAGES_WEBSERVER=(httpd mod_wsgi Django Django-south)
@@ -249,6 +254,12 @@ if [ $? == 0 ]; then
 	yum -y remove mod_python >> $LOG 2>1&
     fi
 fi
+}
+
+install_git_deb() {
+    print_log "INFO" "Installing git packages"
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get install -y git >> $LOG 2>&1
 }
 
 install_packages_deb() {
@@ -648,11 +659,13 @@ full_install() {
         check_disk_space
         setup_substitute
         setup_epel_repo
+        install_git_rh
         install_packages_rh
     elif [ "$(grep 'Ubuntu' /etc/issue)" != "" ]
     then
         check_disk_space
         setup_substitute
+        install_git_deb
         install_packages_deb
     else
         print_log "Sorry, I can't recognize your distro, exiting..."
