@@ -1,6 +1,6 @@
 #!/usr/bin/python -u
 
-import os, sys, optparse, fcntl, errno, traceback, socket
+import os, sys, fcntl, errno, traceback, socket
 
 try:
     import autotest.common as common
@@ -9,34 +9,34 @@ except ImportError:
 from autotest.client.shared import mail, pidfile
 from autotest.tko import db as tko_db, utils as tko_utils, status_lib, models
 from autotest.client.shared import utils
+from autotest.frontend import optparser
+
+
+class OptionParser(optparser.OptionParser):
+    def __init__(self):
+        optparser.OptionParser.__init__(self)
+
+        self.add_option("-m", help="Send mail for FAILED tests",
+                        dest="mailit", action="store_true")
+        self.add_option("-r", help="Reparse the results of a job",
+                        dest="reparse", action="store_true")
+        self.add_option("-o", help="Parse a single results directory",
+                          dest="singledir", action="store_true")
+        self.add_option("-l", help=("Levels of subdirectories to include "
+                                    "in the job name"),
+                        type="int", dest="level", default=1)
+        self.add_option("-n", help="No blocking on an existing parse",
+                        dest="noblock", action="store_true")
+
+        self.add_option("--write-pidfile",
+                      help="write pidfile (.parser_execute)",
+                      dest="write_pidfile", action="store_true",
+                      default=False)
 
 
 def parse_args():
     # build up our options parser and parse sys.argv
-    parser = optparse.OptionParser()
-    parser.add_option("-m", help="Send mail for FAILED tests",
-                      dest="mailit", action="store_true")
-    parser.add_option("-r", help="Reparse the results of a job",
-                      dest="reparse", action="store_true")
-    parser.add_option("-o", help="Parse a single results directory",
-                      dest="singledir", action="store_true")
-    parser.add_option("-l", help=("Levels of subdirectories to include "
-                                  "in the job name"),
-                      type="int", dest="level", default=1)
-    parser.add_option("-n", help="No blocking on an existing parse",
-                      dest="noblock", action="store_true")
-    parser.add_option("-s", help="Database server hostname",
-                      dest="db_host", action="store")
-    parser.add_option("-u", help="Database username", dest="db_user",
-                      action="store")
-    parser.add_option("-p", help="Database password", dest="db_pass",
-                      action="store")
-    parser.add_option("-d", help="Database name", dest="db_name",
-                      action="store")
-    parser.add_option("--write-pidfile",
-                      help="write pidfile (.parser_execute)",
-                      dest="write_pidfile", action="store_true",
-                      default=False)
+    parser = OptionParser()
     options, args = parser.parse_args()
 
     # we need a results directory
@@ -259,9 +259,11 @@ def main():
                          for subdir in os.listdir(results_dir)]
 
         # build up the database
-        db = tko_db.db(autocommit=False, host=options.db_host,
-                       user=options.db_user, password=options.db_pass,
-                       database=options.db_name)
+        db = tko_db.db(autocommit=False,
+                       host=options.database_hostname,
+                       user=options.database_username,
+                       password=options.database_password,
+                       database=options.database_name)
 
         # parse all the jobs
         for path in jobs_list:

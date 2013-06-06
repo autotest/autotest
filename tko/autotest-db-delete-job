@@ -8,6 +8,7 @@ from autotest.tko import db
 from autotest.client.shared.settings import settings
 from autotest.client.shared import logging_manager, logging_config
 from autotest.client import utils
+from autotest.frontend import optparser
 
 ERROR_NO_RESULTS_AVAILABLE = 1
 ERROR_WRONG_INPUT = 2
@@ -86,27 +87,31 @@ def get_tags_list(option):
     return tag_list
 
 
+class OptionParser(optparser.OptionParser):
+    def __init__(self):
+        optparser.OptionParser.__init__(self, usage="%prog [options]")
+        self.add_option("-r", action="store", type="string",
+                        dest="range",
+                        default="",
+                        help="range of jobs you want to delete. ex: 1-100")
+        self.add_option("-t", action="store", type="string",
+                        dest="tag",
+                        default="",
+                        help=("specific job tag you want to delete. ex: "
+                              "112-autotest/test.foobar.com"))
+        self.add_option("--dry-run", action="store_true",
+                        dest="dry_run",
+                        default=False,
+                        help=("Just simulate deletion"))
+        self.add_option("-y", action="store_true",
+                        dest="auto",
+                        default=False,
+                        help=("Don't ask for confirmation before deleting"))
+
+
 if __name__ == '__main__':
     logging_manager.configure_logging(DeleteJobLoggingConfig(), verbose=True)
-    parser = optparse.OptionParser(usage="%prog [options]")
-    parser.add_option("-r", action="store", type="string",
-                      dest="range",
-                      default="",
-                      help="range of jobs you want to delete. ex: 1-100")
-    parser.add_option("-t", action="store", type="string",
-                      dest="tag",
-                      default="",
-                      help=("specific job tag you want to delete. ex: "
-                            "112-autotest/test.foobar.com"))
-    parser.add_option("-d", action="store_true",
-                      dest="dry_run",
-                      default=False,
-                      help=("Just simulate deletion"))
-    parser.add_option("-y", action="store_true",
-                      dest="auto",
-                      default=False,
-                      help=("Don't ask for confirmation before deleting"))
-
+    parser = OptionParser()
     db = db.db()
 
     options, args = parser.parse_args()
