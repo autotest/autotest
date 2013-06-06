@@ -112,8 +112,6 @@ class OptionParser(optparser.OptionParser):
 if __name__ == '__main__':
     logging_manager.configure_logging(DeleteJobLoggingConfig(), verbose=True)
     parser = OptionParser()
-    db = db.db()
-
     options, args = parser.parse_args()
     if args:
         parser.print_help()
@@ -126,6 +124,11 @@ if __name__ == '__main__':
     if not options.range and not options.tag:
         parser.print_help()
         sys.exit(ERROR_WRONG_INPUT)
+
+    db = db.db(host=options.database_hostname,
+               user=options.database_username,
+               password=options.database_password,
+               database=options.database_name)
 
     if options.range:
         tag_list = get_tags_list(options.range)
