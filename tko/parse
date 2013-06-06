@@ -1,8 +1,0 @@
-#!/usr/bin/python -u
-
-try:
-    import autotest.common
-except ImportError:
-    import common
-from autotest.tko import parse
-parse.main()
