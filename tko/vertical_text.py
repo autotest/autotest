@@ -5,6 +5,7 @@ import gd, os, sys
 fontlist = [
     '/usr/lib/python/site-packages/reportlab/fonts/PenguinAttack.ttf'
     '/usr/share/fonts/truetype/freefont/FreeSans.ttf',
+    '/usr/share/fonts/gnu-free/FreeSans.ttf',
     '/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf',
     ]
 
