@@ -140,7 +140,14 @@ if __name__ == '__main__':
             else:
                 logging.info("Deleting job tag %s" % tag)
                 if not options.dry_run:
-                    db.delete_afe_job(tag)
+                    try:
+                        db.delete_afe_job(tag)
+                    except Exception, detail:
+                        logging.error("Could not delete job tag %s: %s",
+                                      tag, detail)
+                        logging.error("It is likely that you tried to "
+                                      "delete a job that was already queued")
+                        logging.error("Please abort the job before trying again")
 
             results_dir = get_results_dir()
             parent_tagdir = os.path.dirname(tag)
