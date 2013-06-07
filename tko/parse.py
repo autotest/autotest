@@ -7,9 +7,20 @@ try:
 except ImportError:
     import common
 from autotest.client.shared import mail, pidfile
+from autotest.client.shared import logging_manager, logging_config
 from autotest.tko import db as tko_db, utils as tko_utils, status_lib, models
 from autotest.client.shared import utils
 from autotest.frontend import optparser
+
+
+class ParseLoggingConfig(logging_config.LoggingConfig):
+    """
+    Used with the sole purpose of providing convenient logging setup
+    for this program.
+    """
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(ParseLoggingConfig, self).configure_logging(use_console=True,
+                                                          verbose=verbose)
 
 
 class OptionParser(optparser.OptionParser):
@@ -239,6 +250,7 @@ def parse_path(db, path, level, reparse, mail_on_failure):
 
 
 def main():
+    logging_manager.configure_logging(ParseLoggingConfig(), verbose=True)
     options, args = parse_args()
     results_dir = os.path.abspath(args[0])
     assert os.path.exists(results_dir)
