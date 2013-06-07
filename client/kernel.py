@@ -174,11 +174,13 @@ class kernel(BootableKernel):
         self.build_image = None
 
         arch = utils.get_current_kernel_arch()
-        if arch == 's390' or arch == 's390x':
-            self.build_target = 'image'
-        elif arch == 'ia64':
+        if arch == 'ia64':
             self.build_target = 'all'
             self.build_image = 'vmlinux.gz'
+        elif arch in ['s390', 's390x']:
+            self.build_target = 'image'
+        elif arch in ['ppc64', 'ppc']:
+            self.build_target = 'vmlinux'
 
         if not leave:
             self.logfile.write('BASE: %s\n' % base_tree)
@@ -653,7 +655,7 @@ class kernel(BootableKernel):
         def install_package(package):
             raise NotImplementedError("I don't exist yet!")
 
-        if target_arch == 'ppc64':
+        if target_arch in ['ppc64', 'ppc']:
             install_package('ppc64-cross')
             cross_compile = os.path.join(self.autodir, 'sources/ppc64-cross/bin')
 
