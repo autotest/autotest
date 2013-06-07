@@ -40,8 +40,19 @@ def diff_configs(old, new):
                  ignore_status=True)
 
 
+def feature_enabled(feature, config):
+    """
+    Verify whether a given kernel option is enabled.
+
+    @param feature: Kernel feature, such as "CONFIG_DEFAULT_UIMAGE".
+    @param config: Config file path, such as /tmp/config.
+    """
+    return utils.grep('%s=y' % feature, config)
+
+
 def modules_needed(config):
-    return (utils.grep('CONFIG_MODULES=y', config) and utils.grep('=m', config))
+    return (feature_enabled('CONFIG_MODULES', config) and
+            utils.grep('=m', config))
 
 
 def config_by_name(name, s):
