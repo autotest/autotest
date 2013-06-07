@@ -250,9 +250,14 @@ class kernel(BootableKernel):
     def config(self, config_file='', config_list=None, defconfig=False,
                make=None):
         self.set_cross_cc()
-        kernel_config.kernel_config(self.job, self.build_dir, self.config_dir,
-                                    config_file, config_list, defconfig,
-                                    self.base_tree_version, make)
+        config = kernel_config.kernel_config(self.job, self.build_dir,
+                                             self.config_dir,
+                                             config_file, config_list,
+                                             defconfig, self.base_tree_version,
+                                             make)
+        if kernel_config.feature_enabled("CONFIG_DEFAULT_UIMAGE",
+                                         config.build_config):
+            self.build_target = 'uImage'
 
 
     def get_patches(self, patches):

@@ -113,6 +113,7 @@ class TestKernel(unittest.TestCase):
         self.god.stub_function(utils, "system")
         self.god.stub_function(utils, "system_output")
         self.god.stub_function(utils, "get_file")
+        self.god.stub_function(utils, "grep")
         self.god.stub_function(utils, "get_current_kernel_arch")
         self.god.stub_function(utils, "cat_file_to_cmd")
         self.god.stub_function(utils, "force_copy")
@@ -313,12 +314,14 @@ class TestKernel(unittest.TestCase):
         # setup
         self.god.stub_function(self.kernel, "set_cross_cc")
         self.god.stub_class(kernel_config, "kernel_config")
+        kernel_config.kernel_config.build_config = "/tmp/config"
 
         # record
         self.kernel.set_cross_cc.expect_call()
         kernel_config.kernel_config.expect_new(self.job, self.build_dir,
                                                self.config_dir, '', None,
                                                False, self.base_tree, None)
+        utils.grep.expect_call('CONFIG_DEFAULT_UIMAGE=y', '/tmp/config')
         self.job.record.expect_call('GOOD', self.subdir, 'kernel.config')
 
         # run
