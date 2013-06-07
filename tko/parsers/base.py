@@ -1,4 +1,4 @@
-import traceback
+import traceback, logging
 
 from autotest.tko import status_lib, utils as tko_utils
 
@@ -28,13 +28,11 @@ class parser(object):
         try:
             return self.state.next()
         except StopIteration:
-            msg = ("WARNING: parser was called to process status "
-                   "lines after it was end()ed\n"
-                   "Current traceback:\n" +
-                   traceback.format_exc() +
-                   "\nCurrent stack:\n" +
-                   "".join(traceback.format_stack()))
-            tko_utils.dprint(msg)
+            logging.warn("parser was called to process status lines after it "
+                         "was end()ed")
+            logging.warn("Current traceback:\n%s", traceback.format_exc())
+            logging.warn("Current stack:\n%s",
+                         "".join(traceback.format_stack()))
             return []
 
 
@@ -48,12 +46,10 @@ class parser(object):
         try:
             return self.state.next()
         except StopIteration:
-            msg = ("WARNING: parser was end()ed multiple times\n"
-                   "Current traceback:\n" +
-                   traceback.format_exc() +
-                   "\nCurrent stack:\n" +
-                   "".join(traceback.format_stack()))
-            tko_utils.dprint(msg)
+            logging.warn("parser was end()ed multiple times")
+            logging.warn("Current traceback:\n%s", traceback.format_exc())
+            logging.warn("Current stack:\n%s",
+                         "".join(traceback.format_stack()))
             return []
 
 
