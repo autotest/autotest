@@ -38,7 +38,6 @@ UBUNTU_PKGS = [
     'git',
     'gnuplot',
     'libapache2-mod-wsgi',
-    'libgwt-dev-java',
     'makepasswd',
     'mysql-server',
     'openjdk-7-jre-headless',
