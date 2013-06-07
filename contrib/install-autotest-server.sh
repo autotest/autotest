@@ -588,11 +588,8 @@ cd $ATHOME/client/shared/
 VERSION="$(./version.py)"
 print_log "INFO" "Finished installing autotest server $VERSION at: $(date)"
 
-IP="$(ifconfig | grep 'inet addr:' | grep -v '127.0.0.1' | grep -v '192.168.122.1$' | cut -d: -f2 | awk '{ print $1}')"
-if [ "$IP" = "" ]
-then
-    IP="$(ifconfig | grep inet | awk '{print $2}' | grep -v ":" | grep -v '127.0.0.1' | grep -v '192.168.122.1$')"
-fi
+DEFAULT_INTERFACE=$(ip route show to 0.0.0.0/0.0.0.0 | cut -d ' ' -f 5)
+IP="$(ip address show dev $DEFAULT_INTERFACE | grep 'inet ' | awk '{print $2}' | cut -d '/' -f 1)"
 print_log "INFO" "You can access your server on http://$IP/afe"
 }
 
