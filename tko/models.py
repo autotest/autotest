@@ -1,4 +1,4 @@
-import os
+import os, logging
 
 from autotest.client.shared import utils
 from autotest.tko import utils as tko_utils
@@ -97,7 +97,7 @@ class test(object):
         can be extracted from the status logs, parse the test
         keyval files and use it to construct a complete test
         instance."""
-        tko_utils.dprint("parsing test %s %s" % (subdir, testname))
+        logging.info("parsing test %s %s" % (subdir, testname))
 
         if subdir:
             # grab iterations from the results keyval
@@ -135,7 +135,7 @@ class test(object):
         started, create a test instance representing the partial result.
         Assume that since the test is not complete there are no results files
         actually available for parsing."""
-        tko_utils.dprint("parsing partial test %s %s" % (subdir, testname))
+        logging.info("parsing partial test %s %s", subdir, testname)
 
         return cls(subdir, testname, "RUNNING", reason, test_kernel,
                    job.machine, started_time, None, [], {}, [])

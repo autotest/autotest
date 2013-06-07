@@ -1,6 +1,6 @@
 #!/usr/bin/python -u
 
-import os, sys, fcntl, errno, traceback, socket
+import os, sys, fcntl, errno, traceback, socket, logging
 
 try:
     import autotest.common as common
@@ -41,8 +41,7 @@ def parse_args():
 
     # we need a results directory
     if len(args) == 0:
-        tko_utils.dprint("ERROR: at least one results directory must "
-                         "be provided")
+        logging.error("At least one results directory must be provided")
         parser.print_help()
         sys.exit(1)
 
@@ -76,13 +75,13 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
     """
     Parse a single job. Optionally send email on failure.
     """
-    tko_utils.dprint("\nScanning %s (%s)" % (jobname, path))
+    logging.info("Scanning %s (%s)", jobname, path)
     old_job_idx = db.find_job(jobname)
     # old tests is a dict from tuple (test_name, subdir) to test_idx
     old_tests = {}
     if old_job_idx is not None:
         if not reparse:
-            tko_utils.dprint("! Job is already parsed, done")
+            logging.info("Job is already parsed, done")
             return
 
         raw_old_tests = db.select("test_idx,subdir,test", "tko_tests",
@@ -102,11 +101,11 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
     if not os.path.exists(status_log):
         status_log = os.path.join(path, "status")
     if not os.path.exists(status_log):
-        tko_utils.dprint("! Unable to parse job, no status file")
+        logging.error("Unable to parse job, no status file")
         return
 
     # parse the status logs
-    tko_utils.dprint("+ Parsing dir=%s, jobname=%s" % (path, jobname))
+    logging.info("Parsing dir=%s, jobname=%s", path, jobname)
     status_lines = open(status_log).readlines()
     parser.start(job)
     tests = parser.end(status_lines)
@@ -128,9 +127,8 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
             if test_idx is not None:
                 test.test_idx = test_idx
             else:
-                tko_utils.dprint("! Reparse returned new test "
-                                 "testname=%r subdir=%r" %
-                                 (test.testname, test.subdir))
+                logging.info("Reparse returned new test testname=%r subdir=%r",
+                             test.testname, test.subdir)
         for test_idx in old_tests.itervalues():
             where = {'test_idx' : test_idx}
             db.delete('tko_iteration_result', where)
@@ -144,8 +142,8 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
     for test in job.tests:
         if not test.subdir:
             continue
-        tko_utils.dprint("* testname, status, reason: %s %s %s"
-                         % (test.subdir, test.status, test.reason))
+        logging.info("testname, status, reason: %s %s %s",
+                     test.subdir, test.status, test.reason)
         if test.status in ("FAIL", "WARN"):
             message_lines.append(format_failure_message(
                 jobname, test.kernel.base, test.subdir,
@@ -154,8 +152,8 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
 
     # send out a email report of failure
     if len(message) > 2 and mail_on_failure:
-        tko_utils.dprint("Sending email report of failure on %s to %s"
-                         % (jobname, job.user))
+        logging.info("Sending email report of failure on %s to %s",
+                     jobname, job.user)
         mailfailure(jobname, job, message)
 
     # write the job into the database
@@ -179,8 +177,8 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
             site_export(binary_file_name)
 
     except ImportError:
-        tko_utils.dprint("DEBUG: tko_pb2.py doesn't exist. Create by "
-                         "compiling tko/tko.proto.")
+        logging.debug("tko_pb2.py doesn't exist. Create it by compiling "
+                      "tko/tko.proto.")
 
     db.commit()
 
