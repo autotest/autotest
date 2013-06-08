@@ -9,6 +9,9 @@ from autotest.client.shared.settings import settings
 from autotest.client.shared import logging_manager, logging_config
 from autotest.client import utils
 from autotest.frontend import optparser
+from autotest.frontend import setup_django_environment
+from autotest.frontend.tko import models_utils as tko_models_utils
+from autotest.frontend.afe import models_utils as afe_models_utils
 
 ERROR_NO_RESULTS_AVAILABLE = 1
 ERROR_WRONG_INPUT = 2
@@ -109,6 +112,37 @@ class OptionParser(optparser.OptionParser):
                         help=("Don't ask for confirmation before deleting"))
 
 
+def delete_job_full(tag):
+    tko_job = tko_models_utils.job_get_by_tag(tag)
+
+    if tko_job is None:
+        logging.error('Job tag "%s" does not exist in database', tag)
+        return
+
+    if tko_job.afe_job_id is None:
+        logging.debug('TKO job has no AFE job associated')
+        afe_job = None
+    else:
+        logging.debug('Job sent via AFE, deleting AFE job "%s"',
+                      tko_job.afe_job_id)
+        afe_job = afe_models_utils.job_get_by_id(tko_job.afe_job_id)
+        if afe_job is None:
+            logging.warn('AFE job referenced but not found')
+
+        if options.dry_run:
+            return
+
+        logging.info("Deleting job tag %s" % tag)
+        if afe_job is not None:
+            deleted = afe_models_utils.job_delete_by_id(afe_job)
+            if not deleted:
+                logging.error("Failed while deleting AFE job")
+
+        deleted = tko_models_utils.job_delete_by_tag(tag)
+        if not deleted:
+            logging.error("Failed while deleting TKO job")
+
+
 if __name__ == '__main__':
     logging_manager.configure_logging(DeleteJobLoggingConfig(), verbose=True)
     parser = OptionParser()
@@ -143,19 +177,14 @@ if __name__ == '__main__':
 
     if answer == 'y':
         for tag in tag_list:
-            if not db.find_job(tag):
-                logging.error("Job tag %s does not exist in database" % tag)
-            else:
-                logging.info("Deleting job tag %s" % tag)
-                if not options.dry_run:
-                    try:
-                        db.delete_afe_job(tag)
-                    except Exception, detail:
-                        logging.error("Could not delete job tag %s: %s",
-                                      tag, detail)
-                        logging.error("It is likely that you tried to "
-                                      "delete a job that was already queued")
-                        logging.error("Please abort the job before trying again")
+            try:
+                delete_job_full(tag)
+            except Exception, detail:
+                logging.error("Could not delete job tag %s: %s",
+                              tag, detail)
+                logging.error("It is likely that you tried to "
+                              "delete a job that was already queued")
+                logging.error("Please abort the job before trying again")
 
             results_dir = get_results_dir()
             parent_tagdir = os.path.dirname(tag)
