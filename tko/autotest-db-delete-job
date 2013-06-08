@@ -170,7 +170,7 @@ if __name__ == '__main__':
     elif options.tag:
         tag_list = [options.tag]
 
-    logging.info("The following job tags were found:")
+    logging.info("The following job tags were selected/found:")
     for tag in tag_list:
         logging.info("    %s" % tag)
     answer = utils.ask("Do you want to delete them?", auto=options.auto)
