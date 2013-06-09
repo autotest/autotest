@@ -8,9 +8,12 @@ except ImportError:
     import common
 from autotest.client.shared import mail, pidfile
 from autotest.client.shared import logging_manager, logging_config
-from autotest.tko import db as tko_db, utils as tko_utils, status_lib, models
+from autotest.tko import db as tko_db
+from autotest.tko import utils as tko_utils, status_lib, models
 from autotest.client.shared import utils
 from autotest.frontend import optparser
+from autotest.frontend import setup_django_environment
+from autotest.frontend.tko import models_utils as tko_models_utils
 
 
 class ParseLoggingConfig(logging_config.LoggingConfig):
