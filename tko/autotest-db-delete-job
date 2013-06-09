@@ -57,7 +57,6 @@ def get_results_dir():
 
 def get_tags_by_range(range):
     tag_list = []
-    results_dir = get_results_dir()
     for job_index in range:
         job = db.find_tag("%s-%%" % job_index)
         if job:
