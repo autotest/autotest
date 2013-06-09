@@ -55,14 +55,9 @@ def get_results_dir():
     return results_dir
 
 
-def get_tags_by_range(range):
-    tag_list = []
-    for job_index in range:
-        job = db.find_tag("%s-%%" % job_index)
-        if job:
-            tag_list.append(job)
-
-    return tag_list
+def get_tags_by_range(jobid_range):
+    jobs = tko_models_utils.jobs_get_by_tag_range(jobid_range)
+    return [job.tag for job in jobs]
 
 
 def get_tags_list(option):
