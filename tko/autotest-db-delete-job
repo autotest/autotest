@@ -4,7 +4,6 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.tko import db
 from autotest.client.shared.settings import settings
 from autotest.client.shared import logging_manager, logging_config
 from autotest.client import utils
@@ -152,11 +151,6 @@ if __name__ == '__main__':
     if not options.range and not options.tag:
         parser.print_help()
         sys.exit(ERROR_WRONG_INPUT)
-
-    db = db.db(host=options.database_hostname,
-               user=options.database_username,
-               password=options.database_password,
-               database=options.database_name)
 
     if options.range:
         tag_list = get_tags_list(options.range)
