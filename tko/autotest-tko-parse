@@ -90,7 +90,7 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
     Parse a single job. Optionally send email on failure.
     """
     logging.info("Scanning %s (%s)", jobname, path)
-    old_job_idx = db.find_job(jobname)
+    old_job_idx = tko_models_utils.job_get_idx_by_tag(jobname)
     # old tests is a dict from tuple (test_name, subdir) to test_idx
     old_tests = {}
     if old_job_idx is not None:
