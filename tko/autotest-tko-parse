@@ -8,12 +8,12 @@ except ImportError:
     import common
 from autotest.client.shared import mail, pidfile
 from autotest.client.shared import logging_manager, logging_config
-from autotest.tko import db as tko_db
 from autotest.tko import utils as tko_utils, status_lib, models
 from autotest.client.shared import utils
 from autotest.frontend import optparser
 from autotest.frontend import setup_django_environment
 from autotest.frontend.tko import models_utils as tko_models_utils
+from autotest.frontend.tko import models as tko_models
 
 
 class ParseLoggingConfig(logging_config.LoggingConfig):
@@ -85,7 +85,150 @@ def mailfailure(jobname, job, message):
     mail.send("", job.user, "", subject, message_header + message)
 
 
-def parse_one(db, jobname, path, reparse, mail_on_failure):
+def insert_patch(tko_kernel, patch):
+    name = os.path.basename(patch.reference)[:80]
+    tko_patch, created = tko_models.Patch.objects.get_or_create(
+        kernel=tko_kernel,
+        name=name,
+        url=patch.reference,
+        hash=patch.hash)
+    return tko_patch
+
+
+def insert_kernel(kernel):
+    tko_kernel, created = tko_models.Kernel.objects.get_or_create(
+        kernel_hash=kernel.kernel_hash)
+
+    if not created:
+        return tko_kernel
+
+    tko_kernel.base = kernel.base
+    tko_kernel.printable = kernel.base
+
+    # If this kernel has any significant patches, append their hash
+    # as diferentiator.
+    patch_count = 0
+    for patch in kernel.patches:
+        match = re.match(r'.*(-mm[0-9]+|-git[0-9]+)\.(bz2|gz)$',
+                         patch.reference)
+        if not match:
+            patch_count += 1
+
+    if patch_count > 0:
+        tko_kernel.printable = '%s p%d' % (tko_kernel.printable,
+                                           tko_kernel.kernel_idx)
+
+    for patch in kernel.patches:
+        self.insert_patch(tko_kernel, patch)
+
+    return tko_kernel
+
+def insert_test(job, test, tko_job, tko_machine):
+    tko_kernel = insert_kernel(test.kernel)
+    status = tko_models.Status.objects.get(word=test.status)
+
+    subdir = test.subdir
+    if test.subdir is None:
+        subdir = ''
+
+    tko_test_data = {
+        'job': tko_job,
+        'test': test.testname,
+        'subdir': subdir,
+        'kernel': tko_kernel,
+        'status': status,
+        'reason': test.reason,
+        'machine': tko_machine,
+        'started_time': test.started_time,
+        'finished_time': test.finished_time
+        }
+
+    test_already_exists = hasattr(test, "test_idx")
+    if test_already_exists:
+        tko_models.Test.objects.filter(pk=test.test_idx).update(**tko_test_data)
+        tko_test = tko_models.Test.objects.get(pk=test.test_idx)
+
+        # clean up iteration result/attributes and test attributes that will
+        # be re-added shortly
+        tko_models.IterationResult.objects.filter(
+            test=test.test_idx).delete()
+        tko_models.IterationAttribute.objects.filter(
+            test=test.test_idx).delete()
+        tko_models.TestAttribute.objects.filter(test=test.test_idx,
+                                                user_created=False).delete()
+
+    else:
+        tko_test = tko_models.Test.objects.create(**tko_test_data)
+
+    for i in test.iterations:
+        for key, value in i.attr_keyval.iteritems():
+            tko_models.IterationAttribute.objects.create(
+                test=tko_test,
+                attribute=key,
+                iteration=i.index,
+                value=value)
+
+        for key, value in i.perf_keyval.iteritems():
+            tko_models.IterationResult.objects.create(
+                test=tko_test,
+                iteration=i.index,
+                attribute=key,
+                value=value)
+
+    for key, value in test.attributes.iteritems():
+        tko_models.TestAttribute.objects.create(
+            test=tko_test,
+            attribute=key,
+            value=value)
+
+    # WARNING: there's a possible regression of functionality on this code!
+    # I can not find anywhere where the test labels are parsed into the
+    # test objects. The original parsing of the test labels is done by
+    # index and direct manipulation of the many-to-many table. The way
+    # to do this via Django ORM wouble to create TestLabel() instances
+    # and add the test to the 'tests' member. Unfortunately, without
+    # the label data such as name and description, it's not possible
+    # to instantiate TestLabel()s in the first place.
+
+
+def insert_job(jobname, job):
+    # write the job into the database
+    machine = tko_models_utils.machine_create(job.machine,
+                                              job.machine_group,
+                                              job.machine_owner)
+    tko_job_data = {
+        'tag' : jobname,
+        'label' : job.label,
+        'machine' : machine,
+        'queued_time' : job.queued_time,
+        'started_time' : job.started_time,
+        'finished_time' : job.finished_time,
+        'afe_job_id' : tko_utils.get_afe_job_id(jobname)
+        }
+
+    job_already_exists = hasattr(job, 'index')
+    if job_already_exists:
+        tko_models.Job.objects.filter(pk=job.index).update(**tko_job_data)
+        tko_job = tko_models.Job.objects.get(pk=job.index)
+    else:
+        tko_job = tko_models.Job.objects.create(**tko_job_data)
+
+    # update job keyvals
+    for key, value in job.keyval_dict.iteritems():
+        # We find or create using job and key only
+        job_keyval, created = tko_models.JobKeyval.objects.get_or_create(
+            job=tko_job,
+            key=key)
+        # and now we have to update with value
+        job_keyval.value = value
+        job_keyval.save()
+
+    # now insert the tests, conver the following block of code
+    for test in job.tests:
+        insert_test(job, test, tko_job, machine)
+
+
+def parse_one(jobname, path, reparse, mail_on_failure):
     """
     Parse a single job. Optionally send email on failure.
     """
@@ -164,8 +307,7 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
                      jobname, job.user)
         mailfailure(jobname, job, message)
 
-    # write the job into the database
-    db.insert_job(jobname, job)
+    insert_job(jobname, job)
 
     # Serializing job into a binary file
     try:
@@ -188,7 +330,6 @@ def parse_one(db, jobname, path, reparse, mail_on_failure):
         logging.debug("tko_pb2.py doesn't exist. Create it by compiling "
                       "tko/tko.proto.")
 
-    db.commit()
 
 def _site_export_dummy(binary_file_name):
     pass
@@ -219,31 +360,30 @@ def _get_job_subdirs(path):
     return None
 
 
-def parse_leaf_path(db, path, level, reparse, mail_on_failure):
+def parse_leaf_path(path, level, reparse, mail_on_failure):
     job_elements = path.split("/")[-level:]
     jobname = "/".join(job_elements)
     try:
-        db.run_with_retry(parse_one, db, jobname, path, reparse,
-                          mail_on_failure)
+        parse_one(jobname, path, reparse, mail_on_failure)
     except Exception:
         traceback.print_exc()
 
 
-def parse_path(db, path, level, reparse, mail_on_failure):
+def parse_path(path, level, reparse, mail_on_failure):
     job_subdirs = _get_job_subdirs(path)
     if job_subdirs is not None:
         # parse status.log in current directory, if it exists. multi-machine
         # synchronous server side tests record output in this directory. without
         # this check, we do not parse these results.
         if os.path.exists(os.path.join(path, 'status.log')):
-            parse_leaf_path(db, path, level, reparse, mail_on_failure)
+            parse_leaf_path(path, level, reparse, mail_on_failure)
         # multi-machine job
         for subdir in job_subdirs:
             jobpath = os.path.join(path, subdir)
-            parse_path(db, jobpath, level + 1, reparse, mail_on_failure)
+            parse_path(jobpath, level + 1, reparse, mail_on_failure)
     else:
         # single machine job
-        parse_leaf_path(db, path, level, reparse, mail_on_failure)
+        parse_leaf_path(path, level, reparse, mail_on_failure)
 
 
 def main():
@@ -265,13 +405,6 @@ def main():
             jobs_list = [os.path.join(results_dir, subdir)
                          for subdir in os.listdir(results_dir)]
 
-        # build up the database
-        db = tko_db.db(autocommit=False,
-                       host=options.database_hostname,
-                       user=options.database_username,
-                       password=options.database_password,
-                       database=options.database_name)
-
         # parse all the jobs
         for path in jobs_list:
             lockfile = open(os.path.join(path, ".parse.lock"), "w")
@@ -288,7 +421,7 @@ def main():
                 else:
                     raise # something unexpected happened
             try:
-                parse_path(db, path, options.level, options.reparse,
+                parse_path(path, options.level, options.reparse,
                            options.mailit)
 
             finally:
