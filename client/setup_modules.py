@@ -13,6 +13,7 @@ Without system wide install, we need some hacks, that are performed here.
 @author: John Admanski (jadmanski@google.com)
 """
 import os, sys
+import importlib
 
 try:
     import autotest.client.shared.check_version as check_version
@@ -71,6 +72,29 @@ def import_module(module, from_where):
     """
     from_module = __import__(from_where, globals(), locals(), [module])
     return getattr(from_module, module)
+
+
+def import_system_module(module, package=None):
+    """
+    Import system installed lib only.
+
+    @param module: Module name.
+    @param package: Package the module is being imported.
+    @return: The corresponding module.
+    """
+    _autotest_paths = sys.path
+    try:
+        paths = eval(os.popen("python -c 'import sys;print sys.path'").read())
+        if not isinstance(paths, list):
+            raise ImportError
+        try:
+            paths.remove('')
+        except ValueError:
+            pass
+        sys.path = paths
+        return importlib.import_module(module, package)
+    finally:
+        sys.path = _autotest_paths
 
 
 def setup(base_path, root_module_name="autotest"):
