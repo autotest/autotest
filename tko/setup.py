@@ -20,10 +20,6 @@ def get_package_dir():
     return {'autotest.tko': tko_dir}
 
 
-def get_package_data():
-    return {'autotest.tko' : ['*.cgi']}
-
-
 def get_packages():
     return ['autotest.tko.parsers',
             'autotest.tko.parsers.test',
@@ -47,7 +43,6 @@ def run():
           version=version.get_version(),
           url='http://autotest.github.com',
           package_dir=get_package_dir(),
-          package_data=get_package_data(),
           packages=get_packages(),
           data_files=get_data_files(),
           scripts=get_scripts())
