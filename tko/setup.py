@@ -31,13 +31,7 @@ def get_packages():
             'autotest.tko']
 
 def get_data_files():
-    return [('share/autotest/tko', [tko_dir + '/blank.gif',
-                                    tko_dir + '/draw_graphs',
-                                    tko_dir + '/machine_load',
-                                    tko_dir + '/parse',
-                                    tko_dir + '/plotgraph',
-                                    tko_dir + '/retrieve_jobs',
-                                    tko_dir + '/tko.proto'])]
+    return [('share/autotest/tko', [tko_dir + '/tko.proto'])]
 
 
 def get_scripts():
