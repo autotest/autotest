@@ -1,5 +1,6 @@
 # Please keep this code python 2.4 compatible and stand alone.
 
+import distutils.version
 import logging, os, shutil, sys, tempfile, time, urllib2
 import subprocess, re
 from autotest.client.shared import utils
@@ -110,9 +111,11 @@ class ExternalPackage(object):
         logging.info('imported %s version %s.', self.module_name,
                      self.installed_version)
         if hasattr(self, 'minimum_version'):
-            return self.minimum_version > self.installed_version
+            return distutils.version.LooseVersion(self.minimum_version) > \
+                distutils.version.LooseVersion(self.installed_version)
         else:
-            return self.version > self.installed_version
+            return distutils.version.LooseVersion(self.version) > \
+                distutils.version.LooseVersion(self.installed_version)
 
 
     def _get_installed_version_from_module(self, module):
