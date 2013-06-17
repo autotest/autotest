@@ -108,7 +108,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
 
     @Override
     protected void fetchData() {
-        pointToResults(NO_URL, NO_URL, NO_URL, NO_URL, NO_URL);
+        pointToResults(NO_URL, NO_URL, NO_URL, NO_URL);
         JSONObject params = new JSONObject();
         params.put("id", new JSONNumber(jobId));
         rpcProxy.rpcCall("get_jobs_summary", params, new JsonRpcCallback() {
@@ -155,8 +155,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
 
                 String jobTag = AfeUtils.getJobTag(jobObject);
                 pointToResults(getResultsURL(jobId), getLogsURL(jobTag),
-                               getOldResultsUrl(jobId), getTriageUrl(jobId),
-                               getEmbeddedUrl(jobId));
+                               getTriageUrl(jobId), getEmbeddedUrl(jobId));
 
                 String jobTitle = "Job: " + name + " (" + jobTag + ")";
                 displayObjectData(jobTitle);
@@ -344,12 +343,6 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
                "show_incomplete=true";
     }
 
-    private String getOldResultsUrl(int jobId) {
-        return "/tko/compose_query.cgi?" +
-               "columns=test&rows=hostname&condition=tag%7E%27" +
-               Integer.toString(jobId) + "-%25%27&title=Report";
-    }
-
     private String getTriageUrl(int jobId) {
         /*
          * Having a hard-coded path like this is very unfortunate, but there's no simple way
@@ -379,10 +372,8 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
     }
 
     protected void pointToResults(String resultsUrl, String logsUrl,
-                                  String oldResultsUrl, String triageUrl,
-                                  String embeddedUrl) {
+                                  String triageUrl, String embeddedUrl) {
         getElementById("results_link").setAttribute("href", resultsUrl);
-        getElementById("old_results_link").setAttribute("href", oldResultsUrl);
         getElementById("raw_results_link").setAttribute("href", logsUrl);
         getElementById("triage_failures_link").setAttribute("href", triageUrl);
 
