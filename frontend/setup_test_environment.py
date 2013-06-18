@@ -14,6 +14,16 @@ settings.DATABASES['default']['ENGINE'] = (
     'autotest.frontend.db.backends.afe_sqlite')
 settings.DATABASES['default']['NAME'] = ':memory:'
 
+
+#
+# Enabling the DEBUG setting is the most straightforward way to prevent Django
+# from enforcing conditions that should be enforced during production, but not
+# necessarily under a test environment (such as when running unittests. One
+# example is the HOSTS_ALLOWED check that was introduced in Django 1.5.
+#
+settings.DEBUG = True
+
+
 # We have to update the south backend since the engine also gets changed here
 south_backend = settings.SOUTH_BACKENDS[settings.AUTOTEST_DEFAULT['ENGINE']]
 settings.SOUTH_DATABASE_ADAPTERS['default'] = south_backend
