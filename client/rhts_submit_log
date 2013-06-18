@@ -1,0 +1,6 @@
+#!/bin/sh
+
+args="$@"
+test -n "$AUTOTEST_HARNESS_ARGS" && extra=",$AUTOTEST_HARNESS_ARGS"
+autotest --verbose -P quickcmd="submit_log:$args$extra" bootstrap
+

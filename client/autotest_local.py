@@ -44,7 +44,7 @@ class AutotestLocalApp:
 
     def parse_cmdline(self):
         self.options, args = self.opt_parser.parse_args()
-        self.args = self.cmd_parser.parse_args(args)
+        self.args = self.cmd_parser.parse_args(args, self.options)
 
         # Check for a control file if not in prebuild mode.
         if len(args) != 1 and self.options.client_test_setup is None:

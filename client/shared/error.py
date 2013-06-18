@@ -307,6 +307,10 @@ class DataSyncError(NetCommunicationError):
     pass
 
 
+class HarnessError(JobError):
+    """Indicates problem with the harness."""
+    pass
+
 class InstallError(JobError):
     """Indicates an installation error which Terminates and fails the job."""
     pass
