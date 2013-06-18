@@ -151,6 +151,7 @@ REQUIRES_DJANGO = set((
         'site_rpc_utils_unittest.py',
         'execution_engine_unittest.py',
         'service_proxy_lib_unittest.py',
+        'reservations_unittest.py',
         ))
 
 REQUIRES_MYSQLDB = set((
