@@ -131,3 +131,7 @@ INSTALLED_APPS = (
 AUTHENTICATION_BACKENDS = (
     'autotest.frontend.apache_auth.SimpleAuthBackend',
 )
+
+# To prevent cache poisoning, please set this to the FQDN that your
+# server will be responsible for
+ALLOWED_HOSTS = ['*']
