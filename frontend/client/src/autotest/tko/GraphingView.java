@@ -17,12 +17,10 @@ public class GraphingView extends TabView {
     private MetricsPlotFrontend metricsPlotFrontend = new MetricsPlotFrontend(this);
     private MachineQualHistogramFrontend machineQualHistogramFrontend =
         new MachineQualHistogramFrontend(this);
-    private ExistingGraphsFrontend existingGraphsFrontend = new ExistingGraphsFrontend(this);
     private DeckPanel controlPanel = new DeckPanel();
     private GraphingFrontend frontends[] = {
             metricsPlotFrontend,
             machineQualHistogramFrontend,
-            existingGraphsFrontend,
     };
 
     public GraphingView(TableSwitchListener listener) {
@@ -36,7 +34,6 @@ public class GraphingView extends TabView {
         frontendSelection.addItem("Metrics Plot", metricsPlotFrontend.getFrontendId());
         frontendSelection.addItem("Machine Qualification Histogram", 
                                   machineQualHistogramFrontend.getFrontendId());
-        frontendSelection.addItem("Existing Graphs", existingGraphsFrontend.getFrontendId());
 
         frontendSelection.addChangeHandler(new ChangeHandler() {
             public void onChange(ChangeEvent event) {
@@ -47,7 +44,6 @@ public class GraphingView extends TabView {
 
         controlPanel.add(metricsPlotFrontend);
         controlPanel.add(machineQualHistogramFrontend);
-        controlPanel.add(existingGraphsFrontend);
         controlPanel.showWidget(0);
 
         addWidget(frontendSelection, "graphing_type");
