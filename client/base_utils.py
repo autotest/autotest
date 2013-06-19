@@ -717,15 +717,6 @@ def get_cpu_vendor():
     return vendors[0]
 
 
-def probe_cpus():
-    """
-    This routine returns a list of cpu devices found under
-    /sys/devices/system/cpu.
-    """
-    cmd = 'find /sys/devices/system/cpu/ -maxdepth 1 -type d -name cpu*'
-    return utils.system_output(cmd).splitlines()
-
-
 def ping_default_gateway():
     """Ping the default gateway."""
 
