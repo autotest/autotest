@@ -288,12 +288,7 @@ fi
 
 get_autotest_from_git() {
 print_log "INFO" "Cloning autotest repo $AUTOTEST_GIT_REPO, branch $AUTOTEST_GIT_BRANCH in $ATHOME"
-cd $ATHOME
-git init
-git remote add origin $AUTOTEST_GIT_REPO
-git config branch.$AUTOTEST_GIT_BRANCH.remote origin
-git config branch.$AUTOTEST_GIT_BRANCH.merge refs/heads/$AUTOTEST_GIT_BRANCH
-git pull
+git clone $AUTOTEST_GIT_REPO $ATHOME
 git checkout $AUTOTEST_GIT_BRANCH
 if [ -n $AUTOTEST_GIT_COMMIT ]; then
     git checkout $AUTOTEST_GIT_COMMIT
