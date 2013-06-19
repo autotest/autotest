@@ -47,7 +47,7 @@ def feature_enabled(feature, config):
     @param feature: Kernel feature, such as "CONFIG_DEFAULT_UIMAGE".
     @param config: Config file path, such as /tmp/config.
     """
-    return utils.grep('%s=y' % feature, config)
+    return utils.grep('^%s=y' % feature, config)
 
 
 def modules_needed(config):

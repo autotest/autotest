@@ -94,6 +94,7 @@ CONFIG_ACPI_APEI_MEMORY_FAILURE=y
 # CONFIG_ACPI_APEI_EINJ is not set
 # CONFIG_ACPI_APEI_ERST_DEBUG is not set
 CONFIG_SFI=y
+#CONFIG_NASTY_USER=y
 """
 
 
@@ -115,6 +116,10 @@ class TestKernelConfig(unittest.TestCase):
         for feature in ['CONFIG_MODULE_SIG_SHA512', 'CONFIG_PM_TEST_SUSPEND']:
             self.assertEqual(kernel_config.feature_enabled(feature,
                                                self.config_modules_path), False)
+
+    def testFeatureDisabledByUser(self):
+        self.assertEqual(kernel_config.feature_enabled("CONFIG_NASTY_USER",
+                                              self.config_modules_path), False)
 
     def testModulesNeeded(self):
         self.assertEqual(kernel_config.modules_needed(
