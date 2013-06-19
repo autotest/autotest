@@ -92,21 +92,21 @@ RewriteRule /afe/server/admin/afe/(aclgroup|atomicgroup|host|label|profiler|test
 <IfModule mod_wsgi.c>
 
     RewriteCond /usr/local/autotest/frontend/frontend.wsgi -f
-    RewriteRule /(afe|new_tko)/server(.*) /usr/local/autotest/frontend/frontend.wsgi [H=wsgi-script]
+    RewriteRule /(retrieve_logs|(afe|new_tko)/server)(.*) /usr/local/autotest/frontend/frontend.wsgi [H=wsgi-script]
 
     RewriteCond /usr/lib/python2.7/site-packages/autotest/frontend/frontend.wsgi -f
-    RewriteRule /(afe|new_tko)/server(.*) /usr/lib/python2.7/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+    RewriteRule /(retrieve_logs|(afe|new_tko)/server)(.*) /usr/lib/python2.7/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
 
     RewriteCond /usr/lib/python2.6/site-packages/autotest/frontend/frontend.wsgi -f
-    RewriteRule /(afe|new_tko)/server(.*) /usr/lib/python2.6/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+    RewriteRule /(retrieve_logs|(afe|new_tko)/server)(.*) /usr/lib/python2.6/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
 
     RewriteCond /usr/lib/python2.5/site-packages/autotest/frontend/frontend.wsgi -f
-    RewriteRule /(afe|new_tko)/server(.*) /usr/lib/python2.5/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+    RewriteRule /(retrieve_logs|(afe|new_tko)/server)(.*) /usr/lib/python2.5/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
 
     RewriteCond /usr/lib/python2.4/site-packages/autotest/frontend/frontend.wsgi -f
-    RewriteRule /(afe|new_tko)/server(.*) /usr/lib/python2.4/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+    RewriteRule /(retrieve_logs|(afe|new_tko)/server)(.*) /usr/lib/python2.4/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
 
-    <LocationMatch "/(afe|new_tko)/server(.*)">
+    <LocationMatch "/(retrieve_logs|(afe|new_tko)/server)(.*)">
        Options +ExecCGI
     </LocationMatch>
 
@@ -120,7 +120,7 @@ RewriteRule /afe/server/admin/afe/(aclgroup|atomicgroup|host|label|profiler|test
 # Configuration for mod_python
 #
 <IfModule mod_python.c>
-    <Location ~ "/(afe|new_tko)/server">
+    <Location ~ "/(retrieve_logs)|((afe|new_tko)/server)">
         SetHandler python-program
         PythonHandler django.core.handlers.modpython
         SetEnv DJANGO_SETTINGS_MODULE frontend.settings
