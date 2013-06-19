@@ -296,10 +296,6 @@ class base_server_job(base_job.base_job):
         """
         if not self._using_parser:
             return
-        # redirect parser debugging to .parse.log
-        parse_log = os.path.join(self.resultdir, '.parse.log')
-        parse_log = open(parse_log, 'w', 0)
-        tko_utils.redirect_parser_debugging(parse_log)
         # create a job model object
         self.parser = status_lib.parser(self._STATUS_VERSION)
         self.job_model = self.parser.make_job(self.resultdir)
