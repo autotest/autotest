@@ -152,7 +152,7 @@ COMMANDS = (
 )
 
 
-class ServiceCommandGenerator(object):
+class _ServiceCommandGenerator(object):
     """
     A class that contains staticmethods that generate partial functions that
     generate command lists for starting/stopping services.
@@ -206,7 +206,7 @@ def get_name_of_init():
         return _init_name
 
 
-class SpecificServiceManager(object):
+class _SpecificServiceManager(object):
 
     def __init__(self, service_name, service_command_generator, run=utils.run):
         """
@@ -221,7 +221,7 @@ class SpecificServiceManager(object):
         :param service_name: init service name or systemd unit name
         :type service_name: str
         :param service_command_generator: a sys_v_init or systemd command generator
-        :type service_command_generator: ServiceCommandGenerator
+        :type service_command_generator: _ServiceCommandGenerator
         :param run: function that executes the commands, default utils.run
         :type run: function
         """
@@ -255,7 +255,7 @@ class SpecificServiceManager(object):
         return run
 
 
-class GenericServiceManager(object):
+class _GenericServiceManager(object):
     """
     Base class for SysVInitServiceManager and SystemdServiceManager.
     """
@@ -270,10 +270,15 @@ class GenericServiceManager(object):
         systemd.stop("lldpad")
 
         :param service_command_generator: a sys_v_init or systemd command generator
-        :type service_command_generator: ServiceCommandGenerator
+        :type service_command_generator: _ServiceCommandGenerator
         :param run: function to call the run the commands, default utils.run
         :type run: function
         """
+        #### create staticmethods in class attributes (not used)
+        # for cmd in service_command_generator.commands:
+        #     setattr(self.__class__, cmd,
+        #             staticmethod(self.generate_run_function(run, getattr(service_command_generator, cmd))))
+        #### create functions in instance attributes
         for cmd in service_command_generator.commands:
             setattr(self, cmd,
                     self.generate_run_function(run, getattr(service_command_generator, cmd)))
@@ -303,7 +308,7 @@ class GenericServiceManager(object):
         return run
 
 
-class SysVInitServiceManager(GenericServiceManager):
+class _SysVInitServiceManager(_GenericServiceManager):
     """
     Concrete class that implements the SysVInitServiceManager
     """
@@ -313,11 +318,11 @@ class SysVInitServiceManager(GenericServiceManager):
         Create the GenericServiceManager for SysV services.
 
         :param service_command_generator:
-        :type service_command_generator: ServiceCommandGenerator
+        :type service_command_generator: _ServiceCommandGenerator
         :param run: function to call to run the commands, default utils.run
         :type run: function
         """
-        super(SysVInitServiceManager, self).__init__(
+        super(_SysVInitServiceManager, self).__init__(
             service_command_generator, run)
 
     # @staticmethod
@@ -382,7 +387,7 @@ def convert_systemd_target_to_runlevel(target):
     return runlevel
 
 
-class SystemdServiceManager(GenericServiceManager):
+class _SystemdServiceManager(_GenericServiceManager):
     """
     Concrete class that implements the SystemdServiceManager
     """
@@ -392,11 +397,11 @@ class SystemdServiceManager(GenericServiceManager):
         Create the GenericServiceManager for systemd services.
 
         :param service_command_generator:
-        :type service_command_generator: ServiceCommandGenerator
+        :type service_command_generator: _ServiceCommandGenerator
         :param run: function to call to run the commands, default utils.run
         :type run: function
         """
-        super(SystemdServiceManager, self).__init__(
+        super(_SystemdServiceManager, self).__init__(
             service_command_generator, run)
 
     @staticmethod
@@ -418,16 +423,16 @@ class SystemdServiceManager(GenericServiceManager):
 _command_generators = {"init": sys_v_init_command_generator,
                        "systemd": systemd_command_generator}
 
-_service_managers = {"init": SysVInitServiceManager,
-                     "systemd": SystemdServiceManager}
+_service_managers = {"init": _SysVInitServiceManager,
+                     "systemd": _SystemdServiceManager}
 
 
-def get_service_command_generator():
+def _get_service_command_generator():
     """
     Lazy initializer for ServiceCommandGenerator using the auto-detect init command.
 
     :return: ServiceCommandGenerator for the current init command.
-    :rtype: ServiceCommandGenerator
+    :rtype: _ServiceCommandGenerator
     """
     # _service_command_generator is explicitly undefined so that we get the NameError on first access
     # pylint: disable=W0601
@@ -436,17 +441,17 @@ def get_service_command_generator():
         return _service_command_generator
     except NameError:
         command_generator = _command_generators[get_name_of_init()]
-        _service_command_generator = ServiceCommandGenerator(command_generator)
+        _service_command_generator = _ServiceCommandGenerator(command_generator)
         return _service_command_generator
 
 
-def auto_init_service_manager():
+def ServiceManager():
     """
     Lazy initializer for ServiceManagers using the lazy initializer for
     ServiceCommandGenerators.
 
     :return: SysVInitServiceManager or SystemdServiceManager
-    :rtype: GenericServiceManager
+    :rtype: _GenericServiceManager
     """
     service_manager = _service_managers[get_name_of_init()]
     # _service_command_generator is explicitly undefined so that we get the NameError on first access
@@ -456,16 +461,11 @@ def auto_init_service_manager():
         return _service_manager
     except NameError:
         _service_manager = service_manager(
-            get_service_command_generator())
+            _get_service_command_generator())
         return _service_manager
 
 
-# make a alias auto_init_service_manager as get_service_manager to match
-# get_service_command_generator
-get_service_manager = auto_init_service_manager
-
-
-def auto_create_specific_service_command_generator():
+def _auto_create_specific_service_command_generator():
     """
     Create a class that will create partial functions that generate commands
     for the current init command.
@@ -476,9 +476,15 @@ def auto_create_specific_service_command_generator():
     lldpad.stop()
 
     :return: A ServiceCommandGenerator for the auto-detected init command.
-    :rtype: ServiceCommandGenerator
+    :rtype: _ServiceCommandGenerator
     """
     command_generator = _command_generators[get_name_of_init()]
     # remove list method
     command_list = [c for c in COMMANDS if c != "list"]
-    return ServiceCommandGenerator(command_generator, command_list)
+    return _ServiceCommandGenerator(command_generator, command_list)
+
+def SpecificServiceManager(service_name):
+    return _SpecificServiceManager(service_name,
+                                    _auto_create_specific_service_command_generator())
+
+
