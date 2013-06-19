@@ -29,7 +29,6 @@ def get_packages():
 def get_scripts():
     return [cli_dir + '/autotest-rpc-client',
             cli_dir + '/autotest-rpc-change-protection-level',
-            cli_dir + '/autotest-rpc-compose-query',
             cli_dir + '/autotest-rpc-migrate-host',
             cli_dir + '/autotest-rpc-query-keyvals',
             cli_dir + '/autotest-rpc-query-results']
