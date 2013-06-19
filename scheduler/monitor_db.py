@@ -64,7 +64,7 @@ def _parser_path_default(install_dir):
     try:
         return os_dep.command('autotest-tko-parse')
     except ValueError:
-        return os.path.join(install_dir, 'tko', 'parse')
+        return os.path.join(install_dir, 'tko', 'autotest-tko-parse')
 
 
 _parser_path_func = utils.import_site_function(
