@@ -14,7 +14,8 @@ from autotest.client.shared import error, utils, packages
 from autotest.client.shared import logging_manager
 from autotest.server import test, subcommand, profilers
 from autotest.server.hosts import abstract_ssh
-from autotest.tko import db as tko_db, status_lib, utils as tko_utils
+from autotest.tko import dbutils, status_lib, utils as tko_utils
+from autotest.frontend.tko import models_utils
 
 
 def _control_segment_path(name):
@@ -299,18 +300,18 @@ class base_server_job(base_job.base_job):
         parse_log = os.path.join(self.resultdir, '.parse.log')
         parse_log = open(parse_log, 'w', 0)
         tko_utils.redirect_parser_debugging(parse_log)
-        # create a job model object and set up the db
-        self.results_db = tko_db.db(autocommit=True)
+        # create a job model object
         self.parser = status_lib.parser(self._STATUS_VERSION)
         self.job_model = self.parser.make_job(self.resultdir)
         self.parser.start(self.job_model)
         # check if a job already exists in the db and insert it if
         # it does not
-        job_idx = self.results_db.find_job(self._parse_job)
+        job_idx = models_utils.job_get_idx_by_tag(self._parse_job)
         if job_idx is None:
-            self.results_db.insert_job(self._parse_job, self.job_model)
+            dbutils.insert_job(self._parse_job, self.job_model)
         else:
-            machine_idx = self.results_db.lookup_machine(self.job_model.machine)
+            machine_idx = models_utils.machine_get_idx_by_hostname(
+                self.job_model.machine)
             self.job_model.index = job_idx
             self.job_model.machine_idx = machine_idx
 
@@ -1040,7 +1041,7 @@ class base_server_job(base_job.base_job):
         if status_lib.is_worse_than_or_equal_to(test.status, 'FAIL'):
             self.num_tests_failed += 1
         try:
-            self.results_db.insert_test(self.job_model, test)
+            dbutils.insert_test(self.job_model, test)
         except Exception:
             msg = ("WARNING: An unexpected error occured while "
                    "inserting test results into the database. "
