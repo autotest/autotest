@@ -20,7 +20,7 @@ import unittest
 from mock import MagicMock, patch
 
 import common
-from autotest.client.shared import service_lib
+from autotest.client.shared import service
 
 
 class TestSystemd(unittest.TestCase):
@@ -28,8 +28,8 @@ class TestSystemd(unittest.TestCase):
     def setUp(self):
         self.service_name = "fake_service"
         init_name = "systemd"
-        command_generator = service_lib._command_generators[init_name]
-        self.service_command_generator = service_lib.ServiceCommandGenerator(
+        command_generator = service._command_generators[init_name]
+        self.service_command_generator = service._ServiceCommandGenerator(
             command_generator)
 
     def test_all_commands(self):
@@ -46,8 +46,8 @@ class TestSysVInit(unittest.TestCase):
     def setUp(self):
         self.service_name = "fake_service"
         init_name = "init"
-        command_generator = service_lib._command_generators[init_name]
-        self.service_command_generator = service_lib.ServiceCommandGenerator(
+        command_generator = service._command_generators[init_name]
+        self.service_command_generator = service._ServiceCommandGenerator(
             command_generator)
 
     def test_all_commands(self):
@@ -72,11 +72,11 @@ class TestSpecificServiceManager(unittest.TestCase):
     def setUp(self):
         self.run_mock = MagicMock()
         self.init_name = "init"
-        command_generator = service_lib._command_generators[self.init_name]
-        command_list = [c for c in service_lib.COMMANDS if c != "list"]
-        service_command_generator = service_lib.ServiceCommandGenerator(
+        command_generator = service._command_generators[self.init_name]
+        command_list = [c for c in service.COMMANDS if c != "list"]
+        service_command_generator = service._ServiceCommandGenerator(
             command_generator, command_list)
-        self.service_manager = service_lib.SpecificServiceManager(
+        self.service_manager = service._SpecificServiceManager(
             "boot.lldpad", service_command_generator, self.run_mock)
 
     def test_start(self):
@@ -101,9 +101,9 @@ class TestSystemdServiceManager(unittest.TestCase):
     def setUp(self):
         self.run_mock = MagicMock()
         self.init_name = "systemd"
-        command_generator = service_lib._command_generators[self.init_name]
-        service_manager = service_lib._service_managers[self.init_name]
-        service_command_generator = service_lib.ServiceCommandGenerator(
+        command_generator = service._command_generators[self.init_name]
+        service_manager = service._service_managers[self.init_name]
+        service_command_generator = service._ServiceCommandGenerator(
             command_generator)
         self.service_manager = service_manager(
             service_command_generator, self.run_mock)
@@ -120,12 +120,12 @@ class TestSystemdServiceManager(unittest.TestCase):
             0] == "systemctl list-unit-files --type=service"
 
     def test_set_default_runlevel(self):
-        runlevel = service_lib.convert_sysv_runlevel(3)
+        runlevel = service.convert_sysv_runlevel(3)
         mktemp_mock = MagicMock(return_value="temp_filename")
         symlink_mock = MagicMock()
         rename_mock = MagicMock()
 
-        @patch.object(service_lib, "mktemp", mktemp_mock)
+        @patch.object(service, "mktemp", mktemp_mock)
         @patch("os.symlink", symlink_mock)
         @patch("os.rename", rename_mock)
         def _():
@@ -139,14 +139,14 @@ class TestSystemdServiceManager(unittest.TestCase):
 
     def test_unknown_runlevel(self):
         self.assertRaises(ValueError,
-                          service_lib.convert_systemd_target_to_runlevel, "unknown")
+                          service.convert_systemd_target_to_runlevel, "unknown")
 
     def test_runlevels(self):
-        assert service_lib.convert_sysv_runlevel(0) == "poweroff.target"
-        assert service_lib.convert_sysv_runlevel(1) == "rescue.target"
-        assert service_lib.convert_sysv_runlevel(2) == "multi-user.target"
-        assert service_lib.convert_sysv_runlevel(5) == "graphical.target"
-        assert service_lib.convert_sysv_runlevel(6) == "reboot.target"
+        assert service.convert_sysv_runlevel(0) == "poweroff.target"
+        assert service.convert_sysv_runlevel(1) == "rescue.target"
+        assert service.convert_sysv_runlevel(2) == "multi-user.target"
+        assert service.convert_sysv_runlevel(5) == "graphical.target"
+        assert service.convert_sysv_runlevel(6) == "reboot.target"
 
 
 class TestSysVInitServiceManager(unittest.TestCase):
@@ -154,9 +154,9 @@ class TestSysVInitServiceManager(unittest.TestCase):
     def setUp(self):
         self.run_mock = MagicMock()
         self.init_name = "init"
-        command_generator = service_lib._command_generators[self.init_name]
-        service_manager = service_lib._service_managers[self.init_name]
-        service_command_generator = service_lib.ServiceCommandGenerator(
+        command_generator = service._command_generators[self.init_name]
+        service_manager = service._service_managers[self.init_name]
+        service_command_generator = service._ServiceCommandGenerator(
             command_generator)
         self.service_manager = service_manager(
             service_command_generator, self.run_mock)
@@ -168,16 +168,16 @@ class TestSysVInitServiceManager(unittest.TestCase):
 
     def test_unknown_runlevel(self):
         self.assertRaises(ValueError,
-                          service_lib.convert_sysv_runlevel, "unknown")
+                          service.convert_sysv_runlevel, "unknown")
 
     def test_runlevels(self):
-        assert service_lib.convert_systemd_target_to_runlevel(
+        assert service.convert_systemd_target_to_runlevel(
             "poweroff.target") == '0'
-        assert service_lib.convert_systemd_target_to_runlevel(
+        assert service.convert_systemd_target_to_runlevel(
             "rescue.target") == 's'
-        assert service_lib.convert_systemd_target_to_runlevel(
+        assert service.convert_systemd_target_to_runlevel(
             "multi-user.target") == '3'
-        assert service_lib.convert_systemd_target_to_runlevel(
+        assert service.convert_systemd_target_to_runlevel(
             "graphical.target") == '5'
-        assert service_lib.convert_systemd_target_to_runlevel(
+        assert service.convert_systemd_target_to_runlevel(
             "reboot.target") == '6'
