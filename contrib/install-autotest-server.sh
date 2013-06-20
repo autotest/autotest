@@ -620,12 +620,12 @@ full_install() {
         if [ -f /etc/redhat-release ]
         then
             setup_selinux
-            setup_mysql_service_rh
-            restart_mysql_rh
             create_autotest_user_rh
             install_autotest
             install_packages
             update_packages
+            setup_mysql_service_rh
+            restart_mysql_rh
             check_mysql_password
             create_autotest_database
             build_external_packages
@@ -645,12 +645,12 @@ full_install() {
             print_version_and_url
         elif [ "$(grep 'Ubuntu' /etc/issue)" != "" ]
         then
-            setup_mysql_service_deb
-            restart_mysql_deb
             create_autotest_user_deb
             install_autotest
             install_packages
             update_packages
+            setup_mysql_service_deb
+            restart_mysql_deb
             check_mysql_password
             create_autotest_database
             build_external_packages
