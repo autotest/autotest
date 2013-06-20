@@ -16,6 +16,17 @@ def job_get_by_tag(tag):
     return job
 
 
+def job_get_by_idx(job_idx):
+    '''
+    Return a job based on its idx
+    '''
+    try:
+        job = Job.objects.get(pk=job_idx)
+    except Job.DoesNotExist:
+        return None
+    return job
+
+
 def job_get_idx_by_tag(tag):
     '''
     Return the job id based on the job tag
@@ -108,4 +119,12 @@ def machine_create(hostname, machine_group=None, owner=None):
     if owner is not None:
         machine.owner = owner
 
+    return machine
+
+
+def machine_get_by_idx(machine_idx):
+    try:
+        machine = Machine.objects.get(pk=machine_idx)
+    except Machine.DoesNotExist:
+        return None
     return machine
