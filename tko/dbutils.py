@@ -44,9 +44,15 @@ def insert_kernel(kernel):
 
     return tko_kernel
 
-def insert_test(job, test, tko_job, tko_machine):
+def insert_test(job, test, tko_job=None, tko_machine=None):
     tko_kernel = insert_kernel(test.kernel)
     status = tko_models.Status.objects.get(word=test.status)
+
+    if tko_job is None:
+        tko_job = tko_models_utils.job_get_by_idx(job.index)
+
+    if tko_machine is None:
+        tko_machine = tko_models_utils.machine_get_by_idx(job.machine_idx)
 
     subdir = test.subdir
     if test.subdir is None:
