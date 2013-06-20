@@ -20,7 +20,7 @@ import java.util.Map;
 
 public class Utils {
     public static final String JSON_NULL = "<null>";
-    public static final String RETRIEVE_LOGS_URL = "/tko/retrieve_logs.cgi";
+    public static final String RETRIEVE_LOGS_URL = "/retrieve_logs/";
 
     private static final String[][] escapeMappings = {
         {"&", "&amp;"},

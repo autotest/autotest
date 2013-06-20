@@ -105,6 +105,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.middleware.doc.XViewMiddleware',
     'autotest.frontend.shared.json_html_formatter.JsonToHtmlMiddleware',
+    'autotest.frontend.shared.retrieve_logs.RetrieveLogsHtmlMiddleware',
 )
 
 ROOT_URLCONF = 'autotest.frontend.urls'
