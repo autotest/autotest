@@ -124,6 +124,10 @@ def insert_job(jobname, job):
                                               job.machine_group,
                                               job.machine_owner)
 
+    # Update back machine index, used by some legacy code
+    machine.save()
+    job.machine_idx = machine.pk
+
     afe_job_id = utils.get_afe_job_id(jobname)
     if not afe_job_id:
         afe_job_id = None
@@ -145,6 +149,10 @@ def insert_job(jobname, job):
     else:
         tko_job = tko_models.Job.objects.create(**tko_job_data)
 
+    # Update back the index of the job object, used by some legacy code
+    tko_job.save()
+    job.index = tko_job.pk
+
     # update job keyvals
     for key, value in job.keyval_dict.iteritems():
         # We find or create using job and key only
@@ -155,6 +163,6 @@ def insert_job(jobname, job):
         job_keyval.value = value
         job_keyval.save()
 
-    # now insert the tests, conver the following block of code
+    # now insert the tests
     for test in job.tests:
         insert_test(job, test, tko_job, machine)
