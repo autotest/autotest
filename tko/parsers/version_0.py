@@ -310,7 +310,7 @@ class parser(base.parser):
 
             # parse the next line
             line = buffer.get()
-            logging.debug('\nSTATUS: ' + line.strip())
+            logging.debug('STATUS: %s', line.strip())
             line = status_line.parse_line(line)
             if line is None:
                 logging.debug('non-status line, ignoring')
