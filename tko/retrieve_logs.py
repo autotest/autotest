@@ -19,6 +19,11 @@ from autotest.client.shared.settings import settings
 from autotest.client import utils
 
 
+DRONES = settings.get_value('SCHEDULER', 'drones')
+RESULTS_HOST = settings.get_value('SCHEDULER', 'results_host')
+ARCHIVE_HOST = settings.get_value('SCHEDULER', 'archive_host', default='')
+
+
 class LoggingConfig(logging_config.LoggingConfig):
     """
     Used with the sole purpose of providing convenient logging setup
@@ -62,17 +67,14 @@ def find_repository_host(job_path):
     if site_repo_info is not None:
         return site_repo_info
 
-    drones = settings.get_value('SCHEDULER', 'drones')
-    results_host = settings.get_value('SCHEDULER', 'results_host')
-    archive_host = settings.get_value('SCHEDULER', 'archive_host', default='')
-    results_repos = [results_host]
-    for drone in drones.split(','):
+    results_repos = [RESULTS_HOST]
+    for drone in DRONES.split(','):
         drone = drone.strip()
         if drone not in results_repos:
             results_repos.append(drone)
 
-    if archive_host and archive_host not in results_repos:
-        results_repos.append(archive_host)
+    if ARCHIVE_HOST and ARCHIVE_HOST not in results_repos:
+        results_repos.append(ARCHIVE_HOST)
 
     for drone in results_repos:
         if drone == 'localhost':
