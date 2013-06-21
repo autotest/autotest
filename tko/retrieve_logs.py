@@ -4,7 +4,7 @@
 This library / script is supposed to return a URL where the job results
 requested can be found. It's primarily used by presentation layers as a
 a library while that pointing users to the job results, but it can also
-be used in the command line for debugging purporses.
+be used in the command line for debugging purposes.
 """
 
 import os, sys, urllib2
@@ -26,7 +26,7 @@ class LoggingConfig(logging_config.LoggingConfig):
     """
     def configure_logging(self, results_dir=None, verbose=False):
         super(LoggingConfig, self).configure_logging(use_console=True,
-                                                          verbose=verbose)
+                                                     verbose=verbose)
 
 
 def _retrieve_dummy(job_path):
@@ -100,8 +100,8 @@ def get_full_url(info, log_path):
                     'job' variable, which was usually composed of '/results/' +
                     a path such as '1-autotest' or '1-autotest/status.log'
     :type log_path: str
-    :returns:
-    :rtype:
+    :returns: the full url of the log file or directory request
+    :rtype: str
     '''
     if info is not None:
         protocol, host, path = info
