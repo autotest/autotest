@@ -18,8 +18,15 @@ all autotest 'magic' loaded in, so you can inspect objects and have fun.
 
 try:
     import IPython
-    ipshell = IPython.Shell.IPShellEmbed(argv=[], banner='autotest console')
-    ipshell()
+    try:
+        from IPython.frontend.terminal.ipapp import TerminalIPythonApp
+        app = TerminalIPythonApp.instance()
+        app.initialize(argv=[])
+        app.start()
+    except AttributeError, e:
+        # IPython < 0.11
+        ipshell = IPython.Shell.IPShellEmbed(argv=[], banner='autotest console')
+        ipshell()
 except ImportError:
     import code
     code.interact('autotest console', raw_input)
