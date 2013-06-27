@@ -441,14 +441,30 @@ def _get_service_command_generator():
         return _service_command_generator
     except NameError:
         command_generator = _command_generators[get_name_of_init()]
-        _service_command_generator = _ServiceCommandGenerator(command_generator)
+        _service_command_generator = _ServiceCommandGenerator(
+            command_generator)
         return _service_command_generator
 
 
 def ServiceManager():
     """
-    Lazy initializer for ServiceManagers using the lazy initializer for
-    ServiceCommandGenerators.
+    Detect which init program is being used, init or systemd and return a
+    class has methods to start/stop services.
+
+    # Get the system service manager
+    service_manager = ServiceManager()
+
+    # Stating service/unit "sshd"
+    service_manager.start("sshd")
+
+    # Getting a list of available units
+    units = service_manager.list()
+
+    # Disabling and stopping a list of services
+    services_to_disable = ['ntpd', 'httpd']
+    for s in services_to_disable:
+        service_manager.disable(s)
+        service_manager.stop(s)
 
     :return: SysVInitServiceManager or SystemdServiceManager
     :rtype: _GenericServiceManager
@@ -483,8 +499,26 @@ def _auto_create_specific_service_command_generator():
     command_list = [c for c in COMMANDS if c != "list"]
     return _ServiceCommandGenerator(command_generator, command_list)
 
+
 def SpecificServiceManager(service_name):
+    """
+
+    # Get the specific service manager for sshd
+    sshd = SpecificServiceManager("sshd")
+    sshd.start()
+    sshd.stop()
+    sshd.reload()
+    sshd.restart()
+    sshd.condrestart()
+    sshd.status()
+    sshd.enable()
+    sshd.disable()
+    sshd.is_enabled()
+
+    :param service_name: systemd unit or init.d service to manager
+    :type service_name: str
+    :return: SpecificServiceManager that has start/stop methods
+    :rtype: _SpecificServiceManager
+    """
     return _SpecificServiceManager(service_name,
-                                    _auto_create_specific_service_command_generator())
-
-
+                                   _auto_create_specific_service_command_generator())
