@@ -110,6 +110,11 @@ def sys_v_init_command_generator(command):
         def list_command(service_name):
             return ["chkconfig", "--list"]
         return list_command
+    elif command == "set_target":
+        def set_target_command(target):
+            target = convert_systemd_target_to_runlevel(target)
+            return ["telinit", target]
+        return set_target_command
 
     def method(service_name):
         return [command_name, service_name, command]
@@ -128,11 +133,15 @@ def systemd_command_generator(command):
     command_name = "systemctl"
     if command == "is_enabled":
         command = "is-enabled"
-    if command == "list":
+    elif command == "list":
         # noinspection PyUnusedLocal
         def list_command(service_name):
             return [command_name, "list-unit-files", "--type=service"]
         return list_command
+    elif command == "set_target":
+        def set_target_command(target):
+            return [command_name, "isolate", target]
+        return set_target_command
 
     def method(service_name):
         return [command_name, command, "%s.service" % service_name]
@@ -149,6 +158,7 @@ COMMANDS = (
     "disable",
     "is_enabled",
     "list",
+    "set_target",
 )
 
 
@@ -496,7 +506,7 @@ def _auto_create_specific_service_command_generator():
     """
     command_generator = _command_generators[get_name_of_init()]
     # remove list method
-    command_list = [c for c in COMMANDS if c != "list"]
+    command_list = [c for c in COMMANDS if c not in ["list", "set_target"]]
     return _ServiceCommandGenerator(command_generator, command_list)
 
 

@@ -33,12 +33,17 @@ class TestSystemd(unittest.TestCase):
             command_generator)
 
     def test_all_commands(self):
-        for cmd in (c for c in self.service_command_generator.commands if c != "list"):
+        for cmd in (c for c in self.service_command_generator.commands if c not in ["list", "set_target"]):
             ret = getattr(
                 self.service_command_generator, cmd)(self.service_name)
             if cmd == "is_enabled":
                 cmd = "is-enabled"
             assert ret == ["systemctl", cmd, "%s.service" % self.service_name]
+
+    def test_set_target(self):
+        ret = getattr(
+            self.service_command_generator, "set_target")("multi-user.target")
+        assert ret == ["systemctl", "isolate", "multi-user.target"]
 
 
 class TestSysVInit(unittest.TestCase):
@@ -52,7 +57,7 @@ class TestSysVInit(unittest.TestCase):
 
     def test_all_commands(self):
         command_name = "service"
-        for cmd in (c for c in self.service_command_generator.commands if c != "list"):
+        for cmd in (c for c in self.service_command_generator.commands if c not in ["list", "set_target"]):
             ret = getattr(
                 self.service_command_generator, cmd)(self.service_name)
             if cmd == "is_enabled":
@@ -66,16 +71,23 @@ class TestSysVInit(unittest.TestCase):
                 cmd = "off"
             assert ret == [command_name, self.service_name, cmd]
 
+    def test_set_target(self):
+        ret = getattr(
+            self.service_command_generator, "set_target")("multi-user.target")
+        assert ret == ["telinit", "3"]
+
 
 class TestSpecificServiceManager(unittest.TestCase):
 
     def setUp(self):
         self.run_mock = MagicMock()
         self.init_name = "init"
-        command_generator = service._command_generators[self.init_name]
-        command_list = [c for c in service.COMMANDS if c != "list"]
-        service_command_generator = service._ServiceCommandGenerator(
-            command_generator, command_list)
+        get_name_of_init_mock = MagicMock(return_value="init")
+
+        @patch.object(service, "get_name_of_init", get_name_of_init_mock)
+        def patch_service_command_generator():
+            return service._auto_create_specific_service_command_generator()
+        service_command_generator = patch_service_command_generator()
         self.service_manager = service._SpecificServiceManager(
             "boot.lldpad", service_command_generator, self.run_mock)
 
@@ -94,6 +106,9 @@ class TestSpecificServiceManager(unittest.TestCase):
 
     def test_list_is_not_present_in_SpecifcServiceManager(self):
         assert not hasattr(self.service_manager, "list")
+
+    def test_set_target_is_not_present_in_SpecifcServiceManager(self):
+        assert not hasattr(self.service_manager, "set_target")
 
 
 class TestSystemdServiceManager(unittest.TestCase):
