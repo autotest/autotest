@@ -8,6 +8,12 @@ A boottool clone, but written in python and relying mostly on grubby[1].
 
 import os, re, sys, optparse, logging, subprocess
 import urllib, tarfile, tempfile, shutil, struct
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+
+from autotest.client.shared import distro
 
 #
 # Get rid of DeprecationWarning messages on newer Python version while still
@@ -489,27 +495,13 @@ def parse_entry(entry_str, separator='='):
     return entry
 
 
-def detect_distro_type():
-    '''
-    Simple distro detection based on release/version files
-    '''
-    if os.path.exists('/etc/redhat-release'):
-        return 'redhat'
-    elif os.path.exists('/etc/debian_version'):
-        return 'debian'
-    elif os.path.exists('/etc/issue'):
-        if re.match(r'.*SUSE.*', open('/etc/issue').read()):
-            return 'suse'
-    else:
-        return None
-
-
 class DebianBuildDeps(object):
     '''
     Checks and install grubby build dependencies on Debian (like) systems
 
     Tested on:
        * Debian Squeeze (6.0)
+       * Debian Squeeze (7.1)
        * Ubuntu 12.04 LTS
     '''
 
@@ -615,24 +607,21 @@ class RedHatBuildDeps(RPMBuildDeps):
        * Fedora 17
        * RHEL 5
        * RHEL 6
+       * CENTOS 6.4
     '''
 
 
     PKGS = ['gcc', 'make']
-    REDHAT_RELEASE_RE = re.compile('.*\srelease\s(\d)\.(\d)\s.*')
-
 
     def __init__(self):
         '''
         Initializes a new dep installer, taking into account RHEL version
         '''
-        match = self.REDHAT_RELEASE_RE.match(open('/etc/redhat-release').read())
-        if match:
-            major, minor = match.groups()
-            if int(major) <= 5:
-                self.PKGS += ['popt', 'e2fsprogs-devel']
-            else:
-                self.PKGS += ['popt-devel', 'libblkid-devel']
+        dist = distro.detect()
+        if int(dist.version) <= 5:
+            self.PKGS += ['popt', 'e2fsprogs-devel']
+        else:
+            self.PKGS += ['popt-devel', 'libblkid-devel']
 
 
     def install(self):
@@ -661,6 +650,7 @@ class RedHatBuildDeps(RPMBuildDeps):
 DISTRO_DEPS_MAPPING = {
     'debian': DebianBuildDeps,
     'redhat': RedHatBuildDeps,
+    'centos': RedHatBuildDeps,
     'suse': SuseBuildDeps
     }
 
@@ -1545,7 +1535,7 @@ class Grubby(object):
 
         topdir = tempfile.mkdtemp()
 
-        deps_klass = DISTRO_DEPS_MAPPING.get(detect_distro_type(), None)
+        deps_klass = DISTRO_DEPS_MAPPING.get(distro.detect().name, None)
         if deps_klass is not None:
             deps = deps_klass()
             if not deps.check():
