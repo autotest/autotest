@@ -20,7 +20,7 @@ def apply_overrides(orig_file, changes_file, output_file):
     # Now go through the input file, overriding lines where need be
     input_file = file(orig_file, 'r')
     output_file = file(output_file, 'w')
-    for line in input.readlines():
+    for line in input_file.readlines():
         if line.startswith('CONFIG_'):
             key = line.split('=')[0]
         elif line.startswith('# CONFIG_'):
