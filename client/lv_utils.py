@@ -151,6 +151,35 @@ def vg_check(vg_name):
         return False
 
 
+def vg_list():
+    """
+    List available volume groups.
+    """
+    cmd = "vgs --all"
+    vgroups = {}
+    result = utils.run(cmd)
+
+    lines = result.stdout.strip().splitlines()
+    if len(lines) > 1:
+        columns = lines[0].split()
+        lines = lines[1:]
+    else:
+        return vgroups
+
+    for line in lines:
+        details = line.split()
+        details_dict = {}
+        index = 0
+        for column in columns:
+            if re.search("VG", column):
+                vg_name = details[index]
+            else:
+                details_dict[column] = details[index]
+            index += 1
+        vgroups[vg_name] = details_dict
+    return vgroups
+
+
 def lv_check(vg_name, lv_name):
     """
     Check whether provided logical volume exists.
