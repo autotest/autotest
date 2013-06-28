@@ -359,7 +359,7 @@ class kernel(BootableKernel):
         print build_string
         utils.system(build_string)
         if kernel_config.modules_needed('.config'):
-            utils.system('make -j %d modules' % (threads))
+            utils.system('make -j %d %s modules' % (threads, make_opts))
 
         kernel_version = self.get_kernel_build_ver()
         kernel_version = re.sub('-autotest', '', kernel_version)
