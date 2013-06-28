@@ -15,13 +15,6 @@ RELEASE-VERSION
 *.pid
 client/control
 client/results/
-client/tests/virt/kvm/env
-client/tests/virt/kvm/*.cfg
-client/tests/virt/libvirt/env
-client/tests/virt/libvirt/*.cfg
-client/tests/virt/virt_v2v/env
-client/tests/virt/virt_v2v/*.cfg
-client/tests/virt/virt_v2v/src
 client/tmp
 logs/*
 server/tmp
