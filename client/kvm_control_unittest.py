@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from StringIO import StringIO
+
 try:
     import autotest.common as common
 except ImportError:
@@ -9,8 +11,6 @@ except ImportError:
 from autotest.client import kvm_control, base_utils, utils
 from autotest.client.shared.test_utils import mock, unittest
 from autotest.client.shared import error
-
-from StringIO import StringIO
 
 
 class test_kvm_control(unittest.TestCase):
@@ -25,7 +25,7 @@ class test_kvm_control(unittest.TestCase):
 
     def _mock_cpu_info(self, data):
         """
-        Mock function for autotest.client.base_utils.get_cpu_info function
+        Mock function for `autotest.client.utils.get_cpu_info` function
         """
         lines = StringIO(data).readlines()
         self.god.stub_with(base_utils, 'get_cpu_info',
@@ -33,13 +33,15 @@ class test_kvm_control(unittest.TestCase):
 
     def _mock_utils_system(self, command):
         """
-        Mock function for autotest.client.shared.utils.system
+        Mock function for `autotest.client.shared.utils.system`
         """
         self.god.stub_with(utils, 'system', lambda c: command)
 
     def test_get_kvm_arch(self):
         """
-        Asserts for kvm_control.get_kvm_arch
+        Asserts for `autotest.client.kvm_control.get_kvm_arch`
+
+        :returns: None
         """
         self._mock_cpu_info("GenuineIntel\nvmx")
         self.assertTrue(kvm_control.get_kvm_arch() == 'kvm_intel')
@@ -58,7 +60,9 @@ class test_kvm_control(unittest.TestCase):
 
     def test_load_kvm(self):
         """
-        Asserts for kvm_control.load_kvm
+        Asserts for `autotest.client.kvm_control.load_kvm`
+
+        :returns: None
         """
         self._mock_utils_system(0)
         self._mock_cpu_info("GenuineIntel\nvmx")
@@ -74,7 +78,9 @@ class test_kvm_control(unittest.TestCase):
 
     def test_unload_kvm(self):
         """
-        Asserts for kvm_control.unload_kvm
+        Asserts for `autotest.client.kvm_control.unload_kvm`
+
+        :returns: None
         """
         self._mock_utils_system(0)
         self._mock_cpu_info("GenuineIntel\nvmx")

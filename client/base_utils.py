@@ -296,7 +296,10 @@ def get_modules_dir():
 
 def get_cpu_info():
     """
-        Reads /proc/cpuinfo and returns a list of file lines
+    Reads /proc/cpuinfo and returns a list of file lines
+
+    :returns: `list` of lines from /proc/cpuinfo file
+    :rtype: `list`
     """
     f = open('/proc/cpuinfo', 'r')
     cpuinfo = f.readlines()
@@ -305,7 +308,15 @@ def get_cpu_info():
 
 
 def cpu_has_flags(flags):
-    """Check if a list of flags are available on cpuinfo"""
+    """
+    Check if a list of flags are available on current CPU info
+
+    :param flags: A `list` of cpu flags that must exists
+    on the current CPU.
+    :type flags: `list`
+    :returns: `bool` True if all the flags were found or False if not
+    :rtype: `list`
+    """
     cpu_info = get_cpu_info()
 
     if not isinstance(flags, list):
@@ -318,7 +329,13 @@ def cpu_has_flags(flags):
 
 
 def get_cpu_vendor_name():
-    """Get the current cpu vendor name"""
+    """
+    Get the current cpu vendor name
+
+    :returns: string 'intel' or 'amd' or 'power7' depending
+    on the current CPU architecture.
+    :rtype: `string`
+    """
     vendors_map = {
         'intel': ("GenuineIntel", ),
         'amd': ("AMD", ),

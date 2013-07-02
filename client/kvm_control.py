@@ -2,33 +2,35 @@
 Utilities useful to client control files that test KVM.
 """
 
-
 from autotest.client import utils
-from autotest.client.base_utils import cpu_has_flags, get_cpu_vendor_name
 from autotest.client.shared import error
 
 
 def get_kvm_arch():
     """
-    Determines the kvm architecture kernel module that should be loaded.
-    @return: "kvm_amd", "kvm_intel", or raise TestError exception
+    Get the kvm kernel module to be loaded based on the CPU architecture
+
+    :raises: :class:`error.TestError` if no vendor name or cpu flags are found
+    :returns: 'kvm_amd' or 'kvm_intel' or 'kvm_power7'
+    :rtype: `string`
     """
     flags = {
         'kvm_amd': "svm",
         'kvm_intel': "vmx"
     }
 
-    vendor_name = get_cpu_vendor_name()
+    vendor_name = utils.get_cpu_vendor_name()
+
     if not vendor_name:
         raise error.TestError("CPU Must be AMD, Intel or Power7")
 
     arch_type = 'kvm_%s' % vendor_name
     cpu_flag = flags.get(arch_type, None)
 
-    if not cpu_flag and vendor_name in ('power7', ):
+    if cpu_flag is None and vendor_name in ('power7', ):
         return arch_type
 
-    if not cpu_has_flags(cpu_flag):
+    if not utils.cpu_has_flags(cpu_flag):
         raise error.TestError("%s CPU architecture must have %s "
                               "flag active and must be KVM ready" %
                               (arch_type, cpu_flag))
@@ -37,8 +39,11 @@ def get_kvm_arch():
 
 def load_kvm():
     """
-    Loads the appropriate KVM kernel modules
-    @return: 0 on success, 1 on failure
+    Loads the appropriate KVM kernel modules depending on the current CPU
+    architecture
+
+    :returns: 0 on success or 1 on failure
+    :rtype: `int`
     """
     kvm_arch = get_kvm_arch()
 
@@ -53,7 +58,10 @@ def load_kvm():
 
 def unload_kvm():
     """
-    Unloads the appropriate KVM kernel modules
+    Unloads the current KVM kernel modules ( if loaded )
+
+    :returns: 0 on success or 1 on failure
+    :rtype: `int`
     """
     kvm_arch = get_kvm_arch()
 
@@ -61,7 +69,6 @@ def unload_kvm():
         return utils.system('rmmod %s' % mod)
 
     unloaded = unload_module(kvm_arch)
-
     if not unloaded:
         unloaded = unload_module('kvm')
 
