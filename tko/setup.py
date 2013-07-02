@@ -20,10 +20,6 @@ def get_package_dir():
     return {'autotest.tko': tko_dir}
 
 
-def get_package_data():
-    return {'autotest.tko' : ['*.cgi']}
-
-
 def get_packages():
     return ['autotest.tko.parsers',
             'autotest.tko.parsers.test',
@@ -31,13 +27,7 @@ def get_packages():
             'autotest.tko']
 
 def get_data_files():
-    return [('share/autotest/tko', [tko_dir + '/blank.gif',
-                                    tko_dir + '/draw_graphs',
-                                    tko_dir + '/machine_load',
-                                    tko_dir + '/parse',
-                                    tko_dir + '/plotgraph',
-                                    tko_dir + '/retrieve_jobs',
-                                    tko_dir + '/tko.proto'])]
+    return [('share/autotest/tko', [tko_dir + '/tko.proto'])]
 
 
 def get_scripts():
@@ -53,7 +43,6 @@ def run():
           version=version.get_version(),
           url='http://autotest.github.com',
           package_dir=get_package_dir(),
-          package_data=get_package_data(),
           packages=get_packages(),
           data_files=get_data_files(),
           scripts=get_scripts())

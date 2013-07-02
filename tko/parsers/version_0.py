@@ -1,4 +1,4 @@
-import re, os
+import re, os, logging
 
 from autotest.client.shared import utils as common_utils
 from autotest.tko import utils as tko_utils, models, status_lib
@@ -18,7 +18,7 @@ class job(models.job):
     @classmethod
     def load_from_dir(cls, dir):
         keyval = cls.read_keyval(dir)
-        tko_utils.dprint(str(keyval))
+        logging.debug(str(keyval))
 
         user = keyval.get("user", None)
         label = keyval.get("label", None)
@@ -48,8 +48,8 @@ class job(models.job):
         # determine what hostname to use
         if host_group_name:
             if is_multimachine or not machine:
-                tko_utils.dprint("Using host_group_name %r instead of "
-                                 "machine name." % host_group_name)
+                logging.debug("Using host_group_name %r instead of "
+                              "machine name.", host_group_name)
                 machine = host_group_name
         elif is_multimachine:
             try:
@@ -57,7 +57,7 @@ class job(models.job):
             except NoHostnameError:
                 pass  # just use the comma-separated name
 
-        tko_utils.dprint("MACHINE NAME: %s" % machine)
+        logging.debug("MACHINE NAME: %s" % machine)
         return machine
 
 
@@ -68,12 +68,12 @@ class job(models.job):
             host_keyval = models.test.parse_host_keyval(job_dir,
                                                         individual_hostname)
             if not host_keyval:
-                tko_utils.dprint('Unable to parse host keyval for %s'
-                                 % individual_hostname)
+                logging.debug('Unable to parse host keyval for %s',
+                              individual_hostname)
             elif "platform" in host_keyval:
                 machine_groups.add(host_keyval["platform"])
         machine_group = ",".join(sorted(machine_groups))
-        tko_utils.dprint("MACHINE GROUP: %s" % machine_group)
+        logging.debug("MACHINE GROUP: %s" % machine_group)
         return machine_group
 
 
@@ -84,7 +84,7 @@ class job(models.job):
             machine = open(hostname).readline().rstrip()
             return machine
         except Exception:
-            tko_utils.dprint("Could not read a hostname from "
+            logging.debug("Could not read a hostname from "
                              "sysinfo/hostname")
 
         uname = os.path.join(path, "sysinfo", "uname_-a")
@@ -92,7 +92,7 @@ class job(models.job):
             machine = open(uname).readline().split()[1]
             return machine
         except Exception:
-            tko_utils.dprint("Could not read a hostname from "
+            logging.debug("Could not read a hostname from "
                              "sysinfo/uname_-a")
 
         raise NoHostnameError("Unable to find a machine name")
@@ -129,7 +129,7 @@ class kernel(models.kernel):
             hashes = []
         else:
             base, patches, hashes = attributes
-        tko_utils.dprint("kernel.__init__() found kernel version %s"
+        logging.debug("kernel.__init__() found kernel version %s"
                          % base)
 
         # compute the kernel hash
@@ -197,7 +197,7 @@ class test(models.test):
 
 class patch(models.patch):
     def __init__(self, spec, reference, hash):
-        tko_utils.dprint("PATCH::%s %s %s" % (spec, reference, hash))
+        logging.debug("PATCH::%s %s %s" % (spec, reference, hash))
         super(patch, self).__init__(spec, reference, hash)
         self.spec = spec
         self.reference = reference
@@ -310,17 +310,17 @@ class parser(base.parser):
 
             # parse the next line
             line = buffer.get()
-            tko_utils.dprint('\nSTATUS: ' + line.strip())
+            logging.debug('\nSTATUS: ' + line.strip())
             line = status_line.parse_line(line)
             if line is None:
-                tko_utils.dprint('non-status line, ignoring')
+                logging.debug('non-status line, ignoring')
                 continue # ignore non-status lines
 
             # have we hit the job start line?
             if (line.type == "START" and not line.subdir and
                 not line.testname):
                 sought_level = 1
-                tko_utils.dprint("found job level start "
+                logging.debug("found job level start "
                                  "marker, looking for level "
                                  "1 groups now")
                 continue
@@ -328,7 +328,7 @@ class parser(base.parser):
             # have we hit the job end line?
             if (line.type == "END" and not line.subdir and
                 not line.testname):
-                tko_utils.dprint("found job level end "
+                logging.debug("found job level end "
                                  "marker, looking for level "
                                  "0 lines now")
                 sought_level = 0
@@ -343,31 +343,31 @@ class parser(base.parser):
                     started_time = \
                                  tko_utils.get_timestamp(
                         line.optional_fields, "timestamp")
-                tko_utils.dprint("start line, ignoring")
+                logging.debug("start line, ignoring")
                 continue
             # otherwise, update the status on the stack
             else:
-                tko_utils.dprint("GROPE_STATUS: %s" %
+                logging.debug("GROPE_STATUS: %s" %
                                  [stack.current_status(),
                                   line.status, line.subdir,
                                   line.testname, line.reason])
                 stack.update(line.status)
 
             if line.status == "ALERT":
-                tko_utils.dprint("job level alert, recording")
+                logging.debug("job level alert, recording")
                 alert_pending = line.reason
                 continue
 
             # ignore Autotest.install => GOOD lines
             if (line.testname == "Autotest.install" and
                 line.status == "GOOD"):
-                tko_utils.dprint("Successful Autotest "
+                logging.debug("Successful Autotest "
                                  "install, ignoring")
                 continue
 
             # ignore END lines for a reboot group
             if (line.testname == "reboot" and line.type == "END"):
-                tko_utils.dprint("reboot group, ignoring")
+                logging.debug("reboot group, ignoring")
                 continue
 
             # convert job-level ABORTs into a 'CLIENT_JOB' test, and
@@ -377,7 +377,7 @@ class parser(base.parser):
                     line.type != "END"):
                     line.testname = "CLIENT_JOB"
                 else:
-                    tko_utils.dprint("job level event, "
+                    logging.debug("job level event, "
                                     "ignoring")
                     continue
 
@@ -390,10 +390,10 @@ class parser(base.parser):
                 line.status != "ABORT" and
                 not line.testname.startswith('reboot.')):
                 if line.subdir:
-                    tko_utils.dprint("set group_subdir: "
+                    logging.debug("set group_subdir: "
                                      + line.subdir)
                     group_subdir = line.subdir
-                tko_utils.dprint("ignoring incorrect indent "
+                logging.debug("ignoring incorrect indent "
                                  "level %d != %d," %
                                  (line.indent, sought_level))
                 continue
@@ -410,7 +410,7 @@ class parser(base.parser):
             if line.testname == "reboot.start":
                 started_time = tko_utils.get_timestamp(
                     line.optional_fields, "timestamp")
-                tko_utils.dprint("reboot start event, "
+                logging.debug("reboot start event, "
                                  "ignoring")
                 boot_in_progress = True
                 continue
@@ -418,7 +418,7 @@ class parser(base.parser):
             # has a reboot finished?
             if line.testname == "reboot.verify":
                 line.testname = "boot.%d" % boot_count
-                tko_utils.dprint("reboot verified")
+                logging.debug("reboot verified")
                 boot_in_progress = False
                 verify_ident = line.reason.strip()
                 current_kernel = kernel(self.job, verify_ident)
@@ -433,7 +433,7 @@ class parser(base.parser):
             finished_time = tko_utils.get_timestamp(
                 line.optional_fields, "timestamp")
             final_status = stack.end()
-            tko_utils.dprint("Adding: "
+            logging.debug("Adding: "
                              "%s\nSubdir:%s\nTestname:%s\n%s" %
                              (final_status, line.subdir,
                               line.testname, line.reason))
@@ -450,7 +450,7 @@ class parser(base.parser):
         if boot_in_progress:
             testname = "boot.%d" % boot_count
             reason = "machine did not return from reboot"
-            tko_utils.dprint(("Adding: ABORT\nSubdir:----\n"
+            logging.debug(("Adding: ABORT\nSubdir:----\n"
                               "Testname:%s\n%s")
                              % (testname, reason))
             new_test = test.parse_test(self.job, None, testname,

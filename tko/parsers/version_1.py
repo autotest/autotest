@@ -1,4 +1,4 @@
-import os, re, time
+import os, re, time, logging
 
 from autotest.tko import models, status_lib, utils as tko_utils
 from autotest.tko.parsers import base, version_0
@@ -78,10 +78,8 @@ class iteration(models.iteration):
             else:
                 raise ValueError
         except ValueError:
-            msg = ("WARNING: line '%s' found in test "
-                   "iteration keyval could not be parsed")
-            msg %= line
-            tko_utils.dprint(msg)
+            logging.warn("line '%s' found in test iteration keyval could "
+                         "not be parsed", line)
 
 
 class status_line(version_0.status_line):
@@ -162,7 +160,7 @@ class parser(base.parser):
     @staticmethod
     def put_back_line_and_abort(
         line_buffer, line, indent, subdir, timestamp, reason):
-        tko_utils.dprint("Unexpected indent regression, aborting")
+        logging.debug("Unexpected indent regression, aborting")
         line_buffer.put_back(line)
         abort = parser.make_dummy_abort(
             indent, subdir, subdir, timestamp, reason)
@@ -197,7 +195,7 @@ class parser(base.parser):
                     break
                 # we have status lines left on the stack,
                 # we need to implicitly abort them first
-                tko_utils.dprint('\nUnexpected end of job, aborting')
+                logging.debug('Unexpected end of job, aborting')
                 abort_subdir_stack = list(subdir_stack)
                 if self.job.aborted_by:
                     reason = "Job aborted by %s" % self.job.aborted_by
@@ -228,10 +226,10 @@ class parser(base.parser):
 
             # get the next line
             raw_line = status_lib.clean_raw_line(buffer.get())
-            tko_utils.dprint('\nSTATUS: ' + raw_line.strip())
+            logging.debug('STATUS: %s', raw_line.strip())
             line = status_line.parse_line(raw_line)
             if line is None:
-                tko_utils.dprint('non-status line, ignoring')
+                logging.debug('non-status line, ignoring')
                 continue
 
             # do an initial sanity check of the indentation
@@ -246,7 +244,7 @@ class parser(base.parser):
                 continue
             elif line.indent > expected_indent:
                 # ignore the log if the indent was unexpectedly high
-                tko_utils.dprint("unexpected extra indentation, ignoring")
+                logging.debug("unexpected extra indentation, ignoring")
                 continue
 
 
@@ -264,9 +262,8 @@ class parser(base.parser):
                                                              job_name,
                                                              "", current_kernel,
                                                              started_time)
-                    msg = "RUNNING: %s\n%s\n"
-                    msg %= (running_client.status, running_client.testname)
-                    tko_utils.dprint(msg)
+                    logging.debug("RUNNING: %s", running_client.status)
+                    logging.debug("Testname: %s", running_client.testname)
                     new_tests.append(running_client)
                 elif stack.size() == min_stack_size + 1 and not running_test:
                     # we just started a new test, insert a running record
@@ -279,10 +276,10 @@ class parser(base.parser):
                                                            line.reason,
                                                            current_kernel,
                                                            started_time)
-                    msg = "RUNNING: %s\nSubdir: %s\nTestname: %s\n%s"
-                    msg %= (running_test.status, running_test.subdir,
-                            running_test.testname, running_test.reason)
-                    tko_utils.dprint(msg)
+                    logging.debug("RUNNING: %s", running_test.status)
+                    logging.debug("Subdir: %s", running_test.subdir)
+                    logging.debug("Testname: %s", running_test.testname)
+                    logging.debug("Reason: %s", running_test.reason)
                     new_tests.append(running_test)
                 started_time_stack.append(started_time)
                 subdir_stack.append(line.subdir)
@@ -315,8 +312,8 @@ class parser(base.parser):
                             running_test.reason = ", ".join(sorted_reasons)
                             current_reason = running_test.reason
                             new_tests.append(running_test)
-                            msg = "update RUNNING reason: %s" % line.reason
-                            tko_utils.dprint(msg)
+                            logging.debug("update RUNNING reason: %s",
+                                          line.reason)
                         else:
                             current_reason = line.reason
                     current_status = stack.current_status()
@@ -385,10 +382,12 @@ class parser(base.parser):
                 current_reason = None
                 if new_test.testname == ("boot.%d" % boot_count):
                     boot_count += 1
-                msg = "ADD: %s\nSubdir: %s\nTestname: %s\n%s"
-                msg %= (new_test.status, new_test.subdir,
-                        new_test.testname, new_test.reason)
-                tko_utils.dprint(msg)
+
+                logging.debug("ADD: %s", new_test.status)
+                logging.debug("Subdir: %s", new_test.subdir)
+                logging.debug("Testname: %s", new_test.testname)
+                logging.debug(new_test.reason)
+
                 new_tests.append(new_test)
 
         # the job is finished, produce the final SERVER_JOB entry and exit
