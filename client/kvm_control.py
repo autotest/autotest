@@ -2,61 +2,74 @@
 Utilities useful to client control files that test KVM.
 """
 
-
 from autotest.client import utils
 from autotest.client.shared import error
 
 
 def get_kvm_arch():
     """
-    Determines the kvm architecture kernel module that should be loaded.
+    Get the kvm kernel module to be loaded based on the CPU architecture
 
-    @return: "kvm_amd", "kvm_intel", or raise TestError exception
+    :raises: :class:`error.TestError` if no vendor name or cpu flags are found
+    :returns: 'kvm_amd' or 'kvm_intel' or 'kvm_power7'
+    :rtype: `string`
     """
-    arch_type = ""
-    for line in open("/proc/cpuinfo"):
-        if arch_type == "":
-            if "AuthenticAMD" in line:
-                arch_type = "kvm_amd"
-            elif "GenuineIntel" in line:
-                arch_type = "kvm_intel"
-            elif "POWER7" in line:
-                arch_type = "kvm_power7"
-                return arch_type
-        elif "flags" in line:
-            if arch_type == "kvm_amd" and "svm" in line:
-                return arch_type
-            if arch_type == "kvm_intel" and "vmx" in line:
-                return arch_type
-    raise error.TestError("CPU Must be AMD or Intel or POWER7, and must be KVM ready.")
+    flags = {
+        'kvm_amd': "svm",
+        'kvm_intel': "vmx"
+    }
+
+    vendor_name = utils.get_cpu_vendor_name()
+
+    if not vendor_name:
+        raise error.TestError("CPU Must be AMD, Intel or Power7")
+
+    arch_type = 'kvm_%s' % vendor_name
+    cpu_flag = flags.get(arch_type, None)
+
+    if cpu_flag is None and vendor_name in ('power7', ):
+        return arch_type
+
+    if not utils.cpu_has_flags(cpu_flag):
+        raise error.TestError("%s CPU architecture must have %s "
+                              "flag active and must be KVM ready" %
+                              (arch_type, cpu_flag))
+    return arch_type
 
 
 def load_kvm():
     """
-    Loads the appropriate KVM kernel modules
+    Loads the appropriate KVM kernel modules depending on the current CPU
+    architecture
+
+    :returns: 0 on success or 1 on failure
+    :rtype: `int`
     """
     kvm_arch = get_kvm_arch()
-    kvm_status = utils.system('modprobe kvm')
-    if kvm_arch == "kvm_power7":
-        return kvm_status
-    kvm_amdintel_status = utils.system("modprobe " + kvm_arch)
-    if kvm_status:
-        return kvm_status
-    else:
-        return kvm_amdintel_status
+
+    def load_module(mod='kvm'):
+        return utils.system('modprobe %s' % mod)
+
+    loaded = load_module()
+    if not loaded:
+        loaded = load_module(mod=kvm_arch)
+    return loaded
 
 
 def unload_kvm():
     """
-    Unloads the appropriate KVM kernel modules
+    Unloads the current KVM kernel modules ( if loaded )
+
+    :returns: 0 on success or 1 on failure
+    :rtype: `int`
     """
     kvm_arch = get_kvm_arch()
-    if kvm_arch != "kvm_power7":
-        kvm_amdintel_status = utils.system("rmmod " + kvm_arch)
-    kvm_status = utils.system('rmmod kvm')
-    if kvm_arch == "kvm_power7":
-        return kvm_status
-    if kvm_status:
-        return kvm_status
-    else:
-        return kvm_amdintel_status
+
+    def unload_module(mod):
+        return utils.system('rmmod %s' % mod)
+
+    unloaded = unload_module(kvm_arch)
+    if not unloaded:
+        unloaded = unload_module('kvm')
+
+    return unloaded
