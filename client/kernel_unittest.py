@@ -321,7 +321,7 @@ class TestKernel(unittest.TestCase):
         kernel_config.kernel_config.expect_new(self.job, self.build_dir,
                                                self.config_dir, '', None,
                                                False, self.base_tree, None)
-        utils.grep.expect_call('CONFIG_DEFAULT_UIMAGE=y', '/tmp/config')
+        utils.grep.expect_call('^CONFIG_DEFAULT_UIMAGE=y', '/tmp/config')
         self.job.record.expect_call('GOOD', self.subdir, 'kernel.config')
 
         # run
