@@ -464,8 +464,9 @@ class FileChecker(object):
                     if result.errors or result.failures:
                         success = False
                         msg = '%s had %d failures and %d errors.'
-                        msg = (msg % '.'.join(module), len(result.failures),
-                               len(result.errors))
+                        msg %= ('.'.join(module),
+                                len(result.failures),
+                                len(result.errors))
                         logging.error(msg)
                 except ImportError:
                     logging.error("Unable to run unittest %s" %
