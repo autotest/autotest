@@ -215,15 +215,18 @@ class Cgroup(object):
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
         try:
-            open(pwd+prop, 'w').write(value)
+            open(os.path.join(pwd, prop), 'w').write(value)
         except Exception, inst:
             raise error.TestError("cg.set_property(): %s" % inst)
-        if check != False:
-            if check == True:
+
+        if check is not False:
+            if check is True:
                 check = value
-            if checkprop == None:
+            if checkprop is None:
                 checkprop = prop
             _values = self.get_property(checkprop, pwd)
+            # Sanitize non printable characters before check
+            check = " ".join(check.split())
             if check not in _values:
                 raise error.TestError("cg.set_property(): Setting failed: "
                                       "desired = %s, real values = %s"
@@ -425,3 +428,34 @@ def resolve_task_cgroup_path(pid, controller):
     mount_path = re.findall(r":%s:(\S*)\n" % controller, proc_cgroup_txt)
     path = root_path + mount_path[0]
     return path
+
+
+def service_cgconfig_control(action):
+    """
+    Cgconfig control by action.
+
+    If cmd executes successfully, return True, otherwise return False.
+    If the action is status, return True when it's running, otherwise return
+    False.
+
+    @ param action: start|stop|status|restart|condrestart
+    """
+    actions = ['start', 'stop', 'restart', 'condrestart']
+    if action in actions:
+        try:
+            utils.run("service cgconfig %s" % action)
+            logging.debug("%s cgconfig successfuly", action)
+            return True
+        except error.CmdError, detail:
+            logging.error("Failed to %s cgconfig:\n%s", action, detail)
+            return False
+    elif action == "status":
+        cmd_result = utils.run("service cgconfig status", ignore_status=True)
+        if (not cmd_result.exit_status and
+            cmd_result.stdout.strip()) == "Running":
+            logging.info("Cgconfig service is running")
+            return True
+        else:
+            return False
+    else:
+        raise error.TestError("Unknown action: %s" % action)
