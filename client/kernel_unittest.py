@@ -481,7 +481,7 @@ class TestKernel(unittest.TestCase):
         build_string = 'make -j %d %s %s' % (threads, '', 'build_target')
         utils.system.expect_call(build_string)
         kernel_config.modules_needed.expect_call('.config').and_return(True)
-        utils.system.expect_call('make -j %d modules' % (threads))
+        utils.system.expect_call('make -j %d %s modules' % (threads, ''))
         self.kernel.get_kernel_build_ver.expect_call().and_return('2.6.24')
         kernel_version = re.sub('-autotest', '', '2.6.24')
         self.logfile.write.expect_call('BUILD VERSION: %s\n' % kernel_version)
