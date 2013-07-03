@@ -14,9 +14,8 @@ from autotest.client import config, sysinfo, test, local_host
 from autotest.client import partition as partition_lib
 from autotest.client.shared import base_job, boottool
 from autotest.client.shared import error, barrier, logging_manager
-from autotest.client.shared import base_packages, packages
+from autotest.client.shared import base_packages, packages, report
 from autotest.client.shared.settings import settings
-from autotest.client.tools import html_report
 
 
 LAST_BOOT_TAG = object()
@@ -972,7 +971,7 @@ class base_client_job(base_job.base_job):
 
         # write out a job HTML report
         try:
-            html_report.create_report(self.resultdir)
+            report.write_html_report(self.resultdir)
         except Exception, e:
             logging.error("Error writing job HTML report: %s", e)
 
