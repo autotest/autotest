@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Autotest job execution results</title>
+<style type="text/css">
+{css}
+</style>
+<script type="text/javascript">
+{table_js}
+{maketree_js}
+</script>
+</head>
+<body>
+
+<h2 class="page_title">Autotest job execution report</h2>
+
+<table class="stats2">
+<tr><td>HOST</td><td>:</td><td>{job_data.sysinfo.hostname}</td></tr>
+<tr><td>RESULTS DIR</td><td>:</td><td>{job_data.results_dir}</td></tr>
+<tr><td>REPORT GENERATED AT</td><td>:</td><td>{job_data.report_generation_time}</td></tr>
+<tr><td>STATS</td><td>:</td><td>From {job_data.operations_executed} tests executed, {job_data.operations_passed} have passed (pass rate of {job_data.operations_pass_rate}%)</td></tr>
+</table>
+
+<br>
+
+<h2 class="page_sub_title">Test Results</h2>
+<h2 class="comment">click on table headers to asc/desc sort</h2>
+
+<table id="t1" class="stats table-autosort:4 table-autofilter table-stripeclass:alternate table-page-number:t1page table-page-count:t1pages table-filtered-rowcount:t1filtercount table-rowcount:t1allcount">
+<thead class="th table-sorted-asc table-sorted-desc">
+<tr>
+<th align="left" class="table-sortable:alphanumeric">Date/Time</th>
+<th align="left" class="filterable table-sortable:alphanumeric">Test Case<br>
+<input name="tc_filter" size="10" onkeyup="Table.filter(this,this)" onclick="Table.cancelBubble(event)"></th>
+<th align="left" class="table-filterable table-sortable:alphanumeric">Status</th>
+<th align="left">Time (sec)</th>
+<th align="left">Info</th>
+<th align="left">Debug</th>
+</tr>
+</thead>
+
+{.section job_data}
+<tbody>
+    {.repeated section operations}
+    <tr>
+        <td align="left">{localtime}</td>
+        <td align="left">{subdir}</td>
+        <td align="left"><div class="test_{status_code}">{status_code}</div></td>
+        <td align="left">{duration}</td>
+        <td align="left">{message}</td>
+        {.section job_data.absolute_path}
+        <td align="left"><a href="{job_data.absolute_path}/{subdir}/debug">Debug</A></td>
+        {.or}
+        <td align="left"><a href="{subdir}/debug">Debug</A></td>
+        {.end}
+    </tr>
+    {.end}
+</tbody>
+</table>
+{.end}
+
+<h2 class="page_sub_title">Host Info</h2>
+<h2 class="comment">click on each item to expend/collapse</h2>
+
+<p>
+<a class="button" href="#" onClick="expandTree('meta_tree'); return false;">Expand All</a>
+&nbsp;&nbsp;&nbsp;
+<a class="button" href="#" onClick="collapseTree('meta_tree'); return false;">Collapse All</a>
+</p>
+
+<ul class="mktree" id="meta_tree">
+<li id="meta_headline">uname<ul><table class="meta_table"><tr><td align="left">{job_data.sysinfo.uname}</td></tr></table></ul></li>
+<li id="meta_headline">cpuinfo<ul><table class="meta_table"><tr><td align="left">{job_data.sysinfo.cpuinfo}</td></tr></table></ul></li>
+<li id="meta_headline">meminfo<ul><table class="meta_table"><tr><td align="left">{job_data.sysinfo.meminfo}</td></tr></table></ul></li>
+<li id="meta_headline">df<ul><table class="meta_table"><tr><td align="left">{job_data.sysinfo.df}</td></tr></table></ul></li>
+<li id="meta_headline">modules<ul><table class="meta_table"><tr><td align="left">{job_data.sysinfo.modules}</td></tr></table></ul></li>
+<li id="meta_headline">gcc<ul><table class="meta_table"><tr><td align="left">{job_data.sysinfo.gcc}</td></tr></table></ul></li>
+<li id="meta_headline">dmidecode<ul><table class="meta_table"><tr><td align="left">{job_data.sysinfo.dmidecode}</td></tr></table></ul></li>
+<li id="meta_headline">dmesg<ul><table class="meta_table"><tr><td align="left">{job_data.sysinfo.dmesg}</td></tr></table></ul></li>
+</ul>
+
+</body>
+
