@@ -623,7 +623,6 @@ full_install() {
             create_autotest_user_rh
             install_autotest
             install_packages
-            update_packages
             setup_mysql_service_rh
             restart_mysql_rh
             check_mysql_password
@@ -648,7 +647,6 @@ full_install() {
             create_autotest_user_deb
             install_autotest
             install_packages
-            update_packages
             setup_mysql_service_deb
             restart_mysql_deb
             check_mysql_password
