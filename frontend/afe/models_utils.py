@@ -11,9 +11,9 @@ def job_get_by_id(job_id):
     '''
     try:
         job = Job.objects.get(pk=job_id)
+        return job
     except Job.DoesNotExist:
         return None
-    return job
 
 
 def job_delete_by_id(job_id):

@@ -11,9 +11,9 @@ def job_get_by_tag(tag):
     '''
     try:
         job = Job.objects.get(tag=tag)
+        return job
     except Job.DoesNotExist:
         return None
-    return job
 
 
 def job_get_by_idx(job_idx):
@@ -22,9 +22,9 @@ def job_get_by_idx(job_idx):
     '''
     try:
         job = Job.objects.get(pk=job_idx)
+        return job
     except Job.DoesNotExist:
         return None
-    return job
 
 
 def job_get_idx_by_tag(tag):
@@ -70,9 +70,9 @@ def test_get_by_idx(test_idx):
     '''
     try:
         test = Test.objects.get(pk=test_idx)
+        return test
     except Test.DoesNotExist:
         return None
-    return test
 
 
 def test_delete_by_idx(test_idx):
@@ -89,9 +89,9 @@ def machine_get_by_hostname(hostname):
     '''
     try:
         machine = Machine.objects.get(hostname=hostname)
+        return machine
     except Machine.DoesNotExist:
         return None
-    return machine
 
 
 def machine_get_idx_by_hostname(hostname):
@@ -125,6 +125,6 @@ def machine_create(hostname, machine_group=None, owner=None):
 def machine_get_by_idx(machine_idx):
     try:
         machine = Machine.objects.get(pk=machine_idx)
+        return machine
     except Machine.DoesNotExist:
         return None
-    return machine
