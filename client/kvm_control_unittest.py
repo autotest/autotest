@@ -3,13 +3,16 @@
 
 from StringIO import StringIO
 
+import unittest
+
 try:
     import autotest.common as common
 except ImportError:
     import common
 
+
 from autotest.client import kvm_control, base_utils, utils
-from autotest.client.shared.test_utils import mock, unittest
+from autotest.client.shared.test_utils import mock
 from autotest.client.shared import error
 
 

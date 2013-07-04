@@ -39,6 +39,8 @@ def get_filelist():
 def get_packages():
     return ['autotest.client.shared',
             'autotest.client.shared.hosts',
+            'autotest.client.shared.backports',
+            'autotest.client.shared.backports.collections',
             'autotest.client.shared.test_utils',
             'autotest.client.net',
             'autotest.client.tools',

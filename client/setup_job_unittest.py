@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import logging, os, shutil, sys, StringIO
+import logging, os, shutil, sys, StringIO, unittest
+
 try:
     import autotest.common as common
 except ImportError:
@@ -10,7 +11,7 @@ from autotest.client import job, setup_job
 from autotest.client import utils
 from autotest.client.shared import base_job, logging_manager, logging_config
 from autotest.client.shared import base_job_unittest
-from autotest.client.shared.test_utils import mock, unittest
+from autotest.client.shared.test_utils import mock
 
 
 class setup_job_test_case(unittest.TestCase):
