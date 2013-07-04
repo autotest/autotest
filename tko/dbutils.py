@@ -110,14 +110,10 @@ def insert_test(job, test, tko_job=None, tko_machine=None):
             attribute=key,
             value=value)
 
-    # WARNING: there's a possible regression of functionality on this code!
-    # I can not find anywhere where the test labels are parsed into the
-    # test objects. The original parsing of the test labels is done by
-    # index and direct manipulation of the many-to-many table. The way
-    # to do this via Django ORM wouble to create TestLabel() instances
-    # and add the test to the 'tests' member. Unfortunately, without
-    # the label data such as name and description, it's not possible
-    # to instantiate TestLabel()s in the first place.
+    for label_index in test.labels:
+        label = tko_models_utils.test_label_get_by_idx(label_index)
+        if label is not None:
+            label.tests.append(tko_test)
 
 
 def insert_job(jobname, job):

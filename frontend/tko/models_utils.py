@@ -2,7 +2,7 @@
 Simple utility wrappers around the TKO models
 """
 
-from autotest.frontend.tko.models import Job, Test, Machine
+from autotest.frontend.tko.models import Job, Test, Machine, TestLabel
 
 
 def job_get_by_tag(tag):
@@ -127,4 +127,12 @@ def machine_get_by_idx(machine_idx):
         machine = Machine.objects.get(pk=machine_idx)
         return machine
     except Machine.DoesNotExist:
+        return None
+
+
+def test_label_get_by_idx(test_label_idx):
+    try:
+        label = TestLabel.objects.get(pk=test_label_idx)
+        return label
+    except:
         return None
