@@ -214,13 +214,13 @@ then
 fi
 }
 
-install_git_rh() {
-    print_log "INFO" "Installing git packages"
-    yum install -y git >> $LOG 2>&1
+install_basic_pkgs_rh() {
+    print_log "INFO" "Installing basic packages"
+    yum install -y git passwd >> $LOG 2>&1
 }
 
-install_git_deb() {
-    print_log "INFO" "Installing git packages"
+install_basic_pkgs_deb() {
+    print_log "INFO" "Installing basic packages"
     export DEBIAN_FRONTEND=noninteractive
     apt-get install -y git >> $LOG 2>&1
 }
@@ -605,12 +605,12 @@ full_install() {
         check_disk_space
         setup_substitute
         setup_epel_repo
-        install_git_rh
+        install_basic_pkgs_rh
     elif [ "$(grep 'Ubuntu' /etc/issue)" != "" ]
     then
         check_disk_space
         setup_substitute
-        install_git_deb
+        install_basic_pkgs_deb
     else
         print_log "Sorry, I can't recognize your distro, exiting..."
     fi
