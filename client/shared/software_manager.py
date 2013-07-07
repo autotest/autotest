@@ -748,19 +748,19 @@ def install_distro_packages(distro_pkg_map, interactive=False):
         os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
 
     result = False
-    distro = distro.detect().name
-    if distro_pkg_map.has_key(distro):
-        pkgs = distro_pkg_map.get(distro, None)
+    distro_name = distro.detect().name
+
+    pkgs = distro_pkg_map.get(distro_name, None)
+    if pkgs is not None:
         needed_pkgs = []
-        if pkgs is not None:
-            s = SoftwareManager()
-            for p in pkgs:
-                if not s.check_installed(p):
-                    needed_pkgs.append(p)
+        software_manager = SoftwareManager()
+        for pkg in pkgs:
+            if not software_manager.check_installed(pkg):
+                needed_pkgs.append(pkg)
         if needed_pkgs:
             text = ' '.join(needed_pkgs)
             logging.info('Installing packages "%s"', text)
-            result = s.install(text)
+            result = software_manager.install(text)
     return result
 
 
