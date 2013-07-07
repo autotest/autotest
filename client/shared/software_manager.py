@@ -748,7 +748,7 @@ def install_distro_packages(distro_pkg_map, interactive=False):
         os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
 
     result = False
-    distro = utils.get_os_vendor()
+    distro = distro.detect().name
     if distro_pkg_map.has_key(distro):
         pkgs = distro_pkg_map.get(distro, None)
         needed_pkgs = []
