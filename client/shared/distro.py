@@ -372,3 +372,14 @@ def detect():
         distro = UNKNOWN_DISTRO
 
     return distro
+
+
+class Spec(object):
+    '''
+    Describes a distro, usually for setting minimum distro requirements
+    '''
+    def __init__(self, name, min_version=None, min_release=None, arch=None):
+        self.name = name
+        self.min_version = min_version
+        self.min_release = min_release
+        self.arch = arch
