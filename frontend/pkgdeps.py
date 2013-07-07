@@ -59,6 +59,6 @@ UBUNTU_PKGS = [
     'pylint']
 
 
-PKG_DEPS = {'Fedora' : FEDORA_REDHAT_PKGS,
-            'Red Hat' : FEDORA_REDHAT_PKGS,
-            'Ubuntu' : UBUNTU_PKGS}
+PKG_DEPS = {'fedora' : FEDORA_REDHAT_PKGS,
+            'redhat' : FEDORA_REDHAT_PKGS,
+            'ubuntu' : UBUNTU_PKGS}
