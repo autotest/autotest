@@ -4,6 +4,9 @@ packages needed for running the AFE and TKO servers
 """
 
 
+from autotest.client.shared import distro
+
+
 FEDORA_REDHAT_PKGS = [
     'Django',
     'Django-south',
@@ -33,6 +36,34 @@ FEDORA_REDHAT_PKGS = [
     'pylint']
 
 
+FEDORA_19_PKGS = [
+    'MySQL-python',
+    'git',
+    'httpd',
+    'java-1.7.0-openjdk-devel',
+    'mod_wsgi',
+    'mariadb-server',
+    'numpy',
+    'passwd',
+    'policycoreutils-python',
+    'protobuf-compiler',
+    'protobuf-python',
+    'pylint',
+    'python-atfork',
+    'python-crypto',
+    'python-django',
+    'python-httplib2',
+    'python-pillow',
+    'python-matplotlib',
+    'python-paramiko',
+    'selinux-policy',
+    'selinux-policy-targeted',
+    'unzip',
+    'urw-fonts',
+    'wget',
+    ]
+
+
 UBUNTU_PKGS = [
     'apache2-mpm-prefork',
     'git',
@@ -59,6 +90,7 @@ UBUNTU_PKGS = [
     'pylint']
 
 
-PKG_DEPS = {'fedora' : FEDORA_REDHAT_PKGS,
-            'redhat' : FEDORA_REDHAT_PKGS,
-            'ubuntu' : UBUNTU_PKGS}
+PKG_DEPS = {'fedora': FEDORA_REDHAT_PKGS,
+            'redhat': FEDORA_REDHAT_PKGS,
+            'ubuntu': UBUNTU_PKGS,
+            distro.Spec('fedora', 19): FEDORA_19_PKGS}
