@@ -37,7 +37,11 @@ GENERAL OPTIONS:
    -a      Autotest base dir (defaults to $ATHOME_DEFAULT)
    -g      Autotest git repo (defaults to $AUTOTEST_DEFAULT_GIT_REPO)
    -b      Autotest git branch (defaults to $AUTOTEST_DEFAULT_GIT_BRANCH)
+   -t      Autotest tests branch (defaults to $AUTOTEST_DEFAULT_GIT_BRANCH)
    -c      Autotest git commit (defaults to no commit)
+
+If you plan on testing your own autotest branch, make sure to set -t to a
+valid upstream branch (such as master or next).
 
 INSTALLATION STEP SELECTION:
    -p      Only install packages
@@ -46,7 +50,7 @@ INSTALLATION STEP SELECTION:
 EOF
 }
 
-while getopts "hpna:g:b:c:u:d:" OPTION
+while getopts "hpna:g:b:c:u:d:t:" OPTION
 do
      case $OPTION in
          h)
@@ -67,6 +71,9 @@ do
              ;;
          b)
              AUTOTEST_GIT_BRANCH=$OPTARG
+             ;;
+         t)
+             AUTOTEST_TESTS_BRANCH=$OPTARG
              ;;
          c)
              AUTOTEST_GIT_COMMIT=$OPTARG
@@ -101,6 +108,10 @@ fi
 if [[ -z $AUTOTEST_GIT_BRANCH ]]
 then
      AUTOTEST_GIT_BRANCH=$AUTOTEST_DEFAULT_GIT_BRANCH
+fi
+if [[ -z $AUTOTEST_TESTS_BRANCH ]]
+then
+     AUTOTEST_TESTS_BRANCH=$AUTOTEST_GIT_BRANCH
 fi
 }
 
@@ -316,16 +327,16 @@ else
     fi
 fi
 
-print_log "INFO" "Initializing and updating tests to the latest $AUTOTEST_GIT_BRANCH"
+print_log "INFO" "Initializing and updating tests to the latest $AUTOTEST_TESTS_BRANCH"
 cd $ATHOME
 git submodule init
 git submodule update --recursive
 cd $ATHOME/client/tests
-git checkout $AUTOTEST_GIT_BRANCH
+git checkout $AUTOTEST_TESTS_BRANCH
 cd $ATHOME/client/tests/virt
-git checkout $AUTOTEST_GIT_BRANCH
+git checkout $AUTOTEST_TESTS_BRANCH
 cd $ATHOME/server/tests
-git checkout $AUTOTEST_GIT_BRANCH
+git checkout $AUTOTEST_TESTS_BRANCH
 
 print_log "INFO" "Setting proper permissions for the autotest directory"
 chown -R autotest:autotest $ATHOME
