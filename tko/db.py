@@ -327,7 +327,7 @@ class db_sql(object):
         self.delete('tko_jobs', where)
         self.delete('afe_aborted_host_queue_entries', {'queue_entry_id' : afe_job_idx})
         self.delete('afe_special_tasks', {'queue_entry_id' : afe_job_idx})
-        self.delete('afe_host_queue_entries', {'id' : afe_job_idx})
+        self.delete('afe_host_queue_entries', {'job_id' : afe_job_idx})
         self.delete('afe_jobs', {'id' : afe_job_idx})
 
 
