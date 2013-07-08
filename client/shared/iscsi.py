@@ -111,6 +111,7 @@ class Iscsi(object):
         else:
             self.id = utils.generate_random_string(4)
         self.initiator = params.get("initiator")
+        self.export_flag = False
         if params.get("emulated_image"):
             self.initiator = None
             os_dep.command("tgtadm")
@@ -120,7 +121,6 @@ class Iscsi(object):
             self.emulated_size = params.get("image_size")
             self.unit = self.emulated_size[-1].upper()
             self.emulated_size = self.emulated_size[:-1]
-            self.export_flag = False
             # maps K,M,G,T => (count, bs)
             emulated_size = {'K': (1, 1),
                              'M': (1, 1024),
