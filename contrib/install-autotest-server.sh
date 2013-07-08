@@ -316,16 +316,16 @@ else
     fi
 fi
 
-print_log "INFO" "Initializing and updating tests to the latest master"
+print_log "INFO" "Initializing and updating tests to the latest $AUTOTEST_GIT_BRANCH"
 cd $ATHOME
 git submodule init
 git submodule update --recursive
 cd $ATHOME/client/tests
-git checkout master
+git checkout $AUTOTEST_GIT_BRANCH
 cd $ATHOME/client/tests/virt
-git checkout master
+git checkout $AUTOTEST_GIT_BRANCH
 cd $ATHOME/server/tests
-git checkout master
+git checkout $AUTOTEST_GIT_BRANCH
 
 print_log "INFO" "Setting proper permissions for the autotest directory"
 chown -R autotest:autotest $ATHOME
