@@ -13,10 +13,11 @@ class test_data:
     mail_from_address = None
     mail_to_address = None
     mail_message = None
+    login = False
 
 
 # we define our needed mock SMTP
-class SMTP:
+class SMTP(object):
     def __init__(self, host=None, port=25):
         test_data.mail_host = host
         test_data.mail_port = port
@@ -31,6 +32,10 @@ class SMTP:
 
     def quit(self):
         test_data.mail_connect = False
+
+
+    def login(self, user, password):
+        test_data.login = True
 
 
     def sendmail(self, from_address, to_address, message):
@@ -61,7 +66,14 @@ class mail_test(unittest.TestCase):
         message["Subject"] = "hello"
         message.set_payload("Hello everybody!")
 
-        mail.send("me", "you", "them", "hello", "Hello everybody!")
+        smtp_info = {'server': 'stmp.foo.com',
+                     'port': 25,
+                     'user': 'brian',
+                     'password': 'judealiberationfront'}
+
+        mail.send(from_address="me", to_addresses="you", cc_addresses="them",
+                  subject="hello", body="Hello everybody!", smtp_info=smtp_info)
+
         self.assertEquals("me", test_data.mail_from_address)
         self.assertEquals(["you","them"], test_data.mail_to_address)
         self.assertEquals(message.as_string(), test_data.mail_message)
