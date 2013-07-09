@@ -5,6 +5,8 @@ functionality, that is, direct database access via frontend models.
 
 import optparse
 
+import django.conf
+
 from autotest.client.shared import settings
 
 
@@ -37,3 +39,16 @@ class OptionParser(optparse.OptionParser):
                             default=get_config_db_value('database'),
                             help="Database name")
         self.add_option_group(database)
+
+
+    def parse_args(self):
+        opts, args = optparse.OptionParser.parse_args(self)
+
+        getattr(django.conf.settings, 'DATABASES')
+        default_db = django.conf.settings.DATABASES['default']
+        default_db['USER'] = opts.database_username
+        default_db['PASSWORD'] = opts.database_password
+        default_db['NAME'] = opts.database_name
+        default_db['HOST'] = opts.database_hostname
+
+        return opts, args
