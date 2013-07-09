@@ -123,11 +123,18 @@ def sys_v_init_command_generator(command):
 
 def systemd_command_generator(command):
     """
-    Generate list of command line arguments for systemctl
+    Generate list of command line argument strings for systemctl.
+    One argument per string for compatibility Popen
+
+    WARNING: If systemctl detects that it is running on a tty it will use color,
+    pipe to $PAGER, change column sizes and not truncate unit names.
+    Use --no-pager to suppress pager output, or set PAGER=cat in the environment.
+    You may need to take other steps to suppress color output.
+    See https://bugzilla.redhat.com/show_bug.cgi?id=713567
 
     :param command: start,stop,restart, etc.
     :type command: str
-    :return: list of commands to pass to utils.run or similar function
+    :return: list of command and arguments to pass to utils.run or similar functions
     :rtype: list
     """
     command_name = "systemctl"
@@ -136,7 +143,8 @@ def systemd_command_generator(command):
     elif command == "list":
         # noinspection PyUnusedLocal
         def list_command(service_name):
-            return [command_name, "list-unit-files", "--type=service --no-pager"]
+            # systemctl pipes to `less` or $PAGER by default.  Workaround this
+            return [command_name, "list-unit-files", "--type=service", "--no-pager"]
         return list_command
     elif command == "set_target":
         def set_target_command(target):
