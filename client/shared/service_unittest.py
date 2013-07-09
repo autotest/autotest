@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#
 #  Copyright(c) 2013 Intel Corporation.
 #
 #  This program is free software; you can redistribute it and/or modify it
@@ -196,3 +198,7 @@ class TestSysVInitServiceManager(unittest.TestCase):
             "graphical.target") == '5'
         assert service.convert_systemd_target_to_runlevel(
             "reboot.target") == '6'
+
+
+if __name__ == '__main__':
+    unittest.main()
