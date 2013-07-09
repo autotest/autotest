@@ -134,7 +134,7 @@ class TestSystemdServiceManager(unittest.TestCase):
     def test_list(self):
         self.service_manager.list()
         assert self.run_mock.call_args[0][
-            0] == "systemctl list-unit-files --type=service"
+            0] == "systemctl list-unit-files --type=service --no-pager"
 
     def test_set_default_runlevel(self):
         runlevel = service.convert_sysv_runlevel(3)
