@@ -21,6 +21,7 @@ except ImportError:
     import common
 from autotest.frontend.afe import rpc_client_lib
 from autotest.client.shared.settings import settings
+from autotest.client.shared import mail
 from autotest.client.shared import utils
 try:
     # Here we are importing site utils only if it exists
@@ -418,7 +419,11 @@ class AFE(RpcClient):
         print '---------------------------------------------------'
         if email_from and email_to:
             print 'Sending email ...'
-            utils.send_email(email_from, email_to, subject, body, smtp_info)
+            mail.send(from_address=email_from,
+                      to_addresses=email_to,
+                      subject=subject,
+                      body=body,
+                      smtp_info=smtp_info)
         print
 
 
