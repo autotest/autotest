@@ -1,0 +1,189 @@
+html, body {
+    padding: 0;
+    color: #222;
+    background: #FFFFFF;
+}
+body {
+    padding: 0px;
+    font: 76% /150% sans-serif;
+}
+h2.page_title {
+    text-decoration: none;
+    font: bold 2em /2em sans-serif;
+    text-transform: none;
+    text-align: left;
+    color: #555555;
+    border-bottom: 1px solid #555555;
+}
+h2.page_sub_title {
+    text-decoration: none;
+    font: bold 16px sans-serif;
+    text-transform: uppercase;
+    text-align: left;
+    color: #555555;
+    margin-bottom: 0;
+}
+h2.comment {
+    text-decoration: none;
+    font: bold 10px sans-serif;
+    text-transform: none;
+    text-align: left;
+    color: #999999;
+    margin-top: 0;
+}
+#meta_headline {
+    text-decoration: none;
+    font-family: sans-serif;
+    text-align: left;
+    color: black;
+    font-weight: bold;
+    font-size: 14px;
+}
+table.meta_table {
+    text-align: center;
+    font-family: sans-serif;
+    width: 90%;
+    background-color: #FFFFFF;
+    border: 0px;
+    border-top: 1px #BBBBBB solid;
+    border-bottom: 1px #BBBBBB solid;
+    border-right: 1px #BBBBBB solid;
+    border-left: 1px #BBBBBB solid;
+    border-collapse: collapse;
+    border-spacing: 0px;
+}
+table.meta_table td {
+    background-color: #FFFFFF;
+    color: #000;
+    padding: 4px;
+    border-top: 1px #BBBBBB solid;
+    border-bottom: 1px #BBBBBB solid;
+    font-weight: normal;
+    font-size: 13px;
+    font-family: monospace;
+}
+table.stats {
+    text-align: center;
+    font-family: sans-serif;
+    width: 100%;
+    background-color: #FFFFFF;
+    border: 0px;
+    border-top: 1px #BBBBBB solid;
+    border-bottom: 1px #BBBBBB solid;
+    border-right: 1px #BBBBBB solid;
+    border-left: 1px #BBBBBB solid;
+    border-collapse: collapse;
+    border-spacing: 0px;
+}
+table.stats td {
+    background-color: #FFFFFF;
+    color: #000;
+    padding: 4px;
+    border-top: 1px #BBBBBB solid;
+    border-bottom: 1px #BBBBBB solid;
+    font-weight: normal;
+    font-size: 11px;
+}
+table.stats th {
+    background: #dcdcdc;
+    color: #000;
+    padding: 6px;
+    font-size: 12px;
+    border-bottom: 1px #BBBBBB solid;
+    font-weight: bold;
+}
+table.stats td.top {
+    background-color: #dcdcdc;
+    color: #000;
+    padding: 6px;
+    text-align: center;
+    border: 0px;
+    border-bottom: 1px #BBBBBB solid;
+    font-size: 10px;
+    font-weight: bold;
+}
+table.stats th.table-sorted-asc {
+    background-image: url(ascending.gif);
+    background-position: top left;
+    background-repeat: no-repeat;
+}
+table.stats th.table-sorted-desc {
+    background-image: url(descending.gif);
+    background-position: top left;
+    background-repeat: no-repeat;
+}
+table.stats2 {
+    text-align: left;
+    font-family: sans-serif;
+    width: 100%;
+    background-color: #FFFFFF;
+    border: 0px;
+}
+table.stats2 td {
+    background-color: #FFFFFF;
+    color: #000;
+    padding: 0px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+table.stats div.test_GOOD {
+    background-color: #FFFFFF;
+    color: #00CC00;
+    padding: 0px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+table.stats div.test_FAIL {
+    background-color: #FFFFFF;
+    color: red;
+    padding: 0px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+table.stats div.test_ERROR {
+    background-color: #FFFFFF;
+    color: red;
+    padding: 0px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+/* Put this inside a @media qualifier so Netscape 4 ignores it */
+@media screen, print {
+    /* Turn off list bullets */
+    ul.mktree  li {
+        list-style: none;
+    }
+    /* Control how "spaced out" the tree is */
+    ul.mktree, ul.mktree ul, ul.mktree li {
+        margin-left: 10px;
+        padding: 0px;
+    }
+    /* Provide space for our own "bullet" inside the LI */
+    ul.mktree  li           .bullet {
+        padding-left: 15px;
+    }
+    /* Show "bullets" in the links, depending on the class of the LI that the link's in */
+    ul.mktree  li.liOpen    .bullet {
+        cursor: pointer;
+    }
+    ul.mktree  li.liClosed  .bullet {
+        cursor: pointer;
+    }
+    ul.mktree  li.liBullet  .bullet {
+        cursor: default;
+    }
+    /* Sublists are visible or not based on class of parent LI */
+    ul.mktree  li.liOpen    ul {
+        display: block;
+    }
+    ul.mktree  li.liClosed  ul {
+        display: none;
+    }
+    ul.mktree  li ul li {
+        font-size: 90%
+    }
+}

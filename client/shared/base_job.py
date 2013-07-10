@@ -4,6 +4,19 @@ import cPickle as pickle
 from autotest.client.shared import autotemp, error, log
 from autotest.client.shared.settings import settings
 
+# Mapping between job statuses and whether the operation is OK or not
+JOB_STATUSES = {"TEST_NA": False,
+                "ABORT": False,
+                "ERROR": False,
+                "FAIL": False,
+                "WARN": False,
+                "GOOD": True,
+                "START": True,
+                "END GOOD": True,
+                "ALERT": False,
+                "RUNNING": False,
+                "NOSTATUS": False}
+
 
 class job_directory(object):
     """Represents a job.*dir directory."""
@@ -750,7 +763,7 @@ class TAPReport(object):
             else:
                 operation = "unknown"
             entry = self.tap_ok(
-                self.job_statuses.get(log_entry.status_code, False),
+                JOB_STATUSES.get(log_entry.status_code, False),
                 len(self._reports_container[key]) + 1, operation + "\n"
             )
             self._reports_container[key].append(entry)
