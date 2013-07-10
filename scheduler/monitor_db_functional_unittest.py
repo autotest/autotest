@@ -5,12 +5,12 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import enum, settings, host_protections
+from autotest.client.shared import enum, settings, host_protections, mail
 from autotest.database_legacy import database_connection
 from autotest.frontend import setup_django_environment
 from autotest.frontend.afe import frontend_test_utils, models
 from autotest.frontend.afe import model_attributes
-from autotest.scheduler import drone_manager, email_manager, host_scheduler
+from autotest.scheduler import drone_manager, host_scheduler
 from autotest.scheduler import monitor_db, scheduler_models
 
 # translations necessary for scheduler queries to work with SQLite
@@ -295,9 +295,9 @@ class MockDroneManager(NullMethodObject):
 
 
 class MockEmailManager(NullMethodObject):
-    _NULL_METHODS = ('send_queued_emails', 'send_email')
+    _NULL_METHODS = ('send_queued_admin', 'send')
 
-    def enqueue_notify_email(self, subject, message):
+    def enqueue_admin(self, subject, message):
         logging.warn('enqueue_notify_email: %s', subject)
         logging.warn(message)
 
@@ -334,7 +334,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         drone_manager._set_instance(self.mock_drone_manager)
 
         self.mock_email_manager = MockEmailManager()
-        self.god.stub_with(email_manager, 'manager', self.mock_email_manager)
+        self.god.stub_with(mail, "manager", self.mock_email_manager)
 
         self._database = (
             database_connection.TranslatingDatabase.get_test_database(

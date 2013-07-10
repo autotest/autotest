@@ -5,8 +5,8 @@ Autotest AFE Cleanup used by the scheduler
 
 import time, logging, random
 from autotest.frontend.afe import models
-from autotest.scheduler import email_manager, scheduler_config
-from autotest.client.shared import host_protections
+from autotest.scheduler import scheduler_config
+from autotest.client.shared import host_protections, mail
 
 
 class PeriodicCleanup(object):
@@ -137,7 +137,7 @@ class UserCleanup(PeriodicCleanup):
             message = '\n'.join(errors)
             logging.warning(subject)
             logging.warning(message)
-            email_manager.manager.enqueue_notify_email(subject, message)
+            mail.manager.enqueue_admin(subject, message)
 
 
     def _clear_inactive_blocks(self):
@@ -299,4 +299,4 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
         message = '\n'.join(lines)
         if len(message) > 5000:
             message = message[:5000] + '\n(truncated)\n'
-        email_manager.manager.enqueue_notify_email(subject, message)
+        mail.manager.enqueue_admin(subject, message)

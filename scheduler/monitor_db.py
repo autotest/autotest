@@ -14,13 +14,13 @@ from autotest.frontend import setup_django_environment
 import django.db
 
 from autotest.client import os_dep
-from autotest.client.shared import logging_manager
+from autotest.client.shared import logging_manager, mail
 from autotest.client.shared.settings import settings
 from autotest.client.shared import host_protections, utils
 from autotest.database_legacy import database_connection
 from autotest.frontend.afe import models, rpc_utils, readonly_connection
 from autotest.frontend.afe import model_attributes
-from autotest.scheduler import drone_manager, drones, email_manager
+from autotest.scheduler import drone_manager, drones
 from autotest.scheduler import gc_stats, host_scheduler, monitor_db_cleanup
 from autotest.scheduler import status_server, scheduler_config
 from autotest.scheduler import scheduler_models
@@ -256,10 +256,10 @@ def main_without_exception_handling():
             dispatcher.tick()
             time.sleep(scheduler_config.config.tick_pause_sec)
     except:
-        email_manager.manager.log_stacktrace(
-            "Uncaught exception; terminating scheduler")
+        e_msg = "Uncaught exception, terminating scheduler"
+        mail.manager.enqueue_exception_admin(e_msg)
 
-    email_manager.manager.send_queued_emails()
+    mail.manager.send_queued_admin()
     server.shutdown()
     _drone_manager.shutdown()
     _db.disconnect()
@@ -323,7 +323,7 @@ class Dispatcher(object):
         self._handle_agents()
         self._host_scheduler.tick()
         _drone_manager.execute_actions()
-        email_manager.manager.send_queued_emails()
+        mail.manager.send_queued_admin()
         django.db.reset_queries()
         self._tick_count += 1
 
@@ -546,7 +546,7 @@ class Dispatcher(object):
             return
         subject = 'Unrecovered orphan autoserv processes remain'
         message = '\n'.join(str(process) for process in orphans)
-        email_manager.manager.enqueue_notify_email(subject, message)
+        mail.manager.enqueue_admin(subject, message)
 
         die_on_orphans = settings.get_value(scheduler_config.CONFIG_SECTION,
                                             'die_on_orphans', type=bool)
@@ -940,7 +940,7 @@ class PidfileRunMonitor(object):
     def _handle_pidfile_error(self, error, message=''):
         message = error + '\nProcess: %s\nPidfile: %s\n%s' % (
             self._state.process, self.pidfile_id, message)
-        email_manager.manager.enqueue_notify_email(error, message)
+        mail.manager.enqueue_admin(error, message)
         self.on_lost_process(self._state.process)
 
 
@@ -987,8 +987,8 @@ class PidfileRunMonitor(object):
         """
         message = 'No pid found at %s' % self.pidfile_id
         if time.time() - self._start_time > _get_pidfile_timeout_secs():
-            email_manager.manager.enqueue_notify_email(
-                'Process has failed to write pidfile', message)
+            mail.manager.enqueue_admin('Process has failed to write pidfile',
+                                       message)
             self.on_lost_process()
 
 
@@ -1285,10 +1285,10 @@ class AgentTask(object):
 
     def _check_paired_results_exist(self):
         if not self._paired_with_monitor().has_process():
-            email_manager.manager.enqueue_notify_email(
-                    'No paired results in task',
-                    'No paired results in task %s at %s'
-                    % (self, self._paired_with_monitor().pidfile_id))
+            subject = 'No paired results in task'
+            message = (subject + ' %s at %s' %
+                       (self, self._paired_with_monitor().pidfile_id))
+            mail.manager.enqueue_admin(subject, message)
             self.finished(False)
             return False
         return True
@@ -1956,10 +1956,10 @@ class PostJobTask(AgentTask):
             elif was_aborted != bool(queue_entry.aborted): # subsequent entries
                 entries = ['%s (aborted: %s)' % (entry, entry.aborted)
                            for entry in self.queue_entries]
-                email_manager.manager.enqueue_notify_email(
-                        'Inconsistent abort state',
-                        'Queue entries have inconsistent abort state:\n' +
-                        '\n'.join(entries))
+                subject = 'Inconsistent abort state'
+                message = ('Queue entries have inconsistent abort state:\n' +
+                           '\n'.join(entries))
+                mail.manager.enqueue_admin(subject, message)
                 # don't crash here, just assume true
                 return True
         return was_aborted

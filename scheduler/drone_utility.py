@@ -8,8 +8,9 @@ except ImportError:
     import common
 from autotest.client.shared import utils, error
 from autotest.client.shared.settings import settings
+from autotest.client.shared import mail
 from autotest.server import hosts, subcommand
-from autotest.scheduler import email_manager, scheduler_config
+from autotest.scheduler import scheduler_config
 
 # An environment variable we add to the environment to enable us to
 # distinguish processes we started from those that were started by
@@ -243,8 +244,8 @@ class DroneUtility(object):
                 out_file.write("%s> %s\n" % (time.strftime("%X %x"), command))
                 out_file.write(separator)
             except (OSError, IOError):
-                email_manager.manager.log_stacktrace(
-                    'Error opening log file %s' % log_file)
+                e_msg = 'Error opening log file %s' % log_file
+                mail.manager.enqueue_exception_admin(e_msg)
 
         if not out_file:
             out_file = open('/dev/null', 'w')

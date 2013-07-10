@@ -4,9 +4,9 @@ try:
 except ImportError:
     import common
 import logging
-from autotest.client.shared import error
+from autotest.client.shared import error, mail
 from autotest.client.shared.settings import settings
-from autotest.scheduler import email_manager, drone_utility, drones
+from autotest.scheduler import drone_utility, drones
 from autotest.scheduler import scheduler_config
 
 
@@ -385,8 +385,7 @@ class DroneManager(object):
         except error.AutoservError:
             warning = ('Results repository failed to execute calls:\n' +
                        traceback.format_exc())
-            email_manager.manager.enqueue_notify_email(
-                'Results repository error', warning)
+            mail.manager.enqueue_admin('Results repository error', warning)
             self._results_drone.clear_call_queue()
 
 
