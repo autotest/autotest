@@ -143,8 +143,10 @@ def systemd_command_generator(command):
     elif command == "list":
         # noinspection PyUnusedLocal
         def list_command(service_name):
-            # systemctl pipes to `less` or $PAGER by default.  Workaround this
-            return [command_name, "list-unit-files", "--type=service", "--no-pager"]
+            # systemctl pipes to `less` or $PAGER by default. Workaround this
+            # add '--full' to avoid systemctl truncates service names.
+            return [command_name, "list-unit-files",
+                    "--type=service", "--no-pager", "--full"]
         return list_command
     elif command == "set_target":
         def set_target_command(target):
