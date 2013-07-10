@@ -14,6 +14,7 @@ except ImportError:
 from autotest.client.shared.settings import settings
 from autotest.client.shared import utils
 from autotest.client.shared.test_utils import mock
+from autotest.client.shared import mail
 from autotest.frontend.afe import rpc_client_lib
 from autotest.server import frontend
 
@@ -22,7 +23,7 @@ class BaseRpcClientTest(unittest.TestCase):
     def setUp(self):
         self.god = mock.mock_god()
         self.god.mock_up(rpc_client_lib, 'rpc_client_lib')
-        self.god.stub_function(utils, 'send_email')
+        self.god.stub_function(mail, 'send')
         self._saved_environ = dict(os.environ)
         if 'AUTOTEST_WEB' in os.environ:
             del os.environ['AUTOTEST_WEB']
@@ -63,7 +64,7 @@ class AFETest(BaseRpcClientTest):
                 'http://chess/afe/server/rpc/',
                 headers={'AUTHORIZATION': 'david'})
         self.god.stub_function(utils, 'send_email')
-        utils.send_email.expect_any_call()
+        mail.send.expect_any_call()
 
         my_afe = frontend.AFE(user='david')
 
