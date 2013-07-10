@@ -3,8 +3,9 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.scheduler import drone_utility, email_manager
+from autotest.scheduler import drone_utility
 from autotest.client.shared.settings import settings
+from autotest.client.shared import mail
 
 
 AUTOTEST_INSTALL_DIR = settings.get_value('SCHEDULER',
@@ -66,7 +67,7 @@ class _AbstractDrone(object):
         for warning in return_message['warnings']:
             subject = 'Warning from drone %s' % self.hostname
             logging.warn(subject + '\n' + warning)
-            email_manager.manager.enqueue_notify_email(subject, warning)
+            mail.manager.enqueue_admin(subject, warning)
         return return_message['results']
 
 

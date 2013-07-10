@@ -18,11 +18,11 @@ _drone_manager: reference to global DroneManager instance.
 """
 
 import datetime, itertools, logging, os, re, sys, time, weakref
-from autotest.client.shared import host_protections
+from autotest.client.shared import host_protections, mail
 from autotest.client.shared.settings import settings
 from autotest.frontend.afe import models, model_attributes
 from autotest.database_legacy import database_connection
-from autotest.scheduler import drone_manager, email_manager
+from autotest.scheduler import drone_manager
 from autotest.scheduler import scheduler_config
 from autotest.frontend.afe import reservations
 
@@ -675,7 +675,7 @@ class HostQueueEntry(DBObject):
     def _email_on_status(self, status):
         hostname = self._get_hostname()
         subject, body = self._get_status_email_contents(status, None, hostname)
-        email_manager.manager.send_email(self.job.email_list, subject, body)
+        mail.manager.send(self.job.email_list, subject, body)
 
 
     def _email_on_job_complete(self):
@@ -696,7 +696,7 @@ class HostQueueEntry(DBObject):
                     in status_counts.iteritems())
 
         subject, body = self._get_status_email_contents(status, summary, None)
-        email_manager.manager.send_email(self.job.email_list, subject, body)
+        mail.manager.send(self.job.email_list, subject, body)
 
 
     def schedule_pre_job_tasks(self):
@@ -776,7 +776,7 @@ class HostQueueEntry(DBObject):
                 self.status == models.HostQueueEntry.Status.PENDING):
             subject = 'Job %s (id %s)' % (self.job.name, self.job.id)
             message = 'Asynchronous job stuck in Pending'
-            email_manager.manager.enqueue_notify_email(subject, message)
+            mail.manager.enqueue_admin(subject, message)
 
 
     def abort(self, dispatcher):
@@ -1319,11 +1319,11 @@ class Job(DBObject):
 
         # Sanity check.  We'll only ever be called if this can be met.
         if len(chosen_entries) < self.synch_count:
+            subject = 'Job not started, too few chosen entries'
             message = ('job %s got less than %s chosen entries: %s' % (
                     self.id, self.synch_count, chosen_entries))
             logging.error(message)
-            email_manager.manager.enqueue_notify_email(
-                    'Job not started, too few chosen entries', message)
+            mail.manager.enqueue_admin(subject, message)
             return []
 
         group_name = include_queue_entry.get_group_name()
