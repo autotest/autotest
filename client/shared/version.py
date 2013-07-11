@@ -41,7 +41,24 @@ from autotest.client.shared import error
 
 _ROOT_PATH = os.path.join(sys.modules[__name__].__file__, "..", "..", "..")
 _ROOT_PATH = os.path.abspath(_ROOT_PATH)
-RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
+
+RELEASE_VERSION_PATH = get_release_version_path()
+
+
+def get_release_version_path():
+    """
+    Returns an absolute path to the RELEASE-VERSION file
+
+    :returns: path to the RELEASE-VERSION file
+    :rtype: `str`
+    """
+    autotest_top_path = os.environ.get('AUTOTEST_TOP_PATH', None)
+
+    if autotest_top_path is not None:
+        version_path = os.path.join(autotest_top_path,'RELEASE-VERSION')
+    else:
+        version_path = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
+    return version_path
 
 
 def call_git_describe(abbrev=4):
