@@ -8,6 +8,5 @@ branches:
 
 install:
   - pip install sphinx
-  - python setup.py install
 
 script: ./utils/unittest_run.py --full
