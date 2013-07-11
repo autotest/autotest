@@ -14,4 +14,4 @@ install:
     - pip install -r requirements.txt --use-mirrors
 
 script: 
-    ./utils/unittest_suite_nose.py -c .nose.cfg -s autotest.client autotest.server autotest.utils
+    AUTOTEST_DIR=. ./utils/unittest_suite_nose.py -c .nose.cfg -s autotest.client autotest.server autotest.utils
