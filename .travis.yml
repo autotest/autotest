@@ -9,4 +9,4 @@ branches:
 install:
   - pip install sphinx
 
-script: ./utils/unittest_run.py --full
+script: tox -vv
