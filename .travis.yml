@@ -1,12 +1,17 @@
 language: python
 python:
-  - 2.7
+    - "2.4"
+    - "2.5"
+    - "2.6"
+    - "2.7"
 
 branches:
   only:
     - master
 
 install:
-  - pip install sphinx tox
+    - pip install sphinx tox
+    - pip install -r requirements.txt --use-mirrors
 
-script: tox -vv
+script: 
+    ./utils/unittest_suite_nose.py -c .nose.cfg -s autotest.client autotest.server autotest.utils
