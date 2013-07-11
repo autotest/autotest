@@ -7,6 +7,6 @@ branches:
     - master
 
 install:
-  - pip install sphinx
+  - pip install sphinx tox
 
 script: tox -vv
