@@ -50,7 +50,7 @@ def get_release_version_path():
     :returns: path to the RELEASE-VERSION file
     :rtype: `str`
     """
-    autotest_top_path = os.environ.get('AUTOTEST_TOP_PATH', None)
+    autotest_top_path = os.environ.get('AUTOTEST_DIR', None)
 
     if autotest_top_path is not None:
         version_path = os.path.join(autotest_top_path,'RELEASE-VERSION')
