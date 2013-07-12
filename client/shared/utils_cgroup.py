@@ -56,7 +56,7 @@ class Cgroup(object):
         @param pwd: where to create this cgroup (default: self.root)
         @return: 0 when PASSED
         """
-        if pwd == None:
+        if pwd is None:
             pwd = self.root
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
@@ -110,7 +110,7 @@ class Cgroup(object):
         """
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
-        if open(pwd + '/tasks').readlines().count("%d\n" % pid) > 0:
+        if open(os.path.join(pwd, 'tasks')).readlines().count("%d\n" % pid) > 0:
             return 0
         else:
             return -1
@@ -131,12 +131,12 @@ class Cgroup(object):
         @param pid: pid of the process
         @param pwd: cgroup directory
         """
-        if pwd == None:
+        if pwd is None:
             pwd = self.root
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
         try:
-            open(pwd+'/tasks', 'w').write(str(pid))
+            open(os.path.join(pwd, 'tasks'), 'w').write(str(pid))
         except Exception, inst:
             raise error.TestError("cg.set_cgroup(): %s" % inst)
         if self.is_cgroup(pid, pwd):
@@ -159,13 +159,13 @@ class Cgroup(object):
         @param pwd: cgroup directory
         @return: [] values or None when FAILED
         """
-        if pwd == None:
+        if pwd is None:
             pwd = self.root
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
         try:
             # Remove tailing '\n' from each line
-            ret = [_[:-1] for _ in open(pwd+prop, 'r').readlines()]
+            ret = [_[:-1] for _ in open(os.path.join(pwd, prop), 'r').readlines()]
             if ret:
                 return ret
             else:
@@ -210,7 +210,7 @@ class Cgroup(object):
         @param checkprop: override prop when checking the value
         """
         value = str(value)
-        if pwd == None:
+        if pwd is None:
             pwd = self.root
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
@@ -241,10 +241,10 @@ class Cgroup(object):
         pwd = self.mk_cgroup()
 
         ps = self.test("smoke")
-        if ps == None:
+        if ps is None:
             raise error.TestError("cg.smoke_test: Couldn't create process")
 
-        if (ps.poll() != None):
+        if (ps.poll() is not None):
             raise error.TestError("cg.smoke_test: Process died unexpectidly")
 
         # New process should be a root member
@@ -272,7 +272,7 @@ class Cgroup(object):
         # Finish the process
         ps.stdin.write('\n')
         time.sleep(2)
-        if (ps.poll() == None):
+        if (ps.poll() is None):
             raise error.TestError("cg.smoke_test: Process is not finished")
 
 
@@ -332,13 +332,14 @@ class CgroupModules(object):
                     break
             if not i:
                 # Not yet mounted
-                os.mkdir(self.mountdir + module)
+                module_path = os.path.join(self.mountdir, module)
+                os.mkdir(module_path)
                 cmd = ('mount -t cgroup -o %s %s %s' %
-                       (module, module, self.mountdir + module))
+                       (module, module, module_path))
                 try:
                     utils.run(cmd)
                     self.modules[0].append(module)
-                    self.modules[1].append(self.mountdir + module)
+                    self.modules[1].append(module_path)
                     self.modules[2].append(True)
                 except error.CmdError:
                     logging.info("Cgroup module '%s' not available", module)
@@ -426,8 +427,7 @@ def resolve_task_cgroup_path(pid, controller):
     f.close
 
     mount_path = re.findall(r":%s:(\S*)\n" % controller, proc_cgroup_txt)
-    path = root_path + mount_path[0]
-    return path
+    return os.path.join(root_path, mount_path[0])
 
 
 def service_cgconfig_control(action):
