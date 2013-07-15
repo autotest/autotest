@@ -1,4 +1,4 @@
-import os
+import os, re
 
 from autotest.tko import utils
 from autotest.frontend import setup_django_environment
@@ -40,7 +40,7 @@ def insert_kernel(kernel):
                                            tko_kernel.kernel_idx)
 
     for patch in kernel.patches:
-        self.insert_patch(tko_kernel, patch)
+        insert_patch(tko_kernel, patch)
 
     return tko_kernel
 
