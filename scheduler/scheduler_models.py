@@ -12,6 +12,11 @@ Globals:
 _notify_email_statuses: list of HQE statuses.  each time a single HQE reaches
         one of these statuses, an email will be sent to the job's email_list.
         comes from settings.
+_notify_admin_email_statuses: list of HQE statuses.  each time a single HQE
+        reaches one of these statuses, an email will be sent to the grid admin
+        email_list. comes from settings.
+_grid_admin_email: Autotest grid administrator email (list of emails or mailing
+        list). Comes from settings.
 _base_url: URL to the local AFE server, used to construct URLs for emails.
 _db: DatabaseConnection for this module.
 _drone_manager: reference to global DroneManager instance.
@@ -27,6 +32,8 @@ from autotest.scheduler import scheduler_config
 from autotest.frontend.afe import reservations
 
 _notify_email_statuses = []
+_notify_admin_email_statuses = []
+_grid_admin_email = None
 _base_url = None
 
 _db = None
@@ -37,13 +44,27 @@ def initialize():
     _db = database_connection.DatabaseConnection('AUTOTEST_WEB')
     _db.connect(db_type='django')
 
-    notify_statuses_list = settings.get_value(scheduler_config.CONFIG_SECTION,
+    notify_statuses_list = settings.get_value("NOTIFICATION",
                                               "notify_email_statuses",
                                               default='')
     global _notify_email_statuses
     _notify_email_statuses = [status for status in
                               re.split(r'[\s,;:]', notify_statuses_list.lower())
                               if status]
+
+    notify_admin_email_statuses_list = settings.get_value("NOTIFICATION",
+                                                  "notify_admin_email_statuses",
+                                                  default='')
+    global _notify_admin_email_statuses
+    _notify_admin_email_statuses = [status for status in
+                                    re.split(r'[\s,;:]',
+                                       notify_admin_email_statuses_list.lower())
+                                    if status]
+
+    global _grid_admin_email
+    _grid_admin_email = settings.get_value("NOTIFICATION",
+                                           "grid_admin_email",
+                                           default='')
 
     # AUTOTEST_WEB.base_url is still a supported config option as some people
     # may wish to override the entire url.
@@ -582,15 +603,22 @@ class HostQueueEntry(DBObject):
         self.update_field('active', active)
         self.update_field('complete', complete)
 
-        if complete:
-            self._on_complete(status)
-            self._email_on_job_complete()
-
         should_email_status = (status.lower() in _notify_email_statuses or
                                'all' in _notify_email_statuses)
+
+        should_email_admin_status = (status.lower() in
+                                     _notify_admin_email_statuses or
+                                     'all' in _notify_admin_email_statuses)
+
+        if complete:
+            self._on_complete(status)
+            self._email_on_job_complete(should_email_admin_status)
+
         if should_email_status:
             self._email_on_status(status)
 
+        if should_email_admin_status:
+            self._email_admin_on_status(status)
 
     def _on_complete(self, status):
         if status is not models.HostQueueEntry.Status.ABORTED:
@@ -678,7 +706,13 @@ class HostQueueEntry(DBObject):
         mail.manager.send(self.job.email_list, subject, body)
 
 
-    def _email_on_job_complete(self):
+    def _email_admin_on_status(self, status):
+        hostname = self._get_hostname()
+        subject, body = self._get_status_email_contents(status, None, hostname)
+        mail.manager.send(_grid_admin_email, subject, body)
+
+
+    def _email_on_job_complete(self, email_admin=False):
         if not self.job.is_finished():
             return
 
@@ -696,7 +730,11 @@ class HostQueueEntry(DBObject):
                     in status_counts.iteritems())
 
         subject, body = self._get_status_email_contents(status, summary, None)
-        mail.manager.send(self.job.email_list, subject, body)
+
+        if email_admin:
+            mail.manager.send(_grid_admin_email, subject, body)
+        else:
+            mail.manager.send(self.job.email_list, subject, body)
 
 
     def schedule_pre_job_tasks(self):
