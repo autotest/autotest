@@ -294,6 +294,62 @@ def get_modules_dir():
     return '/lib/modules/%s/kernel' % kernel_version
 
 
+def get_cpu_info():
+    """
+    Reads /proc/cpuinfo and returns a list of file lines
+
+    :returns: `list` of lines from /proc/cpuinfo file
+    :rtype: `list`
+    """
+    f = open('/proc/cpuinfo', 'r')
+    cpuinfo = f.readlines()
+    f.close()
+    return cpuinfo
+
+
+def cpu_has_flags(flags):
+    """
+    Check if a list of flags are available on current CPU info
+
+    :param flags: A `list` of cpu flags that must exists
+    on the current CPU.
+    :type flags: `list`
+    :returns: `bool` True if all the flags were found or False if not
+    :rtype: `list`
+    """
+    cpu_info = get_cpu_info()
+
+    if not isinstance(flags, list):
+        flags = [flags]
+
+    for flag in flags:
+        if not list_grep(cpu_info, '.*%s.*' % flag):
+            return False
+    return True
+
+
+def get_cpu_vendor_name():
+    """
+    Get the current cpu vendor name
+
+    :returns: string 'intel' or 'amd' or 'power7' depending
+    on the current CPU architecture.
+    :rtype: `string`
+    """
+    vendors_map = {
+        'intel': ("GenuineIntel", ),
+        'amd': ("AMD", ),
+        'power7': ("POWER7", )
+    }
+
+    cpu_info = get_cpu_info()
+    for vendor, identifiers in vendors_map.items():
+        for identifier in identifiers:
+            if list_grep(cpu_info, identifier):
+                return vendor
+    return None
+
+
 def get_cpu_arch():
     """Work out which CPU architecture we're running on"""
     f = open('/proc/cpuinfo', 'r')

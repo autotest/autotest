@@ -23,6 +23,7 @@ client/tests/virt/virt_v2v/env
 client/tests/virt/virt_v2v/*.cfg
 client/tests/virt/virt_v2v/src
 client/tmp
+.tox*
 logs/*
 server/tmp
 tko/parsers/test/site_scenarios
@@ -34,3 +35,7 @@ frontend/client/www/
 tko/tko_pb2.py
 documentation/build/*
 build/*
+coverage.xml
+unit.xml
+nosetests.xml
+.cover*
