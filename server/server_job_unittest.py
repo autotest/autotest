@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import unittest
+
 try:
     import autotest.common as common
 except ImportError:
@@ -7,7 +9,7 @@ except ImportError:
 
 from autotest.server import server_job
 from autotest.client.shared import base_job_unittest
-from autotest.client.shared.test_utils import mock, unittest
+from autotest.client.shared.test_utils import mock
 
 
 class test_find_base_directories(
