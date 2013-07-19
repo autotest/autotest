@@ -41,6 +41,7 @@ from autotest.client.shared import error
 
 _ROOT_PATH = os.path.join(sys.modules[__name__].__file__, "..", "..", "..")
 _ROOT_PATH = os.path.abspath(_ROOT_PATH)
+
 RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
 
 
@@ -49,7 +50,7 @@ def call_git_describe(abbrev=4):
     os.chdir(_ROOT_PATH)
     try:
         try:
-            command = 'git describe --abbrev=%d' % abbrev
+            command = 'git describe --abbrev=%d --always' % abbrev
             output = utils.system_output(command, verbose=False)
             # Since github won't host arbitray uploads anymore,
             # our new tags have to be prepended with autotest-
