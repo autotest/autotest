@@ -16,6 +16,7 @@ RELEASE-VERSION
 client/control
 client/results/
 client/tmp
+.tox*
 logs/*
 server/tmp
 tko/parsers/test/site_scenarios
@@ -27,3 +28,7 @@ frontend/client/www/
 tko/tko_pb2.py
 documentation/build/*
 build/*
+coverage.xml
+unit.xml
+nosetests.xml
+.cover*
