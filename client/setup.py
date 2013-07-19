@@ -39,6 +39,8 @@ def get_filelist():
 def get_packages():
     return ['autotest.client.shared',
             'autotest.client.shared.hosts',
+            'autotest.client.shared.backports',
+            'autotest.client.shared.backports.collections',
             'autotest.client.shared.test_utils',
             'autotest.client.net',
             'autotest.client.tools',
@@ -55,7 +57,8 @@ def get_scripts():
 
 
 def get_data_files():
-    return [('/etc/autotest', [autotest_dir + '/global_config.ini',
+    return [(os.environ.get('AUTOTEST_TOP_PATH', '/etc/autotest'),
+	[autotest_dir + '/global_config.ini',
                                autotest_dir + '/shadow_config.ini',]),]
 
 

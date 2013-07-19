@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
-import os, stat, tempfile, shutil, logging
+import os, stat, tempfile, shutil, logging, unittest
+
 
 try:
     import autotest.common as common
 except ImportError:
     import common
 from autotest.client.shared import base_job, error
-from autotest.client.shared.test_utils import unittest
 
 os.environ['AUTODIR'] = '/tmp/autotest'
 

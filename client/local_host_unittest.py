@@ -1,12 +1,14 @@
 #!/usr/bin/python
 
 import os
+import unittest
+
 try:
     import autotest.common as common
 except ImportError:
     import common
 
-from autotest.client.shared.test_utils import mock, unittest
+from autotest.client.shared.test_utils import mock
 from autotest.client.shared import autotemp
 from autotest.client import local_host
 
@@ -100,9 +102,9 @@ class test_local_host_class(unittest.TestCase):
         open(files[0], 'w').close()
         open(files[1], 'w').close()
 
-        self.assertSameElements(
-                files,
-                host.list_files_glob(os.path.join(self.tmpdir.name, '*')))
+        self.assertTrue(
+                sorted(files) ==
+                sorted(host.list_files_glob(os.path.join(self.tmpdir.name, '*'))))
 
 
     def test_symlink_closure_does_not_add_existent_file(self):
@@ -116,9 +118,9 @@ class test_local_host_class(unittest.TestCase):
 
         # test that when the symlinks point to already know files
         # nothing is added
-        self.assertSameElements(
-                [fname, sname],
-                host.symlink_closure([fname, sname]))
+        self.assertTrue(
+                sorted([fname, sname]) ==
+                sorted(host.symlink_closure([fname, sname])))
 
 
     def test_symlink_closure_adds_missing_files(self):
@@ -131,9 +133,9 @@ class test_local_host_class(unittest.TestCase):
         os.symlink(fname, sname)
 
         # test that when the symlinks point to unknown files they are added
-        self.assertSameElements(
-                [fname, sname],
-                host.symlink_closure([sname]))
+        self.assertTrue(
+                sorted([fname, sname]) ==
+                sorted(host.symlink_closure([sname])))
 
 
 if __name__ == "__main__":
