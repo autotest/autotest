@@ -96,6 +96,8 @@ def sys_v_init_command_generator(command):
     :rtype: list
     """
     command_name = "service"
+    if COMMANDS_SysVInit.get(command):
+        command = command.replace('_', '-')
     if command == "is_enabled":
         command_name = "chkconfig"
         command = ""
@@ -138,9 +140,9 @@ def systemd_command_generator(command):
     :rtype: list
     """
     command_name = "systemctl"
-    if command == "is_enabled":
-        command = "is-enabled"
-    elif command == "list":
+    if COMMANDS_Systemd.get(command):
+        command = command.replace('_', '-')
+    if command == "list":
         # noinspection PyUnusedLocal
         def list_command(service_name):
             # systemctl pipes to `less` or $PAGER by default. Workaround this
@@ -157,20 +159,36 @@ def systemd_command_generator(command):
         return [command_name, command, "%s.service" % service_name]
     return method
 
-COMMANDS = (
-    "start",
-    "stop",
-    "reload",
-    "restart",
-    "condrestart",
-    "status",
-    "enable",
-    "disable",
-    "is_enabled",
-    "list",
-    "set_target",
-)
+COMMANDS_SysVInit = {
+    "start":False,
+    "stop":False,
+    "reload":False,
+    "restart":False,
+    "condrestart":False,
+    "status":False,
+    "enable":False,
+    "disable":False,
+    "is_enabled":False,
+    "list":False,
+    "set_target":False,
+}
 
+COMMANDS_Systemd = {
+    "start":False,
+    "stop":False,
+    "reload":False,
+    "restart":False,
+    "condrestart":False,
+    "status":False,
+    "enable":False,
+    "disable":False,
+    "is_enabled":True,
+    "list":False,
+    "set_target":False,
+}
+
+COMMANDS_SERVICE = {"init": COMMANDS_SysVInit,
+                     "systemd": COMMANDS_Systemd}
 
 class _ServiceCommandGenerator(object):
     """
@@ -178,7 +196,7 @@ class _ServiceCommandGenerator(object):
     generate command lists for starting/stopping services.
     """
 
-    def __init__(self, command_generator, command_list=COMMANDS):
+    def __init__(self, command_generator, command_list=None):
         """
             Create staticmethods for each command in command_list using setattr and the
             command_generator
@@ -188,6 +206,8 @@ class _ServiceCommandGenerator(object):
             :param command_list: list of all the commands, e.g. start, stop, restart, etc.
             :type command_list: list
         """
+        if command_list is None:
+            command_list = COMMANDS_SERVICE[get_name_of_init()]
         self.commands = command_list
         for command in self.commands:
             setattr(self, command, command_generator(command))
@@ -515,6 +535,7 @@ def _auto_create_specific_service_command_generator():
     :rtype: _ServiceCommandGenerator
     """
     command_generator = _command_generators[get_name_of_init()]
+    COMMANDS = COMMANDS_SERVICE[get_name_of_init()]
     # remove list method
     command_list = [c for c in COMMANDS if c not in ["list", "set_target"]]
     return _ServiceCommandGenerator(command_generator, command_list)
