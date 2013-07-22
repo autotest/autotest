@@ -16,9 +16,12 @@
 #  The full GNU General Public License is included in this distribution in
 #  the file called "COPYING".
 
-import os, re
+import os
+import re
+import logging
 
-import common, error
+import common
+import error
 from tempfile import mktemp
 from autotest.client import utils
 
@@ -88,7 +91,7 @@ systemctl daemon-reload
 
 def sys_v_init_result_parser(command):
     """
-    Parser for result from command in sys_v style inits.
+    Parse results from sys_v style commands.
 
     :param command: command.
     :type command: str.
@@ -106,13 +109,8 @@ def sys_v_init_result_parser(command):
             Return True if the output contain "running".
             """
             if cmdResult.exit_status:
-                # Get status failed.
-                raise error.TestError(cmdResult.stderr)
-            output = cmdResult.stdout
-            if re.search(r"running", output):
-                return True
-            else:
-                return False
+                raise error.CmdError(cmdResult.command, cmdResult)
+            return bool(re.search(r"running", cmdResult.stdout))
         return method
     elif command == "list":
         def method(cmdResult):
@@ -129,7 +127,7 @@ def sys_v_init_result_parser(command):
                  }
             """
             if cmdResult.exit_status:
-                raise error.TestError(cmdResult.stderr)
+                raise error.CmdError(cmdResult.command, cmdResult)
             # The final dict to return.
             _service2statusOnTarget_dict = {}
             # Dict to store status on every target for each service.
@@ -144,13 +142,13 @@ def sys_v_init_result_parser(command):
                     service_name = sublines[0]
                     # Store the status of each target in _status_on_target.
                     for target in range(7):
-                        status = sublines[target+1].split(":")[-1]
+                        status = sublines[target + 1].split(":")[-1]
                         _status_on_target[target] = status
                     _service2statusOnTarget_dict[service_name] = _status_on_target.copy()
 
                 elif len(sublines) == 2:
                     # Service based on xinetd.
-                    service_name = sublines[0]
+                    service_name = sublines[0].strip(":")
                     status = sublines[-1]
                     _service2statusOnXinet_dict[service_name] = status
 
@@ -161,24 +159,13 @@ def sys_v_init_result_parser(command):
             _service2statusOnTarget_dict["xinetd"] = _service2statusOnXinet_dict
             return _service2statusOnTarget_dict
         return method
-
-    def method(cmdResult):
-        """
-        Parse method for the others command.
-
-        return True if command execute success.
-        """
-        if cmdResult.exit_status:
-            return False
-        else:
-            return True
-
-    return method
+    else:
+        return _ServiceResultParser.default_method
 
 
 def systemd_result_parser(command):
     """
-    Parser for result from command in systemd style init.
+    Parse results from systemd style commands.
 
     :param command: command.
     :type command: str.
@@ -196,12 +183,8 @@ def systemd_result_parser(command):
             Return True if output contain "Active: active"
             """
             if cmdResult.exit_status:
-                raise error.TestError(cmdResult.stderr)
-            output = cmdResult.stdout
-            if output.count("Active: active"):
-                return True
-            else:
-                return False
+                raise error.CmdError(cmdResult.command, cmdResult)
+            return (cmdResult.stdout.count("Active: active") > 0)
         return method
     elif command == "list":
         def method(cmdResult):
@@ -211,39 +194,29 @@ def systemd_result_parser(command):
             Return a dict from service name to status.
 
             e.g:
-                {"sshd.service": "enabled",
-                 "vsftpd.service": "disabled",
-                 "systemd-sysctl.service": "static",
+                {"sshd": "enabled",
+                 "vsftpd": "disabled",
+                 "systemd-sysctl": "static",
                  ...
                  }
             """
             if cmdResult.exit_status:
-                raise error.TestError(cmdResult.stderr)
+                raise error.CmdError(cmdResult.command, cmdResult)
             # Dict to store service name to status.
             _service2status_dict = {}
-            lines =  cmdResult.stdout.strip().splitlines()
+            lines = cmdResult.stdout.strip().splitlines()
             for line in lines:
                 sublines = line.strip().split()
                 if (not len(sublines) == 2) or (not sublines[0].endswith("service")):
                     # Some lines useless.
                     continue
-                service_name = sublines[0]
+                service_name = sublines[0].rstrip(".service")
                 status = sublines[-1]
                 _service2status_dict[service_name] = status
             return _service2status_dict
         return method
-
-    def method(cmdResult):
-        """
-        Parse method for the others command.
-
-        Return True if command execute success.
-        """
-        if cmdResult.exit_status:
-            return False
-        else:
-            return True
-    return method
+    else:
+        return _ServiceResultParser.default_method
 
 
 def sys_v_init_command_generator(command):
@@ -317,6 +290,7 @@ def systemd_command_generator(command):
         return [command_name, command, "%s.service" % service_name]
     return method
 
+
 COMMANDS = (
     "start",
     "stop",
@@ -350,6 +324,20 @@ class _ServiceResultParser(object):
         self.commands = command_list
         for command in self.commands:
             setattr(self, command, result_parser(command))
+
+    @staticmethod
+    def default_method(cmdResult):
+        """
+        Default method to parse result from command which is not 'list' nor 'status'.
+
+        Returns True if command was executed successfully.
+        """
+        if cmdResult.exit_status:
+            logging.debug("Execute command <%s> faled.\n"
+                          "Error: %s." % (cmdResult.cmd, cmdResult.stderr))
+            return False
+        else:
+            return True
 
 
 class _ServiceCommandGenerator(object):
@@ -457,11 +445,9 @@ class _SpecificServiceManager(object):
                            We will not let the CmdError out.
             :return: result of parse_func.
             """
-            ignore_status = kwargs.get("ignore_status")
-            if ignore_status == False:
-                logging.warning("The run_func is not just for utils_run, so we need to raise an unified error"
-                                "if some operation for service failed.So the param ignore_status will be setted"
-                                "to True to get a CmdResult.Please don't except a CmdError, but a error.TestError.")
+            ignore_status = kwargs.get("ignore_status", True)
+            if not ignore_status:
+                logging.debug("Setting ignore_status to True.")
             kwargs["ignore_status"] = True
             result = run_func(" ".join(command(service_name)), **kwargs)
             return parse_func(result)
@@ -520,11 +506,9 @@ class _GenericServiceManager(object):
                            We will not let the CmdError out.
             :return: result of parse_func.
             """
-            ignore_status = kwargs.get("ignore_status")
-            if ignore_status == False:
-                logging.warning("The run_func is not just for utils_run, then we need to raise an unified error"
-                                "if some operation for service failed. So the param ignore_status will be setted"
-                                "to True to get a CmdResult.Please don't except a CmdError, but a error.TestError.")
+            ignore_status = kwargs.get("ignore_status", True)
+            if not ignore_status:
+                logging.debug("Setting ignore_status to True.")
             kwargs["ignore_status"] = True
             result = run_func(" ".join(command(service)), **kwargs)
             return parse_func(result)
@@ -536,7 +520,7 @@ class _SysVInitServiceManager(_GenericServiceManager):
     Concrete class that implements the SysVInitServiceManager
     """
 
-    def __init__(self, service_command_generator,service_result_parser, run=utils.run):
+    def __init__(self, service_command_generator, service_result_parser, run=utils.run):
         """
         Create the GenericServiceManager for SysV services.
 
@@ -658,8 +642,9 @@ def _get_service_result_parser():
     Get the ServiceResultParser using the auto-detect init command.
 
     :return: ServiceResultParser fro the current init command.
-    :rtyrp: _ServiceResultParser
+    :rtype: _ServiceResultParser
     """
+    # pylint: disable=W0601
     global _service_result_parser
     try:
         return _service_result_parser
