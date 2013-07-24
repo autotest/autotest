@@ -52,44 +52,44 @@ class test_read_one_line(unittest.TestCase):
                          '192.168.0.192/26')
 
 
-    def create_test_file(self, contents):
+    def _create_test_file(self, contents):
         test_file = StringIO.StringIO(contents)
         base_utils.open.expect_call("filename", "r").and_return(test_file)
 
 
     def test_reads_one_line_file(self):
-        self.create_test_file("abc\n")
+        self._create_test_file("abc\n")
         self.assertEqual("abc", base_utils.read_one_line("filename"))
         self.god.check_playback()
 
 
     def test_strips_read_lines(self):
-        self.create_test_file("abc   \n")
+        self._create_test_file("abc   \n")
         self.assertEqual("abc   ", base_utils.read_one_line("filename"))
         self.god.check_playback()
 
 
     def test_drops_extra_lines(self):
-        self.create_test_file("line 1\nline 2\nline 3\n")
+        self._create_test_file("line 1\nline 2\nline 3\n")
         self.assertEqual("line 1", base_utils.read_one_line("filename"))
         self.god.check_playback()
 
 
     def test_works_on_empty_file(self):
-        self.create_test_file("")
+        self._create_test_file("")
         self.assertEqual("", base_utils.read_one_line("filename"))
         self.god.check_playback()
 
 
     def test_works_on_file_with_no_newlines(self):
-        self.create_test_file("line but no newline")
+        self._create_test_file("line but no newline")
         self.assertEqual("line but no newline",
                          base_utils.read_one_line("filename"))
         self.god.check_playback()
 
 
     def test_preserves_leading_whitespace(self):
-        self.create_test_file("   has leading whitespace")
+        self._create_test_file("   has leading whitespace")
         self.assertEqual("   has leading whitespace",
                          base_utils.read_one_line("filename"))
 
@@ -204,7 +204,7 @@ class test_read_keyval(unittest.TestCase):
         self.god.unstub_all()
 
 
-    def create_test_file(self, filename, contents):
+    def _create_test_file(self, filename, contents):
         test_file = StringIO.StringIO(contents)
         os.path.exists.expect_call(filename).and_return(True)
         base_utils.open.expect_call(filename).and_return(test_file)
@@ -212,7 +212,7 @@ class test_read_keyval(unittest.TestCase):
 
     def read_keyval(self, contents):
         os.path.isdir.expect_call("file").and_return(False)
-        self.create_test_file("file", contents)
+        self._create_test_file("file", contents)
         keyval = base_utils.read_keyval("file")
         self.god.check_playback()
         return keyval
@@ -227,14 +227,14 @@ class test_read_keyval(unittest.TestCase):
 
     def test_accesses_files_directly(self):
         os.path.isdir.expect_call("file").and_return(False)
-        self.create_test_file("file", "")
+        self._create_test_file("file", "")
         base_utils.read_keyval("file")
         self.god.check_playback()
 
 
     def test_accesses_directories_through_keyval_file(self):
         os.path.isdir.expect_call("dir").and_return(True)
-        self.create_test_file("dir/keyval", "")
+        self._create_test_file("dir/keyval", "")
         base_utils.read_keyval("dir")
         self.god.check_playback()
 

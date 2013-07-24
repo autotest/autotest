@@ -19,7 +19,7 @@ class fsionfo_test(unittest.TestCase):
         self.god.unstub_all()
 
 
-    def create_test_file(self, filename, contents):
+    def _create_test_file(self, filename, contents):
         test_file = StringIO.StringIO(contents)
         fsinfo.open.expect_call(filename, 'r').and_return(test_file)
 
@@ -141,7 +141,7 @@ class fsionfo_test(unittest.TestCase):
                    '       floppy = {\n'
                    '                         blocksize = 4096\n'
                    '                                }\n')
-        self.create_test_file('/etc/mke2fs.conf', content)
+        self._create_test_file('/etc/mke2fs.conf', content)
 
         conf_opt = fsinfo.parse_mke2fs_conf('small')
         mkfs_opt = fsinfo.convert_conf_opt(conf_opt)
