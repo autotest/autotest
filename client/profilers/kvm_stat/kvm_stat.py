@@ -35,13 +35,12 @@ class kvm_stat(profiler.profiler):
                 utils.run("%s --batch" % self.stat_path)
                 self.is_enabled = True
             except error.CmdError, e:
-                if 'debugfs' in str(e):
+                logging.error('Failed to execute kvm_stat:\n%s', str(e))
+                if not os.path.ismount('/sys/kernel/debug'):
                     try:
                         utils.run('mount -t debugfs debugfs /sys/kernel/debug')
                     except error.CmdError, e:
                         logging.error('Failed to mount debugfs:\n%s', str(e))
-                else:
-                    logging.error('Failed to execute kvm_stat:\n%s', str(e))
 
 
     def start(self, test):
