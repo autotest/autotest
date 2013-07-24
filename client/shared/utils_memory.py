@@ -79,3 +79,130 @@ def drop_caches():
     # We ignore failures here as this will fail on 2.6.11 kernels.
     utils.run("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True,
                  verbose=False)
+
+
+def read_from_vmstat(key):
+    """
+    Get specific item value from vmstat
+
+    :param key: The item you want to check from vmstat
+    :type key: String
+    :return: The value of the item
+    :rtype: int
+    """
+    vmstat = open("/proc/vmstat")
+    vmstat_info = vmstat.read()
+    vmstat.close()
+    return int(re.findall("%s\s+(\d+)" % key, vmstat_info)[0])
+
+
+def read_from_smaps(pid, key):
+    """
+    Get specific item value from the smaps of a process include all sections.
+
+    :param pid: Process id
+    :type pid: String
+    :param key: The item you want to check from smaps
+    :type key: String
+    :return: The value of the item in kb
+    :rtype: int
+    """
+    smaps = open("/proc/%s/smaps" % pid)
+    smaps_info = smaps.read()
+    smaps.close()
+
+    memory_size = 0
+    for each_number in re.findall("%s:\s+(\d+)" % key, smaps_info):
+        memory_size += int(each_number)
+
+    return memory_size
+
+
+def read_from_numa_maps(pid, key):
+    """
+    Get the process numa related info from numa_maps. This function
+    only use to get the numbers like anon=1.
+
+    :param pid: Process id
+    :type pid: String
+    :param key: The item you want to check from numa_maps
+    :type key: String
+    :return: A dict using the address as the keys
+    :rtype: dict
+    """
+    numa_maps = open("/proc/%s/numa_maps" % pid)
+    numa_map_info = numa_maps.read()
+    numa_maps.close()
+
+
+    numa_maps_dict = {}
+    numa_pattern = r"(^[\dabcdfe]+)\s+.*%s[=:](\d+)" % key
+    for address, number in re.findall(numa_pattern, numa_map_info, re.M):
+        numa_maps_dict[address] = number
+
+    return numa_maps_dict
+
+
+def get_buddy_info(chunk_sizes, nodes="all", zones="all"):
+    """
+    Get the fragement status of the host. It use the same method
+    to get the page size in buddyinfo.
+    2^chunk_size * page_size
+    The chunk_sizes can be string make up by all orders that you want to check
+    splited with blank or a mathematical expression with '>', '<' or '='.
+    For example:
+    The input of chunk_size could be: "0 2 4"
+    And the return  will be: {'0': 3, '2': 286, '4': 687}
+    if you are using expression: ">=9"
+    the return will be: {'9': 63, '10': 225}
+
+    :param chunk_size: The order number shows in buddyinfo. This is not
+                       the real page size.
+    :type chunk_size: string
+    :param nodes: The numa node that you want to check. Default value is all
+    :type nodes: string
+    :param zones: The memory zone that you want to check. Default value is all
+    :type zones: string
+    :return: A dict using the chunk_size as the keys
+    :rtype: dict
+    """
+    buddy_info = open("/proc/buddyinfo")
+    buddy_info_content = buddy_info.read()
+    buddy_info.close()
+
+    re_buddyinfo = "Node\s+"
+    if nodes == "all":
+        re_buddyinfo += "(\d+)"
+    else:
+        re_buddyinfo += "(%s)" % "|".join(nodes.split())
+
+    if not re.findall(re_buddyinfo, buddy_info_content):
+        logging.warn("Can not find Nodes %s" % nodes)
+        return None
+    re_buddyinfo += ".*?zone\s+"
+    if zones == "all":
+        re_buddyinfo += "(\w+)"
+    else:
+        re_buddyinfo += "(%s)" % "|".join(zones.split())
+    if not re.findall(re_buddyinfo, buddy_info_content):
+        logging.warn("Can not find zones %s" % zones)
+        return None
+    re_buddyinfo += "\s+([\s\d]+)"
+
+    buddy_list = re.findall(re_buddyinfo, buddy_info_content)
+
+    if re.findall("[<>=]", chunk_sizes) and buddy_list:
+        size_list = range(len(buddy_list[-1][-1].strip().split()))
+        chunk_sizes = [str(_) for _ in size_list if eval("%s %s" % (_,
+                                                               chunk_sizes))]
+
+        chunk_sizes = ' '.join(chunk_sizes)
+
+    buddyinfo_dict = {}
+    for chunk_size in chunk_sizes.split():
+        buddyinfo_dict[chunk_size] = 0
+        for _, _, chunk_info in buddy_list:
+            chunk_info = chunk_info.strip().split()[int(chunk_size)]
+            buddyinfo_dict[chunk_size] += int(chunk_info)
+
+    return buddyinfo_dict
