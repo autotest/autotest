@@ -221,7 +221,7 @@ class Cgroup(object):
         try:
             cgroup_pwd = self.__get_cgroup_pwd(cgroup)
             if cgroup_pwd not in self.cgroups:
-                raise error.TestError("%s doesn't exists!" % cgroup)
+                raise error.TestError("%s doesn't exist!" % cgroup)
             cmd = "cgdelete %s:%s" % (self.module, cgroup)
             if recursive:
                 cmd += " -r"
@@ -230,6 +230,42 @@ class Cgroup(object):
         except error.CmdError, detail:
             raise error.TestFail("cgdelete %s failed!\n%s" %
                                  (cgroup, detail))
+
+
+    def cgclassify_cgroup(self, pid, cgroup):
+        """
+        Classify pid into cgroup
+
+        @param pid: pid of the process
+        @param cgroup: cgroup name
+        """
+        try:
+            cgroup_pwd = self.__get_cgroup_pwd(cgroup)
+            if cgroup_pwd not in self.cgroups:
+                raise error.TestError("%s doesn't exist!" % cgroup)
+            cgclassify_cmd = ("cgclassify -g %s:%s %d" %
+                             (self.module, cgroup, pid))
+            utils.run(cgclassify_cmd, ignore_status=False)
+        except error.CmdError, detail:
+            raise error.TestFail("Classify process to tasks file failed!:%s" %
+                                 detail)
+
+
+    def get_pids(self, pwd=None):
+        """
+        Get all pids in cgroup
+
+        @params: pwd: cgroup directory
+        @return: all pids(list)
+        """
+        if pwd == None:
+            pwd = self.root
+        if isinstance(pwd, int):
+            pwd = self.cgroups[pwd]
+        try:
+            return [_.strip() for _ in open(os.path.join(pwd, 'tasks'), 'r')]
+        except Exception, inst:
+            raise error.TestError("cg.get_pids(): %s" % inst)
 
 
     def test(self, cmd):
