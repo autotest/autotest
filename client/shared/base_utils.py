@@ -1699,6 +1699,12 @@ class CmdResult(object):
                                        initial_indent="\n    ",
                                        subsequent_indent="    ")
 
+        # Some commands' exit_status is 0, stdout has no detail,
+        # but stderr has some infomation.
+        if (not self.exit_status and self.stderr.rstrip()
+           and not self.stdout.rstrip()):
+            (self.stdout, self.stderr) = (self.stderr, self.stdout)
+
         stdout = self.stdout.rstrip()
         if stdout:
             stdout = "\nstdout:\n%s" % stdout
