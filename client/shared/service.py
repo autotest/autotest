@@ -108,8 +108,8 @@ def sys_v_init_result_parser(command):
 
             Return True if the output contain "running".
             """
-            if cmdResult.exit_status:
-                raise error.CmdError(cmdResult.command, cmdResult)
+            # If service is stopped, exit_status is also not zero.
+            # So, we can't use exit_status to check result.
             return bool(re.search(r"running", cmdResult.stdout))
         return method
     elif command == "list":
@@ -182,8 +182,8 @@ def systemd_result_parser(command):
 
             Return True if output contain "Active: active"
             """
-            if cmdResult.exit_status:
-                raise error.CmdError(cmdResult.command, cmdResult)
+            # If service is stopped, exit_status is also not zero.
+            # So, we can't use exit_status to check result.
             return (cmdResult.stdout.count("Active: active") > 0)
         return method
     elif command == "list":
@@ -334,7 +334,7 @@ class _ServiceResultParser(object):
         """
         if cmdResult.exit_status:
             logging.debug("Execute command <%s> faled.\n"
-                          "Error: %s." % (cmdResult.cmd, cmdResult.stderr))
+                          "Error: %s." % (cmdResult.command, cmdResult.stderr))
             return False
         else:
             return True
@@ -445,10 +445,11 @@ class _SpecificServiceManager(object):
                            We will not let the CmdError out.
             :return: result of parse_func.
             """
-            ignore_status = kwargs.get("ignore_status", True)
-            if not ignore_status:
+            # If run_func is utils.run by default, we need to set
+            # ignore_status = True. Otherwise, skip this setting.
+            if run_func is utils.run:
                 logging.debug("Setting ignore_status to True.")
-            kwargs["ignore_status"] = True
+                kwargs["ignore_status"] = True
             result = run_func(" ".join(command(service_name)), **kwargs)
             return parse_func(result)
         return run
@@ -506,10 +507,11 @@ class _GenericServiceManager(object):
                            We will not let the CmdError out.
             :return: result of parse_func.
             """
-            ignore_status = kwargs.get("ignore_status", True)
-            if not ignore_status:
+            # If run_func is utils.run by default, we need to set
+            # ignore_status = True. Otherwise, skip this setting.
+            if run_func is utils.run:
                 logging.debug("Setting ignore_status to True.")
-            kwargs["ignore_status"] = True
+                kwargs["ignore_status"] = True
             result = run_func(" ".join(command(service)), **kwargs)
             return parse_func(result)
         return run
@@ -763,4 +765,4 @@ def SpecificServiceManager(service_name):
     """
     return _SpecificServiceManager(service_name,
                                    _auto_create_specific_service_command_generator(),
-                                   _get_service_result_parser())
+                                   _auto_create_specific_service_result_parser())
