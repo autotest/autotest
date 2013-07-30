@@ -110,7 +110,6 @@ class TestSpecificServiceManager(unittest.TestCase):
         self.service_manager.stop(ignore_status=True)
         assert self.run_mock.call_args[0][
             0] == "service boot.%s stop" % service
-        assert self.run_mock.call_args[1] == {'ignore_status': True}
 
     def test_list_is_not_present_in_SpecifcServiceManager(self):
         assert not hasattr(self.service_manager, "list")
@@ -153,7 +152,6 @@ class TestSystemdServiceManager(unittest.TestCase):
         list_result = service_manager.list(ignore_status=False)
         assert run_mock.call_args[0][
             0] == "systemctl list-unit-files --type=service --no-pager --full"
-        assert run_mock.call_args[1]["ignore_status"]
         assert list_result == {'sshd': "enabled",
                                'vsftpd': "disabled",
                                'systemd-sysctl': "static"}
@@ -210,7 +208,6 @@ class TestSysVInitServiceManager(unittest.TestCase):
         list_result = service_manager.list(ignore_status=False)
         assert run_mock.call_args[0][
             0] == "chkconfig --list"
-        assert run_mock.call_args[1]["ignore_status"]
         assert list_result == {'sshd': {0: "off", 1: "off", 2: "off", 3: "off", 4: "off", 5: "off", 6: "off"},
                                'vsftpd': {0: "off", 1: "off", 2: "off", 3: "off", 4: "off", 5: "on", 6: "off"},
                                'xinetd': {'amanda': "off", 'chargen-dgram': "on"}}
