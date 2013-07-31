@@ -106,11 +106,23 @@ def sys_v_init_result_parser(command):
             """
             Parse method for service XXX status.
 
-            Return True if the output contain "running".
+            Returns True if XXX is running.
+            Returns False if XXX is stopped.
+            Returns None if XXX is unrecognized.
             """
             # If service is stopped, exit_status is also not zero.
             # So, we can't use exit_status to check result.
-            return bool(re.search(r"running", cmdResult.stdout))
+            output = cmdResult.stdout.lower()
+            # Returns None if XXX is unrecognized.
+            if re.search(r"unrecognized", output):
+                return None
+            # Returns False if XXX is stopped.
+            dead_flags = [r"stopped", r"not running", r"dead"]
+            for flag in dead_flags:
+                if re.search(flag, output):
+                    return False
+            # If output does not contain a dead flag, check it with "running".
+            return bool(re.search(r"running", output))
         return method
     elif command == "list":
         def method(cmdResult):
@@ -180,11 +192,18 @@ def systemd_result_parser(command):
             """
             Parse method for systemctl status XXX.service.
 
-            Return True if output contain "Active: active"
+            Returns True if XXX.service is running.
+            Returns False if XXX.service is stopped.
+            Returns None if XXX.service is not loaded.
             """
             # If service is stopped, exit_status is also not zero.
             # So, we can't use exit_status to check result.
-            return (cmdResult.stdout.count("Active: active") > 0)
+            output = cmdResult.stdout
+            # Returns None if XXX is not loaded.
+            if not re.search(r"Loaded: loaded", output):
+                return None
+            # Check it with Active status.
+            return (output.count("Active: active") > 0)
         return method
     elif command == "list":
         def method(cmdResult):
