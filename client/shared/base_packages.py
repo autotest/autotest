@@ -68,6 +68,7 @@ def repo_run_command(repo, cmd, ignore_status=False, cd=True):
     @return: a CmdResult object or None
     @raise CmdError: the exit code of the command execution was not 0
     """
+    os_dep.command("ssh")
     repo = repo.strip()
     run_cmd = None
     cd_str = ''
@@ -419,6 +420,7 @@ class GitFetcher(RepositoryFetcher):
 
     def install_pkg_post(self, filename, fetch_dir, install_dir,
                          preserve_install_dir=False):
+        os_dep.command("tar")
         filename, _ = self.pkgmgr.parse_tarball_name(filename)
         install_path = re.sub(filename, "", install_dir)
         for suffix in ['', '.tar', '.tar.bz2']:
@@ -961,6 +963,7 @@ class BasePackageManager(object):
         Compute the MD5 checksum for the package file and return it.
         pkg_path : The complete path for the package file
         '''
+        os_dep.command("md5sum")
         md5sum_output = self._run_command("md5sum %s " % pkg_path).stdout
         return md5sum_output.split()[0]
 
@@ -1083,6 +1086,7 @@ class BasePackageManager(object):
         assumes that the package to be untarred is of the form
         <name>.tar.bz2
         '''
+        os_dep.command("tar")
         self._run_command('tar xjf %s -C %s' % (tarball_path, dest_dir))
         # Put the .checksum file in the install_dir to note
         # where the package came from
