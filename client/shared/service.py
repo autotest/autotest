@@ -379,7 +379,7 @@ class _ServiceCommandGenerator(object):
             setattr(self, command, command_generator(command))
 
 
-def _get_name_of_init():
+def _get_name_of_init(run=utils.run):
     """
     Internal function to determine what executable is PID 1,
     aka init by checking /proc/1/exe
@@ -391,10 +391,11 @@ def _get_name_of_init():
     # return os.path.basename(open("/proc/1/cmdline").read().split(chr(0))[0])
     # readlink /proc/1/exe requires root
     # inspired by openvswitch.py:ServiceManagerInterface.get_version()
-    return os.path.basename(os.readlink("/proc/1/exe"))
+    output = run("readlink /proc/1/exe").stdout.strip()
+    return os.path.basename(output)
 
 
-def get_name_of_init():
+def get_name_of_init(run=utils.run):
     """
     Determine what executable is PID 1, aka init by checking /proc/1/exe
     This init detection will only run once and cache the return value.
@@ -408,7 +409,7 @@ def get_name_of_init():
     try:
         return _init_name
     except (NameError, AttributeError):
-        _init_name = _get_name_of_init()
+        _init_name = _get_name_of_init(run)
         return _init_name
 
 
@@ -657,7 +658,7 @@ _service_managers = {"init": _SysVInitServiceManager,
                      "systemd": _SystemdServiceManager}
 
 
-def _get_service_result_parser():
+def _get_service_result_parser(run=utils.run):
     """
     Get the ServiceResultParser using the auto-detect init command.
 
@@ -669,12 +670,12 @@ def _get_service_result_parser():
     try:
         return _service_result_parser
     except NameError:
-        result_parser = _result_parsers[get_name_of_init()]
+        result_parser = _result_parsers[get_name_of_init(run)]
         _service_result_parser = _ServiceResultParser(result_parser)
         return _service_result_parser
 
 
-def _get_service_command_generator():
+def _get_service_command_generator(run=utils.run):
     """
     Lazy initializer for ServiceCommandGenerator using the auto-detect init command.
 
@@ -687,13 +688,13 @@ def _get_service_command_generator():
     try:
         return _service_command_generator
     except NameError:
-        command_generator = _command_generators[get_name_of_init()]
+        command_generator = _command_generators[get_name_of_init(run)]
         _service_command_generator = _ServiceCommandGenerator(
             command_generator)
         return _service_command_generator
 
 
-def ServiceManager():
+def ServiceManager(run=utils.run):
     """
     Detect which init program is being used, init or systemd and return a
     class has methods to start/stop services.
@@ -716,19 +717,19 @@ def ServiceManager():
     :return: SysVInitServiceManager or SystemdServiceManager
     :rtype: _GenericServiceManager
     """
-    service_manager = _service_managers[get_name_of_init()]
+    service_manager = _service_managers[get_name_of_init(run)]
     # _service_command_generator is explicitly undefined so that we get the NameError on first access
     # pylint: disable=W0601
     global _service_manager
     try:
         return _service_manager
     except NameError:
-        _service_manager = service_manager(_get_service_command_generator(),
-                                           _get_service_result_parser())
+        _service_manager = service_manager(_get_service_command_generator(run),
+                                           _get_service_result_parser(run))
         return _service_manager
 
 
-def _auto_create_specific_service_result_parser():
+def _auto_create_specific_service_result_parser(run=utils.run):
     """
     Create a class that will create partial functions that generate result_parser
     for the current init command.
@@ -736,13 +737,13 @@ def _auto_create_specific_service_result_parser():
     :return: A ServiceResultParser for the auto-detected init command.
     :rtype: _ServiceResultParser
     """
-    result_parser = _result_parsers[get_name_of_init()]
+    result_parser = _result_parsers[get_name_of_init(run)]
     # remove list method
     command_list = [c for c in COMMANDS if c not in ["list", "set_target"]]
     return _ServiceResultParser(result_parser, command_list)
 
 
-def _auto_create_specific_service_command_generator():
+def _auto_create_specific_service_command_generator(run=utils.run):
     """
     Create a class that will create partial functions that generate commands
     for the current init command.
@@ -755,13 +756,13 @@ def _auto_create_specific_service_command_generator():
     :return: A ServiceCommandGenerator for the auto-detected init command.
     :rtype: _ServiceCommandGenerator
     """
-    command_generator = _command_generators[get_name_of_init()]
+    command_generator = _command_generators[get_name_of_init(run)]
     # remove list method
     command_list = [c for c in COMMANDS if c not in ["list", "set_target"]]
     return _ServiceCommandGenerator(command_generator, command_list)
 
 
-def SpecificServiceManager(service_name):
+def SpecificServiceManager(service_name, run=utils.run):
     """
 
     # Get the specific service manager for sshd
@@ -782,5 +783,5 @@ def SpecificServiceManager(service_name):
     :rtype: _SpecificServiceManager
     """
     return _SpecificServiceManager(service_name,
-                                   _auto_create_specific_service_command_generator(),
-                                   _auto_create_specific_service_result_parser())
+                                   _auto_create_specific_service_command_generator(run),
+                                   _get_service_result_parser(run), run)
