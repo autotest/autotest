@@ -693,7 +693,7 @@ def service_cgconfig_control(action):
 
     If cmd executes successfully, return True, otherwise return False.
     If the action is status, return True when it's running, otherwise return
-    False.
+    False. To check if the cgconfig stuff is available, use action "exists".
 
     @ param action: start|stop|status|restart|condrestart
     """
@@ -706,8 +706,14 @@ def service_cgconfig_control(action):
         except error.CmdError, detail:
             logging.error("Failed to %s cgconfig:\n%s", action, detail)
             return False
-    elif action == "status":
+    elif action == "status" or action == "exists":
         cmd_result = utils.run("service cgconfig status", ignore_status=True)
+        if action == "exists":
+            if cmd_result.exit_status:
+                return False
+            else:
+                return True
+
         if (not cmd_result.exit_status and
                 cmd_result.stdout.strip()) == "Running":
             logging.info("Cgconfig service is running")
@@ -752,6 +758,13 @@ def cgconfig_is_running():
     Check cgconfig service status
     """
     return service_cgconfig_control("status")
+
+
+def cgconfig_exists():
+    """
+    Check if cgconfig is available on the host or perhaps systemd is used
+    """
+    return service_cgconfig_control("exists")
 
 
 def all_cgroup_delete():
