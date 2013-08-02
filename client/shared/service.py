@@ -352,8 +352,7 @@ class _ServiceResultParser(object):
         Returns True if command was executed successfully.
         """
         if cmdResult.exit_status:
-            logging.debug("Execute command <%s> faled.\n"
-                          "Error: %s." % (cmdResult.command, cmdResult.stderr))
+            logging.debug(cmdResult)
             return False
         else:
             return True
