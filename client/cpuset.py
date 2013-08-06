@@ -6,7 +6,7 @@ __author__ = "duanes (Duane Sand), pdahl (Peter Dahl)"
 
 import os, re, glob, fcntl, logging
 from autotest.client import utils
-from autotest.client.shared import error
+from autotest.client.shared import error, utils_memory
 
 SUPER_ROOT = ''      # root of all containers or cgroups
 NO_LIMIT = (1 << 63) - 1   # containername/memory.limit_in_bytes if no limit
@@ -61,7 +61,7 @@ def discover_container_style():
         # For now, limit total of all containers to using just 98% of system's
         #   visible total ram, to avoid oom events at system level, and avoid
         #   page reclaim overhead from going above kswapd highwater mark.
-        system_visible_pages = utils.memtotal() >> 2
+        system_visible_pages = utils_memory.memtotal() >> 2
         usable_pages = int(system_visible_pages * 0.98)
         root_container_bytes = usable_pages << 12
         logging.debug('root_container_bytes: %s',
@@ -293,17 +293,17 @@ def container_mbytes(name):
 def mbytes_per_mem_node():
     # Get mbyte size of standard numa mem node, as float
     #  (some nodes are bigger than this)
-    # Replaces utils.node_size().
+    # Replaces utils_memory.node_size().
     numa = get_boot_numa()
     if numa.endswith('M'):
         return float(numa[:-1])  # mbyte size of fake nodes
     elif numa:
         nodecnt = int(numa)  # fake numa mem nodes for container isolation
     else:
-        nodecnt = len(utils.numa_nodes())  # phys mem-controller nodes
+        nodecnt = len(utils_memory.numa_nodes())  # phys mem-controller nodes
     # Use guessed total physical mem size, not kernel's
     #   lesser 'available memory' after various system tables.
-    return utils.rounded_memtotal() / (nodecnt * 1024.0)
+    return utils_memory.rounded_memtotal() / (nodecnt * 1024.0)
 
 
 def get_cpus(container_name):
