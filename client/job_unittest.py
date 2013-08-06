@@ -8,7 +8,7 @@ except ImportError:
 
 from autotest.client import job, config, sysinfo, harness
 from autotest.client import xen, kernel, utils
-from autotest.client.shared import error, boottool
+from autotest.client.shared import error, boottool, utils_memory
 from autotest.client.shared.settings import settings
 from autotest.client.shared import logging_manager, logging_config
 from autotest.client.shared import base_job_unittest
