@@ -1,6 +1,6 @@
 import os, shutil, re, glob, subprocess, logging, gzip
 
-from autotest.client.shared import log, software_manager
+from autotest.client.shared import log, software_manager, utils_memory
 from autotest.client.shared.settings import settings
 from autotest.client import utils
 
@@ -411,7 +411,7 @@ class base_sysinfo(object):
                 keyval["sysinfo-memtotal-in-kb"] = match.group(1)
 
         # guess the system's total physical memory, including sys tables
-        keyval["sysinfo-phys-mbytes"] = utils.rounded_memtotal()//1024
+        keyval["sysinfo-phys-mbytes"] = utils_memory.rounded_memtotal()//1024
 
         # return what we collected
         return keyval

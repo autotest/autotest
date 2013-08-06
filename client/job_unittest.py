@@ -11,7 +11,7 @@ from autotest.client import xen, kernel, utils
 from autotest.client.shared import error, boottool
 from autotest.client.shared.settings import settings
 from autotest.client.shared import logging_manager, logging_config
-from autotest.client.shared import base_job_unittest
+from autotest.client.shared import base_job_unittest, utils_memory
 from autotest.client.shared.test_utils import mock, unittest
 
 
@@ -151,7 +151,7 @@ class test_base_job(unittest.TestCase):
         self.god.stub_function(shutil, 'copyfile')
         self.god.stub_function(job, 'open')
         self.god.stub_function(utils, 'system')
-        self.god.stub_function(utils, 'drop_caches')
+        self.god.stub_function(utils_memory, 'drop_caches')
         self.god.stub_function(harness, 'select')
         self.god.stub_function(sysinfo, 'log_per_reboot_data')
 
@@ -203,7 +203,7 @@ class test_base_job(unittest.TestCase):
         results = os.path.join(self.autodir, 'results')
         pkgdir = os.path.join(self.autodir, 'packages')
 
-        utils.drop_caches.expect_call()
+        utils_memory.drop_caches.expect_call()
         job_sysinfo = sysinfo.sysinfo.expect_new(resultdir)
         if not cont:
             shutil.copyfile.expect_call(mock.is_string_comparator(),
@@ -517,7 +517,7 @@ class test_base_job(unittest.TestCase):
                                     first_line_comparator(str(real_error)))
         self.job.record.expect_call("END ERROR", testname, testname)
         self.job.harness.run_test_complete.expect_call()
-        utils.drop_caches.expect_call()
+        utils_memory.drop_caches.expect_call()
 
         # run and check
         self.job.run_test(testname)
@@ -551,7 +551,7 @@ class test_base_job(unittest.TestCase):
         self.job.record.expect_call("ERROR", testname, testname, reason)
         self.job.record.expect_call("END ERROR", testname, testname)
         self.job.harness.run_test_complete.expect_call()
-        utils.drop_caches.expect_call()
+        utils_memory.drop_caches.expect_call()
 
         # run and check
         self.job.run_test(testname)
@@ -777,7 +777,7 @@ class test_base_job(unittest.TestCase):
                                     "completed successfully")
         self.job.record.expect_call("END GOOD", testname, testname)
         self.job.harness.run_test_complete.expect_call()
-        utils.drop_caches.expect_call()
+        utils_memory.drop_caches.expect_call()
 
         # run and check
         self.job.run_test(testname, timeout=timeout)

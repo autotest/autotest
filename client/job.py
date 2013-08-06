@@ -12,7 +12,7 @@ from autotest.client import utils, parallel, kernel, xen
 from autotest.client import profilers, harness
 from autotest.client import config, sysinfo, test, local_host
 from autotest.client import partition as partition_lib
-from autotest.client.shared import base_job, boottool
+from autotest.client.shared import base_job, boottool, utils_memory
 from autotest.client.shared import error, barrier, logging_manager
 from autotest.client.shared import base_packages, packages
 from autotest.client.shared.settings import settings
@@ -44,7 +44,7 @@ def _run_test_complete_on_exit(f):
             if self._logger.global_filename == 'status':
                 self.harness.run_test_complete()
                 if self.drop_caches:
-                    utils.drop_caches()
+                    utils_memory.drop_caches()
     wrapped.__name__ = f.__name__
     wrapped.__doc__ = f.__doc__
     wrapped.__dict__.update(f.__dict__)
@@ -282,7 +282,7 @@ class base_client_job(base_job.base_job):
                                                type=bool, default=True))
         self.drop_caches = drop_caches
         if self.drop_caches:
-            utils.drop_caches()
+            utils_memory.drop_caches()
 
 
     def _init_bootloader(self):
