@@ -3,13 +3,13 @@ python:
     - "2.7"
 
 branches:
-  only:
-    - master
+    only:
+        - master
 
 install:
     - pip install sphinx tox
     - pip install -r requirements.txt --use-mirrors
     - AUTOTEST_TOP_PATH=. python setup.py install
-  
-script: 
+
+script:
     AUTOTEST_DIR=. ./utils/unittest_suite_nose.py -c .nose.cfg -s autotest.client autotest.server autotest.utils
