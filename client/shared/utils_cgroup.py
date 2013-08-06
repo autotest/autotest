@@ -9,7 +9,7 @@ Helpers for cgroup testing.
 import logging, os, shutil, subprocess, time, re, random, commands
 from tempfile import mkdtemp
 from autotest.client import utils
-from autotest.client.shared import error
+from autotest.client.shared import error, service
 
 class Cgroup(object):
     """
@@ -679,71 +679,62 @@ def resolve_task_cgroup_path(pid, controller):
     return os.path.join(root_path, mount_path[0])
 
 
-def service_cgconfig_control(action):
+class CgconfigService(object):
     """
-    Cgconfig control by action.
-
-    If cmd executes successfully, return True, otherwise return False.
-    If the action is status, return True when it's running, otherwise return
-    False.
-
-    @ param action: start|stop|status|restart|condrestart
+    Cgconfig service class.
     """
-    actions = ['start', 'stop', 'restart', 'condrestart']
-    if action in actions:
-        try:
-            utils.run("service cgconfig %s" % action)
-            logging.debug("%s cgconfig successfuly", action)
-            return True
-        except error.CmdError, detail:
-            logging.error("Failed to %s cgconfig:\n%s", action, detail)
-            return False
-    elif action == "status":
-        cmd_result = utils.run("service cgconfig status", ignore_status=True)
-        if (not cmd_result.exit_status and
-            cmd_result.stdout.strip()) == "Running":
-            logging.info("Cgconfig service is running")
-            return True
-        else:
-            return False
-    else:
-        raise error.TestError("Unknown action: %s" % action)
+    def __init__(self):
+        self._service_manager = service.SpecificServiceManager("cgconfig")
 
 
-#Split cgconfig action function, it will be more clear.
-def cgconfig_start():
-    """
-    Stop cgconfig service
-    """
-    return service_cgconfig_control("start")
+    def _service_cgconfig_control(self, action):
+        """
+        Cgconfig control by action.
+
+        If cmd executes successfully, return True, otherwise return False.
+        If the action is status, return True when it's running, otherwise return
+        False.
+
+        @param: action: cgconfig service action 
+        """
+        if not hasattr(self._service_manager, action):
+            raise error.TestError("Unknown action: %s" % action)
+        return getattr(self._service_manager, action)()
 
 
-def cgconfig_stop():
-    """
-    Start cgconfig service
-    """
-    return service_cgconfig_control("stop")
+    def cgconfig_start(self):
+        """
+        Sart cgconfig service
+        """
+        return self._service_cgconfig_control("start")
 
 
-def cgconfig_restart():
-    """
-    Restart cgconfig service
-    """
-    return service_cgconfig_control("restart")
+    def cgconfig_stop(self):
+        """
+        Sop cgconfig service
+        """
+        return self._service_cgconfig_control("stop")
 
 
-def cgconfig_condrestart():
-    """
-    Condrestart cgconfig service
-    """
-    return service_cgconfig_control("condrestart")
+    def cgconfig_restart(self):
+        """
+        Restart cgconfig service
+        """
+        return self._service_cgconfig_control("restart")
 
 
-def cgconfig_is_running():
-    """
-    Check cgconfig service status
-    """
-    return service_cgconfig_control("status")
+    def cgconfig_condrestart(self):
+        """
+        Condrestart cgconfig service
+        """
+        return self._service_cgconfig_control("condrestart")
+
+
+    def cgconfig_is_running(self):
+        """
+        Check cgconfig service status
+        """
+        return self._service_cgconfig_control("status")
 
 
 def all_cgroup_delete():
