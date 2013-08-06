@@ -1,6 +1,6 @@
 import os, shutil, re, glob, subprocess, logging, gzip
 
-from autotest.client.shared import log, software_manager
+from autotest.client.shared import log, software_manager, utils_memory
 from autotest.client.shared.settings import settings
 from autotest.client import utils
 
@@ -21,10 +21,12 @@ _DEFAULT_FILES_TO_LOG_PER_BOOT = [
     "/proc/cpuinfo", "/proc/modules", "/proc/interrupts", "/proc/partitions",
     ]
 _DEFAULT_FILES_TO_LOG_BEFORE_ITERATION = [
-    "/proc/schedstat", "/proc/meminfo", "/proc/slabinfo", "/proc/interrupts"
+    "/proc/schedstat", "/proc/meminfo", "/proc/slabinfo", "/proc/interrupts",
+    "/proc/buddyinfo"
     ]
 _DEFAULT_FILES_TO_LOG_AFTER_ITERATION = [
-    "/proc/schedstat", "/proc/meminfo", "/proc/slabinfo", "/proc/interrupts"
+    "/proc/schedstat", "/proc/meminfo", "/proc/slabinfo", "/proc/interrupts",
+    "/proc/buddyinfo"
     ]
 
 
@@ -411,7 +413,7 @@ class base_sysinfo(object):
                 keyval["sysinfo-memtotal-in-kb"] = match.group(1)
 
         # guess the system's total physical memory, including sys tables
-        keyval["sysinfo-phys-mbytes"] = utils.rounded_memtotal()//1024
+        keyval["sysinfo-phys-mbytes"] = utils_memory.rounded_memtotal()//1024
 
         # return what we collected
         return keyval

@@ -18,7 +18,7 @@
 
 import fcntl, getpass, os, re, sys, shutil, tempfile, time, traceback, logging
 
-from autotest.client.shared import error
+from autotest.client.shared import error, utils_memory
 from autotest.client.shared.settings import settings
 from autotest.client import utils
 
@@ -194,7 +194,7 @@ class base_test(object):
 
     def drop_caches_between_iterations(self):
         if self.job.drop_caches_between_iterations:
-            utils.drop_caches()
+            utils_memory.drop_caches()
 
 
     def _call_run_once(self, constraints, profile_only,
