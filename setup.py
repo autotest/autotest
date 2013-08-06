@@ -101,7 +101,6 @@ def get_package_data():
             _fix_data_paths(server.setup.get_package_data()),
             _fix_data_paths(scheduler.setup.get_package_data()),
             _fix_data_paths(database_legacy.setup.get_package_data()),
-            _fix_data_paths(tko.setup.get_package_data()),
             _fix_data_paths(utils.setup.get_package_data())
             ])
 
