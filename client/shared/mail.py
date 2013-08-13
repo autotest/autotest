@@ -111,10 +111,9 @@ class EmailNotificationManager(object):
                                              "notify_email_from",
                                               default=DEFAULT_FROM_EMAIL)
 
-        grid_admin_email = settings.get_value("NOTIFICATION",
-                                              "grid_admin_email",
-                                              default='')
-        self.grid_admin_email = _process_to_string(grid_admin_email)
+        self.grid_admin_email = settings.get_value("NOTIFICATION",
+                                                   "grid_admin_email",
+                                                   default='')
 
         server = settings.get_value("EMAIL", "smtp_server", default='localhost')
         port = settings.get_value("EMAIL", "smtp_port", default=None)
@@ -145,7 +144,7 @@ class EmailNotificationManager(object):
         if not to_list:
             return
 
-        send(from_address=self.from_email, to_addresses=to_list,
+        send(from_address=self.from_email, to_addresses=to_list, cc_addresses="",
              subject=subject, body=body, smtp_info=self.smtp_info,
              html=self.html_email)
 
