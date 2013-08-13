@@ -25,6 +25,11 @@ import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.Panel;
 import com.google.gwt.user.client.ui.ScrollPanel;
 import com.google.gwt.user.client.ui.SimplePanel;
+import com.google.gwt.http.client.Request;
+import com.google.gwt.http.client.RequestBuilder;
+import com.google.gwt.http.client.RequestCallback;
+import com.google.gwt.http.client.RequestException;
+import com.google.gwt.http.client.Response;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,9 +38,6 @@ import java.util.List;
 
 class TestDetailView extends DetailView {
     private static final int NO_TEST_ID = -1;
-
-    private static final JsonRpcProxy logLoadingProxy = 
-        new PaddedJsonRpcProxy(Utils.RETRIEVE_LOGS_URL);
 
     private int testId = NO_TEST_ID;
     private String jobTag;
@@ -51,23 +53,6 @@ class TestDetailView extends DetailView {
         private ScrollPanel scroller; // ScrollPanel wrapping log contents
         private String logFilePath;
 
-        private JsonRpcCallback rpcCallback = new JsonRpcCallback() {
-            @Override
-            public void onError(JSONObject errorObject) {
-                super.onError(errorObject);
-                String errorString = getErrorString(errorObject);
-                if (errorString.equals("")) {
-                    errorString = "Failed to load log "+ logFilePath;
-                }
-                setStatusText(errorString);
-            }
-
-            @Override
-            public void onSuccess(JSONValue result) {
-                handle(result);
-            }
-        };
-        
         public LogFileViewer(String logFilePath, String logFileName) {
             this.logFilePath = logFilePath;
             panel = new DisclosurePanel(logFileName);
@@ -80,26 +65,45 @@ class TestDetailView extends DetailView {
         
         @Override
         public void onOpen(OpenEvent<DisclosurePanel> event) {
-            JSONObject params = new JSONObject();
-            params.put("path", new JSONString(getLogUrl()));
-            logLoadingProxy.rpcCall("dummy", params, rpcCallback);
+	    RequestBuilder requestBuilder = new RequestBuilder(RequestBuilder.GET,
+							       getLogUrl());
+	    RequestCallback requestCallback = new RequestCallback() {
+		    @Override
+		    public void onError(Request request, Throwable exception) {
+			setStatusText("Failed to load log file");
+		    }
+		    @Override
+		    public void onResponseReceived(Request request, Response response) {
+			String responseText;
+			if (200 == response.getStatusCode()) {
+			    responseText = response.getText();
+			    if (responseText.length() > 0) {
+				setLogText(responseText);
+			    } else {
+				setStatusText("Log file is empty");
+			    }
+			} else {
+			    setStatusText("Received unexpected response from server: \"" +
+					  response.getStatusText() + "\"");
+			}
+		    }
+		};
 
-            setStatusText("Loading...");
+	    requestBuilder.setCallback(requestCallback);
+
+	    try {
+		requestBuilder.send();
+		setStatusText("Loading...");
+	    }
+	    catch (RequestException exp) {
+		setStatusText("Failed to send the request for the log file");
+	    }
         }
 
         private String getLogUrl() {
             return Utils.getLogsUrl(jobTag + "/" + logFilePath);
         }
         
-        public void handle(JSONValue value) {
-            String logContents = value.isString().stringValue();
-            if (logContents.equals("")) {
-                setStatusText("Log file is empty");
-            } else {
-                setLogText(logContents);
-            }
-        }
-
         private void setLogText(String text) {
             panel.clear();
             scroller = new ScrollPanel();
