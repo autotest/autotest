@@ -14,7 +14,7 @@ except ImportError:
 try:
     import json
 except ImportError:
-    from autotest.client.shared.backports import json
+    from autotest.client.shared.backports import simplejson as json
 
 try:
     import jsontemplate

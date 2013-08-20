@@ -1,10 +1,13 @@
 """JSON token scanner
 """
 import re
-try:
-    from _json import make_scanner as c_make_scanner
-except ImportError:
-    c_make_scanner = None
+def _import_c_make_scanner():
+    try:
+        from simplejson._speedups import make_scanner
+        return make_scanner
+    except ImportError:
+        return None
+c_make_scanner = _import_c_make_scanner()
 
 __all__ = ['make_scanner']
 
@@ -24,6 +27,7 @@ def py_make_scanner(context):
     parse_constant = context.parse_constant
     object_hook = context.object_hook
     object_pairs_hook = context.object_pairs_hook
+    memo = context.memo
 
     def _scan_once(string, idx):
         try:
@@ -35,7 +39,7 @@ def py_make_scanner(context):
             return parse_string(string, idx + 1, encoding, strict)
         elif nextchar == '{':
             return parse_object((string, idx + 1), encoding, strict,
-                _scan_once, object_hook, object_pairs_hook)
+                _scan_once, object_hook, object_pairs_hook, memo)
         elif nextchar == '[':
             return parse_array((string, idx + 1), _scan_once)
         elif nextchar == 'n' and string[idx:idx + 4] == 'null':
@@ -62,6 +66,12 @@ def py_make_scanner(context):
         else:
             raise StopIteration
 
-    return _scan_once
+    def scan_once(string, idx):
+        try:
+            return _scan_once(string, idx)
+        finally:
+            memo.clear()
+
+    return scan_once
 
 make_scanner = c_make_scanner or py_make_scanner

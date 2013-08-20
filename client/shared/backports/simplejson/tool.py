@@ -2,16 +2,16 @@ r"""Command-line tool to validate and pretty-print JSON
 
 Usage::
 
-    $ echo '{"json":"obj"}' | python -m json.tool
+    $ echo '{"json":"obj"}' | python -m simplejson.tool
     {
         "json": "obj"
     }
-    $ echo '{ 1.2:3.4}' | python -m json.tool
-    Expecting property name enclosed in double quotes: line 1 column 3 (char 2)
+    $ echo '{ 1.2:3.4}' | python -m simplejson.tool
+    Expecting property name: line 1 column 2 (char 2)
 
 """
 import sys
-import json
+import simplejson as json
 
 def main():
     if len(sys.argv) == 1:
@@ -25,15 +25,14 @@ def main():
         outfile = open(sys.argv[2], 'wb')
     else:
         raise SystemExit(sys.argv[0] + " [infile [outfile]]")
-    with infile:
-        try:
-            obj = json.load(infile)
-        except ValueError, e:
-            raise SystemExit(e)
-    with outfile:
-        json.dump(obj, outfile, sort_keys=True,
-                  indent=4, separators=(',', ': '))
-        outfile.write('\n')
+    try:
+        obj = json.load(infile,
+                        object_pairs_hook=json.OrderedDict,
+                        use_decimal=True)
+    except ValueError, e:
+        raise SystemExit(e)
+    json.dump(obj, outfile, sort_keys=True, indent='    ', use_decimal=True)
+    outfile.write('\n')
 
 
 if __name__ == '__main__':
