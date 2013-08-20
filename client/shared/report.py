@@ -127,6 +127,8 @@ def parse_results_dir(results_dir, relative_links=True):
     for line in status_lines:
         results_data = {}
         log_entry = base_job.status_log_entry.parse(line)
+        if not log_entry:
+            continue
         results_data['status_code'] = log_entry.status_code
         results_data['subdir'] = log_entry.subdir
         results_data['operation'] = log_entry.operation
