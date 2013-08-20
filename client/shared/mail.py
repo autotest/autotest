@@ -68,8 +68,17 @@ def send(from_address, to_addresses, cc_addresses, subject, body,
         message["Subject"] = subject
         message.set_payload(body)
 
+    if not smtp_info['port']:
+        smtp_info['port'] = 25
+
     try:
-        mailer = smtplib.SMTP(smtp_info['server'], smtp_info['port'])
+        if smtp_info['server']:
+            mailer = smtplib.SMTP(smtp_info['server'], smtp_info['port'])
+        else:
+            logging.info("No SMTP server specified, will try to connect to "
+                         "the local MTA")
+            mailer = smtplib.SMTP()
+
         try:
             if smtp_info.get('user'):
                 mailer.login(smtp_info['user'], smtp_info['password'])
@@ -80,6 +89,7 @@ def send(from_address, to_addresses, cc_addresses, subject, body,
                 mailer.quit()
             except:
                 logging.exception('mailer.quit() failed:')
+
     except Exception:
         logging.exception('Sending email failed:')
 
