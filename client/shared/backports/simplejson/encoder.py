@@ -169,6 +169,7 @@ class JSONEncoder(object):
             self.default = default
         self.encoding = encoding
 
+    # pylint: disable=E0202
     def default(self, o):
         """Implement this method in a subclass such that it returns
         a serializable object for ``o``, or calls the base implementation
@@ -238,6 +239,7 @@ class JSONEncoder(object):
         else:
             _encoder = encode_basestring
         if self.encoding != 'utf-8':
+            # pylint: disable=E0102
             def _encoder(o, _orig_encoder=_encoder, _encoding=self.encoding):
                 if isinstance(o, str):
                     o = o.decode(_encoding)
