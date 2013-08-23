@@ -147,7 +147,7 @@ class JSONEncoder(object):
         If encoding is not None, then all input strings will be
         transformed into unicode using that encoding prior to JSON-encoding.
         The default is UTF-8.
-        
+
         If use_decimal is true (not the default), ``decimal.Decimal`` will
         be supported directly by the encoder. For the inverse, decode JSON
         with ``parse_float=decimal.Decimal``.

@@ -31,7 +31,7 @@ NaN, PosInf, NegInf = _floatconstants()
 
 class JSONDecodeError(ValueError):
     """Subclass of ValueError with the following additional properties:
-    
+
     msg: The unformatted error message
     doc: The JSON document being parsed
     pos: The start index of doc where parsing failed
@@ -40,7 +40,7 @@ class JSONDecodeError(ValueError):
     colno: The column corresponding to pos
     endlineno: The line corresponding to end (may be None)
     endcolno: The column corresponding to end (may be None)
-    
+
     """
     def __init__(self, msg, doc, pos, end=None):
         ValueError.__init__(self, errmsg(msg, doc, pos, end=end))

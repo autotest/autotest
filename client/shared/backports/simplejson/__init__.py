@@ -409,7 +409,7 @@ def _toggle_speedups(enabled):
     if enabled:
         dec.scanstring = dec.c_scanstring or dec.py_scanstring
         enc.c_make_encoder = c_make_encoder
-        enc.encode_basestring_ascii = (enc.c_encode_basestring_ascii or 
+        enc.encode_basestring_ascii = (enc.c_encode_basestring_ascii or
             enc.py_encode_basestring_ascii)
         scan.make_scanner = scan.c_make_scanner or scan.py_make_scanner
     else:
