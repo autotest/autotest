@@ -19,6 +19,25 @@ else:
 def get_package_dir():
     return {'autotest.tko': tko_dir}
 
+def get_package_data():
+    return {'autotest.tko' : get_filelist()}
+
+def _get_files(path):
+    '''
+    Given a path, return all the files in there to package
+    '''
+    flist=[]
+    for root, _, files in sorted(os.walk(path)):
+        for name in files:
+            fullname = os.path.join(root, name)
+            flist.append(fullname)
+    return flist
+
+
+def get_filelist():
+    pd_filelist=_get_files(os.path.join(tko_dir, 'parsers'))
+    return pd_filelist
+
 
 def get_packages():
     return ['autotest.tko.parsers',
