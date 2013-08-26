@@ -57,8 +57,9 @@ def file_load(file_name):
 
     retval = None
     if os.path.exists(file_name):
-        with open(file_name, 'r') as f:
-            retval = f.read()
+        f_obj = open(file_name, 'r')
+        retval = f_obj.read()
+        f_obj.close()
     else:
         stderr.write("  ** Warning: The requested file (%s) does not exist.\n" % file_name)
 

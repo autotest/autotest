@@ -43,8 +43,9 @@ def main(path):
     # grab the metadata
         file_name = "test-attributes.json"
     if os.path.exists(file_name):
-        with open(file_name, 'r') as f:
-            meta = json.load(f)
+        f_obj = open(file_name, 'r')
+        meta = json.load(f_obj)
+        f_obj.close()
     else:
         meta = {}
         print >> stderr, "ERROR: file <%s> not found, no metadata included in metrics" % file_name
