@@ -61,6 +61,7 @@ class TestBackports(unittest.TestCase):
             for n in xrange(10000):
                 # pylint: disable=E0602
                 self.assertEquals(backports.bin(n), bin(n))
+            # pylint: disable=E0602
             self.assertEquals(backports.bin(sys.maxint), bin(sys.maxint))
         except NameError:
             # NameError will occur on Python versions that lack bin()

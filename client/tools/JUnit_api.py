@@ -24,6 +24,7 @@ try:
 except ImportError:
     try:
         # cElementTree from Python 2.5+
+        # pylint: disable=E0602, E0611
         import xml.etree.cElementTree as etree_
         XMLParser_import_library = XMLParser_import_elementtree
         if Verbose_import_:
@@ -31,6 +32,7 @@ except ImportError:
     except ImportError:
         try:
             # ElementTree from Python 2.5+
+            # pylint: disable=E0602,E0611
             import xml.etree.ElementTree as etree_
             XMLParser_import_library = XMLParser_import_elementtree
             if Verbose_import_:
