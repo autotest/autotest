@@ -187,7 +187,6 @@ class App(object):
             # The current method is suboptimal, we may need to fetch the syncdb command module
             argv = ['manage.py', 'syncdb', '-v0', '--noinput']
             django.core.management.execute_from_command_line(argv)
-            django.core.management.execute_from_command_line(argv)
             argv = ['manage.py', 'migrate', '-v0', '--noinput']
             django.core.management.execute_from_command_line(argv)
 

@@ -1,0 +1,77 @@
+#!/usr/bin/python
+
+from autotest.client.shared import distro_def
+from autotest.frontend import optparser
+from autotest.frontend import setup_django_environment
+from autotest.frontend.afe import models
+
+
+class OptionParser(optparser.OptionParser):
+    def __init__(self):
+        optparser.OptionParser.__init__(self)
+
+        self.add_option('-f', '--file',
+                        help=('Autotest Distro Definition file location'))
+
+
+class App(object):
+    def __init__(self):
+        self.option_parser = OptionParser()
+
+
+    def add(self):
+        distro = models.LinuxDistro.objects.create(name=self.distro.name,
+                                                   version=self.distro.version,
+                                                   release=self.distro.release,
+                                                   arch=self.distro.arch)
+
+        try:
+            kind = models.SoftwareComponentKind.objects.get(
+                name=self.distro.software_packages_type)
+        except models.SoftwareComponentKind.DoesNotExist:
+            kind = models.SoftwareComponentKind.objects.create(
+                name=self.distro.software_packages_type)
+
+        for software_package in self.distro.software_packages:
+            try:
+                arch = models.SoftwareComponentArch.objects.get(
+                    name=software_package.arch)
+            except models.SoftwareComponentArch.DoesNotExist:
+                arch = models.SoftwareComponentArch.objects.create(
+                    name=software_package.arch)
+
+            try:
+                sc = models.SoftwareComponent.objects.get(
+                    name=software_package.name,
+                    version=software_package.version,
+                    release=software_package.release,
+                    checksum=software_package.checksum,
+                    arch=arch,
+                    kind=kind)
+            except models.SoftwareComponent.DoesNotExist:
+                sc = models.SoftwareComponent.objects.create(
+                    name=software_package.name,
+                    version=software_package.version,
+                    release=software_package.release,
+                    checksum=software_package.checksum,
+                    arch=arch,
+                    kind=kind)
+
+            distro.available_software_components.add(sc)
+
+
+    def run(self):
+        (self.command_line_opts,
+         self.command_line_args) = self.option_parser.parse_args()
+
+        if not self.command_line_opts.file:
+            self.option_parser.print_help()
+            raise SystemExit
+
+        self.distro = distro_def.load(self.command_line_opts.file)
+        self.add()
+
+
+if __name__ == '__main__':
+    app = App()
+    app.run()

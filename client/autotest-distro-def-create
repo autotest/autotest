@@ -1,0 +1,77 @@
+#!/usr/bin/python
+
+import os
+import sys
+import logging
+import optparse
+
+from autotest.client.shared import distro_def
+
+
+class OptionParser(optparse.OptionParser):
+    def __init__(self):
+        optparse.OptionParser.__init__(self)
+
+        self.add_option('-n', '--name',
+                        help='Distribution short name')
+        self.add_option('-v', '--version',
+                        help='Distribution major version number')
+        self.add_option('-r', '--release', default='',
+                        help='Distribution release version number')
+        self.add_option('-a', '--arch',
+                        help='Primary architecture that the distro targets')
+        self.add_option('-p', '--path',
+                        help=('Top level directory of the distro installation '
+                              'files'))
+        type_choices = distro_def.DISTRO_PKG_INFO_LOADERS.keys()
+        type_choices_hlp = ', '.join(type_choices)
+        self.add_option('-t', '--type', choices=type_choices,
+                        help='Available types: %s' % type_choices_hlp)
+
+
+class App(object):
+    def __init__(self):
+        self.option_parser = OptionParser()
+
+
+    def get_output_file_name(self):
+        # It's not uncommon for some distros to not have a release number
+        if self.command_line_opts.release:
+            return '%s-%s.%s-%s.distro' % (self.command_line_opts.name,
+                                           self.command_line_opts.version,
+                                           self.command_line_opts.release,
+                                           self.command_line_opts.arch)
+        else:
+            return '%s-%s-%s.distro' % (self.command_line_opts.name,
+                                        self.command_line_opts.version,
+                                        self.command_line_opts.arch)
+
+
+    def run(self):
+        (self.command_line_opts,
+         self.command_line_args) = self.option_parser.parse_args()
+
+        if not (self.command_line_opts.name and
+                self.command_line_opts.version and
+                self.command_line_opts.arch):
+            self.option_parser.print_help()
+            sys.exit(-1)
+
+        output_file_name = self.get_output_file_name()
+        if os.path.exists(output_file_name):
+            logging.error('Output file "%s" already exists, will not overwrite'
+                          ' it', output_file_name)
+            raise SystemExit
+
+        distro = distro_def.load_from_tree(self.command_line_opts.name,
+                                           self.command_line_opts.version,
+                                           self.command_line_opts.release,
+                                           self.command_line_opts.arch,
+                                           self.command_line_opts.type,
+                                           self.command_line_opts.path)
+        distro_def.save(distro, output_file_name)
+
+
+if __name__ == '__main__':
+    app = App()
+    app.run()

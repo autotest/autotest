@@ -1,0 +1,74 @@
+#!/usr/bin/python
+
+import sys
+import optparse
+
+from autotest.client.shared import distro_def
+
+
+class OptionParser(optparse.OptionParser):
+    def __init__(self):
+        optparse.OptionParser.__init__(self)
+
+        self.add_option('-f', '--file',
+                        help=('Autotest Distro Definition file location'))
+
+        self.add_option('-b', '--basic', action='store_true', dest='basic',
+                        default=True,
+                        help=('Shows basic information on the Autotest '
+                              'Distro Definition file. Shown by default.'))
+        self.add_option('--no-basic', action='store_false', dest='basic',
+                        help='Do not show basic information.')
+
+        self.add_option('-p', '--packages', action='store_true', default=False,
+                        help=('Shows the complete package information. '
+                              'Not shown by default.'))
+
+
+class App(object):
+
+    VERSION_LINE = "Version: %-10s\t Release: %-12s\t Arch: %s"
+
+    def __init__(self):
+        self.option_parser = OptionParser()
+
+
+    def print_basic(self):
+        print "Distro: %s" % self.distro.name
+        print self.VERSION_LINE % (self.distro.version,
+                                   self.distro.release,
+                                   self.distro.arch)
+
+
+    def print_packages(self):
+        for package in self.distro.software_packages:
+            print "Package: %s" % package.name
+            print self.VERSION_LINE % (package.version,
+                                       package.release,
+                                       package.arch)
+            print "Hash/Checksum: %s\n" % package.checksum
+
+
+    def run(self):
+        (self.command_line_opts,
+         self.command_line_args) = self.option_parser.parse_args()
+
+        if not self.command_line_opts.file:
+            self.option_parser.print_help()
+            sys.exit(-1)
+
+        self.distro = distro_def.load(self.command_line_opts.file)
+
+        if self.command_line_opts.basic:
+            self.print_basic()
+
+        if self.command_line_opts.packages:
+            if self.command_line_opts.basic:
+                print
+
+            self.print_packages()
+
+
+if __name__ == '__main__':
+    app = App()
+    app.run()
