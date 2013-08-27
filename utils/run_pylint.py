@@ -21,10 +21,6 @@ def set_verbosity(verbose):
     global LINT_VERBOSE
     LINT_VERBOSE = verbose
 
-pylintrc_path = os.path.expanduser('~/.pylintrc')
-if not os.path.exists(pylintrc_path):
-    open(pylintrc_path, 'w').close()
-
 major, minor, _ = pylint_version.split('.')
 pylint_version = float("%s.%s" % (major, minor))
 
@@ -83,7 +79,16 @@ def get_pylint_opts():
         else:
             opts = disable_old
 
-    return opts + ['--reports=no', '--include-ids=y', '--rcfile=/dev/null', '--good-names=i,j,k,Run,_,vm']
+    opts += ['--reports=no', '--rcfile=/dev/null',
+             '--good-names=i,j,k,Run,_,vm']
+
+    if pylint_version < 1.0:
+        fmt_opt = '--include-ids=y'
+    else:
+        fmt_opt = '--msg-template="{msg_id}:{line:3d},{column}: {obj}: {msg}"'
+    opts.append(fmt_opt)
+
+    return opts
 
 
 def check_file(file_path):
