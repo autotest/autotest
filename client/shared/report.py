@@ -173,7 +173,7 @@ def parse_results_dir(results_dir, relative_links=True):
                 update_dict['start'] = int(results_data['timestamp'])
                 update_dict['localtime'] = results_data['localtime']
 
-            elif results_data['status_code'] != 'GOOD':
+            elif results_data['status_code'].startswith('END'):
                 # Check if the status is True (means operation succeeded)
                 # or False (means operation failed)
                 if base_job.JOB_STATUSES[results_data['status_code']]:
