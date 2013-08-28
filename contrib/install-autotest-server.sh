@@ -233,7 +233,7 @@ install_basic_pkgs_rh() {
 install_basic_pkgs_deb() {
     print_log "INFO" "Installing basic packages"
     export DEBIAN_FRONTEND=noninteractive
-    apt-get install -y git >> $LOG 2>&1
+    apt-get install -y git makepasswd >> $LOG 2>&1
 }
 
 install_packages() {
