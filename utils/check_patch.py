@@ -14,15 +14,15 @@ The workflow is as follows:
    and report any failures.
 
 Usage: check_patch.py -p [/path/to/patch]
-       check_patch.py -i [list of patchwork ids separated by comma]
+       check_patch.py -i [patchwork id]
        check_patch.py -g [github pull request id]
-       check_patch.py --full --yes [check all autotest tree]
+       check_patch.py --full --yes [check the entire tree]
 
 @copyright: Red Hat Inc, 2009.
 @author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 """
 
-import os, stat, logging, sys, optparse, re, urllib, shutil, unittest
+import os, stat, logging, sys, optparse, re, urllib, shutil, unittest, tempfile
 try:
     import autotest.common as common
 except ImportError:
@@ -30,17 +30,66 @@ except ImportError:
 
 from autotest.client.shared import utils, error, logging_config
 from autotest.client.shared import logging_manager
-from autotest.utils import run_pylint, reindent
+import run_pylint, reindent
 
 # Hostname of patchwork server to use
 PWHOST = "patchwork.virt.bos.redhat.com"
 
+TMP_FILE_DIR = tempfile.gettempdir()
+LOG_FILE_PATH = os.path.join(TMP_FILE_DIR, 'check-patch.log')
+
+
+def project_dir_name():
+    '''
+    Returns the project name by using the project top level directory
+    '''
+    path = os.path.abspath(__file__)
+    return os.path.basename(os.path.dirname(os.path.dirname(path)))
+
+
+PROJECT_NAME = project_dir_name()
+
+
+EXTENSION_BLACKLIST = {
+    'autotest': ["common.py", ".java", ".html", ".png", ".css",
+                 ".xml", ".pyc", ".orig", ".rej", ".bak", ".so"],
+    'virt-test': ["common.py", ".svn", ".git", ".pyc", ".orig",
+                  ".rej", ".bak", ".so", ".cfg", ".ks", ".preseed",
+                  ".steps", ".c", ".xml", ".sif", ".cs", ".ini",
+                  ".exe", "logs", "shared/data"]
+}
+
+
+DIR_BLACKLIST = {
+    'autotest': [".svn", ".git", "logs", "virt", "site-packages",
+                 "ExternalSource"],
+    'virt-test': [".svn", ".git", "data", "logs"]
+}
+
+
+FILE_BLACKLIST = {
+    'autotest': ['client/tests/virt/qemu/tests/stepmaker.py',
+                 'utils/run_pylint.py', 'Makefile', '.travis.yml'],
+}
+
+
+PY24_BLACKLIST = {
+    'virt-test': ['qemu/tests/stepmaker.py', 'virttest/step_editor.py',
+                  'shared/scripts/cb.py']
+}
+
+
+INDENT_BLACKLIST = {
+    'autotest': ['cli/job_unittest.py', 'Makefile', '.travis.yml']
+}
+
+
 class CheckPatchLoggingConfig(logging_config.LoggingConfig):
     def configure_logging(self, results_dir=None, verbose=True):
-        super(CheckPatchLoggingConfig, self).configure_logging(use_console=True,
-                                                               verbose=verbose)
-        p = os.path.join(os.getcwd(), 'check-patch.log')
-        self.add_file_handler(file_path=p)
+        super(CheckPatchLoggingConfig, self).configure_logging(
+            use_console=True,
+            verbose=verbose)
+        self.add_file_handler(file_path=LOG_FILE_PATH)
 
 class VCS(object):
     """
@@ -65,7 +114,7 @@ class VCS(object):
     def guess_vcs_name(self):
         if os.path.isdir(".svn"):
             return "SVN"
-        elif os.path.isdir(".git"):
+        elif os.path.exists(".git"):
             return "git"
         else:
             logging.error("Could not figure version control system. Are you "
@@ -236,11 +285,12 @@ class GitBackend(object):
         status = utils.system_output("git status --porcelain")
         unknown_files = []
         for line in status.split("\n"):
-            status_flag = line[0]
-            if line and status_flag == "??":
-                for extension in self.ignored_extension_list:
-                    if not line.endswith(extension):
-                        unknown_files.append(line[2:].strip())
+            if line:
+                status_flag = line[0]
+                if status_flag == "??":
+                    for extension in self.ignored_extension_list:
+                        if not line.endswith(extension):
+                            unknown_files.append(line[2:].strip())
         return unknown_files
 
 
@@ -248,9 +298,10 @@ class GitBackend(object):
         status = utils.system_output("git status --porcelain")
         modified_files = []
         for line in status.split("\n"):
-            status_flag = line[0]
-            if line and status_flag == "M" or status_flag == "A":
-                modified_files.append(line[1:].strip())
+            if line:
+                status_flag = line[0]
+                if status_flag in ["M", "A"]:
+                    modified_files.append(line[1:].strip())
         return modified_files
 
 
@@ -352,15 +403,15 @@ class FileChecker(object):
         if "python" in self.first_line:
             self.is_python = True
 
-        self.corrective_actions = []
+        self.indent_exceptions = INDENT_BLACKLIST.get(PROJECT_NAME, [])
+        self.check_exceptions = FILE_BLACKLIST.get(PROJECT_NAME, [])
 
-        self.indent_exceptions = ['cli/job_unittest.py', 'Makefile', '.travis.yml']
-        self.check_exceptions = ['client/tests/virt/qemu/tests/stepmaker.py',
-                                 'utils/run_pylint.py', 'Makefile', '.travis.yml']
+        version = sys.version_info[0:2]
+        if version < (2, 5):
+            self.check_exceptions += PY24_BLACKLIST.get(PROJECT_NAME, [])
 
         if self.is_python:
-            logging.debug("Checking file %s",
-                          self.path.replace("./", "autotest/"))
+            logging.debug("Checking file %s", self.path)
         if self.is_python and not self.path.endswith(".py"):
             self.bkp_path = "%s-cp.py" % self.path
             shutil.copyfile(self.path, self.bkp_path)
@@ -424,7 +475,8 @@ class FileChecker(object):
 
         This tool will call the static code checker pylint using the special
         autotest conventions and warn about problems. Some of the problems
-        reported might be false positive, but it's allways good to look at them.
+        reported might be false positive, but it's allways good to look at
+        them.
         """
         success = True
         for exc in self.check_exceptions:
@@ -433,7 +485,12 @@ class FileChecker(object):
 
         path = self._get_checked_filename()
 
-        if run_pylint.check_file(path):
+        try:
+            if run_pylint.check_file(path):
+                success = False
+        except Exception, details:
+            logging.error("Pylint exception while verifying %s, details: %s",
+                          path, details)
             success = False
 
         return success
@@ -451,26 +508,25 @@ class FileChecker(object):
             unittest_name = stripped_name + "_unittest.py"
             unittest_path = self.path.replace(self.basename, unittest_name)
             if os.path.isfile(unittest_path):
-                module = unittest_path.rstrip(".py")
-                module = module.split("/")
-                module = ["autotest"] + module
+                mod_names = unittest_path.rstrip(".py")
+                mod_names = mod_names.split("/")
                 try:
-                    mod = common.setup_modules.import_module(module[-1],
-                                                             ".".join(module[:-1]))
+                    from_module = __import__(mod_names[0], globals(), locals(),
+                                             [mod_names[-1]])
+                    mod = getattr(from_module, mod_names[-1])
                     test = unittest.defaultTestLoader.loadTestsFromModule(mod)
                     suite = unittest.TestSuite(test)
                     runner = unittest.TextTestRunner()
                     result = runner.run(suite)
                     if result.errors or result.failures:
                         success = False
-                        msg = '%s had %d failures and %d errors.'
-                        msg %= ('.'.join(module),
-                                len(result.failures),
-                                len(result.errors))
+                        msg = ('%s had %d failures and %d errors.' %
+                               ('.'.join(mod_names), len(result.failures),
+                                len(result.errors)))
                         logging.error(msg)
                 except ImportError:
                     logging.error("Unable to run unittest %s" %
-                                  ".".join(module))
+                                  ".".join(mod_names))
 
         return success
 
@@ -524,11 +580,10 @@ class FileChecker(object):
 
 class PatchChecker(object):
     def __init__(self, patch=None, patchwork_id=None, github_id=None,
-                 pwhost=None, vcs=None,
-                 confirm=False):
+                 pwhost=None, vcs=None, confirm=False):
         self.confirm = confirm
         self.files_failed_check = []
-        self.base_dir = os.getcwd()
+        self.base_dir = TMP_FILE_DIR
         if pwhost is None:
             self.pwhost = PWHOST
         else:
@@ -553,7 +608,8 @@ class PatchChecker(object):
         if changed_files_before:
             logging.error("Repository has changed files prior to patch "
                           "application. ")
-            answer = utils.ask("Would you like to revert them?", auto=self.confirm)
+            answer = utils.ask("Would you like to revert them?",
+                               auto=self.confirm)
             if answer == "n":
                 logging.error("Not safe to proceed without reverting files.")
                 sys.exit(1)
@@ -600,7 +656,9 @@ class PatchChecker(object):
 
         @param gh_id: Patchwork patch id.
         """
-        patch_url = "https://github.com/autotest/autotest/pull/%s.patch" % gh_id
+        url_template = "https://github.com/autotest/%s" % PROJECT_NAME
+        url_template += "/pull/%s.patch"
+        patch_url = url_template % gh_id
         patch_dest = os.path.join(self.base_dir, 'github-%s.patch' % gh_id)
         urllib.urlretrieve(patch_url, patch_dest)
         return patch_dest
@@ -661,9 +719,9 @@ if __name__ == "__main__":
     parser.add_option('-l', '--patch', dest="local_patch", action='store',
                       help='path to a patch file that will be checked')
     parser.add_option('-p', '--patchwork-id', dest="pw_id", action='store',
-                      help='list of patchwork ids, such as 123,124,125')
+                      help='id of a given patchwork patch')
     parser.add_option('-g', '--github-id', dest="gh_id", action='store',
-                      help='id of a given github pull request')
+                      help='id of a given github patch')
     parser.add_option('--verbose', dest="debug", action='store_true',
                       help='include debug messages in console output')
     parser.add_option('-f', '--full-check', dest="full_check",
@@ -689,16 +747,18 @@ if __name__ == "__main__":
         vcs = None
 
     logging_manager.configure_logging(CheckPatchLoggingConfig(), verbose=debug)
-    extension_blacklist = ["common.py", ".java", ".html", ".png", ".css",
-                           ".xml", ".pyc", ".orig", ".rej", ".bak", ".so"]
-    dir_blacklist = [".svn", ".git", "logs", "virt", "site-packages", "ExternalSource"]
+    logging.info("Detected project name: %s", PROJECT_NAME)
+    logging.info("Log saved to file: %s", LOG_FILE_PATH)
+    extension_blacklist = EXTENSION_BLACKLIST.get(PROJECT_NAME, [])
+    dir_blacklist = DIR_BLACKLIST.get(PROJECT_NAME, [])
 
     if full_check:
         failed_paths = []
         run_pylint.set_verbosity(False)
-        logging.info("Autotest full tree check")
+        logging.info("%s full tree check", PROJECT_NAME)
         logging.info("")
-        if os.path.isfile("tko/Makefile"):
+
+        if PROJECT_NAME == 'autotest' and os.path.isfile("tko/Makefile"):
             proto_cmd = "make -C tko"
             try:
                 utils.system(proto_cmd)
