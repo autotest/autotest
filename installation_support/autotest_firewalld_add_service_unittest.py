@@ -1,3 +1,5 @@
+#!/usr/bin/python
+#
 #  Copyright(c) 2013 Intel Corporation.
 #
 #  This program is free software; you can redistribute it and/or modify it
@@ -74,3 +76,6 @@ class TestFirewalldAddService(unittest.TestCase):
 
     def test_try_open(self):
         assert self.app.try_open("\x03") == ''
+
+if __name__ == '__main__':
+    unittest.main()
