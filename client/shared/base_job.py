@@ -6,13 +6,18 @@ from autotest.client.shared.settings import settings
 
 # Mapping between job statuses and whether the operation is OK or not
 JOB_STATUSES = {"TEST_NA": False,
+                "END TEST_NA": False,
                 "ABORT": False,
+                "END ABORT": False,
                 "ERROR": False,
+                "END ERROR": False,
                 "FAIL": False,
+                "END FAIL": False,
                 "WARN": False,
+                "END WARN": False,
                 "GOOD": True,
-                "START": True,
                 "END GOOD": True,
+                "START": True,
                 "ALERT": False,
                 "RUNNING": False,
                 "NOSTATUS": False}
