@@ -8,7 +8,6 @@ that does not have quite recent software, such as Python 2.7
 """
 
 import os
-import sys
 import logging
 import argparse
 import commands
@@ -17,8 +16,8 @@ import commands
 import xml.etree.ElementTree
 
 
-DEFAULT_ZONE_SRC_BASE_PATH = '/usr/lib/firewalld/zones'
-DEFAULT_ZONE_DST_BASE_PATH = '/etc/firewalld/zones'
+DEFAULT_ZONE_DEFAULT_BASE_PATH = '/usr/lib/firewalld/zones'
+DEFAULT_ZONE_SYSTEM_BASE_PATH = '/etc/firewalld/zones'
 
 
 class ArgumentParser(argparse.ArgumentParser):
@@ -33,7 +32,6 @@ class ArgumentParser(argparse.ArgumentParser):
 
         self.add_argument('-s', '--service', default='http',
                           help='Service name (defaults to "%(default)s")')
-
 
     def _get_default_zone(self):
         try:
@@ -51,18 +49,47 @@ class App(object):
         self.argument_parser = ArgumentParser()
         self.parsed_arguments = None
 
+    @staticmethod
+    def try_open(path, mode="r"):
+        """
+        :param path: path to attempt to open with mode
+        :type path: str
+        :param mode: mode to open the file, defaults to r
+        :type mode: str
+        :return: The path if it is openable with mode, else the empty path ''
+        :rtype: str
+        """
+        try:
+            open(path, mode).close()
+            return path
+        except IOError:
+            return ''
 
     def get_src_file_from_zone(self, zone):
-        zone_filename = "%s.xml" % zone
-        return os.path.join(DEFAULT_ZONE_SRC_BASE_PATH,
-                            zone_filename)
+        """
+        Attempt to open the firewalld zone file.  Will attempt to open the system config in /etc/firewalld/,
+        if that fails it will attempt to open the default/fallback config in /usr/lib/firewalld/.
+        Return the path the successfully opens, or the empty path if they all fail.
 
+        :param zone: firewalld zone name
+        :type zone: str
+        :return: pathname of zone file, e.g. /etc/firewalld/zones/public.xml
+        :rtype: str
+        """
+        zone_filename = "%s.xml" % zone
+        path = os.path.join(DEFAULT_ZONE_SYSTEM_BASE_PATH,
+                            zone_filename)
+        if self.try_open(path):
+            return path
+        else:
+            path = os.path.join(DEFAULT_ZONE_DEFAULT_BASE_PATH,
+                                zone_filename)
+            return self.try_open(path)
 
     def get_dst_file_from_zone(self, zone):
         zone_filename = "%s.xml" % zone
-        return os.path.join(DEFAULT_ZONE_DST_BASE_PATH,
+        return os.path.join(DEFAULT_ZONE_SYSTEM_BASE_PATH,
                             zone_filename)
-
 
     def is_service_enabled(self, path, service):
         if not os.path.exists(path):
@@ -77,7 +104,6 @@ class App(object):
                     return True
 
         return False
-
 
     def add_service(self, zone, service):
         src_file_path = self.get_src_file_from_zone(zone)
@@ -94,14 +120,11 @@ class App(object):
             return True
 
         attrib = {'name': service}
-        new_service = xml.etree.ElementTree.SubElement(src_root,
-                                                       'service',
-                                                       attrib)
+        xml.etree.ElementTree.SubElement(src_root, 'service', attrib)
         src_tree.write(dst_file_path)
 
-        # Now, double check the write was successfull
+        # Now, double check the write was successful
         return self.is_service_enabled(dst_file_path, service)
-
 
     def run(self):
         self.parsed_arguments = self.argument_parser.parse_args()
