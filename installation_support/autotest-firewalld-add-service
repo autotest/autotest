@@ -123,7 +123,7 @@ class App(object):
         xml.etree.ElementTree.SubElement(src_root, 'service', attrib)
         src_tree.write(dst_file_path)
 
-        # Now, double check the write was successfull
+        # Now, double check the write was successful
         return self.is_service_enabled(dst_file_path, service)
 
     def run(self):
