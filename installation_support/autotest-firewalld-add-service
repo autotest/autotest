@@ -8,7 +8,6 @@ that does not have quite recent software, such as Python 2.7
 """
 
 import os
-import sys
 import logging
 import argparse
 import commands
@@ -33,7 +32,6 @@ class ArgumentParser(argparse.ArgumentParser):
 
         self.add_argument('-s', '--service', default='http',
                           help='Service name (defaults to "%(default)s")')
-
 
     def _get_default_zone(self):
         try:
@@ -88,12 +86,10 @@ class App(object):
                                 zone_filename)
             return self.try_open(path)
 
-
     def get_dst_file_from_zone(self, zone):
         zone_filename = "%s.xml" % zone
         return os.path.join(DEFAULT_ZONE_SYSTEM_BASE_PATH,
                             zone_filename)
-
 
     def is_service_enabled(self, path, service):
         if not os.path.exists(path):
@@ -108,7 +104,6 @@ class App(object):
                     return True
 
         return False
-
 
     def add_service(self, zone, service):
         src_file_path = self.get_src_file_from_zone(zone)
@@ -132,7 +127,6 @@ class App(object):
 
         # Now, double check the write was successfull
         return self.is_service_enabled(dst_file_path, service)
-
 
     def run(self):
         self.parsed_arguments = self.argument_parser.parse_args()
