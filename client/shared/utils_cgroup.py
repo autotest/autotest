@@ -326,6 +326,29 @@ class Cgroup(object):
                                   "cgroup failed" % (pid, pwd))
 
 
+    def refresh_cgroups(self):
+        """
+        Refresh all cgroups path.
+        """
+        try:
+            cgroups = utils.run("lscgroup").stdout.strip()
+            cgroup_list = []
+            for line in cgroups.splitlines():
+                controllers = line.split(":")[0]
+                if set(self.module.split(",")) != set(controllers.split(",")):
+                    continue
+                cgroup_name = line.split(":")[-1]
+                if cgroup_name != "/":
+                    cgroup_list.append(cgroup_name[1:])
+        except error.CmdError:
+            raise error.TestFail("Get cgroup in %s failed!" % self.module)
+
+        self.cgroups = []
+        for cgroup in cgroup_list:
+            pwd = self.__get_cgroup_pwd(cgroup)
+            self.cgroups.append(pwd)
+
+
     def set_root_cgroup(self, pid):
         """
         Resets the cgroup membership (sets to root)
