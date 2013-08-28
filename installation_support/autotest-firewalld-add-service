@@ -120,9 +120,7 @@ class App(object):
             return True
 
         attrib = {'name': service}
-        new_service = xml.etree.ElementTree.SubElement(src_root,
-                                                       'service',
-                                                       attrib)
+        xml.etree.ElementTree.SubElement(src_root, 'service', attrib)
         src_tree.write(dst_file_path)
 
         # Now, double check the write was successfull
