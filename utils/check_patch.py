@@ -39,15 +39,22 @@ TMP_FILE_DIR = tempfile.gettempdir()
 LOG_FILE_PATH = os.path.join(TMP_FILE_DIR, 'check-patch.log')
 
 
-def project_dir_name():
+# Rely on built-in recursion limit to limit number of directories searched
+def license_project_name(path):
     '''
-    Returns the project name by using the project top level directory
+    Locate the nearest LICENSE file, take first word as the project name
     '''
-    path = os.path.abspath(__file__)
-    return os.path.basename(os.path.dirname(os.path.dirname(path)))
+    if path == '/' or path == '.':
+        raise RuntimeError('Ran out of directories searching for LICENSE file')
+    try:
+        license_file = file(os.path.join(path,'LICENSE'), 'r')
+        first_word = license_file.readline().strip().split()[0].lower()
+        return first_word
+    except IOError:
+        # Recurse search parent of path's directory
+        return license_project_name(os.path.dirname(path))
 
-
-PROJECT_NAME = project_dir_name()
+PROJECT_NAME = license_project_name(os.path.dirname(os.path.abspath(__file__)))
 
 
 EXTENSION_BLACKLIST = {
