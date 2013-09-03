@@ -776,4 +776,5 @@ def all_cgroup_delete():
     try:
         utils.run("cgclear", ignore_status=False)
     except error.CmdError, detail:
-        raise error.TestFail("Clear all cgroup failed!:\n%s" % detail)
+        logging.warn("cgclear: Fail to clear all cgroups, some specific system"
+                     " cgroups might exist and affect further testing.")
