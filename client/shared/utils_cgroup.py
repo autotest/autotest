@@ -580,7 +580,7 @@ class CgroupModules(object):
                 # 'memory' or 'memory,cpuset'
                 if  _module.issubset(mount[3].split(',')):
                     self.modules[0].append(module)
-                    self.modules[1].append(mount[1] + '/')
+                    self.modules[1].append(mount[1])
                     self.modules[2].append(False)
                     i = True
                     break
