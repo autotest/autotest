@@ -19,7 +19,7 @@ except ImportError:
     import md5
 
 
-__all__ = ['Grubby', 'OptionParser', 'App', 'EfiVar', 'EfiToolSys',
+__all__ = ['Grubby', 'OptionParser', 'EfiVar', 'EfiToolSys',
            'EliloConf', 'find_executable', 'parse_entry']
 
 

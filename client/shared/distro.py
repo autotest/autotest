@@ -14,7 +14,7 @@ __all__ = ['LinuxDistro',
            'UNKNOWN_DISTRO_NAME',
            'UNKNOWN_DISTRO_VERSION',
            'UNKNOWN_DISTRO_RELEASE',
-           'UNKNOWN_DISTRO_ARCH'
+           'UNKNOWN_DISTRO_ARCH',
            'Probe',
            'register_probe',
            'detect']
