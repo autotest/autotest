@@ -22,7 +22,16 @@ Usage: check_patch.py -p [/path/to/patch]
 @author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 """
 
-import os, stat, logging, sys, optparse, re, urllib, shutil, unittest, tempfile
+import os
+import stat
+import logging
+import sys
+import optparse
+import re
+import urllib
+import shutil
+import unittest
+import tempfile
 try:
     import autotest.common as common
 except ImportError:
@@ -30,7 +39,13 @@ except ImportError:
 
 from autotest.client.shared import utils, error, logging_config
 from autotest.client.shared import logging_manager
-import run_pylint, reindent
+import run_pylint
+import reindent
+import run_pep8
+
+UTILS_DIRNAME = os.path.dirname(sys.modules[__name__].__file__)
+TOP_LEVEL_DIRNAME = os.path.abspath(os.path.dirname(UTILS_DIRNAME))
+CODESPELL_PATH = os.path.join(UTILS_DIRNAME, 'codespell', 'codespell.py')
 
 # Hostname of patchwork server to use
 PWHOST = "patchwork.virt.bos.redhat.com"
@@ -47,7 +62,7 @@ def license_project_name(path):
     if path == '/' or path == '.':
         raise RuntimeError('Ran out of directories searching for LICENSE file')
     try:
-        license_file = file(os.path.join(path,'LICENSE'), 'r')
+        license_file = file(os.path.join(path, 'LICENSE'), 'r')
         first_word = license_file.readline().strip().split()[0].lower()
         return first_word
     except IOError:
@@ -92,16 +107,20 @@ INDENT_BLACKLIST = {
 
 
 class CheckPatchLoggingConfig(logging_config.LoggingConfig):
+
     def configure_logging(self, results_dir=None, verbose=True):
         super(CheckPatchLoggingConfig, self).configure_logging(
             use_console=True,
             verbose=verbose)
         self.add_file_handler(file_path=LOG_FILE_PATH)
 
+
 class VCS(object):
+
     """
     Abstraction layer to the version control system.
     """
+
     def __init__(self):
         """
         Class constructor. Guesses the version control name and instantiates it
@@ -117,7 +136,6 @@ class VCS(object):
         else:
             self.backend = None
 
-
     def guess_vcs_name(self):
         if os.path.isdir(".svn"):
             return "SVN"
@@ -128,13 +146,11 @@ class VCS(object):
                           "on a working directory? Aborting.")
             sys.exit(1)
 
-
     def get_unknown_files(self):
         """
         Return a list of files unknown to the VCS.
         """
         return self.backend.get_unknown_files()
-
 
     def get_modified_files(self):
         """
@@ -142,13 +158,11 @@ class VCS(object):
         """
         return self.backend.get_modified_files()
 
-
     def is_file_tracked(self, fl):
         """
         Return whether a file is tracked by the VCS.
         """
         return self.backend.is_file_tracked(fl)
-
 
     def add_untracked_file(self, fl):
         """
@@ -156,20 +170,17 @@ class VCS(object):
         """
         return self.backend.add_untracked_file(file)
 
-
     def revert_file(self, fl):
         """
         Restore file according to the latest state on the reference repo.
         """
         return self.backend.revert_file(file)
 
-
     def apply_patch(self, patch):
         """
         Applies a patch using the most appropriate method to the particular VCS.
         """
         return self.backend.apply_patch(patch)
-
 
     def update(self):
         """
@@ -179,13 +190,14 @@ class VCS(object):
 
 
 class SubVersionBackend(object):
+
     """
     Implementation of a subversion backend for use with the VCS abstraction
     layer.
     """
+
     def __init__(self):
         self.ignored_extension_list = ['.orig', '.bak']
-
 
     def get_unknown_files(self):
         status = utils.system_output("svn status --ignore-externals")
@@ -198,7 +210,6 @@ class SubVersionBackend(object):
                         unknown_files.append(line[1:].strip())
         return unknown_files
 
-
     def get_modified_files(self):
         status = utils.system_output("svn status --ignore-externals")
         modified_files = []
@@ -207,7 +218,6 @@ class SubVersionBackend(object):
             if line and status_flag == "M" or status_flag == "A":
                 modified_files.append(line[1:].strip())
         return modified_files
-
 
     def is_file_tracked(self, fl):
         stdout = None
@@ -229,7 +239,6 @@ class SubVersionBackend(object):
         else:
             return False
 
-
     def add_untracked_file(self, fl):
         """
         Add an untracked file under revision control.
@@ -242,7 +251,6 @@ class SubVersionBackend(object):
             logging.error("Problem adding file %s to svn: %s", fl, e)
             sys.exit(1)
 
-
     def revert_file(self, fl):
         """
         Revert file against last revision.
@@ -254,7 +262,6 @@ class SubVersionBackend(object):
         except error.CmdError, e:
             logging.error("Problem reverting file %s: %s", fl, e)
             sys.exit(1)
-
 
     def apply_patch(self, patch):
         """
@@ -281,36 +288,35 @@ class SubVersionBackend(object):
 
 
 class GitBackend(object):
+
     """
     Implementation of a git backend for use with the VCS abstraction layer.
     """
+
     def __init__(self):
         self.ignored_extension_list = ['.orig', '.bak']
-
 
     def get_unknown_files(self):
         status = utils.system_output("git status --porcelain")
         unknown_files = []
         for line in status.split("\n"):
             if line:
-                status_flag = line[0]
+                status_flag = line.split()[0]
                 if status_flag == "??":
                     for extension in self.ignored_extension_list:
                         if not line.endswith(extension):
                             unknown_files.append(line[2:].strip())
         return unknown_files
 
-
     def get_modified_files(self):
         status = utils.system_output("git status --porcelain")
         modified_files = []
         for line in status.split("\n"):
             if line:
-                status_flag = line[0]
+                status_flag = line.split()[0]
                 if status_flag in ["M", "A"]:
-                    modified_files.append(line[1:].strip())
+                    modified_files.append(line.split()[-1])
         return modified_files
-
 
     def is_file_tracked(self, fl):
         try:
@@ -319,7 +325,6 @@ class GitBackend(object):
             return True
         except error.CmdError:
             return False
-
 
     def add_untracked_file(self, fl):
         """
@@ -333,7 +338,6 @@ class GitBackend(object):
             logging.error("Problem adding file %s to git: %s", fl, e)
             sys.exit(1)
 
-
     def revert_file(self, fl):
         """
         Revert file against last revision.
@@ -345,7 +349,6 @@ class GitBackend(object):
         except error.CmdError, e:
             logging.error("Problem reverting file %s: %s", fl, e)
             sys.exit(1)
-
 
     def apply_patch(self, patch):
         """
@@ -364,7 +367,6 @@ class GitBackend(object):
             logging.error("Failed to apply patch to the git repo: %s" % e)
             sys.exit(1)
 
-
     def update(self):
         return
         try:
@@ -373,11 +375,18 @@ class GitBackend(object):
             logging.error("git tree update failed: %s" % e)
 
 
+def run_codespell(path):
+    cmd = CODESPELL_PATH + " -w " + path
+    utils.system(CODESPELL_PATH, ignore_status=True)
+
+
 class FileChecker(object):
+
     """
     Picks up a given file and performs various checks, looking after problems
     and eventually suggesting solutions.
     """
+
     def __init__(self, path=None, vcs=None, confirm=False):
         """
         Class constructor, sets the path attribute.
@@ -425,13 +434,11 @@ class FileChecker(object):
         else:
             self.bkp_path = None
 
-
     def _get_checked_filename(self):
         if self.bkp_path is not None:
             return self.bkp_path
         else:
             return self.path
-
 
     def _check_indent(self):
         """
@@ -448,7 +455,7 @@ class FileChecker(object):
         """
         success = True
         for exc in self.indent_exceptions:
-            if re.search (exc, self.path):
+            if re.search(exc, self.path):
                 return success
 
         path = self._get_checked_filename()
@@ -475,7 +482,6 @@ class FileChecker(object):
 
         return success
 
-
     def _check_code(self):
         """
         Verifies the file with run_pylint.
@@ -487,7 +493,7 @@ class FileChecker(object):
         """
         success = True
         for exc in self.check_exceptions:
-            if re.search (exc, self.path):
+            if re.search(exc, self.path):
                 return success
 
         path = self._get_checked_filename()
@@ -502,6 +508,47 @@ class FileChecker(object):
 
         return success
 
+    def _check_pep8(self):
+        """
+        Verifies the file with run_pep8.
+        """
+        success = True
+        for exc in self.check_exceptions:
+            if re.search(exc, self.path):
+                return success
+
+        path = self._get_checked_filename()
+
+        try:
+            run_pep8.check_file(path)
+        except Exception, details:
+            logging.error(
+                "PEP8 linter exception while verifying %s, details: %s",
+                path, details)
+            success = False
+
+        mf = self.vcs.get_modified_files()
+        path = path[2:]
+        if path in mf:
+            success = False
+            logging.error("PEP8 linter modified %s", path)
+
+        return success
+
+    def _check_codespell(self):
+        """
+        Verifies the file with codespell.
+        """
+        success = True
+        for exc in self.check_exceptions:
+            if re.search(exc, self.path):
+                return success
+
+        path = self._get_checked_filename()
+
+        run_codespell(path)
+
+        return success
 
     def _check_unittest(self):
         """
@@ -537,7 +584,6 @@ class FileChecker(object):
 
         return success
 
-
     def _check_permissions(self):
         """
         Verifies the execution permissions.
@@ -562,7 +608,6 @@ class FileChecker(object):
                     utils.run("chmod -x %s" % self.path,
                               ignore_status=True)
 
-
     def report(self, skip_unittest=False):
         """
         Executes all required checks, if problems are found, the possible
@@ -575,6 +620,10 @@ class FileChecker(object):
                 success = False
             if not self._check_code():
                 success = False
+            if not self._check_pep8():
+                success = False
+            if not self._check_codespell():
+                success = False
             if not skip_unittest:
                 if not self._check_unittest():
                     success = False
@@ -586,6 +635,7 @@ class FileChecker(object):
 
 
 class PatchChecker(object):
+
     def __init__(self, patch=None, patchwork_id=None, github_id=None,
                  pwhost=None, vcs=None, confirm=False):
         self.confirm = confirm
@@ -626,7 +676,6 @@ class PatchChecker(object):
 
         self.untracked_files_before = self.vcs.get_unknown_files()
         self.vcs.update()
-
 
     def _fetch_from_patchwork(self, pw_id):
         """
@@ -669,7 +718,6 @@ class PatchChecker(object):
         patch_dest = os.path.join(self.base_dir, 'github-%s.patch' % gh_id)
         urllib.urlretrieve(patch_url, patch_dest)
         return patch_dest
-
 
     def _check_files_modified_patch(self):
         modified_files_after = []
@@ -715,7 +763,6 @@ class PatchChecker(object):
         else:
             return True
 
-
     def check(self):
         self.vcs.apply_patch(self.patch)
         return self._check_files_modified_patch()
@@ -746,6 +793,7 @@ if __name__ == "__main__":
     gh_id = options.gh_id
     debug = options.debug
     run_pylint.set_verbosity(debug)
+    run_pep8.set_verbosity(debug)
     full_check = options.full_check
     confirm = options.confirm
     pwhost = options.patchwork_host
@@ -762,6 +810,11 @@ if __name__ == "__main__":
     if full_check:
         failed_paths = []
         run_pylint.set_verbosity(False)
+        run_pep8.set_verbosity(False)
+        logging.info("%s spell check", PROJECT_NAME)
+        logging.info("")
+        run_codespell(TOP_LEVEL_DIRNAME)
+
         logging.info("%s full tree check", PROJECT_NAME)
         logging.info("")
 
