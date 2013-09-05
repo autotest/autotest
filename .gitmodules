@@ -4,3 +4,6 @@
 [submodule "server/tests"]
 	path = server/tests
 	url = git://github.com/autotest/autotest-server-tests.git
+[submodule "utils/codespell"]
+	path = utils/codespell
+	url = git://github.com/lucasdemarchi/codespell.git
