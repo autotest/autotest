@@ -351,7 +351,7 @@ class mock_god(object):
         """
         Given something that defines a namespace cls (class, object,
         module), and a (hopefully unique) name, will create a
-        mock_class object with that name and that possessess all
+        mock_class object with that name and that possesses all
         the public attributes of cls.  default_ret_val sets the
         default_ret_val on all methods of the cls mock.
         """

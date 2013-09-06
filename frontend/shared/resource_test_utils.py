@@ -75,7 +75,7 @@ class ResourceTestCase(unittest.TestCase,
         try:
             return simplejson.loads(response.content)
         except ValueError:
-            self.fail('Invalid reponse body: %s' % response.content)
+            self.fail('Invalid response body: %s' % response.content)
 
 
     def sorted_by(self, collection, attribute):

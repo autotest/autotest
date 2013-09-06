@@ -49,7 +49,7 @@ class ServiceProxy(object):
         try:
             resp = decoder.JSONDecoder().decode(respdata)
         except ValueError:
-            raise JSONRPCException('Error decoding JSON reponse:\n' + respdata)
+            raise JSONRPCException('Error decoding JSON response:\n' + respdata)
         if resp['error'] is not None:
             error_message = (resp['error']['name'] + ': ' +
                              resp['error']['message'] + '\n' +

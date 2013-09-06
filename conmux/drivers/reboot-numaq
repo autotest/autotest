@@ -2,7 +2,7 @@
 #
 # reboot-numaq -- reboot Numa-Q systems connected to a VCS console
 #
-# Use the remote telnet managment interface on the VCS console to
+# Use the remote telnet management interface on the VCS console to
 # hardreset systems.  Systems are identified by their system names
 # within VCS.
 #

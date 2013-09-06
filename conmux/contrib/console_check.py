@@ -198,7 +198,7 @@ def hard_reset_hosts(conmux_dir):
 def host_create(host, cli_dir):
     """Create a host
        Return:
-            True, if successfuly false if failed
+            True, if successfully false if failed
     """
     cmd = "%s/host-create %s" % (cli_dir, host)
     status, _ = commands.getstatusoutput(cmd)

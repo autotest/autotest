@@ -808,13 +808,13 @@ if __name__ == '__main__':
 
     if action == 'install':
         if software_manager.install(args):
-            logging.info("Packages %s installed successfuly", args)
+            logging.info("Packages %s installed successfully", args)
         else:
             logging.error("Failed to install %s", args)
 
     elif action == 'remove':
         if software_manager.remove(args):
-            logging.info("Packages %s removed successfuly", args)
+            logging.info("Packages %s removed successfully", args)
         else:
             logging.error("Failed to remove %s", args)
 
@@ -834,13 +834,13 @@ if __name__ == '__main__':
 
     elif action == 'add-repo':
         if software_manager.add_repo(args):
-            logging.info("Repo %s added successfuly", args)
+            logging.info("Repo %s added successfully", args)
         else:
             logging.error("Failed to remove repo %s", args)
 
     elif action == 'remove-repo':
         if software_manager.remove_repo(args):
-            logging.info("Repo %s removed successfuly", args)
+            logging.info("Repo %s removed successfully", args)
         else:
             logging.error("Failed to remove repo %s", args)
 
@@ -855,7 +855,7 @@ if __name__ == '__main__':
 
     elif action == 'install-what-provides':
         if software_manager.install_what_provides(args):
-            logging.info("Installed successfuly what provides %s", args)
+            logging.info("Installed successfully what provides %s", args)
 
     elif action == 'show-help':
         parser.print_help()

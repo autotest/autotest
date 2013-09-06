@@ -1056,9 +1056,9 @@ class Grubby(object):
     def _remove_duplicate_cmdline_args(self, cmdline):
         """
         Remove the duplicate entries in cmdline making sure that the first
-        duplicate occurances are the ones removed and the last one remains
+        duplicate occurrences are the ones removed and the last one remains
         (this is in order to not change the semantics of the "console"
-        parameter where the last occurance has special meaning)
+        parameter where the last occurrence has special meaning)
 
         @param cmdline: a space separate list of kernel boot parameters
             (ex. 'console=ttyS0,57600n8 nmi_watchdog=1')

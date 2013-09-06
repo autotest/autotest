@@ -16,7 +16,7 @@ from autotest.client.shared.settings import settings
 
 def deprecated(func):
     """This is a decorator which can be used to mark functions as deprecated.
-    It will result in a warning being emmitted when the function is used."""
+    It will result in a warning being emitted when the function is used."""
     def new_func(*args, **dargs):
         warnings.warn("Call to deprecated function %s." % func.__name__,
                       category=DeprecationWarning)

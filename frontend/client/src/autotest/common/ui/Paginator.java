@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A widget to faciliate pagination of tables.  Shows currently displayed rows,
+ * A widget to facilitate pagination of tables.  Shows currently displayed rows,
  * total row count, and buttons for moving among pages.
  */
 public class Paginator extends Composite {

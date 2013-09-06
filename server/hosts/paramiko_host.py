@@ -136,7 +136,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             # HACK: we can't count on transport.join not hanging now, either
             transport.join = lambda: None
             transport.close()
-        logging.error("SSH negotation (%s:%d) has timed out %s times, "
+        logging.error("SSH negotiation (%s:%d) has timed out %s times, "
                       "giving up", self.hostname, self.port,
                       self.CONNECT_TIMEOUT_RETRIES)
         raise error.AutoservSSHTimeout("SSH negotiation timed out")
@@ -176,7 +176,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         try:
             channel = self.transport.open_session()
         except (socket.error, paramiko.SSHException, EOFError), e:
-            logging.warn("Exception occured while opening session: %s", e)
+            logging.warn("Exception occurred while opening session: %s", e)
             if time.time() - start_time >= timeout:
                 raise error.AutoservSSHTimeout("ssh failed: %s" % e)
 

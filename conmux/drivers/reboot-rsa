@@ -2,7 +2,7 @@
 #
 # reboot-rsa -- reboot systems with RSA management cards
 #
-# Reboot systems via their RSA (I) managment card interface.
+# Reboot systems via their RSA (I) management card interface.
 # 
 # usage: 
 # reboot-rsa <userid> <password> <connect commands> ...

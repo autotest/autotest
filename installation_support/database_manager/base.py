@@ -14,7 +14,7 @@ class BaseDatabaseManager(object):
     Base class for mananging database instances
 
     Different RDMS have different ways of crearing instances, checking for
-    their existance, etc.
+    their existence, etc.
     '''
     def __init__(self, name, admin=None, admin_password=None, user=None,
                  password=None, host=None):

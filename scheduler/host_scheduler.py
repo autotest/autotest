@@ -259,7 +259,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
 
         @param atomic_group_id - The id of the AtomicGroup to look up.
 
-        @returns A generator yeilding Label ids for this atomic group.
+        @returns A generator yielding Label ids for this atomic group.
         """
         return (id for id, label in self._labels.iteritems()
                 if label.atomic_group_id == atomic_group_id

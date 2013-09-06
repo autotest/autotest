@@ -374,7 +374,7 @@ class base_client_job(base_job.base_job):
         """\
         Return a patch relative to the job results directory
         """
-        head = len(self.resultdir) + 1     # remove the / inbetween
+        head = len(self.resultdir) + 1     # remove the / between
         return path[head:]
 
 
@@ -520,7 +520,7 @@ class base_client_job(base_job.base_job):
 
             os.chdir(dep_dir)
             if execfile('%s.py' % dep, {}) is None:
-                logging.info('Dependency %s successfuly built', dep)
+                logging.info('Dependency %s successfully built', dep)
 
 
     def _runtest(self, url, tag, timeout, args, dargs):

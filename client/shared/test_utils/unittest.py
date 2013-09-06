@@ -231,7 +231,7 @@ class TestResult(object):
         self.skipped.append((test, reason))
 
     def addExpectedFailure(self, test, err):
-        """Called when an expected failure/error occured."""
+        """Called when an expected failure/error occurred."""
         self.expectedFailures.append(
             (test, self._exc_info_to_string(err, test)))
 
@@ -609,7 +609,7 @@ class TestCase(object):
            (default 7) and comparing to zero.
 
            Note that decimal places (from zero) are usually not the same
-           as significant digits (measured from the most signficant digit).
+           as significant digits (measured from the most significant digit).
         """
         if round(abs(second-first), places) != 0:
             standardMsg = '%r != %r within %r places' % (first, second, places)
@@ -622,7 +622,7 @@ class TestCase(object):
            (default 7) and comparing to zero.
 
            Note that decimal places (from zero) are usually not the same
-           as significant digits (measured from the most signficant digit).
+           as significant digits (measured from the most significant digit).
         """
         if round(abs(second-first), places) == 0:
             standardMsg = '%r == %r within %r places' % (first, second, places)

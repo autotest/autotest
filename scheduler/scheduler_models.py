@@ -1156,7 +1156,7 @@ class Job(DBObject):
 
 
     def _min_hosts_needed_to_run(self):
-        """Return the minumum number of hsots needed to run this job."""
+        """Return the minimum number of hosts needed to run this job."""
         return self.synch_count
 
 
@@ -1428,7 +1428,7 @@ class Job(DBObject):
         def run_job_after_delay():
             logging.info('Job %s done waiting for extra hosts.', self)
             # Check to see if the job is still relevant.  It could have aborted
-            # while we were waiting or hosts could have disappearred, etc.
+            # while we were waiting or hosts could have disappeared, etc.
             if self._pending_count() < self._min_hosts_needed_to_run():
                 logging.info('Job %s had too few Pending hosts after waiting '
                              'for extras.  Not running.', self)

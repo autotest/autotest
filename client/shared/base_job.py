@@ -901,7 +901,7 @@ class base_job(object):
     @property user: The user executing the job.
     @property tag: A tag identifying the job. Often used by the scheduler to
         give a name of the form NUMBER-USERNAME/HOSTNAME.
-    @property args: A list of addtional miscellaneous command-line arguments
+    @property args: A list of additional miscellaneous command-line arguments
         provided when starting the job.
 
     @property last_boot_tag: The label of the kernel from the last reboot.
@@ -935,7 +935,7 @@ class base_job(object):
     @property sysinfo: An instance of the sysinfo object. Only available in
         contexts where it's possible to collect sysinfo.
     @property warning_manager: A class for managing which types of WARN
-        messages should be logged and which should be supressed. [OPTIONAL]
+        messages should be logged and which should be suppressed. [OPTIONAL]
     @property warning_loggers: A set of readable streams that will be monitored
         for WARN messages to be logged. [OPTIONAL]
 
@@ -1229,7 +1229,7 @@ class base_job(object):
         @param operation: A string describing the operation that was run.
         @param status: An optional human-readable message describing the status
             entry, for example an error message or "completed successfully".
-        @param optional_fields: An optional dictionary of addtional named fields
+        @param optional_fields: An optional dictionary of additional named fields
             to be included with the status message. Every time timestamp and
             localtime entries are generated with the current time and added
             to this dictionary.

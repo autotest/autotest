@@ -193,7 +193,7 @@ class kernel(BootableKernel):
             else:
                 self.base_tree_version = None
 
-            # Actually extract the tree.  Make sure we know it occured
+            # Actually extract the tree.  Make sure we know it occurred
             self.extract(base_tree)
 
 

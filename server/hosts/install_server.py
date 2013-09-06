@@ -167,7 +167,7 @@ class CobblerInterface(object):
         host.wait_for_restart()
         host.record("END GOOD", None, "install", host.hostname)
         time_elapsed = time.time() - install_start
-        logging.info("Machine %s installed successfuly after %d s (%d min)",
+        logging.info("Machine %s installed successfully after %d s (%d min)",
                      host.hostname, time_elapsed, time_elapsed/60)
 
 

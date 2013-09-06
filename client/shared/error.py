@@ -168,7 +168,7 @@ class JobComplete(SystemExit):
 
 
 class AutotestError(Exception):
-    """The parent of all errors deliberatly thrown within the client code."""
+    """The parent of all errors deliberately thrown within the client code."""
     def __str__(self):
         return Exception.__str__(self) + _context_message(self)
 
@@ -431,12 +431,12 @@ class AutoservHardwareHostError(AutoservHostError):
 
 
 class AutoservRebootError(AutoservError):
-    """Error occured while rebooting a machine"""
+    """Error occurred while rebooting a machine"""
     pass
 
 
 class AutoservShutdownError(AutoservRebootError):
-    """Error occured during shutdown of machine"""
+    """Error occurred during shutdown of machine"""
     pass
 
 
@@ -470,7 +470,7 @@ class AutoservHardwareRepairRequiredError(AutoservError):
 
 
 class AutoservInstallError(AutoservError):
-    """Error occured while installing autotest on a host"""
+    """Error occurred while installing autotest on a host"""
     pass
 
 

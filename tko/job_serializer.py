@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-"""A script that provides convertion between models.job and a protocol
+"""A script that provides conversion between models.job and a protocol
 buffer object.
 
 This script contains only one class that takes an job instance and
@@ -176,7 +176,7 @@ class JobSerializer(object):
 
         @param
         tko_job: a tko job instance that will have it's values
-        transfered to the new job
+        transferred to the new job
         pb_job: a new instance of the job class provided in the
         protocol buffer.
         tag: used to set pb_job.tag and pb_job.afe_job_id.
@@ -282,7 +282,7 @@ class JobSerializer(object):
         """Set a specific kernel of a test.
 
         Takes the same form of all the other setting methods.  It
-        seperates the string variables from the int variables and set
+        separates the string variables from the int variables and set
         them safely.
 
         @param

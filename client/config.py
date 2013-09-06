@@ -2,8 +2,8 @@
 
 The job configuration, holding configuration variable supplied to the job.
 
-The config should be viewed as a hierachical namespace.  The elements
-of the hierachy are separated by periods (.) and where multiple words
+The config should be viewed as a hierarchical namespace.  The elements
+of the hierarchy are separated by periods (.) and where multiple words
 are required at a level they should be separated by underscores (_).
 Please no StudlyCaps.
 

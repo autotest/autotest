@@ -1199,7 +1199,7 @@ class testcaseType(GeneratedsSuper):
 
 class errorType(GeneratedsSuper):
     """The error message. e.g., if a java exception is thrown, the return
-    value of getMessage()The type of error that occured. e.g., if a
+    value of getMessage()The type of error that occurred. e.g., if a
     java execption is thrown the full class name of the exception."""
     subclass = None
     superclass = None

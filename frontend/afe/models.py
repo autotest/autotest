@@ -564,7 +564,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
 
 
     def platform(self):
-        # TODO(showard): slighly hacky?
+        # TODO(showard): slightly hacky?
         platforms = self.labels.filter(platform=True)
         if len(platforms) == 0:
             return None

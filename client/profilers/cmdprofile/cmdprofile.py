@@ -22,7 +22,7 @@ class cmdprofile(profiler.profiler):
                 'is specified')
         elif outputfiles and len(outputfiles) != len(cmds):
             raise error.TestError(
-                'cmdprofile paramter outputfiles has length %d and cmds has '
+                'cmdprofile parameter outputfiles has length %d and cmds has '
                 'length %d, but both lists must have the same length' %
                 (len(outputfiles), len(cmds)))
 

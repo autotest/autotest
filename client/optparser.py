@@ -50,7 +50,7 @@ class AutotestLocalOptionParser(optparse.OptionParser):
 
         general.add_option('--client_test_setup', dest='client_test_setup',
                            type='string', default=None, action='store',
-                           help=('a comma seperated list of client tests to '
+                           help=('a comma separated list of client tests to '
                                  'prebuild on the server. Use all to prebuild '
                                  'all of them.'))
         self.add_option_group(general)

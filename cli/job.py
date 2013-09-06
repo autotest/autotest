@@ -271,7 +271,7 @@ class job_create_or_clone(action_common.atest_create, job):
         self.parser.add_option('--one-time-hosts',
                                help='List of one time hosts')
         self.parser.add_option('-e', '--email',
-                               help='A comma seperated list of '
+                               help='A comma separated list of '
                                'email addresses to notify of job completion',
                                default='')
 

@@ -85,7 +85,7 @@ if [ "$cmd" = "start" ]; then
 			fi
 			started="$started $n"
 
-			# Preserve the orginal configuration file.
+			# Preserve the original configuration file.
 			cp "$i" "$CONMUX/log/$n.cf"
 
 			if grep -q TYPE:numaq "$i"; then

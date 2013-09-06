@@ -886,7 +886,7 @@ class ModelExtensions(object):
     @classmethod
     def query_count(cls, filter_data, initial_query=None):
         """\
-        Like query_objects, but retreive only the count of results.
+        Like query_objects, but retrieve only the count of results.
         """
         filter_data.pop('query_start', None)
         filter_data.pop('query_limit', None)
@@ -1025,7 +1025,7 @@ class ModelWithInvalid(ModelExtensions):
 
     def save(self, *args, **kwargs):
         '''
-        Attempts to ressurect a previously added and invalidated object first
+        Attempts to resurrect a previously added and invalidated object first
 
         If the object being added has not been saved to the database
         previously, then this logic is relevant and not executed.

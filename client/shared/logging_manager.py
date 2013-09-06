@@ -161,7 +161,7 @@ class LoggingFile(object):
 
 class SortingLoggingFile(LoggingFile):
     """
-    File-like object that will recieve messages and pass them to the logging
+    File-like object that will receive messages and pass them to the logging
     infrastructure. It decides where to pass each line by applying a regex
     to it and seeing which level it matched.
     """

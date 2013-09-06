@@ -33,7 +33,7 @@ def opt_string2dict(opt_string):
 
 def parse_mke2fs_conf(fs_type, conf_file='/etc/mke2fs.conf'):
     """Parses mke2fs config file for default settings."""
-    # Please see /ect/mke2fs.conf for an example.
+    # Please see /etc/mke2fs.conf for an example.
     default_opt = {}
     fs_opt = {}
     current_fs_type = ''

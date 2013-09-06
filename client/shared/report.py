@@ -275,7 +275,7 @@ def write_html_report(results_dir, report_path=None):
     html_result = open(report_path, "w")
     html_result.write(rendered_html)
     html_result.close()
-    logging.info("Report successfuly generated at %s", report_path)
+    logging.info("Report successfully generated at %s", report_path)
 
 
 dirname = os.path.dirname(sys.modules[__name__].__file__)

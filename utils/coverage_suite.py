@@ -64,7 +64,7 @@ def run_unittests(prog, dirname, files):
 def main():
     coverage = os.path.join(root, "contrib/coverage.py")
 
-    # remove preceeding coverage data
+    # remove preceding coverage data
     cmd = "%s -e" % (coverage)
     os.system(cmd)
 

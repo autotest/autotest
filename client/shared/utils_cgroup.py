@@ -275,7 +275,7 @@ class Cgroup(object):
         @param cmd: command to be executed
         @return: subprocess.Popen() process
         """
-        logging.debug("cg.test(): executing paralel process '%s'", cmd)
+        logging.debug("cg.test(): executing parallel process '%s'", cmd)
         cmd = self._client + ' ' + cmd
         process = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
@@ -716,7 +716,7 @@ def service_cgconfig_control(action):
     if action in actions:
         try:
             utils.run("service cgconfig %s" % action)
-            logging.debug("%s cgconfig successfuly", action)
+            logging.debug("%s cgconfig successfully", action)
             return True
         except error.CmdError, detail:
             logging.error("Failed to %s cgconfig:\n%s", action, detail)

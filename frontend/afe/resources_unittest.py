@@ -32,7 +32,7 @@ class AfeResourceTestCase(resource_test_utils.ResourceTestCase):
 
 
 class FilteringPagingTest(AfeResourceTestCase):
-    # we'll arbitarily choose to use hosts for this
+    # we'll arbitrarily choose to use hosts for this
 
     def setUp(self):
         super(FilteringPagingTest, self).setUp()

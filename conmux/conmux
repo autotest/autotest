@@ -360,7 +360,7 @@ sub initialise {
 
 	print "Payload::initialise [$self]\n" if ($main::debug);
 
-	# Ensure we recieve client input.
+	# Ensure we receive client input.
 	$self->cin->junctionAdd($self);
 
 	$self->connected(time);
@@ -927,7 +927,7 @@ sub DESTROY {
 }
 
 #
-# CLIENT CMD: represents a client whilst in command mode, when we have commited
+# CLIENT CMD: represents a client whilst in command mode, when we have committed
 # to connecting this will pass the client connection off to a ClientData
 # object.
 #
@@ -1060,7 +1060,7 @@ sub mux_input {
 				$self->cout->junctionInput($self, $1);
 			}
 		} else {
-			# Consume characters upto a newline, echo them back
+			# Consume characters up to a newline, echo them back
 			# to the client as we go.
 			while ($$input =~ s/^([^\r\n])//) {
 				my $c = $1;

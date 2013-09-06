@@ -760,7 +760,7 @@ class partition(object):
         locking problems if we are umounting in paralllel.
 
         If there turns out to be a problem with the simple umount we
-        end up calling umount_force to get more  agressive.
+        end up calling umount_force to get more  aggressive.
 
         @param ignore_status: should we notice the umount status
         @param record: if True, output result of umount operation to
@@ -860,7 +860,7 @@ class virtual_partition:
         self.loop = self._attach_img_loop(self.img)
         self._create_single_partition(self.loop)
         self.device = self._create_entries_partition(self.loop)
-        logging.debug('Virtual partition successfuly created')
+        logging.debug('Virtual partition successfully created')
         logging.debug('Image disk: %s', self.img)
         logging.debug('Loopback device: %s', self.loop)
         logging.debug('Device path: %s', self.device)

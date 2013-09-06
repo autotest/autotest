@@ -505,7 +505,7 @@ def create_container_with_mbytes_and_specific_cpus(name, mbytes,
 
             name = arbitrary string tag
             mbytes = reqested memory for job in megabytes
-            cpus = list of cpu indicies to associate with the cpuset
+            cpus = list of cpu indices to associate with the cpuset
                   defaults to all cpus avail with given root
             root = the parent cpuset to nest this new set within
                    '': unnested top-level container

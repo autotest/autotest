@@ -2,7 +2,7 @@
 #
 # reboot-rsa2 -- reboot systems via their RSA-II management cards
 #
-# Use a systems RSA (II) managment card to hard reset that system.
+# Use a systems RSA (II) management card to hard reset that system.
 #
 # usage: 
 #  reboot-rsa2 <userid> <password> <connect command> ...

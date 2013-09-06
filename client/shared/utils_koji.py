@@ -330,7 +330,7 @@ class KojiClient(object):
 
     def get_pkg_rpm_info(self, pkg, arch=None):
         '''
-        Returns a list of infomation on the RPM packages found on koji
+        Returns a list of information on the RPM packages found on koji
 
         @type pkg: KojiPkgSpec
         @param pkg: a package specification

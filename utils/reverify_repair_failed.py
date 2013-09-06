@@ -2,7 +2,7 @@
 
 """
 Send all Repair Failed hosts that the user running this script has access to
-back into Verifying.  (Only hosts ACL accessable to the user)
+back into Verifying.  (Only hosts ACL accessible to the user)
 
 Suggested use: Run this as an occasional cron job to re-check if Repair Failed
 hosts have overcome whatever issue caused the failure and are useful again.

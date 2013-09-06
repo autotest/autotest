@@ -82,9 +82,9 @@ class GitRepoHelper(object):
         Wraps git commands.
 
         @param cmd: Command to be executed.
-        @param ignore_status: Whether we should supress error.CmdError
+        @param ignore_status: Whether we should suppress error.CmdError
                 exceptions if the command did return exit code !=0 (True), or
-                not supress them (False).
+                not suppress them (False).
         '''
         os.chdir(self.destination_dir)
         return utils.run(r"%s %s" % (self.cmd, utils.sh_escape(cmd)),

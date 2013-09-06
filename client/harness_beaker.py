@@ -412,7 +412,7 @@ class harness_beaker(harness.harness):
             return
 
         """The mapping between beaker tasks and non-beaker tasks is not easy to
-           seperate.  Therefore we use the START and END markers along with the
+           separate.  Therefore we use the START and END markers along with the
            environment variable BEAKER_TASK_ID to help us.
 
            We keep an on-disk-file that stores the tests we have seen (or will run

@@ -379,7 +379,7 @@ class AbstractSSHHost(SiteHost):
                         pass
 
                 # If there is a list of more than one path, destination *has*
-                # to be a dir. If there's a single path being transfered and
+                # to be a dir. If there's a single path being transferred and
                 # it is a dir, the destination also has to be a dir. Therefore
                 # it has to be created on the remote machine in case it doesn't
                 # exist, otherwise we will have an scp failure.

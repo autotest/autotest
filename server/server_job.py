@@ -536,7 +536,7 @@ class base_server_job(base_job.base_job):
                 self._execute_code(server_control_file, namespace)
                 logging.info("Finished processing control file")
 
-                # no error occured, so we don't need to collect crashinfo
+                # no error occurred, so we don't need to collect crashinfo
                 collect_crashinfo = False
             except Exception, e:
                 try:
@@ -824,7 +824,7 @@ class base_server_job(base_job.base_job):
     def get_status_log_path(self, subdir=None):
         """Return the path to the job status log.
 
-        @param subdir - Optional paramter indicating that you want the path
+        @param subdir - Optional parameter indicating that you want the path
             to a subdirectory status log.
 
         @returns The path where the status log should be.
@@ -955,7 +955,7 @@ class base_server_job(base_job.base_job):
                         # more concrete API with less surprises on '*' imports.
                         warnings.warn('%s (%r) being imported from %s for use '
                                       'in server control files is not the '
-                                      'first occurrance of that import.' %
+                                      'first occurrence of that import.' %
                                       (name, namespace[name], module_name))
 
                 namespace[name] = getattr(module, name)
@@ -1039,7 +1039,7 @@ class base_server_job(base_job.base_job):
         try:
             dbutils.insert_test(self.job_model, test)
         except Exception:
-            msg = ("WARNING: An unexpected error occured while "
+            msg = ("WARNING: An unexpected error occurred while "
                    "inserting test results into the database. "
                    "Ignoring error.\n" + traceback.format_exc())
             print >> sys.stderr, msg
@@ -1112,9 +1112,9 @@ class warning_manager(object):
 
 
     def is_valid(self, timestamp, warning_type):
-        """Indicates if a warning (based on the time it occured and its type)
+        """Indicates if a warning (based on the time it occurred and its type)
         is a valid warning. A warning is considered "invalid" if this type of
-        warning was marked as "disabled" at the time the warning occured."""
+        warning was marked as "disabled" at the time the warning occurred."""
         disabled_intervals = self.disabled_warnings.get(warning_type, [])
         for start, end in disabled_intervals:
             if timestamp >= start and (end is None or timestamp < end):

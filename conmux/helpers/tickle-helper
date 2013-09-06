@@ -3,7 +3,7 @@
 # tickle-helper -- watch for reboots and 'tickle' the console during them
 #
 # Some consoles get broken when the machine reboots.  There are normally
-# fixed by trying to use them at or arround the reboot.  Watch for reboots
+# fixed by trying to use them at or around the reboot.  Watch for reboots
 # and initiate use of the console to trigger a drop/reconnect cycle.
 #
 # (C) Copyright IBM Corp. 2004, 2005, 2006
@@ -71,7 +71,7 @@ expect_user {
 		exp_continue
 	}
 	-ex {***** REBOOT LINUX *****} {
-		note "fsck failure occured ..."
+		note "fsck failure occurred ..."
 		set likely [clock seconds]
 		exp_continue
 	}

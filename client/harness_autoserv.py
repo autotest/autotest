@@ -48,7 +48,7 @@ class harness_autoserv(harness.harness):
         @param *args: Additional arbitrary alphanumeric arguments to pass
                 to the server.
         """
-        # create a named pipe for us to recieve a signal on
+        # create a named pipe for us to receive a signal on
         fifo_dir = autotemp.tempdir(suffix='-fifo', unique_id='harness',
                                     dir=self.job.tmpdir)
         try:

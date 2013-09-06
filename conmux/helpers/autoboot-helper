@@ -48,7 +48,7 @@ expect_user {
 		exp_continue
 	}
 	-ex {***** REBOOT LINUX *****} {
-		note "fsck failure occured ..."
+		note "fsck failure occurred ..."
 		set likely [clock seconds]
 		exp_continue
 	}
