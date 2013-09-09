@@ -14,7 +14,13 @@ maintainable. (Obviously using C or whatever for writing tests is fine).
 Base coding style
 
 When writing python code, unless otherwise stated, stick to the python style
-guide (http://www.python.org/dev/peps/pep-0008/).
+guide (http://www.python.org/dev/peps/pep-0008/). We now ship a script,
+run_pep8.py, that can verify non compliances to the PEP8, with some of
+the few exceptions we allow people to do. If you see that the script
+finds problems with your code, we expect you to fix them before you
+send pull requests. In order for the script to be useful you'll have to
+use the tools provided by your distro to install the programs 'pep8' and
+'autopep8'.
 
 
 Indentation & whitespace
@@ -25,8 +31,6 @@ Indentation is now 4 spaces, as opposed to hard tabs (which it used to be).
 This is the Python standard.
 
 Don't leave trailing whitespace, or put whitespace on blank lines.
-Leave TWO blank lines between functions - this is Python, there are no clear
-function end markers, and we need help.
 
 
 Variable names and UpPeR cAsE
@@ -35,8 +39,7 @@ Use descriptive variable names where possible - it helps to make the code
 self documenting.
 
 Don't use CamelCaps style in most places - use underscores to separate parts
-of your variable_names please. I shall make a bedgrudging exception for class
-names I suppose, but I'll still whine about it a lot.
+of your variable_names please.
 
 Importing modules
 
@@ -50,6 +53,7 @@ Within one of these three sections, all module imports using the from
 keyword should appear after regular imports.
 Modules should be lumped together on the same line.
 Wildcard imports (from x import *) should be avoided if possible.
+
 Classes should not be imported from modules, but modules may be imported
  from packages, i.e.:
 from shared import error
@@ -57,8 +61,19 @@ and not
 from shared.error import AutoservError
 
 For example:
-import os, pickle, random, re, select, shutil, signal, StringIO, subprocess
-import sys, time, urllib, urlparse
+import os
+import pickle
+import random
+import re
+import select
+import shutil
+import signal
+import StringIO
+import subprocess
+import sys
+import time
+import urllib
+import urlparse
 import MySQLdb
 try:
     import autotest.common   
@@ -177,11 +192,9 @@ client/shared/error.py.
 
 Submitting patches
 
-Generate universal diffs. Email them to autotest@test.kernel.org.
-Most mailers now break lines and/or changes tabs to spaces. If you know how
-to avoid that - great, put your patches inline. If you're not sure, just
-attatch them, I don't care much. Please base them off the current version.
+Nowadays, the projects uses the github (http://github.com/ infrastructure,
+and we ask contributors to send patches as github pull requests, rather than
+to the mailing list. How to do that is covered on github's documentation:
 
-Don't worry about submitting patches to a public list - everybody makes
-mistakes, especially me ... so get over it and don't worry about it.
-(though do give your changes a test first ;-))
+https://help.github.com/articles/using-pull-requests
+
