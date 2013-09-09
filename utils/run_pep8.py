@@ -3,95 +3,103 @@
 Usage: run_pep8.py [options] [list of files]
 
 Options:
--h, --help    show this help message and exit
--q, --quiet   Ignore pep8 errors
--d, --dryrun  Analyze, but don't make any changes to files
+-h, --help  show this help message and exit
+-f, --fix   Auto fix files in place
 '''
 
 import os
-import sys
 
 import common
-from autotest.client.shared import utils
+from autotest.client.shared import utils, logging_manager, logging_config
 from autotest.client import os_dep
+
+
+class Pep8LoggingConfig(logging_config.LoggingConfig):
+
+    """
+    Used with the sole purpose of providing convenient logging setup
+    for the KVM test auxiliary programs.
+    """
+
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(Pep8LoggingConfig, self).configure_logging(use_console=True,
+                                                         verbose=verbose)
+
+
+class SetupError(Exception):
+    pass
 
 # do a basic check to see if python-pep8 is installed
 try:
+    # pep8 just analyzes code, it can't fix it
     PEP8_EXEC = os_dep.command("pep8")
+    # autopep8 can automatically fix a number of non compliances
+    AUTOPEP8_EXEC = os_dep.command("autopep8")
 except ValueError:
-    print "Unable to find command <pep8>, it may need to be installed"
-    sys.exit(1)
+    PEP8_EXEC = None
+    AUTOPEP8_EXEC = None
+
+DEPS_SATISFIED = (PEP8_EXEC is not None) and (AUTOPEP8_EXEC is not None)
+E_MSG = ("The utilities 'pep8' and 'autopep8' are not available. You have "
+         "to install them using the tools provided by your distro")
 
 # Classes of errors we ignore on quiet runs
 # TODO: I am not sure which ERROR we need to ignore.
-IGNORED_ERRORS = ''
-PEP8_VERBOSE = True
-PEP8_DRYRUN = False
+IGNORED_ERRORS = 'E501,W601'
 
 
-def set_verbosity(verbose):
-    global PEP8_VERBOSE
-    PEP8_VERBOSE = verbose
-
-
-def set_dryrun(dryrun):
-    global PEP8_DRYRUN
-    PEP8_DRYRUN = dryrun
+def _check(path):
+    cmd = PEP8_EXEC
+    if IGNORED_ERRORS:
+        cmd += " --ignore %s" % IGNORED_ERRORS
+    cmd += " %s" % path
+    return utils.system(cmd, ignore_status=True) == 0
 
 
 def check(path):
-    cmd = ""
-    if PEP8_DRYRUN:
-        cmd += PEP8_EXEC
+    if DEPS_SATISFIED:
+        _check(path)
     else:
-        try:
-            AUTOPEP8_EXEC = os_dep.command("autopep8")
-            cmd += "%s -r -i " % AUTOPEP8_EXEC
-        except ValueError:
-            print ("Unable to find command <autopep8>, "
-                   "please add option --dryrun.")
-            sys.exit(1)
+        raise SetupError(E_MSG)
 
-    if not PEP8_VERBOSE and IGNORED_ERRORS:
+
+def _fix(path):
+    cmd = AUTOPEP8_EXEC
+    if IGNORED_ERRORS:
         cmd += " --ignore %s" % IGNORED_ERRORS
-    cmd += " %s " % path
-    return utils.run(cmd)
+    if os.path.isdir(path):
+        cmd += " --recursive --in-place"
+    else:
+        cmd += " --in-place"
+    cmd += " %s" % path
+    return utils.system(cmd, ignore_status=True) == 0
 
 
-def check_file(path):
-    if not path.endswith('.py'):
-        print "%s is not a python file." % path
-        return 1
-    check(path)
-
-
-def check_dir(path):
-    if not os.path.isdir(path):
-        print "%s is not a directory." % path
-        return 1
-    check(path)
+def fix(path):
+    if DEPS_SATISFIED:
+        _fix(path)
+    else:
+        raise SetupError(E_MSG)
 
 
 if __name__ == "__main__":
+    logging_manager.configure_logging(Pep8LoggingConfig(),
+                                      verbose=True)
     import optparse
     usage = "usage: %prog [options] [list of files]"
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option("-q", "--quiet",
-                      action="store_true", dest="quiet",
-                      help="Ignore pep8 errors %s" % IGNORED_ERRORS)
-    parser.add_option("-d", "--dryrun",
-                      action="store_true", dest="dryrun",
-                      help="Analyze, but don't make any changes to files")
+    parser.add_option("-f", "--fix",
+                      action="store_true", dest="fix",
+                      help="Auto fix files in place")
     options, args = parser.parse_args()
-    verbose = not options.quiet
-    set_verbosity(verbose)
-    set_dryrun(options.dryrun)
-    file_list = args
-    if len(file_list) > 0:
-        for path in file_list:
-            if os.path.isdir(path):
-                check_dir(path)
-            else:
-                check_file(path)
+
+    if options.fix:
+        func = fix
     else:
-        check_dir('.')
+        func = check
+
+    if len(args) > 0:
+        for path_to_check in args:
+            func(path_to_check)
+    else:
+        func(".")
