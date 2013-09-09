@@ -617,7 +617,7 @@ full_install() {
         setup_substitute
         setup_epel_repo
         install_basic_pkgs_rh
-    elif [ "$(grep 'Ubuntu' /etc/issue)" != "" ]
+    elif [ -f /etc/debian_version ]
     then
         check_disk_space
         setup_substitute
@@ -653,7 +653,7 @@ full_install() {
             setup_firewall
             print_install_status
             print_version_and_url
-        elif [ "$(grep 'Ubuntu' /etc/issue)" != "" ]
+        elif [ -f /etc/debian_version ]
         then
             create_autotest_user_deb
             install_autotest
